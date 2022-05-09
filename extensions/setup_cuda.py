@@ -90,9 +90,9 @@ setup(
   author_email='chao.brain@qq.com',
   packages=find_packages(exclude=['lib*']),
   include_package_data=True,
-  install_requires=["jax", "jaxlib"],
+  install_requires=["jax", "jaxlib", "pybind11>=2.6, <2.8", "cffi", "numba"],
   extras_require={"test": "pytest"},
-  python_requires='>=3.6',
+  python_requires='>=3.7',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   ext_modules=[
     Extension("gpu_ops", ['lib/gpu_ops.cc'] + glob.glob("lib/*.cu")),

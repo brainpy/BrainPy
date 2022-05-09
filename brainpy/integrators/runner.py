@@ -93,7 +93,7 @@ class IntegratorRunner(Runner):
     >>> dt = 0.01; beta=2.; gamma=1.; tau=2.; n=9.65
     >>> mg_eq = lambda x, t, xdelay: (beta * xdelay(t - tau) / (1 + xdelay(t - tau) ** n)
     >>>                               - gamma * x)
-    >>> xdelay = bm.FixedLenDelay(1, delay_len=tau, dt=dt, before_t0=lambda t: 1.2)
+    >>> xdelay = bm.TimeDelay(bm.asarray([1.2]), delay_len=tau, dt=dt, before_t0=lambda t: 1.2)
     >>> integral = bp.ddeint(mg_eq, method='rk4', state_delays={'x': xdelay})
     >>> runner = bp.integrators.IntegratorRunner(
     >>>       integral,
@@ -233,18 +233,17 @@ class IntegratorRunner(Runner):
         has_return=True
       )
     else:
-      def _loop_func(t_and_dt):
+      def _loop_func(times):
         out_vars = {k: [] for k in self.mon.item_names}
         returns = {k: [] for k in self.fun_monitors.keys()}
-        times, dts = t_and_dt
         for i in range(len(times)):
           _t = times[i]
-          _dt = dts[i]
+          _dt = self.dt
           # function monitor
           for k, v in self.fun_monitors.items():
             returns[k].append(v(_t, _dt))
           # step call
-          self._step([_t, _dt])
+          self._step(_t)
           # variable monitors
           for k in self.mon.item_names:
             out_vars[k].append(bm.as_device_array(self.variables[k]))
@@ -257,19 +256,19 @@ class IntegratorRunner(Runner):
     for key in returns.keys():
       self.mon.item_contents[key] = bm.asarray(returns[key])
 
-  def _step(self, t_and_dt):
+  def _step(self, t):
     # arguments
     kwargs = dict()
     kwargs.update(self.variables)
-    kwargs.update({'t': t_and_dt[0], 'dt': t_and_dt[1]})
+    kwargs.update({'t': t, 'dt': self.dt})
     kwargs.update(self._static_args)
     if len(self._dyn_args) > 0:
-      kwargs.update({k: v[self.idx] for k, v in self._dyn_args.items()})
+      kwargs.update({k: v[self.idx.value] for k, v in self._dyn_args.items()})
       self.idx += 1
     # return of function monitors
     returns = dict()
     for key, func in self.fun_monitors.items():
-      returns[key] = func(t_and_dt[0], t_and_dt[1])
+      returns[key] = func(t, self.dt)
     # call integrator function
     update_values = self.target(**kwargs)
     if len(self.target.variables) == 1:
@@ -309,10 +308,7 @@ class IntegratorRunner(Runner):
         start_t = float(self._start_t)
     end_t = float(start_t + duration)
     # times
-    times = bm.asarray(np.arange(start_t, end_t, self.dt))
-    time_steps = bm.asarray(np.ones_like(times) * self.dt)
-    # times = bm.arange(start_t, end_t, self.dt)
-    # time_steps = bm.ones_like(times) * self.dt
+    times = np.arange(start_t, end_t, self.dt)
 
     # running
     if self.progress_bar:
@@ -320,7 +316,7 @@ class IntegratorRunner(Runner):
       self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
                                  refresh=True)
     t0 = time.time()
-    hists, returns = self.step_func([times.value, time_steps.value])
+    hists, returns = self.step_func(times)
     running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()

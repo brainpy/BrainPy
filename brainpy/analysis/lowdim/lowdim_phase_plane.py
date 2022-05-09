@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import numpy as np
+from jax import vmap
 
 import brainpy.math as bm
 from brainpy import errors, math
 from brainpy.analysis import stability, constants as C, utils
 from brainpy.analysis.lowdim.lowdim_analyzer import *
+
+pyplot = None
 
 __all__ = [
   'PhasePlane1D',
@@ -62,6 +64,8 @@ class PhasePlane1D(Num1DAnalyzer):
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
     """Plot the vector filed."""
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am creating the vector field ...')
 
     # Nullcline of the x variable
@@ -72,19 +76,21 @@ class PhasePlane1D(Num1DAnalyzer):
     if with_plot:
       label = f"d{self.x_var}dt"
       x_style = dict(color='lightcoral', alpha=.7, linewidth=4)
-      plt.plot(np.asarray(self.resolutions[self.x_var]), y_val, **x_style, label=label)
-      plt.axhline(0)
-      plt.xlabel(self.x_var)
-      plt.ylabel(label)
-      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=(self.lim_scale - 1.) / 2))
-      plt.legend()
-      if show: plt.show()
+      pyplot.plot(np.asarray(self.resolutions[self.x_var]), y_val, **x_style, label=label)
+      pyplot.axhline(0)
+      pyplot.xlabel(self.x_var)
+      pyplot.ylabel(label)
+      pyplot.xlim(*utils.rescale(self.target_vars[self.x_var], scale=(self.lim_scale - 1.) / 2))
+      pyplot.legend()
+      if show: pyplot.show()
     # return
     if with_return:
       return y_val
 
   def plot_fixed_point(self, show=False, with_plot=True, with_return=False):
     """Plot the fixed point."""
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am searching fixed points ...')
 
     # fixed points and stability analysis
@@ -102,10 +108,10 @@ class PhasePlane1D(Num1DAnalyzer):
       for fp_type, points in container.items():
         if len(points):
           plot_style = stability.plot_scheme[fp_type]
-          plt.plot(points, [0] * len(points), '.', markersize=20, **plot_style, label=fp_type)
-      plt.legend()
+          pyplot.plot(points, [0] * len(points), '.', markersize=20, **plot_style, label=fp_type)
+      pyplot.legend()
       if show:
-        plt.show()
+        pyplot.show()
 
     # return
     if with_return:
@@ -153,7 +159,7 @@ class PhasePlane2D(Num2DAnalyzer):
   @property
   def F_vmap_brentq_fy(self):
     if C.F_vmap_brentq_fy not in self.analyzed_results:
-      f_opt = bm.jit(bm.vmap(utils.jax_brentq(self.F_fy)))
+      f_opt = bm.jit(vmap(utils.jax_brentq(self.F_fy)))
       self.analyzed_results[C.F_vmap_brentq_fy] = f_opt
     return self.analyzed_results[C.F_vmap_brentq_fy]
 
@@ -178,6 +184,8 @@ class PhasePlane2D(Num2DAnalyzer):
           "units", "angles", "scale". More settings please check
           https://matplotlib.org/api/_as_gen/matplotlib.pyplot.quiver.html.
     """
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am creating the vector field ...')
 
     # get vector fields
@@ -197,7 +205,7 @@ class PhasePlane2D(Num2DAnalyzer):
           speed = np.sqrt(dx ** 2 + dy ** 2)
           dx = dx / speed
           dy = dy / speed
-        plt.quiver(X, Y, dx, dy, **plot_style)
+        pyplot.quiver(X, Y, dx, dy, **plot_style)
       elif plot_method == 'streamplot':
         if plot_style is None:
           plot_style = dict(arrowsize=1.2, density=1, color='thistle')
@@ -207,15 +215,15 @@ class PhasePlane2D(Num2DAnalyzer):
             min_width, max_width = 0.5, 5.5
             speed = np.nan_to_num(np.sqrt(dx ** 2 + dy ** 2))
             linewidth = min_width + max_width * (speed / speed.max())
-        plt.streamplot(X, Y, dx, dy, linewidth=linewidth, **plot_style)
+        pyplot.streamplot(X, Y, dx, dy, linewidth=linewidth, **plot_style)
       else:
         raise errors.AnalyzerError(f'Unknown plot_method "{plot_method}", '
                                    f'only supports "quiver" and "streamplot".')
 
-      plt.xlabel(self.x_var)
-      plt.ylabel(self.y_var)
+      pyplot.xlabel(self.x_var)
+      pyplot.ylabel(self.y_var)
       if show:
-        plt.show()
+        pyplot.show()
 
     if with_return:  # return vector fields
       return dx, dy
@@ -224,6 +232,8 @@ class PhasePlane2D(Num2DAnalyzer):
                      y_style=None, x_style=None, show=False,
                      coords=None, tol_nullcline=1e-7):
     """Plot the nullcline."""
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am computing fx-nullcline ...')
 
     if coords is None:
@@ -240,7 +250,7 @@ class PhasePlane2D(Num2DAnalyzer):
       if x_style is None:
         x_style = dict(color='cornflowerblue', alpha=.7, )
       fmt = x_style.pop('fmt', '.')
-      plt.plot(x_values_in_fx, y_values_in_fx, fmt, **x_style, label=f"{self.x_var} nullcline")
+      pyplot.plot(x_values_in_fx, y_values_in_fx, fmt, **x_style, label=f"{self.x_var} nullcline")
 
     # Nullcline of the y variable
     utils.output('I am computing fy-nullcline ...')
@@ -252,17 +262,17 @@ class PhasePlane2D(Num2DAnalyzer):
       if y_style is None:
         y_style = dict(color='lightcoral', alpha=.7, )
       fmt = y_style.pop('fmt', '.')
-      plt.plot(x_values_in_fy, y_values_in_fy, fmt, **y_style, label=f"{self.y_var} nullcline")
+      pyplot.plot(x_values_in_fy, y_values_in_fy, fmt, **y_style, label=f"{self.y_var} nullcline")
 
     if with_plot:
-      plt.xlabel(self.x_var)
-      plt.ylabel(self.y_var)
+      pyplot.xlabel(self.x_var)
+      pyplot.ylabel(self.y_var)
       scale = (self.lim_scale - 1.) / 2
-      plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-      plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
-      plt.legend()
+      pyplot.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+      pyplot.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+      pyplot.legend()
       if show:
-        plt.show()
+        pyplot.show()
 
     if with_return:
       return {self.x_var: (x_values_in_fx, y_values_in_fx),
@@ -273,6 +283,8 @@ class PhasePlane2D(Num2DAnalyzer):
                        select_candidates='fx-nullcline', num_rank=100, ):
     """Plot the fixed point and analyze its stability.
     """
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am searching fixed points ...')
 
     if self._can_convert_to_one_eq():
@@ -338,10 +350,10 @@ class PhasePlane2D(Num2DAnalyzer):
       for fp_type, points in container.items():
         if len(points['x']):
           plot_style = stability.plot_scheme[fp_type]
-          plt.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
-      plt.legend()
+          pyplot.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
+      pyplot.legend()
       if show:
-        plt.show()
+        pyplot.show()
 
     if with_return:
       return fixed_points
@@ -377,7 +389,8 @@ class PhasePlane2D(Num2DAnalyzer):
     show : bool
         Whether show or not.
     """
-
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am plotting the trajectory ...')
 
     if axes not in ['v-v', 't-v']:
@@ -413,28 +426,31 @@ class PhasePlane2D(Num2DAnalyzer):
         start = int(plot_durations[i][0] / dt)
         end = int(plot_durations[i][1] / dt)
         if axes == 'v-v':
-          lines = plt.plot(mon_res[self.x_var][start: end, i], mon_res[self.y_var][start: end, i],
-                           label=legend, **kwargs)
+          lines = pyplot.plot(mon_res[self.x_var][start: end, i],
+                              mon_res[self.y_var][start: end, i],
+                              label=legend, **kwargs)
           utils.add_arrow(lines[0])
         else:
-          plt.plot(mon_res.ts[start: end], mon_res[self.x_var][start: end, i],
-                   label=legend + f', {self.x_var}', **kwargs)
-          plt.plot(mon_res.ts[start: end], mon_res[self.y_var][start: end, i],
-                   label=legend + f', {self.y_var}', **kwargs)
+          pyplot.plot(mon_res.ts[start: end],
+                      mon_res[self.x_var][start: end, i],
+                      label=legend + f', {self.x_var}', **kwargs)
+          pyplot.plot(mon_res.ts[start: end],
+                      mon_res[self.y_var][start: end, i],
+                      label=legend + f', {self.y_var}', **kwargs)
 
       # visualization of others
       if axes == 'v-v':
-        plt.xlabel(self.x_var)
-        plt.ylabel(self.y_var)
+        pyplot.xlabel(self.x_var)
+        pyplot.ylabel(self.y_var)
         scale = (self.lim_scale - 1.) / 2
-        plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-        plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
-        plt.legend()
+        pyplot.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+        pyplot.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+        pyplot.legend()
       else:
-        plt.legend(title='Initial values')
+        pyplot.legend(title='Initial values')
 
       if show:
-        plt.show()
+        pyplot.show()
 
     if with_return:
       return mon_res
@@ -462,6 +478,8 @@ class PhasePlane2D(Num2DAnalyzer):
     show : bool
         Whether show or not.
     """
+    global pyplot
+    if pyplot is None: from matplotlib import pyplot
     utils.output('I am plotting the limit cycle ...')
 
     # 1. format the initial values
@@ -487,18 +505,18 @@ class PhasePlane2D(Num2DAnalyzer):
         x_cycle = x_data[max_index[0]: max_index[1]]
         y_cycle = y_data[max_index[0]: max_index[1]]
         # 5.5 visualization
-        lines = plt.plot(x_cycle, y_cycle, label='limit cycle')
+        lines = pyplot.plot(x_cycle, y_cycle, label='limit cycle')
         utils.add_arrow(lines[0])
       else:
         utils.output(f'No limit cycle found for initial value {initial}')
 
     # 6. visualization
-    plt.xlabel(self.x_var)
-    plt.ylabel(self.y_var)
+    pyplot.xlabel(self.x_var)
+    pyplot.ylabel(self.y_var)
     scale = (self.lim_scale - 1.) / 2
-    plt.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
-    plt.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
-    plt.legend()
+    pyplot.xlim(*utils.rescale(self.target_vars[self.x_var], scale=scale))
+    pyplot.ylim(*utils.rescale(self.target_vars[self.y_var], scale=scale))
+    pyplot.legend()
 
     if show:
-      plt.show()
+      pyplot.show()

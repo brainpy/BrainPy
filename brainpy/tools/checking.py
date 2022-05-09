@@ -12,7 +12,7 @@ from brainpy.types import Tensor
 __all__ = [
   'check_shape_consistency',
   'check_shape_broadcastable',
-  'check_batch_shape',
+  'check_shape_except_batch',
   'check_shape',
   'check_dict_data',
   'check_initializer',
@@ -20,6 +20,7 @@ __all__ = [
   'check_float',
   'check_integer',
   'check_string',
+  'check_sequence',
 ]
 
 
@@ -86,7 +87,7 @@ def check_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):
   return check_shape_consistency(shapes, free_axes, return_format_shapes)
 
 
-def check_batch_shape(shape1, shape2, batch_idx=0, mode='raise'):
+def check_shape_except_batch(shape1, shape2, batch_idx=0, mode='raise'):
   """Check whether two shapes are compatible except the batch size axis."""
   assert mode in ['raise', 'bool']
   if len(shape2) != len(shape1):
@@ -101,7 +102,7 @@ def check_batch_shape(shape1, shape2, batch_idx=0, mode='raise'):
   new_shape2.pop(batch_idx)
   if new_shape1 != new_shape2:
     if mode == 'raise':
-      raise ValueError(f'Two shapes {shape1} and {shape2} are not '
+      raise ValueError(f'Two shapes {new_shape1} and {new_shape2} are not '
                        f'consistent when excluding the batch axis '
                        f'{batch_idx}')
     else:
@@ -209,6 +210,25 @@ def check_connector(connector: Union[Callable, conn.Connector, Tensor],
                      f'tensor or callable function. While we got {type(connector)}')
 
 
+def check_sequence(value: Sequence,
+                   name=None,
+                   elem_type=None,
+                   allow_none=True):
+  if name is None: name = ''
+  if value is None:
+    if allow_none:
+      return
+    else:
+      raise ValueError(f'{name} must be a sequence, but got None')
+  if not isinstance(value, (tuple, list)):
+    raise ValueError(f'{name} should be a sequence, but we got a {type(value)}')
+  if elem_type is not None:
+    for v in value:
+      if not isinstance(v, elem_type):
+        raise ValueError(f'Elements in {name} should be {elem_type}, '
+                         f'but we got {type(elem_type)}: {v}')
+
+
 def check_float(value: float, name=None, min_bound=None, max_bound=None,
                 allow_none=False, allow_int=True):
   """Check float type.
@@ -269,13 +289,14 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
     else:
       raise ValueError(f'{name} must be an int, but got None')
   if not isinstance(value, int):
-    raise ValueError(f'{name} must be an int, but got {type(value)}')
+    if hasattr(value, 'dtype') and not jnp.issubdtype(value.dtype, jnp.integer):
+      raise ValueError(f'{name} must be an int, but got {value}')
   if min_bound is not None:
-    if value < min_bound:
+    if jnp.any(value < min_bound):
       raise ValueError(f"{name} must be an int bigger than {min_bound}, "
                        f"while we got {value}")
   if max_bound is not None:
-    if value > max_bound:
+    if jnp.any(value > max_bound):
       raise ValueError(f"{name} must be an int smaller than {max_bound}, "
                        f"while we got {value}")
 

@@ -6,6 +6,7 @@ from brainpy import errors, math
 from brainpy.integrators import constants, utils
 from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.sde.base import SDEIntegrator
+from .generic import register_sde_integrator
 
 try:
   import sympy
@@ -52,16 +53,17 @@ def noise_terms(code_lines, variables):
   # code_lines.append('  ')
 
   for var in variables:
-    code_lines.append(f'  {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var}))')
+    code_lines.append(f'  {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var})).value')
   code_lines.append('  ')
 
 
 class Euler(SDEIntegrator):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None,
+               state_delays=None):
     super(Euler, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                 var_type=var_type, intg_type=intg_type,
-                                wiener_type=wiener_type)
+                                wiener_type=wiener_type, state_delays=state_delays)
     self.build()
 
   def build(self):
@@ -142,24 +144,32 @@ class Euler(SDEIntegrator):
       func_name=self.func_name)
 
 
+register_sde_integrator('euler', Euler)
+
+
 class Heun(Euler):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None,
+               state_delays=None):
     if intg_type != constants.STRA_SDE:
       raise errors.IntegratorError(f'Heun method only supports Stranovich integral of SDEs, '
                                    f'but we got {intg_type} integral.')
     super(Heun, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                var_type=var_type, intg_type=intg_type,
-                               wiener_type=wiener_type)
+                               wiener_type=wiener_type, state_delays=state_delays)
     self.build()
+
+
+register_sde_integrator('heun', Heun)
 
 
 class Milstein(SDEIntegrator):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None,
+               state_delays=None):
     super(Milstein, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                    var_type=var_type, intg_type=intg_type,
-                                   wiener_type=wiener_type)
+                                   wiener_type=wiener_type, state_delays=state_delays)
     self.build()
 
   def build(self):
@@ -238,6 +248,9 @@ class Milstein(SDEIntegrator):
       func_name=self.func_name)
 
 
+register_sde_integrator('milstein', Milstein)
+
+
 class ExponentialEuler(SDEIntegrator):
   r"""First order, explicit exponential Euler method.
 
@@ -263,10 +276,11 @@ class ExponentialEuler(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None,
+               state_delays=None):
     super(ExponentialEuler, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                            var_type=var_type, intg_type=intg_type,
-                                           wiener_type=wiener_type)
+                                           wiener_type=wiener_type, state_delays=state_delays)
     self.build()
 
   def build(self):
@@ -399,3 +413,7 @@ class ExponentialEuler(SDEIntegrator):
     if hasattr(self.derivative[constants.F], '__self__'):
       host = self.derivative[constants.F].__self__
       self.integral = self.integral.__get__(host, host.__class__)
+
+
+register_sde_integrator('exponential_euler', ExponentialEuler)
+register_sde_integrator('exp_euler', ExponentialEuler)

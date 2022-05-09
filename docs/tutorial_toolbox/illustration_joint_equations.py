@@ -24,8 +24,8 @@ class IzhiJoint(bp.dyn.NeuGroup):
 
 		self.integral = bp.odeint(self.derivative, method='rk2')
 
-	def update(self, _t, _dt):
-		V, u = self.integral(self.V, self.u, _t, self.input, dt=_dt)
+	def update(self, t, dt):
+		V, u = self.integral(self.V, self.u, t, self.input, dt=dt)
 		spike = V >= 0.
 		self.V.value = bm.where(spike, -65., V)
 		self.u.value = bm.where(spike, u + 8., u)
@@ -49,9 +49,9 @@ class IzhiSeparate(bp.NeuGroup):
 		self.int_V = bp.odeint(self.dV, method='rk2')
 		self.int_u = bp.odeint(self.du, method='rk2')
 
-	def update(self, _t, _dt):
-		V = self.int_V(self.V, _t, self.u, self.input, dt=_dt)
-		u = self.int_u(self.u, _t, self.V, dt=_dt)
+	def update(self, t, dt):
+		V = self.int_V(self.V, t, self.u, self.input, dt=dt)
+		u = self.int_u(self.u, t, self.V, dt=dt)
 		spike = V >= 0.
 		self.V.value = bm.where(spike, -65., V)
 		self.u.value = bm.where(spike, u + 8., u)

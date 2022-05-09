@@ -2,6 +2,7 @@
 
 from brainpy.integrators import constants, utils
 from brainpy.integrators.sde.base import SDEIntegrator
+from .generic import register_sde_integrator
 
 __all__ = [
   'SRK1W1',
@@ -39,8 +40,8 @@ def _noise_terms(code_lines, variables, triple_integral=True):
   #     code_lines.append('  ')
 
   for var in variables:
-    code_lines.append(f'  {var}_I1 = random.normal(0.000, dt_sqrt, math.shape({var}))')
-    code_lines.append(f'  {var}_I0 = random.normal(0.000, dt_sqrt, math.shape({var}))')
+    code_lines.append(f'  {var}_I1 = dt_sqrt * random.randn(*math.shape({var}))')
+    code_lines.append(f'  {var}_I0 = dt_sqrt * random.randn(*math.shape({var}))')
     code_lines.append(f'  {var}_I10 = 0.5 * {constants.DT} * ({var}_I1 + {var}_I0 / 3.0 ** 0.5)')
     code_lines.append(f'  {var}_I11 = 0.5 * ({var}_I1 ** 2 - {constants.DT})')
     if triple_integral:
@@ -94,10 +95,10 @@ class SRK1W1(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(SRK1W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
-                                 wiener_type=wiener_type)
+                                 wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -175,6 +176,9 @@ class SRK1W1(SDEIntegrator):
       func_name=self.func_name)
 
 
+register_sde_integrator('srk1w1', SRK1W1)
+
+
 class SRK2W1(SDEIntegrator):
   r"""Order 1.5 Strong SRK Methods for SDEs with Scalar Noise.
 
@@ -210,10 +214,10 @@ class SRK2W1(SDEIntegrator):
   """
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(SRK2W1, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                  var_type=var_type, intg_type=intg_type,
-                                 wiener_type=wiener_type)
+                                 wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -315,12 +319,15 @@ class SRK2W1(SDEIntegrator):
       func_name=self.func_name)
 
 
+register_sde_integrator('srk2w1', SRK2W1)
+
+
 class KlPl(SDEIntegrator):
   def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None):
+               var_type=None, intg_type=None, wiener_type=None, state_delays=None):
     super(KlPl, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
                                var_type=var_type, intg_type=intg_type,
-                               wiener_type=wiener_type)
+                               wiener_type=wiener_type, state_delays=state_delays)
     assert self.wiener_type == constants.SCALAR_WIENER
     self.build()
 
@@ -354,7 +361,7 @@ class KlPl(SDEIntegrator):
       self.code_lines.append(f'  {var}_g1 = -{var}_I1 + {var}_I11/dt_sqrt + {var}_I10/{constants.DT}')
       self.code_lines.append(f'  {var}_g2 = {var}_I11 / dt_sqrt')
       self.code_lines.append(f'  {var}_new = {var} + {constants.DT} * {var}_f_H0s1 + '
-                        f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
+                             f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
       self.code_lines.append('  ')
 
     # returns
@@ -367,3 +374,6 @@ class KlPl(SDEIntegrator):
       code_lines=self.code_lines,
       show_code=self.show_code,
       func_name=self.func_name)
+
+
+register_sde_integrator('klpl', KlPl)

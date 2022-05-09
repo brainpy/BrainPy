@@ -4,15 +4,14 @@ from typing import Union, Sequence, Dict, Optional
 
 import jax.numpy as jnp
 
+import brainpy.math as bm
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MathError
-from brainpy.math import numpy_ops as ops
 from brainpy.math.jaxarray import Variable
 from .scheduler import make_schedule, Scheduler
 
 __all__ = [
-  # optimizers
   'Optimizer',
   'SGD',
   'Momentum',
@@ -21,6 +20,7 @@ __all__ = [
   'Adadelta',
   'RMSProp',
   'Adam',
+  'LARS',
 ]
 
 
@@ -28,10 +28,12 @@ class Optimizer(Base):
   """Base Optimizer Class.
   """
 
-  def __init__(self,
-               lr: Union[float, int, Scheduler],
-               train_vars: Union[Sequence[Variable], Dict[str, Variable]] = None,
-               name: str = None):
+  def __init__(
+      self,
+      lr: Union[float, int, Scheduler],
+      train_vars: Union[Sequence[Variable], Dict[str, Variable]] = None,
+      name: str = None
+  ):
     super(Optimizer, self).__init__(name=name)
     self.lr = make_schedule(lr)
     self.vars_to_train = TensorCollector()
@@ -45,6 +47,9 @@ class Optimizer(Base):
       raise MathError(
         f'The length of "grads" must be equal to "self.vars_to_train", '
         f'while we got {len(grads)} != {len(self.vars_to_train)}!')
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr})"
 
 
 class SGD(Optimizer):
@@ -111,7 +116,8 @@ class Momentum(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    vs = dict((key + '_v', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    vs = dict((key + '_v', Variable(bm.zeros_like(x)))
+              for key, x in train_vars.items())
     self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
@@ -123,6 +129,9 @@ class Momentum(Optimizer):
       v.value = self.momentum * v.value - lr * g
       p.value += v.value
     self.lr.update()
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
 class MomentumNesterov(Optimizer):
@@ -154,7 +163,8 @@ class MomentumNesterov(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    vs = dict((key + '_v', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    vs = dict((key + '_v', Variable(bm.zeros_like(x)))
+              for key, x in train_vars.items())
     self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
@@ -166,6 +176,9 @@ class MomentumNesterov(Optimizer):
       v.value = self.momentum * v.value - lr * g
       p.value += (self.momentum * v.value - lr * g)
     self.lr.update()
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
 class Adagrad(Optimizer):
@@ -203,7 +216,8 @@ class Adagrad(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
     self.register_implicit_vars(caches)
 
   def update(self, grads: dict):
@@ -213,8 +227,11 @@ class Adagrad(Optimizer):
       g = grads[key]
       c = self.implicit_vars[key + '_cache']
       c.value += g ** 2
-      p.value -= lr * g / ops.sqrt(c + self.epsilon)
+      p.value -= lr * g / bm.sqrt(c + self.epsilon)
     self.lr.update()
+
+  def __repr__(self):
+    return f"{self.__class__.__name__}(lr={self.lr}, epsilon={self.epsilon})"
 
 
 class Adadelta(Optimizer):
@@ -266,8 +283,10 @@ class Adadelta(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
-    deltas = dict((key + '_delta', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
+    deltas = dict((key + '_delta', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
     self.register_implicit_vars(caches)
     self.register_implicit_vars(deltas)
 
@@ -281,6 +300,10 @@ class Adadelta(Optimizer):
       update = g * jnp.sqrt(d.value + self.epsilon) / jnp.sqrt(c + self.epsilon)
       p.value -= update
       d.value = self.rho * d.value + (1 - self.rho) * update ** 2
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"epsilon={self.epsilon}, rho={self.rho})")
 
 
 class RMSProp(Optimizer):
@@ -320,7 +343,8 @@ class RMSProp(Optimizer):
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(ops.zeros_like(x))) for key, x in train_vars.items())
+    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+                  for key, x in train_vars.items())
     self.register_implicit_vars(caches)
 
   def update(self, grads: dict):
@@ -332,6 +356,10 @@ class RMSProp(Optimizer):
       c.value = self.rho * c.value + (1 - self.rho) * g ** 2
       p.value -= (lr * g / jnp.sqrt(c.value + self.epsilon))
     self.lr.update()
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"epsilon={self.epsilon}, rho={self.rho})")
 
 
 class Adam(Optimizer):
@@ -367,14 +395,20 @@ class Adam(Optimizer):
     self.beta2 = beta2
     self.eps = eps
 
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"beta1={self.beta1}, beta2={self.beta2}, eps={self.eps})")
+
   def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    ms = dict((k + '_m', Variable(ops.zeros_like(x))) for k, x in train_vars.items())
+    ms = dict((k + '_m', Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
     self.register_implicit_vars(ms)
-    vs = dict((k + '_v', Variable(ops.zeros_like(x))) for k, x in train_vars.items())
+    vs = dict((k + '_v', Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
     self.register_implicit_vars(vs)
 
   def update(self, grads: dict):
@@ -392,4 +426,63 @@ class Adam(Optimizer):
       v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2
       # Bias correction.
       p.value -= lr * m.value / (jnp.sqrt(v.value) + self.eps)
+    self.lr.update()
+
+
+class LARS(Optimizer):
+  """Layer-wise adaptive rate scaling (LARS) optimizer.
+
+  Parameters
+  ----------
+  momentum: float
+    coefficient used for the moving average of the gradient.
+  weight_decay: float
+    weight decay coefficient.
+  tc: float
+    trust coefficient eta ( < 1) for trust ratio computation.
+  eps: float
+    epsilon used for trust ratio computation.
+  """
+
+  def __init__(self,
+               lr: Union[float, int, Scheduler],
+               train_vars: Dict[str, Variable] = None,
+               momentum: float = 0.9,
+               weight_decay: float = 1e-4,
+               tc: float = 1e-3,
+               eps: float = 1e-5,
+               name: str = None):
+    super(LARS, self).__init__(lr=lr, train_vars=train_vars, name=name)
+
+    self.momentum = momentum
+    self.weight_decay = weight_decay
+    self.tc = tc
+    self.eps = eps
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"momentum={self.momentum}, weight_decay={self.weight_decay}, "
+            f"tc={self.tc}, eps={self.eps})")
+
+  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+    train_vars = dict() if train_vars is None else train_vars
+    if not isinstance(train_vars, dict):
+      raise MathError('"train_vars" must be a dict of Variable.')
+    self.vars_to_train.update(train_vars)
+    ms = dict((k + '_m', Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
+    self.register_implicit_vars(ms)
+
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    lr = self.lr()
+    for k, p in self.vars_to_train.items():
+      g = grads[k]
+      m = self.implicit_vars[k + '_m']
+      p_norm = jnp.linalg.norm(bm.as_device_array(p))
+      g_norm = jnp.linalg.norm(bm.as_device_array(g))
+      trust_ratio = self.tc * p_norm / (g_norm + self.weight_decay * p_norm + self.eps)
+      local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
+      m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
+      p.value -= m.value
     self.lr.update()

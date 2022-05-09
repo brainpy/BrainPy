@@ -33,7 +33,7 @@ Details in the following.
 
 # data structure
 from .jaxarray import *
-from .delay_vars import *
+from .delayvars import *
 
 # high-level numpy operations
 from .numpy_ops import *
@@ -46,7 +46,6 @@ from . import random
 from .autograd import *
 from .controls import *
 from .jit import *
-from .parallels import *
 
 # settings
 from . import setting
@@ -56,8 +55,7 @@ from .function import *
 # functions
 from .activations import *
 from . import activations
-from .compact import *
-from . import special
+from .compat import *
 
 
 def get_dint():

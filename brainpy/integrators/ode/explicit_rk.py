@@ -70,6 +70,7 @@ More details please see references [2]_ [3]_ [4]_.
 from brainpy.integrators import constants as C, utils
 from brainpy.integrators.ode import common
 from brainpy.integrators.ode.base import ODEIntegrator
+from .generic import register_ode_integrator
 
 __all__ = [
   'ExplicitRKIntegrator',
@@ -131,14 +132,26 @@ class ExplicitRKIntegrator(ODEIntegrator):
   B = []  # The B vector in the Butcher tableau.
   C = []  # The C vector in the Butcher tableau.
 
-  def __init__(self, f, var_type=None, dt=None, name=None, show_code=False):
-    super(ExplicitRKIntegrator, self).__init__(f=f, var_type=var_type, dt=dt,
-                                               name=name, show_code=show_code)
+  def __init__(self,
+               f,
+               var_type=None,
+               dt=None,
+               name=None,
+               show_code=False,
+               state_delays=None,
+               neutral_delays=None):
+    super(ExplicitRKIntegrator, self).__init__(f=f,
+                                               var_type=var_type,
+                                               dt=dt,
+                                               name=name,
+                                               show_code=show_code,
+                                               state_delays=state_delays,
+                                               neutral_delays=neutral_delays)
 
     # integrator keywords
     keywords = {
       C.F: 'the derivative function',
-      C.DT: 'the precision of numerical integration'
+      # C.DT: 'the precision of numerical integration'
     }
     for v in self.variables:
       keywords[f'{v}_new'] = 'the intermediate value'
@@ -147,7 +160,7 @@ class ExplicitRKIntegrator(ODEIntegrator):
       for i in range(2, len(self.A) + 1):
         keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
         keywords[f'k{i}_t_arg'] = 'the intermediate value'
-    utils.check_kws(self.arguments, keywords)
+    utils.check_kws(self.arg_names, keywords)
     self.build()
 
   def build(self):
@@ -247,6 +260,9 @@ class Euler(ExplicitRKIntegrator):
   C = [0]
 
 
+register_ode_integrator('euler', Euler)
+
+
 class MidPoint(ExplicitRKIntegrator):
   r"""Explicit midpoint method for ODEs.
 
@@ -341,6 +357,9 @@ class MidPoint(ExplicitRKIntegrator):
   C = [0, 0.5]
 
 
+register_ode_integrator('midpoint', MidPoint)
+
+
 class Heun2(ExplicitRKIntegrator):
   r"""Heun's method for ODEs.
 
@@ -406,6 +425,9 @@ class Heun2(ExplicitRKIntegrator):
   C = [0, 1]
 
 
+register_ode_integrator('heun2', Heun2)
+
+
 class Ralston2(ExplicitRKIntegrator):
   r"""Ralston's method for ODEs.
 
@@ -435,6 +457,9 @@ class Ralston2(ExplicitRKIntegrator):
   A = [(), ('2/3',)]
   B = [0.25, 0.75]
   C = [0, '2/3']
+
+
+register_ode_integrator('ralston2', Ralston2)
 
 
 class RK2(ExplicitRKIntegrator):
@@ -553,11 +578,28 @@ class RK2(ExplicitRKIntegrator):
 
   """
 
-  def __init__(self, f, beta=2 / 3, var_type=None, dt=None, name=None, show_code=False):
+  def __init__(self,
+               f,
+               beta=2 / 3,
+               var_type=None,
+               dt=None,
+               name=None,
+               show_code=False,
+               state_delays=None,
+               neutral_delays=None):
     self.A = [(), (beta,)]
     self.B = [1 - 1 / (2 * beta), 1 / (2 * beta)]
     self.C = [0, beta]
-    super(RK2, self).__init__(f=f, var_type=var_type, dt=dt, name=name, show_code=show_code)
+    super(RK2, self).__init__(f=f,
+                              var_type=var_type,
+                              dt=dt,
+                              name=name,
+                              show_code=show_code,
+                              state_delays=state_delays,
+                              neutral_delays=neutral_delays)
+
+
+register_ode_integrator('rk2', RK2)
 
 
 class RK3(ExplicitRKIntegrator):
@@ -598,6 +640,9 @@ class RK3(ExplicitRKIntegrator):
   C = [0, 0.5, 1]
 
 
+register_ode_integrator('rk3', RK3)
+
+
 class Heun3(ExplicitRKIntegrator):
   r"""Heun's third-order method for ODEs.
 
@@ -620,6 +665,9 @@ class Heun3(ExplicitRKIntegrator):
   A = [(), ('1/3',), (0, '2/3')]
   B = [0.25, 0, 0.75]
   C = [0, '1/3', '2/3']
+
+
+register_ode_integrator('heun3', Heun3)
 
 
 class Ralston3(ExplicitRKIntegrator):
@@ -651,6 +699,9 @@ class Ralston3(ExplicitRKIntegrator):
   C = [0, 0.5, 0.75]
 
 
+register_ode_integrator('ralston3', Ralston3)
+
+
 class SSPRK3(ExplicitRKIntegrator):
   r"""Third-order Strong Stability Preserving Runge-Kutta (SSPRK3).
 
@@ -672,6 +723,9 @@ class SSPRK3(ExplicitRKIntegrator):
   A = [(), (1,), (0.25, 0.25)]
   B = ['1/6', '1/6', '2/3']
   C = [0, 1, 0.5]
+
+
+register_ode_integrator('ssprk3', SSPRK3)
 
 
 class RK4(ExplicitRKIntegrator):
@@ -741,6 +795,9 @@ class RK4(ExplicitRKIntegrator):
   C = [0, 0.5, 0.5, 1]
 
 
+register_ode_integrator('rk4', RK4)
+
+
 class Ralston4(ExplicitRKIntegrator):
   r"""Ralston's fourth-order method for ODEs.
 
@@ -770,6 +827,9 @@ class Ralston4(ExplicitRKIntegrator):
   A = [(), (.4,), (.29697761, .15875964), (.21810040, -3.05096516, 3.83286476)]
   B = [.17476028, -.55148066, 1.20553560, .17118478]
   C = [0, .4, .45573725, 1]
+
+
+register_ode_integrator('ralston4', Ralston4)
 
 
 class RK4Rule38(ExplicitRKIntegrator):
@@ -811,3 +871,6 @@ class RK4Rule38(ExplicitRKIntegrator):
   A = [(), ('1/3',), ('-1/3', '1'), (1, -1, 1)]
   B = [0.125, 0.375, 0.375, 0.125]
   C = [0, '1/3', '2/3', 1]
+
+
+register_ode_integrator('rk4_38rule', RK4Rule38)

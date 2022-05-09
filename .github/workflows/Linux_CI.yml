@@ -5,9 +5,9 @@ name: Linux CI
 
 on:
   push:
-    branches: [ master, brainpy-2.x, V2.1.0 ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, brainpy-2.x, V2.1.0 ]
+    branches: [ master ]
 
 
 jobs:
@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v2

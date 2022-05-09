@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict, Any, Callable
+import warnings
+from typing import Union, Sequence, Dict, Any, Callable, Optional
 
 import jax.numpy as jnp
-import numpy as onp
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer
-from brainpy.tools.others import to_size
+from brainpy.initialize import Initializer, init_param as true_init_param
+from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor, Shape
 
 __all__ = [
   'tensor_sum',
   'init_param',
-  'check_rnn_data_batch_size',
+  'check_data_batch_size',
   'check_rnn_data_time_step',
+  'serialize_kwargs',
 ]
 
 
@@ -37,6 +38,9 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
                size: Shape):
   """Initialize parameters.
 
+  .. deprecated:: 2.1.2
+     Please use "brainpy.init.init_param" instead.
+
   Parameters
   ----------
   param: callable, Initializer, bm.ndarray, jnp.ndarray
@@ -48,22 +52,13 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
   size: int, sequence of int
     The shape of the parameter.
   """
-  size = to_size(size)
-  if param is None:
-    return None
-  elif callable(param):
-    param = param(size)
-  elif isinstance(param, (onp.ndarray, jnp.ndarray)):
-    param = bm.asarray(param)
-  elif isinstance(param, (bm.JaxArray,)):
-    param = param
-  else:
-    raise ValueError(f'Unknown param type {type(param)}: {param}')
-  assert param.shape == size, f'"param.shape" is not the required size {size}'
-  return param
+  warnings.warn('Please use "brainpy.init.init_param" instead. '
+                '"brainpy.nn.init_param" is deprecated since version 2.1.2. ',
+                DeprecationWarning)
+  return true_init_param(param, size)
 
 
-def check_rnn_data_batch_size(data: Dict, num_batch=None):
+def check_data_batch_size(data: Dict, num_batch=None):
   if len(data) == 1:
     batch_size = list(data.values())[0].shape[0]
   else:
@@ -93,3 +88,14 @@ def check_rnn_data_time_step(data: Dict, num_step=None):
   if (num_step is not None) and time_step != num_step:
     raise ValueError(f'Time step is not consistent with the expected {time_step} != {num_step}')
   return time_step
+
+
+def serialize_kwargs(shared_kwargs: Optional[Dict]):
+  """Serialize kwargs."""
+  shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+  check_dict_data(shared_kwargs,
+                  key_type=str,
+                  val_type=(bool, float, int, complex),
+                  name='shared_kwargs')
+  shared_kwargs = {key: shared_kwargs[key] for key in sorted(shared_kwargs.keys())}
+  return str(shared_kwargs)

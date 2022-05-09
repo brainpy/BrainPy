@@ -19,3 +19,4 @@
     auto/math/function
     math/comparison
     auto/math/setting
+    math_compat

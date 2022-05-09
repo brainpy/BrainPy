@@ -25,16 +25,15 @@ class MatConn(TwoEndConnector):
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
     
-    self.conn_mat = np.asarray(conn_mat, dtype=MAT_DTYPE)
+    self.conn_mat = np.asarray(conn_mat).astype(MAT_DTYPE)
   
   def __call__(self, pre_size, post_size):
     assert self.pre_num == tools.size2num(pre_size)
     assert self.post_num == tools.size2num(post_size)
     return self
-  
-  def require(self, *structures):
-    self.check(structures)
-    return self.make_returns(structures, mat=self.conn_mat)
+
+  def build_conn(self):
+    return 'mat', self.conn_mat
 
 
 class IJConn(TwoEndConnector):
@@ -48,8 +47,8 @@ class IJConn(TwoEndConnector):
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
-    self.pre_ids = np.asarray(i, dtype=IDX_DTYPE)
-    self.post_ids = np.asarray(j, dtype=IDX_DTYPE)
+    self.pre_ids = np.asarray(i).astype(IDX_DTYPE)
+    self.post_ids = np.asarray(j).astype(IDX_DTYPE)
 
   def __call__(self, pre_size, post_size):
     super(IJConn, self).__call__(pre_size, post_size)
@@ -63,10 +62,9 @@ class IJConn(TwoEndConnector):
       raise ConnectorError(f'post_num ({self.post_num}) should be greater than '
                            f'the maximum id ({max_post}) of self.post_ids.')
     return self
-  
-  def require(self, *structures):
-    self.check(structures)
-    return self.make_returns(structures, ij=(self.pre_ids, self.post_ids))
+
+  def build_conn(self):
+    return 'ij', (self.pre_ids, self.post_ids)
 
 
 class SparseMatConn(TwoEndConnector):
@@ -82,7 +80,7 @@ class SparseMatConn(TwoEndConnector):
                            f'Please run "pip install scipy" to install scipy.')
 
     assert isinstance(csr_mat, csr_matrix)
-    csr_mat.data = np.asarray(csr_mat.data, dtype=MAT_DTYPE)
+    csr_mat.data = np.asarray(csr_mat.data).astype(MAT_DTYPE)
     self.csr_mat = csr_mat
     self.pre_num, self.post_num = csr_mat.shape
 
@@ -96,7 +94,6 @@ class SparseMatConn(TwoEndConnector):
     super(SparseMatConn, self).__call__(pre_size, post_size)
     return self
 
-  def require(self, *structures):
-    self.check(structures)
+  def build_conn(self):
     ind, indptr = self.csr_mat.indices, self.csr_mat.indptr
-    return self.make_returns(structures, csr=(ind, indptr))
+    return 'csr', (ind, indptr)

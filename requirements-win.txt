@@ -1,10 +1,12 @@
-numpy>=1.15
+numpy==1.21
 tqdm
+numba<=0.55
 matplotlib>=3.4
 sympy>=1.6
 scipy>=1.1.0
 networkx
-brainpylib>=0.0.3
+brainpylib>=0.0.4
+jaxlib>=0.3.0
 
 # test requirements
 pytest

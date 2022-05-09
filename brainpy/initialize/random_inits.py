@@ -37,15 +37,20 @@ class Normal(InterLayerInitializer):
 
   """
 
-  def __init__(self, scale=1., seed=None):
+  def __init__(self, mean=0., scale=1., seed=None):
     super(Normal, self).__init__()
     self.scale = scale
-    self.rng = bm.random.RandomState(seed=seed)
+    self.mean = mean
+    self.seed = seed
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
-    weights = self.rng.normal(size=shape, scale=self.scale)
+    weights = self.rng.normal(size=shape, loc=self.mean,  scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale}, seed={self.seed})'
 
 
 class Uniform(InterLayerInitializer):
@@ -64,12 +69,17 @@ class Uniform(InterLayerInitializer):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
-    self.rng = bm.random.RandomState(seed=seed)
+    self.seed = seed
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
     return bm.asarray(r, dtype=dtype)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(min_val={self.min_val}, '
+            f'max_val={self.max_val}, seed={self.seed})')
 
 
 class VarianceScaling(InterLayerInitializer):
@@ -79,7 +89,8 @@ class VarianceScaling(InterLayerInitializer):
     self.in_axis = in_axis
     self.out_axis = out_axis
     self.distribution = distribution
-    self.rng = bm.random.RandomState(seed=seed)
+    self.seed = seed
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -94,18 +105,23 @@ class VarianceScaling(InterLayerInitializer):
       raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
     variance = bm.array(self.scale / denominator, dtype=dtype)
     if self.distribution == "truncated_normal":
+      from scipy.stats import truncnorm
       # constant is stddev of standard normal truncated to (-2, 2)
       stddev = bm.sqrt(variance) / bm.array(.87962566103423978, dtype)
-      res = self.rng.truncated_normal(-2, 2, shape) * stddev
-      return bm.asarray(res, dtype=dtype)
+      res = truncnorm(-2, 2).rvs(shape) * stddev
     elif self.distribution == "normal":
       res = self.rng.normal(size=shape) * bm.sqrt(variance)
-      return bm.asarray(res, dtype=dtype)
     elif self.distribution == "uniform":
       res = self.rng.uniform(low=-1, high=1, size=shape) * bm.sqrt(3 * variance)
-      return bm.asarray(res, dtype=dtype)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
+    return bm.asarray(res, dtype=dtype)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    blank = ' ' * len(name)
+    return (f'{name}(scale={self.scale}, mode={self.mode}, in_axis={self.in_axis}, \n'
+            f'{blank}out_axis={self.out_axis}, distribution={self.distribution}, seed={self.seed})')
 
 
 class KaimingUniform(VarianceScaling):
@@ -180,7 +196,8 @@ class Orthogonal(InterLayerInitializer):
     super(Orthogonal, self).__init__()
     self.scale = scale
     self.axis = axis
-    self.rng = bm.random.RandomState(seed=seed)
+    self.seed = seed
+    self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -196,6 +213,9 @@ class Orthogonal(InterLayerInitializer):
     q_mat = np.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = np.moveaxis(q_mat, 0, self.axis)
     return self.scale * bm.asarray(q_mat, dtype=dtype)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, seed={self.seed})'
 
 
 class DeltaOrthogonal(InterLayerInitializer):
@@ -229,3 +249,6 @@ class DeltaOrthogonal(InterLayerInitializer):
       k1, k2, k3 = shape[:3]
       W[(k1 - 1) // 2, (k2 - 1) // 2, (k3 - 1) // 2, ...] = ortho_matrix
     return W
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis})'

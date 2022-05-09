@@ -12,4 +12,5 @@
     integrators/ODE
     integrators/SDE
     integrators/DDE
+    integrators/FDE
 

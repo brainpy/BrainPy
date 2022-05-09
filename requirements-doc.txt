@@ -1,15 +1,17 @@
 -r requirements.txt
 
 matplotlib>=3.4
-jaxlib>=0.1.64
+jaxlib>=0.3.0
 sympy>=1.6
 scipy>=1.1.0
-brainpylib
+brainpylib>=0.0.4
+numba
 
 # document requirements
 pandoc
 Jinja2
-sphinx>=3,<4
+sphinx
 myst-nb
-sphinx_rtd_theme>=1.0.0
-sphinx-autodoc-typehints==1.11.1
+sphinx_book_theme
+sphinx-autodoc-typehints
+sphinx_thebe

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from typing import Dict
+
+import brainpy.math as bm
 from .base import SDEIntegrator
-from .normal import *
-from .srk_scalar import *
 
 __all__ = [
   'sdeint',
@@ -13,21 +14,21 @@ __all__ = [
 ]
 
 name2method = {
-  'euler': Euler, 'Euler': Euler,
-  'heun': Heun, 'Heun': Heun,
-  'milstein': Milstein, 'Milstein': Milstein,
-  'exponential_euler': ExponentialEuler, 'exp_euler': ExponentialEuler, 'ExponentialEuler': ExponentialEuler,
-
-  # RK methods
-  'srk1w1': SRK1W1, 'SRK1W1': SRK1W1,
-  'srk2w1': SRK2W1, 'SRK2W1': SRK2W1,
-  'klpl': KlPl, 'KlPl': KlPl,
 }
 
 _DEFAULT_SDE_METHOD = 'euler'
 
 
-def sdeint(f=None, g=None, method='euler', **kwargs):
+def sdeint(f=None,
+           g=None,
+           method='euler',
+           dt: float = None,
+           name: str = None,
+           show_code: bool = False,
+           var_type: str = None,
+           intg_type: str = None,
+           wiener_type: str = None,
+           state_delays: Dict[str, bm.AbstractDelay] = None):
   """Numerical integration for SDEs.
 
   Parameters
@@ -48,13 +49,37 @@ def sdeint(f=None, g=None, method='euler', **kwargs):
                      f'BrainPy only support: {list(name2method.keys())}')
 
   if f is not None and g is not None:
-    return name2method[method](f=f, g=g, **kwargs)
+    return name2method[method](f=f,
+                               g=g,
+                               dt=dt,
+                               name=name,
+                               show_code=show_code,
+                               var_type=var_type,
+                               intg_type=intg_type,
+                               wiener_type=wiener_type,
+                               state_delays=state_delays)
 
   elif f is not None:
-    return lambda g: name2method[method](f=f, g=g, **kwargs)
+    return lambda g: name2method[method](f=f,
+                                         g=g,
+                                         dt=dt,
+                                         name=name,
+                                         show_code=show_code,
+                                         var_type=var_type,
+                                         intg_type=intg_type,
+                                         wiener_type=wiener_type,
+                                         state_delays=state_delays)
 
   elif g is not None:
-    return lambda f: name2method[method](f=f, g=g, **kwargs)
+    return lambda f: name2method[method](f=f,
+                                         g=g,
+                                         dt=dt,
+                                         name=name,
+                                         show_code=show_code,
+                                         var_type=var_type,
+                                         intg_type=intg_type,
+                                         wiener_type=wiener_type,
+                                         state_delays=state_delays)
 
   else:
     raise ValueError('Must provide "f" or "g".')
@@ -98,7 +123,7 @@ def register_sde_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in SDE integrators.')
-  if SDEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, SDEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {SDEIntegrator.__name__}')
   name2method[name] = integrator
 

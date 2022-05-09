@@ -38,9 +38,9 @@ class GJCoupledFHN(bp.dyn.DynamicalSystem):
     dw = (V + self.a - self.b * w) / self.tau
     return dw
 
-  def update(self, _t, _dt):
-    self.V.value = self.int_V(self.V, _t, self.w, self.Iext, _dt)
-    self.w.value = self.int_w(self.w, _t, self.V, _dt)
+  def update(self, t, dt):
+    self.V.value = self.int_V(self.V, t, self.w, self.Iext, dt)
+    self.w.value = self.int_w(self.w, t, self.V, dt)
     self.Iext[:] = 0.
 
 
@@ -115,8 +115,7 @@ def d8_system():
     candidates=bm.random.normal(0., 2., (1000, model.num * 2)),
     tolerance=1e-5,
     num_batch=200,
-    opt_setting=dict(method=bm.optimizers.Adam,
-                     lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
+    optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.05, 1, 0.9999)),
   )
   finder.filter_loss(1e-7)
   finder.keep_unique()

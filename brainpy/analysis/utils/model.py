@@ -49,8 +49,7 @@ def model_transform(model):
   new_model = []
   for intg in model:
     if isinstance(intg.f, JointEq):
-      new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt, dyn_var=intg.dyn_var)
-                        for eq in intg.f.eqs])
+      new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt) for eq in intg.f.eqs])
     else:
       new_model.append(intg)
 
@@ -122,10 +121,10 @@ class TrajectModel(DynamicalSystem):
                            dyn_vars=self.vars().unique(), dt=dt,
                            progress_bar=False)
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     all_vars = list(self.implicit_vars.values())
     for key, intg in self.integrals.items():
-      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=_dt))
+      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=dt))
 
   def __getattr__(self, item):
     child_vars = super(TrajectModel, self).__getattribute__('implicit_vars')

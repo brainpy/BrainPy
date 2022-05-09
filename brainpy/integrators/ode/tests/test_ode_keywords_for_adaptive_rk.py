@@ -17,11 +17,11 @@ class TestAdaptiveRKKeywords(unittest.TestCase):
       print()
       ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, p: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
 
       with pytest.raises(errors.CodeError):
         ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, v_new: t)
@@ -70,11 +70,11 @@ class TestAdaptiveRKKeywords(unittest.TestCase):
       print()
       ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, p: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
 
       with pytest.raises(errors.CodeError):
         ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, v_new: t)
@@ -123,11 +123,11 @@ class TestAdaptiveRKKeywords(unittest.TestCase):
       print()
       ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, p: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
 
       with pytest.raises(errors.CodeError):
         ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, v_new: t)
@@ -164,11 +164,11 @@ class TestAdaptiveRKKeywords(unittest.TestCase):
       print()
       ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, p: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
 
       with pytest.raises(errors.CodeError):
         ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, v_new: t)
@@ -211,11 +211,11 @@ class TestAdaptiveRKKeywords(unittest.TestCase):
       print()
       ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, p: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
 
       with pytest.raises(errors.CodeError):
         ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, v_new: t)
@@ -276,11 +276,11 @@ class TestAdaptiveRKKeywords(unittest.TestCase):
       print()
       ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, p: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda f, t, dt: t)
 
-      with pytest.raises(errors.CodeError):
-        ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
+      # with pytest.raises(errors.CodeError):
+      #   ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, dt: t)
 
       with pytest.raises(errors.CodeError):
         ode.odeint(method=method, show_code=True, adaptive=adaptive, f=lambda v, t, v_new: t)

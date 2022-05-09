@@ -1,24 +1,82 @@
 # -*- coding: utf-8 -*-
 
-import time
-from collections.abc import Iterable
 
-from brainpy import math
-from brainpy.errors import RunningError
+from collections.abc import Iterable
+from typing import Union, Callable
+import jax.numpy as jnp
+import numpy as np
+
+from brainpy import math as bm
 from brainpy.dyn.base import DynamicalSystem
+from brainpy.errors import RunningError
 from brainpy.running.monitor import Monitor
+from brainpy.initialize import init_param, Initializer
 
 __all__ = [
   'size2len',
-  'run_model',
+  'init_delay',
   'check_and_format_inputs',
   'check_and_format_monitors',
 ]
 
-NORMAL_RUN = None
-STRUCT_RUN = 'struct_run'
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
+
+
+def init_delay(delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initializer],
+               delay_target: Union[bm.ndarray, jnp.ndarray],
+               delay_data: Union[bm.ndarray, jnp.ndarray] = None):
+  """Initialize delay variable.
+
+  Parameters
+  ----------
+  delay_step: int, ndarray, JaxArray
+    The number of delay steps. It can an integer of an array of integers.
+  delay_target: ndarray, JaxArray
+    The target variable to delay.
+  delay_data: optional, ndarray, JaxArray
+    The initial delay data.
+
+  Returns
+  -------
+  info: tuple
+    The triple of delay type, delay steps, and delay variable.
+  """
+  # check delay type
+  if delay_step is None:
+    delay_type = 'none'
+  elif isinstance(delay_step, int):
+    delay_type = 'homo'
+  elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
+    delay_type = 'heter'
+    delay_step = bm.asarray(delay_step)
+  elif callable(delay_step):
+    delay_step = init_param(delay_step, delay_target.shape, allow_none=False)
+    delay_type = 'heter'
+  else:
+    raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
+                     f'integer, array of integers, callable function, brainpy.init.Initializer.')
+  if delay_type == 'heter':
+    if delay_step.dtype not in [bm.int32, bm.int64]:
+      raise ValueError('Only support delay steps of int32, int64. If your '
+                       'provide delay time length, please divide the "dt" '
+                       'then provide us the number of delay steps.')
+    if delay_target.shape[0] != delay_step.shape[0]:
+      raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
+
+  # init delay data
+  if delay_type == 'homo':
+    delays = bm.LengthDelay(delay_target, delay_step, initial_delay_data=delay_data)
+  elif delay_type == 'heter':
+    if delay_step.size != delay_target.size:
+      raise ValueError('Heterogeneous delay must have a length '
+                       f'of the delay target {delay_target.shape}, '
+                       f'while we got {delay_step.shape}')
+    delays = bm.LengthDelay(delay_target, int(delay_step.max()))
+  else:
+    delays = None
+
+  return delay_type, delay_step, delays
 
 
 def size2len(size):
@@ -31,63 +89,6 @@ def size2len(size):
     return a
   else:
     raise ValueError
-
-
-def run_model(run_func, times, report, dt=None, extra_func=None):
-  """Run the model.
-
-  The "run_func" can be the step run function of a dynamical system.
-
-  Parameters
-  ----------
-  run_func : callable
-      The step run function.
-  times : iterable
-      The model running times.
-  report : float
-      The percent of the total running length for each report.
-  """
-
-  # numerical integration step
-  if dt is None:
-    dt = math.get_dt()
-  assert isinstance(dt, (int, float))
-
-  # running function
-  if extra_func is None:
-    running_func = run_func
-  else:
-    def running_func(t_and_dt):
-      extra_func(*t_and_dt)
-      run_func(t_and_dt)
-
-  # simulations
-  run_length = len(times)
-  if report:
-    t0 = time.time()
-    running_func((times[0], dt))
-    compile_time = time.time() - t0
-    print('Compilation used {:.4f} s.'.format(compile_time))
-
-    print("Start running ...")
-    report_gap = int(run_length * report)
-    t0 = time.time()
-    for run_idx in range(1, run_length):
-      running_func((times[run_idx], dt))
-      if (run_idx + 1) % report_gap == 0:
-        percent = (run_idx + 1) / run_length * 100
-        print('Run {:.1f}% used {:.3f} s.'.format(percent, time.time() - t0))
-    running_time = time.time() - t0
-    print('Simulation is done in {:.3f} s.'.format(running_time))
-    print()
-
-  else:
-    t0 = time.time()
-    for run_idx in range(run_length):
-      running_func((times[run_idx], dt))
-    running_time = time.time() - t0
-
-  return running_time
 
 
 def check_and_format_inputs(host, inputs):
@@ -260,7 +261,7 @@ def check_and_format_monitors(host, mon):
         variable = splits[-1]
 
     # idx
-    if isinstance(idx, int): idx = math.array([idx])
+    if isinstance(idx, int): idx = bm.array([idx])
 
     # interval
     if interval is not None:

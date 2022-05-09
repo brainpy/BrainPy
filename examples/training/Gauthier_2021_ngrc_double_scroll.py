@@ -26,15 +26,12 @@ def get_subset(data, start, end):
   return res.reshape((1,) + res.shape)
 
 
-def plot_weights(weights, bias, ids):
-  nonlin = []
-  lin = ["$x_t$", "$y_t$", "$z_t$", "$x_{t-1}$", "$y_{t-1}$", "$z_{t-1}$"]
-  for idx in ids:
-    c = " ".join((lin[idx[0]][:-1], lin[idx[1]][1:-1], lin[idx[1]][1:]))
-    nonlin.append(c)
-  coefs = ["$c$"] + lin + nonlin
-
-  Wout = np.concatenate([bias.reshape((1, 3)), weights], axis=0)
+def plot_weights(Wout, coefs, bias=None):
+  Wout = np.asarray(Wout)
+  if bias is not None:
+    bias = np.asarray(bias)
+    Wout = np.concatenate([bias.reshape((1, 3)), Wout], axis=0)
+    coefs.insert(0, 'bias')
   x_Wout, y_Wout, z_Wout = Wout[:, 0], Wout[:, 1], Wout[:, 2]
 
   fig = plt.figure(figsize=(10, 10))
@@ -126,13 +123,13 @@ model.initialize(num_batch=1)
 # -------- #
 
 # warm-up
-trainer = bp.nn.RidgeTrainer(model, beta=1e-5)
+trainer = bp.nn.RidgeTrainer(model, beta=1e-5, jit=True)
 
 # training
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 trainer.fit([X_train, {'readout': dX_train}])
-plot_weights(di.weights.numpy(), di.bias.numpy(), r.comb_ids.numpy())
+plot_weights(di.Wff, r.get_feature_names_for_plot(), di.bias)
 
 # prediction
 model = bm.jit(model)

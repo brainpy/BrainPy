@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from typing import Dict
+
+from brainpy import math as bm
 from .base import ODEIntegrator
-from .adaptive_rk import *
-from .explicit_rk import *
-from .exponential import *
 
 __all__ = [
   'odeint',
@@ -14,37 +14,22 @@ __all__ = [
 ]
 
 name2method = {
-  # explicit RK
-  'euler': Euler, 'Euler': Euler,
-  'midpoint': MidPoint, 'MidPoint': MidPoint,
-  'heun2': Heun2, 'Heun2': Heun2,
-  'ralston2': Ralston2, 'Ralston2': Ralston2,
-  'rk2': RK2, 'RK2': RK2,
-  'rk3': RK3, 'RK3': RK3,
-  'heun3': Heun3, 'Heun3': Heun3,
-  'ralston3': Ralston3, 'Ralston3': Ralston3,
-  'ssprk3': SSPRK3, 'SSPRK3': SSPRK3,
-  'rk4': RK4, 'RK4': RK4,
-  'ralston4': Ralston4, 'Ralston4': Ralston4,
-  'rk4_38rule': RK4Rule38, 'RK4Rule38': RK4Rule38,
-
-  # adaptive RK
-  'rkf12': RKF12, 'RKF12': RKF12,
-  'rkf45': RKF45, 'RKF45': RKF45,
-  'rkdp': DormandPrince, 'dp': DormandPrince, 'DormandPrince': DormandPrince,
-  'ck': CashKarp, 'CashKarp': CashKarp,
-  'bs': BogackiShampine, 'BogackiShampine': BogackiShampine,
-  'heun_euler': HeunEuler, 'HeunEuler': HeunEuler,
-
-  # exponential integrators
-  'exponential_euler': ExponentialEuler, 'exp_euler': ExponentialEuler, 'ExponentialEuler': ExponentialEuler,
-  'exp_euler_auto': ExpEulerAuto, 'exp_auto': ExpEulerAuto, 'ExpEulerAuto': ExpEulerAuto,
 }
 
 _DEFAULT_DDE_METHOD = 'euler'
 
 
-def odeint(f=None, method='euler', **kwargs):
+def odeint(f=None,
+           method='euler',
+           var_type=None,
+           dt=None,
+           name=None,
+           # adaptive=None,
+           # tol=None,
+           show_code=False,
+           state_delays: Dict[str, bm.AbstractDelay] = None,
+           neutral_delays: Dict[str, bm.NeutralDelay] = None,
+           **kwargs):
   """Numerical integration for ODEs.
 
   Examples
@@ -79,6 +64,17 @@ def odeint(f=None, method='euler', **kwargs):
     The derivative function.
   method : str
     The shortcut name of the numerical integrator.
+  var_type: str
+    The type of the variable defined in the equation.
+  dt: float
+    The numerical integration precision.
+  name: str
+    The integrator node.
+  state_delays: dict
+    The state delay variable.
+  adaptive: bool
+  tol: float
+  show_code: bool
 
   Returns
   -------
@@ -91,9 +87,23 @@ def odeint(f=None, method='euler', **kwargs):
                      f'BrainPy only support: {list(name2method.keys())}')
 
   if f is None:
-    return lambda f: name2method[method](f, **kwargs)
+    return lambda f: name2method[method](f,
+                                         var_type=var_type,
+                                         dt=dt,
+                                         name=name,
+                                         show_code=show_code,
+                                         state_delays=state_delays,
+                                         neutral_delays=neutral_delays,
+                                         **kwargs)
   else:
-    return name2method[method](f, **kwargs)
+    return name2method[method](f,
+                               var_type=var_type,
+                               dt=dt,
+                               name=name,
+                               show_code=show_code,
+                               state_delays=state_delays,
+                               neutral_delays=neutral_delays,
+                               **kwargs)
 
 
 def set_default_odeint(method):
@@ -134,7 +144,7 @@ def register_ode_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in ODE integrators.')
-  if ODEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, ODEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {ODEIntegrator.__name__}')
   name2method[name] = integrator
 
@@ -142,4 +152,3 @@ def register_ode_integrator(name, integrator):
 def get_supported_methods():
   """Get all supported numerical methods for DDEs."""
   return list(name2method.keys())
-

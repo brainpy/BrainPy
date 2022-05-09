@@ -5,19 +5,18 @@ name: MacOS CI
 
 on:
   push:
-    branches: [ master, brainpy-2.x, V2.1.0 ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, brainpy-2.x, V2.1.0 ]
+    branches: [ master ]
 
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15, macos-11, macos-latest]
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -39,4 +38,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest
+        pytest brainpy/

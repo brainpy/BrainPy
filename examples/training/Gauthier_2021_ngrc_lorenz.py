@@ -26,15 +26,12 @@ def get_subset(data, start, end):
   return res.reshape((1, ) + res.shape)
 
 
-def plot_weights(weights, bias, ids):
-  nonlin = []
-  lin = ["$x_t$", "$y_t$", "$z_t$", "$x_{t-1}$", "$y_{t-1}$", "$z_{t-1}$"]
-  for idx in ids:
-    c = (lin[idx[0]][:-1] + "^2$") if (idx[0] == idx[1]) else (" ".join((lin[idx[0]][:-1], lin[idx[1]][1:])))
-    nonlin.append(c)
-  coefs = ["$c$"] + lin + nonlin
-
-  Wout = np.concatenate([bias.reshape((1, 3)), weights], axis=0)
+def plot_weights(Wout, coefs, bias=None):
+  Wout = np.asarray(Wout)
+  if bias is not None:
+    bias = np.asarray(bias)
+    Wout = np.concatenate([bias.reshape((1, 3)), Wout], axis=0)
+    coefs.insert(0, 'bias')
   x_Wout, y_Wout, z_Wout = Wout[:, 0], Wout[:, 1], Wout[:, 2]
 
   fig = plt.figure(figsize=(10, 10))
@@ -110,8 +107,8 @@ Y_test = get_subset(lorenz_series,
 # ----- #
 
 i = bp.nn.Input(3)
-r = bp.nn.NVAR(delay=2, order=2, constant=1.)
-di = bp.nn.LinearReadout(3, trainable=True, name='readout')
+r = bp.nn.NVAR(delay=2, order=2, constant=True)
+di = bp.nn.LinearReadout(3, bias_initializer=None, trainable=True, name='readout')
 o = bp.nn.Summation()
 #
 # Cannot express the model as
@@ -121,8 +118,10 @@ o = bp.nn.Summation()
 # then feed into the node "o". This is not the connection
 # we want.
 model = (i >> r >> di >> o) & (i >> o)
-model.plot_node_graph()
+# model.plot_node_graph()
 model.initialize(num_batch=1)
+
+print(r.get_feature_names())
 
 
 # Training #
@@ -135,7 +134,7 @@ trainer = bp.nn.RidgeTrainer(model, beta=2.5e-6)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 trainer.fit([X_train, {'readout': dX_train}])
-plot_weights(di.weights.numpy(), di.bias.numpy(), r.comb_ids.numpy())
+plot_weights(di.Wff, r.get_feature_names_for_plot(), di.bias)
 
 # prediction
 model = bm.jit(model)

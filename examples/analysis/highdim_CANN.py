@@ -64,8 +64,8 @@ class CANN1D(bp.dyn.NeuGroup):
   def get_stimulus_by_pos(self, pos):
     return self.A * bm.exp(-0.25 * bm.square(self.dist(self.x - pos) / self.a))
 
-  def update(self, _t, _dt):
-    self.u[:] = self.integral(self.u, _t, self.input)
+  def update(self, t, dt):
+    self.u[:] = self.integral(self.u, t, self.input)
     self.input[:] = 0.
 
   def cell(self, u):
@@ -90,9 +90,7 @@ def find_fixed_points():
   # finder.find_fps_with_gd_method(
   #   candidates=candidates,
   #   tolerance=1e-6,
-  #   opt_setting=dict(method=bm.optimizers.Adam,
-  #                    # lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
-  #                    lr=bm.optimizers.ExponentialDecay(0.1, 2, 0.999)),
+  #     optimizer = bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.1, , 0.999)),
   #   num_batch=200
   # )
   finder.find_fps_with_opt_solver(candidates)

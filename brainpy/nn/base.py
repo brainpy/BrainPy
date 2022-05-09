@@ -12,7 +12,7 @@ This module provide basic Node class for whole ``brainpy.nn`` system.
   This means ``brainpy.nn.Network`` is only used to pack element nodes. It will be
   never be an element node.
 - ``brainpy.nn.FrozenNetwork``: The whole network which can be represented as a basic
-  elementary node when composing a larger network. TODO
+  elementary node when composing a larger network (TODO).
 """
 
 from copy import copy, deepcopy
@@ -26,15 +26,15 @@ from brainpy.errors import (UnsupportedError,
                             PackageMissingError,
                             ModelBuildError,
                             MathError)
-from brainpy.nn.constants import (PASS_SEQUENCE,
-                                  DATA_PASS_FUNC,
-                                  DATA_PASS_TYPES)
+from brainpy.nn.algorithms.offline import OfflineAlgorithm
+from brainpy.nn.algorithms.online import OnlineAlgorithm
+from brainpy.nn.datatypes import (DataType, SingleData, MultipleData)
 from brainpy.nn.graph_flow import (find_senders_and_receivers,
                                    find_entries_and_exits,
                                    detect_cycle,
                                    detect_path)
 from brainpy.tools.checking import (check_dict_data,
-                                    check_batch_shape,
+                                    check_shape_except_batch,
                                     check_integer)
 from brainpy.types import Tensor
 
@@ -47,6 +47,16 @@ __all__ = [
 ]
 
 NODE_STATES = ['inputs', 'feedbacks', 'state', 'output']
+
+SUPPORTED_LAYOUTS = ['shell_layout',
+                     'multipartite_layout',
+                     'spring_layout',
+                     'spiral_layout',
+                     'spectral_layout',
+                     'random_layout',
+                     'planar_layout',
+                     'kamada_kawai_layout',
+                     'circular_layout']
 
 
 def not_implemented(fun: Callable) -> Callable:
@@ -71,19 +81,26 @@ def not_implemented(fun: Callable) -> Callable:
 class Node(Base):
   """Basic Node class for neural network building in BrainPy."""
 
-  """Support multiple types of data pass, including "PASS_SEQUENCE" (by default), 
-  "PASS_NAME_DICT", "PASS_NODE_DICT" and user-customized type which registered 
-  by ``brainpy.nn.register_data_pass_type()`` function. 
+  '''Support multiple types of data pass, including "PassOnlyOne" (by default), 
+  "PassSequence", "PassNameDict", etc. and user-customized type which inherits 
+  from basic "SingleData" or "MultipleData". 
   
   This setting will change the feedforward/feedback input data which pass into 
-  the "call()" function and the sizes of the feedforward/feedback input data.
-  """
-  data_pass_type = PASS_SEQUENCE
+  the "call()" function and the sizes of the feedforward/feedback input data.'''
+  data_pass = SingleData()
 
-  def __init__(self,
-               name: Optional[str] = None,
-               input_shape: Optional[Union[Sequence[int], int]] = None,
-               trainable: bool = False):
+  '''Offline fitting method.'''
+  offline_fit_by: Union[Callable, OfflineAlgorithm]
+
+  '''Online fitting method.'''
+  online_fit_by: OnlineAlgorithm
+
+  def __init__(
+      self,
+      name: Optional[str] = None,
+      input_shape: Optional[Union[Sequence[int], int]] = None,
+      trainable: bool = True
+  ):
 
     # initialize parameters
     self._feedforward_shapes = None  # input shapes
@@ -92,13 +109,14 @@ class Node(Base):
     self._is_ff_initialized = False
     self._is_fb_initialized = False
     self._is_state_initialized = False
+    self._is_fb_state_initialized = False
     self._trainable = trainable
     self._state = None  # the state of the current node
-    # data pass function
-    if self.data_pass_type not in DATA_PASS_FUNC:
-      raise ValueError(f'Unsupported data pass type {self.data_pass_type}. '
-                       f'Only support {DATA_PASS_TYPES}')
-    self.data_pass_func = DATA_PASS_FUNC[self.data_pass_type]
+    self._fb_output = None  # the feedback output of the current node
+    # data pass
+    if not isinstance(self.data_pass, DataType):
+      raise ValueError(f'Unsupported data pass type {type(self.data_pass)}. '
+                       f'Only support {DataType.__class__}')
 
     # super initialization
     super(Node, self).__init__(name=name)
@@ -108,25 +126,19 @@ class Node(Base):
       self._feedforward_shapes = {self.name: (None,) + tools.to_size(input_shape)}
 
   def __repr__(self):
-    name = type(self).__name__
-    prefix = ' ' * (len(name) + 1)
-    line1 = (f"{name}(name={self.name}, "
-             f"trainable={self.trainable}, "
-             f"forwards={self.feedforward_shapes}, "
-             f"feedbacks={self.feedback_shapes}, \n")
-    line2 = (f"{prefix}output={self.output_shape}, "
-             f"support_feedback={self.support_feedback}, "
-             f"data_pass_type={self.data_pass_type})")
-    return line1 + line2
+    return (f"{type(self).__name__}(name={self.name}, "
+            f"forwards={self.feedforward_shapes}, "
+            f"feedbacks={self.feedback_shapes}, "
+            f"output={self.output_shape})")
 
   def __call__(self, *args, **kwargs) -> Tensor:
     """The main computation function of a Node.
 
     Parameters
     ----------
-    ff: dict, sequence, tensor
+    ff: dict, sequence, JaxArray, ndarray
       The feedforward inputs.
-    fb: optional, dict, sequence, tensor
+    fb: optional, dict, sequence, JaxArray, ndarray
       The feedback inputs.
     forced_states: optional, dict
       The fixed state for the nodes in the network.
@@ -183,7 +195,7 @@ class Node(Base):
   def __iand__(self, other):
     raise ValueError('Only Network objects support inplace merging.')
 
-  def __getitem__(self, item):  # "[:10]"
+  def __getitem__(self, item):  # like "[:10]"
     if isinstance(item, str):
       raise ValueError('Node only supports slice, not retrieve by the name.')
     else:
@@ -194,7 +206,7 @@ class Node(Base):
   @property
   def state(self) -> Optional[Tensor]:
     """Node current internal state."""
-    if self.is_ff_initialized:
+    if self._is_ff_initialized:
       return self._state
     return None
 
@@ -209,20 +221,50 @@ class Node(Base):
 
     This method allows the maximum flexibility to change the
     node state. It can set a new data (same shape, same dtype)
-    to the state. It can also set the data with another batch size.
-
-    We highly recommend the user to use this function.
+    to the state. It can also set a new data with the different
+    shape. We highly recommend the user to use this function.
+    instead of using ``self.state.value``.
     """
     if self.state is None:
       if self.output_shape is not None:
-        check_batch_shape(self.output_shape, state.shape)
+        check_shape_except_batch(self.output_shape, state.shape)
       self._state = bm.Variable(state) if not isinstance(state, bm.Variable) else state
     else:
-      check_batch_shape(self.state.shape, state.shape)
+      check_shape_except_batch(self.state.shape, state.shape)
       if self.state.dtype != state.dtype:
         raise MathError('Cannot set the state, because the dtype is not consistent: '
                         f'{self.state.dtype} != {state.dtype}')
       self.state._value = bm.as_device_array(state)
+
+  @property
+  def fb_output(self) -> Optional[Tensor]:
+    return self._fb_output
+
+  @fb_output.setter
+  def fb_output(self, value: Tensor):
+    raise NotImplementedError('Please use "set_fb_output()" to reset the node feedback state, '
+                              'or use "self.fb_output.value" to change the state content.')
+
+  def set_fb_output(self, state: Tensor):
+    """
+    Safely set the feedback state of the node.
+
+    This method allows the maximum flexibility to change the
+    node state. It can set a new data (same shape, same dtype)
+    to the state. It can also set a new data with the different
+    shape. We highly recommend the user to use this function.
+    instead of using ``self.fb_output.value``.
+    """
+    if self.fb_output is None:
+      if self.output_shape is not None:
+        check_shape_except_batch(self.output_shape, state.shape)
+      self._fb_output = bm.Variable(state) if not isinstance(state, bm.Variable) else state
+    else:
+      check_shape_except_batch(self.fb_output.shape, state.shape)
+      if self.fb_output.dtype != state.dtype:
+        raise MathError('Cannot set the feedback state, because the dtype is '
+                        f'not consistent: {self.fb_output.dtype} != {state.dtype}')
+      self.fb_output._value = bm.as_device_array(state)
 
   @property
   def trainable(self) -> bool:
@@ -230,26 +272,17 @@ class Node(Base):
     return self._trainable
 
   @property
-  def is_ff_initialized(self) -> bool:
-    return self._is_ff_initialized
-
-  @is_ff_initialized.setter
-  def is_ff_initialized(self, value: bool):
-    assert isinstance(value, bool)
-    self._is_ff_initialized = value
-
-  @property
-  def is_fb_initialized(self) -> bool:
-    return self._is_fb_initialized
-
-  @is_fb_initialized.setter
-  def is_fb_initialized(self, value: bool):
-    assert isinstance(value, bool)
-    self._is_fb_initialized = value
-
-  @property
-  def is_state_initialized(self):
-    return self._is_state_initialized
+  def is_initialized(self) -> bool:
+    if self._is_ff_initialized and self._is_state_initialized:
+      if self.feedback_shapes is not None:
+        if self._is_fb_initialized and self._is_fb_state_initialized:
+          return True
+        else:
+          return False
+      else:
+        return True
+    else:
+      return False
 
   @trainable.setter
   def trainable(self, value: bool):
@@ -261,14 +294,14 @@ class Node(Base):
   @property
   def feedforward_shapes(self):
     """Input data size."""
-    return self.data_pass_func(self._feedforward_shapes)
+    return self.data_pass.filter(self._feedforward_shapes)
 
   @feedforward_shapes.setter
   def feedforward_shapes(self, size):
     self.set_feedforward_shapes(size)
 
   def set_feedforward_shapes(self, feedforward_shapes: Dict):
-    if not self.is_ff_initialized:
+    if not self._is_ff_initialized:
       check_dict_data(feedforward_shapes,
                       key_type=(Node, str),
                       val_type=(list, tuple),
@@ -276,40 +309,39 @@ class Node(Base):
       self._feedforward_shapes = feedforward_shapes
     else:
       if self.feedforward_shapes is not None:
-        for key, size in self._feedforward_shapes.items():
-          if key not in feedforward_shapes:
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
-                             f"Because this Node has the input dimension {size} from {key}. "
-                             f"While we do not find it in the given feedforward_shapes")
-          if not check_batch_shape(size, feedforward_shapes[key], mode='bool'):
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
-                             f"Because this Node has the input dimension {size} from {key}. "
-                             f"While the give shape is {feedforward_shapes[key]}")
+        sizes1 = sorted(list(self._feedforward_shapes.values()))
+        sizes2 = sorted(list(feedforward_shapes.values()))
+        if sizes1 != sizes2:
+          raise ValueError(f"Impossible to reset the input shapes of {self.name}. "
+                           f"Because this Node has the input shapes {sizes1}. "
+                           f"While we got input shapes of {sizes2}")
+        self._feedforward_shapes = feedforward_shapes
 
   @property
   def feedback_shapes(self):
     """Output data size."""
-    return self.data_pass_func(self._feedback_shapes)
+    return self.data_pass.filter(self._feedback_shapes)
 
   @feedback_shapes.setter
   def feedback_shapes(self, size):
     self.set_feedback_shapes(size)
 
   def set_feedback_shapes(self, fb_shapes: Dict):
-    if not self.is_fb_initialized:
-      check_dict_data(fb_shapes, key_type=(Node, str), val_type=(tuple, list), name='fb_shapes')
+    if not self._is_fb_initialized:
+      check_dict_data(fb_shapes,
+                      key_type=(Node, str),
+                      val_type=(tuple, list),
+                      name='fb_shapes')
       self._feedback_shapes = fb_shapes
     else:
       if self.feedback_shapes is not None:
-        for key, size in self._feedforward_shapes.items():
-          if key not in fb_shapes:
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
-                             f"Because this Node has the input dimension {size} from {key}. "
-                             f"While we do not find it in {fb_shapes}")
-          if not check_batch_shape(size, fb_shapes[key], mode='bool'):
-            raise ValueError(f"Impossible to reset the input data of {self.name}. "
-                             f"Because this Node has the input dimension {size} from {key}. "
-                             f"While the give shape is {fb_shapes[key]}")
+        sizes1 = sorted(list(self._feedback_shapes.values()))
+        sizes2 = sorted(list(fb_shapes.values()))
+        if sizes1 != sizes2:
+          raise ValueError(f"Impossible to reset the feedback shapes of {self.name}. "
+                           f"Because this Node has the feedback shapes {sizes1}. "
+                           f"While we got feedback shapes of {sizes2}")
+        self._feedback_shapes = fb_shapes
 
   @property
   def output_shape(self) -> Optional[Tuple[int]]:
@@ -321,19 +353,26 @@ class Node(Base):
     self.set_output_shape(size)
 
   @property
-  def support_feedback(self):
-    if hasattr(self.init_fb, 'not_implemented'):
-      if self.init_fb.not_implemented:
+  def is_feedback_input_supported(self):
+    if hasattr(self.init_fb_conn, 'not_implemented'):
+      if self.init_fb_conn.not_implemented:
         return False
     return True
 
+  @property
+  def is_feedback_supported(self):
+    if self.fb_output is None:
+      return False
+    else:
+      return True
+
   def set_output_shape(self, shape: Sequence[int]):
-    if not self.is_ff_initialized:
+    if not self._is_ff_initialized:
       if not isinstance(shape, (tuple, list)):
         raise ValueError(f'Must be a sequence of int, but got {shape}')
       self._output_shape = tuple(shape)
     else:
-      check_batch_shape(shape, self.output_shape)
+      check_shape_except_batch(shape, self.output_shape)
 
   def nodes(self, method='absolute', level=1, include_self=True):
     return super(Node, self).nodes(method=method, level=level, include_self=include_self)
@@ -368,106 +407,127 @@ class Node(Base):
     new_obj.name = self.unique_name(name or (self.name + '_copy'))
     return new_obj
 
-  def _ff_init(self):
-    if not self.is_ff_initialized:
-      try:
-        self.init_ff()
-      except Exception as e:
-        raise ModelBuildError(f'{self.name} initialization failed.') from e
+  def _init_ff_conn(self):
+    if not self._is_ff_initialized:
+      self.init_ff_conn()
+      if self.output_shape is None:
+        raise ValueError(f'Please set the output shape when implementing '
+                         f'"init_ff_conn()" of the node {self.name}')
       self._is_ff_initialized = True
 
-  def _fb_init(self):
-    if not self.is_fb_initialized:
+  def _init_fb_conn(self):
+    if not self._is_fb_initialized:
       try:
-        self.init_fb()
+        self.init_fb_conn()
       except Exception as e:
         raise ModelBuildError(f"{self.name} initialization failed.") from e
       self._is_fb_initialized = True
 
   @not_implemented
-  def init_fb(self):
+  def init_fb_conn(self):
+    """Initialize the feedback connections.
+    This function will be called only once."""
     raise ValueError(f'This node \n\n{self} \n\ndoes not support feedback connection.')
 
-  def init_ff(self):
+  def init_ff_conn(self):
+    """Initialize the feedforward connections.
+    This function will be called only once."""
     raise NotImplementedError('Please implement the feedforward initialization.')
 
-  def init_state(self, num_batch=1):
+  def _init_state(self, num_batch=1):
+    state = self.init_state(num_batch)
+    if state is not None:
+      self.set_state(state)
+    self._is_state_initialized = True
+
+  def _init_fb_output(self, num_batch=1):
+    output = self.init_fb_output(num_batch)
+    if output is not None:
+      self.set_fb_output(output)
+    self._is_fb_state_initialized = True
+
+  def init_state(self, num_batch=1) -> Optional[Tensor]:
+    """Set the initial node state.
+
+    This function can be called multiple times."""
     pass
 
-  def initialize(self,
-                 ff: Optional[Union[Tensor, Dict[Any, Tensor]]] = None,
-                 fb: Optional[Union[Tensor, Dict[Any, Tensor]]] = None,
-                 num_batch: int = None):
-    """
-    Initialize the whole network. This function must be called before applying JIT.
+  def init_fb_output(self, num_batch=1) -> Optional[Tensor]:
+    """Set the initial node feedback state.
 
-    This function is useful, because it is independent from the __call__ function.
-    We can use this function before we applying JIT to __call__ function.
+    This function can be called multiple times. However,
+    it is only triggered when the node has feedback connections.
+    """
+    return bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
+
+  def initialize(self, num_batch: int = 1):
+    """
+    Initialize the node. This function must be called before applying JIT.
+
+    This function is useful, because it is independent of the __call__ function.
+    We can use this function before we apply JIT to __call__ function.
     """
 
     # feedforward initialization
-    if not self.is_ff_initialized:
-      # feedforward data
-      if ff is None:
-        if self._feedforward_shapes is None:
-          raise ValueError('Cannot initialize this node, because we detect '
-                           'both "feedforward_shapes"and "ff" inputs are None. ')
-        in_sizes = self._feedforward_shapes
-        if num_batch is None:
-          raise ValueError('"num_batch" cannot be None when "ff" is not provided.')
-        check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
-      else:
-        if isinstance(ff, (bm.ndarray, jnp.ndarray)):
-          ff = {self.name: ff}
-        assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
-        assert self.name in ff, f'Cannot find input for this node \n\n{self} \n\nwhen given "ff" {ff}'
-        batch_sizes = [v.shape[0] for v in ff.values()]
-        if set(batch_sizes) != 1:
-          raise ValueError('Batch sizes must be consistent, but we got multiple '
-                           f'batch sizes {set(batch_sizes)} for the given input: \n'
-                           f'{ff}')
-        in_sizes = {k: (None,) + v.shape[1:] for k, v in ff.items()}
-        if (num_batch is not None) and (num_batch != batch_sizes[0]):
-          raise ValueError(f'The provided "num_batch" {num_batch} is consistent with the '
-                           f'batch size of the provided data {batch_sizes[0]}')
+    if self.feedforward_shapes is None:
+      raise ValueError('Cannot initialize this node, because we detect '
+                       'both "feedforward_shapes" is None. '
+                       'Two ways can solve this problem:\n\n'
+                       '1. Connecting an instance of "brainpy.nn.Input()" to this node. \n'
+                       '2. Providing the "input_shape" when initialize the node.')
+    check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
+    self._init_ff_conn()
 
-      # initialize feedforward
-      self.set_feedforward_shapes(in_sizes)
-      self._ff_init()
-      self.init_state(num_batch)
-      self._is_state_initialized = True
+    # initialize state
+    self._init_state(num_batch)
 
-    # feedback initialization
-    if fb is not None:
-      if not self.is_fb_initialized:  # initialize feedback
-        assert isinstance(fb, dict), f'"fb" must be a dict, got {type(fb)}'
-        fb_sizes = {k: (None,) + v.shape[1:] for k, v in fb.items()}
-        self.set_feedback_shapes(fb_sizes)
-        self._fb_init()
-    else:
-      self._is_fb_initialized = True
+    if self.feedback_shapes is not None:
+      # feedback initialization
+      self._init_fb_conn()
+      # initialize feedback state
+      self._init_fb_output(num_batch)
 
   def _check_inputs(self, ff, fb=None):
     # check feedforward inputs
     if isinstance(ff, (bm.ndarray, jnp.ndarray)):
       ff = {self.name: ff}
-    assert isinstance(ff, dict), f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}'
-    assert self.name in ff, f'Cannot find input for this node {self} when given "ff" {ff}'
+    if not isinstance(ff, dict):
+      raise ValueError(f'"ff" must be a dict or a tensor, got {type(ff)}: {ff}')
+    if self.name not in ff:
+      raise ValueError(f'Cannot find input for this node {self} when given "ff" {ff}')
     for k, size in self._feedforward_shapes.items():
-      assert k in ff, f"The required key {k} is not provided in feedforward inputs."
-      check_batch_shape(size, ff[k].shape)
+      if k not in ff:
+        raise ValueError(f"The required key {k} is not provided in feedforward inputs.")
+      check_shape_except_batch(size, ff[k].shape)
+    if self.state is not None:
+      for inp in ff.values():
+        if self.state.shape[0] != inp.shape[0]:
+          raise ValueError(f'The batch size of the input data {inp.shape[0]} is not '
+                           f'equal to the batch size of the node state {self.state.shape[0]}. '
+                           f'Maybe you need to reinitialize the data with the desired '
+                           f'batch size by ".initialize(num_batch)", or change the data '
+                           f'consistent with the data batch size {self.state.shape[0]}.')
 
     # check feedback inputs
     if fb is not None:
-      assert isinstance(fb, dict), f'"fb" must be a dict, got {type(fb)}: {fb}'
+      if not isinstance(fb, dict):
+        raise ValueError(f'"fb" must be a dict, got {type(fb)}: {fb}')
       # check feedback consistency
       for k, size in self._feedback_shapes.items():
-        assert k in fb, f"The required key {k} is not provided in feedback inputs."
-        check_batch_shape(size, fb[k].shape)
-
+        if k not in fb:
+          raise ValueError(f"The required key {k} is not provided in feedback inputs.")
+        check_shape_except_batch(size, fb[k].shape)
+      if self.state is not None:
+        for inp in fb.values():
+          if self.state.shape[0] != inp.shape[0]:
+            raise ValueError(f'The batch size of the feedback data {inp.shape[0]} is not '
+                             f'equal to the batch size of the node state {self.state.shape[0]}. '
+                             f'Maybe you need to reinitialize the data with the desired '
+                             f'batch size by ".initialize(num_batch)", or change the data '
+                             f'consistent with the data batch size {self.state.shape[0]}.')
     # data
-    ff = self.data_pass_func(ff)
-    fb = self.data_pass_func(fb)
+    ff = self.data_pass.filter(ff)
+    fb = self.data_pass.filter(fb)
     return ff, fb
 
   def _call(self,
@@ -477,18 +537,19 @@ class Node(Base):
             forced_feedbacks: Dict[str, Tensor] = None,
             monitors=None,
             **kwargs) -> Union[Tensor, Tuple[Tensor, Dict]]:
-    # # initialization
-    # self.initialize(ff, fb)
-    if not (self.is_ff_initialized and self.is_fb_initialized and self.is_state_initialized):
+    if not self.is_initialized:
       raise ValueError('Please initialize the Node first by calling "initialize()" function.')
 
     # initialize the forced data
-    if forced_states is None: forced_states = dict()
+    if forced_states is None:
+      forced_states = dict()
     if isinstance(forced_states, (bm.ndarray, jnp.ndarray)):
       forced_states = {self.name: forced_states}
     check_dict_data(forced_states, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
-    assert forced_feedbacks is None, ('Single instance of brainpy.nn.Node do '
-                                      'not support "forced_feedbacks"')
+    if forced_feedbacks is not None:
+      if len(forced_feedbacks) != 0:
+        raise ValueError('Single instance of brainpy.nn.Node do '
+                         'not support "forced_feedbacks"')
     # monitors
     need_return_monitor = True
     if monitors is None:
@@ -497,9 +558,38 @@ class Node(Base):
     attr_monitors: Dict[str, Tensor] = {}
     state_monitors: Dict[str, Tensor] = {}
     for key in monitors:
-      assert isinstance(key, str), (f'"extra_returns" must be a sequence of string, '
-                                    f'while we got {type(key)}')
-      if key not in NODE_STATES:  # monitor attributes
+      splits = key.split('.')
+      if len(splits) != 2:
+        raise ValueError(f'Every term in "monitors" must be (node.item), '
+                         f'while we got {key}')
+      if splits[0] not in self.implicit_nodes:
+        raise ValueError(f'Cannot found the node {splits[0]}, this network '
+                         f'only has {list(self.implicit_nodes.keys())}.')
+
+      if splits[1] not in NODE_STATES:  # attribute monitor
+        if not hasattr(self.implicit_nodes[splits[0]], splits[1]):
+          raise UnsupportedError(f'Each node can monitor its states (including {NODE_STATES}), '
+                                 f'or its attribute. While {splits[1]} is neither the state nor '
+                                 f'the attribute of node {splits[0]}.')
+        else:
+          attr_monitors[key] = getattr(self.implicit_nodes[splits[0]], splits[1])
+      else:  # state monitor
+        if splits[1] == 'state':
+          assert self.implicit_nodes[splits[0]].state is not None, (f'{splits[0]} has no state, while '
+                                                                    f'the user try to monitor it.')
+        state_monitors[key] = None
+
+      if not isinstance(key, str):
+        raise ValueError(f'"extra_returns" must be a sequence of string, '
+                         f'while we got {type(key)}')
+      splits = key.split('.')
+      if len(splits) != 2:
+        raise ValueError(f'Every term in "monitors" must be (node.item), '
+                         f'while we got {key}')
+      if splits[0] != self.name:
+        raise ValueError(f"Cannot found the node {splits[0]}, this name of "
+                         f"this node is {self.name}.")
+      if splits[1] not in NODE_STATES:  # monitor attributes
         if not hasattr(self, key):
           raise UnsupportedError(f'Each node can monitor its states (including {NODE_STATES}), '
                                  f'or its attribute. While {key} is neither the state nor '
@@ -507,28 +597,38 @@ class Node(Base):
         else:
           attr_monitors[key] = getattr(self, key)
       else:  # monitor states
-        if key == 'state':
-          assert self.state is not None, (f'{self} \n\nhas no state, while '
-                                          f'the user try to monitor its state.')
+        if splits[1] == 'state':
+          if self.state is None:
+            raise ValueError(f'{self} \n\nhas no state, while '
+                             f'the user try to monitor its state.')
         state_monitors[key] = None
-    # calling
+
+    # checking
     ff, fb = self._check_inputs(ff, fb=fb)
-    if 'inputs' in state_monitors:
-      state_monitors['inputs'] = ff
-    if 'feedbacks' in state_monitors:
-      state_monitors['feedbacks'] = fb
+
+    # monitoring
+    if f'{self.name}.inputs' in state_monitors:
+      state_monitors[f'{self.name}.inputs'] = ff
+    if f'{self.name}.feedbacks' in state_monitors:
+      state_monitors[f'{self.name}.feedbacks'] = fb
+
+    # forward pass
     output = self.forward(ff, fb, **kwargs)
-    if 'output' in state_monitors:
-      state_monitors['output'] = output
-    if 'state' in state_monitors:
-      state_monitors['state'] = self.state
+
+    # monitoring
+    if f'{self.name}.output' in state_monitors:
+      state_monitors[f'{self.name}.output'] = output
+    if f'{self.name}.state' in state_monitors:
+      state_monitors[f'{self.name}.state'] = self.state
     attr_monitors.update(state_monitors)
+
+    # outputs
     if need_return_monitor:
       return output, attr_monitors
     else:
       return output
 
-  def forward(self, ff, fb=None, **kwargs):
+  def forward(self, ff, fb=None, **shared_kwargs):
     """The feedforward computation function of a node.
 
     Parameters
@@ -537,7 +637,7 @@ class Node(Base):
       The feedforward inputs.
     fb: optional, tensor, dict, sequence
       The feedback inputs.
-    **kwargs
+    **shared_kwargs
       Other parameters.
 
     Returns
@@ -547,12 +647,14 @@ class Node(Base):
     """
     raise NotImplementedError
 
-  def feedback(self, **kwargs):
+  def feedback(self, ff_output, **shared_kwargs):
     """The feedback computation function of a node.
 
     Parameters
     ----------
-    **kwargs
+    ff_output: JaxArray
+      The feedforward output when calling ``forward()`` function.
+    **shared_kwargs
       Other global parameters.
 
     Returns
@@ -560,19 +662,56 @@ class Node(Base):
     Tensor
       A feedback output tensor value.
     """
-    return self.state
+    return ff_output
+
+  @not_implemented
+  def offline_fit(self, targets, ffs, fbs=None):
+    """Offline training interface."""
+    raise ValueError(f'This node \n\n{self} \n\ndoes not support offline training.')
+
+  @not_implemented
+  def online_init(self):
+    """Online training initialization interface."""
+    raise ValueError(f'This node \n\n{self} \n\ndoes not support online training.')
+
+  @not_implemented
+  def online_fit(self, target, ff, fb=None):
+    """Online training fitting interface."""
+    raise ValueError(f'This node \n\n{self} \n\ndoes not support online training.')
 
 
 class RecurrentNode(Node):
   """
   Basic class for recurrent node.
+
+  The supports for the recurrent node are:
+
+  - Self-connection when using ``plot_node_graph()`` function
+  - Set trainable state with ``state_trainable=True``.
+
+  Parameters
+  ----------
+  name: str
+    The name of the node.
+  input_shape: int, sequence of int
+    The shape of the input data.
+  state_trainable: bool
+    Whether train the model state or not. Default is False.
+  trainable: bool
+    Whether train the model or not. Default is True.
+
+    .. versionchanged:: 2.1.8.1
+       The faultvalue of ``trainable`` changed from False to True in version 2.1.8.1.
+
   """
 
-  def __init__(self,
-               name: Optional[str] = None,
-               input_shape: Optional[Union[Sequence[int], int]] = None,
-               trainable: bool = False,
-               state_trainable: bool = False):
+  def __init__(
+      self,
+      name: Optional[str] = None,
+      input_shape: Optional[Union[Sequence[int], int]] = None,
+      trainable: bool = True,
+      state_trainable: bool = False
+  ):
     self._state_trainable = state_trainable
     self._train_state = None
     super(RecurrentNode, self).__init__(name=name,
@@ -599,13 +738,13 @@ class RecurrentNode(Node):
     """
     if self.state is None:
       if self.output_shape is not None:
-        check_batch_shape(self.output_shape, state.shape)
+        check_shape_except_batch(self.output_shape, state.shape)
       self._state = bm.Variable(state) if not isinstance(state, bm.Variable) else state
       if self.state_trainable:
         self._train_state = bm.TrainVar(self._state[0])  # get the first elements as the initial state
         self._state[:] = self._train_state  # set all batch states the same
     else:
-      check_batch_shape(self.state.shape, state.shape)
+      check_shape_except_batch(self.state.shape, state.shape)
       if self.state.dtype != state.dtype:
         raise MathError('Cannot set the state, because the dtype is not consistent: '
                         f'{self.state.dtype} != {state.dtype}')
@@ -617,22 +756,11 @@ class RecurrentNode(Node):
       else:
         self.state._value = bm.as_device_array(state)
 
-  def __repr__(self):
-    name = type(self).__name__
-    prefix = ' ' * (len(name) + 1)
-
-    line1 = (f"{name}(name={self.name}, recurrent=True, "
-             f"trainable={self.trainable}, \n")
-    line2 = (f"{prefix}forwards={self.feedforward_shapes}, "
-             f"feedbacks={self.feedback_shapes}, \n")
-    line3 = (f"{prefix}output={self.output_shape}, "
-             f"support_feedback={self.support_feedback}, "
-             f"data_pass_type={self.data_pass_type})")
-    return line1 + line2 + line3
-
 
 class Network(Node):
   """Basic Network class for neural network building in BrainPy."""
+
+  data_pass = MultipleData('sequence')
 
   def __init__(self,
                nodes: Optional[Sequence[Node]] = None,
@@ -806,8 +934,8 @@ class Network(Node):
 
   def replace_graph(self,
                     nodes: Sequence[Node],
-                    ff_edges: Sequence[Tuple[Node, Node]],
-                    fb_edges: Sequence[Tuple[Node, Node]] = None) -> "Network":
+                    ff_edges: Sequence[Tuple[Node, ...]],
+                    fb_edges: Sequence[Tuple[Node, ...]] = None) -> "Network":
     if fb_edges is None: fb_edges = tuple()
 
     # assign nodes and edges
@@ -817,16 +945,45 @@ class Network(Node):
     self._network_init()
     return self
 
-  def init_ff(self):
+  def set_output_shape(self, shape: Dict[str, Sequence[int]]):
+    # check shape
+    if not isinstance(shape, dict):
+      raise ValueError(f'Must be a dict of <node name, shape>, but got {type(shape)}: {shape}')
+    for key, val in shape.items():
+      if not isinstance(val, (tuple, list)):
+        raise ValueError(f'Must be a sequence of int, but got {val} for key "{key}"')
+      # for s in val:
+      #   if not (isinstance(s, int) or (s is None)):
+      #     raise ValueError(f'Must be a sequence of int, but got {val}')
+
+    if not self._is_ff_initialized:
+      if len(self.exit_nodes) == 1:
+        self._output_shape = tuple(shape.values())[0]
+      else:
+        self._output_shape = shape
+    else:
+      for val in shape.values():
+        check_shape_except_batch(val, self.output_shape)
+
+  def init_ff_conn(self):
+    """Initialize the feedforward connections of the network.
+    This function will be called only once."""
     # input shapes of entry nodes
     for node in self.entry_nodes:
+      # set ff shapes
       if node.feedforward_shapes is None:
         if self.feedforward_shapes is None:
           raise ValueError('Cannot find the input size. '
                            'Cannot initialize the network.')
         else:
           node.set_feedforward_shapes({node.name: self._feedforward_shapes[node.name]})
-      node._ff_init()
+      # set fb shapes
+      if node in self.fb_senders:
+        fb_shapes = {node: node.output_shape for node in self.fb_senders.get(node, [])}
+        if None not in fb_shapes.values():
+          node.set_feedback_shapes(fb_shapes)
+      # init ff conn
+      node._init_ff_conn()
 
     # initialize the data
     children_queue = []
@@ -840,49 +997,81 @@ class Network(Node):
           children_queue.append(child)
     while len(children_queue):
       node = children_queue.pop(0)
-      # initialize input and output sizes
+      # set ff shapes
       parent_sizes = {p: p.output_shape for p in self.ff_senders.get(node, [])}
       node.set_feedforward_shapes(parent_sizes)
-      node._ff_init()
+      if node in self.fb_senders:
+        # set fb shapes
+        fb_shapes = {node: node.output_shape for node in self.fb_senders.get(node, [])}
+        if None not in fb_shapes.values():
+          node.set_feedback_shapes(fb_shapes)
+      # init ff conn
+      node._init_ff_conn()
       # append children
       for child in self.ff_receivers.get(node, []):
         ff_senders[child].remove(node)
         if len(ff_senders.get(child, [])) == 0:
           children_queue.append(child)
 
-  def init_fb(self):
+    # set output shape
+    out_sizes = {node: node.output_shape for node in self.exit_nodes}
+    self.set_output_shape(out_sizes)
+
+  def init_fb_conn(self):
+    """Initialize the feedback connections of the network.
+    This function will be called only once."""
     for receiver, senders in self.fb_senders.items():
       fb_sizes = {node: node.output_shape for node in senders}
+      if None in fb_sizes.values():
+        none_size_nodes = [repr(n) for n, v in fb_sizes.items() if v is None]
+        none_size_nodes = "\n".join(none_size_nodes)
+        raise ValueError(f'Output shapes of nodes \n\n'
+                         f'{none_size_nodes}\n\n'
+                         f'have not been initialized, '
+                         f'leading us cannot initialize the '
+                         f'feedback connection of node \n\n'
+                         f'{receiver}')
       receiver.set_feedback_shapes(fb_sizes)
-      receiver._fb_init()
+      receiver._init_fb_conn()
 
-  def init_state(self, num_batch=1):
-    """Initialize the states of all children nodes."""
+  def _init_state(self, num_batch=1):
+    """Initialize the states of all children nodes.
+    This function can be called multiple times."""
     for node in self.lnodes:
-      node.init_state(num_batch)
+      node._init_state(num_batch)
+    self._is_state_initialized = True
 
-  def initialize(self,
-                 ff: Optional[Union[Tensor, Dict[Any, Tensor]]] = None,
-                 fb: Optional[Union[Tensor, Dict[Any, Tensor]]] = None,
-                 num_batch: int = None):
+  def _init_fb_output(self, num_batch=1):
+    """Initialize the node feedback state.
+
+    This function can be called multiple times. However,
+    it is only triggered when the node has feedback connections.
+    """
+    for node in self.feedback_nodes:
+      node._init_fb_output(num_batch)
+    self._is_fb_state_initialized = True
+
+  def initialize(self, num_batch: int = 1):
     """
     Initialize the whole network. This function must be called before applying JIT.
 
-    This function is useful, because it is independent from the __call__ function.
-    We can use this function before we applying JIT to __call__ function.
+    This function is useful, because it is independent of the __call__ function.
+    We can use this function before we apply JIT to __call__ function.
     """
 
-    # feedforward initialization
-    if not self.is_ff_initialized:
+    # set feedforward shapes
+    if not self._is_ff_initialized:
       # check input and output nodes
-      assert len(self.entry_nodes) > 0, (f"We found this network \n\n"
-                                         f"{self} "
-                                         f"\n\nhas no input nodes.")
-      assert len(self.exit_nodes) > 0, (f"We found this network \n\n"
-                                        f"{self} "
-                                        f"\n\nhas no output nodes.")
+      if len(self.entry_nodes) <= 0:
+        raise ValueError(f"We found this network \n\n"
+                         f"{self} "
+                         f"\n\nhas no input nodes.")
+      if len(self.exit_nodes) <= 0:
+        raise ValueError(f"We found this network \n\n"
+                         f"{self} "
+                         f"\n\nhas no output nodes.")
 
-      # check whether has a feedforward path for each feedback pair
+      # check whether it has a feedforward path for each feedback pair
       ff_edges = [(a.name, b.name) for a, b in self.ff_edges]
       for node, receiver in self.fb_edges:
         if not detect_path(receiver.name, node.name, ff_edges):
@@ -895,64 +1084,58 @@ class Network(Node):
                            f'feedforward connection between them. ')
 
       # feedforward checking
-      if ff is None:
-        in_sizes = dict()
-        for node in self.entry_nodes:
-          if node._feedforward_shapes is None:
-            raise ValueError('Cannot initialize this node, because we detect '
-                             'both "feedforward_shapes" and "ff" inputs are None. '
-                             'Maybe you need a brainpy.nn.Input instance '
-                             'to instruct the input size.')
-          in_sizes.update(node._feedforward_shapes)
-        if num_batch is None:
-          raise ValueError('"num_batch" cannot be None when "ff" is not provided.')
-        check_integer(num_batch, 'num_batch', min_bound=0, allow_none=False)
-
-      else:
-        if isinstance(ff, (bm.ndarray, jnp.ndarray)):
-          ff = {self.entry_nodes[0].name: ff}
-        assert isinstance(ff, dict), f'ff must be a dict or a tensor, got {type(ff)}: {ff}'
-        for n in self.entry_nodes:
-          if n.name not in ff:
-            raise ValueError(f'Cannot find the input of the node {n}')
-        batch_sizes = [v.shape[0] for v in ff.values()]
-        if len(set(batch_sizes)) != 1:
-          raise ValueError('Batch sizes must be consistent, but we got multiple '
-                           f'batch sizes {set(batch_sizes)} for the given input: \n'
-                           f'{ff}')
-        in_sizes = {k: (None,) + v.shape[1:] for k, v in ff.items()}
-        if (num_batch is not None) and (num_batch != batch_sizes[0]):
-          raise ValueError(f'The provided "num_batch" {num_batch} is consistent with the '
-                           f'batch size of the provided data {batch_sizes[0]}')
-
-      # initialize feedforward
+      in_sizes = dict()
+      for node in self.entry_nodes:
+        if node.feedforward_shapes is None:
+          raise ValueError('Cannot initialize this node, because we detect '
+                           '"feedforward_shapes" is None. '
+                           'Maybe you need a brainpy.nn.Input instance '
+                           'to instruct the input size.')
+        in_sizes.update(node._feedforward_shapes)
       self.set_feedforward_shapes(in_sizes)
-      self._ff_init()
-      self.init_state(num_batch)
-      self._is_state_initialized = True
+
+    # feedforward initialization
+    if self.feedforward_shapes is None:
+      raise ValueError('Cannot initialize this node, because we detect '
+                       'both "feedforward_shapes" is None. ')
+    check_integer(num_batch, 'num_batch', min_bound=1, allow_none=False)
+    self._init_ff_conn()
+
+    # initialize state
+    self._init_state(num_batch)
+
+    # set feedback shapes
+    if not self._is_fb_initialized:
+      if len(self.fb_senders) > 0:
+        fb_sizes = dict()
+        for sender in self.fb_senders.keys():
+          fb_sizes[sender] = sender.output_shape
+        self.set_feedback_shapes(fb_sizes)
 
     # feedback initialization
-    if len(self.fb_senders):
-      # initialize feedback
-      if not self.is_fb_initialized:
-        self._fb_init()
-    else:
-      self.is_fb_initialized = True
+    if self.feedback_shapes is not None:
+      self._init_fb_conn()
+
+    # initialize feedback state
+    self._init_fb_output(num_batch)
 
   def _check_inputs(self, ff, fb=None):
     # feedforward inputs
     if isinstance(ff, (bm.ndarray, jnp.ndarray)):
       ff = {self.entry_nodes[0].name: ff}
-    assert isinstance(ff, dict), f'ff must be a dict or a tensor, got {type(ff)}: {ff}'
-    assert len(self.entry_nodes) == len(ff), (f'This network has {len(self.entry_nodes)} '
-                                              f'entry nodes. While only {len(ff)} input '
-                                              f'data are given.')
+    if not isinstance(ff, dict):
+      raise ValueError(f'ff must be a dict or a tensor, got {type(ff)}: {ff}')
+    if len(self.entry_nodes) != len(ff):
+      raise ValueError(f'This network has {len(self.entry_nodes)} '
+                       f'entry nodes. While only {len(ff)} input '
+                       f'data are given.')
     for n in self.entry_nodes:
       if n.name not in ff:
         raise ValueError(f'Cannot find the input of the node: \n{n}')
     for k, size in self._feedforward_shapes.items():
-      assert k in ff, f"The required key {k} is not provided in feedforward inputs."
-      if not check_batch_shape(size, ff[k].shape, mode='bool'):
+      if k not in ff:
+        raise ValueError(f"The required key {k} is not provided in feedforward inputs.")
+      if not check_shape_except_batch(size, ff[k].shape, mode='bool'):
         raise ValueError(f'Input size {ff[k].shape} is not consistent with '
                          f'the input size {size}')
 
@@ -960,22 +1143,25 @@ class Network(Node):
     if fb is not None:
       if isinstance(fb, (bm.ndarray, jnp.ndarray)):
         fb = {self.feedback_nodes[0]: fb}
-      assert isinstance(fb, dict), (f'fb must be a dict or a tensor, '
-                                    f'got {type(fb)}: {fb}')
-      assert len(self.feedback_nodes) == len(fb), (f'This network has {len(self.feedback_nodes)} '
-                                                   f'feedback nodes. While only {len(ff)} '
-                                                   f'feedback data are given.')
+      if not isinstance(fb, dict):
+        raise ValueError(f'fb must be a dict or a tensor, '
+                         f'got {type(fb)}: {fb}')
+      if len(self.feedback_nodes) != len(fb):
+        raise ValueError(f'This network has {len(self.feedback_nodes)} '
+                         f'feedback nodes. While only {len(ff)} '
+                         f'feedback data are given.')
       for n in self.feedback_nodes:
         if n.name not in fb:
           raise ValueError(f'Cannot find the feedback data from the node {n}')
       # check feedback consistency
       for k, size in self._feedback_shapes.items():
-        assert k in fb, f"The required key {k} is not provided in feedback inputs."
-        check_batch_shape(size, fb[k].shape)
+        if k not in fb:
+          raise ValueError(f"The required key {k} is not provided in feedback inputs.")
+        check_shape_except_batch(size, fb[k].shape)
 
     # data transformation
-    ff = self.data_pass_func(ff)
-    fb = self.data_pass_func(fb)
+    ff = self.data_pass.filter(ff)
+    fb = self.data_pass.filter(fb)
     return ff, fb
 
   def _call(self,
@@ -986,8 +1172,7 @@ class Network(Node):
             monitors: Optional[Sequence[str]] = None,
             **kwargs):
     # initialization
-    # self.initialize(ff, fb)
-    if not (self.is_ff_initialized and self.is_fb_initialized and self.is_state_initialized):
+    if not self.is_initialized:
       raise ValueError('Please initialize the Network first by calling "initialize()" function.')
 
     # initialize the forced data
@@ -1003,13 +1188,16 @@ class Network(Node):
     attr_monitors: Dict[str, Tensor] = {}
     state_monitors: Dict[str, Tensor] = {}
     for key in monitors:
-      assert isinstance(key, str), (f'"extra_returns" must be a sequence of string, '
-                                    f'while we got {type(key)}')
+      if not isinstance(key, str):
+        raise ValueError(f'"extra_returns" must be a sequence of string, '
+                         f'while we got {type(key)}')
       splits = key.split('.')
-      assert len(splits) == 2, (f'Every term in "extra_returns" must be (node.item), '
-                                f'while we got {key}')
-      assert splits[0] in self.implicit_nodes, (f'Cannot found the node {splits[0]}, this network '
-                                                f'only has {list(self.implicit_nodes.keys())}.')
+      if len(splits) != 2:
+        raise ValueError(f'Every term in "extra_returns" must be (node.item), '
+                         f'while we got {key}')
+      if splits[0] not in self.implicit_nodes:
+        raise ValueError(f'Cannot found the node {splits[0]}, this network '
+                         f'only has {list(self.implicit_nodes.keys())}.')
 
       if splits[1] not in NODE_STATES:  # attribute monitor
         if not hasattr(self.implicit_nodes[splits[0]], splits[1]):
@@ -1032,13 +1220,44 @@ class Network(Node):
     else:
       return output
 
+  def _call_a_node(self, node, ff, fb, monitors, forced_states,
+                   parent_outputs, children_queue, ff_senders,
+                   **shared_kwargs):
+    ff = node.data_pass.filter(ff)
+    if f'{node.name}.inputs' in monitors:
+      monitors[f'{node.name}.inputs'] = ff
+    # get the output results
+    if len(fb):
+      fb = node.data_pass.filter(fb)
+      if f'{node.name}.feedbacks' in monitors:
+        monitors[f'{node.name}.feedbacks'] = fb
+      parent_outputs[node] = node.forward(ff, fb, **shared_kwargs)
+    else:
+      parent_outputs[node] = node.forward(ff, **shared_kwargs)
+    # get the feedback state
+    if node in self.fb_receivers:
+      node.set_fb_output(node.feedback(parent_outputs[node], **shared_kwargs))
+    # forced state
+    if node.name in forced_states:
+      node.state.value = forced_states[node.name]
+    # monitor the values
+    if f'{node.name}.state' in monitors:
+      monitors[f'{node.name}.state'] = node.state.value
+    if f'{node.name}.output' in monitors:
+      monitors[f'{node.name}.output'] = parent_outputs[node]
+    # append children nodes
+    for child in self.ff_receivers.get(node, []):
+      ff_senders[child].remove(node)
+      if len(ff_senders.get(child, [])) == 0:
+        children_queue.append(child)
+
   def forward(self,
               ff,
               fb=None,
               forced_states: Dict[str, Tensor] = None,
               forced_feedbacks: Dict[str, Tensor] = None,
               monitors: Dict = None,
-              **kwargs):
+              **shared_kwargs):
     """The main computation function of a network.
 
     Parameters
@@ -1053,7 +1272,7 @@ class Network(Node):
       The fixed feedback for the nodes in the network.
     monitors: optional, sequence
       Can be used to monitor the state or the attribute of a node in the network.
-    **kwargs
+    **shared_kwargs
       Other parameters which will be parsed into every node.
 
     Returns
@@ -1077,10 +1296,11 @@ class Network(Node):
     parent_outputs = {}
     for i, node in enumerate(self._entry_nodes):
       ff_ = {node.name: ff[i]}
-      fb_ = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
+      fb_ = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.fb_output)
              for p in self.fb_senders.get(node, [])}
       self._call_a_node(node, ff_, fb_, monitors, forced_states,
-                        parent_outputs, children_queue, ff_senders, **kwargs)
+                        parent_outputs, children_queue, ff_senders,
+                        **shared_kwargs)
       runned_nodes.add(node.name)
 
     # run the model
@@ -1088,23 +1308,23 @@ class Network(Node):
       node = children_queue.pop(0)
       # get feedforward and feedback inputs
       ff = {p: parent_outputs[p] for p in self.ff_senders.get(node, [])}
-      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.feedback())
+      fb = {p: (forced_feedbacks[p.name] if (p.name in forced_feedbacks) else p.fb_output)
             for p in self.fb_senders.get(node, [])}
       # call the node
       self._call_a_node(node, ff, fb, monitors, forced_states,
                         parent_outputs, children_queue, ff_senders,
-                        **kwargs)
+                        **shared_kwargs)
 
-      # #- remove unnecessary parent outputs -#
-      # needed_parents = []
-      # runned_nodes.add(node.name)
-      # for child in (all_nodes - runned_nodes):
-      #   for parent in self.ff_senders[self.implicit_nodes[child]]:
-      #     needed_parents.append(parent.name)
-      # for parent in list(parent_outputs.keys()):
-      #   _name = parent.name
-      #   if _name not in needed_parents and _name not in output_nodes:
-      #     parent_outputs.pop(parent)
+      # - remove unnecessary parent outputs - #
+      needed_parents = []
+      runned_nodes.add(node.name)
+      for child in (all_nodes - runned_nodes):
+        for parent in self.ff_senders[self.implicit_nodes[child]]:
+          needed_parents.append(parent.name)
+      for parent in list(parent_outputs.keys()):
+        _name = parent.name
+        if _name not in needed_parents and _name not in output_nodes:
+          parent_outputs.pop(parent)
 
     # returns
     if len(self.exit_nodes) > 1:
@@ -1113,49 +1333,40 @@ class Network(Node):
       state = parent_outputs[self.exit_nodes[0]]
     return state, monitors
 
-  def _call_a_node(self, node, ff, fb, monitors, forced_states,
-                   parent_outputs, children_queue, ff_senders, **kwargs):
-    ff = node.data_pass_func(ff)
-    if f'{node.name}.inputs' in monitors:
-      monitors[f'{node.name}.inputs'] = ff
-    # get the output results
-    if len(fb):
-      fb = node.data_pass_func(fb)
-      if f'{node.name}.feedbacks' in monitors:
-        monitors[f'{node.name}.feedbacks'] = fb
-      parent_outputs[node] = node.forward(ff, fb, **kwargs)
-    else:
-      parent_outputs[node] = node.forward(ff, **kwargs)
-    if node.name in forced_states:  # forced state
-      node.state.value = forced_states[node.name]
-      parent_outputs[node] = forced_states[node.name]
-    if f'{node.name}.state' in monitors:
-      monitors[f'{node.name}.state'] = node.state.value
-    if f'{node.name}.output' in monitors:
-      monitors[f'{node.name}.output'] = parent_outputs[node]
-    # append children nodes
-    for child in self.ff_receivers.get(node, []):
-      ff_senders[child].remove(node)
-      if len(ff_senders.get(child, [])) == 0:
-        children_queue.append(child)
-
   def plot_node_graph(self,
                       fig_size: tuple = (10, 10),
-                      node_size: int = 2000,
+                      node_size: int = 1000,
                       arrow_size: int = 20,
-                      layout='spectral_layout'):
+                      layout='shell_layout',
+                      show=True,
+                      legends=None,
+                      ax=None):
     """Plot the node graph based on NetworkX package
 
     Parameters
     ----------
     fig_size: tuple, default to (10, 10)
       The size of the figure
-    node_size: int, default to 2000
-      The size of the node
+
+      .. deprecated:: 2.1.9
+         Please use ``ax`` variable.
+
+    node_size: int
+      The size of the node. default to 1000
     arrow_size:int, default to 20
       The size of the arrow
     layout: str
-      The graph layout. More please see networkx Graph Layout.
+      The graph layout. The supported layouts are:
+
+      - "shell_layout"
+      - "multipartite_layout"
+      - "spring_layout"
+      - "spiral_layout"
+      - "spectral_layout"
+      - "random_layout"
+      - "planar_layout"
+      - "kamada_kawai_layout"
+      - "circular_layout"
     """
     try:
       import networkx as nx
@@ -1204,22 +1415,19 @@ class Network(Node):
     G.add_edges_from(fb_edges)
     G.add_edges_from(rec_edges)
 
-    assert layout in ['shell_layout',
-                      'multipartite_layout',
-                      'spring_layout',
-                      'spiral_layout',
-                      'spectral_layout',
-                      'random_layout',
-                      'planar_layout',
-                      'kamada_kawai_layout',
-                      'circular_layout']
+    if layout not in SUPPORTED_LAYOUTS:
+      raise UnsupportedError(f'Only support layouts: {SUPPORTED_LAYOUTS}')
     layout = getattr(nx, layout)(G)
 
-    plt.figure(figsize=fig_size)
+    if ax is None:
+      from brainpy.visualization.figures import get_figure
+      fig, gs = get_figure(1, 1, fig_size[1], fig_size[0])
+      ax = fig.add_subplot(gs[0, 0])
     nx.draw_networkx_nodes(G, pos=layout,
                            nodelist=nodes_trainable,
                            node_color=trainable_color,
-                           node_size=node_size)
+                           node_size=node_size,
+                           ax=ax)
     nx.draw_networkx_nodes(G, pos=layout,
                            nodelist=nodes_untrainable,
                            node_color=untrainable_color,
@@ -1256,7 +1464,7 @@ class Network(Node):
       labels.append('Trainable')
     if len(nodes_untrainable):
       proxie.append(Line2D([], [], color='white', marker='o', markerfacecolor=untrainable_color))
-      labels.append('Untrainable')
+      labels.append('Nontrainable')
     if len(ff_edges):
       proxie.append(Line2D([], [], color=ff_color, linewidth=2))
       labels.append('Feedforward')
@@ -1267,10 +1475,10 @@ class Network(Node):
       proxie.append(Line2D([], [], color=rec_color, linewidth=2))
       labels.append('Recurrent')
 
-    plt.legend(proxie, labels, scatterpoints=1, markerscale=2,
-               loc='best')
-    plt.tight_layout()
-    plt.show()
+    legends = dict() if legends is None else legends
+    ax.legend(proxie, labels, scatterpoints=1, markerscale=2, loc='best', **legends)
+    if show:
+      plt.show()
 
 
 class FrozenNetwork(Network):

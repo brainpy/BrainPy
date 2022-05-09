@@ -33,9 +33,9 @@ class FitzHughNagumoModel(bp.dyn.DynamicalSystem):
     self.int_V = bp.odeint(dV, method=method)
     self.int_w = bp.odeint(dw, method=method)
 
-  def update(self, _t, _dt):
-    self.V.value = self.int_V(self.V, _t, self.w, self.Iext, _dt)
-    self.w.value = self.int_w(self.w, _t, self.V, self.a, self.b, _dt)
+  def update(self, t, dt):
+    self.V.value = self.int_V(self.V, t, self.w, self.Iext, dt)
+    self.w.value = self.int_w(self.w, t, self.V, self.a, self.b, dt)
     self.Iext[:] = 0.
 
 
@@ -45,7 +45,7 @@ model = FitzHughNagumoModel()
 runner = bp.dyn.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
 runner.run(100.)
 
-bp.visualize.line_plot(runner.mon.ts, runner.mon.num, legend='V')
+bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V')
 bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w', show=True)
 
 # phase plane analysis

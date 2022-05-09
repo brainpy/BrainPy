@@ -7,6 +7,7 @@ including:
 - ordinary differential equations (ODEs)
 - stochastic differential equations (SDEs)
 - delay differential equations (DDEs)
+- fractional differential equations (FDEs)
 
 Details please see the following.
 """
@@ -41,6 +42,14 @@ from .dde.generic import (ddeint,
                           set_default_ddeint,
                           register_dde_integrator)
 
-# others
+# FDE tools
 from . import fde
+from .fde.base import FDEIntegrator
+from .fde.generic import (fdeint,
+                          get_default_fdeint,
+                          set_default_fdeint,
+                          register_fde_integrator)
+
+
+# PDE tools
 from . import pde

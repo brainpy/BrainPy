@@ -13,5 +13,5 @@ __all__ = [
 ]
 
 Tensor = TypeVar('Tensor', bm.JaxArray, jnp.ndarray)
-Parameter = TypeVar('Parameter', bm.JaxArray, jnp.ndarray, float, int, bm.Variable)
+Parameter = TypeVar('Parameter', float, int, jnp.ndarray, bm.JaxArray, bm.Variable)
 Shape = TypeVar('Shape', int, Tuple[int, ...])

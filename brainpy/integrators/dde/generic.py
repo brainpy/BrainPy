@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Dict
+
+import brainpy.math as bm
 from .base import DDEIntegrator
-from .explicit_rk import *
 
 __all__ = [
   'ddeint',
@@ -12,26 +14,20 @@ __all__ = [
 ]
 
 name2method = {
-  # explicit RK
-  'euler': Euler, 'Euler': Euler,
-  'midpoint': MidPoint, 'MidPoint': MidPoint,
-  'heun2': Heun2, 'Heun2': Heun2,
-  'ralston2': Ralston2, 'Ralston2': Ralston2,
-  'rk2': RK2, 'RK2': RK2,
-  'rk3': RK3, 'RK3': RK3,
-  'heun3': Heun3, 'Heun3': Heun3,
-  'ralston3': Ralston3, 'Ralston3': Ralston3,
-  'ssprk3': SSPRK3, 'SSPRK3': SSPRK3,
-  'rk4': RK4, 'RK4': RK4,
-  'ralston4': Ralston4, 'Ralston4': Ralston4,
-  'rk4_38rule': RK4Rule38, 'RK4Rule38': RK4Rule38,
 }
-
 
 _DEFAULT_DDE_METHOD = 'euler'
 
 
-def ddeint(f=None, method='euler', **kwargs):
+def ddeint(f=None,
+           method='euler',
+           var_type: str = None,
+           dt: Union[float, int] = None,
+           name: str = None,
+           show_code: bool = False,
+           state_delays: Dict[str, bm.TimeDelay] = None,
+           neutral_delays: Dict[str, bm.NeutralDelay] = None,
+           **kwargs):
   """Numerical integration for ODEs.
 
   Examples
@@ -89,9 +85,21 @@ def ddeint(f=None, method='euler', **kwargs):
                      f'BrainPy only support: {list(name2method.keys())}')
 
   if f is None:
-    return lambda f: name2method[method](f, **kwargs)
+    return lambda f: name2method[method](f,
+                                         var_type=var_type,
+                                         dt=dt,
+                                         name=name,
+                                         state_delays=state_delays,
+                                         neutral_delays=neutral_delays,
+                                         **kwargs)
   else:
-    return name2method[method](f, **kwargs)
+    return name2method[method](f,
+                               var_type=var_type,
+                               dt=dt,
+                               name=name,
+                               state_delays=state_delays,
+                               neutral_delays=neutral_delays,
+                               **kwargs)
 
 
 def set_default_ddeint(method):
@@ -132,7 +140,7 @@ def register_dde_integrator(name, integrator):
   """
   if name in name2method:
     raise ValueError(f'"{name}" has been registered in DDE integrators.')
-  if DDEIntegrator not in integrator.__bases__:
+  if not issubclass(integrator, DDEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {DDEIntegrator.__name__}')
   name2method[name] = integrator
 

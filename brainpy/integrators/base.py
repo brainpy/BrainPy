@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy.base.base import Base
+from typing import Dict, Sequence
 
-from brainpy.tools.checking import check_float
+import brainpy.math as bm
+from brainpy.base.base import Base
+from brainpy.errors import DiffEqError
 from brainpy.integrators.constants import DT
+from brainpy.tools.checking import check_float, check_dict_data
 
 __all__ = [
   'Integrator',
@@ -18,8 +21,6 @@ class AbstractIntegrator(Base):
   # derivative
   # code_scope
   #
-  def build(self, *args, **kwargs):
-    raise NotImplementedError('Implement build method by yourself.')
 
   def __call__(self, *args, **kwargs):
     raise NotImplementedError
@@ -28,18 +29,37 @@ class AbstractIntegrator(Base):
 class Integrator(AbstractIntegrator):
   """Basic Integrator Class."""
 
-  def __init__(self, variables, parameters, arguments, dt, name=None):
+  def __init__(
+      self,
+      variables: Sequence[str],
+      parameters: Sequence[str],
+      arguments: Sequence[str],
+      dt: float,
+      name: str = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None,
+  ):
     super(Integrator, self).__init__(name=name)
 
     self._dt = dt
     check_float(dt, 'dt', allow_none=False, allow_int=True)
-    self._variables = variables  # variables
-    self._parameters = parameters # parameters
-    self._arguments = list(arguments) + [f'{DT}={self.dt}'] # arguments
+    self._variables = list(variables)  # variables
+    self._parameters = list(parameters)  # parameters
+    self._arguments = list(arguments) + [f'{DT}={self._dt}', ]  # arguments
     self._integral = None  # integral function
+
+    # state delays
+    self._state_delays = dict()
+    if state_delays is not None:
+      check_dict_data(state_delays, key_type=str, val_type=(bm.TimeDelay, bm.LengthDelay))
+      for key, delay in state_delays.items():
+        if key not in self.variables:
+          raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
+        self._state_delays[key] = delay
+    self.register_implicit_nodes(self._state_delays)
 
   @property
   def dt(self):
+    """The numerical integration precision."""
     return self._dt
 
   @dt.setter
@@ -48,6 +68,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def variables(self):
+    """The variables defined in the differential equation."""
     return self._variables
 
   @variables.setter
@@ -55,7 +76,12 @@ class Integrator(AbstractIntegrator):
     raise ValueError('Cannot set "variables" by users.')
 
   @property
+  def arg_names(self):
+    return self._variables + self._parameters + [DT]
+
+  @property
   def parameters(self):
+    """The parameters defined in the differential equation."""
     return self._parameters
 
   @parameters.setter
@@ -64,6 +90,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def arguments(self):
+    """All arguments when calling the numer integrator of the differential equation."""
     return self._arguments
 
   @arguments.setter
@@ -72,6 +99,7 @@ class Integrator(AbstractIntegrator):
 
   @property
   def integral(self):
+    """The integral function."""
     return self._integral
 
   @integral.setter
@@ -79,11 +107,45 @@ class Integrator(AbstractIntegrator):
     self.set_integral(f)
 
   def set_integral(self, f):
+    """Set the integral function."""
     if not callable(f):
       raise ValueError(f'integral function must be a callable function, '
                        f'but we got {type(f)}: {f}')
     self._integral = f
 
+  @property
+  def state_delays(self):
+    """State delays."""
+    return self._state_delays
+
+  @state_delays.setter
+  def state_delays(self, value):
+    raise ValueError('Cannot set "state_delays" by users.')
+
   def __call__(self, *args, **kwargs):
     assert self.integral is not None, 'Please build the integrator first.'
-    return self.integral(*args, **kwargs)
+
+    # check arguments
+    for i, arg in enumerate(args):
+      kwargs[self.arg_names[i]] = arg
+
+    # integral
+    new_vars = self.integral(**kwargs)
+    if len(self.variables) == 1:
+      dict_vars = {self.variables[0]: new_vars}
+    else:
+      dict_vars = {k: new_vars[i] for i, k in enumerate(self.variables)}
+
+    # update state delay variables
+    dt = kwargs.pop(DT, self.dt)
+    for key, delay in self.state_delays.items():
+      if isinstance(delay, bm.LengthDelay):
+        delay.update(dict_vars[key])
+      elif isinstance(delay, bm.TimeDelay):
+        delay.update(kwargs['t'] + dt, dict_vars[key])
+      else:
+        raise ValueError('Unknown delay variable. We only supports '
+                         'brainpy.math.LengthDelay, brainpy.math.TimeDelay. '
+                         f'While we got {delay}')
+
+    return new_vars

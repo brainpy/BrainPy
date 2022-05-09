@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Dict, Callable
+
 import brainpy.math as bm
-from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode import odeint
-from brainpy.dyn.base import TwoEndConn, ConstantDelay
+from brainpy.connect import TwoEndConnector
+from brainpy.dyn.base import NeuGroup, TwoEndConn
+from brainpy.initialize import Initializer
+from brainpy.dyn.utils import init_delay
+from brainpy.integrators import odeint, JointEq
+from brainpy.types import Tensor, Parameter
 
 __all__ = [
   'STP'
@@ -16,10 +21,10 @@ class STP(TwoEndConn):
   **Model Descriptions**
 
   Short-term plasticity (STP) [1]_ [2]_ [3]_, also called dynamical synapses,
-  refers to a phenomenon in which synaptic efficacy changes over time in a way
-  that reflects the history of presynaptic activity. Two types of STP, with
-  opposite effects on synaptic efficacy, have been observed in experiments.
-  They are known as Short-Term Depression (STD) and Short-Term Facilitation (STF).
+  refers to the changes of synaptic strengths over time in a way that reflects
+  the history of presynaptic activity. Two types of STP, with opposite effects
+  on synaptic efficacy, have been observed in experiments. They are known as
+  Short-Term Depression (STD) and Short-Term Facilitation (STF).
 
   In the model proposed by Tsodyks and Markram [4]_ [5]_, the STD effect is
   modeled by a normalized variable :math:`x (0 \le x \le 1)`, denoting the fraction
@@ -168,8 +173,20 @@ class STP(TwoEndConn):
 
   """
 
-  def __init__(self, pre, post, conn, U=0.15, tau_f=1500., tau_d=200.,
-               tau=8., A=1., delay=0., method='exp_auto', name=None):
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      U: float = 0.15,
+      tau_f: float = 1500.,
+      tau_d: float = 200.,
+      tau: float = 8.,
+      A: float = 1.,
+      delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      method: str = 'exp_auto',
+      name: str = None
+  ):
     super(STP, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_post_attrs('input')
     self.check_pre_attrs('spike')
@@ -180,20 +197,25 @@ class STP(TwoEndConn):
     self.tau = tau
     self.U = U
     self.A = A
-    self.delay = delay
 
     # connections
     self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
 
     # variables
-    num = len(self.pre_ids)
-    self.x = bm.Variable(bm.ones(num, dtype=bm.float_))
-    self.u = bm.Variable(bm.zeros(num, dtype=bm.float_))
-    self.I = bm.Variable(bm.zeros(num, dtype=bm.float_))
-    self.delayed_I = ConstantDelay(num, delay=delay)
+    self.num = len(self.pre_ids)
+    self.x = bm.Variable(bm.ones(self.num, dtype=bm.float_))
+    self.u = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
+    self.I = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
+    self.delay_type, self.delay_step, self.delay_I = init_delay(delay_step, self.I)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.x.value = bm.zeros(self.num)
+    self.u.value = bm.zeros(self.num)
+    self.I.value = bm.zeros(self.num)
+    self.delay_I.reset(self.I)
 
   @property
   def derivative(self):
@@ -202,14 +224,21 @@ class STP(TwoEndConn):
     dx = lambda x, t: (1 - x) / self.tau_d
     return JointEq([dI, du, dx])
 
-  def update(self, _t, _dt):
-    delayed_I = self.delayed_I.pull()
+  def update(self, t, dt):
+    # delayed pre-synaptic spikes
+    if self.delay_type == 'homo':
+      delayed_I = self.delay_I(self.delay_step)
+    elif self.delay_type == 'heter':
+      delayed_I = self.delay_I(self.delay_step, bm.arange(self.pre.num))
+    else:
+      delayed_I = self.I
     self.post.input += bm.syn2post(delayed_I, self.post_ids, self.post.num)
-    self.I.value, u, x = self.integral(self.I, self.u, self.x, _t, dt=_dt)
+    self.I.value, u, x = self.integral(self.I, self.u, self.x, t, dt=dt)
     syn_sps = bm.pre2syn(self.pre.spike, self.pre_ids)
     u = bm.where(syn_sps, u + self.U * (1 - self.u), u)
     x = bm.where(syn_sps, x - u * self.x, x)
-    self.I.value = bm.where(syn_sps, self.I, self.I + self.A * u * self.x)
+    self.I.value = bm.where(syn_sps, self.I + self.A * u * self.x, self.I)
     self.u.value = u
     self.x.value = x
-    self.delayed_I.push(self.I)
+    if self.delay_type in ['homo', 'heter']:
+      self.delay_I.update(self.I)

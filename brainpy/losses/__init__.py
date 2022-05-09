@@ -11,8 +11,7 @@ import jax.numpy as jn
 import jax.scipy
 from jax.tree_util import tree_flatten
 
-import brainpy.math.numpy_ops as ops
-import brainpy.math.activations as activations
+import brainpy.math as bm
 from brainpy import errors
 
 __all__ = [
@@ -41,7 +40,7 @@ def _return(outputs, reduction):
 
 
 def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
-  """This criterion combines ``LogSoftmax`` and `NLLLoss`` in one single class.
+  r"""This criterion combines ``LogSoftmax`` and `NLLLoss`` in one single class.
 
   It is useful when training a classification problem with `C` classes.
   If provided, the optional argument :attr:`weight` should be a 1D `Tensor`
@@ -97,18 +96,18 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
   """
-  targets = ops.as_device_array(targets)
-  logits = ops.as_device_array(logits)
+  targets = bm.as_device_array(targets)
+  logits = bm.as_device_array(logits)
 
   # loss
-  if ops.ndim(targets) + 1 == ops.ndim(logits):
+  if bm.ndim(targets) + 1 == bm.ndim(logits):
     # targets_old = targets.reshape((-1,))
     # length = targets_old.shape[0]
     # rows = jn.arange(length)
     # targets = ops.zeros((length, logits.shape[-1]))
     # targets[rows, targets_old] = 1.
     # targets = targets.reshape(logits.shape).value
-    targets = activations.one_hot(targets, logits.shape[-1])
+    targets = bm.activations.one_hot(targets, logits.shape[-1])
   loss = jax.scipy.special.logsumexp(logits, axis=-1) - (logits * targets).sum(axis=-1)
 
   # weighted loss
@@ -120,7 +119,7 @@ def cross_entropy_loss(logits, targets, weight=None, reduction='mean'):
 
 
 def cross_entropy_sparse(logits, labels):
-  """Computes the softmax cross-entropy loss.
+  r"""Computes the softmax cross-entropy loss.
 
   Args:
       logits: (batch, ..., #class) tensor of logits.
@@ -133,8 +132,8 @@ def cross_entropy_sparse(logits, labels):
   if isinstance(labels, int):
     labeled_logits = logits[..., labels]
   else:
-    logits = ops.as_device_array(logits)
-    labels = ops.as_device_array(labels)
+    logits = bm.as_device_array(logits)
+    labels = bm.as_device_array(labels)
     labeled_logits = jn.take_along_axis(logits, labels, -1).squeeze(-1)
   loss = jax.scipy.special.logsumexp(logits, axis=-1) - labeled_logits
   return loss
@@ -155,7 +154,7 @@ def cross_entropy_sigmoid(logits, labels):
 
 
 def l1_loos(logits, targets, reduction='sum'):
-  """Creates a criterion that measures the mean absolute error (MAE) between each element in
+  r"""Creates a criterion that measures the mean absolute error (MAE) between each element in
   the logits :math:`x` and targets :math:`y`. It is useful in regression problems.
 
   The unreduced (i.e. with :attr:`reduction` set to ``'none'``) loss can be described as:
@@ -202,12 +201,12 @@ def l1_loos(logits, targets, reduction='sum'):
     If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
   """
   diff = (logits - targets).reshape((logits.shape[0], -1))
-  norm = jn.linalg.norm(ops.as_device_array(diff), ord=1, axis=1, keepdims=False)
+  norm = jn.linalg.norm(bm.as_device_array(diff), ord=1, axis=1, keepdims=False)
   return _return(outputs=norm, reduction=reduction)
 
 
 def l2_loss(predicts, targets):
-  """Computes the L2 loss.
+  r"""Computes the L2 loss.
 
   The 0.5 term is standard in "Pattern Recognition and Machine Learning"
   by Bishop [1]_, but not "The Elements of Statistical Learning" by Tibshirani.
@@ -229,7 +228,7 @@ def l2_loss(predicts, targets):
   ----------
   .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
   """
-  return ops.as_device_array(0.5 * (predicts - targets) ** 2)
+  return bm.as_device_array(0.5 * (predicts - targets) ** 2)
 
 
 def l2_norm(x):
@@ -246,7 +245,7 @@ def l2_norm(x):
 
 
 def mean_absolute_error(x, y, axis=None):
-  """Computes the mean absolute error between x and y.
+  r"""Computes the mean absolute error between x and y.
 
   Args:
       x: a tensor of shape (d0, .. dN-1).
@@ -256,12 +255,12 @@ def mean_absolute_error(x, y, axis=None):
   Returns:
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
   """
-  r = ops.abs(x - y)
-  return jn.mean(ops.as_device_array(r), axis=axis)
+  r = bm.abs(x - y)
+  return jn.mean(bm.as_device_array(r), axis=axis)
 
 
 def mean_squared_error(predicts, targets, axis=None):
-  """Computes the mean squared error between x and y.
+  r"""Computes the mean squared error between x and y.
 
   Args:
       predicts: a tensor of shape (d0, .. dN-1).
@@ -272,11 +271,11 @@ def mean_squared_error(predicts, targets, axis=None):
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
   """
   r = (predicts - targets) ** 2
-  return jn.mean(ops.as_device_array(r), axis=axis)
+  return jn.mean(bm.as_device_array(r), axis=axis)
 
 
 def mean_squared_log_error(y_true, y_pred, axis=None):
-  """Computes the mean squared logarithmic error between y_true and y_pred.
+  r"""Computes the mean squared logarithmic error between y_true and y_pred.
 
   Args:
       y_true: a tensor of shape (d0, .. dN-1).
@@ -286,12 +285,12 @@ def mean_squared_log_error(y_true, y_pred, axis=None):
   Returns:
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
   """
-  r = (ops.log1p(y_true) - ops.log1p(y_pred)) ** 2
-  return jn.mean(ops.as_device_array(r), axis=axis)
+  r = (bm.log1p(y_true) - bm.log1p(y_pred)) ** 2
+  return jn.mean(bm.as_device_array(r), axis=axis)
 
 
 def huber_loss(predicts, targets, delta: float = 1.0):
-  """Huber loss.
+  r"""Huber loss.
 
   Huber loss is similar to L2 loss close to zero, L1 loss away from zero.
   If gradient descent is applied to the `huber loss`, it is equivalent to
@@ -315,7 +314,7 @@ def huber_loss(predicts, targets, delta: float = 1.0):
   ----------
   .. [1] https://en.wikipedia.org/wiki/Huber_loss
   """
-  diff = ops.as_device_array(ops.abs(targets - predicts))
+  diff = bm.as_device_array(bm.abs(targets - predicts))
   # 0.5 * err^2                  if |err| <= d
   # 0.5 * d^2 + d * (|err| - d)  if |err| > d
   return jn.where(diff > delta, delta * (diff - .5 * delta), 0.5 * diff ** 2)
@@ -333,7 +332,7 @@ def binary_logistic_loss(logits: float, labels: int, ) -> float:
   # Softplus is the Fenchel conjugate of the Fermi-Dirac negentropy on [0, 1].
   # softplus = proba * logit - xlogx(proba) - xlogx(1 - proba),
   # where xlogx(proba) = proba * log(proba).
-  return activations.softplus(logits) - labels * logits
+  return bm.activations.softplus(logits) - labels * logits
 
 
 def multiclass_logistic_loss(label: int, logits: jn.ndarray) -> float:
@@ -353,7 +352,7 @@ def multiclass_logistic_loss(label: int, logits: jn.ndarray) -> float:
 
 
 def smooth_labels(labels, alpha: float) -> jn.ndarray:
-  """Apply label smoothing.
+  r"""Apply label smoothing.
   Label smoothing is often used in combination with a cross-entropy loss.
   Smoothed labels favour small logit gaps, and it has been shown that this can
   provide better model calibration by preventing overconfident predictions.
@@ -405,13 +404,13 @@ def softmax_cross_entropy(logits, labels):
   Returns:
     the cross entropy loss.
   """
-  logits = ops.as_device_array(logits)
-  labels = ops.as_device_array(labels)
+  logits = bm.as_device_array(logits)
+  labels = bm.as_device_array(labels)
   return -jn.sum(labels * jax.nn.log_softmax(logits, axis=-1), axis=-1)
 
 
 def log_cosh(predicts, targets=None, ):
-  """Calculates the log-cosh loss for a set of predictions.
+  r"""Calculates the log-cosh loss for a set of predictions.
 
   log(cosh(x)) is approximately `(x**2) / 2` for small x and `abs(x) - log(2)`
   for large x.  It is a twice differentiable alternative to the Huber loss.
@@ -425,6 +424,6 @@ def log_cosh(predicts, targets=None, ):
     the log-cosh loss.
   """
   errors = (predicts - targets) if (targets is not None) else predicts
-  errors = ops.as_device_array(errors)
+  errors = bm.as_device_array(errors)
   # log(cosh(x)) = log((exp(x) + exp(-x))/2) = log(exp(x) + exp(-x)) - log(2)
   return jn.logaddexp(errors, -errors) - jn.log(2.0).astype(errors.dtype)

@@ -2,6 +2,7 @@
 # - Si Wu, Kosuke Hamaguchi, and Shun-ichi Amari. "Dynamics and computation
 #   of continuous attractors." Neural computation 20.4 (2008): 994-1025.
 
+import jax
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -67,14 +68,14 @@ class CANN2D(bp.dyn.NeuGroup):
     d = d.reshape((self.length, self.length))
     return self.A * bm.exp(-0.25 * bm.square(d / self.a))
 
-  def update(self, _t, _dt):
+  def update(self, t, dt):
     r1 = bm.square(self.u)
     r2 = 1.0 + self.k * bm.sum(r1)
     self.r.value = r1 / r2
     r = bm.fft.fft2(self.r)
     jjft = bm.fft.fft2(self.conn_mat)
     interaction = bm.real(bm.fft.ifft2(r * jjft))
-    self.u.value = self.u + (-self.u + self.input + interaction) / self.tau * _dt
+    self.u.value = self.u + (-self.u + self.input + interaction) / self.tau * dt
     self.input[:] = 0.
 
 
@@ -98,7 +99,7 @@ bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length)
 length = 20
 positions = bp.inputs.ramp_input(-bm.pi, bm.pi, duration=length, t_start=0)
 positions = bm.stack([positions, positions]).T
-Iext = bm.vmap(cann.get_stimulus_by_pos)(positions)
+Iext = jax.vmap(cann.get_stimulus_by_pos)(positions)
 runner = bp.dyn.DSRunner(cann,
                          inputs=['input', Iext, 'iter'],
                          monitors=['r'],

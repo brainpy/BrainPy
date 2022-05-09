@@ -5,6 +5,7 @@ from typing import Union, Dict, Callable, Sequence
 
 import jax.numpy as jnp
 import numpy as np
+from jax import jit, random as jr
 from jax.tree_util import tree_map
 
 import brainpy.losses as losses
@@ -12,28 +13,21 @@ import brainpy.math as bm
 import brainpy.optimizers as optim
 from brainpy.errors import UnsupportedError
 from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import check_rnn_data_batch_size
-from brainpy.running.runner import Runner
+from brainpy.nn.utils import check_data_batch_size, serialize_kwargs
 from brainpy.tools.checking import check_dict_data, check_float
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 
 __all__ = [
   'BPTT',
+  'BPFF',
 ]
-
-MANY2ONE = 'many2one'
-MANY2MANY = 'many2many'
-
-
-class BackPropagation(Runner):
-  pass
 
 
 class BPTT(RNNTrainer):
   """
   The trainer implementing back propagation through time (BPTT)
-  for recurrent neural networks.
+  algorithm for recurrent neural networks.
 
   """
 
@@ -45,13 +39,26 @@ class BPTT(RNNTrainer):
       loss: Union[str, Callable],  # loss function
       optimizer: optim.Optimizer = None,  # optimizer
       max_grad_norm=None,
-      shuffle_data=True,
-      metrics=('loss',),
+      shuffle_data: bool = True,
+      jit: bool = True,
 
       # common arguments for RNNTrainer
       **kwargs
   ):
     super(BPTT, self).__init__(target=target, **kwargs)
+
+    # jit settings
+    if isinstance(jit, bool):
+      self.jit = {'fit': jit, 'predict': jit, 'loss': jit}
+    elif isinstance(jit, dict):
+      jit = {key: val for key, val in jit.items()}
+      self.jit = {'fit': jit.pop('fit', True),
+                  'predict': jit.pop('predict', True),
+                  'loss': jit.pop('loss', True)}
+      if len(jit):
+        raise ValueError(f'Unknown jit setting for {jit.keys()}')
+    else:
+      raise ValueError(f'Unknown "jit" setting: {jit}')
 
     # optimizer
     if optimizer is None:
@@ -70,30 +77,42 @@ class BPTT(RNNTrainer):
     self.loss_fun = loss
     self._train_losses = None
     self._test_losses = None
-    self._f_loss_public = None
-    self._f_train = None
-    self._f_grad = None
-    self._mapping_type = None  # target/output mapping types
+    self._f_shuffle = None
+
+    # target/output mapping types
+    self._mapping_type = None
+
+    # functions
+    self._f_loss = dict()
+    self._f_train = dict()
+    self._f_grad = dict()
 
     # training parameters
     self.max_grad_norm = max_grad_norm  # gradient clipping
     self.shuffle_data = shuffle_data
-    self.metrics = metrics
 
     # initialize the optimizer
-    if not (self.target.is_ff_initialized and
-            self.target.is_fb_initialized and
-            self.target.is_state_initialized):
+    if not self.target.is_initialized:
       raise ValueError('Please initialize the target model first by calling "initialize()" function.')
     self.optimizer.register_vars(self.target.vars().subset(bm.TrainVar).unique())
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    prefix = ' ' * len(name)
+    return (f'{name}(target={self.target}, \n\t'
+            f'{prefix}jit={self.jit}, \n\t'
+            f'{prefix}loss={self.loss_fun}, \n\t'
+            f'{prefix}optimizer={self.optimizer})')
 
   def predict(
       self,
       xs: Union[Tensor, Dict[str, Tensor]],
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
-      reset=True,
-      shared_pars: Dict = None,
+      initial_states: Union[Tensor, Dict[str, Tensor]] = None,
+      initial_feedbacks: Dict[str, Tensor] = None,
+      reset: bool = True,
+      shared_kwargs: Dict = None,
       **kwargs
   ):
     """Predict a series of input data with the given target model.
@@ -107,16 +126,37 @@ class BPTT(RNNTrainer):
     xs: Tensor, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
+    shared_kwargs: dict
+      Shared keyword arguments for the given target model.
+    reset: bool
+      Whether reset the model states. Default True.
+
     forced_states: dict
       The fixed node states. Similar with ``xs``, each tensor in
       ``forced_states`` must be a tensor with the shape of
       `(num_sample, num_time, num_feature)`. Default None.
+
+      .. versionadded:: 2.1.4
+
     forced_feedbacks: dict
       The fixed feedback states. Similar with ``xs``, each tensor in
       ``forced_states`` must be a tensor with the shape of
       `(num_sample, num_time, num_feature)`. Default None.
-    reset: bool
-      Whether reset the model states. Default True.
+
+      .. versionadded:: 2.1.4
+
+    initial_states: JaxArray, ndarray, dict
+      The initial states. Each tensor in ``initial_states`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    initial_feedbacks: dict
+      The initial feedbacks for the node in the network model.
+      Each tensor in ``initial_feedbacks`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
 
     Returns
     -------
@@ -124,14 +164,13 @@ class BPTT(RNNTrainer):
       The model output.
     """
     # check forced states/feedbacks
-    assert forced_states is None, (f'Currently {self.__class__.__name__} does '
-                                   f'not support "forced_states"')
-    assert forced_feedbacks is None, (f'Currently {self.__class__.__name__} does '
-                                      f'not support "forced_feedbacks"')
     return super(BPTT, self).predict(xs=xs,
                                      forced_states=forced_states,
                                      forced_feedbacks=forced_feedbacks,
-                                     reset=reset)
+                                     initial_states=initial_states,
+                                     initial_feedbacks=initial_feedbacks,
+                                     reset=reset,
+                                     shared_kwargs=shared_kwargs)
 
   def fit(
       self,
@@ -141,10 +180,11 @@ class BPTT(RNNTrainer):
       num_train: int = 100,
       num_report: int = 100,
       reset: bool = True,
-      shared_args: Dict = None,
-      # currently unsupported features
+      shared_kwargs: Dict = None,
       forced_states: Dict[str, Tensor] = None,
       forced_feedbacks: Dict[str, Tensor] = None,
+      initial_states: Union[Tensor, Dict[str, Tensor]] = None,
+      initial_feedbacks: Dict[str, Tensor] = None,
   ):
     """
     Fit the target model according to the given training and testing data.
@@ -168,24 +208,45 @@ class BPTT(RNNTrainer):
       Same as the ``train_data``. It can be a callable function,
       or a tuple/list representing `(X, Y)` data.
     num_batch: int
-      The batch size. Default 32.
+      The batch size. Default 32. This setting is used when users provide
+      the ``train_data`` and ``test_data`` as a pair of `(X, Y)` data, rather
+      than a function.
     num_train: int
       The number of training epoch. Default 100.
     num_report: int
       The number of step to report the progress. Default 100 training steps.
     reset: bool
       Whether reset the initial states of the target model.
-    forced_states: optional, dict
-      The forced node states.
-    forced_feedbacks: optional, dict
-      The forced node feedbacks.
-    """
-    # check forced states/feedbacks
-    assert forced_states is None, (f'Currently {self.__class__.__name__} does '
-                                   f'not support "forced_states"')
-    assert forced_feedbacks is None, (f'Currently {self.__class__.__name__} does '
-                                      f'not support "forced_feedbacks"')
+    shared_kwargs: dict
+      The shared keyword arguments for the target models.
+    forced_states: dict
+      The fixed node states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`.
 
+      .. versionadded:: 2.1.4
+
+    forced_feedbacks: dict
+      The fixed feedback states. Similar with ``xs``, each tensor in
+      ``forced_states`` must be a tensor with the shape of
+      `(num_sample, num_time, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    initial_states: JaxArray, ndarray, dict
+      The initial states. Each tensor in ``initial_states`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    initial_feedbacks: dict
+      The initial feedbacks for the node in the network model.
+      Each tensor in ``initial_feedbacks`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+
+      .. versionadded:: 2.1.4
+
+    """
     # training the model
     all_train_losses = []
     all_test_losses = []
@@ -196,12 +257,14 @@ class BPTT(RNNTrainer):
 
       # training set
       for x, y in train_data_:
-        self._check_mapping_type(y)
-        batch_size = check_rnn_data_batch_size(x)
-        if batch_size != num_batch:
-          raise ValueError(f'"num_batch" is set to {num_batch}, but we got {batch_size}.')
-        if reset: self.target.init_state(batch_size)
-        loss = self.f_train(x, y)
+        self._set_initial_states(initial_states)
+        self._set_initial_feedbacks(initial_feedbacks)
+        batch_size = check_data_batch_size(x)
+        if reset:
+          self.target.initialize(batch_size)
+        loss = self.f_train(shared_kwargs)(x, y,
+                                           forced_states=forced_states,
+                                           forced_feedbacks=forced_feedbacks)
         all_train_losses.append(loss)
         train_i += 1
         if train_i % num_report == 0:
@@ -213,40 +276,42 @@ class BPTT(RNNTrainer):
       test_data_ = self._get_test_data(test_data, num_batch)
       if test_data_ is not None:
         for x, y in test_data_:
-          self._check_mapping_type(y)
-          batch_size = check_rnn_data_batch_size(x)
-          if batch_size != num_batch:
-            raise ValueError(f'"num_batch" is set to {num_batch}, '
-                             f'but we got {batch_size}.')
+          batch_size = check_data_batch_size(x)
           if reset:
-            self.target.init_state(batch_size)
-          loss = self.f_loss(x, y)
+            self.target.initialize(batch_size)
+          loss = self.f_loss(shared_kwargs)(x, y,
+                                            forced_states=forced_states,
+                                            forced_feedbacks=forced_feedbacks)
           all_test_losses.append(loss)
 
     self._train_losses = bm.asarray(all_train_losses)
     self._test_losses = bm.asarray(all_test_losses)
 
-  @property
-  def f_grad(self):
-    if self._f_grad is None:
-      self._f_grad = self._get_f_grad()
-    return self._f_grad
+  def f_grad(self, shared_kwargs=None) -> Callable:
+    """Get gradient function."""
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_grad:
+      self._f_grad[shared_kwargs_str] = self._make_f_grad(shared_kwargs)
+    return self._f_grad[shared_kwargs_str]
 
-  @property
-  def f_loss(self):
-    if self._f_loss_public is None:
-      self._f_loss_public = self._get_f_loss()
-    if self.jit:
-      dyn_vars = self.target.vars()
-      dyn_vars.update(self.dyn_vars)
-      self._f_loss_public = bm.jit(self._f_loss_public, dyn_vars=dyn_vars)
-    return self._f_loss_public
+  def f_loss(self, shared_kwargs=None) -> Callable:
+    """Get loss function."""
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_loss:
+      self._f_loss[shared_kwargs_str] = self._make_f_loss(shared_kwargs)
+      if self.jit['loss']:
+        dyn_vars = self.target.vars()
+        dyn_vars.update(self.dyn_vars)
+        self._f_loss[shared_kwargs_str] = bm.jit(self._f_loss[shared_kwargs_str],
+                                                 dyn_vars=dyn_vars)
+    return self._f_loss[shared_kwargs_str]
 
-  @property
-  def f_train(self):
-    if self._f_train is None:
-      self._f_train = self._get_f_train()
-    return self._f_train
+  def f_train(self, shared_kwargs=None) -> Callable:
+    """Get training function."""
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._f_train:
+      self._f_train[shared_kwargs_str] = self._make_f_train(shared_kwargs)
+    return self._f_train[shared_kwargs_str]
 
   @property
   def train_losses(self):
@@ -254,33 +319,37 @@ class BPTT(RNNTrainer):
     return self._train_losses
 
   @property
-  def test_losses(self):
-    """Training loss."""
-    return self._test_losses
-
-  @property
   def mapping_type(self):
     """Mapping type for the output and the target."""
     return self._mapping_type
 
-  def _get_f_loss(self):
-    def loss_fun(inputs, targets):
+  def _make_f_loss(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None: shared_kwargs = dict()
+    if not isinstance(shared_kwargs, dict):
+      raise ValueError(f'Only supports dict for "shared_kwargs". '
+                       f'But got {type(shared_kwargs)}: {shared_kwargs}')
+
+    def loss_fun(inputs, targets, forced_states=None, forced_feedbacks=None):
       inputs = self._format_xs(inputs)
       targets = self._format_ys(targets)
+      num_batch, num_step = list(inputs.values())[0].shape[:2]
+      forced_states = self._check_forced_states(forced_states, num_batch, num_step)
+      forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_batch, num_step)
       inputs = {k: bm.moveaxis(v, 0, 1) for k, v in inputs.items()}
-      outputs, _ = self._predict(xs=inputs)
+      outputs, _ = self._predict(xs=inputs,
+                                 shared_kwargs=shared_kwargs,
+                                 forced_states=forced_states,
+                                 forced_feedbacks=forced_feedbacks)
       outputs = self._format_ys(outputs)
       loss = 0.
       for key, output in outputs.items():
-        if self.mapping_type[key] == MANY2ONE:
-          output = output[:, -1]
         loss += self.loss_fun(output, targets[key])
       return loss
 
     return loss_fun
 
-  def _get_f_grad(self):
-    _f_loss_internal = self._get_f_loss()
+  def _make_f_grad(self, shared_kwargs: Dict = None):
+    _f_loss_internal = self._make_f_loss(shared_kwargs)
     dyn_vars = self.target.vars()
     dyn_vars.update(self.dyn_vars)
     tran_vars = dyn_vars.subset(bm.TrainVar)
@@ -289,18 +358,27 @@ class BPTT(RNNTrainer):
                    grad_vars=tran_vars.unique(),
                    return_value=True)
 
-  def _get_f_train(self):
-    def train_func(inputs, targets):
+  def _make_f_train(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None:
+      shared_kwargs = dict()
+    elif not isinstance(shared_kwargs, dict):
+      raise ValueError(f'Only supports dict for "shared_kwargs". '
+                       f'But got {type(shared_kwargs)}: {shared_kwargs}')
+
+    def train_func(inputs, targets, forced_states=None, forced_feedbacks=None):
       inputs = self._format_xs(inputs)
       targets = self._format_ys(targets)
-      grads, loss = self.f_grad(inputs, targets)
+      grads, loss = self.f_grad(shared_kwargs)(inputs,
+                                               targets,
+                                               forced_states=forced_states,
+                                               forced_feedbacks=forced_feedbacks)
       if self.max_grad_norm is not None:
         check_float(self.max_grad_norm, 'max_grad_norm', min_bound=0.)
         grads = bm.clip_by_norm(grads, self.max_grad_norm)
       self.optimizer.update(grads)
       return loss
 
-    if self.jit:
+    if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       dyn_vars.update(self.optimizer.vars())
@@ -310,15 +388,17 @@ class BPTT(RNNTrainer):
   def _format_ys(self, ys):
     if isinstance(ys, (bm.ndarray, jnp.ndarray)):
       if isinstance(self.target, Network):
-        assert len(self.target.exit_nodes) == 1, (f'The network {self.target} has '
-                                                  f'{len(self.target.exit_nodes)} '
-                                                  f'output nodes, while we only got '
-                                                  f'one output data.')
+        if len(self.target.exit_nodes) != 1:
+          raise ValueError(f'The network {self.target} has '
+                           f'{len(self.target.exit_nodes)} '
+                           f'output nodes, while we only got '
+                           f'one output data.')
         ys = {self.target.exit_nodes[0].name: ys}
       else:
         ys = {self.target.name: ys}
     else:
-      for node in self.target.exit_nodes:
+      exit_nodes = self.target.exit_nodes if isinstance(self.target, Network) else [self.target]
+      for node in exit_nodes:
         if node.name not in ys:
           raise ValueError(f'The network has output node {node.name}, '
                            f'however, we did not get the corresponding '
@@ -326,27 +406,14 @@ class BPTT(RNNTrainer):
     check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
     return ys
 
-  def _check_mapping_type(self, ys):
-    if self.mapping_type is None:
-      self._mapping_type = dict()
-    for (key, y) in ys.items():
-      assert y.ndim in [2, 3], ('Each tensor in "ys" must have the shape of '
-                                '(num_sample, num_time, num_feature) or '
-                                '(num_sample, num_feature), but we '
-                                f'got {y.shape}')
-      if key not in self._mapping_type:
-        self._mapping_type[key] = MANY2MANY if y.ndim == 3 else MANY2ONE
-      else:
-        if self._mapping_type[key] != (MANY2MANY if y.ndim == 3 else MANY2ONE):
-          raise ValueError(f'Mapping type of {key} is {self.mapping_type[key]}, '
-                           f'it cannot be changed.')
-
   def _get_train_data(self, train_data, num_batch):
     # training dataset
     if callable(train_data):
       train_data = self._get_data_by_method1(train_data, num_batch)
     elif isinstance(train_data, (tuple, list)):
-      assert len(train_data) == 2, f"Must be (X, Y) pair, but got a sequence with length {len(train_data)}"
+      if len(train_data) != 2:
+        raise ValueError(f"Must be (X, Y) pair, but got a sequence with "
+                         f"length {len(train_data)}")
       train_data = self._get_data_by_method2(train_data,
                                              num_batch=num_batch,
                                              shuffle=self.shuffle_data)
@@ -375,23 +442,319 @@ class BPTT(RNNTrainer):
       ys = self._format_ys(ys)
       yield xs, ys
 
+  def _shuffle(self, xs, ys):
+    key = jr.PRNGKey(seed=np.random.randint(0, 100000))
+    if self._f_shuffle is None:
+      def shuffle(xs, ys, key):
+        xs = tree_map(lambda x: jr.permutation(key, x, axis=0), xs)
+        ys = tree_map(lambda y: jr.permutation(key, y, axis=0), ys)
+        return xs, ys
+
+      self._f_shuffle = jit(shuffle)
+    return self._f_shuffle(xs, ys, key)
+
   def _get_data_by_method2(self, dataset, num_batch, shuffle=False, ):
     assert isinstance(dataset, (tuple, list)) and len(dataset) == 2
     xs, ys = dataset
-    xs, _, num_sample = self._check_xs(xs, move_axis=False)
+    xs = self._format_xs(xs)
+    num_sample = self._get_xs_info(xs)
     ys = self._format_ys(ys)
     if shuffle:
-      seed = np.random.randint(0, 100000)
-      xs = tree_map(lambda data: bm.random.RandomState(seed).shuffle(data, axis=0), xs)
-      ys = tree_map(lambda data: bm.random.RandomState(seed).shuffle(data, axis=0), ys)
+      xs, ys = self._shuffle(xs, ys)
 
-    # def data_iter():
     for data_idx in range(0, num_sample, num_batch):
       if (data_idx + num_batch) > num_sample:
-        ids = bm.arange(data_idx, data_idx + num_batch) % num_sample
-        inputs = {k: v[ids] for k, v in xs.items()}
-        targets = {k: v[ids] for k, v in ys.items()}
+        inputs = {k: v[data_idx:] for k, v in xs.items()}
+        targets = {k: v[data_idx:] for k, v in ys.items()}
       else:
         inputs = {k: v[data_idx: data_idx + num_batch] for k, v in xs.items()}
         targets = {k: v[data_idx: data_idx + num_batch] for k, v in ys.items()}
       yield inputs, targets
+
+  def _get_xs_info(self, xs):
+    input_shapes = {}
+    if isinstance(self.target, Network):
+      for node in self.target.entry_nodes:
+        name = self.target.entry_nodes[0].name
+        input_shapes[name] = node._feedforward_shapes[name]
+    else:
+      name = self.target.name
+      input_shapes[name] = self.target._feedforward_shapes[name]
+    num_batch_sizes = []
+    for key, val in xs.items():
+      if key not in input_shapes:
+        raise ValueError(f'Cannot find {key} in the required inputs. Please check!')
+      shape = input_shapes[key]
+      if bm.ndim(val) != len(shape) + 1:
+        raise ValueError(f'Each tensor in "xs" must be a tensor of shape '
+                         f'(num_sample, num_time, {str(shape[1:])[1:-1]}). '
+                         f'But we got {val.shape}.')
+      num_batch_sizes.append(val.shape[0])
+    if len(set(num_batch_sizes)) != 1:
+      raise ValueError(f'Number of batch size is different across tensors in '
+                       f'the provided "xs". We got {set(num_batch_sizes)}.')
+    return num_batch_sizes[0]
+
+
+class BPFF(BPTT):
+  """
+  The trainer implementing back propagation algorithm
+  for feedforward neural networks.
+
+  """
+
+  def __init__(
+      self, target: Node, **kwargs
+  ):
+    super(BPFF, self).__init__(target=target, **kwargs)
+
+  def predict(
+      self,
+      xs: Union[Tensor, Dict[str, Tensor]],
+      initial_states: Union[Tensor, Dict[str, Tensor]] = None,
+      initial_feedbacks: Dict[str, Tensor] = None,
+      reset: bool = True,
+      shared_kwargs: Dict = None,
+      forced_states: Dict[str, Tensor] = None,
+      forced_feedbacks: Dict[str, Tensor] = None,
+      **kwargs
+  ):
+    """Predict a series of input data with the given target model.
+
+    This function use the JIT compilation to accelerate the model simulation.
+    Moreover, it can automatically monitor the node variables, states, inputs,
+    feedbacks and its output.
+
+    Parameters
+    ----------
+    xs: Tensor, dict
+      The feedforward input data. It must be a 3-dimensional data
+      which has the shape of `(num_sample, num_time, num_feature)`.
+    forced_states: None
+      The fixed node states.
+    forced_feedbacks: None
+      The fixed feedback states.
+    initial_states: JaxArray, ndarray, dict
+      The initial states. Each tensor in ``initial_states`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+    initial_feedbacks: dict
+      The initial feedbacks for the node in the network model.
+      Each tensor in ``initial_feedbacks`` must be a
+      tensor with the shape of `(num_sample, num_feature)`.
+    reset: bool
+      Whether reset the model states.
+    shared_kwargs: optional, dict
+      The shared arguments across different layers.
+
+    Returns
+    -------
+    output: Tensor, dict
+      The model output.
+    """
+    # format input data
+    xs = self._format_ys(xs)
+    num_batch = self._get_xs_info(xs)
+    # get forced data
+    forced_states = self._check_forced_states(forced_states, num_batch)
+    forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_batch)
+    # set initial states
+    self._set_initial_states(initial_states)
+    self._set_initial_feedbacks(initial_feedbacks)
+    # reset the model states
+    if reset:
+      self.target.initialize(num_batch)
+    # init monitor
+    for key in self.mon.item_contents.keys():
+      self.mon.item_contents[key] = []  # reshape the monitor items
+    # prediction
+    outputs, hists = self._predict(xs=xs,
+                                   forced_states=forced_states,
+                                   forced_feedbacks=forced_feedbacks,
+                                   shared_kwargs=shared_kwargs)
+    # post-running for monitors
+    for key in self.mon.item_names:
+      self.mon.item_contents[key] = hists[key]
+    if self.numpy_mon_after_run:
+      self.mon.numpy()
+    return outputs
+
+  def _check_forced_states(self, forced_states, num_batch):
+    iter_forced_states = dict()
+    if forced_states is not None:
+      if isinstance(self.target, Network):
+        nodes = [node.name for node in self.target.lnodes]
+        if not isinstance(forced_states, dict):
+          raise ValueError('"forced_states" must be a dict of (str, Tensor)')
+        for key, tensor in forced_states.items():
+          if not isinstance(key, str):
+            raise ValueError(f'"forced_states" must be a dict of (str, tensor). '
+                             f'But got a dict of ({type(key)}, {type(tensor)})')
+          if key not in nodes:
+            raise ValueError(f'Node "{key}" is not defined in the target model. '
+                             f'We only detect: \n{self.target.lnodes}')
+          if not isinstance(tensor, (bm.ndarray, jnp.ndarray)):
+            raise ValueError(f'"forced_states" must a dict of (str, tensor), '
+                             f'while we got ({type(key)}, {type(tensor)})')
+          if bm.ndim(tensor) != self.target[key].state.ndim:
+            raise ValueError(f'Must be a tensor with shape of (num_batch, '
+                             f'{str(self.target[key].state.shape)[1:-1]}), '
+                             f'but we got {tensor.shape}')
+          if tensor.shape[0] != num_batch:
+            raise ValueError(f'The number of the batch size ({tensor.shape[0]}) '
+                             f'of the forced state of {key} does not '
+                             f'match with the batch size in inputs {num_batch}.')
+          if self.target[key].output_shape[1:] != tensor.shape[2:]:
+            raise UnsupportedError(f'The forced state of {key} has the shape of '
+                                   f'{tensor.shape}, which is not consistent with '
+                                   f'its output shape {self.target[key].output_shape}. '
+                                   f'Each tensor in forced state should have the shape '
+                                   f'of (num_sample, num_time, num_feature) or '
+                                   f'(num_sample, num_feature).')
+          iter_forced_states[key] = bm.moveaxis(tensor, 0, 1)  # shape of (num_time, num_sample, num_feature)
+      else:
+        raise UnsupportedError('We do not support forced feedback state '
+                               'for a single brainpy.nn.Node instance')
+    return iter_forced_states
+
+  def _check_forced_feedbacks(self, forced_feedbacks, num_batch):
+    iter_forced_feedbacks = dict()
+    if forced_feedbacks is not None:
+      if isinstance(self.target, Network):
+        if not isinstance(forced_feedbacks, dict):
+          raise ValueError('"forced_feedbacks" must be a dict of (str, Tensor)')
+        feedback_node_names = [node.name for node in self.target.feedback_nodes]
+        for key, tensor in forced_feedbacks.items():
+          if not isinstance(key, str):
+            raise ValueError(f'"forced_feedbacks" must be a dict of (str, tensor). '
+                             f'But got a dict of ({type(key)}, {type(tensor)})')
+          if key not in feedback_node_names:
+            raise ValueError(f'{self.target} has no feedback node {key}, '
+                             f'it only has {feedback_node_names}')
+          if not isinstance(tensor, (bm.ndarray, jnp.ndarray)):
+            raise ValueError('"forced_feedbacks" must a dict of (str, tensor), '
+                             'while we got ({type(key)}, {type(tensor)})')
+          if bm.ndim(tensor) != self.target[key].fb_output.ndim:
+            raise ValueError(f'Must be a tensor with shape of (num_batch, '
+                             f'{str(self.target[key].fb_output.shape)[1:-1]}), '
+                             f'but we got {tensor.shape}')
+          if tensor.shape[0] != num_batch:
+            raise ValueError(f'The number of the batch size ({tensor.shape[0]}) '
+                             f'of the forced feedback of {key} does not '
+                             f'match with the batch size in inputs {num_batch}.')
+          if self.target[key].output_shape[1:] != tensor.shape[2:]:
+            raise UnsupportedError(f'The forced feedback of {key} has the shape of '
+                                   f'{tensor.shape}, which is not consistent with '
+                                   f'its output shape {self.target[key].output_shape}. '
+                                   f'Each tensor in forced feedback should have the shape '
+                                   f'of (num_sample, num_time, num_feature) or '
+                                   f'(num_sample, num_feature).')
+          iter_forced_feedbacks[key] = bm.moveaxis(tensor, 0, 1)  # shape of (num_time, num_sample, num_feature)
+      else:
+        raise UnsupportedError('We do not support forced states for '
+                               'a single brainpy.nn.Node instance')
+    return iter_forced_feedbacks
+
+  def _predict(
+      self,
+      xs: Dict[str, Tensor],
+      shared_kwargs: Dict = None,
+      forced_states: Dict[str, Tensor] = None,
+      forced_feedbacks: Dict[str, Tensor] = None,
+  ):
+    """Predict the output according to the inputs.
+
+    Parameters
+    ----------
+    xs: dict
+      Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
+    forced_states: dict
+      The forced state values.
+    forced_feedbacks: dict
+      The forced feedback output values.
+    shared_kwargs: optional, dict
+      The shared keyword arguments.
+
+    Returns
+    -------
+    outputs, hists
+      A tuple of pair of (outputs, hists).
+    """
+    _predict_func = self._get_predict_func(shared_kwargs)
+    # rune the model
+    forced_states = dict() if forced_states is None else forced_states
+    forced_feedbacks = dict() if forced_feedbacks is None else forced_feedbacks
+    return _predict_func(xs, forced_states, forced_feedbacks)
+
+  def _make_f_loss(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None: shared_kwargs = dict()
+    if not isinstance(shared_kwargs, dict):
+      raise ValueError(f'Only supports dict for "shared_kwargs". '
+                       f'But got {type(shared_kwargs)}: {shared_kwargs}')
+
+    def loss_fun(inputs, targets, forced_states=None, forced_feedbacks=None):
+      inputs = self._format_xs(inputs)
+      targets = self._format_ys(targets)
+      num_batch, num_step = list(inputs.values())[0].shape[:2]
+      forced_states = self._check_forced_states(forced_states, num_batch)
+      forced_feedbacks = self._check_forced_feedbacks(forced_feedbacks, num_batch)
+      outputs, _ = self._predict(xs=inputs,
+                                 shared_kwargs=shared_kwargs,
+                                 forced_states=forced_states,
+                                 forced_feedbacks=forced_feedbacks)
+      outputs = self._format_ys(outputs)
+      loss = 0.
+      for key, output in outputs.items():
+        loss += self.loss_fun(output, targets[key])
+      return loss
+
+    return loss_fun
+
+  def _get_predict_func(self, shared_kwargs: Dict = None):
+    if shared_kwargs is None: shared_kwargs = dict()
+    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    if shared_kwargs_str not in self._predict_func:
+      self._predict_func[shared_kwargs_str] = self._make_predict_func(shared_kwargs)
+    return self._predict_func[shared_kwargs_str]
+
+  def _make_predict_func(self, shared_kwargs: Dict):
+    if not isinstance(shared_kwargs, dict):
+      raise ValueError(f'"shared_kwargs" must be a dict, '
+                       f'but got {type(shared_kwargs)}')
+
+    def run_func(xs, forced_states, forced_feedbacks):
+      monitors = self.mon.item_contents.keys()
+      return self.target(xs,
+                         forced_states=forced_states,
+                         forced_feedbacks=forced_feedbacks,
+                         monitors=monitors,
+                         **shared_kwargs)
+
+    if self.jit['predict']:
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self.dyn_vars)
+      run_func = bm.jit(run_func, dyn_vars=dyn_vars.unique())
+    return run_func
+
+  def _get_xs_info(self, xs):
+    input_shapes = {}
+    if isinstance(self.target, Network):
+      for node in self.target.entry_nodes:
+        name = self.target.entry_nodes[0].name
+        input_shapes[name] = node._feedforward_shapes[name]
+    else:
+      name = self.target.name
+      input_shapes[name] = self.target._feedforward_shapes[name]
+    num_batch_sizes = []
+    for key, val in xs.items():
+      if key not in input_shapes:
+        raise ValueError(f'Cannot find {key} in the required inputs. Please check!')
+      shape = input_shapes[key]
+      if bm.ndim(val) != len(shape):
+        raise ValueError(f'Each tensor in "xs" must be a tensor of shape '
+                         f'(num_sample, {str(shape[1:])[1:-1]}). '
+                         f'But we got {val.shape}.')
+      num_batch_sizes.append(val.shape[0])
+    if len(set(num_batch_sizes)) != 1:
+      raise ValueError(f'Number of batch size is different across tensors in '
+                       f'the provided "xs". We got {set(num_batch_sizes)}.')
+    return num_batch_sizes[0]
