@@ -1,0 +1,19 @@
+name: Generate changelog
+on:
+  push:
+    branches: [master]
+    
+jobs:
+  generate-changelog:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - uses: BobAnkh/auto-generate-changelog@master
+      with:
+        REPO_NAME: 'ztqakita/BrainPy'
+        ACCESS_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        PATH: 'changelog.rst'
+        COMMIT_MESSAGE: 'docs(changelog): update release notes'
+        TYPE: 'feat:Feature,fix:Bug Fixes,docs:Documentation,refactor:Refactor,perf:Performance Improvements'
