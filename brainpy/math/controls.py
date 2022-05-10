@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Sequence, Any, Dict, Callable
+from typing import Union, Sequence, Any, Dict, Callable, Optional
 
 import jax.numpy as jnp
 from jax import lax
@@ -22,8 +22,11 @@ __all__ = [
   'make_loop',
   'make_while',
   'make_cond',
+
   'cond',
   'ifelse',
+  'for_loop',
+  'while_loop',
 ]
 
 
@@ -92,7 +95,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   >>> a = bm.Variable(bm.zeros(1))
   >>> def f(x): a.value += 1.
   >>> loop = bm.make_loop(f, dyn_vars=[a], out_vars=a)
-  >>> loop(length=10)
+  >>> loop(bm.arange(10))
   Variable([[ 1.],
             [ 2.],
             [ 3.],
@@ -108,7 +111,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   >>>   b.value += 1
   >>>   return b + 1
   >>> loop = bm.make_loop(f, dyn_vars=[b], out_vars=b, has_return=True)
-  >>> hist_b, hist_b_plus = loop(length=10)
+  >>> hist_b, hist_b_plus = loop(bm.arange(10))
   >>> hist_b
   Variable([[ 1.],
             [ 2.],
@@ -376,6 +379,10 @@ def _check_f(f):
     return (lambda _: f)
 
 
+def _check_sequence(a):
+  return isinstance(a, (list, tuple))
+
+
 def cond(
     pred: bool,
     true_fun: Union[Callable, jnp.ndarray, JaxArray, float, int, bool],
@@ -405,8 +412,10 @@ def cond(
     Boolean scalar type, indicating which branch function to apply.
   true_fun: callable, jnp.ndarray, JaxArray, float, int, bool
     Function to be applied if ``pred`` is True.
+    This function must receive one arguement for ``operands``.
   false_fun: callable, jnp.ndarray, JaxArray, float, int, bool
     Function to be applied if ``pred`` is False.
+    This function must receive one arguement for ``operands``.
   operands: Any
     Operands (A) input to branching function depending on ``pred``. The type
     can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
@@ -483,7 +492,7 @@ def ifelse(
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     show_code: bool = False,
 ):
-  """If-else control flows like native Pythonic programming.
+  """``If-else`` control flows looks like native Pythonic programming.
 
   Examples
   --------
@@ -502,7 +511,8 @@ def ifelse(
   >>> def f(a):
   >>>   return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
   >>>                    branches=[1, 2, 3, 4, 5])
-
+  >>> f(3)
+  3
 
   Parameters
   ----------
@@ -512,6 +522,7 @@ def ifelse(
     The branches, at least has two elements. Elements can be functions,
     arrays, or numbers. The number of ``branches`` and ``conditions`` has
     the relationship of `len(branches) == len(conditions) + 1`.
+    Each branch should receive one arguement for ``operands``.
   operands: optional, Any
     The operands for each branch.
   dyn_vars: Variable, sequence of Variable, dict
@@ -581,3 +592,141 @@ def ifelse(
     exec(compile(codes.strip(), '', 'exec'), code_scope)
     f = code_scope['f']
     return f(operands)
+
+
+def for_loop(body_fun: Callable,
+             dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
+             operands: Any,
+             reverse: bool = False,
+             unroll: int = 1):
+  """``for-loop`` control flow with :py:class:`~.Variable`.
+
+  .. versionadded:: 2.1.11
+
+  Parameters
+  ----------
+  body_fun: callable
+    A Python function to be scanned. This function accepts one argument and returns one output.
+    The argument denotes a slice of ``operands`` along its leading axis, and that
+    output represents a slice of the return value.
+  dyn_vars: Variable, sequence of Variable, dict
+    The instances of :py:class:`~.Variable`.
+  operands: Any
+    The value over which to scan along the leading axis,
+    where ``operands`` can be an array or any pytree (nested Python
+    tuple/list/dict) thereof with consistent leading axis sizes.
+  reverse: bool
+    Optional boolean specifying whether to run the scan iteration
+    forward (the default) or in reverse, equivalent to reversing the leading
+    axes of the arrays in both ``xs`` and in ``ys``.
+  unroll: int
+    Optional positive int specifying, in the underlying operation of the
+    scan primitive, how many scan iterations to unroll within a single
+    iteration of a loop.
+
+  Returns
+  -------
+  outs: Any
+    The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
+  """
+  # check variables
+  if isinstance(dyn_vars, Variable):
+    dyn_vars = (dyn_vars,)
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {Variable.__name__}')
+  for v in dyn_vars:
+    if not isinstance(v, Variable):
+      raise ValueError(f'brainpy.math.for_loop only support {Variable.__name__} in "dyn_vars", but got {type(v)}')
+
+  # functions
+  def fun2scan(dyn_vals, x):
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+    results = body_fun(x)
+    return [v.value for v in dyn_vars], results
+
+  # functions
+  init_vals = [v.value for v in dyn_vars]
+  try:
+    turn_on_global_jit()
+    dyn_vals, out_vals = lax.scan(f=fun2scan, init=init_vals, xs=operands, reverse=reverse, unroll=unroll)
+    turn_off_global_jit()
+  except UnexpectedTracerError as e:
+    turn_off_global_jit()
+    for v, d in zip(dyn_vars, init_vals): v._value = d
+    raise errors.JaxTracerError(variables=dyn_vars) from e
+  except Exception as e:
+    turn_off_global_jit()
+    for v, d in zip(dyn_vars, init_vals): v._value = d
+    raise e
+  for v, d in zip(dyn_vars, dyn_vals): v.value = d
+  return out_vals
+
+
+def while_loop(
+    body_fun: Callable,
+    cond_fun: Callable,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
+    operands: Any,
+):
+  """``while-loop`` control flow with :py:class:`~.Variable`.
+
+  .. versionadded:: 2.1.11
+
+  Parameters
+  ----------
+  body_fun: callable
+    A function which define the updating logic. It receives one argument for ``operands``, without returns.
+  cond_fun: callable
+    A function which define the stop condition. It receives one argument for ``operands``,
+    with one boolean value return.
+  dyn_vars: Variable, sequence of Variable, dict
+    The dynamically changed variables.
+  operands: Any
+    The operands for ``body_fun`` and ``cond_fun`` functions.
+  """
+  # iterable variables
+  if isinstance(dyn_vars, Variable):
+    dyn_vars = (dyn_vars, )
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {Variable.__name__}')
+  for v in dyn_vars:
+    if not isinstance(v, Variable):
+      raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
+
+  def _body_fun(op):
+    dyn_vals, static_vals = op
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+    body_fun(static_vals)
+    return [v.value for v in dyn_vars], static_vals
+
+  def _cond_fun(op):
+    dyn_vals, static_vals = op
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+    return as_device_array(cond_fun(static_vals))
+
+  dyn_init = [v.value for v in dyn_vars]
+  try:
+    turn_on_global_jit()
+    dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
+                                   body_fun=_body_fun,
+                                   init_val=(dyn_init, operands))
+    turn_off_global_jit()
+  except UnexpectedTracerError as e:
+    turn_off_global_jit()
+    for v, d in zip(dyn_vars, dyn_init): v._value = d
+    raise errors.JaxTracerError(variables=dyn_vars) from e
+  except Exception as e:
+    turn_off_global_jit()
+    for v, d in zip(dyn_vars, dyn_init): v._value = d
+    raise e
+  for v, d in zip(dyn_vars, dyn_values): v.value = d
