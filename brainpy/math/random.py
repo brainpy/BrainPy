@@ -34,6 +34,15 @@ def _size2shape(size):
     raise ValueError(f'Must be a list/tuple of int, but got {size}')
 
 
+def _check_shape(name, shape, *param_shapes):
+  for s in param_shapes:
+    if s != shape:
+      msg = ("{} parameter shapes must be broadcast-compatible with shape "
+             "argument, and the result of broadcasting the shapes must equal "
+             "the shape argument, but got result {} for shape argument {}.")
+      raise ValueError(msg.format(name, s, shape))
+
+
 class RandomState(Variable):
   """RandomState that track the random generator state. """
   __slots__ = ()
@@ -222,6 +231,12 @@ def rand(*dn):
 
 @wraps(np.random.randint)
 def randint(low, high=None, size=None, dtype=int):
+  if high is None:
+    high = low
+    low = 0
+  # todo: randint does not support multi-minval/maxval
+  if size is None:
+    size = np.shape(low) if len(np.shape(low)) >= len(np.shape(high)) else np.shape(high)
   return JaxArray(jr.randint(DEFAULT.split_key(), shape=_size2shape(size),
                              minval=low, maxval=high, dtype=dtype))
 
