@@ -234,9 +234,11 @@ def randint(low, high=None, size=None, dtype=int):
   if high is None:
     high = low
     low = 0
-  # todo: randint does not support multi-minval/maxval
+  high = jnp.asarray(high)
+  low = jnp.asarray(low)
   if size is None:
-    size = np.shape(low) if len(np.shape(low)) >= len(np.shape(high)) else np.shape(high)
+    size = jnp.shape(low) if len(jnp.shape(low)) >= len(jnp.shape(high)) else jnp.shape(high)
+
   return JaxArray(jr.randint(DEFAULT.split_key(), shape=_size2shape(size),
                              minval=low, maxval=high, dtype=dtype))
 
@@ -263,6 +265,8 @@ sample = random_sample
 @wraps(np.random.choice)
 def choice(a, size=None, replace=True, p=None):
   a = a.value if isinstance(a, JaxArray) else a
+  if p is not None:
+    p = jnp.asarray(p)
   return JaxArray(jr.choice(DEFAULT.split_key(), a=a, shape=_size2shape(size), replace=replace, p=p))
 
 
@@ -280,56 +284,61 @@ def shuffle(x, axis=0):
 
 @wraps(np.random.beta)
 def beta(a, b, size=None):
-  a = a.value if isinstance(a, JaxArray) else a
-  b = b.value if isinstance(b, JaxArray) else b
+  a = jnp.asarray(a)
+  b = jnp.asarray(b)
   return JaxArray(jr.beta(DEFAULT.split_key(), a=a, b=b, shape=_size2shape(size)))
 
 
 @wraps(np.random.exponential)
 def exponential(scale=1.0, size=None):
-  assert scale == 1.
-  return JaxArray(jr.exponential(DEFAULT.split_key(), shape=_size2shape(size)))
+  scale = jnp.asarray(scale)
+  return JaxArray(jr.exponential(DEFAULT.split_key(), shape=_size2shape(size)) / scale)
 
 
 @wraps(np.random.gamma)
 def gamma(shape, scale=1.0, size=None):
-  assert scale == 1.
-  return JaxArray(jr.gamma(DEFAULT.split_key(), a=shape, shape=_size2shape(size)))
+  shape = jnp.asarray(shape)
+  scale = jnp.asarray(scale)
+  return JaxArray(jr.gamma(DEFAULT.split_key(), a=shape, shape=_size2shape(size)) * scale)
 
 
 @wraps(np.random.gumbel)
 def gumbel(loc=0.0, scale=1.0, size=None):
-  assert loc == 0.
-  assert scale == 1.
-  return JaxArray(jr.gumbel(DEFAULT.split_key(), shape=_size2shape(size)))
+  loc = jnp.asarray(loc)
+  scale = jnp.asarray(scale)
+  return JaxArray(jr.gumbel(DEFAULT.split_key(), shape=_size2shape(size)) * scale + loc)
 
 
 @wraps(np.random.laplace)
 def laplace(loc=0.0, scale=1.0, size=None):
-  assert loc == 0.
-  assert scale == 1.
-  return JaxArray(jr.laplace(DEFAULT.split_key(), shape=_size2shape(size)))
+  loc = jnp.asarray(loc)
+  scale = jnp.asarray(scale)
+  return JaxArray(jr.laplace(DEFAULT.split_key(), shape=_size2shape(size)) * scale + loc)
 
 
 @wraps(np.random.logistic)
 def logistic(loc=0.0, scale=1.0, size=None):
-  assert loc == 0.
-  assert scale == 1.
-  return JaxArray(jr.logistic(DEFAULT.split_key(), shape=_size2shape(size)))
+  loc = jnp.asarray(loc)
+  scale = jnp.asarray(scale)
+  return JaxArray(jr.logistic(DEFAULT.split_key(), shape=_size2shape(size)) * scale + loc)
 
 
 @wraps(np.random.normal)
 def normal(loc=0.0, scale=1.0, size=None):
+  loc = jnp.asarray(loc)
+  scale = jnp.asarray(scale)
   return JaxArray(jr.normal(DEFAULT.split_key(), shape=_size2shape(size)) * scale + loc)
 
 
 @wraps(np.random.pareto)
 def pareto(a, size=None):
+  a = jnp.asarray(a)
   return JaxArray(jr.pareto(DEFAULT.split_key(), b=a, shape=_size2shape(size)))
 
 
 @wraps(np.random.poisson)
 def poisson(lam=1.0, size=None):
+  lam = jnp.asarray(lam)
   return JaxArray(jr.poisson(DEFAULT.split_key(), lam=lam, shape=_size2shape(size)))
 
 
@@ -345,6 +354,7 @@ def standard_exponential(size=None):
 
 @wraps(np.random.standard_gamma)
 def standard_gamma(shape, size=None):
+  shape = jnp.asarray(shape)
   return JaxArray(jr.gamma(DEFAULT.split_key(), a=shape, shape=_size2shape(size)))
 
 
@@ -355,15 +365,21 @@ def standard_normal(size=None):
 
 @wraps(np.random.standard_t)
 def standard_t(df, size=None):
+  df = jnp.asarray(df)
   return JaxArray(jr.t(DEFAULT.split_key(), df=df, shape=_size2shape(size)))
 
 
 @wraps(np.random.uniform)
 def uniform(low=0.0, high=1.0, size=None):
+  low = jnp.asarray(low)
+  high = jnp.asarray(high)
+  if size is None:
+    size = jnp.shape(low) if len(jnp.shape(low)) >= len(jnp.shape(high)) else jnp.shape(high)
+
   return JaxArray(jr.uniform(DEFAULT.split_key(), shape=_size2shape(size), minval=low, maxval=high))
 
 
-def truncated_normal(lower, upper, size, scale=1.):
+def truncated_normal(lower, upper, size=None, scale=1.):
   """Sample truncated standard normal random values with given shape and dtype.
 
   Parameters
@@ -390,6 +406,11 @@ def truncated_normal(lower, upper, size, scale=1.):
     ``shape`` is not None, or else by broadcasting ``lower`` and ``upper``.
     Returns values in the open interval ``(lower, upper)``.
   """
+  lower = jnp.asarray(lower)
+  upper = jnp.asarray(upper)
+  if size is None:
+    size = jnp.shape(lower) if len(jnp.shape(lower)) >= len(jnp.shape(upper)) else jnp.shape(upper)
+
   rands = jr.truncated_normal(DEFAULT.split_key(),
                               lower=lower,
                               upper=upper,
@@ -397,12 +418,13 @@ def truncated_normal(lower, upper, size, scale=1.):
   return JaxArray(rands * scale)
 
 
-def bernoulli(p, size=None):
+def bernoulli(p=0.5, size=None):
   """Sample Bernoulli random values with given shape and mean.
 
   Args:
     p: optional, a float or array of floats for the mean of the random
-      variables. Must be broadcast-compatible with ``shape``. Default 0.5.
+      variables. Must be broadcast-compatible with ``shape`` and the values
+      should be within [0, 1]. Default 0.5.
     size: optional, a tuple of nonnegative integers representing the result
       shape. Must be broadcast-compatible with ``p.shape``. The default (None)
       produces a result shape equal to ``p.shape``.
@@ -411,11 +433,20 @@ def bernoulli(p, size=None):
     A random array with boolean dtype and shape given by ``shape`` if ``shape``
     is not None, or else ``p.shape``.
   """
+  p = jnp.asarray(p)
+  if jnp.unique(jnp.logical_and(p >= 0, p <= 1)) != jnp.array([True]):
+    raise ValueError(r'Bernoulli parameter p should be within [0, 1], but we got {}'.format(p))
+
+  if size is None:
+    size = p.shape
+
   return JaxArray(jr.bernoulli(DEFAULT.split_key(), p=p, shape=_size2shape(size)))
 
 
 @wraps(np.random.lognormal)
 def lognormal(mean=0.0, sigma=1.0, size=None):
+  mean = jnp.asarray(mean)
+  sigma = jnp.asarray(sigma)
   samples = jr.normal(DEFAULT.split_key(), shape=_size2shape(size))
   samples = samples * sigma + mean
   samples = jnp.exp(samples)
