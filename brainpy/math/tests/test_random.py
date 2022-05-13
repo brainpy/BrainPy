@@ -147,7 +147,7 @@ class TestRandom(unittest.TestCase):
     self.assertTupleEqual(a.shape, (2, 3))
 
   def test_pareto(self):
-    a = bm.random.pareto([1, 2, 2], size=3)
+    a = bm.random.pareto([1, 2, 2])
     self.assertTupleEqual(a.shape, (3,))
 
   def test_poisson(self):
@@ -186,6 +186,10 @@ class TestRandom(unittest.TestCase):
                     and (-a + bm.array([2., 6., 10.]) > 0).all())
 
   def test_uniform3(self):
+    a = bm.random.uniform(low=-1., high=[2., 6., 10.], size=(2, 3))
+    self.assertTupleEqual(a.shape, (2, 3))
+
+  def test_uniform4(self):
     a = bm.random.uniform(low=[-1., 5., 2.], high=[[2., 6., 10.], [10., 10., 10.]])
     self.assertTupleEqual(a.shape, (2, 3))
 
@@ -195,9 +199,8 @@ class TestRandom(unittest.TestCase):
     self.assertTrue(-1. <= a <= 1.)
 
   def test_truncated_normal2(self):
-    a = bm.random.truncated_normal(-1., 1., size=(4, 3))
+    a = bm.random.truncated_normal(-1., [1., 2., 1.], size=(4, 3))
     self.assertTupleEqual(a.shape, (4, 3))
-    self.assertTrue((a >= -1.).all() and (a <= 1.).all())
 
   def test_truncated_normal3(self):
     a = bm.random.truncated_normal([-1., 0., 1.], [[2., 2., 4.], [2., 2., 4.]])
@@ -216,7 +219,7 @@ class TestRandom(unittest.TestCase):
     self.assertTrue(bm.logical_xor(a == 1, a == 0).all())
 
   def test_bernoulli3(self):
-    a = bm.random.bernoulli(size=(3, 2))
+    a = bm.random.bernoulli([0.5, 0.6], size=(3, 2))
     self.assertTupleEqual(a.shape, (3, 2))
     self.assertTrue(bm.logical_xor(a == 1, a == 0).all())
 
@@ -231,3 +234,74 @@ class TestRandom(unittest.TestCase):
   def test_lognormal3(self):
     a = bm.random.lognormal([2., 0.], [[2., 1.], [3., 1.2]])
     self.assertTupleEqual(a.shape, (2, 2))
+
+  def test_binomial1(self):
+    a = bm.random.binomial(5, 0.5)
+    self.assertIsInstance(a, bm.JaxArray)
+    self.assertTupleEqual(a.shape, ())
+    self.assertTrue(a.dtype, int)
+
+  def test_binomial2(self):
+    a = bm.random.binomial(5, 0.5, size=(3, 2))
+    self.assertTupleEqual(a.shape, (3, 2))
+    self.assertTrue((a >= 0).all() and (a <= 5).all())
+
+  def test_binomial3(self):
+    a = bm.random.binomial(n=[2, 3, 4], p=[[0.5, 0.5, 0.5], [0.6, 0.6, 0.6]])
+    self.assertTupleEqual(a.shape, (2, 3))
+
+  def test_chisquare1(self):
+    a = bm.random.chisquare(3)
+    self.assertIsInstance(a, bm.JaxArray)
+    self.assertTupleEqual(a.shape, ())
+    self.assertTrue(a.dtype, float)
+
+  def test_chisquare2(self):
+    a = bm.random.chisquare(df=[2, 3, 4])
+    self.assertTupleEqual(a.shape, (3,))
+
+  def test_dirichlet1(self):
+    a = bm.random.dirichlet((10, 5, 3))
+    self.assertTupleEqual(a.shape, (3,))
+
+  def test_dirichlet2(self):
+    a = bm.random.dirichlet((10, 5, 3), 20)
+    self.assertTupleEqual(a.shape, (20, 3))
+
+  def test_f(self):
+    a = bm.random.f(1., 48., 100)
+    self.assertTupleEqual(a.shape, (100,))
+
+  def test_geometric(self):
+    a = bm.random.geometric([0.7, 0.5, 0.2])
+    self.assertTupleEqual(a.shape, (3,))
+
+  def test_hypergeometric1(self):
+    a = bm.random.hypergeometric(10, 10, 10, 20)
+    self.assertTupleEqual(a.shape, (20,))
+
+  def test_hypergeometric2(self):
+    a = bm.random.hypergeometric(8, [10, 4], [[5, 2], [5, 5]])
+    self.assertTupleEqual(a.shape, (2, 2))
+
+  def test_hypergeometric3(self):
+    a = bm.random.hypergeometric(8, [10, 4], [[5, 2], [5, 5]], size=(3, 2, 2))
+    self.assertTupleEqual(a.shape, (3, 2, 2))
+
+  def test_logseries(self):
+    a = bm.random.logseries([0.7, 0.5, 0.2], size=[4, 3])
+    self.assertTupleEqual(a.shape, (4, 3))
+
+  def test_multinominal1(self):
+    a = bm.random.multinomial(100, (0.5, 0.2, 0.3), size=[4, 2])
+    self.assertTupleEqual(a.shape, (4, 2, 3))
+
+  def test_multinominal2(self):
+    a = bm.random.multinomial(100, (0.5, 0.2, 0.3))
+    self.assertTupleEqual(a.shape, (3,))
+    self.assertTrue(a.sum() == 100)
+
+  def test_multivariate_normal(self):
+    a = bm.random.multivariate_normal([1, 2], [[1, 0], [0, 1]], size=3)
+    self.assertTupleEqual(a.shape, (3, 2))
+
