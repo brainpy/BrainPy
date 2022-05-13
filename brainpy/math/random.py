@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-
+import jax.experimental.host_callback
 import numpy as np
+import numpy.random
 from jax import numpy as jnp
 from jax import random as jr
 from jax.tree_util import register_pytree_node
@@ -8,6 +9,7 @@ from jax.tree_util import register_pytree_node
 from brainpy.math.jaxarray import JaxArray, Variable
 
 from .utils import wraps
+from jax.experimental.host_callback import call as hcb_call
 
 
 __all__ = [
@@ -237,7 +239,7 @@ def randint(low, high=None, size=None, dtype=int):
   high = jnp.asarray(high)
   low = jnp.asarray(low)
   if size is None:
-    size = jnp.shape(low) if len(jnp.shape(low)) >= len(jnp.shape(high)) else jnp.shape(high)
+    size = np.broadcast(low, high).shape
 
   return JaxArray(jr.randint(DEFAULT.split_key(), shape=_size2shape(size),
                              minval=low, maxval=high, dtype=dtype))
@@ -374,7 +376,7 @@ def uniform(low=0.0, high=1.0, size=None):
   low = jnp.asarray(low)
   high = jnp.asarray(high)
   if size is None:
-    size = jnp.shape(low) if len(jnp.shape(low)) >= len(jnp.shape(high)) else jnp.shape(high)
+    size = np.broadcast(low, high).shape
 
   return JaxArray(jr.uniform(DEFAULT.split_key(), shape=_size2shape(size), minval=low, maxval=high))
 
@@ -409,7 +411,7 @@ def truncated_normal(lower, upper, size=None, scale=1.):
   lower = jnp.asarray(lower)
   upper = jnp.asarray(upper)
   if size is None:
-    size = jnp.shape(lower) if len(jnp.shape(lower)) >= len(jnp.shape(upper)) else jnp.shape(upper)
+    size = np.broadcast(lower, upper).shape
 
   rands = jr.truncated_normal(DEFAULT.split_key(),
                               lower=lower,
@@ -451,4 +453,110 @@ def lognormal(mean=0.0, sigma=1.0, size=None):
   samples = samples * sigma + mean
   samples = jnp.exp(samples)
   return JaxArray(samples)
+
+
+@wraps(np.random.binomial)
+def binomial(n, p, size=None):
+  if size is None:
+    size = np.broadcast(n, p).shape
+  size = _size2shape(size)
+  d = {'n': n, 'p': p, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.binomial(n=x['n'], p=x['p'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, int)))
+
+
+@wraps(np.random.chisquare)
+def chisquare(df, size=None):
+  if size is None:
+    size = np.shape(df)
+  size = _size2shape(size)
+  d = {'df': df, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.chisquare(df=x['df'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.dirichlet)
+def dirichlet(alpha, size=None):
+  size = _size2shape(size)
+  d = {'alpha': alpha, 'size': size}
+  output_shape = size + np.shape(alpha)
+  return JaxArray(hcb_call(lambda x: np.random.dirichlet(alpha=x['alpha'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(output_shape, float)))
+
+
+@wraps(np.random.f)
+def f(dfnum, dfden, size=None):
+  if size is None:
+    size = np.broadcast(dfnum, dfden).shape
+  size = _size2shape(size)
+  d = {'dfnum': dfnum, 'dfden': dfden, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.f(dfnum=x['dfnum'], dfden=x['dfden'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.geometric)
+def geometric(p, size=None):
+  if size is None:
+    size = np.shape(p)
+  size = _size2shape(size)
+  d = {'p': p, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.geometric(p=x['p'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, int)))
+
+
+@wraps(np.random.hypergeometric)
+def hypergeometric(ngood, nbad, nsample, size=None):
+  if size is None:
+    size = np.broadcast(ngood, nbad, nsample).shape
+  size = _size2shape(size)
+  d = {'ngood': ngood, 'nbad': nbad, 'nsample': nsample, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.hypergeometric(ngood=x['ngood'], nbad=x['nbad'],
+                                                              nsample=x['nsample'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, int)))
+
+
+@wraps(np.random.logseries)
+def logseries(p, size=None):
+  if size is None:
+    size = np.shape(p)
+  size = _size2shape(size)
+  d = {'p': p, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.logseries(p=x['p'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, int)))
+
+
+@wraps(np.random.multinomial)
+def multinomial(n, pvals, size=None):
+  size = _size2shape(size)
+  d = {'n': n, 'pvals': pvals, 'size': size}
+  output_shape = size + np.shape(pvals)
+  return JaxArray(hcb_call(lambda x: np.random.multinomial(n=x['n'], pvals=x['pvals'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(output_shape, int)))
+
+
+def _packed_multivariate_normal(d):
+  candidate_str = ['warn', 'raise', 'ignore']
+  selected = np.array([d['warn'], d['raise'], d['ignore']])
+
+  return np.random.multivariate_normal(mean=d['mean'], cov=d['cov'], size=d['size'],
+                                       check_valid=candidate_str[np.arange(3)[selected][0]],
+                                       tol=d['tol'])
+
+@wraps(np.random.multivariate_normal)
+def multivariate_normal(mean, cov, size=None, check_valid='warn', tol=1e-8):
+  size = _size2shape(size)
+
+  if not (check_valid == 'warn' or check_valid == 'raise' or check_valid == 'ignore'):
+    raise ValueError(r'multivariate_normal argument check_valid should be "warn", "raise", '
+                     'or "ignore", but we got {}'.format(check_valid))
+
+  d = {'mean': mean, 'cov': cov, 'size': size,
+       'warn': True if check_valid == 'warn' else False,
+       'raise': True if check_valid == 'raise' else False,
+       'ignore': True if check_valid == 'ignore' else False,
+       'tol': tol}
+  output_shape = size + np.shape(mean)
+
+  return JaxArray(hcb_call(_packed_multivariate_normal, d,
+                           result_shape=jax.ShapeDtypeStruct(output_shape, float)))
 
