@@ -4,15 +4,8 @@ import inspect
 
 from brainpy import errors, math
 from brainpy.integrators import constants, utils
-from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.sde.base import SDEIntegrator
 from .generic import register_sde_integrator
-
-try:
-  import sympy
-  from brainpy.integrators import analysis_by_sympy
-except (ModuleNotFoundError, ImportError):
-  sympy = analysis_by_sympy = None
 
 __all__ = [
   'Euler',
