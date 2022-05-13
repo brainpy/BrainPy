@@ -560,3 +560,106 @@ def multivariate_normal(mean, cov, size=None, check_valid='warn', tol=1e-8):
   return JaxArray(hcb_call(_packed_multivariate_normal, d,
                            result_shape=jax.ShapeDtypeStruct(output_shape, float)))
 
+
+@wraps(np.random.negative_binomial)
+def negative_binomial(n, p, size=None):
+  if size is None:
+    size = np.broadcast(n, p).shape
+  size = _size2shape(size)
+  d = {'n': n, 'p': p, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.negative_binomial(n=x['n'], p=x['p'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, int)))
+
+
+@wraps(np.random.noncentral_chisquare)
+def noncentral_chisquare(df, nonc, size=None):
+  if size is None:
+    size = np.broadcast(df, nonc).shape
+  size = _size2shape(size)
+  d = {'df': df, 'nonc': nonc, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.noncentral_chisquare(df=x['df'], nonc=x['nonc'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.noncentral_f)
+def noncentral_f(dfnum, dfden, nonc, size=None):
+  if size is None:
+    size = np.broadcast(dfnum, dfden, nonc).shape
+  size = _size2shape(size)
+  d = {'dfnum': dfnum, 'dfden': dfden, 'nonc': nonc, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.noncentral_f(dfnum=x['dfnum'], dfden=x['dfden'],
+                                                            nonc=x['nonc'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.power)
+def power(a, size=None):
+  if size is None:
+    size = np.shape(a)
+  size = _size2shape(size)
+  d = {'a': a, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.power(a=x['a'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.rayleigh)
+def rayleigh(scale=1.0, size=None):
+  if size is None:
+    size = np.shape(scale)
+  size = _size2shape(size)
+  d = {'scale': scale, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.rayleigh(scale=x['scale'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.triangular)
+def triangular(left, mode, right, size=None):
+  if size is None:
+    size = np.broadcast(left, mode, right).shape
+  size = _size2shape(size)
+  d = {'left': left, 'mode': mode, 'right': right, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.triangular(left=x['left'], mode=x['mode'],
+                                                            right=x['right'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.vonmises)
+def vonmises(mu, kappa, size=None):
+  if size is None:
+    size = np.broadcast(mu, kappa).shape
+  size = _size2shape(size)
+  d = {'mu': mu, 'kappa': kappa, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.vonmises(mu=x['mu'], kappa=x['kappa'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.wald)
+def wald(mean, scale, size=None):
+  if size is None:
+    size = np.broadcast(mean, scale).shape
+  size = _size2shape(size)
+  d = {'mean': mean, 'scale': scale, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.wald(mean=x['mean'], scale=x['scale'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.weibull)
+def weibull(a, size=None):
+  if size is None:
+    size = np.shape(a)
+  size = _size2shape(size)
+  d = {'a': a, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.weibull(a=x['a'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, float)))
+
+
+@wraps(np.random.zipf)
+def zipf(a, size=None):
+  if size is None:
+    size = np.shape(a)
+  size = _size2shape(size)
+  d = {'a': a, 'size': size}
+  return JaxArray(hcb_call(lambda x: np.random.zipf(a=x['a'], size=x['size']),
+                           d, result_shape=jax.ShapeDtypeStruct(size, int)))
+
+
