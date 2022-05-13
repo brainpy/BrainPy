@@ -301,7 +301,50 @@ class TestRandom(unittest.TestCase):
     self.assertTupleEqual(a.shape, (3,))
     self.assertTrue(a.sum() == 100)
 
-  def test_multivariate_normal(self):
+  def test_multivariate_normal1(self):
     a = bm.random.multivariate_normal([1, 2], [[1, 0], [0, 1]], size=3)
     self.assertTupleEqual(a.shape, (3, 2))
 
+  def test_multivariate_normal2(self):
+    a = bm.random.multivariate_normal([1, 2], [[1, 3], [3, 1]], check_valid='ignore')
+    self.assertTupleEqual(a.shape, (2,))
+
+  def test_negative_binomial(self):
+    a = bm.random.negative_binomial([3., 10.], 0.5)
+    self.assertTupleEqual(a.shape, (2,))
+
+  def test_noncentral_chisquare(self):
+    a = bm.random.noncentral_chisquare(3, [3., 2.], (4, 2))
+    self.assertTupleEqual(a.shape, (4, 2))
+
+  def test_noncentral_f(self):
+    a = bm.random.noncentral_f(3, 20, 3., 100)
+    self.assertTupleEqual(a.shape, (100,))
+
+  def test_power(self):
+    a = bm.random.power(2, (4, 2))
+    self.assertTupleEqual(a.shape, (4, 2))
+
+  def test_rayleigh(self):
+    a = bm.random.power(2., (4, 2))
+    self.assertTupleEqual(a.shape, (4, 2))
+
+  def test_triangular(self):
+    a = bm.random.triangular([-1., 0.], 1., [[2., 5.], [3., 3.]])
+    self.assertTupleEqual(a.shape, (2, 2))
+
+  def test_vonmises(self):
+    a = bm.random.vonmises(2., 2.)
+    self.assertTupleEqual(a.shape, ())
+
+  def test_wald(self):
+    a = bm.random.wald([2., 0.5], 2.)
+    self.assertTupleEqual(a.shape, (2,))
+
+  def test_weibull(self):
+    a = bm.random.weibull(2., (4, 2))
+    self.assertTupleEqual(a.shape, (4, 2))
+
+  def test_zipf(self):
+    a = bm.random.zipf(2., (4, 2))
+    self.assertTupleEqual(a.shape, (4, 2))
