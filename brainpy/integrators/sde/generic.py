@@ -19,16 +19,18 @@ name2method = {
 _DEFAULT_SDE_METHOD = 'euler'
 
 
-def sdeint(f=None,
-           g=None,
-           method='euler',
-           dt: float = None,
-           name: str = None,
-           show_code: bool = False,
-           var_type: str = None,
-           intg_type: str = None,
-           wiener_type: str = None,
-           state_delays: Dict[str, bm.AbstractDelay] = None):
+def sdeint(
+    f=None,
+    g=None,
+    method=None,
+    dt: float = None,
+    name: str = None,
+    show_code: bool = False,
+    var_type: str = None,
+    intg_type: str = None,
+    wiener_type: str = None,
+    state_delays: Dict[str, bm.AbstractDelay] = None
+):
   """Numerical integration for SDEs.
 
   Parameters

@@ -107,7 +107,7 @@ tableau as follows:
 
 import logging
 
-from brainpy import math, errors
+from brainpy import math as bm, errors
 from brainpy.base.collector import Collector
 from brainpy.integrators import constants as C, utils, joint_eq
 from brainpy.integrators.ode.base import ODEIntegrator
@@ -116,11 +116,11 @@ from .generic import register_ode_integrator
 logger = logging.getLogger('brainpy.integrators.ode.exponential')
 
 __all__ = [
-  'ExpEulerAuto',
+  'ExponentialEuler',
 ]
 
 
-class ExpEulerAuto(ODEIntegrator):
+class ExponentialEuler(ODEIntegrator):
   """Exponential Euler method using automatic differentiation.
 
   This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.html>`_
@@ -130,7 +130,7 @@ class ExpEulerAuto(ODEIntegrator):
   Examples
   --------
 
-  Here is an example uses ``ExpEulerAuto`` to implement HH neuron model.
+  Here is an example uses ``ExponentialEuler`` to implement HH neuron model.
 
   .. plot::
     :include-source: True
@@ -162,9 +162,9 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.input = bm.Variable(bm.zeros(size))
     >>>
     >>>     # functions
-    >>>     self.int_h = bp.ode.ExpEulerAuto(self.dh)
-    >>>     self.int_n = bp.ode.ExpEulerAuto(self.dn)
-    >>>     self.int_V = bp.ode.ExpEulerAuto(self.dV)
+    >>>     self.int_h = bp.ode.ExponentialEuler(self.dh)
+    >>>     self.int_n = bp.ode.ExponentialEuler(self.dn)
+    >>>     self.int_V = bp.ode.ExponentialEuler(self.dV)
     >>>
     >>>   def dh(self, h, t, V):
     >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
@@ -236,7 +236,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>
     >>>     # functions
     >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV])
-    >>>     self.integral = bp.ode.ExpEulerAuto(derivative)
+    >>>     self.integral = bp.ode.ExponentialEuler(derivative)
     >>>
     >>>   def dh(self, h, t, V):
     >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
@@ -261,7 +261,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>
     >>>     return dVdt
     >>>
-    >>>   def update(self, _t, _dt):
+    >>>   def update(self, t, dt):
     >>>     h, n, V = self.integral(self.h, self.n, self.V, _t, self.input, dt=_dt)
     >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     >>>     self.V.value = V
@@ -273,10 +273,6 @@ class ExpEulerAuto(ODEIntegrator):
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-  See Also
-  --------
-  ExponentialEuler
-
   Parameters
   ----------
   f : function, joint_eq.JointEq
@@ -287,33 +283,36 @@ class ExpEulerAuto(ODEIntegrator):
     The default numerical integration step.
   name : optional, str
     The integrator name.
-  show_code : bool
-  dyn_var : optional, dict, sequence of JaxArray, JaxArray
+  dyn_vars : optional, dict, sequence of JaxArray, JaxArray
   """
 
-  def __init__(self,
-               f,
-               var_type=None,
-               dt=None,
-               name=None,
-               show_code=False,
-               dyn_var=None,
-               state_delays=None,
-               neutral_delays=None):
-    super(ExpEulerAuto, self).__init__(f=f,
-                                       var_type=var_type,
-                                       dt=dt,
-                                       name=name,
-                                       show_code=show_code,
-                                       state_delays=state_delays,
-                                       neutral_delays=neutral_delays)
+  def __init__(
+      self,
+      f,
+      var_type=None,
+      dt=None,
+      name=None,
+      show_code=False,
+      dyn_vars=None,
+      state_delays=None,
+      neutral_delays=None
+  ):
+    super(ExponentialEuler, self).__init__(f=f,
+                                           var_type=var_type,
+                                           dt=dt,
+                                           name=name,
+                                           show_code=show_code,
+                                           state_delays=state_delays,
+                                           neutral_delays=neutral_delays)
 
-    self.dyn_var = dyn_var
+    if var_type == C.SYSTEM_VAR:
+      raise NotImplementedError(f'{self.__class__.__name__} does not support {C.SYSTEM_VAR}, '
+                                f'because the auto-differentiation ')
+    self.dyn_vars = dyn_vars
 
     # keyword checking
     keywords = {
       C.F: 'the derivative function',
-      # C.DT: 'the precision of numerical integration',
     }
     utils.check_kws(self.arg_names, keywords)
 
@@ -346,7 +345,7 @@ class ExpEulerAuto(ODEIntegrator):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)
       if 'dt' not in params_in:
-        params_in['dt'] = math.get_dt()
+        params_in['dt'] = self.dt
 
       # call integrals
       results = []
@@ -376,21 +375,20 @@ class ExpEulerAuto(ODEIntegrator):
                                  f'derivative functions.')
 
       # gradient function
-      value_and_grad = math.vector_grad(eq, argnums=0, dyn_vars=self.dyn_var, return_value=True)
+      value_and_grad = bm.vector_grad(eq, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
 
       # integration function
       def integral(*args, **kwargs):
         assert len(args) > 0
-        dt = kwargs.pop('dt', math.get_dt())
+        dt = kwargs.pop('dt', self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
-        phi = math.where(linear == 0., math.ones_like(linear),
-                         (math.exp(dt * linear) - 1) / (dt * linear))
+        phi = bm.where(linear == 0., bm.ones_like(linear), (bm.exp(dt * linear) - 1) / (dt * linear))
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]
 
 
-register_ode_integrator('exponential_euler', ExpEulerAuto)
-register_ode_integrator('exp_euler', ExpEulerAuto)
-register_ode_integrator('exp_euler_auto', ExpEulerAuto)
-register_ode_integrator('exp_auto', ExpEulerAuto)
+register_ode_integrator('exponential_euler', ExponentialEuler)
+register_ode_integrator('exp_euler', ExponentialEuler)
+register_ode_integrator('exp_euler_auto', ExponentialEuler)
+register_ode_integrator('exp_auto', ExponentialEuler)

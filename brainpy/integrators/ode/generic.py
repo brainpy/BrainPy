@@ -20,7 +20,7 @@ _DEFAULT_DDE_METHOD = 'euler'
 
 
 def odeint(f=None,
-           method='euler',
+           method=None,
            var_type=None,
            dt=None,
            name=None,
