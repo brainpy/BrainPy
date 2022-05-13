@@ -89,10 +89,11 @@ class TestSparseMatmul(unittest.TestCase):
     values = jnp.asarray([2, 4, 1, 3, 2])
     rows = jnp.asarray([0, 0, 1, 2, 2])
     columns = jnp.asarray([1, 3, 0, 1, 3])
+    sparse_A = {'data': values,  'index': (rows, columns), 'shape': (3, 4)}
     # B = jnp.arange(8).reshape((4, 2))
     B = jnp.arange(4)
 
-    self.assertTrue(bm.array_equal(bm.sparse_matmul([values, (rows, columns)], B, 3),
+    self.assertTrue(bm.array_equal(bm.sparse_matmul(sparse_A, B),
                                    jnp.dot(A, B)))
 
   def test_left_sparse_matmul2(self):
@@ -102,9 +103,10 @@ class TestSparseMatmul(unittest.TestCase):
     values = jnp.asarray([2, 4, 1, 3, 2])
     rows = jnp.asarray([0, 0, 1, 2, 2])
     columns = jnp.asarray([1, 3, 0, 1, 3])
+    sparse_A = {'data': values, 'index': (rows, columns), 'shape': (3, 4)}
     B = jnp.arange(8).reshape((4, 2))
 
-    self.assertTrue(bm.array_equal(bm.sparse_matmul([values, (rows, columns)], B, 3),
+    self.assertTrue(bm.array_equal(bm.sparse_matmul(sparse_A, B),
                                    jnp.dot(A, B)))
 
   def test_right_sparse_matmul1(self):
@@ -114,9 +116,11 @@ class TestSparseMatmul(unittest.TestCase):
     values = jnp.asarray([2, 4, 1, 3, 2])
     rows = jnp.asarray([0, 0, 1, 2, 2])
     cols = jnp.asarray([1, 3, 0, 1, 3])
+    sparse_B = {'data': values, 'index': (rows, cols), 'shape': (3, 4)}
+
     A = jnp.arange(6).reshape((2, 3))
 
-    self.assertTrue(bm.array_equal(bm.sparse_matmul(A, [values, (rows, cols)], 4),
+    self.assertTrue(bm.array_equal(bm.sparse_matmul(A, sparse_B),
                                    jnp.dot(A, B)))
 
   def test_right_sparse_matmul2(self):
@@ -126,10 +130,11 @@ class TestSparseMatmul(unittest.TestCase):
     values = jnp.asarray([2, 4, 1, 3, 2])
     rows = jnp.asarray([0, 0, 1, 2, 2])
     cols = jnp.asarray([1, 3, 0, 1, 3])
+    sparse_B = {'data': values, 'index': (rows, cols), 'shape': (3, 4)}
     A = jnp.arange(3)
 
     print(bm.sparse_matmul(A, [values, (rows, cols)], 4))
     print(jnp.dot(A, B))
 
-    self.assertTrue(bm.array_equal(bm.sparse_matmul(A, [values, (rows, cols)], 4),
+    self.assertTrue(bm.array_equal(bm.sparse_matmul(A, sparse_B),
                                    jnp.dot(A, B)))
