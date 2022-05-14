@@ -133,7 +133,7 @@ class TestSparseMatmul(unittest.TestCase):
     sparse_B = {'data': values, 'index': (rows, cols), 'shape': (3, 4)}
     A = jnp.arange(3)
 
-    print(bm.sparse_matmul(A, [values, (rows, cols)], 4))
+    print(bm.sparse_matmul(A, sparse_B))
     print(jnp.dot(A, B))
 
     self.assertTrue(bm.array_equal(bm.sparse_matmul(A, sparse_B),

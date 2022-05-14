@@ -738,7 +738,7 @@ def _matmul_with_right_sparse(
   if dense.ndim == 2:
     A = dense[:, rows]
     prod = (A * values).T
-    res = jops.segment_sum(prod, cols, shape).T
+    res = jops.segment_sum(prod, cols, shape[1]).T
   else:
     prod = dense[rows] * values
     res = jops.segment_sum(prod, cols, shape[1])
