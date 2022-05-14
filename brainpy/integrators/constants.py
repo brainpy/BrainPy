@@ -27,6 +27,7 @@ __all__ = [
   'PDE_INT',
 
   'unique_name',
+  'exp_error_msg',
 ]
 
 
@@ -141,3 +142,26 @@ def unique_name(type):
     return naming.get_unique_name(PDE_INT)
   else:
     raise ValueError(f'Unknown differential equation type: {type}')
+
+
+# Errors
+# -------
+
+
+exp_error_msg = """
+{cls} only supports numerical integration for one variable once, while we got {vars} in {eq}. 
+Please split your derivative function into multiple functions in which each function has one variable. 
+For example, 
+
+changing
+
+>>> def f(x, y, t): 
+>>>    pass
+
+to 
+
+>>> def f1(x, t, y):
+>>>    pass   
+>>> def f2(y, t, x):
+>>>    pass   
+"""

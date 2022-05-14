@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import warnings
-from typing import Union
+from typing import Union, Sequence
 
 import jax.numpy as jnp
 
@@ -9,12 +8,13 @@ import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.errors import ModelBuildError
 from brainpy.initialize import Initializer, init_param
-from brainpy.types import Shape
+from brainpy.types import Shape, Tensor
 
 __all__ = [
   'SpikeTimeInput',
-  'PoissonInput',
   'SpikeTimeGroup',
+
+  'PoissonInput',
   'PoissonGroup',
 ]
 
@@ -50,25 +50,29 @@ class SpikeTimeGroup(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      times,
-      indices,
+      times: Union[Sequence, Tensor],
+      indices: Union[Sequence, Tensor],
       need_sort: bool = True,
+      keep_size: bool = False,
       name: str = None
   ):
     super(SpikeTimeGroup, self).__init__(size=size, name=name)
 
     # parameters
+    self.keep_size = keep_size
+    if keep_size:
+      raise NotImplementedError(f'Do not support keep_size=True in {self.__class__.__name__}')
     if len(indices) != len(times):
       raise ModelBuildError(f'The length of "indices" and "times" must be the same. '
                             f'However, we got {len(indices)} != {len(times)}.')
     self.num_times = len(times)
 
     # data about times and indices
-    self.times = bm.asarray(times, dtype=bm.float_)
-    self.indices = bm.asarray(indices, dtype=bm.int_)
+    self.times = bm.asarray(times)
+    self.indices = bm.asarray(indices)
 
     # variables
-    self.i = bm.Variable(bm.zeros(1, dtype=bm.int_))
+    self.i = bm.Variable(bm.zeros(1))
     self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
     if need_sort:
       sort_idx = bm.argsort(self.times)
@@ -77,11 +81,12 @@ class SpikeTimeGroup(NeuGroup):
 
     # functions
     def cond_fun(t):
-      return bm.logical_and(self.i[0] < self.num_times, t >= self.times[self.i[0]])
+      i = self.i[0]
+      return bm.logical_and(i < self.num_times, t >= self.times[i])
 
     def body_fun(t):
       self.spike[self.indices[self.i[0]]] = True
-      self.i[0] += 1
+      self.i += 1
 
     self._run = bm.make_while(cond_fun, body_fun, dyn_vars=self.vars())
 
@@ -89,12 +94,12 @@ class SpikeTimeGroup(NeuGroup):
     self.i[0] = 1
     self.spike[:] = False
 
-  def update(self, t, _i, **kwargs):
+  def update(self, t, dt):
     self.spike[:] = False
     self._run(t)
 
 
-def SpikeTimeInput(*args, **kwargs):
+class SpikeTimeInput(SpikeTimeGroup):
   """Spike Time Input.
 
   .. deprecated:: 2.1.0
@@ -105,10 +110,11 @@ def SpikeTimeInput(*args, **kwargs):
   group: NeuGroup
     The neural group.
   """
-  warnings.warn('Please use "brainpy.dyn.SpikeTimeGroup" instead. '
-                '"brainpy.dyn.SpikeTimeInput" is deprecated since '
-                'version 2.1.5', DeprecationWarning)
-  return SpikeTimeGroup(*args, **kwargs)
+
+  def __init__(self, *args, **kwargs):
+    raise ValueError('Please use "brainpy.dyn.SpikeTimeGroup" instead. '
+                     '"brainpy.dyn.SpikeTimeInput" is deprecated since '
+                     'version 2.1.5')
 
 
 class PoissonGroup(NeuGroup):
@@ -120,29 +126,31 @@ class PoissonGroup(NeuGroup):
       size: Shape,
       freqs: Union[float, jnp.ndarray, bm.JaxArray, Initializer],
       seed: int = None,
+      keep_size: bool = False,
       name: str = None
   ):
     super(PoissonGroup, self).__init__(size=size, name=name)
 
     # parameters
+    self.keep_size = keep_size
     self.seed = seed
     self.freqs = init_param(freqs, self.num, allow_none=False)
-    self.dt = bm.get_dt() / 1000.
     self.size = (size,) if isinstance(size, int) else tuple(size)
 
     # variables
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.spike = bm.Variable(bm.zeros(self.size if keep_size else self.num, dtype=bool))
     self.rng = bm.random.RandomState(seed=seed)
 
-  def update(self, t, _i):
-    self.spike.update(self.rng.random(self.num) <= self.freqs * self.dt)
+  def update(self, t, dt):
+    self.spike.update(self.rng.random(self.size if self.keep_size else self.num)
+                      <= (self.freqs * dt / 1000.))
 
   def reset(self):
     self.spike[:] = False
     self.rng.seed(self.seed)
 
 
-def PoissonInput(*args, **kwargs):
+class PoissonInput(PoissonGroup):
   """Poisson Group Input.
 
   .. deprecated:: 2.1.0
@@ -153,7 +161,8 @@ def PoissonInput(*args, **kwargs):
   poisson_group: NeuGroup
     The poisson neural group.
   """
-  warnings.warn('Please use "brainpy.dyn.PoissonGroup" instead. '
-                '"brainpy.dyn.PoissonInput" is deprecated since '
-                'version 2.1.5', DeprecationWarning)
-  return PoissonGroup(*args, **kwargs)
+
+  def __init__(self, *args, **kwargs):
+    raise ValueError('Please use "brainpy.dyn.PoissonGroup" instead. '
+                     '"brainpy.dyn.PoissonInput" is deprecated since '
+                     'version 2.1.5')

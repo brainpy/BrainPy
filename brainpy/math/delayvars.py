@@ -11,15 +11,15 @@ from jax.lax import cond
 from brainpy import check
 from brainpy.base.base import Base
 from brainpy.errors import UnsupportedError
+from brainpy.math import numpy_ops as bm
 from brainpy.math.jaxarray import ndarray, Variable, JaxArray
 from brainpy.math.setting import get_dt
 from brainpy.tools.checking import check_float, check_integer
 
 __all__ = [
   'AbstractDelay',
-  'TimeDelay',
-  'NeutralDelay',
-  'LengthDelay',
+  'TimeDelay', 'LengthDelay',
+  'NeuTimeDelay', 'NeuLenDelay',
 ]
 
 
@@ -121,9 +121,8 @@ class TimeDelay(AbstractDelay):
     super(TimeDelay, self).__init__(name=name)
 
     # shape
-    if not isinstance(delay_target, (ndarray, jnp.ndarray)):
-      raise ValueError(f'Must be an instance of brainpy.math.ndarray '
-                       f'or jax.numpy.ndarray. But we got {type(delay_target)}')
+    if not isinstance(delay_target, (jnp.ndarray, JaxArray)):
+      raise ValueError(f'Must be an instance of JaxArray or jax.numpy.ndarray. But we got {type(delay_target)}')
     self.shape = delay_target.shape
 
     # delay_len
@@ -145,13 +144,12 @@ class TimeDelay(AbstractDelay):
     self.current_time = Variable(jnp.asarray([t0]))
 
     # delay data
-    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape,
-                                   dtype=delay_target.dtype))
+    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape, dtype=delay_target.dtype))
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
     elif callable(before_t0):
-      self._before_t0 = lambda t: jnp.asarray(jnp.broadcast_to(before_t0(t), self.shape),
-                                              dtype=delay_target.dtype)
+      self._before_t0 = lambda t: bm.asarray(bm.broadcast_to(before_t0(t), self.shape),
+                                             dtype=delay_target.dtype).value
       self._before_type = _FUNC_BEFORE
     elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
       self._before_type = _DATA_BEFORE
@@ -260,7 +258,8 @@ class TimeDelay(AbstractDelay):
     self.idx.value = (self.idx + 1) % self.num_delay_step
 
 
-class NeutralDelay(TimeDelay):
+class NeuTimeDelay(TimeDelay):
+  """Neutral Time Delay. Alias of :py:class:`~.TimeDelay`."""
   pass
 
 
@@ -366,3 +365,8 @@ class LengthDelay(AbstractDelay):
       raise ValueError(f'value shape should be {self.shape}, but we got {jnp.shape(value)}')
     self.data[self.idx[0]] = value
     self.idx.value = (self.idx + 1) % self.num_delay_step
+
+
+class NeuLenDelay(LengthDelay):
+  """Neutral Length Delay. Alias of :py:class:`~.LengthDelay`."""
+  pass
