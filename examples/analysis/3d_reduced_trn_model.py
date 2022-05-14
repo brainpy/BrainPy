@@ -55,7 +55,7 @@ class ReducedTRNModel(bp.dyn.NeuGroup):
     self.int_V = bp.odeint(self.fV, method=method)
     self.int_y = bp.odeint(self.fy, method=method)
     self.int_z = bp.odeint(self.fz, method=method)
-    if not isinstance(self.int_V, bp.ode.ExpEulerAuto):
+    if not isinstance(self.int_V, bp.ode.ExponentialEuler):
       self.integral = bp.odeint(self.derivative, method=method)
 
   def fV(self, V, t, y, z, Isyn):
@@ -192,7 +192,7 @@ class ReducedTRNModel(bp.dyn.NeuGroup):
     return dvdt, dydt, dzdt
 
   def update(self, t, dt):
-    if isinstance(self.int_V, bp.ode.ExpEulerAuto):
+    if isinstance(self.int_V, bp.ode.ExponentialEuler):
       V = self.int_V(self.V, t, self.y, self.z, self.input, dt=dt)
       self.y.value = self.int_y(self.y, t, self.V, dt=dt)
       self.z.value = self.int_z(self.z, t, self.V, dt=dt)
