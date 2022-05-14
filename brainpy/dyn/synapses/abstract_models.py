@@ -148,12 +148,12 @@ class DeltaSynapse(TwoEndConn):
     else:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
       self.update_delay(f"{self.pre.name}.spike", delay_data=self.pre.spike)
-    pre_spike = pre_spike.astype(bm.float_)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
+      pre_spike = pre_spike.astype(bm.float_)
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
@@ -162,6 +162,7 @@ class DeltaSynapse(TwoEndConn):
       else:
         post_vs = pre_spike @ self.weights
     elif isinstance(self.conn, One2One):
+      pre_spike = pre_spike.astype(bm.float_)
       post_vs = pre_spike * self.weights
     else:
       if self.conn_type == 'sparse':
@@ -170,6 +171,7 @@ class DeltaSynapse(TwoEndConn):
                                         self.post.num,
                                         self.weights)
       else:
+        pre_spike = pre_spike.astype(bm.float_)
         if self.weight_type == 'homo':
           post_vs = self.weights * (pre_spike @ self.conn_mat)
         else:
@@ -349,12 +351,12 @@ class ExpCUBA(TwoEndConn):
     else:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
       self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
-    pre_spike = pre_spike.astype(bm.float_)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
+      pre_spike = pre_spike.astype(bm.float_)
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
@@ -363,6 +365,7 @@ class ExpCUBA(TwoEndConn):
       else:
         post_vs = pre_spike @ self.g_max
     elif isinstance(self.conn, One2One):
+      pre_spike = pre_spike.astype(bm.float_)
       post_vs = pre_spike * self.g_max
     else:
       if self.conn_type == 'sparse':
@@ -371,6 +374,7 @@ class ExpCUBA(TwoEndConn):
                                         self.post.num,
                                         self.g_max)
       else:
+        pre_spike = pre_spike.astype(bm.float_)
         if self.weight_type == 'homo':
           post_vs = self.g_max * (pre_spike @ self.conn_mat)
         else:
