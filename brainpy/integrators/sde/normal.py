@@ -292,6 +292,9 @@ class ExponentialEuler(SDEIntegrator):
                                            wiener_type=wiener_type,
                                            state_delays=state_delays)
 
+    if self.intg_type == constants.STRA_SDE:
+      raise NotImplementedError(f'{self.__class__.__name__} does not support integral type of {constants.STRA_SDE}. '
+                                f'It only supports {constants.ITO_SDE} now. ')
     self.dyn_vars = dyn_vars
 
     # build the integrator
@@ -322,12 +325,14 @@ class ExponentialEuler(SDEIntegrator):
       for i, arg in enumerate(args):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)
-      if 'dt' not in params_in:
-        params_in['dt'] = self.dt
+      dt = params_in.pop('dt', self.dt)
+
+      # diffusion part
+      noises = self.g(**params_in)
 
       # call integrals
       results = []
-      noises = self.g(*args, **kwargs)
+      params_in['dt'] = dt
       for i, int_fun in enumerate(integrals):
         _key = arg_names[i][0]
         r = int_fun(params_in[_key], **{arg: params_in[arg] for arg in arg_names[i][1:] if arg in params_in})
@@ -356,10 +361,9 @@ class ExponentialEuler(SDEIntegrator):
 
       # checking
       if len(vars) != 1:
-        raise errors.DiffEqError(f'{self.__class__} only supports numerical integration '
-                                 f'for one variable once, while we got {vars} in {f}. '
-                                 f'Please split your multiple variables into multiple '
-                                 f'derivative functions.')
+        raise errors.DiffEqError(constants.exp_error_msg.format(cls=self.__class__.__name__,
+                                                                vars=str(vars),
+                                                                eq=str(f)))
 
       # gradient function
       value_and_grad = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars, return_value=True)

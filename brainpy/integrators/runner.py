@@ -194,7 +194,7 @@ class IntegratorRunner(Runner):
 
     # monitors
     for k in self.mon.item_names:
-      if k not in self.target.variables:
+      if k not in self.target.variables and k not in self.fun_monitors:
         raise MonitorError(f'Variable "{k}" to monitor is not defined '
                            f'in the integrator {self.target}.')
 
@@ -206,7 +206,7 @@ class IntegratorRunner(Runner):
 
     # Variables
     if inits is not None:
-      if isinstance(inits, (list, tuple)):
+      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
         assert len(self.target.variables) == len(inits)
         inits = {k: inits[i] for i, k in enumerate(self.target.variables)}
       assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'

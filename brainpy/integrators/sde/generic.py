@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict
+from typing import Dict, Union
 
 import brainpy.math as bm
 from .base import SDEIntegrator
@@ -29,7 +29,7 @@ def sdeint(
     var_type: str = None,
     intg_type: str = None,
     wiener_type: str = None,
-    state_delays: Dict[str, bm.AbstractDelay] = None
+    state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None
 ):
   """Numerical integration for SDEs.
 

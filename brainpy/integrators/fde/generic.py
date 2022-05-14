@@ -10,13 +10,20 @@ __all__ = [
   'get_supported_methods',
 ]
 
-name2method = {
-}
+name2method = {}
 
 _DEFAULT_DDE_METHOD = 'CaputoL1'
 
 
-def fdeint(f=None, method='CaputoL1', **kwargs):
+def fdeint(
+    alpha,
+    num_step,
+    inits,
+    f=None,
+    method='CaputoL1',
+    dt: str = None,
+    name: str = None
+):
   """Numerical integration for FDEs.
 
   Parameters
@@ -25,6 +32,16 @@ def fdeint(f=None, method='CaputoL1', **kwargs):
     The derivative function.
   method : str
     The shortcut name of the numerical integrator.
+  alpha: int, float, jnp.ndarray, bm.ndarray, sequence
+    The fractional-order of the derivative function. Should be in the range of ``(0., 1.]``.
+  num_step: int
+    The number of the memory length.
+  inits: sequence
+    A sequence of the initial values for variables.
+  dt: float, int
+    The numerical precision.
+  name: str
+    The integrator name.
 
   Returns
   -------
@@ -34,12 +51,12 @@ def fdeint(f=None, method='CaputoL1', **kwargs):
   method = _DEFAULT_DDE_METHOD if method is None else method
   if method not in name2method:
     raise ValueError(f'Unknown FDE numerical method "{method}". Currently '
-                     f'BrainPy only support: {list(name2method.keys())}')
+                     f'BrainPy supports: {list(name2method.keys())}')
 
   if f is None:
-    return lambda f: name2method[method](f, **kwargs)
+    return lambda f: name2method[method](f, dt=dt, name=name, inits=inits, num_step=num_step, alpha=alpha)
   else:
-    return name2method[method](f, **kwargs)
+    return name2method[method](f, dt=dt, name=name, inits=inits, num_step=num_step, alpha=alpha)
 
 
 def set_default_fdeint(method):

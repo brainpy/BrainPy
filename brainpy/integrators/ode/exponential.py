@@ -369,10 +369,9 @@ class ExponentialEuler(ODEIntegrator):
 
       # checking
       if len(vars) != 1:
-        raise errors.DiffEqError(f'{self.__class__} only supports numerical integration '
-                                 f'for one variable once, while we got {vars} in {eq}. '
-                                 f'Please split your multiple variables into multiple '
-                                 f'derivative functions.')
+        raise errors.DiffEqError(C.exp_error_msg.format(cls=self.__class__.__name__,
+                                                        vars=str(vars),
+                                                        eq=str(eq)))
 
       # gradient function
       value_and_grad = bm.vector_grad(eq, argnums=0, dyn_vars=self.dyn_vars, return_value=True)

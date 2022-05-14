@@ -4,6 +4,7 @@
 import inspect
 from pprint import pprint
 
+import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.errors import UnsupportedError
 
@@ -111,7 +112,7 @@ def compile_code(code_lines, code_scope, func_name, show_code=False):
 
 
 def check_inits(inits, variables):
-  if isinstance(inits, (tuple, list)):
+  if isinstance(inits, (tuple, list, bm.JaxArray, jnp.ndarray)):
     assert len(inits) == len(variables), (f'Then number of variables is {len(variables)}, '
                                           f'however we only got {len(inits)} initial values.')
     inits = {v: inits[i] for i, v in enumerate(variables)}
