@@ -205,6 +205,7 @@ class HH(NeuGroup):
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -385,6 +386,7 @@ class MorrisLecar(NeuGroup):
       W_initializer: Union[Callable, Initializer, Tensor] = OneInit(0.02),
       V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -628,6 +630,7 @@ class PinskyRinzelModel(NeuGroup):
       Ca_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.2),
       # others
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None,
   ):
     # initialization
@@ -810,7 +813,7 @@ class PinskyRinzelModel(NeuGroup):
 
 
 class WangBuzsakiModel(NeuGroup):
-  r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodkin-Huxley model.
+  r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model.
 
   Each model is described by a single compartment and obeys the current balance equation:
 
@@ -910,6 +913,7 @@ class WangBuzsakiModel(NeuGroup):
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization

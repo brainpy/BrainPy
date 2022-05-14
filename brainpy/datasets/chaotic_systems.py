@@ -3,7 +3,7 @@
 import jax.numpy as jnp
 
 from brainpy import math as bm, dyn
-from brainpy.integrators import odeint, ddeint, JointEq, IntegratorRunner
+from brainpy.integrators import odeint, JointEq, IntegratorRunner
 
 __all__ = [
   'henon_map_series',
@@ -172,8 +172,7 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
   xdelay = bm.TimeDelay(inits, tau, dt=dt, interp_method='round')
   xdelay.data.value = inits + 0.2 * (rng.random((xdelay.num_delay_step,) + inits.shape) - 0.5)
 
-  @ddeint(method=method,
-          state_delays={'x': xdelay})
+  @odeint(method=method, state_delays={'x': xdelay})
   def mg_eq(x, t):
     xtau = xdelay(t - tau)
     return beta * xtau / (1 + xtau ** n) - gamma * x

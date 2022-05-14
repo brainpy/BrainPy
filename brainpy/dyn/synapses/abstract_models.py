@@ -148,6 +148,7 @@ class DeltaSynapse(TwoEndConn):
     else:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
       self.update_delay(f"{self.pre.name}.spike", delay_data=self.pre.spike)
+    pre_spike = pre_spike.astype(bm.float_)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
@@ -159,8 +160,7 @@ class DeltaSynapse(TwoEndConn):
           post_vs = post_vs - pre_spike
         post_vs *= self.weights
       else:
-        post_vs = bm.expand_dims(pre_spike, 1) * self.weights
-        post_vs = post_vs.sum(axis=0)
+        post_vs = pre_spike @ self.weights
     elif isinstance(self.conn, One2One):
       post_vs = pre_spike * self.weights
     else:
@@ -349,6 +349,7 @@ class ExpCUBA(TwoEndConn):
     else:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
       self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    pre_spike = pre_spike.astype(bm.float_)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
