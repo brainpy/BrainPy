@@ -169,9 +169,9 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
         turn_off_global_jit()
       except UnexpectedTracerError as e:
         turn_off_global_jit()
-        for v, d in zip(dyn_vars, init_values): v.value = d
+        for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       return tree_unflatten(tree, out_values), results
 
   else:
@@ -189,7 +189,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
         turn_off_global_jit()
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise e
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       return tree_unflatten(tree, out_values)
 
   return call
@@ -271,7 +271,7 @@ def make_while(cond_fun, body_fun, dyn_vars):
       turn_off_global_jit()
       for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise e
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
 
   return call
 
@@ -359,7 +359,7 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
         turn_off_global_jit()
         for v, d in zip(dyn_vars, old_values): v._value = d
         raise e
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       return res
 
   else:
@@ -477,7 +477,7 @@ def cond(
       turn_off_global_jit()
       for v, d in zip(dyn_vars, old_values): v._value = d
       raise e
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
   else:
     turn_on_global_jit()
     res = lax.cond(pred, true_fun, false_fun, operands)
@@ -663,7 +663,7 @@ def for_loop(body_fun: Callable,
     turn_off_global_jit()
     for v, d in zip(dyn_vars, init_vals): v._value = d
     raise e
-  for v, d in zip(dyn_vars, dyn_vals): v.value = d
+  for v, d in zip(dyn_vars, dyn_vals): v._value = d
   return out_vals
 
 
@@ -729,4 +729,4 @@ def while_loop(
     turn_off_global_jit()
     for v, d in zip(dyn_vars, dyn_init): v._value = d
     raise e
-  for v, d in zip(dyn_vars, dyn_values): v.value = d
+  for v, d in zip(dyn_vars, dyn_values): v._value = d
