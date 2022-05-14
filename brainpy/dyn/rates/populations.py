@@ -14,7 +14,7 @@ from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
 from brainpy.types import Shape, Tensor
-from .noises import OUProcess
+from brainpy.dyn.others.noises import OUProcess
 
 __all__ = [
   'Population',
@@ -92,6 +92,7 @@ class FHN(NeuGroup):
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       sde_method: str = None,
+      keep_size: bool = False,
       name: str = None,
   ):
     super(FHN, self).__init__(size=size, name=name)
@@ -257,6 +258,7 @@ class FeedbackFHN(NeuGroup):
       method: str = 'rk4',
       sde_method: str = None,
       name: str = None,
+      keep_size: bool = False,
       dt: float = None
   ):
     super(FeedbackFHN, self).__init__(size=size, name=name)
@@ -436,6 +438,7 @@ class QIF(NeuGroup):
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
+      keep_size: bool = False,
       sde_method: str = None,
   ):
     super(QIF, self).__init__(size=size, name=name)
@@ -558,6 +561,7 @@ class StuartLandauOscillator(Population):
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       sde_method: str = None,
       name: str = None,
   ):
@@ -690,6 +694,7 @@ class WilsonCowanModel(Population):
 
       # other parameters
       sde_method: str = None,
+      keep_size: bool = False,
       method: str = 'exp_euler_auto',
       name: str = None,
   ):
@@ -833,6 +838,7 @@ class ThresholdLinearModel(Population):
       e_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       i_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       seed: int = None,
+      keep_size: bool = False,
       name: str = None
   ):
     super(ThresholdLinearModel, self).__init__(size, name=name)

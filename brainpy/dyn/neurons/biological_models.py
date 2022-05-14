@@ -14,6 +14,7 @@ __all__ = [
   'HH',
   'MorrisLecar',
   'PinskyRinzelModel',
+  'WangBuzsakiModel',
 ]
 
 
@@ -204,6 +205,7 @@ class HH(NeuGroup):
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -285,6 +287,7 @@ class HH(NeuGroup):
     self.h.value = h
     self.n.value = n
     self.input[:] = 0.
+
 
 
 class MorrisLecar(NeuGroup):
@@ -383,6 +386,7 @@ class MorrisLecar(NeuGroup):
       W_initializer: Union[Callable, Initializer, Tensor] = OneInit(0.02),
       V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -626,6 +630,7 @@ class PinskyRinzelModel(NeuGroup):
       Ca_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.2),
       # others
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None,
   ):
     # initialization
@@ -805,3 +810,185 @@ class PinskyRinzelModel(NeuGroup):
     alpha = self.alpha_q(Ca)
     beta = self.beta_q(Ca)
     return alpha / (alpha + beta)
+
+
+class WangBuzsakiModel(NeuGroup):
+  r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model.
+
+  Each model is described by a single compartment and obeys the current balance equation:
+
+  .. math::
+
+      C_{m} \frac{d V}{d t}=-I_{\mathrm{Na}}-I_{\mathrm{K}}-I_{\mathrm{L}}-I_{\mathrm{syn}}+I_{\mathrm{app}}
+
+  where :math:`C_{m}=1 \mu \mathrm{F} / \mathrm{cm}^{2}` and :math:`I_{\mathrm{app}}` is the
+  injected current (in :math:`\mu \mathrm{A} / \mathrm{cm}^{2}` ). The leak current
+  :math:`I_{\mathrm{L}}=g_{\mathrm{L}}\left(V-E_{\mathrm{L}}\right)` has a conductance
+  :math:`g_{\mathrm{L}}=0.1 \mathrm{mS} / \mathrm{cm}^{2}`, so that the passive time constant
+  :math:`\tau_{0}=C_{m} / g_{\mathrm{L}}=10 \mathrm{msec} ; E_{\mathrm{L}}=-65 \mathrm{mV}`.
+
+  The spike-generating :math:`\mathrm{Na}^{+}` and :math:`\mathrm{K}^{+}` voltage-dependent ion
+  currents :math:`\left(I_{\mathrm{Na}}\right.` and :math:`I_{\mathrm{K}}` ) are of the
+  Hodgkin-Huxley type (Hodgkin and Huxley, 1952). The transient sodium current
+  :math:`I_{\mathrm{Na}}=g_{\mathrm{Na}} m_{\infty}^{3} h\left(V-E_{\mathrm{Na}}\right)`,
+  where the activation variable :math:`m` is assumed fast and substituted by its steady-state
+  function :math:`m_{\infty}=\alpha_{m} /\left(\alpha_{m}+\beta_{m}\right)` ;
+  :math:`\alpha_{m}(V)=-0.1(V+35) /(\exp (-0.1(V+35))-1), \beta_{m}(V)=4 \exp (-(V+60) / 18)`.
+  The inactivation variable :math:`h` obeys a first-order kinetics:
+
+  .. math::
+
+      \frac{d h}{d t}=\phi\left(\alpha_{h}(1-h)-\beta_{h} h\right)
+
+  where :math:`\alpha_{h}(V)=0.07 \exp (-(V+58) / 20)` and
+  :math:`\beta_{h}(V)=1 /(\exp (-0.1(V+28)) +1) \cdot g_{\mathrm{Na}}=35 \mathrm{mS} / \mathrm{cm}^{2}` ;
+  :math:`E_{\mathrm{Na}}=55 \mathrm{mV}, \phi=5 .`
+
+  The delayed rectifier :math:`I_{\mathrm{K}}=g_{\mathrm{K}} n^{4}\left(V-E_{\mathrm{K}}\right)`,
+  where the activation variable :math:`n` obeys the following equation:
+
+  .. math::
+
+     \frac{d n}{d t}=\phi\left(\alpha_{n}(1-n)-\beta_{n} n\right)
+
+  with :math:`\alpha_{n}(V)=-0.01(V+34) /(\exp (-0.1(V+34))-1)` and
+  :math:`\beta_{n}(V)=0.125\exp (-(V+44) / 80)` ; :math:`g_{\mathrm{K}}=9 \mathrm{mS} / \mathrm{cm}^{2}`, and
+  :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
+
+
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  ENa: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of sodium. Default is 50 mV.
+  gNa: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of sodium channel. Default is 120 msiemens.
+  EK: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of potassium. Default is -77 mV.
+  gK: float, JaxArray, ndarray, Initializer, callable
+    The maximum conductance of potassium channel. Default is 36 msiemens.
+  EL: float, JaxArray, ndarray, Initializer, callable
+    The reversal potential of learky channel. Default is -54.387 mV.
+  gL: float, JaxArray, ndarray, Initializer, callable
+    The conductance of learky channel. Default is 0.03 msiemens.
+  V_th: float, JaxArray, ndarray, Initializer, callable
+    The threshold of the membrane spike. Default is 20 mV.
+  C: float, JaxArray, ndarray, Initializer, callable
+    The membrane capacitance. Default is 1 ufarad.
+  phi: float, JaxArray, ndarray, Initializer, callable
+    The temperature regulator constant.
+  V_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of membrane potential.
+  h_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of h channel.
+  n_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of n channel.
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
+
+  References
+  ----------
+  .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
+         inhibition in a hippocampal interneuronal network model. Journal of
+         neuroscience, 16(20), pp.6402-6413.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      ENa: Union[float, Tensor, Initializer, Callable] = 55.,
+      gNa: Union[float, Tensor, Initializer, Callable] = 35.,
+      EK: Union[float, Tensor, Initializer, Callable] = -90.,
+      gK: Union[float, Tensor, Initializer, Callable] = 9.,
+      EL: Union[float, Tensor, Initializer, Callable] = -65,
+      gL: Union[float, Tensor, Initializer, Callable] = 0.1,
+      V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      phi: Union[float, Tensor, Initializer, Callable] = 5.0,
+      C: Union[float, Tensor, Initializer, Callable] = 1.0,
+      V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-65.),
+      h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
+      n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
+      method: str = 'exp_auto',
+      keep_size: bool = False,
+      name: str = None
+  ):
+    # initialization
+    super(WangBuzsakiModel, self).__init__(size=size, name=name)
+
+    # parameters
+    self.ENa = init_param(ENa, self.num, allow_none=False)
+    self.EK = init_param(EK, self.num, allow_none=False)
+    self.EL = init_param(EL, self.num, allow_none=False)
+    self.gNa = init_param(gNa, self.num, allow_none=False)
+    self.gK = init_param(gK, self.num, allow_none=False)
+    self.gL = init_param(gL, self.num, allow_none=False)
+    self.C = init_param(C, self.num, allow_none=False)
+    self.phi = init_param(phi, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.num, allow_none=False)
+
+    # initializers
+    check_initializer(h_initializer, 'h_initializer', allow_none=False)
+    check_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    self._h_initializer = h_initializer
+    self._n_initializer = n_initializer
+    self._V_initializer = V_initializer
+
+    # variables
+    self.h = bm.Variable(init_param(self._h_initializer, (self.num,)))
+    self.n = bm.Variable(init_param(self._n_initializer, (self.num,)))
+    self.V = bm.Variable(init_param(self._V_initializer, (self.num,)))
+    self.input = bm.Variable(bm.zeros(self.num))
+    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+  def reset(self):
+    self.h.value = init_param(self._h_initializer, (self.num,))
+    self.n.value = init_param(self._n_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.input[:] = 0
+    self.spike[:] = False
+
+  def m_inf(self, V):
+    alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+    beta = 4. * bm.exp(-(V + 60.) / 18.)
+    return alpha / (alpha + beta)
+
+  def dh(self, h, t, V):
+    alpha = 0.07 * bm.exp(-(V + 58) / 20)
+    beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
+    dhdt = alpha * (1 - h) - beta * h
+    return self.phi * dhdt
+
+  def dn(self, n, t, V):
+    alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+    beta = 0.125 * bm.exp(-(V + 44) / 80)
+    dndt = alpha * (1 - n) - beta * n
+    return self.phi * dndt
+
+  def dV(self, V, t, h, n, I_ext):
+    INa = self.gNa * self.m_inf(V) ** 3 * h * (V - self.ENa)
+    IK = self.gK * n ** 4 * (V - self.EK)
+    IL = self.gL * (V - self.EL)
+    dVdt = (- INa - IK - IL + I_ext) / self.C
+    return dVdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dh, self.dn])
+
+  def update(self, t, dt):
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt=dt)
+    self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+    self.V.value = V
+    self.h.value = h
+    self.n.value = n
+    self.input[:] = 0.
+
+

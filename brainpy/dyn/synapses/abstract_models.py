@@ -153,15 +153,16 @@ class DeltaSynapse(TwoEndConn):
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
+      pre_spike = pre_spike.astype(bm.float_)
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
           post_vs = post_vs - pre_spike
         post_vs *= self.weights
       else:
-        post_vs = bm.expand_dims(pre_spike, 1) * self.weights
-        post_vs = post_vs.sum(axis=0)
+        post_vs = pre_spike @ self.weights
     elif isinstance(self.conn, One2One):
+      pre_spike = pre_spike.astype(bm.float_)
       post_vs = pre_spike * self.weights
     else:
       if self.conn_type == 'sparse':
@@ -170,6 +171,7 @@ class DeltaSynapse(TwoEndConn):
                                         self.post.num,
                                         self.weights)
       else:
+        pre_spike = pre_spike.astype(bm.float_)
         if self.weight_type == 'homo':
           post_vs = self.weights * (pre_spike @ self.conn_mat)
         else:
@@ -354,6 +356,7 @@ class ExpCUBA(TwoEndConn):
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
+      pre_spike = pre_spike.astype(bm.float_)
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
@@ -362,6 +365,7 @@ class ExpCUBA(TwoEndConn):
       else:
         post_vs = pre_spike @ self.g_max
     elif isinstance(self.conn, One2One):
+      pre_spike = pre_spike.astype(bm.float_)
       post_vs = pre_spike * self.g_max
     else:
       if self.conn_type == 'sparse':
@@ -370,6 +374,7 @@ class ExpCUBA(TwoEndConn):
                                         self.post.num,
                                         self.g_max)
       else:
+        pre_spike = pre_spike.astype(bm.float_)
         if self.weight_type == 'homo':
           post_vs = self.g_max * (pre_spike @ self.conn_mat)
         else:

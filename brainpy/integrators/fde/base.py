@@ -8,6 +8,7 @@ import brainpy.math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.utils import get_args
+from brainpy.tools.checking import check_integer
 
 __all__ = [
   'FDEIntegrator'
@@ -30,7 +31,7 @@ class FDEIntegrator(Integrator):
   """
 
   """The fraction order for each variable."""
-  alpha: jnp.ndarray
+  alpha: bm.JaxArray
 
   """The numerical integration precision."""
   dt: Union[float, int]
@@ -42,15 +43,20 @@ class FDEIntegrator(Integrator):
       self,
       f: Callable,
       alpha,
+      num_step: int,
       dt: float = None,
       name: str = None,
-      state_delays: Dict[str, bm.AbstractDelay] = None,
+      state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
   ):
     dt = bm.get_dt() if dt is None else dt
     parses = get_args(f)
     variables = parses[0]  # variable names, (before 't')
     parameters = parses[1]  # parameter names, (after 't')
     arguments = parses[2]  # function arguments
+
+    # memory length
+    check_integer(num_step, 'num_step', allow_none=False, min_bound=1)
+    self.num_step = num_step
 
     # super initialization
     super(FDEIntegrator, self).__init__(name=name,
@@ -65,14 +71,14 @@ class FDEIntegrator(Integrator):
 
     # fractional-order
     if isinstance(alpha, (int, float)):
-      alpha = jnp.ones(len(self.variables)) * alpha
+      alpha = bm.ones(len(self.variables)) * alpha
     elif isinstance(alpha, (jnp.ndarray, bm.ndarray)):
-      alpha = bm.as_device_array(alpha)
+      alpha = bm.asarray(alpha)
     elif isinstance(alpha, (list, tuple)):
       for a in alpha:
         assert isinstance(a, (float, int)), (f'Must be a tuple/list of int/float, '
                                              f'but we got {type(a)}: {a}')
-      alpha = jnp.asarray(alpha)
+      alpha = bm.asarray(alpha)
     else:
       raise UnsupportedError(f'Do not support {type(alpha)}, please '
                              f'set fractional-order as number/tuple/list/tensor.')

@@ -47,10 +47,6 @@ class ExplicitRKIntegrator(DDEIntegrator):
         keywords[f'k{i}_{v}_arg'] = 'the intermediate value'
         keywords[f'k{i}_t_arg'] = 'the intermediate value'
     check_kws(self.arg_names, keywords)
-
-    def integral(*vars, **kwargs):
-      pass
-
     self.build()
 
   def build(self):
@@ -61,11 +57,10 @@ class ExplicitRKIntegrator(DDEIntegrator):
     # returns
     self.code_lines.append(f'  return {", ".join(return_args)}')
     # compile
-    self.integral = compile_code(
-      code_scope={k: v for k, v in self.code_scope.items()},
-      code_lines=self.code_lines,
-      show_code=self.show_code,
-      func_name=self.func_name)
+    self.integral = compile_code(code_scope={k: v for k, v in self.code_scope.items()},
+                                 code_lines=self.code_lines,
+                                 show_code=self.show_code,
+                                 func_name=self.func_name)
 
 
 class Euler(ExplicitRKIntegrator):
@@ -107,7 +102,7 @@ register_dde_integrator('ralston2', Ralston2)
 class RK2(ExplicitRKIntegrator):
   def __init__(self, f, beta=2 / 3, var_type=None, dt=None, name=None,
                state_delays: Dict[str, bm.TimeDelay] = None,
-               neutral_delays: Dict[str, bm.NeutralDelay] = None):
+               neutral_delays: Dict[str, bm.NeuTimeDelay] = None):
     self.A = [(), (beta,)]
     self.B = [1 - 1 / (2 * beta), 1 / (2 * beta)]
     self.C = [0, beta]

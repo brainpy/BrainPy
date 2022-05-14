@@ -167,6 +167,7 @@ class Reservoir(RecurrentNode):
 
     # initialize feedforward weights
     weight_shape = (sum(free_shapes), self.num_unit)
+    self.Wff_shape = weight_shape
     self.Wff = init_param(self.ff_initializer, weight_shape)
     if self.ff_connectivity < 1.:
       conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
@@ -206,6 +207,7 @@ class Reservoir(RecurrentNode):
     if self.feedback_shapes is not None:
       unique_shape, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
       fb_shape = (sum(free_shapes), self.num_unit)
+      self.Wfb_shape = fb_shape
       self.Wfb = init_param(self.fb_initializer, fb_shape)
       if self.fb_connectivity < 1.:
         conn_mat = self.rng.random(fb_shape) > self.fb_connectivity
@@ -222,7 +224,8 @@ class Reservoir(RecurrentNode):
     x = bm.concatenate(ff, axis=-1)
     if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
     if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
-      hidden = bm.sparse_matmul(x, [self.Wff, (self.ff_pres, self.ff_posts)], self.num_unit)
+      sparse = {'data': self.Wff, 'index': (self.ff_pres, self.ff_posts), 'shape': self.Wff_shape}
+      hidden = bm.sparse_matmul(x, sparse)
     else:
       hidden = bm.dot(x, self.Wff)
     # feedback
@@ -231,12 +234,14 @@ class Reservoir(RecurrentNode):
       fb = bm.concatenate(fb, axis=-1)
       if self.noise_fb: fb += self.noise_fb * self.rng.uniform(-1, 1, fb.shape)
       if self.conn_type == 'sparse' and self.fb_connectivity < 1.:
-        hidden += bm.sparse_matmul(fb, [self.Wfb, (self.fb_pres, self.fb_posts)], self.num_unit)
+        sparse = {'data': self.Wfb, 'index': (self.fb_pres, self.fb_posts), 'shape': self.Wfb_shape}
+        hidden += bm.sparse_matmul(fb, sparse)
       else:
         hidden += bm.dot(fb, self.Wfb)
     # recurrent
     if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
-      hidden += bm.sparse_matmul(self.state, [self.Wrec, (self.rec_pres, self.rec_posts)], self.num_unit)
+      sparse = {'data': self.Wrec, 'index': (self.rec_pres, self.rec_posts), 'shape': (self.num_unit, self.num_unit)}
+      hidden += bm.sparse_matmul(self.state, sparse)
     else:
       hidden += bm.dot(self.state, self.Wrec)
     if self.activation_type == 'internal':

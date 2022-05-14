@@ -54,9 +54,9 @@ class Runner(object):
       fun_monitors = dict()
     check_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
     self.fun_monitors = fun_monitors
-    for key in self.fun_monitors.keys():
-      self.mon.item_names.append(key)
-      self.mon.item_contents[key] = []
+    # for key in self.fun_monitors.keys():
+    #   self.mon.item_names.append(key)
+    #   self.mon.item_contents[key] = []
 
     # progress bar
     assert isinstance(progress_bar, bool), 'Must be a boolean variable.'
