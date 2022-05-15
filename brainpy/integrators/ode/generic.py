@@ -19,17 +19,17 @@ name2method = {
 _DEFAULT_DDE_METHOD = 'euler'
 
 
-def odeint(f=None,
-           method='euler',
-           var_type=None,
-           dt=None,
-           name=None,
-           # adaptive=None,
-           # tol=None,
-           show_code=False,
-           state_delays: Dict[str, bm.AbstractDelay] = None,
-           neutral_delays: Dict[str, bm.NeutralDelay] = None,
-           **kwargs):
+def odeint(
+    f=None,
+    method=None,
+    var_type=None,
+    dt=None,
+    name=None,
+    show_code=False,
+    state_delays: Dict[str, bm.AbstractDelay] = None,
+    neutral_delays: Dict[str, bm.NeuTimeDelay] = None,
+    **kwargs
+):
   """Numerical integration for ODEs.
 
   Examples
@@ -72,9 +72,12 @@ def odeint(f=None,
     The integrator node.
   state_delays: dict
     The state delay variable.
-  adaptive: bool
-  tol: float
   show_code: bool
+    Show the formated code.
+  adaptive: bool
+    The use adaptive mode.
+  tol: float
+    The tolerence to adapt new step size.
 
   Returns
   -------

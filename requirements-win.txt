@@ -1,11 +1,10 @@
-numpy==1.21
+numpy
 tqdm
-numba<=0.55
+numba
 matplotlib>=3.4
-sympy>=1.6
 scipy>=1.1.0
 networkx
-brainpylib>=0.0.4
+brainpylib>=0.0.5
 jaxlib>=0.3.0
 
 # test requirements

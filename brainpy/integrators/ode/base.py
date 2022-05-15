@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Dict
+from typing import Dict, Callable, Union
 
 from brainpy import math as bm
 from brainpy.errors import DiffEqError, CodeError
@@ -39,13 +39,13 @@ class ODEIntegrator(Integrator):
 
   def __init__(
       self,
-      f,
-      var_type=None,
-      dt=None,
-      name=None,
-      show_code=False,
-      state_delays: Dict[str, bm.AbstractDelay] = None,
-      neutral_delays: Dict[str, bm.NeutralDelay] = None
+      f: Callable,
+      var_type: str = None,
+      dt: float = None,
+      name: str = None,
+      show_code: bool = False,
+      state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+      neutral_delays: Dict[str, Union[bm.NeuTimeDelay, bm.NeuLenDelay]] = None
   ):
 
     dt = bm.get_dt() if dt is None else dt
@@ -87,7 +87,7 @@ class ODEIntegrator(Integrator):
     # neutral delays
     self._neutral_delays = dict()
     if neutral_delays is not None:
-      check_dict_data(neutral_delays, key_type=str, val_type=bm.NeutralDelay)
+      check_dict_data(neutral_delays, key_type=str, val_type=bm.NeuTimeDelay)
       for key, delay in neutral_delays.items():
         if key not in self.variables:
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
@@ -127,14 +127,13 @@ class ODEIntegrator(Integrator):
       else:
         new_devs = {k: new_devs[i] for i, k in enumerate(self.variables)}
       for key, delay in self.neutral_delays.items():
-        if isinstance(delay, bm.LengthDelay):
+        if isinstance(delay, bm.NeuLenDelay):
           delay.update(new_devs[key])
-        elif isinstance(delay, bm.TimeDelay):
+        elif isinstance(delay, bm.NeuTimeDelay):
           delay.update(kwargs['t'] + dt, new_devs[key])
         else:
           raise ValueError('Unknown delay variable. We only supports '
-                           'brainpy.math.LengthDelay, brainpy.math.TimeDelay, '
-                           'brainpy.math.NeutralDelay. '
+                           f'{bm.NeuTimeDelay.__name__} and {bm.NeuLenDelay.__name__}. '
                            f'While we got {delay}')
 
     # update state delay variables
@@ -145,8 +144,7 @@ class ODEIntegrator(Integrator):
         delay.update(kwargs['t'] + dt, dict_vars[key])
       else:
         raise ValueError('Unknown delay variable. We only supports '
-                         'brainpy.math.LengthDelay, brainpy.math.TimeDelay, '
-                         'brainpy.math.NeutralDelay. '
+                         f'{bm.LengthDelay.__name__} and {bm.TimeDelay.__name__}. '
                          f'While we got {delay}')
 
     return new_vars

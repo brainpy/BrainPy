@@ -105,425 +105,22 @@ tableau as follows:
 .. [2] Hochbruck, M., & Ostermann, A. (2010). Exponential integrators. Acta Numerica, 19, 209-286.
 """
 
-import inspect
 import logging
 
-from brainpy import math, errors, tools
+from brainpy import math as bm, errors
 from brainpy.base.collector import Collector
 from brainpy.integrators import constants as C, utils, joint_eq
-from brainpy.integrators.analysis_by_ast import separate_variables
 from brainpy.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
-
-try:
-  import sympy
-  from brainpy.integrators import analysis_by_sympy
-except (ModuleNotFoundError, ImportError):
-  sympy = analysis_by_sympy = None
 
 logger = logging.getLogger('brainpy.integrators.ode.exponential')
 
 __all__ = [
   'ExponentialEuler',
-  'ExpEulerAuto',
 ]
 
 
 class ExponentialEuler(ODEIntegrator):
-  r"""The exponential Euler method for ODEs.
-
-  The simplest exponential Rosenbrock method is the exponential
-  Rosenbrock–Euler scheme, which has order 2.
-
-  For an ODE equation of the form
-
-  .. math::
-
-      u^{\prime}=f(u), \quad u(0)=u_{0}
-
-  its schema is given by
-
-  .. math::
-
-      u_{n+1}= u_{n}+h \varphi(hL) f (u_{n})
-
-  where :math:`L=f^{\prime}(u_{n})` and :math:`\varphi(z)=\frac{e^{z}-1}{z}`.
-
-  For a linear ODE system: :math:`u^{\prime} = Ay + B`,
-  the above equation is equal to :math:`u_{n+1}= u_{n}e^{hA}-B/A(1-e^{hA})`,
-  which is the exact solution for this ODE system.
-
-  Examples
-  --------
-
-  Linear system example: HH model's derivative function.
-
-  >>> def derivative(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
-  >>>    alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
-  >>>    beta = 4.0 * bm.exp(-(V + 65) / 18)
-  >>>    dmdt = alpha * (1 - m) - beta * m
-  >>>
-  >>>    alpha = 0.07 * bm.exp(-(V + 65) / 20.)
-  >>>    beta = 1 / (1 + bm.exp(-(V + 35) / 10))
-  >>>    dhdt = alpha * (1 - h) - beta * h
-  >>>
-  >>>    alpha = 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
-  >>>    beta = 0.125 * bm.exp(-(V + 65) / 80)
-  >>>    dndt = alpha * (1 - n) - beta * n
-  >>>
-  >>>    I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
-  >>>    I_K = (gK * n ** 4.0) * (V - EK)
-  >>>    I_leak = gL * (V - EL)
-  >>>    dVdt = (- I_Na - I_K - I_leak + Iext) / C
-  >>>    return dVdt, dmdt, dhdt, dndt
-  >>>
-  >>> ExponentialEuler(f=derivative, show_code=True)
-  def brainpy_itg_of_ode0_drivative(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C, dt=0.01):
-    _dfV_dt = EK*gK*n**4.0/C + EL*gL/C + ENa*gNa*h*m**3.0/C + Iext/C - V*gK*n**4.0/C - V*gL/C - V*gNa*h*m**3.0/C
-    _V_linear = -gK*n**4.0/C - gL/C - gNa*h*m**3.0/C
-    _V_linear_exp = math.exp(_V_linear * dt)
-    _V_df_part = _dfV_dt*(_V_linear_exp - 1)/_V_linear
-    V_new = V + _V_df_part
-    #
-    alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
-    beta = 4.0 * bm.exp(-(V + 65) / 18)
-    _dfm_dt = -alpha*m + 1.0*alpha - beta*m
-    _m_linear = -alpha - beta
-    _m_linear_exp = math.exp(_m_linear * dt)
-    _m_df_part = _dfm_dt*(_m_linear_exp - 1)/_m_linear
-    m_new = _m_df_part + m
-    #
-    alpha = 0.07 * bm.exp(-(V + 65) / 20.0)
-    beta = 1 / (1 + bm.exp(-(V + 35) / 10))
-    _dfh_dt = -alpha*h + 1.0*alpha - beta*h
-    _h_linear = -alpha - beta
-    _h_linear_exp = math.exp(_h_linear * dt)
-    _h_df_part = _dfh_dt*(_h_linear_exp - 1)/_h_linear
-    h_new = _h_df_part + h
-    #
-    alpha = 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
-    beta = 0.125 * bm.exp(-(V + 65) / 80)
-    _dfn_dt = -alpha*n + 1.0*alpha - beta*n
-    _n_linear = -alpha - beta
-    _n_linear_exp = math.exp(_n_linear * dt)
-    _n_df_part = _dfn_dt*(_n_linear_exp - 1)/_n_linear
-    n_new = _n_df_part + n
-    #
-    return V_new, m_new, h_new, n_new
-
-  Nonlinear system example: Van der Pol oscillator.
-
-  >>> def vdp_derivative(x, y, t, mu):
-  >>>    dx = mu * (x - x ** 3 / 3 - y)
-  >>>    dy = x / mu
-  >>>    return dx, dy
-  >>>
-  >>> ExponentialEuler(f=vdp_derivative, show_code=True)
-  def brainpy_itg_of_ode0_vdp_derivative(x, y, t, mu, dt=0.01):
-    _dfx_dt = mu*x - 0.333333333333333*mu*x**3.0 - mu*y
-    _x_linear = -0.999999999999999*mu*x**2.0 + mu
-    _x_linear_exp = math.exp(_x_linear * dt)
-    _x_df_part = _dfx_dt*(_x_linear_exp - 1)/_x_linear
-    x_new = _x_df_part + x
-    #
-    dy = x / mu
-    _dfy_dt = dy
-    _y_df_part = _dfy_dt * dt
-    y_new = _y_df_part + y
-    #
-    return x_new, y_new
-
-  However, ExponentialEuler method has severve constraints (see below).
-
-  .. note::
-    Many constraints are involved when using this ExponentialEuler method, because
-    it uses SymPy to make symbolic differentiation for your codes.
-    If you want to use get a more flexible method to do exponential euler integration,
-    please refer to ``ExpEulerAuto`` method.
-
-    The mechanism of ExponentialEuler method is :
-    First, the user's codes are transformed into the SymPy expressions
-    by using AST. Then, infer the derivative of the sympy expression by
-    using ``sympy.diff()``.
-
-    The constains of using ExponentialEuler method are:
-
-    1. Must use latex-like codes to write equations.
-
-    For your derivative variable, if there are general Python functions are using
-    these varaibles, the SymPy parsing will not work.
-    For instance, the following codes can not be recognized by SymPy, because the
-    unsupported function ``bm.power`` are performing on the derivative variable ``x``.
-
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>>
-    >>> def derivative(x, t):
-    >>>   dx = bm.power(x, 3) - bm.power(x, 2)
-    >>>   return dx
-    >>>
-    >>> f = bp.ode.ExponentialEuler(derivative, show_code=True)
-    def brainpy_itg_of_ode1_dev(x, t, dt=0.1):
-      _dfx_dt = -bm.power(x, 2.0) + bm.power(x, 3.0)
-      _x_linear = -Derivative(bm.power(x, 2.0), x) + Derivative(bm.power(x, 3.0), x)
-      _x_linear_exp = math.exp(_x_linear * dt)
-      _x_df_part = _dfx_dt*(_x_linear_exp - 1)/_x_linear
-      x_new = _x_df_part + x
-      return x_new
-
-    As you see, SymPy cannot parse ``bm.power()``. Therefore, the linear part
-    (``_x_linear``) of the system contains a unknown variable ``Derivative``. This will
-    cause an error in future. Instead, you must define the derivative as:
-
-    >>> def derivative(x, t):
-    >>>   dx = x ** 3 - x ** 2
-    >>>   return dx
-    >>>
-    >>> f = bp.ode.ExponentialEuler(derivative, show_code=True)
-    def brainpy_itg_of_ode3_dev(x, t, dt=0.1):
-      _dfx_dt = -x**2.0 + x**3.0
-      _x_linear = -2.0*x**1.0 + 3.0*x**2.0
-      _x_linear_exp = math.exp(_x_linear * dt)
-      _x_df_part = _dfx_dt*(_x_linear_exp - 1)/_x_linear
-      x_new = _x_df_part + x
-      return x_new
-
-    So, what ``brainpy.math`` functions are supported on derivative variables?
-    You can inspect them by:
-
-    >>> bp.integrators.analysis_by_sympy.FUNCTION_MAPPING.keys()
-    {'abs': Abs,
-     'sign': sign,
-     'sinc': sinc,
-     'arcsin': asin,
-     'arccos': acos,
-     'arctan': atan,
-     'arctan2': atan2,
-     'arcsinh': asinh,
-     'arccosh': acosh,
-     'arctanh': atanh,
-     'log2': log2,
-     'log1p': log1p,
-     'expm1': expm1,
-     'exp2': exp2,
-     'asin': asin,
-     'acos': acos,
-     'atan': atan,
-     'atan2': atan2,
-     'asinh': asinh,
-     'acosh': acosh,
-     'atanh': atanh,
-     'cos': cos,
-     'sin': sin,
-     'tan': tan,
-     'cosh': cosh,
-     'sinh': sinh,
-     'tanh': tanh,
-     'log': log,
-     'log10': log10,
-     'sqrt': sqrt,
-     'exp': exp,
-     'hypot': hypot,
-     'ceil': ceiling,
-     'floor': floor}
-
-    However, if your general Python functions are used in variables not related to
-    the derivative variable, it will work. For instance,
-
-    >>> def derivative(x, t, y):
-    >>>   alpha = bm.power(y, 3) - bm.power(y, 2)
-    >>>   beta = bm.cumsum(y)
-    >>>   dx = alpha * x - beta * (1 - x)
-    >>>   return dx
-    >>>
-    >>> bp.ode.ExponentialEuler(derivative, show_code=True)
-
-    2. Functional return only support symbols, not expressions.
-
-    For example, this derivative will cause an error:
-
-    >>> def derivative(x, t, tau):
-    >>>   return -x / tau
-    >>>
-    >>> bp.ode.ExponentialEuler(derivative)
-    brainpy.errors.DiffEqError: Cannot analyze differential equation with expression return. Like:
-    def df(v, t):
-        return -v + 1.
-    We only support return variables. Therefore, the above should be coded as:
-    def df(v, t):
-        dv = -v + 1.
-        return dv
-
-    Instead, you should wrap the expression ``-x / tau`` as a symbol ``dx``, then return ``dx``.
-
-    >>> def derivative(x, t, tau):
-    >>>   dx = -x / tau
-    >>>   return dx
-    >>>
-    >>> bp.ode.ExponentialEuler(derivative)
-    <brainpy.integrators.ode.exponential.ExponentialEuler at 0x29daa298d60>
-
-  See Also
-  --------
-  ExpEulerAuto
-
-  Parameters
-  ----------
-  f : function
-    The derivative function.
-  dt : optional, float
-    The numerical precision.
-  var_type : optional, str
-    The variable type.
-  show_code : bool
-    Whether show the code.
-  timeout : float
-    The timeout limit to use sympy solver.
-  """
-
-  def __init__(self,
-               f,
-               var_type=None,
-               dt=None,
-               name=None,
-               show_code=False,
-               timeout=5,
-               state_delays=None,
-               neutral_delays=None):
-    super(ExponentialEuler, self).__init__(f=f,
-                                           var_type=var_type,
-                                           dt=dt,
-                                           name=name,
-                                           show_code=show_code,
-                                           state_delays=state_delays,
-                                           neutral_delays=neutral_delays)
-
-    self.timeout = timeout
-
-    # keyword checking
-    keywords = {
-      C.F: 'the derivative function',
-      # C.DT: 'the precision of numerical integration',
-      'exp': 'the exponential function',
-      'math': 'the math module',
-    }
-    for v in self.variables:
-      keywords[f'{v}_new'] = 'the intermediate value'
-    utils.check_kws(self.arg_names, keywords)
-
-    # build the integrator
-    self.build()
-
-  def build(self):
-    if analysis_by_sympy is None or sympy is None:
-      raise errors.PackageMissingError(f'Package "sympy" must be installed when the users '
-                                       f'want to utilize {ExponentialEuler.__name__}. ')
-
-    # check bound method
-    if hasattr(self.f, '__self__'):
-      self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
-
-    # code scope
-    closure_vars = inspect.getclosurevars(self.f)
-    self.code_scope.update(closure_vars.nonlocals)
-    self.code_scope.update(dict(closure_vars.globals))
-    self.code_scope['math'] = math
-
-    analysis = separate_variables(self.f)
-    variables_for_returns = analysis['variables_for_returns']
-    expressions_for_returns = analysis['expressions_for_returns']
-    for vi, (key, all_var) in enumerate(variables_for_returns.items()):
-      # separate variables
-      sd_variables = []
-      for v in all_var:
-        if len(v) > 1:
-          raise ValueError(f'Cannot analyze multi-assignment code line: {v}.')
-        sd_variables.append(v[0])
-      expressions = expressions_for_returns[key]
-      var_name = self.variables[vi]
-      diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
-                                               variables=sd_variables,
-                                               expressions=expressions,
-                                               derivative_expr=key,
-                                               scope=self.code_scope,
-                                               func_name=self.func_name)
-      var = sympy.Symbol(diff_eq.var_name, real=True)
-      try:
-        s_df_part = tools.timeout(self.timeout)(self.solve)(diff_eq, var)
-      except KeyboardInterrupt:
-        raise errors.DiffEqError(
-          f'{self.__class__} solve {self.f} failed, because '
-          f'symbolic differentiation of SymPy timeout due to {self.timeout} s limit. '
-          f'Instead, you can use {ExpEulerAuto} to make Exponential Euler '
-          f'integration due to due to it is capable of '
-          f'performing automatic differentiation.'
-        )
-      # update expression
-      update = var + s_df_part
-
-      # The actual update step
-      self.code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)}')
-      self.code_lines.append('')
-
-    self.code_lines.append(f'  return {", ".join([f"{v}_new" for v in self.variables])}')
-    self.integral = utils.compile_code(code_scope={k: v for k, v in self.code_scope.items()},
-                                       code_lines=self.code_lines,
-                                       show_code=self.show_code,
-                                       func_name=self.func_name)
-
-    if hasattr(self.f, '__self__'):
-      host = self.f.__self__
-      self.integral = self.integral.__get__(host, host.__class__)
-
-  def solve(self, diff_eq, var):
-    if analysis_by_sympy is None or sympy is None:
-      raise errors.PackageMissingError(f'Package "sympy" must be installed when the users '
-                                       f'want to utilize {ExponentialEuler.__name__}. ')
-
-    f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
-
-    # code lines
-    self.code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
-
-    # get the linear system using sympy
-    f_res = f_expressions[-1]
-    if len(f_res.code) > 500:
-      raise errors.DiffEqError(
-        f'Too complex differential equation:\n\n'
-        f'{f_res.code}\n\n'
-        f'SymPy cannot analyze. Please use {ExpEulerAuto} to '
-        f'make Exponential Euler integration due to it is capable of '
-        f'performing automatic differentiation.'
-      )
-    df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
-    s_df = sympy.Symbol(f"{f_res.var_name}")
-    self.code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
-
-    # get df part
-    s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
-    s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
-    s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
-    if df_expr.has(var):
-      # linear
-      linear = sympy.diff(df_expr, var, evaluate=True)
-      # TODO: linear has unknown symbol
-      self.code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
-      # linear exponential
-      self.code_lines.append(f'  {s_linear_exp.name} = math.exp({s_linear.name} * {C.DT})')
-      # df part
-      df_part = (s_linear_exp - 1) / s_linear * s_df
-      self.code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
-    else:
-      # df part
-      self.code_lines.append(f'  {s_df_part.name} = {s_df.name} * {C.DT}')
-    return s_df_part
-
-
-register_ode_integrator('exponential_euler', ExponentialEuler)
-register_ode_integrator('exp_euler', ExponentialEuler)
-
-
-class ExpEulerAuto(ODEIntegrator):
   """Exponential Euler method using automatic differentiation.
 
   This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.html>`_
@@ -533,7 +130,7 @@ class ExpEulerAuto(ODEIntegrator):
   Examples
   --------
 
-  Here is an example uses ``ExpEulerAuto`` to implement HH neuron model.
+  Here is an example uses ``ExponentialEuler`` to implement HH neuron model.
 
   .. plot::
     :include-source: True
@@ -565,9 +162,9 @@ class ExpEulerAuto(ODEIntegrator):
     >>>     self.input = bm.Variable(bm.zeros(size))
     >>>
     >>>     # functions
-    >>>     self.int_h = bp.ode.ExpEulerAuto(self.dh)
-    >>>     self.int_n = bp.ode.ExpEulerAuto(self.dn)
-    >>>     self.int_V = bp.ode.ExpEulerAuto(self.dV)
+    >>>     self.int_h = bp.ode.ExponentialEuler(self.dh)
+    >>>     self.int_n = bp.ode.ExponentialEuler(self.dn)
+    >>>     self.int_V = bp.ode.ExponentialEuler(self.dV)
     >>>
     >>>   def dh(self, h, t, V):
     >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
@@ -639,7 +236,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>
     >>>     # functions
     >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV])
-    >>>     self.integral = bp.ode.ExpEulerAuto(derivative)
+    >>>     self.integral = bp.ode.ExponentialEuler(derivative)
     >>>
     >>>   def dh(self, h, t, V):
     >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
@@ -664,7 +261,7 @@ class ExpEulerAuto(ODEIntegrator):
     >>>
     >>>     return dVdt
     >>>
-    >>>   def update(self, _t, _dt):
+    >>>   def update(self, t, dt):
     >>>     h, n, V = self.integral(self.h, self.n, self.V, _t, self.input, dt=_dt)
     >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     >>>     self.V.value = V
@@ -676,10 +273,6 @@ class ExpEulerAuto(ODEIntegrator):
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-  See Also
-  --------
-  ExponentialEuler
-
   Parameters
   ----------
   f : function, joint_eq.JointEq
@@ -690,33 +283,36 @@ class ExpEulerAuto(ODEIntegrator):
     The default numerical integration step.
   name : optional, str
     The integrator name.
-  show_code : bool
-  dyn_var : optional, dict, sequence of JaxArray, JaxArray
+  dyn_vars : optional, dict, sequence of JaxArray, JaxArray
   """
 
-  def __init__(self,
-               f,
-               var_type=None,
-               dt=None,
-               name=None,
-               show_code=False,
-               dyn_var=None,
-               state_delays=None,
-               neutral_delays=None):
-    super(ExpEulerAuto, self).__init__(f=f,
-                                       var_type=var_type,
-                                       dt=dt,
-                                       name=name,
-                                       show_code=show_code,
-                                       state_delays=state_delays,
-                                       neutral_delays=neutral_delays)
+  def __init__(
+      self,
+      f,
+      var_type=None,
+      dt=None,
+      name=None,
+      show_code=False,
+      dyn_vars=None,
+      state_delays=None,
+      neutral_delays=None
+  ):
+    super(ExponentialEuler, self).__init__(f=f,
+                                           var_type=var_type,
+                                           dt=dt,
+                                           name=name,
+                                           show_code=show_code,
+                                           state_delays=state_delays,
+                                           neutral_delays=neutral_delays)
 
-    self.dyn_var = dyn_var
+    if var_type == C.SYSTEM_VAR:
+      raise NotImplementedError(f'{self.__class__.__name__} does not support {C.SYSTEM_VAR}, '
+                                f'because the auto-differentiation ')
+    self.dyn_vars = dyn_vars
 
     # keyword checking
     keywords = {
       C.F: 'the derivative function',
-      # C.DT: 'the precision of numerical integration',
     }
     utils.check_kws(self.arg_names, keywords)
 
@@ -749,7 +345,7 @@ class ExpEulerAuto(ODEIntegrator):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)
       if 'dt' not in params_in:
-        params_in['dt'] = math.get_dt()
+        params_in['dt'] = self.dt
 
       # call integrals
       results = []
@@ -773,25 +369,25 @@ class ExpEulerAuto(ODEIntegrator):
 
       # checking
       if len(vars) != 1:
-        raise errors.DiffEqError(f'{self.__class__} only supports numerical integration '
-                                 f'for one variable once, while we got {vars} in {eq}. '
-                                 f'Please split your multiple variables into multiple '
-                                 f'derivative functions.')
+        raise errors.DiffEqError(C.exp_error_msg.format(cls=self.__class__.__name__,
+                                                        vars=str(vars),
+                                                        eq=str(eq)))
 
       # gradient function
-      value_and_grad = math.vector_grad(eq, argnums=0, dyn_vars=self.dyn_var, return_value=True)
+      value_and_grad = bm.vector_grad(eq, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
 
       # integration function
       def integral(*args, **kwargs):
         assert len(args) > 0
-        dt = kwargs.pop('dt', math.get_dt())
+        dt = kwargs.pop('dt', self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
-        phi = math.where(linear == 0., math.ones_like(linear),
-                         (math.exp(dt * linear) - 1) / (dt * linear))
+        phi = bm.where(linear == 0., bm.ones_like(linear), (bm.exp(dt * linear) - 1) / (dt * linear))
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]
 
 
-register_ode_integrator('exp_euler_auto', ExpEulerAuto)
-register_ode_integrator('exp_auto', ExpEulerAuto)
+register_ode_integrator('exponential_euler', ExponentialEuler)
+register_ode_integrator('exp_euler', ExponentialEuler)
+register_ode_integrator('exp_euler_auto', ExponentialEuler)
+register_ode_integrator('exp_auto', ExponentialEuler)

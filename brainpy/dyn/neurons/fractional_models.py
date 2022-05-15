@@ -93,7 +93,8 @@ class FractionalFHR(FractionalNeuron):
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.5),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       y_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
-      name: str = None
+      name: str = None,
+      keep_size: bool = False,
   ):
     super(FractionalFHR, self).__init__(size, name=name)
 
@@ -128,7 +129,7 @@ class FractionalFHR(FractionalNeuron):
     # integral function
     self.integral = GLShortMemory(self.derivative,
                                   alpha=alpha,
-                                  num_memory=num_memory,
+                                  num_step=num_memory,
                                   inits=[self.V, self.w, self.y])
 
   def reset(self):
@@ -233,6 +234,7 @@ class FractionalIzhikevich(FractionalNeuron):
       V_th: Union[float, Tensor, Initializer, Callable] = 30.,
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-65.),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.20 * -65.),
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
