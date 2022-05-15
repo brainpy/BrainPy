@@ -872,17 +872,20 @@ class JaxArray(object):
   # NumPy support
   # ------------------
 
-  def numpy(self):
+  def numpy(self, dtype=None):
     """Convert to numpy.ndarray."""
-    return np.asarray(self.value)
+    return np.asarray(self.value, dtype=dtype)
 
-  def to_numpy(self):
+  def to_numpy(self, dtype=None):
     """Convert to numpy.ndarray."""
-    return np.asarray(self.value)
+    return np.asarray(self.value, dtype=dtype)
 
-  def to_jax(self):
+  def to_jax(self, dtype=None):
     """Convert to jax.numpy.ndarray."""
-    return self.value
+    if dtype is None:
+      return self.value
+    else:
+      return jnp.asarray(self.value, dtype=dtype)
 
   def __array__(self, dtype=None):
     """Support ``numpy.array()`` and ``numpy.asarray()`` functions."""
