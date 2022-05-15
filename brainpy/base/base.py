@@ -208,7 +208,7 @@ class Base(object):
       naming.check_name_uniqueness(name=name, obj=self)
       return name
 
-  def load_states(self, filename, verbose=False, check_missing=False):
+  def load_states(self, filename, verbose=False):
     """Load the model states.
 
     Parameters
@@ -216,41 +216,42 @@ class Base(object):
     filename : str
       The filename which stores the model states.
     verbose: bool
-    check_missing: bool
+      Whether report the load progress.
     """
     if not os.path.exists(filename):
       raise errors.BrainPyError(f'Cannot find the file path: {filename}')
     elif filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.load_h5(filename, target=self, verbose=verbose, check=check_missing)
+      io.load_by_h5(filename, target=self, verbose=verbose)
     elif filename.endswith('.pkl'):
-      io.load_pkl(filename, target=self, verbose=verbose, check=check_missing)
+      io.load_by_pkl(filename, target=self, verbose=verbose)
     elif filename.endswith('.npz'):
-      io.load_npz(filename, target=self, verbose=verbose, check=check_missing)
+      io.load_by_npz(filename, target=self, verbose=verbose)
     elif filename.endswith('.mat'):
-      io.load_mat(filename, target=self, verbose=verbose, check=check_missing)
+      io.load_by_mat(filename, target=self, verbose=verbose)
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
-  def save_states(self, filename, all_vars=None, **setting):
+  def save_states(self, filename, variables=None, **setting):
     """Save the model states.
 
     Parameters
     ----------
     filename : str
       The file name which to store the model states.
-    all_vars: optional, dict, TensorCollector
+    variables: optional, dict, TensorCollector
+      The variables to save. If not provided, all variables retrieved by ``~.vars()`` will be used.
     """
-    if all_vars is None:
-      all_vars = self.vars(method='relative').unique()
+    if variables is None:
+      variables = self.vars(method='absolute', level=-1)
 
     if filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.save_h5(filename, all_vars=all_vars)
-    elif filename.endswith('.pkl'):
-      io.save_pkl(filename, all_vars=all_vars)
+      io.save_as_h5(filename, variables=variables)
+    elif filename.endswith('.pkl') or filename.endswith('.pickle'):
+      io.save_as_pkl(filename, variables=variables)
     elif filename.endswith('.npz'):
-      io.save_npz(filename, all_vars=all_vars, **setting)
+      io.save_as_npz(filename, variables=variables, **setting)
     elif filename.endswith('.mat'):
-      io.save_mat(filename, all_vars=all_vars)
+      io.save_as_mat(filename, variables=variables)
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 

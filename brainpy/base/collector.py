@@ -39,11 +39,35 @@ class Collector(dict):
       self[key] = value
 
   def __add__(self, other):
+    """Merging two dicts.
+
+    Parameters
+    ----------
+    other: dict
+      The other dict instance.
+
+    Returns
+    -------
+    gather: Collector
+      The new collector.
+    """
     gather = type(self)(self)
     gather.update(other)
     return gather
 
   def __sub__(self, other):
+    """Remove other item in the collector.
+
+    Parameters
+    ----------
+    other: dict
+      The items to remove.
+
+    Returns
+    -------
+    gather: Collector
+      The new collector.
+    """
     if not isinstance(other, dict):
       raise ValueError(f'Only support dict, but we got {type(other)}.')
     gather = type(self)()
