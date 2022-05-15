@@ -56,7 +56,7 @@ def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=No
       turn_off_global_jit()
       for key, v in vars.items(): v._value = variable_data[key]
       raise e
-    vars.assign(changes)
+    for key, v in vars.items(): v._value = changes[key]
     return out
 
   return change_func_name(name=f_name, f=call) if f_name else call
