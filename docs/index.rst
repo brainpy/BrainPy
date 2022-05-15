@@ -59,8 +59,8 @@ The code of BrainPy is open-sourced at GitHub:
 
    tutorial_toolbox/ode_numerical_solvers
    tutorial_toolbox/sde_numerical_solvers
-   tutorial_toolbox/dde_numerical_solvers
    tutorial_toolbox/fde_numerical_solvers
+   tutorial_toolbox/dde_numerical_solvers
    tutorial_toolbox/joint_equations
    tutorial_toolbox/synaptic_connections
    tutorial_toolbox/synaptic_weights

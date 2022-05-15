@@ -54,13 +54,13 @@ class DynamicalSystem(Base):
 
   """Global delay variables. Useful when the same target
      variable is used in multiple mappings."""
-  global_delay_vars: Dict[str, bm.LengthDelay] = dict()
+  global_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
   def __init__(self, name=None):
     super(DynamicalSystem, self).__init__(name=name)
 
     # local delay variables
-    self.local_delay_vars: Dict[str, bm.LengthDelay] = dict()
+    self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
   def __repr__(self):
     return f'{self.__class__.__name__}(name={self.name})'
@@ -334,15 +334,17 @@ class Container(DynamicalSystem):
 
   @classmethod
   def has(cls, **children_cls):
-    """
+    """The aggressive operation to gather master and children classes.
 
     Parameters
     ----------
     children_cls
+      The children classes.
 
     Returns
     -------
-
+    wrapper: ContainerWrapper
+      A wrapper which has master and its children classes.
     """
     return ContainerWrapper(master=cls, **children_cls)
 
