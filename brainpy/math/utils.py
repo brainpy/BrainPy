@@ -20,7 +20,7 @@ def wraps(fun: Callable):
   def wrap(op):
     docstr = getattr(fun, "__doc__", None)
     op.__doc__ = docstr
-    op.__np_wrapped__ = fun
+    op.__wrapped__ = fun
     for attr in ['__name__', '__qualname__']:
       try:
         value = getattr(fun, attr)
