@@ -3,6 +3,8 @@ publishment.md
 .vscode
 
 
+brainpy/base/tests/io_test_tmp*
+
 development
 
 examples/simulation/data
@@ -51,7 +53,6 @@ develop/benchmark/COBAHH/brian2*
 develop/benchmark/COBAHH/annarchy*
 develop/benchmark/CUBA/annarchy*
 develop/benchmark/CUBA/brian2*
-
 
 
 *~

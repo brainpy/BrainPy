@@ -155,12 +155,15 @@ def check_dict_data(a_dict: Dict,
   """Check the dictionary data.
   """
   name = '' if (name is None) else f'"{name}"'
-  assert isinstance(a_dict, dict), f'{name} must be a dict, while we got {type(a_dict)}'
+  if not isinstance(a_dict, dict):
+    raise ValueError(f'{name} must be a dict, while we got {type(a_dict)}')
   for key, value in a_dict.items():
-    assert isinstance(key, key_type), (f'{name} must be a dict of ({key_type}, {val_type}), '
-                                       f'while we got ({type(key)}, {type(value)})')
-    assert isinstance(value, val_type), (f'{name} must be a dict of ({key_type}, {val_type}), '
-                                         f'while we got ({type(key)}, {type(value)})')
+    if not isinstance(key, key_type):
+      raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
+                       f'while we got ({type(key)}, {type(value)})')
+    if not isinstance(value, val_type):
+      raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
+                       f'while we got ({type(key)}, {type(value)})')
 
 
 def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],

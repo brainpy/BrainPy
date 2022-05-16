@@ -1,6 +1,7 @@
 numpy
 tqdm
 numba
+h5py
 matplotlib>=3.4
 scipy>=1.1.0
 networkx
