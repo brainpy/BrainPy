@@ -539,7 +539,7 @@ class RandomState(Variable):
     scale = _check_py_seq(scale)
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
-    return _loc_scale(loc, scale, jr.gumbel(self.split_key(), shape=size))
+    return _loc_scale(loc, scale, jr.gumbel(self.split_key(), shape=_size2shape(size)))
 
   def laplace(self, loc=None, scale=None, size=None):
     loc = _remove_jax_array(loc)
@@ -548,7 +548,7 @@ class RandomState(Variable):
     scale = _check_py_seq(scale)
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
-    return _loc_scale(loc, scale, jr.laplace(self.split_key(), shape=size))
+    return _loc_scale(loc, scale, jr.laplace(self.split_key(), shape=_size2shape(size)))
 
   def logistic(self, loc=None, scale=None, size=None):
     loc = _remove_jax_array(loc)
@@ -557,7 +557,7 @@ class RandomState(Variable):
     scale = _check_py_seq(scale)
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
-    return _loc_scale(loc, scale, jr.logistic(self.split_key(), shape=size))
+    return _loc_scale(loc, scale, jr.logistic(self.split_key(), shape=_size2shape(size)))
 
   def normal(self, loc=None, scale=None, size=None):
     loc = _remove_jax_array(loc)
@@ -566,7 +566,7 @@ class RandomState(Variable):
     scale = _check_py_seq(scale)
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(scale), jnp.shape(loc))
-    return _loc_scale(loc, scale, jr.normal(self.split_key(), shape=size))
+    return _loc_scale(loc, scale, jr.normal(self.split_key(), shape=_size2shape(size)))
 
   def pareto(self, a, size=None):
     a = _remove_jax_array(a)
@@ -717,12 +717,11 @@ class RandomState(Variable):
     scale = _check_py_seq(_remove_jax_array(scale))
     if size is None:
       size = jnp.shape(scale)
-    x = jnp.sqrt(-2. * jnp.log(jr.uniform(self.split_key(), shape=size, minval=0, maxval=1)))
+    x = jnp.sqrt(-2. * jnp.log(jr.uniform(self.split_key(), shape=_size2shape(size), minval=0, maxval=1)))
     return JaxArray(x * scale)
 
   def triangular(self, size=None):
-    size = _size2shape(size)
-    bernoulli_samples = jr.bernoulli(self.split_key(), p=0.5, shape=size)
+    bernoulli_samples = jr.bernoulli(self.split_key(), p=0.5, shape=_size2shape(size))
     return JaxArray(2 * bernoulli_samples - 1)
 
   def vonmises(self, mu, kappa, size=None):
