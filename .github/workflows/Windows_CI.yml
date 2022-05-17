@@ -29,7 +29,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         python -m pip install numpy==1.21.0
-        python -m pip install "jax[cpu]==0.3.7" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
+        python -m pip install "jax[cpu]==0.3.2" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
         python -m pip install -r requirements-win.txt
         python -m pip install tqdm brainpylib
         python setup.py install
