@@ -1343,8 +1343,22 @@ def orthogonal(n: int, size=None):
   return DEFAULT.orthogonal(n, size)
 
 
-@wraps(jr.loggamma)
 def loggamma(a, size=None):
+  """Sample log-gamma random values.
+
+  Parameters
+  ----------
+  a: float, array_like
+    A float or array of floats broadcast-compatible with shape representing the parameter of the distribution.
+  size: optional, int, tuple of int
+    A tuple of nonnegative integers specifying the result shape.
+    Must be broadcast-compatible with `a`. The default (None) produces a result shape equal to `a.shape`.
+
+  Returns
+  -------
+  out: array_like
+    The sampled results.
+  """
   return DEFAULT.loggamma(a, size)
 
 
