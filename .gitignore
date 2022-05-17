@@ -1,7 +1,7 @@
 publishment.md
 #experimental/
 .vscode
-
+io_test_tmp*
 
 brainpy/base/tests/io_test_tmp*
 
