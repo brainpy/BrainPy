@@ -358,17 +358,6 @@ def generate_integrators_doc(path='apis/auto/integrators/'):
                filename=os.path.join(path, 'sde_srk_scalar.rst'),
                header='SRK methods for scalar Wiener process')
 
-  # DDE
-  write_module(module_name='brainpy.integrators.dde.base',
-               filename=os.path.join(path, 'dde_base.rst'),
-               header='Base Integrator')
-  write_module(module_name='brainpy.integrators.dde.generic',
-               filename=os.path.join(path, 'dde_generic.rst'),
-               header='Generic Functions')
-  write_module(module_name='brainpy.integrators.dde.explicit_rk',
-               filename=os.path.join(path, 'dde_explicit_rk.rst'),
-               header='Explicit Runge-Kutta Methods')
-
   # FDE
   write_module(module_name='brainpy.integrators.fde.base',
                filename=os.path.join(path, 'fde_base.rst'),
@@ -571,6 +560,9 @@ def generate_tools_docs(path='apis/auto/tools/'):
   write_module(module_name='brainpy.tools.others',
                filename=os.path.join(path, 'others.rst'),
                header='Other Tools')
+  write_module(module_name='brainpy.tools.errors',
+               filename=os.path.join(path, 'errors.rst'),
+               header='Error Tools')
 
 
 def generate_compact_docs(path='apis/auto/compat/'):

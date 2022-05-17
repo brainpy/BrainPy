@@ -7,7 +7,6 @@ from brainpy import check
 from brainpy.dyn.base import NeuGroup
 from brainpy.dyn.others.noises import OUProcess
 from brainpy.initialize import Initializer, Uniform, init_param, ZeroInit
-from brainpy.integrators.dde import ddeint
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
@@ -305,7 +304,7 @@ class FeedbackFHN(NeuGroup):
                             method=sde_method)
 
     # integral
-    self.integral = ddeint(method=method,
+    self.integral = odeint(method=method,
                            f=JointEq([self.dx, self.dy]),
                            state_delays={'V': self.x_delay})
 
