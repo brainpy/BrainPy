@@ -42,10 +42,5 @@ from .fde.generic import (fdeint,
                           set_default_fdeint,
                           register_fde_integrator)
 
-# DDE tools
-from . import dde
-from .dde import ddeint
-
-
 # PDE tools
 from . import pde

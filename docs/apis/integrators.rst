@@ -11,6 +11,5 @@
     auto/integrators/joint_eq
     integrators/ODE
     integrators/SDE
-    integrators/DDE
     integrators/FDE
 

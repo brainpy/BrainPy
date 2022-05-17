@@ -8,13 +8,13 @@ This module provides numerical methods for integrating Caputo fractional derivat
 from typing import Union, Dict
 
 import jax.numpy as jnp
-from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
 from brainpy import check
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.constants import DT
 from brainpy.integrators.utils import check_inits, format_args
+from brainpy.tools.errors import check_error_in_jit
 from .base import FDEIntegrator
 from .generic import register_fde_integrator
 
@@ -151,19 +151,19 @@ class CaputoEuler(FDEIntegrator):
 
     self.set_integral(self._integral_func)
 
-  def _check_step(self, args, transform):
+  def _check_step(self, args):
     dt, t = args
-    if self.num_step * dt < t:
-      raise ValueError(f'The maximum number of step is {self.num_step}, '
-                       f'however, the current time {t} require a time '
-                       f'step number {t / dt}.')
+    raise ValueError(f'The maximum number of step is {self.num_step}, '
+                     f'however, the current time {t} require a time '
+                     f'step number {t / dt}.')
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
     all_args = format_args(args, kwargs, self.arg_names)
+    t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      id_tap(self._check_step, (dt, all_args['t']))
+      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -375,19 +375,19 @@ class CaputoL1Schema(FDEIntegrator):
         hists_ = hists_.numpy()
       return hists_
 
-  def _check_step(self, args, transform):
+  def _check_step(self, args):
     dt, t = args
-    if self.num_step * dt < t:
-      raise ValueError(f'The maximum number of step is {self.num_step}, '
-                       f'however, the current time {t} require a time '
-                       f'step number {t / dt}.')
+    raise ValueError(f'The maximum number of step is {self.num_step}, '
+                     f'however, the current time {t} require a time '
+                     f'step number {t / dt}.')
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
     all_args = format_args(args, kwargs, self.arg_names)
+    t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      id_tap(self._check_step, (dt, all_args['t']))
+      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
