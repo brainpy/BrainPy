@@ -36,11 +36,9 @@ from . import connect, initialize, optimizers, measure, losses, datasets, inputs
 from . import integrators
 from .integrators import ode
 from .integrators import sde
-from .integrators import dde
 from .integrators import fde
 from .integrators.ode import odeint
 from .integrators.sde import sdeint
-from .integrators.dde import ddeint
 from .integrators.fde import fdeint
 from .integrators.joint_eq import JointEq
 

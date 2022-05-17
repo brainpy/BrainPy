@@ -10,4 +10,5 @@
 
     auto/tools/checking
     auto/tools/codes
+    auto/tools/errors
     auto/tools/others

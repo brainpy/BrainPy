@@ -319,13 +319,6 @@ class TestRandom(unittest.TestCase):
     self.assertTupleEqual(a.shape, (3,))
     self.assertTrue(a.sum() == 100)
 
-  def test_multinominal3(self):
-    with self.assertRaises(ValueError):
-      a = bm.random.multinomial(100, (0.5, 0.6, 0.3))
-    with self.assertRaises(ValueError):
-      f = jax.jit(bm.random.multinomial, static_argnums=2)
-      a = f(100, (0.5, 0.6, 0.3), 2)
-
   def test_multivariate_normal1(self):
     # self.skipTest('Windows jaxlib error')
     a = np.random.multivariate_normal([1, 2], [[1, 0], [0, 1]], size=3)

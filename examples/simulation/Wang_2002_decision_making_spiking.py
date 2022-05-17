@@ -3,7 +3,6 @@
 import brainpy as bp
 import brainpy.math as bm
 
-bp.check.turn_off()
 bm.set_platform('cpu')
 import matplotlib.pyplot as plt
 

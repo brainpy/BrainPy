@@ -2,3 +2,4 @@
 
 from .codes import *
 from .others import *
+from .errors import *
