@@ -236,7 +236,7 @@ class JaxArray(object):
     return JaxArray(self._value - (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rsub__(self, oc):
-    return JaxArray(self._value - (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) - self._value)
 
   def __isub__(self, oc):
     # a -= b
@@ -249,7 +249,7 @@ class JaxArray(object):
     return JaxArray(self._value * (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rmul__(self, oc):
-    return JaxArray(self._value * (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) * self._value)
 
   def __imul__(self, oc):
     # a *= b
@@ -258,17 +258,17 @@ class JaxArray(object):
     self._value = self._value * (oc._value if isinstance(oc, JaxArray) else oc)
     return self
 
-  def __div__(self, oc):
-    return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
+  # def __div__(self, oc):
+  #   return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rdiv__(self, oc):
-    return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) / self._value)
 
   def __truediv__(self, oc):
     return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rtruediv__(self, oc):
-    return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) / self._value)
 
   def __itruediv__(self, oc):
     # a /= b
@@ -281,7 +281,7 @@ class JaxArray(object):
     return JaxArray(self._value // (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rfloordiv__(self, oc):
-    return JaxArray(self._value // (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) // self._value)
 
   def __ifloordiv__(self, oc):
     # a //= b
@@ -291,16 +291,16 @@ class JaxArray(object):
     return self
 
   def __divmod__(self, oc):
-    return JaxArray(self._value % (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value.__divmod__(oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rdivmod__(self, oc):
-    return JaxArray(self._value % (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value.__rdivmod__(oc._value if isinstance(oc, JaxArray) else oc))
 
   def __mod__(self, oc):
     return JaxArray(self._value % (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rmod__(self, oc):
-    return JaxArray(self._value % (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) % self._value)
 
   def __imod__(self, oc):
     # a %= b
@@ -313,7 +313,7 @@ class JaxArray(object):
     return JaxArray(self._value ** (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rpow__(self, oc):
-    return JaxArray(self._value ** (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) ** self._value)
 
   def __ipow__(self, oc):
     # a **= b
@@ -326,7 +326,7 @@ class JaxArray(object):
     return JaxArray(self._value @ (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rmatmul__(self, oc):
-    return JaxArray(self._value @ (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) @ self._value)
 
   def __imatmul__(self, oc):
     # a @= b
@@ -339,7 +339,7 @@ class JaxArray(object):
     return JaxArray(self._value & (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rand__(self, oc):
-    return JaxArray(self._value & (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) & self._value)
 
   def __iand__(self, oc):
     # a &= b
@@ -352,7 +352,7 @@ class JaxArray(object):
     return JaxArray(self._value | (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __ror__(self, oc):
-    return JaxArray(self._value | (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) | self._value)
 
   def __ior__(self, oc):
     # a |= b
@@ -365,7 +365,7 @@ class JaxArray(object):
     return JaxArray(self._value ^ (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rxor__(self, oc):
-    return JaxArray(self._value ^ (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) ^ self._value)
 
   def __ixor__(self, oc):
     # a ^= b
@@ -378,7 +378,7 @@ class JaxArray(object):
     return JaxArray(self._value << (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rlshift__(self, oc):
-    return JaxArray(self._value << (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) << self._value)
 
   def __ilshift__(self, oc):
     # a <<= b
@@ -391,7 +391,7 @@ class JaxArray(object):
     return JaxArray(self._value >> (oc._value if isinstance(oc, JaxArray) else oc))
 
   def __rrshift__(self, oc):
-    return JaxArray(self._value >> (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) >> self._value)
 
   def __irshift__(self, oc):
     # a >>= b
