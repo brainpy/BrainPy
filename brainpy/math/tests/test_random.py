@@ -335,13 +335,13 @@ class TestRandom(unittest.TestCase):
     self.assertTupleEqual(a.shape, b.shape)
     self.assertTupleEqual(a.shape, (3, 2))
 
-  def test_multivariate_normal2(self):
-    a = np.random.multivariate_normal([1, 2], [[1, 3], [3, 1]])
-    b = bm.random.multivariate_normal([1, 2], [[1, 3], [3, 1]], method='svd')
-    print(a)
-    print(b)
-    self.assertTupleEqual(a.shape, b.shape)
-    self.assertTupleEqual(a.shape, (2,))
+  # def test_multivariate_normal2(self):
+  #   a = np.random.multivariate_normal([1, 2], [[1, 3], [3, 1]])
+  #   b = bm.random.multivariate_normal([1, 2], [[1, 3], [3, 1]], method='svd')
+  #   print(a)
+  #   print(b)
+  #   self.assertTupleEqual(a.shape, b.shape)
+  #   self.assertTupleEqual(a.shape, (2,))
 
   def test_negative_binomial(self):
     a = np.random.negative_binomial([3., 10.], 0.5)
