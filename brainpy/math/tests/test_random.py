@@ -337,7 +337,9 @@ class TestRandom(unittest.TestCase):
 
   def test_multivariate_normal2(self):
     a = np.random.multivariate_normal([1, 2], [[1, 3], [3, 1]])
-    b = bm.random.multivariate_normal([1, 2], [[1, 3], [3, 1]])
+    b = bm.random.multivariate_normal([1, 2], [[1, 3], [3, 1]], method='svd')
+    print(a)
+    print(b)
     self.assertTupleEqual(a.shape, b.shape)
     self.assertTupleEqual(a.shape, (2,))
 
@@ -452,3 +454,11 @@ class TestRandom(unittest.TestCase):
   def test_maxwell2(self):
     a = bm.random.maxwell()
     self.assertTupleEqual(a.shape, ())
+
+  def test_t(self):
+    a = bm.random.t(1., size=10)
+    self.assertTupleEqual(a.shape, (10,))
+
+  def test_t2(self):
+    a = bm.random.t([1., 2.], size=None)
+    self.assertTupleEqual(a.shape, (2,))

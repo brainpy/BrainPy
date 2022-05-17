@@ -3,9 +3,11 @@
 from collections import namedtuple
 from functools import partial
 
+from operator import index
 import jax
 import numpy as np
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core
+from jax._src import dtypes
 from jax.experimental.host_callback import call
 from jax.experimental import checkify
 from jax.tree_util import register_pytree_node
@@ -27,7 +29,7 @@ __all__ = [
   'hypergeometric', 'logseries', 'multinomial', 'multivariate_normal',
   'negative_binomial', 'noncentral_chisquare', 'noncentral_f', 'power',
   'rayleigh', 'triangular', 'vonmises', 'wald', 'weibull', 'weibull_min',
-  'zipf', 'maxwell'
+  'zipf', 'maxwell', 't', 'orthogonal', 'loggamma', 'categorical',
 ]
 
 
@@ -43,16 +45,26 @@ def _size2shape(size):
 
 
 def _check_shape(name, shape, *param_shapes):
-  for s in param_shapes:
-    if s != shape:
+  shape = core.as_named_shape(shape)
+  if param_shapes:
+    shape_ = lax.broadcast_shapes(shape.positional, *param_shapes)
+    if shape.positional != shape_:
       msg = ("{} parameter shapes must be broadcast-compatible with shape "
              "argument, and the result of broadcasting the shapes must equal "
              "the shape argument, but got result {} for shape argument {}.")
-      raise ValueError(msg.format(name, s, shape))
+      raise ValueError(msg.format(name, shape_, shape))
 
 
 def _remove_jax_array(a):
   return a.value if isinstance(a, JaxArray) else a
+
+
+def _const(example, val):
+  dtype = dtypes.dtype(example, canonicalize=True)
+  if dtypes.is_python_scalar(example):
+    val = dtypes.scalar_type_of(example)(val)
+    return val if dtype == dtypes.dtype(val, canonicalize=True) else np.array(val, dtype)
+  return np.array(val, dtype)
 
 
 _tr_params = namedtuple(
@@ -702,15 +714,36 @@ class RandomState(Variable):
     batch_shape = lax.broadcast_shapes(jnp.shape(pvals)[:-1], jnp.shape(n))
     return JaxArray(_multinomial(self.split_key(), pvals, n, n_max, batch_shape + size))
 
-  def multivariate_normal(self, mean, cov, size=None):
+  def multivariate_normal(self, mean, cov, size=None, method: str = 'cholesky'):
+    if method not in {'svd', 'eigh', 'cholesky'}:
+      raise ValueError("method must be one of {'svd', 'eigh', 'cholesky'}")
     mean = _check_py_seq(_remove_jax_array(mean))
     cov = _check_py_seq(_remove_jax_array(cov))
-    size = _size2shape(size)
-    scale = jnp.linalg.cholesky(cov)
-    batch_shape = lax.broadcast_shapes(jnp.shape(mean)[:-2], jnp.shape(scale)[:-2])
-    event_shape = jnp.shape(scale)[-1:]
-    eps = jr.normal(self.split_key(), shape=size + batch_shape + event_shape)
-    r = mean + jnp.squeeze(jnp.matmul(scale, eps[..., jnp.newaxis]), axis=-1)
+
+    if not jnp.ndim(mean) >= 1:
+      raise ValueError(f"multivariate_normal requires mean.ndim >= 1, got mean.ndim == {jnp.ndim(mean)}")
+    if not jnp.ndim(cov) >= 2:
+      raise ValueError(f"multivariate_normal requires cov.ndim >= 2, got cov.ndim == {jnp.ndim(cov)}")
+    n = mean.shape[-1]
+    if jnp.shape(cov)[-2:] != (n, n):
+      raise ValueError(f"multivariate_normal requires cov.shape == (..., n, n) for n={n}, "
+                       f"but got cov.shape == {jnp.shape(cov)}.")
+    if size is None:
+      size = lax.broadcast_shapes(mean.shape[:-1], cov.shape[:-2])
+    else:
+      size = _size2shape(size)
+      _check_shape("normal", size, mean.shape[:-1], cov.shape[:-2])
+
+    if method == 'svd':
+      (u, s, _) = jnp.linalg.svd(cov)
+      factor = u * jnp.sqrt(s[..., None, :])
+    elif method == 'eigh':
+      (w, v) = jnp.linalg.eigh(cov)
+      factor = v * jnp.sqrt(w[..., None, :])
+    else:  # 'cholesky'
+      factor = jnp.linalg.cholesky(cov)
+    normal_samples = jr.normal(self.split_key(), size + mean.shape[-1:])
+    r = mean + jnp.einsum('...ij,...j->...i', factor, normal_samples)
     return JaxArray(r)
 
   def rayleigh(self, scale=1.0, size=None):
@@ -833,6 +866,29 @@ class RandomState(Variable):
                     jnp.square(mean) / sampled)
     return JaxArray(res)
 
+  def t(self, df, size=None):
+    df = _check_py_seq(_remove_jax_array(df))
+    if size is None:
+      size = np.shape(df)
+    else:
+      size = _size2shape(size)
+      _check_shape("t", size, np.shape(df))
+    keys = self.split_keys(2)
+    n = jr.normal(keys[0], size)
+    two = _const(n, 2)
+    half_df = lax.div(df, two)
+    g = jr.gamma(keys[1], half_df, size)
+    return JaxArray(n * jnp.sqrt(half_df / g))
+
+  def orthogonal(self, n: int, size=None):
+    size = _size2shape(size)
+    _check_shape("orthogonal", size)
+    n = core.concrete_or_error(index, n, "The error occurred in jax.random.orthogonal()")
+    z = jr.normal(self.split_key(), size + (n, n))
+    q, r = jnp.linalg.qr(z)
+    d = jnp.diagonal(r, 0, -2, -1)
+    return JaxArray(q * jnp.expand_dims(d / abs(d), -2))
+
   def noncentral_chisquare(self, df, nonc, size=None):
     df = _check_py_seq(_remove_jax_array(df))
     nonc = _check_py_seq(_remove_jax_array(nonc))
@@ -917,6 +973,19 @@ class RandomState(Variable):
                                                           nonc=x['nonc'],
                                                           size=size),
                          d, result_shape=jax.ShapeDtypeStruct(size, jnp.float_)))
+
+  def loggamma(self, a, size=None):
+    a = _check_py_seq(_remove_jax_array(a))
+    if size is None:
+      size = jnp.shape(a)
+    return JaxArray(jr.loggamma(self.split_key(), a, shape=size))
+
+  def categorical(self, logits, axis:int= -1, size=None):
+    logits = _check_py_seq(_remove_jax_array(logits))
+    if size is None:
+      size = list(jnp.shape(logits))
+      size.pop(axis)
+    return JaxArray(jr.categorical(self.split_key(), logits, axis=axis, shape=size))
 
 
 # alias
@@ -1173,8 +1242,8 @@ def multinomial(n, pvals, size=None):
 
 
 @wraps(np.random.multivariate_normal)
-def multivariate_normal(mean, cov, size=None):
-  return DEFAULT.multivariate_normal(mean, cov, size)
+def multivariate_normal(mean, cov, size=None, method: str = 'cholesky'):
+  return DEFAULT.multivariate_normal(mean, cov, size, method)
 
 
 @wraps(np.random.negative_binomial)
@@ -1235,3 +1304,50 @@ def zipf(a, size=None):
 @wraps(jr.maxwell)
 def maxwell(size=None):
   return DEFAULT.maxwell(size)
+
+
+def t(df, size=None):
+  """Sample Student’s t random values.
+
+  Parameters
+  ----------
+  df: float, array_like
+    A float or array of floats broadcast-compatible with shape representing the parameter of the distribution.
+  size: optional, int, tuple of int
+    A tuple of non-negative integers specifying the result shape.
+    Must be broadcast-compatible with `df`. The default (None) produces a result shape equal to `df.shape`.
+
+  Returns
+  -------
+  out: array_like
+    The sampled value.
+  """
+  return DEFAULT.t(df, size)
+
+
+def orthogonal(n: int, size=None):
+  """Sample uniformly from the orthogonal group `O(n)`.
+
+  Parameters
+  ----------
+  n: int
+     An integer indicating the resulting dimension.
+  size: optional, int, tuple of int
+    The batch dimensions of the result.
+
+  Returns
+  -------
+  out: JaxArray
+    The sampled results.
+  """
+  return DEFAULT.orthogonal(n, size)
+
+
+@wraps(jr.loggamma)
+def loggamma(a, size=None):
+  return DEFAULT.loggamma(a, size)
+
+
+@wraps(jr.categorical)
+def categorical(logits, axis:int= -1, size=None):
+  return DEFAULT.categorical(logits, axis, size)
