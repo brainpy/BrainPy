@@ -653,7 +653,7 @@ class RandomState(Variable):
 
   def bernoulli(self, p, size=None):
     p = _check_py_seq(_remove_jax_array(p))
-    check_error_in_jit(jnp.all(jnp.logical_and(p >= 0, p <= 1)),  self._check_p, p)
+    check_error_in_jit(jnp.any(jnp.logical_and(p < 0, p > 1)),  self._check_p, p)
     if size is None:
       size = jnp.shape(p)
     return JaxArray(jr.bernoulli(self.split_key(), p=p, shape=_size2shape(size)))
@@ -672,7 +672,7 @@ class RandomState(Variable):
   def binomial(self, n, p, size=None):
     n = _check_py_seq(n.value if isinstance(n, JaxArray) else n)
     p = _check_py_seq(p.value if isinstance(p, JaxArray) else p)
-    check_error_in_jit(jnp.all(jnp.logical_and(p >= 0, p <= 1)), self._check_p, p)
+    check_error_in_jit(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.broadcast_shapes(jnp.shape(n), jnp.shape(p))
     return JaxArray(_binomial(self.split_key(), p, n, shape=_size2shape(size)))
