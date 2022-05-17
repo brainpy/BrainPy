@@ -2,17 +2,17 @@
 
 from collections import namedtuple
 from functools import partial
-
 from operator import index
+
 import jax
 import numpy as np
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core
 from jax._src import dtypes
 from jax.experimental.host_callback import call
-from jax.experimental import checkify
 from jax.tree_util import register_pytree_node
 
 from brainpy.math.jaxarray import JaxArray, Variable
+from brainpy.tools.errors import check_error_in_jit
 from .utils import wraps
 
 __all__ = [
@@ -648,10 +648,12 @@ class RandomState(Variable):
     else:
       return JaxArray(rands * scale)
 
+  def _check_p(self, p):
+    raise ValueError(f'Parameter p should be within [0, 1], but we got {p}')
+
   def bernoulli(self, p, size=None):
-    p = _remove_jax_array(p)
-    p = _check_py_seq(p)
-    checkify.check(jnp.all(jnp.logical_and(p >= 0, p <= 1)), 'Bernoulli parameter p should be within [0, 1]')
+    p = _check_py_seq(_remove_jax_array(p))
+    check_error_in_jit(jnp.all(jnp.logical_and(p >= 0, p <= 1)),  self._check_p, p)
     if size is None:
       size = jnp.shape(p)
     return JaxArray(jr.bernoulli(self.split_key(), p=p, shape=_size2shape(size)))
@@ -668,11 +670,9 @@ class RandomState(Variable):
     return JaxArray(samples)
 
   def binomial(self, n, p, size=None):
-    n = n.value if isinstance(n, JaxArray) else n
-    p = p.value if isinstance(p, JaxArray) else p
-    n = _check_py_seq(n)
-    p = _check_py_seq(p)
-    checkify.check(jnp.all(jnp.logical_and(p >= 0, p <= 1)), '"p" must be in [0, 1].')
+    n = _check_py_seq(n.value if isinstance(n, JaxArray) else n)
+    p = _check_py_seq(p.value if isinstance(p, JaxArray) else p)
+    check_error_in_jit(jnp.all(jnp.logical_and(p >= 0, p <= 1)), self._check_p, p)
     if size is None:
       size = jnp.broadcast_shapes(jnp.shape(n), jnp.shape(p))
     return JaxArray(_binomial(self.split_key(), p, n, shape=_size2shape(size)))
@@ -703,10 +703,13 @@ class RandomState(Variable):
     r = jnp.floor(jnp.log1p(-u) / jnp.log1p(-p))
     return JaxArray(r)
 
+  def _check_p2(self, p):
+    raise ValueError(f'We require `sum(pvals[:-1]) <= 1`. But we got {p}')
+
   def multinomial(self, n, pvals, size=None):
     n = _check_py_seq(_remove_jax_array(n))
     pvals = _check_py_seq(_remove_jax_array(pvals))
-    checkify.check(jnp.sum(pvals[:-1]) <= 1., 'We require `sum(pvals[:-1]) <= 1`.')
+    check_error_in_jit(jnp.sum(pvals[:-1]) > 1., self._check_p2, pvals)
     if isinstance(n, jax.core.Tracer):
       raise ValueError("The total count parameter `n` should not be a jax abstract array.")
     size = _size2shape(size)
