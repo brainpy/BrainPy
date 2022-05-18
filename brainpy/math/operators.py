@@ -11,7 +11,6 @@ from brainpy.errors import PackageMissingError, MathError
 from brainpy.math import setting
 from brainpy.math.jaxarray import JaxArray
 from brainpy.math.numpy_ops import as_device_array, _remove_jaxarray
-from brainpy.types import Shape
 
 try:
   import brainpylib

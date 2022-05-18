@@ -3,6 +3,7 @@
 import os
 import re
 
+from jax import dtypes
 import jax.config
 import jax.numpy as jnp
 
@@ -46,7 +47,11 @@ def set_dt(dt):
   dt : float
       Numerical integration precision.
   """
-  assert isinstance(dt, float), f'"dt" must a float, but we got {dt}'
+  _dt = jnp.asarray(dt)
+  if not dtypes.issubdtype(_dt.dtype, jnp.floating):
+    raise ValueError(f'"dt" must a float, but we got {dt}')
+  if _dt.ndim != 0:
+    raise ValueError(f'"dt" must be a scalar, but we got {dt}')
   global __dt
   __dt = dt
 

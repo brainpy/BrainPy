@@ -44,10 +44,6 @@ class Network(bp.dyn.Network):
                                             delay_steps=delay_mat.astype(bm.int_),
                                             initial_delay_data=bp.init.Uniform(0, 0.05))
 
-  def update(self, t, dt):
-    self.coupling.update(t, dt)
-    self.fhn.update(t, dt)
-
 
 def brain_simulation():
   net = Network()

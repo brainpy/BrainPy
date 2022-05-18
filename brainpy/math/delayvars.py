@@ -82,15 +82,15 @@ class TimeDelay(AbstractDelay):
     The time precesion.
   before_t0: callable, bm.ndarray, jnp.ndarray, float, int
     The delay data before ::math`t_0`.
-    - when `before_t0` is a function, it should receive an time argument `t`
+    - when `before_t0` is a function, it should receive a time argument `t`
     - when `before_to` is a tensor, it should be a tensor with shape
-      of :math:`(num_delay, ...)`, where the longest delay data is aranged in
+      of :math:`(num\_delay, ...)`, where the longest delay data is aranged in
       the first index.
   name: str
     The delay instance name.
   interp_method: str
     The way to deal with the delay at the time which is not integer times of the time step.
-    For exameple, if the time step ``dt=0.1``, the time delay length ``delay_len=1.``,
+    For exameple, if the time step ``dt=0.1``, the time delay length ``delay\_len=1.``,
     when users require the delay data at ``t-0.53``, we can deal this situation with
     the following methods:
 
