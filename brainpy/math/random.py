@@ -653,7 +653,7 @@ class RandomState(Variable):
 
   def bernoulli(self, p, size=None):
     p = _check_py_seq(_remove_jax_array(p))
-    check_error_in_jit(jnp.any(jnp.logical_and(p < 0, p > 1)),  self._check_p, p)
+    check_error_in_jit(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.shape(p)
     return JaxArray(jr.bernoulli(self.split_key(), p=p, shape=_size2shape(size)))
@@ -838,8 +838,7 @@ class RandomState(Variable):
     sampled_chi2 = jnp.square(self.randn(*size).value)
     sampled_uniform = self.uniform(size=size).value
     # Wikipedia defines an intermediate x with the formula
-    #   x = loc + loc ** 2 * y / (2 * conc)
-    #       - loc / (2 * conc) * sqrt(4 * loc * conc * y + loc ** 2 * y ** 2)
+    #   x = loc + loc ** 2 * y / (2 * conc) - loc / (2 * conc) * sqrt(4 * loc * conc * y + loc ** 2 * y ** 2)
     # where y ~ N(0, 1)**2 (sampled_chi2 above) and conc is the concentration.
     # Let us write
     #   w = loc * y / (2 * conc)
@@ -981,14 +980,14 @@ class RandomState(Variable):
     a = _check_py_seq(_remove_jax_array(a))
     if size is None:
       size = jnp.shape(a)
-    return JaxArray(jr.loggamma(self.split_key(), a, shape=size))
+    return JaxArray(jr.loggamma(self.split_key(), a, shape=_size2shape(size)))
 
-  def categorical(self, logits, axis:int= -1, size=None):
+  def categorical(self, logits, axis: int = -1, size=None):
     logits = _check_py_seq(_remove_jax_array(logits))
     if size is None:
       size = list(jnp.shape(logits))
       size.pop(axis)
-    return JaxArray(jr.categorical(self.split_key(), logits, axis=axis, shape=size))
+    return JaxArray(jr.categorical(self.split_key(), logits, axis=axis, shape=_size2shape(size)))
 
 
 # alias
@@ -1366,5 +1365,5 @@ def loggamma(a, size=None):
 
 
 @wraps(jr.categorical)
-def categorical(logits, axis:int= -1, size=None):
+def categorical(logits, axis: int = -1, size=None):
   return DEFAULT.categorical(logits, axis, size)

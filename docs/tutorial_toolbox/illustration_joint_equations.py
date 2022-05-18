@@ -13,7 +13,7 @@ class IzhiJoint(bp.dyn.NeuGroup):
 
 	@property
 	def derivative(self):
-		return bp.JointEq([self.dV, self.du])
+		return bp.JointEq(self.dV, self.du)
 
 	def __init__(self, size):
 		super().__init__(size)
@@ -32,7 +32,7 @@ class IzhiJoint(bp.dyn.NeuGroup):
 		self.input[:] = 0.
 
 
-class IzhiSeparate(bp.NeuGroup):
+class IzhiSeparate(bp.dyn.NeuGroup):
 	def dV(self, V, t, u, Iext):
 		return 0.04 * V * V + 5 * V + 140 - u + Iext
 
