@@ -311,6 +311,8 @@ class LengthDelay(AbstractDelay):
     # delay_len
     check_integer(delay_len, 'delay_len', allow_none=True, min_bound=0)
     if delay_len is None:
+      if self.num_delay_step is None:
+        raise ValueError('"delay_len" cannot be None.')
       delay_len = self.num_delay_step - 1
     self.num_delay_step = delay_len + 1
 

@@ -72,11 +72,10 @@ class DelayCoupling(DynamicalSystem):
     if delay_steps is None:
       self.delay_steps = None
       self.delay_type = 'none'
-      num_delay_step = 0
+      num_delay_step = None
     elif isinstance(delay_steps, int):
       self.delay_steps = delay_steps
       num_delay_step = delay_steps
-      check_integer(delay_steps, 'delay_steps', min_bound=0, allow_none=False)
       self.delay_type = 'int'
     elif callable(delay_steps):
       delay_steps = delay_steps(required_shape)
@@ -84,7 +83,7 @@ class DelayCoupling(DynamicalSystem):
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
       self.delay_steps = delay_steps
       self.delay_type = 'array'
-      num_delay_step = int(self.delay_steps.max())
+      num_delay_step = self.delay_steps.max()
     elif isinstance(delay_steps, (bm.JaxArray, jnp.ndarray)):
       if delay_steps.dtype not in [bm.int32, bm.int64, bm.uint32, bm.uint64]:
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
@@ -93,20 +92,18 @@ class DelayCoupling(DynamicalSystem):
                          f'While we got {delay_steps.shape}.')
       self.delay_steps = delay_steps
       self.delay_type = 'array'
-      num_delay_step = int(self.delay_steps.max())
+      num_delay_step = self.delay_steps.max()
     else:
       raise ValueError(f'Unknown type of delay steps: {type(delay_steps)}')
 
     # delay variables
-    if self.delay_type != 'none':
-      self.register_delay(f'delay_{id(delay_var)}',
-                          delay_step=num_delay_step,
-                          delay_target=delay_var,
-                          initial_delay_data=initial_delay_data)
+    self.delay_step = self.register_delay(f'delay_{id(delay_var)}',
+                                          delay_step=num_delay_step,
+                                          delay_target=delay_var,
+                                          initial_delay_data=initial_delay_data)
 
   def reset(self):
-    if self.delay_steps is not None:
-      self.reset_delay(f'delay_{id(self.delay_var)}', self.delay_var)
+    pass
 
 
 class DiffusiveCoupling(DelayCoupling):
@@ -184,20 +181,18 @@ class DiffusiveCoupling(DelayCoupling):
     self.coupling_var2 = coupling_var2
 
   def update(self, t, dt):
-    # delay variable
-    if self.delay_type != 'none':
-      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
-
     # delays
-    if self.delay_type == 'none':
+    if self.delay_steps is None:
       diffusive = bm.expand_dims(self.coupling_var1, axis=1) - self.coupling_var2
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'array':
+      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
       f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var1.size)))  # (pre.num,)
       delays = f(bm.arange(self.coupling_var2.size).value)
       diffusive = delays.T - self.coupling_var2  # (post.num, pre.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'int':
+      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
       delayed_var = delay_var(self.delay_steps)
       diffusive = bm.expand_dims(delayed_var, axis=1) - self.coupling_var2
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
@@ -207,10 +202,6 @@ class DiffusiveCoupling(DelayCoupling):
     # output to target variable
     for target in self.output_var:
       target.value += diffusive
-
-    # update
-    if self.delay_type != 'none':
-      delay_var.update(self.delay_var)
 
 
 class AdditiveCoupling(DelayCoupling):
@@ -266,20 +257,21 @@ class AdditiveCoupling(DelayCoupling):
     self.coupling_var = coupling_var
 
   def update(self, t, dt):
-    # delay variable
-    delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
-
     # delay function
     if self.delay_steps is None:
       additive = self.coupling_var @ self.conn_mat
-    else:
+    elif self.delay_type == 'array':
+      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
       f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var.size)))  # (pre.num,)
       delays = f(bm.arange(self.coupling_var.size).value)  # (post.num, pre.num)
       additive = (self.conn_mat * delays.T).sum(axis=0)
+    elif self.delay_type == 'int':
+      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
+      delayed_var = delay_var(self.delay_steps)
+      additive = (self.conn_mat * delayed_var).sum(axis=0)
+    else:
+      raise ValueError
 
     # output to target variable
     for target in self.output_var:
       target.value += additive
-
-    # update
-    delay_var.update(self.delay_var)
