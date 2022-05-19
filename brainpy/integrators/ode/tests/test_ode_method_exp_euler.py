@@ -69,9 +69,7 @@ class TestExpEulerAuto(unittest.TestCase):
         self.spike = bm.Variable(bm.zeros(size, dtype=bool))
         self.input = bm.Variable(bm.zeros(size))
 
-        self.int_h = bp.odeint(self.dh, method=method, show_code=True)
-        self.int_n = bp.odeint(self.dn, method=method, show_code=True)
-        self.int_V = bp.odeint(self.dV, method=method, show_code=True)
+        self.integral = bp.odeint(bp.JointEq(self.dV, self.dh, self.dn), method=method, show_code=True)
 
       def dh(self, h, t, V):
         alpha = 0.07 * bm.exp(-(V + 58) / 20)
@@ -97,9 +95,7 @@ class TestExpEulerAuto(unittest.TestCase):
         return dVdt
 
       def update(self, t, dt):
-        h = self.int_h(self.h, t, self.V, dt=dt)
-        n = self.int_n(self.n, t, self.V, dt=dt)
-        V = self.int_V(self.V, t, self.h, self.n, self.input, dt=dt)
+        V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt=dt)
         self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
         self.V.value = V
         self.h.value = h

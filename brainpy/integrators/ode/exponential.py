@@ -310,33 +310,14 @@ class ExponentialEuler(ODEIntegrator):
                                 f'because the auto-differentiation ')
     self.dyn_vars = dyn_vars
 
-    # keyword checking
-    keywords = {
-      C.F: 'the derivative function',
-    }
-    utils.check_kws(self.arg_names, keywords)
-
     # build the integrator
     self.code_lines = []
     self.code_scope = {}
     self.integral = self.build()
 
   def build(self):
-    all_vars, all_pars = [], []
-    integrals, arg_names = [], []
-    a = self._build_integrator(self.f)
-    for integral, vars, _ in a:
-      integrals.append(integral)
-      for var in vars:
-        if var not in all_vars:
-          all_vars.append(var)
-    for _, vars, pars in a:
-      for par in pars:
-        if (par not in all_vars) and (par not in all_pars):
-          all_pars.append(par)
-      arg_names.append(vars + pars + ['dt'])
-    all_pars.append('dt')
-    all_vps = all_vars + all_pars
+    parses = self._build_integrator(self.f)
+    all_vps = self.variables + self.parameters
 
     def integral_func(*args, **kwargs):
       # format arguments
@@ -344,16 +325,17 @@ class ExponentialEuler(ODEIntegrator):
       for i, arg in enumerate(args):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)
-      if 'dt' not in params_in:
-        params_in['dt'] = self.dt
+      if C.DT not in params_in:
+        params_in[C.DT] = self.dt
 
       # call integrals
       results = []
-      for i, int_fun in enumerate(integrals):
-        _key = arg_names[i][0]
-        r = int_fun(params_in[_key], **{arg: params_in[arg] for arg in arg_names[i][1:] if arg in params_in})
+      for i, parse in enumerate(parses):
+        f_integral, vars_, pars_ = parse
+        vps = vars_ + pars_ + [C.DT]
+        r = f_integral(params_in[vps[0]], **{arg: params_in[arg] for arg in vps[1:] if arg in params_in})
         results.append(r)
-      return results if isinstance(self.f, joint_eq.JointEq) else results[0]
+      return results if len(self.variables) > 1 else results[0]
 
     return integral_func
 
@@ -363,15 +345,14 @@ class ExponentialEuler(ODEIntegrator):
       for sub_eq in eq.eqs:
         results.extend(self._build_integrator(sub_eq))
       return results
-
     else:
       vars, pars, _ = utils.get_args(eq)
 
       # checking
       if len(vars) != 1:
-        raise errors.DiffEqError(C.exp_error_msg.format(cls=self.__class__.__name__,
-                                                        vars=str(vars),
-                                                        eq=str(eq)))
+        raise errors.DiffEqError(C.multi_vars_msg.format(cls=self.__class__.__name__,
+                                                         vars=str(vars),
+                                                         eq=str(eq)))
 
       # gradient function
       value_and_grad = bm.vector_grad(eq, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
@@ -379,7 +360,7 @@ class ExponentialEuler(ODEIntegrator):
       # integration function
       def integral(*args, **kwargs):
         assert len(args) > 0
-        dt = kwargs.pop('dt', self.dt)
+        dt = kwargs.pop(C.DT, self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
         phi = bm.where(linear == 0., bm.ones_like(linear), (bm.exp(dt * linear) - 1) / (dt * linear))
         return args[0] + dt * phi * derivative
