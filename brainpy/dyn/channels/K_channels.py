@@ -20,7 +20,7 @@ class PotassiumChannel(IonChannel):
   """Base class for potassium channel."""
 
   '''The type of the master object.'''
-  master_cls = ConNeuGroup
+  master_master_type = ConNeuGroup
 
 
 class IK_DR(PotassiumChannel):
@@ -69,6 +69,7 @@ class IK_DR(PotassiumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[float, Tensor, Initializer, Callable] = -90.,
       g_max: Union[float, Tensor, Initializer, Callable] = 10.,
       T: Union[float, Tensor, Initializer, Callable] = 36.,
@@ -77,18 +78,18 @@ class IK_DR(PotassiumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(IK_DR, self).__init__(size, name=name)
+    super(IK_DR, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)
-    self.T_base = init_param(T_base, self.num, allow_none=False)
-    self.E = init_param(E, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.V_sh = init_param(V_sh, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.T_base = init_param(T_base, self.var_shape, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
     self.phi = self.T_base ** ((self.T - 36) / 10)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -114,19 +115,20 @@ class IK2(PotassiumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[float, Tensor, Initializer, Callable] = -90.,
       g_max: Union[float, Tensor, Initializer, Callable] = 10.,
       method='exp_auto',
       name=None
   ):
-    super(IK2, self).__init__(size, name=name)
+    super(IK2, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.E = init_param(E, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
 
     # variables
-    self.n = bm.Variable(bm.zeros(self.num))
+    self.n = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(self.derivative, method=method)

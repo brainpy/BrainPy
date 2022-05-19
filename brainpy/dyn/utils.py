@@ -2,7 +2,7 @@
 
 
 from collections.abc import Iterable
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 import jax.numpy as jnp
 import numpy as np
 
@@ -11,9 +11,10 @@ from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
 from brainpy.running.monitor import Monitor
 from brainpy.initialize import init_param, Initializer
+from brainpy.types import Shape
 
 __all__ = [
-  'size2len',
+  'init_noise',
   'init_delay',
   'check_and_format_inputs',
   'check_and_format_monitors',
@@ -23,9 +24,27 @@ SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
 
 
-def init_delay(delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initializer],
-               delay_target: Union[bm.ndarray, jnp.ndarray],
-               delay_data: Union[bm.ndarray, jnp.ndarray] = None):
+def init_noise(
+    noise: Optional[Union[int, bm.ndarray, jnp.ndarray, Initializer, Callable]],
+    size: Shape,
+    num_vars: int = 1,
+) -> Optional[Callable]:
+  if callable(noise):
+    return noise
+  elif noise is None:
+    return None
+  else:
+    noise = init_param(noise, size, allow_none=False)
+    if num_vars > 1:
+      noise = (noise,) + tuple([None for _ in range(num_vars - 1)])
+    return lambda *args, **kwargs: noise
+
+
+def init_delay(
+    delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initializer],
+    delay_target: Union[bm.ndarray, jnp.ndarray],
+    delay_data: Union[bm.ndarray, jnp.ndarray] = None
+):
   """Initialize delay variable.
 
   Parameters
@@ -77,18 +96,6 @@ def init_delay(delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initial
     delays = None
 
   return delay_type, delay_step, delays
-
-
-def size2len(size):
-  if isinstance(size, int):
-    return size
-  elif isinstance(size, (tuple, list)):
-    a = 1
-    for b in size:
-      a *= b
-    return a
-  else:
-    raise ValueError
 
 
 def check_and_format_inputs(host, inputs):

@@ -17,7 +17,7 @@ __all__ = [
 
 class IhChannel(IonChannel):
   """Base class for Ih channel models."""
-  master_cls = ConNeuGroup
+  master_master_type = ConNeuGroup
 
 
 class Ih(IhChannel):
@@ -60,21 +60,22 @@ class Ih(IhChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       g_max: Union[float, Tensor, Initializer, Callable]=10.,
       E: Union[float, Tensor, Initializer, Callable]=-90.,
       phi: Union[float, Tensor, Initializer, Callable]=1.,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(Ih, self).__init__(size, name=name)
+    super(Ih, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.phi = init_param(phi, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.E = init_param(E, self.num, allow_none=False)
+    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
 
     # variable
-    self.p = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(self.derivative, method=method)

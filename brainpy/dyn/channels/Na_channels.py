@@ -17,7 +17,7 @@ __all__ = [
 
 class SodiumChannel(IonChannel):
   """Base class for sodium channel."""
-  master_cls = ConNeuGroup
+  master_master_type = ConNeuGroup
 
 
 class INa(SodiumChannel):
@@ -67,6 +67,7 @@ class INa(SodiumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[int, float, Tensor, Initializer, Callable] = 50.,
       g_max: Union[int, float, Tensor, Initializer, Callable] = 90.,
       T: Union[int, float, Tensor, Initializer, Callable] = 36.,
@@ -74,18 +75,18 @@ class INa(SodiumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(INa, self).__init__(size, name=name)
+    super(INa, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)
-    self.E = init_param(E, self.num, allow_none=False)
-    self.V_sh = init_param(V_sh, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.phi = 3 ** ((self.T - 36) / 10)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
-    self.q = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -121,20 +122,21 @@ class INa_v2(SodiumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[int, float, Tensor, Initializer, Callable] = 50.,
       g_max: Union[int, float, Tensor, Initializer, Callable] = 120.,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(INa_v2, self).__init__(size, name=name)
+    super(INa_v2, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.E = init_param(E, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
 
     # variables
-    self.m = bm.Variable(bm.zeros(self.num))
-    self.h = bm.Variable(bm.zeros(self.num))
+    self.m = bm.Variable(bm.zeros(self.var_shape))
+    self.h = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(JointEq([self.dm, self.dh]), method=method)

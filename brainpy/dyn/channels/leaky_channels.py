@@ -2,6 +2,7 @@
 
 from brainpy.types import Shape
 
+from brainpy.initialize import init_param
 from brainpy.dyn.base import ConNeuGroup
 from .base import IonChannel
 
@@ -14,7 +15,7 @@ __all__ = [
 
 class LeakyChannel(IonChannel):
   """Base class for leaky channel."""
-  master_cls = ConNeuGroup
+  master_master_type = ConNeuGroup
 
 
 class IL(LeakyChannel):
@@ -31,15 +32,16 @@ class IL(LeakyChannel):
   def __init__(
       self,
       size,
+      keep_size: bool = False,
       g_max=0.1,
       E=-70.,
       method: str = None,
       name: str = None,
   ):
-    super(IL, self).__init__(size, name=name)
+    super(IL, self).__init__(size, keep_size=keep_size, name=name)
 
-    self.E = E
-    self.g_max = g_max
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.method = method
 
   def reset(self, V):
@@ -67,9 +69,10 @@ class IKL(IL):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       g_max=0.005,
       E=-90.,
       method=None,
       name=None,
   ):
-    super(IKL, self).__init__(size=size, g_max=g_max, E=E, method=method, name=name)
+    super(IKL, self).__init__(size=size, keep_size=keep_size, g_max=g_max, E=E, method=method, name=name)

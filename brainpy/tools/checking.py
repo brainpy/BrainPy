@@ -293,8 +293,8 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
     else:
       raise ValueError(f'{name} must be an int, but got None')
   if not isinstance(value, int):
-    if isinstance(value, (jnp.ndarray, np.ndarray)):
-      if not (jnp.issubdtype(value.dtype, jnp.integer) and value.ndim == 0 and value.size == 1):
+    if hasattr(value, '__array__'):
+      if not (np.issubdtype(value.dtype, np.integer) and value.ndim == 0 and value.size == 1):
         raise ValueError(f'{name} must be an int, but got {value}')
     else:
       raise ValueError(f'{name} must be an int, but got {value}')

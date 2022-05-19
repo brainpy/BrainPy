@@ -8,6 +8,7 @@ from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
 from brainpy.integrators import sdeint, odeint, JointEq
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Tensor
+from brainpy.dyn.utils import init_noise
 
 __all__ = [
   'LIF',
@@ -64,8 +65,6 @@ class LIF(NeuGroup):
     The initializer of membrane potential.
   noise: JaxArray, ndarray, Initializer, callable
     The noise added onto the membrane potential
-  noise_type: str
-    The type of the provided noise. Can be `value` or `func`.
   method: str
     The numerical integration method.
   name: str
@@ -88,48 +87,42 @@ class LIF(NeuGroup):
       tau_ref: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
-      noise_type: str = 'value',
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None
   ):
     # initialization
-    super(LIF, self).__init__(size=size, name=name)
+    super(LIF, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
     self.keep_size = keep_size
-    self.noise_type = noise_type
-    size = self.size if keep_size else self.num
-    self.V_rest = init_param(V_rest, size, allow_none=False)
-    self.V_reset = init_param(V_reset, size, allow_none=False)
-    self.V_th = init_param(V_th, size, allow_none=False)
-    self.tau = init_param(tau, size, allow_none=False)
-    self.tau_ref = init_param(tau_ref, size, allow_none=False)
-    if noise_type not in ['func', 'value']:
-      raise ValueError(f'noise_type only supports `func` and `value`, but we got {noise_type}')
-    self.noise = noise if (noise_type == 'func') else init_param(noise, size, allow_none=True)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.V_reset = init_param(V_reset, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, size))
-    self.input = bm.Variable(bm.zeros(size))
-    self.spike = bm.Variable(bm.zeros(size, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(size) * -1e7)
-    self.refractory = bm.Variable(bm.zeros(size, dtype=bool))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.t_last_spike = bm.Variable(bm.ones(self.var_shape) * -1e7)
+    self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
     f = lambda V, t, I_ext: (-V + self.V_rest + I_ext) / self.tau
-    if self.noise is not None:
-      g = noise if (noise_type == 'func') else (lambda V, t, I_ext: self.noise / bm.sqrt(self.tau))
-      self.integral = sdeint(method=method, f=f, g=g)
-    else:
+    if self.noise is None:
       self.integral = odeint(method=method, f=f)
+    else:
+      self.integral = sdeint(method=method, f=f, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, self.size if self.keep_size else self.num)
+    self.V.value = init_param(self._V_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
     self.t_last_spike[:] = -1e7
@@ -257,39 +250,44 @@ class ExpIF(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 1.7,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None
   ):
     # initialize
-    super(ExpIF, self).__init__(size=size, name=name)
+    super(ExpIF, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
-    self.V_reset = init_param(V_reset, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.V_T = init_param(V_T, self.num, allow_none=False)
-    self.delta_T = init_param(delta_T, self.num, allow_none=False)
-    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.R = init_param(R, self.num, allow_none=False)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.V_reset = init_param(V_reset, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.V_T = init_param(V_T, self.var_shape, allow_none=False)
+    self.delta_T = init_param(delta_T, self.var_shape, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.R = init_param(R, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.t_last_spike = bm.Variable(bm.ones(self.var_shape) * -1e7)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
     self.t_last_spike[:] = -1e7
@@ -400,23 +398,25 @@ class AdExIF(NeuGroup):
       R: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None
   ):
-    super(AdExIF, self).__init__(size=size, name=name)
+    super(AdExIF, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
-    self.V_reset = init_param(V_reset, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.V_T = init_param(V_T, self.num, allow_none=False)
-    self.delta_T = init_param(delta_T, self.num, allow_none=False)
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.tau_w = init_param(tau_w, self.num, allow_none=False)
-    self.R = init_param(R, self.num, allow_none=False)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.V_reset = init_param(V_reset, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.V_T = init_param(V_T, self.var_shape, allow_none=False)
+    self.delta_T = init_param(delta_T, self.var_shape, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.tau_w = init_param(tau_w, self.var_shape, allow_none=False)
+    self.R = init_param(R, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=2)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
@@ -425,18 +425,21 @@ class AdExIF(NeuGroup):
     self._w_initializer = w_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.w = bm.Variable(init_param(w_initializer, self.var_shape))
+    self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # functions
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.w.value = init_param(self._w_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
     self.refractory[:] = False
@@ -542,39 +545,44 @@ class QuaIF(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None
   ):
     # initialization
-    super(QuaIF, self).__init__(size=size, name=name)
+    super(QuaIF, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
-    self.V_reset = init_param(V_reset, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.V_c = init_param(V_c, self.num, allow_none=False)
-    self.c = init_param(c, self.num, allow_none=False)
-    self.R = init_param(R, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.V_reset = init_param(V_reset, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.V_c = init_param(V_c, self.var_shape, allow_none=False)
+    self.c = init_param(c, self.var_shape, allow_none=False)
+    self.R = init_param(R, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=1)
 
     # initializers
     check_initializer(V_initializer, '_V_initializer', allow_none=False)
     self._V_initializer = V_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.t_last_spike = bm.Variable(bm.ones(self.var_shape) * -1e7)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
     self.t_last_spike[:] = -1e7
@@ -687,22 +695,24 @@ class AdQuaIF(NeuGroup):
       tau_w: Union[float, Tensor, Initializer, Callable] = 10.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None
   ):
-    super(AdQuaIF, self).__init__(size=size, name=name)
+    super(AdQuaIF, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
-    self.V_reset = init_param(V_reset, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.V_c = init_param(V_c, self.num, allow_none=False)
-    self.c = init_param(c, self.num, allow_none=False)
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.tau_w = init_param(tau_w, self.num, allow_none=False)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.V_reset = init_param(V_reset, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.V_c = init_param(V_c, self.var_shape, allow_none=False)
+    self.c = init_param(c, self.var_shape, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.tau_w = init_param(tau_w, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=2)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -711,18 +721,21 @@ class AdQuaIF(NeuGroup):
     self._w_initializer = w_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.w = bm.Variable(init_param(w_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.w.value = init_param(self._w_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
     self.refractory[:] = False
@@ -851,28 +864,30 @@ class GIF(NeuGroup):
       I1_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       I2_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       Vth_initializer: Union[Initializer, Callable, Tensor] = OneInit(-50.),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(GIF, self).__init__(size=size, name=name)
+    super(GIF, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # params
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
-    self.V_reset = init_param(V_reset, self.num, allow_none=False)
-    self.V_th_inf = init_param(V_th_inf, self.num, allow_none=False)
-    self.V_th_reset = init_param(V_th_reset, self.num, allow_none=False)
-    self.R = init_param(R, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.k1 = init_param(k1, self.num, allow_none=False)
-    self.k2 = init_param(k2, self.num, allow_none=False)
-    self.R1 = init_param(R1, self.num, allow_none=False)
-    self.R2 = init_param(R2, self.num, allow_none=False)
-    self.A1 = init_param(A1, self.num, allow_none=False)
-    self.A2 = init_param(A2, self.num, allow_none=False)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.V_reset = init_param(V_reset, self.var_shape, allow_none=False)
+    self.V_th_inf = init_param(V_th_inf, self.var_shape, allow_none=False)
+    self.V_th_reset = init_param(V_th_reset, self.var_shape, allow_none=False)
+    self.R = init_param(R, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.k1 = init_param(k1, self.var_shape, allow_none=False)
+    self.k2 = init_param(k2, self.var_shape, allow_none=False)
+    self.R1 = init_param(R1, self.var_shape, allow_none=False)
+    self.R2 = init_param(R2, self.var_shape, allow_none=False)
+    self.A1 = init_param(A1, self.var_shape, allow_none=False)
+    self.A2 = init_param(A2, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=4)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
@@ -885,21 +900,24 @@ class GIF(NeuGroup):
     self._Vth_initializer = Vth_initializer
 
     # variables
-    self.I1 = bm.Variable(init_param(I1_initializer, (self.num,)))
-    self.I2 = bm.Variable(init_param(I2_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.V_th = bm.Variable(init_param(Vth_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.I1 = bm.Variable(init_param(I1_initializer, self.var_shape))
+    self.I2 = bm.Variable(init_param(I2_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.V_th = bm.Variable(init_param(Vth_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.I1.value = init_param(self._I1_initializer, (self.num,))
-    self.I2.value = init_param(self._I2_initializer, (self.num,))
-    self.V_th.value = init_param(self._Vth_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.I1.value = init_param(self._I1_initializer, self.var_shape)
+    self.I2.value = init_param(self._I2_initializer, self.var_shape)
+    self.V_th.value = init_param(self._Vth_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
 
@@ -1014,20 +1032,22 @@ class Izhikevich(NeuGroup):
       tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(Izhikevich, self).__init__(size=size, name=name)
+    super(Izhikevich, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # params
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.c = init_param(c, self.num, allow_none=False)
-    self.d = init_param(d, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.tau_ref = init_param(tau_ref, self.num, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.c = init_param(c, self.var_shape, allow_none=False)
+    self.d = init_param(d, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.tau_ref = init_param(tau_ref, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=2)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -1036,19 +1056,22 @@ class Izhikevich(NeuGroup):
     self._u_initializer = u_initializer
 
     # variables
-    self.u = bm.Variable(init_param(u_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.refractory = bm.Variable(bm.zeros(self.num, dtype=bool))
-    self.t_last_spike = bm.Variable(bm.ones(self.num) * -1e7)
+    self.u = bm.Variable(init_param(u_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.t_last_spike = bm.Variable(bm.ones(self.var_shape) * -1e7)
 
     # functions
-    self.integral = odeint(method=method, f=JointEq([self.dV, self.du]))
+    if self.noise is None:
+      self.integral = odeint(method=method, f=JointEq([self.dV, self.du]))
+    else:
+      self.integral = sdeint(method=method, f=JointEq([self.dV, self.du]), g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.u.value = init_param(self._u_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.u.value = init_param(self._u_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
     self.refractory[:] = False
@@ -1187,22 +1210,24 @@ class HindmarshRose(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       y_initializer: Union[Initializer, Callable, Tensor] = OneInit(-10.),
       z_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(HindmarshRose, self).__init__(size=size, name=name)
+    super(HindmarshRose, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.c = init_param(c, self.num, allow_none=False)
-    self.d = init_param(d, self.num, allow_none=False)
-    self.r = init_param(r, self.num, allow_none=False)
-    self.s = init_param(s, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.V_rest = init_param(V_rest, self.num, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.c = init_param(c, self.var_shape, allow_none=False)
+    self.d = init_param(d, self.var_shape, allow_none=False)
+    self.r = init_param(r, self.var_shape, allow_none=False)
+    self.s = init_param(s, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.V_rest = init_param(V_rest, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=3)
 
     # variables
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -1213,19 +1238,22 @@ class HindmarshRose(NeuGroup):
     self._z_initializer = z_initializer
 
     # variables
-    self.z = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(z_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.z = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(z_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.y.value = init_param(self._y_initializer, (self.num,))
-    self.z.value = init_param(self._z_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.y.value = init_param(self._y_initializer, self.var_shape)
+    self.z.value = init_param(self._z_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
 
@@ -1343,18 +1371,20 @@ class FHN(NeuGroup):
       Vth: Union[float, Tensor, Initializer, Callable] = 1.8,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(FHN, self).__init__(size=size, name=name)
+    super(FHN, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.Vth = init_param(Vth, self.num, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.Vth = init_param(Vth, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=2)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
@@ -1363,17 +1393,20 @@ class FHN(NeuGroup):
     self._w_initializer = w_initializer
 
     # variables
-    self.w = bm.Variable(init_param(w_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.w = bm.Variable(init_param(w_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.w.value = init_param(self._w_initializer, (self.num,))
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.w.value = init_param(self._w_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
 

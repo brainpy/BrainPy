@@ -42,23 +42,30 @@ class Calcium(Ion, Container):
   """
 
   '''The type of the master object.'''
-  master_cls = ConNeuGroup
+  master_type = ConNeuGroup
+
+  """Reversal potential."""
+  E: Union[float, bm.Variable, bm.JaxArray]
+
+  """Calcium concentration."""
+  C: Union[float, bm.Variable, bm.JaxArray]
 
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None,
       **channels
   ):
-    Ion.__init__(self, size)
+    Ion.__init__(self, size, keep_size=keep_size)
     Container.__init__(self, name=name, **channels)
     self.method = method
 
   def current(self, V, C_Ca=None, E_Ca=None):
     C_Ca = self.C if C_Ca is None else C_Ca
     E_Ca = self.E if E_Ca is None else E_Ca
-    nodes = list(self.implicit_nodes.values())
+    nodes = list(self.implicit_nodes.unique().values())
     current = nodes[0].current(V, C_Ca, E_Ca)
     for node in nodes[1:]:
       current += node.current(V, C_Ca, E_Ca)
@@ -74,15 +81,16 @@ class CalciumFixed(Calcium):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[float, Tensor, Initializer, Callable] = 120.,
       C: Union[float, Tensor, Initializer, Callable] = 0.05,
       method: str = 'exp_auto',
       name: str = None,
       **channels
   ):
-    super(CalciumFixed, self).__init__(size, method=method, name=name, **channels)
-    self.E = init_param(E, self.num, allow_none=False)
-    self.C = init_param(C, self.num, allow_none=False)
+    super(CalciumFixed, self).__init__(size, keep_size=keep_size, method=method, name=name, **channels)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.C = init_param(C, self.var_shape, allow_none=False)
 
   def update(self, t, dt, V):
     for node in self.implicit_nodes.values():
@@ -207,6 +215,7 @@ class CalciumDetailed(Calcium):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       d: Union[float, Tensor, Initializer, Callable] = 1.,
       C_rest: Union[float, Tensor, Initializer, Callable] = 0.05,
       tau: Union[float, Tensor, Initializer, Callable] = 5.,
@@ -218,27 +227,30 @@ class CalciumDetailed(Calcium):
       name: str = None,
       **channels
   ):
-    super(CalciumDetailed, self).__init__(size, method=method, name=name, **channels)
+    super(CalciumDetailed, self).__init__(size,
+                                          keep_size=keep_size,
+                                          method=method,
+                                          name=name, **channels)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)  # temperature
-    self.d = init_param(d, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.C_rest = init_param(C_rest, self.num, allow_none=False)
-    self.C_0 = init_param(C_0, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)  # temperature
+    self.d = init_param(d, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.C_rest = init_param(C_rest, self.var_shape, allow_none=False)
+    self.C_0 = init_param(C_0, self.var_shape, allow_none=False)
     self._E_initializer = E_initializer
     self._C_initializer = C_initializer
 
     # variables
-    self.C = bm.Variable(init_param(C_initializer, self.num))  # Calcium concentration
-    self.E = bm.Variable(init_param(E_initializer, self.num))  # Reversal potential
+    self.C = bm.Variable(init_param(C_initializer, self.var_shape))  # Calcium concentration
+    self.E = bm.Variable(init_param(E_initializer, self.var_shape))  # Reversal potential
 
     # function
     self.integral = odeint(self.derivative, method=method)
 
   def reset(self, V, C_Ca=None, E_Ca=None):
-    self.C[:] = init_param(self._C_initializer, self.num) if (C_Ca is None) else C_Ca
-    self.E[:] = init_param(self._E_initializer, self.num) if (E_Ca is None) else E_Ca
+    self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
+    self.E[:] = init_param(self._E_initializer, self.var_shape) if (E_Ca is None) else E_Ca
     for node in self.implicit_nodes.values():
       node.reset(V, self.C, self.E)
 
@@ -264,9 +276,11 @@ class CalciumAbstract(Calcium):
 
 
   """
+
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       alpha: Union[float, Tensor, Initializer, Callable] = 0.13,
       beta: Union[float, Tensor, Initializer, Callable] = 0.075,
       C_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.05),
@@ -274,22 +288,22 @@ class CalciumAbstract(Calcium):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(CalciumAbstract, self).__init__(size, name=name)
+    super(CalciumAbstract, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.alpha = init_param(alpha, self.num, allow_none=False)
-    self.beta = init_param(beta, self.num, allow_none=False)
+    self.alpha = init_param(alpha, self.var_shape, allow_none=False)
+    self.beta = init_param(beta, self.var_shape, allow_none=False)
 
     # variables
-    self.C = bm.Variable(init_param(C_initializer, self.num))  # Calcium concentration
-    self.E = bm.Variable(init_param(E_initializer, self.num))  # Reversal potential
+    self.C = bm.Variable(init_param(C_initializer, self.var_shape))  # Calcium concentration
+    self.E = bm.Variable(init_param(E_initializer, self.var_shape))  # Reversal potential
 
     # functions
     self.integral = odeint(self.derivative, method=method)
 
   def reset(self, V, C_Ca=None, E_Ca=None):
-    self.C[:] = init_param(self._C_initializer, self.num) if (C_Ca is None) else C_Ca
-    self.E[:] = init_param(self._E_initializer, self.num) if (E_Ca is None) else E_Ca
+    self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
+    self.E[:] = init_param(self._E_initializer, self.var_shape) if (E_Ca is None) else E_Ca
     for node in self.implicit_nodes.values():
       node.reset(V, self.C, self.E)
 
@@ -312,7 +326,7 @@ class CalciumChannel(IonChannel):
   """Base class for Calcium ion channels."""
 
   '''The type of the master object.'''
-  master_cls = Calcium
+  master_master_type = Calcium
 
   def update(self, t, dt, V, C_Ca, E_Ca):
     raise NotImplementedError
@@ -369,24 +383,25 @@ class IAHP(CalciumChannel):
   """
 
   '''The type of the master object.'''
-  master_cls = CalciumDetailed
+  master_master_type = CalciumDetailed
 
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[float, Tensor, Initializer, Callable] = -80.,
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(IAHP, self).__init__(size, name=name)
+    super(IAHP, self).__init__(size, keep_size=keep_size,  name=name)
 
     # parameters
-    self.E = init_param(E, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -445,26 +460,27 @@ class ICaN(CalciumChannel):
   """
 
   '''The type of the master object.'''
-  master_cls = CalciumDetailed
+  master_master_type = CalciumDetailed
 
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       E: Union[float, Tensor, Initializer, Callable] = 10.,
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaN, self).__init__(size, name=name)
+    super(ICaN, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.E = init_param(E, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.phi = init_param(phi, self.num, allow_none=False)
+    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.phi = init_param(phi, self.var_shape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -529,6 +545,7 @@ class ICaT(CalciumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       T: Union[float, Tensor, Initializer, Callable] = 36.,
       T_base_p: Union[float, Tensor, Initializer, Callable] = 3.55,
       T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
@@ -537,20 +554,20 @@ class ICaT(CalciumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaT, self).__init__(size, name=name)
+    super(ICaT, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.num, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.V_sh = init_param(V_sh, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
+    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
     self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
     self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
-    self.q = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -626,6 +643,7 @@ class ICaT_RE(CalciumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       T: Union[float, Tensor, Initializer, Callable] = 36.,
       T_base_p: Union[float, Tensor, Initializer, Callable] = 5.,
       T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
@@ -634,20 +652,20 @@ class ICaT_RE(CalciumChannel):
       method='exp_auto',
       name=None
   ):
-    super(ICaT_RE, self).__init__(size, name=name)
+    super(ICaT_RE, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.num, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.V_sh = init_param(V_sh, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
+    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
     self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
     self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
-    self.q = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -720,6 +738,7 @@ class ICaHT(CalciumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       T: Union[float, Tensor, Initializer, Callable] = 36.,
       T_base_p: Union[float, Tensor, Initializer, Callable] = 3.55,
       T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
@@ -728,20 +747,20 @@ class ICaHT(CalciumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaHT, self).__init__(size, name=name)
+    super(ICaHT, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.num, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.V_sh = init_param(V_sh, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
+    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
     self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
     self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
-    self.q = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -813,6 +832,7 @@ class ICaL(CalciumChannel):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       T: Union[float, Tensor, Initializer, Callable] = 36.,
       T_base_p: Union[float, Tensor, Initializer, Callable] = 3.55,
       T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
@@ -821,20 +841,20 @@ class ICaL(CalciumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaL, self).__init__(size, name=name)
+    super(ICaL, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.T = init_param(T, self.num, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.num, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.num, allow_none=False)
-    self.g_max = init_param(g_max, self.num, allow_none=False)
-    self.V_sh = init_param(V_sh, self.num, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
+    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
     self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
     self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.num))
-    self.q = bm.Variable(bm.zeros(self.num))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
