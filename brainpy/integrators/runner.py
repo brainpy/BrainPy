@@ -195,7 +195,7 @@ class IntegratorRunner(Runner):
       self.variables[k][:] = inits[k]
     self.dyn_vars.update(self.variables)
     if len(self._dyn_args) > 0:
-      self.idx = bm.Variable(bm.zeros(1))
+      self.idx = bm.Variable(bm.zeros(1, dtype=jnp.int_))
       self.dyn_vars['_idx'] = self.idx
 
     # build the update step
