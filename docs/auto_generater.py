@@ -5,11 +5,12 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, parallels, setting, delayvars,
+                          jit, parallels, setting, delayvars, operators,
                           compat)
 
 block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
-for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, compat]:
+for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, compat,
+               operators]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
