@@ -96,9 +96,7 @@ class Euler(SDEIntegrator):
 
   def step(self, *args, **kwargs):
     all_args = format_args(args, kwargs, self.arg_names)
-    if DT not in all_args:
-      all_args[DT] = self.dt
-    dt = all_args.get(DT, self.dt)
+    dt = all_args.pop(DT, self.dt)
 
     # drift values
     drifts = self.f(**all_args)
@@ -313,9 +311,7 @@ class Milstein(SDEIntegrator):
 
     # input arguments
     all_args = format_args(args, kwargs, self.arg_names)
-    if DT not in all_args:
-      all_args[DT] = self.dt
-    dt = all_args.get(DT, self.dt)
+    dt = all_args.pop(DT, self.dt)
 
     # drift values
     drifts = self.f(**all_args)
@@ -436,9 +432,7 @@ class MilsteinGradFree(SDEIntegrator):
   def step(self, *args, **kwargs):
     # input arguments
     all_args = format_args(args, kwargs, self.arg_names)
-    if DT not in all_args:
-      all_args[DT] = self.dt
-    dt = all_args.get(DT, self.dt)
+    dt = all_args.pop(DT, self.dt)
 
     # drift values
     drifts = self.f(**all_args)
