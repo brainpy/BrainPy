@@ -177,12 +177,6 @@ class DecisionMaking(bp.dyn.Network):
     self.IA = IA
     self.IB = IB
 
-  def update(self, t, dt):
-    nodes = self.nodes(level=1, include_self=False)
-    nodes = nodes.subset(bp.dyn.DynamicalSystem).unique()
-    for node in nodes.values():
-      node.update(t, dt)
-
 
 net = DecisionMaking(scale=1.)
 

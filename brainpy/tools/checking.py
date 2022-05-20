@@ -3,6 +3,7 @@
 from typing import Union, Sequence, Dict, Callable, Tuple, Type
 
 import jax.numpy as jnp
+import numpy as np
 import numpy as onp
 
 import brainpy.connect as conn
@@ -292,7 +293,10 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
     else:
       raise ValueError(f'{name} must be an int, but got None')
   if not isinstance(value, int):
-    if hasattr(value, 'dtype') and not jnp.issubdtype(value.dtype, jnp.integer):
+    if isinstance(value, (jnp.ndarray, np.ndarray)):
+      if not (jnp.issubdtype(value.dtype, jnp.integer) and value.ndim == 0 and value.size == 1):
+        raise ValueError(f'{name} must be an int, but got {value}')
+    else:
       raise ValueError(f'{name} must be an int, but got {value}')
   if min_bound is not None:
     if jnp.any(value < min_bound):
