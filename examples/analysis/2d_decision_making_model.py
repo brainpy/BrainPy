@@ -87,6 +87,6 @@ def fixed_point_finder():
 
 
 if __name__ == '__main__':
-  # phase_plane_analysis()
-  # bifurcation_analysis()
+  phase_plane_analysis()
+  bifurcation_analysis()
   fixed_point_finder()

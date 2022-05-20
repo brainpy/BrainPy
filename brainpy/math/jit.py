@@ -185,8 +185,8 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
 
   Returns
   -------
-  func : Any
-    A wrapped version of Base object or function, set up for just-in-time compilation.
+  func : callable
+    A callable jitted function, set up for just-in-time compilation.
   """
   if callable(func):
     if dyn_vars is not None:

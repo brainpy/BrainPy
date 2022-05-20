@@ -71,7 +71,7 @@ class Collector(dict):
     if not isinstance(other, dict):
       raise ValueError(f'Only support dict, but we got {type(other)}.')
     gather = type(self)()
-    for key, val in self.values():
+    for key, val in self.items():
       if key in other:
         if id(val) != id(other[key]):
           raise ValueError(f'Cannot remove {key}, because we got two different values: '
@@ -170,38 +170,3 @@ class TensorCollector(Collector):
   def data(self):
     """Get all data in each value."""
     return [x.value for x in self.values()]
-
-  # @contextmanager
-  # def replicate(self):
-  #   """A context manager to use in a with statement that replicates
-  #   the variables in this collection to multiple devices.
-  #
-  #   Important: replicating also updates the random state in order
-  #   to have a new one per device.
-  #   """
-  #   global math
-  #   if math is None: from brainpy import math
-  #
-  #   replicated, saved_states = {}, {}
-  #   x = jnp.zeros((jax.local_device_count(), 1), dtype=math.float_)
-  #   sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
-  #   devices = [b.device() for b in sharded_x.device_buffers]
-  #   num_device = len(devices)
-  #   for k, d in self.items():
-  #     if isinstance(d, math.random.RandomState):
-  #       replicated[k] = jax.device_put_sharded([shard for shard in d.split(num_device)], devices)
-  #       saved_states[k] = d.value
-  #     else:
-  #       replicated[k] = jax.device_put_replicated(d.value, devices)
-  #   self.assign(replicated)
-  #   yield
-  #   visited = set()
-  #   for k, d in self.items():
-  #     # Careful not to reduce twice in case of
-  #     # a variable and a reference to it.
-  #     if id(d) not in visited:
-  #       if isinstance(d, math.random.RandomState):
-  #         d.value = saved_states[k]
-  #       else:
-  #         d.value = reduce_func(d)
-  #       visited.add(id(d))
