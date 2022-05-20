@@ -115,11 +115,13 @@ class LIF(NeuGroup):
     self.refractory = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    f = lambda V, t, I_ext: (-V + self.V_rest + I_ext) / self.tau
     if self.noise is None:
-      self.integral = odeint(method=method, f=f)
+      self.integral = odeint(method=method, f=self.derivative)
     else:
-      self.integral = sdeint(method=method, f=f, g=self.noise)
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
+
+  def derivative(self, V, t, I_ext):
+    return (-V + self.V_rest + I_ext) / self.tau
 
   def reset(self):
     self.V.value = init_param(self._V_initializer, self.var_shape)

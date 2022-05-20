@@ -107,6 +107,7 @@ tableau as follows:
 
 import logging
 
+from functools import wraps
 from brainpy import math as bm, errors
 from brainpy.base.collector import Collector
 from brainpy.integrators import constants as C, utils, joint_eq
@@ -319,6 +320,7 @@ class ExponentialEuler(ODEIntegrator):
     parses = self._build_integrator(self.f)
     all_vps = self.variables + self.parameters
 
+    @wraps(self.f)
     def integral_func(*args, **kwargs):
       # format arguments
       params_in = Collector()

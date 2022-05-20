@@ -31,13 +31,6 @@ __all__ = [
   'ContainerWrapper',
 ]
 
-_error_msg = 'Unknown type of the update function: {} ({}). ' \
-             'Currently, BrainPy only supports: \n' \
-             '1. function \n' \
-             '2. function name (str) \n' \
-             '3. tuple/dict of functions \n' \
-             '4. tuple of function names \n'
-
 
 class DynamicalSystem(Base):
   """Base Dynamical System class.
@@ -84,7 +77,7 @@ class DynamicalSystem(Base):
     collector : Collector
       The collection contained (the path, the integrator).
     """
-    nodes = self.nodes(method=method)
+    nodes = self.nodes(method=method, level=-1, include_self=True)
     gather = Collector()
     for node_path, node in nodes.items():
       for k in dir(node):
@@ -162,7 +155,7 @@ class DynamicalSystem(Base):
       else:
         if self.global_delay_vars[name].num_delay_step - 1 < max_delay_step:
           self.global_delay_vars[name].reset(delay_target, max_delay_step, initial_delay_data)
-    self.register_implicit_nodes(self.global_delay_vars)
+    self.register_implicit_nodes(self.local_delay_vars)
     return delay_step
 
   def get_delay_data(
@@ -381,19 +374,19 @@ class Network(Container):
     synapse_groups = nodes.subset(TwoEndConn)
     other_nodes = nodes - neuron_groups - synapse_groups
 
-    # reset synapse nodes
+    # update synapse nodes
     for node in synapse_groups.values():
       node.update(t, dt)
 
-    # reset neuron nodes
+    # update neuron nodes
     for node in neuron_groups.values():
       node.update(t, dt)
 
-    # reset other types of nodes
+    # update other types of nodes
     for node in other_nodes.values():
       node.update(t, dt)
 
-    # reset delays
+    # update delays
     for node in nodes.values():
       for name in node.local_delay_vars.keys():
         self.global_delay_vars[name].update(self.global_delay_targets[name].value)
@@ -718,7 +711,7 @@ class ConNeuGroup(NeuGroup, Container):
   def __init__(
       self,
       size: Shape,
-      keep_size:bool=False,
+      keep_size: bool = False,
       C: Union[float, Tensor, Initializer, Callable] = 1.,
       A: Union[float, Tensor, Initializer, Callable] = 1e-3,
       V_th: Union[float, Tensor, Initializer, Callable] = 0.,

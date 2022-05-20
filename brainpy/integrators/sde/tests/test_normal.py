@@ -7,7 +7,7 @@ import brainpy as bp
 import matplotlib.pyplot as plt
 from brainpy.integrators.sde.normal import ExponentialEuler
 
-block = True
+block = False
 
 
 class TestExpEuler(unittest.TestCase):
@@ -58,10 +58,6 @@ class TestExpEuler(unittest.TestCase):
                                              dt=0.001, inits=[1., 1., 0.], jit=False)
     with self.assertRaises(ValueError):
       runner.run(100.)
-
-    plt.plot(runner.mon.x.flatten(), runner.mon.y.flatten())
-    plt.show(block=block)
-    # bp.visualize.line_plot(runner.mon.x, runner.mon.y, show=True)
 
   def test3(self):
     p = 0.1
