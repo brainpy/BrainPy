@@ -1052,7 +1052,7 @@ class NMDA(TwoEndConn):
 
   .. math::
 
-      I_{syn} = g_{NMDA}(t) (V(t)-E) \cdot g_{\infty}
+      I_{syn} = g_\mathrm{NMDA}(t) (V(t)-E) \cdot g_{\infty}
 
   where :math:`V(t)` is the post-synaptic neuron potential, :math:`E` is the
   reversal potential.
@@ -1061,7 +1061,7 @@ class NMDA(TwoEndConn):
 
   .. math::
 
-      & g_{NMDA} (t) = g_{max} g \\
+      & g_\mathrm{NMDA} (t) = g_{max} g \\
       & \frac{d g}{dt} = -\frac{g} {\tau_{decay}}+a x(1-g) \\
       & \frac{d x}{dt} = -\frac{x}{\tau_{rise}}+ \sum_{k} \delta(t-t_{j}^{k})
 
@@ -1234,6 +1234,10 @@ class NMDA(TwoEndConn):
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
+
+  def reset(self):
+    self.g.value = bm.zeros(self.pre.num)
+    self.x.value = bm.zeros(self.pre.num)
 
   def dg(self, g, t, x):
     return -g / self.tau_decay + self.a * x * (1 - g)

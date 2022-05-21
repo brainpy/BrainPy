@@ -124,7 +124,7 @@ class DynamicalSystem(Base):
     """
     # delay steps
     if delay_step is None:
-      return delay_step
+      delay_type = 'none'
     elif isinstance(delay_step, int):
       delay_type = 'homo'
     elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
