@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.types import Shape
+from typing import Union, Callable
 
+from brainpy.dyn.base import CondNeuGroup
+from brainpy.initialize import Initializer
 from brainpy.initialize import init_param
-from brainpy.dyn.base import ConNeuGroup
+from brainpy.types import Tensor, Shape
 from .base import IonChannel
 
 __all__ = [
@@ -15,7 +17,7 @@ __all__ = [
 
 class LeakyChannel(IonChannel):
   """Base class for leaky channel."""
-  master_master_type = ConNeuGroup
+  master_type = CondNeuGroup
 
 
 class IL(LeakyChannel):
@@ -33,8 +35,8 @@ class IL(LeakyChannel):
       self,
       size,
       keep_size: bool = False,
-      g_max=0.1,
-      E=-70.,
+      g_max: Union[int, float, Tensor, Initializer, Callable] = 0.1,
+      E: Union[int, float, Tensor, Initializer, Callable] = -70.,
       method: str = None,
       name: str = None,
   ):
@@ -70,8 +72,8 @@ class IKL(IL):
       self,
       size: Shape,
       keep_size: bool = False,
-      g_max=0.005,
-      E=-90.,
+      g_max: Union[int, float, Tensor, Initializer, Callable] = 0.005,
+      E: Union[int, float, Tensor, Initializer, Callable] = -90.,
       method=None,
       name=None,
   ):

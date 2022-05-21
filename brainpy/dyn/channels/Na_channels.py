@@ -3,21 +3,22 @@
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.base import ConNeuGroup
+from brainpy.dyn.base import CondNeuGroup
 from brainpy.initialize import Initializer, init_param
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor, Shape
 from .base import IonChannel
 
 __all__ = [
+  'SodiumChannel',
   'INa',
-  'INa_v2',
+  'INa_HH',
 ]
 
 
 class SodiumChannel(IonChannel):
   """Base class for sodium channel."""
-  master_master_type = ConNeuGroup
+  master_type = CondNeuGroup
 
 
 class INa(SodiumChannel):
@@ -63,6 +64,7 @@ class INa(SodiumChannel):
          and transitions to activated states." Journal of neuroscience 22.19 (2002): 8691-8704.
 
   """
+  master_type = CondNeuGroup
 
   def __init__(
       self,
@@ -114,11 +116,10 @@ class INa(SodiumChannel):
     self.p.value, self.q.value = p, q
 
   def current(self, V):
-    g = self.g_max * self.p ** 3 * self.q
-    return g * (self.E - V)
+    return self.g_max * self.p ** 3 * self.q * (self.E - V)
 
 
-class INa_v2(SodiumChannel):
+class INa_HH(SodiumChannel):
   def __init__(
       self,
       size: Shape,
@@ -128,40 +129,40 @@ class INa_v2(SodiumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(INa_v2, self).__init__(size, keep_size=keep_size, name=name)
+    super(INa_HH, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
     self.E = init_param(E, self.var_shape, allow_none=False)
     self.g_max = init_param(g_max, self.var_shape, allow_none=False)
 
     # variables
-    self.m = bm.Variable(bm.zeros(self.var_shape))
-    self.h = bm.Variable(bm.zeros(self.var_shape))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
     # function
-    self.integral = odeint(JointEq([self.dm, self.dh]), method=method)
+    self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
-  def dm(self, m, t, V):
+  def dp(self, m, t, V):
     alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
     beta = 4.0 * bm.exp(-(V + 65) / 18)
     return alpha * (1 - m) - beta * m
 
-  def dh(self, h, t, V):
+  def dq(self, h, t, V):
     alpha = 0.07 * bm.exp(-(V + 65) / 20.)
     beta = 1 / (1 + bm.exp(-(V + 35) / 10))
     return alpha * (1 - h) - beta * h
 
   def update(self, t, dt, V):
-    self.m.value, self.h.value = self.integral(self.m, self.h, t, V, dt)
+    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
 
   def current(self, V):
-    g = self.g_max * self.m ** 3 * self.h
+    g = self.g_max * self.p ** 3 * self.q
     return g * (self.E - V)
 
   def reset(self, V):
     alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
     beta = 4.0 * bm.exp(-(V + 65) / 18)
-    self.m.value = alpha / (alpha + beta)
+    self.p.value = alpha / (alpha + beta)
     alpha = 0.07 * bm.exp(-(V + 65) / 20.)
     beta = 1 / (1 + bm.exp(-(V + 35) / 10))
-    self.h.value = alpha / (alpha + beta)
+    self.q.value = alpha / (alpha + beta)

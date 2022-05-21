@@ -3,7 +3,7 @@
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.base import ConNeuGroup
+from brainpy.dyn.base import CondNeuGroup
 from brainpy.initialize import Initializer, init_param
 from brainpy.integrators import odeint
 from brainpy.types import Shape, Tensor
@@ -12,7 +12,7 @@ from .base import IonChannel
 __all__ = [
   'PotassiumChannel',
   'IK_DR',
-  'IK2',
+  'IK_HH',
 ]
 
 
@@ -20,7 +20,7 @@ class PotassiumChannel(IonChannel):
   """Base class for potassium channel."""
 
   '''The type of the master object.'''
-  master_master_type = ConNeuGroup
+  master_type = CondNeuGroup
 
 
 class IK_DR(PotassiumChannel):
@@ -40,7 +40,6 @@ class IK_DR(PotassiumChannel):
 
   where :math:`\phi` is a temperature-dependent factor, which is given by
   :math:`\phi=3^{\frac{T-36}{10}}` (:math:`T` is the temperature in Celsius).
-
 
   Parameters
   ----------
@@ -111,7 +110,22 @@ class IK_DR(PotassiumChannel):
     self.p.value = alpha / (alpha + beta)
 
 
-class IK2(PotassiumChannel):
+class IK_HH(PotassiumChannel):
+  """The potassium channel in Hodgkin–Huxley model.
+
+  Parameters
+  ----------
+  size: int, sequence of int
+    The geometry size.
+  g_max : float, JaxArray, ndarray, Initializer, Callable
+    The maximal conductance density (:math:`mS/cm^2`).
+  E : float, JaxArray, ndarray, Initializer, Callable
+    The reversal potential (mV).
+  method: str
+    The numerical integration method.
+  name: str
+    The object name.
+  """
   def __init__(
       self,
       size: Shape,
@@ -121,14 +135,14 @@ class IK2(PotassiumChannel):
       method='exp_auto',
       name=None
   ):
-    super(IK2, self).__init__(size, keep_size=keep_size, name=name)
+    super(IK_HH, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
     self.E = init_param(E, self.var_shape, allow_none=False)
     self.g_max = init_param(g_max, self.var_shape, allow_none=False)
 
     # variables
-    self.n = bm.Variable(bm.zeros(self.var_shape))
+    self.p = bm.Variable(bm.zeros(self.var_shape))
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -139,12 +153,12 @@ class IK2(PotassiumChannel):
     return alpha * (1 - n) - beta * n
 
   def update(self, t, dt, V):
-    self.n.value = self.integral(self.n, t, V, dt)
+    self.p.value = self.integral(self.p, t, V, dt)
 
   def current(self, V):
-    return self.g_max * self.n ** 4 * (self.E - V)
+    return self.g_max * self.p ** 4 * (self.E - V)
 
   def reset(self, V):
     alpha = 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
     beta = 0.125 * bm.exp(-(V + 65) / 80)
-    self.n.value = alpha / (alpha + beta)
+    self.p.value = alpha / (alpha + beta)

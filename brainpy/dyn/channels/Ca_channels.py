@@ -3,7 +3,8 @@
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.base import Container, ConNeuGroup
+from brainpy.dyn.base import Container, CondNeuGroup, Channel
+from brainpy.dyn.utils import check_master
 from brainpy.initialize import OneInit, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
@@ -14,7 +15,7 @@ __all__ = [
   'Calcium',
   'CalciumFixed',
   'CalciumDetailed',
-  'CalciumAbstract',
+  'CalciumFirstOrder',
 
   'CalciumChannel',
   'IAHP',
@@ -42,7 +43,7 @@ class Calcium(Ion, Container):
   """
 
   '''The type of the master object.'''
-  master_type = ConNeuGroup
+  master_type = CondNeuGroup
 
   """Reversal potential."""
   E: Union[float, bm.Variable, bm.JaxArray]
@@ -63,13 +64,19 @@ class Calcium(Ion, Container):
     self.method = method
 
   def current(self, V, C_Ca=None, E_Ca=None):
-    C_Ca = self.C if C_Ca is None else C_Ca
-    E_Ca = self.E if E_Ca is None else E_Ca
-    nodes = list(self.implicit_nodes.unique().values())
+    C_Ca = self.C if (C_Ca is None) else C_Ca
+    E_Ca = self.E if (E_Ca is None) else E_Ca
+    nodes = list(self.nodes(level=-1, include_self=False).unique().subset(Channel).values())
     current = nodes[0].current(V, C_Ca, E_Ca)
     for node in nodes[1:]:
       current += node.current(V, C_Ca, E_Ca)
     return current
+
+  def register_implicit_nodes(self, channels):
+    if not isinstance(channels, dict):
+      raise ValueError(f'"channels" must be instance of dict, but we got {type(channels)}')
+    check_master(type(self), **channels)
+    super(Calcium, self).register_implicit_nodes(channels)
 
 
 class CalciumFixed(Calcium):
@@ -88,7 +95,11 @@ class CalciumFixed(Calcium):
       name: str = None,
       **channels
   ):
-    super(CalciumFixed, self).__init__(size, keep_size=keep_size, method=method, name=name, **channels)
+    super(CalciumFixed, self).__init__(size,
+                                       keep_size=keep_size,
+                                       method=method,
+                                       name=name,
+                                       **channels)
     self.E = init_param(E, self.var_shape, allow_none=False)
     self.C = init_param(C, self.var_shape, allow_none=False)
 
@@ -99,11 +110,64 @@ class CalciumFixed(Calcium):
   def reset(self, V, C_Ca=None, E_Ca=None):
     C_Ca = self.C if C_Ca is None else C_Ca
     E_Ca = self.E if E_Ca is None else E_Ca
-    for node in self.implicit_nodes.values():
+    for node in self.nodes(level=-1, include_self=False).unique().subset(Channel).values():
       node.reset(V, C_Ca, E_Ca)
 
 
-class CalciumDetailed(Calcium):
+class CalciumDyna(Calcium):
+  R = 8.31441  # gas constant, J*mol-1*K-1
+  F = 96.489  # the Faraday constant
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      C0: Union[float, Tensor, Initializer, Callable] = 2.,
+      T: Union[float, Tensor, Initializer, Callable] = 36.,
+      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.4e-4),
+      method: str = 'exp_auto',
+      name: str = None,
+      **channels
+  ):
+    super(CalciumDyna, self).__init__(size,
+                                      keep_size=keep_size,
+                                      method=method,
+                                      name=name,
+                                      **channels)
+
+    # parameters
+    self.C0 = init_param(C0, self.var_shape, allow_none=False)
+    self.T = init_param(T, self.var_shape, allow_none=False)  # temperature
+    self._C_initializer = C_initializer
+    self._constant = self.R / (2 * self.F) * (273.15 + self.T)
+
+    # variables
+    self.C = bm.Variable(init_param(C_initializer, self.var_shape))  # Calcium concentration
+    self.E = bm.Variable(self._reversal_potential(self.C))  # Reversal potential
+
+    # function
+    self.integral = odeint(self.derivative, method=method)
+
+  def derivative(self, C, t, V):
+    raise NotImplementedError
+
+  def reset(self, V, C_Ca=None, E_Ca=None):
+    self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
+    self.E.value = self._reversal_potential(self.C)
+    for node in self.nodes(level=-1, include_self=False).unique().subset(Channel).values():
+      node.reset(V, self.C, self.E)
+
+  def update(self, t, dt, V):
+    for node in self.nodes(level=-1, include_self=False).unique().subset(Channel).values():
+      node.update(t, dt, V, self.C, self.E)
+    self.C.value = self.integral(self.C.value, t, V, dt)
+    self.E.value = self._reversal_potential(self.C)
+
+  def _reversal_potential(self, C):
+    return self._constant * bm.log(self.C0 / C)
+
+
+class CalciumDetailed(CalciumDyna):
   r"""Dynamical Calcium model.
 
   **1. The dynamics of intracellular** :math:`Ca^{2+}`
@@ -196,7 +260,7 @@ class CalciumDetailed(Calcium):
     The time constant of the :math:`Ca ^{2+}` removal rate. (ms)
   C_rest : float
     The resting :math:`Ca ^{2+}` concentration.
-  C_0 : float
+  C0 : float
     The :math:`Ca ^{2+}` concentration outside of the membrane.
   R : float
     The gas constant. (:math:` J*mol^{-1}*K^{-1}`)
@@ -209,20 +273,16 @@ class CalciumDetailed(Calcium):
 
   """
 
-  R = 8.31441  # gas constant, J*mol-1*K-1
-  F = 96.489  # the Faraday constant
-
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      d: Union[float, Tensor, Initializer, Callable] = 1.,
-      C_rest: Union[float, Tensor, Initializer, Callable] = 0.05,
-      tau: Union[float, Tensor, Initializer, Callable] = 5.,
-      C_0: Union[float, Tensor, Initializer, Callable] = 2.,
       T: Union[float, Tensor, Initializer, Callable] = 36.,
-      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.05),
-      E_initializer: Union[Initializer, Callable, Tensor] = OneInit(120.),
+      d: Union[float, Tensor, Initializer, Callable] = 1.,
+      C_rest: Union[float, Tensor, Initializer, Callable] = 2.4e-4,
+      tau: Union[float, Tensor, Initializer, Callable] = 5.,
+      C0: Union[float, Tensor, Initializer, Callable] = 2.,
+      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
       **channels
@@ -230,50 +290,29 @@ class CalciumDetailed(Calcium):
     super(CalciumDetailed, self).__init__(size,
                                           keep_size=keep_size,
                                           method=method,
-                                          name=name, **channels)
+                                          name=name,
+                                          T=T,
+                                          C0=C0,
+                                          C_initializer=C_initializer,
+                                          **channels)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)  # temperature
     self.d = init_param(d, self.var_shape, allow_none=False)
     self.tau = init_param(tau, self.var_shape, allow_none=False)
     self.C_rest = init_param(C_rest, self.var_shape, allow_none=False)
-    self.C_0 = init_param(C_0, self.var_shape, allow_none=False)
-    self._E_initializer = E_initializer
-    self._C_initializer = C_initializer
-
-    # variables
-    self.C = bm.Variable(init_param(C_initializer, self.var_shape))  # Calcium concentration
-    self.E = bm.Variable(init_param(E_initializer, self.var_shape))  # Reversal potential
-
-    # function
-    self.integral = odeint(self.derivative, method=method)
-
-  def reset(self, V, C_Ca=None, E_Ca=None):
-    self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
-    self.E[:] = init_param(self._E_initializer, self.var_shape) if (E_Ca is None) else E_Ca
-    for node in self.implicit_nodes.values():
-      node.reset(V, self.C, self.E)
 
   def derivative(self, C, t, V):
     ICa = self.current(V, C, self.E)
-    return - ICa / (2 * self.F * self.d) + (self.C_rest - C) / self.tau
-
-  def update(self, t, dt, V):
-    C = self.integral(self.C.value, t, V, dt)
-    for node in self.implicit_nodes.values():
-      node.update(t, dt, V, self.C, self.E)
-    self.E.value = self.R * (273.15 + self.T) / (2 * self.F) * bm.log(self.C_0 / C)
-    self.C.value = C
+    drive = bm.maximum(- ICa / (2 * self.F * self.d), 0.)
+    return drive + (self.C_rest - C) / self.tau
 
 
-class CalciumAbstract(Calcium):
+class CalciumFirstOrder(CalciumDyna):
   r"""The first-order calcium concentration model.
 
   .. math::
 
      Ca' = -\alpha I_{Ca} + -\beta Ca
-
-
 
   """
 
@@ -281,42 +320,32 @@ class CalciumAbstract(Calcium):
       self,
       size: Shape,
       keep_size: bool = False,
+      T: Union[float, Tensor, Initializer, Callable] = 36.,
       alpha: Union[float, Tensor, Initializer, Callable] = 0.13,
       beta: Union[float, Tensor, Initializer, Callable] = 0.075,
-      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.05),
-      E_initializer: Union[Initializer, Callable, Tensor] = OneInit(120.),
+      C0: Union[float, Tensor, Initializer, Callable] = 2.,
+      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.4e-4),
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      **channels
   ):
-    super(CalciumAbstract, self).__init__(size, keep_size=keep_size, name=name)
+    super(CalciumFirstOrder, self).__init__(size,
+                                            keep_size=keep_size,
+                                            method=method,
+                                            name=name,
+                                            T=T,
+                                            C0=C0,
+                                            C_initializer=C_initializer,
+                                            **channels)
 
     # parameters
     self.alpha = init_param(alpha, self.var_shape, allow_none=False)
     self.beta = init_param(beta, self.var_shape, allow_none=False)
 
-    # variables
-    self.C = bm.Variable(init_param(C_initializer, self.var_shape))  # Calcium concentration
-    self.E = bm.Variable(init_param(E_initializer, self.var_shape))  # Reversal potential
-
-    # functions
-    self.integral = odeint(self.derivative, method=method)
-
-  def reset(self, V, C_Ca=None, E_Ca=None):
-    self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
-    self.E[:] = init_param(self._E_initializer, self.var_shape) if (E_Ca is None) else E_Ca
-    for node in self.implicit_nodes.values():
-      node.reset(V, self.C, self.E)
-
   def derivative(self, C, t, V):
     ICa = self.current(V, C, self.E)
-    return - self.alpha * ICa - self.beta * C
-
-  def update(self, t, dt, V):
-    C = self.integral(self.C.value, t, V, dt)
-    for node in self.implicit_nodes.values():
-      node.update(t, dt, V, self.C, self.E)
-    self.E.value = self.R * (273.15 + self.T) / (2 * self.F) * bm.log(self.C_0 / C)
-    self.C.value = C
+    drive = bm.maximum(- self.alpha * ICa, 0.)
+    return drive - self.beta * C
 
 
 # -------------------------
@@ -326,7 +355,7 @@ class CalciumChannel(IonChannel):
   """Base class for Calcium ion channels."""
 
   '''The type of the master object.'''
-  master_master_type = Calcium
+  master_type = Calcium
 
   def update(self, t, dt, V, C_Ca, E_Ca):
     raise NotImplementedError
@@ -383,7 +412,7 @@ class IAHP(CalciumChannel):
   """
 
   '''The type of the master object.'''
-  master_master_type = CalciumDetailed
+  master_type = CalciumDyna
 
   def __init__(
       self,
@@ -394,7 +423,7 @@ class IAHP(CalciumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(IAHP, self).__init__(size, keep_size=keep_size,  name=name)
+    super(IAHP, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
     self.E = init_param(E, self.var_shape, allow_none=False)
@@ -406,13 +435,13 @@ class IAHP(CalciumChannel):
     # function
     self.integral = odeint(self.derivative, method=method)
 
-  def derivative(self, p, t, V, C_Ca, E_Ca):
+  def derivative(self, p, t, C_Ca):
     C2 = 48 * C_Ca ** 2
     C3 = C2 + 0.09
     return (C2 / C3 - p) * C3
 
   def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value = self.integral(self.p, t, C=C_Ca, dt=dt)
+    self.p.value = self.integral(self.p, t, C_Ca=C_Ca, dt=dt)
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * self.p * (self.E - V)
@@ -460,7 +489,7 @@ class ICaN(CalciumChannel):
   """
 
   '''The type of the master object.'''
-  master_master_type = CalciumDetailed
+  master_type = CalciumDyna
 
   def __init__(
       self,
@@ -518,7 +547,7 @@ class ICaT(CalciumChannel):
       & \begin{array}{l} \tau_{q} = \exp \left(\frac{V+467-V_{sh}}{66.6}\right)  \quad V< (-80 +V_{sh})\, mV  \\
           \tau_{q} = \exp \left(\frac{V+22-V_{sh}}{-10.5}\right)+28 \quad V \geq (-80 + V_{sh})\, mV \end{array}
 
-  where :math:`phi_p = 3.55^{\frac{T-24}{10}}` and :math:`phi_q = 3^{\frac{T-24}{10}}`
+  where :math:`\phi_p = 3.55^{\frac{T-24}{10}}` and :math:`\phi_q = 3^{\frac{T-24}{10}}`
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
