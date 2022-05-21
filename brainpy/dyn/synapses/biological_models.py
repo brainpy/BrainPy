@@ -549,11 +549,16 @@ class BioNMDA(TwoEndConn):
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
     self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
+    self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num, dtype=bm.float_) * -1e7)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
+
+  def reset(self):
+    self.g.value = bm.zeros(self.pre.num)
+    self.x.value = bm.zeros(self.pre.num)
+    self.spike_arrival_time.value = bm.ones(self.pre.num) * -1e7
 
   def dg(self, g, t, x):
     return self.alpha1 * x * (1 - g) - self.beta1 * g
