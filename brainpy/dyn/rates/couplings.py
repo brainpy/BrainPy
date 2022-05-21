@@ -112,7 +112,7 @@ class DiffusiveCoupling(DelayCoupling):
   This class simulates the model of::
 
      coupling = g * (delayed_coupling_var1 - coupling_var2)
-     output_var += coupling
+     target_var += coupling
 
 
   Examples
@@ -209,8 +209,8 @@ class AdditiveCoupling(DelayCoupling):
 
   This class simulates the model of::
 
-     coupling = g * delayed_coupling_var1
-     output_var += coupling
+     coupling = g * delayed_coupling_var
+     target_var += coupling
 
   Parameters
   ----------

@@ -67,6 +67,7 @@ class FHN(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
 
       # fhn parameters
       alpha: Union[float, Tensor, Initializer, Callable] = 3.0,
@@ -88,28 +89,26 @@ class FHN(NeuGroup):
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
-      sde_method: str = None,
-      keep_size: bool = False,
       name: str = None,
   ):
-    super(FHN, self).__init__(size=size, name=name)
+    super(FHN, self).__init__(size=size, name=name, keep_size=keep_size)
 
     # model parameters
-    self.alpha = init_param(alpha, self.num, allow_none=False)
-    self.beta = init_param(beta, self.num, allow_none=False)
-    self.gamma = init_param(gamma, self.num, allow_none=False)
-    self.delta = init_param(delta, self.num, allow_none=False)
-    self.epsilon = init_param(epsilon, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
+    self.alpha = init_param(alpha, self.var_shape, allow_none=False)
+    self.beta = init_param(beta, self.var_shape, allow_none=False)
+    self.gamma = init_param(gamma, self.var_shape, allow_none=False)
+    self.delta = init_param(delta, self.var_shape, allow_none=False)
+    self.epsilon = init_param(epsilon, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)  # mV/ms, OU process
-    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)  # mV/ms, OU process
-    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)  # mV/ms/sqrt(ms), noise intensity
-    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)  # mV/ms/sqrt(ms), noise intensity
-    self.x_ou_tau = init_param(x_ou_tau, self.num,
+    self.x_ou_mean = init_param(x_ou_mean, self.var_shape, allow_none=False)  # mV/ms, OU process
+    self.y_ou_mean = init_param(y_ou_mean, self.var_shape, allow_none=False)  # mV/ms, OU process
+    self.x_ou_sigma = init_param(x_ou_sigma, self.var_shape, allow_none=False)  # mV/ms/sqrt(ms), noise intensity
+    self.y_ou_sigma = init_param(y_ou_sigma, self.var_shape, allow_none=False)  # mV/ms/sqrt(ms), noise intensity
+    self.x_ou_tau = init_param(x_ou_tau, self.var_shape,
                                allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
-    self.y_ou_tau = init_param(y_ou_tau, self.num,
+    self.y_ou_tau = init_param(y_ou_tau, self.var_shape,
                                allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
 
     # initializers
@@ -119,27 +118,27 @@ class FHN(NeuGroup):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
+    self.x = bm.Variable(init_param(x_initializer, self.var_shape))
+    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
 
     # noise variables
     self.x_ou = self.y_ou = None
     if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
-      self.x_ou = OUProcess(self.num,
+      self.x_ou = OUProcess(self.var_shape,
                             self.x_ou_mean, self.x_ou_sigma, self.x_ou_tau,
-                            method=sde_method)
+                            method=method)
     if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
-      self.y_ou = OUProcess(self.num,
+      self.y_ou = OUProcess(self.var_shape,
                             self.y_ou_mean, self.y_ou_sigma, self.y_ou_tau,
-                            method=sde_method)
+                            method=method)
 
     # integral functions
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
   def reset(self):
-    self.x.value = init_param(self._x_initializer, (self.num,))
-    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.x.value = init_param(self._x_initializer, self.var_shape)
+    self.y.value = init_param(self._y_initializer, self.var_shape)
     self.input[:] = 0
     if self.x_ou is not None:
       self.x_ou.reset()
@@ -182,7 +181,7 @@ class FeedbackFHN(NeuGroup):
   **Model Examples**
 
   >>> import brainpy as bp
-  >>> fhn = bp.dyn.FeedbackFHN(1, delay=10.)
+  >>> fhn = bp.dyn.rates.FeedbackFHN(1, delay=10.)
   >>> runner = bp.dyn.DSRunner(fhn, inputs=('input', 1.), monitors=['x', 'y'])
   >>> runner.run(100.)
   >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.y, legend='y')
@@ -232,6 +231,7 @@ class FeedbackFHN(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
 
       # model parameters
       a: Union[float, Tensor, Initializer, Callable] = 0.7,
@@ -255,30 +255,29 @@ class FeedbackFHN(NeuGroup):
       method: str = 'rk4',
       sde_method: str = None,
       name: str = None,
-      keep_size: bool = False,
       dt: float = None
   ):
-    super(FeedbackFHN, self).__init__(size=size, name=name)
+    super(FeedbackFHN, self).__init__(size=size, name=name, keep_size=keep_size)
 
     # dt
     self.dt = bm.get_dt() if dt is None else dt
     check_float(self.dt, 'dt', allow_none=False, min_bound=0., allow_int=False)
 
     # parameters
-    self.a = init_param(a, self.num, allow_none=False)
-    self.b = init_param(b, self.num, allow_none=False)
-    self.delay = init_param(delay, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
-    self.mu = init_param(mu, self.num, allow_none=False)  # feedback strength
-    self.v0 = init_param(v0, self.num, allow_none=False)  # resting potential
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.b = init_param(b, self.var_shape, allow_none=False)
+    self.delay = init_param(delay, self.var_shape, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
+    self.mu = init_param(mu, self.var_shape, allow_none=False)  # feedback strength
+    self.v0 = init_param(v0, self.var_shape, allow_none=False)  # resting potential
 
     # noise parameters
-    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
-    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
-    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
-    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
-    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
-    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
+    self.x_ou_mean = init_param(x_ou_mean, self.var_shape, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.var_shape, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.var_shape, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.var_shape, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.var_shape, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.var_shape, allow_none=False)
 
     # initializers
     check_initializer(x_initializer, 'x_initializer')
@@ -287,19 +286,19 @@ class FeedbackFHN(NeuGroup):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
+    self.x = bm.Variable(init_param(x_initializer, self.var_shape))
+    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
-    self.input = bm.Variable(bm.zeros(self.num))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
 
     # noise variables
     self.x_ou = self.y_ou = None
     if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
-      self.x_ou = OUProcess(self.num,
+      self.x_ou = OUProcess(self.var_shape,
                             self.x_ou_mean, self.x_ou_sigma, self.x_ou_tau,
                             method=sde_method)
     if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
-      self.y_ou = OUProcess(self.num,
+      self.y_ou = OUProcess(self.var_shape,
                             self.y_ou_mean, self.y_ou_sigma, self.y_ou_tau,
                             method=sde_method)
 
@@ -309,8 +308,8 @@ class FeedbackFHN(NeuGroup):
                            state_delays={'V': self.x_delay})
 
   def reset(self):
-    self.x.value = init_param(self._x_initializer, (self.num,))
-    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.x.value = init_param(self._x_initializer, self.var_shape)
+    self.y.value = init_param(self._y_initializer, self.var_shape)
     self.x_delay.reset(self.x, self.delay)
     self.input[:] = 0
     if self.x_ou is not None:
@@ -414,6 +413,7 @@ class QIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
 
       # model parameters
       tau: Union[float, Tensor, Initializer, Callable] = 1.,
@@ -434,27 +434,26 @@ class QIF(NeuGroup):
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
-      keep_size: bool = False,
       sde_method: str = None,
   ):
-    super(QIF, self).__init__(size=size, name=name)
+    super(QIF, self).__init__(size=size, name=name, keep_size=keep_size)
 
     # parameters
-    self.tau = init_param(tau, self.num, allow_none=False)
+    self.tau = init_param(tau, self.var_shape, allow_none=False)
     # the mean of a Lorenzian distribution over the neural excitability in the population
-    self.eta = init_param(eta, self.num, allow_none=False)
+    self.eta = init_param(eta, self.var_shape, allow_none=False)
     # the half-width at half maximum of the Lorenzian distribution over the neural excitability
-    self.delta = init_param(delta, self.num, allow_none=False)
+    self.delta = init_param(delta, self.var_shape, allow_none=False)
     # the strength of the recurrent coupling inside the population
-    self.J = init_param(J, self.num, allow_none=False)
+    self.J = init_param(J, self.var_shape, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
-    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
-    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
-    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
-    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
-    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
+    self.x_ou_mean = init_param(x_ou_mean, self.var_shape, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.var_shape, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.var_shape, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.var_shape, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.var_shape, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.var_shape, allow_none=False)
 
     # initializers
     check_initializer(x_initializer, 'x_initializer')
@@ -463,18 +462,18 @@ class QIF(NeuGroup):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
+    self.x = bm.Variable(init_param(x_initializer, self.var_shape))
+    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
 
     # noise variables
     self.x_ou = self.y_ou = None
     if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
-      self.x_ou = OUProcess(self.num,
+      self.x_ou = OUProcess(self.var_shape,
                             self.x_ou_mean, self.x_ou_sigma, self.x_ou_tau,
                             method=sde_method)
     if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
-      self.y_ou = OUProcess(self.num,
+      self.y_ou = OUProcess(self.var_shape,
                             self.y_ou_mean, self.y_ou_sigma, self.y_ou_tau,
                             method=sde_method)
 
@@ -482,8 +481,8 @@ class QIF(NeuGroup):
     self.integral = odeint(JointEq([self.dx, self.dy]), method=method)
 
   def reset(self):
-    self.x.value = init_param(self._x_initializer, (self.num,))
-    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.x.value = init_param(self._x_initializer, self.var_shape)
+    self.y.value = init_param(self._y_initializer, self.var_shape)
     self.input[:] = 0
     if self.x_ou is not None:
       self.x_ou.reset()
@@ -540,6 +539,7 @@ class StuartLandauOscillator(Population):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
 
       # model parameters
       a: Union[float, Tensor, Initializer, Callable] = 0.25,
@@ -557,24 +557,24 @@ class StuartLandauOscillator(Population):
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       method: str = 'exp_auto',
-      keep_size: bool = False,
       sde_method: str = None,
       name: str = None,
   ):
     super(StuartLandauOscillator, self).__init__(size=size,
-                                                 name=name)
+                                                 name=name,
+                                                 keep_size=keep_size)
 
     # model parameters
-    self.a = init_param(a, self.num, allow_none=False)
-    self.w = init_param(w, self.num, allow_none=False)
+    self.a = init_param(a, self.var_shape, allow_none=False)
+    self.w = init_param(w, self.var_shape, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
-    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
-    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
-    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
-    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
-    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
+    self.x_ou_mean = init_param(x_ou_mean, self.var_shape, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.var_shape, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.var_shape, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.var_shape, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.var_shape, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.var_shape, allow_none=False)
 
     # initializers
     check_initializer(x_initializer, 'x_initializer')
@@ -583,18 +583,18 @@ class StuartLandauOscillator(Population):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
+    self.x = bm.Variable(init_param(x_initializer, self.var_shape))
+    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
 
     # noise variables
     self.x_ou = self.y_ou = None
     if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
-      self.x_ou = OUProcess(self.num,
+      self.x_ou = OUProcess(self.var_shape,
                             self.x_ou_mean, self.x_ou_sigma, self.x_ou_tau,
                             method=sde_method)
     if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
-      self.y_ou = OUProcess(self.num,
+      self.y_ou = OUProcess(self.var_shape,
                             self.y_ou_mean, self.y_ou_sigma, self.y_ou_tau,
                             method=sde_method)
 
@@ -602,8 +602,8 @@ class StuartLandauOscillator(Population):
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
   def reset(self):
-    self.x.value = init_param(self._x_initializer, (self.num,))
-    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.x.value = init_param(self._x_initializer, self.var_shape)
+    self.y.value = init_param(self._y_initializer, self.var_shape)
     self.input[:] = 0
     if self.x_ou is not None:
       self.x_ou.reset()
@@ -656,6 +656,7 @@ class WilsonCowanModel(Population):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
 
       # Excitatory parameters
       E_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # excitatory time constant
@@ -690,32 +691,31 @@ class WilsonCowanModel(Population):
 
       # other parameters
       sde_method: str = None,
-      keep_size: bool = False,
       method: str = 'exp_euler_auto',
       name: str = None,
   ):
-    super(WilsonCowanModel, self).__init__(size=size, name=name)
+    super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size)
 
     # model parameters
-    self.E_a = init_param(E_a, self.num, allow_none=False)
-    self.I_a = init_param(I_a, self.num, allow_none=False)
-    self.E_tau = init_param(E_tau, self.num, allow_none=False)
-    self.I_tau = init_param(I_tau, self.num, allow_none=False)
-    self.E_theta = init_param(E_theta, self.num, allow_none=False)
-    self.I_theta = init_param(I_theta, self.num, allow_none=False)
-    self.wEE = init_param(wEE, self.num, allow_none=False)
-    self.wIE = init_param(wIE, self.num, allow_none=False)
-    self.wEI = init_param(wEI, self.num, allow_none=False)
-    self.wII = init_param(wII, self.num, allow_none=False)
-    self.r = init_param(r, self.num, allow_none=False)
+    self.E_a = init_param(E_a, self.var_shape, allow_none=False)
+    self.I_a = init_param(I_a, self.var_shape, allow_none=False)
+    self.E_tau = init_param(E_tau, self.var_shape, allow_none=False)
+    self.I_tau = init_param(I_tau, self.var_shape, allow_none=False)
+    self.E_theta = init_param(E_theta, self.var_shape, allow_none=False)
+    self.I_theta = init_param(I_theta, self.var_shape, allow_none=False)
+    self.wEE = init_param(wEE, self.var_shape, allow_none=False)
+    self.wIE = init_param(wIE, self.var_shape, allow_none=False)
+    self.wEI = init_param(wEI, self.var_shape, allow_none=False)
+    self.wII = init_param(wII, self.var_shape, allow_none=False)
+    self.r = init_param(r, self.var_shape, allow_none=False)
 
     # noise parameters
-    self.x_ou_mean = init_param(x_ou_mean, self.num, allow_none=False)
-    self.y_ou_mean = init_param(y_ou_mean, self.num, allow_none=False)
-    self.x_ou_sigma = init_param(x_ou_sigma, self.num, allow_none=False)
-    self.y_ou_sigma = init_param(y_ou_sigma, self.num, allow_none=False)
-    self.x_ou_tau = init_param(x_ou_tau, self.num, allow_none=False)
-    self.y_ou_tau = init_param(y_ou_tau, self.num, allow_none=False)
+    self.x_ou_mean = init_param(x_ou_mean, self.var_shape, allow_none=False)
+    self.y_ou_mean = init_param(y_ou_mean, self.var_shape, allow_none=False)
+    self.x_ou_sigma = init_param(x_ou_sigma, self.var_shape, allow_none=False)
+    self.y_ou_sigma = init_param(y_ou_sigma, self.var_shape, allow_none=False)
+    self.x_ou_tau = init_param(x_ou_tau, self.var_shape, allow_none=False)
+    self.y_ou_tau = init_param(y_ou_tau, self.var_shape, allow_none=False)
 
     # initializers
     check_initializer(x_initializer, 'x_initializer')
@@ -724,18 +724,18 @@ class WilsonCowanModel(Population):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = bm.Variable(init_param(x_initializer, (self.num,)))
-    self.y = bm.Variable(init_param(y_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
+    self.x = bm.Variable(init_param(x_initializer, self.var_shape))
+    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
 
     # noise variables
     self.x_ou = self.y_ou = None
     if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
-      self.x_ou = OUProcess(self.num,
+      self.x_ou = OUProcess(self.var_shape,
                             self.x_ou_mean, self.x_ou_sigma, self.x_ou_tau,
                             method=sde_method)
     if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
-      self.y_ou = OUProcess(self.num,
+      self.y_ou = OUProcess(self.var_shape,
                             self.y_ou_mean, self.y_ou_sigma, self.y_ou_tau,
                             method=sde_method)
 
@@ -743,8 +743,8 @@ class WilsonCowanModel(Population):
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
   def reset(self):
-    self.x.value = init_param(self._x_initializer, (self.num,))
-    self.y.value = init_param(self._y_initializer, (self.num,))
+    self.x.value = init_param(self._x_initializer, self.var_shape)
+    self.y.value = init_param(self._y_initializer, self.var_shape)
     self.input[:] = 0
     if self.x_ou is not None:
       self.x_ou.reset()
@@ -841,39 +841,39 @@ class ThresholdLinearModel(Population):
 
     # parameters
     self.seed = seed
-    self.tau_e = init_param(tau_e, self.num, False)
-    self.tau_i = init_param(tau_i, self.num, False)
-    self.beta_e = init_param(beta_e, self.num, False)
-    self.beta_i = init_param(beta_i, self.num, False)
-    self.noise_e = init_param(noise_e, self.num, False)
-    self.noise_i = init_param(noise_i, self.num, False)
+    self.tau_e = init_param(tau_e, self.var_shape, False)
+    self.tau_i = init_param(tau_i, self.var_shape, False)
+    self.beta_e = init_param(beta_e, self.var_shape, False)
+    self.beta_i = init_param(beta_i, self.var_shape, False)
+    self.noise_e = init_param(noise_e, self.var_shape, False)
+    self.noise_i = init_param(noise_i, self.var_shape, False)
     self._e_initializer = e_initializer
     self._i_initializer = i_initializer
 
     # variables
-    self.e = bm.Variable(init_param(e_initializer, self.num))  # Firing rate of excitatory population
-    self.i = bm.Variable(init_param(i_initializer, self.num))  # Firing rate of inhibitory population
-    self.Ie = bm.Variable(bm.zeros(self.num))  # Input of excitaory population
-    self.Ii = bm.Variable(bm.zeros(self.num))  # Input of inhibitory population
+    self.e = bm.Variable(init_param(e_initializer, self.var_shape))  # Firing rate of excitatory population
+    self.i = bm.Variable(init_param(i_initializer, self.var_shape))  # Firing rate of inhibitory population
+    self.Ie = bm.Variable(bm.zeros(self.var_shape))  # Input of excitaory population
+    self.Ii = bm.Variable(bm.zeros(self.var_shape))  # Input of inhibitory population
     if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
       self.rng = bm.random.RandomState(self.seed)
 
   def reset(self):
     self.rng.seed(self.seed)
-    self.e.value = init_param(self._e_initializer, self.num)
-    self.i.value = init_param(self._i_initializer, self.num)
+    self.e.value = init_param(self._e_initializer, self.var_shape)
+    self.i.value = init_param(self._i_initializer, self.var_shape)
     self.Ie[:] = 0.
     self.Ii[:] = 0.
 
   def update(self, t, dt):
     de = -self.e + self.beta_e * bm.maximum(self.Ie, 0.)
     if bm.any(self.noise_e != 0.):
-      de += self.rng.randn(self.num) * self.noise_e
+      de += self.rng.randn(self.var_shape) * self.noise_e
     de = de / self.tau_e
     self.e.value = bm.maximum(self.e + de * dt, 0.)
     di = -self.i + self.beta_i * bm.maximum(self.Ii, 0.)
     if bm.any(self.noise_i != 0.):
-      di += self.rng.randn(self.num) * self.noise_i
+      di += self.rng.randn(self.var_shape) * self.noise_i
     di = di / self.tau_i
     self.i.value = bm.maximum(self.i + di * dt, 0.)
     self.Ie[:] = 0.

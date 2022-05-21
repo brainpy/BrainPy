@@ -178,11 +178,11 @@ class STP(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      U: float = 0.15,
-      tau_f: float = 1500.,
-      tau_d: float = 200.,
-      tau: float = 8.,
-      A: float = 1.,
+      U: Union[float, Tensor] = 0.15,
+      tau_f: Union[float, Tensor] = 1500.,
+      tau_d: Union[float, Tensor] = 200.,
+      tau: Union[float, Tensor] = 8.,
+      A: Union[float, Tensor] = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
@@ -203,9 +203,9 @@ class STP(TwoEndConn):
 
     # variables
     self.num = len(self.pre_ids)
-    self.x = bm.Variable(bm.ones(self.num, dtype=bm.float_))
-    self.u = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
-    self.I = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
+    self.x = bm.Variable(bm.ones(self.num))
+    self.u = bm.Variable(bm.zeros(self.num))
+    self.I = bm.Variable(bm.zeros(self.num))
     self.delay_type, self.delay_step, self.delay_I = init_delay(delay_step, self.I)
 
     # integral
