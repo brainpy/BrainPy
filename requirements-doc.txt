@@ -14,3 +14,4 @@ myst-nb
 sphinx_book_theme
 sphinx-autodoc-typehints
 sphinx_thebe
+sphinx-mathjax-offline
