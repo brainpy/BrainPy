@@ -3,8 +3,8 @@
 """
 This module provides numerical solvers for Grünwald–Letnikov derivative FDEs.
 """
-import warnings
-from typing import Dict, Union
+
+from typing import Dict, Union, Callable
 
 import jax.numpy as jnp
 
@@ -13,6 +13,7 @@ from brainpy.errors import UnsupportedError
 from brainpy.integrators.constants import DT
 from brainpy.integrators.utils import check_inits, format_args
 from .base import FDEIntegrator
+from .generic import register_fde_integrator
 
 __all__ = [
   'GLShortMemory'
@@ -99,16 +100,10 @@ class GLShortMemory(FDEIntegrator):
     The derivative function.
   alpha: int, float, jnp.ndarray, bm.ndarray, sequence
     The fractional-order of the derivative function. Should be in the range of ``(0., 1.)``.
-  num_step: int
-    The length of the short memory.
-
-    ..versionadded:: 2.1.11
-
   num_memory: int
     The length of the short memory.
 
     .. versionchanged:: 2.1.11
-       Please use ``num_step`` instead. ``num_memory`` will be no longer supportted since 2.2.0.
 
   inits: sequence
     A sequence of the initial values for variables.
@@ -128,27 +123,23 @@ class GLShortMemory(FDEIntegrator):
          order chaotic systems", International Journal of Electronics and
          Communications, vol. 78, pp. 162-172, 2017.
   """
+
   def __init__(
       self,
-      f,
+      f: Callable,
       alpha,
       inits,
-      num_memory=None,
-      num_step=None,
-      dt=None,
-      name=None,
+      num_memory: int,
+      dt: float = None,
+      name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
   ):
-    if num_step is None:
-      if isinstance(num_memory, int):
-        warnings.warn('Please use ``num_step`` instead. ``num_memory`` '
-                      'will be no longer supported since 2.1.11.',
-                      DeprecationWarning)
-        num_step = num_memory
-      else:
-        raise ValueError('Must provide ``num_step`` parameter to specify the memory length.')
-    super(GLShortMemory, self).__init__(f=f, alpha=alpha, dt=dt, name=name,
-                                        num_step=num_step, state_delays=state_delays)
+    super(GLShortMemory, self).__init__(f=f,
+                                        alpha=alpha,
+                                        dt=dt,
+                                        name=name,
+                                        num_memory=num_memory,
+                                        state_delays=state_delays)
 
     # fractional order
     if not bm.all(bm.logical_and(self.alpha <= 1, self.alpha > 0)):
@@ -168,7 +159,7 @@ class GLShortMemory(FDEIntegrator):
     self.register_implicit_vars(self.delays)
 
     # binomial coefficients
-    bc = (1 - (1 + self.alpha.reshape((-1, 1))) / jnp.arange(1, num_step + 1))
+    bc = (1 - (1 + self.alpha.reshape((-1, 1))) / jnp.arange(1, num_memory + 1))
     bc = bm.cumprod(bm.vstack([bm.ones_like(self.alpha), bc.T]), axis=0)
     self._binomial_coef = bm.flip(bc[1:], axis=0)
 
@@ -221,3 +212,6 @@ class GLShortMemory(FDEIntegrator):
       return integrals[0]
     else:
       return integrals
+
+
+register_fde_integrator(name='short-memory', integrator=GLShortMemory)
