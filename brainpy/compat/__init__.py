@@ -3,7 +3,7 @@
 
 __all__ = [
   # modules
-  'brainobjects', 'layers', 'models',
+  'brainobjects', 'layers',
 
   # brainobjects
   'DynamicalSystem', 'Container', 'Network',
@@ -20,7 +20,7 @@ __all__ = [
   'IntegratorRunner', 'DSRunner', 'StructRunner', 'ReportRunner'
 ]
 
-from . import brainobjects, layers, models
+from . import brainobjects, layers
 from .brainobjects import *
 from .integrators import *
 from .monitor import *
