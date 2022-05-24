@@ -416,7 +416,8 @@ class RandomState(Variable):
     seed : int
       The new initial seed of the random number generator.
     """
-    self.value = jr.PRNGKey(seed)
+    if seed is not None:
+      self.value = jr.PRNGKey(seed)
 
   def split_key(self):
     """Create a new seed from the current seed.
