@@ -640,11 +640,12 @@ class NMDA(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import synapses
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = bp.dyn.HH(1)
     >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
@@ -677,14 +678,6 @@ class NMDA(TwoEndConn):
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-  alpha: float, JaxArray, ndarray
-    Binding constant. Default 0.062
-  beta: float, JaxArray, ndarray
-    Unbinding constant. Default 3.57
-  cc_Mg: float, JaxArray, ndarray
-    Concentration of Magnesium ion. Default 1.2 [mM].
   tau_decay: float, JaxArray, ndarray
     The time constant of the synaptic decay phase. Default 100 [ms]
   tau_rise: float, JaxArray, ndarray
@@ -695,6 +688,29 @@ class NMDA(TwoEndConn):
     The name of this synaptic projection.
   method: str
     The numerical integration methods.
+  E: float, JaxArray, ndarray
+    The reversal potential for the synaptic current. [mV]
+
+    .. deprecated:: 2.1.13
+       Parameter `E` is no longer supported. Please use :py:class:`~.MgBlock` instead.
+
+  alpha: float, JaxArray, ndarray
+    Binding constant. Default 0.062
+
+    .. deprecated:: 2.1.13
+       Parameter `alpha` is no longer supported. Please use :py:class:`~.MgBlock` instead.
+
+  beta: float, JaxArray, ndarray
+    Unbinding constant. Default 3.57
+
+    .. deprecated:: 2.1.13
+       Parameter `beta` is no longer supported. Please use :py:class:`~.MgBlock` instead.
+
+  cc_Mg: float, JaxArray, ndarray
+    Concentration of Magnesium ion. Default 1.2 [mM].
+
+    .. deprecated:: 2.1.13
+       Parameter `cc_Mg` is no longer supported. Please use :py:class:`~.MgBlock` instead.
 
   References
   ----------
@@ -717,19 +733,22 @@ class NMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = None,
+      output: Optional[SynapseOutput] = None,
       plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
-
-      E: Union[float, Tensor] = 0.,
-
       tau_decay: Union[float, Tensor] = 100.,
       a: Union[float, Tensor] = 0.5,
       tau_rise: Union[float, Tensor] = 2.,
       method: str = 'exp_auto',
       name: str = None,
+
+      # deprecated
+      alpha=None,
+      beta=None,
+      cc_Mg=None,
+      E: Union[float, Tensor] = 0.,
   ):
     super(NMDA, self).__init__(pre=pre,
                                post=post,
@@ -739,6 +758,15 @@ class NMDA(TwoEndConn):
                                name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
+
+    if alpha is not None:
+      raise ValueError(f'alpha is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
+    if beta is not None:
+      raise ValueError(f'beta is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
+    if cc_Mg is not None:
+      raise ValueError(f'cc_Mg is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
+    if E is not None:
+      raise ValueError(f'E is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
 
     # parameters
     self.tau_decay = tau_decay

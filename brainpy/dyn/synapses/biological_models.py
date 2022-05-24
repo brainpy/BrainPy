@@ -512,12 +512,6 @@ class BioNMDA(TwoEndConn):
       raise ValueError(f'"alpha2" must be a scalar or a tensor with size of 1. But we got {alpha2}')
     if bm.size(beta2) != 1:
       raise ValueError(f'"beta2" must be a scalar or a tensor with size of 1. But we got {beta2}')
-    if bm.size(a) != 1:
-      raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
-    if bm.size(b) != 1:
-      raise ValueError(f'"b" must be a scalar or a tensor with size of 1. But we got {b}')
-    if bm.size(cc_Mg) != 1:
-      raise ValueError(f'"cc_Mg" must be a scalar or a tensor with size of 1. But we got {cc_Mg}')
     if bm.size(T_0) != 1:
       raise ValueError(f'"T_0" must be a scalar or a tensor with size of 1. But we got {T_0}')
     if bm.size(T_dur) != 1:
