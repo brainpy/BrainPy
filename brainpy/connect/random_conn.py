@@ -51,10 +51,7 @@ class FixedProb(TwoEndConnector):
         p = rng.random(num_post) <= prob
         if (not include_self) and pre_i < num_post:
           p[pre_i] = False
-        conn_j = np.asarray(np.where(p)[0], dtype=IDX_DTYPE)
-      else:
-        conn_j = np.asarray([], dtype=IDX_DTYPE)
-      return conn_j
+        return np.where(p)[0]
 
     self._connect = numba_jit(_connect)
 
@@ -68,8 +65,9 @@ class FixedProb(TwoEndConnector):
     count = np.zeros(self.pre_num, dtype=IDX_DTYPE)
     for i in range(self.pre_num):
       posts = self._connect(pre_i=i, num_post=self.post_num)
-      ind.append(posts)
-      count[i] = len(posts)
+      if posts is not None:
+        ind.append(posts)
+        count[i] = len(posts)
     ind = np.concatenate(ind)
     indptr = np.concatenate(([0], count)).cumsum()
 
@@ -427,7 +425,7 @@ class SmallWorld(TwoEndConnector):
           else:
             # inner loop in node order
             for u, v in zip(nodes, targets):
-              w = self._connect(prob=self.prob, i=u, all_j=conn[u])
+              w = self._connect(i=u, all_j=conn[u])
               if w != -1:
                 conn[u, v] = False
                 conn[v, u] = False
@@ -530,7 +528,7 @@ class ScaleFreeBA(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)
       # Now choose m unique nodes from the existing nodes
       # Pick uniformly from repeated_nodes (preferential attachment)
-      targets = list(self._connect(repeated_nodes, self.m))
+      targets = list(self._connect(np.asarray(repeated_nodes), self.m))
       source += 1
 
     return 'mat', conn
@@ -624,7 +622,7 @@ class ScaleFreeBADual(TwoEndConnector):
       m = self.m1 if self.rng.random() < self.p else self.m2
       # Now choose m unique nodes from the existing nodes
       # Pick uniformly from repeated_nodes (preferential attachment)
-      targets = list(self._connect(repeated_nodes, m))
+      targets = list(self._connect(np.asarray(repeated_nodes), m))
       source += 1
 
     return 'mat', conn
@@ -708,7 +706,7 @@ class PowerLaw(TwoEndConnector):
     # with nodes repeated once for each adjacent edge
     source = self.m  # next node is m
     while source < num_node:  # Now add the other n-1 nodes
-      possible_targets = self._connect(repeated_nodes, self.m)
+      possible_targets = self._connect(np.asarray(repeated_nodes), self.m)
       # do one preferential attachment for new node
       target = possible_targets.pop()
       conn[source, target] = True
