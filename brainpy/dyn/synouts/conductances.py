@@ -2,8 +2,8 @@
 
 from typing import Union, Callable
 
+from brainpy.dyn.base import SynapseOutput
 from brainpy.initialize import init_param, Initializer
-from brainpy.dyn.base import SynapseOutput, NeuGroup
 from brainpy.types import Tensor
 
 __all__ = [
@@ -50,8 +50,6 @@ class COBA(SynapseOutput):
 
   Parameters
   ----------
-  post: NeuGroup
-    The post-synaptic neuron group.
   E: float, JaxArray, ndarray, callable, Initializer
     The reversal potential.
   name: str
@@ -64,17 +62,15 @@ class COBA(SynapseOutput):
 
   def __init__(
       self,
-      post: NeuGroup,
       E: Union[float, Tensor, Callable, Initializer] = 0.,
       name: str = None
   ):
     super(COBA, self).__init__(name=name)
-    if not isinstance(post, NeuGroup):
-      raise ValueError(f'post should be instance of {NeuGroup.__name__}, but we got {type(post)}')
-    if not hasattr(post, 'V'):
-      raise ValueError('post should has the attribute of "V".')
-    self.E = init_param(E, post.num, allow_none=False)
-    self.post = post
+    self._E = E
+
+  def register_master(self, master):
+    super(COBA, self).register_master(master)
+    self.E = init_param(self._E, self.master.post.num, allow_none=False)
 
   def filter(self, g):
-    return g * (self.E - self.post.V)
+    return g * (self.E - self.master.post.V)

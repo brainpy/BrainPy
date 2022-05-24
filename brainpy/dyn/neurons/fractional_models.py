@@ -270,7 +270,7 @@ class FractionalIzhikevich(FractionalNeuron):
     check_integer(num_step, 'num_step', allow_none=False)
     self.integral = CaputoL1Schema(f=self.derivative,
                                    alpha=alpha,
-                                   num_step=num_step,
+                                   num_memory=num_step,
                                    inits=[self.V, self.u])
 
   def reset(self):

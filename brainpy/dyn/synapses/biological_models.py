@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, TwoEndConn
+from brainpy.dyn.base import NeuGroup, TwoEndConn, SynapsePlasticity, SynapseOutput
 from brainpy.initialize import Initializer, init_param
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
+from ..synouts import COBA, MgBlock
 
 __all__ = [
   'AMPA',
@@ -128,6 +129,8 @@ class AMPA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      output: SynapseOutput = None,
+      plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
@@ -139,7 +142,12 @@ class AMPA(TwoEndConn):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(AMPA, self).__init__(pre=pre, post=post, conn=conn, name=name)
+    super(AMPA, self).__init__(pre=pre,
+                               post=post,
+                               conn=conn,
+                               output=COBA(E=0.) if output is None else output,
+                               plasticity=plasticity,
+                               name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 
@@ -200,7 +208,9 @@ class AMPA(TwoEndConn):
     self.integral = odeint(method=method, f=self.dg)
 
   def reset(self):
-    self.g.value = bm.zeros(self.pre.num)
+    self.g[:] = 0
+    self.output.reset()
+    self.plasticity.reset()
 
   def dg(self, g, t, TT):
     dg = self.alpha * TT * (1 - g) - self.beta * g
@@ -209,34 +219,37 @@ class AMPA(TwoEndConn):
   def update(self, t, dt):
     # delays
     pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    self.output.update(t, dt)
+    self.plasticity.update(t, dt, pre_spike, self.post.spike)
 
-    # spike arrival time
+    # update synaptic variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-
-    # post-synaptic values
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, t, TT, dt=dt)
+
+    # post-synaptic values
+    syn_value = self.plasticity.filter(self.g)
     if isinstance(self.conn, One2One):
-      post_g = self.g_max * self.g
+      post_g = self.g_max * syn_value
     elif isinstance(self.conn, All2All):
       if self.weight_type == 'homo':
-        post_g = bm.sum(self.g)
+        post_g = bm.sum(syn_value)
         if not self.conn.include_self:
-          post_g = post_g - self.g
+          post_g = post_g - syn_value
         post_g = post_g * self.g_max
       else:
-        post_g = self.g @ self.g_max
+        post_g = syn_value @ self.g_max
     else:
       if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
+        post_g = bm.pre2post_sum(syn_value, self.post.num, self.post_ids, self.pre_ids)
       else:
         if self.weight_type == 'homo':
-          post_g = (self.g_max * self.g) @ self.conn_mat
+          post_g = (self.g_max * syn_value) @ self.conn_mat
         else:
-          post_g = self.g @ self.g_max
+          post_g = syn_value @ self.g_max
 
     # output
-    self.post.input -= post_g * (self.post.V - self.E)
+    self.post.input += self.output.filter(post_g)
 
 
 class GABAa(AMPA):
@@ -307,10 +320,11 @@ class GABAa(AMPA):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      output: SynapseOutput = None,
+      plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      E: Union[float, Tensor] = -80.,
       alpha: Union[float, Tensor] = 0.53,
       beta: Union[float, Tensor] = 0.18,
       T: Union[float, Tensor] = 1.,
@@ -318,11 +332,14 @@ class GABAa(AMPA):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(GABAa, self).__init__(pre, post, conn,
+    super(GABAa, self).__init__(pre=pre,
+                                post=post,
+                                conn=conn,
+                                output=COBA(E=-80.) if output is None else output,
+                                plasticity=plasticity,
                                 conn_type=conn_type,
                                 delay_step=delay_step,
                                 g_max=g_max,
-                                E=E,
                                 alpha=alpha,
                                 beta=beta,
                                 T=T,
@@ -424,14 +441,6 @@ class BioNMDA(TwoEndConn):
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-  a: float, JaxArray, ndarray
-    Binding constant. Default 0.062
-  b: float, JaxArray, ndarray
-    Unbinding constant. Default 3.57
-  cc_Mg: float, JaxArray, ndarray
-    Concentration of Magnesium ion. Default 1.2 [mM].
   alpha1: float, JaxArray, ndarray
     The conversion rate of g from inactive to active. Default 2 ms^-1.
   beta1: float, JaxArray, ndarray
@@ -465,13 +474,11 @@ class BioNMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      output: SynapseOutput = None,
+      plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      E: Union[float, Tensor] = 0.,
-      cc_Mg: Union[float, Tensor] = 1.2,
-      a: Union[float, Tensor] = 0.062,
-      b: Union[float, Tensor] = 3.57,
       alpha1: Union[float, Tensor] = 2.,
       beta1: Union[float, Tensor] = 0.01,
       alpha2: Union[float, Tensor] = 1.,
@@ -481,15 +488,16 @@ class BioNMDA(TwoEndConn):
       method: str = 'exp_auto',
       name: str = None,
   ):
-    super(BioNMDA, self).__init__(pre=pre, post=post, conn=conn, name=name)
+    super(BioNMDA, self).__init__(pre=pre,
+                                  post=post,
+                                  conn=conn,
+                                  output=MgBlock(E=0.) if output is None else output,
+                                  plasticity=plasticity,
+                                  name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 
     # parameters
-    self.E = E
-    self.alpha = a
-    self.beta = b
-    self.cc_Mg = cc_Mg
     self.beta1 = beta1
     self.beta2 = beta2
     self.alpha1 = alpha1
@@ -504,8 +512,6 @@ class BioNMDA(TwoEndConn):
       raise ValueError(f'"alpha2" must be a scalar or a tensor with size of 1. But we got {alpha2}')
     if bm.size(beta2) != 1:
       raise ValueError(f'"beta2" must be a scalar or a tensor with size of 1. But we got {beta2}')
-    if bm.size(E) != 1:
-      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. But we got {E}')
     if bm.size(a) != 1:
       raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
     if bm.size(b) != 1:
@@ -559,6 +565,7 @@ class BioNMDA(TwoEndConn):
     self.g.value = bm.zeros(self.pre.num)
     self.x.value = bm.zeros(self.pre.num)
     self.spike_arrival_time.value = bm.ones(self.pre.num) * -1e7
+    self.plasticity.reset()
 
   def dg(self, g, t, x):
     return self.alpha1 * x * (1 - g) - self.beta1 * g
@@ -568,35 +575,35 @@ class BioNMDA(TwoEndConn):
 
   def update(self, t, dt):
     # delays
-    delayed_pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+
+    self.plasticity.update(t, dt, pre_spike, self.post.spike)
 
     # update synapse variables
-    self.spike_arrival_time.value = bm.where(delayed_pre_spike, t, self.spike_arrival_time)
+    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt=dt)
 
     # post-synaptic value
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
+    syn_value = self.plasticity.filter(self.g.value)
     if isinstance(self.conn, All2All):
       if self.weight_type == 'homo':
-        post_g = bm.sum(self.g)
+        post_g = bm.sum(syn_value)
         if not self.conn.include_self:
-          post_g = post_g - self.g
+          post_g = post_g - syn_value
         post_g = post_g * self.g_max
       else:
-        post_g = self.g @ self.g_max
+        post_g = syn_value @ self.g_max
     elif isinstance(self.conn, One2One):
-      post_g = self.g_max * self.g
+      post_g = self.g_max * syn_value
     else:
       if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
+        post_g = bm.pre2post_sum(syn_value, self.post.num, self.post_ids, self.pre_ids)
       else:
         if self.weight_type == 'homo':
-          post_g = (self.g_max * self.g) @ self.conn_mat
+          post_g = (self.g_max * syn_value) @ self.conn_mat
         else:
-          post_g = self.g @ self.g_max
+          post_g = syn_value @ self.g_max
 
     # output
-    g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
-    self.post.input += post_g * (self.E - self.post.V) / g_inf
+    self.post.input += self.output.filter(post_g)

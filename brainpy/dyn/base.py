@@ -32,7 +32,7 @@ __all__ = [
   'NeuGroup', 'CondNeuGroup',
 
   # synapse models
-  'TwoEndConn', 'SynapseOutput', 'SynapsePlasticity', 'SynapseConn',
+  'SynConn', 'SynapseOutput', 'SynapsePlasticity', 'TwoEndConn',
 
 ]
 
@@ -360,13 +360,12 @@ class Network(Container):
     nodes = nodes.subset(DynamicalSystem)
     nodes = nodes.unique()
     neuron_groups = nodes.subset(NeuGroup)
-    synapse_groups = nodes.subset(TwoEndConn)
+    synapse_groups = nodes.subset(SynConn)
     other_nodes = nodes - neuron_groups - synapse_groups
 
     # update synapse nodes
     for node in synapse_groups.values():
       node.update(t, dt)
-      node.output()
 
     # update neuron nodes
     for node in neuron_groups.values():
@@ -384,7 +383,7 @@ class Network(Container):
   def reset(self):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     neuron_groups = nodes.subset(NeuGroup)
-    synapse_groups = nodes.subset(TwoEndConn)
+    synapse_groups = nodes.subset(SynConn)
 
     # reset neuron nodes
     for node in neuron_groups.values():
@@ -399,7 +398,7 @@ class Network(Container):
       node.reset()
 
     # reset delays
-    for node in nodes:
+    for node in nodes.values():
       for name in node.local_delay_vars.keys():
         self.global_delay_vars[name].reset(self.global_delay_targets[name])
 
@@ -423,6 +422,8 @@ class NeuGroup(DynamicalSystem):
     The name of the dynamic system.
   keep_size: bool
     Whether keep the geometry information.
+
+    .. versionadded:: 2.1.13
   """
 
   def __init__(
@@ -468,7 +469,7 @@ class NeuGroup(DynamicalSystem):
                               f'implement "update" function.')
 
 
-class TwoEndConn(DynamicalSystem):
+class SynConn(DynamicalSystem):
   """Base class to model two-end synaptic connections.
 
   Parameters
@@ -524,7 +525,7 @@ class TwoEndConn(DynamicalSystem):
 
     # initialize
     # ----------
-    super(TwoEndConn, self).__init__(name=name)
+    super(SynConn, self).__init__(name=name)
 
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
@@ -548,15 +549,21 @@ class TwoEndConn(DynamicalSystem):
 
 
 class SynapseComponent(DynamicalSystem):
-  master: TwoEndConn
+  master: SynConn
 
   def filter(self, g):
     raise NotImplementedError
 
-  def register_master(self, master: TwoEndConn):
-    if not isinstance(master, TwoEndConn):
-      raise TypeError(f'master must be instance of {TwoEndConn.__name__}, but we got {type(master)}')
+  def register_master(self, master: SynConn):
+    if not isinstance(master, SynConn):
+      raise TypeError(f'master must be instance of {SynConn.__name__}, but we got {type(master)}')
     self.master = master
+
+  def __repr__(self):
+    if hasattr(self, 'master'):
+      return f'{self.__class__.__name__}(master={self.master})'
+    else:
+      return self.__class__.__name__
 
 
 class SynapseOutput(SynapseComponent):
@@ -569,6 +576,17 @@ class SynapseOutput(SynapseComponent):
     pass
 
 
+class _NullSynOut(SynapseOutput):
+  def update(self, t, dt):
+    pass
+
+  def reset(self):
+    pass
+
+  def filter(self, g):
+    return g
+
+
 class SynapsePlasticity(SynapseComponent):
   """Base class for synaptic plasticity."""
 
@@ -576,7 +594,7 @@ class SynapsePlasticity(SynapseComponent):
     raise NotImplementedError
 
 
-class _EmptyPlasticity(SynapsePlasticity):
+class _NullSynPlast(SynapsePlasticity):
   def update(self, t, dt, pre_spikes, post_spikes):
     pass
 
@@ -587,7 +605,7 @@ class _EmptyPlasticity(SynapsePlasticity):
     return g
 
 
-class SynapseConn(TwoEndConn):
+class TwoEndConn(SynConn):
   """Base class to model synaptic connections.
 
   Parameters
@@ -598,8 +616,18 @@ class SynapseConn(TwoEndConn):
     Post-synaptic neuron group.
   conn : optional, ndarray, JaxArray, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
-  output: SynapseOutput, tuple of SynapseOutput
-    The outers of synaptic current.
+  output: SynapseOutput
+    The output for the synaptic current.
+
+    .. versionadded:: 2.1.13
+       The output component for a two-end connection model.
+
+  plasticity: SynapsePlasticity
+    The plasticity model for the synaptic variables.
+
+    .. versionadded:: 2.1.13
+       The plasticity component for a two-end connection model.
+
   name : str, optional
     The name of the dynamic system.
   """
@@ -608,14 +636,16 @@ class SynapseConn(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      output: SynapseOutput,
-      plasticity: Optional[SynapsePlasticity] = None,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
+      output: Optional[SynapseOutput] = None,
+      plasticity: Optional[SynapsePlasticity] = None,
       name: str = None,
   ):
-    super(SynapseConn, self).__init__(pre=pre, post=post, conn=conn, name=name)
+    super(TwoEndConn, self).__init__(pre=pre, post=post, conn=conn, name=name)
 
     # synaptic output
+    if output is None:
+      output = _NullSynOut()
     if not isinstance(output, SynapseOutput):
       raise TypeError(f'output must be instance of {SynapseOutput.__name__}, but we got {type(output)}')
     self.output: SynapseOutput = output
@@ -623,7 +653,7 @@ class SynapseConn(TwoEndConn):
 
     # synaptic plasticity
     if plasticity is None:
-      plasticity = _EmptyPlasticity()
+      plasticity = _NullSynPlast()
     if not isinstance(plasticity, SynapsePlasticity):
       raise TypeError(f'plasticity must be instance of {SynapsePlasticity.__name__}, but we got {type(plasticity)}')
     self.plasticity: SynapsePlasticity = plasticity
@@ -660,6 +690,7 @@ class CondNeuGroup(NeuGroup, Container):
   where :math:`\alpha_{x}` and :math:`\beta_{x}` are rate constants.
 
   .. versionadded:: 2.1.9
+     Model the conductance-based neuron model.
 
   Parameters
   ----------

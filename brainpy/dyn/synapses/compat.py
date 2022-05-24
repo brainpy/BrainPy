@@ -7,7 +7,7 @@ from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
 from brainpy.types import Tensor
 from .abstract_models import Delta, Exponential, DualExponential
-from .outers import COBA, CUBA
+from ..synouts import COBA, CUBA
 
 __all__ = [
   'DeltaSynapse',

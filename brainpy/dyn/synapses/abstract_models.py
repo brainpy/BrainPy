@@ -4,11 +4,11 @@ from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, SynapseOutput, SynapsePlasticity, SynapseConn
+from brainpy.dyn.base import NeuGroup, SynapseOutput, SynapsePlasticity, TwoEndConn
 from brainpy.initialize import Initializer, init_param
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
-from .outputs import COBA, CUBA
+from ..synouts import COBA, CUBA, MgBlock
 
 __all__ = [
   'Delta',
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-class Delta(SynapseConn):
+class Delta(TwoEndConn):
   """Voltage Jump Synapse Model, or alias of Delta Synapse Model.
 
   **Model Descriptions**
@@ -84,7 +84,8 @@ class Delta(SynapseConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = CUBA(),
+      output: SynapseOutput = None,
+      plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'sparse',
       weights: Union[float, Tensor, Initializer, Callable] = 1.,
       delay_step: Union[float, Tensor, Initializer, Callable] = None,
@@ -92,7 +93,12 @@ class Delta(SynapseConn):
       post_has_ref: bool = False,
       name: str = None,
   ):
-    super(Delta, self).__init__(pre=pre, post=post, conn=conn, output=output, name=name)
+    super(Delta, self).__init__(pre=pre,
+                                post=post,
+                                conn=conn,
+                                output=CUBA() if output is None else output,
+                                plasticity=plasticity,
+                                name=name)
     self.check_pre_attrs('spike')
 
     # parameters
@@ -182,7 +188,7 @@ class Delta(SynapseConn):
     target += self.output.filter(post_vs)
 
 
-class Exponential(SynapseConn):
+class Exponential(TwoEndConn):
   """
 
   Parameters
@@ -214,7 +220,7 @@ class Exponential(SynapseConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = CUBA(),
+      output: SynapseOutput = None,
       plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'sparse',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
@@ -226,7 +232,7 @@ class Exponential(SynapseConn):
     super(Exponential, self).__init__(pre=pre,
                                       post=post,
                                       conn=conn,
-                                      output=output,
+                                      output=CUBA() if output is None else output,
                                       plasticity=plasticity,
                                       name=name)
     self.check_pre_attrs('spike')
@@ -323,7 +329,7 @@ class Exponential(SynapseConn):
     self.post.input += self.output.filter(self.g)
 
 
-class DualExponential(SynapseConn):
+class DualExponential(TwoEndConn):
   r"""Current-based dual exponential synapse model.
 
     **Model Descriptions**
@@ -429,7 +435,7 @@ class DualExponential(SynapseConn):
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       plasticity: Optional[SynapsePlasticity] = None,
-      output: SynapseOutput = (),
+      output: SynapseOutput = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       tau_decay: Union[float, Tensor] = 10.0,
@@ -441,7 +447,7 @@ class DualExponential(SynapseConn):
     super(DualExponential, self).__init__(pre=pre,
                                           post=post,
                                           conn=conn,
-                                          output=output,
+                                          output=CUBA() if output is None else output,
                                           plasticity=plasticity,
                                           name=name)
     self.check_pre_attrs('spike')
@@ -549,7 +555,7 @@ class Alpha(DualExponential):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = CUBA(),
+      output: SynapseOutput = None,
       plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
@@ -567,12 +573,12 @@ class Alpha(DualExponential):
                                 tau_decay=tau_decay,
                                 tau_rise=tau_decay,
                                 method=method,
-                                output=output,
+                                output=CUBA() if output is None else output,
                                 plasticity=plasticity,
                                 name=name)
 
 
-class NMDA(SynapseConn):
+class NMDA(TwoEndConn):
   r"""Conductance-based NMDA synapse model.
 
   **Model Descriptions**
@@ -711,46 +717,35 @@ class NMDA(SynapseConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: Optional[SynapseOutput] = None,
+      output: SynapseOutput = None,
       plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      cc_Mg: Union[float, Tensor] = 1.2,
-      alpha: Union[float, Tensor] = 0.062,
-      beta: Union[float, Tensor] = 3.57,
+
       E: Union[float, Tensor] = 0.,
+
       tau_decay: Union[float, Tensor] = 100.,
       a: Union[float, Tensor] = 0.5,
       tau_rise: Union[float, Tensor] = 2.,
       method: str = 'exp_auto',
       name: str = None,
   ):
-    if output is None: output = COBA(E=0., post=post)
     super(NMDA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,
-                               output=output,
+                               output=MgBlock(E=0.) if output is None else output,
                                plasticity=plasticity,
                                name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 
     # parameters
-    self.alpha = alpha
-    self.beta = beta
-    self.cc_Mg = cc_Mg
     self.tau_decay = tau_decay
     self.tau_rise = tau_rise
     self.a = a
     if bm.size(a) != 1:
       raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
-    if bm.size(alpha) != 1:
-      raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
-    if bm.size(beta) != 1:
-      raise ValueError(f'"beta" must be a scalar or a tensor with size of 1. But we got {beta}')
-    if bm.size(cc_Mg) != 1:
-      raise ValueError(f'"cc_Mg" must be a scalar or a tensor with size of 1. But we got {cc_Mg}')
     if bm.size(tau_decay) != 1:
       raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. But we got {tau_decay}')
     if bm.size(tau_rise) != 1:
@@ -793,10 +788,6 @@ class NMDA(SynapseConn):
     # integral
     self.integral = odeint(method=method, f=JointEq(self.dg, self.dx))
 
-  def reset(self):
-    self.g.value = bm.zeros(self.pre.num)
-    self.x.value = bm.zeros(self.pre.num)
-
   def dg(self, g, t, x):
     return -g / self.tau_decay + self.a * x * (1 - g)
 
@@ -807,6 +798,7 @@ class NMDA(SynapseConn):
     self.g[:] = 0
     self.x[:] = 0
     self.output.reset()
+    self.plasticity.reset()
 
   def update(self, t, dt):
     # delays
@@ -843,5 +835,4 @@ class NMDA(SynapseConn):
           post_g = syn_value @ self.g_max
 
     # output
-    g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
-    self.post.input += self.output.filter(post_g) / g_inf
+    self.post.input += self.output.filter(post_g)

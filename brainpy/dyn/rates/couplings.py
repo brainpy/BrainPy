@@ -187,9 +187,9 @@ class DiffusiveCoupling(DelayCoupling):
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'array':
       delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
-      f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var1.size)))  # (pre.num,)
-      delays = f(bm.arange(self.coupling_var2.size).value)
-      diffusive = delays.T - self.coupling_var2  # (post.num, pre.num)
+      f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var2.size)))  # (post.num,)
+      delays = f(bm.arange(self.coupling_var1.size).value)  # (pre.num, post.num)
+      diffusive = delays - self.coupling_var2  # (pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'int':
       delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']

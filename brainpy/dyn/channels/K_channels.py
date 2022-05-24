@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.dyn.base import CondNeuGroup
@@ -74,6 +74,7 @@ class IK_DR(PotassiumChannel):
       T: Union[float, Tensor, Initializer, Callable] = 36.,
       T_base: Union[float, Tensor, Initializer, Callable] = 3.,
       V_sh: Union[float, Tensor, Initializer, Callable] = -50.,
+      phi: Optional[Union[float, Tensor, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -85,7 +86,10 @@ class IK_DR(PotassiumChannel):
     self.E = init_param(E, self.var_shape, allow_none=False)
     self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi = self.T_base ** ((self.T - 36) / 10)
+    if phi is None:
+      self.phi = self.T_base ** ((self.T - 36) / 10)
+    else:
+      self.phi = init_param(phi, self.var_shape, allow_none=False)
 
     # variables
     self.p = bm.Variable(bm.zeros(self.var_shape))

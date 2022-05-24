@@ -3,6 +3,7 @@
 import time
 from collections.abc import Iterable
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 import tqdm.auto
@@ -404,7 +405,7 @@ class DSRunner(Runner):
         start_t = float(self._start_t)
     end_t = float(start_t + duration)
     # times
-    times = np.arange(start_t, end_t, self.dt)
+    times = jax.device_put(jnp.arange(start_t, end_t, self.dt))
     # build monitor
     for key in self.mon.item_contents.keys():
       self.mon.item_contents[key] = []  # reshape the monitor items
