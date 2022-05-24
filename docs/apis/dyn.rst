@@ -13,5 +13,4 @@
     auto/dyn/neurons
     auto/dyn/synapses
     auto/dyn/rates
-    auto/dyn/others
     auto/dyn/runners

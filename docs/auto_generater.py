@@ -254,6 +254,8 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
     ('reduced_models', 'Reduced Models'),
+    ('noise_groups', 'Noise Models'),
+    ('input_groups', 'Input Models'),
   ]
   write_submodules(module_name='brainpy.dyn.neurons',
                    filename=os.path.join(path, 'neurons.rst'),
@@ -279,16 +281,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   write_submodules(module_name='brainpy.dyn.rates',
                    filename=os.path.join(path, 'rates.rst'),
                    header='Rate Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [
-    ('noises', 'Noise Models'),
-    ('inputs', 'Input Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.others',
-                   filename=os.path.join(path, 'others.rst'),
-                   header='Helper Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -576,9 +568,6 @@ def generate_compact_docs(path='apis/auto/compat/'):
   write_module(module_name='brainpy.compat.layers',
                filename=os.path.join(path, 'layers.rst'),
                header='Layers')
-  write_module(module_name='brainpy.compat.models',
-               filename=os.path.join(path, 'models.rst'),
-               header='Models')
   write_module(module_name='brainpy.compat.monitor',
                filename=os.path.join(path, 'monitor.rst'),
                header='Monitor')
