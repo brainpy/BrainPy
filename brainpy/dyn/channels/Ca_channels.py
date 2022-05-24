@@ -66,7 +66,7 @@ class Calcium(Ion, Container):
   def current(self, V, C_Ca=None, E_Ca=None):
     C_Ca = self.C if (C_Ca is None) else C_Ca
     E_Ca = self.E if (E_Ca is None) else E_Ca
-    nodes = list(self.nodes(level=-1, include_self=False).unique().subset(Channel).values())
+    nodes = list(self.nodes(level=1, include_self=False).unique().subset(Channel).values())
     current = nodes[0].current(V, C_Ca, E_Ca)
     for node in nodes[1:]:
       current += node.current(V, C_Ca, E_Ca)
@@ -82,7 +82,8 @@ class Calcium(Ion, Container):
 class CalciumFixed(Calcium):
   """Fixed Calcium dynamics.
 
-  This calcium model has no dynamics. It only holds a fixed reversal potential :math:`E`.
+  This calcium model has no dynamics. It holds fixed reversal
+  potential :math:`E` and concentration :math:`C`.
   """
 
   def __init__(
@@ -90,7 +91,7 @@ class CalciumFixed(Calcium):
       size: Shape,
       keep_size: bool = False,
       E: Union[float, Tensor, Initializer, Callable] = 120.,
-      C: Union[float, Tensor, Initializer, Callable] = 0.05,
+      C: Union[float, Tensor, Initializer, Callable] = 2.4e-4,
       method: str = 'exp_auto',
       name: str = None,
       **channels
@@ -110,11 +111,30 @@ class CalciumFixed(Calcium):
   def reset(self, V, C_Ca=None, E_Ca=None):
     C_Ca = self.C if C_Ca is None else C_Ca
     E_Ca = self.E if E_Ca is None else E_Ca
-    for node in self.nodes(level=-1, include_self=False).unique().subset(Channel).values():
+    for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
       node.reset(V, C_Ca, E_Ca)
 
 
 class CalciumDyna(Calcium):
+  """Calcium ion flow with dynamics.
+
+  Parameters
+  ----------
+  size: int, tuple of int
+    The ion size.
+  keep_size: bool
+    Keep the geometry size.
+  C0: float, Tensor, Initializer, Callable
+    The Calcium concentration outside of membrane.
+  T: float, Tensor, Initializer, Callable
+    The temperature.
+  C_initializer: Initializer, Callable, Tensor
+    The initializer for Calcium concentration.
+  method: str
+    The numerical method.
+  name: str
+    The ion name.
+  """
   R = 8.31441  # gas constant, J*mol-1*K-1
   F = 96.489  # the Faraday constant
 
@@ -154,11 +174,11 @@ class CalciumDyna(Calcium):
   def reset(self, V, C_Ca=None, E_Ca=None):
     self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
     self.E.value = self._reversal_potential(self.C)
-    for node in self.nodes(level=-1, include_self=False).unique().subset(Channel).values():
+    for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
       node.reset(V, self.C, self.E)
 
   def update(self, t, dt, V):
-    for node in self.nodes(level=-1, include_self=False).unique().subset(Channel).values():
+    for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
       node.update(t, dt, V, self.C, self.E)
     self.C.value = self.integral(self.C.value, t, V, dt)
     self.E.value = self._reversal_potential(self.C)
@@ -827,11 +847,11 @@ class ICaL(CalciumChannel):
 
       I_{CaL} &= g_{max} p^2 q(V-E_{Ca}) \\
       {dp \over dt} &= {\phi_p \cdot (p_{\infty}-p)\over \tau_p} \\
-      &p_{\infty} = {1 \over 1+\exp [-(V+10-V_{sh}) / 4.]} \\
-      &\tau_{p} = 0.4+{0.7 \over \exp [(V+5-V_{sh}) / 15]+\exp [-(V+5-V_{sh}) / 15]} \\
+      & p_{\infty} = {1 \over 1+\exp [-(V+10-V_{sh}) / 4.]} \\
+      & \tau_{p} = 0.4+{0.7 \over \exp [(V+5-V_{sh}) / 15]+\exp [-(V+5-V_{sh}) / 15]} \\
       {dq \over dt} &= {\phi_q \cdot (q_{\infty}-q) \over \tau_q} \\
-      &q_{\infty} = {1 \over 1+\exp [(V+25-V_{sh}) / 2]} \\
-      &\tau_q = 300 + {100 \over \exp [(V+40-V_{sh}) / 9.5]+\exp [-(V+40-V_{sh}) / 9.5]}
+      & q_{\infty} = {1 \over 1+\exp [(V+25-V_{sh}) / 2]} \\
+      & \tau_q = 300 + {100 \over \exp [(V+40-V_{sh}) / 9.5]+\exp [-(V+40-V_{sh}) / 9.5]}
 
   where :math:`phi_p = 3.55^{\frac{T-24}{10}}` and :math:`phi_q = 3^{\frac{T-24}{10}}`
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),

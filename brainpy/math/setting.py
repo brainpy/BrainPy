@@ -33,6 +33,11 @@ float_ = jnp.float32
 complex_ = jnp.complex_
 
 
+def get_int():
+  pass
+
+
+
 # numerical precision
 # --------------------------
 

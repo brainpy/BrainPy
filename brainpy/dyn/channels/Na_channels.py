@@ -94,22 +94,18 @@ class INa(SodiumChannel):
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
   def reset(self, V):
-    alpha = 0.32 * (V - self.V_sh - 13.) / (1. - bm.exp(-(V - self.V_sh - 13.) / 4.))
-    beta = -0.28 * (V - self.V_sh - 40.) / (1. - bm.exp((V - self.V_sh - 40.) / 5.))
+    alpha = self.f_p_alpha(V)
+    beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
-    alpha = 0.128 * bm.exp(-(V - self.V_sh - 17.) / 18.)
-    beta = 4. / (1. + bm.exp(-(V - self.V_sh - 40.) / 5.))
+    alpha = self.f_q_alpha(V)
+    beta = self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
 
   def dp(self, p, t, V):
-    alpha_p = 0.32 * (V - self.V_sh - 13.) / (1. - bm.exp(-(V - self.V_sh - 13.) / 4.))
-    beta_p = -0.28 * (V - self.V_sh - 40.) / (1. - bm.exp((V - self.V_sh - 40.) / 5.))
-    return self.phi * (alpha_p * (1. - p) - beta_p * p)
+    return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
 
   def dq(self, q, t, V):
-    alpha_q = 0.128 * bm.exp(-(V - self.V_sh - 17.) / 18.)
-    beta_q = 4. / (1. + bm.exp(-(V - self.V_sh - 40.) / 5.))
-    return self.phi * (alpha_q * (1. - q) - beta_q * q)
+    return self.phi * (self.f_q_alpha(V) * (1. - q) - self.f_q_beta(V) * q)
 
   def update(self, t, dt, V):
     p, q = self.integral(self.p, self.q, t, V, dt)
@@ -117,6 +113,18 @@ class INa(SodiumChannel):
 
   def current(self, V):
     return self.g_max * self.p ** 3 * self.q * (self.E - V)
+
+  def f_p_alpha(self, V):
+    return 0.32 * (V - self.V_sh - 13.) / (1. - bm.exp(-(V - self.V_sh - 13.) / 4.))
+
+  def f_p_beta(self, V):
+    return -0.28 * (V - self.V_sh - 40.) / (1. - bm.exp((V - self.V_sh - 40.) / 5.))
+
+  def f_q_alpha(self, V):
+    return 0.128 * bm.exp(-(V - self.V_sh - 17.) / 18.)
+
+  def f_q_beta(self, V):
+    return 4. / (1. + bm.exp(-(V - self.V_sh - 40.) / 5.))
 
 
 class INa_HH(SodiumChannel):
@@ -166,3 +174,4 @@ class INa_HH(SodiumChannel):
     alpha = 0.07 * bm.exp(-(V + 65) / 20.)
     beta = 1 / (1 + bm.exp(-(V + 35) / 10))
     self.q.value = alpha / (alpha + beta)
+

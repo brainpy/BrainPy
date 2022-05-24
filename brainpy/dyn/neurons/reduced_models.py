@@ -32,7 +32,7 @@ class LIF(NeuGroup):
 
   .. math::
 
-      \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + I(t) \\
+      \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + RI(t) \\
       \text{after} \quad V(t) \gt V_{th}, V(t) = V_{reset} \quad
       \text{last} \quad \tau_{ref} \quad  \text{ms}
 
@@ -57,6 +57,8 @@ class LIF(NeuGroup):
     Reset potential after spike.
   V_th: float, JaxArray, ndarray, Initializer, callable
     Threshold potential of spike.
+  R: float, JaxArray, ndarray, Initializer, callable
+    Membrane resistance.
   tau: float, JaxArray, ndarray, Initializer, callable
     Membrane time constant.
   tau_ref: float, JaxArray, ndarray, Initializer, callable
@@ -83,6 +85,7 @@ class LIF(NeuGroup):
       V_rest: Union[float, Tensor, Initializer, Callable] = 0.,
       V_reset: Union[float, Tensor, Initializer, Callable] = -5.,
       V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
@@ -101,6 +104,7 @@ class LIF(NeuGroup):
     self.V_th = init_param(V_th, self.var_shape, allow_none=False)
     self.tau = init_param(tau, self.var_shape, allow_none=False)
     self.tau_ref = init_param(tau_ref, self.var_shape, allow_none=False)
+    self.R = init_param(R, self.var_shape, allow_none=False)
     self.noise = init_noise(noise, self.var_shape)
 
     # initializers
@@ -121,7 +125,7 @@ class LIF(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def derivative(self, V, t, I_ext):
-    return (-V + self.V_rest + I_ext) / self.tau
+    return (-V + self.V_rest + self.R * I_ext) / self.tau
 
   def reset(self):
     self.V.value = init_param(self._V_initializer, self.var_shape)

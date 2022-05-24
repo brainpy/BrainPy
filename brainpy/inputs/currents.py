@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+
+import warnings
+
 import jax.numpy as jnp
 import numpy as np
 
@@ -118,7 +121,16 @@ def constant_input(I_and_duration, dt=None):
   return I_current, I_duration
 
 
-constant_current = constant_input
+def constant_current(*args, **kwargs):
+  """Format constant input in durations.
+
+  .. deprecated:: 2.1.13
+     Use ``constant_current()`` instead.
+  """
+  warnings.warn('Please use "brainpy.inputs.constant_input()" instead. '
+                '"brainpy.inputs.constant_current()" is deprecated since version 2.1.13.',
+                DeprecationWarning)
+  return constant_input(*args, **kwargs)
 
 
 def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
@@ -168,7 +180,16 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   return current
 
 
-spike_current = spike_input
+def spike_current(*args, **kwargs):
+  """Format current input like a series of short-time spikes.
+
+  .. deprecated:: 2.1.13
+     Use ``spike_current()`` instead.
+  """
+  warnings.warn('Please use "brainpy.inputs.spike_input()" instead. '
+                '"brainpy.inputs.spike_current()" is deprecated since version 2.1.13.',
+                DeprecationWarning)
+  return constant_input(*args, **kwargs)
 
 
 def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
@@ -205,7 +226,16 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   return current
 
 
-ramp_current = ramp_input
+def ramp_current(*args, **kwargs):
+  """Get the gradually changed input current.
+
+  .. deprecated:: 2.1.13
+     Use ``ramp_input()`` instead.
+  """
+  warnings.warn('Please use "brainpy.inputs.ramp_input()" instead. '
+                '"brainpy.inputs.ramp_current()" is deprecated since version 2.1.13.',
+                DeprecationWarning)
+  return constant_input(*args, **kwargs)
 
 
 def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
@@ -265,7 +295,8 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
     The start time.
   t_end: float
     The end time.
-
+  seed: optional, int
+    The random seed.
   """
   dt = bm.get_dt() if dt is None else dt
   dt_sqrt = jnp.sqrt(dt)
@@ -275,7 +306,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
   x = bm.Variable(jnp.ones(n) * mean)
 
   def _f(t):
-    x.value = x + dt * ((mean - x) / tau) + sigma * dt_sqrt * rng.standard_normal(n)
+    x.value = x + dt * ((mean - x) / tau) + sigma * dt_sqrt * rng.rand(n)
 
   f = bm.make_loop(_f, dyn_vars=[x, rng], out_vars=x)
   noises = f(jnp.arange(t_start, t_end, dt))
@@ -288,7 +319,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
   return currents.value
 
 
-def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, dc_bias=False):
+def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, bias=False):
   """Sinusoidal input.
 
   Parameters
@@ -305,7 +336,7 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
     The end time.
   dt: float
     The numerical precision.
-  dc_bias: bool
+  bias: bool
     Whether the sinusoid oscillates around 0 (False), or
     has a positive DC bias, thus non-negative (True).
   """
@@ -317,8 +348,7 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
   start_i = int(t_start / dt)
   end_i = int(t_end / dt)
   sin_inputs = amplitude * jnp.sin(2 * jnp.pi * times * (frequency / 1000.0))
-  if dc_bias:
-    sin_inputs += amplitude
+  if bias: sin_inputs += amplitude
   currents = bm.zeros(int(duration / dt))
   currents[start_i:end_i] = sin_inputs
   return currents.value
@@ -328,7 +358,7 @@ def _square(t, duty=0.5):
   t, w = np.asarray(t), np.asarray(duty)
   w = np.asarray(w + (t - t))
   t = np.asarray(t + (w - w))
-  if t.dtype.char in ['fFdD']:
+  if t.dtype.char in 'fFdD':
     ytype = t.dtype.char
   else:
     ytype = 'd'
@@ -351,7 +381,7 @@ def _square(t, duty=0.5):
   return y
 
 
-def square_input(amplitude, frequency, duration, dt=None, dc_bias=False, t_start=None, t_end=None):
+def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0., t_end=None):
   """Oscillatory square input.
 
   Parameters
@@ -368,20 +398,18 @@ def square_input(amplitude, frequency, duration, dt=None, dc_bias=False, t_start
     The end time.
   dt: float
     The numerical precision.
-  dc_bias: bool
+  bias: bool
     Whether the sinusoid oscillates around 0 (False), or
     has a positive DC bias, thus non-negative (True).
   """
   dt = bm.get_dt() if dt is None else dt
   check_float(dt, 'dt', allow_none=False, min_bound=0.)
-  if t_end is None:
-    t_end = duration
-  times = jnp.arange(0, t_end - t_start, dt)
+  if t_end is None: t_end = duration
+  times = np.arange(0, t_end - t_start, dt)
+  sin_inputs = amplitude * _square(2 * np.pi * times * (frequency / 1000.0))
+  if bias: sin_inputs += amplitude
   currents = bm.zeros(int(duration / dt))
   start_i = int(t_start / dt)
   end_i = int(t_end / dt)
-  sin_inputs = amplitude * _square(2 * jnp.pi * times * (frequency / 1000.0))
-  if dc_bias:
-    sin_inputs += amplitude
-  currents[start_i:end_i] = sin_inputs
+  currents[start_i:end_i] = bm.asarray(sin_inputs)
   return currents.value

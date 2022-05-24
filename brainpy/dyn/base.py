@@ -69,28 +69,6 @@ class DynamicalSystem(Base):
     warnings.warn('.steps has been deprecated since version 2.0.3.', DeprecationWarning)
     return {}
 
-  def ints(self, method='absolute'):
-    """Collect all integrators in this node and the children nodes.
-
-    Parameters
-    ----------
-    method : str
-      The method to access the integrators.
-
-    Returns
-    -------
-    collector : Collector
-      The collection contained (the path, the integrator).
-    """
-    nodes = self.nodes(method=method, level=-1, include_self=True)
-    gather = Collector()
-    for node_path, node in nodes.items():
-      for k in dir(node):
-        v = getattr(node, k)
-        if isinstance(v, Integrator):
-          gather[f'{node_path}.{k}' if node_path else k] = v
-    return gather
-
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
     return self.update(*args, **kwargs)
