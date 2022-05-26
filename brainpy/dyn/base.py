@@ -11,7 +11,7 @@ from brainpy import tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn
-from brainpy.dyn.utils import check_master, init_noise
+from brainpy.dyn.utils import init_noise
 from brainpy.errors import ModelBuildError
 from brainpy.initialize import Initializer, init_param, Uniform
 from brainpy.integrators import Integrator, odeint, sdeint
@@ -639,7 +639,7 @@ class TwoEndConn(SynConn):
 
 
 class CondNeuGroup(NeuGroup, Container):
-  """Base class to model conductance-based neuron group.
+  r"""Base class to model conductance-based neuron group.
 
   The standard formulation for a conductance-based model is given as
 
@@ -678,6 +678,10 @@ class CondNeuGroup(NeuGroup, Container):
     The numerical integration method.
   name : optional, str
     The neuron group name.
+
+  See Also
+  --------
+  Channel
 
   """
 
@@ -736,11 +740,9 @@ class CondNeuGroup(NeuGroup, Container):
     self.input[:] = 0.
     self.V.value = V
 
-  def register_implicit_nodes(self, channels):
-    if not isinstance(channels, dict):
-      raise ValueError(f'"channels" must be instance of dict, but we got {type(channels)}')
-    check_master(type(self), **channels)
-    super(CondNeuGroup, self).register_implicit_nodes(channels)
+  def register_implicit_nodes(self, *channels, **named_channels):
+    check_master(type(self), *channels, **named_channels)
+    super(CondNeuGroup, self).register_implicit_nodes(*channels, **named_channels)
 
 
 class Channel(DynamicalSystem):
@@ -771,3 +773,30 @@ class Channel(DynamicalSystem):
 
   def reset(self):
     raise NotImplementedError('Must be implemented by the subclass.')
+
+
+def _check(master, child):
+  if not hasattr(child, 'master_type'):
+    raise ValueError('Child class should define "master_type" to specify the type of the master. '
+                     f'But we did not found it in {child}')
+  if not issubclass(master, child.master_type):
+    raise TypeError(f'Type does not match. {child} requires a master with type '
+                    f'of {child.master_type}, but the master now is {master}.')
+
+
+def check_master(master, *channels, **named_channels):
+  for channel in channels:
+    if isinstance(channel, Channel):
+      _check(master, channel)
+    elif isinstance(channel, (list, tuple)):
+      for ch in channel:
+        _check(master, ch)
+    elif isinstance(channel, dict):
+      for ch in channel.values():
+        _check(master, ch)
+    else:
+      raise ValueError(f'Do not support {type(channel)}.')
+  for channel in named_channels.values():
+    if not isinstance(channel, Channel):
+      raise ValueError(f'Do not support {type(channel)}. ')
+    _check(master, channel)

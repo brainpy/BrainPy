@@ -47,7 +47,7 @@ class DeltaSynapse(Delta):
                                        output=CUBA(),
                                        name=name,
                                        conn_type=conn_type,
-                                       weights=weights,
+                                       g_max=weights,
                                        delay_step=delay_step,
                                        post_key=post_key,
                                        post_has_ref=post_has_ref)

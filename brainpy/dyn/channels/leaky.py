@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module implements leakage channels.
+
+"""
+
 from typing import Union, Callable
 
-from brainpy.dyn.base import CondNeuGroup
-from brainpy.initialize import Initializer
-from brainpy.initialize import init_param
+from brainpy.initialize import Initializer, init_param
 from brainpy.types import Tensor, Shape
-from .base import IonChannel
+from .base import LeakyChannel
 
 __all__ = [
-  'LeakyChannel',
   'IL',
   'IKL',
 ]
-
-
-class LeakyChannel(IonChannel):
-  """Base class for leaky channel."""
-  master_type = CondNeuGroup
 
 
 class IL(LeakyChannel):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
@@ -8,7 +8,7 @@ from brainpy.dyn.base import NeuGroup, SynapseOutput, SynapsePlasticity, TwoEndC
 from brainpy.initialize import Initializer, init_param
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
-from ..synouts import COBA, CUBA, MgBlock
+from ..synouts import CUBA, MgBlock
 
 __all__ = [
   'Delta',
@@ -20,7 +20,7 @@ __all__ = [
 
 
 class Delta(TwoEndConn):
-  """Voltage Jump Synapse Model, or alias of Delta Synapse Model.
+  r"""Voltage Jump Synapse Model, or alias of Delta Synapse Model.
 
   **Model Descriptions**
 
@@ -40,11 +40,12 @@ class Delta(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.DeltaSynapse(neu1, neu2, bp.connect.All2All(), weights=5.)
+    >>> neu1 = neurons.LIF(1)
+    >>> neu2 = neurons.LIF(1)
+    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), weights=5.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])
@@ -70,7 +71,7 @@ class Delta(TwoEndConn):
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  weights: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength. Default is 1.
   post_key: str
     The key of the post variable. It should be a string. The key should
@@ -84,10 +85,10 @@ class Delta(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = None,
+      output: Optional[SynapseOutput] = None,
       plasticity: Optional[SynapsePlasticity] = None,
       conn_type: str = 'sparse',
-      weights: Union[float, Tensor, Initializer, Callable] = 1.,
+      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       delay_step: Union[float, Tensor, Initializer, Callable] = None,
       post_key: str = 'V',
       post_has_ref: bool = False,
@@ -115,23 +116,23 @@ class Delta(TwoEndConn):
     if self.conn is None:
       raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
     if isinstance(self.conn, One2One):
-      self.weights = init_param(weights, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
+      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
+      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
     elif isinstance(self.conn, All2All):
-      self.weights = init_param(weights, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.weights) != 1:
+      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
+      if bm.size(self.g_max) != 1:
         self.weight_type = 'heter'
-        bm.fill_diagonal(self.weights, 0.)
+        bm.fill_diagonal(self.g_max, 0.)
       else:
         self.weight_type = 'homo'
     else:
       if conn_type == 'sparse':
         self.pre2post = self.conn.require('pre2post')
-        self.weights = init_param(weights, self.pre2post[1].shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
+        self.g_max = init_param(g_max, self.pre2post[1].shape, allow_none=False)
+        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
       elif conn_type == 'dense':
-        self.weights = init_param(weights, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
+        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
+        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
         if self.weight_type == 'homo':
           self.conn_mat = self.conn.require('conn_mat')
       else:
@@ -164,22 +165,22 @@ class Delta(TwoEndConn):
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
           post_vs = post_vs - pre_spike
-        post_vs *= self.weights
+        post_vs *= self.g_max
       else:
-        post_vs = pre_spike @ self.weights
+        post_vs = pre_spike @ self.g_max
     elif isinstance(self.conn, One2One):
-      post_vs = pre_spike * self.weights
+      post_vs = pre_spike * self.g_max
     else:
       if self.conn_type == 'sparse':
         post_vs = bm.pre2post_event_sum(pre_spike,
                                         self.pre2post,
                                         self.post.num,
-                                        self.weights)
+                                        self.g_max)
       else:
         if self.weight_type == 'homo':
-          post_vs = self.weights * (pre_spike @ self.conn_mat)
+          post_vs = self.g_max * (pre_spike @ self.conn_mat)
         else:
-          post_vs = pre_spike @ self.weights
+          post_vs = pre_spike @ self.g_max
 
     # update outputs
     target = getattr(self.post, self.post_key)
@@ -189,7 +190,65 @@ class Delta(TwoEndConn):
 
 
 class Exponential(TwoEndConn):
-  """
+  r"""Exponential decay synapse model.
+
+  **Model Descriptions**
+
+  The single exponential decay synapse model assumes the release of neurotransmitter,
+  its diffusion across the cleft, the receptor binding, and channel opening all happen
+  very quickly, so that the channels instantaneously jump from the closed to the open state.
+  Therefore, its expression is given by
+
+  .. math::
+
+      g_{\mathrm{syn}}(t)=g_{\mathrm{max}} e^{-\left(t-t_{0}\right) / \tau}
+
+  where :math:`\tau_{delay}` is the time constant of the synaptic state decay,
+  :math:`t_0` is the time of the pre-synaptic spike,
+  :math:`g_{\mathrm{max}}` is the maximal conductance.
+
+  Accordingly, the differential form of the exponential synapse is given by
+
+  .. math::
+
+      \begin{aligned}
+       & g_{\mathrm{syn}}(t) = g_{max} g \\
+       & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
+       \end{aligned}
+
+  **Model Examples**
+
+  - `(Brunel & Hakim, 1999) Fast Global Oscillation <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html>`_
+  - `(Vreeswijk & Sompolinsky, 1996) E/I balanced network <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Vreeswijk_1996_EI_net.html>`_
+  - `(Brette, et, al., 2007) CUBA <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Brette_2007_CUBA.html>`_
+  - `(Tian, et al., 2020) E/I Net for fast response <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Tian_2020_EI_net_for_fast_response.html>`_
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> from brainpy.dyn import neurons, synapses, synouts
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> neu1 = neurons.LIF(1)
+    >>> neu2 = neurons.LIF(1)
+    >>> syn1 = synapses.Exponential(neu1, neu2, bp.conn.All2All(),
+    >>>                             g_max=5., output=synouts.CUBA())
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+    >>>
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
+    >>> runner.run(150.)
+    >>>
+    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    >>> fig.add_subplot(gs[0, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+    >>> plt.legend()
+    >>>
+    >>> fig.add_subplot(gs[1, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+    >>> plt.legend()
+    >>> plt.show()
 
   Parameters
   ----------
@@ -212,6 +271,13 @@ class Exponential(TwoEndConn):
     The name of this synaptic projection.
   method: str
     The numerical integration methods.
+
+  References
+  ----------
+
+  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
+          "The Synapse." Principles of Computational Modelling in Neuroscience.
+          Cambridge: Cambridge UP, 2011. 172-95. Print.
 
   """
 
@@ -330,7 +396,7 @@ class Exponential(TwoEndConn):
 
 
 class DualExponential(TwoEndConn):
-  r"""Current-based dual exponential synapse model.
+  r"""Dual exponential synapse model.
 
     **Model Descriptions**
 
@@ -358,13 +424,6 @@ class DualExponential(TwoEndConn):
         &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
         \end{aligned}
 
-    The current onto the post-synaptic neuron is given by
-
-    .. math::
-
-        I_{syn}(t) = g_{\mathrm{syn}}(t).
-
-
     **Model Examples**
 
 
@@ -372,11 +431,12 @@ class DualExponential(TwoEndConn):
       :include-source: True
 
       >>> import brainpy as bp
+      >>> from brainpy.dyn import neurons, synapses, synouts
       >>> import matplotlib.pyplot as plt
       >>>
-      >>> neu1 = bp.dyn.LIF(1)
-      >>> neu2 = bp.dyn.LIF(1)
-      >>> syn1 = bp.dyn.DualExpCUBA(neu1, neu2, bp.connect.All2All())
+      >>> neu1 = neurons.LIF(1)
+      >>> neu2 = neurons.LIF(1)
+      >>> syn1 = synapses.DualExponential(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
       >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
       >>>
       >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
@@ -550,6 +610,85 @@ class DualExponential(TwoEndConn):
 
 
 class Alpha(DualExponential):
+  r"""Alpha synapse model.
+
+  **Model Descriptions**
+
+  The analytical expression of alpha synapse is given by:
+
+  .. math::
+
+      g_{syn}(t)= g_{max} \frac{t-t_{s}}{\tau} \exp \left(-\frac{t-t_{s}}{\tau}\right).
+
+  While, this equation is hard to implement. So, let's try to convert it into the
+  differential forms:
+
+  .. math::
+
+      \begin{aligned}
+      &g_{\mathrm{syn}}(t)= g_{\mathrm{max}} g \\
+      &\frac{d g}{d t}=-\frac{g}{\tau}+h \\
+      &\frac{d h}{d t}=-\frac{h}{\tau}+\delta\left(t_{0}-t\right)
+      \end{aligned}
+
+  **Model Examples**
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> from brainpy.dyn import neurons, synapses, synouts
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> neu1 = neurons.LIF(1)
+    >>> neu2 = neurons.LIF(1)
+    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
+    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+    >>>
+    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+    >>> runner.run(150.)
+    >>>
+    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    >>> fig.add_subplot(gs[0, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+    >>> plt.legend()
+    >>> fig.add_subplot(gs[1, 0])
+    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+    >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
+    >>> plt.legend()
+    >>> plt.show()
+
+  Parameters
+  ----------
+  pre: NeuGroup
+    The pre-synaptic neuron group.
+  post: NeuGroup
+    The post-synaptic neuron group.
+  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+    The synaptic connections.
+  conn_type: str
+    The connection type used for model speed optimization. It can be
+    `sparse` and `dense`. The default is `sparse`.
+  delay_step: int, ndarray, JaxArray, Initializer, Callable
+    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
+  tau_decay: float, JaxArray, ndarray
+    The time constant of the synaptic decay phase. [ms]
+  g_max: float, ndarray, JaxArray, Initializer, Callable
+    The synaptic strength (the maximum conductance). Default is 1.
+  name: str
+    The name of this synaptic projection.
+  method: str
+    The numerical integration methods.
+
+  References
+  ----------
+
+  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
+          "The Synapse." Principles of Computational Modelling in Neuroscience.
+          Cambridge: Cambridge UP, 2011. 172-95. Print.
+  """
+
   def __init__(
       self,
       pre: NeuGroup,
@@ -579,7 +718,7 @@ class Alpha(DualExponential):
 
 
 class NMDA(TwoEndConn):
-  r"""Conductance-based NMDA synapse model.
+  r"""NMDA synapse model.
 
   **Model Descriptions**
 
@@ -640,11 +779,11 @@ class NMDA(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
-    >>> from brainpy.dyn import synapses
+    >>> from brainpy.dyn import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
+    >>> neu1 = neurons.HH(1)
+    >>> neu2 = neurons.HH(1)
     >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
@@ -748,25 +887,48 @@ class NMDA(TwoEndConn):
       alpha=None,
       beta=None,
       cc_Mg=None,
-      E: Union[float, Tensor] = 0.,
+      E=None,
   ):
+
+    if output is not None:
+      if alpha is not None:
+        raise ValueError(f'Please set "alpha" in "output" argument.')
+      if beta is not None:
+        raise ValueError(f'Please set "beta" in "output" argument.')
+      if cc_Mg is not None:
+        raise ValueError(f'Please set "cc_Mg" in "output" argument.')
+      if E is not None:
+        raise ValueError(f'Please set "E" in "output" argument.')
+    else:
+      if alpha is not None:
+        warnings.warn('Please set "alpha" by using "output=bp.dyn.synouts.MgBlock(alpha)" instead.',
+                      DeprecationWarning)
+      else:
+        alpha = 0.062
+      if beta is not None:
+        warnings.warn('Please set "beta" by using "output=bp.dyn.synouts.MgBlock(beta)" instead.',
+                      DeprecationWarning)
+      else:
+        beta = 3.57
+      if cc_Mg is not None:
+        warnings.warn('Please set "cc_Mg" by using "output=bp.dyn.synouts.MgBlock(cc_Mg)" instead.',
+                      DeprecationWarning)
+      else:
+        cc_Mg = 1.2
+      if E is not None:
+        warnings.warn('Please set "E" by using "output=bp.dyn.synouts.MgBlock(E)" instead.',
+                      DeprecationWarning)
+      else:
+        E = 0.
+      output = MgBlock(E=E, alpha=alpha, beta=beta, cc_Mg=cc_Mg)
     super(NMDA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,
-                               output=MgBlock(E=0.) if output is None else output,
+                               output=output,
                                plasticity=plasticity,
                                name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
-
-    if alpha is not None:
-      raise ValueError(f'alpha is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
-    if beta is not None:
-      raise ValueError(f'beta is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
-    if cc_Mg is not None:
-      raise ValueError(f'cc_Mg is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
-    if E is not None:
-      raise ValueError(f'E is no longer supported. Please use brainpy.dyn.synouts.MgBlock instead.')
 
     # parameters
     self.tau_decay = tau_decay

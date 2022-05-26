@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
@@ -18,7 +18,7 @@ __all__ = [
 
 
 class AMPA(TwoEndConn):
-  r"""AMPA conductance-based synapse model.
+  r"""AMPA synapse model.
 
   **Model Descriptions**
 
@@ -64,11 +64,12 @@ class AMPA(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import neurons, synapses
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.AMPA(neu1, neu2, bp.connect.All2All())
+    >>> neu1 = neurons.HH(1)
+    >>> neu2 = neurons.HH(1)
+    >>> syn1 = synapses.AMPA(neu1, neu2, bp.connect.All2All())
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g'])
@@ -100,6 +101,11 @@ class AMPA(TwoEndConn):
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
   E: float, JaxArray, ndarray
     The reversal potential for the synaptic current. [mV]
+
+    .. deprecated:: 2.1.13
+       `E` is deprecated in AMPA model. Please define `E` with brainpy.dyn.synouts.COBA.
+       This parameter will be removed since 2.2.0
+
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   alpha: float, JaxArray, ndarray
@@ -134,31 +140,35 @@ class AMPA(TwoEndConn):
       conn_type: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      E: Union[float, Tensor] = 0.,
       alpha: Union[float, Tensor] = 0.98,
       beta: Union[float, Tensor] = 0.18,
       T: Union[float, Tensor] = 0.5,
       T_duration: Union[float, Tensor] = 0.5,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+
+      # deprecated
+      E: Union[float, Tensor] = None,
   ):
+    _E = 0.
+    if E is not None:
+      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
+                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
+      _E = E
     super(AMPA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,
-                               output=COBA(E=0.) if output is None else output,
+                               output=COBA(E=_E) if output is None else output,
                                plasticity=plasticity,
                                name=name)
     self.check_pre_attrs('spike')
     self.check_post_attrs('input', 'V')
 
     # parameters
-    self.E = E
     self.alpha = alpha
     self.beta = beta
     self.T = T
     self.T_duration = T_duration
-    if bm.size(E) != 1:
-      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. But we got {E}')
     if bm.size(alpha) != 1:
       raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
     if bm.size(beta) != 1:
@@ -253,7 +263,7 @@ class AMPA(TwoEndConn):
 
 
 class GABAa(AMPA):
-  r"""GABAa conductance-based synapse model.
+  r"""GABAa synapse model.
 
   **Model Descriptions**
 
@@ -292,6 +302,11 @@ class GABAa(AMPA):
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
   E: float, JaxArray, ndarray
     The reversal potential for the synaptic current. [mV]
+
+    .. deprecated:: 2.1.13
+       `E` is deprecated in AMPA model. Please define `E` with brainpy.dyn.synouts.COBA.
+       This parameter will be removed since 2.2.0
+
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   alpha: float, JaxArray, ndarray
@@ -330,12 +345,20 @@ class GABAa(AMPA):
       T: Union[float, Tensor] = 1.,
       T_duration: Union[float, Tensor] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+
+      # deprecated
+      E: Union[float, Tensor] = None,
   ):
+    _E = -80.
+    if E is not None:
+      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
+                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
+      _E = E
     super(GABAa, self).__init__(pre=pre,
                                 post=post,
                                 conn=conn,
-                                output=COBA(E=-80.) if output is None else output,
+                                output=COBA(E=_E) if output is None else output,
                                 plasticity=plasticity,
                                 conn_type=conn_type,
                                 delay_step=delay_step,
@@ -404,11 +427,12 @@ class BioNMDA(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import neurons, synapses
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.BioNMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> neu1 = neurons.HH(1)
+    >>> neu2 = neurons.HH(1)
+    >>> syn1 = synapses.BioNMDA(neu1, neu2, bp.connect.All2All(), E=0.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])

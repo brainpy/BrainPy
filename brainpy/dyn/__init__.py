@@ -6,7 +6,6 @@ Dynamics simulation module.
 
 
 from .base import *
-from .neurons import *
 from .neurons.compat import *
 from .synapses.compat import *
 from .utils import *

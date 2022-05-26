@@ -235,20 +235,42 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   write_module(module_name='brainpy.dyn.base',
                filename=os.path.join(path, 'base.rst'),
                header='Base Class')
+  write_module(module_name='brainpy.dyn.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='Runners')
 
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('Na_channels', 'Sodium Channel Models'),
-    ('K_channels', 'Potassium Channel Models'),
-    ('Ca_channels', 'Calcium Channel Models'),
-    ('Ih_channels', 'Ih Channel Models'),
-    ('leaky_channels', 'Leaky Channel Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.channels',
-                   filename=os.path.join(path, 'channels.rst'),
-                   header='Channel Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
+  write_module(module_name='brainpy.dyn.channels.base',
+               filename=os.path.join(path, 'channel_base.rst'),
+               header='Base Channel Models')
+  write_module(module_name='brainpy.dyn.channels.Na',
+               filename=os.path.join(path, 'channel_sodium.rst'),
+               header='Sodium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.K',
+               filename=os.path.join(path, 'channel_potassium.rst'),
+               header='Potassium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.Ca',
+               filename=os.path.join(path, 'channel_calcium.rst'),
+               header='Calcium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.IH',
+               filename=os.path.join(path, 'channel_Ih.rst'),
+               header='Ih Channel Models')
+  write_module(module_name='brainpy.dyn.channels.leaky',
+               filename=os.path.join(path, 'channel_leaky.rst'),
+               header='Leaky Channel Models')
+
+  # module_and_name = [
+  #   # ('base', 'Base Class'),
+  #   # ('Na_channels', 'Sodium Channel Models'),
+  #   # ('K_channels', 'Potassium Channel Models'),
+  #   # ('Ca_channels', 'Calcium Channel Models'),
+  #   # ('Ih_channels', 'Ih Channel Models'),
+  #   # ('leaky_channels', 'Leaky Channel Models'),
+  # ]
+  # write_submodules(module_name='brainpy.dyn.channels',
+  #                  filename=os.path.join(path, 'channels.rst'),
+  #                  header='Channel Models',
+  #                  submodule_names=[a[0] for a in module_and_name],
+  #                  section_names=[a[1] for a in module_and_name])
 
   module_and_name = [
     ('biological_models', 'Biological Models'),
@@ -273,6 +295,12 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                    header='Synapse Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
+  write_module(module_name='brainpy.dyn.synouts',
+               filename=os.path.join(path, 'synouts.rst'),
+               header='Synaptic Output Models')
+  write_module(module_name='brainpy.dyn.synplast',
+               filename=os.path.join(path, 'synplast.rst'),
+               header='Synaptic Plasticity Models')
 
   module_and_name = [
     ('populations', 'Population Models'),
@@ -283,10 +311,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                    header='Rate Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
-
-  write_module(module_name='brainpy.dyn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
 
 
 def generate_initialize_docs(path='apis/auto/'):

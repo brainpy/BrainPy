@@ -13,18 +13,10 @@ from brainpy.types import Shape
 __all__ = [
   'init_noise',
   'init_noise',
-  'check_master',
 ]
 
 
-def check_master(master, **children):
-  for child in children.values():
-    if not hasattr(child, 'master_type'):
-      raise ValueError('Child class should define "master_type" to specify the type of the master. '
-                       f'But we did not found it in {child}')
-    if not issubclass(master, child.master_type):
-      raise TypeError(f'Type does not match. {child} requires a master with type '
-                      f'of {child.master_type}, but the master now is {master}.')
+
 
 
 def init_noise(

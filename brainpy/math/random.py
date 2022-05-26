@@ -999,7 +999,7 @@ register_pytree_node(RandomState,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: RandomState(*flat_contents))
 
-# default random genrator
+# default random generator
 DEFAULT = RandomState(np.random.randint(0, 10000, size=2, dtype=np.uint32))
 
 

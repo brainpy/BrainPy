@@ -1,82 +1,38 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module implements voltage-dependent calcium channels.
+
+"""
+
+
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.base import Container, CondNeuGroup, Channel
-from brainpy.dyn.utils import check_master
+from brainpy.dyn.base import Channel
 from brainpy.initialize import OneInit, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.types import Shape, Tensor
-from .base import Ion, IonChannel
+from .base import Calcium, CalciumChannel
 
 __all__ = [
-  'Calcium',
   'CalciumFixed',
+  'CalciumDyna',
   'CalciumDetailed',
   'CalciumFirstOrder',
 
-  'CalciumChannel',
-  'IAHP',
-  'ICaN',
-  'ICaT',
-  'ICaT_RE',
-  'ICaHT',
-  'ICaL',
+  'ICa_p2q_ss', 'ICa_p2q_markov',
+
+  'ICaN_IS2008',
+
+  'ICaT_HM1992',
+  'ICaT_HP1992',
+
+  'ICaHT_HM1992',
+
+  'ICaL_IS2008',
 ]
-
-
-class Calcium(Ion, Container):
-  """The base calcium dynamics.
-
-  Parameters
-  ----------
-  size: int, sequence of int
-    The size of the simulation target.
-  method: str
-    The numerical integration method.
-  name: str
-    The name of the object.
-  **channels
-    The calcium dependent channels.
-  """
-
-  '''The type of the master object.'''
-  master_type = CondNeuGroup
-
-  """Reversal potential."""
-  E: Union[float, bm.Variable, bm.JaxArray]
-
-  """Calcium concentration."""
-  C: Union[float, bm.Variable, bm.JaxArray]
-
-  def __init__(
-      self,
-      size: Shape,
-      keep_size: bool = False,
-      method: str = 'exp_auto',
-      name: str = None,
-      **channels
-  ):
-    Ion.__init__(self, size, keep_size=keep_size)
-    Container.__init__(self, name=name, **channels)
-    self.method = method
-
-  def current(self, V, C_Ca=None, E_Ca=None):
-    C_Ca = self.C if (C_Ca is None) else C_Ca
-    E_Ca = self.E if (E_Ca is None) else E_Ca
-    nodes = list(self.nodes(level=1, include_self=False).unique().subset(Channel).values())
-    current = nodes[0].current(V, C_Ca, E_Ca)
-    for node in nodes[1:]:
-      current += node.current(V, C_Ca, E_Ca)
-    return current
-
-  def register_implicit_nodes(self, channels):
-    if not isinstance(channels, dict):
-      raise ValueError(f'"channels" must be instance of dict, but we got {type(channels)}')
-    check_master(type(self), **channels)
-    super(Calcium, self).register_implicit_nodes(channels)
 
 
 class CalciumFixed(Calcium):
@@ -188,7 +144,7 @@ class CalciumDyna(Calcium):
 
 
 class CalciumDetailed(CalciumDyna):
-  r"""Dynamical Calcium model.
+  r"""Dynamical Calcium model proposed.
 
   **1. The dynamics of intracellular** :math:`Ca^{2+}`
 
@@ -288,8 +244,13 @@ class CalciumDetailed(CalciumDyna):
   References
   ----------
 
-  .. [1] Destexhe, Alain, Agnessa Babloyantz, and Terrence J. Sejnowski. "Ionic mechanisms for intrinsic slow oscillations in thalamic relay neurons." Biophysical journal 65, no. 4 (1993): 1538-1552.
-  .. [2] Bazhenov, Maxim, Igor Timofeev, Mircea Steriade, and Terrence J. Sejnowski. "Cellular and network models for intrathalamic augmenting responses during 10-Hz stimulation." Journal of neurophysiology 79, no. 5 (1998): 2730-2748.
+  .. [1] Destexhe, Alain, Agnessa Babloyantz, and Terrence J. Sejnowski.
+         "Ionic mechanisms for intrinsic slow oscillations in thalamic
+         relay neurons." Biophysical journal 65, no. 4 (1993): 1538-1552.
+  .. [2] Bazhenov, Maxim, Igor Timofeev, Mircea Steriade, and Terrence J.
+         Sejnowski. "Cellular and network models for intrathalamic augmenting
+         responses during 10-Hz stimulation." Journal of neurophysiology 79,
+         no. 5 (1998): 2730-2748.
 
   """
 
@@ -371,111 +332,185 @@ class CalciumFirstOrder(CalciumDyna):
 # -------------------------
 
 
-class CalciumChannel(IonChannel):
-  """Base class for Calcium ion channels."""
+class ICa_p2q_ss(CalciumChannel):
+  r"""The calcium current model of :math:`p^2q` current which described with steady-state format.
 
-  '''The type of the master object.'''
-  master_type = Calcium
-
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    raise NotImplementedError
-
-  def current(self, V, C_Ca, E_Ca):
-    raise NotImplementedError
-
-  def reset(self, V, C_Ca, E_Ca):
-    raise NotImplementedError
-
-
-class IAHP(CalciumChannel):
-  r"""The calcium-dependent potassium current model.
-
-  The dynamics of the calcium-dependent potassium current model is given by:
+  The dynamics of this generalized calcium current model is given by:
 
   .. math::
 
-      \begin{aligned}
-      I_{AHP} &= g_{\mathrm{max}} p (V - E) \\
-      {dp \over dt} &= {p_{\infty}(V) - p \over \tau_p(V)} \\
-      p_{\infty} &=\frac{48[Ca^{2+}]_i}{\left(48[Ca^{2+}]_i +0.09\right)} \\
-      \tau_p &=\frac{1}{\left(48[Ca^{2+}]_i +0.09\right)}
-      \end{aligned}
+      I_{CaT} &= g_{max} p^2 q(V-E_{Ca}) \\
+      {dp \over dt} &= {\phi_p \cdot (p_{\infty}-p)\over \tau_p} \\
+      {dq \over dt} &= {\phi_q \cdot (q_{\infty}-q) \over \tau_q} \\
 
-  where :math:`E` is the reversal potential, :math:`g_{max}` is the maximum conductance.
-
+  where :math:`\phi_p` and :math:`\phi_q` are temperature-dependent factors,
+  :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
   Parameters
   ----------
-  g_max : float
-    The maximal conductance density (:math:`mS/cm^2`).
-  E : float
-    The reversal potential (mV).
-
-  References
-  ----------
-
-  .. [1] Contreras, D., R. Curró Dossi, and M. Steriade. "Electrophysiological
-         properties of cat reticular thalamic neurones in vivo." The Journal of
-         Physiology 470.1 (1993): 273-294.
-  .. [2] Mulle, Ch, Anamaria Madariaga, and M. Deschênes. "Morphology and
-         electrophysiological properties of reticularis thalami neurons in
-         cat: in vivo study of a thalamic pacemaker." Journal of
-         Neuroscience 6.8 (1986): 2134-2145.
-  .. [3] Avanzini, G., et al. "Intrinsic properties of nucleus reticularis
-         thalami neurones of the rat studied in vitro." The Journal of
-         Physiology 416.1 (1989): 111-122.
-  .. [4] Destexhe, Alain, et al. "A model of spindle rhythmicity in the isolated
-         thalamic reticular nucleus." Journal of neurophysiology 72.2 (1994): 803-818.
-  .. [5] Vijayan S, Kopell NJ (2012) Thalamic model of awake alpha oscillations and
-         implications for stimulus processing. Proc Natl Acad Sci USA 109: 18553–18558.
+  size: int, tuple of int
+    The size of the simulation target.
+  keep_size: bool
+    Keep size or flatten the size?
+  method: str
+    The numerical method
+  name: str
+    The name of the object.
+  g_max : float, Tensor, Callable, Initializer
+    The maximum conductance.
+  phi_p : float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`p`.
+  phi_q : float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`q`.
 
   """
-
-  '''The type of the master object.'''
-  master_type = CalciumDyna
 
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -80.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
+      phi_p: Union[float, Tensor, Initializer, Callable] = 3.,
+      phi_q: Union[float, Tensor, Initializer, Callable] = 3.,
+      g_max: Union[float, Tensor, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(IAHP, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICa_p2q_ss, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
+    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
     self.g_max = init_param(g_max, self.var_shape, allow_none=False)
 
     # variables
     self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
 
-    # function
-    self.integral = odeint(self.derivative, method=method)
+    # functions
+    self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
-  def derivative(self, p, t, C_Ca):
-    C2 = 48 * C_Ca ** 2
-    C3 = C2 + 0.09
-    return (C2 / C3 - p) * C3
+  def dp(self, p, t, V):
+    return self.phi_p * (self.f_p_inf(V) - p) / self.f_p_tau(V)
+
+  def dq(self, q, t, V):
+    return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
   def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value = self.integral(self.p, t, C_Ca=C_Ca, dt=dt)
+    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
 
   def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * (self.E - V)
+    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
 
   def reset(self, V, C_Ca, E_Ca):
-    C2 = 48 * C_Ca ** 2
-    C3 = C2 + 0.09
-    self.p.value = C2 / C3
+    self.p.value = self.f_p_inf(V)
+    self.q.value = self.f_q_inf(V)
+
+  def f_p_inf(self, V):
+    raise NotImplementedError
+
+  def f_p_tau(self, V):
+    raise NotImplementedError
+
+  def f_q_inf(self, V):
+    raise NotImplementedError
+
+  def f_q_tau(self, V):
+    raise NotImplementedError
 
 
-class ICaN(CalciumChannel):
-  r"""The calcium-activated non-selective cation channel model.
+class ICa_p2q_markov(CalciumChannel):
+  r"""The calcium current model of :math:`p^2q` current which described with first-order Markov chain.
 
-  The dynamics of the calcium-activated non-selective cation channel model is given by:
+  The dynamics of this generalized calcium current model is given by:
+
+  .. math::
+
+      I_{CaT} &= g_{max} p^2 q(V-E_{Ca}) \\
+      {dp \over dt} &= \phi_p (\alpha_p(V)(1-p) - \beta_p(V)p) \\
+      {dq \over dt} &= \phi_q (\alpha_q(V)(1-q) - \beta_q(V)q) \\
+
+  where :math:`\phi_p` and :math:`\phi_q` are temperature-dependent factors,
+  :math:`E_{Ca}` is the reversal potential of Calcium channel.
+
+  Parameters
+  ----------
+  size: int, tuple of int
+    The size of the simulation target.
+  keep_size: bool
+    Keep size or flatten the size?
+  method: str
+    The numerical method
+  name: str
+    The name of the object.
+  g_max : float, Tensor, Callable, Initializer
+    The maximum conductance.
+  phi_p : float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`p`.
+  phi_q : float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`q`.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      phi_p: Union[float, Tensor, Initializer, Callable] = 3.,
+      phi_q: Union[float, Tensor, Initializer, Callable] = 3.,
+      g_max: Union[float, Tensor, Initializer, Callable] = 2.,
+      method: str = 'exp_auto',
+      name: str = None
+  ):
+    super(ICa_p2q_markov, self).__init__(size, keep_size=keep_size, name=name)
+
+    # parameters
+    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
+    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+
+    # variables
+    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.q = bm.Variable(bm.zeros(self.var_shape))
+
+    # functions
+    self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
+
+  def dp(self, p, t, V):
+    return self.phi_p * (self.f_p_alpha(V) * (1 - p) - self.f_p_beta(V) * p)
+
+  def dq(self, q, t, V):
+    return self.phi_q * (self.f_q_alpha(V) * (1 - q) - self.f_q_beta(V) * q)
+
+  def update(self, t, dt, V, C_Ca, E_Ca):
+    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
+
+  def current(self, V, C_Ca, E_Ca):
+    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
+
+  def reset(self, V, C_Ca, E_Ca):
+    alpha, beta = self.f_p_alpha(V), self.f_p_beta(V)
+    self.p.value = alpha / (alpha + beta)
+    alpha, beta = self.f_q_alpha(V), self.f_q_beta(V)
+    self.q.value = alpha / (alpha + beta)
+
+  def f_p_alpha(self, V):
+    raise NotImplementedError
+
+  def f_p_beta(self, V):
+    raise NotImplementedError
+
+  def f_q_alpha(self, V):
+    raise NotImplementedError
+
+  def f_q_beta(self, V):
+    raise NotImplementedError
+
+
+class ICaN_IS2008(CalciumChannel):
+  r"""The calcium-activated non-selective cation channel model
+  proposed by (Inoue & Strowbridge, 2008) [2]_.
+
+  The dynamics of the calcium-activated non-selective cation channel model [1]_ [2]_ is given by:
 
   .. math::
 
@@ -521,7 +556,7 @@ class ICaN(CalciumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaN, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICaN_IS2008, self).__init__(size, keep_size=keep_size, name=name)
 
     # parameters
     self.E = init_param(E, self.var_shape, allow_none=False)
@@ -551,8 +586,8 @@ class ICaN(CalciumChannel):
     self.p.value = 1.0 / (1 + bm.exp(-(V + 43.) / 5.2))
 
 
-class ICaT(CalciumChannel):
-  r"""The low-threshold T-type calcium current model.
+class ICaT_HM1992(ICa_p2q_ss):
+  r"""The low-threshold T-type calcium current model proposed by (Huguenard & McCormick, 1992) [1]_.
 
   The dynamics of the low-threshold T-type calcium current model [1]_ is given by:
 
@@ -573,82 +608,84 @@ class ICaT(CalciumChannel):
 
   Parameters
   ----------
-  T : float
+  T : float, Tensor
     The temperature.
-  T_base_p : float
+  T_base_p : float, Tensor
     The base temperature factor of :math:`p` channel.
-  T_base_q : float
+  T_base_q : float, Tensor
     The base temperature factor of :math:`q` channel.
-  g_max : float
+  g_max : float, Tensor, Callable, Initializer
     The maximum conductance.
-  V_sh : float
+  V_sh : float, Tensor, Callable, Initializer
     The membrane potential shift.
+  phi_p : optional, float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`p`.
+  phi_q : optional, float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`q`.
 
   References
   ----------
 
   .. [1] Huguenard JR, McCormick DA (1992) Simulation of the currents involved in
          rhythmic oscillations in thalamic relay neurons. J Neurophysiol 68:1373–1383.
+
+  See Also
+  --------
+  ICa_p2q_form
   """
 
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      T_base_p: Union[float, Tensor, Initializer, Callable] = 3.55,
-      T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
+      T: Union[float, Tensor] = 36.,
+      T_base_p: Union[float, Tensor] = 3.55,
+      T_base_q: Union[float, Tensor] = 3.,
       g_max: Union[float, Tensor, Initializer, Callable] = 2.,
       V_sh: Union[float, Tensor, Initializer, Callable] = -3.,
+      phi_p: Union[float, Tensor, Initializer, Callable] = None,
+      phi_q: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaT, self).__init__(size, keep_size=keep_size, name=name)
+    phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
+    phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
+    super(ICaT_HM1992, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      method=method,
+                                      g_max=g_max,
+                                      phi_p=phi_p,
+                                      phi_q=phi_q)
 
     # parameters
     self.T = init_param(T, self.var_shape, allow_none=False)
     self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
     self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
-    self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
-    # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+  def f_p_inf(self, V):
+    return 1. / (1 + bm.exp(-(V + 59. - self.V_sh) / 6.2))
 
-    # functions
-    self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
+  def f_p_tau(self, V):
+    return 1. / (bm.exp(-(V + 132. - self.V_sh) / 16.7) +
+                 bm.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
 
-  def dp(self, p, t, V):
-    p_inf = 1. / (1 + bm.exp(-(V + 59. - self.V_sh) / 6.2))
-    p_tau = 1. / (bm.exp(-(V + 132. - self.V_sh) / 16.7) + bm.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
-    return self.phi_p * (p_inf - p) / p_tau
+  def f_q_inf(self, V):
+    return 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.0))
 
-  def dq(self, q, t, V):
-    q_inf = 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.0))
-    q_tau = bm.where(V >= (-80. + self.V_sh),
-                     bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
-                     bm.exp((V + 467. - self.V_sh) / 66.6))
-    return self.phi_q * (q_inf - q) / q_tau
-
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
-
-  def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
-
-  def reset(self, V, C_Ca, E_Ca):
-    self.p.value = 1. / (1 + bm.exp(-(V + 59. - self.V_sh) / 6.2))
-    self.q.value = 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.0))
+  def f_q_tau(self, V):
+    return bm.where(V >= (-80. + self.V_sh),
+                    bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
+                    bm.exp((V + 467. - self.V_sh) / 66.6))
 
 
-class ICaT_RE(CalciumChannel):
-  r"""The low-threshold T-type calcium current model in thalamic reticular nucleus.
+class ICaT_HP1992(ICa_p2q_ss):
+  r"""The low-threshold T-type calcium current model for thalamic
+  reticular nucleus proposed by (Huguenard & Prince, 1992) [1]_.
 
-  The dynamics of the low-threshold T-type calcium current model [1]_ [2]_ in thalamic
-  reticular nucleus neurons is given by:
+  The dynamics of the low-threshold T-type calcium current model in thalamic
+  reticular nucleus neurons [1]_ is given by:
 
   .. math::
 
@@ -660,88 +697,86 @@ class ICaT_RE(CalciumChannel):
       &q_{\infty} = {1 \over 1+\exp [(V+80-V_{sh}) / 5]} \\
       & \tau_q = 85+ {1 \over \exp [(V+48-V_{sh}) / 4]+\exp [-(V+407-V_{sh}) / 50]}
 
-  where :math:`phi_p = 5^{\frac{T-24}{10}}` and :math:`phi_q = 3^{\frac{T-24}{10}}`
+  where :math:`\phi_p = 5^{\frac{T-24}{10}}` and :math:`\phi_q = 3^{\frac{T-24}{10}}`
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
   Parameters
   ----------
-  T : float
+  T : float, Tensor
     The temperature.
-  T_base_p : float
+  T_base_p : float, Tensor
     The base temperature factor of :math:`p` channel.
-  T_base_q : float
+  T_base_q : float, Tensor
     The base temperature factor of :math:`q` channel.
-  g_max : float
+  g_max : float, Tensor, Callable, Initializer
     The maximum conductance.
-  V_sh : float
+  V_sh : float, Tensor, Callable, Initializer
     The membrane potential shift.
+  phi_p : optional, float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`p`.
+  phi_q : optional, float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`q`.
 
   References
   ----------
 
-  .. [1] Avanzini, G., et al. "Intrinsic properties of nucleus reticularis thalami
-         neurones of the rat studied in vitro." The Journal of
-         Physiology 416.1 (1989): 111-122.
-  .. [2] Bal, Thierry, and DAVID A. McCORMICK. "Mechanisms of oscillatory activity
-         in guinea‐pig nucleus reticularis thalami in vitro: a mammalian
-         pacemaker." The Journal of Physiology 468.1 (1993): 669-691.
+  .. [1] Huguenard JR, Prince DA (1992) A novel T-type current underlies
+         prolonged Ca2+- dependent burst firing in GABAergic neurons of rat
+         thalamic reticular nucleus. J Neurosci 12: 3804–3817.
 
+  See Also
+  --------
+  ICa_p2q_form
   """
 
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      T_base_p: Union[float, Tensor, Initializer, Callable] = 5.,
-      T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
+      T: Union[float, Tensor] = 36.,
+      T_base_p: Union[float, Tensor] = 5.,
+      T_base_q: Union[float, Tensor] = 3.,
       g_max: Union[float, Tensor, Initializer, Callable] = 1.75,
       V_sh: Union[float, Tensor, Initializer, Callable] = -3.,
+      phi_p: Union[float, Tensor, Initializer, Callable] = None,
+      phi_q: Union[float, Tensor, Initializer, Callable] = None,
       method='exp_auto',
       name=None
   ):
-    super(ICaT_RE, self).__init__(size, keep_size=keep_size, name=name)
+    phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
+    phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
+    super(ICaT_HP1992, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      method=method,
+                                      g_max=g_max,
+                                      phi_p=phi_p,
+                                      phi_q=phi_q)
 
     # parameters
     self.T = init_param(T, self.var_shape, allow_none=False)
     self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
     self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
-    self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
-    # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+  def f_p_inf(self, V):
+    return 1. / (1. + bm.exp(-(V + 52. - self.V_sh) / 7.4))
 
-    # function
-    self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
+  def f_p_tau(self, V):
+    return 3. + 1. / (bm.exp((V + 27. - self.V_sh) / 10.) +
+                      bm.exp(-(V + 102. - self.V_sh) / 15.))
 
-  def dp(self, p, t, V):
-    p_inf = 1. / (1. + bm.exp(-(V + 52. - self.V_sh) / 7.4))
-    p_tau = 3. + 1. / (bm.exp((V + 27. - self.V_sh) / 10.) + bm.exp(-(V + 102. - self.V_sh) / 15.))
-    return self.phi_p * (p_inf - p) / p_tau
+  def f_q_inf(self, V):
+    return 1. / (1. + bm.exp((V + 80. - self.V_sh) / 5.))
 
-  def dq(self, q, t, V):
-    q_inf = 1. / (1. + bm.exp((V + 80. - self.V_sh) / 5.))
-    q_tau = 85. + 1. / (bm.exp((V + 48. - self.V_sh) / 4.) + bm.exp(-(V + 407. - self.V_sh) / 50.))
-    return self.phi_q * (q_inf - q) / q_tau
-
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
-
-  def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
-
-  def reset(self, V, C_Ca, E_Ca):
-    self.p.value = 1. / (1. + bm.exp(-(V + 52. - self.V_sh) / 7.4))
-    self.q.value = 1. / (1. + bm.exp((V + 80. - self.V_sh) / 5.))
+  def f_q_tau(self, V):
+    return 85. + 1. / (bm.exp((V + 48. - self.V_sh) / 4.) +
+                       bm.exp(-(V + 407. - self.V_sh) / 50.))
 
 
-class ICaHT(CalciumChannel):
-  r"""The high-threshold T-type calcium current model.
+class ICaHT_HM1992(ICa_p2q_ss):
+  r"""The high-threshold T-type calcium current model proposed by (Huguenard & McCormick, 1992) [1]_.
 
   The high-threshold T-type calcium current model is adopted from [1]_.
   Its dynamics is given by
@@ -767,45 +802,52 @@ class ICaHT(CalciumChannel):
 
   Parameters
   ----------
-  T : float
+  T : float, Tensor
     The temperature.
-  T_base_p : float
+  T_base_p : float, Tensor
     The base temperature factor of :math:`p` channel.
-  T_base_q : float
+  T_base_q : float, Tensor
     The base temperature factor of :math:`q` channel.
-  g_max : float
+  g_max : float, Tensor, Initializer, Callable
     The maximum conductance.
-  V_sh : float
+  V_sh : float, Tensor, Initializer, Callable
     The membrane potential shift.
 
   References
   ----------
   .. [1] Huguenard JR, McCormick DA (1992) Simulation of the currents involved in
          rhythmic oscillations in thalamic relay neurons. J Neurophysiol 68:1373–1383.
+
+  See Also
+  --------
+  ICa_p2q_form
   """
 
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      T_base_p: Union[float, Tensor, Initializer, Callable] = 3.55,
-      T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
+      T: Union[float, Tensor] = 36.,
+      T_base_p: Union[float, Tensor] = 3.55,
+      T_base_q: Union[float, Tensor] = 3.,
       g_max: Union[float, Tensor, Initializer, Callable] = 2.,
       V_sh: Union[float, Tensor, Initializer, Callable] = 25.,
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaHT, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICaHT_HM1992, self).__init__(size,
+                                       keep_size=keep_size,
+                                       name=name,
+                                       method=method,
+                                       g_max=g_max,
+                                       phi_p=T_base_p ** ((T - 24) / 10),
+                                       phi_q=T_base_q ** ((T - 24) / 10))
 
     # parameters
     self.T = init_param(T, self.var_shape, allow_none=False)
     self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
     self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
-    self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
     # variables
     self.p = bm.Variable(bm.zeros(self.var_shape))
@@ -814,31 +856,120 @@ class ICaHT(CalciumChannel):
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
-  def dp(self, p, t, V):
-    p_inf = 1. / (1. + bm.exp(-(V + 59. - self.V_sh) / 6.2))
-    p_tau = 1. / (bm.exp(-(V + 132. - self.V_sh) / 16.7) + bm.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
-    return self.phi_p * (p_inf - p) / p_tau
+  def f_p_inf(self, V):
+    return 1. / (1. + bm.exp(-(V + 59. - self.V_sh) / 6.2))
 
-  def dq(self, q, t, V):
-    q_inf = 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.))
-    q_tau = bm.where(V >= (-80. + self.V_sh),
-                     bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
-                     bm.exp((V + 467. - self.V_sh) / 66.6))
-    return self.phi_q * (q_inf - q) / q_tau
+  def f_p_tau(self, V):
+    return 1. / (bm.exp(-(V + 132. - self.V_sh) / 16.7) +
+                 bm.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
+  def f_q_inf(self, V):
+    return 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.))
 
-  def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
-
-  def reset(self, V, C_Ca, E_Ca):
-    self.p.value = 1. / (1. + bm.exp(-(V + 59. - self.V_sh) / 6.2))
-    self.q.value = 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.))
+  def f_q_tau(self, V):
+    return bm.where(V >= (-80. + self.V_sh),
+                    bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
+                    bm.exp((V + 467. - self.V_sh) / 66.6))
 
 
-class ICaL(CalciumChannel):
-  r"""The L-type calcium channel model.
+class ICaHT_Re1993(ICa_p2q_markov):
+  r"""The high-threshold T-type calcium current model proposed by (Reuveni, et al., 1993) [1]_.
+
+  HVA Calcium current was described for neocortical neurons by Sayer et al. (1990).
+  Its dynamics is given by (the rate functions are measured under 36 Celsius):
+
+  .. math::
+
+     \begin{aligned}
+      I_{L} &=\bar{g}_{L} q^{2} r\left(V-E_{\mathrm{Ca}}\right) \\
+      \frac{\mathrm{d} q}{\mathrm{~d} t} &= \phi_p (\alpha_{q}(V)(1-q)-\beta_{q}(V) q) \\
+      \frac{\mathrm{d} r}{\mathrm{~d} t} &= \phi_q (\alpha_{r}(V)(1-r)-\beta_{r}(V) r) \\
+      \alpha_{q} &=\frac{0.055(-27-V+V_{sh})}{\exp [(-27-V+V_{sh}) / 3.8]-1} \\
+      \beta_{q} &=0.94 \exp [(-75-V+V_{sh}) / 17] \\
+      \alpha_{r} &=0.000457 \exp [(-13-V+V_{sh}) / 50] \\
+      \beta_{r} &=\frac{0.0065}{\exp [(-15-V+V_{sh}) / 28]+1},
+      \end{aligned}
+
+  Parameters
+  ----------
+  size: int, tuple of int
+    The size of the simulation target.
+  keep_size: bool
+    Keep size or flatten the size?
+  method: str
+    The numerical method
+  name: str
+    The name of the object.
+  g_max : float, Tensor, Callable, Initializer
+    The maximum conductance.
+  V_sh : float, Tensor, Callable, Initializer
+    The membrane potential shift.
+  T : float, Tensor
+    The temperature.
+  T_base_p : float, Tensor
+    The base temperature factor of :math:`p` channel.
+  T_base_q : float, Tensor
+    The base temperature factor of :math:`q` channel.
+  phi_p : optional, float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`p`.
+    If `None`, :math:`\phi_p = \mathrm{T_base_p}^{\frac{T-23}{10}}`.
+  phi_q : optional, float, Tensor, Callable, Initializer
+    The temperature factor for channel :math:`q`.
+    If `None`, :math:`\phi_q = \mathrm{T_base_q}^{\frac{T-23}{10}}`.
+
+  References
+  ----------
+  .. [1] Reuveni, I., et al. "Stepwise repolarization from Ca2+ plateaus
+         in neocortical pyramidal cells: evidence for nonhomogeneous
+         distribution of HVA Ca2+ channels in dendrites." Journal of
+         Neuroscience 13.11 (1993): 4609-4621.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      T: Union[float, Tensor] = 36.,
+      T_base_p: Union[float, Tensor] = 2.3,
+      T_base_q: Union[float, Tensor] = 2.3,
+      phi_p: Union[float, Tensor, Initializer, Callable] = None,
+      phi_q: Union[float, Tensor, Initializer, Callable] = None,
+      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
+      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
+      method: str = 'exp_auto',
+      name: str = None
+  ):
+    phi_p = T_base_p ** ((T - 23.) / 10.) if phi_p is None else phi_p
+    phi_q = T_base_q ** ((T - 23.) / 10.) if phi_q is None else phi_q
+    super(ICaHT_Re1993, self).__init__(size,
+                                       keep_size=keep_size,
+                                       name=name,
+                                       method=method,
+                                       g_max=g_max,
+                                       phi_p=phi_p,
+                                       phi_q=phi_q)
+    self.T = init_param(T, self.var_shape, allow_none=False)
+    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
+    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
+    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+
+  def f_p_alpha(self, V):
+    temp = -27 - V + self.V_sh
+    return 0.055 * temp / (bm.exp(temp / 3.8) - 1)
+
+  def f_p_beta(self, V):
+    return 0.94 * bm.exp((-75. - V + self.V_sh) / 17.)
+
+  def f_q_alpha(self, V):
+    return 0.000457 * bm.exp((-13. - V + self.V_sh) / 50.)
+
+  def f_q_beta(self, V):
+    return 0.0065 / (bm.exp((-15. - V + self.V_sh) / 28.) + 1.)
+
+
+class ICaL_IS2008(ICa_p2q_ss):
+  r"""The L-type calcium channel model proposed by (Inoue & Strowbridge, 2008) [1]_.
 
   The L-type calcium channel model is adopted from (Inoue, et, al., 2008) [1]_.
   Its dynamics is given by:
@@ -876,6 +1007,10 @@ class ICaL(CalciumChannel):
   .. [1] Inoue, Tsuyoshi, and Ben W. Strowbridge. "Transient activity induces a long-lasting
          increase in the excitability of olfactory bulb interneurons." Journal of
          neurophysiology 99, no. 1 (2008): 187-199.
+
+  See Also
+  --------
+  ICa_p2q_form
   """
 
   def __init__(
@@ -890,42 +1025,30 @@ class ICaL(CalciumChannel):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(ICaL, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICaL_IS2008, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      method=method,
+                                      g_max=g_max,
+                                      phi_p=T_base_p ** ((T - 24) / 10),
+                                      phi_q=T_base_q ** ((T - 24) / 10))
 
     # parameters
     self.T = init_param(T, self.var_shape, allow_none=False)
     self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
     self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
     self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi_p = self.T_base_p ** ((self.T - 24) / 10)
-    self.phi_q = self.T_base_q ** ((self.T - 24) / 10)
 
-    # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+  def f_p_inf(self, V):
+    return 1. / (1 + bm.exp(-(V + 10. - self.V_sh) / 4.))
 
-    # function
-    self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
+  def f_p_tau(self, V):
+    return 0.4 + .7 / (bm.exp(-(V + 5. - self.V_sh) / 15.) +
+                       bm.exp((V + 5. - self.V_sh) / 15.))
 
-  def dp(self, p, t, V):
-    p_inf = 1. / (1 + bm.exp(-(V + 10. - self.V_sh) / 4.))
-    p_tau = 0.4 + .7 / (bm.exp(-(V + 5. - self.V_sh) / 15.) + bm.exp((V + 5. - self.V_sh) / 15.))
-    dpdt = self.phi_p * (p_inf - p) / p_tau
-    return dpdt
+  def f_q_inf(self, V):
+    return 1. / (1. + bm.exp((V + 25. - self.V_sh) / 2.))
 
-  def dq(self, q, t, V):
-    q_inf = 1. / (1. + bm.exp((V + 25. - self.V_sh) / 2.))
-    q_tau = 300. + 100. / (bm.exp((V + 40 - self.V_sh) / 9.5) + bm.exp(-(V + 40 - self.V_sh) / 9.5))
-    dqdt = self.phi_q * (q_inf - q) / q_tau
-    return dqdt
-
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
-
-  def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
-
-  def reset(self, V, C_Ca, E_Ca):
-    self.p.value = 1. / (1 + bm.exp(-(V + 10. - self.V_sh) / 4.))
-    self.q.value = 1. / (1. + bm.exp((V + 25. - self.V_sh) / 2.))
+  def f_q_tau(self, V):
+    return 300. + 100. / (bm.exp((V + 40 - self.V_sh) / 9.5) +
+                          bm.exp(-(V + 40 - self.V_sh) / 9.5))
