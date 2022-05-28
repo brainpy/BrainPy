@@ -2,7 +2,7 @@
 
 from typing import Tuple, Union
 
-from brainpy.nn.base import Node
+from brainpy.compat.nn.base import Node
 from brainpy.tools.others import to_size
 
 __all__ = [

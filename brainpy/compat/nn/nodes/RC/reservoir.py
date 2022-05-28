@@ -4,8 +4,8 @@ from typing import Optional, Union, Callable
 
 import brainpy.math as bm
 from brainpy.initialize import Normal, ZeroInit, Initializer, init_param
-from brainpy.nn.base import RecurrentNode
-from brainpy.nn.datatypes import MultipleData
+from brainpy.compat.nn.base import RecurrentNode
+from brainpy.compat.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_shape_consistency,
                                     check_float,
                                     check_initializer,

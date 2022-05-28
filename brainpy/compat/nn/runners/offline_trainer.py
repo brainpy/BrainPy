@@ -8,9 +8,9 @@ from jax.experimental.host_callback import id_tap
 from brainpy.base import Base
 import brainpy.math as bm
 from brainpy.errors import NoImplementationError
-from brainpy.nn.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import serialize_kwargs
+from brainpy.compat.nn.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
+from brainpy.compat.nn.base import Node, Network
+from brainpy.compat.nn.utils import serialize_kwargs
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer
 

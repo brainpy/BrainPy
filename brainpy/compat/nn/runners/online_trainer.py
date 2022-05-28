@@ -9,9 +9,9 @@ from jax.tree_util import tree_map
 from brainpy.base import Base
 import brainpy.math as bm
 from brainpy.errors import NoImplementationError
-from brainpy.nn.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.nn.base import Node
-from brainpy.nn.utils import (serialize_kwargs,
+from brainpy.compat.nn.algorithms.online import get, OnlineAlgorithm, RLS
+from brainpy.compat.nn.base import Node
+from brainpy.compat.nn.utils import (serialize_kwargs,
                               check_data_batch_size,
                               check_rnn_data_time_step)
 from brainpy.types import Tensor

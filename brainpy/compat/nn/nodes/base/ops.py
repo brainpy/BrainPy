@@ -4,8 +4,8 @@
 import numpy as np
 
 from brainpy import math as bm, tools
-from brainpy.nn.base import Node
-from brainpy.nn.datatypes import MultipleData
+from brainpy.compat.nn.base import Node
+from brainpy.compat.nn.datatypes import MultipleData
 from brainpy.tools.checking import check_shape_consistency
 
 __all__ = [

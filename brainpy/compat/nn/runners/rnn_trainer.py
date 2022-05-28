@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.errors import UnsupportedError
-from brainpy.nn.base import Node, Network
+from brainpy.compat.nn.base import Node, Network
 from brainpy.types import Tensor
 from brainpy.tools.checking import check_dict_data
 from .rnn_runner import RNNRunner

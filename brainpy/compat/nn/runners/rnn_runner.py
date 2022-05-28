@@ -9,8 +9,8 @@ from jax.tree_util import tree_map
 
 from brainpy import math as bm
 from brainpy.errors import UnsupportedError
-from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import (check_rnn_data_time_step,
+from brainpy.compat.nn.base import Node, Network
+from brainpy.compat.nn.utils import (check_rnn_data_time_step,
                               check_data_batch_size,
                               serialize_kwargs)
 from brainpy.running.runner import Runner

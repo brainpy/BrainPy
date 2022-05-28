@@ -10,8 +10,8 @@ from brainpy.initialize import (XavierNormal,
                                 Orthogonal,
                                 init_param,
                                 Initializer)
-from brainpy.nn.base import RecurrentNode
-from brainpy.nn.datatypes import MultipleData
+from brainpy.compat.nn.base import RecurrentNode
+from brainpy.compat.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_integer,
                                     check_initializer,
                                     check_shape_consistency)

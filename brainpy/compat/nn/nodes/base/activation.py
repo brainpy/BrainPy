@@ -3,7 +3,7 @@
 from typing import Dict, Optional, Any
 
 from brainpy.math import activations
-from brainpy.nn.base import Node
+from brainpy.compat.nn.base import Node
 
 __all__ = [
   'Activation'

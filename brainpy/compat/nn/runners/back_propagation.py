@@ -12,8 +12,8 @@ import brainpy.losses as losses
 import brainpy.math as bm
 import brainpy.optimizers as optim
 from brainpy.errors import UnsupportedError
-from brainpy.nn.base import Node, Network
-from brainpy.nn.utils import check_data_batch_size, serialize_kwargs
+from brainpy.compat.nn.base import Node, Network
+from brainpy.compat.nn.utils import check_data_batch_size, serialize_kwargs
 from brainpy.tools.checking import check_dict_data, check_float
 from brainpy.types import Tensor
 from .rnn_trainer import RNNTrainer

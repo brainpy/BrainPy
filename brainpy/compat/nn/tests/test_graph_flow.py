@@ -2,8 +2,8 @@
 
 
 import unittest
-from brainpy.nn.graph_flow import find_entries_and_exits
-from brainpy.nn.graph_flow import detect_cycle
+from brainpy.compat.nn.graph_flow import find_entries_and_exits
+from brainpy.compat.nn.graph_flow import detect_cycle
 
 
 class TestGraphFlow(unittest.TestCase):

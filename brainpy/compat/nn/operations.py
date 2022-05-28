@@ -23,10 +23,10 @@ However, all operations should satisfy the following assumptions:
 from itertools import product
 from typing import Union, Sequence, Set
 
-from brainpy.nn import graph_flow
-from brainpy.nn.base import Node, Network, FrozenNetwork
-from brainpy.nn.datatypes import SingleData
-from brainpy.nn.nodes.base import Select, Concat
+from brainpy.compat.nn import graph_flow
+from brainpy.compat.nn.base import Node, Network, FrozenNetwork
+from brainpy.compat.nn.datatypes import SingleData
+from brainpy.compat.nn.nodes.base import Select, Concat
 from brainpy.types import Tensor
 
 __all__ = [

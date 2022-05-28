@@ -26,13 +26,13 @@ from brainpy.errors import (UnsupportedError,
                             PackageMissingError,
                             ModelBuildError,
                             MathError)
-from brainpy.nn.algorithms.offline import OfflineAlgorithm
-from brainpy.nn.algorithms.online import OnlineAlgorithm
-from brainpy.nn.datatypes import (DataType, SingleData, MultipleData)
-from brainpy.nn.graph_flow import (find_senders_and_receivers,
-                                   find_entries_and_exits,
-                                   detect_cycle,
-                                   detect_path)
+from brainpy.compat.nn.algorithms.offline import OfflineAlgorithm
+from brainpy.compat.nn.algorithms.online import OnlineAlgorithm
+from brainpy.compat.nn.datatypes import (DataType, SingleData, MultipleData)
+from brainpy.compat.nn.graph_flow import (find_senders_and_receivers,
+                                          find_entries_and_exits,
+                                          detect_cycle,
+                                          detect_path)
 from brainpy.tools.checking import (check_dict_data,
                                     check_shape_except_batch,
                                     check_integer)

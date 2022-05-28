@@ -5,8 +5,8 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.errors import MathError
 from brainpy.initialize import Initializer
-from brainpy.nn.datatypes import MultipleData
-from brainpy.nn.nodes.base.dense import Dense
+from brainpy.compat.nn.datatypes import MultipleData
+from brainpy.compat.nn.nodes.base.dense import Dense
 from brainpy.tools.checking import check_shape_consistency
 
 __all__ = [

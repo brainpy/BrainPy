@@ -2,13 +2,11 @@
 
 from typing import Union
 
-import jax.nn
 import jax.numpy as jnp
 
 import brainpy.math as bm
+from brainpy.compat.nn.base import Node
 from brainpy.initialize import ZeroInit, OneInit, Initializer
-from brainpy.nn.base import Node
-
 
 __all__ = [
   'BatchNorm',
