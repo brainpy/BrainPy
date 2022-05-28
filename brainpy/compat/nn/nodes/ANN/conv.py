@@ -71,7 +71,8 @@ class GeneralConv(Node):
   """
 
   def __init__(self, out_channels, kernel_size, strides=None, padding='SAME',
-               input_dilation=None, kernel_dilation=None, groups=1, w_init=XavierNormal(), b_init=ZeroInit(), **kwargs):
+               input_dilation=None, kernel_dilation=None, groups=1,
+               w_init=XavierNormal(), b_init=ZeroInit(), **kwargs):
     super(GeneralConv, self).__init__(**kwargs)
 
     self.out_channels = out_channels

@@ -34,7 +34,7 @@ class LinearReadout(Dense):
     super(LinearReadout, self).__init__(num_unit=num_unit, **kwargs)
 
   def init_state(self, num_batch=1):
-    return bm.zeros((num_batch,) + self.output_shape[1:], dtype=bm.float_)
+    return bm.zeros((num_batch,) + self.output_shape[1:])
 
   def forward(self, ff, fb=None, **shared_kwargs):
     h = super(LinearReadout, self).forward(ff, fb=fb, **shared_kwargs)

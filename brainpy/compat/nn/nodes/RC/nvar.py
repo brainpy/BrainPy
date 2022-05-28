@@ -133,7 +133,7 @@ class NVAR(RecurrentNode):
     # To store the last inputs.
     # Note, the batch axis is not in the first dimension, so we
     # manually handle the state of NVAR, rather return it.
-    state = jnp.zeros((self.num_delay, num_batch, self.input_dim), dtype=bm.float_)
+    state = jnp.zeros((self.num_delay, num_batch, self.input_dim))
     if self.store is None:
       self.store = bm.Variable(state)
     else:
@@ -162,7 +162,7 @@ class NVAR(RecurrentNode):
     self.idx.value = (self.idx + 1) % self.num_delay
     return jnp.concatenate(all_parts, axis=-1)
 
-  def get_feature_names(self):
+  def get_feature_names(self, for_plot=False):
     """Get output feature names for transformation.
 
     Returns
@@ -174,7 +174,10 @@ class NVAR(RecurrentNode):
       raise ValueError('Please initialize the node first.')
     linear_names = [f'x{i}(t)' for i in range(self.input_dim)]
     for di in range(1, self.delay):
-      linear_names.extend([f'x{i}(t-{di * self.stride})' for i in range(self.input_dim)])
+      linear_names.extend([((f'x{i}_' + r'{t-%d}' % (di * self.stride))
+                            if for_plot else
+                            f'x{i}(t-{di * self.stride})')
+                           for i in range(self.input_dim)])
     nonlinear_names = []
     for ids in self.comb_ids:
       for id_ in np.asarray(ids):
@@ -183,7 +186,10 @@ class NVAR(RecurrentNode):
           "%s^%d" % (linear_names[ind], exp) if (exp != 1) else linear_names[ind]
           for ind, exp in zip(uniques, counts)
         ))
-    all_names = linear_names + nonlinear_names
+    if for_plot:
+      all_names = [f'${n}$' for n in linear_names] + [f'${n}$' for n in nonlinear_names]
+    else:
+      all_names = linear_names + nonlinear_names
     if self.constant:
       all_names = ['1'] + all_names
     return all_names
@@ -196,21 +202,4 @@ class NVAR(RecurrentNode):
     feature_names_out : list of str
         Transformed feature names.
     """
-    if not self.is_initialized:
-      raise ValueError('Please initialize the node first.')
-    linear_names = [f'x{i}_t' for i in range(self.input_dim)]
-    for di in range(1, self.delay):
-      linear_names.extend([(f'x{i}_' + r'{t-%d}' % (di * self.stride))
-                           for i in range(self.input_dim)])
-    nonlinear_names = []
-    for ids in self.comb_ids:
-      for id_ in np.asarray(ids):
-        uniques, counts = np.unique(id_, return_counts=True)
-        nonlinear_names.append(" ".join(
-          "%s^%d" % (linear_names[ind], exp) if (exp != 1) else linear_names[ind]
-          for ind, exp in zip(uniques, counts)
-        ))
-    all_names = [f'${n}$' for n in linear_names] + [f'${n}$' for n in nonlinear_names]
-    if self.constant:
-      all_names = ['1'] + all_names
-    return all_names
+    return self.get_feature_names(for_plot=True)

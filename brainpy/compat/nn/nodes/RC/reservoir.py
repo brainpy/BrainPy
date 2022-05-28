@@ -200,7 +200,7 @@ class Reservoir(RecurrentNode):
 
   def init_state(self, num_batch=1):
     # initialize internal state
-    return bm.zeros((num_batch, self.num_unit), dtype=bm.float_)
+    return bm.zeros((num_batch, self.num_unit))
 
   def init_fb_conn(self):
     """Initialize feedback connections, weights, and variables."""
