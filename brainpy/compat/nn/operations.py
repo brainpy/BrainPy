@@ -115,7 +115,7 @@ def _reorganize_many2one(ff_edges, fb_edges):
   the new Concat instance feeds into this node.
 
   """
-  from brainpy.nn.nodes.base import Concat
+  from brainpy.compat.nn.nodes.base import Concat
 
   new_nodes = []
 

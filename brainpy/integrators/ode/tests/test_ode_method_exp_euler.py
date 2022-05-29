@@ -104,7 +104,7 @@ class TestExpEulerAuto(unittest.TestCase):
 
     hh1 = HH(1, method='exp_euler')
     runner1 = bp.dyn.DSRunner(hh1, inputs=('input', 2.), monitors=['V', 'h', 'n'])
-    runner1(100)
+    runner1.run(100)
     plt.figure()
     plt.plot(runner1.mon.ts, runner1.mon.V, label='V')
     plt.plot(runner1.mon.ts, runner1.mon.h, label='h')
@@ -113,7 +113,7 @@ class TestExpEulerAuto(unittest.TestCase):
 
     hh2 = HH(1, method='exp_euler_auto')
     runner2 = bp.dyn.DSRunner(hh2, inputs=('input', 2.), monitors=['V', 'h', 'n'])
-    runner2(100)
+    runner2.run(100)
     plt.figure()
     plt.plot(runner2.mon.ts, runner2.mon.V, label='V')
     plt.plot(runner2.mon.ts, runner2.mon.h, label='h')
