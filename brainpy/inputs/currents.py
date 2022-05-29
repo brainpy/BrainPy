@@ -63,7 +63,7 @@ def section_input(values, durations, dt=None, return_length=False):
 
   # get the current
   start = 0
-  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
+  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
   for c_size, duration in zip(values, durations):
     length = int(duration / dt)
     I_current[start: start + length] = c_size
@@ -113,7 +113,7 @@ def constant_input(I_and_duration, dt=None):
 
   # get the current
   start = 0
-  I_current = jnp.zeros((int(np.ceil(I_duration / dt)),) + I_shape, dtype=bm.float_)
+  I_current = jnp.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
     I_current = I_current.at[start: start + length].set(c_size)
@@ -172,7 +172,7 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   if isinstance(sp_sizes, (float, int)):
     sp_sizes = [sp_sizes] * len(sp_times)
 
-  current = jnp.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
+  current = jnp.zeros(int(np.ceil(duration / dt)))
   for time, dur, size in zip(sp_times, sp_lens, sp_sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
@@ -218,10 +218,10 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt = bm.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = jnp.zeros(int(np.ceil(duration / dt)), dtype=bm.float_)
+  current = jnp.zeros(int(np.ceil(duration / dt)))
   p1 = int(np.ceil(t_start / dt))
   p2 = int(np.ceil(t_end / dt))
-  cc = jnp.array(jnp.linspace(c_start, c_end, p2 - p1), dtype=bm.float_)
+  cc = jnp.array(jnp.linspace(c_start, c_end, p2 - p1))
   current = current.at[p1: p2].set(cc)
   return current
 

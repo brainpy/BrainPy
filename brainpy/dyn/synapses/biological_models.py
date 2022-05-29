@@ -571,9 +571,9 @@ class BioNMDA(TwoEndConn):
         raise ValueError(f'Unknown connection type: {conn_type}')
 
     # variables
-    self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num, dtype=bm.float_) * -1e7)
+    self.g = bm.Variable(bm.zeros(self.pre.num))
+    self.x = bm.Variable(bm.zeros(self.pre.num))
+    self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral

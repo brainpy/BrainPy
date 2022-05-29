@@ -84,7 +84,7 @@ class HH(bp.dyn.NeuGroup):
 
 model = HH(1)
 I = 5.
-run = bp.dyn.StructRunner(model, inputs=('input', I), monitors=['V'])
+run = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
 run(100)
 bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
@@ -115,6 +115,6 @@ for i, fp in enumerate(finder.fixed_points):
   model.m[:] = fp[1]
   model.h[:] = fp[2]
   model.n[:] = fp[3]
-  run = bp.dyn.StructRunner(model, inputs=('input', I), monitors=['V'])
+  run = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
   run(100)
   bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', title=f'FP {i}', show=True)
