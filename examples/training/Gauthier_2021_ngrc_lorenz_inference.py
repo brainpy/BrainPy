@@ -15,7 +15,6 @@ import brainpy as bp
 import brainpy.math as bm
 
 bm.enable_x64()
-bm.set_dfloat(bm.float64)
 
 
 def get_subset(data, start, end):
@@ -25,7 +24,7 @@ def get_subset(data, start, end):
   X = bm.hstack([res['x'], res['y']])
   X = X.reshape((1,) + X.shape)
   Y = res['z']
-  Y = Y.reshape((1, ) + Y.shape)
+  Y = Y.reshape((1,) + Y.shape)
   return X, Y
 
 
@@ -139,21 +138,26 @@ X_warmup, Y_warmup = get_subset(lorenz_series, 0, num_warmup)
 X_train, Y_train = get_subset(lorenz_series, num_warmup, num_warmup + num_train)
 X_test, Y_test = get_subset(lorenz_series, 0, num_warmup + num_train + num_test)
 
+
 # Model #
 # ----- #
 
-i = bp.nn.Input(2)
-r = bp.nn.NVAR(delay=4, order=2, stride=5)
-o = bp.nn.LinearReadout(1, trainable=True)
-model = i >> r >> o
-model.plot_node_graph()
-model.initialize(num_batch=1)
+class NGRC(bp.train.TrainingSystem):
+  def __init__(self, num_in):
+    super(NGRC, self).__init__()
+    self.r = bp.train.NVAR(num_in, delay=4, order=2, stride=5)
+    self.o = bp.train.Dense(self.r.num_out, 1, trainable=True)
 
+  def forward(self, x, shared_args=None):
+    return self.o(self.r(x, shared_args), shared_args)
+
+
+model = NGRC(2)
 
 # Training #
 # -------- #
 
-trainer = bp.nn.RidgeTrainer(model, beta=0.05)
+trainer = bp.train.RidgeTrainer(model, beta=0.05)
 
 # warm-up
 outputs = trainer.predict(X_warmup)
@@ -163,10 +167,10 @@ print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 trainer.fit([X_train, Y_train])
 
 # prediction
-outputs = trainer.predict(X_test, reset=True)
+outputs = trainer.predict(X_test, reset_state=True)
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
 
-plot_lorenz(x=lorenz_series['x'].flatten().numpy(),
-            y=lorenz_series['y'].flatten().numpy(),
-            true_z=lorenz_series['z'].flatten().numpy(),
-            predict_z=outputs.numpy().flatten())
+plot_lorenz(x=lorenz_series['x'].flatten().to_numpy(),
+            y=lorenz_series['y'].flatten().to_numpy(),
+            true_z=lorenz_series['z'].flatten().to_numpy(),
+            predict_z=outputs.to_numpy().flatten())

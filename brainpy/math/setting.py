@@ -18,6 +18,8 @@ __all__ = [
   'int_',
   'float_',
   'complex_',
+  'get_dint',
+  'get_dfloat',
 
   # change default data types
   'set_dt',
@@ -31,6 +33,14 @@ bool_ = jnp.bool_
 int_ = jnp.int32
 float_ = jnp.float32
 complex_ = jnp.complex_
+
+
+def get_dint():
+  return jnp.int64 if jax.config.read('jax_enable_x64') else jnp.int32
+
+
+def get_dfloat():
+  return jnp.float64 if jax.config.read('jax_enable_x64') else jnp.float32
 
 
 # numerical precision

@@ -22,10 +22,8 @@ class Base(object):
   The subclass of Base includes:
 
   - ``DynamicalSystem`` in *brainpy.dyn.base.py*
-  - ``Module`` in *brainpy.dyn.base_module.py*
   - ``Integrator`` in *brainpy.integrators.base.py*
   - ``Function`` in *brainpy.base.function.py*
-  - ``AutoGrad`` in *brainpy.math.autograd.py*
   - ``Optimizer`` in *brainpy.optimizers.py*
   - ``Scheduler`` in *brainpy.optimizers.py*
 
@@ -58,9 +56,25 @@ class Base(object):
     assert isinstance(variables, dict), f'Must be a dict, but we got {type(variables)}'
     self.implicit_vars.update(variables)
 
-  def register_implicit_nodes(self, nodes):
-    assert isinstance(nodes, dict), f'Must be a dict, but we got {type(nodes)}'
-    self.implicit_nodes.update(nodes)
+  def register_implicit_nodes(self, *nodes, **named_nodes):
+    for node in nodes:
+      if isinstance(node, Base):
+        self.implicit_nodes[node.name] = node
+      elif isinstance(node, (tuple, list)):
+        for n in node:
+          if not isinstance(n, Base):
+            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          self.implicit_nodes[n.name] = n
+      elif isinstance(node, dict):
+        for k, n in node.items():
+          if not isinstance(n, Base):
+            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          self.implicit_nodes[k] = n
+    for node in named_nodes.values():
+      for k, n in node.items():
+        if not isinstance(n, Base):
+          raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+        self.implicit_nodes[k] = n
 
   def vars(self, method='absolute', level=-1, include_self=True):
     """Collect all variables in this node and the children nodes.

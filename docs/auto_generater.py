@@ -5,11 +5,12 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, parallels, setting, delayvars,
+                          jit, parallels, setting, delayvars, operators,
                           compat)
 
 block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
-for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, compat]:
+for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, compat,
+               operators]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -234,25 +235,38 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   write_module(module_name='brainpy.dyn.base',
                filename=os.path.join(path, 'base.rst'),
                header='Base Class')
+  write_module(module_name='brainpy.dyn.runners',
+               filename=os.path.join(path, 'runners.rst'),
+               header='Runners')
 
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('Na_channels', 'Sodium Channel Models'),
-    ('K_channels', 'Potassium Channel Models'),
-    ('Ca_channels', 'Calcium Channel Models'),
-    ('Ih_channels', 'Ih Channel Models'),
-    ('leaky_channels', 'Leaky Channel Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.channels',
-                   filename=os.path.join(path, 'channels.rst'),
-                   header='Channel Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
+  write_module(module_name='brainpy.dyn.channels.base',
+               filename=os.path.join(path, 'channel_base.rst'),
+               header='Base Channel Models')
+  write_module(module_name='brainpy.dyn.channels.Na',
+               filename=os.path.join(path, 'channel_sodium.rst'),
+               header='Voltage-dependent Sodium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.K',
+               filename=os.path.join(path, 'channel_potassium.rst'),
+               header='Voltage-dependent Potassium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.Ca',
+               filename=os.path.join(path, 'channel_calcium.rst'),
+               header='Voltage-dependent Calcium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.KCa',
+               filename=os.path.join(path, 'channel_potassium_calcium.rst'),
+               header='Calcium-dependent Potassium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.IH',
+               filename=os.path.join(path, 'channel_Ih.rst'),
+               header='Hyperpolarization-activated Cation Channel Models')
+  write_module(module_name='brainpy.dyn.channels.leaky',
+               filename=os.path.join(path, 'channel_leaky.rst'),
+               header='Leakage Channel Models')
 
   module_and_name = [
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
     ('reduced_models', 'Reduced Models'),
+    ('noise_groups', 'Noise Models'),
+    ('input_groups', 'Input Models'),
   ]
   write_submodules(module_name='brainpy.dyn.neurons',
                    filename=os.path.join(path, 'neurons.rst'),
@@ -270,6 +284,12 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                    header='Synapse Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
+  write_module(module_name='brainpy.dyn.synouts',
+               filename=os.path.join(path, 'synouts.rst'),
+               header='Synaptic Output Models')
+  write_module(module_name='brainpy.dyn.synplast',
+               filename=os.path.join(path, 'synplast.rst'),
+               header='Synaptic Plasticity Models')
 
   module_and_name = [
     ('populations', 'Population Models'),
@@ -280,20 +300,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                    header='Rate Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [
-    ('noises', 'Noise Models'),
-    ('inputs', 'Input Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.others',
-                   filename=os.path.join(path, 'others.rst'),
-                   header='Helper Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  write_module(module_name='brainpy.dyn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
 
 
 def generate_initialize_docs(path='apis/auto/'):
@@ -575,9 +581,6 @@ def generate_compact_docs(path='apis/auto/compat/'):
   write_module(module_name='brainpy.compat.layers',
                filename=os.path.join(path, 'layers.rst'),
                header='Layers')
-  write_module(module_name='brainpy.compat.models',
-               filename=os.path.join(path, 'models.rst'),
-               header='Models')
   write_module(module_name='brainpy.compat.monitor',
                filename=os.path.join(path, 'monitor.rst'),
                header='Monitor')

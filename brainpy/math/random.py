@@ -416,7 +416,8 @@ class RandomState(Variable):
     seed : int
       The new initial seed of the random number generator.
     """
-    self.value = jr.PRNGKey(seed)
+    if seed is not None:
+      self.value = jr.PRNGKey(seed)
 
   def split_key(self):
     """Create a new seed from the current seed.
@@ -998,7 +999,7 @@ register_pytree_node(RandomState,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: RandomState(*flat_contents))
 
-# default random genrator
+# default random generator
 DEFAULT = RandomState(np.random.randint(0, 10000, size=2, dtype=np.uint32))
 
 
@@ -1009,7 +1010,9 @@ def default_rng(seed=None):
 
 @wraps(np.random.seed)
 def seed(seed=None):
-  DEFAULT.seed(np.random.randint(0, 100000) if seed is None else seed)
+  seed = np.random.randint(0, 100000) if seed is None else seed
+  DEFAULT.seed(seed)
+  np.random.seed(seed)
 
 
 @wraps(np.random.rand)

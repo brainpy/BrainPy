@@ -157,6 +157,11 @@ class Monitor(object):
       self.num_item = len(item_contents)
       self.has_build = True
 
+  def get(self, key):
+    if key not in self.item_contents:
+      raise ValueError(f'{key} is not defined in {self}')
+    return self.item_contents[key]
+
   def __getitem__(self, item: str):
     """Get item in the monitor values.
 

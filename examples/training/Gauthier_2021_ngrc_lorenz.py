@@ -15,7 +15,6 @@ import numpy as np
 import brainpy as bp
 import brainpy.math as bm
 bm.enable_x64()
-bm.set_dfloat(bm.float64)
 
 
 def get_subset(data, start, end):
@@ -103,44 +102,41 @@ Y_test = get_subset(lorenz_series,
                     num_warmup + num_train,
                     num_warmup + num_train + num_test)
 
+
 # Model #
 # ----- #
+class NGRC(bp.train.TrainNet):
+  def __init__(self, num_in):
+    super(NGRC, self).__init__()
+    self.r = bp.train.NVAR(num_in, delay=2, order=2, constant=True)
+    self.di = bp.train.Dense(self.r.num_out, num_in, b_initializer=None)
 
-i = bp.nn.Input(3)
-r = bp.nn.NVAR(delay=2, order=2, constant=True)
-di = bp.nn.LinearReadout(3, bias_initializer=None, trainable=True, name='readout')
-o = bp.nn.Summation()
-#
-# Cannot express the model as
-#
-#     [i >> r >> di, i] >> o
-# because it will concatenate the outputs of "i" and "di",
-# then feed into the node "o". This is not the connection
-# we want.
-model = (i >> r >> di >> o) & (i >> o)
-# model.plot_node_graph()
-model.initialize(num_batch=1)
+  def forward(self, x, shared_args=None):
+    dx = self.di(self.r(x, shared_args), shared_args)
+    return x + dx
 
-print(r.get_feature_names())
+
+model = NGRC(3)
+print(model.r.get_feature_names(for_plot=True))
 
 
 # Training #
 # -------- #
 
 # warm-up
-trainer = bp.nn.RidgeTrainer(model, beta=2.5e-6)
-
-# training
+trainer = bp.train.RidgeTrainer(model)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
-trainer.fit([X_train, {'readout': dX_train}])
-plot_weights(di.Wff, r.get_feature_names_for_plot(), di.bias)
+
+# training
+trainer.fit([X_train, {'di': dX_train}])
+plot_weights(model.di.W, model.r.get_feature_names(for_plot=True), model.di.b)
 
 # prediction
-model = bm.jit(model)
-outputs = [model(X_test[:, 0])]
+model_jit = bm.jit(model)
+outputs = [model_jit(X_test[:, 0])]
 for i in range(1, X_test.shape[1]):
-  outputs.append(model(outputs[i - 1]))
+  outputs.append(model_jit(outputs[i - 1]))
 outputs = bm.asarray(outputs)
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
 plot_lorenz(Y_test.numpy().squeeze(), outputs.numpy().squeeze())

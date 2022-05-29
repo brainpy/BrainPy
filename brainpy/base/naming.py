@@ -44,8 +44,9 @@ def get_unique_name(type_):
   return name
 
 
-def clear_name_cache():
+def clear_name_cache(ignore_warn=False):
   """Clear the cached names."""
   _name2id.clear()
   _typed_names.clear()
-  logger.warning(f'All named models and their ids are cleared.')
+  if not ignore_warn:
+    logger.warning(f'All named models and their ids are cleared.')

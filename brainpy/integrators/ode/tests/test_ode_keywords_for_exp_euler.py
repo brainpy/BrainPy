@@ -19,16 +19,6 @@ class TestExponentialEuler(unittest.TestCase):
 
     odeint(method='exponential_euler', show_code=True, f=func)
 
-  def test2(self):
-    with pytest.raises(errors.CodeError):
-      def func(f, t, V):
-        alpha = 0.1 * (V + 40) / (1 - np.exp(-(V + 40) / 10))
-        beta = 4.0 * np.exp(-(V + 65) / 18)
-        dmdt = alpha * (1 - f) - beta * f
-        return dmdt
-
-      odeint(method='exponential_euler', show_code=True, f=func)
-
   def test3(self):
     with pytest.raises(errors.CodeError):
       def func(m, t, dt):
