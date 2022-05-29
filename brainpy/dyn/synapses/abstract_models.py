@@ -156,7 +156,7 @@ class Delta(TwoEndConn):
     self.plasticity.update(t, dt, pre_spike, self.post.spike)
 
     # post values
-    pre_spike = self.plasticity.filter(pre_spike.astype(bm.float_))
+    pre_spike = self.plasticity.filter(pre_spike.astype(bm.get_dfloat()))
 
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
@@ -364,7 +364,7 @@ class Exponential(TwoEndConn):
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
-      pre_spike = pre_spike.astype(bm.float_)
+      pre_spike = pre_spike.astype(bm.get_dfloat())
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
@@ -373,7 +373,7 @@ class Exponential(TwoEndConn):
       else:
         post_vs = pre_spike @ self.g_max
     elif isinstance(self.conn, One2One):
-      pre_spike = pre_spike.astype(bm.float_)
+      pre_spike = pre_spike.astype(bm.get_dfloat())
       post_vs = pre_spike * self.g_max
     else:
       if self.conn_type == 'sparse':
@@ -382,14 +382,14 @@ class Exponential(TwoEndConn):
                                         self.post.num,
                                         self.g_max)
       else:
-        pre_spike = pre_spike.astype(bm.float_)
+        pre_spike = pre_spike.astype(bm.get_dfloat())
         if self.weight_type == 'homo':
           post_vs = self.g_max * (pre_spike @ self.conn_mat)
         else:
           post_vs = pre_spike @ self.g_max
 
     # updates
-    self.g.value = self.integral(self.g.value, t, dt=dt) + post_vs
+    self.g.value = self.integral(self.g.value, t, dt) + post_vs
 
     # output
     self.post.input += self.output.filter(self.g)
@@ -995,15 +995,16 @@ class NMDA(TwoEndConn):
     pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
 
     # update sub-components
+    if self.plasticity is not None:
+      self.plasticity.update(t, dt, pre_spike, self.post.spike)
     self.output.update(t, dt)
-    self.plasticity.update(t, dt, pre_spike, self.post.spike)
 
     # update synapse variables
     self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)
     self.x += pre_spike
 
     # post-synaptic value
-    syn_value = self.plasticity.filter(self.g)
+    syn_value = self.plasticity.filter(self.g)  # x * g, u * x * g
 
     if isinstance(self.conn, All2All):
       if self.weight_type == 'homo':

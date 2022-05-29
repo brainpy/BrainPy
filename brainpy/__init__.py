@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.1.13"
+__version__ = "2.2.0"
 
 
 try:
@@ -47,16 +47,16 @@ from .integrators.joint_eq import JointEq
 from . import dyn
 
 
-# neural networks modeling
-from . import nn
-
-
-# running
-from . import running
+# dynamics training
+from . import train
 
 
 # automatic dynamics analysis
 from . import analysis
+
+
+# running
+from . import running
 
 
 # "visualization" module, will be removed soon

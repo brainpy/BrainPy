@@ -96,7 +96,7 @@ class IntegratorRunner(Runner):
       fun_monitors: Dict[str, Callable] = None,
       monitors: Sequence[str] = None,
       dyn_vars: Dict[str, bm.Variable] = None,
-      jit: bool = True,
+      jit: Union[bool, Dict[str, bool]] = True,
       numpy_mon_after_run: bool = True,
       progress_bar: bool = True
   ):
@@ -199,7 +199,7 @@ class IntegratorRunner(Runner):
       self.dyn_vars['_idx'] = self.idx
 
     # build the update step
-    if jit:
+    if self.jit['predict']:
       _loop_func = bm.make_loop(
         self._step,
         dyn_vars=self.dyn_vars,
@@ -254,10 +254,7 @@ class IntegratorRunner(Runner):
       id_tap(lambda *args: self._pbar.update(), ())
     return returns
 
-  def run(self, duration, start_t=None):
-    self.__call__(duration, start_t)
-
-  def __call__(self, duration, start_t=None):
+  def run(self, duration, start_t=None, eval_time=False):
     """The running function.
 
     Parameters
@@ -265,11 +262,9 @@ class IntegratorRunner(Runner):
     duration : float, int, tuple, list
       The running duration.
     start_t : float, optional
-
-    Returns
-    -------
-    running_time : float
-      The total running time.
+      The start time to simulate.
+    eval_time: bool
+      Evaluate the running time or not?
     """
     if len(self._dyn_args) > 0:
       self.dyn_vars['_idx'][0] = 0
@@ -289,9 +284,11 @@ class IntegratorRunner(Runner):
       self._pbar = tqdm.auto.tqdm(total=times.size)
       self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
                                  refresh=True)
-    t0 = time.time()
+    if eval_time:
+      t0 = time.time()
     hists, returns = self.step_func(times)
-    running_time = time.time() - t0
+    if eval_time:
+      running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()
     # post-running
@@ -300,4 +297,5 @@ class IntegratorRunner(Runner):
     self._start_t = end_t
     if self.numpy_mon_after_run:
       self.mon.numpy()
-    return running_time
+    if eval_time:
+      return running_time

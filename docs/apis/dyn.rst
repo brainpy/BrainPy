@@ -19,5 +19,6 @@
     auto/dyn/channel_sodium
     auto/dyn/channel_potassium
     auto/dyn/channel_calcium
+    auto/dyn/channel_potassium_calcium
     auto/dyn/channel_Ih
     auto/dyn/channel_leaky

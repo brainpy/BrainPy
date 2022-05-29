@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Dict
 
 import jax.numpy as jnp
 import numpy as np
+from jax.tree_util import tree_flatten
 
 from brainpy import math as bm
 from brainpy.initialize import init_param, Initializer
 from brainpy.types import Shape
+from brainpy.tools.checking import check_dict_data
 
 __all__ = [
   'init_noise',
@@ -16,7 +18,26 @@ __all__ = [
 ]
 
 
+def serialize_kwargs(shared_kwargs: Optional[Dict]):
+  """Serialize kwargs."""
+  shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+  check_dict_data(shared_kwargs,
+                  key_type=str,
+                  val_type=(bool, float, int, complex),
+                  name='shared_kwargs')
+  shared_kwargs = {key: shared_kwargs[key] for key in sorted(shared_kwargs.keys())}
+  return str(shared_kwargs)
 
+def check_data_batch_size(data, num_batch=None, batch_idx=0):
+  leaves, tree = tree_flatten(data, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  batches = [leaf.shape[batch_idx] for leaf in leaves]
+  if len(set(batches)) != 1:
+    raise ValueError('Batch sizes are not consistent among the given data. '
+                     f'Got {set(batches)}. We expect only one batch size.')
+  batch_size = batches[0]
+  if (num_batch is not None) and batch_size != num_batch:
+    raise ValueError(f'Batch size is not consistent with the expected {batch_size} != {num_batch}')
+  return batch_size
 
 
 def init_noise(

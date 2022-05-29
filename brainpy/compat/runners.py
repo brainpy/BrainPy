@@ -39,7 +39,7 @@ class DSRunner(dyn_runner.DSRunner):
     super(DSRunner, self).__init__(*args, **kwargs)
 
 
-class StructRunner(dyn_runner.StructRunner):
+class StructRunner(dyn_runner.DSRunner):
   """Dynamical system runner class.
 
   .. deprecated:: 2.1.0

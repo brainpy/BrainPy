@@ -244,33 +244,22 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                header='Base Channel Models')
   write_module(module_name='brainpy.dyn.channels.Na',
                filename=os.path.join(path, 'channel_sodium.rst'),
-               header='Sodium Channel Models')
+               header='Voltage-dependent Sodium Channel Models')
   write_module(module_name='brainpy.dyn.channels.K',
                filename=os.path.join(path, 'channel_potassium.rst'),
-               header='Potassium Channel Models')
+               header='Voltage-dependent Potassium Channel Models')
   write_module(module_name='brainpy.dyn.channels.Ca',
                filename=os.path.join(path, 'channel_calcium.rst'),
-               header='Calcium Channel Models')
+               header='Voltage-dependent Calcium Channel Models')
+  write_module(module_name='brainpy.dyn.channels.KCa',
+               filename=os.path.join(path, 'channel_potassium_calcium.rst'),
+               header='Calcium-dependent Potassium Channel Models')
   write_module(module_name='brainpy.dyn.channels.IH',
                filename=os.path.join(path, 'channel_Ih.rst'),
-               header='Ih Channel Models')
+               header='Hyperpolarization-activated Cation Channel Models')
   write_module(module_name='brainpy.dyn.channels.leaky',
                filename=os.path.join(path, 'channel_leaky.rst'),
-               header='Leaky Channel Models')
-
-  # module_and_name = [
-  #   # ('base', 'Base Class'),
-  #   # ('Na_channels', 'Sodium Channel Models'),
-  #   # ('K_channels', 'Potassium Channel Models'),
-  #   # ('Ca_channels', 'Calcium Channel Models'),
-  #   # ('Ih_channels', 'Ih Channel Models'),
-  #   # ('leaky_channels', 'Leaky Channel Models'),
-  # ]
-  # write_submodules(module_name='brainpy.dyn.channels',
-  #                  filename=os.path.join(path, 'channels.rst'),
-  #                  header='Channel Models',
-  #                  submodule_names=[a[0] for a in module_and_name],
-  #                  section_names=[a[1] for a in module_and_name])
+               header='Leakage Channel Models')
 
   module_and_name = [
     ('biological_models', 'Biological Models'),

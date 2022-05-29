@@ -31,14 +31,17 @@ def train_data():
     yield build_inputs_and_targets(batch_size=num_batch)
 
 
-model = (
-    bp.nn.Input(1)
-    >>
-    bp.nn.VanillaRNN(100, state_trainable=True)
-    >>
-    bp.nn.Dense(1)
-)
-model.initialize(num_batch=num_batch)
+class RNN(bp.train.TrainingSystem):
+  def __init__(self, num_in, num_hidden):
+    super(RNN, self).__init__()
+    self.rnn = bp.train.VanillaRNN(num_in, num_hidden, train_state=True)
+    self.out = bp.train.Dense(num_hidden, 1)
+
+  def forward(self, x, shared_args=None):
+    return self.out(self.rnn(x, shared_args), shared_args)
+
+
+model = RNN(1, 100)
 
 
 # define loss function
@@ -53,19 +56,19 @@ lr = bp.optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
 opt = bp.optim.Adam(lr=lr, eps=1e-1)
 
 # create a trainer
-trainer = bp.nn.BPTT(model,
-                     loss=loss,
-                     optimizer=opt,
-                     max_grad_norm=5.0)
+trainer = bp.train.BPTT(model,
+                        loss=loss,
+                        optimizer=opt,
+                        max_grad_norm=5.0)
 trainer.fit(train_data,
             num_batch=num_batch,
-            num_train=30,
+            num_epoch=30,
             num_report=200)
 
 plt.plot(trainer.train_losses.numpy())
 plt.show()
 
-model.initialize(1)
+model.reset_batch_state(1)
 x, y = build_inputs_and_targets(batch_size=1)
 predicts = trainer.predict(x)
 

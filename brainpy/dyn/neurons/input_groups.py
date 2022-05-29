@@ -135,15 +135,13 @@ class PoissonGroup(NeuGroup):
     self.keep_size = keep_size
     self.seed = seed
     self.freqs = init_param(freqs, self.num, allow_none=False)
-    self.size = (size,) if isinstance(size, int) else tuple(size)
 
     # variables
     self.spike = bm.Variable(bm.zeros(self.size if keep_size else self.num, dtype=bool))
     self.rng = bm.random.RandomState(seed=seed)
 
   def update(self, t, dt):
-    self.spike.update(self.rng.random(self.size if self.keep_size else self.num)
-                      <= (self.freqs * dt / 1000.))
+    self.spike.update(self.rng.random(self.var_shape) <= (self.freqs * dt / 1000.))
 
   def reset(self):
     self.spike[:] = False

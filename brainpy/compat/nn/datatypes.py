@@ -46,7 +46,7 @@ class MultipleData(DataType):
                        f"'type_dict' and 'node_dict'. But we got {return_type}")
     self.return_type = return_type
 
-    from brainpy.nn.base import Node
+    from brainpy.compat.nn.base import Node
 
     if return_type == 'sequence':
       f = lambda data: tuple(data.values())

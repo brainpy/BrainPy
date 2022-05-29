@@ -50,6 +50,7 @@ class DynamicalSystem(Base):
       The name of the dynamic system.
   """
 
+
   """Global delay variables. Useful when the same target
      variable is used in multiple mappings."""
   global_delay_vars: Dict[str, bm.LengthDelay] = Collector()
@@ -428,10 +429,13 @@ class NeuGroup(DynamicalSystem):
     self.keep_size = keep_size
     # number of neurons
     self.num = tools.size2num(size)
-    self.var_shape = self.size if self.keep_size else self.num
 
     # initialize
     super(NeuGroup, self).__init__(name=name)
+
+  @property
+  def var_shape(self):
+    return self.size if self.keep_size else self.num
 
   def update(self, t, dt):
     """The function to specify the updating rule.
@@ -763,7 +767,10 @@ class Channel(DynamicalSystem):
     self.num = size2num(self.size)
     # variable shape
     self.keep_size = keep_size
-    self.var_shape = self.size if self.keep_size else self.num
+
+  @property
+  def var_shape(self):
+    return self.size if self.keep_size else self.num
 
   def update(self, t, dt):
     raise NotImplementedError('Must be implemented by the subclass.')

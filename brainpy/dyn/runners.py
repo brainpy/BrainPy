@@ -2,22 +2,25 @@
 
 import time
 from collections.abc import Iterable
+from typing import Dict, Union, Sequence
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
+from jax.tree_util import tree_map, tree_flatten
 
 from brainpy import math as bm
 from brainpy.base.collector import TensorCollector
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
-from brainpy.running.monitor import Monitor
 from brainpy.running.runner import Runner
+from brainpy.types import Tensor
+from .utils import serialize_kwargs, check_data_batch_size
 
 __all__ = [
-  'DSRunner', 'ReportRunner', 'StructRunner',
+  'DSRunner', 'ReportRunner',
 ]
 
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
@@ -152,61 +155,6 @@ def check_and_format_inputs(host, inputs):
   return formatted_inputs
 
 
-def check_and_format_monitors(host, mon):
-  """Return a formatted monitor items:
-
-  >>> [(node, key, target, variable, idx, interval),
-  >>>  ...... ]
-
-  """
-  assert isinstance(host, DynamicalSystem)
-  assert isinstance(mon, Monitor)
-
-  formatted_mon_items = []
-
-  # master node:
-  #    Check whether the input target node is accessible,
-  #    and check whether the target node has the attribute
-  name2node = {node.name: node for node in list(host.nodes().unique().values())}
-  for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
-    # target and variable
-    splits = key.split('.')
-    if len(splits) == 1:
-      if not hasattr(host, splits[0]):
-        raise RunningError(f'{host} does not has variable {key}.')
-      target = host
-      variable = splits[-1]
-    else:
-      if not hasattr(host, splits[0]):
-        if splits[0] not in name2node:
-          raise RunningError(f'Cannot find target {key} in monitor of {host}, please check.')
-        else:
-          target = name2node[splits[0]]
-          assert len(splits) == 2
-          variable = splits[-1]
-      else:
-        target = host
-        for s in splits[:-1]:
-          try:
-            target = getattr(target, s)
-          except KeyError:
-            raise RunningError(f'Cannot find {key} in {host}, please check.')
-        variable = splits[-1]
-
-    # idx
-    if isinstance(idx, int): idx = bm.array([idx])
-
-    # interval
-    if interval is not None:
-      if not isinstance(interval, float):
-        raise RunningError(f'"interval" must be a float (denotes time), but we got {interval}')
-
-    # append
-    formatted_mon_items.append((key, target, variable, idx, interval,))
-
-  return formatted_mon_items
-
-
 class DSRunner(Runner):
   """The runner for dynamical systems.
 
@@ -230,7 +178,16 @@ class DSRunner(Runner):
       for example ``[(target1, value1), (target2, value2)]``.
   """
 
-  def __init__(self, target: DynamicalSystem, inputs=(), dt=None, **kwargs):
+  def __init__(
+      self,
+      target: DynamicalSystem,
+      inputs: Sequence = (),
+      dt: float = None,
+      **kwargs
+  ):
+    if not isinstance(target, DynamicalSystem):
+      raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
+                         f'but we got {type(target)}: {target}')
     super(DSRunner, self).__init__(target=target, **kwargs)
 
     # parameters
@@ -238,14 +195,11 @@ class DSRunner(Runner):
     if not isinstance(dt, (int, float)):
       raise RunningError(f'"dt" must be scalar, but got {dt}')
     self.dt = dt
-    if not isinstance(target, DynamicalSystem):
-      raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
-                         f'but we got {type(target)}: {target}')
 
     # Build the monitor function
-    self._monitor_step = self.build_monitors()
+    self._monitor_step = self.build_monitors(*self.format_monitors())
 
-    # whether has iterable input data
+    # whether it has iterable input data
     self._has_iter_array = False  # default do not have iterable input array
     self._i = bm.Variable(bm.asarray([0]))
 
@@ -265,7 +219,8 @@ class DSRunner(Runner):
       self._i = None
 
     # run function
-    self._run_func = self.build_run_function()
+    self._predict_func = dict()
+    # self._run_func = self.build_run_function()
 
   def build_inputs(self, inputs):
     fix_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
@@ -325,65 +280,104 @@ class DSRunner(Runner):
 
     return func
 
-  def build_monitors(self):
-    monitors = check_and_format_monitors(host=self.target, mon=self.mon)
-
-    return_with_idx = dict()
-    return_without_idx = dict()
-    for key, target, variable, idx, interval in monitors:
-      if interval is not None:
-        raise ValueError(f'Running with "{self.__class__.__name__}" does '
-                         f'not support "interval" in the monitor.')
-      data = target
-      for k in variable.split('.'):
-        data = getattr(data, k)
-      if not isinstance(data, bm.Variable):
-        raise RunningError(f'"{key}" in {target} is not a dynamically changed Variable, '
-                           f'its value will not change, we think there is no need to '
-                           f'monitor its trajectory.')
-      if idx is None:
-        return_without_idx[key] = data
-      else:
-        return_with_idx[key] = (data, bm.asarray(idx))
-
-    def func(_t, _dt):
-      res = {k: (v.flatten() if bm.ndim(v) > 1 else v.value)
-             for k, v in return_without_idx.items()}
-      res.update({k: (v.flatten()[idx] if bm.ndim(v) > 1 else v[idx])
-                  for k, (v, idx) in return_with_idx.items()})
-      res.update({k: f(_t, _dt) for k, f in self.fun_monitors.items()})
-      return res
+  def build_monitors(self, return_without_idx, return_with_idx, flatten=False):
+    if flatten:
+      def func(_t, _dt):
+        res = {k: (v.flatten() if bm.ndim(v) > 1 else v.value) for k, v in return_without_idx.items()}
+        res.update({k: (v.flatten()[idx] if bm.ndim(v) > 1 else v[idx]) for k, (v, idx) in return_with_idx.items()})
+        res.update({k: f(_t, _dt) for k, f in self.fun_monitors.items()})
+        return res
+    else:
+      def func(_t, _dt):
+        res = {k: v.value for k, v in return_without_idx.items()}
+        res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
+        res.update({k: f(_t, _dt) for k, f in self.fun_monitors.items()})
+        return res
 
     return func
 
-  def _run_one_step(self, _t):
-    self._input_step(_t, self.dt)
-    self.target.update(_t, self.dt)
-    if self.progress_bar:
-      id_tap(lambda *args: self._pbar.update(), ())
-    return self._monitor_step(_t, self.dt)
+  def predict(
+      self,
+      xs: Union[Tensor, Dict[str, Tensor]],
+      reset_state: bool = False,
+      shared_args: Dict = None,
+      progress_bar: bool = True,
+  ):
+    """Predict a series of input data with the given target model.
 
-  def build_run_function(self):
-    if self.jit:
-      dyn_vars = TensorCollector()
-      dyn_vars.update(self.dyn_vars)
-      dyn_vars.update(self.target.vars().unique())
-      f_run = bm.make_loop(self._run_one_step,
-                           dyn_vars=dyn_vars,
-                           has_return=True)
-    else:
-      def f_run(all_t):
-        for i in range(all_t.shape[0]):
-          mon = self._run_one_step(all_t[i])
-          for k, v in mon.items():
-            self.mon.item_contents[k].append(v)
-        return None, {}
-    return f_run
+    This function use the JIT compilation to accelerate the model simulation.
+    Moreover, it can automatically monitor the node variables, states, inputs,
+    feedbacks and its output.
 
-  def run(self, duration, start_t=None):
-    return self.__call__(duration, start_t=start_t)
+    Parameters
+    ----------
+    xs: Tensor, dict
+      The feedforward input data. It must be a 3-dimensional data
+      which has the shape of `(num_sample, num_time, num_feature)`.
+    reset_state: bool
+      Whether reset the model states.
+    shared_args: optional, dict
+      The shared arguments across different layers.
+    progress_bar: bool
+      Whether report the progress of the simulation using progress bar.
 
-  def __call__(self, duration, start_t=None):
+    Returns
+    -------
+    output: Tensor, dict
+      The model output.
+    """
+    # format input data
+    xs, num_step, num_batch = self._check_xs(xs)
+    times = jax.device_put(jnp.linspace(0., self.dt * (num_step - 1), num_step))
+    xs = (times, xs,)
+    # reset the model states
+    if reset_state:
+      self.target.reset_batch_state(num_batch)
+    # init monitor
+    for key in self.mon.item_contents.keys():
+      self.mon.item_contents[key] = []  # reshape the monitor items
+    # init progress bar
+    if self.progress_bar and progress_bar:
+      self._pbar = tqdm.auto.tqdm(total=num_step)
+      self._pbar.set_description(f"Predict {num_step} steps: ", refresh=True)
+    # prediction
+    outputs, hists = self._predict(xs=xs, shared_args=shared_args)
+    outputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+    hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+    # close the progress bar
+    if self.progress_bar and progress_bar:
+      self._pbar.close()
+    # post-running for monitors
+    for key, val in hists.items():
+      self.mon.item_contents[key] = val
+    if self.numpy_mon_after_run:
+      self.mon.numpy()
+    return outputs
+
+  def _predict(
+      self,
+      xs: Sequence[Tensor],
+      shared_args: Dict = None,
+  ):
+    """Predict the output according to the inputs.
+
+    Parameters
+    ----------
+    xs: sequence
+      Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
+    shared_args: optional, dict
+      The shared keyword arguments.
+
+    Returns
+    -------
+    outputs, hists
+      A tuple of pair of (outputs, hists).
+    """
+    _predict_func = self._get_predict_func(shared_args)
+    outputs, hists = _predict_func(xs)
+    return outputs, hists
+
+  def run(self, duration, start_t=None, shared_args: Dict = None, eval_time=False):
     """The running function.
 
     Parameters
@@ -391,11 +385,11 @@ class DSRunner(Runner):
     duration : float, int, tuple, list
       The running duration.
     start_t : float, optional
-
-    Returns
-    -------
-    running_time : float
-      The total running time.
+      The start time.
+    shared_args: dict
+      The shared arguments across nodes.
+    eval_time: bool
+      Whether we record the running time?
     """
     # time step
     if start_t is None:
@@ -414,9 +408,11 @@ class DSRunner(Runner):
       self._pbar = tqdm.auto.tqdm(total=times.size)
       self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
                                  refresh=True)
-    t0 = time.time()
-    _, hists = self._run_func(times)
-    running_time = time.time() - t0
+    if eval_time:
+      t0 = time.time()
+    outputs, hists = self._predict((times, None), shared_args=shared_args)
+    if eval_time:
+      running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()
     # post-running
@@ -431,19 +427,81 @@ class DSRunner(Runner):
     self._start_t = end_t
     if self.numpy_mon_after_run:
       self.mon.numpy()
-    return running_time
+    if eval_time:
+      return running_time, outputs
+    else:
+      return outputs
 
+  def _check_xs(self, xs, move_axis=True):
+    leaves, tree = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+    # get information of time step and batch size
+    num_times, num_batch_sizes = [], []
+    for val in leaves:
+      num_batch_sizes.append(val.shape[0])
+      num_times.append(val.shape[1])
+    if len(set(num_times)) != 1:
+      raise ValueError(f'Number of time step is different across tensors in '
+                       f'the provided "xs". We got {set(num_times)}.')
+    if len(set(num_batch_sizes)) != 1:
+      raise ValueError(f'Number of batch size is different across tensors in '
+                       f'the provided "xs". We got {set(num_batch_sizes)}.')
+    num_step = num_times[0]
+    num_batch = num_batch_sizes[0]
+    # change shape to (num_time, num_sample, num_feature)
+    if move_axis:
+      xs = tree_map(lambda x: bm.moveaxis(x, 0, 1), xs)
+    return xs, num_step, num_batch
 
-class StructRunner(DSRunner):
-  """The runner with the structural for-loop.
+  def _get_predict_func(self, shared_args: Dict = None):
+    if shared_args is None: shared_args = dict()
+    shared_kwargs_str = serialize_kwargs(shared_args)
+    if shared_kwargs_str not in self._predict_func:
+      self._predict_func[shared_kwargs_str] = self._make_predict_func(shared_args)
+    return self._predict_func[shared_kwargs_str]
 
-  .. deprecated:: 2.0.3
-     Prefer the use of :py:class:`brainpy.dyn.DSRunner` for dynamical system running.
-     This runner is deprecated since 2.0.3.
-  """
+  def _make_predict_func(self, shared_args: Dict):
+    if not isinstance(shared_args, dict):
+      raise ValueError(f'"shared_kwargs" must be a dict, but got {type(shared_args)}')
 
-  def __init__(self, target, *args, **kwargs):
-    super(StructRunner, self).__init__(target, *args, **kwargs)
+    def _step_func(inputs):
+      t, x = inputs
+      self._input_step(t, self.dt)
+      if x is None:
+        args = (t, self.dt)
+      else:
+        args = (t, self.dt, x)
+      kwargs = dict()
+      if len(shared_args):
+        kwargs['shared_args'] = shared_args
+      out = self.target.update(*args, **kwargs)
+      if self.progress_bar:
+        id_tap(lambda *arg: self._pbar.update(), ())
+      return out, self._monitor_step(t, self.dt)
+
+    if self.jit['predict']:
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self.dyn_vars)
+      f = bm.make_loop(_step_func, dyn_vars=dyn_vars.unique(), has_return=True)
+      return lambda all_inputs: f(all_inputs)[1]
+
+    else:
+      def run_func(xs):
+        outputs = []
+        monitors = {key: [] for key in set(self.mon.item_contents.keys()) | set(self.fun_monitors.keys())}
+        for i in range(check_data_batch_size(xs)):
+          x = tree_map(lambda x: x[i], xs)
+          output, mon = _step_func(x)
+          outputs.append(output)
+          for key, value in mon.items():
+            monitors[key].append(value)
+        if outputs[0] is None:
+          outputs = None
+        else:
+          outputs = bm.asarray(outputs)
+        for key, value in monitors.items():
+          monitors[key] = bm.asarray(value)
+        return outputs, monitors
+    return run_func
 
 
 class ReportRunner(DSRunner):
