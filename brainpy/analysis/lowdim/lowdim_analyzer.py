@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from functools import partial
 
 import numpy as np
@@ -152,6 +152,10 @@ class LowDimAnalyzer(object):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
+      warnings.warn('The `resolutions` is specified to all parameters and variables. '
+                    'Analysis computation may occupy too much memory if `resolutions` is small. '
+                    'Please specify `resolutions` by dict, such as resolutions={"V": 0.1}.',
+                    category=UserWarning)
       for key, lim in self.target_vars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():
@@ -163,7 +167,7 @@ class LowDimAnalyzer(object):
         if key in self.target_par_names:
           continue
         raise errors.AnalyzerError(f'The resolution setting target "{key}" is not found in '
-                                   f'the target variables {self.target_var_names} and '
+                                   f'the target variables {self.target_var_names} or '
                                    f'the target parameters {self.target_par_names}.')
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
