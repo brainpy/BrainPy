@@ -167,7 +167,7 @@ class LowDimAnalyzer(object):
         if key in self.target_par_names:
           continue
         raise errors.AnalyzerError(f'The resolution setting target "{key}" is not found in '
-                                   f'the target variables {self.target_var_names} and '
+                                   f'the target variables {self.target_var_names} or '
                                    f'the target parameters {self.target_par_names}.')
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
