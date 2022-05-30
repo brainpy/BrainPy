@@ -2,6 +2,7 @@
 
 from typing import Dict, Sequence, Union, Callable
 
+import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
@@ -158,9 +159,11 @@ class OfflineTrainer(DSTrainer):
 
     # final things
     for node in self.train_nodes:
-      self.mon.item_contents.pop(f'{node.name}-fit_record')
+      self.mon.pop(f'{node.name}-fit_record')
     if self.true_numpy_mon_after_run:
-      self.mon.numpy()
+      for key in self.mon.keys():
+        if key != 'var_names':
+          self.mon[key] = np.asarray(self.mon[key])
 
   def f_train(self, shared_kwargs: Dict = None) -> Callable:
     """Get training function."""

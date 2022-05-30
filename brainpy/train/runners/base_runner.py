@@ -17,6 +17,7 @@ __all__ = [
 class DSTrainer(DSRunner):
   """Structural Trainer for Models with Recurrent Dynamics."""
 
+  target: TrainingSystem
   train_nodes: Sequence[TrainingSystem]  # need to be initialized by subclass
 
   def __init__(

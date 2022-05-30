@@ -206,7 +206,7 @@ class LowDimAnalyzer(object):
     # 'x_by_y_in_fy' :
     # 'y_by_x_in_fx' :
     # 'x_by_y_in_fx' :
-    self.analyzed_results = tools.DictPlus()
+    self.analyzed_results = tools.DotDict()
 
   def show_figure(self):
     global pyplot

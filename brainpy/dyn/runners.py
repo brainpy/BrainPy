@@ -50,7 +50,7 @@ def check_and_format_inputs(host, inputs):
   if not isinstance(inputs, (tuple, list)):
     raise RunningError('"inputs" must be a tuple/list.')
   if len(inputs) > 0 and not isinstance(inputs[0], (list, tuple)):
-    if isinstance(inputs[0], str):
+    if isinstance(inputs[0], (str, bm.Variable)):
       inputs = [inputs]
     else:
       raise RunningError('Unknown input structure, only support inputs '
@@ -76,32 +76,35 @@ def check_and_format_inputs(host, inputs):
   # checking 1: absolute access
   #    Check whether the input target node is accessible,
   #    and check whether the target node has the attribute
-  nodes = host.nodes(method='absolute')
-  nodes[host.name] = host
+  nodes = host.nodes(method='absolute', level=-1, include_self=True)
   for one_input in inputs:
     key = one_input[0]
-    if not isinstance(key, str):
+    if isinstance(key, bm.Variable):
+      real_target = key
+    elif isinstance(key, str):
+      splits = key.split('.')
+      target = '.'.join(splits[:-1])
+      key = splits[-1]
+      if target == '':
+        real_target = host
+      else:
+        if target not in nodes:
+          inputs_not_found_target.append(one_input)
+          continue
+        real_target = nodes[target]
+      if not hasattr(real_target, key):
+        raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
+      real_target = getattr(real_target, key)
+    else:
       raise RunningError(f'For each input, input[0] must be a string  to '
                          f'specify variable of the target, but we got {key}.')
-    splits = key.split('.')
-    target = '.'.join(splits[:-1])
-    key = splits[-1]
-    if target == '':
-      real_target = host
-    else:
-      if target not in nodes:
-        inputs_not_found_target.append(one_input)
-        continue
-      real_target = nodes[target]
-    if not hasattr(real_target, key):
-      raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
-    inputs_which_found_target.append((real_target, key) + tuple(one_input[1:]))
+    inputs_which_found_target.append((real_target, ) + tuple(one_input[1:]))
 
   # checking 2: relative access
   #    Check whether the input target node is accessible
   #    and check whether the target node has the attribute
   if len(inputs_not_found_target):
-    nodes = host.nodes(method='relative')
+    nodes = host.nodes(method='relative', level=-1, include_self=True)
     for one_input in inputs_not_found_target:
       splits = one_input[0].split('.')
       target, key = '.'.join(splits[:-1]), splits[-1]
@@ -110,38 +113,39 @@ def check_and_format_inputs(host, inputs):
       real_target = nodes[target]
       if not hasattr(real_target, key):
         raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
-      inputs_which_found_target.append((real_target, key) + tuple(one_input[1:]))
+      real_target = getattr(real_target, key)
+      inputs_which_found_target.append((real_target, ) + tuple(one_input[1:]))
 
   # 3. format inputs
   # ---------
   formatted_inputs = []
   for one_input in inputs_which_found_target:
     # input value
-    data_value = one_input[2]
+    data_value = one_input[1]
 
     # input type
-    if len(one_input) >= 4:
-      if one_input[3] == 'iter':
+    if len(one_input) >= 3:
+      if one_input[2] == 'iter':
         if not isinstance(data_value, Iterable):
-          raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" '
+          raise ValueError(f'Input "{data_value}" for "{one_input[0]}" \n'
                            f'is set to be "iter" type, however we got the value with '
                            f'the type of {type(data_value)}')
-      elif one_input[3] == 'func':
+      elif one_input[2] == 'func':
         if not callable(data_value):
-          raise ValueError(f'Input "{data_value}" for "{one_input[0]}.{one_input[1]}" '
+          raise ValueError(f'Input "{data_value}" for "{one_input[0]}" \n'
                            f'is set to be "func" type, however we got the value with '
                            f'the type of {type(data_value)}')
-      elif one_input[3] != 'fix':
+      elif one_input[2] != 'fix':
         raise RunningError(f'Only support {SUPPORTED_INPUT_TYPE} input type, but '
-                           f'we got "{one_input[3]}" in {one_input}')
+                           f'we got "{one_input[2]}"')
 
-      data_type = one_input[3]
+      data_type = one_input[2]
     else:
       data_type = 'fix'
 
     # operation
-    if len(one_input) == 5:
-      data_op = one_input[4]
+    if len(one_input) == 4:
+      data_op = one_input[3]
     else:
       data_op = '+'
     if data_op not in SUPPORTED_INPUT_OPS:
@@ -149,7 +153,7 @@ def check_and_format_inputs(host, inputs):
                          f'{data_op} in {one_input}')
 
     # final
-    format_inp = one_input[:2] + (data_value, data_type, data_op)
+    format_inp = (one_input[0], data_value, data_type, data_op)
     formatted_inputs.append(format_inp)
 
   return formatted_inputs
@@ -177,6 +181,8 @@ class DSRunner(Runner):
     - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
       for example ``[(target1, value1), (target2, value2)]``.
   """
+
+  target: DynamicalSystem
 
   def __init__(
       self,
@@ -228,11 +234,10 @@ class DSRunner(Runner):
     func_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
     array_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
 
-    for target, key, value, type_, op in inputs:
+    for variable, value, type_, op in inputs:
       # variable
-      variable = getattr(target, key)
       if not isinstance(variable, bm.Variable):
-        raise RunningError(f'"{key}" in {target} is not a dynamically changed Variable, '
+        raise RunningError(f'{variable}\n is not a dynamically changed Variable, '
                            f'its value will not change, we think there is no need to '
                            f'give its input.')
 
@@ -332,10 +337,10 @@ class DSRunner(Runner):
     xs = (times, xs,)
     # reset the model states
     if reset_state:
-      self.target.reset_batch_state(num_batch)
+      self.target.reset_state(num_batch)
     # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
     # init progress bar
     if self.progress_bar and progress_bar:
       self._pbar = tqdm.auto.tqdm(total=num_step)
@@ -349,9 +354,11 @@ class DSRunner(Runner):
       self._pbar.close()
     # post-running for monitors
     for key, val in hists.items():
-      self.mon.item_contents[key] = val
+      self.mon[key] = val
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      self.mon['ts'] = np.asarray(self.mon['ts'])
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
     return outputs
 
   def _predict(
@@ -401,8 +408,8 @@ class DSRunner(Runner):
     # times
     times = jax.device_put(jnp.arange(start_t, end_t, self.dt))
     # build monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
     # running
     if self.progress_bar:
       self._pbar = tqdm.auto.tqdm(total=times.size)
@@ -416,17 +423,14 @@ class DSRunner(Runner):
     if self.progress_bar:
       self._pbar.close()
     # post-running
-    if self.jit:
-      self.mon.ts = times + self.dt
-      for key in self.mon.item_names:
-        self.mon.item_contents[key] = bm.asarray(hists[key])
-    else:
-      self.mon.ts = times + self.dt
-      for key in self.mon.item_names:
-        self.mon.item_contents[key] = bm.asarray(self.mon.item_contents[key])
+    self.mon.ts = times + self.dt
+    for key in hists.keys():
+      self.mon[key] = bm.asarray(hists[key])
     self._start_t = end_t
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      self.mon['ts'] = np.asarray(self.mon['ts'])
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
     if eval_time:
       return running_time, outputs
     else:
