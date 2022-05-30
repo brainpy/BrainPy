@@ -199,6 +199,9 @@ class Reservoir(TrainingSystem):
   def reset(self, batch_size=1):
     self.state._value = bm.zeros((batch_size,) + self.output_shape).value
 
+  def reset_state(self, batch_size=1):
+    pass
+
   def forward(self, x, shared_args=None):
     """Feedforward output."""
     # inputs

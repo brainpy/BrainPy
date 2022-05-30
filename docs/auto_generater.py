@@ -588,10 +588,54 @@ def generate_compact_docs(path='apis/auto/compat/'):
                filename=os.path.join(path, 'runners.rst'),
                header='Runners')
 
+  write_module(module_name='brainpy.compat.nn.base',
+               filename=os.path.join(path, 'nn_base.rst'),
+               header='Base Classes')
+  write_module(module_name='brainpy.compat.nn.operations',
+               filename=os.path.join(path, 'nn_operations.rst'),
+               header='Node Operations')
+  write_module(module_name='brainpy.compat.nn.graph_flow',
+               filename=os.path.join(path, 'nn_graph_flow.rst'),
+               header='Node Graph Tools')
+  write_module(module_name='brainpy.compat.nn.datatypes',
+               filename=os.path.join(path, 'nn_data_types.rst'),
+               header='Data Types')
+  module_and_name = [
+    ('rnn_runner', 'Base RNN Runner'),
+    ('rnn_trainer', 'Base RNN Trainer'),
+    ('online_trainer', 'Online RNN Trainer'),
+    ('offline_trainer', 'Offline RNN Trainer'),
+    ('back_propagation', 'Back-propagation Trainer'),
+  ]
+  write_submodules(module_name='brainpy.compat.nn.runners',
+                   filename=os.path.join(path, 'nn_runners.rst'),
+                   header='Runners and Trainers',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+  module_and_name = [
+    ('online', 'Online Training Algorithms'),
+    ('offline', 'Offline Training Algorithms'),
+  ]
+  write_submodules(module_name='brainpy.compat.nn.algorithms',
+                   filename=os.path.join(path, 'nn_algorithms.rst'),
+                   header='Training Algorithms',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+  write_module(module_name='brainpy.compat.nn.nodes.base',
+               filename=os.path.join(path, 'nn_nodes_base.rst'),
+               header='Nodes: basic')
+  write_module(module_name='brainpy.compat.nn.nodes.ANN',
+               filename=os.path.join(path, 'nn_nodes_ANN.rst'),
+               header='Nodes: artificial neural network ')
+  write_module(module_name='brainpy.compat.nn.nodes.RC',
+               filename=os.path.join(path, 'nn_nodes_RC.rst'),
+               header='Nodes: reservoir computing')
+
 
 def generate_math_compact_docs(path='apis/auto/math/'):
   if not os.path.exists(path):
     os.makedirs(path)
+
 
   write_module(module_name='brainpy.math.compat.optimizers',
                filename=os.path.join(path, 'optimizers.rst'),
