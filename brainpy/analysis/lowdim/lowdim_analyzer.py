@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from functools import partial
 
 import numpy as np
@@ -152,6 +152,10 @@ class LowDimAnalyzer(object):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
+      warnings.warn('The `resolutions` is specified to all parameters and variables. '
+                    'Analysis computation may occupy too much memory if `resolutions` is small. '
+                    'Please specify `resolutions` by dict, such as resolutions={"V": 0.1}.',
+                    category=UserWarning)
       for key, lim in self.target_vars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():
