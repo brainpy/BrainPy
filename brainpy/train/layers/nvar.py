@@ -117,9 +117,9 @@ class NVAR(TrainingSystem):
 
   def reset(self, batch_size=1):
     self.idx[0] = 0
-    self.reset_batch_state(batch_size)
+    self.reset_state(batch_size)
 
-  def reset_batch_state(self, batch_size=1):
+  def reset_state(self, batch_size=1):
     """Reset the node state which depends on batch size."""
     # To store the last inputs.
     # Note, the batch axis is not in the first dimension, so we

@@ -83,6 +83,12 @@ class Dense(TrainingSystem):
       self.fit_record['output'] = res
     return res
 
+  def reset(self, batch_size=1):
+    pass
+
+  def reset_state(self, batch_size=1):
+    pass
+
   def online_init(self):
     if self.b is None:
       num_input = self.num_in

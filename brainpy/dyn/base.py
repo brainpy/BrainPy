@@ -238,6 +238,18 @@ class DynamicalSystem(Base):
     """
     raise NotImplementedError('Must implement "reset" function by subclass self.')
 
+  def update_local_delays(self):
+    # update delays
+    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+      for name in node.local_delay_vars.keys():
+        self.global_delay_vars[name].update(self.global_delay_targets[name].value)
+
+  def reset_local_delays(self):
+    # reset delays
+    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+      for name in node.local_delay_vars.keys():
+        self.global_delay_vars[name].reset(self.global_delay_targets[name])
+
 
 class Container(DynamicalSystem):
   """Container object which is designed to add other instances of DynamicalSystem.
@@ -725,7 +737,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def derivative(self, V, t):
     Iext = self.input.value * (1e-3 / self.A)
-    channels = self.nodes(level=1, include_self=False).unique().subset(Channel)
+    channels = self.nodes(level=1, include_self=False).subset(Channel).unique()
     for ch in channels.values():
       Iext = Iext + ch.current(V)
     return Iext / self.C
@@ -737,7 +749,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def update(self, t, dt):
     V = self.integral(self.V.value, t, dt)
-    channels = self.nodes(level=1, include_self=False).unique().subset(Channel)
+    channels = self.nodes(level=1, include_self=False).subset(Channel).unique()
     for node in channels.values():
       node.update(t, dt, self.V.value)
     self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)

@@ -180,7 +180,7 @@ class BPTT(DSTrainer):
       # training set
       for x, y in train_data_:
         if reset_state:
-          self.target.reset_batch_state(check_data_batch_size(x))
+          self.target.reset_state(check_data_batch_size(x))
         loss = self.f_train(shared_args)(x, y)
         all_train_losses.append(loss)
         train_i += 1
@@ -194,7 +194,7 @@ class BPTT(DSTrainer):
       if test_data_ is not None:
         for x, y in test_data_:
           if reset_state:
-            self.target.reset_batch_state(check_data_batch_size(x))
+            self.target.reset_state(check_data_batch_size(x))
           loss = self.f_loss(shared_args)(x, y)
           all_test_losses.append(loss)
 
@@ -399,7 +399,7 @@ class BPFF(BPTT):
     num_batch = self._get_xs_batch_size(xs)
     # reset the model states
     if reset_state:
-      self.target.reset_batch_state(num_batch)
+      self.target.reset_state(num_batch)
     # init monitor
     for key in self.mon.item_contents.keys():
       self.mon.item_contents[key] = []  # reshape the monitor items

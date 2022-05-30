@@ -3,8 +3,8 @@
 import inspect
 from typing import Union, Callable, Optional, Dict
 
-from brainpy.train.algorithms import OfflineAlgorithm, OnlineAlgorithm
 from brainpy.dyn.base import DynamicalSystem
+from brainpy.train.algorithms import OfflineAlgorithm, OnlineAlgorithm
 from brainpy.types import Tensor
 
 __all__ = [
@@ -78,9 +78,9 @@ class TrainingSystem(DynamicalSystem):
     for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
       node.reset(batch_size=batch_size)
 
-  def reset_batch_state(self, batch_size=1):
+  def reset_state(self, batch_size=1):
     for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
-      node.reset_batch_state(batch_size=batch_size)
+      node.reset_state(batch_size=batch_size)
 
   @not_implemented
   def online_init(self):
@@ -95,7 +95,8 @@ class TrainingSystem(DynamicalSystem):
   @not_implemented
   def online_fit(self,
                  target: Tensor,
-                 fit_record: Dict[str, Tensor]):
+                 fit_record: Dict[str, Tensor],
+                 shared_args: Dict = None):
     raise NotImplementedError('Subclass must implement online_fit() function when using '
                               'OnlineTrainer.')
 
@@ -106,7 +107,6 @@ class TrainingSystem(DynamicalSystem):
                   shared_args: Dict = None):
     raise NotImplementedError('Subclass must implement offline_fit() function when using '
                               'OfflineTrainer.')
-
 
 
 class Sequential(TrainingSystem):

@@ -105,7 +105,7 @@ Y_test = get_subset(lorenz_series,
 
 # Model #
 # ----- #
-class NGRC(bp.train.TrainNet):
+class NGRC(bp.train.TrainingSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
     self.r = bp.train.NVAR(num_in, delay=2, order=2, constant=True)

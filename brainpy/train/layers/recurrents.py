@@ -43,9 +43,9 @@ class RecurrentCell(TrainingSystem):
       self.state[:] = self.state2train
 
   def reset(self, batch_size=1):
-    self.reset_batch_state(batch_size)
+    self.reset_state(batch_size)
 
-  def reset_batch_state(self, batch_size=1):
+  def reset_state(self, batch_size=1):
     self.state._value = init_param(self._state_initializer, (batch_size, self.num_out), allow_none=False)
     if self.train_state:
       self.state2train.value = init_param(self._state_initializer, self.num_out, allow_none=False)

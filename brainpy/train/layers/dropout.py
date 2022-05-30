@@ -48,3 +48,9 @@ class Dropout(TrainingSystem):
       return bm.where(keep_mask, x / self.prob, 0.)
     else:
       return x
+
+  def reset(self, batch_size=1):
+    pass
+
+  def reset_state(self, batch_size=1):
+    pass

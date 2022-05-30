@@ -105,7 +105,7 @@ def ngrc(num_in=10, num_out=30):
 def ngrc_bacth(num_in=10, num_out=30):
   model = NGRC(num_in, num_out)
   batch_size = 10
-  model.reset_batch_state(batch_size)
+  model.reset_state(batch_size)
   X = bm.random.random((batch_size, 200, num_in))
   Y = bm.random.random((batch_size, 200, num_out))
   trainer = bp.train.RidgeTrainer(model, beta=1e-6)
