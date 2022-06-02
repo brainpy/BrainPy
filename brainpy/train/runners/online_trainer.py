@@ -258,9 +258,9 @@ class OnlineTrainer(DSTrainer):
       res = {k: v.value for k, v in return_without_idx.items()}
       res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
       res.update({k: f(t, dt) for k, f in self.fun_monitors.items()})
-      res.update({f'{node.name}-fit_record': node.fit_record for node in self.train_nodes})
-      # for node in self.train_nodes:
-      #   node.fit_record.clear()
+      res.update({f'{node.name}-fit_record': {k: node.fit_record.pop(k)
+                                              for k in node.fit_record.keys()}
+                  for node in self.train_nodes})
       return res
 
     return func

@@ -6,6 +6,7 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
+import numpy as np
 from brainpy.base import Base
 import brainpy.math as bm
 from brainpy.errors import NoImplementationError
@@ -135,8 +136,8 @@ class OnlineTrainer(RNNTrainer):
       self.target.initialize(num_batch)
 
     # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
 
     # init progress bar
     if self.progress_bar:
@@ -157,10 +158,11 @@ class OnlineTrainer(RNNTrainer):
       self._pbar.close()
 
     # post-running for monitors
-    for key in self.mon.item_names:
-      self.mon.item_contents[key] = hists[key]
+    for key in hists.keys():
+      self.mon[key] = hists[key]
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
 
   def _fit(
       self,
@@ -215,7 +217,7 @@ class OnlineTrainer(RNNTrainer):
 
     def _step_func(all_inputs):
       xs, ys, forced_states, forced_feedbacks = all_inputs
-      monitors = tuple(self.mon.item_contents.keys())
+      monitors = tuple(self.mon.var_names)
 
       _, outs = self.target(xs,
                             forced_states=forced_states,
@@ -243,7 +245,7 @@ class OnlineTrainer(RNNTrainer):
     else:
       def run_func(all_inputs):
         xs, ys, forced_states, forced_feedbacks = all_inputs
-        monitors = {key: [] for key in self.mon.item_contents.keys()}
+        monitors = {key: [] for key in self.mon.var_names}
         num_step = check_data_batch_size(xs)
         for i in range(num_step):
           one_xs = {key: tensor[i] for key, tensor in xs.items()}
@@ -261,9 +263,9 @@ class OnlineTrainer(RNNTrainer):
   def _add_monitor_items(self):
     added_items = set()
     for node in self.train_nodes:
-      if f'{node.name}.inputs' not in self.mon.item_names:
+      if f'{node.name}.inputs' not in self.mon.var_names:
         added_items.add(f'{node.name}.inputs')
-      if f'{node.name}.feedbacks' not in self.mon.item_names:
+      if f'{node.name}.feedbacks' not in self.mon.var_names:
         added_items.add(f'{node.name}.feedbacks')
     return tuple(added_items)
 

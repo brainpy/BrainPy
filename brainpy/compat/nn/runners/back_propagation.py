@@ -564,18 +564,20 @@ class BPFF(BPTT):
     if reset:
       self.target.initialize(num_batch)
     # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
     # prediction
     outputs, hists = self._predict(xs=xs,
                                    forced_states=forced_states,
                                    forced_feedbacks=forced_feedbacks,
                                    shared_kwargs=shared_kwargs)
     # post-running for monitors
-    for key in self.mon.item_names:
-      self.mon.item_contents[key] = hists[key]
+    for key in hists.keys():
+      self.mon[key] = hists[key]
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      self.mon.ts = np.asarray(self.mon.ts)
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
     return outputs
 
   def _check_forced_states(self, forced_states, num_batch):
@@ -722,7 +724,7 @@ class BPFF(BPTT):
                        f'but got {type(shared_kwargs)}')
 
     def run_func(xs, forced_states, forced_feedbacks):
-      monitors = self.mon.item_contents.keys()
+      monitors = self.mon.var_names
       return self.target(xs,
                          forced_states=forced_states,
                          forced_feedbacks=forced_feedbacks,

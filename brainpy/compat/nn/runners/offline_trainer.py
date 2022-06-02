@@ -5,6 +5,7 @@ from typing import Dict, Sequence, Union, Callable
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
+import numpy as np
 from brainpy.base import Base
 import brainpy.math as bm
 from brainpy.errors import NoImplementationError
@@ -182,12 +183,12 @@ class OfflineTrainer(RNNTrainer):
       for node in self.target.entry_nodes:
         if node in self.train_nodes:
           inputs = node.data_pass_func({node.name: xs[node.name]})
-          self.mon.item_contents[f'{node.name}.inputs'] = inputs
+          self.mon[f'{node.name}.inputs'] = inputs
           self._added_items.add(f'{node.name}.inputs')
     elif isinstance(self.target, Node):
       if self.target in self.train_nodes:
         inputs = self.target.data_pass_func({self.target.name: xs[self.target.name]})
-        self.mon.item_contents[f'{self.target.name}.inputs'] = inputs
+        self.mon[f'{self.target.name}.inputs'] = inputs
         self._added_items.add(f'{self.target.name}.inputs')
 
     # format target data
@@ -201,8 +202,8 @@ class OfflineTrainer(RNNTrainer):
     # training
     monitor_data = dict()
     for node in self.train_nodes:
-      monitor_data[f'{node.name}.inputs'] = self.mon.item_contents.get(f'{node.name}.inputs', None)
-      monitor_data[f'{node.name}.feedbacks'] = self.mon.item_contents.get(f'{node.name}.feedbacks', None)
+      monitor_data[f'{node.name}.inputs'] = self.mon.get(f'{node.name}.inputs', None)
+      monitor_data[f'{node.name}.feedbacks'] = self.mon.get(f'{node.name}.feedbacks', None)
     self.f_train(shared_kwargs)(monitor_data, ys)
 
     # close the progress bar
@@ -211,9 +212,11 @@ class OfflineTrainer(RNNTrainer):
 
     # final things
     for key in self._added_items:
-      self.mon.item_contents.pop(key)
+      self.mon.pop(key)
     if self.true_numpy_mon_after_run:
-      self.mon.numpy()
+      for key in self.mon.keys():
+        if key != 'var_names':
+          self.mon[key] = np.asarray(self.mon[key])
 
   def f_train(self, shared_kwargs: Dict = None) -> Callable:
     """Get training function."""
@@ -248,14 +251,14 @@ class OfflineTrainer(RNNTrainer):
     if isinstance(self.target, Network):
       for node in self.train_nodes:
         if node not in self.target.entry_nodes:
-          if f'{node.name}.inputs' not in self.mon.item_names:
-            self.mon.item_names.append(f'{node.name}.inputs')
-            self.mon.item_contents[f'{node.name}.inputs'] = []
+          if f'{node.name}.inputs' not in self.mon.var_names:
+            self.mon.var_names += (f'{node.name}.inputs', )
+            self.mon[f'{node.name}.inputs'] = []
             added_items.add(f'{node.name}.inputs')
         if node in self.target.fb_senders:
-          if f'{node.name}.feedbacks' not in self.mon.item_names:
-            self.mon.item_names.append(f'{node.name}.feedbacks')
-            self.mon.item_contents[f'{node.name}.feedbacks'] = []
+          if f'{node.name}.feedbacks' not in self.mon.var_names:
+            self.mon.var_names += (f'{node.name}.feedbacks',)
+            self.mon[f'{node.name}.feedbacks'] = []
             added_items.add(f'{node.name}.feedbacks')
     else:
       # brainpy.nn.Node instance does not need to monitor its inputs

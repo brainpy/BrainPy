@@ -105,8 +105,11 @@ class IntegratorRunner(Runner):
     Parameters
     ----------
     target: Integrator
+      The target to run.
     monitors: sequence of str
+      The variables to monitor.
     fun_monitors: dict
+      The monitors with callable functions.
     inits: sequence, dict
       The initial value of variables. With this parameter,
       you can easily control the number of variables to simulate.
@@ -130,6 +133,31 @@ class IntegratorRunner(Runner):
     progress_bar: bool
     numpy_mon_after_run: bool
     """
+
+    # initialize variables
+    if not isinstance(target, Integrator):
+      raise TypeError(f'Target must be instance of {Integrator.__name__}, '
+                      f'but we got {type(target)}')
+    if inits is not None:
+      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
+        assert len(target.variables) == len(inits)
+        inits = {k: inits[i] for i, k in enumerate(target.variables)}
+      assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'
+      sizes = np.unique([np.size(v) for v in list(inits.values())])
+      max_size = np.max(sizes)
+    else:
+      max_size = 1
+      inits = dict()
+    self.variables = TensorCollector({v: bm.Variable(bm.zeros(max_size))
+                                      for v in target.variables})
+    for k in inits.keys():
+      self.variables[k][:] = inits[k]
+
+    # format string monitors
+    monitors = self._format_seq_monitors(monitors)
+    monitors = {k: (self.variables[k], i) for k, i in monitors}
+
+    # initialize super class
     super(IntegratorRunner, self).__init__(target=target,
                                            monitors=monitors,
                                            fun_monitors=fun_monitors,
@@ -179,20 +207,7 @@ class IntegratorRunner(Runner):
     self.dyn_vars.update(self.target.vars().unique())
 
     # Variables
-    if inits is not None:
-      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
-        assert len(self.target.variables) == len(inits)
-        inits = {k: inits[i] for i, k in enumerate(self.target.variables)}
-      assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'
-      sizes = np.unique([np.size(v) for v in list(inits.values())])
-      max_size = np.max(sizes)
-    else:
-      max_size = 1
-      inits = dict()
-    self.variables = TensorCollector({v: bm.Variable(bm.zeros(max_size))
-                                      for v in self.target.variables})
-    for k in inits.keys():
-      self.variables[k][:] = inits[k]
+
     self.dyn_vars.update(self.variables)
     if len(self._dyn_args) > 0:
       self.idx = bm.Variable(bm.zeros(1, dtype=jnp.int_))

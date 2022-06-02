@@ -401,15 +401,17 @@ class BPFF(BPTT):
     if reset_state:
       self.target.reset_state(num_batch)
     # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
     # prediction
     outputs, hists = self._predict(xs=xs, shared_args=shared_args)
     # post-running for monitors
-    for key in self.mon.item_names:
-      self.mon.item_contents[key] = hists[key]
+    for key in hists.keys():
+      self.mon[key] = bm.asarray(hists[key])
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      self.mon.ts = np.asarray(self.mon.ts)
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
     return outputs
 
   def _predict(

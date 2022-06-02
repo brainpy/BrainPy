@@ -78,47 +78,9 @@ class Runner(object):
       monitors = dict()
     elif isinstance(monitors, (list, tuple)):
       # format string monitors
-      _monitors = []
-      for mon in monitors:
-        if isinstance(mon, str):
-          _monitors.append((mon, None))
-        elif isinstance(mon, (tuple, list)):
-          if not isinstance(mon[0], str) and len(mon) == 2:
-            raise MonitorError(f'We expect the monitor format with (name, index). But we got {mon}')
-          if isinstance(mon[1], (int, np.integer)):
-            idx = bm.array([mon[1]])
-          else:
-            idx = mon[1]
-          _monitors.append((mon[0], idx))
-        else:
-          raise MonitorError(f'We do not support monitor with {type(mon)}: {mon}')
-
+      monitors = self._format_seq_monitors(monitors)
       # get monitor targets
-      monitors = {}
-      name2node = {node.name: node for node in list(target.nodes(level=-1).unique().values())}
-      for mon in _monitors:
-        key, index = mon[0], mon[1]
-        splits = key.split('.')
-        if len(splits) == 1:
-          if not hasattr(target, splits[0]):
-            raise RunningError(f'{target} does not has variable {key}.')
-          monitors[key] = (getattr(target, splits[-1]), index)
-        else:
-          if not hasattr(target, splits[0]):
-            if splits[0] not in name2node:
-              raise MonitorError(f'Cannot find target {key} in monitor of {target}, please check.')
-            else:
-              master = name2node[splits[0]]
-              assert len(splits) == 2
-              monitors[key] = (getattr(master, splits[-1]), index)
-          else:
-            master = target
-            for s in splits[:-1]:
-              try:
-                master = getattr(master, s)
-              except KeyError:
-                raise MonitorError(f'Cannot find {key} in {master}, please check.')
-            monitors[key] = (getattr(master, splits[-1]), index)
+      monitors = self._find_monitor_targets(monitors)
     elif isinstance(monitors, dict):
       _monitors = dict()
       for key, val in monitors.items():
@@ -128,13 +90,20 @@ class Runner(object):
         if isinstance(val, bm.Variable):
           val = (val, None)
         if isinstance(val, (tuple, list)):
-          if len(val) != 2:
-            raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
-                               f'But we got {val}')
           if not isinstance(val[0], bm.Variable):
             raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
                                f'But we got {val}')
-          _monitors[key] = val
+          if len(val) == 1:
+            _monitors[key] = (val[0], None)
+          elif len(val) == 2:
+            if isinstance(val[1], (int, np.integer)):
+              idx = bm.array([val[1]])
+            else:
+              idx = None if val[1] is None else bm.asarray(val[1])
+            _monitors[key] = (val[0], idx)
+          else:
+            raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
+                               f'But we got {val}')
         else:
           raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
                              f'But we got {val}')
@@ -180,6 +149,62 @@ class Runner(object):
       else:
         return_with_idx[key] = (variable, bm.asarray(idx))
     return return_without_idx, return_with_idx
+
+  def _format_seq_monitors(self, monitors):
+    if not isinstance(monitors, (tuple, list)):
+      raise TypeError(f'Must be a sequence, but we got {type(monitors)}')
+    _monitors = []
+    for mon in monitors:
+      if isinstance(mon, str):
+        _monitors.append((mon, None))
+      elif isinstance(mon, (tuple, list)):
+        if isinstance(mon[0], str):
+          if len(mon) == 1:
+            _monitors.append((mon[0], None))
+          elif len(mon) == 2:
+            if isinstance(mon[1], (int, np.integer)):
+              idx = bm.array([mon[1]])
+            else:
+              idx = None if mon[1] is None else bm.asarray(mon[1])
+            _monitors.append((mon[0], idx))
+          else:
+            raise MonitorError(f'We expect the monitor format with (name, index). But we got {mon}')
+        else:
+          raise MonitorError(f'We expect the monitor format with (name, index). But we got {mon}')
+      else:
+        raise MonitorError(f'We do not support monitor with {type(mon)}: {mon}')
+    return _monitors
+
+  def _find_monitor_targets(self, _monitors):
+    if not isinstance(_monitors, (tuple, list)):
+      raise TypeError(f'Must be a sequence, but we got {type(_monitors)}')
+    # get monitor targets
+    monitors = {}
+    name2node = {node.name: node for node in list(self.target.nodes(level=-1).unique().values())}
+    for mon in _monitors:
+      key, index = mon[0], mon[1]
+      splits = key.split('.')
+      if len(splits) == 1:
+        if not hasattr(self.target, splits[0]):
+          raise RunningError(f'{self.target} does not has variable {key}.')
+        monitors[key] = (getattr(self.target, splits[-1]), index)
+      else:
+        if not hasattr(self.target, splits[0]):
+          if splits[0] not in name2node:
+            raise MonitorError(f'Cannot find target {key} in monitor of {self.target}, please check.')
+          else:
+            master = name2node[splits[0]]
+            assert len(splits) == 2
+            monitors[key] = (getattr(master, splits[-1]), index)
+        else:
+          master = self.target
+          for s in splits[:-1]:
+            try:
+              master = getattr(master, s)
+            except KeyError:
+              raise MonitorError(f'Cannot find {key} in {master}, please check.')
+          monitors[key] = (getattr(master, splits[-1]), index)
+    return monitors
 
   def build_monitors(self, return_without_idx, return_with_idx) -> Callable:
     raise NotImplementedError

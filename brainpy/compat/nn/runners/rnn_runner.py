@@ -3,6 +3,7 @@
 from typing import Dict, Union
 
 import jax.numpy as jnp
+import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
@@ -40,6 +41,8 @@ class RNNRunner(Runner):
   numpy_mon_after_run : bool
     Change the monitored iterm into NumPy arrays.
   """
+
+  target: Node
 
   def __init__(self, target: Node, jit=True, **kwargs):
     super(RNNRunner, self).__init__(target=target, **kwargs)
@@ -127,8 +130,8 @@ class RNNRunner(Runner):
     if reset:
       self.target.initialize(num_batch)
     # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
     # init progress bar
     if self.progress_bar and progress_bar:
       if num_step is None:
@@ -144,10 +147,11 @@ class RNNRunner(Runner):
     if self.progress_bar and progress_bar:
       self._pbar.close()
     # post-running for monitors
-    for key in self.mon.item_names:
-      self.mon.item_contents[key] = hists[key]
+    for key in hists.keys():
+      self.mon[key] = hists[key]
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
     return outputs
 
   def _predict(
@@ -200,7 +204,7 @@ class RNNRunner(Runner):
 
     def _step_func(a_input):
       xs, forced_states, forced_feedbacks = a_input
-      monitors = self.mon.item_contents.keys()
+      monitors = self.mon.var_names
       outs = self.target(xs,
                          forced_states=forced_states,
                          forced_feedbacks=forced_feedbacks,
@@ -225,7 +229,7 @@ class RNNRunner(Runner):
         else:
           outputs = []
           output_type = 'node'
-        monitors = {key: [] for key in self.mon.item_contents.keys()}
+        monitors = {key: [] for key in self.mon.var_names}
         num_step = check_data_batch_size(xs)
         for i in range(num_step):
           one_xs = {key: tensor[i] for key, tensor in xs.items()}
