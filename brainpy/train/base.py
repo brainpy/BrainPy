@@ -53,6 +53,10 @@ class TrainingSystem(DynamicalSystem):
   def trainable(self):
     return self._trainable
 
+  @trainable.setter
+  def trainable(self, value):
+    self._trainable = value
+
   def __repr__(self):
     return f"{type(self).__name__}(name={self.name}, trainable={self.trainable})"
 

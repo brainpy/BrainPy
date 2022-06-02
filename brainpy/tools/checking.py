@@ -257,10 +257,10 @@ def check_float(value: float, name=None, min_bound=None, max_bound=None,
     else:
       raise ValueError(f'{name} must be a float, but got None')
   if allow_int:
-    if not isinstance(value, (float, int)):
+    if not isinstance(value, (float, int, np.integer, np.floating)):
       raise ValueError(f'{name} must be a float, but got {type(value)}')
   else:
-    if not isinstance(value, float):
+    if not isinstance(value, (float, np.floating)):
       raise ValueError(f'{name} must be a float, but got {type(value)}')
   if min_bound is not None:
     if value < min_bound:
@@ -292,7 +292,7 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
       return
     else:
       raise ValueError(f'{name} must be an int, but got None')
-  if not isinstance(value, int):
+  if not isinstance(value, (int, np.integer)):
     if hasattr(value, '__array__'):
       if not (np.issubdtype(value.dtype, np.integer) and value.ndim == 0 and value.size == 1):
         raise ValueError(f'{name} must be an int, but got {value}')
