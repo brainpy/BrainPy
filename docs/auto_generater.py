@@ -388,9 +388,15 @@ def generate_losses_docs(path='apis/auto/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_module(module_name='brainpy.losses',
-               filename=os.path.join(path, 'losses.rst'),
-               header='``brainpy.losses`` module')
+  module_and_name = [
+    ('Comparison', 'comparison'),
+    ('Regularization', 'regularization'),
+  ]
+  write_submodules(module_name='brainpy.losses',
+                   filename=os.path.join(path, 'losses.rst'),
+                   header='``brainpy.losses`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
 
 def generate_math_docs(path='apis/auto/math/'):
