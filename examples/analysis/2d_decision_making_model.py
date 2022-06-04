@@ -69,16 +69,17 @@ def fixed_point_finder():
   def step(s):
     ds1 = int_s1.f(s[0], 0., s[1])
     ds2 = int_s2.f(s[1], 0., s[0])
-    return bm.asarray([ds1.value, ds2.value])
+    return bm.asarray([ds1, ds2])
 
-  finder = bp.analysis.SlowPointFinder(f_cell=step)
-  finder.find_fps_with_gd_method(
-    candidates=bm.random.random((1000, 2)),
-    tolerance=1e-5, num_batch=200,
-    optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.01, 1, 0.9999)),
-  )
-  # finder.find_fps_with_opt_solver(bm.random.random((1000, 2)))
-  finder.filter_loss(1e-5)
+  finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
+  # finder.find_fps_with_gd_method(
+  #   candidates=bm.random.random((1000, 2)),
+  #   tolerance=1e-8,
+  #   num_batch=200,
+  #   optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.01, 1, 0.9999)),
+  # )
+  finder.find_fps_with_opt_solver(bm.random.random((1000, 2)))
+  finder.filter_loss(1e-14)
   finder.keep_unique()
 
   print('fixed_points: ', finder.fixed_points)

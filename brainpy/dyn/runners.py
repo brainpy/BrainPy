@@ -76,12 +76,14 @@ def check_and_format_inputs(host, inputs):
   # checking 1: absolute access
   #    Check whether the input target node is accessible,
   #    and check whether the target node has the attribute
-  nodes = host.nodes(method='absolute', level=-1, include_self=True)
+  nodes = None
   for one_input in inputs:
     key = one_input[0]
     if isinstance(key, bm.Variable):
       real_target = key
     elif isinstance(key, str):
+      if nodes is None:
+        nodes = host.nodes(method='absolute', level=-1, include_self=True)
       splits = key.split('.')
       target = '.'.join(splits[:-1])
       key = splits[-1]
@@ -159,6 +161,69 @@ def check_and_format_inputs(host, inputs):
   return formatted_inputs
 
 
+def build_inputs(inputs):
+    fix_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
+    next_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
+    func_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
+    array_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
+
+    _has_iter_array = False
+    for variable, value, type_, op in inputs:
+      # variable
+      if not isinstance(variable, bm.Variable):
+        raise RunningError(f'{variable}\n is not a dynamically changed Variable, '
+                           f'its value will not change, we think there is no need to '
+                           f'give its input.')
+
+      # input data
+      if type_ == 'iter':
+        if isinstance(value, (bm.ndarray, np.ndarray, jnp.ndarray)):
+          array_inputs[op].append([variable, bm.asarray(value)])
+          _has_iter_array = True
+        else:
+          next_inputs[op].append([variable, iter(value)])
+      elif type_ == 'func':
+        func_inputs[op].append([variable, value])
+      else:
+        fix_inputs[op].append([variable, value])
+
+    index = None
+    if _has_iter_array:
+      index = bm.Variable(bm.zeros(1, dtype=int))
+
+    def _f_ops(ops, var, data):
+      if ops == '=':
+        var[:] = data
+      elif ops == '+':
+        var += data
+      elif ops == '-':
+        var -= data
+      elif ops == '*':
+        var *= data
+      elif ops == '/':
+        var /= data
+      else:
+        raise ValueError
+
+    def func(_t, _dt):
+      for ops, values in fix_inputs.items():
+        for var, data in values:
+          _f_ops(ops, var, data)
+      for ops, values in array_inputs.items():
+        for var, data in values:
+          _f_ops(ops, var, data[index[0]])
+      for ops, values in func_inputs.items():
+        for var, data in values:
+          _f_ops(ops, var, data(_t, _dt))
+      for ops, values in next_inputs.items():
+        for var, data in values:
+          _f_ops(ops, var, next(data))
+      if _has_iter_array:
+        index[0] += 1
+
+    return func, index
+
+
 class DSRunner(Runner):
   """The runner for dynamical systems.
 
@@ -205,13 +270,9 @@ class DSRunner(Runner):
     # Build the monitor function
     self._monitor_step = self.build_monitors(*self.format_monitors())
 
-    # whether it has iterable input data
-    self._has_iter_array = False  # default do not have iterable input array
-    self._i = bm.Variable(bm.asarray([0]))
-
     # Build input function
     inputs = check_and_format_inputs(host=target, inputs=inputs)
-    self._input_step = self.build_inputs(inputs)
+    self._input_step, self._i = build_inputs(inputs)
 
     # start simulation time
     self._start_t = None
@@ -219,71 +280,11 @@ class DSRunner(Runner):
     # JAX does not support iterator in fori_loop, scan, etc.
     #   https://github.com/google/jax/issues/3567
     # We use Variable i to index the current input data.
-    if self._has_iter_array:  # must behind of "self.build_input()"
+    if self._i is not None:  # must behind of "self.build_input()"
       self.dyn_vars.update({'_i': self._i})
-    else:
-      self._i = None
 
     # run function
     self._predict_func = dict()
-    # self._run_func = self.build_run_function()
-
-  def build_inputs(self, inputs):
-    fix_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
-    next_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
-    func_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
-    array_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
-
-    for variable, value, type_, op in inputs:
-      # variable
-      if not isinstance(variable, bm.Variable):
-        raise RunningError(f'{variable}\n is not a dynamically changed Variable, '
-                           f'its value will not change, we think there is no need to '
-                           f'give its input.')
-
-      # input data
-      if type_ == 'iter':
-        if isinstance(value, (bm.ndarray, np.ndarray, jnp.ndarray)):
-          array_inputs[op].append([variable, bm.asarray(value)])
-          self._has_iter_array = True
-        else:
-          next_inputs[op].append([variable, iter(value)])
-      elif type_ == 'func':
-        func_inputs[op].append([variable, value])
-      else:
-        fix_inputs[op].append([variable, value])
-
-    def _f_ops(ops, var, data):
-      if ops == '=':
-        var[:] = data
-      elif ops == '+':
-        var += data
-      elif ops == '-':
-        var -= data
-      elif ops == '*':
-        var *= data
-      elif ops == '/':
-        var /= data
-      else:
-        raise ValueError
-
-    def func(_t, _dt):
-      for ops, values in fix_inputs.items():
-        for var, data in values:
-          _f_ops(ops, var, data)
-      for ops, values in array_inputs.items():
-        for var, data in values:
-          _f_ops(ops, var, data[self._i[0]])
-      for ops, values in func_inputs.items():
-        for var, data in values:
-          _f_ops(ops, var, data(_t, _dt))
-      for ops, values in next_inputs.items():
-        for var, data in values:
-          _f_ops(ops, var, next(data))
-      if self._has_iter_array:
-        self._i += 1
-
-    return func
 
   def build_monitors(self, return_without_idx, return_with_idx, flatten=False):
     if flatten:

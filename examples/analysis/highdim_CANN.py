@@ -86,7 +86,8 @@ def find_fixed_points():
 
   # candidates = bm.random.uniform(0, 20., (1000, cann.num))
 
-  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell,
+                                       f_type=bp.analysis.CONTINUOUS)
   # finder.find_fps_with_gd_method(
   #   candidates=candidates,
   #   tolerance=1e-6,
@@ -139,7 +140,8 @@ def verify_fixed_point_stability(num=3):
   fixed_points = np.load(fps_output_fn)
 
   cann = CANN1D(num=512, k=k, a=a, A=A)
-  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell,
+                                       f_type=bp.analysis.CONTINUOUS)
   J = finder.compute_jacobians(fixed_points[:num])
 
   for i in range(num):

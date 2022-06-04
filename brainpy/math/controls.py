@@ -712,14 +712,15 @@ def while_loop(
   def _cond_fun(op):
     dyn_vals, static_vals = op
     for v, d in zip(dyn_vars, dyn_vals): v._value = d
-    return as_device_array(cond_fun(static_vals))
+    r = cond_fun(static_vals)
+    return r if isinstance(r, JaxArray) else r
 
   dyn_init = [v.value for v in dyn_vars]
   try:
     turn_on_global_jit()
-    dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
-                                   body_fun=_body_fun,
-                                   init_val=(dyn_init, operands))
+    dyn_values, out = lax.while_loop(cond_fun=_cond_fun,
+                                     body_fun=_body_fun,
+                                     init_val=(dyn_init, operands))
     turn_off_global_jit()
   except UnexpectedTracerError as e:
     turn_off_global_jit()
@@ -730,3 +731,4 @@ def while_loop(
     for v, d in zip(dyn_vars, dyn_init): v._value = d
     raise e
   for v, d in zip(dyn_vars, dyn_values): v._value = d
+  return out

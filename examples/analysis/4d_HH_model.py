@@ -89,7 +89,8 @@ run(100)
 bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
 # analysis
-finder = bp.analysis.SlowPointFinder(lambda h: model.step(h, I))
+finder = bp.analysis.SlowPointFinder(lambda h: model.step(h, I),
+                                     bp.analysis.CONTINUOUS)
 V = bm.random.normal(0., 5., (1000, model.num)) - 50.
 mhn = bm.random.random((1000, model.num * 3))
 finder.find_fps_with_opt_solver(candidates=bm.hstack([V, mhn]))
