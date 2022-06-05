@@ -2,6 +2,7 @@
 
 from jax.tree_util import tree_flatten, tree_map
 
+import jax.numpy as jnp
 import brainpy.math as bm
 from .utils import _is_leaf, _multi_return
 
@@ -22,8 +23,8 @@ def l2_norm(x, axis=None):
   Returns:
       scalar tensor containing the l2 loss of x.
   """
-  leaves, _ = tree_flatten(x, is_leaf=_is_leaf)
-  return bm.sqrt(bm.sum([bm.vdot(x, x) for x in leaves], axis=axis))
+  leaves, _ = tree_flatten(x)
+  return jnp.sqrt(jnp.sum(jnp.asarray([jnp.vdot(x, x) for x in leaves]), axis=axis))
 
 
 def mean_absolute(outputs, axis=None):
