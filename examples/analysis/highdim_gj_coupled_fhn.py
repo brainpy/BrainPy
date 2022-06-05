@@ -103,7 +103,7 @@ def d8_system():
 
   finder = bp.analysis.SlowPointFinder(f_cell=model,
                                        included_vars={'V': model.V, 'w': model.w},
-                                       inputs=['Iext', Iext])
+                                       inputs=[model.Iext, Iext])
   finder.find_fps_with_gd_method(
     candidates={'V': bm.random.normal(0., 2., (1000, model.num)),
                 'w': bm.random.normal(0., 2., (1000, model.num))},

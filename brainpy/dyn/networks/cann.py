@@ -6,8 +6,6 @@ from brainpy.dyn.base import NeuGroup
 __all__ = [
   'WuCANN1D',
   'WuCANN2D',
-  'CANN_SFA_1D',
-  'CANN_SFA_2D',
 ]
 
 
@@ -19,10 +17,10 @@ class WuCANN2D(NeuGroup):
   pass
 
 
-class CANN_SFA_1D(NeuGroup):
+class ACANN_1D(NeuGroup):
   pass
 
 
-class CANN_SFA_2D(NeuGroup):
+class ACANN_2D(NeuGroup):
   pass
 

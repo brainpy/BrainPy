@@ -9,10 +9,9 @@ This module implements several loss functions.
 
 import jax.numpy as jnp
 import jax.scipy
-from jax.tree_util import tree_flatten, tree_map
+from jax.tree_util import tree_map
 
 import brainpy.math as bm
-from brainpy import errors
 from .utils import _return, _multi_return, _is_leaf
 
 __all__ = [
