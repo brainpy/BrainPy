@@ -1,7 +1,9 @@
 publishment.md
 #experimental/
 .vscode
+io_test_tmp*
 
+brainpy/base/tests/io_test_tmp*
 
 development
 
@@ -51,7 +53,6 @@ develop/benchmark/COBAHH/brian2*
 develop/benchmark/COBAHH/annarchy*
 develop/benchmark/CUBA/annarchy*
 develop/benchmark/CUBA/brian2*
-
 
 
 *~

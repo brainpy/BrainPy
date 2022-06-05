@@ -3,6 +3,7 @@
 from typing import Union, Sequence, Dict, Callable, Tuple, Type
 
 import jax.numpy as jnp
+import numpy as np
 import numpy as onp
 
 import brainpy.connect as conn
@@ -155,12 +156,15 @@ def check_dict_data(a_dict: Dict,
   """Check the dictionary data.
   """
   name = '' if (name is None) else f'"{name}"'
-  assert isinstance(a_dict, dict), f'{name} must be a dict, while we got {type(a_dict)}'
+  if not isinstance(a_dict, dict):
+    raise ValueError(f'{name} must be a dict, while we got {type(a_dict)}')
   for key, value in a_dict.items():
-    assert isinstance(key, key_type), (f'{name} must be a dict of ({key_type}, {val_type}), '
-                                       f'while we got ({type(key)}, {type(value)})')
-    assert isinstance(value, val_type), (f'{name} must be a dict of ({key_type}, {val_type}), '
-                                         f'while we got ({type(key)}, {type(value)})')
+    if not isinstance(key, key_type):
+      raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
+                       f'while we got ({type(key)}, {type(value)})')
+    if not isinstance(value, val_type):
+      raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
+                       f'while we got ({type(key)}, {type(value)})')
 
 
 def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
@@ -289,7 +293,10 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
     else:
       raise ValueError(f'{name} must be an int, but got None')
   if not isinstance(value, int):
-    if hasattr(value, 'dtype') and not jnp.issubdtype(value.dtype, jnp.integer):
+    if isinstance(value, (jnp.ndarray, np.ndarray)):
+      if not (jnp.issubdtype(value.dtype, jnp.integer) and value.ndim == 0 and value.size == 1):
+        raise ValueError(f'{name} must be an int, but got {value}')
+    else:
       raise ValueError(f'{name} must be an int, but got {value}')
   if min_bound is not None:
     if jnp.any(value < min_bound):

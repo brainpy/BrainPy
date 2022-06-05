@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Union
 
 import brainpy.math as bm
 from brainpy.base.base import Base
@@ -36,7 +36,7 @@ class Integrator(AbstractIntegrator):
       arguments: Sequence[str],
       dt: float,
       name: str = None,
-      state_delays: Dict[str, bm.AbstractDelay] = None,
+      state_delays: Dict[str, Union[bm.TimeDelay, bm.LengthDelay]] = None,
   ):
     super(Integrator, self).__init__(name=name)
 

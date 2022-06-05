@@ -35,14 +35,21 @@ Details in the following.
 from .jaxarray import *
 from .delayvars import *
 
+# functions
+from .activations import *
+from . import activations
+from .compat import *
+
 # high-level numpy operations
 from .numpy_ops import *
-from .operators import *
 from . import fft
 from . import linalg
 from . import random
 
-# JAX transformations extended on class objects
+# operators
+from .operators import *
+
+# JAX transformations extended on Variable and class objects
 from .autograd import *
 from .controls import *
 from .jit import *
@@ -51,11 +58,6 @@ from .jit import *
 from . import setting
 from .setting import *
 from .function import *
-
-# functions
-from .activations import *
-from . import activations
-from .compat import *
 
 
 def get_dint():

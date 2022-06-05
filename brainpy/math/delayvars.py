@@ -3,23 +3,22 @@
 from typing import Union, Callable, Tuple
 
 import jax.numpy as jnp
-import numpy as np
 from jax import vmap
-from jax.experimental.host_callback import id_tap
 from jax.lax import cond
 
 from brainpy import check
 from brainpy.base.base import Base
 from brainpy.errors import UnsupportedError
+from brainpy.math import numpy_ops as bm
 from brainpy.math.jaxarray import ndarray, Variable, JaxArray
 from brainpy.math.setting import get_dt
 from brainpy.tools.checking import check_float, check_integer
+from brainpy.tools.errors import check_error_in_jit
 
 __all__ = [
   'AbstractDelay',
-  'TimeDelay',
-  'NeutralDelay',
-  'LengthDelay',
+  'TimeDelay', 'LengthDelay',
+  'NeuTimeDelay', 'NeuLenDelay',
 ]
 
 
@@ -83,15 +82,15 @@ class TimeDelay(AbstractDelay):
     The time precesion.
   before_t0: callable, bm.ndarray, jnp.ndarray, float, int
     The delay data before ::math`t_0`.
-    - when `before_t0` is a function, it should receive an time argument `t`
+    - when `before_t0` is a function, it should receive a time argument `t`
     - when `before_to` is a tensor, it should be a tensor with shape
-      of :math:`(num_delay, ...)`, where the longest delay data is aranged in
+      of :math:`(num\_delay, ...)`, where the longest delay data is aranged in
       the first index.
   name: str
     The delay instance name.
   interp_method: str
     The way to deal with the delay at the time which is not integer times of the time step.
-    For exameple, if the time step ``dt=0.1``, the time delay length ``delay_len=1.``,
+    For exameple, if the time step ``dt=0.1``, the time delay length ``delay\_len=1.``,
     when users require the delay data at ``t-0.53``, we can deal this situation with
     the following methods:
 
@@ -121,9 +120,8 @@ class TimeDelay(AbstractDelay):
     super(TimeDelay, self).__init__(name=name)
 
     # shape
-    if not isinstance(delay_target, (ndarray, jnp.ndarray)):
-      raise ValueError(f'Must be an instance of brainpy.math.ndarray '
-                       f'or jax.numpy.ndarray. But we got {type(delay_target)}')
+    if not isinstance(delay_target, (jnp.ndarray, JaxArray)):
+      raise ValueError(f'Must be an instance of JaxArray or jax.numpy.ndarray. But we got {type(delay_target)}')
     self.shape = delay_target.shape
 
     # delay_len
@@ -145,13 +143,12 @@ class TimeDelay(AbstractDelay):
     self.current_time = Variable(jnp.asarray([t0]))
 
     # delay data
-    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape,
-                                   dtype=delay_target.dtype))
+    self.data = Variable(jnp.zeros((self.num_delay_step,) + self.shape, dtype=delay_target.dtype))
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
     elif callable(before_t0):
-      self._before_t0 = lambda t: jnp.asarray(jnp.broadcast_to(before_t0(t), self.shape),
-                                              dtype=delay_target.dtype)
+      self._before_t0 = lambda t: bm.asarray(bm.broadcast_to(before_t0(t), self.shape),
+                                             dtype=delay_target.dtype).value
       self._before_type = _FUNC_BEFORE
     elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
       self._before_type = _DATA_BEFORE
@@ -197,26 +194,24 @@ class TimeDelay(AbstractDelay):
       self.data[:-1] = before_t0
       self._before_type = _DATA_BEFORE
 
-  def _check_time(self, times, transforms):
+  def _check_time1(self, times):
     prev_time, current_time = times
-    current_time = current_time[0]
-    if prev_time > current_time + 1e-6:
-      raise ValueError(f'\n'
-                       f'!!! Error in {self.__class__.__name__}: \n'
-                       f'The request time should be less than the '
-                       f'current time {current_time}. But we '
-                       f'got {prev_time} > {current_time}')
-    lower_time = current_time - self.delay_len
-    if prev_time < lower_time - self.dt:
-      raise ValueError(f'\n'
-                       f'!!! Error in {self.__class__.__name__}: \n'
-                       f'The request time of the variable should be in '
-                       f'[{lower_time}, {current_time}], but we got {prev_time}')
+    raise ValueError(f'The request time should be less than the '
+                     f'current time {current_time}. But we '
+                     f'got {prev_time} > {current_time}')
+
+  def _check_time2(self, times):
+    prev_time, current_time = times
+    raise ValueError(f'The request time of the variable should be in '
+                     f'[{current_time - self.delay_len}, {current_time}], '
+                     f'but we got {prev_time}')
 
   def __call__(self, time, indices=None):
     # check
     if check.is_checking():
-      id_tap(self._check_time, (time, self.current_time))
+      current_time = self.current_time[0]
+      check_error_in_jit(time > current_time + 1e-6, self._check_time1, (time, current_time))
+      check_error_in_jit(time < current_time - self.delay_len - self.dt, self._check_time2, (time, current_time))
     if self._before_type == _FUNC_BEFORE:
       res = cond(time < self.t0,
                  self._before_t0,
@@ -260,7 +255,8 @@ class TimeDelay(AbstractDelay):
     self.idx.value = (self.idx + 1) % self.num_delay_step
 
 
-class NeutralDelay(TimeDelay):
+class NeuTimeDelay(TimeDelay):
+  """Neutral Time Delay. Alias of :py:class:`~.TimeDelay`."""
   pass
 
 
@@ -315,6 +311,8 @@ class LengthDelay(AbstractDelay):
     # delay_len
     check_integer(delay_len, 'delay_len', allow_none=True, min_bound=0)
     if delay_len is None:
+      if self.num_delay_step is None:
+        raise ValueError('"delay_len" cannot be None.')
       delay_len = self.num_delay_step - 1
     self.num_delay_step = delay_len + 1
 
@@ -339,20 +337,14 @@ class LengthDelay(AbstractDelay):
     else:
       raise ValueError(f'"delay_data" does not support {type(initial_delay_data)}')
 
-  def _check_delay(self, delay_len, transforms):
-    if isinstance(delay_len, ndarray):
-      delay_len = delay_len.value
-    if np.any(delay_len >= self.num_delay_step):
-      raise ValueError(f'\n'
-                       f'!!! Error in {self.__class__.__name__}: \n'
-                       f'The request delay length should be less than the '
-                       f'maximum delay {self.num_delay_step}. But we '
-                       f'got {delay_len}')
+  def _check_delay(self, delay_len):
+      raise ValueError(f'The request delay length should be less than the '
+                       f'maximum delay {self.num_delay_step}. But we got {delay_len}')
 
   def __call__(self, delay_len, *indices):
     # check
     if check.is_checking():
-      id_tap(self._check_delay, delay_len)
+      check_error_in_jit(bm.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
     # the delay length
     delay_idx = (self.idx[0] - delay_len - 1) % self.num_delay_step
     if not jnp.issubdtype(delay_idx.dtype, jnp.integer):
@@ -366,3 +358,8 @@ class LengthDelay(AbstractDelay):
       raise ValueError(f'value shape should be {self.shape}, but we got {jnp.shape(value)}')
     self.data[self.idx[0]] = value
     self.idx.value = (self.idx + 1) % self.num_delay_step
+
+
+class NeuLenDelay(LengthDelay):
+  """Neutral Length Delay. Alias of :py:class:`~.LengthDelay`."""
+  pass

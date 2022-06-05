@@ -2,19 +2,16 @@
 
 from typing import Union, Callable
 
-import numpy as np
-from jax.experimental.host_callback import id_tap
-
 import brainpy.math as bm
 from brainpy import check
 from brainpy.dyn.base import NeuGroup
+from brainpy.dyn.others.noises import OUProcess
 from brainpy.initialize import Initializer, Uniform, init_param, ZeroInit
-from brainpy.integrators.dde import ddeint
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
+from brainpy.tools.errors import check_error_in_jit
 from brainpy.types import Shape, Tensor
-from .noises import OUProcess
 
 __all__ = [
   'Population',
@@ -92,6 +89,7 @@ class FHN(NeuGroup):
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       sde_method: str = None,
+      keep_size: bool = False,
       name: str = None,
   ):
     super(FHN, self).__init__(size=size, name=name)
@@ -257,6 +255,7 @@ class FeedbackFHN(NeuGroup):
       method: str = 'rk4',
       sde_method: str = None,
       name: str = None,
+      keep_size: bool = False,
       dt: float = None
   ):
     super(FeedbackFHN, self).__init__(size=size, name=name)
@@ -305,7 +304,7 @@ class FeedbackFHN(NeuGroup):
                             method=sde_method)
 
     # integral
-    self.integral = ddeint(method=method,
+    self.integral = odeint(method=method,
                            f=JointEq([self.dx, self.dy]),
                            state_delays={'V': self.x_delay})
 
@@ -325,15 +324,14 @@ class FeedbackFHN(NeuGroup):
   def dy(self, y, t, x, y_ext):
     return (x + self.a - self.b * y + y_ext) / self.tau
 
-  def _check_dt(self, dt, *args):
-    if np.absolute(dt - self.dt) > 1e-6:
-      raise ValueError(f'The "dt" {dt} used in model running is '
-                       f'not consistent with the "dt" {self.dt} '
-                       f'used in model definition.')
+  def _check_dt(self, dt):
+    raise ValueError(f'The "dt" {dt} used in model running is '
+                     f'not consistent with the "dt" {self.dt} '
+                     f'used in model definition.')
 
   def update(self, t, dt):
     if check.is_checking():
-      id_tap(self._check_dt, dt)
+      check_error_in_jit(not bm.isclose(dt, self.dt), self._check_dt, dt)
     if self.x_ou is not None:
       self.input += self.x_ou.x
       self.x_ou.update(t, dt)
@@ -436,6 +434,7 @@ class QIF(NeuGroup):
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
+      keep_size: bool = False,
       sde_method: str = None,
   ):
     super(QIF, self).__init__(size=size, name=name)
@@ -558,6 +557,7 @@ class StuartLandauOscillator(Population):
       x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       sde_method: str = None,
       name: str = None,
   ):
@@ -690,6 +690,7 @@ class WilsonCowanModel(Population):
 
       # other parameters
       sde_method: str = None,
+      keep_size: bool = False,
       method: str = 'exp_euler_auto',
       name: str = None,
   ):
@@ -833,6 +834,7 @@ class ThresholdLinearModel(Population):
       e_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       i_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       seed: int = None,
+      keep_size: bool = False,
       name: str = None
   ):
     super(ThresholdLinearModel, self).__init__(size, name=name)
@@ -876,5 +878,3 @@ class ThresholdLinearModel(Population):
     self.i.value = bm.maximum(self.i + di * dt, 0.)
     self.Ie[:] = 0.
     self.Ii[:] = 0.
-
-

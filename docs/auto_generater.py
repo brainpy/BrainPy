@@ -5,14 +5,11 @@ import inspect
 import os
 
 from brainpy.math import (activations, autograd, controls, function,
-                          jit, operators, parallels, setting, delayvars,
+                          jit, parallels, setting, delayvars,
                           compat)
 
-block_list = ['test', 'register_pytree_node']
-for module in [jit, autograd, function,
-               controls, activations,
-               parallels, setting,
-               delayvars, compat]:
+block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
+for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, compat]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -255,7 +252,6 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   module_and_name = [
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
-    ('input_models', 'Input Models'),
     ('reduced_models', 'Reduced Models'),
   ]
   write_submodules(module_name='brainpy.dyn.neurons',
@@ -278,11 +274,20 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   module_and_name = [
     ('populations', 'Population Models'),
     ('couplings', 'Coupling Models'),
-    ('noises', 'Noise Models'),
   ]
   write_submodules(module_name='brainpy.dyn.rates',
                    filename=os.path.join(path, 'rates.rst'),
                    header='Rate Models',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  module_and_name = [
+    ('noises', 'Noise Models'),
+    ('inputs', 'Input Models'),
+  ]
+  write_submodules(module_name='brainpy.dyn.others',
+                   filename=os.path.join(path, 'others.rst'),
+                   header='Helper Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
@@ -349,17 +354,6 @@ def generate_integrators_doc(path='apis/auto/integrators/'):
   write_module(module_name='brainpy.integrators.sde.srk_scalar',
                filename=os.path.join(path, 'sde_srk_scalar.rst'),
                header='SRK methods for scalar Wiener process')
-
-  # DDE
-  write_module(module_name='brainpy.integrators.dde.base',
-               filename=os.path.join(path, 'dde_base.rst'),
-               header='Base Integrator')
-  write_module(module_name='brainpy.integrators.dde.generic',
-               filename=os.path.join(path, 'dde_generic.rst'),
-               header='Generic Functions')
-  write_module(module_name='brainpy.integrators.dde.explicit_rk',
-               filename=os.path.join(path, 'dde_explicit_rk.rst'),
-               header='Explicit Runge-Kutta Methods')
 
   # FDE
   write_module(module_name='brainpy.integrators.fde.base',
@@ -563,6 +557,9 @@ def generate_tools_docs(path='apis/auto/tools/'):
   write_module(module_name='brainpy.tools.others',
                filename=os.path.join(path, 'others.rst'),
                header='Other Tools')
+  write_module(module_name='brainpy.tools.errors',
+               filename=os.path.join(path, 'errors.rst'),
+               header='Error Tools')
 
 
 def generate_compact_docs(path='apis/auto/compat/'):

@@ -80,32 +80,6 @@ class IntegratorRunner(Runner):
     >>> ax.set_xlabel('z')
     >>> plt.show()
 
-  Example to run an DDE integrator,
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> # Mackey-Glass equation
-    >>> dt = 0.01; beta=2.; gamma=1.; tau=2.; n=9.65
-    >>> mg_eq = lambda x, t, xdelay: (beta * xdelay(t - tau) / (1 + xdelay(t - tau) ** n)
-    >>>                               - gamma * x)
-    >>> xdelay = bm.TimeDelay(bm.asarray([1.2]), delay_len=tau, dt=dt, before_t0=lambda t: 1.2)
-    >>> integral = bp.ddeint(mg_eq, method='rk4', state_delays={'x': xdelay})
-    >>> runner = bp.integrators.IntegratorRunner(
-    >>>       integral,
-    >>>       monitors=['x', ],
-    >>>       fun_monitors={'x(tau)': (lambda t, _: xdelay(t - tau))},
-    >>>       inits=[1.2],  # initialize all variable to 1.
-    >>>       args={'xdelay': xdelay}, dt=dt,
-    >>> )
-    >>> runner.run(100.)
-    >>> plt.plot(runner.mon['x'].flatten(), runner.mon['x(tau)'].flatten())
-    >>> plt.show()
-
   """
 
   def __init__(
@@ -194,7 +168,7 @@ class IntegratorRunner(Runner):
 
     # monitors
     for k in self.mon.item_names:
-      if k not in self.target.variables:
+      if k not in self.target.variables and k not in self.fun_monitors:
         raise MonitorError(f'Variable "{k}" to monitor is not defined '
                            f'in the integrator {self.target}.')
 
@@ -206,7 +180,7 @@ class IntegratorRunner(Runner):
 
     # Variables
     if inits is not None:
-      if isinstance(inits, (list, tuple)):
+      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
         assert len(self.target.variables) == len(inits)
         inits = {k: inits[i] for i, k in enumerate(self.target.variables)}
       assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'
@@ -221,7 +195,7 @@ class IntegratorRunner(Runner):
       self.variables[k][:] = inits[k]
     self.dyn_vars.update(self.variables)
     if len(self._dyn_args) > 0:
-      self.idx = bm.Variable(bm.zeros(1, dtype=bm.int_))
+      self.idx = bm.Variable(bm.zeros(1, dtype=jnp.int_))
       self.dyn_vars['_idx'] = self.idx
 
     # build the update step

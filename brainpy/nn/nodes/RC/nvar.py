@@ -100,7 +100,7 @@ class NVAR(RecurrentNode):
     self.nonlinear_dim = None
 
     # delay variables
-    self.idx = bm.Variable(jnp.asarray([0], dtype=bm.int_))
+    self.idx = bm.Variable(jnp.asarray([0]))
     self.store = None
 
   def init_ff_conn(self):

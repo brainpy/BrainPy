@@ -31,10 +31,10 @@ class HH(bp.dyn.NeuGroup):
     self.input = bm.Variable(bm.zeros(size))
 
     # integral functions
-    self.int_h = bp.ode.ExpEulerAuto(self.dh)
-    self.int_n = bp.ode.ExpEulerAuto(self.dn)
-    self.int_m = bp.ode.ExpEulerAuto(self.dm)
-    self.int_V = bp.ode.ExpEulerAuto(self.dV)
+    self.int_h = bp.ode.ExponentialEuler(self.dh)
+    self.int_n = bp.ode.ExponentialEuler(self.dn)
+    self.int_m = bp.ode.ExponentialEuler(self.dm)
+    self.int_V = bp.ode.ExponentialEuler(self.dV)
 
   def dh(self, h, t, V):
     alpha = 0.07 * bm.exp(-(V + 65) / 20.)

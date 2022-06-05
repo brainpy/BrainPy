@@ -138,30 +138,26 @@ class DeltaSynapse(TwoEndConn):
                                           delay_target=self.pre.spike)
 
   def reset(self):
-    if self.delay_step is not None:
-      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
+    pass
 
   def update(self, t, dt):
     # delays
-    if self.delay_step is None:
-      pre_spike = self.pre.spike
-    else:
-      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", delay_data=self.pre.spike)
+    pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
+      pre_spike = pre_spike.astype(bm.float_)
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
           post_vs = post_vs - pre_spike
         post_vs *= self.weights
       else:
-        post_vs = bm.expand_dims(pre_spike, 1) * self.weights
-        post_vs = post_vs.sum(axis=0)
+        post_vs = pre_spike @ self.weights
     elif isinstance(self.conn, One2One):
+      pre_spike = pre_spike.astype(bm.float_)
       post_vs = pre_spike * self.weights
     else:
       if self.conn_type == 'sparse':
@@ -170,6 +166,7 @@ class DeltaSynapse(TwoEndConn):
                                         self.post.num,
                                         self.weights)
       else:
+        pre_spike = pre_spike.astype(bm.float_)
         if self.weight_type == 'homo':
           post_vs = self.weights * (pre_spike @ self.conn_mat)
         else:
@@ -332,28 +329,25 @@ class ExpCUBA(TwoEndConn):
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
-    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike",
+                                          delay_step,
+                                          self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
   def reset(self):
     self.g.value = bm.zeros(self.post.num)
-    if self.delay_step is not None:
-      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
   def update(self, t, dt):
     # delays
-    if self.delay_step is None:
-      pre_spike = self.pre.spike
-    else:
-      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
 
     # post values
     assert self.weight_type in ['homo', 'heter']
     assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
+      pre_spike = pre_spike.astype(bm.float_)
       if self.weight_type == 'homo':
         post_vs = bm.sum(pre_spike)
         if not self.conn.include_self:
@@ -362,6 +356,7 @@ class ExpCUBA(TwoEndConn):
       else:
         post_vs = pre_spike @ self.g_max
     elif isinstance(self.conn, One2One):
+      pre_spike = pre_spike.astype(bm.float_)
       post_vs = pre_spike * self.g_max
     else:
       if self.conn_type == 'sparse':
@@ -370,6 +365,7 @@ class ExpCUBA(TwoEndConn):
                                         self.post.num,
                                         self.g_max)
       else:
+        pre_spike = pre_spike.astype(bm.float_)
         if self.weight_type == 'homo':
           post_vs = self.g_max * (pre_spike @ self.conn_mat)
         else:
@@ -662,8 +658,6 @@ class DualExpCUBA(TwoEndConn):
   def reset(self):
     self.h.value = bm.zeros(self.pre.num)
     self.g.value = bm.zeros(self.pre.num)
-    if self.delay_step is not None:
-      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
 
   def dh(self, h, t):
     return -h / self.tau_rise
@@ -673,11 +667,7 @@ class DualExpCUBA(TwoEndConn):
 
   def update(self, t, dt):
     # delays
-    if self.delay_step is None:
-      pre_spike = self.pre.spike
-    else:
-      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
 
     # update synaptic variables
     self.g.value, self.h.value = self.integral(self.g, self.h, t, dt)
@@ -1062,7 +1052,7 @@ class NMDA(TwoEndConn):
 
   .. math::
 
-      I_{syn} = g_{NMDA}(t) (V(t)-E) \cdot g_{\infty}
+      I_{syn} = g_\mathrm{NMDA}(t) (V(t)-E) \cdot g_{\infty}
 
   where :math:`V(t)` is the post-synaptic neuron potential, :math:`E` is the
   reversal potential.
@@ -1071,7 +1061,7 @@ class NMDA(TwoEndConn):
 
   .. math::
 
-      & g_{NMDA} (t) = g_{max} g \\
+      & g_\mathrm{NMDA} (t) = g_{max} g \\
       & \frac{d g}{dt} = -\frac{g} {\tau_{decay}}+a x(1-g) \\
       & \frac{d x}{dt} = -\frac{x}{\tau_{rise}}+ \sum_{k} \delta(t-t_{j}^{k})
 
@@ -1245,6 +1235,10 @@ class NMDA(TwoEndConn):
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
 
+  def reset(self):
+    self.g.value = bm.zeros(self.pre.num)
+    self.x.value = bm.zeros(self.pre.num)
+
   def dg(self, g, t, x):
     return -g / self.tau_decay + self.a * x * (1 - g)
 
@@ -1253,11 +1247,7 @@ class NMDA(TwoEndConn):
 
   def update(self, t, dt):
     # delays
-    if self.delay_step is None:
-      delayed_pre_spike = self.pre.spike
-    else:
-      delayed_pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    delayed_pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
 
     # update synapse variables
     self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)

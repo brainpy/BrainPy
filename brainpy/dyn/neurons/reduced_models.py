@@ -31,7 +31,7 @@ class LIF(NeuGroup):
 
   .. math::
 
-      \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + I(t) \\
+      \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + RI(t) \\
       \text{after} \quad V(t) \gt V_{th}, V(t) = V_{reset} \quad
       \text{last} \quad \tau_{ref} \quad  \text{ms}
 
@@ -56,6 +56,8 @@ class LIF(NeuGroup):
     Reset potential after spike.
   V_th: float, JaxArray, ndarray, Initializer, callable
     Threshold potential of spike.
+  R: float, JaxArray, ndarray, Initializer, callable
+    Membrane resistance.
   tau: float, JaxArray, ndarray, Initializer, callable
     Membrane time constant.
   tau_ref: float, JaxArray, ndarray, Initializer, callable
@@ -84,12 +86,13 @@ class LIF(NeuGroup):
       V_rest: Union[float, Tensor, Initializer, Callable] = 0.,
       V_reset: Union[float, Tensor, Initializer, Callable] = -5.,
       V_th: Union[float, Tensor, Initializer, Callable] = 20.,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       noise_type: str = 'value',
-      keep_size: bool=False,
+      keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -99,18 +102,16 @@ class LIF(NeuGroup):
     # parameters
     self.keep_size = keep_size
     self.noise_type = noise_type
-    if noise_type not in ['func', 'value']:
-      raise ValueError(f'noise_type only supports `func` and `value`, but we got {noise_type}')
     size = self.size if keep_size else self.num
     self.V_rest = init_param(V_rest, size, allow_none=False)
     self.V_reset = init_param(V_reset, size, allow_none=False)
     self.V_th = init_param(V_th, size, allow_none=False)
+    self.R = init_param(R, size, allow_none=False)
     self.tau = init_param(tau, size, allow_none=False)
     self.tau_ref = init_param(tau_ref, size, allow_none=False)
-    if noise_type == 'func':
-      self.noise = noise
-    else:
-      self.noise = init_param(noise, size, allow_none=True)
+    if noise_type not in ['func', 'value']:
+      raise ValueError(f'noise_type only supports `func` and `value`, but we got {noise_type}')
+    self.noise = noise if (noise_type == 'func') else init_param(noise, size, allow_none=True)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
@@ -124,7 +125,7 @@ class LIF(NeuGroup):
     self.refractory = bm.Variable(bm.zeros(size, dtype=bool))
 
     # integral
-    f = lambda V, t, I_ext: (-V + self.V_rest + I_ext) / self.tau
+    f = lambda V, t, I_ext: (-V + self.V_rest + self.R * I_ext) / self.tau
     if self.noise is not None:
       g = noise if (noise_type == 'func') else (lambda V, t, I_ext: self.noise / bm.sqrt(self.tau))
       self.integral = sdeint(method=method, f=f, g=g)
@@ -260,6 +261,7 @@ class ExpIF(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 1.7,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -403,6 +405,7 @@ class AdExIF(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     super(AdExIF, self).__init__(size=size, name=name)
@@ -543,6 +546,7 @@ class QuaIF(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
+      keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -688,6 +692,7 @@ class AdQuaIF(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     super(AdQuaIF, self).__init__(size=size, name=name)
@@ -851,6 +856,7 @@ class GIF(NeuGroup):
       I2_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       Vth_initializer: Union[Initializer, Callable, Tensor] = OneInit(-50.),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -1013,6 +1019,7 @@ class Izhikevich(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -1185,6 +1192,7 @@ class HindmarshRose(NeuGroup):
       y_initializer: Union[Initializer, Callable, Tensor] = OneInit(-10.),
       z_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization
@@ -1340,6 +1348,7 @@ class FHN(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       method: str = 'exp_auto',
+      keep_size: bool = False,
       name: str = None
   ):
     # initialization

@@ -404,20 +404,19 @@ MIXED_ADVANCED_INDEXING_TESTS = MIXED_ADVANCED_INDEXING_TESTS_NO_REPEATS + [
 MODES = ["clip", "drop", "promise_in_bounds"]
 
 
-
 class IndexingTest(jtu.JaxTestCase):
   """Tests for Numpy indexing translation rules."""
 
   @parameterized.named_parameters(
-    jtu.cases_from_list({"testcase_name":
-                           "{}_inshape={}_indexer={}".format(name, jtu.format_shape_dtype_string(shape, dtype),
-                                                             indexer),
-                         "shape": shape,
-                         "dtype": dtype,
-                         "indexer": indexer}
-                        for name, index_specs in STATIC_INDEXING_TESTS
-                        for shape, indexer, _ in index_specs
-                        for dtype in all_dtypes))
+    jtu.cases_from_list(
+      {"testcase_name": "{}_inshape={}_indexer={}".format(name, jtu.format_shape_dtype_string(shape, dtype), indexer),
+       "shape": shape,
+       "dtype": dtype,
+       "indexer": indexer}
+      for name, index_specs in STATIC_INDEXING_TESTS
+      for shape, indexer, _ in index_specs
+      for dtype in all_dtypes)
+  )
   def testStaticIndexing(self, shape, dtype, indexer):
     rng = jtu.rand_default(self.rng())
     args_maker = lambda: [rng(shape, dtype)]
@@ -430,11 +429,15 @@ class IndexingTest(jtu.JaxTestCase):
     self._CheckAgainstNumpy(np_fun, jnp_fun, args_maker)
     self._CompileAndCheck(jnp_fun, args_maker)
 
-  @parameterized.named_parameters(jtu.cases_from_list({
-                                                        "testcase_name": f"_{funcname}", "funcname": funcname}
-                                                      for funcname in
-                                                      ["negative", "sin", "cos", "square", "sqrt", "log", "exp"]))
+  @parameterized.named_parameters(
+    jtu.cases_from_list({"testcase_name": f"_{funcname}", "funcname": funcname}
+                        for funcname in
+                        ["negative", "sin", "cos", "square", "sqrt", "log", "exp"])
+  )
   def testIndexApply(self, funcname, size=10, dtype='float32'):
+    if not hasattr(jnp.zeros(1).at[0], 'apply'):
+      self.skipTest('Has not apply() function')
+
     rng = jtu.rand_default(self.rng())
     idx_rng = jtu.rand_int(self.rng(), -size, size)
     np_func = getattr(np, funcname)

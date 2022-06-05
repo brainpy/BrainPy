@@ -6,6 +6,69 @@ brainpy 2.x (LTS)
 *****************
 
 
+
+
+
+
+Version 2.1.11 (2022.05.15)
+==========================
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+* fix: cross-correlation bug by `@ztqakita <https://github.com/ztqakita>`_ in `#201 <https://github.com/PKU-NIP-Lab/BrainPy/pull/201>`_
+* update apis, test and docs of numpy ops by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#202 <https://github.com/PKU-NIP-Lab/BrainPy/pull/202>`_
+* docs: add sphinx_book_theme by `@ztqakita <https://github.com/ztqakita>`_ in `#203 <https://github.com/PKU-NIP-Lab/BrainPy/pull/203>`_
+* fix: add requirements-doc.txt by `@ztqakita <https://github.com/ztqakita>`_ in `#204 <https://github.com/PKU-NIP-Lab/BrainPy/pull/204>`_
+* update control flow, integrators, operators, and docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#205 <https://github.com/PKU-NIP-Lab/BrainPy/pull/205>`_
+* improve oo-to-function transformation speed by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#208 <https://github.com/PKU-NIP-Lab/BrainPy/pull/208>`_
+
+**Full Changelog**\ : `V2.1.10...V2.1.11 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.10...V2.1.11>`_
+
+
+
+Version 2.1.10 (2022.05.05)
+==========================
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+* update control flow APIs and Docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#192 <https://github.com/PKU-NIP-Lab/BrainPy/pull/192>`_
+* doc: update docs of dynamics simulation by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#193 <https://github.com/PKU-NIP-Lab/BrainPy/pull/193>`_
+* fix `#125 <https://github.com/PKU-NIP-Lab/BrainPy/issues/125>`_: add channel models and two-compartment Pinsky-Rinzel model by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#194 <https://github.com/PKU-NIP-Lab/BrainPy/pull/194>`_
+* JIT errors do not change Variable values by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#195 <https://github.com/PKU-NIP-Lab/BrainPy/pull/195>`_
+* fix a bug in math.activations.py by `@c-xy17 <https://github.com/c-xy17>`_ in `#196 <https://github.com/PKU-NIP-Lab/BrainPy/pull/196>`_
+* Functionalinaty improvements by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#197 <https://github.com/PKU-NIP-Lab/BrainPy/pull/197>`_
+* update rate docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#198 <https://github.com/PKU-NIP-Lab/BrainPy/pull/198>`_
+* update brainpy.dyn doc by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#199 <https://github.com/PKU-NIP-Lab/BrainPy/pull/199>`_
+
+**Full Changelog**\ : `V2.1.8...V2.1.10 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.8...V2.1.10>`_
+
+
+
+Version 2.1.8 (2022.04.26)
+==========================
+
+
+What's Changed
+~~~~~~~~~~~~~~
+
+* Fix `#120 <https://github.com/PKU-NIP-Lab/BrainPy/issues/120>`_ by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#178 <https://github.com/PKU-NIP-Lab/BrainPy/pull/178>`_
+* feat: brainpy.Collector supports addition and subtraction by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#179 <https://github.com/PKU-NIP-Lab/BrainPy/pull/179>`_
+* feat: delay variables support "indices" and "reset()" function by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#180 <https://github.com/PKU-NIP-Lab/BrainPy/pull/180>`_
+* Support reset functions in neuron and synapse models by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#181 <https://github.com/PKU-NIP-Lab/BrainPy/pull/181>`_
+* ``update()`` function on longer need ``_t`` and ``_dt`` by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#183 <https://github.com/PKU-NIP-Lab/BrainPy/pull/183>`_
+* small updates by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#188 <https://github.com/PKU-NIP-Lab/BrainPy/pull/188>`_
+* feat: easier control flows with ``brainpy.math.ifelse`` by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#189 <https://github.com/PKU-NIP-Lab/BrainPy/pull/189>`_
+* feat: update delay couplings of ``DiffusiveCoupling`` and ``AdditiveCouping`` by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#190 <https://github.com/PKU-NIP-Lab/BrainPy/pull/190>`_
+* update version and changelog by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#191 <https://github.com/PKU-NIP-Lab/BrainPy/pull/191>`_
+
+**Full Changelog**\ : `V2.1.7...V2.1.8 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.7...V2.1.8>`_
+
+
+
 Version 2.1.7 (2022.04.22)
 ==========================
 

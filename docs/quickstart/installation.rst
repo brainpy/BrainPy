@@ -143,17 +143,6 @@ Other Dependency
 In order to get full supports of BrainPy, we recommend you install the following
 packages:
 
-- `SymPy`_: needed in one of Exponential Euler methods
-
-.. code-block:: bash
-
-    pip install sympy
-
-    # or
-
-    conda install sympy
-
-
 - `Numba`_: needed in some NumPy-based computations
 
 .. code-block:: bash
@@ -164,14 +153,14 @@ packages:
 
     conda install numba
 
-- BrainPyLib: needed in some synaptic compuatation
+- brainpylib: needed in dedicated operators
 
 .. code-block:: bash
 
     pip install brainpylib
     
  
-- `MatPlotLib`_: required in some visualization functions, but now it is recommended that users explicitly import matplotlib for visualization
+- `matplotlib`_: required in some visualization functions, but now it is recommended that users explicitly import matplotlib for visualization
 
 .. code-block:: bash
 

@@ -5,15 +5,16 @@ This module provides numerical methods for integrating Caputo fractional derivat
 
 """
 
-import jax.numpy as jnp
-from jax.experimental.host_callback import id_tap
+from typing import Union, Dict
 
-from brainpy import check
+import jax.numpy as jnp
+
 import brainpy.math as bm
+from brainpy import check
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.constants import DT
 from brainpy.integrators.utils import check_inits, format_args
-from brainpy.tools.checking import check_integer
+from brainpy.tools.errors import check_error_in_jit
 from .base import FDEIntegrator
 from .generic import register_fde_integrator
 
@@ -110,17 +111,27 @@ class CaputoEuler(FDEIntegrator):
          for a fractional Adams method." Numerical algorithms 36.1 (2004): 31-52.
   """
 
-  def __init__(self, f, alpha, num_step, inits, dt=None, name=None):
-    super(CaputoEuler, self).__init__(f=f, alpha=alpha, dt=dt, name=name)
+  def __init__(
+      self,
+      f,
+      alpha,
+      num_step,
+      inits,
+      dt=None,
+      name=None,
+      state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+  ):
+    super(CaputoEuler, self).__init__(f=f,
+                                      alpha=alpha,
+                                      dt=dt,
+                                      name=name,
+                                      num_step=num_step,
+                                      state_delays=state_delays)
 
     # fractional order
-    if not jnp.all(jnp.logical_and(self.alpha < 1, self.alpha > 0)):
+    if not bm.all(bm.logical_and(self.alpha < 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
-
-    # memory length
-    check_integer(num_step, 'num_step', min_bound=1, allow_none=False)
-    self.num_step = num_step
 
     # initial values
     self.inits = check_inits(inits, self.variables)
@@ -136,23 +147,23 @@ class CaputoEuler(FDEIntegrator):
     self.f_states = {v: bm.Variable(bm.zeros((num_step,) + self.inits[v].shape))
                      for v in self.variables}
     self.register_implicit_vars(self.f_states)
-    self.idx = bm.Variable(bm.asarray([1], dtype=bm.int32))
+    self.idx = bm.Variable(bm.asarray([1]))
 
     self.set_integral(self._integral_func)
 
-  def _check_step(self, args, transform):
+  def _check_step(self, args):
     dt, t = args
-    if self.num_step * dt < t:
-      raise ValueError(f'The maximum number of step is {self.num_step}, '
-                       f'however, the current time {t} require a time '
-                       f'step number {t / dt}.')
+    raise ValueError(f'The maximum number of step is {self.num_step}, '
+                     f'however, the current time {t} require a time '
+                     f'step number {t / dt}.')
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
     all_args = format_args(args, kwargs, self.arg_names)
+    t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      id_tap(self._check_step, (dt, all_args['t']))
+      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -187,14 +198,6 @@ class CaputoEuler(FDEIntegrator):
 
 
 register_fde_integrator(name='CaputoEuler', integrator=CaputoEuler)
-
-
-class CaputoABM(FDEIntegrator):
-  """Adams-Bashforth-Moulton (ABM) Method for Caputo fractional differential equations.
-
-
-  """
-  pass
 
 
 class CaputoL1Schema(FDEIntegrator):
@@ -301,19 +304,29 @@ class CaputoL1Schema(FDEIntegrator):
          order. Elsevier.
   """
 
-  def __init__(self, f, alpha, num_step, inits, dt=None, name=None):
-    super(CaputoL1Schema, self).__init__(f=f, alpha=alpha, dt=dt, name=name)
+  def __init__(
+      self,
+      f,
+      alpha,
+      num_step,
+      inits,
+      dt=None,
+      name=None,
+      state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+  ):
+    super(CaputoL1Schema, self).__init__(f=f,
+                                         alpha=alpha,
+                                         dt=dt,
+                                         name=name,
+                                         num_step=num_step,
+                                         state_delays=state_delays)
 
     # fractional order
-    if not jnp.all(jnp.logical_and(self.alpha <= 1, self.alpha > 0)):
+    if not bm.all(bm.logical_and(self.alpha <= 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
     from scipy.special import gamma
     self.gamma_alpha = bm.asarray(gamma(bm.as_numpy(2 - self.alpha)))
-
-    # memory length
-    check_integer(num_step, 'num_step', min_bound=1, allow_none=False)
-    self.num_step = num_step
 
     # initial values
     inits = check_inits(inits, self.variables)
@@ -330,14 +343,14 @@ class CaputoL1Schema(FDEIntegrator):
                                                           dtype=self.inits[v].dtype))
                         for v in self.variables}
     self.register_implicit_vars(self.diff_states)
-    self.idx = bm.Variable(bm.asarray([self.num_step - 1], dtype=bm.int32))
+    self.idx = bm.Variable(bm.asarray([self.num_step - 1]))
 
     # integral function
     self.set_integral(self._integral_func)
 
   def reset(self, inits):
     """Reset function."""
-    self.idx.value = bm.asarray([self.num_step - 1], dtype=bm.int32)
+    self.idx.value = bm.asarray([self.num_step - 1])
     inits = check_inits(inits, self.variables)
     for key, value in inits.items():
       self.inits[key].value = value
@@ -362,19 +375,19 @@ class CaputoL1Schema(FDEIntegrator):
         hists_ = hists_.numpy()
       return hists_
 
-  def _check_step(self, args, transform):
+  def _check_step(self, args):
     dt, t = args
-    if self.num_step * dt < t:
-      raise ValueError(f'The maximum number of step is {self.num_step}, '
-                       f'however, the current time {t} require a time '
-                       f'step number {t / dt}.')
+    raise ValueError(f'The maximum number of step is {self.num_step}, '
+                     f'however, the current time {t} require a time '
+                     f'step number {t / dt}.')
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
     all_args = format_args(args, kwargs, self.arg_names)
+    t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      id_tap(self._check_step, (dt, all_args['t']))
+      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)

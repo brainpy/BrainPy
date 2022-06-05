@@ -3,10 +3,13 @@
 import unittest
 import brainpy as bp
 import brainpy.math as bm
+from absl.testing import parameterized
+from jax._src import test_util as jtu
+from functools import partial
 
 
-class TestScan(unittest.TestCase):
-  def test_easy_scan1(self):
+class TestLoop(jtu.JaxTestCase):
+  def test_make_loop(self):
     def make_node(v1, v2):
       def update(x):
         v1.value = v1 * x
@@ -50,7 +53,7 @@ class TestScan(unittest.TestCase):
     print(returns.shape)
     print(returns)
 
-  def test_jaxarray(self):
+  def test_make_loop_jaxarray(self):
     def make_node(v1, v2):
       def update(x):
         v1.value = v1 * x
@@ -70,6 +73,39 @@ class TestScan(unittest.TestCase):
     with self.assertRaises(bp.errors.MathError):
       outs, returns = scan_f(_xs)
 
+  @parameterized.named_parameters(
+    {"testcase_name": "_jit_scan={}_jit_f={}_unroll={}".format(jit_scan, jit_f, unroll),
+     "jit_scan": jit_scan,
+     "jit_f": jit_f,
+     "unroll": unroll}
+    for jit_scan in [False, True]
+    for jit_f in [False, True]
+    for unroll in [1, 2]
+  )
+  def test_for_loop(self, jit_scan, jit_f, unroll):
+    rng = bm.random.RandomState(123)
+
+    c = bm.Variable(rng.randn(4))
+    d = rng.randn(2)
+    all_a = rng.randn(5, 3)
+
+    def f(a):
+      assert a.shape == (3,)
+      assert c.shape == (4,)
+      b = bm.cos(bm.sum(bm.sin(a)) + bm.sum(bm.cos(c)) + bm.sum(bm.tan(d)))
+      c.value = bm.sin(c * b)
+      assert b.shape == ()
+      return b
+
+    if jit_f:
+      f = bm.jit(f, dyn_vars=c)
+    scan = partial(bm.for_loop, unroll=unroll, dyn_vars=c)
+    if jit_scan:
+      scan = bm.jit(scan, static_argnames=('body_fun',), dyn_vars=c)
+    ans = scan(body_fun=f, operands=all_a)
+    print(ans)
+    print(c)
+
 
 class TestIfElse(unittest.TestCase):
   def test1(self):
@@ -80,6 +116,7 @@ class TestIfElse(unittest.TestCase):
                                  lambda _: 3,
                                  lambda _: 4,
                                  lambda _: 5])
+
     self.assertTrue(f(3) == 3)
     self.assertTrue(f(1) == 4)
     self.assertTrue(f(-1) == 5)
@@ -88,6 +125,7 @@ class TestIfElse(unittest.TestCase):
     def f(a):
       return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
                        branches=[1, 2, 3, 4, 5])
+
     self.assertTrue(f(3) == 3)
     self.assertTrue(f(1) == 4)
     self.assertTrue(f(-1) == 5)
@@ -106,6 +144,7 @@ class TestIfElse(unittest.TestCase):
                                  lambda _: 4, lambda _: 5],
                        dyn_vars=var_a,
                        show_code=True)
+
     self.assertTrue(f(11) == 1)
     print(var_a)
     self.assertTrue(bm.all(var_a == 1))
@@ -140,6 +179,3 @@ class TestIfElse(unittest.TestCase):
       return vmap(f)(bm.random.randint(-20, 20, 200))
 
     self.assertTrue(f2().size == 200)
-
-
-

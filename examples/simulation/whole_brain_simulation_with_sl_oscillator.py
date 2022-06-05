@@ -40,10 +40,6 @@ class Network(bp.dyn.Network):
     self.coupling = rates.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
                                             conn_mat=conn_mat * gc)
 
-  def update(self, t, dt):
-    self.coupling.update(t, dt)
-    self.sl.update(t, dt)
-
 
 def simulation():
   net = Network()

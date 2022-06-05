@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import inspect
+from typing import Union, Callable, Dict, Sequence
 
-from brainpy import errors, math
-from brainpy.integrators import constants, utils
-from brainpy.integrators.analysis_by_ast import separate_variables
+from brainpy import errors, math as bm
+from brainpy.base import Collector
+from brainpy.integrators import constants, utils, joint_eq
 from brainpy.integrators.sde.base import SDEIntegrator
 from .generic import register_sde_integrator
-
-try:
-  import sympy
-  from brainpy.integrators import analysis_by_sympy
-except (ModuleNotFoundError, ImportError):
-  sympy = analysis_by_sympy = None
 
 __all__ = [
   'Euler',
@@ -275,145 +269,117 @@ class ExponentialEuler(SDEIntegrator):
          differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
   """
 
-  def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None,
-               state_delays=None):
-    super(ExponentialEuler, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
-                                           var_type=var_type, intg_type=intg_type,
-                                           wiener_type=wiener_type, state_delays=state_delays)
-    self.build()
+  def __init__(
+      self,
+      f: Callable,
+      g: Callable,
+      dt: float = None,
+      name: str = None,
+      show_code: bool = False,
+      var_type: str = None,
+      intg_type: str = None,
+      wiener_type: str = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None
+  ):
+    super(ExponentialEuler, self).__init__(f=f,
+                                           g=g,
+                                           dt=dt,
+                                           show_code=show_code,
+                                           name=name,
+                                           var_type=var_type,
+                                           intg_type=intg_type,
+                                           wiener_type=wiener_type,
+                                           state_delays=state_delays)
+
+    if self.intg_type == constants.STRA_SDE:
+      raise NotImplementedError(f'{self.__class__.__name__} does not support integral type of {constants.STRA_SDE}. '
+                                f'It only supports {constants.ITO_SDE} now. ')
+    self.dyn_vars = dyn_vars
+
+    # build the integrator
+    self.code_lines = []
+    self.code_scope = {}
+    self.integral = self.build()
 
   def build(self):
-    # if math.get_backend_name() == 'jax':
-    #   raise NotImplementedError
-    # else:
-    self.symbolic_build()
+    all_vars, all_pars = [], []
+    integrals, arg_names = [], []
+    a = self._build_integrator(self.f)
+    for integral, vars, _ in a:
+      integrals.append(integral)
+      for var in vars:
+        if var not in all_vars:
+          all_vars.append(var)
+    for _, vars, pars in a:
+      for par in pars:
+        if (par not in all_vars) and (par not in all_pars):
+          all_pars.append(par)
+      arg_names.append(vars + pars + ['dt'])
+    all_pars.append('dt')
+    all_vps = all_vars + all_pars
 
-  def autograd_build(self):
-    pass
+    def integral_func(*args, **kwargs):
+      # format arguments
+      params_in = Collector()
+      for i, arg in enumerate(args):
+        params_in[all_vps[i]] = arg
+      params_in.update(kwargs)
+      dt = params_in.pop('dt', self.dt)
 
-  def symbolic_build(self):
-    if self.var_type == constants.SYSTEM_VAR:
-      raise errors.IntegratorError(f'Exponential Euler method do not support {self.var_type} variable type.')
-    if self.intg_type != constants.ITO_SDE:
-      raise errors.IntegratorError(f'Exponential Euler method only supports Ito integral, but we got {self.intg_type}.')
+      # diffusion part
+      noises = self.g(**params_in)
 
-    if sympy is None or analysis_by_sympy is None:
-      raise errors.PackageMissingError('SymPy must be installed when '
-                                       'using exponential integrators.')
+      # call integrals
+      results = []
+      params_in['dt'] = dt
+      for i, int_fun in enumerate(integrals):
+        _key = arg_names[i][0]
+        r = int_fun(params_in[_key], **{arg: params_in[arg] for arg in arg_names[i][1:] if arg in params_in})
+        if self.wiener_type == constants.SCALAR_WIENER:
+          n = noises[i]
+        else:
+          if bm.ndim(noises[i]) != bm.ndim(r) + 1:
+            raise ValueError(f'The dimension of the noise does not match when setting {constants.VECTOR_WIENER}. '
+                             f'We got the dimension of noise {bm.ndim(noises[i])}, but we expect {bm.ndim(r) + 1}.')
+          n = bm.sum(noises[i], axis=0)
+        n = n * self.rng.randn(*bm.shape(r)) * bm.sqrt(params_in['dt'])
+        results.append(r + n)
+      return results if isinstance(self.f, joint_eq.JointEq) else results[0]
 
-    # check bound method
-    if hasattr(self.derivative[constants.F], '__self__'):
-      self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
+    return integral_func
 
-    # 1. code scope
-    closure_vars = inspect.getclosurevars(self.derivative[constants.F])
-    self.code_scope.update(closure_vars.nonlocals)
-    self.code_scope.update(dict(closure_vars.globals))
-    self.code_scope['math'] = math
+  def _build_integrator(self, f):
+    if isinstance(f, joint_eq.JointEq):
+      results = []
+      for sub_eq in f.eqs:
+        results.extend(self._build_integrator(sub_eq))
+      return results
 
-    # 2. code lines
-    code_lines = self.code_lines
-    # code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
-    code_lines.append(f'  {constants.DT}_sqrt = {constants.DT} ** 0.5')
-
-    # 2.1 dg
-    # dg = g(x, t, *args)
-    all_dg = [f'{var}_dg' for var in self.variables]
-    code_lines.append(f'  {", ".join(all_dg)} = g({", ".join(self.variables + self.parameters)})')
-    code_lines.append('  ')
-
-    # 2.2 dW
-    noise_terms(code_lines, self.variables)
-
-    # 2.3 dgdW
-    # ----
-    # SCALAR_WIENER : dg * dW
-    # VECTOR_WIENER : math.sum(dg * dW, axis=-1)
-
-    if self.wiener_type == constants.SCALAR_WIENER:
-      for var in self.variables:
-        code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
     else:
-      for var in self.variables:
-        code_lines.append(f'  {var}_dgdW = math.sum({var}_dg * {var}_dW, axis=-1)')
-    code_lines.append('  ')
+      vars, pars, _ = utils.get_args(f)
 
-    # 2.4 new var
-    # ----
-    analysis = separate_variables(self.derivative[constants.F])
-    variables_for_returns = analysis['variables_for_returns']
-    expressions_for_returns = analysis['expressions_for_returns']
-    for vi, (key, vars) in enumerate(variables_for_returns.items()):
-      # separate variables
-      sd_variables = []
-      for v in vars:
-        if len(v) > 1:
-          raise ValueError('Cannot analyze multi-assignment code line.')
-        sd_variables.append(v[0])
-      expressions = expressions_for_returns[key]
-      var_name = self.variables[vi]
-      diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
-                                               variables=sd_variables,
-                                               expressions=expressions,
-                                               derivative_expr=key,
-                                               scope=self.code_scope,
-                                               func_name=self.func_name)
+      # checking
+      if len(vars) != 1:
+        raise errors.DiffEqError(constants.exp_error_msg.format(cls=self.__class__.__name__,
+                                                                vars=str(vars),
+                                                                eq=str(f)))
 
-      f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
+      # gradient function
+      value_and_grad = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
 
-      # code lines
-      code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
+      # integration function
+      def integral(*args, **kwargs):
+        assert len(args) > 0
+        dt = kwargs.pop('dt', self.dt)
+        linear, derivative = value_and_grad(*args, **kwargs)
+        phi = bm.where(linear == 0., bm.ones_like(linear), (bm.exp(dt * linear) - 1) / (dt * linear))
+        return args[0] + dt * phi * derivative
 
-      # get the linear system using sympy
-      f_res = f_expressions[-1]
-      df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
-      s_df = sympy.Symbol(f"{f_res.var_name}")
-      code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
-      var = sympy.Symbol(diff_eq.var_name, real=True)
-
-      # get df part
-      s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
-      s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
-      s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
-      if df_expr.has(var):
-        # linear
-        linear = sympy.collect(df_expr, var, evaluate=False)[var]
-        code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
-        # linear exponential
-        code_lines.append(f'  {s_linear_exp.name} = math.exp({analysis_by_sympy.sympy2str(linear)} * {constants.DT})')
-        # df part
-        df_part = (s_linear_exp - 1) / s_linear * s_df
-        code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
-
-      else:
-        # linear exponential
-        code_lines.append(f'  {s_linear_exp.name} = {constants.DT}_sqrt')
-        # df part
-        code_lines.append(f'  {s_df_part.name} = {s_df.name} * {constants.DT}')
-
-      # update expression
-      update = var + s_df_part
-
-      # The actual update step
-      code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)} + {var_name}_dgdW')
-      code_lines.append('')
-
-    # returns
-    new_vars = [f'{var}_new' for var in self.variables]
-    code_lines.append(f'  return {", ".join(new_vars)}')
-
-    # return and compile
-    self.integral = utils.compile_code(
-      code_scope={k: v for k, v in self.code_scope.items()},
-      code_lines=self.code_lines,
-      show_code=self.show_code,
-      func_name=self.func_name)
-
-    if hasattr(self.derivative[constants.F], '__self__'):
-      host = self.derivative[constants.F].__self__
-      self.integral = self.integral.__get__(host, host.__class__)
+      return [(integral, vars, pars), ]
 
 
 register_sde_integrator('exponential_euler', ExponentialEuler)
 register_sde_integrator('exp_euler', ExponentialEuler)
+register_sde_integrator('exp_euler_auto', ExponentialEuler)
+register_sde_integrator('exp_auto', ExponentialEuler)
