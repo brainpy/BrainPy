@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.math as bm
+
 bp.math.enable_x64()
 
 
@@ -57,21 +58,18 @@ def d4_system():
                          plot_ids=list(range(model.num)), show=True)
 
   # analysis
-  def step(vw):
-    v, w = bm.split(vw, 2)
-    dv = model.dV(v, 0., w, Iext)
-    dw = model.dw(w, 0., v)
-    return bm.concatenate([dv, dw])
-
-  finder = bp.analysis.SlowPointFinder(f_cell=step)
+  finder = bp.analysis.SlowPointFinder(f_cell=model,
+                                       included_vars={'V': model.V, 'w': model.w},
+                                       inputs=['Iext', Iext])
   # finder.find_fps_with_gd_method(
-  #   candidates=bm.random.normal(0., 2., (1000, model.num * 2)),
-  #   tolerance=1e-5,
+  #   candidates={'V': bm.random.normal(0., 2., (1000, model.num)),
+  #               'w': bm.random.normal(0., 2., (1000, model.num))},
+  #   tolerance=1e-7,
   #   num_batch=200,
-  #   opt_setting=dict(method=bm.optimizers.Adam, lr=bm.optimizers.ExponentialDecay(0.05, 1, 0.9999)),
+  #   optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.05, 1, 0.9999))
   # )
-
-  finder.find_fps_with_opt_solver(candidates=bm.random.normal(0., 2., (1000, model.num * 2)))
+  finder.find_fps_with_opt_solver(candidates={'V': bm.random.normal(0., 2., (1000, model.num)),
+                                              'w': bm.random.normal(0., 2., (1000, model.num))})
   finder.filter_loss(1e-7)
   finder.keep_unique()
 
@@ -79,11 +77,11 @@ def d4_system():
   print('losses:', finder.losses)
   if len(finder.fixed_points):
     jac = finder.compute_jacobians(finder.fixed_points)
-    for i in range(len(finder.fixed_points)):
+    for i in range(len(finder.selected_ids)):
       eigval, eigvec = np.linalg.eig(np.asarray(jac[i]))
       plt.figure()
       plt.scatter(np.real(eigval), np.imag(eigval))
-      plt.plot([0, 0], [-1, 1], '--')
+      plt.plot([1, 1], [-1, 1], '--')
       plt.xlabel('Real')
       plt.ylabel('Imaginary')
       plt.title(f'FP {i}')
@@ -103,17 +101,13 @@ def d8_system():
                          plot_ids=list(range(model.num)),
                          show=True)
 
-  # analysis
-  def step(vw):
-    v, w = bm.split(vw, 2)
-    dv = model.dV(v, 0., w, Iext)
-    dw = model.dw(w, 0., v)
-    return bm.concatenate([dv, dw])
-
-  finder = bp.analysis.SlowPointFinder(f_cell=step)
+  finder = bp.analysis.SlowPointFinder(f_cell=model,
+                                       included_vars={'V': model.V, 'w': model.w},
+                                       inputs=[model.Iext, Iext])
   finder.find_fps_with_gd_method(
-    candidates=bm.random.normal(0., 2., (1000, model.num * 2)),
-    tolerance=1e-5,
+    candidates={'V': bm.random.normal(0., 2., (1000, model.num)),
+                'w': bm.random.normal(0., 2., (1000, model.num))},
+    tolerance=1e-6,
     num_batch=200,
     optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.05, 1, 0.9999)),
   )
@@ -124,11 +118,11 @@ def d8_system():
   print('losses:', finder.losses)
   if len(finder.fixed_points):
     jac = finder.compute_jacobians(finder.fixed_points)
-    for i in range(len(finder.fixed_points)):
+    for i in range(finder.num_fps):
       eigval, eigvec = np.linalg.eig(np.asarray(jac[i]))
       plt.figure()
       plt.scatter(np.real(eigval), np.imag(eigval))
-      plt.plot([0, 0], [-1, 1], '--')
+      plt.plot([1, 1], [-1, 1], '--')
       plt.xlabel('Real')
       plt.ylabel('Imaginary')
       plt.title(f'FP {i}')
@@ -137,5 +131,4 @@ def d8_system():
 
 if __name__ == '__main__':
   d4_system()
-  # d8_system()
-  # analysis()
+  d8_system()

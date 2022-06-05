@@ -102,7 +102,7 @@ class DynamicalSystem(Base):
     # delay steps
     if delay_step is None:
       delay_type = 'none'
-    elif isinstance(delay_step, int):
+    elif isinstance(delay_step, (int, np.integer, jnp.integer)):
       delay_type = 'homo'
     elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
       if delay_step.size == 1 and delay_step.ndim == 0:
@@ -168,7 +168,7 @@ class DynamicalSystem(Base):
       return self.global_delay_targets[name]
 
     if name in self.global_delay_vars:
-      if isinstance(delay_step, int):
+      if isinstance(delay_step, (int, np.integer)):
         return self.global_delay_vars[name](delay_step, *indices)
       else:
         if len(indices) == 0:
@@ -176,7 +176,7 @@ class DynamicalSystem(Base):
         return self.global_delay_vars[name](delay_step, *indices)
 
     elif name in self.local_delay_vars:
-      if isinstance(delay_step, int):
+      if isinstance(delay_step, (int, np.integer)):
         return self.local_delay_vars[name](delay_step)
       else:
         if len(indices) == 0:
@@ -784,13 +784,13 @@ class Channel(DynamicalSystem):
   def var_shape(self):
     return self.size if self.keep_size else self.num
 
-  def update(self, t, dt):
+  def update(self, t, dt, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
-  def current(self):
+  def current(self, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
-  def reset(self):
+  def reset(self, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
 

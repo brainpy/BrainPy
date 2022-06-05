@@ -3,13 +3,14 @@ import warnings
 from functools import partial
 
 import numpy as np
-from jax import vmap
 from jax import numpy as jnp
+from jax import vmap
 from jax.scipy.optimize import minimize
 
 import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
+from brainpy.analysis.base import BrainPyAnalyzer
 from brainpy.base.collector import Collector
 
 pyplot = None
@@ -21,7 +22,7 @@ __all__ = [
 ]
 
 
-class LowDimAnalyzer(object):
+class LowDimAnalyzer(BrainPyAnalyzer):
   r"""Automatic Analyzer for Low-dimensional Dynamical Systems.
 
   A dynamical model is characterized by a series of dynamical
@@ -68,16 +69,18 @@ class LowDimAnalyzer(object):
     The optional setting. Maybe needed in the individual analyzer.
   """
 
-  def __init__(self,
-               model,
-               target_vars,
-               fixed_vars=None,
-               target_pars=None,
-               pars_update=None,
-               resolutions=None,
-               jit_device=None,
-               lim_scale=1.05,
-               options=None, ):
+  def __init__(
+      self,
+      model,
+      target_vars,
+      fixed_vars=None,
+      target_pars=None,
+      pars_update=None,
+      resolutions=None,
+      jit_device=None,
+      lim_scale=1.05,
+      options=None,
+  ):
     # model
     # -----
     self.model = utils.model_transform(model)
@@ -210,7 +213,7 @@ class LowDimAnalyzer(object):
     # 'x_by_y_in_fy' :
     # 'y_by_x_in_fx' :
     # 'x_by_y_in_fx' :
-    self.analyzed_results = tools.DictPlus()
+    self.analyzed_results = tools.DotDict()
 
   def show_figure(self):
     global pyplot

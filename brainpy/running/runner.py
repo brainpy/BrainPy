@@ -3,12 +3,14 @@
 import types
 from typing import Callable, Dict, Sequence, Union
 
+import numpy as np
+
+from brainpy import math as bm
 from brainpy.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools.checking import check_dict_data
-from brainpy import math as bm
-from .monitor import Monitor
+from brainpy.tools.others import DotDict
 
 __all__ = [
   'Runner',
@@ -22,13 +24,31 @@ class Runner(object):
   ----------
   target: Any
     The target model.
-  monitors: None, list of str, tuple of str, Monitor
+  monitors: None, sequence of str, dict, Monitor
     Variables to monitor.
+
+    - A list of string. Like `monitors=['a', 'b', 'c']`
+    - A list of string with index specification. Like `monitors=[('a', 1), ('b', [1,3,5]), 'c']`
+    - A dict with the explicit monitor target, like: `monitors={'a': model.spike, 'b': model.V}`
+    - A dict with the index specification, like: `monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}`
+
+  fun_monitors: dict
+    Monitoring variables by callable functions. Should be a dict.
+    The `key` should be a string for later retrieval by `runner.mon[key]`.
+    The `value` should be a callable function which receives two arguments: `t` and `dt`.
   jit: bool, dict
+    The JIT settings.
   progress_bar: bool
+    Use progress bar or not?
   dyn_vars: Optional, dict
+    The dynamically changed variables. Instance of :py:class:`~.Variable`.
   numpy_mon_after_run : bool
+    Transform the JAX arrays into numpy ndarray or not, when finishing the network running?
   """
+
+  mon: DotDict
+  jit: Dict[str, bool]
+  target: Base
 
   def __init__(
       self,
@@ -54,24 +74,54 @@ class Runner(object):
     else:
       raise ValueError(f'Unknown "jit" setting: {jit}')
 
-    # monitors
     if monitors is None:
-      self.mon = Monitor(variables=[])
-    elif isinstance(monitors, (list, tuple, dict)):
-      self.mon = Monitor(variables=monitors)
-    elif isinstance(monitors, Monitor):
-      self.mon = monitors
-      self.mon.target = self
+      monitors = dict()
+    elif isinstance(monitors, (list, tuple)):
+      # format string monitors
+      monitors = self._format_seq_monitors(monitors)
+      # get monitor targets
+      monitors = self._find_monitor_targets(monitors)
+    elif isinstance(monitors, dict):
+      _monitors = dict()
+      for key, val in monitors.items():
+        if not isinstance(key, str):
+          raise MonitorError('Expect the key of the dict "monitors" must be a string. But got '
+                             f'{type(key)}: {key}')
+        if isinstance(val, bm.Variable):
+          val = (val, None)
+        if isinstance(val, (tuple, list)):
+          if not isinstance(val[0], bm.Variable):
+            raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
+                               f'But we got {val}')
+          if len(val) == 1:
+            _monitors[key] = (val[0], None)
+          elif len(val) == 2:
+            if isinstance(val[1], (int, np.integer)):
+              idx = bm.array([val[1]])
+            else:
+              idx = None if val[1] is None else bm.asarray(val[1])
+            _monitors[key] = (val[0], idx)
+          else:
+            raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
+                               f'But we got {val}')
+        else:
+          raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
+                             f'But we got {val}')
+      monitors = _monitors
     else:
-      raise MonitorError(f'"monitors" only supports list/tuple/dict/ '
-                         f'instance of Monitor, not {type(monitors)}.')
-    self.mon.build()  # build the monitor
+      raise MonitorError(f'We only supports a format of list/tuple/dict of '
+                         f'"vars", while we got {type(monitors)}.')
+    self.monitors = monitors
 
     # extra monitors
     if fun_monitors is None:
       fun_monitors = dict()
     check_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
     self.fun_monitors = fun_monitors
+
+    # monitor for user access
+    self.mon = DotDict()
+    self.mon['var_names'] = tuple(self.monitors.keys()) + tuple(self.fun_monitors.keys())
 
     # progress bar
     assert isinstance(progress_bar, bool), 'Must be a boolean variable.'
@@ -91,81 +141,70 @@ class Runner(object):
     self.numpy_mon_after_run = numpy_mon_after_run
 
   def format_monitors(self):
-    monitors = check_and_format_monitors(host=self.target, mon=self.mon)
     return_with_idx = dict()
     return_without_idx = dict()
-    for key, target, variable, idx, interval in monitors:
-      if interval is not None:
-        raise ValueError(f'Running with "{self.__class__.__name__}" does '
-                         f'not support "interval" in the monitor.')
-      data = target
-      for k in variable.split('.'):
-        data = getattr(data, k)
-      if not isinstance(data, bm.Variable):
-        raise RunningError(f'"{key}" in {target} is not a dynamically changed Variable, '
-                           f'its value will not change, we think there is no need to '
-                           f'monitor its trajectory.')
+    for key, (variable, idx) in self.monitors.items():
       if idx is None:
-        return_without_idx[key] = data
+        return_without_idx[key] = variable
       else:
-        return_with_idx[key] = (data, bm.asarray(idx))
-
+        return_with_idx[key] = (variable, bm.asarray(idx))
     return return_without_idx, return_with_idx
+
+  def _format_seq_monitors(self, monitors):
+    if not isinstance(monitors, (tuple, list)):
+      raise TypeError(f'Must be a sequence, but we got {type(monitors)}')
+    _monitors = []
+    for mon in monitors:
+      if isinstance(mon, str):
+        _monitors.append((mon, None))
+      elif isinstance(mon, (tuple, list)):
+        if isinstance(mon[0], str):
+          if len(mon) == 1:
+            _monitors.append((mon[0], None))
+          elif len(mon) == 2:
+            if isinstance(mon[1], (int, np.integer)):
+              idx = bm.array([mon[1]])
+            else:
+              idx = None if mon[1] is None else bm.asarray(mon[1])
+            _monitors.append((mon[0], idx))
+          else:
+            raise MonitorError(f'We expect the monitor format with (name, index). But we got {mon}')
+        else:
+          raise MonitorError(f'We expect the monitor format with (name, index). But we got {mon}')
+      else:
+        raise MonitorError(f'We do not support monitor with {type(mon)}: {mon}')
+    return _monitors
+
+  def _find_monitor_targets(self, _monitors):
+    if not isinstance(_monitors, (tuple, list)):
+      raise TypeError(f'Must be a sequence, but we got {type(_monitors)}')
+    # get monitor targets
+    monitors = {}
+    name2node = {node.name: node for node in list(self.target.nodes(level=-1).unique().values())}
+    for mon in _monitors:
+      key, index = mon[0], mon[1]
+      splits = key.split('.')
+      if len(splits) == 1:
+        if not hasattr(self.target, splits[0]):
+          raise RunningError(f'{self.target} does not has variable {key}.')
+        monitors[key] = (getattr(self.target, splits[-1]), index)
+      else:
+        if not hasattr(self.target, splits[0]):
+          if splits[0] not in name2node:
+            raise MonitorError(f'Cannot find target {key} in monitor of {self.target}, please check.')
+          else:
+            master = name2node[splits[0]]
+            assert len(splits) == 2
+            monitors[key] = (getattr(master, splits[-1]), index)
+        else:
+          master = self.target
+          for s in splits[:-1]:
+            try:
+              master = getattr(master, s)
+            except KeyError:
+              raise MonitorError(f'Cannot find {key} in {master}, please check.')
+          monitors[key] = (getattr(master, splits[-1]), index)
+    return monitors
 
   def build_monitors(self, return_without_idx, return_with_idx) -> Callable:
     raise NotImplementedError
-
-
-def check_and_format_monitors(host, mon):
-  """Return a formatted monitor items:
-
-  >>> [(node, key, target, variable, idx, interval),
-  >>>  ...... ]
-
-  """
-  assert isinstance(host, Base)
-  assert isinstance(mon, Monitor)
-
-  formatted_mon_items = []
-
-  # master node:
-  #    Check whether the input target node is accessible,
-  #    and check whether the target node has the attribute
-  name2node = {node.name: node for node in list(host.nodes().unique().values())}
-  for key, idx, interval in zip(mon.item_names, mon.item_indices, mon.item_intervals):
-    # target and variable
-    splits = key.split('.')
-    if len(splits) == 1:
-      if not hasattr(host, splits[0]):
-        raise RunningError(f'{host} does not has variable {key}.')
-      target = host
-      variable = splits[-1]
-    else:
-      if not hasattr(host, splits[0]):
-        if splits[0] not in name2node:
-          raise RunningError(f'Cannot find target {key} in monitor of {host}, please check.')
-        else:
-          target = name2node[splits[0]]
-          assert len(splits) == 2
-          variable = splits[-1]
-      else:
-        target = host
-        for s in splits[:-1]:
-          try:
-            target = getattr(target, s)
-          except KeyError:
-            raise RunningError(f'Cannot find {key} in {host}, please check.')
-        variable = splits[-1]
-
-    # idx
-    if isinstance(idx, int): idx = bm.array([idx])
-
-    # interval
-    if interval is not None:
-      if not isinstance(interval, float):
-        raise RunningError(f'"interval" must be a float (denotes time), but we got {interval}')
-
-    # append
-    formatted_mon_items.append((key, target, variable, idx, interval,))
-
-  return formatted_mon_items

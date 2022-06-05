@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Dict
 import jax.numpy as jnp
 from jax import vmap
 import numpy as np
+from jax.tree_util import tree_flatten, tree_map
 
 import brainpy.math as bm
 from .function import f_without_jaxarray_return
-from .measurement import euclidean_distance
+from .measurement import euclidean_distance, euclidean_distance_jax
 
 __all__ = [
   'Segment',
@@ -85,12 +87,59 @@ def get_sign2(f, *xyz, args=()):
   return jnp.sign(f(*(XYZ + args))).reshape(shape)
 
 
-def keep_unique(candidates, tolerance=2.5e-2):
+def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
+                tolerance: float=2.5e-2):
   """Filter unique fixed points by choosing a representative within tolerance.
 
   Parameters
   ----------
-  candidates: np.ndarray
+  candidates: np.ndarray, dict
+    The fixed points with the shape of (num_point, num_dim).
+  tolerance: float
+    tolerance.
+
+  Returns
+  -------
+  fps_and_ids : tuple
+    A 2-tuple of (kept fixed points, ids of kept fixed points).
+  """
+  if isinstance(candidates, dict):
+    element = tuple(candidates.values())[0]
+    num_fps = element.shape[0]
+    dtype = element.dtype
+  else:
+    num_fps = candidates.shape[0]
+    dtype = candidates.dtype
+  keep_ids = np.arange(num_fps)
+  if tolerance <= 0.0:
+    return candidates, keep_ids
+  if num_fps <= 1:
+    return candidates, keep_ids
+  candidates = tree_map(lambda a: np.asarray(a), candidates, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+
+  # If point A and point B are within identical_tol of each other, and the
+  # A is first in the list, we keep A.
+  distances = np.asarray(euclidean_distance_jax(candidates, num_fps))
+  example_idxs = np.arange(num_fps)
+  all_drop_idxs = []
+  for fidx in range(num_fps - 1):
+    distances_f = distances[fidx, fidx + 1:]
+    drop_idxs = example_idxs[fidx + 1:][distances_f <= tolerance]
+    all_drop_idxs += list(drop_idxs)
+  keep_ids = np.setdiff1d(example_idxs, np.unique(all_drop_idxs))
+  if keep_ids.shape[0] > 0:
+    unique_fps = tree_map(lambda a: a[keep_ids], candidates)
+  else:
+    unique_fps = np.array([], dtype=dtype)
+  return unique_fps, keep_ids
+
+
+def keep_unique_jax(candidates, tolerance=2.5e-2):
+  """Filter unique fixed points by choosing a representative within tolerance.
+
+  Parameters
+  ----------
+  candidates: Tesnor
     The fixed points with the shape of (num_point, num_dim).
 
   Returns
@@ -107,14 +156,14 @@ def keep_unique(candidates, tolerance=2.5e-2):
   # If point A and point B are within identical_tol of each other, and the
   # A is first in the list, we keep A.
   nfps = candidates.shape[0]
-  distances = euclidean_distance(candidates)
+  distances = euclidean_distance_jax(candidates)
   example_idxs = np.arange(nfps)
   all_drop_idxs = []
   for fidx in range(nfps - 1):
     distances_f = distances[fidx, fidx + 1:]
     drop_idxs = example_idxs[fidx + 1:][distances_f <= tolerance]
     all_drop_idxs += list(drop_idxs)
-  keep_ids = np.setdiff1d(example_idxs, np.unique(all_drop_idxs))
+  keep_ids = np.setdiff1d(example_idxs, np.unique(np.asarray(all_drop_idxs)))
   if keep_ids.shape[0] > 0:
     unique_fps = candidates[keep_ids, :]
   else:

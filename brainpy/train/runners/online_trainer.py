@@ -2,6 +2,7 @@
 
 from typing import Dict, Sequence, Union, Callable
 
+import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
@@ -118,11 +119,11 @@ class OnlineTrainer(DSTrainer):
 
     # reset the model states
     if reset_state:
-      self.target.reset_batch_state(num_batch)
+      self.target.reset_state(num_batch)
 
     # init monitor
-    for key in self.mon.item_contents.keys():
-      self.mon.item_contents[key] = []  # reshape the monitor items
+    for key in self.mon.var_names:
+      self.mon[key] = []  # reshape the monitor items
 
     # init progress bar
     if self.progress_bar:
@@ -137,10 +138,12 @@ class OnlineTrainer(DSTrainer):
       self._pbar.close()
 
     # post-running for monitors
-    for key in self.mon.item_names:
-      self.mon.item_contents[key] = hists[key]
+    for key in hists.keys():
+      self.mon[key] = hists[key]
     if self.numpy_mon_after_run:
-      self.mon.numpy()
+      self.mon.ts = np.asarray(self.mon.ts)
+      for key in hists.keys():
+        self.mon[key] = np.asarray(self.mon[key])
 
   def _fit(
       self,
@@ -255,9 +258,9 @@ class OnlineTrainer(DSTrainer):
       res = {k: v.value for k, v in return_without_idx.items()}
       res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
       res.update({k: f(t, dt) for k, f in self.fun_monitors.items()})
-      res.update({f'{node.name}-fit_record': node.fit_record for node in self.train_nodes})
-      # for node in self.train_nodes:
-      #   node.fit_record.clear()
+      res.update({f'{node.name}-fit_record': {k: node.fit_record.pop(k)
+                                              for k in node.fit_record.keys()}
+                  for node in self.train_nodes})
       return res
 
     return func

@@ -3,16 +3,16 @@
 import copy
 
 __all__ = [
-  'DictPlus',
+  'DotDict',
 ]
 
 
-class DictPlus(dict):
+class DotDict(dict):
   """Python dictionaries with advanced dot notation access.
 
   For example:
 
-  >>> d = DictPlus({'a': 10, 'b': 20})
+  >>> d = DotDict({'a': 10, 'b': 20})
   >>> d.a
   10
   >>> d['a']
@@ -49,7 +49,7 @@ class DictPlus(dict):
       self[name] = value
 
   def __setitem__(self, name, value):
-    super(DictPlus, self).__setitem__(name, value)
+    super(DotDict, self).__setitem__(name, value)
     try:
       p = object.__getattribute__(self, '__parent')
       key = object.__getattribute__(self, '__key')

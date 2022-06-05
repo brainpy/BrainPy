@@ -35,6 +35,5 @@ class EINet(bp.dyn.Network):
 
 net = EINet(scale=1)
 runner = bp.dyn.DSRunner(net, monitors=['E.spike'])
-t = runner.run(100.)
-print(t)
+runner.run(100.)
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)

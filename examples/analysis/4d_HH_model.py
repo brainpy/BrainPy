@@ -82,14 +82,14 @@ class HH(bp.dyn.NeuGroup):
     self.input[:] = 0.
 
 
-model = HH(1)
 I = 5.
-run = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
-run(100)
-bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
+model = HH(1)
+runner = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
+runner.run(100)
+bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
 
 # analysis
-finder = bp.analysis.SlowPointFinder(lambda h: model.step(h, I))
+finder = bp.analysis.SlowPointFinder(model, inputs=(model.input, I), excluded_vars=[model.input])
 V = bm.random.normal(0., 5., (1000, model.num)) - 50.
 mhn = bm.random.random((1000, model.num * 3))
 finder.find_fps_with_opt_solver(candidates=bm.hstack([V, mhn]))
@@ -115,6 +115,6 @@ for i, fp in enumerate(finder.fixed_points):
   model.m[:] = fp[1]
   model.h[:] = fp[2]
   model.n[:] = fp[3]
-  run = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
-  run(100)
-  bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', title=f'FP {i}', show=True)
+  runner = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
+  runner.run(100)
+  bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', title=f'FP {i}', show=True)

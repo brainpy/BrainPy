@@ -86,14 +86,14 @@ def find_fixed_points():
 
   # candidates = bm.random.uniform(0, 20., (1000, cann.num))
 
-  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann, included_vars={'u': cann.u})
   # finder.find_fps_with_gd_method(
   #   candidates=candidates,
   #   tolerance=1e-6,
   #     optimizer = bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.1, , 0.999)),
   #   num_batch=200
   # )
-  finder.find_fps_with_opt_solver(candidates)
+  finder.find_fps_with_opt_solver({'u': candidates})
   finder.filter_loss(1e-5)
   finder.keep_unique()
   # finder.exclude_outliers()
@@ -126,10 +126,10 @@ def verify_fixed_points_through_simulation(num=3):
 
   for i in range(num):
     cann.u[:] = fixed_points[i]
-    runner = bp.StructRunner(cann,
+    runner = bp.dyn.DSRunner(cann,
                              monitors=['u'],
                              dyn_vars=cann.vars())
-    runner(100.)
+    runner.run(100.)
     plt.plot(runner.mon.ts, runner.mon.u.max(axis=1))
     plt.ylim(0, runner.mon.u.max() + 1)
     plt.show()
@@ -139,7 +139,8 @@ def verify_fixed_point_stability(num=3):
   fixed_points = np.load(fps_output_fn)
 
   cann = CANN1D(num=512, k=k, a=a, A=A)
-  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell,
+                                       f_type=bp.analysis.CONTINUOUS)
   J = finder.compute_jacobians(fixed_points[:num])
 
   for i in range(num):
