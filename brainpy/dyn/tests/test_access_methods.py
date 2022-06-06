@@ -27,11 +27,10 @@ class GABAa(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
     self.s = bp.math.zeros(self.size)
-    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
 
-  @staticmethod
-  @bp.odeint
-  def int_s(s, t, TT, alpha, beta):
+    self.int_s = bp.odeint(self.dev)
+
+  def dev(self, s, t, TT, alpha, beta):
     return alpha * TT * (1 - s) - beta * s
 
   def update(self, t, dt, **kwargs):
@@ -39,9 +38,7 @@ class GABAa(bp.dyn.TwoEndConn):
     self.t_last_pre_spike = bp.math.where(spike, t, self.t_last_pre_spike)
     TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
     self.s = self.int_s(self.s, t, TT, self.alpha, self.beta)
-    self.g.push(self.g_max * self.s)
-    g = self.g.pull()
-    self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
+    self.post.inputs -= bp.math.sum(self.g_max * self.s, axis=0) * (self.post.V - self.E)
 
 
 class HH(bp.dyn.NeuGroup):
@@ -68,8 +65,9 @@ class HH(bp.dyn.NeuGroup):
     self.spikes = bp.math.zeros(self.num)
     self.inputs = bp.math.zeros(self.num)
 
-  @bp.odeint
-  def integral(self, V, h, n, t, Iext):
+    self.integral = bp.odeint(self.dev)
+
+  def dev(self, V, h, n, t, Iext):
     alpha = 0.07 * bp.math.exp(-(V + 58) / 20)
     beta = 1 / (bp.math.exp(-0.1 * (V + 28)) + 1)
     dhdt = alpha * (1 - h) - beta * h
@@ -115,13 +113,6 @@ def test1():
     print('neu.vars()', list(neu.vars(method).keys()))
     print('syn.vars()', list(syn.vars(method).keys()))
     print('net.vars()', list(net.vars(method).keys()))
-    print()
-
-    print('ints:')
-    print('-----')
-    print('neu.ints()', list(neu.ints(method).keys()))
-    print('syn.ints()', list(syn.ints(method).keys()))
-    print('net.ints()', list(net.ints(method).keys()))
     print()
 
     print('nodes:')

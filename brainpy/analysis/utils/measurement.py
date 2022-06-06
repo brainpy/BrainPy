@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union
+import brainpy.math as bm
+import jax
 import jax.numpy as jnp
 import numpy as np
+from jax.tree_util import tree_flatten
 from brainpy.tools.others import numba_jit
+from functools import partial
 
 
 __all__ = [
   'find_indexes_of_limit_cycle_max',
   'euclidean_distance',
+  'euclidean_distance_jax',
 ]
 
 
@@ -31,8 +37,8 @@ def find_indexes_of_limit_cycle_max(arr, tol=0.001):
   return _f1(arr, grad, tol)
 
 
-# @tools.numba_jit
-def euclidean_distance(points: np.ndarray):
+@numba_jit
+def euclidean_distance(points: np.ndarray, num_point=None):
   """Get the distance matrix.
 
   Equivalent to:
@@ -50,13 +56,63 @@ def euclidean_distance(points: np.ndarray):
   dist_matrix: jnp.ndarray
     The distance matrix.
   """
-  num_point = points.shape[0]
-  indices = np.triu_indices(num_point)
-  dist_mat = np.zeros((num_point, num_point))
-  for idx in range(len(indices[0])):
-    i = indices[0][idx]
-    j = indices[1][idx]
-    dist_mat[i, j] = np.linalg.norm(points[i] - points[j])
+
+  if isinstance(points, dict):
+    if num_point is None:
+      raise ValueError('Please provide num_point')
+    indices = np.triu_indices(num_point)
+    dist_mat = np.zeros((num_point, num_point))
+    for idx in range(len(indices[0])):
+      i = indices[0][idx]
+      j = indices[1][idx]
+      dist_mat[i, j] = np.sqrt(np.sum([np.sum((value[i] - value[j]) ** 2) for value in points.values()]))
+  else:
+    num_point = points.shape[0]
+    indices = np.triu_indices(num_point)
+    dist_mat = np.zeros((num_point, num_point))
+    for idx in range(len(indices[0])):
+      i = indices[0][idx]
+      j = indices[1][idx]
+      dist_mat[i, j] = np.linalg.norm(points[i] - points[j])
   dist_mat = np.maximum(dist_mat, dist_mat.T)
+  return dist_mat
+
+
+@jax.jit
+@partial(jax.vmap, in_axes=[0, 0, None])
+def _ed(i, j, leaves):
+  squares = bm.asarray([((leaf[i] - leaf[j]) ** 2).sum() for leaf in leaves])
+  return bm.sqrt(bm.sum(squares))
+
+
+def euclidean_distance_jax(points: Union[jnp.ndarray, bm.ndarray], num_point=None):
+  """Get the distance matrix.
+
+  Equivalent to:
+
+  >>> from scipy.spatial.distance import squareform, pdist
+  >>> f = lambda points: squareform(pdist(points, metric="euclidean"))
+
+  Parameters
+  ----------
+  points: jnp.ndarray, bm.JaxArray
+    The points.
+  num_point: int
+
+  Returns
+  -------
+  dist_matrix: JaxArray
+    The distance matrix.
+  """
+  if isinstance(points, dict):
+    if num_point is None:
+      raise ValueError('Please provide num_point')
+  else:
+    num_point = points.shape[0]
+  indices = jnp.triu_indices(num_point)
+  dist_mat = bm.zeros((num_point, num_point))
+  leaves, _ = tree_flatten(points)
+  dist_mat[indices] = _ed(*indices, leaves)
+  dist_mat = bm.maximum(dist_mat, dist_mat.T)
   return dist_mat
 

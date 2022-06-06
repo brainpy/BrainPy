@@ -38,8 +38,7 @@ net = EINet(scale=1., method='exp_auto')
 runner = bp.dyn.DSRunner(net,
                          monitors=['E.spike'],
                          inputs=[('E.input', 20.), ('I.input', 20.)])
-t = runner.run(100.)
-print(t)
+runner.run(100.)
 
 # visualization
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)

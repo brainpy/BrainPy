@@ -28,20 +28,15 @@ class GABAa_without_Variable(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.ones(self.size) * -1e7
     self.s = bp.math.zeros(self.size)
-    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
 
-  @bp.odeint
-  def int_s(self, s, t, TT):
-    return self.alpha * TT * (1 - s) - self.beta * s
+    self.int_s = bp.odeint(lambda s, t, TT: self.alpha * TT * (1 - s) - self.beta * s)
 
   def update(self, t, dt):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
     self.t_last_pre_spike[:] = bp.math.where(spike, t, self.t_last_pre_spike)
     TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
     self.s[:] = self.int_s(self.s, t, TT)
-    self.g.push(self.g_max * self.s)
-    g = self.g.pull()
-    self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
+    self.post.inputs -= bp.math.sum(self.s, axis=0) * (self.post.V - self.E)
 
 
 class HH_without_Variable(bp.dyn.NeuGroup):
@@ -67,8 +62,9 @@ class HH_without_Variable(bp.dyn.NeuGroup):
     self.inputs = bp.math.zeros(self.num)
     self.spikes = bp.math.zeros(self.num, dtype=bp.math.bool_)
 
-  @bp.odeint
-  def integral(self, V, h, n, t, Iext):
+    self.integral = bp.odeint(self.derivative)
+
+  def derivative(self, V, h, n, t, Iext):
     alpha = 0.07 * bp.math.exp(-(V + 58) / 20)
     beta = 1 / (bp.math.exp(-0.1 * (V + 28)) + 1)
     dhdt = self.phi * (alpha * (1 - h) - beta * h)
@@ -102,11 +98,11 @@ def test_subset_integrator():
   syn.g_max = 0.1 / neu.num
   net = bp.dyn.Network(neu, syn)
 
-  ints = net.ints()
+  ints = net.nodes(level=-1).subset(bp.integrators.Integrator)
   print()
   print(ints)
 
-  ode_ints = ints.subset(bp.integrators.ODEIntegrator)
+  ode_ints = ints.subset(bp.integrators.ODEIntegrator).unique()
   print(ode_ints)
   assert len(ode_ints) == 2
 
@@ -143,8 +139,9 @@ class HH_with_Variable(bp.dyn.NeuGroup):
     self.inputs = bp.math.Variable(bp.math.zeros(self.num))
     self.spikes = bp.math.Variable(bp.math.zeros(self.num, dtype=bp.math.bool_))
 
-  @bp.odeint
-  def integral(self, V, h, n, t, Iext):
+    self.integral = bp.odeint(self.derivative)
+
+  def derivative(self, V, h, n, t, Iext):
     alpha = 0.07 * bp.math.exp(-(V + 58) / 20)
     beta = 1 / (bp.math.exp(-0.1 * (V + 28)) + 1)
     dhdt = self.phi * (alpha * (1 - h) - beta * h)
@@ -187,22 +184,11 @@ def test_neu_nodes_1():
   neu = HH_with_Variable(10)
   print()
   print(neu.nodes().keys())
-  assert len(neu.nodes()) == 1
+  assert len(neu.nodes(level=-1, include_self=False)) == 1
 
   print()
   print(neu.nodes(method='relative').keys())
-  assert len(neu.nodes(method='relative')) == 1
-
-
-def test_neu_ints_1():
-  neu = HH_with_Variable(10)
-  print()
-  print(neu.ints().keys())
-  assert len(neu.ints()) == 1
-
-  print()
-  print(neu.ints(method='relative').keys())
-  assert len(neu.ints(method='relative')) == 1
+  assert len(neu.nodes(method='relative', include_self=False)) == 1
 
 
 class GABAa_with_Variable(bp.dyn.TwoEndConn):
@@ -227,20 +213,14 @@ class GABAa_with_Variable(bp.dyn.TwoEndConn):
     # variables
     self.t_last_pre_spike = bp.math.Variable(bp.math.ones(self.size) * -1e7)
     self.s = bp.math.Variable(bp.math.zeros(self.size))
-    self.g = bp.dyn.ConstantDelay(size=self.size, delay=delay)
-
-  @bp.odeint
-  def int_s(self, s, t, TT):
-    return self.alpha * TT * (1 - s) - self.beta * s
+    self.int_s = bp.odeint(lambda s, t, TT: self.alpha * TT * (1 - s) - self.beta * s)
 
   def update(self, t, _i):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
     self.t_last_pre_spike[:] = bp.math.where(spike, t, self.t_last_pre_spike)
     TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
     self.s[:] = self.int_s(self.s, t, TT)
-    self.g.push(self.g_max * self.s)
-    g = self.g.pull()
-    self.post.inputs -= bp.math.sum(g, axis=0) * (self.post.V - self.E)
+    self.post.inputs -= bp.math.sum(self.g_max * self.s, axis=0) * (self.post.V - self.E)
 
 
 def test_net_1():
@@ -251,29 +231,21 @@ def test_net_1():
   # variables
   print()
   pprint(list(net.vars().keys()))
-  assert len(net.vars()) == 3
+  assert len(net.vars()) == 0
 
   print()
   pprint(list(net.vars(method='relative').keys()))
-  assert len(net.vars(method='relative')) == 3
+  assert len(net.vars(method='relative')) == 0
 
   # nodes
   print()
-  pprint(list(net.nodes().keys()))
-  assert len(net.nodes()) == 4
+  pprint(list(net.nodes().unique().keys()))
+  assert len(net.nodes()) == 7
 
   print()
-  pprint(list(net.nodes(method='relative').keys()))
-  assert len(net.nodes(method='relative')) == 5
+  pprint(list(net.nodes(method='relative').unique().keys()))
+  assert len(net.nodes(method='relative')) == 10
 
-  # ints
-  print()
-  pprint(list(net.ints().keys()))
-  assert len(net.ints()) == 2
-
-  print()
-  pprint(list(net.ints(method='relative').keys()))
-  assert len(net.ints(method='relative')) == 3
 
 
 def test_net_vars_2():
@@ -293,17 +265,9 @@ def test_net_vars_2():
   # nodes
   print()
   pprint(list(net.nodes().keys()))
-  assert len(net.nodes()) == 4
+  assert len(net.nodes()) == 7
 
   print()
   pprint(list(net.nodes(method='relative').keys()))
-  assert len(net.nodes(method='relative')) == 5
+  assert len(net.nodes(method='relative')) == 10
 
-  # ints
-  print()
-  pprint(list(net.ints().keys()))
-  assert len(net.ints()) == 2
-
-  print()
-  pprint(list(net.ints(method='relative').keys()))
-  assert len(net.ints(method='relative')) == 3

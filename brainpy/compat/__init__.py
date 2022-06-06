@@ -3,7 +3,7 @@
 
 __all__ = [
   # modules
-  'brainobjects', 'layers', 'models',
+  'brainobjects', 'layers', 'nn',
 
   # brainobjects
   'DynamicalSystem', 'Container', 'Network',
@@ -13,15 +13,11 @@ __all__ = [
   'set_default_odeint', 'set_default_sdeint',
   'get_default_odeint', 'get_default_sdeint',
 
-  # monitor
-  'Monitor',
-
   # runners
   'IntegratorRunner', 'DSRunner', 'StructRunner', 'ReportRunner'
 ]
 
-from . import brainobjects, layers, models
+from . import brainobjects, layers, nn
 from .brainobjects import *
 from .integrators import *
-from .monitor import *
 from .runners import *

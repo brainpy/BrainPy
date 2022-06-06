@@ -164,7 +164,7 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
   if inits is None:
     inits = bm.ones(1) * 1.2
   elif isinstance(inits, (float, int)):
-    inits = bm.asarray([inits], dtype=bm.float_)
+    inits = bm.asarray([inits], dtype=bm.get_dfloat())
   else:
     assert isinstance(inits, (bm.ndarray, jnp.ndarray))
 

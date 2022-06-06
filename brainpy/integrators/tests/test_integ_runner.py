@@ -57,7 +57,8 @@ class TestIntegratorRunnerForODEs(TestCase):
     fhn = bp.odeint(bp.JointEq([dV, dw]), method='rk4', dt=0.1)
 
     Iext, duration = bp.inputs.section_input([0., 1., 0.5], [200, 500, 200], return_length=True)
-    runner = bp.IntegratorRunner(fhn, monitors=['V', 'w'], inits=[1., 1.],
+    runner = bp.IntegratorRunner(fhn,
+                                 monitors=['V', 'w'], inits=[1., 1.],
                                  dyn_args=dict(Iext=Iext))
     runner.run(duration)
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V')

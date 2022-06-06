@@ -27,7 +27,7 @@ __all__ = [
   'PDE_INT',
 
   'unique_name',
-  'exp_error_msg',
+  'multi_vars_msg',
 ]
 
 
@@ -148,7 +148,7 @@ def unique_name(type):
 # -------
 
 
-exp_error_msg = """
+multi_vars_msg = """
 {cls} only supports numerical integration for one variable once, while we got {vars} in {eq}. 
 Please split your derivative function into multiple functions in which each function has one variable. 
 For example, 

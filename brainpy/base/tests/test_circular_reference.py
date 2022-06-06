@@ -74,17 +74,3 @@ def test_nodes():
 
   assert len(abs_nodes) == 3
   assert len(rel_nodes) == 5
-
-
-def test_ints():
-  A = HH(1, name='X2')
-  B = HH(1, name='Y2')
-  A.pre = B
-  B.pre = A
-
-  net = bp.dyn.Network(A, B)
-  abs_ints = net.ints(method='absolute')
-  rel_ints = net.ints(method='relative')
-  print()
-  pprint(abs_ints.keys())
-  pprint(rel_ints.keys())

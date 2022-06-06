@@ -7,6 +7,7 @@ brainpy/base/tests/io_test_tmp*
 
 development
 
+brainpy/dyn/tests/data
 examples/simulation/data
 examples/analysis/data
 extensions/.idea
@@ -211,3 +212,4 @@ dmypy.json
 cython_debug/
 
 /docs/apis/simulation/generated/
+!/brainpy/dyn/tests/data/

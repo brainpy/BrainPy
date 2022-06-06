@@ -127,7 +127,7 @@ def check_inits(inits, variables):
       raise ValueError(f'"{key}" is not defined in variables: {variables}')
     val = inits[key]
     if isinstance(val, (float, int)):
-      inits[key] = bm.asarray([val], dtype=bm.float_)
+      inits[key] = bm.asarray([val], dtype=bm.get_dfloat())
   return inits
 
 
