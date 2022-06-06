@@ -22,10 +22,8 @@ class Base(object):
   The subclass of Base includes:
 
   - ``DynamicalSystem`` in *brainpy.dyn.base.py*
-  - ``Module`` in *brainpy.dyn.base_module.py*
   - ``Integrator`` in *brainpy.integrators.base.py*
   - ``Function`` in *brainpy.base.function.py*
-  - ``AutoGrad`` in *brainpy.math.autograd.py*
   - ``Optimizer`` in *brainpy.optimizers.py*
   - ``Scheduler`` in *brainpy.optimizers.py*
 
@@ -54,13 +52,48 @@ class Base(object):
     self._name = self.unique_name(name=name)
     naming.check_name_uniqueness(name=self._name, obj=self)
 
-  def register_implicit_vars(self, variables):
-    assert isinstance(variables, dict), f'Must be a dict, but we got {type(variables)}'
-    self.implicit_vars.update(variables)
+  def register_implicit_vars(self, *variables, **named_variables):
+    from brainpy.math import Variable
+    for variable in variables:
+      if isinstance(variable, Variable):
+        self.implicit_vars[f'var{id(variable)}'] = variable
+      elif isinstance(variable, (tuple, list)):
+        for v in variable:
+          if not isinstance(v, Variable):
+            raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
+          self.implicit_vars[f'var{id(variable)}'] = v
+      elif isinstance(variable, dict):
+        for k, v in variable.items():
+          if not isinstance(v, Variable):
+            raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
+          self.implicit_vars[k] = v
+      else:
+        raise ValueError(f'Unknown type: {type(variable)}')
+    for key, variable in named_variables.items():
+      if not isinstance(variable, Variable):
+        raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(variable)}')
+      self.implicit_vars[key] = variable
 
-  def register_implicit_nodes(self, nodes):
-    assert isinstance(nodes, dict), f'Must be a dict, but we got {type(nodes)}'
-    self.implicit_nodes.update(nodes)
+  def register_implicit_nodes(self, *nodes, **named_nodes):
+    for node in nodes:
+      if isinstance(node, Base):
+        self.implicit_nodes[node.name] = node
+      elif isinstance(node, (tuple, list)):
+        for n in node:
+          if not isinstance(n, Base):
+            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          self.implicit_nodes[n.name] = n
+      elif isinstance(node, dict):
+        for k, n in node.items():
+          if not isinstance(n, Base):
+            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          self.implicit_nodes[k] = n
+      else:
+        raise ValueError(f'Unknown type: {type(node)}')
+    for key, node in named_nodes.items():
+      if not isinstance(node, Base):
+        raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(node)}')
+      self.implicit_nodes[key] = node
 
   def vars(self, method='absolute', level=-1, include_self=True):
     """Collect all variables in this node and the children nodes.

@@ -46,6 +46,7 @@ class Integrator(AbstractIntegrator):
     self._parameters = list(parameters)  # parameters
     self._arguments = list(arguments) + [f'{DT}={self._dt}', ]  # arguments
     self._integral = None  # integral function
+    self.arg_names = self._variables + self._parameters + [DT]
 
     # state delays
     self._state_delays = dict()
@@ -74,10 +75,6 @@ class Integrator(AbstractIntegrator):
   @variables.setter
   def variables(self, values):
     raise ValueError('Cannot set "variables" by users.')
-
-  @property
-  def arg_names(self):
-    return self._variables + self._parameters + [DT]
 
   @property
   def parameters(self):

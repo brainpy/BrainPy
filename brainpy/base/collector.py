@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-import jax
-import jax.numpy as jnp
-from contextlib import contextmanager
+from typing import Dict, Sequence, Union
 
 math = None
 
@@ -55,12 +53,12 @@ class Collector(dict):
     gather.update(other)
     return gather
 
-  def __sub__(self, other):
+  def __sub__(self, other: Union[Dict, Sequence]):
     """Remove other item in the collector.
 
     Parameters
     ----------
-    other: dict
+    other: dict, sequence
       The items to remove.
 
     Returns
@@ -70,14 +68,26 @@ class Collector(dict):
     """
     if not isinstance(other, dict):
       raise ValueError(f'Only support dict, but we got {type(other)}.')
-    gather = type(self)()
-    for key, val in self.items():
-      if key in other:
-        if id(val) != id(other[key]):
-          raise ValueError(f'Cannot remove {key}, because we got two different values: '
-                           f'{val} != {other[key]}')
-      else:
-        gather[key] = val
+    gather = type(self)(self)
+    if isinstance(other, dict):
+      for key, val in other.items():
+        if key in gather:
+          if id(val) != id(gather[key]):
+            raise ValueError(f'Cannot remove {key}, because we got two different values: '
+                             f'{val} != {gather[key]}')
+          gather.pop(key)
+        else:
+          raise ValueError(f'Cannot remove {key}, because we do not find it '
+                           f'in {self.keys()}.')
+    elif isinstance(other, (list, tuple)):
+      for key in other:
+        if key in gather:
+          gather.pop(key)
+        else:
+          raise ValueError(f'Cannot remove {key}, because we do not find it '
+                           f'in {self.keys()}.')
+    else:
+      raise KeyError(f'Unknown type of "other". Only support dict/tuple/list, but we got {type(other)}')
     return gather
 
   def subset(self, var_type):

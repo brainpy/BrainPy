@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+
+import numpy as np
 try:
   from numba import njit
 except (ImportError, ModuleNotFoundError):
@@ -7,8 +9,13 @@ except (ImportError, ModuleNotFoundError):
 
 
 __all__ = [
-  'numba_jit'
+  'numba_jit',
+  'numba_seed',
+  'SUPPORT_NUMBA',
 ]
+
+
+SUPPORT_NUMBA = njit is not None
 
 
 def numba_jit(f=None, **kwargs):
@@ -19,4 +26,15 @@ def numba_jit(f=None, **kwargs):
       return f
     else:
       return njit(f)
+
+
+@numba_jit
+def _seed(seed):
+  np.random.seed(seed)
+
+
+def numba_seed(seed):
+  if njit is not None and seed is not None:
+     _seed(seed)
+
 

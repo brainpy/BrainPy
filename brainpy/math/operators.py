@@ -262,7 +262,7 @@ def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=setting.float_)
+  out = jnp.zeros(post_num)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -300,7 +300,7 @@ def pre2post_prod(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=setting.float_)
+  out = jnp.zeros(post_num)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -338,7 +338,7 @@ def pre2post_min(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=setting.float_)
+  out = jnp.zeros(post_num)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -376,7 +376,7 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=setting.float_)
+  out = jnp.zeros(post_num)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) != 0:
@@ -405,7 +405,7 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
   post_val: jax.numpy.ndarray, JaxArray
     The value with the size of post-synaptic neurons.
   """
-  out = jnp.zeros(post_num, dtype=setting.float_)
+  out = jnp.zeros(post_num)
   pre_values = as_device_array(pre_values)
   post_ids = as_device_array(post_ids)
   if jnp.ndim(pre_values) == 0:

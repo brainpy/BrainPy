@@ -43,7 +43,7 @@ class FDEIntegrator(Integrator):
       self,
       f: Callable,
       alpha,
-      num_step: int,
+      num_memory: int,
       dt: float = None,
       name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
@@ -55,8 +55,8 @@ class FDEIntegrator(Integrator):
     arguments = parses[2]  # function arguments
 
     # memory length
-    check_integer(num_step, 'num_step', allow_none=False, min_bound=1)
-    self.num_step = num_step
+    check_integer(num_memory, 'num_step', allow_none=False, min_bound=1)
+    self.num_step = num_memory
 
     # super initialization
     super(FDEIntegrator, self).__init__(name=name,

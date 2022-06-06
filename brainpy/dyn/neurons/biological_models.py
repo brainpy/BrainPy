@@ -4,9 +4,11 @@ from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
+from brainpy.dyn.utils import init_noise
 from brainpy.initialize import OneInit, Uniform, Initializer, init_param
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
+from brainpy.integrators.sde import sdeint
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Tensor
 
@@ -192,6 +194,7 @@ class HH(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       ENa: Union[float, Tensor, Initializer, Callable] = 50.,
       gNa: Union[float, Tensor, Initializer, Callable] = 120.,
       EK: Union[float, Tensor, Initializer, Callable] = -77.,
@@ -204,22 +207,23 @@ class HH(NeuGroup):
       m_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.5),
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(HH, self).__init__(size=size, name=name)
+    super(HH, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.ENa = init_param(ENa, self.num, allow_none=False)
-    self.EK = init_param(EK, self.num, allow_none=False)
-    self.EL = init_param(EL, self.num, allow_none=False)
-    self.gNa = init_param(gNa, self.num, allow_none=False)
-    self.gK = init_param(gK, self.num, allow_none=False)
-    self.gL = init_param(gL, self.num, allow_none=False)
-    self.C = init_param(C, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.ENa = init_param(ENa, self.var_shape, allow_none=False)
+    self.EK = init_param(EK, self.var_shape, allow_none=False)
+    self.EL = init_param(EL, self.var_shape, allow_none=False)
+    self.gNa = init_param(gNa, self.var_shape, allow_none=False)
+    self.gK = init_param(gK, self.var_shape, allow_none=False)
+    self.gL = init_param(gL, self.var_shape, allow_none=False)
+    self.C = init_param(C, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=4)
 
     # initializers
     check_initializer(m_initializer, 'm_initializer', allow_none=False)
@@ -232,21 +236,24 @@ class HH(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.m = bm.Variable(init_param(self._m_initializer, (self.num,)))
-    self.h = bm.Variable(init_param(self._h_initializer, (self.num,)))
-    self.n = bm.Variable(init_param(self._n_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(self._V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.m = bm.Variable(init_param(self._m_initializer, self.var_shape))
+    self.h = bm.Variable(init_param(self._h_initializer, self.var_shape))
+    self.n = bm.Variable(init_param(self._n_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(self._V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.m.value = init_param(self._m_initializer, (self.num,))
-    self.h.value = init_param(self._h_initializer, (self.num,))
-    self.n.value = init_param(self._n_initializer, (self.num,))
-    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.m.value = init_param(self._m_initializer, self.var_shape)
+    self.h.value = init_param(self._h_initializer, self.var_shape)
+    self.n.value = init_param(self._n_initializer, self.var_shape)
+    self.V.value = init_param(self._V_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
 
@@ -287,7 +294,6 @@ class HH(NeuGroup):
     self.h.value = h
     self.n.value = n
     self.input[:] = 0.
-
 
 
 class MorrisLecar(NeuGroup):
@@ -370,6 +376,7 @@ class MorrisLecar(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       V_Ca: Union[float, Tensor, Initializer, Callable] = 130.,
       g_Ca: Union[float, Tensor, Initializer, Callable] = 4.4,
       V_K: Union[float, Tensor, Initializer, Callable] = -84.,
@@ -385,27 +392,28 @@ class MorrisLecar(NeuGroup):
       V_th: Union[float, Tensor, Initializer, Callable] = 10.,
       W_initializer: Union[Callable, Initializer, Tensor] = OneInit(0.02),
       V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(MorrisLecar, self).__init__(size=size, name=name)
+    super(MorrisLecar, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # params
-    self.V_Ca = init_param(V_Ca, self.num, allow_none=False)
-    self.g_Ca = init_param(g_Ca, self.num, allow_none=False)
-    self.V_K = init_param(V_K, self.num, allow_none=False)
-    self.g_K = init_param(g_K, self.num, allow_none=False)
-    self.V_leak = init_param(V_leak, self.num, allow_none=False)
-    self.g_leak = init_param(g_leak, self.num, allow_none=False)
-    self.C = init_param(C, self.num, allow_none=False)
-    self.V1 = init_param(V1, self.num, allow_none=False)
-    self.V2 = init_param(V2, self.num, allow_none=False)
-    self.V3 = init_param(V3, self.num, allow_none=False)
-    self.V4 = init_param(V4, self.num, allow_none=False)
-    self.phi = init_param(phi, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.V_Ca = init_param(V_Ca, self.var_shape, allow_none=False)
+    self.g_Ca = init_param(g_Ca, self.var_shape, allow_none=False)
+    self.V_K = init_param(V_K, self.var_shape, allow_none=False)
+    self.g_K = init_param(g_K, self.var_shape, allow_none=False)
+    self.V_leak = init_param(V_leak, self.var_shape, allow_none=False)
+    self.g_leak = init_param(g_leak, self.var_shape, allow_none=False)
+    self.C = init_param(C, self.var_shape, allow_none=False)
+    self.V1 = init_param(V1, self.var_shape, allow_none=False)
+    self.V2 = init_param(V2, self.var_shape, allow_none=False)
+    self.V3 = init_param(V3, self.var_shape, allow_none=False)
+    self.V4 = init_param(V4, self.var_shape, allow_none=False)
+    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=2)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -414,19 +422,22 @@ class MorrisLecar(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.W = bm.Variable(init_param(W_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.W = bm.Variable(init_param(W_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.W.value = init_param(self._W_initializer, (self.num,))
-    self.V.value = init_param(self._V_initializer, (self.num,))
-    self.input.value = bm.zeros(self.num)
-    self.spike.value = bm.zeros(self.num, dtype=bool)
+    self.W.value = init_param(self._W_initializer, self.var_shape)
+    self.V.value = init_param(self._V_initializer, self.var_shape)
+    self.input.value = bm.zeros(self.var_shape)
+    self.spike.value = bm.zeros(self.var_shape, dtype=bool)
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
@@ -606,6 +617,7 @@ class PinskyRinzelModel(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       # maximum conductance
       gNa: Union[float, Tensor, Initializer, Callable] = 30.,
       gK: Union[float, Tensor, Initializer, Callable] = 15.,
@@ -629,33 +641,34 @@ class PinskyRinzelModel(NeuGroup):
       Vd_initializer: Union[Initializer, Callable, Tensor] = OneInit(-64.5),
       Ca_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.2),
       # others
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      keep_size: bool = False,
       name: str = None,
   ):
     # initialization
-    super(PinskyRinzelModel, self).__init__(size=size, name=name)
+    super(PinskyRinzelModel, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # conductance parameters
-    self.gAHP = init_param(gAHP, self.num, allow_none=False)
-    self.gCa = init_param(gCa, self.num, allow_none=False)
-    self.gNa = init_param(gNa, self.num, allow_none=False)
-    self.gK = init_param(gK, self.num, allow_none=False)
-    self.gL = init_param(gL, self.num, allow_none=False)
-    self.gC = init_param(gC, self.num, allow_none=False)
+    self.gAHP = init_param(gAHP, self.var_shape, allow_none=False)
+    self.gCa = init_param(gCa, self.var_shape, allow_none=False)
+    self.gNa = init_param(gNa, self.var_shape, allow_none=False)
+    self.gK = init_param(gK, self.var_shape, allow_none=False)
+    self.gL = init_param(gL, self.var_shape, allow_none=False)
+    self.gC = init_param(gC, self.var_shape, allow_none=False)
 
     # reversal potential parameters
-    self.ENa = init_param(ENa, self.num, allow_none=False)
-    self.ECa = init_param(ECa, self.num, allow_none=False)
-    self.EK = init_param(EK, self.num, allow_none=False)
-    self.EL = init_param(EL, self.num, allow_none=False)
+    self.ENa = init_param(ENa, self.var_shape, allow_none=False)
+    self.ECa = init_param(ECa, self.var_shape, allow_none=False)
+    self.EK = init_param(EK, self.var_shape, allow_none=False)
+    self.EL = init_param(EL, self.var_shape, allow_none=False)
 
     # other neuronal parameters
-    self.V_th = init_param(V_th, self.num, allow_none=False)
-    self.Cm = init_param(Cm, self.num, allow_none=False)
-    self.gc = init_param(gc, self.num, allow_none=False)
-    self.p = init_param(p, self.num, allow_none=False)
-    self.A = init_param(A, self.num, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.Cm = init_param(Cm, self.var_shape, allow_none=False)
+    self.gc = init_param(gc, self.var_shape, allow_none=False)
+    self.p = init_param(p, self.var_shape, allow_none=False)
+    self.A = init_param(A, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=8)
 
     # initializers
     check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
@@ -666,25 +679,28 @@ class PinskyRinzelModel(NeuGroup):
     self._Ca_initializer = Ca_initializer
 
     # variables
-    self.Vs = bm.Variable(init_param(self._Vs_initializer, (self.num,)))
-    self.Vd = bm.Variable(init_param(self._Vd_initializer, (self.num,)))
-    self.Ca = bm.Variable(init_param(self._Ca_initializer, (self.num,)))
+    self.Vs = bm.Variable(init_param(self._Vs_initializer, self.var_shape))
+    self.Vd = bm.Variable(init_param(self._Vd_initializer, self.var_shape))
+    self.Ca = bm.Variable(init_param(self._Ca_initializer, self.var_shape))
     self.h = bm.Variable(self.inf_h(self.Vs))
     self.n = bm.Variable(self.inf_n(self.Vs))
     self.s = bm.Variable(self.inf_s(self.Vd))
     self.c = bm.Variable(self.inf_c(self.Vd))
     self.q = bm.Variable(self.inf_q(self.Ca))
-    self.Id = bm.Variable(bm.zeros((self.num,)))  # input to soma
-    self.Is = bm.Variable(bm.zeros((self.num,)))  # input to dendrite
-    # self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.Id = bm.Variable(bm.zeros(self.var_shape))  # input to soma
+    self.Is = bm.Variable(bm.zeros(self.var_shape))  # input to dendrite
+    # self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.Vd.value = init_param(self._Vd_initializer, (self.num,))
-    self.Vs.value = init_param(self._Vs_initializer, (self.num,))
-    self.Ca.value = init_param(self._Ca_initializer, (self.num,))
+    self.Vd.value = init_param(self._Vd_initializer, self.var_shape)
+    self.Vs.value = init_param(self._Vs_initializer, self.var_shape)
+    self.Ca.value = init_param(self._Ca_initializer, self.var_shape)
     self.h.value = self.inf_h(self.Vs)
     self.n.value = self.inf_n(self.Vs)
     self.s.value = self.inf_s(self.Vd)
@@ -900,6 +916,7 @@ class WangBuzsakiModel(NeuGroup):
   def __init__(
       self,
       size: Shape,
+      keep_size: bool = False,
       ENa: Union[float, Tensor, Initializer, Callable] = 55.,
       gNa: Union[float, Tensor, Initializer, Callable] = 35.,
       EK: Union[float, Tensor, Initializer, Callable] = -90.,
@@ -912,23 +929,24 @@ class WangBuzsakiModel(NeuGroup):
       V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-65.),
       h_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.6),
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
+      noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      keep_size: bool = False,
       name: str = None
   ):
     # initialization
-    super(WangBuzsakiModel, self).__init__(size=size, name=name)
+    super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.ENa = init_param(ENa, self.num, allow_none=False)
-    self.EK = init_param(EK, self.num, allow_none=False)
-    self.EL = init_param(EL, self.num, allow_none=False)
-    self.gNa = init_param(gNa, self.num, allow_none=False)
-    self.gK = init_param(gK, self.num, allow_none=False)
-    self.gL = init_param(gL, self.num, allow_none=False)
-    self.C = init_param(C, self.num, allow_none=False)
-    self.phi = init_param(phi, self.num, allow_none=False)
-    self.V_th = init_param(V_th, self.num, allow_none=False)
+    self.ENa = init_param(ENa, self.var_shape, allow_none=False)
+    self.EK = init_param(EK, self.var_shape, allow_none=False)
+    self.EL = init_param(EL, self.var_shape, allow_none=False)
+    self.gNa = init_param(gNa, self.var_shape, allow_none=False)
+    self.gK = init_param(gK, self.var_shape, allow_none=False)
+    self.gL = init_param(gL, self.var_shape, allow_none=False)
+    self.C = init_param(C, self.var_shape, allow_none=False)
+    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.noise = init_noise(noise, self.var_shape, num_vars=3)
 
     # initializers
     check_initializer(h_initializer, 'h_initializer', allow_none=False)
@@ -939,19 +957,22 @@ class WangBuzsakiModel(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.h = bm.Variable(init_param(self._h_initializer, (self.num,)))
-    self.n = bm.Variable(init_param(self._n_initializer, (self.num,)))
-    self.V = bm.Variable(init_param(self._V_initializer, (self.num,)))
-    self.input = bm.Variable(bm.zeros(self.num))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.h = bm.Variable(init_param(self._h_initializer, self.var_shape))
+    self.n = bm.Variable(init_param(self._n_initializer, self.var_shape))
+    self.V = bm.Variable(init_param(self._V_initializer, self.var_shape))
+    self.input = bm.Variable(bm.zeros(self.var_shape))
+    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset(self):
-    self.h.value = init_param(self._h_initializer, (self.num,))
-    self.n.value = init_param(self._n_initializer, (self.num,))
-    self.V.value = init_param(self._V_initializer, (self.num,))
+    self.h.value = init_param(self._h_initializer, self.var_shape)
+    self.n.value = init_param(self._n_initializer, self.var_shape)
+    self.V.value = init_param(self._V_initializer, self.var_shape)
     self.input[:] = 0
     self.spike[:] = False
 
@@ -990,5 +1011,3 @@ class WangBuzsakiModel(NeuGroup):
     self.h.value = h
     self.n.value = n
     self.input[:] = 0.
-
-

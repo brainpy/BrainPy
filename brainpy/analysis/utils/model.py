@@ -40,7 +40,7 @@ def model_transform(model):
       if not isinstance(intg, ODEIntegrator):
         raise errors.AnalyzerError(f'Must be the instance of {ODEIntegrator}, but got {intg}')
   elif isinstance(model, DynamicalSystem):
-    model = tuple(model.ints().subset(ODEIntegrator).unique().values())
+    model = tuple(model.nodes(level=-1).subset(ODEIntegrator).unique().values())
   else:
     raise errors.UnsupportedError(f'Dynamics analysis by symbolic approach only supports '
                                   f'list/tuple/dict of {ODEIntegrator} or {DynamicalSystem}, '

@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from functools import partial
 
 import numpy as np
-from jax import vmap
 from jax import numpy as jnp
+from jax import vmap
 from jax.scipy.optimize import minimize
 
 import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
+from brainpy.analysis.base import BrainPyAnalyzer
 from brainpy.base.collector import Collector
 
 pyplot = None
@@ -21,7 +22,7 @@ __all__ = [
 ]
 
 
-class LowDimAnalyzer(object):
+class LowDimAnalyzer(BrainPyAnalyzer):
   r"""Automatic Analyzer for Low-dimensional Dynamical Systems.
 
   A dynamical model is characterized by a series of dynamical
@@ -68,16 +69,18 @@ class LowDimAnalyzer(object):
     The optional setting. Maybe needed in the individual analyzer.
   """
 
-  def __init__(self,
-               model,
-               target_vars,
-               fixed_vars=None,
-               target_pars=None,
-               pars_update=None,
-               resolutions=None,
-               jit_device=None,
-               lim_scale=1.05,
-               options=None, ):
+  def __init__(
+      self,
+      model,
+      target_vars,
+      fixed_vars=None,
+      target_pars=None,
+      pars_update=None,
+      resolutions=None,
+      jit_device=None,
+      lim_scale=1.05,
+      options=None,
+  ):
     # model
     # -----
     self.model = utils.model_transform(model)
@@ -152,6 +155,10 @@ class LowDimAnalyzer(object):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
+      warnings.warn('The `resolutions` is specified to all parameters and variables. '
+                    'Analysis computation may occupy too much memory if `resolutions` is small. '
+                    'Please specify `resolutions` by dict, such as resolutions={"V": 0.1}.',
+                    category=UserWarning)
       for key, lim in self.target_vars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():
@@ -163,7 +170,7 @@ class LowDimAnalyzer(object):
         if key in self.target_par_names:
           continue
         raise errors.AnalyzerError(f'The resolution setting target "{key}" is not found in '
-                                   f'the target variables {self.target_var_names} and '
+                                   f'the target variables {self.target_var_names} or '
                                    f'the target parameters {self.target_par_names}.')
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
@@ -206,7 +213,7 @@ class LowDimAnalyzer(object):
     # 'x_by_y_in_fy' :
     # 'y_by_x_in_fx' :
     # 'x_by_y_in_fx' :
-    self.analyzed_results = tools.DictPlus()
+    self.analyzed_results = tools.DotDict()
 
   def show_figure(self):
     global pyplot

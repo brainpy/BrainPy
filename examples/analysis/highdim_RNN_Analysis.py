@@ -260,7 +260,7 @@ fp_candidates = bm.vstack([activity_dict[i] for i in range(num_trial)])
 fp_candidates.shape
 
 # %%
-finder = bp.analysis.SlowPointFinder(f_cell=f_cell, f_type='discrete')
+finder = bp.analysis.SlowPointFinder(f_cell=f_cell, f_type=bp.analysis.DISCRETE)
 finder.find_fps_with_gd_method(
   candidates=fp_candidates,
   tolerance=1e-5, num_batch=200,

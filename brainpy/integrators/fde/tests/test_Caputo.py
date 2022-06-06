@@ -14,7 +14,7 @@ class TestCaputoL1(unittest.TestCase):
     alpha = 0.9
     intg = bp.fde.CaputoL1Schema(lambda a, t: a,
                                  alpha=alpha,
-                                 num_step=10,
+                                 num_memory=10,
                                  inits=[1., ])
     for N in [2, 3, 4, 5, 6, 7, 8]:
       diff = np.random.rand(N - 1, 1)
