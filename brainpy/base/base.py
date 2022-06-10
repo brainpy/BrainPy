@@ -150,6 +150,13 @@ class Base(object):
     if _paths is None:
       _paths = set()
     gather = Collector()
+    if include_self:
+      if method == 'absolute':
+        gather[self.name] = self
+      elif method == 'relative':
+        gather[''] = self
+      else:
+        raise ValueError(f'No support for the method of "{method}".')
     if (level > -1) and (_lid >= level):
       return gather
     if method == 'absolute':
@@ -168,13 +175,14 @@ class Base(object):
           gather[node.name] = node
           nodes.append(node)
       for v in nodes:
-        gather.update(v._find_nodes(method=method, level=level, _lid=_lid + 1, _paths=_paths,
+        gather.update(v._find_nodes(method=method,
+                                    level=level,
+                                    _lid=_lid + 1,
+                                    _paths=_paths,
                                     include_self=include_self))
-      if include_self: gather[self.name] = self
 
     elif method == 'relative':
       nodes = []
-      if include_self: gather[''] = self
       for k, v in self.__dict__.items():
         if isinstance(v, Base):
           path = (id(self), id(v))
@@ -189,8 +197,11 @@ class Base(object):
           gather[key] = node
           nodes.append((key, node))
       for k1, v1 in nodes:
-        for k2, v2 in v1._find_nodes(method=method, _paths=_paths, _lid=_lid + 1,
-                                     level=level, include_self=include_self).items():
+        for k2, v2 in v1._find_nodes(method=method,
+                                     _paths=_paths,
+                                     _lid=_lid + 1,
+                                     level=level,
+                                     include_self=include_self).items():
           if k2: gather[f'{k1}.{k2}'] = v2
 
     else:
