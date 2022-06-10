@@ -8,7 +8,7 @@ This module implements several loss functions.
 # - https://github.com/google/jaxopt/blob/main/jaxopt/_src/loss.py
 
 import jax.numpy as jnp
-import jax.scipy
+from jax.scipy.special import logsumexp
 from jax.tree_util import tree_map
 
 import brainpy.math as bm
@@ -26,7 +26,6 @@ __all__ = [
   'mean_squared_log_error',
   'binary_logistic_loss',
   'multiclass_logistic_loss',
-  'smooth_labels',
   'sigmoid_binary_cross_entropy',
   'softmax_cross_entropy',
   'log_cosh_loss',
@@ -90,26 +89,18 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
   """
-  targets = bm.as_device_array(targets)
-  predicts = bm.as_device_array(predicts)
-
-  # loss
-  if bm.ndim(targets) + 1 == bm.ndim(predicts):
-    # targets_old = targets.reshape((-1,))
-    # length = targets_old.shape[0]
-    # rows = jn.arange(length)
-    # targets = ops.zeros((length, logits.shape[-1]))
-    # targets[rows, targets_old] = 1.
-    # targets = targets.reshape(logits.shape).value
-    targets = bm.activations.one_hot(targets, predicts.shape[-1])
-  loss = jax.scipy.special.logsumexp(predicts, axis=-1) - (predicts * targets).sum(axis=-1)
-
   # weighted loss
   if weight:
-    loss *= weight[targets]
     raise NotImplementedError
 
-  return _return(outputs=loss, reduction=reduction)
+  def _cel(_pred, _tar):
+    if bm.ndim(_tar) + 1 == bm.ndim(_pred):
+      _tar = bm.activations.one_hot(_tar, _pred.shape[-1])
+    loss = logsumexp(bm.as_device_array(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
+    return _return(outputs=loss, reduction=reduction)
+
+  r = tree_map(_cel, predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def cross_entropy_sparse(predicts, targets):
@@ -122,14 +113,16 @@ def cross_entropy_sparse(predicts, targets):
   Returns:
       (batch, ...) tensor of the cross-entropy for each entry.
   """
-  predicts = bm.as_device_array(predicts)
-  targets = bm.as_device_array(targets)
-  if isinstance(targets, int):
-    labeled_logits = predicts[..., targets]
-  else:
-    labeled_logits = jnp.take_along_axis(predicts, targets, -1).squeeze(-1)
-  loss = jax.scipy.special.logsumexp(predicts, axis=-1) - labeled_logits
-  return loss
+
+  def crs(_prd, _tar):
+    if isinstance(_tar, int):
+      logits = _prd[..., _tar]
+    else:
+      logits = bm.take_along_axis(_prd, _tar, -1).squeeze(-1)
+    return logsumexp(bm.as_device_array(_prd), axis=-1) - logits
+
+  r = tree_map(crs, predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def cross_entropy_sigmoid(predicts, targets):
@@ -142,9 +135,9 @@ def cross_entropy_sigmoid(predicts, targets):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  predicts = bm.as_device_array(predicts)
-  targets = bm.as_device_array(targets)
-  return jnp.maximum(predicts, 0) - predicts * targets + jnp.log(1 + jnp.exp(-jnp.abs(predicts)))
+  r = tree_map(lambda pred, tar: bm.maximum(pred, 0) - pred * tar + bm.log(1 + bm.exp(-bm.abs(pred))),
+               predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def l1_loos(logits, targets, reduction='sum'):
@@ -194,9 +187,13 @@ def l1_loos(logits, targets, reduction='sum'):
   output : scalar.
     If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
   """
-  diff = (logits - targets).reshape((logits.shape[0], -1))
-  norm = jnp.linalg.norm(bm.as_device_array(diff), ord=1, axis=1, keepdims=False)
-  return _return(outputs=norm, reduction=reduction)
+  def loss(pred, tar):
+    diff = (pred - tar).reshape((pred.shape[0], -1))
+    norm = jnp.linalg.norm(bm.as_device_array(diff), ord=1, axis=1, keepdims=False)
+    return _return(outputs=norm, reduction=reduction)
+
+  r = tree_map(loss, logits, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def l2_loss(predicts, targets):
@@ -222,7 +219,9 @@ def l2_loss(predicts, targets):
   ----------
   .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
   """
-  return bm.as_device_array(0.5 * (predicts - targets) ** 2)
+  r = tree_map(lambda pred, tar: 0.5 * (pred - tar) ** 2, predicts, targets,
+               is_leaf=lambda a: isinstance(a, bm.JaxArray))
+  return _multi_return(r)
 
 
 def mean_absolute_error(x, y, axis=None):
@@ -304,7 +303,8 @@ def huber_loss(predicts, targets, delta: float = 1.0):
                     delta * (diff - .5 * delta),
                     0.5 * diff ** 2)
 
-  return tree_map(_loss, targets, predicts, is_leaf=_is_leaf)
+  r = tree_map(_loss, targets, predicts, is_leaf=_is_leaf)
+  return _multi_return(r)
 
 
 def binary_logistic_loss(predicts: float, targets: int, ) -> float:
@@ -319,7 +319,9 @@ def binary_logistic_loss(predicts: float, targets: int, ) -> float:
   # Softplus is the Fenchel conjugate of the Fermi-Dirac negentropy on [0, 1].
   # softplus = proba * logit - xlogx(proba) - xlogx(1 - proba),
   # where xlogx(proba) = proba * log(proba).
-  return bm.as_device_array(bm.activations.softplus(predicts) - targets * predicts)
+  r = tree_map(lambda a, b: bm.activations.softplus(a) - b * a,
+               predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def multiclass_logistic_loss(label: int, logits: jnp.ndarray) -> float:
@@ -331,30 +333,13 @@ def multiclass_logistic_loss(label: int, logits: jnp.ndarray) -> float:
   Returns:
     loss value
   """
-  logits = bm.as_device_array(logits)
-  n_classes = logits.shape[0]
-  one_hot = bm.one_hot(label, n_classes)
-  # Logsumexp is the Fenchel conjugate of the Shannon negentropy on the simplex.
-  # logsumexp = jnp.dot(proba, logits) - jnp.dot(proba, jnp.log(proba))
-  return jax.scipy.special.logsumexp(logits) - bm.dot(logits, one_hot)
+  def loss(pred, tar):
+    pred = bm.as_device_array(pred)
+    one_hot = bm.one_hot(tar, pred.shape[0])
+    return logsumexp(pred) - bm.dot(pred, one_hot)
 
-
-def smooth_labels(labels, alpha: float) -> jnp.ndarray:
-  r"""Apply label smoothing.
-  Label smoothing is often used in combination with a cross-entropy loss.
-  Smoothed labels favour small logit gaps, and it has been shown that this can
-  provide better model calibration by preventing overconfident predictions.
-  References:
-    [Müller et al, 2019](https://arxiv.org/pdf/1906.02629.pdf)
-  Args:
-    labels: one hot labels to be smoothed.
-    alpha: the smoothing factor, the greedy category with be assigned
-      probability `(1-alpha) + alpha / num_categories`
-  Returns:
-    a smoothed version of the one hot input labels.
-  """
-  num_categories = labels.shape[-1]
-  return (1.0 - alpha) * labels + alpha / num_categories
+  r = tree_map(loss, logits, label, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def sigmoid_binary_cross_entropy(logits, labels):
@@ -371,10 +356,15 @@ def sigmoid_binary_cross_entropy(logits, labels):
   Returns:
     a sigmoid cross entropy loss.
   """
-  log_p = bm.log_sigmoid(logits)
-  # log(1 - sigmoid(x)) = log_sigmoid(-x), the latter more numerically stable
-  log_not_p = bm.log_sigmoid(-logits)
-  return -labels * log_p - (1. - labels) * log_not_p
+  def loss(pred, tar):
+    log_p = bm.log_sigmoid(pred)
+    # log(1 - sigmoid(x)) = log_sigmoid(-x), the latter more numerically stable
+    log_not_p = bm.log_sigmoid(-pred)
+    return -tar * log_p - (1. - tar) * log_not_p
+
+  r = tree_map(loss, logits, labels, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
+
 
 
 def softmax_cross_entropy(logits, labels):
@@ -392,9 +382,9 @@ def softmax_cross_entropy(logits, labels):
   Returns:
     the cross entropy loss.
   """
-  logits = bm.as_device_array(logits)
-  labels = bm.as_device_array(labels)
-  return -jnp.sum(labels * jax.nn.log_softmax(logits, axis=-1), axis=-1)
+  r = tree_map(lambda pred, tar: -bm.sum(tar * bm.log_softmax(pred, axis=-1), axis=-1),
+               logits, labels, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
 
 
 def log_cosh_loss(predicts, targets):
@@ -411,5 +401,12 @@ def log_cosh_loss(predicts, targets):
   Returns:
     the log-cosh loss.
   """
-  errors = bm.as_device_array(predicts - targets)
-  return jnp.logaddexp(errors, -errors) - jnp.log(2.0).astype(errors.dtype)
+  def loss(pred, tar):
+    errors = bm.as_device_array(pred - tar)
+    return jnp.logaddexp(errors, -errors) - jnp.log(2.0).astype(errors.dtype)
+
+  r = tree_map(loss, predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
+
+
+
