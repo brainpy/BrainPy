@@ -193,11 +193,11 @@ class ReducedTRNModel(bp.dyn.NeuGroup):
 
   def update(self, t, dt):
     if isinstance(self.int_V, bp.ode.ExponentialEuler):
-      V = self.int_V(self.V, t, self.y, self.z, self.input, dt=dt)
-      self.y.value = self.int_y(self.y, t, self.V, dt=dt)
-      self.z.value = self.int_z(self.z, t, self.V, dt=dt)
+      V = self.int_V(self.V, t, self.y, self.z, self.input, dt)
+      self.y.value = self.int_y(self.y, t, self.V, dt)
+      self.z.value = self.int_z(self.z, t, self.V, dt)
     else:
-      V, self.y.value, self.z.value = self.integral(self.V, self.y, self.z, t, self.input, dt=dt)
+      V, self.y.value, self.z.value = self.integral(self.V, self.y, self.z, t, self.input, dt)
     self.spike.value = bm.logical_and((self.V < self.Vth), (V >= self.Vth))
     self.V.value = V
     self.input[:] = 0.

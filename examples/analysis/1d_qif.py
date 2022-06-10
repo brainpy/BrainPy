@@ -6,10 +6,8 @@ import brainpy as bp
 bp.math.enable_x64()  # important!
 
 
-@bp.odeint
 def qif(V, t, c=.07, R=1., tau=10., Iext=0., V_rest=-65., V_c=-50.0, ):
-  dVdt = (c * (V - V_rest) * (V - V_c) + R * Iext) / tau
-  return dVdt
+  return (c * (V - V_rest) * (V - V_c) + R * Iext) / tau
 
 
 pp = bp.analysis.PhasePlane1D(

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import math
 import time
 import warnings
 from typing import Callable, Union, Dict, Optional, Sequence
@@ -65,31 +66,41 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     .. versionadded:: 2.2.0
 
   t: float
-    The time to evaluate the fixed points.
+    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    The time to evaluate the fixed points. Default is 0.
+
+    .. versionadded:: 2.2.0
+
+  dt: float
+    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    The numerical integration step, which can be used when .
+    The default is given by `brainpy.math.get_dt()`.
 
     .. versionadded:: 2.2.0
 
   inputs: sequence
+    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
     Same as ``inputs`` in :py:class:`~.DSRunner`.
 
     .. versionadded:: 2.2.0
 
-  excluded_vars: sequence
-    The excluded variables (can be a sequence of  `Variable` instances),
-    when ``f_cell`` is an instance of :py:class:`~.DynamicalSystem`.
+  excluded_vars: sequence, dict
+    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    The excluded variables (can be a sequence of  `Variable` instances).
     These variables will not be included for optimization of fixed points.
 
     .. versionadded:: 2.2.0
 
   included_vars: dict
-    The target variables (can be a dict of `Variable` instances),
-    when ``f_cell`` is an instance of :py:class:`~.DynamicalSystem`.
+    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    The target variables (can be a dict of `Variable` instances).
     These variables will be included for optimization of fixed points.
     The candidate points later provided should have same keys as in ``included_vars``.
 
     .. versionadded:: 2.2.0
 
   f_loss_batch : callable, function
+    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
     The function to compute the loss.
 
     .. deprecated:: 2.2.0
@@ -102,12 +113,17 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       f_cell: Union[Callable, DynamicalSystem],
       f_type: str = None,
       f_loss: Callable = None,
-      inputs: Sequence = None,
-      t: float = 0.,
       verbose: bool = True,
-      f_loss_batch: Callable = None,
+
+      # parameters for `f_cell` is DynamicalSystem instance
+      inputs: Sequence = None,
+      t: float = None,
+      dt: float = None,
       included_vars: Dict[str, bm.Variable] = None,
-      excluded_vars: Sequence[bm.Variable] = (),
+      excluded_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+
+      # deprecated
+      f_loss_batch: Callable = None,
   ):
     super(SlowPointFinder, self).__init__()
 
@@ -118,6 +134,9 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       if not isinstance(included_vars, dict):
         raise TypeError(f'"included_vars" must be a dict but we got {type(included_vars)}')
       self.included_vars = TensorCollector(included_vars)
+    excluded_vars = () if excluded_vars is None else excluded_vars
+    if isinstance(excluded_vars, dict):
+      excluded_vars = tuple(excluded_vars.values())
     if not isinstance(excluded_vars, (tuple, list)):
       raise TypeError(f'"excluded_vars" must be a sequence but we got {type(excluded_vars)}')
     for v in excluded_vars:
@@ -125,10 +144,9 @@ class SlowPointFinder(base.BrainPyAnalyzer):
         raise TypeError(f'"excluded_vars" must be a sequence of Variable, '
                         f'but we got {type(v)}')
     self.excluded_vars = {f'_exclude_v{i}': v for i, v in enumerate(excluded_vars)}
-    self.target = f_cell
-
     if len(self.included_vars) > 0 and len(self.excluded_vars) > 0:
-      raise ValueError
+      raise ValueError('"included_vars" and "excluded_vars" cannot be provided simultaneously.')
+    self.target = f_cell
 
     if isinstance(f_cell, DynamicalSystem):
       # included variables
@@ -159,6 +177,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
                                                     self.included_vars,
                                                     self.excluded_vars,
                                                     t,
+                                                    dt,
                                                     _input_step)
       # check function type
       if f_type is not None:
@@ -172,7 +191,18 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       if inputs is not None:
         raise UnsupportedError('Do not support "inputs" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
-
+      if t is not None:
+        raise UnsupportedError('Do not support "t" when "f_cell" is not instance of '
+                               f'{DynamicalSystem.__name__}')
+      if dt is not None:
+        raise UnsupportedError('Do not support "dt" when "f_cell" is not instance of '
+                               f'{DynamicalSystem.__name__}')
+      if included_vars is not None:
+        raise UnsupportedError('Do not support "included_vars" when "f_cell" is not instance of '
+                               f'{DynamicalSystem.__name__}')
+      if excluded_vars is not None:
+        raise UnsupportedError('Do not support "excluded_vars" when "f_cell" is not instance of '
+                               f'{DynamicalSystem.__name__}')
     else:
       raise ValueError(f'Unknown type of "f_type": {type(f_cell)}')
     if f_type not in [constants.DISCRETE, constants.CONTINUOUS]:
@@ -190,33 +220,20 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     self.f_loss = f_loss
 
     # functions
-    self._opt_functions = dict()
-
-    # functions
     if self.f_type == constants.DISCRETE:
       # evaluate losses of a batch of inputs
       self.f_eval_loss = bm.jit(lambda h: self.f_loss(h, vmap(self.f_cell)(h), axis=1))
     else:
       # evaluate losses of a batch of inputs
       self.f_eval_loss = bm.jit(lambda h: self.f_loss(vmap(self.f_cell)(h), axis=1))
-    # evaluate Jacobian matrix of a batch of inputs
-
-    # if f_type == constants.DISCRETE:
-    #   # overall loss function for fixed points optimization
-    #   self.f_loss = bm.jit(lambda h: f_loss(h, f_cell(h)))
-    #   # evaluate losses of a batch of inputs
-    #   self.f_loss_batch = bm.jit(lambda h: f_loss(h, vmap(f_cell)(h), axis=1))
-    # elif f_type == constants.CONTINUOUS:
-    #   # overall loss function for fixed points optimization
-    #   self.f_loss = bm.jit(lambda h: f_loss(f_cell(h)))
-    #   # evaluate losses of a batch of inputs
-    #   self.f_loss_batch = bm.jit(lambda h: f_loss(vmap(f_cell)(h), axis=1))
 
     # essential variables
     self._losses = None
     self._fixed_points = None
     self._selected_ids = None
     self._opt_losses = None
+    # functions
+    self._opt_functions = dict()
 
   @property
   def opt_losses(self) -> np.ndarray:
@@ -260,7 +277,6 @@ class SlowPointFinder(base.BrainPyAnalyzer):
   @selected_ids.setter
   def selected_ids(self, val):
     raise UnsupportedError('Do not support set "selected_ids" by users.')
-
 
   def find_fps_with_gd_method(
       self,
@@ -409,16 +425,14 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       if bm.ndim(var) != 1:
         raise ValueError('Cannot use opt solver.')
     if self._opt_functions.get(F_OPT_SOLVER, None) is None:
-      self._opt_functions[F_OPT_SOLVER] = self._get_f_for_opt_solver(
-        candidates, SUPPORTED_OPT_SOLVERS[opt_solver])
+      self._opt_functions[F_OPT_SOLVER] = self._get_f_for_opt_solver(candidates, SUPPORTED_OPT_SOLVERS[opt_solver])
     f_opt = self._opt_functions[F_OPT_SOLVER]
 
     if self.verbose:
       print(f"Optimizing with {opt_solver} to find fixed points:")
 
     # optimizing
-    res = f_opt(tree_map(lambda a: a.value,
-                         candidates,
+    res = f_opt(tree_map(lambda a: a.value, candidates,
                          is_leaf=lambda a: isinstance(a, bm.JaxArray)))
 
     # results
@@ -524,31 +538,75 @@ class SlowPointFinder(base.BrainPyAnalyzer):
             f"Kept {keep_ids.shape[0]}/{num_fps} fixed points "
             f"with within outlier tolerance {tolerance}.")
 
-  def compute_jacobians(self, points, stack_vars=True):
-    """Compute the jacobian matrices at the points.
+  def compute_jacobians(
+      self,
+      points: Union[Tensor, Dict[str, Tensor]],
+      stack_dict_var: bool = True,
+      plot: bool = False,
+      num_col: int = 4,
+      len_col: int = 3,
+      len_row: int = 2,
+  ):
+    """Compute the Jacobian matrices at the points.
 
     Parameters
     ----------
     points: np.ndarray, bm.JaxArray, jax.ndarray
       The fixed points with the shape of (num_point, num_dim).
-    stack_vars: bool
+    stack_dict_var: bool
+      Stack dictionary variables to calculate Jacobian matrix?
+    plot: bool
+      Plot the decomposition results of the Jacobian matrix.
+    num_col: int
+      The number of the figure column.
+    len_col: int
+      The length of each column.
+    len_row: int
+      The length of each row.
     """
-    ndim = np.unique([l.ndim for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.JaxArray))[0]])
-    if len(ndim) != 1:
-      raise ValueError(f'Get multiple dimension of the evaluated points. {ndim}')
+    # check data
+    info = np.asarray([(l.ndim, l.shape[0])
+                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.JaxArray))[0]])
+    ndim = np.unique(info[:, 0])
+    if len(ndim) != 1: raise ValueError(f'Get multiple dimension of the evaluated points. {ndim}')
     if ndim[0] == 1:
       points = tree_map(lambda a: bm.asarray([a]), points)
+      num_point = 1
     elif ndim[0] == 2:
-      pass
+      nsize = np.unique(info[:, 1])
+      if len(nsize) != 1: raise ValueError(f'Number of the evaluated points are mis-matched. {nsize}')
+      num_point = nsize[0]
     else:
       raise ValueError('Only support points of 1D: (num_feature,) or 2D: (num_point, num_feature)')
-
-    if isinstance(points, dict) and stack_vars:
+    if isinstance(points, dict) and stack_dict_var:
       points = bm.hstack(points.values()).value
-    return self._get_f_jocabian(stack_vars)(points)
+
+    # get Jacobian matrix
+    jacobian = self._get_f_jocabian(stack_dict_var)(points)
+
+    # visualization
+    if plot:
+      import matplotlib.pyplot as plt
+      from brainpy.visualization import visualize
+      jacobian = bm.as_numpy(jacobian)
+
+      num_col = min(num_col, num_point)
+      num_row = int(math.ceil(num_point / num_col))
+      fig, gs = visualize.get_figure(num_row, num_col, len_row, len_col)
+      for i in range(num_point):
+        eigval, eigvec = np.linalg.eig(np.asarray(jacobian[i]))
+        ax = fig.add_subplot(gs[i // num_col, i % num_col])
+        ax.scatter(np.real(eigval), np.imag(eigval))
+        ax.plot([1, 1] if self.f_type == constants.DISCRETE else [0, 0], [-1, 1], '--')
+        ax.set_xlabel('Real')
+        ax.set_ylabel('Imaginary')
+        ax.set_title(f'Point {i}')
+      plt.show()
+
+    return jacobian
 
   @staticmethod
-  def decompose_eigenvalues(matrices, sort_by='magnitude', do_compute_lefts=True):
+  def decompose_eigenvalues(matrices, sort_by='magnitude', do_compute_lefts=False):
     """Compute the eigenvalues of the matrices.
 
     Parameters
@@ -588,41 +646,26 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     return decompositions
 
   def _get_f_for_opt_solver(self, candidates, opt_method):
-    # update function
-    if isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)):
-      f_cell = self.f_cell
-
-    elif isinstance(candidates, dict):
-      indices = [0]
-      for v in self.included_vars.values():
-        indices.append(v.shape[0])
-      indices = np.cumsum(indices)
-      keys = tuple(self.included_vars.keys())
-
-      def f_cell(x):
-        x = {keys[i]: x[indices[i]: indices[i + 1]] for i in range(len(keys))}
-        r = self.f_cell(x)
-        return r
-
-    else:
-      raise ValueError(f'Only supports tensor or a dict of tensors. But we got {type(candidates)}')
-
     # loss function
     if self.f_type == constants.DISCRETE:
       # overall loss function for fixed points optimization
       if isinstance(candidates, dict):
+        keys = tuple(self.included_vars.keys())
+        indices = [0]
+        for v in self.included_vars.values():
+          indices.append(v.shape[0])
+        indices = np.cumsum(indices)
+
         def f_loss(h):
-          return bm.as_device_array(
-            self.f_loss({key: h[indices[i]: indices[i + 1]] for i, key in enumerate(self.included_vars.keys())},
-                        {k: v for k, v in f_cell(h).items() if k in self.included_vars})
-          )
+          h = {key: h[indices[i]: indices[i + 1]] for i, key in enumerate(keys)}
+          return bm.as_device_array(self.f_loss(h, self.f_cell(h)))
       else:
         def f_loss(h):
-          return bm.as_device_array(self.f_loss(h, f_cell(h)))
+          return bm.as_device_array(self.f_loss(h, self.f_cell(h)))
     else:
       # overall loss function for fixed points optimization
       def f_loss(h):
-        return self.f_loss(f_cell(h))
+        return self.f_loss(self.f_cell(h))
 
     excluded_data = {k: v.value for k, v in self.excluded_vars.items()}
 
@@ -639,13 +682,17 @@ class SlowPointFinder(base.BrainPyAnalyzer):
 
     return f_opt
 
-  def _generate_ds_cell_function(self,
-                                 ds_instance,
-                                 included_vars: Dict,
-                                 excluded_vars: Dict,
-                                 t=0.,
-                                 f_input=None):
-
+  def _generate_ds_cell_function(
+      self,
+      ds_instance,
+      included_vars: Dict,
+      excluded_vars: Dict,
+      t=None,
+      dt=None,
+      f_input=None
+  ):
+    if dt is None: dt = bm.get_dt()
+    if t is None: t = 0.
     excluded_data = {k: v.value for k, v in excluded_vars.items()}
 
     def f_cell(h: Dict):
@@ -654,8 +701,8 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       for k, v in excluded_vars.items():
         v.value = excluded_data[k]
       if f_input is not None:
-        f_input(t, bm.get_dt())
-      ds_instance.update(t, bm.get_dt())
+        f_input(t, dt)
+      ds_instance.update(t, dt)
       return {k: v.value for k, v in included_vars.items()}
 
     return f_cell
