@@ -176,15 +176,17 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       self.f_cell = self._generate_ds_cell_function(self.target,
                                                     self.included_vars,
                                                     self.excluded_vars,
-                                                    t,
-                                                    dt,
-                                                    _input_step)
+                                                    t, dt, _input_step)
       # check function type
       if f_type is not None:
         if f_type != constants.DISCRETE:
           raise ValueError(f'"f_type" must be "{constants.DISCRETE}" when "f_cell" '
                            f'is instance of {DynamicalSystem.__name__}')
       f_type = constants.DISCRETE
+
+      # original data
+      self.included_data = {k: v.value for k, v in self.included_vars.items()}
+      self.excluded_data = {k: v.value for k, v in self.excluded_vars.items()}
 
     elif callable(f_cell):
       self.f_cell = f_cell
@@ -218,14 +220,6 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     if f_loss is None:
       f_loss = losses.mean_squared_error if f_type == constants.DISCRETE else losses.mean_square
     self.f_loss = f_loss
-
-    # functions
-    if self.f_type == constants.DISCRETE:
-      # evaluate losses of a batch of inputs
-      self.f_eval_loss = bm.jit(lambda h: self.f_loss(h, vmap(self.f_cell)(h), axis=1))
-    else:
-      # evaluate losses of a batch of inputs
-      self.f_eval_loss = bm.jit(lambda h: self.f_loss(vmap(self.f_cell)(h), axis=1))
 
     # essential variables
     self._losses = None
@@ -349,11 +343,11 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       raise ValueError('Candidates must be instance of JaxArray or dict of JaxArray.')
     leaves, tree = tree_flatten(candidates, is_leaf=lambda x: isinstance(x, bm.JaxArray))
     fixed_points = tree_unflatten(tree, [bm.TrainVar(leaf) for leaf in leaves])
+    f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
-      return self.f_eval_loss(tree_map(lambda a: a.value,
-                                       fixed_points,
-                                       is_leaf=lambda x: isinstance(x, bm.JaxArray))).mean()
+      return f_eval_loss(tree_map(lambda a: a.value, fixed_points,
+                                  is_leaf=lambda x: isinstance(x, bm.JaxArray))).mean()
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
     optimizer.register_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
@@ -397,12 +391,17 @@ class SlowPointFinder(base.BrainPyAnalyzer):
                 f'is below tolerance {tolerance:0.10f}.')
 
     self._opt_losses = bm.concatenate(opt_losses)
-    self._losses = self.f_eval_loss(tree_map(lambda a: a.value,
-                                             fixed_points,
-                                             is_leaf=lambda x: isinstance(x, bm.JaxArray)))
+    self._losses = f_eval_loss(tree_map(lambda a: a.value, fixed_points,
+                                        is_leaf=lambda x: isinstance(x, bm.JaxArray)))
     self._fixed_points = tree_map(lambda a: a.value, fixed_points,
                                   is_leaf=lambda x: isinstance(x, bm.JaxArray))
     self._selected_ids = jnp.arange(num_candidate)
+
+    if isinstance(self.target, DynamicalSystem):
+      for k, v in self.excluded_vars.items():
+        v.value = self.excluded_data[k]
+      for k, v in self.included_vars.items():
+        v.value = self.included_data[k]
 
   def find_fps_with_opt_solver(
       self,
@@ -645,6 +644,34 @@ class SlowPointFinder(base.BrainPyAnalyzer):
                              'L': L})
     return decompositions
 
+  def _get_f_eval_loss(self, ):
+    name = 'f_eval_loss'
+    if name not in self._opt_functions:
+      self._opt_functions[name] = self._generate_f_eval_loss()
+    return self._opt_functions[name]
+
+  def _generate_f_eval_loss(self):
+    # functions
+    if self.f_type == constants.DISCRETE:
+      # evaluate losses of a batch of inputs
+      f_eval_loss = bm.jit(lambda h: self.f_loss(h, vmap(self.f_cell)(h), axis=1))
+    else:
+      # evaluate losses of a batch of inputs
+      f_eval_loss = bm.jit(lambda h: self.f_loss(vmap(self.f_cell)(h), axis=1))
+
+    if isinstance(self.target, DynamicalSystem):
+      def loss_func(h):
+        r = f_eval_loss(h)
+        for k, v in self.excluded_vars.items():
+          v.value = self.excluded_data[k]
+        for k, v in self.included_vars.items():
+          v.value = self.included_data[k]
+        return r
+
+      return loss_func
+    else:
+      return f_eval_loss
+
   def _get_f_for_opt_solver(self, candidates, opt_method):
     # loss function
     if self.f_type == constants.DISCRETE:
@@ -667,30 +694,29 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       def f_loss(h):
         return self.f_loss(self.f_cell(h))
 
-    excluded_data = {k: v.value for k, v in self.excluded_vars.items()}
-
     @bm.jit
     @vmap
     def f_opt(x0):
       for k, v in self.included_vars.items():
         v.value = x0[k]
       for k, v in self.excluded_vars.items():
-        v.value = excluded_data[k]
+        v.value = self.excluded_data[k]
       if isinstance(x0, dict):
         x0 = bm.concatenate(tuple(x0.values())).value
       return opt_method(f_loss, x0)
 
-    return f_opt
+    def call_opt(x):
+      r = f_opt(x)
+      for k, v in self.excluded_vars.items():
+        v.value = self.excluded_data[k]
+      for k, v in self.included_vars.items():
+        v.value = self.included_data[k]
+      return r
 
-  def _generate_ds_cell_function(
-      self,
-      ds_instance,
-      included_vars: Dict,
-      excluded_vars: Dict,
-      t=None,
-      dt=None,
-      f_input=None
-  ):
+    return call_opt if isinstance(self.target, DynamicalSystem) else f_opt
+
+  def _generate_ds_cell_function(self, ds_instance, included_vars: Dict, excluded_vars: Dict,
+                                 t: float = None, dt: float = None, f_input: Callable = None):
     if dt is None: dt = bm.get_dt()
     if t is None: t = 0.
     excluded_data = {k: v.value for k, v in excluded_vars.items()}
@@ -727,7 +753,20 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     else:
       jacob = self.f_cell
 
-    return bm.jit(vmap(bm.jacobian(jacob)))
+    f_jac = bm.jit(vmap(bm.jacobian(jacob)))
+
+    if isinstance(self.target, DynamicalSystem):
+      def jacobian_func(x):
+        r = f_jac(x)
+        for k, v in self.excluded_vars.items():
+          v.value = self.excluded_data[k]
+        for k, v in self.included_vars.items():
+          v.value = self.included_data[k]
+        return r
+
+      return jacobian_func
+    else:
+      return f_jac
 
   def _check_candidates(self, candidates):
     if isinstance(self.target, DynamicalSystem):

@@ -6,15 +6,18 @@ import brainpy.math as bm
 I = 5.
 model = bp.dyn.neurons.HH(1)
 runner = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
-# runner.run(100)
-# bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
+runner.run(100)
+bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
 
 # analysis
 model = bp.dyn.neurons.HH(1, method='euler')
 finder = bp.analysis.SlowPointFinder(
   model,
   inputs=(model.input, I),
-  excluded_vars=[model.input, model.spike],
+  included_vars={'V': model.V,
+                 'm': model.m,
+                 'h': model.h,
+                 'n': model.n},
   dt=1.
 )
 candidates = {'V': bm.random.normal(0., 5., (1000, model.num)) - 50.,
@@ -22,7 +25,6 @@ candidates = {'V': bm.random.normal(0., 5., (1000, model.num)) - 50.,
               'h': bm.random.random((1000, model.num)),
               'n': bm.random.random((1000, model.num))}
 finder.find_fps_with_opt_solver(candidates=candidates)
-# finder.find_fps_with_gd_method(candidates=candidates, tolerance=1e-7)
 finder.filter_loss(1e-7)
 finder.keep_unique(tolerance=1e-1)
 print('fixed_points: ', finder.fixed_points)
