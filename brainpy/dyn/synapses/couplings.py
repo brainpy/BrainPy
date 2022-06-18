@@ -180,19 +180,19 @@ class DiffusiveCoupling(DelayCoupling):
     self.coupling_var1 = coupling_var1
     self.coupling_var2 = coupling_var2
 
-  def update(self, t, dt):
+  def update(self, tdi):
     # delays
     if self.delay_steps is None:
       diffusive = bm.expand_dims(self.coupling_var1, axis=1) - self.coupling_var2
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'array':
-      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
+      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
       f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var2.size)))  # (post.num,)
       delays = f(bm.arange(self.coupling_var1.size).value)  # (pre.num, post.num)
       diffusive = delays - self.coupling_var2  # (pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
     elif self.delay_type == 'int':
-      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
+      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
       delayed_var = delay_var(self.delay_steps)
       diffusive = bm.expand_dims(delayed_var, axis=1) - self.coupling_var2
       diffusive = (self.conn_mat * diffusive).sum(axis=0)
@@ -261,12 +261,12 @@ class AdditiveCoupling(DelayCoupling):
     if self.delay_steps is None:
       additive = self.coupling_var @ self.conn_mat
     elif self.delay_type == 'array':
-      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
+      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
       f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var.size)))  # (pre.num,)
       delays = f(bm.arange(self.coupling_var.size).value)  # (post.num, pre.num)
       additive = (self.conn_mat * delays.T).sum(axis=0)
     elif self.delay_type == 'int':
-      delay_var: bm.LengthDelay = self.global_delay_vars[f'delay_{id(self.delay_var)}']
+      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
       delayed_var = delay_var(self.delay_steps)
       additive = (self.conn_mat * delayed_var).sum(axis=0)
     else:

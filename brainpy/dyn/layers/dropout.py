@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.train.base import TrainingSystem
+from brainpy.dyn.training import TrainingSystem
 
 __all__ = [
   'Dropout'
@@ -41,9 +41,8 @@ class Dropout(TrainingSystem):
     self.prob = prob
     self.rng = bm.random.RandomState(seed=seed)
 
-  def forward(self, x, shared_args=None):
-    shared_args = dict() if shared_args is None else shared_args
-    if shared_args.get('train', True):
+  def update(self, sha, x):
+    if sha.get('fit', True):
       keep_mask = self.rng.bernoulli(self.prob, x.shape)
       return bm.where(keep_mask, x / self.prob, 0.)
     else:

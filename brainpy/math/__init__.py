@@ -38,7 +38,6 @@ from .delayvars import *
 # functions
 from .activations import *
 from . import activations
-from .compat import *
 
 # high-level numpy operations
 from .numpy_ops import *

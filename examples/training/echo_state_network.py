@@ -10,8 +10,7 @@ class ESN(bp.train.TrainingSystem):
     self.r = bp.train.Reservoir(num_in, num_hidden,
                                 Win_initializer=bp.init.Uniform(-0.1, 0.1),
                                 Wrec_initializer=bp.init.Normal(scale=0.1),
-                                ff_connectivity=0.02,
-                                fb_connectivity=0.02,
+                                in_connectivity=0.02,
                                 rec_connectivity=0.02,
                                 conn_type='dense')
     self.o = bp.train.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
@@ -93,7 +92,7 @@ def ngrc(num_in=10, num_out=30):
 
   X = bm.random.random((1, 200, num_in))  # (num_batch, num_time, num_feature)
   Y = bm.random.random((1, 200, num_out))
-  trainer = bp.train.RidgeTrainer(model, beta=1e-6)
+  trainer = bp.train.RidgeTrainer(model, alpha=1e-6)
   outputs = trainer.predict(X)
   print(outputs.shape)
   print(bp.losses.mean_absolute_error(outputs, Y))

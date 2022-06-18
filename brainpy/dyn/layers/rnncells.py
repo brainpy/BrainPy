@@ -7,10 +7,10 @@ import brainpy.math as bm
 from brainpy.initialize import (XavierNormal,
                                 ZeroInit,
                                 Orthogonal,
-                                init_param,
+                                parameter,
                                 Initializer)
 from brainpy.tools.checking import (check_integer, check_initializer)
-from brainpy.train.base import TrainingSystem
+from brainpy.dyn.training import TrainingSystem
 from brainpy.types import Tensor
 
 __all__ = [
@@ -39,16 +39,16 @@ class RecurrentCell(TrainingSystem):
     # state
     self.state = bm.Variable(bm.zeros((1, self.num_out)))
     if train_state and self.trainable:
-      self.state2train = bm.TrainVar(init_param(state_initializer, (self.num_out,), allow_none=False))
+      self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
   def reset(self, batch_size=1):
     self.reset_state(batch_size)
 
   def reset_state(self, batch_size=1):
-    self.state._value = init_param(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+    self.state._value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
     if self.train_state:
-      self.state2train.value = init_param(self._state_initializer, self.num_out, allow_none=False)
+      self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
 
 
@@ -120,15 +120,15 @@ class VanillaRNN(RecurrentCell):
     self.activation = bm.activations.get(activation)
 
     # weights
-    self.Wi = init_param(self._Wi_initializer, (num_in, self.num_out))
-    self.Wh = init_param(self._Wh_initializer, (self.num_out, self.num_out))
-    self.b = init_param(self._b_initializer, (self.num_out,))
+    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out))
+    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out))
+    self.b = parameter(self._b_initializer, (self.num_out,))
     if self.trainable:
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
-  def forward(self, x, shared_args=None):
+  def update(self, sha, x):
     h = x @ self.Wi
     h += self.state.value @ self.Wh
     if self.b is not None:
@@ -218,15 +218,15 @@ class GRU(RecurrentCell):
     self.activation = bm.activations.get(activation)
 
     # weights
-    self.Wi = init_param(self._Wi_initializer, (num_in, self.num_out * 3))
-    self.Wh = init_param(self._Wh_initializer, (self.num_out, self.num_out * 3))
-    self.b = init_param(self._b_initializer, (self.num_out * 3,))
+    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3))
+    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3))
+    self.b = parameter(self._b_initializer, (self.num_out * 3,))
     if self.trainable:
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = bm.TrainVar(self.b) if (self.b is not None) else None
 
-  def forward(self, x, shared_args=None):
+  def update(self, sha, x):
     gates_x = bm.matmul(x, self.Wi)
     zr_x, a_x = bm.split(gates_x, indices_or_sections=[2 * self.num_out], axis=-1)
     w_h_z, w_h_a = bm.split(self.Wh, indices_or_sections=[2 * self.num_out], axis=-1)
@@ -342,15 +342,15 @@ class LSTM(RecurrentCell):
     self.activation = bm.activations.get(activation)
 
     # weights
-    self.Wi = init_param(self._Wi_initializer, (num_in, self.num_out * 4))
-    self.Wh = init_param(self._Wh_initializer, (self.num_out, self.num_out * 4))
-    self.b = init_param(self._b_initializer, (self.num_out * 4,))
+    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 4))
+    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 4))
+    self.b = parameter(self._b_initializer, (self.num_out * 4,))
     if self.trainable:
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
-  def forward(self, x, shared_args=None):
+  def update(self, sha, x):
     h, c = bm.split(self.state, 2)
     gated = x @ self.Wi
     if self.b is not None:

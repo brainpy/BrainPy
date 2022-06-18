@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 from brainpy import math as bm
 from brainpy.errors import MathError
-from brainpy.initialize import XavierNormal, ZeroInit, Initializer, init_param
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.compat.nn.base import Node
 from brainpy.compat.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_shape_consistency,
@@ -77,8 +77,8 @@ class DenseMD(Node):
     self.set_output_shape(other_size + (self.num_unit,))
 
     # initialize feedforward weights
-    self.Wff = init_param(self.weight_initializer, (sum(free_shapes), self.num_unit))
-    self.bias = init_param(self.bias_initializer, (self.num_unit,))
+    self.Wff = parameter(self.weight_initializer, (sum(free_shapes), self.num_unit))
+    self.bias = parameter(self.bias_initializer, (self.num_unit,))
     if self.trainable:
       self.Wff = bm.TrainVar(self.Wff)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
@@ -89,9 +89,9 @@ class DenseMD(Node):
     # initialize feedback weights
     weight_shapes = (sum(free_shapes), self.num_unit)
     if self.trainable:
-      self.Wfb = bm.TrainVar(init_param(self.weight_initializer, weight_shapes))
+      self.Wfb = bm.TrainVar(parameter(self.weight_initializer, weight_shapes))
     else:
-      self.Wfb = init_param(self.weight_initializer, weight_shapes)
+      self.Wfb = parameter(self.weight_initializer, weight_shapes)
 
   def forward(self, ff: Sequence[Tensor], fb=None, **shared_kwargs):
     ff = bm.concatenate(ff, axis=-1)

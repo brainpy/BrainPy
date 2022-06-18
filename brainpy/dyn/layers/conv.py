@@ -2,9 +2,10 @@
 
 
 import jax.lax
+
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit, init_param
-from brainpy.train.base import TrainingSystem
+from brainpy.dyn.training import TrainingSystem
+from brainpy.initialize import XavierNormal, ZeroInit, parameter
 
 __all__ = [
   'GeneralConv',
@@ -35,47 +36,51 @@ def _conv_dimension_numbers(input_shape):
 class GeneralConv(TrainingSystem):
   """Applies a convolution to the inputs.
 
-  Args:
-    in_channels: integer
-      number of input channels.
-    out_channels: integer
-      number of output channels.
-    kernel_size: sequence[int]
-      shape of the convolutional kernel. For 1D convolution,
-      the kernel size can be passed as an integer. For all other cases, it must
-      be a sequence of integers.
-    strides: sequence[int]
-      an integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-    padding: str, sequence[int]
-      either the string `'SAME'`, the string `'VALID'`, the string
-      `'CIRCULAR'` (periodic boundary conditions), or a sequence of `n` `(low,
-      high)` integer pairs that give the padding to apply before and after each
-      spatial dimension. A single int is interpeted as applying the same padding
-      in all dims and passign a single int in a sequence causes the same padding
-      to be used on both sides.
-    input_dilation: integer, sequence[int]
-      an integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of `inputs`
-      (default: 1). Convolution with input dilation `d` is equivalent to
-      transposed convolution with stride `d`.
-    kernel_dilation: integer, sequence[int]
-      an integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of the convolution
-      kernel (default: 1). Convolution with kernel dilation
-      is also known as 'atrous convolution'.
-    groups: integer, default 1.
-      If specified divides the input
-      features into groups.
-    kernel_init: brainpy.init.Initializer
-      initializer for the convolutional kernel.
-    bias_init: brainpy.init.Initializer
-      initializer for the bias.
+  Parameters
+  ----------
+  in_channels: integer
+    number of input channels.
+  out_channels: integer
+    number of output channels.
+  kernel_size: sequence[int]
+    shape of the convolutional kernel. For 1D convolution,
+    the kernel size can be passed as an integer. For all other cases, it must
+    be a sequence of integers.
+  strides: sequence[int]
+    an integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
+  padding: str, sequence[int]
+    either the string `'SAME'`, the string `'VALID'`, the string
+    `'CIRCULAR'` (periodic boundary conditions), or a sequence of `n` `(low,
+    high)` integer pairs that give the padding to apply before and after each
+    spatial dimension. A single int is interpeted as applying the same padding
+    in all dims and passign a single int in a sequence causes the same padding
+    to be used on both sides.
+  input_dilation: integer, sequence[int]
+    an integer or a sequence of `n` integers, giving the
+    dilation factor to apply in each spatial dimension of `inputs`
+    (default: 1). Convolution with input dilation `d` is equivalent to
+    transposed convolution with stride `d`.
+  kernel_dilation: integer, sequence[int]
+    an integer or a sequence of `n` integers, giving the
+    dilation factor to apply in each spatial dimension of the convolution
+    kernel (default: 1). Convolution with kernel dilation
+    is also known as 'atrous convolution'.
+  groups: integer, default 1.
+    If specified divides the input
+    features into groups.
+  w_init: brainpy.init.Initializer
+    initializer for the convolutional kernel.
+  b_init: brainpy.init.Initializer
+    initializer for the bias.
   """
 
-  def __init__(self, in_channels, out_channels, kernel_size, strides=None, padding='SAME',
-               input_dilation=None, kernel_dilation=None, groups=1,
-               w_init=XavierNormal(), b_init=ZeroInit(),
-               trainable=True, name=None):
+  def __init__(
+      self, in_channels, out_channels, kernel_size, strides=None, padding='SAME',
+      input_dilation=None, kernel_dilation=None, groups=1,
+      w_init=XavierNormal(), b_init=ZeroInit(),
+      trainable: bool = True,
+      name: str = None,
+  ):
     super(GeneralConv, self).__init__(name=name, trainable=trainable)
     self.in_channels = in_channels
     self.out_channels = out_channels
@@ -101,8 +106,8 @@ class GeneralConv(TrainingSystem):
 
     assert self.in_channels % self.groups == 0, '"nin" should be divisible by groups'
     kernel_shape = _check_tuple(self.kernel_size) + (self.in_channels // self.groups, self.out_channels)
-    self.w = init_param(self.w_init, kernel_shape)
-    self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
+    self.w = parameter(self.w_init, kernel_shape)
+    self.b = parameter(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
     if self.trainable:
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
@@ -110,7 +115,7 @@ class GeneralConv(TrainingSystem):
   def _check_input_dim(self, x):
     pass
 
-  def forward(self, x, **shared_kwargs):
+  def update(self, sha, x):
     self._check_input_dim(x)
     if self.strides is None:
       self.strides = (1,) * (len(x.shape) - 2)

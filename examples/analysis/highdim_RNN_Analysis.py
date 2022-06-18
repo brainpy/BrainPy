@@ -89,15 +89,15 @@ class RNN(bp.dyn.DynamicalSystem):
     self.rng = bm.random.RandomState(seed=seed)
 
     # input weight
-    self.w_ir = bm.TrainVar(bp.init.init_param(w_ir, (num_input, num_hidden)))
+    self.w_ir = bm.TrainVar(bp.init.parameter(w_ir, (num_input, num_hidden)))
 
     # recurrent weight
     bound = 1 / num_hidden ** 0.5
-    self.w_rr = bm.TrainVar(bp.init.init_param(w_rr, (num_hidden, num_hidden)))
+    self.w_rr = bm.TrainVar(bp.init.parameter(w_rr, (num_hidden, num_hidden)))
     self.b_rr = bm.TrainVar(self.rng.uniform(-bound, bound, num_hidden))
 
     # readout weight
-    self.w_ro = bm.TrainVar(bp.init.init_param(w_ro, (num_hidden, num_output)))
+    self.w_ro = bm.TrainVar(bp.init.parameter(w_ro, (num_hidden, num_output)))
     self.b_ro = bm.TrainVar(self.rng.uniform(-bound, bound, num_output))
 
     # variables

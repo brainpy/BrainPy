@@ -4,7 +4,7 @@ from .dropout import *
 from .linear import *
 from .nvar import *
 from .reservoir import *
-from .recurrents import *
+from .rnncells import *
 from .conv import *
 
 

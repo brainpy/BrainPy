@@ -99,7 +99,7 @@ class TRN(bp.dyn.CondNeuGroup):
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ca=Ca)
 
 
-class MgBlock(bp.dyn.SynapseOutput):
+class MgBlock(bp.dyn.SynOutput):
   def __init__(self, E=0.):
     super(MgBlock, self).__init__()
     self.E = E
@@ -111,9 +111,13 @@ class MgBlock(bp.dyn.SynapseOutput):
 
 class Thalamus(bp.dyn.Network):
   def __init__(
-      self, g_input: Dict[str, float], g_KL: Dict[str, float],
-      HTC_V_init=bp.init.OneInit(-65.), RTC_V_init=bp.init.OneInit(-65.),
-      IN_V_init=bp.init.OneInit(-70.), RE_V_init=bp.init.OneInit(-70.),
+      self,
+      g_input: Dict[str, float],
+      g_KL: Dict[str, float],
+      HTC_V_init=bp.init.OneInit(-65.),
+      RTC_V_init=bp.init.OneInit(-65.),
+      IN_V_init=bp.init.OneInit(-70.),
+      RE_V_init=bp.init.OneInit(-70.),
   ):
     super(Thalamus, self).__init__()
 
@@ -144,19 +148,19 @@ class Thalamus(bp.dyn.Network):
     # HTC cells were connected with gap junctions
     self.gj_HTC = synapses.GapJunction(self.HTC, self.HTC,
                                        bp.conn.ProbDist(dist=2., prob=0.3, ),
-                                       conn_type='sparse',
+                                       comp_method='sparse',
                                        g_max=1e-2)
 
     # HTC provides feedforward excitation to INs
     self.HTC2IN_ampa = synapses.AMPA(self.HTC, self.IN, bp.conn.FixedProb(0.3),
                                      delay_step=int(2 / bm.get_dt()),
-                                     plasticity=synplast.STD(tau=700, U=0.07),
+                                     stp=synplast.STD(tau=700, U=0.07),
                                      alpha=0.94,
                                      beta=0.18,
                                      g_max=6e-3)
     self.HTC2IN_nmda = synapses.AMPA(self.HTC, self.IN, bp.conn.FixedProb(0.3),
                                      delay_step=int(2 / bm.get_dt()),
-                                     plasticity=synplast.STD(tau=700, U=0.07),
+                                     stp=synplast.STD(tau=700, U=0.07),
                                      output=MgBlock(),
                                      alpha=1.,
                                      beta=0.0067,
@@ -165,7 +169,7 @@ class Thalamus(bp.dyn.Network):
     # INs delivered feedforward inhibition to RTC cells
     self.IN2RTC = synapses.GABAa(self.IN, self.RTC, bp.conn.FixedProb(0.3),
                                  delay_step=int(2 / bm.get_dt()),
-                                 plasticity=synplast.STD(tau=700, U=0.07),
+                                 stp=synplast.STD(tau=700, U=0.07),
                                  output=synouts.COBA(E=-80),
                                  alpha=10.5,
                                  beta=0.166,
@@ -174,47 +178,47 @@ class Thalamus(bp.dyn.Network):
     # 20% RTC cells electrically connected with HTC cells
     self.gj_RTC2HTC = synapses.GapJunction(self.RTC, self.HTC,
                                            bp.conn.ProbDist(dist=2., prob=0.3, pre_ratio=0.2),
-                                           conn_type='sparse',
+                                           comp_method='sparse',
                                            g_max=1 / 300)
 
     # Both HTC and RTC cells sent glutamatergic synapses to RE neurons, while
     # receiving GABAergic feedback inhibition from the RE population
     self.HTC2RE_ampa = synapses.AMPA(self.HTC, self.RE, bp.conn.FixedProb(0.2),
                                      delay_step=int(2 / bm.get_dt()),
-                                     plasticity=synplast.STD(tau=700, U=0.07),
+                                     stp=synplast.STD(tau=700, U=0.07),
                                      alpha=0.94,
                                      beta=0.18,
                                      g_max=4e-3)
     self.RTC2RE_ampa = synapses.AMPA(self.RTC, self.RE, bp.conn.FixedProb(0.2),
                                      delay_step=int(2 / bm.get_dt()),
-                                     plasticity=synplast.STD(tau=700, U=0.07),
+                                     stp=synplast.STD(tau=700, U=0.07),
                                      alpha=0.94,
                                      beta=0.18,
                                      g_max=4e-3)
     self.HTC2RE_nmda = synapses.AMPA(self.HTC, self.RE, bp.conn.FixedProb(0.2),
                                      delay_step=int(2 / bm.get_dt()),
-                                     plasticity=synplast.STD(tau=700, U=0.07),
+                                     stp=synplast.STD(tau=700, U=0.07),
                                      output=MgBlock(),
                                      alpha=1.,
                                      beta=0.0067,
                                      g_max=2e-3)
     self.RTC2RE_nmda = synapses.AMPA(self.RTC, self.RE, bp.conn.FixedProb(0.2),
                                      delay_step=int(2 / bm.get_dt()),
-                                     plasticity=synplast.STD(tau=700, U=0.07),
+                                     stp=synplast.STD(tau=700, U=0.07),
                                      output=MgBlock(),
                                      alpha=1.,
                                      beta=0.0067,
                                      g_max=2e-3)
     self.RE2HTC = synapses.GABAa(self.RE, self.HTC, bp.conn.FixedProb(0.2),
                                  delay_step=int(2 / bm.get_dt()),
-                                 plasticity=synplast.STD(tau=700, U=0.07),
+                                 stp=synplast.STD(tau=700, U=0.07),
                                  output=synouts.COBA(E=-80),
                                  alpha=10.5,
                                  beta=0.166,
                                  g_max=3e-3)
     self.RE2RTC = synapses.GABAa(self.RE, self.RTC, bp.conn.FixedProb(0.2),
                                  delay_step=int(2 / bm.get_dt()),
-                                 plasticity=synplast.STD(tau=700, U=0.07),
+                                 stp=synplast.STD(tau=700, U=0.07),
                                  output=synouts.COBA(E=-80),
                                  alpha=10.5,
                                  beta=0.166,
@@ -223,11 +227,11 @@ class Thalamus(bp.dyn.Network):
     # RE neurons were connected with both gap junctions and GABAergic synapses
     self.gj_RE = synapses.GapJunction(self.RE, self.RE,
                                       bp.conn.ProbDist(dist=2., prob=0.3, pre_ratio=0.2),
-                                      conn_type='sparse',
+                                      comp_method='sparse',
                                       g_max=1 / 300)
     self.RE2RE = synapses.GABAa(self.RE, self.RE, bp.conn.FixedProb(0.2),
                                 delay_step=int(2 / bm.get_dt()),
-                                plasticity=synplast.STD(tau=700, U=0.07),
+                                stp=synplast.STD(tau=700, U=0.07),
                                 output=synouts.COBA(E=-70),
                                 alpha=10.5, beta=0.166,
                                 g_max=1e-3)
@@ -236,7 +240,7 @@ class Thalamus(bp.dyn.Network):
     # probability (0.05) was used for the RE->IN synapses according to experimental data
     self.RE2IN = synapses.GABAa(self.RE, self.IN, bp.conn.FixedProb(0.05, pre_ratio=0.1),
                                 delay_step=int(2 / bm.get_dt()),
-                                plasticity=synplast.STD(tau=700, U=0.07),
+                                stp=synplast.STD(tau=700, U=0.07),
                                 output=synouts.COBA(E=-80),
                                 alpha=10.5, beta=0.166,
                                 g_max=1e-3, )

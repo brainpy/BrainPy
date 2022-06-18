@@ -8,7 +8,7 @@ from brainpy.initialize import (XavierNormal,
                                 ZeroInit,
                                 Uniform,
                                 Orthogonal,
-                                init_param,
+                                parameter,
                                 Initializer)
 from brainpy.compat.nn.base import RecurrentNode
 from brainpy.compat.nn.datatypes import MultipleData
@@ -92,9 +92,9 @@ class VanillaRNN(RecurrentNode):
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     # weights
     num_input = sum(free_sizes)
-    self.Wff = init_param(self._wi_initializer, (num_input, self.num_unit))
-    self.Wrec = init_param(self._wh_initializer, (self.num_unit, self.num_unit))
-    self.bias = init_param(self._bias_initializer, (self.num_unit,))
+    self.Wff = parameter(self._wi_initializer, (num_input, self.num_unit))
+    self.Wrec = parameter(self._wh_initializer, (self.num_unit, self.num_unit))
+    self.bias = parameter(self._bias_initializer, (self.num_unit,))
     if self.trainable:
       self.Wff = bm.TrainVar(self.Wff)
       self.Wrec = bm.TrainVar(self.Wrec)
@@ -105,12 +105,12 @@ class VanillaRNN(RecurrentNode):
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_feedback = sum(free_sizes)
     # weights
-    self.Wfb = init_param(self._wi_initializer, (num_feedback, self.num_unit))
+    self.Wfb = parameter(self._wi_initializer, (num_feedback, self.num_unit))
     if self.trainable:
       self.Wfb = bm.TrainVar(self.Wfb)
 
   def init_state(self, num_batch=1):
-    return init_param(self._state_initializer, (num_batch, self.num_unit))
+    return parameter(self._state_initializer, (num_batch, self.num_unit))
 
   def forward(self, ff, fb=None, **shared_kwargs):
     ff = bm.concatenate(ff, axis=-1)
@@ -204,9 +204,9 @@ class GRU(RecurrentNode):
 
     # weights
     num_input = sum(free_sizes)
-    self.Wi_ff = init_param(self._wi_initializer, (num_input, self.num_unit * 3))
-    self.Wh = init_param(self._wh_initializer, (self.num_unit, self.num_unit * 3))
-    self.bias = init_param(self._bias_initializer, (self.num_unit * 3,))
+    self.Wi_ff = parameter(self._wi_initializer, (num_input, self.num_unit * 3))
+    self.Wh = parameter(self._wh_initializer, (self.num_unit, self.num_unit * 3))
+    self.bias = parameter(self._bias_initializer, (self.num_unit * 3,))
     if self.trainable:
       self.Wi_ff = bm.TrainVar(self.Wi_ff)
       self.Wh = bm.TrainVar(self.Wh)
@@ -217,12 +217,12 @@ class GRU(RecurrentNode):
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_feedback = sum(free_sizes)
     # weights
-    self.Wi_fb = init_param(self._wi_initializer, (num_feedback, self.num_unit * 3))
+    self.Wi_fb = parameter(self._wi_initializer, (num_feedback, self.num_unit * 3))
     if self.trainable:
       self.Wi_fb = bm.TrainVar(self.Wi_fb)
 
   def init_state(self, num_batch=1):
-    return init_param(self._state_initializer, (num_batch, self.num_unit))
+    return parameter(self._state_initializer, (num_batch, self.num_unit))
 
   def forward(self, ff, fb=None, **shared_kwargs):
     gates_x = bm.matmul(bm.concatenate(ff, axis=-1), self.Wi_ff)
@@ -337,9 +337,9 @@ class LSTM(RecurrentNode):
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     # weights
     num_input = sum(free_sizes)
-    self.Wi_ff = init_param(self._wi_initializer, (num_input, self.num_unit * 4))
-    self.Wh = init_param(self._wh_initializer, (self.num_unit, self.num_unit * 4))
-    self.bias = init_param(self._bias_initializer, (self.num_unit * 4,))
+    self.Wi_ff = parameter(self._wi_initializer, (num_input, self.num_unit * 4))
+    self.Wh = parameter(self._wh_initializer, (self.num_unit, self.num_unit * 4))
+    self.bias = parameter(self._bias_initializer, (self.num_unit * 4,))
     if self.trainable:
       self.Wi_ff = bm.TrainVar(self.Wi_ff)
       self.Wh = bm.TrainVar(self.Wh)
@@ -350,12 +350,12 @@ class LSTM(RecurrentNode):
     assert len(unique_size) == 1, 'Only support data with or without batch size.'
     num_feedback = sum(free_sizes)
     # weights
-    self.Wi_fb = init_param(self._wi_initializer, (num_feedback, self.num_unit * 4))
+    self.Wi_fb = parameter(self._wi_initializer, (num_feedback, self.num_unit * 4))
     if self.trainable:
       self.Wi_fb = bm.TrainVar(self.Wi_fb)
 
   def init_state(self, num_batch=1):
-    return init_param(self._state_initializer, (num_batch * 2, self.num_unit))
+    return parameter(self._state_initializer, (num_batch * 2, self.num_unit))
 
   def forward(self, ff, fb=None, **shared_kwargs):
     h, c = bm.split(self.state, 2)

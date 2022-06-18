@@ -6,7 +6,7 @@ from typing import Union, Sequence, Dict, Any, Callable, Optional
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param as true_init_param
+from brainpy.initialize import Initializer, parameter as true_init_param
 from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor, Shape
 
@@ -39,7 +39,7 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
   """Initialize parameters.
 
   .. deprecated:: 2.1.2
-     Please use "brainpy.init.init_param" instead.
+     Please use "brainpy.init.parameter" instead.
 
   Parameters
   ----------
@@ -52,8 +52,8 @@ def init_param(param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray],
   size: int, sequence of int
     The shape of the parameter.
   """
-  warnings.warn('Please use "brainpy.init.init_param" instead. '
-                '"brainpy.nn.init_param" is deprecated since version 2.1.2. ',
+  warnings.warn('Please use "brainpy.init.parameter" instead. '
+                '"brainpy.nn.parameter" is deprecated since version 2.1.2. ',
                 DeprecationWarning)
   return true_init_param(param, size)
 

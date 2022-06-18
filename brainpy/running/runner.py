@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import gc
 import types
 from typing import Callable, Dict, Sequence, Union
 
@@ -208,3 +208,10 @@ class Runner(object):
 
   def build_monitors(self, return_without_idx, return_with_idx) -> Callable:
     raise NotImplementedError
+
+  def __del__(self):
+    for key in tuple(self.mon.keys()):
+      del self.mon[key]
+    for key in tuple(self.__dict__.keys()):
+      del self.__dict__[key]
+    gc.collect()

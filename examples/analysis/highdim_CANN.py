@@ -66,7 +66,8 @@ class CANN1D(bp.dyn.NeuGroup):
   def get_stimulus_by_pos(self, pos):
     return self.A * bm.exp(-0.25 * bm.square(self.dist(self.x - pos) / self.a))
 
-  def update(self, t, dt):
+  def update(self, tdi):
+    t, dt = tdi.get('t'), tdi.get('dt')
     self.u.value = self.integral(self.u, t, self.input, dt)
     self.input[:] = 0.
 

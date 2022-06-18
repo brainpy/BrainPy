@@ -5,7 +5,7 @@ This module provides numerical methods for integrating Caputo fractional derivat
 
 """
 
-from typing import Union, Dict
+from typing import Union, Dict, Sequence, Callable
 
 import jax.numpy as jnp
 
@@ -17,6 +17,7 @@ from brainpy.integrators.utils import check_inits, format_args
 from brainpy.tools.errors import check_error_in_jit
 from .base import FDEIntegrator
 from .generic import register_fde_integrator, get_supported_methods
+from brainpy.types import Tensor
 
 __all__ = [
   'CaputoEuler',
@@ -113,12 +114,12 @@ class CaputoEuler(FDEIntegrator):
 
   def __init__(
       self,
-      f,
-      alpha,
-      num_memory,
-      inits,
-      dt=None,
-      name=None,
+      f: Callable,
+      alpha: Union[float, Sequence[float], Tensor],
+      num_memory: int,
+      inits: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      dt: float = None,
+      name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
   ):
     super(CaputoEuler, self).__init__(f=f,
@@ -306,12 +307,12 @@ class CaputoL1Schema(FDEIntegrator):
 
   def __init__(
       self,
-      f,
-      alpha,
-      num_memory,
-      inits,
-      dt=None,
-      name=None,
+      f: Callable,
+      alpha: Union[float, Sequence[float], Tensor],
+      num_memory: int,
+      inits: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      dt: float = None,
+      name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
   ):
     super(CaputoL1Schema, self).__init__(f=f,

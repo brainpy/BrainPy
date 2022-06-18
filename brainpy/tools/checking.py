@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict, Callable, Tuple, Type
+from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional
 
 import jax.numpy as jnp
 import numpy as np
@@ -16,12 +16,15 @@ __all__ = [
   'check_shape_except_batch',
   'check_shape',
   'check_dict_data',
+  'check_callable',
   'check_initializer',
   'check_connector',
   'check_float',
   'check_integer',
   'check_string',
   'check_sequence',
+
+  'serialize_kwargs',
 ]
 
 
@@ -167,9 +170,23 @@ def check_dict_data(a_dict: Dict,
                        f'while we got ({type(key)}, {type(value)})')
 
 
+def check_callable(fun: Callable,
+                   name: str = None,
+                   allow_none: bool = False):
+  name = '' if name is None else name
+  if fun is None:
+    if allow_none:
+      return None
+    else:
+      raise ValueError(f'{name} must be a callable function, but we got None.')
+  if not callable(fun):
+    raise ValueError(f'{name} should be a callable function. While we got {type(fun)}')
+  return fun
+
+
 def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
                       name: str = None,
-                      allow_none=False):
+                      allow_none: bool = False):
   """Check the initializer.
   """
   import brainpy.math as bm
@@ -181,11 +198,11 @@ def check_initializer(initializer: Union[Callable, init.Initializer, Tensor],
     else:
       raise ValueError(f'{name} must be an initializer, but we got None.')
   if isinstance(initializer, init.Initializer):
-    return
+    return initializer
   elif isinstance(initializer, (bm.ndarray, jnp.ndarray)):
-    return
+    return initializer
   elif callable(initializer):
-    return
+    return initializer
   else:
     raise ValueError(f'{name} should be an instance of brainpy.init.Initializer, '
                      f'tensor or callable function. While we got {type(initializer)}')
@@ -233,8 +250,14 @@ def check_sequence(value: Sequence,
                          f'but we got {type(elem_type)}: {v}')
 
 
-def check_float(value: float, name=None, min_bound=None, max_bound=None,
-                allow_none=False, allow_int=True):
+def check_float(
+    value: float,
+    name: str = None,
+    min_bound: float = None,
+    max_bound: float = None,
+    allow_none: bool = False,
+    allow_int: bool = True
+) -> float:
   """Check float type.
 
   Parameters
@@ -253,7 +276,7 @@ def check_float(value: float, name=None, min_bound=None, max_bound=None,
   if name is None: name = ''
   if value is None:
     if allow_none:
-      return
+      return None
     else:
       raise ValueError(f'{name} must be a float, but got None')
   if allow_int:
@@ -270,6 +293,7 @@ def check_float(value: float, name=None, min_bound=None, max_bound=None,
     if value > max_bound:
       raise ValueError(f"{name} must be a float smaller than {max_bound}, "
                        f"while we got {value}")
+  return value
 
 
 def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none=False):
@@ -321,3 +345,14 @@ def check_string(value: str, name: str = None, candidates: Sequence[str] = None,
     if value not in candidates:
       raise ValueError(f'{name} must be a str in {candidates}, '
                        f'but we got {value}')
+
+
+def serialize_kwargs(shared_kwargs: Optional[Dict]):
+  """Serialize kwargs."""
+  shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+  check_dict_data(shared_kwargs,
+                  key_type=str,
+                  val_type=(bool, float, int, complex),
+                  name='shared_kwargs')
+  shared_kwargs = {key: shared_kwargs[key] for key in sorted(shared_kwargs.keys())}
+  return str(shared_kwargs)

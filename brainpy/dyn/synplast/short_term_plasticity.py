@@ -3,10 +3,11 @@
 from typing import Union
 
 import brainpy.math as bm
-from brainpy.dyn.base import SynapsePlasticity
+from brainpy.dyn.base import SynSTP
 from brainpy.integrators import odeint, JointEq
 from brainpy.tools.checking import check_float
 from brainpy.types import Tensor
+from brainpy.initialize import variable
 
 __all__ = [
   'STD',
@@ -14,7 +15,7 @@ __all__ = [
 ]
 
 
-class STD(SynapsePlasticity):
+class STD(SynSTP):
   r"""Synaptic output with short-term depression.
 
   This model filters the synaptic current by the following equation:
@@ -52,9 +53,10 @@ class STD(SynapsePlasticity):
       self,
       tau: float = 200.,
       U: float = 0.07,
-      method: str = 'exp_auto'
+      method: str = 'exp_auto',
+      name: str = None
   ):
-    super(STD, self).__init__()
+    super(STD, self).__init__(name=name)
 
     # parameters
     check_float(tau, 'tau', min_bound=0, )
@@ -70,20 +72,22 @@ class STD(SynapsePlasticity):
     super(STD, self).register_master(master)
 
     # variables
-    self.x = bm.Variable(bm.ones(self.master.pre.num))
+    self.x = variable(bm.ones, self.master.trainable, self.master.pre.num)
 
-  def reset(self):
-    self.x[:] = 1.
+  def reset_state(self, batch_size=None):
+    self.x.value = variable(bm.ones, batch_size, self.master.pre.num)
 
-  def update(self, t, dt, pre_spike=None, post_spike=None):
-    x = self.integral(self.x.value, t, dt)
+  def update(self, tdi, pre_spike):
+    x = self.integral(self.x.value, tdi['t'], tdi['dt'])
     self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
 
   def filter(self, g):
+    if bm.shape(g) != self.x.shape:
+      raise ValueError('Shape does not match.')
     return g * self.x
 
 
-class STP(SynapsePlasticity):
+class STP(SynSTP):
   r"""Synaptic output with short-term plasticity.
 
   This model filters the synaptic currents according to two variables: :math:`u` and :math:`x`.
@@ -152,8 +156,12 @@ class STP(SynapsePlasticity):
     super(STP, self).register_master(master)
 
     # variables
-    self.x = bm.Variable(bm.ones(self.master.pre.num))
-    self.u = bm.Variable(bm.ones(self.master.pre.num) * self.U)
+    self.x = variable(bm.ones, self.master.trainable, self.master.pre.num)
+    self.u = variable(lambda s: bm.ones(s) * self.U, self.master.trainable, self.master.pre.num)
+
+  def reset_state(self, batch_size=None):
+    self.x.value = variable(bm.ones, batch_size, self.master.pre.num)
+    self.u.value = variable(lambda s: bm.ones(s) * self.U, batch_size, self.master.pre.num)
 
   @property
   def derivative(self):
@@ -161,16 +169,14 @@ class STP(SynapsePlasticity):
     dx = lambda x, t: (1 - x) / self.tau_d
     return JointEq([du, dx])
 
-  def reset(self):
-    self.x[:] = 1.
-    self.u[:] = self.U
-
-  def update(self, t, dt, pre_spike=None, post_spike=None):
-    u, x = self.integral(self.u.value, self.x.value, t, dt)
+  def update(self, tdi, pre_spike):
+    u, x = self.integral(self.u.value, self.x.value, tdi['t'], tdi['dt'])
     u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
     x = bm.where(pre_spike, x - u * self.x, x)
     self.x.value = x
     self.u.value = u
 
   def filter(self, g):
+    if bm.shape(g) != self.x.shape:
+      raise ValueError('Shape does not match.')
     return g * self.x * self.u

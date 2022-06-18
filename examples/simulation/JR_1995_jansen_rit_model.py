@@ -100,7 +100,8 @@ class JansenRitModel(bp.dyn.DynamicalSystem):
   def dy5(self, y5, t, y0, y2):
     return (self.B * self.C4 * self.sigmoid(self.C3 * y0) - 2 * y5 - y2 / self.tau_i) / self.tau_i
 
-  def update(self, t, dt):
+  def update(self, tdi):
+    t, dt = tdi['t'], tdi['dt']
     self.y0.value, self.y1.value, self.y2.value, self.y3.value, self.y4.value, self.y5.value = \
       self.integral(self.y0, self.y1, self.y2, self.y3, self.y4, self.y5, t, p=self.p, dt=dt)
 

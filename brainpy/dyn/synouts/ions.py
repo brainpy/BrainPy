@@ -3,8 +3,8 @@
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.base import SynapseOutput
-from brainpy.initialize import init_param, Initializer
+from brainpy.dyn.base import SynOutput
+from brainpy.initialize import parameter, Initializer
 from brainpy.types import Tensor
 
 
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-class MgBlock(SynapseOutput):
+class MgBlock(SynOutput):
   r"""Synaptic output based on Magnesium blocking.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -60,10 +60,10 @@ class MgBlock(SynapseOutput):
 
   def register_master(self, master):
     super(MgBlock, self).register_master(master)
-    self.E = init_param(self.E, self.master.post.num, allow_none=False)
-    self.cc_Mg = init_param(self.cc_Mg, self.master.post.num, allow_none=False)
-    self.alpha = init_param(self.alpha, self.master.post.num, allow_none=False)
-    self.beta = init_param(self.beta, self.master.post.num, allow_none=False)
+    self.E = parameter(self.E, self.master.post.num, allow_none=False)
+    self.cc_Mg = parameter(self.cc_Mg, self.master.post.num, allow_none=False)
+    self.alpha = parameter(self.alpha, self.master.post.num, allow_none=False)
+    self.beta = parameter(self.beta, self.master.post.num, allow_none=False)
 
   def filter(self, g):
     V = self.master.post.V.value

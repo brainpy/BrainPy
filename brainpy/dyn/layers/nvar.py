@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.tools.checking import (check_integer, check_sequence)
-from brainpy.train.base import TrainingSystem
+from brainpy.dyn.training import TrainingSystem
 
 
 __all__ = [
@@ -126,7 +126,7 @@ class NVAR(TrainingSystem):
     # manually handle the state of NVAR, rather return it.
     self.store._value = jnp.zeros((self.num_delay, batch_size, self.num_in))
 
-  def forward(self, x, shared_args=None):
+  def update(self, sha, x):
     all_parts = []
     # 1. Store the current input
     self.store[self.idx[0]] = x

@@ -191,7 +191,8 @@ class ReducedTRNModel(bp.dyn.NeuGroup):
     dzdt = self.fz(z, t, V)
     return dvdt, dydt, dzdt
 
-  def update(self, t, dt):
+  def update(self, tdi):
+    t, dt = tdi['t'], tdi['dt']
     if isinstance(self.int_V, bp.ode.ExponentialEuler):
       V = self.int_V(self.V, t, self.y, self.z, self.input, dt)
       self.y.value = self.int_y(self.y, t, self.V, dt)

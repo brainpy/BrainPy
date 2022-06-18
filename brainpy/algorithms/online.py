@@ -135,7 +135,7 @@ def get_supported_online_methods():
   return tuple(name2func.keys())
 
 
-def register_online_method(name, method):
+def register_online_method(name: str, method: OnlineAlgorithm):
   """Register a new oneline learning method.
 
   Parameters
@@ -146,14 +146,13 @@ def register_online_method(name, method):
     The function method.
   """
   if name in name2func:
-    raise ValueError(f'"{name}" has been registered in offline training methods.')
-  if not callable(method):
-    raise ValueError(f'"method" must be an instance of callable '
-                     f'function, but we got {type(method)}')
+    raise ValueError(f'"{name}" has been registered in online training methods. Please change another name.')
+  if not isinstance(method, OnlineAlgorithm):
+    raise ValueError(f'"method" must be an instance of {OnlineAlgorithm.__name__}, but we got {type(method)}')
   name2func[name] = method
 
 
-def get(name):
+def get(name: str):
   """Get the training function according to the training method name."""
   if name not in name2func:
     raise ValueError(f'All online methods are: {get_supported_online_methods()}.\n'

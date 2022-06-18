@@ -5,8 +5,7 @@ from typing import Union, Dict, Callable
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup, TwoEndConn
-from brainpy.initialize import Initializer
-from brainpy.dyn.utils import init_delay
+from brainpy.initialize import Initializer, delay as init_delay
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor, Parameter
 
@@ -189,7 +188,6 @@ class STP(TwoEndConn):
   ):
     super(STP, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_post_attrs('input')
-    self.check_pre_attrs('spike')
 
     # parameters
     self.tau_d = tau_d

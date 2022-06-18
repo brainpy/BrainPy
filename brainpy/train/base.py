@@ -1,201 +1,131 @@
 # -*- coding: utf-8 -*-
 
-import inspect
-from typing import Union, Callable, Optional, Dict
+from typing import Dict, Sequence, Any, Union, Tuple
 
+import jax.numpy as jnp
+
+import brainpy.math as bm
+from brainpy.dyn.runners import DSRunner
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.train.algorithms import OfflineAlgorithm, OnlineAlgorithm
-from brainpy.types import Tensor
+from brainpy.tools.checking import check_dict_data
+from brainpy.dyn.training import TrainingSystem
+
+from brainpy.types import Tensor, Output
 
 __all__ = [
-  'TrainingSystem', 'Sequential',
+  'DSTrainer', 'DSRunner',
 ]
 
 
-def not_implemented(fun: Callable) -> Callable:
-  """Marks the given module method is not implemented.
+class DSTrainer(DSRunner):
+  """Structural Trainer for Dynamical Systems."""
 
-  Methods wrapped in @not_implemented can define submodules directly within the method.
+  target: Union[DynamicalSystem, TrainingSystem]
+  train_nodes: Sequence[DynamicalSystem]  # need to be initialized by subclass
 
-  For instance::
+  def __init__(
+      self,
+      target: Union[DynamicalSystem, TrainingSystem],
+      **kwargs
+  ):
+    if not isinstance(target, (DynamicalSystem, TrainingSystem)):
+      raise TypeError(f'"target" must be an instance of '
+                      f'{DynamicalSystem.__name__} or {TrainingSystem.__name__}, '
+                      f'but we got {type(target)}: {target}')
+    super(DSTrainer, self).__init__(target=target, **kwargs)
 
-    @not_implemented
-    init_fb(self):
-      ...
+    # jit
+    self.jit['predict'] = self.jit.get('predict', True)
+    self.jit['fit'] = self.jit.get('fit', True)
 
-    @not_implemented
-    def feedback(self):
-      ...
-  """
-  fun.not_implemented = True
-  return fun
+  def predict(
+      self,
+      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
+      reset_state: bool = False,
+      shared_args: Dict = None,
+      eval_time: bool = False
+  ) -> Output:
+    """Prediction function.
 
+    What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
+    the `inputs_are_batching` is default `True`.
 
-class TrainingSystem(DynamicalSystem):
-  """Base class for training system in BrainPy.
-
-  """
-
-  '''Online fitting method.'''
-  online_fit_by: Optional[OnlineAlgorithm]
-
-  '''Offline fitting method.'''
-  offline_fit_by: Optional[OfflineAlgorithm]
-
-  def __init__(self, name: str = None, trainable: bool = False):
-    super(TrainingSystem, self).__init__(name=name)
-    self._trainable = trainable
-    self.online_fit_by = None
-    self.offline_fit_by = None
-    self.fit_record = dict()
-
-  @property
-  def trainable(self):
-    return self._trainable
-
-  @trainable.setter
-  def trainable(self, value):
-    self._trainable = value
-
-  def __repr__(self):
-    return f"{type(self).__name__}(name={self.name}, trainable={self.trainable})"
-
-  def __call__(self, *args, **kwargs) -> Tensor:
-    """The main computation function of a Node.
+    Parameters
+    ----------
+    inputs: Tensor, sequence of Tensor, dict of Tensor
+      The input values.
+    reset_state: bool
+      Reset the target state before running.
+    shared_args: dict
+      The shared arguments across nodes.
+    eval_time: bool
+      Whether we evaluate the running time or not?
 
     Returns
     -------
-    Tensor
-      A output tensor value, or a dict of output tensors.
+    output: Tensor, sequence of Tensor, dict of Tensor
+      The running output.
     """
-    return self.forward(*args, **kwargs)
+    return super(DSTrainer, self).predict(duration=None,
+                                          inputs=inputs,
+                                          inputs_are_batching=True,
+                                          reset_state=reset_state,
+                                          shared_args=shared_args,
+                                          eval_time=eval_time)
 
-  @not_implemented
-  def update(self, t, dt, x, shared_args=None) -> Tensor:
-    return self.forward(x, shared_args)
+  def fit(
+      self,
+      train_data: Any,
+      reset_state: bool = False,
+      shared_args: Dict = None
+  ) -> Output:  # need to be implemented by subclass
+    raise NotImplementedError('Must implement the fit function. ')
 
-  def forward(self, x, shared_args=None) -> Tensor:
-    raise NotImplementedError('Subclass should implement "forward()" function '
-                              'when "update()" function is not customized.')
+  def _get_trainable_nodes(self) -> Tuple[TrainingSystem, ...]:
+    # check trainable nodes
+    nodes = self.target.nodes(level=-1, include_self=True).subset(TrainingSystem).unique()
+    return tuple([node for node in nodes.values() if node.trainable])
 
-  def reset(self, batch_size=1):
-    for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
-      node.reset(batch_size=batch_size)
-
-  def reset_state(self, batch_size=1):
-    for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
-      node.reset_state(batch_size=batch_size)
-
-  @not_implemented
-  def online_init(self):
-    raise NotImplementedError('Subclass must implement online_init() function when using '
-                              'OnlineTrainer.')
-
-  @not_implemented
-  def offline_init(self):
-    raise NotImplementedError('Subclass must implement offline_init() function when using '
-                              'OfflineTrainer.')
-
-  @not_implemented
-  def online_fit(self,
-                 target: Tensor,
-                 fit_record: Dict[str, Tensor],
-                 shared_args: Dict = None):
-    raise NotImplementedError('Subclass must implement online_fit() function when using '
-                              'OnlineTrainer.')
-
-  @not_implemented
-  def offline_fit(self,
-                  target: Tensor,
-                  fit_record: Dict[str, Tensor],
-                  shared_args: Dict = None):
-    raise NotImplementedError('Subclass must implement offline_fit() function when using '
-                              'OfflineTrainer.')
-
-
-class Sequential(TrainingSystem):
-  def __init__(self, *modules, name: str = None, **kw_modules):
-    super(Sequential, self).__init__(name=name, trainable=False)
-
-    # add sub-components
-    for module in modules:
-      if isinstance(module, TrainingSystem):
-        self.implicit_nodes[module.name] = module
-      elif isinstance(module, (list, tuple)):
-        for m in module:
-          if not isinstance(m, TrainingSystem):
-            raise ValueError(f'Should be instance of {TrainingSystem.__name__}. '
-                             f'But we got {type(m)}')
-          self.implicit_nodes[m.name] = module
-      elif isinstance(module, dict):
-        for k, v in module.items():
-          if not isinstance(v, TrainingSystem):
-            raise ValueError(f'Should be instance of {TrainingSystem.__name__}. '
-                             f'But we got {type(v)}')
-          self.implicit_nodes[k] = v
+  def _check_ys(self, ys, num_batch, num_step, move_axis=False):
+    if isinstance(ys, (bm.ndarray, jnp.ndarray)):
+      if len(self.train_nodes) == 1:
+        ys = {self.train_nodes[0].name: ys}
       else:
-        raise ValueError(f'Cannot parse sub-systems. They should be {TrainingSystem.__name__} '
-                         f'or a list/tuple/dict of  {TrainingSystem.__name__}.')
-    for k, v in kw_modules.items():
-      if not isinstance(v, TrainingSystem):
-        raise ValueError(f'Should be instance of {TrainingSystem.__name__}. '
-                         f'But we got {type(v)}')
-      self.implicit_nodes[k] = v
+        raise ValueError(f'The network\n {self.target} \nhas {len(self.train_nodes)} '
+                         f'training nodes, while we only got one target data.')
+    check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
 
-  def __getattr__(self, item):
-    """Wrap the dot access ('self.'). """
-    child_ds = super(Sequential, self).__getattribute__('implicit_nodes')
-    if item in child_ds:
-      return child_ds[item]
-    else:
-      return super(Sequential, self).__getattribute__(item)
-
-  def __getitem__(self, key: Union[int, slice]):
-    if isinstance(key, str):
-      if key not in self.implicit_nodes:
-        raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
-      return self.implicit_nodes[key]
-    elif isinstance(key, slice):
-      keys = tuple(self.implicit_nodes.keys())[key]
-      components = tuple(self.implicit_nodes.values())[key]
-      return Sequential(dict(zip(keys, components)))
-    elif isinstance(key, int):
-      return self.implicit_nodes.values()[key]
-    elif isinstance(key, (tuple, list)):
-      for i in key:
-        if isinstance(i, int):
-          raise KeyError(f'We excepted a tuple/list of int, but we got {type(i)}')
-      keys = tuple(self.implicit_nodes.keys())[key]
-      components = tuple(self.implicit_nodes.values())[key]
-      return Sequential(dict(zip(keys, components)))
-    else:
-      raise KeyError(f'Unknown type of key: {type(key)}')
-
-  def __repr__(self):
-    def f(x):
-      if not isinstance(x, TrainingSystem) and callable(x):
-        signature = inspect.signature(x)
-        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
-                if v.default is not inspect.Parameter.empty]
-        args = ', '.join(args)
-        while not hasattr(x, '__name__'):
-          if not hasattr(x, 'func'):
-            break
-          x = x.func  # Handle functools.partial
-        if not hasattr(x, '__name__') and hasattr(x, '__class__'):
-          return x.__class__.__name__
-        if args:
-          return f'{x.__name__}(*, {args})'
-        return x.__name__
+    # check data path
+    abs_node_names = [node.name for node in self.train_nodes]
+    formatted_ys = {}
+    ys_not_included = {}
+    for k, v in ys.items():
+      if k in abs_node_names:
+        formatted_ys[k] = v
       else:
-        x = repr(x).split('\n')
-        x = [x[0]] + ['  ' + y for y in x[1:]]
-        return '\n'.join(x)
+        ys_not_included[k] = v
+    if len(ys_not_included):
+      rel_nodes = self.target.nodes('relative', level=-1, include_self=True).subset(DynamicalSystem).unique()
+      for k, v in ys_not_included.items():
+        if k in rel_nodes:
+          formatted_ys[rel_nodes[k].name] = v
+        else:
+          raise ValueError(f'Unknown target "{k}" for fitting.')
 
-    entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
-    return f'{self.__class__.__name__}(\n{entries}\n)'
+    # check data shape
+    for key, val in formatted_ys.items():
+      if val.ndim < 3:
+        raise ValueError("Targets must be a tensor with shape of "
+                         "(num_sample, num_time, feature_dim, ...), "
+                         f"but we got {val.shape}")
+      if val.shape[0] != num_batch:
+        raise ValueError(f'Batch size of the target {key} does not match '
+                         f'with the input data {val.shape[0]} != {num_batch}')
+      if val.shape[1] != num_step:
+        raise ValueError(f'The time step of the target {key} does not match '
+                         f'with the input data {val.shape[1]} != {num_step})')
 
-  def forward(self, x, shared_args=None) -> Tensor:
-    for node in self.implicit_nodes.values():
-      x = node.forward(x, shared_args=shared_args)
-    return x
+    if move_axis:
+      # change shape to (num_time, num_sample, num_feature)
+      formatted_ys = {k: bm.moveaxis(v, 0, 1) for k, v in formatted_ys.items()}
+    return formatted_ys

@@ -14,7 +14,7 @@ __all__ = [
   'get_default_odeint', 'get_default_sdeint',
 
   # runners
-  'IntegratorRunner', 'DSRunner', 'StructRunner', 'ReportRunner'
+  'IntegratorRunner', 'DSRunner',
 ]
 
 from . import brainobjects, layers, nn

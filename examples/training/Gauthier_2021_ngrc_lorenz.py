@@ -111,8 +111,8 @@ class NGRC(bp.train.TrainingSystem):
     self.r = bp.train.NVAR(num_in, delay=2, order=2, constant=True)
     self.di = bp.train.Dense(self.r.num_out, num_in, b_initializer=None)
 
-  def forward(self, x, shared_args=None):
-    dx = self.di(self.r(x, shared_args), shared_args)
+  def update(self, sha, x):
+    dx = self.di(sha, self.r(sha, x))
     return x + dx
 
 
@@ -129,14 +129,15 @@ outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 
 # training
-trainer.fit([X_train, {'di': dX_train}])
+trainer.fit([X_train, dX_train])
 plot_weights(model.di.W, model.r.get_feature_names(for_plot=True), model.di.b)
 
 # prediction
+shared = dict()
 model_jit = bm.jit(model)
-outputs = [model_jit(X_test[:, 0])]
+outputs = [model_jit(shared, X_test[:, 0])]
 for i in range(1, X_test.shape[1]):
-  outputs.append(model_jit(outputs[i - 1]))
+  outputs.append(model_jit(shared, outputs[i - 1]))
 outputs = bm.asarray(outputs)
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
-plot_lorenz(Y_test.numpy().squeeze(), outputs.numpy().squeeze())
+plot_lorenz(bm.as_numpy(Y_test).squeeze(), bm.as_numpy(outputs).squeeze())

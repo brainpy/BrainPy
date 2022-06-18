@@ -4,8 +4,7 @@ from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
-from brainpy.dyn.utils import init_noise
-from brainpy.initialize import OneInit, Uniform, Initializer, init_param
+from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
@@ -209,21 +208,25 @@ class HH(NeuGroup):
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     # initialization
-    super(HH, self).__init__(size=size, keep_size=keep_size, name=name)
+    super(HH, self).__init__(size=size,
+                             keep_size=keep_size,
+                             name=name,
+                             trainable=trainable)
 
     # parameters
-    self.ENa = init_param(ENa, self.var_shape, allow_none=False)
-    self.EK = init_param(EK, self.var_shape, allow_none=False)
-    self.EL = init_param(EL, self.var_shape, allow_none=False)
-    self.gNa = init_param(gNa, self.var_shape, allow_none=False)
-    self.gK = init_param(gK, self.var_shape, allow_none=False)
-    self.gL = init_param(gL, self.var_shape, allow_none=False)
-    self.C = init_param(C, self.var_shape, allow_none=False)
-    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
-    self.noise = init_noise(noise, self.var_shape, num_vars=4)
+    self.ENa = parameter(ENa, self.varshape, allow_none=False)
+    self.EK = parameter(EK, self.varshape, allow_none=False)
+    self.EL = parameter(EL, self.varshape, allow_none=False)
+    self.gNa = parameter(gNa, self.varshape, allow_none=False)
+    self.gK = parameter(gK, self.varshape, allow_none=False)
+    self.gL = parameter(gL, self.varshape, allow_none=False)
+    self.C = parameter(C, self.varshape, allow_none=False)
+    self.V_th = parameter(V_th, self.varshape, allow_none=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=4)
 
     # initializers
     check_initializer(m_initializer, 'm_initializer', allow_none=False)
@@ -236,12 +239,13 @@ class HH(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.m = bm.Variable(init_param(self._m_initializer, self.var_shape))
-    self.h = bm.Variable(init_param(self._h_initializer, self.var_shape))
-    self.n = bm.Variable(init_param(self._n_initializer, self.var_shape))
-    self.V = bm.Variable(init_param(self._V_initializer, self.var_shape))
-    self.input = bm.Variable(bm.zeros(self.var_shape))
-    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.m = variable(self._m_initializer, trainable, self.varshape)
+    self.h = variable(self._h_initializer, trainable, self.varshape)
+    self.n = variable(self._n_initializer, trainable, self.varshape)
+    self.V = variable(self._V_initializer, trainable, self.varshape)
+    self.input = variable(bm.zeros, trainable, self.varshape)
+    # sp_type = bm.get_dfloat() if trainable else bool
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
     if self.noise is None:
@@ -249,13 +253,14 @@ class HH(NeuGroup):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
-  def reset(self):
-    self.m.value = init_param(self._m_initializer, self.var_shape)
-    self.h.value = init_param(self._h_initializer, self.var_shape)
-    self.n.value = init_param(self._n_initializer, self.var_shape)
-    self.V.value = init_param(self._V_initializer, self.var_shape)
-    self.input[:] = 0
-    self.spike[:] = False
+  def reset_state(self, batch_size=None):
+    self.m.value = variable(self._m_initializer, batch_size, self.varshape)
+    self.h.value = variable(self._h_initializer, batch_size, self.varshape)
+    self.n.value = variable(self._n_initializer, batch_size, self.varshape)
+    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    # sp_type = bm.get_dfloat() if self.trainable else bool
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def dm(self, m, t, V):
     alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
@@ -286,8 +291,10 @@ class HH(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dm, self.dh, self.dn])
 
-  def update(self, t, dt):
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt=dt)
+  def update(self, tdi, x=None):
+    t, dt = tdi['t'], tdi['dt']
+    if x is not None: self.input += x
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.m.value = m
@@ -394,26 +401,30 @@ class MorrisLecar(NeuGroup):
       V_initializer: Union[Callable, Initializer, Tensor] = Uniform(-70., -60.),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     # initialization
-    super(MorrisLecar, self).__init__(size=size, keep_size=keep_size, name=name)
+    super(MorrisLecar, self).__init__(size=size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      trainable=trainable)
 
     # params
-    self.V_Ca = init_param(V_Ca, self.var_shape, allow_none=False)
-    self.g_Ca = init_param(g_Ca, self.var_shape, allow_none=False)
-    self.V_K = init_param(V_K, self.var_shape, allow_none=False)
-    self.g_K = init_param(g_K, self.var_shape, allow_none=False)
-    self.V_leak = init_param(V_leak, self.var_shape, allow_none=False)
-    self.g_leak = init_param(g_leak, self.var_shape, allow_none=False)
-    self.C = init_param(C, self.var_shape, allow_none=False)
-    self.V1 = init_param(V1, self.var_shape, allow_none=False)
-    self.V2 = init_param(V2, self.var_shape, allow_none=False)
-    self.V3 = init_param(V3, self.var_shape, allow_none=False)
-    self.V4 = init_param(V4, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
-    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
-    self.noise = init_noise(noise, self.var_shape, num_vars=2)
+    self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
+    self.g_Ca = parameter(g_Ca, self.varshape, allow_none=False)
+    self.V_K = parameter(V_K, self.varshape, allow_none=False)
+    self.g_K = parameter(g_K, self.varshape, allow_none=False)
+    self.V_leak = parameter(V_leak, self.varshape, allow_none=False)
+    self.g_leak = parameter(g_leak, self.varshape, allow_none=False)
+    self.C = parameter(C, self.varshape, allow_none=False)
+    self.V1 = parameter(V1, self.varshape, allow_none=False)
+    self.V2 = parameter(V2, self.varshape, allow_none=False)
+    self.V3 = parameter(V3, self.varshape, allow_none=False)
+    self.V4 = parameter(V4, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
+    self.V_th = parameter(V_th, self.varshape, allow_none=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -422,10 +433,11 @@ class MorrisLecar(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.W = bm.Variable(init_param(W_initializer, self.var_shape))
-    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
-    self.input = bm.Variable(bm.zeros(self.var_shape))
-    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.W = variable(self._W_initializer, trainable, self.varshape)
+    self.V = variable(self._V_initializer, trainable, self.varshape)
+    self.input = variable(bm.zeros, trainable, self.varshape)
+    # sp_type = bm.get_dfloat() if trainable else bool
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
     if self.noise is None:
@@ -433,11 +445,12 @@ class MorrisLecar(NeuGroup):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
-  def reset(self):
-    self.W.value = init_param(self._W_initializer, self.var_shape)
-    self.V.value = init_param(self._V_initializer, self.var_shape)
-    self.input.value = bm.zeros(self.var_shape)
-    self.spike.value = bm.zeros(self.var_shape, dtype=bool)
+  def reset_state(self, batch_size=None):
+    self.W.value = variable(self._W_initializer, batch_size, self.varshape)
+    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    # sp_type = bm.get_dfloat() if self.trainable else bool
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
@@ -457,8 +470,10 @@ class MorrisLecar(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dW])
 
-  def update(self, t, dt):
-    V, self.W.value = self.integral(self.V, self.W, t, self.input, dt=dt)
+  def update(self, tdi, x=None):
+    t, dt = tdi['t'], tdi['dt']
+    if x is not None: self.input += x
+    V, self.W.value = self.integral(self.V, self.W, t, self.input, dt)
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.spike.value = spike
@@ -644,31 +659,35 @@ class PinskyRinzelModel(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+      trainable: bool = False,
   ):
     # initialization
-    super(PinskyRinzelModel, self).__init__(size=size, keep_size=keep_size, name=name)
+    super(PinskyRinzelModel, self).__init__(size=size,
+                                            keep_size=keep_size,
+                                            name=name,
+                                            trainable=trainable)
 
     # conductance parameters
-    self.gAHP = init_param(gAHP, self.var_shape, allow_none=False)
-    self.gCa = init_param(gCa, self.var_shape, allow_none=False)
-    self.gNa = init_param(gNa, self.var_shape, allow_none=False)
-    self.gK = init_param(gK, self.var_shape, allow_none=False)
-    self.gL = init_param(gL, self.var_shape, allow_none=False)
-    self.gC = init_param(gC, self.var_shape, allow_none=False)
+    self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
+    self.gCa = parameter(gCa, self.varshape, allow_none=False)
+    self.gNa = parameter(gNa, self.varshape, allow_none=False)
+    self.gK = parameter(gK, self.varshape, allow_none=False)
+    self.gL = parameter(gL, self.varshape, allow_none=False)
+    self.gC = parameter(gC, self.varshape, allow_none=False)
 
     # reversal potential parameters
-    self.ENa = init_param(ENa, self.var_shape, allow_none=False)
-    self.ECa = init_param(ECa, self.var_shape, allow_none=False)
-    self.EK = init_param(EK, self.var_shape, allow_none=False)
-    self.EL = init_param(EL, self.var_shape, allow_none=False)
+    self.ENa = parameter(ENa, self.varshape, allow_none=False)
+    self.ECa = parameter(ECa, self.varshape, allow_none=False)
+    self.EK = parameter(EK, self.varshape, allow_none=False)
+    self.EL = parameter(EL, self.varshape, allow_none=False)
 
     # other neuronal parameters
-    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
-    self.Cm = init_param(Cm, self.var_shape, allow_none=False)
-    self.gc = init_param(gc, self.var_shape, allow_none=False)
-    self.p = init_param(p, self.var_shape, allow_none=False)
-    self.A = init_param(A, self.var_shape, allow_none=False)
-    self.noise = init_noise(noise, self.var_shape, num_vars=8)
+    self.V_th = parameter(V_th, self.varshape, allow_none=False)
+    self.Cm = parameter(Cm, self.varshape, allow_none=False)
+    self.gc = parameter(gc, self.varshape, allow_none=False)
+    self.p = parameter(p, self.varshape, allow_none=False)
+    self.A = parameter(A, self.varshape, allow_none=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=8)
 
     # initializers
     check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
@@ -679,17 +698,17 @@ class PinskyRinzelModel(NeuGroup):
     self._Ca_initializer = Ca_initializer
 
     # variables
-    self.Vs = bm.Variable(init_param(self._Vs_initializer, self.var_shape))
-    self.Vd = bm.Variable(init_param(self._Vd_initializer, self.var_shape))
-    self.Ca = bm.Variable(init_param(self._Ca_initializer, self.var_shape))
-    self.h = bm.Variable(self.inf_h(self.Vs))
-    self.n = bm.Variable(self.inf_n(self.Vs))
-    self.s = bm.Variable(self.inf_s(self.Vd))
-    self.c = bm.Variable(self.inf_c(self.Vd))
-    self.q = bm.Variable(self.inf_q(self.Ca))
-    self.Id = bm.Variable(bm.zeros(self.var_shape))  # input to soma
-    self.Is = bm.Variable(bm.zeros(self.var_shape))  # input to dendrite
-    # self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.Vs = variable(self._Vs_initializer, trainable, self.varshape)
+    self.Vd = variable(self._Vd_initializer, trainable, self.varshape)
+    self.Ca = variable(self._Ca_initializer, trainable, self.varshape)
+    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if trainable else None)
+    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if trainable else None)
+    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if trainable else None)
+    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if trainable else None)
+    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if trainable else None)
+    self.Id = variable(bm.zeros, trainable, self.varshape)  # input to soma
+    self.Is = variable(bm.zeros, trainable, self.varshape)  # input to dendrite
+    # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
     if self.noise is None:
@@ -697,32 +716,38 @@ class PinskyRinzelModel(NeuGroup):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
-  def reset(self):
-    self.Vd.value = init_param(self._Vd_initializer, self.var_shape)
-    self.Vs.value = init_param(self._Vs_initializer, self.var_shape)
-    self.Ca.value = init_param(self._Ca_initializer, self.var_shape)
-    self.h.value = self.inf_h(self.Vs)
-    self.n.value = self.inf_n(self.Vs)
-    self.s.value = self.inf_s(self.Vd)
-    self.c.value = self.inf_c(self.Vd)
-    self.q.value = self.inf_q(self.Ca)
-    self.Id[:] = 0
-    self.Is[:] = 0
+  def reset_state(self, batch_size=None):
+    self.Vd.value = variable(self._Vd_initializer, batch_size, self.varshape)
+    self.Vs.value = variable(self._Vs_initializer, batch_size, self.varshape)
+    self.Ca.value = variable(self._Ca_initializer, batch_size, self.varshape)
+    batch_axis = 0 if self.trainable else None
+    self.h.value = bm.Variable(self.inf_h(self.Vs), batch_axis=batch_axis)
+    self.n.value = bm.Variable(self.inf_n(self.Vs), batch_axis=batch_axis)
+    self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
+    self.c.value = bm.Variable(self.inf_c(self.Vd), batch_axis=batch_axis)
+    self.q.value = bm.Variable(self.inf_q(self.Ca), batch_axis=batch_axis)
+    self.Id.value = variable(bm.zeros, batch_size, self.varshape)
+    self.Is.value = variable(bm.zeros, batch_size, self.varshape)
     # self.spike[:] = False
 
   def dCa(self, Ca, t, s, Vd):
     ICa = self.gCa * s * s * (Vd - self.ECa)
     return -0.13 * ICa - 0.075 * Ca
 
-  def dh(self, h, t, Vs): return self.alpha_h(Vs) * (1 - h) - self.beta_h(Vs) * h
+  def dh(self, h, t, Vs):
+    return self.alpha_h(Vs) * (1 - h) - self.beta_h(Vs) * h
 
-  def dn(self, n, t, Vs): return self.alpha_n(Vs) * (1 - n) - self.beta_n(Vs) * n
+  def dn(self, n, t, Vs):
+    return self.alpha_n(Vs) * (1 - n) - self.beta_n(Vs) * n
 
-  def ds(self, s, t, Vd): return self.alpha_s(Vd) * (1 - s) - self.beta_s(Vd) * s
+  def ds(self, s, t, Vd):
+    return self.alpha_s(Vd) * (1 - s) - self.beta_s(Vd) * s
 
-  def dc(self, c, t, Vd): return self.alpha_c(Vd) * (1 - c) - self.beta_c(Vd) * c
+  def dc(self, c, t, Vd):
+    return self.alpha_c(Vd) * (1 - c) - self.beta_c(Vd) * c
 
-  def dq(self, q, t, Ca): return self.alpha_q(Ca) * (1 - q) - self.beta_q(Ca) * q
+  def dq(self, q, t, Ca):
+    return self.alpha_q(Ca) * (1 - q) - self.beta_q(Ca) * q
 
   def dVs(self, Vs, t, h, n, Vd):
     I_Na = (self.gNa * self.inf_m(Vs) ** 2 * h) * (Vs - self.ENa)
@@ -746,7 +771,8 @@ class PinskyRinzelModel(NeuGroup):
   def derivative(self):
     return JointEq([self.dVs, self.dVd, self.dCa, self.dh, self.dn, self.ds, self.dc, self.dq])
 
-  def update(self, t, dt):
+  def update(self, tdi, x=None):
+    assert x is None
     Vs, Vd, Ca, h, n, s, c, q = self.integral(Vs=self.Vs.value,
                                               Vd=self.Vd.value,
                                               Ca=self.Ca.value,
@@ -755,8 +781,8 @@ class PinskyRinzelModel(NeuGroup):
                                               s=self.s.value,
                                               c=self.c.value,
                                               q=self.q.value,
-                                              t=t,
-                                              dt=dt)
+                                              t=tdi['t'],
+                                              dt=tdi['dt'])
     self.Vs.value = Vs
     self.Vd.value = Vd
     self.Ca.value = Ca
@@ -768,36 +794,44 @@ class PinskyRinzelModel(NeuGroup):
     self.Id[:] = 0.
     self.Is[:] = 0.
 
-  def alpha_m(self, Vs): return 0.32 * (13.1 - (Vs + 60.)) / (bm.exp((13.1 - (Vs + 60.)) / 4.) - 1.)
+  def alpha_m(self, Vs):
+    return 0.32 * (13.1 - (Vs + 60.)) / (bm.exp((13.1 - (Vs + 60.)) / 4.) - 1.)
 
-  def beta_m(self, Vs): return 0.28 * ((Vs + 60.) - 40.1) / (bm.exp(((Vs + 60.) - 40.1) / 5.) - 1.)
+  def beta_m(self, Vs):
+    return 0.28 * ((Vs + 60.) - 40.1) / (bm.exp(((Vs + 60.) - 40.1) / 5.) - 1.)
 
   def inf_m(self, Vs):
     alpha = self.alpha_m(Vs)
     beta = self.beta_m(Vs)
     return alpha / (alpha + beta)
 
-  def alpha_n(self, Vs): return 0.016 * (35.1 - (Vs + 60.)) / (bm.exp((35.1 - (Vs + 60.)) / 5) - 1)
+  def alpha_n(self, Vs):
+    return 0.016 * (35.1 - (Vs + 60.)) / (bm.exp((35.1 - (Vs + 60.)) / 5) - 1)
 
-  def beta_n(self, Vs): return 0.25 * bm.exp(0.5 - 0.025 * (Vs + 60.))
+  def beta_n(self, Vs):
+    return 0.25 * bm.exp(0.5 - 0.025 * (Vs + 60.))
 
   def inf_n(self, Vs):
     alpha = self.alpha_n(Vs)
     beta = self.beta_n(Vs)
     return alpha / (alpha + beta)
 
-  def alpha_h(self, Vs): return 0.128 * bm.exp((17. - (Vs + 60.)) / 18.)
+  def alpha_h(self, Vs):
+    return 0.128 * bm.exp((17. - (Vs + 60.)) / 18.)
 
-  def beta_h(self, Vs): return 4. / (1 + bm.exp((40. - (Vs + 60.)) / 5))
+  def beta_h(self, Vs):
+    return 4. / (1 + bm.exp((40. - (Vs + 60.)) / 5))
 
   def inf_h(self, Vs):
     alpha = self.alpha_h(Vs)
     beta = self.beta_h(Vs)
     return alpha / (alpha + beta)
 
-  def alpha_s(self, Vd): return 1.6 / (1 + bm.exp(-0.072 * ((Vd + 60.) - 65.)))
+  def alpha_s(self, Vd):
+    return 1.6 / (1 + bm.exp(-0.072 * ((Vd + 60.) - 65.)))
 
-  def beta_s(self, Vd): return 0.02 * ((Vd + 60.) - 51.1) / (bm.exp(((Vd + 60.) - 51.1) / 5.) - 1.)
+  def beta_s(self, Vd):
+    return 0.02 * ((Vd + 60.) - 51.1) / (bm.exp(((Vd + 60.) - 51.1) / 5.) - 1.)
 
   def inf_s(self, Vd):
     alpha = self.alpha_s(Vd)
@@ -818,9 +852,11 @@ class PinskyRinzelModel(NeuGroup):
     beta_c = self.beta_c(Vd)
     return alpha_c / (alpha_c + beta_c)
 
-  def alpha_q(self, Ca): return bm.minimum(2e-5 * Ca, 1e-2)
+  def alpha_q(self, Ca):
+    return bm.minimum(2e-5 * Ca, 1e-2)
 
-  def beta_q(self, Ca): return 1e-3
+  def beta_q(self, Ca):
+    return 1e-3
 
   def inf_q(self, Ca):
     alpha = self.alpha_q(Ca)
@@ -931,22 +967,23 @@ class WangBuzsakiModel(NeuGroup):
       n_initializer: Union[Initializer, Callable, Tensor] = OneInit(0.32),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name)
 
     # parameters
-    self.ENa = init_param(ENa, self.var_shape, allow_none=False)
-    self.EK = init_param(EK, self.var_shape, allow_none=False)
-    self.EL = init_param(EL, self.var_shape, allow_none=False)
-    self.gNa = init_param(gNa, self.var_shape, allow_none=False)
-    self.gK = init_param(gK, self.var_shape, allow_none=False)
-    self.gL = init_param(gL, self.var_shape, allow_none=False)
-    self.C = init_param(C, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
-    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
-    self.noise = init_noise(noise, self.var_shape, num_vars=3)
+    self.ENa = parameter(ENa, self.varshape, allow_none=False)
+    self.EK = parameter(EK, self.varshape, allow_none=False)
+    self.EL = parameter(EL, self.varshape, allow_none=False)
+    self.gNa = parameter(gNa, self.varshape, allow_none=False)
+    self.gK = parameter(gK, self.varshape, allow_none=False)
+    self.gL = parameter(gL, self.varshape, allow_none=False)
+    self.C = parameter(C, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
+    self.V_th = parameter(V_th, self.varshape, allow_none=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # initializers
     check_initializer(h_initializer, 'h_initializer', allow_none=False)
@@ -957,11 +994,11 @@ class WangBuzsakiModel(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.h = bm.Variable(init_param(self._h_initializer, self.var_shape))
-    self.n = bm.Variable(init_param(self._n_initializer, self.var_shape))
-    self.V = bm.Variable(init_param(self._V_initializer, self.var_shape))
-    self.input = bm.Variable(bm.zeros(self.var_shape))
-    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.h = variable(self._h_initializer, trainable, self.varshape)
+    self.n = variable(self._n_initializer, trainable, self.varshape)
+    self.V = variable(self._V_initializer, trainable, self.varshape)
+    self.input = variable(bm.zeros, trainable, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
     if self.noise is None:
@@ -969,12 +1006,12 @@ class WangBuzsakiModel(NeuGroup):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
-  def reset(self):
-    self.h.value = init_param(self._h_initializer, self.var_shape)
-    self.n.value = init_param(self._n_initializer, self.var_shape)
-    self.V.value = init_param(self._V_initializer, self.var_shape)
-    self.input[:] = 0
-    self.spike[:] = False
+  def reset_state(self, batch_size=None):
+    self.h.value = variable(self._h_initializer, batch_size, self.varshape)
+    self.n.value = variable(self._n_initializer, batch_size, self.varshape)
+    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def m_inf(self, V):
     alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
@@ -1004,8 +1041,10 @@ class WangBuzsakiModel(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dh, self.dn])
 
-  def update(self, t, dt):
-    V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt=dt)
+  def update(self, tdi, x=None):
+    t, dt = tdi['t'], tdi['dt']
+    if x is not None: self.input += x
+    V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.h.value = h

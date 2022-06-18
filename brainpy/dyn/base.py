@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import warnings
-from typing import Union, Dict, Callable, Sequence, Optional, List, Tuple
+import gc
+from typing import Union, Dict, Callable, Sequence, Optional, Tuple
 
 import jax.numpy as jnp
 import numpy as np
@@ -10,11 +10,10 @@ import brainpy.math as bm
 from brainpy import tools
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
-from brainpy.connect import TwoEndConnector, MatConn, IJConn
-from brainpy.dyn.utils import init_noise
+from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import ModelBuildError
-from brainpy.initialize import Initializer, init_param, Uniform
-from brainpy.integrators import Integrator, odeint, sdeint
+from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
+from brainpy.integrators import odeint, sdeint
 from brainpy.tools.others import to_size, size2num
 from brainpy.types import Tensor, Shape
 
@@ -32,8 +31,7 @@ __all__ = [
   'NeuGroup', 'CondNeuGroup',
 
   # synapse models
-  'SynConn', 'SynapseOutput', 'SynapsePlasticity', 'TwoEndConn',
-
+  'SynConn', 'SynOutput', 'SynSTP', 'SynLTP', 'TwoEndConn',
 ]
 
 
@@ -50,25 +48,37 @@ class DynamicalSystem(Base):
       The name of the dynamic system.
   """
 
+  """Global delay data, which stores the delay variables and corresponding delay targets. 
+   
+   This variable is useful when the same target variable is used in multiple mappings, 
+   because it can reduce the duplicate delay variable registration."""
+  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
-  """Global delay variables. Useful when the same target
-     variable is used in multiple mappings."""
-  global_delay_vars: Dict[str, bm.LengthDelay] = Collector()
-  global_delay_targets: Dict[str, bm.Variable] = Collector()
-
-  def __init__(self, name=None):
+  def __init__(
+      self,
+      name: str = None,
+      trainable: bool = False,
+  ):
     super(DynamicalSystem, self).__init__(name=name)
 
     # local delay variables
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
-  def __repr__(self):
-    return f'{self.__class__.__name__}(name={self.name})'
+    # trainable setting
+    self._trainable = trainable
 
   @property
-  def steps(self):
-    warnings.warn('.steps has been deprecated since version 2.0.3.', DeprecationWarning)
-    return {}
+  def trainable(self):
+    return self._trainable
+
+  @trainable.setter
+  def trainable(self, value):
+    if not isinstance(value, bool):
+      raise ValueError(f'Must be a bool value. But we got {type(value)}: {value}')
+    self._trainable = value
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(name={self.name}, trainable={self.trainable})'
 
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
@@ -76,7 +86,7 @@ class DynamicalSystem(Base):
 
   def register_delay(
       self,
-      name: str,
+      identifier: str,
       delay_step: Optional[Union[int, Tensor, Callable, Initializer]],
       delay_target: bm.Variable,
       initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
@@ -85,7 +95,7 @@ class DynamicalSystem(Base):
 
     Parameters
     ----------
-    name: str
+    identifier: str
       The delay variable name.
     delay_step: Optional, int, JaxArray, ndarray, callable, Initializer
       The number of the steps of the delay.
@@ -111,7 +121,7 @@ class DynamicalSystem(Base):
         delay_type = 'heter'
         delay_step = bm.asarray(delay_step)
     elif callable(delay_step):
-      delay_step = init_param(delay_step, delay_target.shape, allow_none=False)
+      delay_step = parameter(delay_step, delay_target.shape, allow_none=False)
       delay_type = 'heter'
     else:
       raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
@@ -127,24 +137,27 @@ class DynamicalSystem(Base):
       max_delay_step = int(bm.max(delay_step))
 
     # delay target
-    if not isinstance(delay_target, bm.Variable):
-      raise ValueError(f'"delay_target" must be an instance of Variable, but we got {type(delay_target)}')
+    if delay_type != 'none':
+      if not isinstance(delay_target, bm.Variable):
+        raise ValueError(f'"delay_target" must be an instance of Variable, but we got {type(delay_target)}')
 
     # delay variable
-    self.global_delay_targets[name] = delay_target
     if delay_type != 'none':
-      if name not in self.global_delay_vars:
-        self.global_delay_vars[name] = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
-        self.local_delay_vars[name] = self.global_delay_vars[name]
+      if identifier not in self.global_delay_data:
+        delay = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
+        self.global_delay_data[identifier] = (delay, delay_target)
+        self.local_delay_vars[identifier] = delay
       else:
-        if self.global_delay_vars[name].num_delay_step - 1 < max_delay_step:
-          self.global_delay_vars[name].reset(delay_target, max_delay_step, initial_delay_data)
+        if self.global_delay_data[identifier][0].num_delay_step - 1 < max_delay_step:
+          self.global_delay_data[identifier][0].reset(delay_target, max_delay_step, initial_delay_data)
+    else:
+      self.global_delay_data[identifier] = (None, delay_target)
     self.register_implicit_nodes(self.local_delay_vars)
     return delay_step
 
   def get_delay_data(
       self,
-      name: str,
+      identifier: str,
       delay_step: Optional[Union[int, bm.JaxArray, jnp.DeviceArray]],
       *indices: Union[int, bm.JaxArray, jnp.DeviceArray],
   ):
@@ -152,7 +165,7 @@ class DynamicalSystem(Base):
 
     Parameters
     ----------
-    name: str
+    identifier: str
       The delay variable name.
     delay_step: Optional, int, JaxArray, ndarray
       The delay length.
@@ -165,90 +178,94 @@ class DynamicalSystem(Base):
       The delay data at the given time.
     """
     if delay_step is None:
-      return self.global_delay_targets[name]
+      return self.global_delay_data[identifier][1].value
 
-    if name in self.global_delay_vars:
+    if identifier in self.global_delay_data:
       if isinstance(delay_step, (int, np.integer)):
-        return self.global_delay_vars[name](delay_step, *indices)
+        return self.global_delay_data[identifier][0](delay_step, *indices)
       else:
         if len(indices) == 0:
           indices = (jnp.arange(delay_step.size),)
-        return self.global_delay_vars[name](delay_step, *indices)
+        return self.global_delay_data[identifier][0](delay_step, *indices)
 
-    elif name in self.local_delay_vars:
+    elif identifier in self.local_delay_vars:
       if isinstance(delay_step, (int, np.integer)):
-        return self.local_delay_vars[name](delay_step)
+        return self.local_delay_vars[identifier](delay_step)
       else:
         if len(indices) == 0:
           indices = (jnp.arange(delay_step.size),)
-        return self.local_delay_vars[name](delay_step, *indices)
+        return self.local_delay_vars[identifier](delay_step, *indices)
 
     else:
-      raise ValueError(f'{name} is not defined in delay variables.')
+      raise ValueError(f'{identifier} is not defined in delay variables.')
 
-  def update_delay(
-      self,
-      name: str,
-      delay_data: Union[float, bm.JaxArray, jnp.ndarray]
-  ):
-    """Update the delay according to the delay data.
-
-    Parameters
-    ----------
-    name: str
-      The name of the delay.
-    delay_data: float, JaxArray, ndarray
-      The delay data to update at the current time.
-    """
-    warnings.warn('All registered delays by "register_delay()" will be '
-                  'automatically updated in the network model since 2.1.13. '
-                  'Explicitly call "update_delay()" has no effect.',
-                  DeprecationWarning)
-    # if name in self.local_delay_vars:
-    #   return self.local_delay_vars[name].update(delay_data)
-    # else:
-    #   if name not in self.global_delay_vars:
-    #     raise ValueError(f'{name} is not defined in delay variables.')
-
-  def reset_delay(
-      self,
-      name: str,
-      delay_target: Union[bm.JaxArray, jnp.DeviceArray]
-  ):
-    """Reset the delay variable."""
-    warnings.warn('All registered delays by "register_delay()" will be '
-                  'automatically reset in the network model since 2.1.13. '
-                  'Explicitly call "reset_delay()" has no effect.',
-                  DeprecationWarning)
-    # if name in self.local_delay_vars:
-    #   return self.local_delay_vars[name].reset(delay_target)
-    # else:
-    #   if name not in self.global_delay_vars:
-    #     raise ValueError(f'{name} is not defined in delay variables.')
-
-  def update(self, t, dt):
+  def update(self, *args, **kwargs):
     """The function to specify the updating rule.
-    Assume any dynamical system depends on the time variable ``t`` and
-    the time step ``dt``.
+
+    Assume any dynamical system depends on the shared variables (`sha`),
+    like time variable ``t``, the step precision ``dt``, and the time step `i`.
     """
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
-  def reset(self):
+  def reset(self, batch_size=None):
     """Reset function which reset the whole variables in the model.
     """
-    raise NotImplementedError('Must implement "reset" function by subclass self.')
+    self.reset_state(batch_size)
 
-  def update_local_delays(self):
+  def reset_state(self, batch_size=None):
+    """Reset function which reset the states in the model.
+    """
+    raise NotImplementedError('Must implement "reset_state" function by subclass self.')
+
+  def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
+    """Update local delay variables.
+
+    Parameters
+    ----------
+    nodes: sequence, dict
+      The nodes to update their delay variables.
+    """
     # update delays
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+    if nodes is None:
+      nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values()
+    elif isinstance(nodes, dict):
+      nodes = nodes.values()
+    for node in nodes:
       for name in node.local_delay_vars.keys():
-        self.global_delay_vars[name].update(self.global_delay_targets[name].value)
+        delay = self.global_delay_data[name][0]
+        target = self.global_delay_data[name][1]
+        delay.update(target.value)
 
-  def reset_local_delays(self):
+  def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
+    """Reset local delay variables.
+
+    Parameters
+    ----------
+    nodes: sequence, dict
+      The nodes to Reset their delay variables.
+    """
     # reset delays
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+    if nodes is None:
+      nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values()
+    elif isinstance(nodes, dict):
+      nodes = nodes.values()
+    for node in nodes:
       for name in node.local_delay_vars.keys():
-        self.global_delay_vars[name].reset(self.global_delay_targets[name])
+        delay = self.global_delay_data[name][0]
+        target = self.global_delay_data[name][1]
+        delay.reset(target.value)
+
+  def __del__(self):
+    """Function for handling `del` behavior.
+
+    This function is used to pop out the variables which registered in global delay data.
+    """
+    for key in tuple(self.local_delay_vars.keys()):
+      self.global_delay_data.pop(key)
+      self.local_delay_vars.pop(key)
+    for key in tuple(self.__dict__.keys()):
+      del self.__dict__[key]
+    gc.collect()
 
 
 class Container(DynamicalSystem):
@@ -268,8 +285,8 @@ class Container(DynamicalSystem):
       The instance of DynamicalSystem with the format of "key=dynamic_system".
   """
 
-  def __init__(self, *ds_tuple, name=None, **ds_dict):
-    super(Container, self).__init__(name=name)
+  def __init__(self, *ds_tuple, name=None, trainable=False, **ds_dict):
+    super(Container, self).__init__(name=name, trainable=trainable)
 
     # children dynamical systems
     self.implicit_nodes = Collector()
@@ -294,7 +311,7 @@ class Container(DynamicalSystem):
     children = [f'{key}={str(val)}' for key, val in self.implicit_nodes.items()]
     return f'{cls_name}({split.join(children)})'
 
-  def update(self, t, dt):
+  def update(self, tdi, *args, **kwargs):
     """Update function of a container.
 
     In this update function, the update functions in children systems are
@@ -302,7 +319,7 @@ class Container(DynamicalSystem):
     """
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     for node in nodes.values():
-      node.update(t, dt)
+      node.update(tdi)
 
   def __getitem__(self, item):
     """Wrap the slice access (self['']). """
@@ -338,10 +355,19 @@ class Network(Container):
     A dict container of dynamical system.
   """
 
-  def __init__(self, *ds_tuple, name=None, **ds_dict):
-    super(Network, self).__init__(*ds_tuple, name=name, **ds_dict)
+  def __init__(
+      self,
+      *ds_tuple,
+      name: str = None,
+      trainable: bool = False,
+      **ds_dict
+  ):
+    super(Network, self).__init__(*ds_tuple,
+                                  name=name,
+                                  trainable=trainable,
+                                  **ds_dict)
 
-  def update(self, t, dt):
+  def update(self, *args, **kwargs):
     """Step function of a network.
 
     In this update function, the update functions in children systems are
@@ -354,44 +380,43 @@ class Network(Container):
     synapse_groups = nodes.subset(SynConn)
     other_nodes = nodes - neuron_groups - synapse_groups
 
+    # shared arguments
+    shared = args[0]
+
     # update synapse nodes
     for node in synapse_groups.values():
-      node.update(t, dt)
+      node.update(shared)
 
     # update neuron nodes
     for node in neuron_groups.values():
-      node.update(t, dt)
+      node.update(shared)
 
     # update other types of nodes
     for node in other_nodes.values():
-      node.update(t, dt)
+      node.update(shared)
 
     # update delays
-    for node in nodes.values():
-      for name in node.local_delay_vars.keys():
-        self.global_delay_vars[name].update(self.global_delay_targets[name].value)
+    self.update_local_delays(nodes)
 
-  def reset(self):
+  def reset_state(self, batch_size=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     neuron_groups = nodes.subset(NeuGroup)
     synapse_groups = nodes.subset(SynConn)
 
     # reset neuron nodes
     for node in neuron_groups.values():
-      node.reset()
+      node.reset_state(batch_size)
 
     # reset synapse nodes
     for node in synapse_groups.values():
-      node.reset()
+      node.reset_state(batch_size)
 
     # reset other types of nodes
     for node in (nodes - neuron_groups - synapse_groups).values():
-      node.reset()
+      node.reset_state(batch_size)
 
     # reset delays
-    for node in nodes.values():
-      for name in node.local_delay_vars.keys():
-        self.global_delay_vars[name].reset(self.global_delay_targets[name])
+    self.reset_local_delays(nodes)
 
 
 class NeuGroup(DynamicalSystem):
@@ -421,7 +446,8 @@ class NeuGroup(DynamicalSystem):
       self,
       size: Shape,
       name: str = None,
-      keep_size: bool = False
+      keep_size: bool = False,
+      trainable: bool = False,
   ):
     # size
     if isinstance(size, (list, tuple)):
@@ -443,21 +469,27 @@ class NeuGroup(DynamicalSystem):
     self.num = tools.size2num(size)
 
     # initialize
-    super(NeuGroup, self).__init__(name=name)
+    super(NeuGroup, self).__init__(name=name, trainable=trainable)
 
   @property
-  def var_shape(self):
-    return self.size if self.keep_size else self.num
+  def varshape(self):
+    return self.size if self.keep_size else (self.num, )
 
-  def update(self, t, dt):
+  def get_batch_shape(self, batch_size=None):
+    if batch_size is None:
+      return self.varshape
+    else:
+      return (batch_size,) + self.varshape
+
+  def update(self, tdi, x=None):
     """The function to specify the updating rule.
 
     Parameters
     ----------
-    t : float
-      The current time.
-    dt : float
-      The time step.
+    tdi : dict
+      The shared arguments, especially time `t`, step `dt`, and iteration `i`.
+    x: Any
+      The input for a neuron group.
     """
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
                               f'implement "update" function.')
@@ -484,7 +516,10 @@ class SynConn(DynamicalSystem):
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       name: str = None,
+      trainable: bool = False,
   ):
+    super(SynConn, self).__init__(name=name, trainable=trainable)
+
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
@@ -517,10 +552,6 @@ class SynConn(DynamicalSystem):
     else:
       raise ModelBuildError(f'Unknown "conn" type: {conn}')
 
-    # initialize
-    # ----------
-    super(SynConn, self).__init__(name=name)
-
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
     if not hasattr(self, 'pre'):
@@ -541,9 +572,20 @@ class SynConn(DynamicalSystem):
       if not hasattr(self.post, attr):
         raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
+  def update(self, tdi, pre_spike=None):
+    """The function to specify the updating rule.
 
-class SynapseComponent(DynamicalSystem):
+    Assume any dynamical system depends on the shared variables (`sha`),
+    like time variable ``t``, the step precision ``dt``, and the time step `i`.
+    """
+    raise NotImplementedError('Must implement "update" function by subclass self.')
+
+
+class SynComponent(DynamicalSystem):
   master: SynConn
+
+  def __call__(self, *args, **kwargs):
+    return self.filter(*args, **kwargs)
 
   def filter(self, g):
     raise NotImplementedError
@@ -560,39 +602,46 @@ class SynapseComponent(DynamicalSystem):
       return self.__class__.__name__
 
 
-class SynapseOutput(SynapseComponent):
+class SynOutput(SynComponent):
   """Base class for synaptic current output."""
 
-  def reset(self):
+  def reset_state(self, batch_size=None):
     pass
 
-  def update(self, t, dt):
+  def update(self, tdi):
     pass
 
 
-class _NullSynOut(SynapseOutput):
-  def update(self, t, dt):
+class _NullSynOut(SynOutput):
+  def update(self, tdi):
     pass
 
-  def reset(self):
+  def reset_state(self, batch_size=None):
     pass
 
   def filter(self, g):
     return g
 
 
-class SynapsePlasticity(SynapseComponent):
-  """Base class for synaptic plasticity."""
+class SynSTP(SynComponent):
+  """Base class for synaptic short-term plasticity."""
 
-  def update(self, t, dt, pre_spikes, post_spikes):
+  def update(self, tdi, pre_spike):
     raise NotImplementedError
 
 
-class _NullSynPlast(SynapsePlasticity):
-  def update(self, t, dt, pre_spikes, post_spikes):
+class SynLTP(SynComponent):
+  """Base class for synaptic long-term plasticity."""
+
+  def update(self, tdi, pre_spike):
+    raise NotImplementedError
+
+
+class _NullSynSTP(SynSTP):
+  def update(self, tdi, pre_spike):
     pass
 
-  def reset(self):
+  def reset_state(self, batch_size=None):
     pass
 
   def filter(self, g):
@@ -610,13 +659,13 @@ class TwoEndConn(SynConn):
     Post-synaptic neuron group.
   conn : optional, ndarray, JaxArray, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
-  output: SynapseOutput
+  output: SynOutput
     The output for the synaptic current.
 
     .. versionadded:: 2.1.13
        The output component for a two-end connection model.
 
-  plasticity: SynapsePlasticity
+  stp: SynSTP
     The plasticity model for the synaptic variables.
 
     .. versionadded:: 2.1.13
@@ -631,27 +680,99 @@ class TwoEndConn(SynConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
-      output: Optional[SynapseOutput] = None,
-      plasticity: Optional[SynapsePlasticity] = None,
+      output: Optional[SynOutput] = None,
+      stp: Optional[SynSTP] = None,
       name: str = None,
+      trainable: bool = False,
   ):
-    super(TwoEndConn, self).__init__(pre=pre, post=post, conn=conn, name=name)
+    super(TwoEndConn, self).__init__(pre=pre,
+                                     post=post,
+                                     conn=conn,
+                                     name=name,
+                                     trainable=trainable)
 
     # synaptic output
     if output is None:
       output = _NullSynOut()
-    if not isinstance(output, SynapseOutput):
-      raise TypeError(f'output must be instance of {SynapseOutput.__name__}, but we got {type(output)}')
-    self.output: SynapseOutput = output
+    if not isinstance(output, SynOutput):
+      raise TypeError(f'output must be instance of {SynOutput.__name__}, but we got {type(output)}')
+    self.output: SynOutput = output
     self.output.register_master(master=self)
 
     # synaptic plasticity
-    if plasticity is None:
-      plasticity = _NullSynPlast()
-    if not isinstance(plasticity, SynapsePlasticity):
-      raise TypeError(f'plasticity must be instance of {SynapsePlasticity.__name__}, but we got {type(plasticity)}')
-    self.plasticity: SynapsePlasticity = plasticity
-    self.plasticity.register_master(master=self)
+    if stp is None:
+      stp = _NullSynSTP()
+    if not isinstance(stp, SynSTP):
+      raise TypeError(f'plasticity must be instance of {SynSTP.__name__}, but we got {type(stp)}')
+    self.stp: SynSTP = stp
+    self.stp.register_master(master=self)
+
+  def init_weights(
+      self,
+      weight: Union[float, Tensor, Initializer, Callable],
+      comp_method: str,
+      sparse_data: str = 'csr'
+  ) -> Union[float, Tensor]:
+    if comp_method not in ['sparse', 'dense']:
+      raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
+    if sparse_data not in ['csr', 'ij']:
+      raise ValueError(f'"sparse_data" must be in "csr" and "ij", but we got {sparse_data}')
+    if self.conn is None:
+      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
+
+    # connections and weights
+    if isinstance(self.conn, One2One):
+      weight = parameter(weight, (self.pre.num,), allow_none=False)
+      conn_mask = None
+
+    elif isinstance(self.conn, All2All):
+      weight = parameter(weight, (self.pre.num, self.post.num), allow_none=False)
+      conn_mask = None
+
+    else:
+      if comp_method == 'sparse':
+        if sparse_data == 'csr':
+          conn_mask = self.conn.require('pre2post')
+        elif sparse_data == 'ij':
+          conn_mask = self.conn.require('post_ids', 'pre_ids')
+        else:
+          ValueError(f'Unknown sparse data type: {sparse_data}')
+        weight = parameter(weight, conn_mask[1].shape, allow_none=False)
+      elif comp_method == 'dense':
+        weight = parameter(weight, (self.pre.num, self.post.num), allow_none=False)
+        conn_mask = self.conn.require('conn_mat')
+      else:
+        raise ValueError(f'Unknown connection type: {comp_method}')
+
+    # training weights
+    if self.trainable:
+      if bm.isscalar(weight):
+        raise ValueError
+      weight = bm.TrainVar(weight)
+    return weight, conn_mask
+
+  def syn2post_with_all2all(self, syn_value, syn_weight):
+    if bm.size(syn_weight) == 1:
+      if self.trainable:
+        post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
+      else:
+        post_vs = bm.sum(syn_value)
+      if not self.conn.include_self:
+        post_vs = post_vs - syn_value
+      post_vs = syn_weight * post_vs
+    else:
+      post_vs = syn_value @ syn_weight
+    return post_vs
+
+  def syn2post_with_one2one(self, syn_value, syn_weight):
+    return syn_value * syn_weight
+
+  def syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
+    if bm.size(syn_weight) == 1:
+      post_vs = (syn_weight * syn_value) @ conn_mat
+    else:
+      post_vs = syn_value @ (syn_weight * conn_mat)
+    return post_vs
 
 
 class CondNeuGroup(NeuGroup, Container):
@@ -712,22 +833,24 @@ class CondNeuGroup(NeuGroup, Container):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+      trainable: bool = False,
       **channels
   ):
-    NeuGroup.__init__(self, size, keep_size=keep_size)
-    Container.__init__(self, **channels, name=name)
+    NeuGroup.__init__(self, size, keep_size=keep_size, trainable=trainable)
+    Container.__init__(self, **channels, name=name, trainable=trainable)
 
     # parameters for neurons
     self.C = C
     self.A = A
     self.V_th = V_th
     self._V_initializer = V_initializer
-    self.noise = init_noise(noise, self.var_shape, num_vars=3)
+    self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, self.var_shape, allow_none=False))
-    self.input = bm.Variable(bm.zeros(self.var_shape))
-    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.V = variable(V_initializer, trainable, self.varshape)
+    self.input = variable(bm.zeros, trainable, self.varshape)
+    sp_type = bm.get_dfloat() if self.trainable else bool
+    self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
 
     # function
     if self.noise is None:
@@ -742,16 +865,17 @@ class CondNeuGroup(NeuGroup, Container):
       Iext = Iext + ch.current(V)
     return Iext / self.C
 
-  def reset(self):
-    self.V.value = init_param(self._V_initializer, self.var_shape, allow_none=False)
-    self.spike[:] = False
-    self.input[:] = 0
+  def reset_state(self, batch_size=None):
+    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    sp_type = bm.get_dfloat() if self.trainable else bool
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
 
-  def update(self, t, dt):
-    V = self.integral(self.V.value, t, dt)
+  def update(self, tdi, *args, **kwargs):
+    V = self.integral(self.V.value, tdi['t'], tdi['dt'])
     channels = self.nodes(level=1, include_self=False).subset(Channel).unique()
     for node in channels.values():
-      node.update(t, dt, self.V.value)
+      node.update(tdi, self.V.value)
     self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
     self.input[:] = 0.
     self.V.value = V
@@ -771,8 +895,9 @@ class Channel(DynamicalSystem):
       size: Union[int, Sequence[int]],
       name: str = None,
       keep_size: bool = False,
+      trainable: bool = False,
   ):
-    super(Channel, self).__init__(name=name)
+    super(Channel, self).__init__(name=name, trainable=trainable)
     # the geometry size
     self.size = to_size(size)
     # the number of elements
@@ -781,16 +906,16 @@ class Channel(DynamicalSystem):
     self.keep_size = keep_size
 
   @property
-  def var_shape(self):
+  def varshape(self):
     return self.size if self.keep_size else self.num
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
   def current(self, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
-  def reset(self, V):
+  def reset_state(self, batch_size=None):
     raise NotImplementedError('Must be implemented by the subclass.')
 
 

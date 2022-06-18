@@ -9,7 +9,7 @@ This module implements hyperpolarization-activated cation channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Shape, Tensor
 from .base import IhChannel, CalciumChannel, Calcium
@@ -62,17 +62,21 @@ class Ih_HM1992(IhChannel):
       E: Union[float, Tensor, Initializer, Callable] = 43.,
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
-    super(Ih_HM1992, self).__init__(size, keep_size=keep_size, name=name)
+    super(Ih_HM1992, self).__init__(size, 
+                                    keep_size=keep_size, 
+                                    name=name,
+                                    trainable=trainable)
 
     # parameters
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.E = init_param(E, self.var_shape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
 
     # variable
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -80,11 +84,13 @@ class Ih_HM1992(IhChannel):
   def derivative(self, p, t, V):
     return self.phi * (self.f_p_inf(V) - p) / self.f_p_tau(V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
 
-  def update(self, t, dt, V):
-    self.p.value = self.integral(self.p.value, t, V, dt)
+  def update(self, tdi, V):
+    self.p.value = self.integral(self.p.value, tdi['t'], V, tdi['dt'])
 
   def current(self, V):
     return self.g_max * self.p * (self.E - V)
@@ -166,32 +172,37 @@ class Ih_De1996(IhChannel, CalciumChannel):
       T_base: Union[float, Tensor] = 3.,
       phi: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     # IhChannel.__init__(self, size, name=name, keep_size=keep_size)
-    CalciumChannel.__init__(self, size, keep_size=keep_size, name=name)
+    CalciumChannel.__init__(self, 
+                            size,
+                            keep_size=keep_size, 
+                            name=name, 
+                            trainable=trainable)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base = init_param(T_base, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base = parameter(T_base, self.varshape, allow_none=False)
     if phi is None:
       self.phi = self.T_base ** ((self.T - 24.) / 10)
     else:
-      self.phi = init_param(phi, self.var_shape, allow_none=False)
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.k2 = init_param(k2, self.var_shape, allow_none=False)
-    self.Ca_half = init_param(Ca_half, self.var_shape, allow_none=False)
+      self.phi = parameter(phi, self.varshape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.k2 = parameter(k2, self.varshape, allow_none=False)
+    self.Ca_half = parameter(Ca_half, self.varshape, allow_none=False)
     self.k1 = self.k2 / self.Ca_half ** 4
-    self.k4 = init_param(k4, self.var_shape, allow_none=False)
+    self.k4 = parameter(k4, self.varshape, allow_none=False)
     self.k3 = self.k4 / 0.01
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.g_inc = init_param(g_inc, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.g_inc = parameter(g_inc, self.varshape, allow_none=False)
 
     # variable
-    self.O = bm.Variable(bm.zeros(self.var_shape))
-    self.OL = bm.Variable(bm.zeros(self.var_shape))
-    self.P1 = bm.Variable(bm.zeros(self.var_shape))
+    self.O = variable(bm.zeros, trainable, self.varshape)
+    self.OL = variable(bm.zeros, trainable, self.varshape)
+    self.P1 = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dO, self.dOL, self.dP1), method=method)
@@ -209,20 +220,26 @@ class Ih_De1996(IhChannel, CalciumChannel):
   def dP1(self, P1, t, C_Ca):
     return self.k1 * C_Ca ** 4 * (1 - P1) - self.k2 * P1
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.O.value = self.integral(self.O.value, self.OL.value, self.P1.value, t, V=V, C_Ca=C_Ca, dt=dt)
+  def update(self, tdi, V, C_Ca, E_Ca):
+    self.O.value = self.integral(self.O.value, self.OL.value, self.P1.value,
+                                 tdi['t'], V=V, C_Ca=C_Ca, dt=tdi['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * (self.O + self.g_inc * self.OL) * (self.E - V)
 
-  def reset(self, V, C_Ca, E_Ca):
-    self.P1[:] = self.k1 * C_Ca ** 4 / (self.k1 * C_Ca ** 4 + self.k2)
+  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
+    varshape = self.varshape if (batch_size is None) else ((batch_size,) + self.varshape)
+    self.P1.value = bm.broadcast_to(self.k1 * C_Ca ** 4 / (self.k1 * C_Ca ** 4 + self.k2), varshape)
     inf = self.f_inf(V)
     tau = self.f_tau(V)
     alpha = inf / tau
     beta = (1 - inf) / tau
     self.O.value = alpha / (alpha + alpha * self.k3 * self.P1 / self.k4 + beta)
     self.OL.value = self.k3 * self.P1 * self.O / self.k4
+    if batch_size is not None:
+      assert self.P1.shape[0] == batch_size
+      assert self.O.shape[0] == batch_size
+      assert self.OL.shape[0] == batch_size
 
   def f_inf(self, V):
     return 1 / (1 + bm.exp((V + 75 - self.V_sh) / 5.5))

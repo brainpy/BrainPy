@@ -3,10 +3,10 @@
 from typing import Optional, Union, Callable, Tuple
 
 import brainpy.math as bm
-from brainpy.initialize import Normal, ZeroInit, Initializer, init_param
+from brainpy.initialize import Normal, ZeroInit, Initializer, parameter
 from brainpy.tools.checking import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
-from brainpy.train.base import TrainingSystem
+from brainpy.dyn.training import TrainingSystem
 from brainpy.types import Tensor
 
 __all__ = [
@@ -28,8 +28,6 @@ class Reservoir(TrainingSystem):
     The initialization method for the feedforward connections.
   Wrec_initializer: Initializer
     The initialization method for the recurrent connections.
-  fb_initializer: optional, Tensor, Initializer
-    The initialization method for the feedback connections.
   b_initializer: optional, Tensor, Initializer
     The initialization method for the bias.
   leaky_rate: float
@@ -58,16 +56,13 @@ class Reservoir(TrainingSystem):
           x[n+1] &= (1 - \alpha) \cdot x[t] +
           \alpha \cdot f(W_{ff} \cdot u[n] + W_{rec} \cdot r[t] + W_{fb} \cdot b[n]) \\
           r[n+1] &= f(x[n+1])
-  ff_connectivity : float, optional
+  in_connectivity : float, optional
     Connectivity of input neurons, i.e. ratio of input neurons connected
     to reservoir neurons. Must be in [0, 1], by default 0.1
   rec_connectivity : float, optional
     Connectivity of recurrent weights matrix, i.e. ratio of reservoir
     neurons connected to other reservoir neurons, including themselves.
     Must be in [0, 1], by default 0.1
-  fb_connectivity : float, optional
-    Connectivity of feedback neurons, i.e. ratio of feedabck neurons
-    connected to reservoir neurons. Must be in [0, 1], by default 0.1
   conn_type: str
     The connectivity type, can be "dense" or "sparse".
   spectral_radius : float, optional
@@ -76,8 +71,6 @@ class Reservoir(TrainingSystem):
     Gain of noise applied to reservoir internal states, by default 0.0
   noise_in : float, optional
     Gain of noise applied to feedforward signals, by default 0.0
-  noise_fb : float, optional
-    Gain of noise applied to feedback signals, by default 0.0
   noise_type : optional, str, callable
     Distribution of noise. Must be a random variable generator
     distribution (see :py:class:`brainpy.math.random.RandomState`),
@@ -101,28 +94,25 @@ class Reservoir(TrainingSystem):
       Win_initializer: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
       Wrec_initializer: Union[Initializer, Callable, Tensor] = Normal(scale=0.1),
       b_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
-      ff_connectivity: float = 0.1,
+      in_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
-      fb_connectivity: float = 0.1,
       conn_type='dense',
       spectral_radius: Optional[float] = None,
-      noise_ff: float = 0.,
+      noise_in: float = 0.,
       noise_rec: float = 0.,
-      noise_fb: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
       trainable: bool = False,
-      name: str=None
+      name: str = None
   ):
     super(Reservoir, self).__init__(trainable=trainable, name=name)
-
 
     # parameters
     input_shape = to_size(input_shape)
     if input_shape[0] is None:
       input_shape = input_shape[1:]
     self.input_shape = input_shape
-    self.output_shape = input_shape[:-1] + (num_out, )
+    self.output_shape = input_shape[:-1] + (num_out,)
     self.num_unit = num_out
     assert num_out > 0, f'Must be a positive integer, but we got {num_out}'
     self.leaky_rate = leaky_rate
@@ -143,21 +133,17 @@ class Reservoir(TrainingSystem):
     self._b_initializer = b_initializer
 
     # connectivity
-    check_float(ff_connectivity, 'ff_connectivity', 0., 1.)
+    check_float(in_connectivity, 'ff_connectivity', 0., 1.)
     check_float(rec_connectivity, 'rec_connectivity', 0., 1.)
-    check_float(fb_connectivity, 'fb_connectivity', 0., 1.)
-    self.ff_connectivity = ff_connectivity
+    self.ff_connectivity = in_connectivity
     self.rec_connectivity = rec_connectivity
-    self.fb_connectivity = fb_connectivity
     check_string(conn_type, 'conn_type', ['dense', 'sparse'])
     self.conn_type = conn_type
 
     # noises
-    check_float(noise_ff, 'noise_ff')
-    check_float(noise_fb, 'noise_fb')
+    check_float(noise_in, 'noise_ff')
     check_float(noise_rec, 'noise_rec')
-    self.noise_ff = noise_ff
-    self.noise_fb = noise_fb
+    self.noise_ff = noise_in
     self.noise_rec = noise_rec
     self.noise_type = noise_type
     check_string(noise_type, 'noise_type', ['normal', 'uniform'])
@@ -165,7 +151,7 @@ class Reservoir(TrainingSystem):
     # initialize feedforward weights
     weight_shape = (input_shape[-1], self.num_unit)
     self.Wff_shape = weight_shape
-    self.Win = init_param(self._Win_initializer, weight_shape)
+    self.Win = parameter(self._Win_initializer, weight_shape)
     if self.ff_connectivity < 1.:
       conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
       self.Win[conn_mat] = 0.
@@ -177,7 +163,7 @@ class Reservoir(TrainingSystem):
 
     # initialize recurrent weights
     recurrent_shape = (self.num_unit, self.num_unit)
-    self.Wrec = init_param(self._Wrec_initializer, recurrent_shape)
+    self.Wrec = parameter(self._Wrec_initializer, recurrent_shape)
     if self.rec_connectivity < 1.:
       conn_mat = self.rng.random(recurrent_shape) > self.rec_connectivity
       self.Wrec[conn_mat] = 0.
@@ -187,7 +173,7 @@ class Reservoir(TrainingSystem):
     if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
       self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
       self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
-    self.bias = init_param(self._b_initializer, (self.num_unit,))
+    self.bias = parameter(self._b_initializer, (self.num_unit,))
     if self.trainable:
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
@@ -202,25 +188,30 @@ class Reservoir(TrainingSystem):
   def reset_state(self, batch_size=1):
     pass
 
-  def forward(self, x, shared_args=None):
+  def update(self, sha, x):
     """Feedforward output."""
     # inputs
     x = bm.concatenate(x, axis=-1)
     if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
     if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
-      sparse = {'data': self.Win, 'index': (self.ff_pres, self.ff_posts), 'shape': self.Wff_shape}
+      sparse = {'data': self.Win,
+                'index': (self.ff_pres, self.ff_posts),
+                'shape': self.Wff_shape}
       hidden = bm.sparse_matmul(x, sparse)
     else:
       hidden = bm.dot(x, self.Win)
     # recurrent
     if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
-      sparse = {'data': self.Wrec, 'index': (self.rec_pres, self.rec_posts), 'shape': (self.num_unit, self.num_unit)}
+      sparse = {'data': self.Wrec,
+                'index': (self.rec_pres, self.rec_posts),
+                'shape': (self.num_unit, self.num_unit)}
       hidden += bm.sparse_matmul(self.state, sparse)
     else:
       hidden += bm.dot(self.state, self.Wrec)
     if self.activation_type == 'internal':
       hidden = self.activation(hidden)
-    if self.noise_rec > 0.: hidden += self.noise_rec * self.rng.uniform(-1, -1, self.state.shape)
+    if self.noise_rec > 0.:
+      hidden += self.noise_rec * self.rng.uniform(-1, -1, self.state.shape)
     # new state/output
     state = (1 - self.leaky_rate) * self.state + self.leaky_rate * hidden
     if self.activation_type == 'external':

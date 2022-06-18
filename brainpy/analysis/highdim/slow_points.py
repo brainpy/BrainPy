@@ -3,7 +3,7 @@
 import math
 import time
 import warnings
-from typing import Callable, Union, Dict, Optional, Sequence
+from typing import Callable, Union, Dict, Optional, Sequence, Tuple
 
 import jax.numpy as jnp
 import numpy as np
@@ -114,6 +114,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       f_type: str = None,
       f_loss: Callable = None,
       verbose: bool = True,
+      args: Tuple = (),
 
       # parameters for `f_cell` is DynamicalSystem instance
       inputs: Sequence = None,
@@ -126,6 +127,9 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       f_loss_batch: Callable = None,
   ):
     super(SlowPointFinder, self).__init__()
+
+    # static arguments
+    self.args = args
 
     # update function
     if included_vars is None:
@@ -151,6 +155,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     if isinstance(f_cell, DynamicalSystem):
       # included variables
       all_vars = f_cell.vars(method='relative', level=-1, include_self=True).unique()
+
       # exclude variables
       if len(self.included_vars) > 0:
         _all_ids = [id(v) for v in self.included_vars.values()]
@@ -164,19 +169,31 @@ class SlowPointFinder(base.BrainPyAnalyzer):
           for key, val in tuple(self.included_vars.items()):
             if id(val) in excluded_vars:
               self.included_vars.pop(key)
+
       # input function
       if inputs is not None:
         inputs = check_and_format_inputs(host=self.target, inputs=inputs)
-        _input_step, _i = build_inputs(inputs)
-        if _i is not None:
+        _input_step, _has_iter = build_inputs(inputs)
+        if _has_iter:
           raise UnsupportedError(f'Do not support iterable inputs when using fixed point finder.')
       else:
         _input_step = None
+
+      # check included variables
+      for var in self.included_vars.values():
+        if var.batch_axis is not None:
+          if var.shape[var.batch_axis] != 1:
+            raise ValueError(f'Batched variables should has only one batch. '
+                             f'But we got {var.shape[var.batch_axis]}. Maybe '
+                             f'you need to call ".reset_state(batch_size=1)" '
+                             f'for your system.')
+
       # update function
       self.f_cell = self._generate_ds_cell_function(self.target,
                                                     self.included_vars,
                                                     self.excluded_vars,
                                                     t, dt, _input_step)
+
       # check function type
       if f_type is not None:
         if f_type != constants.DISCRETE:
@@ -189,7 +206,10 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       self.excluded_data = {k: v.value for k, v in self.excluded_vars.items()}
 
     elif callable(f_cell):
-      self.f_cell = f_cell
+      if len(self.args) > 0:
+        self.f_cell = lambda x: f_cell(x, *self.args)
+      else:
+        self.f_cell = f_cell
       if inputs is not None:
         raise UnsupportedError('Do not support "inputs" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
@@ -226,6 +246,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     self._fixed_points = None
     self._selected_ids = None
     self._opt_losses = None
+
     # functions
     self._opt_functions = dict()
 
@@ -309,7 +330,6 @@ class SlowPointFinder(base.BrainPyAnalyzer):
 
       .. versionadded:: 2.1.2
     """
-
     # optimization settings
     if opt_setting is None:
       if optimizer is None:
@@ -417,7 +437,6 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     opt_solver: str
       The solver of the optimization.
     """
-
     # optimization function
     num_candidate = self._check_candidates(candidates)
     for var in self.included_vars.values():
@@ -698,7 +717,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
     @vmap
     def f_opt(x0):
       for k, v in self.included_vars.items():
-        v.value = x0[k]
+        v.value = x0[k] if v.batch_axis is None else bm.expand_dims(x0[k], axis=v.batch_axis)
       for k, v in self.excluded_vars.items():
         v.value = self.excluded_data[k]
       if isinstance(x0, dict):
@@ -719,16 +738,19 @@ class SlowPointFinder(base.BrainPyAnalyzer):
                                  t: float = None, dt: float = None, f_input: Callable = None):
     if dt is None: dt = bm.get_dt()
     if t is None: t = 0.
-    excluded_data = {k: v.value for k, v in excluded_vars.items()}
+    shared = dict(t=t, dt=dt, i=0)
 
     def f_cell(h: Dict):
       for k, v in included_vars.items():
-        v.value = bm.asarray(h[k], dtype=v.dtype)
+        v.value = (bm.asarray(h[k], dtype=v.dtype)
+                   if v.batch_axis is None else
+                   bm.asarray(bm.expand_dims(h[k], axis=v.batch_axis), dtype=v.dtype))
       for k, v in excluded_vars.items():
-        v.value = excluded_data[k]
+        v.value = self.excluded_data[k]
       if f_input is not None:
-        f_input(t, dt)
-      ds_instance.update(t, dt)
+        f_input(shared)
+      args = (shared, ) + self.args
+      ds_instance.update(*args)
       return {k: v.value for k, v in included_vars.items()}
 
     return f_cell
@@ -786,7 +808,13 @@ class SlowPointFinder(base.BrainPyAnalyzer):
           raise KeyError(f'"{key}" is defined in required variables '
                          f'for fixed point optimization of {self.target}. '
                          f'Please provide its initial values.')
-
+      for key, value in candidates.items():
+        if value.ndim != self.included_vars[key].ndim + 1:
+          raise ValueError(f'"{key}" is defined in the required variables for fixed '
+                           f'point optimization of {self.target}. \n'
+                           f'We expect the provided candidate has a batch size, '
+                           f'but we got {value.shape} for variable with shape of '
+                           f'{self.included_vars[key].shape}')
     if isinstance(candidates, dict):
       num_candidate = np.unique([leaf.shape[0] for leaf in candidates.values()])
       if len(num_candidate) != 1:

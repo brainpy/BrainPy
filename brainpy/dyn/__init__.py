@@ -4,14 +4,15 @@
 Dynamics simulation module.
 """
 
-
 from .base import *
+from .training import *
 from .neurons.compat import *
 from .synapses.compat import *
-from .utils import *
 from .runners import *
 
-from . import (channels, neurons, rates,
-               synapses, synouts, synplast,
+from . import (channels, neurons, rates,  # neuron related
+               synapses, synouts, synplast,  # synapse related
                networks,
-               utils, runners)
+               layers,  # ANN related
+               runners)
+

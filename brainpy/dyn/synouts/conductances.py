@@ -2,8 +2,8 @@
 
 from typing import Union, Callable
 
-from brainpy.dyn.base import SynapseOutput
-from brainpy.initialize import init_param, Initializer
+from brainpy.dyn.base import SynOutput
+from brainpy.initialize import parameter, Initializer
 from brainpy.types import Tensor
 
 __all__ = [
@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class CUBA(SynapseOutput):
+class CUBA(SynOutput):
   r"""Current-based synaptic output.
 
   Given the conductance, this model outputs the post-synaptic current with a identity function:
@@ -39,7 +39,7 @@ class CUBA(SynapseOutput):
     return g
 
 
-class COBA(SynapseOutput):
+class COBA(SynOutput):
   r"""Conductance-based synaptic output.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -70,7 +70,7 @@ class COBA(SynapseOutput):
 
   def register_master(self, master):
     super(COBA, self).register_master(master)
-    self.E = init_param(self._E, self.master.post.num, allow_none=False)
+    self.E = parameter(self._E, self.master.post.num, allow_none=False)
 
   def filter(self, g):
     return g * (self.E - self.master.post.V)

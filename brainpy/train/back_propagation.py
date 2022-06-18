@@ -3,48 +3,47 @@
 import time
 from typing import Union, Dict, Callable, Sequence
 
-import jax.numpy as jnp
 import numpy as np
-from jax import jit, random as jr
-from jax.tree_util import tree_map
+from jax import jit, random as jr, numpy as jnp
+from jax.tree_util import tree_map, tree_flatten
 
 import brainpy.losses as losses
 import brainpy.math as bm
 import brainpy.optimizers as optim
+from brainpy.dyn.training import TrainingSystem
 from brainpy.errors import UnsupportedError
-from brainpy.tools.checking import check_float
-from brainpy.train.base import TrainingSystem
-from brainpy.train.utils import check_data_batch_size, serialize_kwargs
-from brainpy.types import Tensor
-from .base_runner import DSTrainer
+from brainpy.tools.checking import serialize_kwargs
+from brainpy.types import Tensor, Output
+from .base import DSTrainer
 
 __all__ = [
+  'BPTrainer',
   'BPTT',
   'BPFF',
+  'ePropTrainer',
 ]
 
 
-class BPTT(DSTrainer):
-  """
-  The trainer implementing back propagation through time (BPTT)
-  algorithm for recurrent neural networks.
+def _is_jax_array(s):
+  return isinstance(s, bm.JaxArray)
 
-  """
 
+class BPTrainer(DSTrainer):
   def __init__(
       self,
       target: TrainingSystem,
-
-      # arguments for BPTT trainer
-      loss: Union[str, Callable],  # loss function
+      f_loss: Union[str, Callable],  # loss function
       optimizer: optim.Optimizer = None,  # optimizer
-      max_grad_norm: float = None,
       shuffle_data: bool = True,
+      seed: int = None,
 
       # common arguments for RNNTrainer
       **kwargs
   ):
-    super(BPTT, self).__init__(target=target, **kwargs)
+    super(BPTrainer, self).__init__(target=target, **kwargs)
+
+    self.shuffle_data = shuffle_data
+    self.rng = np.random.RandomState(seed=seed)
 
     # jit settings
     self.jit['predict'] = self.jit.get('predict', True)
@@ -56,16 +55,17 @@ class BPTT(DSTrainer):
       lr = optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
       optimizer = optim.Adam(lr=lr)
     self.optimizer = optimizer
+    self.optimizer.register_vars(self.target.vars(level=-1, include_self=True).subset(bm.TrainVar).unique())
 
     # loss
-    if isinstance(loss, str):
-      loss = getattr(losses, loss)
-    elif callable(loss):
-      loss = loss
+    if isinstance(f_loss, str):
+      f_loss = getattr(losses, f_loss)
+    elif callable(f_loss):
+      f_loss = f_loss
     else:
-      raise UnsupportedError(f'Do not support {type(loss)} to specify the loss function. '
+      raise UnsupportedError(f'Do not support {type(f_loss)} to specify the loss function. '
                              f'We only support str and callable function.')
-    self.loss_fun = loss
+    self._loss_func = f_loss
     self._train_losses = None
     self._test_losses = None
     self._f_shuffle = None
@@ -75,29 +75,13 @@ class BPTT(DSTrainer):
     self._f_train = dict()
     self._f_grad = dict()
 
-    # training parameters
-    self.max_grad_norm = max_grad_norm  # gradient clipping
-    self.shuffle_data = shuffle_data
-
-    # initialize the optimizer
-    self.optimizer.register_vars(self.target.vars().subset(bm.TrainVar).unique())
-
-
-  def __repr__(self):
-    name = self.__class__.__name__
-    prefix = ' ' * len(name)
-    return (f'{name}(target={self.target}, \n\t'
-            f'{prefix}jit={self.jit}, \n\t'
-            f'{prefix}loss={self.loss_fun}, \n\t'
-            f'{prefix}optimizer={self.optimizer})')
-
   def predict(
       self,
-      xs: Union[Tensor, Dict[str, Tensor]],
+      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
       reset_state: bool = True,
       shared_args: Dict = None,
-      **kwargs
-  ):
+      eval_time: bool = False
+  ) -> Output:
     """Predict a series of input data with the given target model.
 
     This function use the JIT compilation to accelerate the model simulation.
@@ -106,27 +90,55 @@ class BPTT(DSTrainer):
 
     Parameters
     ----------
-    xs: Tensor, dict
+    inputs: Tensor, sequence, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
     shared_args: dict
       Shared keyword arguments for the given target model.
     reset_state: bool
       Whether reset the model states. Default True.
-
-    Returns
-    -------
-    output: Tensor, dict
-      The model output.
+    eval_time: bool
     """
-    # check forced states/feedbacks
-    return super(BPTT, self).predict(xs=xs, reset_state=reset_state, shared_args=shared_args, **kwargs)
+    return super(BPTrainer, self).predict(inputs=inputs,
+                                          reset_state=reset_state,
+                                          shared_args=shared_args,
+                                          eval_time=eval_time)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    prefix = ' ' * len(name)
+    return (f'{name}(target={self.target}, \n\t'
+            f'{prefix}jit={self.jit}, \n\t'
+            f'{prefix}loss={self._loss_func}, \n\t'
+            f'{prefix}optimizer={self.optimizer})')
+
+
+class BPTT(BPTrainer):
+  """
+  The trainer implementing back propagation through time (BPTT)
+  algorithm for recurrent neural networks.
+
+  """
+
+  def __init__(
+      self,
+      target: TrainingSystem,
+      f_loss: Union[str, Callable],  # loss function
+      optimizer: optim.Optimizer = None,  # optimizer
+
+      seed: int =None,
+      **kwargs
+  ):
+    super(BPTT, self).__init__(target=target,
+                               f_loss=f_loss,
+                               optimizer=optimizer,
+                               **kwargs)
 
   def fit(
       self,
       train_data: Union[Callable, Sequence],
       test_data: Union[Callable, Sequence] = None,
-      num_batch: int = None,
+      batch_size: int = None,
       num_epoch: int = 100,
       num_report: int = 100,
       reset_state: bool = True,
@@ -153,7 +165,7 @@ class BPTT(DSTrainer):
     test_data: callable, sequence of data
       Same as the ``train_data``. It can be a callable function,
       or a tuple/list representing `(X, Y)` data.
-    num_batch: int
+    batch_size: int
       The batch size. Default 32. This setting is used when users provide
       the ``train_data`` and ``test_data`` as a pair of `(X, Y)` data, rather
       than a function.
@@ -167,20 +179,21 @@ class BPTT(DSTrainer):
       The shared keyword arguments for the target models.
 
     """
-    true_progress_bar =  self.progress_bar
+    true_progress_bar = self.progress_bar
     self.progress_bar = False
+
     # training the model
     all_train_losses = []
     all_test_losses = []
     train_i = 0
     t0 = time.time()
     for _ in range(num_epoch):
-      train_data_ = self._get_train_data(train_data, num_batch)
+      train_data_ = self._get_train_data(train_data, batch_size)
 
       # training set
       for x, y in train_data_:
         if reset_state:
-          self.target.reset_state(check_data_batch_size(x))
+          self.target.reset_state(self._get_batch_size(x))
         loss = self.f_train(shared_args)(x, y)
         all_train_losses.append(loss)
         train_i += 1
@@ -190,14 +203,15 @@ class BPTT(DSTrainer):
           t0 = t1
 
       # testing set
-      test_data_ = self._get_test_data(test_data, num_batch)
-      if test_data_ is not None:
+      if test_data is not None:
+        test_data_ = self._get_test_data(test_data, batch_size)
         for x, y in test_data_:
           if reset_state:
-            self.target.reset_state(check_data_batch_size(x))
+            self.target.reset_state(self._get_batch_size(x))
           loss = self.f_loss(shared_args)(x, y)
           all_test_losses.append(loss)
 
+    # finally
     self._train_losses = bm.asarray(all_train_losses)
     self._test_losses = bm.asarray(all_test_losses)
     self.progress_bar = true_progress_bar
@@ -240,11 +254,11 @@ class BPTT(DSTrainer):
                        f'But got {type(shared_kwargs)}: {shared_kwargs}')
 
     def loss_fun(inputs, targets):
-      inputs, num_step, num_batch = self._check_xs(inputs, move_axis=True)
-      times = jnp.linspace(0., self.dt * (num_step - 1), num_step)
-      inputs = (times, inputs)
+      times, indices, inputs, _, _, _, _ = self._format_xs(
+        None, inputs, inputs_are_batching=True, move_axis=True)
+      inputs = (times, indices, inputs)
       outputs, _ = self._predict(xs=inputs, shared_args=shared_kwargs)
-      loss = self.loss_fun(bm.moveaxis(outputs, 0, 1), targets)
+      loss = self._loss_func(bm.moveaxis(outputs, 0, 1), targets)
       return loss
 
     return loss_fun
@@ -268,9 +282,6 @@ class BPTT(DSTrainer):
 
     def train_func(inputs, targets):
       grads, loss = self.f_grad(shared_kwargs)(inputs, targets)
-      if self.max_grad_norm is not None:
-        check_float(self.max_grad_norm, 'max_grad_norm', min_bound=0.)
-        grads = bm.clip_by_norm(grads, self.max_grad_norm)
       self.optimizer.update(grads)
       return loss
 
@@ -289,9 +300,7 @@ class BPTT(DSTrainer):
       if len(train_data) != 2:
         raise ValueError(f"Must be (X, Y) pair, but got a sequence with "
                          f"length {len(train_data)}")
-      train_data = self._get_data_by_method2(train_data,
-                                             num_batch=num_batch,
-                                             shuffle=self.shuffle_data)
+      train_data = self._get_data_by_method2(train_data, num_batch=num_batch, shuffle=self.shuffle_data)
     else:
       raise ValueError(f'Train data does not support {type(train_data)}. ')
     return train_data
@@ -320,20 +329,21 @@ class BPTT(DSTrainer):
       raise ValueError('Must provide "num_batch" when dataset is not a callable function.')
     assert isinstance(dataset, (tuple, list)) and len(dataset) == 2
     xs, ys = dataset
-    num_sample = self._get_xs_batch_size(xs)
+    num_sample = self._get_batch_size(xs)
     if shuffle:
       xs, ys = self._shuffle(xs, ys)
     for data_idx in range(0, num_sample, num_batch):
       if (data_idx + num_batch) > num_sample:
-        inputs = {k: v[data_idx:] for k, v in xs.items()}
-        targets = {k: v[data_idx:] for k, v in ys.items()}
+        inputs = tree_map(lambda v: v[data_idx:], xs, is_leaf=_is_jax_array)
+        targets = tree_map(lambda v: v[data_idx:], ys, is_leaf=_is_jax_array)
       else:
-        inputs = {k: v[data_idx: data_idx + num_batch] for k, v in xs.items()}
-        targets = {k: v[data_idx: data_idx + num_batch] for k, v in ys.items()}
+        inputs = tree_map(lambda v: v[data_idx: data_idx + num_batch], xs, is_leaf=_is_jax_array)
+        targets = tree_map(lambda v: v[data_idx: data_idx + num_batch], ys, is_leaf=_is_jax_array)
       yield inputs, targets
 
   def _shuffle(self, xs, ys):
-    key = jr.PRNGKey(seed=np.random.randint(0, 100000))
+    key = jr.PRNGKey(seed=self.rng.randint(0, 100000))
+
     if self._f_shuffle is None:
       def shuffle(xs, ys, key):
         xs = tree_map(lambda x: jr.permutation(key, x, axis=0), xs)
@@ -343,14 +353,15 @@ class BPTT(DSTrainer):
       self._f_shuffle = jit(shuffle)
     return self._f_shuffle(xs, ys, key)
 
-  def _get_xs_batch_size(self, xs):
-    num_batch_sizes = []
-    for key, val in xs.items():
-      num_batch_sizes.append(val.shape[0])
-    if len(set(num_batch_sizes)) != 1:
-      raise ValueError(f'Number of batch size is different across tensors in '
-                       f'the provided "xs". We got {set(num_batch_sizes)}.')
-    return num_batch_sizes[0]
+  def _get_batch_size(self, xs, batch_axis=0):
+    if isinstance(xs, (bm.JaxArray, jnp.ndarray)):
+      return xs.shape[batch_axis]
+    else:
+      num_batch_sizes = [leaf.shape[batch_axis] for leaf in tree_flatten(xs, is_leaf=_is_jax_array)[0]]
+      if len(set(num_batch_sizes)) != 1:
+        raise ValueError(f'Number of batch size is different across tensors in '
+                         f'the provided "xs". We got {set(num_batch_sizes)}.')
+      return num_batch_sizes[0]
 
 
 class BPFF(BPTT):
@@ -396,7 +407,7 @@ class BPFF(BPTT):
       The model output.
     """
     # format input data
-    num_batch = self._get_xs_batch_size(xs)
+    num_batch = self._get_batch_size(xs)
     # reset the model states
     if reset_state:
       self.target.reset_state(num_batch)
@@ -449,7 +460,7 @@ class BPFF(BPTT):
 
     def loss_fun(inputs, targets):
       outputs, _ = self._predict(xs=inputs, shared_args=shared_kwargs)
-      loss = self.loss_fun(outputs, targets)
+      loss = self._loss_func(outputs, targets)
       return loss
 
     return loss_fun
@@ -467,7 +478,7 @@ class BPFF(BPTT):
                        f'but got {type(shared_args)}')
 
     def run_func(xs):
-      return self.target(xs, shared_args)
+      return self.target(shared_args, xs)
 
     if self.jit['predict']:
       dyn_vars = self.target.vars()
@@ -475,11 +486,6 @@ class BPFF(BPTT):
       run_func = bm.jit(run_func, dyn_vars=dyn_vars.unique())
     return run_func
 
-  def _get_xs_batch_size(self, xs):
-    num_batch_sizes = []
-    for key, val in xs.items():
-      num_batch_sizes.append(val.shape[0])
-    if len(set(num_batch_sizes)) != 1:
-      raise ValueError(f'Number of batch size is different across tensors in '
-                       f'the provided "xs". We got {set(num_batch_sizes)}.')
-    return num_batch_sizes[0]
+
+class ePropTrainer(BPTT):
+  pass

@@ -7,9 +7,9 @@ import jax.numpy as jnp
 
 from brainpy import math as bm
 from brainpy.errors import MathError
-from brainpy.initialize import XavierNormal, ZeroInit, Initializer, init_param
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.tools.checking import check_initializer
-from brainpy.train.base import TrainingSystem
+from brainpy.dyn.training import TrainingSystem
 from brainpy.types import Tensor
 
 __all__ = [
@@ -68,17 +68,24 @@ class Dense(TrainingSystem):
     check_initializer(b_initializer, 'bias_initializer', allow_none=True)
 
     # parameter initialization
-    self.W = init_param(self.weight_initializer, (num_in, self.num_out))
-    self.b = init_param(self.bias_initializer, (self.num_out,))
+    self.W = parameter(self.weight_initializer, (num_in, self.num_out))
+    self.b = parameter(self.bias_initializer, (self.num_out,))
     if self.trainable:
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
-  def forward(self, x, shared_args=None):
+  def update(self, sha, x):
     res = x @ self.W
     if self.b is not None:
       res += self.b
-    if self.online_fit_by is not None or self.offline_fit_by is not None:
+
+    # online fitting data
+    if sha.get('fit', False) and self.online_fit_by is not None:
+      self.fit_record['input'] = x
+      self.fit_record['output'] = res
+
+    # offline fitting data
+    if sha.get('fit', False) and self.offline_fit_by is not None:
       self.fit_record['input'] = x
       self.fit_record['output'] = res
     return res
@@ -98,8 +105,7 @@ class Dense(TrainingSystem):
 
   def online_fit(self,
                  target: Tensor,
-                 fit_record: Dict[str, Tensor],
-                 shared_args: Dict = None):
+                 fit_record: Dict[str, Tensor]):
     if not isinstance(target, (bm.ndarray, jnp.ndarray)):
       raise MathError(f'"target" must be a tensor, but got {type(target)}')
     x = fit_record['input']
@@ -141,8 +147,7 @@ class Dense(TrainingSystem):
 
   def offline_fit(self,
                   target: Tensor,
-                  fit_record: Dict[str, Tensor],
-                  shared_args: Dict = None):
+                  fit_record: Dict[str, Tensor]):
     """The offline training interface for the Dense node."""
     # data checking
     if not isinstance(target, (bm.ndarray, jnp.ndarray)):

@@ -9,11 +9,11 @@ from jax.experimental.host_callback import id_tap
 import brainpy.math as bm
 from brainpy.base import Base
 from brainpy.errors import NoImplementationError
-from brainpy.train.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.train.base import TrainingSystem
-from brainpy.train.utils import serialize_kwargs
-from brainpy.types import Tensor
-from .base_runner import DSTrainer
+from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
+from brainpy.dyn.base import DynamicalSystem
+from brainpy.tools.checking import serialize_kwargs
+from brainpy.types import Tensor, Output
+from .base import DSTrainer
 
 __all__ = [
   'OfflineTrainer',
@@ -26,7 +26,7 @@ class OfflineTrainer(DSTrainer):
 
   Parameters
   ----------
-  target: Node
+  target: DynamicalSystem
     The target model to train.
   fit_method: OfflineAlgorithm, Callable, dict, str
     The fitting method applied to the target model.
@@ -47,7 +47,7 @@ class OfflineTrainer(DSTrainer):
 
   def __init__(
       self,
-      target: TrainingSystem,
+      target: DynamicalSystem,
       fit_method: Union[OfflineAlgorithm, Callable, Dict, str] = None,
       **kwargs
   ):
@@ -94,12 +94,48 @@ class OfflineTrainer(DSTrainer):
     return (f'{name}(target={self.target}, \n\t'
             f'{prefix}fit_method={self.fit_method})')
 
+  def predict(
+      self,
+      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
+      reset_state: bool = False,
+      shared_args: Dict = None,
+      eval_time: bool = False
+  ) -> Output:
+    """Prediction function.
+
+    What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
+    the `inputs_are_batching` is default `True`.
+
+    Parameters
+    ----------
+    inputs: Tensor, sequence of Tensor, dict of Tensor
+      The input values.
+    reset_state: bool
+      Reset the target state before running.
+    shared_args: dict
+      The shared arguments across nodes.
+    eval_time: bool
+      Whether we evaluate the running time or not?
+
+    Returns
+    -------
+    output: Tensor, sequence of Tensor, dict of Tensor
+      The running output.
+    """
+    outs = super(OfflineTrainer, self).predict(inputs=inputs,
+                                               reset_state=reset_state,
+                                               shared_args=shared_args,
+                                               eval_time=eval_time)
+    for node in self.train_nodes:
+      node.fit_record.clear()
+    return outs
+
   def fit(
       self,
       train_data: Sequence,
       reset_state: bool = False,
-      shared_kwargs: Dict = None,
-  ):
+      shared_args: Dict = None,
+  ) -> Output:
     """Fit the target model according to the given training and testing data.
 
     Parameters
@@ -117,9 +153,12 @@ class OfflineTrainer(DSTrainer):
           then the fitting happens on the whole data series.
     reset_state: bool
       Whether reset the initial states of the target model.
-    shared_kwargs: dict
+    shared_args: dict
       The shared keyword arguments for the target models.
     """
+    if shared_args is None: shared_args = dict()
+    shared_args['fit'] = shared_args.get('fit', True)
+
     # checking training and testing data
     if not isinstance(train_data, (list, tuple)):
       raise ValueError(f"{self.__class__.__name__} only support "
@@ -132,7 +171,7 @@ class OfflineTrainer(DSTrainer):
     xs, ys = train_data
 
     # prediction, get all needed data
-    _ = self.predict(xs=xs, reset_state=reset_state)
+    outs = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
 
     # get all input data
     xs, num_step, num_batch = self._check_xs(xs, move_axis=False)
@@ -150,7 +189,7 @@ class OfflineTrainer(DSTrainer):
     for node in self.train_nodes:
       key = f'{node.name}-fit_record'
       monitor_data[key] = self.mon.get(key)
-    self.f_train(shared_kwargs)(monitor_data, ys)
+    self.f_train(shared_args)(monitor_data, ys)
     del monitor_data
 
     # close the progress bar
@@ -160,26 +199,29 @@ class OfflineTrainer(DSTrainer):
     # final things
     for node in self.train_nodes:
       self.mon.pop(f'{node.name}-fit_record')
+      node.fit_record.clear()  # clear fit records
     if self.true_numpy_mon_after_run:
       for key in self.mon.keys():
         if key != 'var_names':
           self.mon[key] = np.asarray(self.mon[key])
 
-  def f_train(self, shared_kwargs: Dict = None) -> Callable:
+    return outs
+
+  def f_train(self, shared_args: Dict = None) -> Callable:
     """Get training function."""
-    shared_kwargs_str = serialize_kwargs(shared_kwargs)
+    shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_train:
-      self._f_train[shared_kwargs_str] = self._make_fit_func(shared_kwargs)
+      self._f_train[shared_kwargs_str] = self._make_fit_func(shared_args)
     return self._f_train[shared_kwargs_str]
 
-  def _make_fit_func(self, shared_kwargs):
-    shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
+  def _make_fit_func(self, shared_args):
+    shared_args = dict() if shared_args is None else shared_args
 
     def train_func(monitor_data: Dict[str, Tensor], target_data: Dict[str, Tensor]):
       for node in self.train_nodes:
         fit_record = monitor_data[f'{node.name}-fit_record']
         targets = target_data[node.name]
-        node.offline_fit(targets, fit_record, shared_kwargs)
+        node.offline_fit(targets, fit_record)
         if self.progress_bar:
           id_tap(lambda *args: self._pbar.update(), ())
 
@@ -189,30 +231,35 @@ class OfflineTrainer(DSTrainer):
       train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())
     return train_func
 
-  def build_monitors(self, return_without_idx, return_with_idx, flatten=False):
-    def func(_t, _dt):
+  def build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
+    if shared_args.get('fit', False):
+      def func(tdi):
         res = {k: v.value for k, v in return_without_idx.items()}
         res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-        res.update({k: f(_t, _dt) for k, f in self.fun_monitors.items()})
-        res.update({f'{node.name}-fit_record': {k: node.fit_record.pop(k)
-                                                for k in node.fit_record.keys()}
-                    for node in self.train_nodes})
+        res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
+        res.update({f'{node.name}-fit_record': node.fit_record for node in self.train_nodes})
+        return res
+    else:
+      def func(tdi):
+        res = {k: v.value for k, v in return_without_idx.items()}
+        res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
+        res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
         return res
 
     return func
 
   def _check_interface(self):
     for node in self.train_nodes:
-      if hasattr(node.offline_fit, 'not_implemented'):
-        if node.offline_fit.not_implemented:
+      if hasattr(node.offline_fit, 'not_customized'):
+        if node.offline_fit.not_customized:
           raise NoImplementationError(
             f'The node \n\n{node}\n\n'
             f'is set to be trainable with {self.__class__.__name__} method. '
             f'However, it does not implement the required training '
             f'interface "offline_fit()" function. '
           )
-      if hasattr(node.offline_init, 'not_implemented'):
-        if node.offline_init.not_implemented:
+      if hasattr(node.offline_init, 'not_customized'):
+        if node.offline_init.not_customized:
           raise NoImplementationError(
             f'The node \n\n{node}\n\n'
             f'is set to be trainable with {self.__class__.__name__} method. '
@@ -227,7 +274,7 @@ class RidgeTrainer(OfflineTrainer):
 
   Parameters
   ----------
-  target: TrainingSystem
+  target: TrainingSystem, DynamicalSystem
     The target model.
   beta: float
     The regularization coefficient.
@@ -235,7 +282,7 @@ class RidgeTrainer(OfflineTrainer):
     Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
   """
 
-  def __init__(self, target, beta=1e-7, **kwargs):
+  def __init__(self, target, alpha=1e-7, **kwargs):
     super(RidgeTrainer, self).__init__(target=target,
-                                       fit_method=dict(name='ridge', beta=beta),
+                                       fit_method=dict(name='ridge', alpha=alpha),
                                        **kwargs)

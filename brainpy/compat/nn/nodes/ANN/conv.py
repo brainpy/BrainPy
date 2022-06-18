@@ -3,7 +3,7 @@
 
 import jax.lax
 import brainpy.math as bm
-from brainpy.initialize import XavierNormal, ZeroInit, init_param
+from brainpy.initialize import XavierNormal, ZeroInit, parameter
 from brainpy.compat.nn.base import Node
 
 __all__ = [
@@ -105,8 +105,8 @@ class GeneralConv(Node):
     in_channels = int(input_shapes[-1])
     assert in_channels % self.groups == 0, '"nin" should be divisible by groups'
     kernel_shape = _check_tuple(self.kernel_size) + (in_channels // self.groups, self.out_channels)
-    self.w = init_param(self.w_init, kernel_shape)
-    self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
+    self.w = parameter(self.w_init, kernel_shape)
+    self.b = parameter(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
     if self.trainable:
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
@@ -129,8 +129,8 @@ class GeneralConv(Node):
     in_channels = int(ff_input_shapes[-1] + fb_input_shapes[-1])
     assert in_channels % self.groups == 0, '"nin" should be divisible by groups'
     kernel_shape = _check_tuple(self.kernel_size) + (in_channels // self.groups, self.out_channels)
-    self.w = init_param(self.w_init, kernel_shape)
-    self.b = init_param(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
+    self.w = parameter(self.w_init, kernel_shape)
+    self.b = parameter(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
     if self.trainable:
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)

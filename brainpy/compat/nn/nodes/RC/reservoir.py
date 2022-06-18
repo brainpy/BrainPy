@@ -3,7 +3,7 @@
 from typing import Optional, Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Normal, ZeroInit, Initializer, init_param
+from brainpy.initialize import Normal, ZeroInit, Initializer, parameter
 from brainpy.compat.nn.base import RecurrentNode
 from brainpy.compat.nn.datatypes import MultipleData
 from brainpy.tools.checking import (check_shape_consistency,
@@ -168,7 +168,7 @@ class Reservoir(RecurrentNode):
     # initialize feedforward weights
     weight_shape = (sum(free_shapes), self.num_unit)
     self.Wff_shape = weight_shape
-    self.Wff = init_param(self.ff_initializer, weight_shape)
+    self.Wff = parameter(self.ff_initializer, weight_shape)
     if self.ff_connectivity < 1.:
       conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
       self.Wff[conn_mat] = 0.
@@ -180,7 +180,7 @@ class Reservoir(RecurrentNode):
 
     # initialize recurrent weights
     recurrent_shape = (self.num_unit, self.num_unit)
-    self.Wrec = init_param(self.rec_initializer, recurrent_shape)
+    self.Wrec = parameter(self.rec_initializer, recurrent_shape)
     if self.rec_connectivity < 1.:
       conn_mat = self.rng.random(recurrent_shape) > self.rec_connectivity
       self.Wrec[conn_mat] = 0.
@@ -190,7 +190,7 @@ class Reservoir(RecurrentNode):
     if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
       self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
       self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
-    self.bias = init_param(self.bias_initializer, (self.num_unit,))
+    self.bias = parameter(self.bias_initializer, (self.num_unit,))
     if self.trainable:
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
@@ -208,7 +208,7 @@ class Reservoir(RecurrentNode):
       unique_shape, free_shapes = check_shape_consistency(self.feedback_shapes, -1, True)
       fb_shape = (sum(free_shapes), self.num_unit)
       self.Wfb_shape = fb_shape
-      self.Wfb = init_param(self.fb_initializer, fb_shape)
+      self.Wfb = parameter(self.fb_initializer, fb_shape)
       if self.fb_connectivity < 1.:
         conn_mat = self.rng.random(fb_shape) > self.fb_connectivity
         self.Wfb[conn_mat] = 0.

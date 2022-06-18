@@ -148,8 +148,8 @@ class NGRC(bp.train.TrainingSystem):
     self.r = bp.train.NVAR(num_in, delay=4, order=2, stride=5)
     self.o = bp.train.Dense(self.r.num_out, 1, trainable=True)
 
-  def forward(self, x, shared_args=None):
-    return self.o(self.r(x, shared_args), shared_args)
+  def update(self, sha, x):
+    return self.o(sha, self.r(sha, x))
 
 
 model = NGRC(2)
@@ -157,7 +157,8 @@ model = NGRC(2)
 # Training #
 # -------- #
 
-trainer = bp.train.RidgeTrainer(model, beta=0.05)
+trainer = bp.train.RidgeTrainer(model, alpha=0.05)
+# trainer = bp.train.ForceTrainer(model, )
 
 # warm-up
 outputs = trainer.predict(X_warmup)
@@ -170,7 +171,7 @@ trainer.fit([X_train, Y_train])
 outputs = trainer.predict(X_test, reset_state=True)
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
 
-plot_lorenz(x=lorenz_series['x'].flatten().to_numpy(),
-            y=lorenz_series['y'].flatten().to_numpy(),
-            true_z=lorenz_series['z'].flatten().to_numpy(),
-            predict_z=outputs.to_numpy().flatten())
+plot_lorenz(x=bm.as_numpy(lorenz_series['x']).flatten(),
+            y=bm.as_numpy(lorenz_series['y']).flatten(),
+            true_z=bm.as_numpy(lorenz_series['z']).flatten(),
+            predict_z=bm.as_numpy(outputs).flatten())
