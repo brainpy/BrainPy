@@ -104,33 +104,8 @@ class DeltaSynapse(TwoEndConn):
       self.check_post_attrs('refractory')
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.weights = init_param(weights, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.weights = init_param(weights, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.weights) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.weights, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre2post = self.conn.require('pre2post')
-        self.weights = init_param(weights, self.pre2post[1].shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.weights = init_param(weights, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.weights = weights
+    self.pre2post = self.conn.require('pre2post')
 
     # variables
     self.delay_step = self.register_delay(f"{self.pre.name}.spike",
@@ -144,33 +119,7 @@ class DeltaSynapse(TwoEndConn):
     # delays
     pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
 
-    # post values
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
-    if isinstance(self.conn, All2All):
-      pre_spike = pre_spike.astype(bm.float_)
-      if self.weight_type == 'homo':
-        post_vs = bm.sum(pre_spike)
-        if not self.conn.include_self:
-          post_vs = post_vs - pre_spike
-        post_vs *= self.weights
-      else:
-        post_vs = pre_spike @ self.weights
-    elif isinstance(self.conn, One2One):
-      pre_spike = pre_spike.astype(bm.float_)
-      post_vs = pre_spike * self.weights
-    else:
-      if self.conn_type == 'sparse':
-        post_vs = bm.pre2post_event_sum(pre_spike,
-                                        self.pre2post,
-                                        self.post.num,
-                                        self.weights)
-      else:
-        pre_spike = pre_spike.astype(bm.float_)
-        if self.weight_type == 'homo':
-          post_vs = self.weights * (pre_spike @ self.conn_mat)
-        else:
-          post_vs = pre_spike @ self.weights
+    post_vs = bm.pre2post_event_sum(pre_spike, self.pre2post,  self.post.num, self.weights)
 
     # update outputs
     target = getattr(self.post, self.post_key)
@@ -299,33 +248,8 @@ class ExpCUBA(TwoEndConn):
                        f'But we got {self.tau}')
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre2post = self.conn.require('pre2post')
-        self.g_max = init_param(g_max, self.pre2post[1].shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.pre2post = self.conn.require('pre2post')
+    self.g_max = init_param(g_max, self.pre2post[1].shape, allow_none=False)
 
     # variables
     self.g = bm.Variable(bm.zeros(self.post.num))
@@ -344,33 +268,10 @@ class ExpCUBA(TwoEndConn):
     pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
 
     # post values
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
-    if isinstance(self.conn, All2All):
-      pre_spike = pre_spike.astype(bm.float_)
-      if self.weight_type == 'homo':
-        post_vs = bm.sum(pre_spike)
-        if not self.conn.include_self:
-          post_vs = post_vs - pre_spike
-        post_vs = self.g_max * post_vs
-      else:
-        post_vs = pre_spike @ self.g_max
-    elif isinstance(self.conn, One2One):
-      pre_spike = pre_spike.astype(bm.float_)
-      post_vs = pre_spike * self.g_max
-    else:
-      if self.conn_type == 'sparse':
-        post_vs = bm.pre2post_event_sum(pre_spike,
-                                        self.pre2post,
-                                        self.post.num,
-                                        self.g_max)
-      else:
-        pre_spike = pre_spike.astype(bm.float_)
-        if self.weight_type == 'homo':
-          post_vs = self.g_max * (pre_spike @ self.conn_mat)
-        else:
-          post_vs = pre_spike @ self.g_max
-
+    post_vs = bm.pre2post_event_sum(pre_spike,
+                                    self.pre2post,
+                                    self.post.num,
+                                    self.g_max)
     # updates
     self.g.value = self.integral(self.g.value, t, dt=dt) + post_vs
     self.post.input += self.output(self.g)
@@ -619,33 +520,8 @@ class DualExpCUBA(TwoEndConn):
                        f'But we got {self.tau_decay}')
 
     # connections
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+    self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
 
     # variables
     self.h = bm.Variable(bm.zeros(self.pre.num))
@@ -674,26 +550,7 @@ class DualExpCUBA(TwoEndConn):
     self.h += pre_spike
 
     # post-synaptic values
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
-    if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_vs = bm.sum(self.g)
-        if not self.conn.include_self:
-          post_vs = post_vs - self.g
-        post_vs = self.g_max * post_vs
-      else:
-        post_vs = self.g @ self.g_max
-    elif isinstance(self.conn, One2One):
-      post_vs = self.g_max * self.g
-    else:
-      if self.conn_type == 'sparse':
-        post_vs = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
-      else:
-        if self.weight_type == 'homo':
-          post_vs = (self.g_max * self.g) @ self.conn_mat
-        else:
-          post_vs = self.g @ self.g_max
+    post_vs = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
 
     # output
     self.post.input += self.output(post_vs)
@@ -1199,33 +1056,8 @@ class NMDA(TwoEndConn):
       raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. But we got {tau_rise}')
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+    self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
 
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
@@ -1254,26 +1086,7 @@ class NMDA(TwoEndConn):
     self.x += delayed_pre_spike
 
     # post-synaptic value
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
-    if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_g = bm.sum(self.g)
-        if not self.conn.include_self:
-          post_g = post_g - self.g
-        post_g = post_g * self.g_max
-      else:
-        post_g = self.g @ self.g_max
-    elif isinstance(self.conn, One2One):
-      post_g = self.g_max * self.g
-    else:
-      if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
-      else:
-        if self.weight_type == 'homo':
-          post_g = (self.g_max * self.g) @ self.conn_mat
-        else:
-          post_g = self.g @ self.g_max
+    post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
 
     # output
     g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)

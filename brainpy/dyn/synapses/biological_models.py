@@ -161,33 +161,8 @@ class AMPA(TwoEndConn):
       raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # connection
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+    self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
 
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num))
@@ -216,24 +191,7 @@ class AMPA(TwoEndConn):
     # post-synaptic values
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, t, TT, dt=dt)
-    if isinstance(self.conn, One2One):
-      post_g = self.g_max * self.g
-    elif isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_g = bm.sum(self.g)
-        if not self.conn.include_self:
-          post_g = post_g - self.g
-        post_g = post_g * self.g_max
-      else:
-        post_g = self.g @ self.g_max
-    else:
-      if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
-      else:
-        if self.weight_type == 'homo':
-          post_g = (self.g_max * self.g) @ self.conn_mat
-        else:
-          post_g = self.g @ self.g_max
+    post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
 
     # output
     self.post.input -= post_g * (self.post.V - self.E)
@@ -518,33 +476,8 @@ class BioNMDA(TwoEndConn):
       raise ValueError(f'"T_dur" must be a scalar or a tensor with size of 1. But we got {T_dur}')
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
+    self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
 
     # variables
     self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
@@ -576,26 +509,7 @@ class BioNMDA(TwoEndConn):
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt=dt)
 
     # post-synaptic value
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
-    if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_g = bm.sum(self.g)
-        if not self.conn.include_self:
-          post_g = post_g - self.g
-        post_g = post_g * self.g_max
-      else:
-        post_g = self.g @ self.g_max
-    elif isinstance(self.conn, One2One):
-      post_g = self.g_max * self.g
-    else:
-      if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
-      else:
-        if self.weight_type == 'homo':
-          post_g = (self.g_max * self.g) @ self.conn_mat
-        else:
-          post_g = self.g @ self.g_max
+    post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
 
     # output
     g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
