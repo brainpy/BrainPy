@@ -2045,9 +2045,9 @@ def nanmedian(a, axis=None, keepdims=False):
 
 
 @wraps(jnp.nanmean)
-def nanmean(a, axis=None, dtype=None, keepdims=None):
+def nanmean(a, axis=None, dtype=None, keepdims=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.nanmean(a, axis=axis, dtype=dtype, keepdims=keepdims)
+  r = jnp.nanmean(a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
