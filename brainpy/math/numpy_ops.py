@@ -1601,16 +1601,16 @@ def argsort(x, axis=-1, kind='stable', order=None):
 
 
 @wraps(jnp.argmax)
-def argmax(x, axis=None):
+def argmax(x, axis=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.argmax(x, axis=axis)
+  r = jnp.argmax(x, axis=axis, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.argmin)
-def argmin(x, axis=None):
+def argmin(x, axis=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.argmin(x, axis=axis)
+  r = jnp.argmin(x, axis=axis, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -1666,16 +1666,16 @@ def count_nonzero(a, axis=None, keepdims=False):
 
 
 @wraps(jnp.max)
-def max(a, axis=None, keepdims=None, initial=None, where=None):
+def max(a, axis=None, out=None, keepdims=None, initial=None, where=None):
   a = _remove_jaxarray(a)
-  r = jnp.max(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.max(a, axis=axis, out=out, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.min)
-def min(a, axis=None, keepdims=None, initial=None, where=None):
+def min(a, axis=None, out=None, keepdims=None, initial=None, where=None):
   a = _remove_jaxarray(a)
-  r = jnp.min(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.min(a, axis=axis, out=out, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
 
@@ -1941,16 +1941,16 @@ def select(condlist, choicelist, default=0):
 # statistic funcs
 # ---------------
 @wraps(jnp.nanmin)
-def nanmin(x, axis=None, keepdims=None):
+def nanmin(x, axis=None, keepdims=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.nanmin(x, axis=axis, keepdims=keepdims)
+  r = jnp.nanmin(x, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.nanmax)
-def nanmax(x, axis=None, keepdims=None):
+def nanmax(x, axis=None, keepdims=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.nanmax(x, axis=axis, keepdims=keepdims)
+  r = jnp.nanmax(x, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
