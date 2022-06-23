@@ -437,13 +437,13 @@ def nan_to_num(x, copy=True, nan=0.0, posinf=None, neginf=None):
 
 
 @wraps(jnp.nanargmax)
-def nanargmax(a, axis=None):
-  return JaxArray(jnp.nanargmax(_remove_jaxarray(a), axis))
+def nanargmax(a, axis=None, out=None, keepdims=None):
+  return JaxArray(jnp.nanargmax(_remove_jaxarray(a), axis=axis, out=out, keepdims=keepdims))
 
 
 @wraps(jnp.nanargmin)
-def nanargmin(a, axis=None):
-  return JaxArray(jnp.nanargmin(_remove_jaxarray(a), axis))
+def nanargmin(a, axis=None, out=None, keepdims=None):
+  return JaxArray(jnp.nanargmin(_remove_jaxarray(a), axis=axis, out=out, keepdims=keepdims))
 
 
 @wraps(jnp.pad)
@@ -978,9 +978,9 @@ def fix(x):
 
 
 @wraps(jnp.prod)
-def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
+def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.prod(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.prod(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -988,9 +988,9 @@ product = prod
 
 
 @wraps(jnp.sum)
-def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
+def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -1001,9 +1001,9 @@ def diff(a, n=1, axis: int = -1, prepend=None, append=None):
 
 
 @wraps(jnp.median)
-def median(a, axis=None, keepdims=False):
+def median(a, axis=None, keepdims=False, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.median(a, axis=axis, keepdims=keepdims)
+  r = jnp.median(a, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -1035,16 +1035,16 @@ def cumsum(a, axis=None, dtype=None):
 
 
 @wraps(jnp.nanprod)
-def nanprod(a, axis=None, dtype=None, keepdims=None):
+def nanprod(a, axis=None, dtype=None, keepdims=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.nanprod(a=a, axis=axis, dtype=dtype, keepdims=keepdims)
+  r = jnp.nanprod(a=a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.nansum)
-def nansum(a, axis=None, dtype=None, keepdims=None):
+def nansum(a, axis=None, dtype=None, keepdims=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.nansum(a=a, axis=axis, dtype=dtype, keepdims=keepdims)
+  r = jnp.nansum(a=a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
