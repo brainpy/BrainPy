@@ -42,6 +42,7 @@ from .compat import *
 
 # high-level numpy operations
 from .numpy_ops import *
+from .index_tricks import *
 from . import fft
 from . import linalg
 from . import random
