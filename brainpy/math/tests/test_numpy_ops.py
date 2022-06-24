@@ -3926,10 +3926,11 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
 
     # Values at extremes are converted correctly.
     for val in [int_min, 0, int_max]:
-      self.assertEqual(bm.array([val]).dtype, dtypes.canonicalize_dtype('int64'))
+      self.assertEqual(bm.array([val]).value.dtype, dtypes.canonicalize_dtype('int64'))
 
     # list of values results in promoted type.
-    self.assertEqual(bm.array([0, np.float16(1)]).dtype, bm.result_type('int64', 'float16'))
+    with jax.numpy_dtype_promotion('standard'):
+      self.assertEqual(bm.array([0, np.float16(1)]).value.dtype, jnp.result_type('int64', 'float16'))
 
     # out of bounds leads to an OverflowError
     val = int_min - 1
@@ -4212,21 +4213,25 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
       self._CompileAndCheck(bm_func(bm_fun), args_maker)
 
   @parameterized.named_parameters(jtu.cases_from_list(
-      {"testcase_name": "_shape={}_idx={}".format(shape,
-        jtu.format_shape_dtype_string(idx_shape, dtype)),
-       "shape": shape, "idx_shape": idx_shape, "dtype": dtype}
-      for shape in nonempty_nonscalar_array_shapes
-      for dtype in int_dtypes
-      for idx_shape in all_shapes))
+    {"testcase_name": "_shape={}_idx={}".format(shape,
+                                                jtu.format_shape_dtype_string(idx_shape, dtype)),
+     "shape": shape, "idx_shape": idx_shape, "dtype": dtype}
+    for shape in nonempty_nonscalar_array_shapes
+    for dtype in int_dtypes
+    for idx_shape in all_shapes))
   def testUnravelIndex(self, shape, idx_shape, dtype):
     size = prod(shape)
     rng = jtu.rand_int(self.rng(), low=-((2 * size) // 3), high=(2 * size) // 3)
 
     def np_fun(index, shape):
+      # JAX's version outputs the same dtype as the input in the typical case
+      # where shape is weakly-typed.
+      out_dtype = index.dtype
       # Adjust out-of-bounds behavior to match jax's documented behavior.
       index = np.clip(index, -size, size - 1)
       index = np.where(index < 0, index + size, index)
-      return np.unravel_index(index, shape)
+      return [i.astype(out_dtype) for i in np.unravel_index(index, shape)]
+
     bm_fun = bm.unravel_index
     args_maker = lambda: [rng(idx_shape, dtype), shape]
     self._CheckAgainstNumpy(np_fun, bm_func(bm_fun), args_maker)
@@ -5529,21 +5534,22 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     self.assertAllClose(out[np.array([0, -1])], endpoints, rtol=0, atol=0)
 
   @parameterized.named_parameters(
-      jtu.cases_from_list(
-        {"testcase_name": ("_start_shape={}_stop_shape={}_num={}_endpoint={}"
-                           "_base={}_dtype={}").format(
-            start_shape, stop_shape, num, endpoint, base,
-            dtype.__name__ if dtype else "None"),
-         "start_shape": start_shape,
-         "stop_shape": stop_shape,
-         "num": num, "endpoint": endpoint, "base": base,
-         "dtype": dtype}
-        for start_shape in [(), (2,), (2, 2)]
-        for stop_shape in [(), (2,), (2, 2)]
-        for num in [0, 1, 2, 5, 20]
-        for endpoint in [True, False]
-        for base in [10.0, 2, np.e]
-        for dtype in inexact_dtypes + [None,]))
+    jtu.cases_from_list(
+      {"testcase_name": ("_start_shape={}_stop_shape={}_num={}_endpoint={}"
+                         "_base={}_dtype={}").format(
+        start_shape, stop_shape, num, endpoint, base,
+        dtype.__name__ if dtype else "None"),
+        "start_shape": start_shape,
+        "stop_shape": stop_shape,
+        "num": num, "endpoint": endpoint, "base": base,
+        "dtype": dtype}
+      for start_shape in [(), (2,), (2, 2)]
+      for stop_shape in [(), (2,), (2, 2)]
+      for num in [0, 1, 2, 5, 20]
+      for endpoint in [True, False]
+      for base in [10.0, 2, np.e]
+      # skip 16-bit floats due to insufficient precision for the test.
+      for dtype in jtu.dtypes.inexact + [None, ]))
   @jax.numpy_rank_promotion('allow')  # This test explicitly exercises implicit rank promotion.
   def testLogspace(self, start_shape, stop_shape, num,
                    endpoint, base, dtype):
@@ -5554,8 +5560,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
                               " doesn't exactly match other platforms.")
     rng = jtu.rand_default(self.rng())
     # relax default tolerances slightly
-    tol = {np.float16: 2e-2, np.float32: 1e-2, np.float64: 1e-6,
-           np.complex64: 1e-3, np.complex128: 1e-6}
+    tol = {np.float32: 1e-2, np.float64: 1e-6, np.complex64: 1e-3, np.complex128: 1e-6}
     args_maker = self._GetArgsMaker(rng,
                                     [start_shape, stop_shape],
                                     [dtype, dtype])
@@ -5564,14 +5569,16 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     for axis in range(-ndim, ndim):
       bm_op = lambda start, stop: bm.logspace(
         start, stop, num, endpoint=endpoint, base=base, dtype=dtype, axis=axis)
+
       @jtu.ignore_warning(category=RuntimeWarning,
                           message="overflow encountered in power")
       def np_op(start, stop):
         return np.logspace(start, stop, num, endpoint=endpoint,
                            base=base, dtype=dtype, axis=axis)
+
       self._CheckAgainstNumpy(np_op, bm_func(bm_op), args_maker,
                               check_dtypes=False, tol=tol)
-      if dtype in (inexact_dtypes + [None,]):
+      if dtype in (inexact_dtypes + [None, ]):
         # Why do compiled and op-by-op float16 np.power numbers differ
         # slightly more than expected?
         atol = {np.float16: 1e-2}
