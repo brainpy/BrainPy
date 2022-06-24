@@ -3921,6 +3921,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
       self.assertEqual(np.uint64(val), bm.array(val, dtype='uint64').value)
 
   def testArrayFromList(self):
+    bm.enable_x64()
     int_max = bm.iinfo(jnp.int64).max
     int_min = bm.iinfo(jnp.int64).min
 
@@ -3932,6 +3933,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     with jax.numpy_dtype_promotion('standard'):
       self.assertEqual(bm.array([0, np.float16(1)]).value.dtype, jnp.result_type('int64', 'float16'))
 
+    bm.disable_x64()
     # out of bounds leads to an OverflowError
     val = int_min - 1
     with self.assertRaisesRegex(OverflowError, "Python int too large.*"):
@@ -4212,6 +4214,18 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     else:
       self._CompileAndCheck(bm_func(bm_fun), args_maker)
 
+
+class u(jtu.JaxTestCase):
+  def _GetArgsMaker(self, rng, shapes, dtypes, np_arrays=True):
+    def f():
+      out = [rng(shape, dtype or jnp.float_)
+             for shape, dtype in zip(shapes, dtypes)]
+      if np_arrays:
+        return out
+      return [jnp.asarray(a) if isinstance(a, (np.ndarray, np.generic)) else a
+              for a in out]
+    return f
+
   @parameterized.named_parameters(jtu.cases_from_list(
     {"testcase_name": "_shape={}_idx={}".format(shape,
                                                 jtu.format_shape_dtype_string(idx_shape, dtype)),
@@ -4237,6 +4251,8 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     self._CheckAgainstNumpy(np_fun, bm_func(bm_fun), args_maker)
     self._CompileAndCheck(bm_func(bm_fun), args_maker)
 
+
+class u1(jtu.JaxTestCase):
   def testAstype(self):
     rng = self.rng()
     args_maker = lambda: [rng.randn(3, 4).astype("float32")]

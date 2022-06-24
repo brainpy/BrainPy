@@ -15,7 +15,7 @@
 # import brainpy.math as bm
 #
 # block = False
-# 
+#
 #
 # def get_subset(data, start, end):
 #   res = {'x': data['x'][start: end],
