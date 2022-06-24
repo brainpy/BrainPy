@@ -3926,7 +3926,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
 
     # Values at extremes are converted correctly.
     for val in [int_min, 0, int_max]:
-      self.assertEqual(bm.array([val]).value.dtype, dtypes.canonicalize_dtype('int64'))
+      self.assertEqual(bm.array([val], dtype=jnp.int64).value.dtype, dtypes.canonicalize_dtype('int64'))
 
     # list of values results in promoted type.
     with jax.numpy_dtype_promotion('standard'):
