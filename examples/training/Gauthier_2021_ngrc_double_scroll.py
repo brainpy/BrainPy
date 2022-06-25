@@ -103,11 +103,11 @@ Y_test = get_subset(data_series,
 # ----- #
 
 
-class NGRC(bp.train.TrainingSystem):
+class NGRC(bp.dyn.TrainingSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
-    self.r = bp.train.NVAR(num_in, delay=2, order=3)
-    self.di = bp.train.Dense(self.r.num_out, num_in, trainable=True)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=3)
+    self.di = bp.layers.Dense(self.r.num_out, num_in, trainable=True)
 
   def update(self, shared, x):
     di = self.di(shared, self.r(shared, x))

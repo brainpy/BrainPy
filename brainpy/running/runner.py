@@ -206,7 +206,7 @@ class Runner(object):
           monitors[key] = (getattr(master, splits[-1]), index)
     return monitors
 
-  def build_monitors(self, return_without_idx, return_with_idx) -> Callable:
+  def build_monitors(self, return_without_idx, return_with_idx, shared_args) -> Callable:
     raise NotImplementedError
 
   def __del__(self):

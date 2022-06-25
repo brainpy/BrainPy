@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.dyn.synouts import COBA
-from brainpy.dyn.synapses import Exponential
 from brainpy.dyn.channels import INa_TM1991, IL
+from brainpy.dyn.synapses import Exponential
+from brainpy.dyn.synouts import COBA
 
 
 class IK2(bp.dyn.channels.IK_p4_markov):
@@ -37,7 +36,7 @@ class IK(bp.dyn.Channel):
     return self.phi * (alpha * (1. - p) - beta * p)
 
   def update(self, tdi, V):
-    self.p.value = self.integral(self.p, t, V, dt=dt)
+    self.p.value = self.integral(self.p, tdi.t, V, dt=tdi.dt)
 
   def current(self, V):
     return self.g_max * self.p ** 4 * (self.E - V)

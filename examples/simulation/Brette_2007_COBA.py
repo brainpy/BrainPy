@@ -22,15 +22,16 @@ class EINet(bp.dyn.Network):
     self.I.V[:] = bm.random.randn(num_inh) * 2 - 55.
 
     # synapses
-    we = 0.6 / scale  # excitatory synaptic weight (voltage)
-    wi = 6.7 / scale  # inhibitory synaptic weight
-    self.E2E = bp.dyn.ExpCOBA(self.E, self.E, bp.conn.FixedProb(0.02),
+    prob = 0.1
+    we = 0.6 / scale / (prob / 0.02)**2  # excitatory synaptic weight (voltage)
+    wi = 6.7 / scale / (prob / 0.02)**2  # inhibitory synaptic weight
+    self.E2E = bp.dyn.ExpCOBA(self.E, self.E, bp.conn.FixedProb(prob),
                               E=0., g_max=we, tau=5., method=method)
-    self.E2I = bp.dyn.ExpCOBA(self.E, self.I, bp.conn.FixedProb(0.02),
+    self.E2I = bp.dyn.ExpCOBA(self.E, self.I, bp.conn.FixedProb(prob),
                               E=0., g_max=we, tau=5., method=method)
-    self.I2E = bp.dyn.ExpCOBA(self.I, self.E, bp.conn.FixedProb(0.02),
+    self.I2E = bp.dyn.ExpCOBA(self.I, self.E, bp.conn.FixedProb(prob),
                               E=-80., g_max=wi, tau=10., method=method)
-    self.I2I = bp.dyn.ExpCOBA(self.I, self.I, bp.conn.FixedProb(0.02),
+    self.I2I = bp.dyn.ExpCOBA(self.I, self.I, bp.conn.FixedProb(prob),
                               E=-80., g_max=wi, tau=10., method=method)
 
 
@@ -41,7 +42,7 @@ runner = bp.dyn.DSRunner(
   monitors={'E.spike': net.E.spike},
   inputs=[(net.E.input, 20.), (net.I.input, 20.)]
 )
-runner.run(100.)
+runner.run(1000.)
 
 # visualization
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)

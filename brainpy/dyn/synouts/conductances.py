@@ -35,6 +35,9 @@ class CUBA(SynOutput):
   def __init__(self, name: str = None):
     super(CUBA, self).__init__(name=name)
 
+  def update(self, tdi):
+    pass
+
   def filter(self, g):
     return g
 
@@ -74,3 +77,6 @@ class COBA(SynOutput):
 
   def filter(self, g):
     return g * (self.E - self.master.post.V)
+
+  def update(self, tdi):
+    pass

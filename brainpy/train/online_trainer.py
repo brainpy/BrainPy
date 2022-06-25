@@ -8,12 +8,13 @@ from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
 import brainpy.math as bm
+from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.base import Base
 from brainpy.dyn.base import DynamicalSystem
+from brainpy.dyn.training import TrainingSystem
 from brainpy.errors import NoImplementationError
 from brainpy.tools.checking import serialize_kwargs
-from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.dyn.training import TrainingSystem
+from brainpy.tools.others.dicts import DotDict
 from brainpy.types import Tensor, Output
 from .base import DSTrainer
 
@@ -98,7 +99,7 @@ class OnlineTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
+      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -162,8 +163,7 @@ class OnlineTrainer(DSTrainer):
     # reset the model states
     if reset_state:
       self.target.reset_state(num_batch)
-      self.i0 = 0
-      self.t0 = self._t0
+      self.reset_state()
 
     # init monitor
     for key in self.mon.var_names:
@@ -234,7 +234,7 @@ class OnlineTrainer(DSTrainer):
 
     def _step_func(all_inputs):
       t, i, x, ys = all_inputs
-      shared = dict(t=t, dt=self.dt, i=i)
+      shared = DotDict(t=t, dt=self.dt, i=i)
 
       # input step
       self._input_step(shared)

@@ -7,8 +7,8 @@ import jax.numpy as jnp
 
 
 __all__ = [
-  'Tensor',
-  'Parameter',
+  'Tensor', 'Parameter',
+
   'Shape',
 
   'Output', 'Monitor'
@@ -17,8 +17,11 @@ __all__ = [
 # import brainpy.math as bm
 # Tensor = TypeVar('Tensor', bm.JaxArray, jnp.ndarray, np.ndarray)
 # Parameter = TypeVar('Parameter', float, int, jnp.ndarray, bm.JaxArray, bm.Variable)
-Tensor = TypeVar('Tensor', 'JaxArray', jnp.ndarray, np.ndarray)
+
+
 Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'JaxArray', 'Variable')
+Tensor = TypeVar('Tensor', 'JaxArray', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray)
+
 Shape = TypeVar('Shape', int, Tuple[int, ...])
 
 Output = TypeVar('Output')

@@ -7,10 +7,10 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
-from brainpy.base import Base
-from brainpy.errors import NoImplementationError
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
+from brainpy.base import Base
 from brainpy.dyn.base import DynamicalSystem
+from brainpy.errors import NoImplementationError
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.types import Tensor, Output
 from .base import DSTrainer
@@ -96,7 +96,7 @@ class OfflineTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
+      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False

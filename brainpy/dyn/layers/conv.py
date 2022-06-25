@@ -75,9 +75,17 @@ class GeneralConv(TrainingSystem):
   """
 
   def __init__(
-      self, in_channels, out_channels, kernel_size, strides=None, padding='SAME',
-      input_dilation=None, kernel_dilation=None, groups=1,
-      w_init=XavierNormal(), b_init=ZeroInit(),
+      self,
+      in_channels,
+      out_channels,
+      kernel_size,
+      strides=None,
+      padding='SAME',
+      input_dilation=None,
+      kernel_dilation=None,
+      groups=1,
+      w_init=XavierNormal(),
+      b_init=ZeroInit(),
       trainable: bool = True,
       name: str = None,
   ):
@@ -133,7 +141,13 @@ class GeneralConv(TrainingSystem):
 
 
 class Conv1D(GeneralConv):
-  def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
+  def __init__(
+      self,
+      in_channels,
+      out_channels,
+      kernel_size,
+      **kwargs
+  ):
     super(Conv1D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
 
     self.dimension_numbers = ('NWC', 'WIO', 'NWC')
@@ -152,7 +166,13 @@ class Conv1D(GeneralConv):
 
 
 class Conv2D(GeneralConv):
-  def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
+  def __init__(
+      self,
+      in_channels,
+      out_channels,
+      kernel_size,
+      **kwargs
+  ):
     super(Conv2D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
 
     self.dimension_numbers = ('NHWC', 'HWIO', 'NHWC')
@@ -171,7 +191,13 @@ class Conv2D(GeneralConv):
 
 
 class Conv3D(GeneralConv):
-  def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
+  def __init__(
+      self,
+      in_channels,
+      out_channels,
+      kernel_size,
+      **kwargs
+  ):
     super(Conv3D, self).__init__(in_channels, out_channels, kernel_size, **kwargs)
 
     self.dimension_numbers = ('NHWDC', 'HWDIO', 'NHWDC')

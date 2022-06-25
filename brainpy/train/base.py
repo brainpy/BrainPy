@@ -11,6 +11,7 @@ from brainpy.tools.checking import check_dict_data
 from brainpy.dyn.training import TrainingSystem
 
 from brainpy.types import Tensor, Output
+from . import constants as c
 
 __all__ = [
   'DSTrainer', 'DSRunner',
@@ -35,12 +36,12 @@ class DSTrainer(DSRunner):
     super(DSTrainer, self).__init__(target=target, **kwargs)
 
     # jit
-    self.jit['predict'] = self.jit.get('predict', True)
-    self.jit['fit'] = self.jit.get('fit', True)
+    self.jit[c.PREDICT_PHASE] = self.jit.get(c.PREDICT_PHASE, True)
+    self.jit[c.FIT_PHASE] = self.jit.get(c.FIT_PHASE, True)
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
+      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False

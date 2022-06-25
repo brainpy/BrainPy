@@ -46,7 +46,7 @@ def check_initials(initials, target_var_names):
   assert isinstance(initials, dict)
   for p in target_var_names:
     assert p in initials
-  initials = {p: bm.asarray(initials[p], dtype=bm.get_dfloat()) for p in target_var_names}
+  initials = {p: bm.asarray(initials[p], dtype=bm.dftype()) for p in target_var_names}
   len_of_init = []
   for v in initials.values():
     assert isinstance(v, (tuple, list, np.ndarray, jnp.ndarray, bm.ndarray))

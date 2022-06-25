@@ -4,7 +4,7 @@ from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
-from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn, _NullSynSTP, _NullSynOut
+from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, parameter
 from brainpy.types import Tensor
 from ..synouts import CUBA
@@ -32,8 +32,8 @@ class GapJunction(TwoEndConn):
     self.check_pre_attrs('V', 'spike')
     self.check_post_attrs('V', 'input', 'spike')
 
-    assert isinstance(self.output, _NullSynOut)
-    assert isinstance(self.stp, _NullSynSTP)
+    # assert isinstance(self.output, _NullSynOut)
+    # assert isinstance(self.stp, _NullSynSTP)
 
     # connections
     self.comp_method = comp_method

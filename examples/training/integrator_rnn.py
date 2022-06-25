@@ -31,11 +31,11 @@ def train_data():
     yield build_inputs_and_targets(batch_size=num_batch)
 
 
-class RNN(bp.train.TrainingSystem):
+class RNN(bp.dyn.TrainingSystem):
   def __init__(self, num_in, num_hidden):
     super(RNN, self).__init__()
-    self.rnn = bp.train.VanillaRNN(num_in, num_hidden, train_state=True)
-    self.out = bp.train.Dense(num_hidden, 1)
+    self.rnn = bp.layers.VanillaRNN(num_in, num_hidden, train_state=True)
+    self.out = bp.layers.Dense(num_hidden, 1)
 
   def update(self, sha, x):
     return self.out(sha, self.rnn(sha, x))
@@ -56,9 +56,7 @@ lr = bp.optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
 opt = bp.optim.Adam(lr=lr, eps=1e-1)
 
 # create a trainer
-trainer = bp.train.BPTT(model,
-                        f_loss=loss,
-                        optimizer=opt)
+trainer = bp.train.BPTT(model, loss_fun=loss, optimizer=opt)
 trainer.fit(train_data,
             batch_size=num_batch,
             num_epoch=30,

@@ -20,6 +20,7 @@ __all__ = [
   'QuaIF',
   'AdQuaIF',
   'GIF',
+  'ALIFBellec2020',
   'Izhikevich',
   'HindmarshRose',
   'FHN',
@@ -27,6 +28,41 @@ __all__ = [
 
 
 class LeakyIntegrator(NeuGroup):
+  r"""Leaky Integrator Model.
+  
+  **Model Descriptions**
+  
+  This class implements a leaky integrator model, in which its dynamics is
+  given by:
+  
+  .. math::
+  
+     \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + RI(t)
+
+  where :math:`V` is the membrane potential, :math:`V_{rest}` is the resting
+  membrane potential, :math:`\tau` is the time constant, and :math:`R` is the
+  resistance.
+
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  V_rest: float, JaxArray, ndarray, Initializer, callable
+    Resting membrane potential.
+  R: float, JaxArray, ndarray, Initializer, callable
+    Membrane resistance.
+  tau: float, JaxArray, ndarray, Initializer, callable
+    Membrane time constant.
+  V_initializer: JaxArray, ndarray, Initializer, callable
+    The initializer of membrane potential.
+  noise: JaxArray, ndarray, Initializer, callable
+    The noise added onto the membrane potential
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
+  """
+
   def __init__(
       self,
       # neuron group size
@@ -34,6 +70,7 @@ class LeakyIntegrator(NeuGroup):
       keep_size: bool = False,
 
       # neuron parameters
+      V_rest: Union[float, Tensor, Initializer, Callable] = 0.,
       R: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
@@ -52,6 +89,7 @@ class LeakyIntegrator(NeuGroup):
                                           name=name)
 
     # parameters
+    self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
     self.tau = parameter(tau, self.varshape, allow_none=False)
     self.R = parameter(R, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape)
@@ -71,7 +109,7 @@ class LeakyIntegrator(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def derivative(self, V, t, I_ext):
-    return (-V + self.R * I_ext) / self.tau
+    return (-V + self.V_rest + self.R * I_ext) / self.tau
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
@@ -79,7 +117,7 @@ class LeakyIntegrator(NeuGroup):
 
   def update(self, tdi, x=None):
     if x is not None: self.input += x
-    self.V.value = self.integral(self.V, tdi['t'], self.input, tdi['dt'])
+    self.V.value = self.integral(self.V.value, tdi.t, self.input.value, tdi.dt)
     self.input[:] = 0.
 
 
@@ -150,7 +188,7 @@ class LIF(NeuGroup):
       V_th: Union[float, Tensor, Initializer, Callable] = 20.,
       R: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
-      tau_ref: Union[float, Tensor, Initializer, Callable] = 1.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = None,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
@@ -171,8 +209,8 @@ class LIF(NeuGroup):
     self.V_reset = parameter(V_reset, self.varshape, allow_none=False)
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.tau = parameter(tau, self.varshape, allow_none=False)
-    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=False)
     self.R = parameter(R, self.varshape, allow_none=False)
+    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape)
     self.spike_fun = check_callable(spike_fun, 'spike_fun')
 
@@ -183,10 +221,11 @@ class LIF(NeuGroup):
     # variables
     self.V = variable(self._V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if trainable else bool  # the gradient of spike is a float
+    sp_type = bm.dftype() if trainable else bool  # the gradient of spike is a float
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
-    self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
-    self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+    if self.tau_ref is not None:
+      self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+      self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
     if self.noise is None:
@@ -200,41 +239,56 @@ class LIF(NeuGroup):
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
-    self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
-    self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
+    if self.tau_ref is not None:
+      self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
+      self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
 
     # integrate membrane potential
-    V = self.integral(self.V, t, self.input, dt=dt)
-    refractory = (t - self.t_last_spike) <= self.tau_ref
-    if self.trainable:
-      refractory = stop_gradient(refractory)
-    V = bm.where(refractory, self.V, V)
+    V = self.integral(self.V.value, t, self.input.value, dt)
 
-    # spike, refractory, spiking time, and membrane potential reset
-    if self.trainable:
-      spike = self.spike_fun(V - self.V_th)
-      spike_no_grad = stop_gradient(spike)
-      V += (self.V_reset - V) * spike_no_grad
-      refractory = bm.logical_or(refractory, bm.not_equal(spike, 0.))
-      # will be used in other place, like Delta Synapse, so stop its gradient
-      refractory = stop_gradient(refractory.value)
-      t_last_spike = spike_no_grad * (t - self.t_last_spike) + self.t_last_spike
-      t_last_spike = stop_gradient(t_last_spike)
+    if self.tau_ref is not None:
+      # refractory
+      refractory = (t - self.t_last_spike) <= self.tau_ref
+      if self.trainable:
+        refractory = stop_gradient(refractory)
+      V = bm.where(refractory, self.V, V)
+
+      # spike, refractory, spiking time, and membrane potential reset
+      if self.trainable:
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += (self.V_reset - V) * spike_no_grad
+        spike_ = spike_no_grad > 0.
+        # will be used in other place, like Delta Synapse, so stop its gradient
+        refractory = stop_gradient(bm.logical_or(refractory, spike_).value)
+        t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike).value)
+      else:
+        spike = V >= self.V_th
+        V = bm.where(spike, self.V_reset, V)
+        refractory = bm.logical_or(refractory, spike)
+        t_last_spike = bm.where(spike, t, self.t_last_spike)
+      self.V.value = V
+      self.spike.value = spike
+      self.refractory.value = refractory
+      self.t_last_spike.value = t_last_spike
+
     else:
-      spike = V >= self.V_th
-      V = bm.where(spike, self.V_reset, V)
-      refractory = bm.logical_or(refractory, spike)
-      t_last_spike = bm.where(spike, t, self.t_last_spike)
-    self.V.value = V
-    self.spike.value = spike
-    self.refractory.value = refractory
-    self.t_last_spike.value = t_last_spike
+      # spike, spiking time, and membrane potential reset
+      if self.trainable:
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        spike = V >= self.V_th
+        V = bm.where(spike, self.V_reset, V)
+      self.V.value = V
+      self.spike.value = spike
 
     # reset input
     self.input[:] = 0.
@@ -348,7 +402,7 @@ class ExpIF(NeuGroup):
       delta_T: Union[float, Tensor, Initializer, Callable] = 3.48,
       R: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
-      tau_ref: Union[float, Tensor, Initializer, Callable] = 1.7,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = None,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       keep_size: bool = False,
@@ -368,7 +422,7 @@ class ExpIF(NeuGroup):
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.V_T = parameter(V_T, self.varshape, allow_none=False)
     self.delta_T = parameter(delta_T, self.varshape, allow_none=False)
-    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=False)
+    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.tau = parameter(tau, self.varshape, allow_none=False)
     self.R = parameter(R, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape)
@@ -380,10 +434,11 @@ class ExpIF(NeuGroup):
     # variables
     self.V = variable(V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if trainable else bool
+    sp_type = bm.dftype() if trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
-    self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
     self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+    if self.tau_ref is not None:
+      self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
     if self.noise is None:
@@ -394,10 +449,11 @@ class ExpIF(NeuGroup):
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
     self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
-    self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    if self.tau_ref is not None:
+      self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def derivative(self, V, t, I_ext):
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
@@ -405,16 +461,25 @@ class ExpIF(NeuGroup):
     return dvdt
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
-    refractory = (t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, t, self.input, dt=dt)
-    V = bm.where(refractory, self.V, V)
-    spike = self.V_th <= V
-    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
-    self.V.value = bm.where(spike, self.V_reset, V)
-    self.refractory.value = bm.logical_or(refractory, spike)
+    V = self.integral(self.V.value, t, self.input.value, dt)
+
+    if self.tau_ref is not None:
+      refractory = (t - self.t_last_spike) <= self.tau_ref
+      V = bm.where(refractory, self.V, V)
+      spike = self.V_th <= V
+      t_last_spike = bm.where(spike, t, self.t_last_spike)
+      V = bm.where(spike, self.V_reset, V)
+      self.refractory.value = bm.logical_or(refractory, spike)
+    else:
+      spike = self.V_th <= V
+      t_last_spike = bm.where(spike, t, self.t_last_spike)
+      V = bm.where(spike, self.V_reset, V)
+
+    self.V.value = V
     self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
     self.input[:] = 0.
 
 
@@ -540,7 +605,7 @@ class AdExIF(NeuGroup):
     self.V = variable(V_initializer, trainable, self.varshape)
     self.w = variable(w_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if trainable else bool
+    sp_type = bm.dftype() if trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
 
     # functions
@@ -553,7 +618,7 @@ class AdExIF(NeuGroup):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.w.value = variable(self._w_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
 
   def dV(self, V, t, w, I_ext):
@@ -570,9 +635,9 @@ class AdExIF(NeuGroup):
     return JointEq([self.dV, self.dw])
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
-    V, w = self.integral(self.V, self.w, t, self.input, dt=dt)
+    V, w = self.integral(self.V.value, self.w.value, t, self.input.value, dt)
     spike = V >= self.V_th
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
@@ -657,7 +722,7 @@ class QuaIF(NeuGroup):
       c: Union[float, Tensor, Initializer, Callable] = .07,
       R: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
-      tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = None,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
       keep_size: bool = False,
@@ -679,7 +744,7 @@ class QuaIF(NeuGroup):
     self.c = parameter(c, self.varshape, allow_none=False)
     self.R = parameter(R, self.varshape, allow_none=False)
     self.tau = parameter(tau, self.varshape, allow_none=False)
-    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=False)
+    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape, num_vars=1)
 
     # initializers
@@ -689,10 +754,11 @@ class QuaIF(NeuGroup):
     # variables
     self.V = variable(V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
-    self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
     self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+    if self.tau_ref is not None:
+      self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
     if self.noise is None:
@@ -703,26 +769,34 @@ class QuaIF(NeuGroup):
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
-    self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
     self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
+    if self.tau_ref is not None:
+      self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def derivative(self, V, t, I_ext):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I_ext) / self.tau
     return dVdt
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
-    refractory = (t - self.t_last_spike) <= self.tau_ref
-    V = self.integral(self.V, t, self.input, dt=dt)
-    V = bm.where(refractory, self.V, V)
-    spike = self.V_th <= V
-    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
-    self.V.value = bm.where(spike, self.V_reset, V)
-    self.refractory.value = bm.logical_or(refractory, spike)
+    V = self.integral(self.V.value, t, self.input.value, dt)
+    if self.tau_ref is not None:
+      refractory = (t - self.t_last_spike) <= self.tau_ref
+      V = bm.where(refractory, self.V, V)
+      spike = self.V_th <= V
+      t_last_spike = bm.where(spike, t, self.t_last_spike)
+      V = bm.where(spike, self.V_reset, V)
+      self.refractory.value = bm.logical_or(refractory, spike)
+    else:
+      spike = self.V_th <= V
+      t_last_spike = bm.where(spike, t, self.t_last_spike)
+      V = bm.where(spike, self.V_reset, V)
+    self.V.value = V
     self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
     self.input[:] = 0.
 
 
@@ -850,7 +924,7 @@ class AdQuaIF(NeuGroup):
     self.V = variable(V_initializer, trainable, self.varshape)
     self.w = variable(w_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
     self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
@@ -864,7 +938,7 @@ class AdQuaIF(NeuGroup):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.w.value = variable(self._w_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
     self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
@@ -881,9 +955,9 @@ class AdQuaIF(NeuGroup):
     return JointEq([self.dV, self.dw])
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
-    V, w = self.integral(self.V, self.w, t, self.input, dt=dt)
+    V, w = self.integral(self.V.value, self.w.value, t, self.input.value, dt)
     spike = self.V_th <= V
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
@@ -1043,7 +1117,7 @@ class GIF(NeuGroup):
     self.V_th = variable(Vth_initializer, trainable, self.varshape)
     self.V = variable(V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
 
     # integral
@@ -1058,7 +1132,7 @@ class GIF(NeuGroup):
     self.V_th.value = variable(self._Vth_initializer, batch_size, self.varshape)
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
 
   def dI1(self, I1, t):
@@ -1078,7 +1152,7 @@ class GIF(NeuGroup):
     return JointEq([self.dI1, self.dI2, self.dVth, self.dV])
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
 
     # integral
     if x is not None: self.input += x
@@ -1104,6 +1178,169 @@ class GIF(NeuGroup):
     self.I2.value = I2
     self.V_th.value = V_th
     self.V.value = V
+
+    # reset input
+    self.input[:] = 0.
+
+
+class ALIFBellec2020(NeuGroup):
+  r"""Leaky Integrate-and-Fire model with SFA [1]_.
+
+  This model is similar to the GLIF2 model in the Technical White Paper
+  on generalized LIF (GLIF) models from AllenInstitute [2]_.
+
+  Formally, this model is given by:
+
+  .. math::
+
+     \tau \dot{V} = -(V - V_{\mathrm{rest}}) + R*I \\
+     \tau_a \dot{a} = -a
+
+  Once a spike is induced by :math:`V(t) > V_{\mathrm{th}} + \beta a`, then
+
+  .. math::
+
+     V \gets V - V_{\mathrm{th}} \\
+     a \gets a + 1
+
+
+  References
+  ----------
+  .. [1] Bellec, Guillaume, et al. "A solution to the learning dilemma for
+         recurrent networks of spiking neurons."
+         Nature communications 11.1 (2020): 1-15.
+  .. [2] Allen Institute: Cell Types Database. © 2018 Allen Institute for
+         Brain Science. Allen Cell Types Database, cell feature search.
+         Available from: celltypes.brain-map.org/data (2018).
+  """
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+
+      # model parameters
+      V_rest: Union[float, Tensor, Initializer, Callable] = -70.,
+      V_th: Union[float, Tensor, Initializer, Callable] = -60.,
+      R: Union[float, Tensor, Initializer, Callable] = 1.,
+      beta: Union[float, Tensor, Initializer, Callable] = 1.6,
+      tau: Union[float, Tensor, Initializer, Callable] = 20.,
+      tau_a: Union[float, Tensor, Initializer, Callable] = 2000.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = None,
+      noise: Union[float, Tensor, Initializer, Callable] = None,
+
+      # initializers
+      V_initializer: Union[Initializer, Callable, Tensor] = OneInit(-70.),
+      a_initializer: Union[Initializer, Callable, Tensor] = OneInit(-50.),
+
+      # parameter for training
+      trainable: bool = False,
+      spike_fun: Callable = bm.spike_with_relu_grad,
+
+      # other parameters
+      method: str = 'exp_auto',
+      name: str = None,
+  ):
+    super(ALIFBellec2020, self).__init__(name=name,
+                                         size=size,
+                                         keep_size=keep_size,
+                                         trainable=trainable)
+
+    # parameters
+    self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
+    self.V_th_reset = parameter(V_th, self.varshape, allow_none=False)
+    self.R = parameter(R, self.varshape, allow_none=False)
+    self.beta = parameter(beta, self.varshape, allow_none=False)
+    self.tau = parameter(tau, self.varshape, allow_none=False)
+    self.tau_a = parameter(tau_a, self.varshape, allow_none=False)
+    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    self.spike_fun = check_callable(spike_fun, 'spike_fun')
+
+    # initializers
+    check_initializer(V_initializer, 'V_initializer')
+    check_initializer(a_initializer, 'a_initializer')
+    self._V_initializer = V_initializer
+    self._a_initializer = a_initializer
+
+    # variables
+    self.a = variable(a_initializer, trainable, self.varshape)
+    self.V = variable(V_initializer, trainable, self.varshape)
+    self.input = variable(bm.zeros, trainable, self.varshape)
+    sp_type = bm.dftype() if self.trainable else bool
+    self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
+    if self.tau_ref is not None:
+      self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+      self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
+
+    # integral
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
+
+  def dVth(self, a, t):
+    return -a / self.tau_a
+
+  def dV(self, V, t, I_ext):
+    return (- (V - self.V_rest) + self.R * I_ext) / self.tau
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dVth])
+
+  def reset_state(self, batch_size=None):
+    self.a.value = variable(self._a_initializer, batch_size, self.varshape)
+    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    sp_type = bm.dftype() if self.trainable else bool
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
+    if self.tau_ref is not None:
+      self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
+      self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+
+  def update(self, tdi, x=None):
+    t, dt = tdi.t, tdi.dt
+
+    # integral
+    if x is not None: self.input += x
+    V, a = self.integral(self.V, self.a, t, self.input, dt)
+
+    if self.tau_ref is not None:
+      # refractory
+      refractory = (t - self.t_last_spike) <= self.tau_ref
+      if self.trainable:
+        refractory = stop_gradient(refractory)
+      V = bm.where(refractory, self.V, V)
+      # spike and reset
+      if self.trainable:
+        spike = self.spike_fun(V - self.V_th_reset - self.beta * self.a)
+        spike_no_grad = stop_gradient(spike)
+        V -= self.V_th_reset * spike_no_grad
+        spike_ = spike_no_grad > 0.
+        # will be used in other place, like Delta Synapse, so stop its gradient
+        refractory = stop_gradient(bm.logical_or(refractory, spike_).value)
+        t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike).value)
+      else:
+        spike = V >= (self.V_th_reset + self.beta * self.a)
+        refractory = bm.logical_or(refractory, spike)
+        t_last_spike = bm.where(spike, t, self.t_last_spike)
+        V -= self.V_th_reset * spike
+      a += spike
+      self.refractory.value = refractory
+      self.t_last_spike.value = t_last_spike
+
+    else:
+      # spike and reset
+      if self.trainable:
+        spike = self.spike_fun(V - self.V_th_reset - self.beta * self.a)
+        V -= self.V_th_reset * stop_gradient(spike)
+      else:
+        spike = V >= (self.V_th_reset + self.beta * self.a)
+        V -= self.V_th_reset * spike
+      a += spike
+    self.spike.value = spike
+    self.V.value = V
+    self.a.value = a
 
     # reset input
     self.input[:] = 0.
@@ -1185,7 +1422,7 @@ class Izhikevich(NeuGroup):
       c: Union[float, Tensor, Initializer, Callable] = -65.,
       d: Union[float, Tensor, Initializer, Callable] = 8.,
       V_th: Union[float, Tensor, Initializer, Callable] = 30.,
-      tau_ref: Union[float, Tensor, Initializer, Callable] = 0.,
+      tau_ref: Union[float, Tensor, Initializer, Callable] = None,
       V_initializer: Union[Initializer, Callable, Tensor] = ZeroInit(),
       u_initializer: Union[Initializer, Callable, Tensor] = OneInit(),
       noise: Union[float, Tensor, Initializer, Callable] = None,
@@ -1207,7 +1444,7 @@ class Izhikevich(NeuGroup):
     self.c = parameter(c, self.varshape, allow_none=False)
     self.d = parameter(d, self.varshape, allow_none=False)
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
-    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=False)
+    self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     self.spike_fun = check_callable(spike_fun, 'spike_fun')
 
@@ -1221,10 +1458,11 @@ class Izhikevich(NeuGroup):
     self.u = variable(u_initializer, trainable, self.varshape)
     self.V = variable(V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
-    self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
-    self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+    if self.tau_ref is not None:
+      self.t_last_spike = variable(lambda s: bm.ones(s) * -1e7, trainable, self.varshape)
+      self.refractory = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # functions
     if self.noise is None:
@@ -1236,10 +1474,11 @@ class Izhikevich(NeuGroup):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.u.value = variable(self._u_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
-    self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
-    self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    if self.tau_ref is not None:
+      self.t_last_spike.value = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.varshape)
+      self.refractory.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def dV(self, V, t, u, I_ext):
     dVdt = 0.04 * V * V + 5 * V + 140 - u + I_ext
@@ -1250,37 +1489,52 @@ class Izhikevich(NeuGroup):
     return dudt
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
 
     # integrate membrane potential
     if x is not None: self.input += x
-    V, u = self.integral(self.V, self.u, t, self.input, dt=dt)
-    refractory = (t - self.t_last_spike) <= self.tau_ref
-    if self.trainable:
-      refractory = stop_gradient(refractory)
-    V = bm.where(refractory, self.V, V)
+    V, u = self.integral(self.V, self.u, t, self.input, dt)
 
-    # spike, refractory, and reset membrane potential
-    if self.trainable:
-      spike = self.spike_fun(V - self.V_th)
-      V += spike * (self.c - self.V_th)
-      u += spike * self.d
-      refractory = bm.logical_or(refractory, bm.not_equal(spike, 0.))
-      refractory = stop_gradient(refractory.value)
+    if self.tau_ref is not None:
+      refractory = (t - self.t_last_spike) <= self.tau_ref
+      if self.trainable:
+        refractory = stop_gradient(refractory)
+      V = bm.where(refractory, self.V, V)
+
+      # spike, refractory, and reset membrane potential
+      if self.trainable:
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += spike_no_grad * (self.c - self.V_th)
+        u += spike_no_grad * self.d
+        spike_ = spike_no_grad > 0.
+        refractory = stop_gradient(bm.logical_or(refractory, spike_).value)
+        t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike).value)
+      else:
+        spike = self.V_th <= V
+        V = bm.where(spike, self.c, V)
+        u = bm.where(spike, u + self.d, u)
+        refractory = bm.logical_or(refractory, spike)
+        t_last_spike = bm.where(spike, t, self.t_last_spike)
+      self.refractory.value = refractory
+      self.t_last_spike.value = t_last_spike
+
     else:
-      spike = self.V_th <= V
-      V = bm.where(spike, self.c, V)
-      u = bm.where(spike, u + self.d, u)
-      refractory = bm.logical_or(refractory, spike)
+      # spike, refractory, and reset membrane potential
+      if self.trainable:
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += spike_no_grad * (self.c - self.V_th)
+        u += spike_no_grad * self.d
+      else:
+        spike = self.V_th <= V
+        V = bm.where(spike, self.c, V)
+        u = bm.where(spike, u + self.d, u)
+
+    # finally
     self.V.value = V
     self.u.value = u
     self.spike.value = spike
-    self.refractory.value = refractory
-
-    # record spike time
-    self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
-
-    # reset input
     self.input[:] = 0.
 
 
@@ -1436,7 +1690,7 @@ class HindmarshRose(NeuGroup):
     self.y = variable(self._y_initializer, trainable, self.varshape)
     self.z = variable(self._z_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
 
     # integral
@@ -1450,7 +1704,7 @@ class HindmarshRose(NeuGroup):
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
     self.z.value = variable(self._z_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
 
   def dV(self, V, t, y, z, I_ext):
@@ -1467,7 +1721,7 @@ class HindmarshRose(NeuGroup):
     return JointEq([self.dV, self.dy, self.dz])
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
     V, y, z = self.integral(self.V, self.y, self.z, t, self.input, dt=dt)
     if self.trainable:
@@ -1605,7 +1859,7 @@ class FHN(NeuGroup):
     self.V = variable(self._V_initializer, trainable, self.varshape)
     self.w = variable(self._w_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
 
     # integral
@@ -1618,7 +1872,7 @@ class FHN(NeuGroup):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.w.value = variable(self._w_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
 
   def dV(self, V, t, w, I_ext):
@@ -1632,7 +1886,7 @@ class FHN(NeuGroup):
     return JointEq([self.dV, self.dw])
 
   def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+    t, dt = tdi.t, tdi.dt
     if x is not None: self.input += x
     V, w = self.integral(self.V.value, self.w.value, t, self.input.value, dt=dt)
     if self.trainable:

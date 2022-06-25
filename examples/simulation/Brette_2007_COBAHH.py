@@ -19,16 +19,17 @@ class EINet(bp.dyn.Network):
     super(EINet, self).__init__()
     self.E = HH(int(3200 * scale))
     self.I = HH(int(800 * scale))
-    self.E2E = synapses.Exponential(self.E, self.E, bp.conn.FixedProb(prob=0.02),
+    prob = 0.02
+    self.E2E = synapses.Exponential(self.E, self.E, bp.conn.FixedProb(prob),
                                     g_max=0.03 / scale, tau=5,
                                     output=synouts.COBA(E=0.))
-    self.E2I = synapses.Exponential(self.E, self.I, bp.conn.FixedProb(prob=0.02),
+    self.E2I = synapses.Exponential(self.E, self.I, bp.conn.FixedProb(prob),
                                     g_max=0.03 / scale, tau=5.,
                                     output=synouts.COBA(E=0.))
-    self.I2E = synapses.Exponential(self.I, self.E, bp.conn.FixedProb(prob=0.02),
+    self.I2E = synapses.Exponential(self.I, self.E, bp.conn.FixedProb(prob),
                                     g_max=0.335 / scale, tau=10.,
                                     output=synouts.COBA(E=-80))
-    self.I2I = synapses.Exponential(self.I, self.I, bp.conn.FixedProb(prob=0.02),
+    self.I2I = synapses.Exponential(self.I, self.I, bp.conn.FixedProb(prob),
                                     g_max=0.335 / scale, tau=10.,
                                     output=synouts.COBA(E=-80.))
 

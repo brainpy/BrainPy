@@ -105,11 +105,11 @@ Y_test = get_subset(lorenz_series,
 
 # Model #
 # ----- #
-class NGRC(bp.train.TrainingSystem):
+class NGRC(bp.dyn.TrainingSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
-    self.r = bp.train.NVAR(num_in, delay=2, order=2, constant=True)
-    self.di = bp.train.Dense(self.r.num_out, num_in, b_initializer=None)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=2, constant=True)
+    self.di = bp.layers.Dense(self.r.num_out, num_in, b_initializer=None)
 
   def update(self, sha, x):
     dx = self.di(sha, self.r(sha, x))

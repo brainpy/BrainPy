@@ -252,7 +252,7 @@ def mean_squared_error(predicts, targets, axis=None):
   Args:
       predicts: a tensor of shape (d0, .. dN-1).
       targets: a tensor of shape (d0, .. dN-1).
-      keep_axis: a sequence of the dimensions to keep, use `None` to return a scalar value.
+      axis: a sequence of the dimensions to keep, use `None` to return a scalar value.
 
   Returns:
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.

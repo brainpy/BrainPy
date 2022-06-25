@@ -7,7 +7,7 @@ from brainpy.math import numpy_ops as bm
 from brainpy.math.jaxarray import JaxArray
 from brainpy.types import Tensor
 
-from brainpy.math.setting import get_dfloat
+from brainpy.math.setting import dftype
 
 __all__ = [
   'spike_with_sigmoid_grad',
@@ -33,7 +33,7 @@ def spike_with_sigmoid_grad(x: Tensor, scale: float = None):
   scale: float
     The scaling factor.
   """
-  z = bm.asarray(x >= 0, dtype=get_dfloat())
+  z = bm.asarray(x >= 0, dtype=dftype())
 
   def grad(dE_dz):
     _scale = scale
@@ -65,14 +65,14 @@ def spike2_with_sigmoid_grad(x_new: Tensor, x_old: Tensor, scale: float = None):
   """
   x_new_comp = x_new >= 0
   x_old_comp = x_old < 0
-  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=get_dfloat())
+  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
 
   def grad(dE_dz):
     _scale = scale
     if scale is None:
       _scale = 100.
-    dx_new = (dE_dz / (_scale * bm.abs(x_new) + 1.0) ** 2) * bm.asarray(x_old_comp, dtype=get_dfloat())
-    dx_old = -(dE_dz / (_scale * bm.abs(x_old) + 1.0) ** 2) * bm.asarray(x_new_comp, dtype=get_dfloat())
+    dx_new = (dE_dz / (_scale * bm.abs(x_new) + 1.0) ** 2) * bm.asarray(x_old_comp, dtype=dftype())
+    dx_old = -(dE_dz / (_scale * bm.abs(x_old) + 1.0) ** 2) * bm.asarray(x_new_comp, dtype=dftype())
     if scale is None:
       return (_consistent_type(dx_new, x_new),
               _consistent_type(dx_old, x_old))
@@ -96,16 +96,18 @@ def spike_with_relu_grad(x: Tensor, scale: float = None):
   scale: float
     The scaling factor.
   """
-  z = bm.asarray(x >= 0., dtype=get_dfloat())
+  z = bm.asarray(x >= 0., dtype=dftype())
 
   def grad(dE_dz):
     _scale = scale
-    if scale is None:
-      _scale = 0.3
+    if scale is None:  _scale = 0.3
     dE_dx = dE_dz * bm.maximum(1 - bm.abs(x), 0) * _scale
-    dscale = bm.zeros_like(_scale)
-    return (_consistent_type(dE_dx, x),
-            _consistent_type(dscale, _scale))
+    if scale is None:
+      return (_consistent_type(dE_dx, x),)
+    else:
+      dscale = bm.zeros_like(_scale)
+      return (_consistent_type(dE_dx, x),
+              _consistent_type(dscale, _scale))
 
   return z, grad
 
@@ -125,14 +127,14 @@ def spike2_with_relu_grad(x_new: Tensor, x_old: Tensor, scale: float = 10.):
   """
   x_new_comp = x_new >= 0
   x_old_comp = x_old < 0
-  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=get_dfloat())
+  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
 
   def grad(dE_dz):
     _scale = scale
     if scale is None:
       _scale = 0.3
-    dx_new = (dE_dz * bm.maximum(1 - bm.abs(x_new), 0) * _scale) * bm.asarray(x_old_comp, dtype=get_dfloat())
-    dx_old = -(dE_dz * bm.maximum(1 - bm.abs(x_old), 0) * _scale) * bm.asarray(x_new_comp, dtype=get_dfloat())
+    dx_new = (dE_dz * bm.maximum(1 - bm.abs(x_new), 0) * _scale) * bm.asarray(x_old_comp, dtype=dftype())
+    dx_old = -(dE_dz * bm.maximum(1 - bm.abs(x_old), 0) * _scale) * bm.asarray(x_new_comp, dtype=dftype())
     if scale is None:
       return (_consistent_type(dx_new, x_new),
               _consistent_type(dx_old, x_old))
@@ -143,10 +145,6 @@ def spike2_with_relu_grad(x_new: Tensor, x_old: Tensor, scale: float = 10.):
               _consistent_type(dscale, scale))
 
   return z, grad
-
-
-def pseudo_derivative(v_scaled, dampening_factor):
-  return bm.maximum(1 - bm.abs(v_scaled), 0) * dampening_factor
 
 
 @custom_jvp

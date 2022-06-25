@@ -4,29 +4,29 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class ESN(bp.train.TrainingSystem):
+class ESN(bp.dyn.TrainingSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
-    self.r = bp.train.Reservoir(num_in, num_hidden,
-                                Win_initializer=bp.init.Uniform(-0.1, 0.1),
-                                Wrec_initializer=bp.init.Normal(scale=0.1),
-                                in_connectivity=0.02,
-                                rec_connectivity=0.02,
-                                conn_type='dense')
-    self.o = bp.train.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
+    self.r = bp.layers.Reservoir(num_in, num_hidden,
+                                 Win_initializer=bp.init.Uniform(-0.1, 0.1),
+                                 Wrec_initializer=bp.init.Normal(scale=0.1),
+                                 in_connectivity=0.02,
+                                 rec_connectivity=0.02,
+                                 conn_type='dense')
+    self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
 
   def forward(self, x, shared_args=None):
     return self.o(self.r(x, shared_args), shared_args)
 
 
-class NGRC(bp.train.TrainingSystem):
+class NGRC(bp.dyn.TrainingSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
-    self.r = bp.train.NVAR(num_in, delay=2, order=2)
-    self.o = bp.train.Dense(self.r.num_out, num_out,
-                            W_initializer=bp.init.Normal(0.1),
-                            trainable=True)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=2)
+    self.o = bp.layers.Dense(self.r.num_out, num_out,
+                             W_initializer=bp.init.Normal(0.1),
+                             trainable=True)
 
   def forward(self, x, shared_args=None):
     return self.o(self.r(x, shared_args), shared_args)

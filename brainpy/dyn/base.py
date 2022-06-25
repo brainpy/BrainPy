@@ -159,7 +159,7 @@ class DynamicalSystem(Base):
       self,
       identifier: str,
       delay_step: Optional[Union[int, bm.JaxArray, jnp.DeviceArray]],
-      *indices: Union[int, bm.JaxArray, jnp.DeviceArray],
+      *indices: Union[int, slice, bm.JaxArray, jnp.DeviceArray],
   ):
     """Get delay data according to the provided delay steps.
 
@@ -169,7 +169,7 @@ class DynamicalSystem(Base):
       The delay variable name.
     delay_step: Optional, int, JaxArray, ndarray
       The delay length.
-    indices: optional, int, JaxArray, ndarray
+    indices: optional, int, slice, JaxArray, ndarray
       The indices of the delay.
 
     Returns
@@ -261,8 +261,14 @@ class DynamicalSystem(Base):
     This function is used to pop out the variables which registered in global delay data.
     """
     for key in tuple(self.local_delay_vars.keys()):
-      self.global_delay_data.pop(key)
-      self.local_delay_vars.pop(key)
+      val = self.global_delay_data.pop(key)
+      del val
+      val = self.local_delay_vars.pop(key)
+      del val
+    for key in tuple(self.implicit_nodes.keys()):
+      del self.implicit_nodes[key]
+    for key in tuple(self.implicit_vars.keys()):
+      del self.implicit_vars[key]
     for key in tuple(self.__dict__.keys()):
       del self.__dict__[key]
     gc.collect()
@@ -473,7 +479,7 @@ class NeuGroup(DynamicalSystem):
 
   @property
   def varshape(self):
-    return self.size if self.keep_size else (self.num, )
+    return self.size if self.keep_size else (self.num,)
 
   def get_batch_shape(self, batch_size=None):
     if batch_size is None:
@@ -486,7 +492,7 @@ class NeuGroup(DynamicalSystem):
 
     Parameters
     ----------
-    tdi : dict
+    tdi : DotDict
       The shared arguments, especially time `t`, step `dt`, and iteration `i`.
     x: Any
       The input for a neuron group.
@@ -584,68 +590,45 @@ class SynConn(DynamicalSystem):
 class SynComponent(DynamicalSystem):
   master: SynConn
 
-  def __call__(self, *args, **kwargs):
-    return self.filter(*args, **kwargs)
-
-  def filter(self, g):
-    raise NotImplementedError
-
-  def register_master(self, master: SynConn):
-    if not isinstance(master, SynConn):
-      raise TypeError(f'master must be instance of {SynConn.__name__}, but we got {type(master)}')
-    self.master = master
-
-  def __repr__(self):
-    if hasattr(self, 'master'):
-      return f'{self.__class__.__name__}(master={self.master})'
-    else:
-      return self.__class__.__name__
-
-
-class SynOutput(SynComponent):
-  """Base class for synaptic current output."""
-
-  def reset_state(self, batch_size=None):
-    pass
-
-  def update(self, tdi):
-    pass
-
-
-class _NullSynOut(SynOutput):
-  def update(self, tdi):
-    pass
-
   def reset_state(self, batch_size=None):
     pass
 
   def filter(self, g):
     return g
+
+  def __call__(self, *args, **kwargs):
+    return self.filter(*args, **kwargs)
+
+  def register_master(self, master: SynConn):
+    if not isinstance(master, SynConn):
+      raise TypeError(f'master must be instance of {SynConn.__name__}, but we got {type(master)}')
+    if hasattr(self, 'master') and self.master != master:
+      raise ValueError(f'master has been registered, but we got another master going to be registered.')
+    self.master = master
+
+  def __repr__(self):
+    return self.__class__.__name__
+
+
+class SynOutput(SynComponent):
+  """Base class for synaptic current output."""
+
+  def update(self, tdi):
+    pass
 
 
 class SynSTP(SynComponent):
   """Base class for synaptic short-term plasticity."""
 
   def update(self, tdi, pre_spike):
-    raise NotImplementedError
+    pass
 
 
 class SynLTP(SynComponent):
   """Base class for synaptic long-term plasticity."""
 
   def update(self, tdi, pre_spike):
-    raise NotImplementedError
-
-
-class _NullSynSTP(SynSTP):
-  def update(self, tdi, pre_spike):
     pass
-
-  def reset_state(self, batch_size=None):
-    pass
-
-  def filter(self, g):
-    return g
 
 
 class TwoEndConn(SynConn):
@@ -692,16 +675,14 @@ class TwoEndConn(SynConn):
                                      trainable=trainable)
 
     # synaptic output
-    if output is None:
-      output = _NullSynOut()
+    if output is None: output = SynOutput()
     if not isinstance(output, SynOutput):
       raise TypeError(f'output must be instance of {SynOutput.__name__}, but we got {type(output)}')
     self.output: SynOutput = output
     self.output.register_master(master=self)
 
     # synaptic plasticity
-    if stp is None:
-      stp = _NullSynSTP()
+    if stp is None: stp = SynSTP()
     if not isinstance(stp, SynSTP):
       raise TypeError(f'plasticity must be instance of {SynSTP.__name__}, but we got {type(stp)}')
     self.stp: SynSTP = stp
@@ -746,8 +727,6 @@ class TwoEndConn(SynConn):
 
     # training weights
     if self.trainable:
-      if bm.isscalar(weight):
-        raise ValueError
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
@@ -849,7 +828,7 @@ class CondNeuGroup(NeuGroup, Container):
     # variables
     self.V = variable(V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
 
     # function
@@ -867,7 +846,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    sp_type = bm.get_dfloat() if self.trainable else bool
+    sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
 

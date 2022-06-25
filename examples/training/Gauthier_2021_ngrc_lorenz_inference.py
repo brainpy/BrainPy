@@ -142,11 +142,11 @@ X_test, Y_test = get_subset(lorenz_series, 0, num_warmup + num_train + num_test)
 # Model #
 # ----- #
 
-class NGRC(bp.train.TrainingSystem):
+class NGRC(bp.dyn.TrainingSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
-    self.r = bp.train.NVAR(num_in, delay=4, order=2, stride=5)
-    self.o = bp.train.Dense(self.r.num_out, 1, trainable=True)
+    self.r = bp.layers.NVAR(num_in, delay=4, order=2, stride=5)
+    self.o = bp.layers.Dense(self.r.num_out, 1, trainable=True)
 
   def update(self, sha, x):
     return self.o(sha, self.r(sha, x))

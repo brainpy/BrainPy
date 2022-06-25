@@ -150,7 +150,10 @@ class AMPA(TwoEndConn):
       T_duration: float = 0.5,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
 
       # deprecated
       E: float = None,
@@ -169,6 +172,7 @@ class AMPA(TwoEndConn):
                                trainable=trainable)
 
     # parameters
+    self.stop_spike_gradient = stop_spike_gradient
     self.comp_method = comp_method
     self.alpha = alpha
     self.beta = beta
@@ -210,6 +214,9 @@ class AMPA(TwoEndConn):
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.output.update(tdi)
@@ -325,7 +332,10 @@ class GABAa(AMPA):
       T_duration: Union[float, Tensor] = 1.,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
 
       # deprecated
       E: Union[float, Tensor] = None,
@@ -349,7 +359,8 @@ class GABAa(AMPA):
                                 T_duration=T_duration,
                                 method=method,
                                 name=name,
-                                trainable=trainable)
+                                trainable=trainable,
+                                stop_spike_gradient=stop_spike_gradient,)
 
 
 class BioNMDA(TwoEndConn):
@@ -454,7 +465,6 @@ class BioNMDA(TwoEndConn):
     The conversion rate of x from inactive to active. Default 1 ms^-1.
   beta2: float, JaxArray, ndarray
     The conversion rate of x from active to inactive. Default 0.5 ms^-1.
-
   name: str
     The name of this synaptic projection.
   method: str
@@ -479,7 +489,7 @@ class BioNMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: Optional[SynOutput] = None,
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
@@ -492,7 +502,10 @@ class BioNMDA(TwoEndConn):
       T_dur: Union[float, Tensor] = 0.5,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
   ):
     super(BioNMDA, self).__init__(pre=pre,
                                   post=post,
@@ -522,6 +535,7 @@ class BioNMDA(TwoEndConn):
     if bm.size(T_dur) != 1:
       raise ValueError(f'"T_dur" must be a scalar or a tensor with size of 1. But we got {T_dur}')
     self.comp_method = comp_method
+    self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
@@ -554,6 +568,9 @@ class BioNMDA(TwoEndConn):
     # pre-synaptic spikes
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.output.update(tdi)

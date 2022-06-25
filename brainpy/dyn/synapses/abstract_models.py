@@ -4,9 +4,10 @@ import warnings
 from typing import Union, Dict, Callable, Optional
 
 from jax import vmap
+from jax.lax import stop_gradient
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn, _NullSynSTP
+from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
@@ -97,7 +98,10 @@ class Delta(TwoEndConn):
       post_input_key: str = 'V',
       post_ref_key: str = None,
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
   ):
     super(Delta, self).__init__(name=name,
                                 pre=pre,
@@ -108,6 +112,7 @@ class Delta(TwoEndConn):
                                 trainable=trainable)
 
     # parameters
+    self.stop_spike_gradient = stop_spike_gradient
     self.post_input_key = post_input_key
     self.check_post_attrs(post_input_key)
     self.post_ref_key = post_ref_key
@@ -129,6 +134,9 @@ class Delta(TwoEndConn):
     # pre-synaptic spikes
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.output.update(tdi)
@@ -136,24 +144,24 @@ class Delta(TwoEndConn):
 
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.get_dfloat()))
+      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.get_dfloat()))
+      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
       post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
         if self.trainable: f = vmap(f)
         post_vs = f(pre_spike)
-        if not isinstance(self.stp, _NullSynSTP):
-          raise NotImplementedError()
-          stp_value = self.stp(1.)
-          f2 = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-          if self.trainable: f2 = vmap(f2)
-          post_vs *= f2(stp_value)
+        # if not isinstance(self.stp, _NullSynSTP):
+        #   raise NotImplementedError()
+        #   stp_value = self.stp(1.)
+        #   f2 = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        #   if self.trainable: f2 = vmap(f2)
+        #   post_vs *= f2(stp_value)
       else:
-        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.get_dfloat()))
+        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     if self.post_ref_key:
       post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))
@@ -272,7 +280,10 @@ class Exponential(TwoEndConn):
       tau: Union[float, Tensor] = 8.0,
       name: str = None,
       method: str = 'exp_auto',
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
   ):
     super(Exponential, self).__init__(pre=pre,
                                       post=post,
@@ -282,6 +293,7 @@ class Exponential(TwoEndConn):
                                       name=name, 
                                       trainable=trainable)
     # parameters
+    self.stop_spike_gradient = stop_spike_gradient
     self.comp_method = comp_method
     self.tau = tau
     if bm.size(self.tau) != 1:
@@ -308,6 +320,9 @@ class Exponential(TwoEndConn):
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.output.update(tdi)
@@ -315,20 +330,20 @@ class Exponential(TwoEndConn):
 
     # post values
     if isinstance(self.conn, All2All):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.get_dfloat()))
+      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.get_dfloat()))
+      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
       post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
         if self.trainable: f = vmap(f)
         post_vs = f(pre_spike)
-        if not isinstance(self.stp, _NullSynSTP):
-          raise NotImplementedError()
+        # if not isinstance(self.stp, _NullSynSTP):
+        #   raise NotImplementedError()
       else:
-        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.get_dfloat()))
+        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
     self.g.value = self.integral(self.g.value, t, dt) + post_vs
@@ -447,7 +462,10 @@ class DualExponential(TwoEndConn):
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
   ):
     super(DualExponential, self).__init__(pre=pre,
                                           post=post,
@@ -458,7 +476,8 @@ class DualExponential(TwoEndConn):
                                           trainable=trainable)
     # parameters
     # self.check_pre_attrs('spike')
-    # self.check_post_attrs('input')
+    self.check_post_attrs('input')
+    self.stop_spike_gradient = stop_spike_gradient
     self.comp_method = comp_method
     self.tau_rise = tau_rise
     self.tau_decay = tau_decay
@@ -498,6 +517,9 @@ class DualExponential(TwoEndConn):
     # pre-synaptic spikes
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.output.update(tdi)
@@ -619,7 +641,10 @@ class Alpha(DualExponential):
       tau_decay: Union[float, Tensor] = 10.0,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
   ):
     super(Alpha, self).__init__(pre=pre,
                                 post=post,
@@ -633,7 +658,8 @@ class Alpha(DualExponential):
                                 output=CUBA() if output is None else output,
                                 stp=stp,
                                 name=name,
-                                trainable=trainable)
+                                trainable=trainable,
+                                stop_spike_gradient=stop_spike_gradient)
 
 
 class NMDA(TwoEndConn):
@@ -801,7 +827,10 @@ class NMDA(TwoEndConn):
       tau_rise: Union[float, Tensor] = 2.,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameters
       trainable: bool = False,
+      stop_spike_gradient: bool = False,
 
       # deprecated
       alpha=None,
@@ -860,6 +889,7 @@ class NMDA(TwoEndConn):
     if bm.size(tau_rise) != 1:
       raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. But we got {tau_rise}')
     self.comp_method = comp_method
+    self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
@@ -889,6 +919,9 @@ class NMDA(TwoEndConn):
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.stp.update(tdi, pre_spike)

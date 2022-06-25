@@ -387,7 +387,7 @@ def lexsort(keys, axis=-1):
   return JaxArray(jnp.lexsort(keys, axis))
 
 
-load = wraps(jnp.histogram_bin_edges)(jnp.load)
+load = wraps(jnp.load)(jnp.load)
 
 
 @wraps(np.save)
@@ -1753,7 +1753,7 @@ def identity(n, dtype=None):
 
 
 @wraps(jnp.array)
-def array(a, dtype=None, copy=True, order="K", ndmin=0):
+def array(a, dtype=None, copy=True, order="K", ndmin=0) -> JaxArray:
   a = _remove_jaxarray(a)
   try:
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
@@ -1780,7 +1780,7 @@ def asarray(a, dtype=None, order=None):
 
   Returns
   -------
-  out : ndarray
+  out : JaxArray
     Array interpretation of `a`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """

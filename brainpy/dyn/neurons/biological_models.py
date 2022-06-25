@@ -209,6 +209,8 @@ class HH(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameter
       trainable: bool = False,
   ):
     # initialization
@@ -244,7 +246,7 @@ class HH(NeuGroup):
     self.n = variable(self._n_initializer, trainable, self.varshape)
     self.V = variable(self._V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    # sp_type = bm.get_dfloat() if trainable else bool
+    # sp_type = bm.dftype() if trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
@@ -259,7 +261,7 @@ class HH(NeuGroup):
     self.n.value = variable(self._n_initializer, batch_size, self.varshape)
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    # sp_type = bm.get_dfloat() if self.trainable else bool
+    # sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def dm(self, m, t, V):
@@ -402,6 +404,8 @@ class MorrisLecar(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+
+      # training parameter
       trainable: bool = False,
   ):
     # initialization
@@ -436,7 +440,7 @@ class MorrisLecar(NeuGroup):
     self.W = variable(self._W_initializer, trainable, self.varshape)
     self.V = variable(self._V_initializer, trainable, self.varshape)
     self.input = variable(bm.zeros, trainable, self.varshape)
-    # sp_type = bm.get_dfloat() if trainable else bool
+    # sp_type = bm.dftype() if trainable else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
 
     # integral
@@ -449,7 +453,7 @@ class MorrisLecar(NeuGroup):
     self.W.value = variable(self._W_initializer, batch_size, self.varshape)
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    # sp_type = bm.get_dfloat() if self.trainable else bool
+    # sp_type = bm.dftype() if self.trainable else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
 
   def dV(self, V, t, W, I_ext):

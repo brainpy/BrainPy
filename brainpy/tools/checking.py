@@ -352,7 +352,7 @@ def serialize_kwargs(shared_kwargs: Optional[Dict]):
   shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
   check_dict_data(shared_kwargs,
                   key_type=str,
-                  val_type=(bool, float, int, complex),
+                  val_type=(bool, float, int, complex, str),
                   name='shared_kwargs')
   shared_kwargs = {key: shared_kwargs[key] for key in sorted(shared_kwargs.keys())}
   return str(shared_kwargs)

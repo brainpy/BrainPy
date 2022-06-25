@@ -934,6 +934,14 @@ class Variable(JaxArray):
   def batch_axis(self, val):
     raise ValueError(f'Cannot set "batch_axis" after creating a {self.__class__.__name__} instance.')
 
+  @property
+  def batch_size(self):
+    return self.ndim[self._batch_axis]
+
+  @batch_size.setter
+  def batch_size(self, val):
+    raise ValueError(f'Cannot set "batch_size" manually.')
+
   def update(self, value):
     """Update the value of this JaxArray.
     """
