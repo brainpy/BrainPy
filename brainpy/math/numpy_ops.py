@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from functools import partial
 from typing import Optional
 
 import jax.numpy as jnp
@@ -221,10 +221,10 @@ def delete(arr, obj, axis=None):
 
 
 @wraps(jnp.take_along_axis)
-def take_along_axis(a, indices, axis):
+def take_along_axis(a, indices, axis, mode=None):
   a = _remove_jaxarray(a)
   if isinstance(indices, JaxArray): indices = indices.value
-  return JaxArray(jnp.take_along_axis(a, indices, axis))
+  return JaxArray(jnp.take_along_axis(a, indices, axis, mode))
 
 
 @wraps(jnp.block)
@@ -259,13 +259,21 @@ def compress(condition, a, axis=None, out=None):
 
 @wraps(jnp.diag_indices)
 def diag_indices(n, ndim=2):
-  return JaxArray(jnp.diag_indices(n, ndim))
+  res = jnp.diag_indices(n, ndim)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.diag_indices_from)
 def diag_indices_from(arr):
   arr = _remove_jaxarray(arr)
-  return JaxArray(jnp.diag_indices_from(arr))
+  res = jnp.diag_indices_from(arr)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.diagflat)
@@ -300,7 +308,12 @@ def geomspace(start, stop, num=50, endpoint=True, dtype=None, axis: int = 0):
 @wraps(jnp.gradient)
 def gradient(f, *varargs, axis=None, edge_order=None):
   f = _remove_jaxarray(f)
-  return JaxArray(jnp.gradient(f, *varargs, axis=axis, edge_order=edge_order))
+  res = jnp.gradient(f, *varargs, axis=axis, edge_order=edge_order)
+  if isinstance(res, list):
+    return list(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
+
 
 
 @wraps(jnp.histogram2d)
@@ -320,7 +333,8 @@ def histogram_bin_edges(a, bins=10, range=None, weights=None):
 @wraps(jnp.histogramdd)
 def histogramdd(sample, bins=10, range=None, weights=None, density=None):
   sample = _remove_jaxarray(sample)
-  return JaxArray(jnp.histogramdd(sample, bins, range, weights, density))
+  r = jnp.histogramdd(sample, bins, range, weights, density)
+  return JaxArray(r[0]), r[1]
 
 
 @wraps(jnp.i0)
@@ -339,7 +353,12 @@ def in1d(ar1, ar2, assume_unique=False, invert=False):
 @wraps(jnp.indices)
 def indices(dimensions, dtype=None, sparse=False):
   dtype = jnp.int32 if dtype is None else dtype
-  return JaxArray(jnp.indices(dimensions, dtype, sparse))
+  res = jnp.indices(dimensions, dtype, sparse)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
+
 
 
 @wraps(jnp.insert)
@@ -353,11 +372,11 @@ def insert(arr, obj, values, axis=None):
 def intersect1d(ar1, ar2, assume_unique=False, return_indices=False):
   ar1 = _remove_jaxarray(ar1)
   ar2 = _remove_jaxarray(ar2)
-  r = jnp.intersect1d(ar1, ar2, assume_unique, return_indices)
+  res = jnp.intersect1d(ar1, ar2, assume_unique, return_indices)
   if return_indices:
-    return JaxArray(r[0]), JaxArray(r[1]), JaxArray(r[2])
+    return tuple([JaxArray(r) for r in res])
   else:
-    return JaxArray(r[0])
+    return JaxArray(res)
 
 
 @wraps(jnp.iscomplex)
@@ -418,13 +437,13 @@ def nan_to_num(x, copy=True, nan=0.0, posinf=None, neginf=None):
 
 
 @wraps(jnp.nanargmax)
-def nanargmax(a, axis=None):
-  return JaxArray(jnp.nanargmax(_remove_jaxarray(a), axis))
+def nanargmax(a, axis=None, out=None, keepdims=None):
+  return JaxArray(jnp.nanargmax(_remove_jaxarray(a), axis=axis, out=out, keepdims=keepdims))
 
 
 @wraps(jnp.nanargmin)
-def nanargmin(a, axis=None):
-  return JaxArray(jnp.nanargmin(_remove_jaxarray(a), axis))
+def nanargmin(a, axis=None, out=None, keepdims=None):
+  return JaxArray(jnp.nanargmin(_remove_jaxarray(a), axis=axis, out=out, keepdims=keepdims))
 
 
 @wraps(jnp.pad)
@@ -458,7 +477,11 @@ def polyder(p, m=1):
 def polyfit(x, y, deg, rcond=None, full=False, w=None, cov=False):
   x = _remove_jaxarray(x)
   y = _remove_jaxarray(y)
-  return jnp.polyfit(x, y, deg, rcond=rcond, full=full, w=w, cov=cov)
+  res = jnp.polyfit(x, y, deg, rcond=rcond, full=full, w=w, cov=cov)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.polyint)
@@ -468,10 +491,10 @@ def polyint(p, m=1, k=None):
 
 
 @wraps(jnp.polymul)
-def polymul(a1, a2):
+def polymul(a1, a2, **kwargs):
   a1 = _remove_jaxarray(a1)
   a2 = _remove_jaxarray(a2)
-  return JaxArray(jnp.polymul(a1, a2))
+  return JaxArray(jnp.polymul(a1, a2, **kwargs))
 
 
 @wraps(jnp.polysub)
@@ -513,10 +536,10 @@ def rot90(m, k=1, axes=(0, 1)):
 
 
 @wraps(jnp.setdiff1d)
-def setdiff1d(ar1, ar2, assume_unique=False):
+def setdiff1d(ar1, ar2, assume_unique=False, **kwargs):
   return JaxArray(jnp.setdiff1d(_remove_jaxarray(ar1),
                                 _remove_jaxarray(ar2),
-                                assume_unique=assume_unique))
+                                assume_unique=assume_unique, **kwargs))
 
 
 @wraps(jnp.setxor1d)
@@ -527,10 +550,10 @@ def setxor1d(ar1, ar2, assume_unique=False):
 
 
 @wraps(jnp.tensordot)
-def tensordot(a, b, axes=2):
+def tensordot(a, b, axes=2, **kwargs):
   a = _remove_jaxarray(a)
   b = _remove_jaxarray(b)
-  return JaxArray(jnp.tensordot(a, b, axes))
+  return JaxArray(jnp.tensordot(a, b, axes, **kwargs))
 
 
 @wraps(jnp.trim_zeros)
@@ -539,10 +562,10 @@ def trim_zeros(filt, trim='fb'):
 
 
 @wraps(jnp.union1d)
-def union1d(ar1, ar2):
+def union1d(ar1, ar2, **kwargs):
   ar1 = _remove_jaxarray(ar1)
   ar2 = _remove_jaxarray(ar2)
-  return JaxArray(jnp.union1d(ar1, ar2))
+  return JaxArray(jnp.union1d(ar1, ar2, **kwargs))
 
 
 @wraps(jnp.unravel_index)
@@ -553,9 +576,9 @@ def unravel_index(indices, shape):
 
 
 @wraps(jnp.unwrap)
-def unwrap(p, discont=jnp.pi, axis: int = -1):
+def unwrap(p, discont=jnp.pi, axis: int = -1, period: float = 2 * jnp.pi):
   p = _remove_jaxarray(p)
-  return JaxArray(jnp.unwrap(p, discont, axis))
+  return JaxArray(jnp.unwrap(p, discont, axis, period))
 
 
 # math funcs
@@ -690,7 +713,8 @@ def mod(x1, x2):
 def divmod(x1, x2):
   x1 = _remove_jaxarray(x1)
   x2 = _remove_jaxarray(x2)
-  return JaxArray(jnp.divmod(x1, x2))
+  r = jnp.divmod(x1, x2)
+  return JaxArray(r[0]), JaxArray(r[1])
 
 
 @wraps(jnp.remainder)
@@ -703,7 +727,8 @@ def remainder(x1, x2):
 @wraps(jnp.modf)
 def modf(x):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.modf(x))
+  r = jnp.modf(x)
+  return JaxArray(r[0]), JaxArray(r[1])
 
 
 @wraps(jnp.abs)
@@ -822,9 +847,10 @@ def arctan(x):
 
 
 @wraps(jnp.arctan2)
-def arctan2(x):
+def arctan2(x, y):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.arctan2(x))
+  y = _remove_jaxarray(y)
+  return JaxArray(jnp.arctan2(x, y))
 
 
 @wraps(jnp.arctanh)
@@ -952,9 +978,9 @@ def fix(x):
 
 
 @wraps(jnp.prod)
-def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
+def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.prod(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.prod(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -962,9 +988,9 @@ product = prod
 
 
 @wraps(jnp.sum)
-def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None):
+def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -975,9 +1001,9 @@ def diff(a, n=1, axis: int = -1, prepend=None, append=None):
 
 
 @wraps(jnp.median)
-def median(a, axis=None, keepdims=False):
+def median(a, axis=None, keepdims=False, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.median(a, axis=axis, keepdims=keepdims)
+  r = jnp.median(a, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -1009,16 +1035,16 @@ def cumsum(a, axis=None, dtype=None):
 
 
 @wraps(jnp.nanprod)
-def nanprod(a, axis=None, dtype=None, keepdims=None):
+def nanprod(a, axis=None, dtype=None, keepdims=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.nanprod(a=a, axis=axis, dtype=dtype, keepdims=keepdims)
+  r = jnp.nanprod(a=a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.nansum)
-def nansum(a, axis=None, dtype=None, keepdims=None):
+def nansum(a, axis=None, dtype=None, keepdims=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.nansum(a=a, axis=axis, dtype=dtype, keepdims=keepdims)
+  r = jnp.nansum(a=a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -1107,10 +1133,10 @@ def frexp(x):
 
 # 9. Miscellaneous
 @wraps(jnp.convolve)
-def convolve(a, v, mode='full'):
+def convolve(a, v, mode='full', **kwargs):
   a = _remove_jaxarray(a)
   v = _remove_jaxarray(v)
-  return JaxArray(jnp.convolve(a, v, mode))
+  return JaxArray(jnp.convolve(a, v, mode, **kwargs))
 
 
 @wraps(jnp.sqrt)
@@ -1483,20 +1509,25 @@ def tile(A, reps):
 
 
 @wraps(jnp.repeat)
-def repeat(x, repeats, axis=None):
+def repeat(x, repeats, axis=None, **kwargs):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.repeat(x, repeats=repeats, axis=axis))
+  return JaxArray(jnp.repeat(x, repeats=repeats, axis=axis, **kwargs))
 
 
 @wraps(jnp.unique)
 def unique(x, return_index=False, return_inverse=False,
-           return_counts=False, axis=None):
+           return_counts=False, axis=None, **kwargs):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.unique(x,
-                             return_index=return_index,
-                             return_inverse=return_inverse,
-                             return_counts=return_counts,
-                             axis=axis))
+  res = jnp.unique(x,
+                   return_index=return_index,
+                   return_inverse=return_inverse,
+                   return_counts=return_counts,
+                   axis=axis,
+                   **kwargs)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.append)
@@ -1570,44 +1601,48 @@ def argsort(x, axis=-1, kind='stable', order=None):
 
 
 @wraps(jnp.argmax)
-def argmax(x, axis=None):
+def argmax(x, axis=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.argmax(x, axis=axis)
+  r = jnp.argmax(x, axis=axis, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.argmin)
-def argmin(x, axis=None):
+def argmin(x, axis=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.argmin(x, axis=axis)
+  r = jnp.argmin(x, axis=axis, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.argwhere)
-def argwhere(x):
+def argwhere(x, **kwargs):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.argwhere(x))
+  return JaxArray(jnp.argwhere(x, **kwargs))
 
 
 @wraps(jnp.nonzero)
-def nonzero(x):
+def nonzero(x, **kwargs):
   x = _remove_jaxarray(x)
-  res = jnp.nonzero(x)
+  res = jnp.nonzero(x, **kwargs)
   return tuple([JaxArray(r) for r in res]) if isinstance(res, tuple) else JaxArray(res)
 
 
 @wraps(jnp.flatnonzero)
-def flatnonzero(x):
+def flatnonzero(x, **kwargs):
   x = _remove_jaxarray(x)
-  return JaxArray(jnp.flatnonzero(x))
+  return JaxArray(jnp.flatnonzero(x, **kwargs))
 
 
 @wraps(jnp.where)
-def where(condition, x=None, y=None):
+def where(condition, x=None, y=None, **kwargs):
   condition = _remove_jaxarray(condition)
   x = _remove_jaxarray(x)
   y = _remove_jaxarray(y)
-  return JaxArray(jnp.where(condition, x=x, y=y))
+  res = jnp.where(condition, x=x, y=y, **kwargs)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.searchsorted)
@@ -1631,16 +1666,16 @@ def count_nonzero(a, axis=None, keepdims=False):
 
 
 @wraps(jnp.max)
-def max(a, axis=None, keepdims=None, initial=None, where=None):
+def max(a, axis=None, out=None, keepdims=None, initial=None, where=None):
   a = _remove_jaxarray(a)
-  r = jnp.max(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.max(a, axis=axis, out=out, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.min)
-def min(a, axis=None, keepdims=None, initial=None, where=None):
+def min(a, axis=None, out=None, keepdims=None, initial=None, where=None):
   a = _remove_jaxarray(a)
-  r = jnp.min(a, axis=axis, keepdims=keepdims, initial=initial, where=where)
+  r = jnp.min(a, axis=axis, out=out, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else JaxArray(r)
 
 
@@ -1802,7 +1837,12 @@ def arange(*args, **kwargs):
 
 @wraps(jnp.linspace)
 def linspace(*args, **kwargs):
-  return JaxArray(jnp.linspace(*args, **kwargs))
+  res = jnp.linspace(*args, **kwargs)
+  if isinstance(res, tuple):
+    return JaxArray(res[0]), res[1]
+  else:
+    return JaxArray(res)
+
 
 
 @wraps(jnp.logspace)
@@ -1814,7 +1854,7 @@ def logspace(*args, **kwargs):
 def meshgrid(*xi, copy=True, sparse=False, indexing='xy'):
   xi = [_remove_jaxarray(x) for x in xi]
   rr = jnp.meshgrid(*xi, copy=copy, sparse=sparse, indexing=indexing)
-  return tuple(JaxArray(r) for r in rr)
+  return list(JaxArray(r) for r in rr)
 
 
 @wraps(jnp.diag)
@@ -1867,13 +1907,21 @@ triu_indices = jnp.triu_indices
 @wraps(jnp.tril_indices_from)
 def tril_indices_from(x, k=0):
   x = _remove_jaxarray(x)
-  return jnp.tril_indices_from(x, k=k)
+  res = jnp.tril_indices_from(x, k=k)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.triu_indices_from)
 def triu_indices_from(x, k=0):
   x = _remove_jaxarray(x)
-  return jnp.triu_indices_from(x, k=k)
+  res = jnp.triu_indices_from(x, k=k)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
 
 @wraps(jnp.take)
@@ -1893,16 +1941,16 @@ def select(condlist, choicelist, default=0):
 # statistic funcs
 # ---------------
 @wraps(jnp.nanmin)
-def nanmin(x, axis=None, keepdims=None):
+def nanmin(x, axis=None, keepdims=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.nanmin(x, axis=axis, keepdims=keepdims)
+  r = jnp.nanmin(x, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.nanmax)
-def nanmax(x, axis=None, keepdims=None):
+def nanmax(x, axis=None, keepdims=None, **kwargs):
   x = _remove_jaxarray(x)
-  r = jnp.nanmax(x, axis=axis, keepdims=keepdims)
+  r = jnp.nanmax(x, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -1914,34 +1962,46 @@ def ptp(x, axis=None, keepdims=None):
 
 
 @wraps(jnp.percentile)
-def percentile(a, q, axis=None, interpolation='linear', keepdims=False):
+def percentile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
+                  keepdims: bool = False,
+                  interpolation = None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
-  r = jnp.percentile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
+  r = jnp.percentile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
+                     interpolation=interpolation)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.nanpercentile)
-def nanpercentile(a, q, axis=None, interpolation='linear', keepdims=False):
+def nanpercentile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
+                  keepdims: bool = False,
+                  interpolation = None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
-  r = jnp.nanpercentile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
+  r = jnp.nanpercentile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
+                        interpolation=interpolation)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.quantile)
-def quantile(a, q, axis=None, interpolation='linear', keepdims=False):
+def quantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
+                  keepdims: bool = False,
+                  interpolation = None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
-  r = jnp.quantile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
+  r = jnp.quantile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
+                   interpolation=interpolation)
   return r if axis is None else JaxArray(r)
 
 
 @wraps(jnp.nanquantile)
-def nanquantile(a, q, axis=None, interpolation='linear', keepdims=False):
+def nanquantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
+                  keepdims: bool = False,
+                  interpolation = None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
-  r = jnp.nanquantile(a=a, q=q, axis=axis, interpolation=interpolation, keepdims=keepdims)
+  r = jnp.nanquantile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
+                      interpolation=interpolation)
   return r if axis is None else JaxArray(r)
 
 
@@ -1950,7 +2010,12 @@ def average(a, axis=None, weights=None, returned=False):
   a = _remove_jaxarray(a)
   weights = _remove_jaxarray(weights)
   r = jnp.average(a, axis=axis, weights=weights, returned=returned)
-  return r if axis is None else JaxArray(r)
+  if axis is None:
+    return r
+  elif isinstance(r, tuple):
+    return tuple(JaxArray(_r) for _r in r)
+  else:
+    return JaxArray(r)
 
 
 @wraps(jnp.mean)
@@ -1980,9 +2045,9 @@ def nanmedian(a, axis=None, keepdims=False):
 
 
 @wraps(jnp.nanmean)
-def nanmean(a, axis=None, dtype=None, keepdims=None):
+def nanmean(a, axis=None, dtype=None, keepdims=None, **kwargs):
   a = _remove_jaxarray(a)
-  r = jnp.nanmean(a, axis=axis, dtype=dtype, keepdims=keepdims)
+  r = jnp.nanmean(a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else JaxArray(r)
 
 
@@ -2008,10 +2073,10 @@ def corrcoef(x, y=None, rowvar=True):
 
 
 @wraps(jnp.correlate)
-def correlate(a, v, mode='valid'):
+def correlate(a, v, mode='valid', **kwargs):
   a = _remove_jaxarray(a)
   v = _remove_jaxarray(v)
-  return JaxArray(jnp.correlate(a, v, mode))
+  return JaxArray(jnp.correlate(a, v, mode, **kwargs))
 
 
 @wraps(jnp.cov)
@@ -2033,10 +2098,11 @@ def histogram(a, bins=10, range=None, weights=None, density=None):
 
 
 @wraps(jnp.bincount)
-def bincount(x, weights=None, minlength=None):
+def bincount(x, weights=None, minlength=0, length=None, **kwargs):
   x = _remove_jaxarray(x)
   weights = _remove_jaxarray(weights)
-  return JaxArray(jnp.bincount(x, weights=weights, minlength=minlength))
+  res = jnp.bincount(x, weights=weights, minlength=minlength, length=length, **kwargs)
+  return JaxArray(res)
 
 
 @wraps(jnp.digitize)
@@ -2084,24 +2150,24 @@ inf = jnp.inf
 
 
 @wraps(jnp.dot)
-def dot(x1, x2):
+def dot(x1, x2, **kwargs):
   x1 = _remove_jaxarray(x1)
   x2 = _remove_jaxarray(x2)
-  return JaxArray(jnp.dot(x1, x2))
+  return JaxArray(jnp.dot(x1, x2, **kwargs))
 
 
 @wraps(jnp.vdot)
-def vdot(x1, x2):
+def vdot(x1, x2, **kwargs):
   x1 = _remove_jaxarray(x1)
   x2 = _remove_jaxarray(x2)
-  return JaxArray(jnp.vdot(x1, x2))
+  return JaxArray(jnp.vdot(x1, x2, **kwargs))
 
 
 @wraps(jnp.inner)
-def inner(x1, x2):
+def inner(x1, x2, **kwargs):
   x1 = _remove_jaxarray(x1)
   x2 = _remove_jaxarray(x2)
-  return JaxArray(jnp.inner(x1, x2))
+  return JaxArray(jnp.inner(x1, x2, **kwargs))
 
 
 @wraps(jnp.outer)
@@ -2119,10 +2185,10 @@ def kron(x1, x2):
 
 
 @wraps(jnp.matmul)
-def matmul(x1, x2):
+def matmul(x1, x2, **kwargs):
   x1 = _remove_jaxarray(x1)
   x2 = _remove_jaxarray(x2)
-  return JaxArray(jnp.matmul(x1, x2))
+  return JaxArray(jnp.matmul(x1, x2, **kwargs))
 
 
 @wraps(jnp.trace)
@@ -2260,7 +2326,7 @@ def packbits(a, axis: Optional[int] = None, bitorder='big'):
 @wraps(jnp.piecewise)
 def piecewise(x, condlist, funclist, *args, **kw):
   condlist = asarray(condlist, dtype=bool)
-  return JaxArray(jnp.piecewise(_remove_jaxarray(x), condlist, funclist, *args, **kw))
+  return JaxArray(jnp.piecewise(_remove_jaxarray(x), condlist.value, funclist, *args, **kw))
 
 
 printoptions = np.printoptions
@@ -2389,74 +2455,84 @@ def place(arr, mask, vals):
   arr[mask] = vals
 
 
-@wraps(np.polydiv)
-def polydiv(u, v):
-  """
-  Returns the quotient and remainder of polynomial division.
+@wraps(jnp.polydiv)
+def polydiv(u, v, **kwargs):
+  u = _remove_jaxarray(u)
+  v = _remove_jaxarray(v)
+  res = jnp.polydiv(u, v, **kwargs)
+  if isinstance(res, tuple):
+    return tuple(JaxArray(r) for r in res)
+  else:
+    return JaxArray(res)
 
-  .. note::
-     This forms part of the old polynomial API. Since version 1.4, the
-     new polynomial API defined in `numpy.polynomial` is preferred.
-     A summary of the differences can be found in the
-     :doc:`transition guide </reference/routines.polynomials>`.
-
-  The input arrays are the coefficients (including any coefficients
-  equal to zero) of the "numerator" (dividend) and "denominator"
-  (divisor) polynomials, respectively.
-
-  Parameters
-  ----------
-  u : array_like
-      Dividend polynomial's coefficients.
-
-  v : array_like
-      Divisor polynomial's coefficients.
-
-  Returns
-  -------
-  q : JaxArray
-      Coefficients, including those equal to zero, of the quotient.
-  r : JaxArray
-      Coefficients, including those equal to zero, of the remainder.
-
-  See Also
-  --------
-  poly, polyadd, polyder, polydiv, polyfit, polyint, polymul, polysub
-  polyval
-
-  Notes
-  -----
-  Both `u` and `v` must be 0-d or 1-d (ndim = 0 or 1), but `u.ndim` need
-  not equal `v.ndim`. In other words, all four possible combinations -
-  ``u.ndim = v.ndim = 0``, ``u.ndim = v.ndim = 1``,
-  ``u.ndim = 1, v.ndim = 0``, and ``u.ndim = 0, v.ndim = 1`` - work.
-
-  Examples
-  --------
-  .. math:: \\frac{3x^2 + 5x + 2}{2x + 1} = 1.5x + 1.75, remainder 0.25
-
-  >>> x = bm.array([3.0, 5.0, 2.0])
-  >>> y = bm.array([2.0, 1.0])
-  >>> bm.polydiv(x, y)
-  (JaxArray([1.5 , 1.75]), JaxArray([0.25]))
-
-  """
-  u = atleast_1d(u) + 0.0
-  v = atleast_1d(v) + 0.0
-  # w has the common type
-  w = u[0] + v[0]
-  m = len(u) - 1
-  n = len(v) - 1
-  scale = 1. / v[0]
-  q = zeros((max(m - n + 1, 1),), w.dtype)
-  r = u.astype(w.dtype)
-  for k in range(0, m - n + 1):
-    d = scale * r[k]
-    q[k] = d
-    r[k:k + n + 1] -= d * v
-  while allclose(r[0], 0, rtol=1e-14) and (r.shape[-1] > 1):
-    r = r[1:]
-  return JaxArray(q), JaxArray(r)
+# @wraps(np.polydiv)
+# def polydiv(u, v, **kwargs):
+#   """
+#   Returns the quotient and remainder of polynomial division.
+#
+#   .. note::
+#      This forms part of the old polynomial API. Since version 1.4, the
+#      new polynomial API defined in `numpy.polynomial` is preferred.
+#      A summary of the differences can be found in the
+#      :doc:`transition guide </reference/routines.polynomials>`.
+#
+#   The input arrays are the coefficients (including any coefficients
+#   equal to zero) of the "numerator" (dividend) and "denominator"
+#   (divisor) polynomials, respectively.
+#
+#   Parameters
+#   ----------
+#   u : array_like
+#       Dividend polynomial's coefficients.
+#
+#   v : array_like
+#       Divisor polynomial's coefficients.
+#
+#   Returns
+#   -------
+#   q : JaxArray
+#       Coefficients, including those equal to zero, of the quotient.
+#   r : JaxArray
+#       Coefficients, including those equal to zero, of the remainder.
+#
+#   See Also
+#   --------
+#   poly, polyadd, polyder, polydiv, polyfit, polyint, polymul, polysub
+#   polyval
+#
+#   Notes
+#   -----
+#   Both `u` and `v` must be 0-d or 1-d (ndim = 0 or 1), but `u.ndim` need
+#   not equal `v.ndim`. In other words, all four possible combinations -
+#   ``u.ndim = v.ndim = 0``, ``u.ndim = v.ndim = 1``,
+#   ``u.ndim = 1, v.ndim = 0``, and ``u.ndim = 0, v.ndim = 1`` - work.
+#
+#   Examples
+#   --------
+#   .. math:: \\frac{3x^2 + 5x + 2}{2x + 1} = 1.5x + 1.75, remainder 0.25
+#
+#   >>> x = bm.array([3.0, 5.0, 2.0])
+#   >>> y = bm.array([2.0, 1.0])
+#   >>> bm.polydiv(x, y)
+#   (JaxArray([1.5 , 1.75]), JaxArray([0.25]))
+#
+#   """
+#   u = atleast_1d(u) + 0.0
+#   v = atleast_1d(v) + 0.0
+#   # w has the common type
+#   w = u[0] + v[0]
+#   m = len(u) - 1
+#   n = len(v) - 1
+#   scale = 1. / v[0]
+#   q = zeros((max(m - n + 1, 1),), w.dtype)
+#   r = u.astype(w.dtype)
+#   for k in range(0, m - n + 1):
+#     d = scale * r[k]
+#     q[k] = d
+#     r[k:k + n + 1] -= d * v
+#   while allclose(r[0], 0, rtol=1e-14) and (r.shape[-1] > 1):
+#     r = r[1:]
+#   return JaxArray(q), JaxArray(r)
 
 
 @wraps(np.put)
