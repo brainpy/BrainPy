@@ -122,9 +122,9 @@ def noise(
   else:
     noises = parameter(noises, size, allow_none=False)
     if num_vars > 1:
-      noises = [None] * num_vars
-      noises[noise_idx] = noises
-      noises = tuple(noises)
+      noises_ = [None] * num_vars
+      noises_[noise_idx] = noises
+      noises = tuple(noises_)
     return lambda *args, **kwargs: noises
 
 

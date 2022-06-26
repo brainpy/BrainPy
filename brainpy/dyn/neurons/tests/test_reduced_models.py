@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import unittest
 import brainpy as bp
 from absl.testing import parameterized
 from brainpy.dyn.neurons import reduced_models

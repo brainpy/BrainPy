@@ -23,15 +23,15 @@ class TestIntegratorRunnerForODEs(TestCase):
       dz = x * y - beta * z
       return dx, dy, dz
 
-    runner = bp.IntegratorRunner(lorenz, monitors=['x', 'y', 'z'], inits=[1., 1., 1.])
+    runner = bp.integrators.IntegratorRunner(lorenz, monitors=['x', 'y', 'z'], inits=[1., 1., 1.])
     runner.run(100.)
     fig = plt.figure()
     fig.add_subplot(111, projection='3d')
     plt.plot(runner.mon.x[:, 0], runner.mon.y[:, 0], runner.mon.z[:, 0], )
     plt.show()
 
-    runner = bp.IntegratorRunner(lorenz, monitors=['x', 'y', 'z'],
-                                 inits=[1., (1., 0.), (1., 0.)])
+    runner = bp.integrators.IntegratorRunner(lorenz, monitors=['x', 'y', 'z'],
+                                             inits=[1., (1., 0.), (1., 0.)])
     runner.run(100.)
     for i in range(2):
       fig = plt.figure()
@@ -45,7 +45,7 @@ class TestIntegratorRunnerForODEs(TestCase):
     dw = lambda w, t, V: (V + a - b * w) / tau
     fhn = bp.odeint(bp.JointEq([dV, dw]), method='rk4', dt=0.1)
 
-    runner = bp.IntegratorRunner(fhn, monitors=['V', 'w'], inits=[1., 1.], args=dict(Iext=1.5))
+    runner = bp.integrators.IntegratorRunner(fhn, monitors=['V', 'w'], inits=[1., 1.], args=dict(Iext=1.5))
     runner.run(100.)
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V')
     bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=True)
@@ -57,9 +57,9 @@ class TestIntegratorRunnerForODEs(TestCase):
     fhn = bp.odeint(bp.JointEq([dV, dw]), method='rk4', dt=0.1)
 
     Iext, duration = bp.inputs.section_input([0., 1., 0.5], [200, 500, 200], return_length=True)
-    runner = bp.IntegratorRunner(fhn,
-                                 monitors=['V', 'w'], inits=[1., 1.],
-                                 dyn_args=dict(Iext=Iext))
+    runner = bp.integrators.IntegratorRunner(fhn,
+                                             monitors=['V', 'w'], inits=[1., 1.],
+                                             dyn_args=dict(Iext=Iext))
     runner.run(duration)
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V')
     bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=True)

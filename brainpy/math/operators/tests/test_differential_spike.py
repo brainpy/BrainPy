@@ -46,7 +46,7 @@ class TestSpike2SigmoidGrad(unittest.TestCase):
     print(grad1)
 
     self.assertTrue(~bm.array_equal(grad1, grad2))
-    self.assertTrue(bm.array_equal(val1, val2))
+    self.assertTrue(~bm.array_equal(val1, val2))
 
   def test_sp_sigmoid_grad3(self):
     a = bm.ones(10) * -2

@@ -19,6 +19,8 @@ from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import build_inputs, check_and_format_inputs
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.types import Tensor
+from brainpy.tools.others.dicts import DotDict
+
 
 __all__ = [
   'SlowPointFinder',
@@ -222,7 +224,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       if included_vars is not None:
         raise UnsupportedError('Do not support "included_vars" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
-      if excluded_vars is not None:
+      if len(excluded_vars) > 0:
         raise UnsupportedError('Do not support "excluded_vars" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
     else:
@@ -738,7 +740,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
                                  t: float = None, dt: float = None, f_input: Callable = None):
     if dt is None: dt = bm.get_dt()
     if t is None: t = 0.
-    shared = dict(t=t, dt=dt, i=0)
+    shared = DotDict(t=t, dt=dt, i=0)
 
     def f_cell(h: Dict):
       for k, v in included_vars.items():
