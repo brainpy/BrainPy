@@ -14,13 +14,8 @@ __all__ = [
   'Output', 'Monitor'
 ]
 
-# import brainpy.math as bm
-# Tensor = TypeVar('Tensor', bm.JaxArray, jnp.ndarray, np.ndarray)
-# Parameter = TypeVar('Parameter', float, int, jnp.ndarray, bm.JaxArray, bm.Variable)
-
-
-Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'JaxArray', 'Variable')
-Tensor = TypeVar('Tensor', 'JaxArray', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray)
+Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'JaxArray', 'Variable') # noqa
+Tensor = TypeVar('Tensor', 'JaxArray', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
 
 Shape = TypeVar('Shape', int, Tuple[int, ...])
 
