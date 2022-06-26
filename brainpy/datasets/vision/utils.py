@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import bz2
 import gzip
 import hashlib
@@ -16,15 +17,21 @@ import zipfile
 from typing import Any, Callable, List, Iterable, Optional, TypeVar, Dict, IO, Tuple, Iterator
 from urllib.parse import urlparse
 
-import requests
+from brainpy.errors import PackageMissingError
+
+try:
+  import requests
+except ImportError:
+  requests = None
 from tqdm import tqdm
-# import torch
-# from torch.utils.model_zoo import tqdm
 
 from .._internally_replaced_utils import (
   _download_file_from_remote_location,
   _is_remote_location_available,
 )
+
+# import torch
+# from torch.utils.model_zoo import tqdm
 
 USER_AGENT = "pytorch/vision"
 
@@ -215,6 +222,8 @@ def download_file_from_google_drive(file_id: str, root: str, filename: Optional[
   if os.path.isfile(fpath) and check_integrity(fpath, md5):
     print("Using downloaded and verified file: " + fpath)
   else:
+    if requests is None:
+      raise PackageMissingError('Need "requests" package, please install it.')
     session = requests.Session()
 
     response = session.get(url, params={"id": file_id}, stream=True)
@@ -245,7 +254,7 @@ def download_file_from_google_drive(file_id: str, root: str, filename: Optional[
     response.close()
 
 
-def _get_confirm_token(response: requests.models.Response) -> Optional[str]:
+def _get_confirm_token(response) -> Optional[str]:
   for key, value in response.cookies.items():
     if key.startswith("download_warning"):
       return value
