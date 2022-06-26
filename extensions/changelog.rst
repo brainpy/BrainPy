@@ -1,6 +1,9 @@
 Release notes (brainpylib)
 ##########################
 
+Version 0.0.6
+=============
+
 Version 0.0.5
 =============
 

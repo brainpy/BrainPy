@@ -4,9 +4,10 @@ numba
 h5py
 matplotlib>=3.4
 scipy>=1.1.0
-networkx
 brainpylib>=0.0.5
 jaxlib>=0.3.0
+pillow
+requests
 
 # test requirements
 pytest

@@ -36,7 +36,7 @@ class DeltaSynapse(Delta):
       conn_type: str = 'sparse',
       weights: Union[float, Tensor, Initializer, Callable] = 1.,
       delay_step: Union[float, Tensor, Initializer, Callable] = None,
-      post_key: str = 'V',
+      post_input_key: str = 'V',
       post_has_ref: bool = False,
       name: str = None,
   ):
@@ -46,11 +46,11 @@ class DeltaSynapse(Delta):
                                        conn=conn,
                                        output=CUBA(),
                                        name=name,
-                                       conn_type=conn_type,
+                                       comp_method=conn_type,
                                        g_max=weights,
                                        delay_step=delay_step,
-                                       post_key=post_key,
-                                       post_has_ref=post_has_ref)
+                                       post_input_key=post_input_key,
+                                       post_ref_key='refractory' if post_has_ref else None)
 
 
 class ExpCUBA(Exponential):
@@ -77,7 +77,7 @@ class ExpCUBA(Exponential):
                                   post=post,
                                   conn=conn,
                                   name=name,
-                                  conn_type=conn_type,
+                                  comp_method=conn_type,
                                   g_max=g_max,
                                   delay_step=delay_step,
                                   tau=tau,
@@ -113,7 +113,7 @@ class ExpCOBA(Exponential):
     super(ExpCOBA, self).__init__(pre=pre,
                                   post=post,
                                   conn=conn,
-                                  conn_type=conn_type,
+                                  comp_method=conn_type,
                                   g_max=g_max,
                                   delay_step=delay_step,
                                   tau=tau,
@@ -146,7 +146,7 @@ class DualExpCUBA(DualExponential):
     super(DualExpCUBA, self).__init__(pre=pre,
                                       post=post,
                                       conn=conn,
-                                      conn_type=conn_type,
+                                      comp_method=conn_type,
                                       g_max=g_max,
                                       tau_decay=tau_decay,
                                       tau_rise=tau_rise,
@@ -182,7 +182,7 @@ class DualExpCOBA(DualExponential):
     super(DualExpCOBA, self).__init__(pre=pre,
                                       post=post,
                                       conn=conn,
-                                      conn_type=conn_type,
+                                      comp_method=conn_type,
                                       g_max=g_max,
                                       tau_decay=tau_decay,
                                       tau_rise=tau_rise,

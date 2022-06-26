@@ -3,7 +3,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
+import sys
 
+# sys.path.append('/mnt/d/codes/Projects/brainpy-chaoming0625')
 import brainpy as bp
 import brainpy.math as bm
 
@@ -64,53 +66,49 @@ class CANN1D(bp.dyn.NeuGroup):
   def get_stimulus_by_pos(self, pos):
     return self.A * bm.exp(-0.25 * bm.square(self.dist(self.x - pos) / self.a))
 
-  def update(self, t, dt):
-    self.u[:] = self.integral(self.u, t, self.input)
+  def update(self, tdi):
+    t, dt = tdi.get('t'), tdi.get('dt')
+    self.u.value = self.integral(self.u, t, self.input, dt)
     self.input[:] = 0.
 
-  def cell(self, u):
-    return self.derivative(u, 0., 0.)
+
+def find_fixed_points(pars=None, verbose=False, opt_method='gd', cand_method='random', tolerance=1e-6):
+  if pars is None: pars = dict()
+  cann = CANN1D(num=512, **pars)
+
+  if cand_method == 'random':
+    candidates = bm.random.uniform(0, 20., (1000, cann.num))
+  elif cand_method == 'bump':
+    candidates = cann.get_stimulus_by_pos(bm.arange(-bm.pi, bm.pi, 0.01).reshape((-1, 1)))
+    candidates += bm.random.normal(0., 0.01, candidates.shape)
+  else:
+    raise ValueError
+
+  finder = bp.analysis.SlowPointFinder(f_cell=cann, included_vars={'u': cann.u}, dt=1.)
+  if opt_method == 'gd':
+    finder.find_fps_with_gd_method(
+      candidates={'u': candidates}, tolerance=tolerance, num_batch=200,
+      optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.2, 1, 0.999)),
+    )
+  elif opt_method == 'BFGS':
+    finder.find_fps_with_opt_solver({'u': candidates})
+  else:
+    raise ValueError
+  finder.filter_loss(tolerance)
+  finder.keep_unique(5e-3)
+
+  if verbose:
+    print(finder.fixed_points)
+    print(finder.losses)
+    print(finder.selected_ids)
+
+  return finder.fixed_points, finder
 
 
-k = 0.1
-a = 0.5
-A = 10
-fps_output_fn = f'data/fps,k={k},a={a},A={A},f32,BFGS,randominit.npy'
-
-
-def find_fixed_points():
-  cann = CANN1D(num=512, k=k, A=A, a=a)
-
-  candidates = cann.get_stimulus_by_pos(bm.arange(-bm.pi, bm.pi, 0.01).reshape((-1, 1)))
-  candidates += bm.random.normal(0., 0.01, candidates.shape)
-
-  # candidates = bm.random.uniform(0, 20., (1000, cann.num))
-
-  finder = bp.analysis.SlowPointFinder(f_cell=cann, included_vars={'u': cann.u})
-  # finder.find_fps_with_gd_method(
-  #   candidates=candidates,
-  #   tolerance=1e-6,
-  #     optimizer = bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.1, , 0.999)),
-  #   num_batch=200
-  # )
-  finder.find_fps_with_opt_solver({'u': candidates})
-  finder.filter_loss(1e-5)
-  finder.keep_unique()
-  # finder.exclude_outliers()
-
-  np.save(fps_output_fn, finder.fixed_points)
-
-  print(finder.fixed_points)
-  print(finder.losses)
-  # print(finder.selected_ids)
-
-
-def visualize_fixed_points():
-  fixed_points = np.load(fps_output_fn)
-
+def visualize_fixed_points(fixed_points):
   bp.visualize.animate_1D(
-    dynamical_vars={'ys': fixed_points,
-                    'xs': bm.linspace(-bm.pi, bm.pi, fixed_points.shape[1]),
+    dynamical_vars={'ys': fixed_points['u'],
+                    'xs': bm.linspace(-bm.pi, bm.pi, fixed_points['u'].shape[1]),
                     'legend': 'fixed point'},
     frame_step=1,
     frame_delay=100,
@@ -119,13 +117,12 @@ def visualize_fixed_points():
   )
 
 
-def verify_fixed_points_through_simulation(num=3):
-  fixed_points = np.load(fps_output_fn)
-
-  cann = CANN1D(num=512, k=k, a=a, A=A)
+def verify_fixed_points_through_simulation(fixed_points, pars=None, num=3):
+  if pars is None: pars = dict()
+  cann = CANN1D(num=512, **pars)
 
   for i in range(num):
-    cann.u[:] = fixed_points[i]
+    cann.u[:] = fixed_points['u'][i]
     runner = bp.dyn.DSRunner(cann,
                              monitors=['u'],
                              dyn_vars=cann.vars())
@@ -135,30 +132,10 @@ def verify_fixed_points_through_simulation(num=3):
     plt.show()
 
 
-def verify_fixed_point_stability(num=3):
-  fixed_points = np.load(fps_output_fn)
-
-  cann = CANN1D(num=512, k=k, a=a, A=A)
-  finder = bp.analysis.SlowPointFinder(f_cell=cann.cell,
-                                       f_type=bp.analysis.CONTINUOUS)
-  J = finder.compute_jacobians(fixed_points[:num])
-
-  for i in range(num):
-    eigval, eigvec = np.linalg.eig(np.asarray(J[i]))
-    plt.figure()
-    plt.scatter(np.real(eigval), np.imag(eigval))
-    plt.plot([0, 0], [-1, 1], '--')
-    plt.xlabel('Real')
-    plt.ylabel('Imaginary')
-    plt.show()
-
-
-def pca_reduction():
-  fixed_points = np.load(fps_output_fn)
-
+def pca_reduction(fixed_points):
   pca = PCA(2)
-  pca.fit(fixed_points)
-  fixedpoints_pc = pca.transform(fixed_points)
+  pca.fit(fixed_points['u'])
+  fixedpoints_pc = pca.transform(fixed_points['u'])
   plt.plot(fixedpoints_pc[:, 0], fixedpoints_pc[:, 1], 'x', label='fixed points')
 
   plt.xlabel('PC 1')
@@ -168,8 +145,12 @@ def pca_reduction():
 
 
 if __name__ == '__main__':
-  find_fixed_points()
-  visualize_fixed_points()
-  verify_fixed_points_through_simulation()
-  verify_fixed_point_stability(num=6)
-  pca_reduction()
+  params = dict(k=0.1, a=0.5, A=20)
+  fps, finder = find_fixed_points(params, cand_method='bump', tolerance=1e-7)
+  # fps, finder = find_fixed_points(params, cand_method='random', opt_method='gd', tolerance=1e-7)
+  # fps, finder = find_fixed_points(params, cand_method='random', opt_method='BFGS', tolerance=1e-5)
+  visualize_fixed_points(fps)
+  verify_fixed_points_through_simulation(fps, params)
+  finder.compute_jacobians(fps['u'][:6], plot=True)
+  pca_reduction(fps)
+

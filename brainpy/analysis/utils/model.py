@@ -4,11 +4,12 @@
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy import errors
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
+from brainpy.errors import AnalyzerError, UnsupportedError
+from brainpy.integrators.base import Integrator
 from brainpy.integrators.joint_eq import JointEq
-from brainpy.integrators.ode.base import ODEIntegrator
+from brainpy.integrators.ode import ODEIntegrator, odeint
 
 __all__ = [
   'model_transform',
@@ -17,63 +18,69 @@ __all__ = [
 ]
 
 
+def _check_model(model):
+  if isinstance(model, Integrator):
+    if not isinstance(model, ODEIntegrator):
+      raise AnalyzerError(f'Must be the instance of {ODEIntegrator.__name__}, but got {model}.')
+  elif callable(model):
+    model = odeint(model)
+  else:
+    raise ValueError(f'Please provide derivative function or integral function. But we got {model}')
+  if isinstance(model.f, JointEq):
+    return [type(model)(eq, var_type=model.var_type, dt=model.dt) for eq in model.f.eqs]
+  else:
+    return [model]
+
+
 def model_transform(model):
-  # check integrals
-  if isinstance(model, NumDSWrapper):
+  # check model
+  if isinstance(model, DynamicalSystem):
+    model = tuple(model.nodes(level=-1).subset(ODEIntegrator).unique().values())
+  elif isinstance(model, NumDSWrapper):
     return model
   elif isinstance(model, ODEIntegrator):  #
     model = [model]
-
-  # check model types
+  elif callable(model):
+    model = [model]
+  all_models = []
   if isinstance(model, (list, tuple)):
     if len(model) == 0:
-      raise errors.AnalyzerError(f'Found no integrators: {model}')
-    model = tuple(model)
-    for intg in model:
-      if not isinstance(intg, ODEIntegrator):
-        raise errors.AnalyzerError(f'Must be the instance of {ODEIntegrator}, but got {intg}.')
+      raise AnalyzerError(f'Found no derivative/integral functions: {model}')
+    for fun in tuple(model):
+      all_models.extend(_check_model(fun))
   elif isinstance(model, dict):
     if len(model) == 0:
-      raise errors.AnalyzerError(f'Found no integrators: {model}')
-    model = tuple(model.values())
-    for intg in model:
-      if not isinstance(intg, ODEIntegrator):
-        raise errors.AnalyzerError(f'Must be the instance of {ODEIntegrator}, but got {intg}')
-  elif isinstance(model, DynamicalSystem):
-    model = tuple(model.nodes(level=-1).subset(ODEIntegrator).unique().values())
+      raise AnalyzerError(f'Found no derivative/integral functions: {model}')
+    for fun in tuple(model.values()):
+      all_models.extend(_check_model(fun))
   else:
-    raise errors.UnsupportedError(f'Dynamics analysis by symbolic approach only supports '
-                                  f'list/tuple/dict of {ODEIntegrator} or {DynamicalSystem}, '
-                                  f'but we got: {type(model)}: {str(model)}')
-
-  new_model = []
-  for intg in model:
-    if isinstance(intg.f, JointEq):
-      new_model.extend([type(intg)(eq, var_type=intg.var_type, dt=intg.dt) for eq in intg.f.eqs])
-    else:
-      new_model.append(intg)
+    raise UnsupportedError(f'Dynamics analysis by symbolic approach only supports '
+                           f'derivative/integral functions or {DynamicalSystem.__name__}, '
+                           f'but we got: {type(model)}: {str(model)}')
 
   # pars to update
   pars_update = set()
-  for intg in new_model:
-    pars_update.update(intg.parameters[1:])
+  for fun in all_models:
+    pars_update.update(fun.parameters[1:])
 
+  # variables and parameters
   all_variables = set()
   all_parameters = set()
-  for integral in new_model:
+  for integral in all_models:
+    # variable
     if len(integral.variables) != 1:
-      raise errors.AnalyzerError(f'Only supports one {ODEIntegrator.__name__} one variable, '
-                                 f'but we got {len(integral.variables)} variables in {integral}.')
+      raise AnalyzerError(f'Only supports one {ODEIntegrator.__name__} one variable, '
+                          f'but we got {len(integral.variables)} variables in {integral}.')
     var = integral.variables[0]
     if var in all_variables:
-      raise errors.AnalyzerError(f'Variable name {var} has been defined before. '
-                                 f'Please change another name.')
+      raise AnalyzerError(f'Variable name {var} has been defined before. '
+                          f'Please change another name.')
     all_variables.add(var)
-    # parameters
+    # parameter
     all_parameters.update(integral.parameters[1:])
 
   # form a dynamic model
-  return NumDSWrapper(integrals=new_model,
+  return NumDSWrapper(integrals=all_models,
                       variables=list(all_variables),
                       parameters=list(all_parameters),
                       pars_update=pars_update)
@@ -87,13 +94,16 @@ class NumDSWrapper(object):
                variables,
                parameters,
                pars_update=None):
-    self.INTG = integrals  # all integrators
-    self.F = {intg.variables[0]: intg.f for intg in integrals}  # all integrators
+    self.f_integrals = integrals  # all integrators
+    self.f_derivatives = {intg.variables[0]: intg.f for intg in integrals}  # all integrators
     self.variables = variables  # all variables
     self.parameters = parameters  # all parameters
     self.pars_update = pars_update  # the parameters to update
     self.name2integral = {intg.variables[0]: intg for intg in integrals}
     self.name2derivative = {intg.variables[0]: intg.f for intg in integrals}
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(variables={self.variables}, parameters={self.parameters})'
 
 
 class TrajectModel(DynamicalSystem):

@@ -8,7 +8,7 @@ This module implements voltage-dependent sodium channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor, Shape
 from .base import SodiumChannel
@@ -60,28 +60,35 @@ class INa_p3q_markov(SodiumChannel):
       phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
+      trainable: bool = False,
   ):
-    super(INa_p3q_markov, self).__init__(size, keep_size=keep_size, name=name)
+    super(INa_p3q_markov, self).__init__(size=size,
+                                         keep_size=keep_size,
+                                         name=name,
+                                         trainable=trainable)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, trainable, self.varshape)
+    self.q = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
     alpha = self.f_q_alpha(V)
     beta = self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def dp(self, p, t, V):
     return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
@@ -89,7 +96,8 @@ class INa_p3q_markov(SodiumChannel):
   def dq(self, q, t, V):
     return self.phi * (self.f_q_alpha(V) * (1. - q) - self.f_q_beta(V) * q)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     p, q = self.integral(self.p, self.q, t, V, dt)
     self.p.value, self.q.value = p, q
 
@@ -161,7 +169,8 @@ class INa_Ba2002(INa_p3q_markov):
       g_max: Union[int, float, Tensor, Initializer, Callable] = 90.,
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -50.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(INa_Ba2002, self).__init__(size,
                                      keep_size=keep_size,
@@ -169,9 +178,10 @@ class INa_Ba2002(INa_p3q_markov):
                                      method=method,
                                      phi=3 ** ((T - 36) / 10),
                                      g_max=g_max,
-                                     E=E)
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                     E=E,
+                                     trainable=trainable)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh - 13.
@@ -246,7 +256,8 @@ class INa_TM1991(INa_p3q_markov):
       phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -63.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(INa_TM1991, self).__init__(size,
                                      keep_size=keep_size,
@@ -254,8 +265,9 @@ class INa_TM1991(INa_p3q_markov):
                                      method=method,
                                      E=E,
                                      phi=phi,
-                                     g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                     g_max=g_max,
+                                     trainable=trainable)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = 13 - V + self.V_sh
@@ -331,7 +343,8 @@ class INa_HH(INa_p3q_markov):
       phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(INa_HH, self).__init__(size,
                                  keep_size=keep_size,
@@ -339,8 +352,9 @@ class INa_HH(INa_p3q_markov):
                                  method=method,
                                  E=E,
                                  phi=phi,
-                                 g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                 g_max=g_max,
+                                 trainable=trainable)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh - 5

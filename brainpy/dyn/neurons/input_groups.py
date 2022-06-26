@@ -7,16 +7,35 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.errors import ModelBuildError
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.types import Shape, Tensor
 
 __all__ = [
-  'SpikeTimeInput',
+  'InputGroup',
   'SpikeTimeGroup',
-
-  'PoissonInput',
   'PoissonGroup',
 ]
+
+
+class InputGroup(NeuGroup):
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      trainable: bool = False,
+      name: str = None,
+  ):
+    super(InputGroup, self).__init__(name=name,
+                                     size=size,
+                                     keep_size=keep_size,
+                                     trainable=trainable)
+    self.spike = None
+
+  def update(self, tdi, x=None):
+    pass
+
+  def reset_state(self, batch_size=None):
+    pass
 
 
 class SpikeTimeGroup(NeuGroup):
@@ -54,12 +73,15 @@ class SpikeTimeGroup(NeuGroup):
       indices: Union[Sequence, Tensor],
       need_sort: bool = True,
       keep_size: bool = False,
+      trainable: bool = False,
       name: str = None
   ):
-    super(SpikeTimeGroup, self).__init__(size=size, name=name)
+    super(SpikeTimeGroup, self).__init__(size=size,
+                                         name=name,
+                                         keep_size=keep_size,
+                                         trainable=trainable)
 
     # parameters
-    self.keep_size = keep_size
     if keep_size:
       raise NotImplementedError(f'Do not support keep_size=True in {self.__class__.__name__}')
     if len(indices) != len(times):
@@ -73,7 +95,7 @@ class SpikeTimeGroup(NeuGroup):
 
     # variables
     self.i = bm.Variable(bm.zeros(1))
-    self.spike = bm.Variable(bm.zeros(self.num, dtype=bool))
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
     if need_sort:
       sort_idx = bm.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
@@ -85,36 +107,22 @@ class SpikeTimeGroup(NeuGroup):
       return bm.logical_and(i < self.num_times, t >= self.times[i])
 
     def body_fun(t):
-      self.spike[self.indices[self.i[0]]] = True
+      i = self.i[0]
+      if self.trainable:
+        self.spike[:, self.indices[i]] = True
+      else:
+        self.spike[self.indices[i]] = True
       self.i += 1
 
     self._run = bm.make_while(cond_fun, body_fun, dyn_vars=self.vars())
 
-  def reset(self):
+  def reset_state(self, batch_size=None):
     self.i[0] = 1
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+
+  def update(self, tdi, x=None):
     self.spike[:] = False
-
-  def update(self, t, dt):
-    self.spike[:] = False
-    self._run(t)
-
-
-class SpikeTimeInput(SpikeTimeGroup):
-  """Spike Time Input.
-
-  .. deprecated:: 2.1.0
-     Please use "brainpy.dyn.SpikeTimeGroup" instead.
-
-  Returns
-  -------
-  group: NeuGroup
-    The neural group.
-  """
-
-  def __init__(self, *args, **kwargs):
-    raise ValueError('Please use "brainpy.dyn.SpikeTimeGroup" instead. '
-                     '"brainpy.dyn.SpikeTimeInput" is deprecated since '
-                     'version 2.1.5')
+    self._run(tdi['t'])
 
 
 class PoissonGroup(NeuGroup):
@@ -124,43 +132,33 @@ class PoissonGroup(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      freqs: Union[float, jnp.ndarray, bm.JaxArray, Initializer],
+      freqs: Union[int, float, jnp.ndarray, bm.JaxArray, Initializer],
       seed: int = None,
       keep_size: bool = False,
+      trainable: bool = False,
       name: str = None
   ):
-    super(PoissonGroup, self).__init__(size=size, name=name)
+    super(PoissonGroup, self).__init__(size=size,
+                                       name=name,
+                                       keep_size=keep_size,
+                                       trainable=trainable)
 
     # parameters
     self.keep_size = keep_size
     self.seed = seed
-    self.freqs = init_param(freqs, self.num, allow_none=False)
+    self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.spike = bm.Variable(bm.zeros(self.size if keep_size else self.num, dtype=bool))
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
     self.rng = bm.random.RandomState(seed=seed)
 
-  def update(self, t, dt):
-    self.spike.update(self.rng.random(self.var_shape) <= (self.freqs * dt / 1000.))
+  def update(self, tdi, x=None):
+    shape = (self.spike.shape[:1] + self.varshape) if self.trainable else self.varshape
+    self.spike.update(self.rng.random(shape) <= (self.freqs * tdi['dt'] / 1000.))
 
-  def reset(self):
-    self.spike[:] = False
+  def reset(self, batch_size=None):
     self.rng.seed(self.seed)
+    self.reset_state(batch_size)
 
-
-class PoissonInput(PoissonGroup):
-  """Poisson Group Input.
-
-  .. deprecated:: 2.1.0
-     Please use "brainpy.dyn.PoissonGroup" instead.
-
-  Returns
-  -------
-  poisson_group: NeuGroup
-    The poisson neural group.
-  """
-
-  def __init__(self, *args, **kwargs):
-    raise ValueError('Please use "brainpy.dyn.PoissonGroup" instead. '
-                     '"brainpy.dyn.PoissonInput" is deprecated since '
-                     'version 2.1.5')
+  def reset_state(self, batch_size=None):
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)

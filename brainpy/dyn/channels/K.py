@@ -8,7 +8,7 @@ This module implements voltage-dependent potassium channels.
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Shape, Tensor
 from .base import PotassiumChannel
@@ -74,16 +74,20 @@ class IK_p4_markov(PotassiumChannel):
       g_max: Union[float, Tensor, Initializer, Callable] = 10.,
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
-    super(IK_p4_markov, self).__init__(size, keep_size=keep_size, name=name)
+    super(IK_p4_markov, self).__init__(size, 
+                                       keep_size=keep_size, 
+                                       name=name,
+                                       trainable=trainable)
 
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -91,16 +95,18 @@ class IK_p4_markov(PotassiumChannel):
   def derivative(self, p, t, V):
     return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
 
-  def update(self, t, dt, V):
-    self.p.value = self.integral(self.p, t, V, dt=dt)
+  def update(self, tdi, V):
+    self.p.value = self.integral(self.p, tdi['t'], V, tdi['dt'])
 
   def current(self, V):
     return self.g_max * self.p ** 4 * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
 
   def f_p_alpha(self, V):
     raise NotImplementedError
@@ -167,7 +173,8 @@ class IKDR_Ba2002(IK_p4_markov):
       T: Union[float, Tensor] = 36.,
       phi: Optional[Union[float, Tensor, Initializer, Callable]] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     phi = T_base ** ((T - 36) / 10) if phi is None else phi
     super(IKDR_Ba2002, self).__init__(size,
@@ -176,12 +183,13 @@ class IKDR_Ba2002(IK_p4_markov):
                                       method=method,
                                       g_max=g_max,
                                       phi=phi,
-                                      E=E)
+                                      E=E,
+                                      trainable=trainable)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base = init_param(T_base, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base = parameter(T_base, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     tmp = V - self.V_sh - 15.
@@ -240,7 +248,8 @@ class IK_TM1991(IK_p4_markov):
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -60.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(IK_TM1991, self).__init__(size,
                                     keep_size=keep_size,
@@ -248,8 +257,9 @@ class IK_TM1991(IK_p4_markov):
                                     method=method,
                                     phi=phi,
                                     E=E,
-                                    g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                    g_max=g_max,
+                                    trainable=trainable)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     c = 15 - V + self.V_sh
@@ -309,7 +319,8 @@ class IK_HH(IK_p4_markov):
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(IK_HH, self).__init__(size,
                                 keep_size=keep_size,
@@ -317,8 +328,9 @@ class IK_HH(IK_p4_markov):
                                 method=method,
                                 phi=phi,
                                 E=E,
-                                g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                g_max=g_max,
+                                trainable=trainable)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh + 10
@@ -379,19 +391,23 @@ class IKA_p4q_ss(PotassiumChannel):
       phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
       phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
-    super(IKA_p4q_ss, self).__init__(size, keep_size=keep_size, name=name)
+    super(IKA_p4q_ss, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     trainable=trainable)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, trainable, self.varshape)
+    self.q = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -402,15 +418,19 @@ class IKA_p4q_ss(PotassiumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value, self.q.value = self.integral(self.p.value, self.q.value, t, V, dt)
 
   def current(self, V):
     return self.g_max * self.p ** 4 * self.q * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def f_p_inf(self, V):
     raise NotImplementedError
@@ -487,7 +507,8 @@ class IKA1_HM1992(IKA_p4q_ss):
       phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
       phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(IKA1_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -496,10 +517,11 @@ class IKA1_HM1992(IKA_p4q_ss):
                                       E=E,
                                       g_max=g_max,
                                       phi_p=phi_p,
-                                      phi_q=phi_q)
+                                      phi_q=phi_q,
+                                      trainable=trainable)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1. + bm.exp(-(V - self.V_sh + 60.) / 8.5))
@@ -580,7 +602,8 @@ class IKA2_HM1992(IKA_p4q_ss):
       phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
       phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(IKA2_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -589,10 +612,11 @@ class IKA2_HM1992(IKA_p4q_ss):
                                       E=E,
                                       g_max=g_max,
                                       phi_q=phi_q,
-                                      phi_p=phi_p)
+                                      phi_p=phi_p,
+                                      trainable=trainable)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1. + bm.exp(-(V - self.V_sh + 36.) / 20.))
@@ -662,19 +686,23 @@ class IKK2_pq_ss(PotassiumChannel):
       phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
       phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
-    super(IKK2_pq_ss, self).__init__(size, keep_size=keep_size, name=name)
+    super(IKK2_pq_ss, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     trainable=trainable)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, trainable, self.varshape)
+    self.q = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -685,15 +713,19 @@ class IKK2_pq_ss(PotassiumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value, self.q.value = self.integral(self.p.value, self.q.value, t, V, dt)
 
   def current(self, V):
     return self.g_max * self.p * self.q * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def f_p_inf(self, V):
     raise NotImplementedError
@@ -766,7 +798,8 @@ class IKK2A_HM1992(IKK2_pq_ss):
       phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
       phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(IKK2A_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -775,10 +808,11 @@ class IKK2A_HM1992(IKK2_pq_ss):
                                        phi_p=phi_p,
                                        phi_q=phi_q,
                                        g_max=g_max,
-                                       E=E)
+                                       E=E,
+                                       trainable=trainable)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
@@ -855,7 +889,8 @@ class IKK2B_HM1992(IKK2_pq_ss):
       phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
       phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
     super(IKK2B_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -864,10 +899,11 @@ class IKK2B_HM1992(IKK2_pq_ss):
                                        phi_p=phi_p,
                                        phi_q=phi_q,
                                        g_max=g_max,
-                                       E=E)
+                                       E=E,
+                                       trainable=trainable)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
@@ -939,20 +975,24 @@ class IKNI_Ya1989(PotassiumChannel):
       tau_max: Union[float, Tensor, Initializer, Callable] = 4e3,
       V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      trainable: bool = False,
   ):
-    super(IKNI_Ya1989, self).__init__(size, keep_size=keep_size, name=name)
+    super(IKNI_Ya1989, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      trainable=trainable)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.tau_max = init_param(tau_max, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.tau_max = parameter(tau_max, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, trainable, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)
@@ -960,14 +1000,18 @@ class IKNI_Ya1989(PotassiumChannel):
   def dp(self, p, t, V):
     return self.phi_p * (self.f_p_inf(V) - p) / self.f_p_tau(V)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value = self.integral(self.p.value, t, V, dt)
 
   def current(self, V):
     return self.g_max * self.p * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+
 
   def f_p_inf(self, V):
     raise 1. / (1. + bm.exp(-(V - self.V_sh + 35.) / 10.))

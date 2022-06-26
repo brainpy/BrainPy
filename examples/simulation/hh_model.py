@@ -18,9 +18,11 @@ hh = HH(1)
 I, length = bp.inputs.section_input(values=[0, 5, 0],
                                     durations=[100, 500, 100],
                                     return_length=True)
-runner = bp.dyn.DSRunner(hh,
-                         monitors=['V', 'INa.p', 'INa.q', 'IK.p'],
-                         inputs=['input', I, 'iter'])
+runner = bp.dyn.DSRunner(
+  hh,
+  monitors=['V', 'INa.p', 'INa.q', 'IK.p'],
+  inputs=[hh.input, I, 'iter'],
+)
 runner.run(length)
 
 bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)

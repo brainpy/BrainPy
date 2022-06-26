@@ -5,5 +5,5 @@
 This module provides APIs for brain simulations.
 """
 
-from .parallel import *
+from .multiprocess import *
 from .runner import *

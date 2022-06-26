@@ -26,6 +26,7 @@ class TestPhasePlane(unittest.TestCase):
     analyzer.plot_vector_field()
     analyzer.plot_fixed_point()
     plt.show(block=block)
+    plt.close()
     bp.math.disable_x64()
 
   def test_2d_decision_making_model(self):
@@ -74,4 +75,5 @@ class TestPhasePlane(unittest.TestCase):
     analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
     analyzer.plot_fixed_point()
     plt.show(block=block)
+    plt.close()
     bp.math.disable_x64()

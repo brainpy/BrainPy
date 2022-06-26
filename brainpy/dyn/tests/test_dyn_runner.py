@@ -13,7 +13,7 @@ class TestDSRunner(unittest.TestCase):
         super(ExampleDS, self).__init__()
         self.i = bm.Variable(bm.zeros(1))
 
-      def update(self, t, dt):
+      def update(self, tdi):
         self.i += 1
 
     ds = ExampleDS()
@@ -26,8 +26,8 @@ class TestDSRunner(unittest.TestCase):
         super(ExampleDS, self).__init__()
         self.i = bm.Variable(bm.zeros(1))
 
-      def update(self, t, dt):
-        self.i += 1 * dt
+      def update(self, tdi):
+        self.i += 1 * tdi.dt
 
     runner = bp.dyn.DSRunner(ExampleDS(), dt=1., monitors=['i'], progress_bar=False)
     runner.run(100.)

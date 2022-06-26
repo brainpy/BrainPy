@@ -1,10 +1,11 @@
 import distutils.sysconfig as sysconfig
+import glob
 import os
 import platform
 import re
 import subprocess
 import sys
-import glob
+
 import pybind11
 from setuptools import find_packages, setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -46,7 +47,7 @@ class CMakeBuildExt(build_ext):
       #"-DPython_LIBRARIES={}".format(cmake_python_library),
       #"-DPython_INCLUDE_DIRS={}".format(cmake_python_include_dir),
       # "-DCMAKE_BUILD_TYPE={}".format("Debug" if self.debug else "Release"),
-      # "-DCMAKE_PREFIX_PATH={}".format(pybind11.get_cmake_dir()),
+      "-DCMAKE_PREFIX_PATH={}".format(os.path.dirname(pybind11.get_cmake_dir())),
       # "-DCMAKE_CUDA_FLAGS={}".format('"-arch=sm_61"')
     ]
     if os.environ.get("BRAINPY_CUDA", "no").lower() == "yes":
@@ -77,7 +78,7 @@ with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
   init_py = f.read()
   __version__ = re.search('__version__ = "(.*)"', init_py).groups()[0]
 
-cuda_version = os.environ.get("JAX_CUDA_VERSION")
+cuda_version = os.environ.get("CUDA_VERSION")
 if cuda_version:
   __version__ += "+cuda" + cuda_version.replace(".", "")
 

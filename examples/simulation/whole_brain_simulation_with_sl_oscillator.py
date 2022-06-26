@@ -36,9 +36,9 @@ class Network(bp.dyn.Network):
     bm.fill_diagonal(conn_mat, 0)
     gc = 0.6  # global coupling strength
 
-    self.sl = rates.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
-    self.coupling = rates.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
-                                            conn_mat=conn_mat * gc)
+    self.sl = bp.rates.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
+    self.coupling = bp.synapses.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
+                                                  conn_mat=conn_mat * gc)
 
 
 def simulation():

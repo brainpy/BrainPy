@@ -59,7 +59,8 @@ class HH(bp.dyn.NeuGroup):
     dVdt = (- I_Na - I_K - I_leak + Iext) / self.C
     return dVdt
 
-  def update(self, t, dt):
+  def update(self, tdi):
+    t, dt = tdi.t, tdi.dt
     m = self.int_m(self.m, t, self.V, dt=dt)
     h = self.int_h(self.h, t, self.V, dt=dt)
     n = self.int_n(self.n, t, self.V, dt=dt)

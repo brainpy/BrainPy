@@ -23,10 +23,13 @@ class Ion(Channel):
   '''The type of the master object.'''
   master_type = CondNeuGroup
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
-  def reset(self, V):
+  def reset(self, V, batch_size=None):
+    self.reset_state(V, batch_size)
+
+  def reset_state(self, V, batch_size=None):
     raise NotImplementedError('Must be implemented by the subclass.')
 
   def current(self, V):
@@ -42,13 +45,16 @@ class IonChannel(Channel):
   '''The type of the master object.'''
   master_type = CondNeuGroup
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
   def current(self, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
-  def reset(self, V):
+  def reset(self, V, batch_size=None):
+    self.reset_state(V, batch_size)
+
+  def reset_state(self, V, batch_size=None):
     raise NotImplementedError('Must be implemented by the subclass.')
 
   def __repr__(self):
@@ -85,20 +91,24 @@ class Calcium(Ion, Container):
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None,
+      trainable: bool = False,
       **channels
   ):
-    Ion.__init__(self, size, keep_size=keep_size)
-    Container.__init__(self, name=name, **channels)
+    Ion.__init__(self, size, keep_size=keep_size, trainable=trainable)
+    Container.__init__(self, name=name, trainable=trainable, **channels)
     self.method = method
 
   def current(self, V, C_Ca=None, E_Ca=None):
     C_Ca = self.C if (C_Ca is None) else C_Ca
     E_Ca = self.E if (E_Ca is None) else E_Ca
     nodes = list(self.nodes(level=1, include_self=False).unique().subset(Channel).values())
-    current = nodes[0].current(V, C_Ca, E_Ca)
-    for node in nodes[1:]:
-      current += node.current(V, C_Ca, E_Ca)
-    return current
+    if len(nodes) == 0:
+      return 0.
+    else:
+      current = nodes[0].current(V, C_Ca, E_Ca)
+      for node in nodes[1:]:
+        current += node.current(V, C_Ca, E_Ca)
+      return current
 
   def register_implicit_nodes(self, *channels, **named_channels):
     check_master(type(self), *channels, **named_channels)
@@ -111,14 +121,17 @@ class CalciumChannel(IonChannel):
   '''The type of the master object.'''
   master_type = Calcium
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
+  def update(self, tdi, V, C_Ca, E_Ca):
     raise NotImplementedError
 
   def current(self, V, C_Ca, E_Ca):
     raise NotImplementedError
 
-  def reset(self, V, C_Ca, E_Ca):
-    raise NotImplementedError
+  def reset(self, V, C_Ca, E_Ca, batch_size=None):
+    self.reset_state(V, C_Ca, E_Ca, batch_size)
+
+  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
+    raise NotImplementedError('Must be implemented by the subclass.')
 
 
 class IhChannel(IonChannel):

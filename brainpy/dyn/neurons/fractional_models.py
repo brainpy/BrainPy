@@ -4,7 +4,7 @@ from typing import Union, Sequence, Callable
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
-from brainpy.initialize import ZeroInit, OneInit, Initializer, init_param
+from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.integrators.fde import CaputoL1Schema
 from brainpy.integrators.fde import GLShortMemory
 from brainpy.integrators.joint_eq import JointEq
@@ -103,13 +103,13 @@ class FractionalFHR(FractionalNeuron):
     check_integer(num_memory, 'num_memory', allow_none=False)
 
     # parameters
-    self.a = init_param(a, self.var_shape, allow_none=False)
-    self.b = init_param(b, self.var_shape, allow_none=False)
-    self.c = init_param(c, self.var_shape, allow_none=False)
-    self.d = init_param(d, self.var_shape, allow_none=False)
-    self.mu = init_param(mu, self.var_shape, allow_none=False)
-    self.Vth = init_param(Vth, self.var_shape, allow_none=False)
-    self.delta = init_param(delta, self.var_shape, allow_none=False)
+    self.a = parameter(a, self.varshape, allow_none=False)
+    self.b = parameter(b, self.varshape, allow_none=False)
+    self.c = parameter(c, self.varshape, allow_none=False)
+    self.d = parameter(d, self.varshape, allow_none=False)
+    self.mu = parameter(mu, self.varshape, allow_none=False)
+    self.Vth = parameter(Vth, self.varshape, allow_none=False)
+    self.delta = parameter(delta, self.varshape, allow_none=False)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -120,22 +120,23 @@ class FractionalFHR(FractionalNeuron):
     self._y_initializer = y_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
-    self.w = bm.Variable(init_param(w_initializer, self.var_shape))
-    self.y = bm.Variable(init_param(y_initializer, self.var_shape))
-    self.input = bm.Variable(bm.zeros(self.var_shape))
-    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.V = bm.Variable(parameter(V_initializer, self.varshape))
+    self.w = bm.Variable(parameter(w_initializer, self.varshape))
+    self.y = bm.Variable(parameter(y_initializer, self.varshape))
+    self.input = bm.Variable(bm.zeros(self.varshape))
+    self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral function
     self.integral = GLShortMemory(self.derivative,
                                   alpha=alpha,
-                                  num_step=num_memory,
+                                  num_memory=num_memory,
                                   inits=[self.V, self.w, self.y])
 
-  def reset(self):
-    self.V.value = init_param(self._V_initializer, self.var_shape)
-    self.w.value = init_param(self._w_initializer, self.var_shape)
-    self.y.value = init_param(self._y_initializer, self.var_shape)
+  def reset_state(self, batch_size=None):
+    assert batch_size is None
+    self.V.value = parameter(self._V_initializer, self.varshape)
+    self.w.value = parameter(self._w_initializer, self.varshape)
+    self.y.value = parameter(self._y_initializer, self.varshape)
     self.input[:] = 0
     self.spike[:] = False
     # integral function reset
@@ -154,7 +155,9 @@ class FractionalFHR(FractionalNeuron):
   def derivative(self):
     return JointEq([self.dV, self.dw, self.dy])
 
-  def update(self, t, dt):
+  def update(self, tdi, x=None):
+    t, dt = tdi['t'], tdi['dt']
+    if x is not None: self.input += x
     V, w, y = self.integral(self.V, self.w, self.y, t, dt)
     self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
     self.V.value = V
@@ -243,16 +246,16 @@ class FractionalIzhikevich(FractionalNeuron):
     # params
     self.alpha = alpha
     check_float(alpha, 'alpha', min_bound=0., max_bound=1., allow_none=False, allow_int=True)
-    self.a = init_param(a, self.var_shape, allow_none=False)
-    self.b = init_param(b, self.var_shape, allow_none=False)
-    self.c = init_param(c, self.var_shape, allow_none=False)
-    self.d = init_param(d, self.var_shape, allow_none=False)
-    self.f = init_param(f, self.var_shape, allow_none=False)
-    self.g = init_param(g, self.var_shape, allow_none=False)
-    self.h = init_param(h, self.var_shape, allow_none=False)
-    self.tau = init_param(tau, self.var_shape, allow_none=False)
-    self.R = init_param(R, self.var_shape, allow_none=False)
-    self.V_th = init_param(V_th, self.var_shape, allow_none=False)
+    self.a = parameter(a, self.varshape, allow_none=False)
+    self.b = parameter(b, self.varshape, allow_none=False)
+    self.c = parameter(c, self.varshape, allow_none=False)
+    self.d = parameter(d, self.varshape, allow_none=False)
+    self.f = parameter(f, self.varshape, allow_none=False)
+    self.g = parameter(g, self.varshape, allow_none=False)
+    self.h = parameter(h, self.varshape, allow_none=False)
+    self.tau = parameter(tau, self.varshape, allow_none=False)
+    self.R = parameter(R, self.varshape, allow_none=False)
+    self.V_th = parameter(V_th, self.varshape, allow_none=False)
 
     # initializers
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
@@ -261,10 +264,10 @@ class FractionalIzhikevich(FractionalNeuron):
     self._u_initializer = u_initializer
 
     # variables
-    self.V = bm.Variable(init_param(V_initializer, self.var_shape))
-    self.u = bm.Variable(init_param(u_initializer, self.var_shape))
-    self.input = bm.Variable(bm.zeros(self.var_shape))
-    self.spike = bm.Variable(bm.zeros(self.var_shape, dtype=bool))
+    self.V = bm.Variable(parameter(V_initializer, self.varshape))
+    self.u = bm.Variable(parameter(u_initializer, self.varshape))
+    self.input = bm.Variable(bm.zeros(self.varshape))
+    self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # functions
     check_integer(num_step, 'num_step', allow_none=False)
@@ -273,9 +276,9 @@ class FractionalIzhikevich(FractionalNeuron):
                                    num_memory=num_step,
                                    inits=[self.V, self.u])
 
-  def reset(self):
-    self.V.value = init_param(self._V_initializer, self.var_shape)
-    self.u.value = init_param(self._u_initializer, self.var_shape)
+  def reset_state(self, batch_size=None):
+    self.V.value = parameter(self._V_initializer, self.varshape)
+    self.u.value = parameter(self._u_initializer, self.varshape)
     self.input[:] = 0
     self.spike[:] = False
     # integral function reset
@@ -293,7 +296,9 @@ class FractionalIzhikevich(FractionalNeuron):
   def derivative(self):
     return JointEq([self.dV, self.du])
 
-  def update(self, t, dt):
+  def update(self, tdi, x=None):
+    t, dt = tdi['t'], tdi['dt']
+    if x is not None: self.input += x
     V, u = self.integral(self.V, self.u, t=t, I_ext=self.input, dt=dt)
     spikes = V >= self.V_th
     self.V.value = bm.where(spikes, self.c, V)

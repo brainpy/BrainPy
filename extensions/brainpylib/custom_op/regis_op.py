@@ -4,7 +4,6 @@ import collections.abc
 from functools import partial
 from typing import Callable, Union, Sequence
 
-import jax.numpy as jnp
 import numba
 import numpy as np
 from jax import core
@@ -41,12 +40,14 @@ def register_op(
     Outputs shapes of target function. `out_shapes` can be a `ShapedArray` or
     a sequence of `ShapedArray`. If it is a function, it takes as input the argument
     shapes and dtypes and should return correct output shapes of `ShapedArray`.
-  apply_cpu_func_to_gpu: bool, default = True
+  apply_cpu_func_to_gpu: bool,
     True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
+    Default is True.
 
   Returns
   -------
-  A jitable JAX function.
+  op: callable
+    A jitable JAX function.
   """
   if gpu_func is not None:
     raise RuntimeError('Currently cuda.jit function is not supported to convert into a Jax/XLA compatible primitive.'
