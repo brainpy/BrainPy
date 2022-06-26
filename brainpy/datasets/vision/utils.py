@@ -457,7 +457,7 @@ def verify_str_arg(
     valid_values: Iterable[T] = None,
     custom_msg: Optional[str] = None,
 ) -> T:
-  if not isinstance(value, torch._six.string_classes):
+  if not isinstance(value, (str, bytes)):
     if arg is None:
       msg = "Expected type str, but got type {type}."
     else:

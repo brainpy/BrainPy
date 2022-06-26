@@ -13,6 +13,7 @@ from typing import Tuple
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 from jax.tree_util import tree_map
+from jax.lax import scan
 
 import brainpy.math as bm
 from brainpy.types import Tensor
@@ -478,7 +479,12 @@ def ctc_loss_with_forward_probs(
   assert (labels.shape == label_paddings.shape)
   assert (logits.shape[:2] == logit_paddings.shape)
 
-  logprobs = jax.nn.log_softmax(logits)
+  logits = logits.value if isinstance(logits, bm.JaxArray) else logits
+  logit_paddings = logit_paddings.value if isinstance(logit_paddings, bm.JaxArray) else logit_paddings
+  labels = labels.value if isinstance(labels, bm.JaxArray) else labels
+  label_paddings = label_paddings.value if isinstance(label_paddings, bm.JaxArray) else label_paddings
+
+  logprobs = bm.log_softmax(logits).value
   labellens = maxlabellen - jnp.sum(label_paddings, axis=1).astype(jnp.int32)
 
   # repeat[b, n] == 1.0 when label[b, n] == label[b, n+1].
@@ -488,7 +494,7 @@ def ctc_loss_with_forward_probs(
   logprobs_phi = logprobs[:, :, blank_id:blank_id + 1]  # [B, T, 1]
   logprobs_phi = jnp.transpose(logprobs_phi, (1, 0, 2))  # [T, B, 1]
 
-  one_hot = jax.nn.one_hot(labels, num_classes=num_classes)  # [B, N, K]
+  one_hot = bm.one_hot(labels, num_classes=num_classes)  # [B, N, K]
   logprobs_emit = jnp.einsum('btk,bnk->btn', logprobs, one_hot)
   logprobs_emit = jnp.transpose(logprobs_emit, (1, 0, 2))  # [T, B, N]
 
@@ -526,15 +532,14 @@ def ctc_loss_with_forward_probs(
     return (next_phi, next_emit), (next_phi, next_emit)
 
   xs = (logprobs_emit, logprobs_phi, logit_paddings.transpose((1, 0)))
-  _, (logalpha_phi, logalpha_emit) = jax.lax.scan(loop_body,
-                                                  (logalpha_phi_init, logalpha_emit_init), xs)
+  _, (logalpha_phi, logalpha_emit) = scan(loop_body, (logalpha_phi_init, logalpha_emit_init), xs)
 
   # last row needs to be updated with the last epsilon transition
   logalpha_phi_last = update_phi_score(logalpha_phi[-1], logalpha_emit[-1])
   logalpha_phi = logalpha_phi.at[-1].set(logalpha_phi_last)
 
   # extract per_seq_loss
-  one_hot = jax.nn.one_hot(labellens, num_classes=maxlabellen + 1)  # [B, N+1]
+  one_hot = bm.one_hot(labellens, num_classes=maxlabellen + 1).value  # [B, N+1]
   per_seq_loss = -jnp.einsum('bn,bn->b', logalpha_phi_last, one_hot)
 
   return per_seq_loss, logalpha_phi, logalpha_emit
