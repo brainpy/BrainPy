@@ -82,11 +82,6 @@ class DSTrainer(DSRunner):
   ) -> Output:  # need to be implemented by subclass
     raise NotImplementedError('Must implement the fit function. ')
 
-  def _get_trainable_nodes(self) -> Tuple[TrainingSystem, ...]:
-    # check trainable nodes
-    nodes = self.target.nodes(level=-1, include_self=True).subset(TrainingSystem).unique()
-    return tuple([node for node in nodes.values() if node.trainable])
-
   def _check_ys(self, ys, num_batch, num_step, move_axis=False):
     if isinstance(ys, (bm.ndarray, jnp.ndarray)):
       if len(self.train_nodes) == 1:

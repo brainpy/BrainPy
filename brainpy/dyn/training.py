@@ -49,11 +49,7 @@ class TrainingSystem(DynamicalSystem):
     self.offline_fit_by = None
     self.fit_record = dict()
 
-  def reset(self, batch_size=1):
-    for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
-      node.reset(batch_size=batch_size)
-
-  def reset_state(self, batch_size=1):
+  def reset_state(self, batch_size=None):
     for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
       node.reset_state(batch_size=batch_size)
 
@@ -214,3 +210,6 @@ class Sequential(TrainingSystem):
       x = node(sha, x)
     return x
 
+  def reset(self, batch_size=1):
+    for node in self.nodes(level=1, include_self=False).unique().subset(TrainingSystem).values():
+      node.reset(batch_size=batch_size)

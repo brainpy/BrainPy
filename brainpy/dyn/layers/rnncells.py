@@ -4,13 +4,15 @@
 from typing import Union, Callable
 
 import brainpy.math as bm
+from brainpy.dyn.training import TrainingSystem
 from brainpy.initialize import (XavierNormal,
                                 ZeroInit,
                                 Orthogonal,
                                 parameter,
+                                variable,
                                 Initializer)
-from brainpy.tools.checking import (check_integer, check_initializer)
-from brainpy.dyn.training import TrainingSystem
+from brainpy.tools.checking import (check_integer,
+                                    check_initializer)
 from brainpy.types import Tensor
 
 __all__ = [
@@ -37,16 +39,13 @@ class RecurrentCell(TrainingSystem):
     self.train_state = train_state
 
     # state
-    self.state = bm.Variable(bm.zeros((1, self.num_out)))
+    self.state = variable(bm.zeros, trainable, self.num_out)
     if train_state and self.trainable:
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
-  def reset(self, batch_size=1):
-    self.reset_state(batch_size)
-
-  def reset_state(self, batch_size=1):
-    self.state._value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+  def reset_state(self, batch_size=None):
+    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
     if self.train_state:
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
