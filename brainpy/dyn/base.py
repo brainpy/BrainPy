@@ -231,7 +231,7 @@ class DynamicalSystem(Base):
     elif isinstance(nodes, dict):
       nodes = nodes.values()
     for node in nodes:
-      for name in node.local_delay_vars.keys():
+      for name in node.local_delay_vars:
         delay = self.global_delay_data[name][0]
         target = self.global_delay_data[name][1]
         delay.update(target.value)
@@ -250,7 +250,7 @@ class DynamicalSystem(Base):
     elif isinstance(nodes, dict):
       nodes = nodes.values()
     for node in nodes:
-      for name in node.local_delay_vars.keys():
+      for name in node.local_delay_vars:
         delay = self.global_delay_data[name][0]
         target = self.global_delay_data[name][1]
         delay.reset(target.value)
@@ -260,15 +260,18 @@ class DynamicalSystem(Base):
 
     This function is used to pop out the variables which registered in global delay data.
     """
-    for key in tuple(self.local_delay_vars.keys()):
-      val = self.global_delay_data.pop(key)
-      del val
-      val = self.local_delay_vars.pop(key)
-      del val
-    for key in tuple(self.implicit_nodes.keys()):
-      del self.implicit_nodes[key]
-    for key in tuple(self.implicit_vars.keys()):
-      del self.implicit_vars[key]
+    if hasattr(self, 'local_delay_vars'):
+      for key in tuple(self.local_delay_vars.keys()):
+        val = self.global_delay_data.pop(key)
+        del val
+        val = self.local_delay_vars.pop(key)
+        del val
+    if hasattr(self, 'implicit_nodes'):
+      for key in tuple(self.implicit_nodes.keys()):
+        del self.implicit_nodes[key]
+    if hasattr(self, 'implicit_vars'):
+      for key in tuple(self.implicit_vars.keys()):
+        del self.implicit_vars[key]
     for key in tuple(self.__dict__.keys()):
       del self.__dict__[key]
     gc.collect()

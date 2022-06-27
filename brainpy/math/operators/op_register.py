@@ -20,8 +20,8 @@ __all__ = [
 def register_op(
     op_name: str,
     cpu_func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
     gpu_func: Callable = None,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]] = None,
     apply_cpu_func_to_gpu: bool = False
 ):
   """

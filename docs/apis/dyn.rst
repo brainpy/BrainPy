@@ -15,6 +15,7 @@
     auto/dyn/synouts
     auto/dyn/synplast
     auto/dyn/rates
+    auto/dyn/layers
     auto/dyn/channel_base
     auto/dyn/channel_sodium
     auto/dyn/channel_potassium

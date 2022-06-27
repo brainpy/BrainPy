@@ -2,16 +2,88 @@ Release notes (brainpy)
 #######################
 
 
-brainpy 2.x (LTS)
-*****************
+brainpy 2.2.x (LTS)
+*******************
+
+BrainPy 2.2.x is a complete re-design of the framework,
+tackling the shortcomings of brainpy 2.1.x generation,
+effectively bringing it to industry needs and standards.
 
 
 
+
+
+
+brainpy 2.1.x (LTS)
+*******************
+
+
+
+Version 2.1.12 (2022.05.17)
+===========================
+
+
+Highlights
+~~~~~~~~~~
+
+This release is excellent. We have made important improvements.
+
+1. We provide dozens of random sampling in NumPy which are not
+   supportted in JAX, such as ``brainpy.math.random.bernoulli``,
+   ``brainpy.math.random.lognormal``, ``brainpy.math.random.binomial``,
+   ``brainpy.math.random.chisquare``, ``brainpy.math.random.dirichlet``,
+   ``brainpy.math.random.geometric``, ``brainpy.math.random.f``,
+   ``brainpy.math.random.hypergeometric``,
+   ``brainpy.math.random.logseries``,
+   ``brainpy.math.random.multinomial``,
+   ``brainpy.math.random.multivariate_normal``,
+   ``brainpy.math.random.negative_binomial``,
+   ``brainpy.math.random.noncentral_chisquare``,
+   ``brainpy.math.random.noncentral_f``, ``brainpy.math.random.power``,
+   ``brainpy.math.random.rayleigh``, ``brainpy.math.random.triangular``,
+   ``brainpy.math.random.vonmises``, ``brainpy.math.random.wald``,
+   ``brainpy.math.random.weibull``
+2. make efficient checking on numerical values. Instead of direct
+   ``id_tap()`` checking which has large overhead, currently
+   ``brainpy.tools.check_erro_in_jit()`` is highly efficient.
+3. Fix ``JaxArray`` operator errors on ``None``
+4. improve oo-to-function transformation speeds
+5. ``io`` works: ``.save_states()`` and ``.load_states()``
+
+What’s Changed
+~~~~~~~~~~~~~~
+
+-  support dtype setting in array interchange functions by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#209 <https://github.com/PKU-NIP-Lab/BrainPy/pull/209>`__
+-  fix `#144 <https://github.com/PKU-NIP-Lab/BrainPy/issues/144>`__:
+   operations on None raise errors by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#210 <https://github.com/PKU-NIP-Lab/BrainPy/pull/210>`__
+-  add tests and new functions for random sampling by
+   [@c-xy17](https://github.com/c-xy17) in
+   `#213 <https://github.com/PKU-NIP-Lab/BrainPy/pull/213>`__
+-  feat: fix ``io`` for brainpy.Base by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#211 <https://github.com/PKU-NIP-Lab/BrainPy/pull/211>`__
+-  update advanced tutorial documentation by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#212 <https://github.com/PKU-NIP-Lab/BrainPy/pull/212>`__
+-  fix `#149 <https://github.com/PKU-NIP-Lab/BrainPy/issues/149>`__
+   (dozens of random samplings in NumPy) and fix JaxArray op errors by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#216 <https://github.com/PKU-NIP-Lab/BrainPy/pull/216>`__
+-  feat: efficient checking on numerical values by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#217 <https://github.com/PKU-NIP-Lab/BrainPy/pull/217>`__
+
+**Full Changelog**:
+`V2.1.11...V2.1.12 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.11...V2.1.12>`__
 
 
 
 Version 2.1.11 (2022.05.15)
-==========================
+===========================
 
 
 What's Changed
@@ -29,7 +101,7 @@ What's Changed
 
 
 Version 2.1.10 (2022.05.05)
-==========================
+===========================
 
 
 What's Changed

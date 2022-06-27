@@ -14,7 +14,7 @@ from brainpy.types import Tensor, Output
 from . import constants as c
 
 __all__ = [
-  'DSTrainer', 'DSRunner',
+  'DSTrainer',
 ]
 
 
