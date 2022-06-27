@@ -1,17 +1,3 @@
-# Copyright 2022 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import abc
 
 from jax import core
@@ -61,17 +47,18 @@ class _Mgrid(_IndexGrid):
   Examples:
     Pass ``[start:stop:step]`` to generate values similar to :func:`jax.numpy.arange`:
 
-    >>> jnp.mgrid[0:4:1]
+    >>> import brainpy.math as bm
+    >>> bm.mgrid[0:4:1]
     DeviceArray([0, 1, 2, 3], dtype=int32)
 
     Passing an imaginary step generates values similar to :func:`jax.numpy.linspace`:
 
-    >>> jnp.mgrid[0:1:4j]
+    >>> bm.mgrid[0:1:4j]
     DeviceArray([0.        , 0.33333334, 0.6666667 , 1.        ], dtype=float32)
 
     Multiple slices can be used to create broadcasted grids of indices:
 
-    >>> jnp.mgrid[:2, :3]
+    >>> bm.mgrid[:2, :3]
     DeviceArray([[[0, 0, 0],
                   [1, 1, 1]],
                  [[0, 1, 2],
@@ -96,17 +83,17 @@ class _Ogrid(_IndexGrid):
   Examples:
     Pass ``[start:stop:step]`` to generate values similar to :func:`jax.numpy.arange`:
 
-    >>> jnp.ogrid[0:4:1]
+    >>> bm.ogrid[0:4:1]
     DeviceArray([0, 1, 2, 3], dtype=int32)
 
     Passing an imaginary step generates values similar to :func:`jax.numpy.linspace`:
 
-    >>> jnp.ogrid[0:1:4j]
+    >>> bm.ogrid[0:1:4j]
     DeviceArray([0.        , 0.33333334, 0.6666667 , 1.        ], dtype=float32)
 
     Multiple slices can be used to create sparse grids of indices:
 
-    >>> jnp.ogrid[:2, :3]
+    >>> bm.ogrid[:2, :3]
     [DeviceArray([[0],
                   [1]], dtype=int32),
      DeviceArray([[0, 1, 2]], dtype=int32)]
@@ -200,13 +187,13 @@ class RClass(_AxisConcat):
   Examples:
     Passing slices in the form ``[start:stop:step]`` generates ``jnp.arange`` objects:
 
-    >>> jnp.r_[-1:5:1, 0, 0, jnp.array([1,2,3])]
+    >>> bm.r_[-1:5:1, 0, 0, bm.array([1,2,3])]
     DeviceArray([-1,  0,  1,  2,  3,  4,  0,  0,  1,  2,  3], dtype=int32)
 
     An imaginary value for ``step`` will create a ``jnp.linspace`` object instead,
     which includes the right endpoint:
 
-    >>> jnp.r_[-1:1:6j, 0, jnp.array([1,2,3])]
+    >>> bm.r_[-1:1:6j, 0, bm.array([1,2,3])]
     DeviceArray([-1.        , -0.6       , -0.20000002,  0.20000005,
                   0.6       ,  1.        ,  0.        ,  1.        ,
                   2.        ,  3.        ], dtype=float32)
@@ -215,11 +202,11 @@ class RClass(_AxisConcat):
     specify concatenation axis, minimum number of dimensions, and the position of the
     upgraded array's original dimensions in the resulting array's shape tuple:
 
-    >>> jnp.r_['0,2', [1,2,3], [4,5,6]] # concatenate along first axis, 2D output
+    >>> bm.r_['0,2', [1,2,3], [4,5,6]] # concatenate along first axis, 2D output
     DeviceArray([[1, 2, 3],
                  [4, 5, 6]], dtype=int32)
 
-    >>> jnp.r_['0,2,0', [1,2,3], [4,5,6]] # push last input axis to the front
+    >>> bm.r_['0,2,0', [1,2,3], [4,5,6]] # push last input axis to the front
     DeviceArray([[1],
                  [2],
                  [3],
@@ -230,7 +217,7 @@ class RClass(_AxisConcat):
     Negative values for ``trans1d`` offset the last axis towards the start
     of the shape tuple:
 
-    >>> jnp.r_['0,2,-2', [1,2,3], [4,5,6]]
+    >>> bm.r_['0,2,-2', [1,2,3], [4,5,6]]
     DeviceArray([[1],
                  [2],
                  [3],
@@ -241,10 +228,10 @@ class RClass(_AxisConcat):
     Use the special directives ``"r"`` or ``"c"`` as the first argument on flat inputs
     to create an array with an extra row or column axis, respectively:
 
-    >>> jnp.r_['r',[1,2,3], [4,5,6]]
+    >>> bm.r_['r',[1,2,3], [4,5,6]]
     DeviceArray([[1, 2, 3, 4, 5, 6]], dtype=int32)
 
-    >>> jnp.r_['c',[1,2,3], [4,5,6]]
+    >>> bm.r_['c',[1,2,3], [4,5,6]]
     DeviceArray([[1],
                  [2],
                  [3],
@@ -274,8 +261,8 @@ class CClass(_AxisConcat):
 
   Examples:
 
-    >>> a = jnp.arange(6).reshape((2,3))
-    >>> jnp.c_[a,a]
+    >>> a = bm.arange(6).reshape((2,3))
+    >>> bm.c_[a,a]
     DeviceArray([[0, 1, 2, 0, 1, 2],
                  [3, 4, 5, 3, 4, 5]], dtype=int32)
 
@@ -283,7 +270,7 @@ class CClass(_AxisConcat):
     concatenation axis, minimum number of dimensions, and the position of the upgraded array's
     original dimensions in the resulting array's shape tuple:
 
-    >>> jnp.c_['0,2', [1,2,3], [4,5,6]]
+    >>> bm.c_['0,2', [1,2,3], [4,5,6]]
     DeviceArray([[1],
                  [2],
                  [3],
@@ -291,7 +278,7 @@ class CClass(_AxisConcat):
                  [5],
                  [6]], dtype=int32)
 
-    >>> jnp.c_['0,2,-1', [1,2,3], [4,5,6]]
+    >>> bm.c_['0,2,-1', [1,2,3], [4,5,6]]
     DeviceArray([[1, 2, 3],
                  [4, 5, 6]], dtype=int32)
 

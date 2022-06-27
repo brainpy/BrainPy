@@ -2,7 +2,7 @@
 
 import time
 from collections.abc import Iterable
-from typing import Dict, Union, Sequence
+from typing import Dict, Union, Sequence, Callable
 
 import jax
 import jax.numpy as jnp
@@ -33,9 +33,9 @@ def check_and_format_inputs(host, inputs):
   Parameters
   ----------
   host : DynamicalSystem
-      The host which contains all data.
+    The host which contains all data.
   inputs : tuple, list
-      The inputs of the population.
+    The inputs of the population.
 
   Returns
   -------
@@ -161,11 +161,29 @@ def check_and_format_inputs(host, inputs):
   return formatted_inputs
 
 
-def build_inputs(inputs):
+def build_inputs(inputs, fun_inputs):
+  """Build input function.
+
+  Parameters
+  ----------
+  inputs : tuple, list
+    The inputs of the population.
+  fun_inputs: optional, callable
+    The input function customized by users.
+
+  Returns
+  -------
+  func: callable
+    The input function.
+  """
+
   fix_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
   next_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
   func_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
   array_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
+
+  if not (fun_inputs is None or callable(fun_inputs)):
+    raise ValueError
 
   _has_iter_array = False
   for variable, value, type_, op in inputs:
@@ -202,6 +220,8 @@ def build_inputs(inputs):
       raise ValueError(f'Unknown input operation: {ops}')
 
   def func(tdi):
+    if fun_inputs is not None:
+      fun_inputs(tdi)
     for ops, values in fix_inputs.items():
       for var, data in values:
         _f_ops(ops, var, data)
@@ -225,6 +245,7 @@ class DSRunner(Runner):
   ----------
   target : DynamicalSystem
     The target model to run.
+
   inputs : list, tuple
     The inputs for the target DynamicalSystem. It should be the format
     of `[(target, value, [type, operation])]`, where `target` is the
@@ -239,6 +260,37 @@ class DSRunner(Runner):
     - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
     - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
       for example ``[(target1, value1), (target2, value2)]``.
+
+  fun_inputs: callable
+    The functional inputs. Manually specify the inputs for the target variables.
+    This input function should receive one argument `shared` which contains the shared arguments like
+    time `t`, time step `dt`, and index `i`.
+
+  monitors: None, sequence of str, dict, Monitor
+    Variables to monitor.
+
+    - A list of string. Like `monitors=['a', 'b', 'c']`
+    - A list of string with index specification. Like `monitors=[('a', 1), ('b', [1,3,5]), 'c']`
+    - A dict with the explicit monitor target, like: `monitors={'a': model.spike, 'b': model.V}`
+    - A dict with the index specification, like: `monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}`
+
+  fun_monitors: dict
+    Monitoring variables by callable functions. Should be a dict.
+    The `key` should be a string for the later retrieval by `runner.mon[key]`.
+    The `value` should be a callable function which receives two arguments: `t` and `dt`.
+
+  jit: bool, dict
+    The JIT settings.
+
+  progress_bar: bool
+    Use progress bar to report the running progress or not?
+
+  dyn_vars: Optional, dict
+    The dynamically changed variables. Instance of :py:class:`~.Variable`.
+
+  numpy_mon_after_run : bool
+    When finishing the network running, transform the JAX arrays into numpy ndarray or not?
+
   """
 
   target: DynamicalSystem
@@ -246,7 +298,12 @@ class DSRunner(Runner):
   def __init__(
       self,
       target: DynamicalSystem,
+
+      # inputs for target variables
       inputs: Sequence = (),
+      fun_inputs: Callable = None,
+
+      # extra info
       dt: float = None,
       t0: Union[float, int] = 0.,
       **kwargs
@@ -269,11 +326,10 @@ class DSRunner(Runner):
 
     # Build the monitor function
     self._mon_info = self.format_monitors()
-    # self._monitor_step = self.build_monitors(*self.format_monitors())
 
     # Build input function
-    inputs = check_and_format_inputs(host=target, inputs=inputs)
-    self._input_step, _ = build_inputs(inputs)
+    self._input_step, _ = build_inputs(check_and_format_inputs(host=target, inputs=inputs),
+                                       fun_inputs=fun_inputs)
 
     # run function
     self._f_predict_compiled = dict()
@@ -581,4 +637,3 @@ class DSRunner(Runner):
       for key in tuple(self._f_predict_compiled.keys()):
         del self._f_predict_compiled[key]
     super(DSRunner, self).__del__()
-

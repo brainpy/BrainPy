@@ -120,6 +120,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
 
       # parameters for `f_cell` is DynamicalSystem instance
       inputs: Sequence = None,
+      fun_inputs: Callable = None,
       t: float = None,
       dt: float = None,
       included_vars: Dict[str, bm.Variable] = None,
@@ -175,7 +176,7 @@ class SlowPointFinder(base.BrainPyAnalyzer):
       # input function
       if inputs is not None:
         inputs = check_and_format_inputs(host=self.target, inputs=inputs)
-        _input_step, _has_iter = build_inputs(inputs)
+        _input_step, _has_iter = build_inputs(inputs, fun_inputs)
         if _has_iter:
           raise UnsupportedError(f'Do not support iterable inputs when using fixed point finder.')
       else:

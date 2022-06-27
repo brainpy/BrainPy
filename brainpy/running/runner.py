@@ -24,6 +24,7 @@ class Runner(object):
   ----------
   target: Any
     The target model.
+
   monitors: None, sequence of str, dict, Monitor
     Variables to monitor.
 
@@ -36,14 +37,18 @@ class Runner(object):
     Monitoring variables by callable functions. Should be a dict.
     The `key` should be a string for later retrieval by `runner.mon[key]`.
     The `value` should be a callable function which receives two arguments: `t` and `dt`.
+
   jit: bool, dict
     The JIT settings.
+
   progress_bar: bool
-    Use progress bar or not?
+    Use progress bar to report the running progress or not?
+
   dyn_vars: Optional, dict
     The dynamically changed variables. Instance of :py:class:`~.Variable`.
+
   numpy_mon_after_run : bool
-    Transform the JAX arrays into numpy ndarray or not, when finishing the network running?
+    When finishing the network running, transform the JAX arrays into numpy ndarray or not?
   """
 
   mon: DotDict
@@ -210,8 +215,9 @@ class Runner(object):
     raise NotImplementedError
 
   def __del__(self):
-    for key in tuple(self.mon.keys()):
-      del self.mon[key]
+    if hasattr(self, 'mon'):
+      for key in tuple(self.mon.keys()):
+        del self.mon[key]
     for key in tuple(self.__dict__.keys()):
       del self.__dict__[key]
     gc.collect()

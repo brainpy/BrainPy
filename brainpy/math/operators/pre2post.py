@@ -469,24 +469,20 @@ def pre2post_matmul_mask2(event, conn, mask):
   # f0 = vmap(lambda i, j: event[i] * (Cl[i] * Cr[:, j]).sum() * (Ml[i] * Mr[:, j]).sum(), in_axes=(0, None))
   @partial(vmap, in_axes=(0, None))
   def f0(i, j):
-    return cond(event[i] > 0.,
-                lambda _: event[i] * jnp.sum(Cl[i] * Cr[:, j]) * jnp.sum(Ml[i] * Mr[:, j]),
-                lambda _: 0.,
-                None)
-  # fori_loop(0,
-  #           Cr.shape[1],
-  #           lambda x: f0(x[0], x[1]),
-  #           )
+    return cond(event[i],
+                lambda: cond(Ml[i] @ Mr[:, j],
+                             lambda: (Cl[i] * Cr[:, j]).sum(),
+                             lambda: 0.),
+                lambda: 0.)
 
   ii = jnp.arange(Cl.shape[0])
   jj = jnp.arange(Cr.shape[1])
 
-  def body(_, j):
-    r = f0(ii, j).sum()
-    return 0, r
+  # def body(_, j):
+  #   r = f0(ii, j).sum()
+  #   return 0, r
+  # _, out = scan(body, 0, jj)
+  # return out
 
-  _, out = scan(body, 0, jj)
-
-  # f1 = jit(vmap(lambda ii, j: f0(ii, j).sum(), in_axes=(None, 0)))
-  return out
-
+  f = jit(vmap(lambda j: f0(ii, j).sum()))
+  return f(jj)

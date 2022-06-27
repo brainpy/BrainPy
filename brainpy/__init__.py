@@ -35,7 +35,9 @@ from . import (connect,  # synaptic connection
                losses,  # loss functions
                measure,  # methods for data analysis
                datasets,  # methods for generating data
-               inputs)  # methods for generating input currents
+               inputs,  # methods for generating input currents
+               algorithms,  # online or offline training algorithms
+               )
 
 
 # numerical integrators
@@ -58,7 +60,8 @@ from .dyn import (channels,  # channel models
                   rates,  # rate models
                   synapses,  # synaptic dynamics
                   synouts,   # synaptic output
-                  synplast)  # synaptic plasticity
+                  synplast,  # synaptic plasticity
+                  )
 
 
 # dynamics training

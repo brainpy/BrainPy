@@ -262,9 +262,6 @@ class JaxArray(object):
     self._value = self._value * (oc._value if isinstance(oc, JaxArray) else oc)
     return self
 
-  # def __div__(self, oc):
-  #   return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
-
   def __rdiv__(self, oc):
     return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) / self._value)
 
@@ -421,44 +418,12 @@ class JaxArray(object):
   def block_until_ready(self, *args):
     self._value.block_until_ready(*args)
 
-  # def broadcast(self, operand, sizes):
-  #   """Broadcasts an array, adding new major dimensions.
-  #
-  #   Wraps XLA's `Broadcast
-  #   <https://www.tensorflow.org/xla/operation_semantics#broadcast>`_
-  #   operator.
-  #
-  #   Parameters
-  #   ----------
-  #   operand: an array
-  #   sizes:
-  #     A sequence of integers, giving the sizes of new major dimensions
-  #     to add.
-  #
-  #   Returns
-  #   -------
-  #   ary : array
-  #     An array containing the result.
-  #   """
-  #   raise NotImplementedError
-  #
-  # def client(self, *args):
-  #   raise NotImplementedError
-  #
-  # def clone(self, *args):
-  #   raise NotImplementedError
-  #
-  # def copy_to_device(self, *args):
-  #   raise NotImplementedError
-  #
-  # def copy_to_host_async(self, *args):
-  #   raise NotImplementedError
-  #
-  # def device(self, *args):
-  #   raise NotImplementedError
-  #
-  # def device_buffer(self, *args):
-  #   raise NotImplementedError
+  def device(self):
+    raise self.value.device()
+
+  @property
+  def device_buffer(self):
+    raise self.value.device_buffer
 
   # ----------------------- #
   #      NumPy methods      #
