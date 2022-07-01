@@ -330,10 +330,12 @@ class Exponential(TwoEndConn):
 
     # post values
     if isinstance(self.conn, All2All):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
@@ -343,7 +345,8 @@ class Exponential(TwoEndConn):
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
       else:
-        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+        syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+        if self.stp is not None: syn_value = self.stp(syn_value)
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
     self.g.value = self.integral(self.g.value, t, dt) + post_vs
@@ -530,7 +533,8 @@ class DualExponential(TwoEndConn):
     self.h += pre_spike
 
     # post values
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
@@ -932,7 +936,8 @@ class NMDA(TwoEndConn):
     self.x += pre_spike
 
     # post-synaptic value
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):

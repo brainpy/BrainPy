@@ -230,7 +230,8 @@ class AMPA(TwoEndConn):
     self.g.value = self.integral(self.g, t, TT, dt)
 
     # post-synaptic values
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
@@ -584,7 +585,8 @@ class BioNMDA(TwoEndConn):
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
 
     # post-synaptic value
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
