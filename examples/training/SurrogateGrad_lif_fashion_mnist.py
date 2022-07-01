@@ -197,7 +197,7 @@ num_input = 28 * 28
 net = SNN(num_in=num_input, num_rec=100, num_out=10)
 
 # load the dataset
-root = "some_path/"
+root = r"E:\data\fashion-mnist"
 train_dataset = bp.datasets.FashionMNIST(root,
                                          train=True,
                                          transform=None,

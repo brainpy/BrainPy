@@ -128,7 +128,7 @@ class Delta(TwoEndConn):
 
   def reset_state(self, batch_size=None):
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     # pre-synaptic spikes
@@ -140,7 +140,7 @@ class Delta(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
@@ -312,7 +312,7 @@ class Exponential(TwoEndConn):
   def reset_state(self, batch_size=None):
     self.g.value = variable(bm.zeros, batch_size, self.post.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     t, dt = tdi['t'], tdi['dt']
@@ -326,7 +326,7 @@ class Exponential(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # post values
     if isinstance(self.conn, All2All):
@@ -503,7 +503,7 @@ class DualExponential(TwoEndConn):
     self.h.value = variable(bm.zeros, batch_size, self.pre.num)
     self.g.value = variable(bm.zeros, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dh(self, h, t):
     return -h / self.tau_rise
@@ -523,7 +523,7 @@ class DualExponential(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
     self.g.value, self.h.value = self.integral(self.g, self.h, t, dt)
@@ -912,7 +912,7 @@ class NMDA(TwoEndConn):
     self.g.value = variable(bm.zeros, batch_size, self.pre.num)
     self.x.value = variable(bm.zeros, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     t, dt = tdi['t'], tdi['dt']
@@ -924,8 +924,8 @@ class NMDA(TwoEndConn):
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
-    self.stp.update(tdi, pre_spike)
     self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
     self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)

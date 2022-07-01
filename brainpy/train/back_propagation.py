@@ -232,20 +232,12 @@ class BPTrainer(DSTrainer):
           print(msg)
           t0 = t1
 
-      # # testing set
-      # if test_data is not None:
-      #   test_data_ = self._get_batchable_data(test_data, batch_size, False)
-      #   for x, y in test_data_:
-      #     if reset_state:
-      #       self.target.reset_state(self._get_batch_size(x))
-      #       self.reset_state()
-      #     loss = self.f_loss(shared_args)(x, y)
-      #     all_test_losses.append(loss)
-
     # finally
     self._train_losses = bm.asarray(all_train_losses)
-    self._train_loss_aux = {k: bm.asarray(v) for k, v in all_train_loss_aux.items()}
-    # self._test_losses = bm.asarray(all_test_losses)
+    if all_train_loss_aux is None:
+      self._train_loss_aux = dict()
+    else:
+      self._train_loss_aux = {k: bm.asarray(v) for k, v in all_train_loss_aux.items()}
     self.progress_bar = true_progress_bar
 
   def _get_batchable_data(self, data, num_batch, shuffle=False):
