@@ -202,7 +202,7 @@ class AMPA(TwoEndConn):
     self.g = variable(bm.zeros, batch_size, self.pre.num)
     self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dg(self, g, t, TT):
     dg = self.alpha * TT * (1 - g) - self.beta * g
@@ -220,7 +220,7 @@ class AMPA(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
@@ -230,7 +230,8 @@ class AMPA(TwoEndConn):
     self.g.value = self.integral(self.g, t, TT, dt)
 
     # post-synaptic values
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
@@ -553,8 +554,8 @@ class BioNMDA(TwoEndConn):
     self.g = variable(bm.zeros, batch_size, self.pre.num)
     self.x = variable(bm.zeros, batch_size, self.pre.num)
     self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
-    self.stp.reset_state(batch_size)
     self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dg(self, g, t, x):
     return self.alpha1 * x * (1 - g) - self.beta1 * g
@@ -574,7 +575,7 @@ class BioNMDA(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
@@ -584,7 +585,8 @@ class BioNMDA(TwoEndConn):
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
 
     # post-synaptic value
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):

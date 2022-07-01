@@ -128,7 +128,7 @@ class Delta(TwoEndConn):
 
   def reset_state(self, batch_size=None):
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     # pre-synaptic spikes
@@ -140,7 +140,7 @@ class Delta(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
@@ -312,7 +312,7 @@ class Exponential(TwoEndConn):
   def reset_state(self, batch_size=None):
     self.g.value = variable(bm.zeros, batch_size, self.post.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     t, dt = tdi['t'], tdi['dt']
@@ -326,14 +326,16 @@ class Exponential(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # post values
     if isinstance(self.conn, All2All):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
@@ -343,7 +345,8 @@ class Exponential(TwoEndConn):
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
       else:
-        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+        syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+        if self.stp is not None: syn_value = self.stp(syn_value)
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
     self.g.value = self.integral(self.g.value, t, dt) + post_vs
@@ -503,7 +506,7 @@ class DualExponential(TwoEndConn):
     self.h.value = variable(bm.zeros, batch_size, self.pre.num)
     self.g.value = variable(bm.zeros, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dh(self, h, t):
     return -h / self.tau_rise
@@ -523,14 +526,15 @@ class DualExponential(TwoEndConn):
 
     # update sub-components
     self.output.update(tdi)
-    self.stp.update(tdi, pre_spike)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
     self.g.value, self.h.value = self.integral(self.g, self.h, t, dt)
     self.h += pre_spike
 
     # post values
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
@@ -912,7 +916,7 @@ class NMDA(TwoEndConn):
     self.g.value = variable(bm.zeros, batch_size, self.pre.num)
     self.x.value = variable(bm.zeros, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
-    self.stp.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     t, dt = tdi['t'], tdi['dt']
@@ -924,15 +928,16 @@ class NMDA(TwoEndConn):
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
-    self.stp.update(tdi, pre_spike)
     self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
     self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)
     self.x += pre_spike
 
     # post-synaptic value
-    syn_value = self.stp(self.g)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
       post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
