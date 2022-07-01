@@ -139,6 +139,9 @@ class GeneralConv(TrainingSystem):
       return y
     return y + self.b.value
 
+  def reset_state(self, batch_size=None):
+    pass
+
 
 class Conv1D(GeneralConv):
   def __init__(

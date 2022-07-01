@@ -7,9 +7,8 @@ import jax.numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
-from brainpy.tools.checking import (check_integer, check_sequence)
 from brainpy.dyn.training import TrainingSystem
-
+from brainpy.tools.checking import (check_integer, check_sequence)
 
 __all__ = [
   'NVAR'
@@ -69,8 +68,8 @@ class NVAR(TrainingSystem):
       order: Union[int, Sequence[int]] = None,
       stride: int = 1,
       constant: bool = False,
-      trainable: bool = False,
-      name: str = None
+      trainable: bool = True,
+      name: str = None,
   ):
     super(NVAR, self).__init__(trainable=trainable, name=name)
 
@@ -93,8 +92,11 @@ class NVAR(TrainingSystem):
 
     # delay variables
     self.idx = bm.Variable(jnp.asarray([0]))
-    batch_size = 1  # first initialize the state with batch size = 1
-    self.store = bm.Variable(jnp.zeros((self.num_delay, batch_size, self.num_in)))
+    if trainable:
+      batch_size = 1  # first initialize the state with batch size = 1
+      self.store = bm.Variable(jnp.zeros((self.num_delay, batch_size, self.num_in)),  batch_axis=1)
+    else:
+      self.store = bm.Variable(jnp.zeros((self.num_delay, self.num_in)))
 
     # linear dimension
     self.linear_dim = self.delay * num_in
@@ -115,35 +117,52 @@ class NVAR(TrainingSystem):
     if self.constant:
       self.num_out += 1
 
-  def reset(self, batch_size=1):
-    self.idx[0] = 0
-    self.reset_state(batch_size)
-
-  def reset_state(self, batch_size=1):
+  def reset_state(self, batch_size=None):
     """Reset the node state which depends on batch size."""
+    self.idx[0] = 0
     # To store the last inputs.
     # Note, the batch axis is not in the first dimension, so we
     # manually handle the state of NVAR, rather return it.
-    self.store._value = jnp.zeros((self.num_delay, batch_size, self.num_in))
+    if batch_size is None:
+      self.store.value = jnp.zeros((self.num_delay, self.num_in))
+    else:
+      self.store.value = jnp.zeros((self.num_delay, batch_size, self.num_in))
 
   def update(self, sha, x):
     all_parts = []
+    select_ids = (self.idx[0] - jnp.arange(0, self.num_delay, self.stride)) % self.num_delay
     # 1. Store the current input
     self.store[self.idx[0]] = x
-    # 2. Linear part:
-    # select all previous inputs, including the current, with strides
-    select_ids = (self.idx[0] - jnp.arange(0, self.num_delay, self.stride)) % self.num_delay
-    linear_parts = jnp.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)
-    linear_parts = jnp.reshape(linear_parts, (linear_parts.shape[0], -1))
-    # 3. constant
-    if self.constant:
-      constant = jnp.ones((linear_parts.shape[0], 1), dtype=x.dtype)
-      all_parts.append(constant)
-    all_parts.append(linear_parts)
-    # 3. Nonlinear part:
-    # select monomial terms and compute them
-    for ids in self.comb_ids:
-      all_parts.append(jnp.prod(linear_parts[:, ids], axis=2))
+
+    if self.trainable:
+      # 2. Linear part:
+      # select all previous inputs, including the current, with strides
+      linear_parts = jnp.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)
+      linear_parts = jnp.reshape(linear_parts, (linear_parts.shape[0], -1))
+      # 3. constant
+      if self.constant:
+        constant = jnp.ones((linear_parts.shape[0], 1), dtype=x.dtype)
+        all_parts.append(constant)
+      all_parts.append(linear_parts)
+      # 3. Nonlinear part:
+      # select monomial terms and compute them
+      for ids in self.comb_ids:
+        all_parts.append(jnp.prod(linear_parts[:, ids], axis=2))
+
+    else:
+      # 2. Linear part:
+      # select all previous inputs, including the current, with strides
+      linear_parts = self.store[select_ids].flatten()  # (num_time x num_feature,)
+      # 3. constant
+      if self.constant:
+        constant = jnp.ones((1,), dtype=x.dtype)
+        all_parts.append(constant)
+      all_parts.append(linear_parts)
+      # 3. Nonlinear part:
+      # select monomial terms and compute them
+      for ids in self.comb_ids:
+        all_parts.append(jnp.prod(linear_parts[ids], axis=1))
+
     # 4. Finally
     self.idx.value = (self.idx + 1) % self.num_delay
     return jnp.concatenate(all_parts, axis=-1)

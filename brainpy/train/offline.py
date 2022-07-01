@@ -56,7 +56,16 @@ class OfflineTrainer(DSTrainer):
     super(OfflineTrainer, self).__init__(target=target, **kwargs)
 
     # get all trainable nodes
-    self.train_nodes = self._get_trainable_nodes()
+    nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
+    self.train_nodes = tuple([node for node in nodes.values()
+                              if (hasattr(node, 'fit_offline') and node.fit_offline)])
+    if len(self.train_nodes) == 0:
+      self.train_nodes = tuple([node for node in nodes.values()
+                                if (hasattr(node, 'offline_fit') and
+                                    callable(node.offline_fit) and
+                                    (not hasattr(node.offline_fit, 'not_implemented')))])
+      if len(self.train_nodes) == 0:
+        raise ValueError('Found no trainable nodes.')
 
     # training method
     if fit_method is None:

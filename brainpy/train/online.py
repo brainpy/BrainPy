@@ -56,7 +56,16 @@ class OnlineTrainer(DSTrainer):
     super(OnlineTrainer, self).__init__(target=target, **kwargs)
 
     # get all trainable nodes
-    self.train_nodes = self._get_trainable_nodes()
+    nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
+    self.train_nodes = tuple([node for node in nodes.values()
+                              if (hasattr(node, 'fit_online') and node.fit_online)])
+    if len(self.train_nodes) == 0:
+      self.train_nodes = tuple([node for node in nodes.values()
+                                if (hasattr(node, 'online_fit') and
+                                    callable(node.online_fit) and
+                                    (not hasattr(node.online_fit, 'not_implemented')))])
+      if len(self.train_nodes) == 0:
+        raise ValueError('Found no trainable nodes.')
 
     # training method
     if fit_method is None:
@@ -214,7 +223,7 @@ class OnlineTrainer(DSTrainer):
       A tuple of pair of (outputs, hists).
     """
     _fit_func = self._get_fit_func(shared_args)
-    hists = _fit_func(xs + (ys, ))
+    hists = _fit_func(xs + (ys,))
     hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists,
                      is_leaf=lambda x: isinstance(x, bm.JaxArray))
     return hists
@@ -241,7 +250,7 @@ class OnlineTrainer(DSTrainer):
 
       # update step
       shared.update(shared_args)
-      args = (shared, ) if x is None else (shared, x)
+      args = (shared,) if x is None else (shared, x)
       out = self.target(*args)
 
       # monitor step

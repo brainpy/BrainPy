@@ -15,8 +15,8 @@ class ESN(bp.dyn.TrainingSystem):
                                  conn_type='dense')
     self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
 
-  def forward(self, x, shared_args=None):
-    return self.o(self.r(x, shared_args), shared_args)
+  def update(self, shared_args, x):
+    return self.o(shared_args, self.r(shared_args, x))
 
 
 class NGRC(bp.dyn.TrainingSystem):
@@ -28,15 +28,15 @@ class NGRC(bp.dyn.TrainingSystem):
                              W_initializer=bp.init.Normal(0.1),
                              trainable=True)
 
-  def forward(self, x, shared_args=None):
-    return self.o(self.r(x, shared_args), shared_args)
+  def update(self, shared_args, x):
+    return self.o(shared_args, self.r(shared_args, x))
 
 
 def train_esn_with_ridge(num_in=100, num_out=30):
   model = ESN(num_in, 2000, num_out)
 
   # input-output
-  print(model(bm.ones((1, num_in))))
+  print(model(dict(), bm.ones((1, num_in))))
 
   X = bm.random.random((1, 200, num_in))
   Y = bm.random.random((1, 200, num_out))
@@ -67,7 +67,7 @@ def train_esn_with_force(num_in=100, num_out=30):
   model = ESN(num_in, 2000, num_out)
 
   # input-output
-  print(model(bm.ones((1, num_in))))
+  print(model(dict(), bm.ones((1, num_in))))
 
   X = bm.random.random((1, 200, num_in))
   Y = bm.random.random((1, 200, num_out))
@@ -77,8 +77,8 @@ def train_esn_with_force(num_in=100, num_out=30):
   trainer.fit([X, Y])
 
   # prediction
-  runner = bp.train.DSRunner(model, monitors=['r.state'], jit=True)
-  outputs = runner.predict(X)
+  runner = bp.dyn.DSRunner(model, monitors=['r.state'], jit=True)
+  outputs = runner.predict(inputs=X, inputs_are_batching=True)
   print(runner.mon['r.state'].shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
   print()
@@ -93,11 +93,11 @@ def ngrc(num_in=10, num_out=30):
   X = bm.random.random((1, 200, num_in))  # (num_batch, num_time, num_feature)
   Y = bm.random.random((1, 200, num_out))
   trainer = bp.train.RidgeTrainer(model, alpha=1e-6)
-  outputs = trainer.predict(X)
+  outputs = trainer.predict(inputs=X)
   print(outputs.shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
   trainer.fit([X, Y])
-  outputs = trainer.predict(X)
+  outputs = trainer.predict(inputs=X)
   print(bp.losses.mean_absolute_error(outputs, Y))
 
 
@@ -107,7 +107,7 @@ def ngrc_bacth(num_in=10, num_out=30):
   model.reset_state(batch_size)
   X = bm.random.random((batch_size, 200, num_in))
   Y = bm.random.random((batch_size, 200, num_out))
-  trainer = bp.train.RidgeTrainer(model, beta=1e-6)
+  trainer = bp.train.RidgeTrainer(model, alpha=1e-6)
   outputs = trainer.predict(X)
   print(bp.losses.mean_absolute_error(outputs, Y))
   trainer.fit([X, Y])
@@ -116,7 +116,7 @@ def ngrc_bacth(num_in=10, num_out=30):
 
 
 if __name__ == '__main__':
-  train_esn_with_ridge(10, 30)
-  train_esn_with_force(10, 30)
+  # train_esn_with_ridge(10, 30)
+  # train_esn_with_force(10, 30)
   ngrc(10, 30)
   ngrc_bacth()

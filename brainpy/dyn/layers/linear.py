@@ -47,9 +47,14 @@ class Dense(TrainingSystem):
       W_initializer: Union[Initializer, Callable, Tensor] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       trainable: bool = True,
-      name: str = None
+      name: str = None,
+      fit_online: bool = False,
+      fit_offline: bool = False,
   ):
     super(Dense, self).__init__(trainable=trainable, name=name)
+
+    self.fit_online = fit_online
+    self.fit_offline = fit_offline
 
     # shape
     self.num_in = num_in
@@ -89,12 +94,6 @@ class Dense(TrainingSystem):
       self.fit_record['input'] = x
       self.fit_record['output'] = res
     return res
-
-  def reset(self, batch_size=1):
-    pass
-
-  def reset_state(self, batch_size=1):
-    pass
 
   def online_init(self):
     if self.b is None:

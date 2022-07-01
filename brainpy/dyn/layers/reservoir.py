@@ -3,7 +3,7 @@
 from typing import Optional, Union, Callable, Tuple
 
 import brainpy.math as bm
-from brainpy.initialize import Normal, ZeroInit, Initializer, parameter
+from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variable
 from brainpy.tools.checking import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
 from brainpy.dyn.training import TrainingSystem
@@ -102,7 +102,7 @@ class Reservoir(TrainingSystem):
       noise_rec: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
-      trainable: bool = False,
+      trainable: bool = True,
       name: str = None
   ):
     super(Reservoir, self).__init__(trainable=trainable, name=name)
@@ -179,14 +179,10 @@ class Reservoir(TrainingSystem):
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
     # initialize state
-    batch_size = 1
-    self.state = bm.Variable(bm.zeros((batch_size,) + self.output_shape))
+    self.state = variable(bm.zeros, trainable, self.output_shape)
 
-  def reset(self, batch_size=1):
-    self.state._value = bm.zeros((batch_size,) + self.output_shape).value
-
-  def reset_state(self, batch_size=1):
-    pass
+  def reset_state(self, batch_size=None):
+    self.state.value = variable(bm.zeros, batch_size, self.output_shape)
 
   def update(self, sha, x):
     """Feedforward output."""

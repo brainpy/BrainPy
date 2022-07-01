@@ -583,7 +583,7 @@ class DSRunner(Runner):
       def _step_func(inputs):
         t, i, x = inputs
         # input step
-        shared = DotDict(t=t, i=t, dt=self.dt)
+        shared = DotDict(t=t, i=i, dt=self.dt)
         self._input_step(shared)
         # dynamics update step
         shared.update(shared_args)
