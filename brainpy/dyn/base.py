@@ -148,7 +148,12 @@ class DynamicalSystem(Base):
         self.global_delay_data[identifier] = (delay, delay_target)
         self.local_delay_vars[identifier] = delay
       else:
-        if self.global_delay_data[identifier][0].num_delay_step - 1 < max_delay_step:
+        delay = self.global_delay_data[identifier][0]
+        if delay is None:
+          delay = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
+          self.global_delay_data[identifier] = (delay, delay_target)
+          self.local_delay_vars[identifier] = delay
+        elif delay.num_delay_step - 1 < max_delay_step:
           self.global_delay_data[identifier][0].reset(delay_target, max_delay_step, initial_delay_data)
     else:
       self.global_delay_data[identifier] = (None, delay_target)
@@ -181,7 +186,8 @@ class DynamicalSystem(Base):
       return self.global_delay_data[identifier][1].value
 
     if identifier in self.global_delay_data:
-      if isinstance(delay_step, (int, np.integer)):
+      # if isinstance(delay_step, (int, np.integer)):
+      if bm.ndim(delay_step) == 0:
         return self.global_delay_data[identifier][0](delay_step, *indices)
       else:
         if len(indices) == 0:
@@ -189,7 +195,7 @@ class DynamicalSystem(Base):
         return self.global_delay_data[identifier][0](delay_step, *indices)
 
     elif identifier in self.local_delay_vars:
-      if isinstance(delay_step, (int, np.integer)):
+      if bm.ndim(delay_step) == 0:
         return self.local_delay_vars[identifier](delay_step)
       else:
         if len(indices) == 0:
@@ -685,11 +691,11 @@ class TwoEndConn(SynConn):
     self.output.register_master(master=self)
 
     # synaptic plasticity
-    if stp is None: stp = SynSTP()
-    if not isinstance(stp, SynSTP):
-      raise TypeError(f'plasticity must be instance of {SynSTP.__name__}, but we got {type(stp)}')
-    self.stp: SynSTP = stp
-    self.stp.register_master(master=self)
+    if stp is not None:
+      if not isinstance(stp, SynSTP):
+        raise TypeError(f'plasticity must be instance of {SynSTP.__name__}, but we got {type(stp)}')
+      stp.register_master(master=self)
+    self.stp: Optional[SynSTP] = stp
 
   def init_weights(
       self,
@@ -734,7 +740,7 @@ class TwoEndConn(SynConn):
     return weight, conn_mask
 
   def syn2post_with_all2all(self, syn_value, syn_weight):
-    if bm.size(syn_weight) == 1:
+    if bm.ndim(syn_weight) == 0:
       if self.trainable:
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
@@ -750,7 +756,7 @@ class TwoEndConn(SynConn):
     return syn_value * syn_weight
 
   def syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
-    if bm.size(syn_weight) == 1:
+    if bm.ndim(syn_weight) == 0:
       post_vs = (syn_weight * syn_value) @ conn_mat
     else:
       post_vs = syn_value @ (syn_weight * conn_mat)

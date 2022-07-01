@@ -10,8 +10,9 @@ from functools import partial
 import jax.numpy as jnp
 import numpy as np
 from jax import core
-from jax.interpreters import xla
+from jax.interpreters import xla, batching
 from jax.lib import xla_client
+from jax.lax import scan
 
 try:
   from . import gpu_ops
@@ -129,6 +130,27 @@ def _event_sum_translation(c, events, indices, indptr, values, out, *, platform=
 
 xla.backend_specific_translations["cpu"][_event_sum_prim] = partial(_event_sum_translation, platform="cpu")
 xla.backend_specific_translations["gpu"][_event_sum_prim] = partial(_event_sum_translation, platform="gpu")
+
+
+def _event_sum_batch(args, axes):
+  batch_axes, batch_args, non_batch_args = [], {}, {}
+  for ax_i, ax in enumerate(axes):
+    if ax is None:
+      non_batch_args[f'ax{ax_i}'] = args[ax_i]
+    else:
+      batch_args[f'ax{ax_i}'] = args[ax_i] if ax == 0 else jnp.moveaxis(args[ax_i], ax, 0)
+      batch_axes.append(ax_i)
+
+  def f(_, x):
+    pars = tuple([(x[f'ax{i}'] if i in batch_axes else non_batch_args[f'ax{i}'])
+                  for i in range(len(axes))])
+    return 0, _event_sum_prim.bind(*pars)
+  _, outs = scan(f, 0, batch_args)
+  return outs, 0
+
+
+batching.primitive_batchers[_event_sum_prim] = _event_sum_batch
+
 
 # ---------------------------
 # event sum kernel 2

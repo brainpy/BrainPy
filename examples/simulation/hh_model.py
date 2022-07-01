@@ -9,8 +9,8 @@ class HH(dyn.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size)
 
-    self.INa = channels.INa_HH(size, )
-    self.IK = channels.IK_HH(size, )
+    self.INa = channels.INa_HH1952(size, )
+    self.IK = channels.IK_HH1952(size, )
     self.IL = channels.IL(size, E=-54.387, g_max=0.03)
 
 

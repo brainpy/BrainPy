@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 from jax.tree_util import register_pytree_node
 from jax.util import safe_zip
 
@@ -28,6 +29,10 @@ class DotDict(dict):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.__dict__ = self
+
+  def to_numpy(self):
+    for key in tuple(self.keys()):
+      self[key] = np.asarray(self[key])
 
 
 register_pytree_node(

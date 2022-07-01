@@ -13,7 +13,7 @@ __all__ = [
   'set_host_device_count',
 
   # device memory
-  'clear_live_buffers',
+  'clear_device_memory',
   'disable_gpu_memory_preallocation',
   'enable_gpu_memory_preallocation',
 
@@ -125,15 +125,23 @@ def set_host_device_count(n):
   os.environ["XLA_FLAGS"] = " ".join(["--xla_force_host_platform_device_count={}".format(n)] + xla_flags)
 
 
-def clear_live_buffers():
+def clear_device_memory(platform=None):
   """Clear all on-device buffers.
+
+  This function will be very useful when you call models in a Python loop,
+  because it can clear all cached arrays, and clear device memory.
 
   .. warning::
 
      This operation may cause errors when you use a deleted buffer.
      Therefore, regenerate data always.
+
+  Parameters
+  ----------
+  platform: str
+    The device to clear its memory.
   """
-  for buf in xla_bridge.get_backend().live_buffers():
+  for buf in xla_bridge.get_backend(platform=platform).live_buffers():
     buf.delete()
 
 

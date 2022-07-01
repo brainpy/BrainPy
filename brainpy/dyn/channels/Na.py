@@ -17,7 +17,7 @@ __all__ = [
   'INa_p3q_markov',
   'INa_Ba2002',
   'INa_TM1991',
-  'INa_HH',
+  'INa_HH1952',
 ]
 
 
@@ -284,7 +284,7 @@ class INa_TM1991(INa_p3q_markov):
     return 4. / (1 + bm.exp(-(V - self.V_sh - 40) / 5))
 
 
-class INa_HH(INa_p3q_markov):
+class INa_HH1952(INa_p3q_markov):
   r"""The sodium current model described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this sodium current model is given by:
@@ -331,7 +331,7 @@ class INa_HH(INa_p3q_markov):
 
   See Also
   --------
-  IK_HH
+  IK_HH1952
   """
 
   def __init__(
@@ -346,14 +346,14 @@ class INa_HH(INa_p3q_markov):
       name: str = None,
       trainable: bool = False,
   ):
-    super(INa_HH, self).__init__(size,
-                                 keep_size=keep_size,
-                                 name=name,
-                                 method=method,
-                                 E=E,
-                                 phi=phi,
-                                 g_max=g_max,
-                                 trainable=trainable)
+    super(INa_HH1952, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     method=method,
+                                     E=E,
+                                     phi=phi,
+                                     g_max=g_max,
+                                     trainable=trainable)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):

@@ -8,7 +8,7 @@ import numba
 import numpy as np
 from jax import core
 from jax.abstract_arrays import ShapedArray
-from jax.interpreters import xla
+from jax.interpreters import xla, batching
 from numba import cuda
 from numba.core.dispatcher import Dispatcher
 
@@ -21,9 +21,11 @@ _lambda_no = 0
 def register_op(
     op_name: str,
     cpu_func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
     gpu_func: Callable = None,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]] = None,
-    apply_cpu_func_to_gpu: bool = False
+    batch_fun: Callable = None,
+    apply_cpu_func_to_gpu: bool = False,
+    return_primitive: bool = False,
 ):
   """
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
@@ -110,17 +112,24 @@ def register_op(
     result = prim.bind(*inputs)
     return result[0] if len(result) == 1 else result
 
-  # binding
+  # cpu function
   prim.def_abstract_eval(abs_eval_rule)
   prim.def_impl(eval_rule)
-  # registering
   xla.backend_specific_translations['cpu'][prim] = partial(func_cpu_translation, cpu_func, abs_eval_rule)
   if apply_cpu_func_to_gpu:
     xla.backend_specific_translations['gpu'][prim] = partial(func_gpu_translation, cpu_func, abs_eval_rule)
 
+  # gpu function
   if gpu_func is not None:
     if not isinstance(gpu_func, Dispatcher):
       gpu_func = cuda.jit(gpu_func)
     xla.backend_specific_translations['gpu'][prim] = partial(func_gpu_translation, gpu_func, abs_eval_rule)
 
-  return bind_primitive
+  # batching
+  if batch_fun is not None:
+    batching.primitive_batchers[prim] = batch_fun
+
+  if return_primitive:
+    return bind_primitive, prim
+  else:
+    return bind_primitive

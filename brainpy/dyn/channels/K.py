@@ -17,7 +17,7 @@ __all__ = [
   'IK_p4_markov',
   'IKDR_Ba2002',
   'IK_TM1991',
-  'IK_HH',
+  'IK_HH1952',
 
   'IKA_p4q_ss',
   'IKA1_HM1992',
@@ -269,7 +269,7 @@ class IK_TM1991(IK_p4_markov):
     return 0.5 * bm.exp((10 - V + self.V_sh) / 40)
 
 
-class IK_HH(IK_p4_markov):
+class IK_HH1952(IK_p4_markov):
   r"""The potassium channel described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this channel is given by:
@@ -307,7 +307,7 @@ class IK_HH(IK_p4_markov):
 
   See Also
   --------
-  INa_HH
+  INa_HH1952
   """
 
   def __init__(
@@ -322,14 +322,14 @@ class IK_HH(IK_p4_markov):
       name: str = None,
       trainable: bool = False,
   ):
-    super(IK_HH, self).__init__(size,
-                                keep_size=keep_size,
-                                name=name,
-                                method=method,
-                                phi=phi,
-                                E=E,
-                                g_max=g_max,
-                                trainable=trainable)
+    super(IK_HH1952, self).__init__(size,
+                                    keep_size=keep_size,
+                                    name=name,
+                                    method=method,
+                                    phi=phi,
+                                    E=E,
+                                    g_max=g_max,
+                                    trainable=trainable)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):

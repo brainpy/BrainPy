@@ -7,6 +7,7 @@ import brainpy.math as bm
 from brainpy.dyn.channels import INa_TM1991, IL
 from brainpy.dyn.synapses import Exponential
 from brainpy.dyn.synouts import COBA
+from brainpy.connect import FixedProb
 
 
 class IK2(bp.dyn.channels.IK_p4_markov):
@@ -42,27 +43,44 @@ class IK(bp.dyn.Channel):
     return self.g_max * self.p ** 4 * (self.E - V)
 
 
+# class IK(bp.dyn.Channel):
+#   def __init__(self, size, E=-90., g_max=10.):
+#     super(IK, self).__init__(size)
+#     def dp(p, t, V):
+#       alpha = 0.032*(V+48)/(1-bm.exp(-(V + 48)/5.))
+#       beta = 0.5 * bm.exp(-(V + 53) / 40.)
+#       return alpha * (1. - p) - beta * p
+#     self.integral = bp.odeint(dp, method='exp_euler')
+#     self.g_max, self.E = g_max, E
+#     self.p = bm.Variable(bm.zeros(size))
+#
+#   def update(self, tdi, V):
+#     self.p.value = self.integral(self.p, tdi.t, V, tdi.dt)
+#
+#   def current(self, V):
+#     return self.g_max * self.p ** 4 * (self.E - V)
+
+
 class HH(bp.dyn.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size, )
-    self.INa = INa_TM1991(size, g_max=100., V_sh=-63.)
     self.IK = IK(size, g_max=30., V_sh=-63.)
+    self.INa = INa_TM1991(size, g_max=100., V_sh=-63.)
     self.IL = IL(size, E=-60., g_max=0.05)
 
 
 class Network(bp.dyn.Network):
-  def __init__(self, num_E, num_I, ):
+  def __init__(self, num_E, num_I, g_e2e=0.03, g_e2i=0.03, e_i2e=0.335, g_i2i=0.335):
     super(Network, self).__init__()
-    self.E = HH(num_E)
-    self.I = HH(num_I)
-    self.E2E = Exponential(self.E, self.E, bp.conn.FixedProb(0.02),
-                           g_max=0.03, tau=5, output=COBA(E=0.))
-    self.E2I = Exponential(self.E, self.I, bp.conn.FixedProb(0.02),
-                           g_max=0.03, tau=5., output=COBA(E=0.))
-    self.I2E = Exponential(self.I, self.E, bp.conn.FixedProb(0.02),
-                           g_max=0.335, tau=10., output=COBA(E=-80))
-    self.I2I = Exponential(self.I, self.I, bp.conn.FixedProb(0.02),
-                           g_max=0.335, tau=10., output=COBA(E=-80.))
+    self.E, self.I = HH(num_E), HH(num_I)
+    self.E2E = Exponential(self.E, self.E, FixedProb(0.02),
+                           g_max=g_e2e, tau=5, output=COBA(E=0.))
+    self.E2I = Exponential(self.E, self.I, FixedProb(0.02),
+                           g_max=g_e2i, tau=5., output=COBA(E=0.))
+    self.I2E = Exponential(self.I, self.E, FixedProb(0.02),
+                           g_max=e_i2e, tau=10., output=COBA(E=-80))
+    self.I2I = Exponential(self.I, self.I, FixedProb(0.02),
+                           g_max=g_i2i, tau=10., output=COBA(E=-80.))
 
 
 class Projection(bp.dyn.DynamicalSystem):
@@ -85,10 +103,8 @@ class Projection(bp.dyn.DynamicalSystem):
 
 
 class Circuit(bp.dyn.Network):
-  def __init__(self, conn, delay):
+  def __init__(self, conn, delay, num_area):
     super(Circuit, self).__init__()
-
-    num_area = conn.shape[0]
     self.areas = [Network(3200, 800) for _ in range(num_area)]
     self.projections = []
     for i in range(num_area):
@@ -106,7 +122,7 @@ data = np.load('./data/visual_conn.npz')
 conn_data = data['conn']
 delay_data = (data['delay'] / bm.get_dt()).astype(int)
 
-circuit = Circuit(conn_data, delay_data)
+circuit = Circuit(conn_data, delay_data, conn_data.shape[0])
 f1 = lambda tdi: bm.concatenate([area.E.spike for area in circuit.areas])
 f2 = lambda tdi: bm.concatenate([area.I.spike for area in circuit.areas])
 I, duration = bp.inputs.section_input([0, 0.8, 0.], [50., 50., 100.], return_length=True)
@@ -126,18 +142,17 @@ bp.visualize.raster_plot(runner.mon['ts'], runner.mon.get('exc.spike'))
 fig.add_subplot(gs[1, 0])
 bp.visualize.raster_plot(runner.mon['ts'], runner.mon.get('inh.spike'), show=True)
 
-import seaborn as sns
-
-sns.set_theme(font_scale=1.5)
-
-fig, gs = bp.visualize.get_figure(1, 1, 4.5, 6)
-fig.add_subplot(gs[0, 0])
-bp.visualize.line_plot(runner.mon['ts'], runner.mon['K.p'], show=True, plot_ids=(4, 5, 1))
-
-fig, gs = bp.visualize.get_figure(1, 1, 4.5, 6)
-fig.add_subplot(gs[0, 0])
-bp.visualize.line_plot(runner.mon['ts'], runner.mon['A0.V'], show=True, plot_ids=(4, 5, 1))
-
-fig, gs = bp.visualize.get_figure(1, 1, 4.5, 6)
-fig.add_subplot(gs[0, 0])
-bp.visualize.raster_plot(runner.mon['ts'], runner.mon['A0.spike'], show=True)
+# import seaborn as sns
+# sns.set_theme(font_scale=1.5)
+#
+# fig, gs = bp.visualize.get_figure(1, 1, 4.5, 6)
+# fig.add_subplot(gs[0, 0])
+# bp.visualize.line_plot(runner.mon['ts'], runner.mon['K.p'], show=True, plot_ids=(4, 5, 1))
+#
+# fig, gs = bp.visualize.get_figure(1, 1, 4.5, 6)
+# fig.add_subplot(gs[0, 0])
+# bp.visualize.line_plot(runner.mon['ts'], runner.mon['A0.V'], show=True, plot_ids=(4, 5, 1))
+#
+# fig, gs = bp.visualize.get_figure(1, 1, 4.5, 6)
+# fig.add_subplot(gs[0, 0])
+# bp.visualize.raster_plot(runner.mon['ts'], runner.mon['A0.spike'], show=True)
