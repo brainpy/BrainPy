@@ -7,7 +7,8 @@ import jax.numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
-from brainpy.dyn.training import TrainingSystem
+from brainpy.dyn.base import DynamicalSystem
+from brainpy.modes import Mode, Batching, batching
 from brainpy.tools.checking import (check_integer, check_sequence)
 
 __all__ = [
@@ -34,7 +35,7 @@ def _comb(N, k):
     return 0
 
 
-class NVAR(TrainingSystem):
+class NVAR(DynamicalSystem):
   """Nonlinear vector auto-regression (NVAR) node.
 
   This class has the following features:
@@ -68,10 +69,10 @@ class NVAR(TrainingSystem):
       order: Union[int, Sequence[int]] = None,
       stride: int = 1,
       constant: bool = False,
-      trainable: bool = True,
+      mode: Mode = batching,
       name: str = None,
   ):
-    super(NVAR, self).__init__(trainable=trainable, name=name)
+    super(NVAR, self).__init__(mode=mode, name=name)
 
     # parameters
     order = tuple() if order is None else order
@@ -92,9 +93,9 @@ class NVAR(TrainingSystem):
 
     # delay variables
     self.idx = bm.Variable(jnp.asarray([0]))
-    if trainable:
+    if isinstance(self.mode, Batching):
       batch_size = 1  # first initialize the state with batch size = 1
-      self.store = bm.Variable(jnp.zeros((self.num_delay, batch_size, self.num_in)),  batch_axis=1)
+      self.store = bm.Variable(jnp.zeros((self.num_delay, batch_size, self.num_in)), batch_axis=1)
     else:
       self.store = bm.Variable(jnp.zeros((self.num_delay, self.num_in)))
 
@@ -134,7 +135,7 @@ class NVAR(TrainingSystem):
     # 1. Store the current input
     self.store[self.idx[0]] = x
 
-    if self.trainable:
+    if isinstance(self.mode, Batching):
       # 2. Linear part:
       # select all previous inputs, including the current, with strides
       linear_parts = jnp.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)

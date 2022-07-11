@@ -11,11 +11,11 @@ import brainpy.math as bm
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.base import Base
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.dyn.training import TrainingSystem
 from brainpy.errors import NoImplementationError
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others.dicts import DotDict
 from brainpy.types import Tensor, Output
+from brainpy.modes import Training
 from .base import DSTrainer
 
 __all__ = [
@@ -29,7 +29,7 @@ class OnlineTrainer(DSTrainer):
 
   Parameters
   ----------
-  target: DynamicalSystem, TrainingSystem
+  target: DynamicalSystem
     The target model to train.
   fit_method: OnlineAlgorithm, Callable, dict, str
     The fitting method applied to the target model.
@@ -57,14 +57,8 @@ class OnlineTrainer(DSTrainer):
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
-    self.train_nodes = tuple([node for node in nodes.values()
-                              if (hasattr(node, 'fit_online') and node.fit_online)])
+    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, Training)])
     if len(self.train_nodes) == 0:
-      self.train_nodes = tuple([node for node in nodes.values()
-                                if (hasattr(node, 'online_fit') and
-                                    callable(node.online_fit) and
-                                    (not hasattr(node.online_fit, 'not_implemented')))])
-      if len(self.train_nodes) == 0:
         raise ValueError('Found no trainable nodes.')
 
     # training method
@@ -89,7 +83,6 @@ class OnlineTrainer(DSTrainer):
 
     # initialize the fitting method
     for node in self.train_nodes:
-      assert isinstance(node, TrainingSystem)
       node.online_init()
 
     # update dynamical variables
@@ -330,10 +323,9 @@ class OnlineTrainer(DSTrainer):
 
 
 class ForceTrainer(OnlineTrainer):
-  """Force learning."""
+  """FORCE learning."""
 
   def __init__(self, target, alpha=1., **kwargs):
-    fit_method = RLS(alpha=alpha)
     super(ForceTrainer, self).__init__(target=target,
-                                       fit_method=fit_method,
+                                       fit_method=RLS(alpha=alpha),
                                        **kwargs)

@@ -10,6 +10,7 @@ from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Tensor
+from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'HH',
@@ -211,13 +212,13 @@ class HH(NeuGroup):
       name: str = None,
 
       # training parameter
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     # initialization
     super(HH, self).__init__(size=size,
                              keep_size=keep_size,
                              name=name,
-                             trainable=trainable)
+                             mode=mode)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -241,13 +242,13 @@ class HH(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.m = variable(self._m_initializer, trainable, self.varshape)
-    self.h = variable(self._h_initializer, trainable, self.varshape)
-    self.n = variable(self._n_initializer, trainable, self.varshape)
-    self.V = variable(self._V_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
+    self.m = variable(self._m_initializer, mode, self.varshape)
+    self.h = variable(self._h_initializer, mode, self.varshape)
+    self.n = variable(self._n_initializer, mode, self.varshape)
+    self.V = variable(self._V_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
     # sp_type = bm.dftype() if trainable else bool
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
 
     # integral
     if self.noise is None:
@@ -406,13 +407,13 @@ class MorrisLecar(NeuGroup):
       name: str = None,
 
       # training parameter
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     # initialization
     super(MorrisLecar, self).__init__(size=size,
                                       keep_size=keep_size,
                                       name=name,
-                                      trainable=trainable)
+                                      mode=mode)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -437,11 +438,11 @@ class MorrisLecar(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.W = variable(self._W_initializer, trainable, self.varshape)
-    self.V = variable(self._V_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
+    self.W = variable(self._W_initializer, mode, self.varshape)
+    self.V = variable(self._V_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
     # sp_type = bm.dftype() if trainable else bool
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
 
     # integral
     if self.noise is None:
@@ -663,13 +664,13 @@ class PinskyRinzelModel(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     # initialization
     super(PinskyRinzelModel, self).__init__(size=size,
                                             keep_size=keep_size,
                                             name=name,
-                                            trainable=trainable)
+                                            mode=mode)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -702,16 +703,16 @@ class PinskyRinzelModel(NeuGroup):
     self._Ca_initializer = Ca_initializer
 
     # variables
-    self.Vs = variable(self._Vs_initializer, trainable, self.varshape)
-    self.Vd = variable(self._Vd_initializer, trainable, self.varshape)
-    self.Ca = variable(self._Ca_initializer, trainable, self.varshape)
-    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if trainable else None)
-    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if trainable else None)
-    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if trainable else None)
-    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if trainable else None)
-    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if trainable else None)
-    self.Id = variable(bm.zeros, trainable, self.varshape)  # input to soma
-    self.Is = variable(bm.zeros, trainable, self.varshape)  # input to dendrite
+    self.Vs = variable(self._Vs_initializer, mode, self.varshape)
+    self.Vd = variable(self._Vd_initializer, mode, self.varshape)
+    self.Ca = variable(self._Ca_initializer, mode, self.varshape)
+    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(mode, Batching) else None)
+    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(mode, Batching) else None)
+    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(mode, Batching) else None)
+    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(mode, Batching) else None)
+    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(mode, Batching) else None)
+    self.Id = variable(bm.zeros, mode, self.varshape)  # input to soma
+    self.Is = variable(bm.zeros, mode, self.varshape)  # input to dendrite
     # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
@@ -724,7 +725,7 @@ class PinskyRinzelModel(NeuGroup):
     self.Vd.value = variable(self._Vd_initializer, batch_size, self.varshape)
     self.Vs.value = variable(self._Vs_initializer, batch_size, self.varshape)
     self.Ca.value = variable(self._Ca_initializer, batch_size, self.varshape)
-    batch_axis = 0 if self.trainable else None
+    batch_axis = 0 if isinstance(self.mode, Batching) else None
     self.h.value = bm.Variable(self.inf_h(self.Vs), batch_axis=batch_axis)
     self.n.value = bm.Variable(self.inf_n(self.Vs), batch_axis=batch_axis)
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
@@ -972,10 +973,10 @@ class WangBuzsakiModel(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     # initialization
-    super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name)
+    super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -998,11 +999,11 @@ class WangBuzsakiModel(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.h = variable(self._h_initializer, trainable, self.varshape)
-    self.n = variable(self._n_initializer, trainable, self.varshape)
-    self.V = variable(self._V_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
+    self.h = variable(self._h_initializer, mode, self.varshape)
+    self.n = variable(self._n_initializer, mode, self.varshape)
+    self.V = variable(self._V_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
 
     # integral
     if self.noise is None:

@@ -131,10 +131,10 @@ class TrajectModel(DynamicalSystem):
                            dyn_vars=self.vars().unique(), dt=dt,
                            progress_bar=False)
 
-  def update(self, t, dt):
+  def update(self, sha):
     all_vars = list(self.implicit_vars.values())
     for key, intg in self.integrals.items():
-      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=dt))
+      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=sha['dt']))
 
   def __getattr__(self, item):
     child_vars = super(TrajectModel, self).__getattribute__('implicit_vars')

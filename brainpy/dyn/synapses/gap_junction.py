@@ -60,4 +60,3 @@ class GapJunction(TwoEndConn):
 
   def reset_state(self, batch_size=None):
     pass
-

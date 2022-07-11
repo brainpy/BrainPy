@@ -26,8 +26,8 @@ class ExpCOBA(bp.dyn.TwoEndConn):
     # function
     self.integral = bp.odeint(lambda g, t: -g / self.tau, method=method)
 
-  def update(self, t, dt):
-    self.g.value = self.integral(self.g, t, dt=dt)
+  def update(self, tdi):
+    self.g.value = self.integral(self.g, tdi.t, tdi.dt)
     self.g += bm.pre2post_event_sum(self.pre.spike, self.pre2post, self.post.num, self.g_max)
     self.post.input += self.g * (self.E - self.post.V)
 
@@ -40,8 +40,8 @@ class EINet(bp.dyn.Network):
 
     # neurons
     pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
-    E = bp.models.LIF(num_exc, **pars, method=method)
-    I = bp.models.LIF(num_inh, **pars, method=method)
+    E = bp.neurons.LIF(num_exc, **pars, method=method)
+    I = bp.neurons.LIF(num_inh, **pars, method=method)
     E.V[:] = bp.math.random.randn(num_exc) * 2 - 55.
     I.V[:] = bp.math.random.randn(num_inh) * 2 - 55.
 

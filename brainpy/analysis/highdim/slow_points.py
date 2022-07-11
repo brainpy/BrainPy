@@ -34,7 +34,7 @@ SUPPORTED_OPT_SOLVERS = {
 }
 
 
-class SlowPointFinder(base.BrainPyAnalyzer):
+class SlowPointFinder(base.DSAnalyzer):
   """Find fixed/slow points by numerical optimization.
 
   This class can help you:

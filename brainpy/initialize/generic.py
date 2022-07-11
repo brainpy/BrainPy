@@ -8,6 +8,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy.tools.others import to_size
 from brainpy.types import Shape, Tensor
+from brainpy.modes import Mode, NonBatching, Batching, Training
 from .base import Initializer
 
 
@@ -87,26 +88,39 @@ def init_param(
 
 def variable(
     data: Union[Callable, Tensor],
-    batch_size: Optional[Union[int, bool]] = None,
-    var_shape: Shape = None
+    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    var_shape: Shape = None,
+    batch_axis: int = 0,
 ):
   var_shape = to_size(var_shape)
   if callable(data):
     if var_shape is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
-    if batch_size in (None, False):
+    if isinstance(batch_size_or_mode, NonBatching):
+      return bm.Variable(data(var_shape))
+    elif isinstance(batch_size_or_mode, Batching):
+      new_shape = var_shape[:batch_axis] + (1,) + var_shape[batch_axis:]
+      return bm.Variable(data(new_shape), batch_axis=batch_axis)
+    elif batch_size_or_mode in (None, False):
       return bm.Variable(data(var_shape))
     else:
-      return bm.Variable(data((int(batch_size),) + var_shape), batch_axis=0)
+      new_shape = var_shape[:batch_axis] + (int(batch_size_or_mode),) + var_shape[batch_axis:]
+      return bm.Variable(data(new_shape), batch_axis=batch_axis)
   else:
     if var_shape is not None:
       if bm.shape(data) != var_shape:
         raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {var_shape}')
-    if batch_size in (None, False):
+    if isinstance(batch_size_or_mode, NonBatching):
+      return bm.Variable(data(var_shape))
+    elif isinstance(batch_size_or_mode, Batching):
+      return bm.Variable(bm.expand_dims(data, axis=batch_axis), batch_axis=batch_axis)
+    elif batch_size_or_mode in (None, False):
       return bm.Variable(data)
     else:
-      data = bm.expand_dims(data, axis=0)
-      return bm.Variable(bm.repeat(data, int(batch_size), axis=0), batch_axis=0)
+      return bm.Variable(bm.repeat(bm.expand_dims(data, axis=batch_axis),
+                                   int(batch_size_or_mode),
+                                   axis=batch_axis),
+                         batch_axis=batch_axis)
 
 
 def noise(

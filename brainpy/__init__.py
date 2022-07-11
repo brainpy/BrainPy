@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 
 # fundamental modules
-from . import errors, tools, check
+from . import errors, tools, check, modes
 
 
 # "base" module

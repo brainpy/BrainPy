@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 
 import gc
-from typing import Union, Dict, Callable, Sequence, Optional, Tuple
+import inspect
+from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
 
 import jax.numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
 from brainpy import tools
+from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
-from brainpy.errors import ModelBuildError
+from brainpy.errors import ModelBuildError, NoImplementationError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
+from brainpy.modes import Mode, Training, Batching, nonbatching, training
 from brainpy.tools.others import to_size, size2num
 from brainpy.types import Tensor, Shape
 
@@ -22,7 +25,7 @@ __all__ = [
   'DynamicalSystem',
 
   # containers
-  'Container', 'Network',
+  'Container', 'Network', 'Sequential',
 
   # channel models
   'Channel',
@@ -33,6 +36,25 @@ __all__ = [
   # synapse models
   'SynConn', 'SynOutput', 'SynSTP', 'SynLTP', 'TwoEndConn',
 ]
+
+
+def not_customized(fun: Callable) -> Callable:
+  """Marks the given module method is not implemented.
+
+  Methods wrapped in @not_customized can define submodules directly within the method.
+
+  For instance::
+
+    @not_customized
+    init_fb(self):
+      ...
+
+    @not_customized
+    def feedback(self):
+      ...
+  """
+  fun.not_implemented = True
+  return fun
 
 
 class DynamicalSystem(Base):
@@ -54,31 +76,44 @@ class DynamicalSystem(Base):
    because it can reduce the duplicate delay variable registration."""
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
+  '''Online fitting method.'''
+  online_fit_by: Optional[OnlineAlgorithm]
+
+  '''Offline fitting method.'''
+  offline_fit_by: Optional[OfflineAlgorithm]
+
   def __init__(
       self,
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(DynamicalSystem, self).__init__(name=name)
 
     # local delay variables
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
-    # trainable setting
-    self._trainable = trainable
+    # mode setting
+    if not isinstance(mode, Mode):
+      raise ValueError(f'Should be instance of {Mode.__name__}, but we got {type(Mode)}: {Mode}')
+    self._mode = mode
+
+    # fitting parameters
+    self.online_fit_by = None
+    self.offline_fit_by = None
+    self.fit_record = dict()
 
   @property
-  def trainable(self):
-    return self._trainable
+  def mode(self):
+    return self._mode
 
-  @trainable.setter
-  def trainable(self, value):
-    if not isinstance(value, bool):
-      raise ValueError(f'Must be a bool value. But we got {type(value)}: {value}')
-    self._trainable = value
+  @mode.setter
+  def mode(self, value):
+    if not isinstance(value, Mode):
+      raise ValueError(f'Must be instance of {Mode.__name__}, but we got {type(value)}: {value}')
+    self._mode = value
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(name={self.name}, trainable={self.trainable})'
+    return f'{self.__class__.__name__}(name={self.name}, mode={self.mode})'
 
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
@@ -221,7 +256,13 @@ class DynamicalSystem(Base):
   def reset_state(self, batch_size=None):
     """Reset function which reset the states in the model.
     """
-    raise NotImplementedError('Must implement "reset_state" function by subclass self.')
+    child_nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
+    if len(child_nodes) > 0:
+      for node in child_nodes.values():
+        node.reset_state(batch_size=batch_size)
+    else:
+      raise NotImplementedError('Must implement "reset_state" function by subclass self. '
+                                f'Error of {self.name}')
 
   def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
     """Update local delay variables.
@@ -282,6 +323,26 @@ class DynamicalSystem(Base):
       del self.__dict__[key]
     gc.collect()
 
+  @not_customized
+  def online_init(self):
+    raise NoImplementationError('Subclass must implement online_init() function when using OnlineTrainer.')
+
+  @not_customized
+  def offline_init(self):
+    raise NoImplementationError('Subclass must implement offline_init() function when using OfflineTrainer.')
+
+  @not_customized
+  def online_fit(self,
+                 target: Tensor,
+                 fit_record: Dict[str, Tensor]):
+    raise NoImplementationError('Subclass must implement online_fit() function when using OnlineTrainer.')
+
+  @not_customized
+  def offline_fit(self,
+                  target: Tensor,
+                  fit_record: Dict[str, Tensor]):
+    raise NoImplementationError('Subclass must implement offline_fit() function when using OfflineTrainer.')
+
 
 class Container(DynamicalSystem):
   """Container object which is designed to add other instances of DynamicalSystem.
@@ -300,8 +361,14 @@ class Container(DynamicalSystem):
       The instance of DynamicalSystem with the format of "key=dynamic_system".
   """
 
-  def __init__(self, *ds_tuple, name=None, trainable=False, **ds_dict):
-    super(Container, self).__init__(name=name, trainable=trainable)
+  def __init__(
+      self,
+      *ds_tuple,
+      name: str = None,
+      mode: Mode = nonbatching,
+      **ds_dict
+  ):
+    super(Container, self).__init__(name=name, mode=mode)
 
     # children dynamical systems
     self.implicit_nodes = Collector()
@@ -374,12 +441,12 @@ class Network(Container):
       self,
       *ds_tuple,
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       **ds_dict
   ):
     super(Network, self).__init__(*ds_tuple,
                                   name=name,
-                                  trainable=trainable,
+                                  mode=mode,
                                   **ds_dict)
 
   def update(self, *args, **kwargs):
@@ -462,7 +529,7 @@ class NeuGroup(DynamicalSystem):
       size: Shape,
       name: str = None,
       keep_size: bool = False,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     # size
     if isinstance(size, (list, tuple)):
@@ -484,7 +551,7 @@ class NeuGroup(DynamicalSystem):
     self.num = tools.size2num(size)
 
     # initialize
-    super(NeuGroup, self).__init__(name=name, trainable=trainable)
+    super(NeuGroup, self).__init__(name=name, mode=mode)
 
   @property
   def varshape(self):
@@ -531,9 +598,9 @@ class SynConn(DynamicalSystem):
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
-    super(SynConn, self).__init__(name=name, trainable=trainable)
+    super(SynConn, self).__init__(name=name, mode=mode)
 
     # pre or post neuron group
     # ------------------------
@@ -675,13 +742,13 @@ class TwoEndConn(SynConn):
       output: Optional[SynOutput] = None,
       stp: Optional[SynSTP] = None,
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(TwoEndConn, self).__init__(pre=pre,
                                      post=post,
                                      conn=conn,
                                      name=name,
-                                     trainable=trainable)
+                                     mode=mode)
 
     # synaptic output
     if output is None: output = SynOutput()
@@ -735,13 +802,13 @@ class TwoEndConn(SynConn):
         raise ValueError(f'Unknown connection type: {comp_method}')
 
     # training weights
-    if self.trainable:
+    if isinstance(self.mode, Training):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
   def syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
-      if self.trainable:
+      if isinstance(self.mode, Batching):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
         post_vs = bm.sum(syn_value)
@@ -821,11 +888,11 @@ class CondNeuGroup(NeuGroup, Container):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       **channels
   ):
-    NeuGroup.__init__(self, size, keep_size=keep_size, trainable=trainable)
-    Container.__init__(self, **channels, name=name, trainable=trainable)
+    NeuGroup.__init__(self, size, keep_size=keep_size, mode=mode)
+    Container.__init__(self, **channels, name=name, mode=mode)
 
     # parameters for neurons
     self.C = C
@@ -835,10 +902,10 @@ class CondNeuGroup(NeuGroup, Container):
     self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # variables
-    self.V = variable(V_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
-    sp_type = bm.dftype() if self.trainable else bool
-    self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), trainable, self.varshape)
+    self.V = variable(V_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    sp_type = bm.dftype() if isinstance(self.mode, Batching) else bool
+    self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), mode, self.varshape)
 
     # function
     if self.noise is None:
@@ -855,7 +922,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    sp_type = bm.dftype() if self.trainable else bool
+    sp_type = bm.dftype() if isinstance(self.mode, Batching) else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
 
@@ -883,9 +950,9 @@ class Channel(DynamicalSystem):
       size: Union[int, Sequence[int]],
       name: str = None,
       keep_size: bool = False,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
-    super(Channel, self).__init__(name=name, trainable=trainable)
+    super(Channel, self).__init__(name=name, mode=mode)
     # the geometry size
     self.size = to_size(size)
     # the number of elements
@@ -932,3 +999,118 @@ def check_master(master, *channels, **named_channels):
     if not isinstance(channel, Channel):
       raise ValueError(f'Do not support {type(channel)}. ')
     _check(master, channel)
+
+
+class Sequential(DynamicalSystem):
+  def __init__(
+      self,
+      *modules,
+      name: str = None,
+      mode: Mode = nonbatching,
+      **kw_modules
+  ):
+    super(Sequential, self).__init__(name=name, mode=mode)
+
+    # add sub-components
+    for module in modules:
+      if isinstance(module, DynamicalSystem):
+        self.implicit_nodes[module.name] = module
+      elif isinstance(module, (list, tuple)):
+        for m in module:
+          if not isinstance(m, DynamicalSystem):
+            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+                             f'But we got {type(m)}')
+          self.implicit_nodes[m.name] = module
+      elif isinstance(module, dict):
+        for k, v in module.items():
+          if not isinstance(v, DynamicalSystem):
+            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+                             f'But we got {type(v)}')
+          self.implicit_nodes[k] = v
+      else:
+        raise ValueError(f'Cannot parse sub-systems. They should be {DynamicalSystem.__name__} '
+                         f'or a list/tuple/dict of  {DynamicalSystem.__name__}.')
+    for k, v in kw_modules.items():
+      if not isinstance(v, DynamicalSystem):
+        raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+                         f'But we got {type(v)}')
+      self.implicit_nodes[k] = v
+
+  def __getattr__(self, item):
+    """Wrap the dot access ('self.'). """
+    child_ds = super(Sequential, self).__getattribute__('implicit_nodes')
+    if item in child_ds:
+      return child_ds[item]
+    else:
+      return super(Sequential, self).__getattribute__(item)
+
+  def __getitem__(self, key: Union[int, slice]):
+    if isinstance(key, str):
+      if key not in self.implicit_nodes:
+        raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
+      return self.implicit_nodes[key]
+    elif isinstance(key, slice):
+      keys = tuple(self.implicit_nodes.keys())[key]
+      components = tuple(self.implicit_nodes.values())[key]
+      return Sequential(dict(zip(keys, components)))
+    elif isinstance(key, int):
+      return self.implicit_nodes.values()[key]
+    elif isinstance(key, (tuple, list)):
+      all_keys = tuple(self.implicit_nodes.keys())
+      all_vals = tuple(self.implicit_nodes.values())
+      keys, vals = [], []
+      for i in key:
+        if isinstance(i, int):
+          raise KeyError(f'We excepted a tuple/list of int, but we got {type(i)}')
+        keys.append(all_keys[i])
+        vals.append(all_vals[i])
+      return Sequential(dict(zip(keys, vals)))
+    else:
+      raise KeyError(f'Unknown type of key: {type(key)}')
+
+  def __repr__(self):
+    def f(x):
+      if not isinstance(x, DynamicalSystem) and callable(x):
+        signature = inspect.signature(x)
+        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
+                if v.default is not inspect.Parameter.empty]
+        args = ', '.join(args)
+        while not hasattr(x, '__name__'):
+          if not hasattr(x, 'func'):
+            break
+          x = x.func  # Handle functools.partial
+        if not hasattr(x, '__name__') and hasattr(x, '__class__'):
+          return x.__class__.__name__
+        if args:
+          return f'{x.__name__}(*, {args})'
+        return x.__name__
+      else:
+        x = repr(x).split('\n')
+        x = [x[0]] + ['  ' + y for y in x[1:]]
+        return '\n'.join(x)
+
+    entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
+    return f'{self.__class__.__name__}(\n{entries}\n)'
+
+  def update(self, sha: dict, x: Any) -> Tensor:
+    """Update function of a training system.
+
+    Parameters
+    ----------
+    sha: dict
+      The shared arguments (ShA) across multiple layers.
+    x: Any
+      The input information.
+
+    Returns
+    -------
+    y: Tensor
+      The output tensor.
+    """
+    for node in self.implicit_nodes.values():
+      x = node(sha, x)
+    return x
+
+  def reset_state(self, batch_size=None):
+    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+      node.reset_state(batch_size=batch_size)

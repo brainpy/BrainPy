@@ -7,7 +7,6 @@ from brainpy.dyn.base import SynOutput
 from brainpy.initialize import parameter, Initializer
 from brainpy.types import Tensor
 
-
 __all__ = [
   'MgBlock',
 ]
@@ -71,4 +70,3 @@ class MgBlock(SynOutput):
 
   def update(self, tdi):
     pass
-

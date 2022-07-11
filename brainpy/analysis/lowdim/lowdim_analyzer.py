@@ -10,7 +10,7 @@ from jax.scipy.optimize import minimize
 import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
-from brainpy.analysis.base import BrainPyAnalyzer
+from brainpy.analysis.base import DSAnalyzer
 from brainpy.base.collector import Collector
 
 pyplot = None
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-class LowDimAnalyzer(BrainPyAnalyzer):
+class LowDimAnalyzer(DSAnalyzer):
   r"""Automatic Analyzer for Low-dimensional Dynamical Systems.
 
   A dynamical model is characterized by a series of dynamical
@@ -155,11 +155,12 @@ class LowDimAnalyzer(BrainPyAnalyzer):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
-      warnings.warn('The `resolutions` is specified to all parameters and variables. '
-                    'Analysis computation may occupy too much memory if `resolutions` is small. '
-                    'Please specify `resolutions` for each parameter and variable by dict, '
-                    'such as resolutions={"V": 0.1}.',
-                    category=UserWarning)
+      if len(self.target_pars) >= 1:
+        warnings.warn('The `resolutions` is specified to all parameters and variables. '
+                      'Analysis computation may occupy too much memory if `resolutions` is small. '
+                      'Please specify `resolutions` for each parameter and variable by dict, '
+                      'such as resolutions={"V": 0.1}.',
+                      category=UserWarning)
       for key, lim in self.target_vars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():

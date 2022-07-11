@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Dynamics simulation module.
+Module for brain dynamics model building.
 """
 
 from .base import *
-from .training import *
 from .neurons.compat import *
 from .synapses.compat import *
 from .runners import *
@@ -15,4 +14,3 @@ from . import (channels, neurons, rates,  # neuron related
                networks,
                layers,  # ANN related
                runners)
-

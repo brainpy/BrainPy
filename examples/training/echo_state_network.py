@@ -4,7 +4,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class ESN(bp.dyn.TrainingSystem):
+class ESN(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
     self.r = bp.layers.Reservoir(num_in, num_hidden,
@@ -12,21 +12,22 @@ class ESN(bp.dyn.TrainingSystem):
                                  Wrec_initializer=bp.init.Normal(scale=0.1),
                                  in_connectivity=0.02,
                                  rec_connectivity=0.02,
-                                 conn_type='dense')
+                                 conn_type='dense',
+                                 mode=bp.modes.batching)
     self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
 
   def update(self, shared_args, x):
     return self.o(shared_args, self.r(shared_args, x))
 
 
-class NGRC(bp.dyn.TrainingSystem):
+class NGRC(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
-    self.r = bp.layers.NVAR(num_in, delay=2, order=2)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=2, mode=bp.modes.batching)
     self.o = bp.layers.Dense(self.r.num_out, num_out,
                              W_initializer=bp.init.Normal(0.1),
-                             trainable=True)
+                             mode=bp.modes.training)
 
   def update(self, shared_args, x):
     return self.o(shared_args, self.r(shared_args, x))
@@ -77,7 +78,7 @@ def train_esn_with_force(num_in=100, num_out=30):
   trainer.fit([X, Y])
 
   # prediction
-  runner = bp.dyn.DSRunner(model, monitors=['r.state'], jit=True)
+  runner = bp.dyn.DSRunner(model, monitors=['r.state'], jit=True, inputs=[])
   outputs = runner.predict(inputs=X, inputs_are_batching=True)
   print(runner.mon['r.state'].shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
@@ -116,7 +117,7 @@ def ngrc_bacth(num_in=10, num_out=30):
 
 
 if __name__ == '__main__':
-  # train_esn_with_ridge(10, 30)
-  # train_esn_with_force(10, 30)
+  train_esn_with_ridge(10, 30)
+  train_esn_with_force(10, 30)
   ngrc(10, 30)
   ngrc_bacth()

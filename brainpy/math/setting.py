@@ -13,7 +13,7 @@ __all__ = [
   'set_host_device_count',
 
   # device memory
-  'clear_device_memory',
+  'clear_buffer_memory',
   'disable_gpu_memory_preallocation',
   'enable_gpu_memory_preallocation',
 
@@ -125,7 +125,7 @@ def set_host_device_count(n):
   os.environ["XLA_FLAGS"] = " ".join(["--xla_force_host_platform_device_count={}".format(n)] + xla_flags)
 
 
-def clear_device_memory(platform=None):
+def clear_buffer_memory(platform=None):
   """Clear all on-device buffers.
 
   This function will be very useful when you call models in a Python loop,

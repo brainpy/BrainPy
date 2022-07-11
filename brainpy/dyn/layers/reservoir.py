@@ -3,10 +3,11 @@
 from typing import Optional, Union, Callable, Tuple
 
 import brainpy.math as bm
+from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variable
+from brainpy.modes import Mode, Training, batching
 from brainpy.tools.checking import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
-from brainpy.dyn.training import TrainingSystem
 from brainpy.types import Tensor
 
 __all__ = [
@@ -14,7 +15,7 @@ __all__ = [
 ]
 
 
-class Reservoir(TrainingSystem):
+class Reservoir(DynamicalSystem):
   r"""Reservoir node, a pool of leaky-integrator neurons
   with random recurrent connections [1]_.
 
@@ -102,10 +103,10 @@ class Reservoir(TrainingSystem):
       noise_rec: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
-      trainable: bool = True,
+      mode: Mode = batching,
       name: str = None
   ):
-    super(Reservoir, self).__init__(trainable=trainable, name=name)
+    super(Reservoir, self).__init__(mode=mode, name=name)
 
     # parameters
     input_shape = to_size(input_shape)
@@ -158,7 +159,7 @@ class Reservoir(TrainingSystem):
     if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
       self.ff_pres, self.ff_posts = bm.where(bm.logical_not(conn_mat))
       self.Win = self.Win[self.ff_pres, self.ff_posts]
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.Win = bm.TrainVar(self.Win)
 
     # initialize recurrent weights
@@ -174,12 +175,12 @@ class Reservoir(TrainingSystem):
       self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
       self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
     self.bias = parameter(self._b_initializer, (self.num_unit,))
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
     # initialize state
-    self.state = variable(bm.zeros, trainable, self.output_shape)
+    self.state = variable(bm.zeros, mode, self.output_shape)
 
   def reset_state(self, batch_size=None):
     self.state.value = variable(bm.zeros, batch_size, self.output_shape)

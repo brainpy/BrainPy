@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Sequence, Any, Union, Tuple
+from typing import Dict, Sequence, Any, Union
 
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy.dyn.runners import DSRunner
 from brainpy.dyn.base import DynamicalSystem
+from brainpy.dyn.runners import DSRunner
 from brainpy.tools.checking import check_dict_data
-from brainpy.dyn.training import TrainingSystem
-
 from brainpy.types import Tensor, Output
 from . import constants as c
 
@@ -21,17 +19,16 @@ __all__ = [
 class DSTrainer(DSRunner):
   """Structural Trainer for Dynamical Systems."""
 
-  target: Union[DynamicalSystem, TrainingSystem]
+  target: DynamicalSystem
   train_nodes: Sequence[DynamicalSystem]  # need to be initialized by subclass
 
   def __init__(
       self,
-      target: Union[DynamicalSystem, TrainingSystem],
+      target: DynamicalSystem,
       **kwargs
   ):
-    if not isinstance(target, (DynamicalSystem, TrainingSystem)):
-      raise TypeError(f'"target" must be an instance of '
-                      f'{DynamicalSystem.__name__} or {TrainingSystem.__name__}, '
+    if not isinstance(target, (DynamicalSystem, DynamicalSystem)):
+      raise TypeError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
                       f'but we got {type(target)}: {target}')
     super(DSTrainer, self).__init__(target=target, **kwargs)
 
@@ -42,6 +39,8 @@ class DSTrainer(DSRunner):
   def predict(
       self,
       inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      duration=None,
+      inputs_are_batching=True,
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False

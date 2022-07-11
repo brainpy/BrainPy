@@ -9,6 +9,7 @@ from brainpy.dyn.base import NeuGroup
 from brainpy.errors import ModelBuildError
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.types import Shape, Tensor
+from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'InputGroup',
@@ -22,13 +23,13 @@ class InputGroup(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       name: str = None,
   ):
     super(InputGroup, self).__init__(name=name,
                                      size=size,
                                      keep_size=keep_size,
-                                     trainable=trainable)
+                                     mode=mode)
     self.spike = None
 
   def update(self, tdi, x=None):
@@ -73,13 +74,13 @@ class SpikeTimeGroup(NeuGroup):
       indices: Union[Sequence, Tensor],
       need_sort: bool = True,
       keep_size: bool = False,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       name: str = None
   ):
     super(SpikeTimeGroup, self).__init__(size=size,
                                          name=name,
                                          keep_size=keep_size,
-                                         trainable=trainable)
+                                         mode=mode)
 
     # parameters
     if keep_size:
@@ -108,7 +109,7 @@ class SpikeTimeGroup(NeuGroup):
 
     def body_fun(t):
       i = self.i[0]
-      if self.trainable:
+      if isinstance(self.mode, Batching):
         self.spike[:, self.indices[i]] = True
       else:
         self.spike[self.indices[i]] = True
@@ -135,13 +136,13 @@ class PoissonGroup(NeuGroup):
       freqs: Union[int, float, jnp.ndarray, bm.JaxArray, Initializer],
       seed: int = None,
       keep_size: bool = False,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       name: str = None
   ):
     super(PoissonGroup, self).__init__(size=size,
                                        name=name,
                                        keep_size=keep_size,
-                                       trainable=trainable)
+                                       mode=mode)
 
     # parameters
     self.keep_size = keep_size
@@ -149,11 +150,11 @@ class PoissonGroup(NeuGroup):
     self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
     self.rng = bm.random.RandomState(seed=seed)
 
   def update(self, tdi, x=None):
-    shape = (self.spike.shape[:1] + self.varshape) if self.trainable else self.varshape
+    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, Batching) else self.varshape
     self.spike.update(self.rng.random(shape) <= (self.freqs * tdi['dt'] / 1000.))
 
   def reset(self, batch_size=None):

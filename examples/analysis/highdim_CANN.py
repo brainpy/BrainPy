@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
-import numpy as np
 from sklearn.decomposition import PCA
-import sys
 
-# sys.path.append('/mnt/d/codes/Projects/brainpy-chaoming0625')
 import brainpy as bp
 import brainpy.math as bm
 

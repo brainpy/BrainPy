@@ -2402,7 +2402,6 @@ def asfarray(a, dtype=np.float_):
   return asarray(a, dtype=dtype)
 
 
-@wraps(np.asscalar)
 def asscalar(a):
   return a.item()
 

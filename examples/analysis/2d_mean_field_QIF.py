@@ -72,7 +72,7 @@ bif = bp.analysis.Bifurcation2D(
   qif,
   target_vars={'r': [0., 4.], 'v': [-3., 3.]},
   target_pars={'Iext': [-1, 1.]},
-  resolutions=0.01
+  resolutions={'Iext': 0.01}
 )
 bif.plot_bifurcation()
 bif.show_figure()

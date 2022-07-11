@@ -11,6 +11,7 @@ from brainpy.integrators.ode import odeint
 from brainpy.tools.checking import check_float, check_initializer
 from brainpy.tools.errors import check_error_in_jit
 from brainpy.types import Shape, Tensor
+from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'RateModel',
@@ -90,12 +91,12 @@ class FHN(RateModel):
       name: str = None,
 
       # parameter for training
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(FHN, self).__init__(size=size,
                               name=name,
                               keep_size=keep_size,
-                              trainable=trainable)
+                              mode=mode)
 
     # model parameters
     self.alpha = parameter(alpha, self.varshape, allow_none=False)
@@ -122,10 +123,10 @@ class FHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, trainable, self.varshape)
-    self.y = variable(y_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
-    self.input_y = variable(bm.zeros, trainable, self.varshape)
+    self.x = variable(x_initializer, mode, self.varshape)
+    self.y = variable(y_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    self.input_y = variable(bm.zeros, mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -271,12 +272,12 @@ class FeedbackFHN(RateModel):
       dt: float = None,
 
       # parameter for training
-      training: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(FeedbackFHN, self).__init__(size=size,
                                       name=name,
                                       keep_size=keep_size,
-                                      trainable=training)
+                                      mode=mode)
 
     # dt
     self.dt = bm.get_dt() if dt is None else dt
@@ -305,11 +306,11 @@ class FeedbackFHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, training, self.varshape)
-    self.y = variable(y_initializer, training, self.varshape)
+    self.x = variable(x_initializer, mode, self.varshape)
+    self.y = variable(y_initializer, mode, self.varshape)
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
-    self.input = variable(bm.zeros, training, self.varshape)
-    self.input_y = variable(bm.zeros, training, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    self.input_y = variable(bm.zeros, mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -466,12 +467,12 @@ class QIF(RateModel):
       name: str = None,
 
       # parameter for training
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(QIF, self).__init__(size=size,
                               name=name,
                               keep_size=keep_size,
-                              trainable=trainable)
+                              mode=mode)
 
     # parameters
     self.tau = parameter(tau, self.varshape, allow_none=False)
@@ -497,10 +498,10 @@ class QIF(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, trainable, self.varshape)
-    self.y = variable(y_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
-    self.input_y = variable(bm.zeros, trainable, self.varshape)
+    self.x = variable(x_initializer, mode, self.varshape)
+    self.y = variable(y_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    self.input_y = variable(bm.zeros, mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -605,12 +606,12 @@ class StuartLandauOscillator(RateModel):
       name: str = None,
 
       # parameter for training
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(StuartLandauOscillator, self).__init__(size=size,
                                                  name=name,
                                                  keep_size=keep_size,
-                                                 trainable=trainable)
+                                                 mode=mode)
 
     # model parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -631,10 +632,10 @@ class StuartLandauOscillator(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, trainable, self.varshape)
-    self.y = variable(y_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
-    self.input_y = variable(bm.zeros, trainable, self.varshape)
+    self.x = variable(x_initializer, mode, self.varshape)
+    self.y = variable(y_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    self.input_y = variable(bm.zeros, mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -758,7 +759,7 @@ class WilsonCowanModel(RateModel):
       name: str = None,
 
       # parameter for training
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size)
 
@@ -790,10 +791,10 @@ class WilsonCowanModel(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, trainable, self.varshape)
-    self.y = variable(y_initializer, trainable, self.varshape)
-    self.input = variable(bm.zeros, trainable, self.varshape)
-    self.input_y = variable(bm.zeros, trainable, self.varshape)
+    self.x = variable(x_initializer, mode, self.varshape)
+    self.y = variable(y_initializer, mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
+    self.input_y = variable(bm.zeros, mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -912,12 +913,12 @@ class ThresholdLinearModel(RateModel):
       name: str = None,
 
       # parameter for training
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(ThresholdLinearModel, self).__init__(size,
                                                name=name,
                                                keep_size=keep_size,
-                                               trainable=trainable)
+                                               mode=mode)
 
     # parameters
     self.seed = seed
@@ -931,10 +932,10 @@ class ThresholdLinearModel(RateModel):
     self._i_initializer = i_initializer
 
     # variables
-    self.e = variable(e_initializer, trainable, self.varshape)  # Firing rate of excitatory population
-    self.i = variable(i_initializer, trainable, self.varshape)  # Firing rate of inhibitory population
-    self.Ie = variable(bm.zeros, trainable, self.varshape)  # Input of excitaory population
-    self.Ii = variable(bm.zeros, trainable, self.varshape)  # Input of inhibitory population
+    self.e = variable(e_initializer, mode, self.varshape)  # Firing rate of excitatory population
+    self.i = variable(i_initializer, mode, self.varshape)  # Firing rate of inhibitory population
+    self.Ie = variable(bm.zeros, mode, self.varshape)  # Input of excitaory population
+    self.Ii = variable(bm.zeros, mode, self.varshape)  # Input of inhibitory population
     if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
       self.rng = bm.random.RandomState(self.seed)
 

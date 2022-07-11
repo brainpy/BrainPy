@@ -4,8 +4,9 @@
 import jax.lax
 
 import brainpy.math as bm
-from brainpy.dyn.training import TrainingSystem
+from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import XavierNormal, ZeroInit, parameter
+from brainpy.modes import Mode, Training, training
 
 __all__ = [
   'GeneralConv',
@@ -33,7 +34,7 @@ def _conv_dimension_numbers(input_shape):
   return jax.lax.ConvDimensionNumbers(lhs_spec, rhs_spec, out_spec)
 
 
-class GeneralConv(TrainingSystem):
+class GeneralConv(DynamicalSystem):
   """Applies a convolution to the inputs.
 
   Parameters
@@ -86,10 +87,10 @@ class GeneralConv(TrainingSystem):
       groups=1,
       w_init=XavierNormal(),
       b_init=ZeroInit(),
-      trainable: bool = True,
+      mode: Mode = training,
       name: str = None,
   ):
-    super(GeneralConv, self).__init__(name=name, trainable=trainable)
+    super(GeneralConv, self).__init__(name=name, mode=mode)
     self.in_channels = in_channels
     self.out_channels = out_channels
     self.kernel_size = kernel_size
@@ -116,7 +117,7 @@ class GeneralConv(TrainingSystem):
     kernel_shape = _check_tuple(self.kernel_size) + (self.in_channels // self.groups, self.out_channels)
     self.w = parameter(self.w_init, kernel_shape)
     self.b = parameter(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
 

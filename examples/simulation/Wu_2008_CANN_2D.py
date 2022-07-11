@@ -68,14 +68,14 @@ class CANN2D(bp.dyn.NeuGroup):
     d = d.reshape((self.length, self.length))
     return self.A * bm.exp(-0.25 * bm.square(d / self.a))
 
-  def update(self, t, dt):
+  def update(self, tdi):
     r1 = bm.square(self.u)
     r2 = 1.0 + self.k * bm.sum(r1)
     self.r.value = r1 / r2
     r = bm.fft.fft2(self.r)
     jjft = bm.fft.fft2(self.conn_mat)
     interaction = bm.real(bm.fft.ifft2(r * jjft))
-    self.u.value = self.u + (-self.u + self.input + interaction) / self.tau * dt
+    self.u.value = self.u + (-self.u + self.input + interaction) / self.tau * tdi.dt
     self.input[:] = 0.
 
 

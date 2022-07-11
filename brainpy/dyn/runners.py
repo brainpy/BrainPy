@@ -357,7 +357,8 @@ class DSRunner(Runner):
       progress_bar: bool = True,
       eval_time: bool = False
   ) -> Output:
-    """Predict a series of input data with the given target model.
+    """Running a duration with the given target model. See `.predict()` function
+    for more details.
 
     This function use the JIT compilation to accelerate the model simulation.
     Moreover, it can automatically monitor the node variables, states, inputs,
@@ -463,16 +464,7 @@ class DSRunner(Runner):
     outputs, hists = _predict_func(xs)
     return outputs, hists
 
-  def run(
-      self,
-      duration: Union[float, int] = None,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
-      inputs_are_batching: bool = False,
-      reset_state: bool = False,
-      shared_args: Dict = None,
-      progress_bar: bool = True,
-      eval_time: bool = False
-  ) -> Output:
+  def run(self, *args, **kwargs) -> Output:
     """Predict a series of input data with the given target model.
 
     This function use the JIT compilation to accelerate the model simulation.
@@ -505,13 +497,7 @@ class DSRunner(Runner):
     output: Tensor, dict, sequence
       The model output.
     """
-    return self.predict(duration=duration,
-                        inputs=inputs,
-                        inputs_are_batching=inputs_are_batching,
-                        reset_state=reset_state,
-                        shared_args=shared_args,
-                        progress_bar=progress_bar,
-                        eval_time=eval_time)
+    return self.predict(*args, **kwargs)
 
   def __call__(self, *args, **kwargs) -> Output:
     return self.predict(*args, **kwargs)

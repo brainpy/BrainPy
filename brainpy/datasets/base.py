@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
 import bisect
 import warnings
 from typing import Any
@@ -17,6 +16,7 @@ __all__ = [
   'ChainDataset',
   'StandardTransform'
 ]
+
 
 class Dataset(Generic[T_co]):
   r"""An abstract class representing a :class:`Dataset`.

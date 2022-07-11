@@ -23,4 +23,3 @@ class ACANN_1D(NeuGroup):
 
 class ACANN_2D(NeuGroup):
   pass
-

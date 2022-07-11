@@ -13,6 +13,7 @@ from brainpy.dyn.synouts import COBA, MgBlock
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
+from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'AMPA',
@@ -152,7 +153,7 @@ class AMPA(TwoEndConn):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
 
       # deprecated
@@ -169,7 +170,7 @@ class AMPA(TwoEndConn):
                                output=COBA(E=_E) if output is None else output,
                                stp=stp,
                                name=name,
-                               trainable=trainable)
+                               mode=mode)
 
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
@@ -191,8 +192,8 @@ class AMPA(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, trainable, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, trainable, self.pre.num)
+    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # functions
@@ -224,7 +225,7 @@ class AMPA(TwoEndConn):
 
     # update synaptic variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, t, TT, dt)
@@ -239,7 +240,7 @@ class AMPA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if self.trainable: f = vmap(f)
+        if isinstance(self.mode, Batching): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -335,7 +336,7 @@ class GABAa(AMPA):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
 
       # deprecated
@@ -360,8 +361,8 @@ class GABAa(AMPA):
                                 T_duration=T_duration,
                                 method=method,
                                 name=name,
-                                trainable=trainable,
-                                stop_spike_gradient=stop_spike_gradient,)
+                                mode=mode,
+                                stop_spike_gradient=stop_spike_gradient, )
 
 
 class BioNMDA(TwoEndConn):
@@ -505,7 +506,7 @@ class BioNMDA(TwoEndConn):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
   ):
     super(BioNMDA, self).__init__(pre=pre,
@@ -514,7 +515,7 @@ class BioNMDA(TwoEndConn):
                                   output=MgBlock(E=0.) if output is None else output,
                                   stp=stp,
                                   name=name,
-                                  trainable=trainable)
+                                  mode=mode)
 
     # parameters
     self.beta1 = beta1
@@ -542,9 +543,9 @@ class BioNMDA(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, trainable, self.pre.num)
-    self.x = variable(bm.zeros, trainable, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, trainable, self.pre.num)
+    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.x = variable(bm.zeros, mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -579,7 +580,7 @@ class BioNMDA(TwoEndConn):
 
     # update synapse variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
@@ -594,7 +595,7 @@ class BioNMDA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if self.trainable: f = vmap(f)
+        if isinstance(self.mode, Batching): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
