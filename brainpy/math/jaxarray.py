@@ -53,10 +53,10 @@ class JaxArray(object):
 
   def __init__(self, value, dtype=None):
     # array value
-    if isinstance(value, (list, tuple)):
-      value = jnp.asarray(value)
     if isinstance(value, JaxArray):
       value = value._value
+    elif isinstance(value, (tuple, list, np.ndarray)):
+      value = jnp.asarray(value)
     if dtype is not None:
       value = jnp.asarray(value, dtype=dtype)
     self._value = value

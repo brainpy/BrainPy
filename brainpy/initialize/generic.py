@@ -24,12 +24,7 @@ __all__ = [
 
 
 def parameter(
-    param: Union[Callable,
-                 Initializer,
-                 bm.ndarray,
-                 np.ndarray,
-                 jnp.ndarray,
-                 float, int, bool],
+    param: Union[Callable, Initializer, bm.ndarray, np.ndarray, jnp.ndarray, float, int, bool],
     size: Shape,
     allow_none: bool = True,
 ):

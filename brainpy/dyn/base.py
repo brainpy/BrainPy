@@ -67,13 +67,15 @@ class DynamicalSystem(Base):
   Parameters
   ----------
   name : str, optional
-      The name of the dynamic system.
+    The name of the dynamic system.
+  mode: Mode
+    The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
-  """Global delay data, which stores the delay variables and corresponding delay targets. 
+  '''Global delay data, which stores the delay variables and corresponding delay targets. 
    
-   This variable is useful when the same target variable is used in multiple mappings, 
-   because it can reduce the duplicate delay variable registration."""
+  This variable is useful when the same target variable is used in multiple mappings, 
+  as it can reduce the duplicate delay variable registration.'''
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
   '''Online fitting method.'''
@@ -221,7 +223,6 @@ class DynamicalSystem(Base):
       return self.global_delay_data[identifier][1].value
 
     if identifier in self.global_delay_data:
-      # if isinstance(delay_step, (int, np.integer)):
       if bm.ndim(delay_step) == 0:
         return self.global_delay_data[identifier][0](delay_step, *indices)
       else:
@@ -370,22 +371,48 @@ class Container(DynamicalSystem):
   ):
     super(Container, self).__init__(name=name, mode=mode)
 
-    # children dynamical systems
-    self.implicit_nodes = Collector()
-    for ds in ds_tuple:
-      if not isinstance(ds, DynamicalSystem):
-        raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
-                              f'DynamicalSystem, however, we got {type(ds)}.')
-      if ds.name in self.implicit_nodes:
-        raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
-    self.register_implicit_nodes({node.name: node for node in ds_tuple})
-    for key, ds in ds_dict.items():
-      if not isinstance(ds, DynamicalSystem):
-        raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
-                              f'DynamicalSystem, however, we got {type(ds)}.')
-      if key in self.implicit_nodes:
-        raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
-    self.register_implicit_nodes(ds_dict)
+    # # children dynamical systems
+    # self.implicit_nodes = Collector()
+    # for ds in ds_tuple:
+    #   if not isinstance(ds, DynamicalSystem):
+    #     raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
+    #                           f'DynamicalSystem, however, we got {type(ds)}.')
+    #   if ds.name in self.implicit_nodes:
+    #     raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
+    # self.register_implicit_nodes({node.name: node for node in ds_tuple})
+    # for key, ds in ds_dict.items():
+    #   if not isinstance(ds, DynamicalSystem):
+    #     raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
+    #                           f'DynamicalSystem, however, we got {type(ds)}.')
+    #   if key in self.implicit_nodes:
+    #     raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
+    # self.register_implicit_nodes(ds_dict)
+
+    # add tuple-typed components
+    for module in ds_tuple:
+      if isinstance(module, DynamicalSystem):
+        self.implicit_nodes[module.name] = module
+      elif isinstance(module, (list, tuple)):
+        for m in module:
+          if not isinstance(m, DynamicalSystem):
+            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+                             f'But we got {type(m)}')
+          self.implicit_nodes[m.name] = module
+      elif isinstance(module, dict):
+        for k, v in module.items():
+          if not isinstance(v, DynamicalSystem):
+            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+                             f'But we got {type(v)}')
+          self.implicit_nodes[k] = v
+      else:
+        raise ValueError(f'Cannot parse sub-systems. They should be {DynamicalSystem.__name__} '
+                         f'or a list/tuple/dict of  {DynamicalSystem.__name__}.')
+    # add dict-typed components
+    for k, v in ds_dict.items():
+      if not isinstance(v, DynamicalSystem):
+        raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+                         f'But we got {type(v)}')
+      self.implicit_nodes[k] = v
 
   def __repr__(self):
     cls_name = self.__class__.__name__
@@ -725,10 +752,16 @@ class TwoEndConn(SynConn):
        The output component for a two-end connection model.
 
   stp: SynSTP
-    The plasticity model for the synaptic variables.
+    The short-term plasticity model for the synaptic variables.
 
     .. versionadded:: 2.1.13
-       The plasticity component for a two-end connection model.
+       The short-term plasticity component for a two-end connection model.
+
+  ltp: SynLTP
+    The long-term plasticity model for the synaptic variables.
+
+    .. versionadded:: 2.1.13
+       The long-term plasticity component for a two-end connection model.
 
   name : str, optional
     The name of the dynamic system.
@@ -741,6 +774,7 @@ class TwoEndConn(SynConn):
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       output: Optional[SynOutput] = None,
       stp: Optional[SynSTP] = None,
+      ltp: Optional[SynLTP] = None,
       name: str = None,
       mode: Mode = nonbatching,
   ):
@@ -757,12 +791,21 @@ class TwoEndConn(SynConn):
     self.output: SynOutput = output
     self.output.register_master(master=self)
 
-    # synaptic plasticity
+    # short-term synaptic plasticity
     if stp is not None:
       if not isinstance(stp, SynSTP):
-        raise TypeError(f'plasticity must be instance of {SynSTP.__name__}, but we got {type(stp)}')
+        raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
+                        f'but we got {type(stp)}')
       stp.register_master(master=self)
     self.stp: Optional[SynSTP] = stp
+
+    # long-term synaptic plasticity
+    if ltp is not None:
+      if not isinstance(ltp, SynLTP):
+        raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
+                        f'but we got {type(ltp)}')
+      ltp.register_master(master=self)
+    self.ltp: Optional[SynLTP] = ltp
 
   def init_weights(
       self,
@@ -941,7 +984,7 @@ class CondNeuGroup(NeuGroup, Container):
 
 
 class Channel(DynamicalSystem):
-  """Abstract channel model."""
+  """Abstract channel class."""
 
   master_type = CondNeuGroup
 
@@ -1001,7 +1044,7 @@ def check_master(master, *channels, **named_channels):
     _check(master, channel)
 
 
-class Sequential(DynamicalSystem):
+class Sequential(Container):
   def __init__(
       self,
       *modules,
@@ -1009,32 +1052,7 @@ class Sequential(DynamicalSystem):
       mode: Mode = nonbatching,
       **kw_modules
   ):
-    super(Sequential, self).__init__(name=name, mode=mode)
-
-    # add sub-components
-    for module in modules:
-      if isinstance(module, DynamicalSystem):
-        self.implicit_nodes[module.name] = module
-      elif isinstance(module, (list, tuple)):
-        for m in module:
-          if not isinstance(m, DynamicalSystem):
-            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
-                             f'But we got {type(m)}')
-          self.implicit_nodes[m.name] = module
-      elif isinstance(module, dict):
-        for k, v in module.items():
-          if not isinstance(v, DynamicalSystem):
-            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
-                             f'But we got {type(v)}')
-          self.implicit_nodes[k] = v
-      else:
-        raise ValueError(f'Cannot parse sub-systems. They should be {DynamicalSystem.__name__} '
-                         f'or a list/tuple/dict of  {DynamicalSystem.__name__}.')
-    for k, v in kw_modules.items():
-      if not isinstance(v, DynamicalSystem):
-        raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
-                         f'But we got {type(v)}')
-      self.implicit_nodes[k] = v
+    super(Sequential, self).__init__(*modules, name=name, mode=mode, **kw_modules)
 
   def __getattr__(self, item):
     """Wrap the dot access ('self.'). """
@@ -1093,7 +1111,7 @@ class Sequential(DynamicalSystem):
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
   def update(self, sha: dict, x: Any) -> Tensor:
-    """Update function of a training system.
+    """Update function of a sequential model.
 
     Parameters
     ----------
@@ -1110,7 +1128,3 @@ class Sequential(DynamicalSystem):
     for node in self.implicit_nodes.values():
       x = node(sha, x)
     return x
-
-  def reset_state(self, batch_size=None):
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
-      node.reset_state(batch_size=batch_size)

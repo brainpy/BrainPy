@@ -39,8 +39,6 @@ class DSTrainer(DSRunner):
   def predict(
       self,
       inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
-      duration=None,
-      inputs_are_batching=True,
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False

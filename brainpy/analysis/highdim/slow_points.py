@@ -2,14 +2,13 @@
 
 import math
 import time
-import warnings
-from typing import Callable, Union, Dict, Optional, Sequence, Tuple
+from typing import Callable, Union, Dict, Sequence, Tuple
 
 import jax.numpy as jnp
 import numpy as np
 from jax import vmap
 from jax.scipy.optimize import minimize
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
+from jax.tree_util import tree_flatten, tree_map
 
 import brainpy.math as bm
 from brainpy import optimizers as optim, losses
@@ -18,9 +17,8 @@ from brainpy.base import TensorCollector
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import build_inputs, check_and_format_inputs
 from brainpy.errors import AnalyzerError, UnsupportedError
-from brainpy.types import Tensor
 from brainpy.tools.others.dicts import DotDict
-
+from brainpy.types import Tensor
 
 __all__ = [
   'SlowPointFinder',
@@ -93,11 +91,11 @@ class SlowPointFinder(base.DSAnalyzer):
 
     .. versionadded:: 2.2.0
 
-  included_vars: dict
+  target_vars: dict
     Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
     The target variables (can be a dict of `Variable` instances).
     These variables will be included for optimization of fixed points.
-    The candidate points later provided should have same keys as in ``included_vars``.
+    The candidate points later provided should have same keys as in ``target_vars``.
 
     .. versionadded:: 2.2.0
 
@@ -123,7 +121,7 @@ class SlowPointFinder(base.DSAnalyzer):
       fun_inputs: Callable = None,
       t: float = None,
       dt: float = None,
-      included_vars: Dict[str, bm.Variable] = None,
+      target_vars: Dict[str, bm.Variable] = None,
       excluded_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
 
       # deprecated
@@ -132,15 +130,17 @@ class SlowPointFinder(base.DSAnalyzer):
     super(SlowPointFinder, self).__init__()
 
     # static arguments
+    if not isinstance(args, tuple):
+      raise ValueError(f'args must be an instance of tuple, but we got {type(args)}')
     self.args = args
 
     # update function
-    if included_vars is None:
-      self.included_vars = TensorCollector()
+    if target_vars is None:
+      self.target_vars = TensorCollector()
     else:
-      if not isinstance(included_vars, dict):
-        raise TypeError(f'"included_vars" must be a dict but we got {type(included_vars)}')
-      self.included_vars = TensorCollector(included_vars)
+      if not isinstance(target_vars, dict):
+        raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
+      self.target_vars = TensorCollector(target_vars)
     excluded_vars = () if excluded_vars is None else excluded_vars
     if isinstance(excluded_vars, dict):
       excluded_vars = tuple(excluded_vars.values())
@@ -151,8 +151,8 @@ class SlowPointFinder(base.DSAnalyzer):
         raise TypeError(f'"excluded_vars" must be a sequence of Variable, '
                         f'but we got {type(v)}')
     self.excluded_vars = {f'_exclude_v{i}': v for i, v in enumerate(excluded_vars)}
-    if len(self.included_vars) > 0 and len(self.excluded_vars) > 0:
-      raise ValueError('"included_vars" and "excluded_vars" cannot be provided simultaneously.')
+    if len(self.target_vars) > 0 and len(self.excluded_vars) > 0:
+      raise ValueError('"target_vars" and "excluded_vars" cannot be provided simultaneously.')
     self.target = f_cell
 
     if isinstance(f_cell, DynamicalSystem):
@@ -160,18 +160,18 @@ class SlowPointFinder(base.DSAnalyzer):
       all_vars = f_cell.vars(method='relative', level=-1, include_self=True).unique()
 
       # exclude variables
-      if len(self.included_vars) > 0:
-        _all_ids = [id(v) for v in self.included_vars.values()]
+      if len(self.target_vars) > 0:
+        _all_ids = [id(v) for v in self.target_vars.values()]
         for k, v in all_vars.items():
           if id(v) not in _all_ids:
             self.excluded_vars[k] = v
       else:
-        self.included_vars = all_vars
+        self.target_vars = all_vars
         if len(excluded_vars):
           excluded_vars = [id(v) for v in excluded_vars]
-          for key, val in tuple(self.included_vars.items()):
+          for key, val in tuple(self.target_vars.items()):
             if id(val) in excluded_vars:
-              self.included_vars.pop(key)
+              self.target_vars.pop(key)
 
       # input function
       if inputs is not None:
@@ -183,7 +183,7 @@ class SlowPointFinder(base.DSAnalyzer):
         _input_step = None
 
       # check included variables
-      for var in self.included_vars.values():
+      for var in self.target_vars.values():
         if var.batch_axis is not None:
           if var.shape[var.batch_axis] != 1:
             raise ValueError(f'Batched variables should has only one batch. '
@@ -192,10 +192,7 @@ class SlowPointFinder(base.DSAnalyzer):
                              f'for your system.')
 
       # update function
-      self.f_cell = self._generate_ds_cell_function(self.target,
-                                                    self.included_vars,
-                                                    self.excluded_vars,
-                                                    t, dt, _input_step)
+      self.f_cell = self._generate_ds_cell_function(self.target, t, dt, _input_step)
 
       # check function type
       if f_type is not None:
@@ -205,7 +202,7 @@ class SlowPointFinder(base.DSAnalyzer):
       f_type = constants.DISCRETE
 
       # original data
-      self.included_data = {k: v.value for k, v in self.included_vars.items()}
+      self.target_data = {k: v.value for k, v in self.target_vars.items()}
       self.excluded_data = {k: v.value for k, v in self.excluded_vars.items()}
 
     elif callable(f_cell):
@@ -222,8 +219,8 @@ class SlowPointFinder(base.DSAnalyzer):
       if dt is not None:
         raise UnsupportedError('Do not support "dt" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
-      if included_vars is not None:
-        raise UnsupportedError('Do not support "included_vars" when "f_cell" is not instance of '
+      if target_vars is not None:
+        raise UnsupportedError('Do not support "target_vars" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
       if len(excluded_vars) > 0:
         raise UnsupportedError('Do not support "excluded_vars" when "f_cell" is not instance of '
@@ -303,7 +300,6 @@ class SlowPointFinder(base.DSAnalyzer):
       num_batch: int = 100,
       num_opt: int = 10000,
       optimizer: optim.Optimizer = None,
-      opt_setting: Optional[Dict] = None
   ):
     """Optimize fixed points with gradient descent methods.
 
@@ -322,54 +318,30 @@ class SlowPointFinder(base.DSAnalyzer):
     num_batch : int
       Print training information during optimization every so often.
 
-    opt_setting: optional, dict
-      The optimization settings.
-
-      .. deprecated:: 2.1.2
-         Use "optimizer" to set optimization method instead.
-
     optimizer: optim.Optimizer
       The optimizer instance.
 
       .. versionadded:: 2.1.2
     """
     # optimization settings
-    if opt_setting is None:
-      if optimizer is None:
-        optimizer = optim.Adam(lr=optim.ExponentialDecay(0.2, 1, 0.9999),
-                               beta1=0.9, beta2=0.999, eps=1e-8)
-      else:
-        if not isinstance(optimizer, optim.Optimizer):
-          raise ValueError(f'Must be an instance of {optim.Optimizer.__name__}, '
-                           f'while we got {type(optimizer)}')
+    if optimizer is None:
+      optimizer = optim.Adam(lr=optim.ExponentialDecay(0.2, 1, 0.9999),
+                             beta1=0.9, beta2=0.999, eps=1e-8)
     else:
-      warnings.warn('\nPlease use "optimizer" to set optimization method. '
-                    '"opt_setting" is deprecated since version 2.1.2. ',
-                    UserWarning)
-
-      assert isinstance(opt_setting, dict)
-      assert 'method' in opt_setting
-      assert 'lr' in opt_setting
-      opt_method = opt_setting.pop('method')
-      if isinstance(opt_method, str):
-        assert opt_method in optim.__dict__
-        opt_method = getattr(optim, opt_method)
-      assert issubclass(opt_method, optim.Optimizer)
-      opt_lr = opt_setting.pop('lr')
-      assert isinstance(opt_lr, (int, float, optim.Scheduler))
-      opt_setting = opt_setting
-      optimizer = opt_method(lr=opt_lr, **opt_setting)
+      if not isinstance(optimizer, optim.Optimizer):
+        raise ValueError(f'Must be an instance of {optim.Optimizer.__name__}, '
+                         f'while we got {type(optimizer)}')
 
     # set up optimization
     num_candidate = self._check_candidates(candidates)
     if not (isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)) or isinstance(candidates, dict)):
       raise ValueError('Candidates must be instance of JaxArray or dict of JaxArray.')
-    leaves, tree = tree_flatten(candidates, is_leaf=lambda x: isinstance(x, bm.JaxArray))
-    fixed_points = tree_unflatten(tree, [bm.TrainVar(leaf) for leaf in leaves])
+    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.JaxArray))
     f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
-      return f_eval_loss(tree_map(lambda a: a.value, fixed_points,
+      return f_eval_loss(tree_map(lambda a: a.value,
+                                  fixed_points,
                                   is_leaf=lambda x: isinstance(x, bm.JaxArray))).mean()
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
@@ -423,8 +395,8 @@ class SlowPointFinder(base.DSAnalyzer):
     if isinstance(self.target, DynamicalSystem):
       for k, v in self.excluded_vars.items():
         v.value = self.excluded_data[k]
-      for k, v in self.included_vars.items():
-        v.value = self.included_data[k]
+      for k, v in self.target_vars.items():
+        v.value = self.target_data[k]
 
   def find_fps_with_opt_solver(
       self,
@@ -442,7 +414,7 @@ class SlowPointFinder(base.DSAnalyzer):
     """
     # optimization function
     num_candidate = self._check_candidates(candidates)
-    for var in self.included_vars.values():
+    for var in self.target_vars.values():
       if bm.ndim(var) != 1:
         raise ValueError('Cannot use opt solver.')
     if self._opt_functions.get(F_OPT_SOLVER, None) is None:
@@ -453,7 +425,8 @@ class SlowPointFinder(base.DSAnalyzer):
       print(f"Optimizing with {opt_solver} to find fixed points:")
 
     # optimizing
-    res = f_opt(tree_map(lambda a: a.value, candidates,
+    res = f_opt(tree_map(lambda a: a.value,
+                         candidates,
                          is_leaf=lambda a: isinstance(a, bm.JaxArray)))
 
     # results
@@ -673,35 +646,34 @@ class SlowPointFinder(base.DSAnalyzer):
     return self._opt_functions[name]
 
   def _generate_f_eval_loss(self):
-    # functions
+    # evaluate losses of a batch of inputs
     if self.f_type == constants.DISCRETE:
-      # evaluate losses of a batch of inputs
-      f_eval_loss = bm.jit(lambda h: self.f_loss(h, vmap(self.f_cell)(h), axis=1))
+      f_eval_loss = lambda h: self.f_loss(h, vmap(self.f_cell)(h), axis=1)
     else:
-      # evaluate losses of a batch of inputs
-      f_eval_loss = bm.jit(lambda h: self.f_loss(vmap(self.f_cell)(h), axis=1))
+      f_eval_loss = lambda h: self.f_loss(vmap(self.f_cell)(h), axis=1)
 
     if isinstance(self.target, DynamicalSystem):
+      @bm.jit
       def loss_func(h):
         r = f_eval_loss(h)
         for k, v in self.excluded_vars.items():
           v.value = self.excluded_data[k]
-        for k, v in self.included_vars.items():
-          v.value = self.included_data[k]
+        for k, v in self.target_vars.items():
+          v.value = self.target_data[k]
         return r
 
       return loss_func
     else:
-      return f_eval_loss
+      return bm.jit(f_eval_loss)
 
   def _get_f_for_opt_solver(self, candidates, opt_method):
     # loss function
     if self.f_type == constants.DISCRETE:
       # overall loss function for fixed points optimization
       if isinstance(candidates, dict):
-        keys = tuple(self.included_vars.keys())
+        keys = tuple(self.target_vars.keys())
         indices = [0]
-        for v in self.included_vars.values():
+        for v in self.target_vars.values():
           indices.append(v.shape[0])
         indices = np.cumsum(indices)
 
@@ -719,7 +691,7 @@ class SlowPointFinder(base.DSAnalyzer):
     @bm.jit
     @vmap
     def f_opt(x0):
-      for k, v in self.included_vars.items():
+      for k, v in self.target_vars.items():
         v.value = x0[k] if v.batch_axis is None else bm.expand_dims(x0[k], axis=v.batch_axis)
       for k, v in self.excluded_vars.items():
         v.value = self.excluded_data[k]
@@ -731,30 +703,36 @@ class SlowPointFinder(base.DSAnalyzer):
       r = f_opt(x)
       for k, v in self.excluded_vars.items():
         v.value = self.excluded_data[k]
-      for k, v in self.included_vars.items():
-        v.value = self.included_data[k]
+      for k, v in self.target_vars.items():
+        v.value = self.target_data[k]
       return r
 
     return call_opt if isinstance(self.target, DynamicalSystem) else f_opt
 
-  def _generate_ds_cell_function(self, ds_instance, included_vars: Dict, excluded_vars: Dict,
-                                 t: float = None, dt: float = None, f_input: Callable = None):
+  def _generate_ds_cell_function(
+      self, target,
+      t: float = None,
+      dt: float = None,
+      f_input: Callable = None
+  ):
     if dt is None: dt = bm.get_dt()
     if t is None: t = 0.
     shared = DotDict(t=t, dt=dt, i=0)
 
     def f_cell(h: Dict):
-      for k, v in included_vars.items():
+      for k, v in self.target_vars.items():
         v.value = (bm.asarray(h[k], dtype=v.dtype)
                    if v.batch_axis is None else
                    bm.asarray(bm.expand_dims(h[k], axis=v.batch_axis), dtype=v.dtype))
-      for k, v in excluded_vars.items():
+      for k, v in self.excluded_vars.items():
         v.value = self.excluded_data[k]
       if f_input is not None:
         f_input(shared)
-      args = (shared, ) + self.args
-      ds_instance.update(*args)
-      return {k: v.value for k, v in included_vars.items()}
+      args = (shared,) + self.args
+      target.update(*args)
+      new_h = {k: (v.value if v.batch_axis is None else jnp.squeeze(v.value, axis=v.batch_axis))
+               for k, v in self.target_vars.items()}
+      return new_h
 
     return f_cell
 
@@ -767,12 +745,15 @@ class SlowPointFinder(base.DSAnalyzer):
   def _generate_ds_jocabian(self, stack=True):
     if stack and isinstance(self.target, DynamicalSystem):
       indices = [0]
-      for var in self.included_vars.values():
-        indices.append(var.shape[0])
+      for var in self.target_vars.values():
+        shape = list(var.shape)
+        if var.batch_axis is not None:
+          shape.pop(var.batch_axis)
+        indices.append(np.prod(shape))
       indices = np.cumsum(indices)
 
       def jacob(x0):
-        x0 = {k: x0[indices[i]:indices[i + 1]] for i, k in enumerate(self.included_vars.keys())}
+        x0 = {k: x0[indices[i]:indices[i + 1]] for i, k in enumerate(self.target_vars.keys())}
         r = self.f_cell(x0)
         return bm.concatenate(list(r.values()))
     else:
@@ -785,8 +766,8 @@ class SlowPointFinder(base.DSAnalyzer):
         r = f_jac(x)
         for k, v in self.excluded_vars.items():
           v.value = self.excluded_data[k]
-        for k, v in self.included_vars.items():
-          v.value = self.included_data[k]
+        for k, v in self.target_vars.items():
+          v.value = self.target_data[k]
         return r
 
       return jacobian_func
@@ -801,23 +782,32 @@ class SlowPointFinder(base.DSAnalyzer):
                          f'the variable name with relative path, and the value '
                          f'is the candidate fixed point values. ')
       for key in candidates:
-        if key not in self.included_vars:
+        if key not in self.target_vars:
           raise KeyError(f'"{key}" is not defined in required variables '
                          f'for fixed point optimization of {self.target}. '
                          f'Please do not provide its initial values.')
 
-      for key in self.included_vars.keys():
+      for key in self.target_vars.keys():
         if key not in candidates:
           raise KeyError(f'"{key}" is defined in required variables '
                          f'for fixed point optimization of {self.target}. '
                          f'Please provide its initial values.')
       for key, value in candidates.items():
-        if value.ndim != self.included_vars[key].ndim + 1:
-          raise ValueError(f'"{key}" is defined in the required variables for fixed '
-                           f'point optimization of {self.target}. \n'
-                           f'We expect the provided candidate has a batch size, '
-                           f'but we got {value.shape} for variable with shape of '
-                           f'{self.included_vars[key].shape}')
+        if self.target_vars[key].batch_axis is None:
+          if value.ndim != self.target_vars[key].ndim + 1:
+            raise ValueError(f'"{key}" is defined in the required variables for fixed '
+                             f'point optimization of {self.target}. \n'
+                             f'We expect the provided candidate has a batch size, '
+                             f'but we got {value.shape} for variable with shape of '
+                             f'{self.target_vars[key].shape}')
+        else:
+          if value.ndim != self.target_vars[key].ndim:
+            raise ValueError(f'"{key}" is defined in the required variables for fixed '
+                             f'point optimization of {self.target}. \n'
+                             f'We expect the provided candidate has a batch size, '
+                             f'but we got {value.shape} for variable with shape of '
+                             f'{self.target_vars[key].shape}')
+
     if isinstance(candidates, dict):
       num_candidate = np.unique([leaf.shape[0] for leaf in candidates.values()])
       if len(num_candidate) != 1:

@@ -148,7 +148,6 @@ class BPTrainer(DSTrainer):
   def fit(
       self,
       train_data: Union[Callable, Sequence],
-      # test_data: Union[Callable, Sequence] = None,
       batch_size: int = None,
       num_epoch: int = 100,
       num_report: int = 100,
@@ -173,9 +172,6 @@ class BPTrainer(DSTrainer):
             then we will only fit the model with the only last output.
           - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
             then the fitting happens on the whole data series.
-    test_data: callable, sequence of data
-      Same as the ``train_data``. It can be a callable function,
-      or a tuple/list representing `(X, Y)` data.
     batch_size: int
       The batch size. Default 32. This setting is used when users provide
       the ``train_data`` and ``test_data`` as a pair of `(X, Y)` data, rather
@@ -217,6 +213,9 @@ class BPTrainer(DSTrainer):
         if self.loss_has_aux:
           if all_train_loss_aux is None:
             all_train_loss_aux = {k: [] for k in res[1].keys()}
+          if not isinstance(res[1], dict):
+            raise ValueError(f'Auxiliary data in loss function should be a dict. '
+                             f'But we got {type(res)}')
           for k, v in res[1].items():
             all_train_loss_aux[k].append(v)
 
@@ -224,11 +223,9 @@ class BPTrainer(DSTrainer):
         train_i += 1
         if train_i % num_report == 0:
           t1 = time.time()
-          msg = (f'Train {train_i} steps, use {t1 - t0:.4f} s, '
-                 f'train loss {round(float(loss), 5)}')
+          msg = f'Train {train_i} steps, use {t1 - t0:.4f} s, train loss {round(float(loss), 5)}'
           if self.loss_has_aux:
-            if isinstance(res[1], dict):
-             msg += ', {}'.format(", ".join([f"{k} {v}" for k, v in res[1].items()]))
+            msg += ', {}'.format(", ".join([f"{k} {v}" for k, v in res[1].items()]))
           print(msg)
           t0 = t1
 

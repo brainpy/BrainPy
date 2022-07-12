@@ -12,10 +12,10 @@ from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.base import Base
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
+from brainpy.modes import Training
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others.dicts import DotDict
 from brainpy.types import Tensor, Output
-from brainpy.modes import Training
 from .base import DSTrainer
 
 __all__ = [
