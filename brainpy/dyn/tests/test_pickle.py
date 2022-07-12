@@ -20,8 +20,3 @@ class TestPickle(unittest.TestCase):
     self.skipTest('Currently do not support')
     with open('data/net.pickle', 'wb') as f:
       pickle.dump(self.net, f)
-
-
-
-
-

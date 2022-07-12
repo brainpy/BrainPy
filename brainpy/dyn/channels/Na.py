@@ -11,6 +11,7 @@ import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor, Shape
+from brainpy.modes import Mode, Batching, nonbatching
 from .base import SodiumChannel
 
 __all__ = [
@@ -60,12 +61,12 @@ class INa_p3q_markov(SodiumChannel):
       phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(INa_p3q_markov, self).__init__(size=size,
                                          keep_size=keep_size,
                                          name=name,
-                                         trainable=trainable)
+                                         mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -73,8 +74,8 @@ class INa_p3q_markov(SodiumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, trainable, self.varshape)
-    self.q = variable(bm.zeros, trainable, self.varshape)
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -170,7 +171,7 @@ class INa_Ba2002(INa_p3q_markov):
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -50.,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(INa_Ba2002, self).__init__(size,
                                      keep_size=keep_size,
@@ -179,7 +180,7 @@ class INa_Ba2002(INa_p3q_markov):
                                      phi=3 ** ((T - 36) / 10),
                                      g_max=g_max,
                                      E=E,
-                                     trainable=trainable)
+                                     mode=mode)
     self.T = parameter(T, self.varshape, allow_none=False)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
@@ -257,7 +258,7 @@ class INa_TM1991(INa_p3q_markov):
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -63.,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(INa_TM1991, self).__init__(size,
                                      keep_size=keep_size,
@@ -266,7 +267,7 @@ class INa_TM1991(INa_p3q_markov):
                                      E=E,
                                      phi=phi,
                                      g_max=g_max,
-                                     trainable=trainable)
+                                     mode=mode)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
@@ -344,7 +345,7 @@ class INa_HH1952(INa_p3q_markov):
       V_sh: Union[int, float, Tensor, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(INa_HH1952, self).__init__(size,
                                      keep_size=keep_size,
@@ -353,7 +354,7 @@ class INa_HH1952(INa_p3q_markov):
                                      E=E,
                                      phi=phi,
                                      g_max=g_max,
-                                     trainable=trainable)
+                                     mode=mode)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):

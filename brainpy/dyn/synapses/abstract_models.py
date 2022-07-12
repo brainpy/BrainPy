@@ -11,6 +11,7 @@ from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
+from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 from ..synouts import CUBA, MgBlock
 
 __all__ = [
@@ -100,7 +101,7 @@ class Delta(TwoEndConn):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
   ):
     super(Delta, self).__init__(name=name,
@@ -109,7 +110,7 @@ class Delta(TwoEndConn):
                                 conn=conn,
                                 output=CUBA() if output is None else output,
                                 stp=stp,
-                                trainable=trainable)
+                                mode=mode)
 
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
@@ -152,7 +153,7 @@ class Delta(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
-        if self.trainable: f = vmap(f)
+        if isinstance(self.mode, Batching): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
@@ -282,7 +283,7 @@ class Exponential(TwoEndConn):
       method: str = 'exp_auto',
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
   ):
     super(Exponential, self).__init__(pre=pre,
@@ -290,8 +291,8 @@ class Exponential(TwoEndConn):
                                       conn=conn,
                                       output=CUBA() if output is None else output,
                                       stp=stp,
-                                      name=name, 
-                                      trainable=trainable)
+                                      name=name,
+                                      mode=mode)
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
     self.comp_method = comp_method
@@ -303,7 +304,7 @@ class Exponential(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable(bm.zeros, trainable, self.post.num)
+    self.g = variable(bm.zeros, mode, self.post.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
@@ -340,7 +341,7 @@ class Exponential(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
-        if self.trainable: f = vmap(f)
+        if isinstance(self.mode, Batching): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
@@ -467,7 +468,7 @@ class DualExponential(TwoEndConn):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
   ):
     super(DualExponential, self).__init__(pre=pre,
@@ -476,7 +477,7 @@ class DualExponential(TwoEndConn):
                                           output=CUBA() if output is None else output,
                                           stp=stp,
                                           name=name,
-                                          trainable=trainable)
+                                          mode=mode)
     # parameters
     # self.check_pre_attrs('spike')
     self.check_post_attrs('input')
@@ -495,8 +496,8 @@ class DualExponential(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.h = variable(bm.zeros, trainable, self.pre.num)
-    self.g = variable(bm.zeros, trainable, self.pre.num)
+    self.h = variable(bm.zeros, mode, self.pre.num)
+    self.g = variable(bm.zeros, mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -542,7 +543,7 @@ class DualExponential(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if self.trainable: f = vmap(f)
+        if isinstance(self.mode, Batching): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -647,7 +648,7 @@ class Alpha(DualExponential):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
   ):
     super(Alpha, self).__init__(pre=pre,
@@ -662,7 +663,7 @@ class Alpha(DualExponential):
                                 output=CUBA() if output is None else output,
                                 stp=stp,
                                 name=name,
-                                trainable=trainable,
+                                mode=mode,
                                 stop_spike_gradient=stop_spike_gradient)
 
 
@@ -833,7 +834,7 @@ class NMDA(TwoEndConn):
       name: str = None,
 
       # training parameters
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       stop_spike_gradient: bool = False,
 
       # deprecated
@@ -880,7 +881,7 @@ class NMDA(TwoEndConn):
                                output=output,
                                stp=stp,
                                name=name,
-                               trainable=trainable)
+                               mode=mode)
     # parameters
     # self.check_post_attrs('input', 'V')
     self.tau_decay = tau_decay
@@ -899,8 +900,8 @@ class NMDA(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, trainable, self.pre.num)
-    self.x = variable(bm.zeros, trainable, self.pre.num)
+    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.x = variable(bm.zeros, mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -945,7 +946,7 @@ class NMDA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if self.trainable: f = vmap(f)
+        if isinstance(self.mode, Batching): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)

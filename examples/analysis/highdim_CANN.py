@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
-import numpy as np
 from sklearn.decomposition import PCA
-import sys
 
-# sys.path.append('/mnt/d/codes/Projects/brainpy-chaoming0625')
 import brainpy as bp
 import brainpy.math as bm
 
@@ -84,7 +81,7 @@ def find_fixed_points(pars=None, verbose=False, opt_method='gd', cand_method='ra
   else:
     raise ValueError
 
-  finder = bp.analysis.SlowPointFinder(f_cell=cann, included_vars={'u': cann.u}, dt=1.)
+  finder = bp.analysis.SlowPointFinder(f_cell=cann, target_vars={'u': cann.u}, dt=1.)
   if opt_method == 'gd':
     finder.find_fps_with_gd_method(
       candidates={'u': candidates}, tolerance=tolerance, num_batch=200,

@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
+from functools import partial
 from typing import Union
-import brainpy.math as bm
+
 import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten
-from brainpy.tools.others import numba_jit
-from functools import partial
 
+import brainpy.math as bm
+from brainpy.tools.others import numba_jit
 
 __all__ = [
   'find_indexes_of_limit_cycle_max',

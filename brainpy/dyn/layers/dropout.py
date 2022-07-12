@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.dyn.training import TrainingSystem
+from brainpy.dyn.base import DynamicalSystem
+from brainpy.modes import Mode, training
 
 __all__ = [
   'Dropout'
 ]
 
 
-class Dropout(TrainingSystem):
+class Dropout(DynamicalSystem):
   """A layer that stochastically ignores a subset of inputs each training step.
 
   In training, to compensate for the fraction of input values dropped (`rate`),
@@ -36,8 +37,9 @@ class Dropout(TrainingSystem):
          neural networks from overfitting." The journal of machine learning
          research 15.1 (2014): 1929-1958.
   """
-  def __init__(self, prob, seed=None, trainable=True, name=None):
-    super(Dropout, self).__init__(trainable=trainable, name=name)
+
+  def __init__(self, prob, seed=None, mode: Mode = training, name=None):
+    super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = prob
     self.rng = bm.random.RandomState(seed=seed)
 
@@ -47,3 +49,6 @@ class Dropout(TrainingSystem):
       return bm.where(keep_mask, x / self.prob, 0.)
     else:
       return x
+
+  def reset_state(self, batch_size=None):
+    pass

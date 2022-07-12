@@ -15,6 +15,3 @@ class TestNoise(parameterized.TestCase):
     model = getattr(reduced_models, neuron)(size=1, noise=0.1)
     runner = bp.dyn.DSRunner(model, progress_bar=False)
     runner.run(10.)
-
-
-

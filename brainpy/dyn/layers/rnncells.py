@@ -4,13 +4,14 @@
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.training import TrainingSystem
+from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import (XavierNormal,
                                 ZeroInit,
                                 Orthogonal,
                                 parameter,
                                 variable,
                                 Initializer)
+from brainpy.modes import Mode, Training, training
 from brainpy.tools.checking import (check_integer,
                                     check_initializer)
 from brainpy.types import Tensor
@@ -22,14 +23,14 @@ __all__ = [
 ]
 
 
-class RecurrentCell(TrainingSystem):
+class RecurrentCell(DynamicalSystem):
   def __init__(self,
                num_out: int,
                state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-               trainable: bool = True,
+               mode: Mode = training,
                train_state: bool = False,
                name: str = None):
-    super(RecurrentCell, self).__init__(trainable=trainable, name=name)
+    super(RecurrentCell, self).__init__(mode=mode, name=name)
 
     # parameters
     self._state_initializer = state_initializer
@@ -39,8 +40,8 @@ class RecurrentCell(TrainingSystem):
     self.train_state = train_state
 
     # state
-    self.state = variable(bm.zeros, trainable, self.num_out)
-    if train_state and self.trainable:
+    self.state = variable(bm.zeros, mode, self.num_out)
+    if train_state and isinstance(self.mode, Training):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
@@ -93,14 +94,14 @@ class VanillaRNN(RecurrentCell):
       Wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
       b_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
-      trainable: bool = True,
+      mode: Mode = training,
       train_state: bool = False,
       name: str = None,
   ):
     super(VanillaRNN, self).__init__(num_out=num_out,
                                      state_initializer=state_initializer,
                                      train_state=train_state,
-                                     trainable=trainable,
+                                     mode=mode,
                                      name=name)
 
     # parameters
@@ -122,7 +123,7 @@ class VanillaRNN(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out))
     self.b = parameter(self._b_initializer, (self.num_out,))
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
@@ -192,14 +193,14 @@ class GRU(RecurrentCell):
       b_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
-      trainable: bool = True,
+      mode: Mode = training,
       train_state: bool = False,
       name: str = None,
   ):
     super(GRU, self).__init__(num_out=num_out,
                               state_initializer=state_initializer,
                               train_state=train_state,
-                              trainable=trainable,
+                              mode=mode,
                               name=name)
     # parameters
     self.num_in = num_in
@@ -220,7 +221,7 @@ class GRU(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3))
     self.b = parameter(self._b_initializer, (self.num_out * 3,))
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = bm.TrainVar(self.b) if (self.b is not None) else None
@@ -314,14 +315,14 @@ class LSTM(RecurrentCell):
       b_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
-      trainable: bool = True,
+      mode: Mode = training,
       train_state: bool = False,
       name: str = None,
   ):
     super(LSTM, self).__init__(num_out=num_out,
                                state_initializer=state_initializer,
                                train_state=train_state,
-                               trainable=trainable,
+                               mode=mode,
                                name=name)
     # parameters
     self.num_in = num_in
@@ -344,7 +345,7 @@ class LSTM(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 4))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 4))
     self.b = parameter(self._b_initializer, (self.num_out * 4,))
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
@@ -384,7 +385,7 @@ class LSTM(RecurrentCell):
     self.state[self.state.shape[0] // 2:, :] = value
 
 
-class ConvNDLSTM(TrainingSystem):
+class ConvNDLSTM(DynamicalSystem):
   pass
 
 

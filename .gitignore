@@ -9,6 +9,7 @@ development
 
 brainpy/dyn/tests/data
 examples/simulation/data
+examples/simulation/results
 examples/analysis/data
 extensions/.idea
 extensions/wheelhouse

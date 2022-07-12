@@ -28,20 +28,20 @@ class SNN(bp.dyn.Network):
     self.num_out = num_out
 
     # neuron groups
-    self.i = bp.neurons.InputGroup(num_in, trainable=True)
-    self.r = bp.neurons.LIF(num_rec, tau=10, V_reset=0, V_rest=0, V_th=1., trainable=True)
-    self.o = bp.neurons.LeakyIntegrator(num_out, tau=5, trainable=True)
+    self.i = bp.neurons.InputGroup(num_in, mode=bp.modes.training)
+    self.r = bp.neurons.LIF(num_rec, tau=10, V_reset=0, V_rest=0, V_th=1., mode=bp.modes.training)
+    self.o = bp.neurons.LeakyIntegrator(num_out, tau=5, mode=bp.modes.training)
 
     # synapse: i->r
     self.i2r = bp.synapses.Exponential(self.i, self.r, bp.conn.All2All(),
                                        output=bp.synouts.CUBA(), tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=10.),
-                                       trainable=True)
+                                       mode=bp.modes.training)
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
                                        output=bp.synouts.CUBA(), tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=10.),
-                                       trainable=True)
+                                       mode=bp.modes.training)
 
   def update(self, tdi, spike):
     self.i2r(tdi, spike)

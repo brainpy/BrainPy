@@ -12,7 +12,6 @@ __all__ += IH.__all__
 __all__ += KCa.__all__
 __all__ += leaky.__all__
 
-
 from .base import *
 from .K import *
 from .Na import *

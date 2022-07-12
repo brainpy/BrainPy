@@ -12,6 +12,7 @@ import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators.ode import odeint
 from brainpy.types import Shape, Tensor
+from brainpy.modes import Mode, Batching, nonbatching
 from .base import Calcium, CalciumChannel, PotassiumChannel
 
 __all__ = [
@@ -82,13 +83,13 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     CalciumChannel.__init__(self,
                             size=size,
                             keep_size=keep_size,
                             name=name,
-                            trainable=trainable)
+                            mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -99,7 +100,7 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, trainable, self.varshape)
+    self.p = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)

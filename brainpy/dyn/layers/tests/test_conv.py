@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 class TestConv(TestCase):
   def test_Conv2D_img(self):
-    class Convnet(bp.dyn.TrainingSystem):
+    class Convnet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(Convnet, self).__init__()
         self.conv = bp.layers.Conv2D(in_channels=4, out_channels=32, kernel_size=(3, 3),
@@ -37,7 +37,7 @@ class TestConv(TestCase):
     # plt.show()
 
   def test_conv1D(self):
-    class Convnet(bp.dyn.TrainingSystem):
+    class Convnet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(Convnet, self).__init__()
         self.conv = bp.layers.Conv1D(in_channels=3, out_channels=32, kernel_size=(3,))
@@ -57,7 +57,7 @@ class TestConv(TestCase):
     # plt.show()
 
   def test_conv2D(self):
-    class Convnet(bp.dyn.TrainingSystem):
+    class Convnet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(Convnet, self).__init__()
         self.conv = bp.layers.Conv2D(in_channels=3, out_channels=32, kernel_size=(3, 3))
@@ -78,7 +78,7 @@ class TestConv(TestCase):
     # plt.show()
 
   def test_conv3D(self):
-    class Convnet(bp.dyn.TrainingSystem):
+    class Convnet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(Convnet, self).__init__()
         self.conv = bp.layers.Conv3D(in_channels=3, out_channels=32, kernel_size=(3, 3, 3))

@@ -6,10 +6,11 @@ from typing import Optional, Callable, Union, Dict
 import jax.numpy as jnp
 
 from brainpy import math as bm
+from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
+from brainpy.modes import Mode, Training, training
 from brainpy.tools.checking import check_initializer
-from brainpy.dyn.training import TrainingSystem
 from brainpy.types import Tensor
 
 __all__ = [
@@ -17,7 +18,7 @@ __all__ = [
 ]
 
 
-class Dense(TrainingSystem):
+class Dense(DynamicalSystem):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -46,15 +47,10 @@ class Dense(TrainingSystem):
       num_out: int,
       W_initializer: Union[Initializer, Callable, Tensor] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
-      trainable: bool = True,
+      mode: Mode = training,
       name: str = None,
-      fit_online: bool = False,
-      fit_offline: bool = False,
   ):
-    super(Dense, self).__init__(trainable=trainable, name=name)
-
-    self.fit_online = fit_online
-    self.fit_offline = fit_offline
+    super(Dense, self).__init__(mode=mode, name=name)
 
     # shape
     self.num_in = num_in
@@ -75,9 +71,12 @@ class Dense(TrainingSystem):
     # parameter initialization
     self.W = parameter(self.weight_initializer, (num_in, self.num_out))
     self.b = parameter(self.bias_initializer, (self.num_out,))
-    if self.trainable:
+    if isinstance(self.mode, Training):
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
+
+  def reset_state(self, batch_size=None):
+    pass
 
   def update(self, sha, x):
     res = x @ self.W

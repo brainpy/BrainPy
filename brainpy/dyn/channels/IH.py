@@ -5,13 +5,13 @@ This module implements hyperpolarization-activated cation channels.
 
 """
 
-
 from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Shape, Tensor
+from brainpy.modes import Mode, Batching, nonbatching
 from .base import IhChannel, CalciumChannel, Calcium
 
 __all__ = [
@@ -63,12 +63,12 @@ class Ih_HM1992(IhChannel):
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
-    super(Ih_HM1992, self).__init__(size, 
-                                    keep_size=keep_size, 
+    super(Ih_HM1992, self).__init__(size,
+                                    keep_size=keep_size,
                                     name=name,
-                                    trainable=trainable)
+                                    mode=mode)
 
     # parameters
     self.phi = parameter(phi, self.varshape, allow_none=False)
@@ -76,7 +76,7 @@ class Ih_HM1992(IhChannel):
     self.E = parameter(E, self.varshape, allow_none=False)
 
     # variable
-    self.p = variable(bm.zeros, trainable, self.varshape)
+    self.p = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -173,14 +173,14 @@ class Ih_De1996(IhChannel, CalciumChannel):
       phi: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     # IhChannel.__init__(self, size, name=name, keep_size=keep_size)
-    CalciumChannel.__init__(self, 
+    CalciumChannel.__init__(self,
                             size,
-                            keep_size=keep_size, 
-                            name=name, 
-                            trainable=trainable)
+                            keep_size=keep_size,
+                            name=name,
+                            mode=mode)
 
     # parameters
     self.T = parameter(T, self.varshape, allow_none=False)
@@ -200,9 +200,9 @@ class Ih_De1996(IhChannel, CalciumChannel):
     self.g_inc = parameter(g_inc, self.varshape, allow_none=False)
 
     # variable
-    self.O = variable(bm.zeros, trainable, self.varshape)
-    self.OL = variable(bm.zeros, trainable, self.varshape)
-    self.P1 = variable(bm.zeros, trainable, self.varshape)
+    self.O = variable(bm.zeros, mode, self.varshape)
+    self.OL = variable(bm.zeros, mode, self.varshape)
+    self.P1 = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dO, self.dOL, self.dP1), method=method)

@@ -8,7 +8,6 @@ __all__ = [
   'OnlineAlgorithm',
 
   # online learning algorithms
-  'ForceLearning',
   'RLS',
   'LMS',
 
@@ -77,7 +76,26 @@ class OnlineAlgorithm(Base):
 
 
 class RLS(OnlineAlgorithm):
-  """The recursive least squares (RLS)."""
+  """The recursive least squares (RLS) algorithm.
+
+  RLS is an adaptive filter algorithm that recursively finds the
+  coefficients that minimize a weighted linear least squares cost
+  function relating to the input signals. This approach is in
+  contrast to other algorithms such as the least mean squares
+  (LMS) that aim to reduce the mean square error.
+
+  See Also
+  --------
+  LMS, ForceLearning
+
+  Parameters
+  ----------
+  alpha: float
+    The learning rate.
+  name: str
+    The algorithm name.
+
+  """
 
   postfix = '.rls.P'
 
@@ -106,15 +124,23 @@ class RLS(OnlineAlgorithm):
 name2func['rls'] = RLS
 
 
-class ForceLearning(RLS):
-  postfix = '.force.P'
-
-
-name2func['force'] = ForceLearning
-
-
 class LMS(OnlineAlgorithm):
-  """The least mean squares (LMS). """
+  """The least mean squares (LMS).
+
+  LMS algorithms are a class of adaptive filter used to mimic a desired filter
+  by finding the filter coefficients that relate to producing the least mean
+  square of the error signal (difference between the desired and the actual signal).
+  It is a stochastic gradient descent method in that the filter is only adapted
+  based on the error at the current time. It was invented in 1960 by
+  Stanford University professor Bernard Widrow and his first Ph.D. student, Ted Hoff.
+
+  Parameters
+  ----------
+  alpha: float
+    The learning rate.
+  name: str
+    The target name.
+  """
 
   def __init__(self, alpha=0.1, name=None):
     super(LMS, self).__init__(name=name)

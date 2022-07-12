@@ -28,6 +28,7 @@ class DeltaSynapse(Delta):
      Please use "brainpy.dyn.synapses.Delta" instead.
 
   """
+
   def __init__(
       self,
       pre: NeuGroup,

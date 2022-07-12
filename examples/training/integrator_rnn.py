@@ -31,7 +31,7 @@ def train_data():
     yield build_inputs_and_targets(batch_size=num_batch)
 
 
-class RNN(bp.dyn.TrainingSystem):
+class RNN(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_hidden):
     super(RNN, self).__init__()
     self.rnn = bp.layers.VanillaRNN(num_in, num_hidden, train_state=True)

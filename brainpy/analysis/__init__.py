@@ -14,6 +14,8 @@ This module provides analysis tools for differential equations.
 Details in the following.
 """
 
+from .base import *
+
 from .highdim.slow_points import *
 
 from .lowdim.lowdim_phase_plane import *

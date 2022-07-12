@@ -72,7 +72,7 @@ class STD(SynSTP):
     super(STD, self).register_master(master)
 
     # variables
-    self.x = variable(bm.ones, self.master.trainable, self.master.pre.num)
+    self.x = variable(bm.ones, self.master.mode, self.master.pre.num)
 
   def reset_state(self, batch_size=None):
     self.x.value = variable(bm.ones, batch_size, self.master.pre.num)
@@ -156,8 +156,8 @@ class STP(SynSTP):
     super(STP, self).register_master(master)
 
     # variables
-    self.x = variable(bm.ones, self.master.trainable, self.master.pre.num)
-    self.u = variable(lambda s: bm.ones(s) * self.U, self.master.trainable, self.master.pre.num)
+    self.x = variable(bm.ones, self.master.mode, self.master.pre.num)
+    self.u = variable(lambda s: bm.ones(s) * self.U, self.master.mode, self.master.pre.num)
 
   def reset_state(self, batch_size=None):
     self.x.value = variable(bm.ones, batch_size, self.master.pre.num)

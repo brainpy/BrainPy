@@ -82,7 +82,11 @@ Linux & MacOS
 
 Currently, JAX supports **Linux** (Ubuntu 16.04 or later) and **macOS** (10.12 or
 later) platforms. The provided binary releases of JAX for Linux and macOS
-systems are available at https://storage.googleapis.com/jax-releases/jax_releases.html .
+systems are available at
+
+- for CPU: https://storage.googleapis.com/jax-releases/jax_releases.html
+- for GPU: https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
 
 To install a CPU-only version of JAX, you can run
 
@@ -95,7 +99,7 @@ If you want to install JAX with both CPU and NVidia GPU support, you must first 
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 Alternatively, you can download the preferred release ".whl" file for jaxlib, and install it via ``pip``:
 

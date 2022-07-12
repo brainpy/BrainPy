@@ -268,6 +268,7 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                filename=os.path.join(path, 'runners.rst'),
                header='Runners')
 
+  # "channels" module
   write_module(module_name='brainpy.dyn.channels.base',
                filename=os.path.join(path, 'channel_base.rst'),
                header='Base Channel Models')
@@ -290,6 +291,7 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                filename=os.path.join(path, 'channel_leaky.rst'),
                header='Leakage Channel Models')
 
+  # "neurons" module
   module_and_name = [
     ('biological_models', 'Biological Models'),
     ('fractional_models', 'Fractional-order Models'),
@@ -303,6 +305,22 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
+  # "layers" module
+  module_and_name = [
+    ('conv', 'Convolutional Layers'),
+    ('dropout', 'Dropout Layers'),
+    ('dense', 'Dense Connection Layers'),
+    ('nvar', 'NVAR Layers'),
+    ('reservoir', 'Reservoir Layers'),
+    ('rnncells', 'Artificial Recurrent Layers'),
+  ]
+  write_submodules(module_name='brainpy.dyn.layers',
+                   filename=os.path.join(path, 'layers.rst'),
+                   header='Artificial Layers',
+                   submodule_names=[a[0] for a in module_and_name],
+                   section_names=[a[1] for a in module_and_name])
+
+  # "synapses" module
   module_and_name = [
     ('abstract_models', 'Abstract Models'),
     ('biological_models', 'Biological Models'),
@@ -315,13 +333,18 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
                    header='Synapse Models',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
+
+  # "synouts" module
   write_module(module_name='brainpy.dyn.synouts',
                filename=os.path.join(path, 'synouts.rst'),
                header='Synaptic Output Models')
+
+  # "synplast" module
   write_module(module_name='brainpy.dyn.synplast',
                filename=os.path.join(path, 'synplast.rst'),
                header='Synaptic Plasticity Models')
 
+  # "rates" module
   module_and_name = [
     ('populations', 'Population Models'),
   ]

@@ -1062,7 +1062,7 @@ def default_rng(seed=None):
 
 @wraps(np.random.seed)
 def seed(seed=None):
-  seed = np.random.randint(0, 100000) if seed is None else seed
+  if seed is None: seed = np.random.randint(0, 100000)
   DEFAULT.seed(seed)
   np.random.seed(seed)
 

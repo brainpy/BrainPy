@@ -8,4 +8,3 @@ from .couplings import *
 
 # compatible interface
 from . import compat
-

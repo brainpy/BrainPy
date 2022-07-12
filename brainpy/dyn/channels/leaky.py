@@ -9,6 +9,8 @@ from typing import Union, Callable
 
 from brainpy.initialize import Initializer, parameter
 from brainpy.types import Tensor, Shape
+from brainpy.modes import Mode, Batching, nonbatching
+
 from .base import LeakyChannel
 
 __all__ = [
@@ -36,12 +38,12 @@ class IL(LeakyChannel):
       E: Union[int, float, Tensor, Initializer, Callable] = -70.,
       method: str = None,
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(IL, self).__init__(size,
                              keep_size=keep_size,
                              name=name,
-                             trainable=trainable)
+                             mode=mode)
 
     self.E = parameter(E, self.varshape, allow_none=False)
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
@@ -77,7 +79,7 @@ class IKL(IL):
       E: Union[int, float, Tensor, Initializer, Callable] = -90.,
       method: str = None,
       name: str = None,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
   ):
     super(IKL, self).__init__(size=size,
                               keep_size=keep_size,
@@ -85,4 +87,4 @@ class IKL(IL):
                               E=E,
                               method=method,
                               name=name,
-                              trainable=trainable)
+                              mode=mode)

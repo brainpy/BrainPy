@@ -14,10 +14,10 @@ model = bp.dyn.neurons.HH(1, method='euler')
 finder = bp.analysis.SlowPointFinder(
   model,
   inputs=(model.input, I),
-  included_vars={'V': model.V,
-                 'm': model.m,
-                 'h': model.h,
-                 'n': model.n},
+  target_vars={'V': model.V,
+               'm': model.m,
+               'h': model.h,
+               'n': model.n},
   dt=1.
 )
 candidates = {'V': bm.random.normal(0., 5., (1000, model.num)) - 50.,

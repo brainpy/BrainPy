@@ -12,11 +12,11 @@ def simulation():
   model = bp.dyn.neurons.HindmarshRose(1)
   runner = bp.dyn.DSRunner(
     model,
-    monitors=['x', 'y', 'z'],
+    monitors=['V', 'y', 'z'],
     inputs=[model.input, 1.5],
   )
   runner.run(2000.)
-  bp.visualize.line_plot(runner.mon.ts, runner.mon.x, legend='x')
+  bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V')
   # bp.visualize.line_plot(runner.mon.ts, runner.mon.y, legend='y')
   # bp.visualize.line_plot(runner.mon.ts, runner.mon.z, legend='z')
   plt.show()
@@ -56,8 +56,8 @@ def phase_plane_analysis():
                              duration=500,
                              plot_durations=[400, 500])
     plt.title(f'z={z:.2f}')
-    # plt.show()
-    plt.savefig(f'data/z={z:.2f}.png')
+    plt.show()
+    # plt.savefig(f'data/z={z:.2f}.png')
     plt.close()
 
 

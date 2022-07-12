@@ -7,6 +7,7 @@ from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
 from brainpy.integrators.sde import sdeint
 from brainpy.types import Tensor, Shape
+from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'OUProcess',
@@ -50,10 +51,10 @@ class OUProcess(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       method: str = 'euler',
       keep_size: bool = False,
-      trainable: bool = False,
+      mode: Mode = nonbatching,
       name: str = None,
   ):
-    super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size)
+    super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
 
     # parameters
     self.mean = init.parameter(mean, self.varshape, allow_none=False)
@@ -61,7 +62,7 @@ class OUProcess(NeuGroup):
     self.tau = init.parameter(tau, self.varshape, allow_none=False)
 
     # variables
-    self.x = init.variable(lambda s: bm.ones(s) * self.mean, trainable, self.varshape)
+    self.x = init.variable(lambda s: bm.ones(s) * self.mean, mode, self.varshape)
 
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)

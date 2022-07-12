@@ -7,7 +7,6 @@ from brainpy.dyn.base import SynOutput
 from brainpy.initialize import parameter, Initializer
 from brainpy.types import Tensor
 
-
 __all__ = [
   'MgBlock',
 ]
@@ -68,7 +67,3 @@ class MgBlock(SynOutput):
   def filter(self, g):
     V = self.master.post.V.value
     return g * (self.E - V) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * V))
-
-  def update(self, tdi):
-    pass
-

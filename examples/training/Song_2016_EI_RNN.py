@@ -189,7 +189,7 @@ net = RNN(num_input=input_size,
 
 # %%
 # Adam optimizer
-opt = bm.optimizers.Adam(lr=0.001, train_vars=net.train_vars().unique())
+opt = bp.optim.Adam(lr=0.001, train_vars=net.train_vars().unique())
 
 # %%
 # gradient function
