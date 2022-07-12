@@ -546,6 +546,7 @@ def bm_func(fun):
   return wrapper
 
 
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class LaxBackedNumpyTests(jtu.JaxTestCase):
   """Tests for LAX-backed Numpy implementation."""
 
@@ -4214,8 +4215,6 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     else:
       self._CompileAndCheck(bm_func(bm_fun), args_maker)
 
-
-class u(jtu.JaxTestCase):
   def _GetArgsMaker(self, rng, shapes, dtypes, np_arrays=True):
     def f():
       out = [rng(shape, dtype or jnp.float_)
@@ -4251,8 +4250,6 @@ class u(jtu.JaxTestCase):
     self._CheckAgainstNumpy(np_fun, bm_func(bm_fun), args_maker)
     self._CompileAndCheck(bm_func(bm_fun), args_maker)
 
-
-class u1(jtu.JaxTestCase):
   def testAstype(self):
     rng = self.rng()
     args_maker = lambda: [rng.randn(3, 4).astype("float32")]
@@ -5994,9 +5991,8 @@ GRAD_SPECIAL_VALUE_TEST_RECORDS = [
     GradSpecialValuesTestSpec(bm.sinc, [0.], 1),
 ]
 
-
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class NumpyGradTests(jtu.JaxTestCase):
-
   @parameterized.named_parameters(itertools.chain.from_iterable(
       jtu.cases_from_list(
         {"testcase_name": jtu.format_test_name_suffix(
@@ -6099,9 +6095,8 @@ def _dtypes_for_ufunc(name: str) -> Iterator[Tuple[str, ...]]:
     else:
       yield arg_dtypes
 
-
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class NumpyUfuncTests(jtu.JaxTestCase):
-
   @parameterized.named_parameters(
     {"testcase_name": f"_{name}_{','.join(arg_dtypes)}",
      "name": name, "arg_dtypes": arg_dtypes}
