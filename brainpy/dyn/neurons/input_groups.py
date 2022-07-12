@@ -96,7 +96,7 @@ class SpikeTimeGroup(NeuGroup):
 
     # variables
     self.i = bm.Variable(bm.zeros(1))
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), trainable, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
     if need_sort:
       sort_idx = bm.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
