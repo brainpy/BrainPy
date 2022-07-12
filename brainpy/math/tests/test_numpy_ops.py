@@ -5991,9 +5991,8 @@ GRAD_SPECIAL_VALUE_TEST_RECORDS = [
     GradSpecialValuesTestSpec(bm.sinc, [0.], 1),
 ]
 
-
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class NumpyGradTests(jtu.JaxTestCase):
-
   @parameterized.named_parameters(itertools.chain.from_iterable(
       jtu.cases_from_list(
         {"testcase_name": jtu.format_test_name_suffix(
@@ -6096,9 +6095,8 @@ def _dtypes_for_ufunc(name: str) -> Iterator[Tuple[str, ...]]:
     else:
       yield arg_dtypes
 
-
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class NumpyUfuncTests(jtu.JaxTestCase):
-
   @parameterized.named_parameters(
     {"testcase_name": f"_{name}_{','.join(arg_dtypes)}",
      "name": name, "arg_dtypes": arg_dtypes}

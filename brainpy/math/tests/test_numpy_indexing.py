@@ -1013,6 +1013,7 @@ def _update_tol(op):
   return tol
 
 
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class IndexedUpdateTest(jtu.JaxTestCase):
 
   @parameterized.named_parameters(jtu.named_cases_from_sampler(lambda s: ({
