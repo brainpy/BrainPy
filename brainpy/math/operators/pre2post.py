@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import jax.numpy as jnp
-from typing import Union, Tuple
-from jax import vmap, jit
-from jax.lax import cond, scan, fori_loop
 from functools import partial
+from typing import Union, Tuple
+
+import jax.numpy as jnp
+from jax import vmap, jit
+from jax.lax import cond
 
 from brainpy.errors import MathError
-from brainpy.math.numpy_ops import as_device_array
 from brainpy.math.jaxarray import JaxArray
-from .utils import _check_brainpylib
+from brainpy.math.numpy_ops import as_device_array
+from brainpy.types import Tensor
 from .pre2syn import pre2syn
 from .syn2post import syn2post_mean
-from brainpy.types import Tensor
+from .utils import _check_brainpylib
 
 try:
   import brainpylib
