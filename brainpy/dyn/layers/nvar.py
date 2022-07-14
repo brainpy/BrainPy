@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, Batching, batching
+from brainpy.modes import Mode, BatchingMode, batching
 from brainpy.tools.checking import (check_integer, check_sequence)
 
 __all__ = [
@@ -93,7 +93,7 @@ class NVAR(DynamicalSystem):
 
     # delay variables
     self.idx = bm.Variable(jnp.asarray([0]))
-    if isinstance(self.mode, Batching):
+    if isinstance(self.mode, BatchingMode):
       batch_size = 1  # first initialize the state with batch size = 1
       self.store = bm.Variable(jnp.zeros((self.num_delay, batch_size, self.num_in)), batch_axis=1)
     else:
@@ -135,7 +135,7 @@ class NVAR(DynamicalSystem):
     # 1. Store the current input
     self.store[self.idx[0]] = x
 
-    if isinstance(self.mode, Batching):
+    if isinstance(self.mode, BatchingMode):
       # 2. Linear part:
       # select all previous inputs, including the current, with strides
       linear_parts = jnp.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)

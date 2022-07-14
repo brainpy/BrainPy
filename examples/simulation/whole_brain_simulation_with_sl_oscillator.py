@@ -5,13 +5,12 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.dyn import rates
 
 bp.check.turn_off()
 
 
 def bifurcation_analysis():
-  model = rates.StuartLandauOscillator(1, method='exp_auto')
+  model = bp.rates.StuartLandauOscillator(1, method='exp_auto')
   pp = bp.analysis.Bifurcation2D(
     model,
     target_vars={'x': [-2, 2], 'y': [-2, 2]},
@@ -37,8 +36,11 @@ class Network(bp.dyn.Network):
     gc = 0.6  # global coupling strength
 
     self.sl = bp.rates.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
-    self.coupling = bp.synapses.DiffusiveCoupling(self.sl.x, self.sl.x, self.sl.input,
-                                                  conn_mat=conn_mat * gc)
+    self.coupling = bp.synapses.DiffusiveCoupling(
+      self.sl.x, self.sl.x,
+      var_to_output=self.sl.input,
+      conn_mat=conn_mat * gc
+    )
 
 
 def simulation():
@@ -51,11 +53,11 @@ def simulation():
   fc = bp.measure.functional_connectivity(runner.mon['sl.x'])
   ax = axs[0].imshow(fc)
   plt.colorbar(ax, ax=axs[0])
-  axs[1].plot(runner.mon.ts, runner.mon['sl.x'][:, ::5], alpha=0.8)
+  axs[1].plot(runner.mon['ts'], runner.mon['sl.x'][:, ::5], alpha=0.8)
   plt.tight_layout()
   plt.show()
 
 
 if __name__ == '__main__':
-  bifurcation_analysis()
+  # bifurcation_analysis()
   simulation()

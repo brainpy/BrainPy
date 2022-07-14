@@ -11,7 +11,7 @@ from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
-from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
+from brainpy.modes import Mode, BatchingMode, TrainingMode, normal, batching, training
 from ..synouts import CUBA, MgBlock
 
 __all__ = [
@@ -101,7 +101,7 @@ class Delta(TwoEndConn):
       name: str = None,
 
       # training parameters
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
     super(Delta, self).__init__(name=name,
@@ -153,7 +153,7 @@ class Delta(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
-        if isinstance(self.mode, Batching): f = vmap(f)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
@@ -283,7 +283,7 @@ class Exponential(TwoEndConn):
       method: str = 'exp_auto',
 
       # training parameters
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
     super(Exponential, self).__init__(pre=pre,
@@ -341,7 +341,7 @@ class Exponential(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
-        if isinstance(self.mode, Batching): f = vmap(f)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
@@ -468,7 +468,7 @@ class DualExponential(TwoEndConn):
       name: str = None,
 
       # training parameters
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
     super(DualExponential, self).__init__(pre=pre,
@@ -543,7 +543,7 @@ class DualExponential(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if isinstance(self.mode, Batching): f = vmap(f)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -648,7 +648,7 @@ class Alpha(DualExponential):
       name: str = None,
 
       # training parameters
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
     super(Alpha, self).__init__(pre=pre,
@@ -834,7 +834,7 @@ class NMDA(TwoEndConn):
       name: str = None,
 
       # training parameters
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
 
       # deprecated
@@ -946,7 +946,7 @@ class NMDA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if isinstance(self.mode, Batching): f = vmap(f)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)

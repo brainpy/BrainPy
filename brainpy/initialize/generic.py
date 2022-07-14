@@ -8,7 +8,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy.tools.others import to_size
 from brainpy.types import Shape, Tensor
-from brainpy.modes import Mode, NonBatching, Batching, Training
+from brainpy.modes import Mode, NormalMode, BatchingMode, TrainingMode
 from .base import Initializer
 
 
@@ -91,9 +91,9 @@ def variable(
   if callable(data):
     if var_shape is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
-    if isinstance(batch_size_or_mode, NonBatching):
+    if isinstance(batch_size_or_mode, NormalMode):
       return bm.Variable(data(var_shape))
-    elif isinstance(batch_size_or_mode, Batching):
+    elif isinstance(batch_size_or_mode, BatchingMode):
       new_shape = var_shape[:batch_axis] + (1,) + var_shape[batch_axis:]
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
@@ -105,9 +105,9 @@ def variable(
     if var_shape is not None:
       if bm.shape(data) != var_shape:
         raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {var_shape}')
-    if isinstance(batch_size_or_mode, NonBatching):
+    if isinstance(batch_size_or_mode, NormalMode):
       return bm.Variable(data(var_shape))
-    elif isinstance(batch_size_or_mode, Batching):
+    elif isinstance(batch_size_or_mode, BatchingMode):
       return bm.Variable(bm.expand_dims(data, axis=batch_axis), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(data)

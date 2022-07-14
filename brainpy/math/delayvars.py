@@ -327,17 +327,20 @@ class LengthDelay(AbstractDelay):
       batch_axis = None
       if hasattr(delay_target, 'batch_axis') and (delay_target.batch_axis is not None):
         batch_axis = delay_target.batch_axis + 1
-      self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape, dtype=delay_target.dtype),
+      self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape,
+                                     dtype=delay_target.dtype),
                            batch_axis=batch_axis)
     else:
-      self.data._value = jnp.zeros((self.num_delay_step,) + delay_target.shape, dtype=delay_target.dtype)
+      self.data._value = jnp.zeros((self.num_delay_step,) + delay_target.shape,
+                                   dtype=delay_target.dtype)
     self.data[-1] = delay_target
     if initial_delay_data is None:
       pass
     elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int, bool)):
       self.data[:-1] = initial_delay_data
     elif callable(initial_delay_data):
-      self.data[:-1] = initial_delay_data((delay_len,) + delay_target.shape, dtype=delay_target.dtype)
+      self.data[:-1] = initial_delay_data((delay_len,) + delay_target.shape,
+                                          dtype=delay_target.dtype)
     else:
       raise ValueError(f'"delay_data" does not support {type(initial_delay_data)}')
 

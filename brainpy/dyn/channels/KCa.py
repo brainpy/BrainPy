@@ -12,7 +12,7 @@ import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators.ode import odeint
 from brainpy.types import Shape, Tensor
-from brainpy.modes import Mode, Batching, nonbatching
+from brainpy.modes import Mode, BatchingMode, normal
 from .base import Calcium, CalciumChannel, PotassiumChannel
 
 __all__ = [
@@ -83,7 +83,7 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
       phi: Union[float, Tensor, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     CalciumChannel.__init__(self,
                             size=size,

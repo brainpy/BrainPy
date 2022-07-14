@@ -14,6 +14,7 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+
 bm.enable_x64()
 
 

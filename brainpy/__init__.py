@@ -62,16 +62,16 @@ from .dyn import (channels,  # channel models
                   synouts,   # synaptic output
                   synplast,  # synaptic plasticity
                   )
-from .dyn.base import *
-from .dyn.runners import *
+# from .dyn.base import *
+# from .dyn.runners import *
 
 
 # dynamics training
 from . import train
-from .train.base import *
-from .train.online import *
-from .train.offline import *
-from .train.back_propagation import *
+# from .train.base import *
+# from .train.online import *
+# from .train.offline import *
+# from .train.back_propagation import *
 
 
 # automatic dynamics analysis

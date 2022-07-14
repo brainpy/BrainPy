@@ -5,7 +5,7 @@ from typing import Union
 import brainpy.math as bm
 from brainpy.dyn.base import Container, CondNeuGroup, Channel, check_master
 from brainpy.types import Shape
-from brainpy.modes import nonbatching, Mode
+from brainpy.modes import normal, Mode
 
 __all__ = [
   'Ion', 'IonChannel',
@@ -92,7 +92,7 @@ class Calcium(Ion, Container):
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **channels
   ):
     Ion.__init__(self, size, keep_size=keep_size, mode=mode)

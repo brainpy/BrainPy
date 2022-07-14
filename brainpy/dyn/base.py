@@ -16,7 +16,7 @@ from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import ModelBuildError, NoImplementationError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
-from brainpy.modes import Mode, Training, Batching, nonbatching, training
+from brainpy.modes import Mode, TrainingMode, BatchingMode, normal, training
 from brainpy.tools.others import to_size, size2num
 from brainpy.types import Tensor, Shape
 
@@ -60,14 +60,10 @@ def not_customized(fun: Callable) -> Callable:
 class DynamicalSystem(Base):
   """Base Dynamical System class.
 
-  Any object has step functions will be a dynamical system.
-  That is to say, in BrainPy, the essence of the dynamical system
-  is the "step functions".
-
   Parameters
   ----------
-  name : str, optional
-    The name of the dynamic system.
+  name : optional, str
+    The name of the dynamical system.
   mode: Mode
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
@@ -87,7 +83,7 @@ class DynamicalSystem(Base):
   def __init__(
       self,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(DynamicalSystem, self).__init__(name=name)
 
@@ -105,7 +101,7 @@ class DynamicalSystem(Base):
     self.fit_record = dict()
 
   @property
-  def mode(self):
+  def mode(self) -> Mode:
     return self._mode
 
   @mode.setter
@@ -366,7 +362,7 @@ class Container(DynamicalSystem):
       self,
       *ds_tuple,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **ds_dict
   ):
     super(Container, self).__init__(name=name, mode=mode)
@@ -468,7 +464,7 @@ class Network(Container):
       self,
       *ds_tuple,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **ds_dict
   ):
     super(Network, self).__init__(*ds_tuple,
@@ -556,7 +552,7 @@ class NeuGroup(DynamicalSystem):
       size: Shape,
       name: str = None,
       keep_size: bool = False,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     # size
     if isinstance(size, (list, tuple)):
@@ -625,7 +621,7 @@ class SynConn(DynamicalSystem):
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(SynConn, self).__init__(name=name, mode=mode)
 
@@ -776,7 +772,7 @@ class TwoEndConn(SynConn):
       stp: Optional[SynSTP] = None,
       ltp: Optional[SynLTP] = None,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(TwoEndConn, self).__init__(pre=pre,
                                      post=post,
@@ -845,13 +841,13 @@ class TwoEndConn(SynConn):
         raise ValueError(f'Unknown connection type: {comp_method}')
 
     # training weights
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
   def syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
-      if isinstance(self.mode, Batching):
+      if isinstance(self.mode, BatchingMode):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
         post_vs = bm.sum(syn_value)
@@ -931,7 +927,7 @@ class CondNeuGroup(NeuGroup, Container):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **channels
   ):
     NeuGroup.__init__(self, size, keep_size=keep_size, mode=mode)
@@ -947,7 +943,7 @@ class CondNeuGroup(NeuGroup, Container):
     # variables
     self.V = variable(V_initializer, mode, self.varshape)
     self.input = variable(bm.zeros, mode, self.varshape)
-    sp_type = bm.dftype() if isinstance(self.mode, Batching) else bool
+    sp_type = bm.dftype() if isinstance(self.mode, BatchingMode) else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), mode, self.varshape)
 
     # function
@@ -965,7 +961,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    sp_type = bm.dftype() if isinstance(self.mode, Batching) else bool
+    sp_type = bm.dftype() if isinstance(self.mode, BatchingMode) else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
 
@@ -993,7 +989,7 @@ class Channel(DynamicalSystem):
       size: Union[int, Sequence[int]],
       name: str = None,
       keep_size: bool = False,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(Channel, self).__init__(name=name, mode=mode)
     # the geometry size
@@ -1049,7 +1045,7 @@ class Sequential(Container):
       self,
       *modules,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **kw_modules
   ):
     super(Sequential, self).__init__(*modules, name=name, mode=mode, **kw_modules)

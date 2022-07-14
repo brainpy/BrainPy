@@ -5,7 +5,7 @@ from typing import Optional, Union, Callable, Tuple
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variable
-from brainpy.modes import Mode, Training, batching
+from brainpy.modes import Mode, TrainingMode, batching
 from brainpy.tools.checking import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
 from brainpy.types import Tensor
@@ -64,7 +64,7 @@ class Reservoir(DynamicalSystem):
     Connectivity of recurrent weights matrix, i.e. ratio of reservoir
     neurons connected to other reservoir neurons, including themselves.
     Must be in [0, 1], by default 0.1
-  conn_type: str
+  comp_type: str
     The connectivity type, can be "dense" or "sparse".
   spectral_radius : float, optional
     Spectral radius of recurrent weight matrix, by default None
@@ -97,7 +97,7 @@ class Reservoir(DynamicalSystem):
       b_initializer: Optional[Union[Initializer, Callable, Tensor]] = ZeroInit(),
       in_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
-      conn_type='dense',
+      comp_type='dense',
       spectral_radius: Optional[float] = None,
       noise_in: float = 0.,
       noise_rec: float = 0.,
@@ -138,8 +138,8 @@ class Reservoir(DynamicalSystem):
     check_float(rec_connectivity, 'rec_connectivity', 0., 1.)
     self.ff_connectivity = in_connectivity
     self.rec_connectivity = rec_connectivity
-    check_string(conn_type, 'conn_type', ['dense', 'sparse'])
-    self.conn_type = conn_type
+    check_string(comp_type, 'conn_type', ['dense', 'sparse'])
+    self.comp_type = comp_type
 
     # noises
     check_float(noise_in, 'noise_ff')
@@ -156,10 +156,10 @@ class Reservoir(DynamicalSystem):
     if self.ff_connectivity < 1.:
       conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
       self.Win[conn_mat] = 0.
-    if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
+    if self.comp_type == 'sparse' and self.ff_connectivity < 1.:
       self.ff_pres, self.ff_posts = bm.where(bm.logical_not(conn_mat))
       self.Win = self.Win[self.ff_pres, self.ff_posts]
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.Win = bm.TrainVar(self.Win)
 
     # initialize recurrent weights
@@ -171,11 +171,11 @@ class Reservoir(DynamicalSystem):
     if self.spectral_radius is not None:
       current_sr = max(abs(bm.linalg.eig(self.Wrec)[0]))
       self.Wrec *= self.spectral_radius / current_sr
-    if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
+    if self.comp_type == 'sparse' and self.rec_connectivity < 1.:
       self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
       self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
     self.bias = parameter(self._b_initializer, (self.num_unit,))
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
@@ -190,7 +190,7 @@ class Reservoir(DynamicalSystem):
     # inputs
     x = bm.concatenate(x, axis=-1)
     if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
-    if self.conn_type == 'sparse' and self.ff_connectivity < 1.:
+    if self.comp_type == 'sparse' and self.ff_connectivity < 1.:
       sparse = {'data': self.Win,
                 'index': (self.ff_pres, self.ff_posts),
                 'shape': self.Wff_shape}
@@ -198,7 +198,7 @@ class Reservoir(DynamicalSystem):
     else:
       hidden = bm.dot(x, self.Win)
     # recurrent
-    if self.conn_type == 'sparse' and self.rec_connectivity < 1.:
+    if self.comp_type == 'sparse' and self.rec_connectivity < 1.:
       sparse = {'data': self.Wrec,
                 'index': (self.rec_pres, self.rec_posts),
                 'shape': (self.num_unit, self.num_unit)}

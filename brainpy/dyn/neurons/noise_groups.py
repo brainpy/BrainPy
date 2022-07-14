@@ -6,8 +6,8 @@ from brainpy import math as bm, initialize as init
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
 from brainpy.integrators.sde import sdeint
+from brainpy.modes import Mode, normal
 from brainpy.types import Tensor, Shape
-from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'OUProcess',
@@ -51,7 +51,7 @@ class OUProcess(NeuGroup):
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
       method: str = 'euler',
       keep_size: bool = False,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       name: str = None,
   ):
     super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)

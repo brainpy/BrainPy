@@ -15,7 +15,7 @@ from brainpy.dyn import synapses, synouts
 
 
 class PoissonStim(bp.dyn.NeuGroup):
-  def __init__(self, size, freq_mean, freq_var, t_interval, mode=bp.modes.NonBatching()):
+  def __init__(self, size, freq_mean, freq_var, t_interval, mode=bp.modes.NormalMode()):
     super(PoissonStim, self).__init__(size=size, mode=mode)
 
     # parameters
@@ -43,12 +43,12 @@ class PoissonStim(bp.dyn.NeuGroup):
     in_interval = bm.logical_and(in_interval, (t - self.freq_t_last_change) >= self.t_interval)
     self.freq.value = bm.where(in_interval, self.rng.normal(self.freq_mean, self.freq_var, self.freq.shape), prev_freq)
     self.freq_t_last_change.value = bm.where(in_interval, t, self.freq_t_last_change)
-    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bp.modes.Batching) else self.varshape
+    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bp.modes.BatchingMode) else self.varshape
     self.spike.value = self.rng.random(shape) < self.freq * self.dt
 
 
 class DecisionMaking(bp.dyn.Network):
-  def __init__(self, scale=1., mu0=40., coherence=25.6, f=0.15, mode=bp.modes.NonBatching()):
+  def __init__(self, scale=1., mu0=40., coherence=25.6, f=0.15, mode=bp.modes.NormalMode()):
     super(DecisionMaking, self).__init__()
 
     num_exc = int(1600 * scale)
@@ -262,9 +262,9 @@ def single_run():
 
 def batching_run():
   num_row, num_col = 3, 4
-  num_batch = 200
+  num_batch = 12
   coherence = bm.expand_dims(bm.linspace(-100, 100., num_batch), 1)
-  net = DecisionMaking(scale=1., coherence=coherence, mu0=20., mode=bp.modes.Batching())
+  net = DecisionMaking(scale=1., coherence=coherence, mu0=20., mode=bp.modes.BatchingMode())
   net.reset_state(batch_size=num_batch)
 
   runner = bp.dyn.DSRunner(
@@ -272,20 +272,20 @@ def batching_run():
   )
   runner.run(total_period)
 
-  # coherence = coherence.to_numpy()
-  # fig, gs = bp.visualize.get_figure(num_row, num_col, 3, 4)
-  # for i in range(num_row):
-  #   for j in range(num_col):
-  #     idx = i * num_col + j
-  #     if idx < num_batch:
-  #       mon = {'A.spike': runner.mon['A.spike'][:, idx],
-  #              'B.spike': runner.mon['B.spike'][:, idx],
-  #              'IA.freq': runner.mon['IA.freq'][:, idx],
-  #              'IB.freq': runner.mon['IB.freq'][:, idx],
-  #              'ts': runner.mon['ts']}
-  #       ax = fig.add_subplot(gs[i, j])
-  #       visualize_raster(ax, mon=mon, title=f'coherence={coherence[idx, 0]}%')
-  # plt.show()
+  coherence = coherence.to_numpy()
+  fig, gs = bp.visualize.get_figure(num_row, num_col, 3, 4)
+  for i in range(num_row):
+    for j in range(num_col):
+      idx = i * num_col + j
+      if idx < num_batch:
+        mon = {'A.spike': runner.mon['A.spike'][:, idx],
+               'B.spike': runner.mon['B.spike'][:, idx],
+               'IA.freq': runner.mon['IA.freq'][:, idx],
+               'IB.freq': runner.mon['IB.freq'][:, idx],
+               'ts': runner.mon['ts']}
+        ax = fig.add_subplot(gs[i, j])
+        visualize_raster(ax, mon=mon, title=f'coherence={coherence[idx, 0]}%')
+  plt.show()
 
 
 if __name__ == '__main__':

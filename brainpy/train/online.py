@@ -12,7 +12,7 @@ from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.base import Base
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
-from brainpy.modes import Training
+from brainpy.modes import TrainingMode
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others.dicts import DotDict
 from brainpy.types import Tensor, Output
@@ -57,7 +57,7 @@ class OnlineTrainer(DSTrainer):
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
-    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, Training)])
+    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, TrainingMode)])
     if len(self.train_nodes) == 0:
         raise ValueError('Found no trainable nodes.')
 

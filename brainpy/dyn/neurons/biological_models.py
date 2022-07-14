@@ -8,9 +8,9 @@ from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise a
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
+from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Tensor
-from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
 
 __all__ = [
   'HH',
@@ -212,7 +212,7 @@ class HH(NeuGroup):
       name: str = None,
 
       # training parameter
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     # initialization
     super(HH, self).__init__(size=size,
@@ -407,7 +407,7 @@ class MorrisLecar(NeuGroup):
       name: str = None,
 
       # training parameter
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     # initialization
     super(MorrisLecar, self).__init__(size=size,
@@ -664,7 +664,7 @@ class PinskyRinzelModel(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     # initialization
     super(PinskyRinzelModel, self).__init__(size=size,
@@ -706,11 +706,11 @@ class PinskyRinzelModel(NeuGroup):
     self.Vs = variable(self._Vs_initializer, mode, self.varshape)
     self.Vd = variable(self._Vd_initializer, mode, self.varshape)
     self.Ca = variable(self._Ca_initializer, mode, self.varshape)
-    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(mode, Batching) else None)
-    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(mode, Batching) else None)
-    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(mode, Batching) else None)
-    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(mode, Batching) else None)
-    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(mode, Batching) else None)
+    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
+    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
+    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
+    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
+    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(mode, BatchingMode) else None)
     self.Id = variable(bm.zeros, mode, self.varshape)  # input to soma
     self.Is = variable(bm.zeros, mode, self.varshape)  # input to dendrite
     # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
@@ -725,7 +725,7 @@ class PinskyRinzelModel(NeuGroup):
     self.Vd.value = variable(self._Vd_initializer, batch_size, self.varshape)
     self.Vs.value = variable(self._Vs_initializer, batch_size, self.varshape)
     self.Ca.value = variable(self._Ca_initializer, batch_size, self.varshape)
-    batch_axis = 0 if isinstance(self.mode, Batching) else None
+    batch_axis = 0 if isinstance(self.mode, BatchingMode) else None
     self.h.value = bm.Variable(self.inf_h(self.Vs), batch_axis=batch_axis)
     self.n.value = bm.Variable(self.inf_n(self.Vs), batch_axis=batch_axis)
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
@@ -973,7 +973,7 @@ class WangBuzsakiModel(NeuGroup):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)

@@ -11,7 +11,7 @@ from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.base import Base
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
-from brainpy.modes import Training
+from brainpy.modes import TrainingMode
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.types import Tensor, Output
 from .base import DSTrainer
@@ -58,7 +58,7 @@ class OfflineTrainer(DSTrainer):
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
-    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, Training)])
+    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, TrainingMode)])
     if len(self.train_nodes) == 0:
         raise ValueError('Found no trainable nodes.')
 
