@@ -178,6 +178,8 @@ class FHN(RateModel):
     x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+
+  def clear_input(self):
     self.input[:] = 0.
     self.input_y[:] = 0.
 
@@ -371,6 +373,8 @@ class FeedbackFHN(RateModel):
     x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+
+  def clear_input(self):
     self.input[:] = 0.
     self.input_y[:] = 0.
 
@@ -552,6 +556,8 @@ class QIF(RateModel):
     x, y = self.integral(self.x, self.y, t=t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+
+  def clear_input(self):
     self.input[:] = 0.
     self.input_y[:] = 0.
 
@@ -692,6 +698,8 @@ class StuartLandauOscillator(RateModel):
                          dt=dt)
     self.x.value = x
     self.y.value = y
+
+  def clear_input(self):
     self.input[:] = 0.
     self.input_y[:] = 0.
 
@@ -847,6 +855,8 @@ class WilsonCowanModel(RateModel):
     x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+
+  def clear_input(self):
     self.input[:] = 0.
     self.input_y[:] = 0.
 
@@ -965,5 +975,6 @@ class ThresholdLinearModel(RateModel):
     di = di / self.tau_i
     self.i.value = bm.maximum(self.i + di * dt, 0.)
 
+  def clear_input(self):
     self.Ie[:] = 0.
     self.Ii[:] = 0.

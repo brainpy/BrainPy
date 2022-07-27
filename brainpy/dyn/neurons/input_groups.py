@@ -13,12 +13,23 @@ from brainpy.types import Shape, Tensor
 
 __all__ = [
   'InputGroup',
+  'OutputGroup',
   'SpikeTimeGroup',
   'PoissonGroup',
 ]
 
 
 class InputGroup(NeuGroup):
+  """Input neuron group for place holder.
+
+  Parameters
+  ----------
+  size: int, tuple of int
+  keep_size: bool
+  mode: Mode
+  name: str
+  """
+
   def __init__(
       self,
       size: Shape,
@@ -30,6 +41,37 @@ class InputGroup(NeuGroup):
                                      size=size,
                                      keep_size=keep_size,
                                      mode=mode)
+    self.spike = None
+
+  def update(self, tdi, x=None):
+    pass
+
+  def reset_state(self, batch_size=None):
+    pass
+
+
+class OutputGroup(NeuGroup):
+  """Output neuron group for place holder.
+
+  Parameters
+  ----------
+  size: int, tuple of int
+  keep_size: bool
+  mode: Mode
+  name: str
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      mode: Mode = normal,
+      name: str = None,
+  ):
+    super(OutputGroup, self).__init__(name=name,
+                                      size=size,
+                                      keep_size=keep_size,
+                                      mode=mode)
     self.spike = None
 
   def update(self, tdi, x=None):
@@ -92,10 +134,10 @@ class SpikeTimeGroup(NeuGroup):
 
     # data about times and indices
     self.times = bm.asarray(times)
-    self.indices = bm.asarray(indices)
+    self.indices = bm.asarray(indices, dtype=bm.ditype())
 
     # variables
-    self.i = bm.Variable(bm.zeros(1))
+    self.i = bm.Variable(bm.zeros(1, dtype=bm.ditype()))
     self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
     if need_sort:
       sort_idx = bm.argsort(self.times)

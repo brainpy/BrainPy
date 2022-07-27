@@ -239,6 +239,7 @@ class OnlineTrainer(DSTrainer):
       shared = DotDict(t=t, dt=self.dt, i=i)
 
       # input step
+      self.target.clear_input()
       self._input_step(shared)
 
       # update step

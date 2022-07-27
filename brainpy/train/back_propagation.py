@@ -575,6 +575,7 @@ class OnlineBPTT(BPTT):
       def run_func(t, i, x):
         shared = DotDict(t=t, i=i, dt=self.dt)
         shared.update(shared_args)
+        self.target.clear_input()
         outs = self.target(shared, x)
         hist = monitor_func(shared)
         return outs, hist

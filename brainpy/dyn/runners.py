@@ -568,6 +568,7 @@ class DSRunner(Runner):
 
       def _step_func(inputs):
         t, i, x = inputs
+        self.target.clear_input()
         # input step
         shared = DotDict(t=t, i=i, dt=self.dt)
         self._input_step(shared)

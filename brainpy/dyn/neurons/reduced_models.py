@@ -290,7 +290,7 @@ class LIF(NeuGroup):
       self.V.value = V
       self.spike.value = spike
 
-    # reset input
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -480,6 +480,8 @@ class ExpIF(NeuGroup):
     self.V.value = V
     self.spike.value = spike
     self.t_last_spike.value = t_last_spike
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -642,6 +644,8 @@ class AdExIF(NeuGroup):
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
     self.spike.value = spike
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -797,6 +801,8 @@ class QuaIF(NeuGroup):
     self.V.value = V
     self.spike.value = spike
     self.t_last_spike.value = t_last_spike
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -962,6 +968,8 @@ class AdQuaIF(NeuGroup):
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
     self.spike.value = spike
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -1179,7 +1187,7 @@ class GIF(NeuGroup):
     self.V_th.value = V_th
     self.V.value = V
 
-    # reset input
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -1234,12 +1242,13 @@ class ALIFBellec2020(NeuGroup):
       a_initializer: Union[Initializer, Callable, Tensor] = OneInit(-50.),
 
       # parameter for training
-      spike_fun: Callable = bm.spike_with_relu_grad,
+      spike_fun: Callable = bm.spike_with_linear_grad,
 
       # other parameters
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
+      eprop: bool = False
   ):
     super(ALIFBellec2020, self).__init__(name=name,
                                          size=size,
@@ -1248,7 +1257,7 @@ class ALIFBellec2020(NeuGroup):
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
-    self.V_th_reset = parameter(V_th, self.varshape, allow_none=False)
+    self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.R = parameter(R, self.varshape, allow_none=False)
     self.beta = parameter(beta, self.varshape, allow_none=False)
     self.tau = parameter(tau, self.varshape, allow_none=False)
@@ -1256,6 +1265,7 @@ class ALIFBellec2020(NeuGroup):
     self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     self.spike_fun = check_callable(spike_fun, 'spike_fun')
+    self.eprop = eprop
 
     # initializers
     check_initializer(V_initializer, 'V_initializer')
@@ -1279,7 +1289,7 @@ class ALIFBellec2020(NeuGroup):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
-  def dVth(self, a, t):
+  def da(self, a, t):
     return -a / self.tau_a
 
   def dV(self, V, t, I_ext):
@@ -1287,7 +1297,7 @@ class ALIFBellec2020(NeuGroup):
 
   @property
   def derivative(self):
-    return JointEq([self.dV, self.dVth])
+    return JointEq([self.dV, self.da])
 
   def reset_state(self, batch_size=None):
     self.a.value = variable(self._a_initializer, batch_size, self.varshape)
@@ -1314,36 +1324,33 @@ class ALIFBellec2020(NeuGroup):
       V = bm.where(refractory, self.V, V)
       # spike and reset
       if isinstance(self.mode, TrainingMode):
-        spike = self.spike_fun(V - self.V_th_reset - self.beta * self.a)
-        spike_no_grad = stop_gradient(spike)
-        V -= self.V_th_reset * spike_no_grad
-        spike_ = spike_no_grad > 0.
+        spike = self.spike_fun((V - self.V_th - self.beta * self.a) / self.V_th)
+        V -= self.V_th * (stop_gradient(spike) if self.eprop else spike)
         # will be used in other place, like Delta Synapse, so stop its gradient
+        spike_ = spike > 0.
         refractory = stop_gradient(bm.logical_or(refractory, spike_).value)
         t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike).value)
       else:
-        spike = V >= (self.V_th_reset + self.beta * self.a)
+        spike = V >= (self.V_th + self.beta * self.a)
         refractory = bm.logical_or(refractory, spike)
         t_last_spike = bm.where(spike, t, self.t_last_spike)
-        V -= self.V_th_reset * spike
-      a += spike
+        V -= self.V_th * spike
       self.refractory.value = refractory
       self.t_last_spike.value = t_last_spike
 
     else:
       # spike and reset
       if isinstance(self.mode, TrainingMode):
-        spike = self.spike_fun(V - self.V_th_reset - self.beta * self.a)
-        V -= self.V_th_reset * stop_gradient(spike)
+        spike = self.spike_fun((V - self.V_th - self.beta * self.a) / self.V_th)
+        V -= self.V_th * (stop_gradient(spike) if self.eprop else spike)
       else:
-        spike = V >= (self.V_th_reset + self.beta * self.a)
-        V -= self.V_th_reset * spike
-      a += spike
+        spike = V >= (self.V_th + self.beta * self.a)
+        V -= self.V_th * spike
     self.spike.value = spike
     self.V.value = V
-    self.a.value = a
+    self.a.value = a + spike
 
-    # reset input
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -1536,6 +1543,8 @@ class Izhikevich(NeuGroup):
     self.V.value = V
     self.u.value = u
     self.spike.value = spike
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -1732,6 +1741,8 @@ class HindmarshRose(NeuGroup):
     self.V.value = V
     self.y.value = y
     self.z.value = z
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -1896,4 +1907,6 @@ class FHN(NeuGroup):
       self.spike.value = bm.logical_and(V >= self.Vth, self.V < self.Vth)
     self.V.value = V
     self.w.value = w
+
+  def clear_input(self):
     self.input[:] = 0.
