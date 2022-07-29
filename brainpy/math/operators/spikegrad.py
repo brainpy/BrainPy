@@ -206,48 +206,6 @@ def spike_with_mg_grad(x, h=None, s=None, sigma=None, scale=None):
 
   return z, grad
 
-@custom_gradient
-def spike2_with_mg_grad(x_new, x_old, h=None, s=None, sigma=None, scale=None):
-  """Spike function with the multi-Gaussian surrogate gradient.
-
-  Parameters
-  ----------
-  x: ndarray
-    The variable to judge spike.
-  h: float
-    The hyper-parameters of approximate function
-  s: float
-    The hyper-parameters of approximate function
-  sigma: float
-    The gaussian sigma.
-  scale: float
-    The gradient scale.
-  """
-  x_new_comp = x_new >= 0
-  x_old_comp = x_old < 0
-  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
-
-  def grad(dE_dz):
-    _sigma = 0.5 if sigma is None else sigma
-    _scale = 0.5 if scale is None else scale
-    _s = 6.0 if s is None else s
-    _h = 0.15 if h is None else h
-    dE_dx = dE_dz * (_gaussian(x, mu=0., sigma=_sigma) * (1. + _h)
-                     - _gaussian(x, mu=_sigma, sigma=_s * _sigma) * _h
-                     - _gaussian(x, mu=-_sigma, sigma=_s * _sigma) * _h) * _scale
-    returns = (_consistent_type(dE_dx, x),)
-    if h is not None:
-      returns += (_consistent_type(bm.zeros_like(_h), h),)
-    if s is not None:
-      returns += (_consistent_type(bm.zeros_like(_s), s),)
-    if sigma is not None:
-      returns += (_consistent_type(bm.zeros_like(_sigma), sigma),)
-    if scale is not None:
-      returns += (_consistent_type(bm.zeros_like(_scale), scale),)
-    return returns
-
-  return z, grad
-
 
 @custom_jvp
 def step_pwl(x, threshold, window=0.5, max_spikes_per_dt: int = bm.inf):
