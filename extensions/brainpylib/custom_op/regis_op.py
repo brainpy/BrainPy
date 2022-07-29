@@ -25,7 +25,6 @@ def register_op(
     gpu_func: Callable = None,
     batch_fun: Callable = None,
     apply_cpu_func_to_gpu: bool = False,
-    return_primitive: bool = False,
 ):
   """
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
@@ -108,10 +107,6 @@ def register_op(
     # Return the outputs
     return tuple(outputs)
 
-  def bind_primitive(*inputs):
-    result = prim.bind(*inputs)
-    return result[0] if len(result) == 1 else result
-
   # cpu function
   prim.def_abstract_eval(abs_eval_rule)
   prim.def_impl(eval_rule)
@@ -129,7 +124,4 @@ def register_op(
   if batch_fun is not None:
     batching.primitive_batchers[prim] = batch_fun
 
-  if return_primitive:
-    return bind_primitive, prim
-  else:
-    return bind_primitive
+  return prim

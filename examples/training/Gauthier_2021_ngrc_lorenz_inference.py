@@ -158,7 +158,6 @@ model = NGRC(2)
 # -------- #
 
 trainer = bp.train.RidgeTrainer(model, alpha=0.05)
-# trainer = bp.train.ForceTrainer(model, )
 
 # warm-up
 outputs = trainer.predict(X_warmup)

@@ -150,9 +150,9 @@ class AMPA(TwoEndConn):
       T: float = 0.5,
       T_duration: float = 0.5,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
 
@@ -244,10 +244,9 @@ class AMPA(TwoEndConn):
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    post_vs = self.output(post_vs)
 
     # output
-    self.post.input += post_vs
+    return self.output(post_vs)
 
 
 class GABAa(AMPA):
@@ -333,9 +332,9 @@ class GABAa(AMPA):
       T: Union[float, Tensor] = 1.,
       T_duration: Union[float, Tensor] = 1.,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
 
@@ -491,7 +490,7 @@ class BioNMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: Optional[SynOutput] = None,
+      output: SynOutput = None,
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
@@ -503,10 +502,10 @@ class BioNMDA(TwoEndConn):
       T_0: Union[float, Tensor] = 1.,
       T_dur: Union[float, Tensor] = 0.5,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
+      # other parameters
       mode: Mode = normal,
+      name: str = None,
       stop_spike_gradient: bool = False,
   ):
     super(BioNMDA, self).__init__(pre=pre,
@@ -599,7 +598,6 @@ class BioNMDA(TwoEndConn):
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    post_vs = self.output(post_vs)
 
     # output
-    self.post.input += post_vs
+    return self.output(post_vs)

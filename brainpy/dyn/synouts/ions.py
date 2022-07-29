@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.dyn.base import SynOutput
@@ -49,13 +49,16 @@ class MgBlock(SynOutput):
       cc_Mg: Union[float, Tensor, Callable, Initializer] = 1.2,
       alpha: Union[float, Tensor, Callable, Initializer] = 0.062,
       beta: Union[float, Tensor, Callable, Initializer] = 3.57,
-      name: str = None
+      target_var: Optional[Union[str, bm.Variable]] = 'input',
+      membrane_var: Union[str, bm.Variable] = 'V',
+      name: str = None,
   ):
-    super(MgBlock, self).__init__(name=name)
+    super(MgBlock, self).__init__(name=name, target_var=target_var)
     self.E = E
     self.cc_Mg = cc_Mg
     self.alpha = alpha
     self.beta = beta
+    self.membrane_var = membrane_var
 
   def register_master(self, master):
     super(MgBlock, self).register_master(master)
@@ -64,6 +67,17 @@ class MgBlock(SynOutput):
     self.alpha = parameter(self.alpha, self.master.post.num, allow_none=False)
     self.beta = parameter(self.beta, self.master.post.num, allow_none=False)
 
+    if isinstance(self.membrane_var, str):
+      if not hasattr(self.master.post, self.membrane_var):
+        raise KeyError(f'Post-synaptic group does not have membrane variable: {self.membrane_var}')
+      self.membrane_var = getattr(self.master.post, self.membrane_var)
+    elif isinstance(self.membrane_var, bm.Variable):
+      self.membrane_var = self.membrane_var
+    else:
+      raise TypeError('"membrane_var" must be instance of string or Variable. '
+                      f'But we got {type(self.membrane_var)}')
+
   def filter(self, g):
-    V = self.master.post.V.value
-    return g * (self.E - V) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * V))
+    V = self.membrane_var.value
+    I = g * (self.E - V) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * V))
+    return super(MgBlock, self).filter(I)

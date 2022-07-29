@@ -47,7 +47,7 @@ class Network(bp.dyn.Network):
     )
 
 
-def brain_simulation():
+def net_simulation():
   net = Network()
   runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72])
   runner.run(6e3)
@@ -62,6 +62,34 @@ def brain_simulation():
   plt.show()
 
 
+def net_analysis():
+  net = Network()
+
+  # get candidate points
+  runner = bp.dyn.DSRunner(
+    net,
+    monitors={'x': net.fhn.x, 'y': net.fhn.y},
+    inputs=(net.fhn.input, 0.72),
+    numpy_mon_after_run=False
+  )
+  runner.run(1e3)
+  candidates = dict(x=runner.mon.x, y=runner.mon.y)
+
+  # analysis
+  finder = bp.analysis.SlowPointFinder(
+    net,
+    inputs=(net.fhn.input, 0.72),
+    target_vars={'x': net.fhn.x, 'y': net.fhn.y}
+  )
+  finder.find_fps_with_opt_solver(candidates=candidates)
+  finder.filter_loss(1e-5)
+  finder.keep_unique(1e-3)
+  finder.compute_jacobians({'x': finder._fixed_points['x'][:10],
+                            'y': finder._fixed_points['y'][:10]},
+                           plot=True)
+
+
 if __name__ == '__main__':
   # bifurcation_analysis()
-  brain_simulation()
+  # net_simulation()
+  net_analysis()

@@ -35,12 +35,13 @@ class SNN(bp.dyn.Network):
     # synapse: i->r
     self.i2r = bp.synapses.Exponential(self.i, self.r, bp.conn.All2All(),
                                        output=bp.synouts.CUBA(), tau=10.,
-                                       g_max=bp.init.KaimingNormal(scale=10.),
+                                       g_max=bp.init.KaimingNormal(scale=20.),
                                        mode=bp.modes.training)
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
+                                       # delay_step=10,
                                        output=bp.synouts.CUBA(), tau=10.,
-                                       g_max=bp.init.KaimingNormal(scale=10.),
+                                       g_max=bp.init.KaimingNormal(scale=20.),
                                        mode=bp.modes.training)
 
   def update(self, tdi, spike):
@@ -63,7 +64,7 @@ def plot_voltage_traces(mem, spk=None, dim=(3, 5), spike_height=5):
     else:
       ax = plt.subplot(gs[i], sharey=a0)
     ax.plot(mem[i])
-    ax.axis("off")
+    # ax.axis("off")
   plt.tight_layout()
   plt.show()
 
@@ -89,7 +90,7 @@ rng = bm.random.RandomState()
 
 
 # Before training
-runner = bp.train.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
+runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
 out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
@@ -100,7 +101,7 @@ def loss():
   key = rng.split_key()
   X = rng.permutation(x_data, key=key)
   Y = rng.permutation(y_data, key=key)
-  looper = bp.train.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
+  looper = bp.dyn.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
   predictions = looper.run(inputs=X, inputs_are_batching=True, reset_state=True)
   predictions = bm.max(predictions, axis=1)
   return bp.losses.cross_entropy_loss(predictions, Y)
@@ -119,19 +120,20 @@ def train(_):
   return l
 
 
-f_train = bm.make_loop(train,
-                       dyn_vars=f_opt.vars() + net.vars() + {'rng': rng},
-                       has_return=True)
+f_train = bm.make_loop(
+  train,
+  dyn_vars=f_opt.vars() + net.vars() + {'rng': rng},
+  has_return=True
+)
 
 # train the network
 net.reset_state(num_sample)
 train_losses = []
-for i in range(0, 1000, 100):
+for i in range(0, 3000, 100):
   t0 = time.time()
   _, ls = f_train(bm.arange(i, i + 100, 1))
   print(f'Train {i + 100} epoch, loss = {bm.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
   train_losses.append(ls)
-
 
 # visualize the training losses
 plt.plot(bm.as_numpy(bm.concatenate(train_losses)))
@@ -139,11 +141,9 @@ plt.xlabel("Epoch")
 plt.ylabel("Training Loss")
 plt.show()
 
-
 # predict the output according to the input data
 runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
 out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)
-

@@ -23,7 +23,7 @@ def bifurcation_analysis():
 
 
 class Network(bp.dyn.Network):
-  def __init__(self):
+  def __init__(self, noise=0.14):
     super(Network, self).__init__()
 
     # Please download the processed data "hcp.npz" of the
@@ -35,7 +35,7 @@ class Network(bp.dyn.Network):
     bm.fill_diagonal(conn_mat, 0)
     gc = 0.6  # global coupling strength
 
-    self.sl = bp.rates.StuartLandauOscillator(80, x_ou_sigma=0.14, y_ou_sigma=0.14, name='sl')
+    self.sl = bp.rates.StuartLandauOscillator(80, x_ou_sigma=noise, y_ou_sigma=noise)
     self.coupling = bp.synapses.DiffusiveCoupling(
       self.sl.x, self.sl.x,
       var_to_output=self.sl.input,
@@ -58,6 +58,36 @@ def simulation():
   plt.show()
 
 
-if __name__ == '__main__':
+def net_analysis():
+  import matplotlib
+  matplotlib.use('WebAgg')
+  bp.math.enable_x64()
+  from sklearn.decomposition import PCA
+
+  # get candidate points
+  net = Network()
+  runner = bp.dyn.DSRunner(
+    net,
+    monitors={'x': net.sl.x, 'y': net.sl.y},
+    numpy_mon_after_run=False
+  )
+  runner.run(1e3)
+  candidates = dict(x=runner.mon.x, y=runner.mon.y)
+
+  # analysis
+  net = Network(noise=0.)
+  finder = bp.analysis.SlowPointFinder(
+    net, target_vars={'x': net.sl.x, 'y': net.sl.y}
+  )
+  finder.find_fps_with_opt_solver(candidates=candidates)
+  finder.filter_loss(1e-5)
+  finder.keep_unique(1e-3)
+  finder.compute_jacobians({'x': finder._fixed_points['x'][:10],
+                            'y': finder._fixed_points['y'][:10]},
+                           plot=True)
+
+
+if __name__ == '__main__1':
   # bifurcation_analysis()
-  simulation()
+  # simulation()
+  net_analysis()

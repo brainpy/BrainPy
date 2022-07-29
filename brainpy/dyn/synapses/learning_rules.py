@@ -222,7 +222,7 @@ class STP(TwoEndConn):
     dx = lambda x, t: (1 - x) / self.tau_d
     return JointEq([dI, du, dx])
 
-  def update(self, t, dt):
+  def update(self, tdi):
     # delayed pre-synaptic spikes
     if self.delay_type == 'homo':
       delayed_I = self.delay_I(self.delay_step)
@@ -231,7 +231,7 @@ class STP(TwoEndConn):
     else:
       delayed_I = self.I
     self.post.input += bm.syn2post(delayed_I, self.post_ids, self.post.num)
-    self.I.value, u, x = self.integral(self.I, self.u, self.x, t, dt=dt)
+    self.I.value, u, x = self.integral(self.I, self.u, self.x, tdi.t, tdi.dt)
     syn_sps = bm.pre2syn(self.pre.spike, self.pre_ids)
     u = bm.where(syn_sps, u + self.U * (1 - self.u), u)
     x = bm.where(syn_sps, x - u * self.x, x)

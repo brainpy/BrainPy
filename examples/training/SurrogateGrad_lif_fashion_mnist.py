@@ -45,7 +45,9 @@ class SNN(bp.dyn.Network):
                                        mode=bp.modes.training)
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
-                                       output=bp.synouts.CUBA(), tau=10.,
+                                       delay_step=int(1 / bm.get_dt()),
+                                       output=bp.synouts.CUBA(),
+                                       tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=2.),
                                        mode=bp.modes.training)
 
@@ -160,10 +162,11 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
     loss = bp.losses.cross_entropy_loss(predicts, targets)
     return loss + l2_loss + l1_loss
 
-  f_opt = bp.optim.Adam(lr=lr)
-  trainer = bp.train.BPTT(model, loss_fun, f_opt,
-                          monitors={'r.spike': net.r.spike},
-                          dyn_vars={'rand': bm.random.DEFAULT})
+  trainer = bp.train.BPTT(
+    model, loss_fun,
+    optimizer=bp.optim.Adam(lr=lr),
+    monitors={'r.spike': net.r.spike},
+  )
   trainer.fit(lambda: sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs),
               num_epoch=nb_epochs)
   return trainer.train_losses
@@ -172,7 +175,7 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
 def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_steps=100, nb_inputs=28 * 28):
   """ Computes classification accuracy on supplied data in batches. """
   accs = []
-  runner = bp.dyn.DSRunner(model, dyn_vars={'rand': bm.random.DEFAULT}, progress_bar=False)
+  runner = bp.dyn.DSRunner(model, progress_bar=False)
   for x_local, y_local in sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False):
     output = runner.predict(inputs=x_local, inputs_are_batching=True, reset_state=True)
     m = bm.max(output, 1)  # max over time
@@ -184,7 +187,6 @@ def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_st
 
 def get_mini_batch_results(model, x_data, y_data, batch_size=128, nb_steps=100, nb_inputs=28 * 28):
   runner = bp.dyn.DSRunner(model,
-                           dyn_vars={'rand': bm.random.DEFAULT},
                            monitors={'r.spike': model.r.spike},
                            progress_bar=False)
   data = sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False)
@@ -197,7 +199,7 @@ num_input = 28 * 28
 net = SNN(num_in=num_input, num_rec=100, num_out=10)
 
 # load the dataset
-root = r"E:\data\fashion-mnist"
+root = r"D:\data\fashion-mnist"
 train_dataset = bp.datasets.FashionMNIST(root,
                                          train=True,
                                          transform=None,
@@ -229,7 +231,6 @@ plt.show()
 print("Training accuracy: %.3f" % (compute_classification_accuracy(net, x_train, y_train, batch_size=512)))
 print("Test accuracy: %.3f" % (compute_classification_accuracy(net, x_test, y_test, batch_size=512)))
 
-
 outs, spikes = get_mini_batch_results(net, x_train, y_train)
 # Let's plot the hidden layer spiking activity for some input stimuli
 fig = plt.figure(dpi=100)
@@ -247,4 +248,3 @@ for i in range(nb_plt):
     plt.ylabel("Units")
 plt.tight_layout()
 plt.show()
-

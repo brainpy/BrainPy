@@ -9,7 +9,6 @@ Implementation of the paper:
 
 """
 
-import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 import brainpy as bp
@@ -20,7 +19,7 @@ from matplotlib import patches
 bm.set_dt(1.)  # Simulation time step [ms]
 
 # training parameters
-n_batch = 64  # batch size
+n_batch = 128  # batch size
 
 # neuron model and simulation parameters
 reg_f = 1.  # regularization coefficient for firing rate
@@ -34,107 +33,57 @@ input_f0 = 40. / 1000.  # poisson firing rate of input neurons in khz
 regularization_f0 = reg_rate / 1000.  # mean target network firing frequency
 
 
-class ALIF(bp.dyn.NeuGroup):
-  def __init__(
-      self, num_in, num_rec, tau=20., thr=0.03,
-      dampening_factor=0.3, tau_adaptation=200.,
-      stop_z_gradients=False, n_refractory=1,
-      name=None, mode=bp.modes.training,
-  ):
-    super(ALIF, self).__init__(name=name, size=num_rec, mode=mode)
-
-    self.n_in = num_in
-    self.n_rec = num_rec
-    self.n_regular = int(num_rec / 2)
-    self.n_adaptive = num_rec - self.n_regular
-
-    self.n_refractory = n_refractory
-    self.tau_adaptation = tau_adaptation
-    # generate threshold decay time constants #
-    rhos = bm.exp(- bm.get_dt() / tau_adaptation)  # decay factors for adaptive threshold
-    beta = 1.7 * (1 - rhos) / (1 - bm.exp(-1 / tau))  # this is a heuristic value
-    # multiplicative factors for adaptive threshold
-    self.beta = bm.concatenate([bm.zeros(self.n_regular), beta * bm.ones(self.n_adaptive)])
-
-    self.decay_b = jnp.exp(-bm.get_dt() / tau_adaptation)
-    self.decay = jnp.exp(-bm.get_dt() / tau)
-    self.dampening_factor = dampening_factor
-    self.stop_z_gradients = stop_z_gradients
-    self.tau = tau
-    self.thr = thr
-    self.mask = jnp.diag(jnp.ones(num_rec, dtype=bool))
-
-    # parameters
-    self.w_in = bm.TrainVar(bm.random.randn(num_in, self.num) / jnp.sqrt(num_in))
-    self.w_rec = bm.TrainVar(bm.random.randn(self.num, self.num) / jnp.sqrt(self.num))
-
-    # Variables
-    self.v = bm.Variable(jnp.zeros((1, self.num)), batch_axis=0)
-    self.b = bm.Variable(jnp.zeros((1, self.num)), batch_axis=0)
-    self.r = bm.Variable(jnp.zeros((1, self.num)), batch_axis=0)
-    self.spike = bm.Variable(jnp.zeros((1, self.num)), batch_axis=0)
-
-  def reset_state(self, batch_size=1):
-    self.v.value = bm.Variable(jnp.zeros((batch_size, self.n_rec)))
-    self.b.value = bm.Variable(jnp.zeros((batch_size, self.n_rec)))
-    self.r.value = bm.Variable(jnp.zeros((batch_size, self.n_rec)))
-    self.spike.value = bm.Variable(jnp.zeros((batch_size, self.n_rec)))
-
-  def compute_z(self, v, b):
-    adaptive_thr = self.thr + b * self.beta
-    v_scaled = (v - adaptive_thr) / self.thr
-    z = bm.spike_with_relu_grad(v_scaled, self.dampening_factor)
-    z = z * 1 / bm.get_dt()
-    return z
-
-  def update(self, sha, x):
-    z = self.spike.value
-    if self.stop_z_gradients:
-      z = stop_gradient(z)
-
-    # threshold update does not have to depend on the stopped-gradient-z, it's local
-    new_b = self.decay_b * self.b.value + self.spike.value
-
-    # gradients are blocked in spike transmission
-    i_t = jnp.matmul(x.value, self.w_in.value) + jnp.matmul(z, jnp.where(self.mask, 0, self.w_rec.value))
-    i_reset = z * self.thr * bm.get_dt()
-    new_v = self.decay * self.v + i_t - i_reset
-
-    # spike generation
-    self.spike.value = bm.where(self.r.value > 0, 0., self.compute_z(new_v, new_b))
-    new_r = bm.clip(self.r.value + self.n_refractory * self.spike - 1, 0, self.n_refractory)
-    self.r.value = stop_gradient(new_r)
-    self.v.value = new_v
-    self.b.value = new_b
-
-
 class EligSNN(bp.dyn.Network):
-  def __init__(self, num_in, num_rec, num_out, stop_z_gradients=False):
+  def __init__(self, num_in, num_rec, num_out, eprop=True, tau_a=2e3, tau_v=2e1):
     super(EligSNN, self).__init__()
 
     # parameters
     self.num_in = num_in
     self.num_rec = num_rec
     self.num_out = num_out
+    self.eprop = eprop
 
     # neurons
-    self.r = ALIF(num_in=num_in, num_rec=num_rec, tau=20, tau_adaptation=2000,
-                  n_refractory=5, stop_z_gradients=stop_z_gradients, thr=0.6)
+    self.i = bp.neurons.InputGroup(num_in)
     self.o = bp.neurons.LeakyIntegrator(num_out, tau=20, mode=bp.modes.training)
 
+    n_regular = int(num_rec / 2)
+    n_adaptive = num_rec - n_regular
+    beta1 = bm.exp(- bm.get_dt() / tau_a)
+    beta2 = 1.7 * (1 - beta1) / (1 - bm.exp(-1 / tau_v))
+    beta = bm.concatenate([bm.ones(n_regular), bm.ones(n_adaptive) * beta2])
+    self.r = bp.neurons.ALIFBellec2020(
+      num_rec, V_rest=0., tau_ref=5., V_th=0.6,
+      tau_a=tau_a, tau=tau_v, beta=beta,
+      V_initializer=bp.init.ZeroInit(),
+      a_initializer=bp.init.ZeroInit(),
+      mode=bp.modes.training, eprop=eprop
+    )
+
     # synapses
+    self.i2r = bp.layers.Dense(num_in, num_rec,
+                               W_initializer=bp.init.KaimingNormal(),
+                               b_initializer=None)
+    self.i2r.W *= tau_v
+    self.r2r = bp.layers.Dense(num_rec, num_rec,
+                               W_initializer=bp.init.KaimingNormal(),
+                               b_initializer=None)
+    self.r2r.W *= tau_v
     self.r2o = bp.layers.Dense(num_rec, num_out,
                                W_initializer=bp.init.KaimingNormal(),
                                b_initializer=None)
 
-  def update(self, sha, x):
-    self.r(sha, x)
-    self.o.input += self.r2o(sha, self.r.spike.value)
-    self.o(sha)
+  def update(self, shared, x):
+    self.r.input += self.i2r(shared, x)
+    z = self.r.spike if self.eprop else stop_gradient(self.r.spike.value)
+    self.r.input += self.r2r(shared, z)
+    self.r(shared)
+    self.o.input += self.r2o(shared, self.r.spike.value)
+    self.o(shared)
     return self.o.V.value
 
 
-net = EligSNN(num_in=40, num_rec=100, num_out=2, stop_z_gradients=True)
+net = EligSNN(num_in=40, num_rec=100, num_out=2, eprop=False)
 
 
 @bp.tools.numba_jit
@@ -221,11 +170,11 @@ def loss_fun(predicts, targets):
 trainer = bp.train.BPTT(
   net, loss_fun,
   loss_has_aux=True,
-  optimizer=bp.optimizers.Adam(lr=0.005),
+  optimizer=bp.optimizers.Adam(lr=0.01),
   monitors={'r.spike': net.r.spike},
 )
-trainer.fit(get_data(64, n_in=net.num_in, t_interval=t_cue_spacing, f0=input_f0),
-            num_epoch=30,
+trainer.fit(get_data(n_batch, n_in=net.num_in, t_interval=t_cue_spacing, f0=input_f0),
+            num_epoch=40,
             num_report=10)
 
 # visualization
@@ -243,12 +192,9 @@ for i in range(10):
   # insert empty row
   n_channel = data.shape[1] // 4
   zero_fill = np.zeros((data.shape[0], int(n_channel / 2)))
-  data = np.concatenate((data[:, 3 * n_channel:],
-                         zero_fill,
-                         data[:, 2 * n_channel:3 * n_channel],
-                         zero_fill,
-                         data[:, :n_channel],
-                         zero_fill,
+  data = np.concatenate((data[:, 3 * n_channel:], zero_fill,
+                         data[:, 2 * n_channel:3 * n_channel], zero_fill,
+                         data[:, :n_channel], zero_fill,
                          data[:, n_channel:2 * n_channel]), axis=1)
   ax_inp.set_yticklabels([])
   ax_inp.add_patch(patches.Rectangle((0, 2 * n_channel + 2 * int(n_channel / 2)),

@@ -1052,7 +1052,10 @@ register_pytree_node(RandomState,
                      lambda aux_data, flat_contents: RandomState(*flat_contents))
 
 # default random generator
-DEFAULT = RandomState(np.random.randint(0, 10000, size=2, dtype=np.uint32))
+__a = JaxArray(None)
+__a._value = np.random.randint(0, 10000, size=2, dtype=np.uint32)
+DEFAULT = RandomState(__a)
+del __a
 
 
 @wraps(np.random.default_rng)

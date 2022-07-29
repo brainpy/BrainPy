@@ -79,9 +79,6 @@ class Delta(TwoEndConn):
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength. Default is 1.
-  post_input_key: str
-    The key of the post variable. It should be a string. The key should
-    be the attribute of the post-synaptic neuron group.
   post_ref_key: str
     Whether the post-synaptic group has refractory period.
   """
@@ -91,16 +88,15 @@ class Delta(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: Optional[SynOutput] = None,
+      output: SynOutput = None,
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       delay_step: Union[float, Tensor, Initializer, Callable] = None,
-      post_input_key: str = 'V',
       post_ref_key: str = None,
-      name: str = None,
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
@@ -108,14 +104,12 @@ class Delta(TwoEndConn):
                                 pre=pre,
                                 post=post,
                                 conn=conn,
-                                output=CUBA() if output is None else output,
+                                output=CUBA(target_var='V') if output is None else output,
                                 stp=stp,
                                 mode=mode)
 
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
-    self.post_input_key = post_input_key
-    self.check_post_attrs(post_input_key)
     self.post_ref_key = post_ref_key
     if post_ref_key:
       self.check_post_attrs(post_ref_key)
@@ -166,11 +160,9 @@ class Delta(TwoEndConn):
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     if self.post_ref_key:
       post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))
-    post_vs = self.output(post_vs)
 
     # update outputs
-    target = getattr(self.post, self.post_input_key)
-    target += post_vs
+    return self.output(post_vs)
 
 
 class Exponential(TwoEndConn):
@@ -279,10 +271,10 @@ class Exponential(TwoEndConn):
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       tau: Union[float, Tensor] = 8.0,
-      name: str = None,
       method: str = 'exp_auto',
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
@@ -351,10 +343,9 @@ class Exponential(TwoEndConn):
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
     self.g.value = self.integral(self.g.value, t, dt) + post_vs
-    g_out = self.output(self.g)
 
     # output
-    self.post.input += g_out
+    return self.output(self.g)
 
 
 class DualExponential(TwoEndConn):
@@ -465,9 +456,9 @@ class DualExponential(TwoEndConn):
       tau_rise: Union[float, Tensor] = 1.,
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
@@ -547,10 +538,9 @@ class DualExponential(TwoEndConn):
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    post_vs = self.output(post_vs)
 
     # output
-    self.post.input += post_vs
+    return self.output(post_vs)
 
 
 class Alpha(DualExponential):
@@ -645,9 +635,9 @@ class Alpha(DualExponential):
       delay_step: Union[int, Tensor, Initializer, Callable] = None,
       tau_decay: Union[float, Tensor] = 10.0,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
   ):
@@ -822,7 +812,7 @@ class NMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: Optional[SynOutput] = None,
+      output: SynOutput = None,
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
@@ -831,9 +821,9 @@ class NMDA(TwoEndConn):
       a: Union[float, Tensor] = 0.5,
       tau_rise: Union[float, Tensor] = 2.,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
+      # other parameters
+      name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
 
@@ -950,7 +940,6 @@ class NMDA(TwoEndConn):
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    post_vs = self.output(post_vs)
 
     # output
-    self.post.input += post_vs
+    return self.output(post_vs)

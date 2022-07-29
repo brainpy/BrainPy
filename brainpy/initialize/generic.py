@@ -8,7 +8,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy.tools.others import to_size
 from brainpy.types import Shape, Tensor
-from brainpy.modes import Mode, NormalMode, BatchingMode, TrainingMode
+from brainpy.modes import Mode, NormalMode, BatchingMode
 from .base import Initializer
 
 

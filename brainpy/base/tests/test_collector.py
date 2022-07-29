@@ -31,11 +31,11 @@ class GABAa_without_Variable(bp.dyn.TwoEndConn):
 
     self.int_s = bp.odeint(lambda s, t, TT: self.alpha * TT * (1 - s) - self.beta * s)
 
-  def update(self, t, dt):
+  def update(self, tdi):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike[:] = bp.math.where(spike, t, self.t_last_pre_spike)
-    TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s[:] = self.int_s(self.s, t, TT)
+    self.t_last_pre_spike[:] = bp.math.where(spike, tdi.t, self.t_last_pre_spike)
+    TT = ((tdi.t - self.t_last_pre_spike) < self.T_duration) * self.T
+    self.s[:] = self.int_s(self.s, tdi.t, TT)
     self.post.inputs -= bp.math.sum(self.s, axis=0) * (self.post.V - self.E)
 
 
@@ -83,8 +83,8 @@ class HH_without_Variable(bp.dyn.NeuGroup):
 
     return dVdt, dhdt, dndt
 
-  def update(self, t, dt):
-    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
+  def update(self, tdi):
+    V, h, n = self.integral(self.V, self.h, self.n, tdi.t, self.inputs)
     self.spikes[:] = bp.math.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
@@ -160,8 +160,8 @@ class HH_with_Variable(bp.dyn.NeuGroup):
 
     return dVdt, dhdt, dndt
 
-  def update(self, t, dt):
-    V, h, n = self.integral(self.V, self.h, self.n, t, self.inputs)
+  def update(self, tdi):
+    V, h, n = self.integral(self.V, self.h, self.n, tdi.t, self.inputs)
     self.spikes[:] = bp.math.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V[:] = V
     self.h[:] = h
@@ -215,11 +215,11 @@ class GABAa_with_Variable(bp.dyn.TwoEndConn):
     self.s = bp.math.Variable(bp.math.zeros(self.size))
     self.int_s = bp.odeint(lambda s, t, TT: self.alpha * TT * (1 - s) - self.beta * s)
 
-  def update(self, t, _i):
+  def update(self, tdi):
     spike = bp.math.reshape(self.pre.spikes, (self.pre.num, 1)) * self.conn_mat
-    self.t_last_pre_spike[:] = bp.math.where(spike, t, self.t_last_pre_spike)
-    TT = ((t - self.t_last_pre_spike) < self.T_duration) * self.T
-    self.s[:] = self.int_s(self.s, t, TT)
+    self.t_last_pre_spike[:] = bp.math.where(spike, tdi.t, self.t_last_pre_spike)
+    TT = ((tdi.t - self.t_last_pre_spike) < self.T_duration) * self.T
+    self.s[:] = self.int_s(self.s, tdi.t, TT)
     self.post.inputs -= bp.math.sum(self.g_max * self.s, axis=0) * (self.post.V - self.E)
 
 
@@ -240,12 +240,11 @@ def test_net_1():
   # nodes
   print()
   pprint(list(net.nodes().unique().keys()))
-  assert len(net.nodes()) == 7
+  assert len(net.nodes()) == 5
 
   print()
   pprint(list(net.nodes(method='relative').unique().keys()))
-  assert len(net.nodes(method='relative')) == 10
-
+  assert len(net.nodes(method='relative')) == 6
 
 
 def test_net_vars_2():
@@ -265,9 +264,23 @@ def test_net_vars_2():
   # nodes
   print()
   pprint(list(net.nodes().keys()))
-  assert len(net.nodes()) == 7
+  assert len(net.nodes()) == 5
 
   print()
   pprint(list(net.nodes(method='relative').keys()))
-  assert len(net.nodes(method='relative')) == 10
+  assert len(net.nodes(method='relative')) == 6
+
+
+def test_hidden_variables():
+  class BPClass(bp.base.Base):
+    def __init__(self):
+      super(BPClass, self).__init__()
+
+      self._rng_ = bp.math.random.RandomState()
+      self.rng = bp.math.random.RandomState()
+
+  model = BPClass()
+
+  print(model.vars(level=-1).keys())
+  assert len(model.vars(level=-1)) == 1
 
