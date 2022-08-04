@@ -34,7 +34,11 @@ __all__ = [
   'NeuGroup', 'CondNeuGroup',
 
   # synapse models
-  'SynConn', 'SynOutput', 'SynSTP', 'SynLTP', 'TwoEndConn',
+  'SynConn',
+  'TwoEndConn',
+  'SynOut', 'NullSynOut',
+  'SynSTP', 'NullSynSTP',
+  'SynLTP', 'NullSynLTP',
 ]
 
 
@@ -752,15 +756,33 @@ class SynConn(DynamicalSystem):
 class SynComponent(DynamicalSystem):
   master: SynConn
 
+  def __init__(self, *args, **kwargs):
+    super(SynComponent, self).__init__(*args, **kwargs)
+
+    self._registered = False
+
+  @property
+  def isregistered(self) -> bool:
+    return self._registered
+
+  @isregistered.setter
+  def isregistered(self, val: bool):
+    if not isinstance(val, bool):
+      raise ValueError('Must be an instance of bool.')
+    self._registered = val
+
   def reset_state(self, batch_size=None):
     pass
 
   def register_master(self, master: SynConn):
     if not isinstance(master, SynConn):
       raise TypeError(f'master must be instance of {SynConn.__name__}, but we got {type(master)}')
+    if self.isregistered:
+      raise ValueError(f'master has been registered, but we got another master going to be registered.')
     if hasattr(self, 'master') and self.master != master:
       raise ValueError(f'master has been registered, but we got another master going to be registered.')
     self.master = master
+    self._registered = True
 
   def __repr__(self):
     return self.__class__.__name__
@@ -768,11 +790,14 @@ class SynComponent(DynamicalSystem):
   def __call__(self, *args, **kwargs):
     return self.filter(*args, **kwargs)
 
+  def clone(self) -> 'SynComponent':
+    raise NotImplementedError
+
   def filter(self, g):
     raise NotImplementedError
 
 
-class SynOutput(SynComponent):
+class SynOut(SynComponent):
   """Base class for synaptic current output."""
 
   def __init__(
@@ -780,7 +805,7 @@ class SynOutput(SynComponent):
       name: str = None,
       target_var: Union[str, bm.Variable] = None,
   ):
-    super(SynOutput, self).__init__(name=name)
+    super(SynOut, self).__init__(name=name)
     # check target variable
     if target_var is not None:
       if not isinstance(target_var, (str, bm.Variable)):
@@ -789,7 +814,8 @@ class SynOutput(SynComponent):
     self.target_var: Optional[bm.Variable] = target_var
 
   def register_master(self, master: SynConn):
-    super(SynOutput, self).register_master(master)
+    super(SynOut, self).register_master(master)
+
     # initialize target variable to output
     if isinstance(self.target_var, str):
       if not hasattr(self.master.post, self.target_var):
@@ -818,6 +844,27 @@ class SynLTP(SynComponent):
 
   def update(self, tdi, pre_spike):
     pass
+
+
+class NullSynOut(SynOut):
+  def clone(self):
+    return NullSynOut()
+
+
+class NullSynSTP(SynSTP):
+  def clone(self):
+    return NullSynSTP()
+
+  def filter(self, g):
+    return g
+
+
+class NullSynLTP(SynLTP):
+  def clone(self):
+    return NullSynLTP()
+
+  def filter(self, g):
+    return g
 
 
 class TwoEndConn(SynConn):
@@ -858,9 +905,9 @@ class TwoEndConn(SynConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
-      output: Optional[SynOutput] = None,
-      stp: Optional[SynSTP] = None,
-      ltp: Optional[SynLTP] = None,
+      output: SynOut = NullSynOut(),
+      stp: SynSTP = NullSynSTP(),
+      ltp: SynLTP = NullSynLTP(),
       name: str = None,
       mode: Mode = normal,
   ):
@@ -871,28 +918,31 @@ class TwoEndConn(SynConn):
                                      mode=mode)
 
     # synaptic output
-    if output is not None:
-      if not isinstance(output, SynOutput):
-        raise TypeError(f'output must be instance of {SynOutput.__name__}, '
-                        f'but we got {type(output)}')
-      output.register_master(master=self)
-    self.output: Optional[SynOutput] = output
+    output = NullSynOut() if output is None else output
+    if output.isregistered: output = output.clone()
+    if not isinstance(output, SynOut):
+      raise TypeError(f'output must be instance of {SynOut.__name__}, '
+                      f'but we got {type(output)}')
+    output.register_master(master=self)
+    self.output: SynOut = output
 
     # short-term synaptic plasticity
-    if stp is not None:
-      if not isinstance(stp, SynSTP):
-        raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
-                        f'but we got {type(stp)}')
-      stp.register_master(master=self)
-    self.stp: Optional[SynSTP] = stp
+    stp = NullSynSTP() if stp is None else stp
+    if stp.isregistered: stp = stp.clone()
+    if not isinstance(stp, SynSTP):
+      raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
+                      f'but we got {type(stp)}')
+    stp.register_master(master=self)
+    self.stp: SynSTP = stp
 
     # long-term synaptic plasticity
-    if ltp is not None:
-      if not isinstance(ltp, SynLTP):
-        raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
-                        f'but we got {type(ltp)}')
-      ltp.register_master(master=self)
-    self.ltp: Optional[SynLTP] = ltp
+    ltp = NullSynLTP() if ltp is None else ltp
+    if ltp.isregistered: ltp = ltp.clone()
+    if not isinstance(ltp, SynLTP):
+      raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
+                      f'but we got {type(ltp)}')
+    ltp.register_master(master=self)
+    self.ltp: SynLTP = ltp
 
   def init_weights(
       self,

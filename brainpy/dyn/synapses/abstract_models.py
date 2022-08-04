@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import warnings
 from typing import Union, Dict, Callable, Optional
 
 from jax import vmap
 from jax.lax import stop_gradient
+
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn
+from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
+from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.types import Tensor
-from brainpy.modes import Mode, BatchingMode, TrainingMode, normal, batching, training
 from ..synouts import CUBA, MgBlock
 
 __all__ = [
@@ -88,7 +88,7 @@ class Delta(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = CUBA(target_var='V'),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
@@ -104,7 +104,7 @@ class Delta(TwoEndConn):
                                 pre=pre,
                                 post=post,
                                 conn=conn,
-                                output=CUBA(target_var='V') if output is None else output,
+                                output=output,
                                 stp=stp,
                                 mode=mode)
 
@@ -265,7 +265,7 @@ class Exponential(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
@@ -281,7 +281,7 @@ class Exponential(TwoEndConn):
     super(Exponential, self).__init__(pre=pre,
                                       post=post,
                                       conn=conn,
-                                      output=CUBA() if output is None else output,
+                                      output=output,
                                       stp=stp,
                                       name=name,
                                       mode=mode)
@@ -449,7 +449,7 @@ class DualExponential(TwoEndConn):
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
       stp: Optional[SynSTP] = None,
-      output: SynOutput = None,
+      output: SynOut = CUBA(),
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
       tau_decay: Union[float, Tensor] = 10.0,
@@ -465,7 +465,7 @@ class DualExponential(TwoEndConn):
     super(DualExponential, self).__init__(pre=pre,
                                           post=post,
                                           conn=conn,
-                                          output=CUBA() if output is None else output,
+                                          output=output,
                                           stp=stp,
                                           name=name,
                                           mode=mode)
@@ -628,7 +628,7 @@ class Alpha(DualExponential):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 1.,
@@ -650,7 +650,7 @@ class Alpha(DualExponential):
                                 tau_decay=tau_decay,
                                 tau_rise=tau_decay,
                                 method=method,
-                                output=CUBA() if output is None else output,
+                                output=output,
                                 stp=stp,
                                 name=name,
                                 mode=mode,
@@ -767,29 +767,6 @@ class NMDA(TwoEndConn):
     The name of this synaptic projection.
   method: str
     The numerical integration methods.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-
-    .. deprecated:: 2.1.13
-       Parameter `E` is no longer supported. Please use :py:class:`~.MgBlock` instead.
-
-  alpha: float, JaxArray, ndarray
-    Binding constant. Default 0.062
-
-    .. deprecated:: 2.1.13
-       Parameter `alpha` is no longer supported. Please use :py:class:`~.MgBlock` instead.
-
-  beta: float, JaxArray, ndarray
-    Unbinding constant. Default 3.57
-
-    .. deprecated:: 2.1.13
-       Parameter `beta` is no longer supported. Please use :py:class:`~.MgBlock` instead.
-
-  cc_Mg: float, JaxArray, ndarray
-    Concentration of Magnesium ion. Default 1.2 [mM].
-
-    .. deprecated:: 2.1.13
-       Parameter `cc_Mg` is no longer supported. Please use :py:class:`~.MgBlock` instead.
 
   References
   ----------
@@ -812,7 +789,7 @@ class NMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = MgBlock(E=0., alpha=0.062, beta=3.57, cc_Mg=1.2),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
@@ -826,45 +803,7 @@ class NMDA(TwoEndConn):
       name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
-
-      # deprecated
-      alpha=None,
-      beta=None,
-      cc_Mg=None,
-      E=None,
   ):
-
-    if output is not None:
-      if alpha is not None:
-        raise ValueError(f'Please set "alpha" in "output" argument.')
-      if beta is not None:
-        raise ValueError(f'Please set "beta" in "output" argument.')
-      if cc_Mg is not None:
-        raise ValueError(f'Please set "cc_Mg" in "output" argument.')
-      if E is not None:
-        raise ValueError(f'Please set "E" in "output" argument.')
-    else:
-      if alpha is not None:
-        warnings.warn('Please set "alpha" by using "output=bp.dyn.synouts.MgBlock(alpha)" instead.',
-                      DeprecationWarning)
-      else:
-        alpha = 0.062
-      if beta is not None:
-        warnings.warn('Please set "beta" by using "output=bp.dyn.synouts.MgBlock(beta)" instead.',
-                      DeprecationWarning)
-      else:
-        beta = 3.57
-      if cc_Mg is not None:
-        warnings.warn('Please set "cc_Mg" by using "output=bp.dyn.synouts.MgBlock(cc_Mg)" instead.',
-                      DeprecationWarning)
-      else:
-        cc_Mg = 1.2
-      if E is not None:
-        warnings.warn('Please set "E" by using "output=bp.dyn.synouts.MgBlock(E)" instead.',
-                      DeprecationWarning)
-      else:
-        E = 0.
-      output = MgBlock(E=E, alpha=alpha, beta=beta, cc_Mg=cc_Mg)
     super(NMDA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,

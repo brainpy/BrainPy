@@ -8,7 +8,7 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOutput
+from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
 from brainpy.dyn.synouts import COBA, MgBlock
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
@@ -140,7 +140,7 @@ class AMPA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = COBA(E=0.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
@@ -155,19 +155,11 @@ class AMPA(TwoEndConn):
       name: str = None,
       mode: Mode = normal,
       stop_spike_gradient: bool = False,
-
-      # deprecated
-      E: float = None,
   ):
-    _E = 0.
-    if E is not None:
-      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
-                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
-      _E = E
     super(AMPA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,
-                               output=COBA(E=_E) if output is None else output,
+                               output=output,
                                stp=stp,
                                name=name,
                                mode=mode)
@@ -322,7 +314,7 @@ class GABAa(AMPA):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = COBA(E=-80.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
@@ -341,15 +333,10 @@ class GABAa(AMPA):
       # deprecated
       E: Union[float, Tensor] = None,
   ):
-    _E = -80.
-    if E is not None:
-      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
-                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
-      _E = E
     super(GABAa, self).__init__(pre=pre,
                                 post=post,
                                 conn=conn,
-                                output=COBA(E=_E) if output is None else output,
+                                output=output,
                                 stp=stp,
                                 comp_method=comp_method,
                                 delay_step=delay_step,
@@ -490,7 +477,7 @@ class BioNMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = MgBlock(E=0.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
@@ -511,7 +498,7 @@ class BioNMDA(TwoEndConn):
     super(BioNMDA, self).__init__(pre=pre,
                                   post=post,
                                   conn=conn,
-                                  output=MgBlock(E=0.) if output is None else output,
+                                  output=output,
                                   stp=stp,
                                   name=name,
                                   mode=mode)

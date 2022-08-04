@@ -1,5 +1,5 @@
-Dynamics Simulation
-===================
+Model Simulation
+================
 
 .. toctree::
    :maxdepth: 1

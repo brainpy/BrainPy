@@ -252,8 +252,11 @@ def generate_datasets_docs(path='apis/auto/datasets/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_module(module_name='brainpy.datasets.chaotic_systems',
-               filename=os.path.join(path, 'chaotic_systems.rst'),
+  write_module(module_name='brainpy.datasets.chaos',
+               filename=os.path.join(path, 'chaos.rst'),
+               header='Chaotic Systems')
+  write_module(module_name='brainpy.datasets.vision',
+               filename=os.path.join(path, 'vision.rst'),
                header='Chaotic Systems')
 
 
@@ -309,7 +312,7 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   module_and_name = [
     ('conv', 'Convolutional Layers'),
     ('dropout', 'Dropout Layers'),
-    ('dense', 'Dense Connection Layers'),
+    ('linear', 'Dense Connection Layers'),
     ('nvar', 'NVAR Layers'),
     ('reservoir', 'Reservoir Layers'),
     ('rnncells', 'Artificial Recurrent Layers'),
@@ -324,7 +327,7 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   module_and_name = [
     ('abstract_models', 'Abstract Models'),
     ('biological_models', 'Biological Models'),
-    ('couplings', 'Coupling Models'),
+    ('delay_couplings', 'Coupling Models'),
     ('gap_junction', 'Gap Junction Models'),
     ('learning_rules', 'Learning Rule Models'),
   ]

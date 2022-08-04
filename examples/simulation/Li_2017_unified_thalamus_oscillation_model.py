@@ -99,7 +99,7 @@ class TRN(bp.dyn.CondNeuGroup):
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ca=Ca)
 
 
-class MgBlock(bp.dyn.SynOutput):
+class MgBlock(bp.dyn.SynOut):
   def __init__(self, E=0.):
     super(MgBlock, self).__init__()
     self.E = E

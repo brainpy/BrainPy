@@ -15,7 +15,7 @@ from brainpy.errors import UnsupportedError
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others import DotDict
 from brainpy.types import Tensor, Output
-from . import constants as c
+from ..running import constants as c
 from .base import DSTrainer
 
 __all__ = [
@@ -350,7 +350,7 @@ class BPTT(BPTrainer):
 
   def _get_data_by_tensor(self, dataset, num_batch=None, shuffle=False):
     if num_batch is None:
-      raise ValueError('Must provide "num_batch" when dataset is not a callable function.')
+      raise ValueError('Must provide "batch_size" when dataset is not a callable function.')
     assert isinstance(dataset, (tuple, list)) and len(dataset) == 2
     xs, ys = dataset
     num_sample = self._get_batch_size(xs)

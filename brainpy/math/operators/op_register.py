@@ -7,7 +7,6 @@ from jax.tree_util import tree_map
 
 from brainpy.base import Base
 from brainpy.math.jaxarray import JaxArray
-from brainpy import tools
 from .utils import _check_brainpylib
 
 try:
@@ -22,54 +21,68 @@ __all__ = [
 
 
 class XLACustomOp(Base):
-  def __init__(self, name=None, apply_cpu_func_to_gpu: bool = False):
+  """Creating a XLA custom call operator.
+
+  Parameters
+  ----------
+  name: str
+    The name of operator.
+  eval_shape: callable
+    The function to evaluate the shape and dtype of the output according to the input.
+    This function should receive the abstract information of inputs, and return the
+    abstract information of the outputs. For example:
+
+    >>> def eval_shape(inp1_info, inp2_info, inp3_info, ...):
+    >>>   return out1_info, out2_info
+  con_compute: callable
+    The function to make the concrete computation. This function receives inputs,
+    and returns outputs. For example:
+
+    >>> def con_compute(inp1, inp2, inp3, ...):
+    >>>   return out1, out2
+  cpu_func: callable
+    The function defines the computation on CPU backend. Same as ``con_compute``.
+  gpu_func: callable
+    The function defines the computation on GPU backend. Currently, this function is not supportted.
+  apply_cpu_func_to_gpu: bool
+    Whether allows to apply CPU function on GPU backend. If True, the GPU data will move to CPU,
+    and after calculation, the returned outputs on CPU backend will move to GPU.
+  """
+
+  def __init__(
+      self,
+      eval_shape: Callable = None,
+      con_compute: Callable = None,
+      cpu_func: Callable = None,
+      gpu_func: Callable = None,
+      apply_cpu_func_to_gpu: bool = False,
+      name: str = None,
+  ):
     _check_brainpylib(register_op.__name__)
     super(XLACustomOp, self).__init__(name=name)
 
     # abstract evaluation function
-    if hasattr(self.eval_shape, 'not_customized') and self.eval_shape.not_customized:
-      raise ValueError('Must implement "eval_shape" for abstract evaluation.')
+    if eval_shape is None:
+      raise ValueError('Must provide "eval_shape" for abstract evaluation.')
 
     # cpu function
-    if hasattr(self.con_compute, 'not_customized') and self.con_compute.not_customized:
-      if hasattr(self.cpu_func, 'not_customized') and self.cpu_func.not_customized:
-        raise ValueError('Must implement one of "cpu_func" or "con_compute".')
-      else:
-        cpu_func = self.cpu_func
+    if con_compute is None:
+      if cpu_func is None:
+        raise ValueError('Must provide one of "cpu_func" or "con_compute".')
     else:
-      cpu_func = self.con_compute
+      cpu_func = con_compute
 
     # gpu function
-    if hasattr(self.gpu_func, 'not_customized') and self.gpu_func.not_customized:
+    if gpu_func is None:
       gpu_func = None
-    else:
-      gpu_func = self.gpu_func
 
     # register OP
-    self.op = brainpylib.register_op(self.name,
-                                     cpu_func=cpu_func,
-                                     gpu_func=gpu_func,
-                                     out_shapes=self.eval_shape,
-                                     apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
-
-  @tools.not_customized
-  def eval_shape(self, *args, **kwargs):
-    raise NotImplementedError
-
-  @staticmethod
-  @tools.not_customized
-  def con_compute(*args, **kwargs):
-    raise NotImplementedError
-
-  @staticmethod
-  @tools.not_customized
-  def cpu_func(*args, **kwargs):
-    raise NotImplementedError
-
-  @staticmethod
-  @tools.not_customized
-  def gpu_func(*args, **kwargs):
-    raise NotImplementedError
+    _, self.op = brainpylib.register_op(self.name,
+                                        cpu_func=cpu_func,
+                                        gpu_func=gpu_func,
+                                        out_shapes=eval_shape,
+                                        apply_cpu_func_to_gpu=apply_cpu_func_to_gpu,
+                                        return_primitive=True)
 
   def __call__(self, *args, **kwargs):
     args = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,

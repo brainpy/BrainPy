@@ -9,7 +9,7 @@ from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
 from brainpy.tools.checking import check_dict_data
 from brainpy.types import Tensor, Output
-from . import constants as c
+from ..running import constants as c
 
 __all__ = [
   'DSTrainer',

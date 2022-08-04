@@ -13,8 +13,7 @@ This module provides basic mathematical operations, including:
 - automatic differentiation for class objects
 - dedicated operators for brain dynamics
 - activation functions
-- device switching
-- default type switching
+- device/dtype switching
 - and others
 
 Details in the following.

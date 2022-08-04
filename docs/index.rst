@@ -9,8 +9,8 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
   stochastic differential equations (SDEs),
   delay differential equations (DDEs),
   fractional differential equations (FDEs), etc.
-- **Dynamics simulation** tools for various brain objects, like
-  neurons, synapses, networks, soma, dendrites, channels, and even more.
+- **Dynamics building** with the modular and composable programming interface.
+- **Dynamics simulation** tools for various brain objects.
 - **Dynamics training** tools with various machine learning algorithms,
   like FORCE learning, ridge regression, back-propagation, etc.
 - **Dynamics analysis** tools for differential equations, including
@@ -48,6 +48,7 @@ The code of BrainPy is open-sourced at GitHub:
    :caption: BDP Tutorials
 
    tutorial_basics/index
+   tutorial_building/index
    tutorial_simulation/index
    tutorial_training/index
    tutorial_analysis/index

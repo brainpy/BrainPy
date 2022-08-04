@@ -3,7 +3,7 @@
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
-from brainpy.dyn.base import SynOutput
+from brainpy.dyn.base import SynOut
 from brainpy.initialize import parameter, Initializer
 from brainpy.types import Tensor
 
@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class MgBlock(SynOutput):
+class MgBlock(SynOut):
   r"""Synaptic output based on Magnesium blocking.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -54,30 +54,34 @@ class MgBlock(SynOutput):
       name: str = None,
   ):
     super(MgBlock, self).__init__(name=name, target_var=target_var)
-    self.E = E
-    self.cc_Mg = cc_Mg
-    self.alpha = alpha
-    self.beta = beta
-    self.membrane_var = membrane_var
+    self._E = E
+    self._cc_Mg = cc_Mg
+    self._alpha = alpha
+    self._beta = beta
+    self._membrane_var = membrane_var
 
   def register_master(self, master):
     super(MgBlock, self).register_master(master)
-    self.E = parameter(self.E, self.master.post.num, allow_none=False)
-    self.cc_Mg = parameter(self.cc_Mg, self.master.post.num, allow_none=False)
-    self.alpha = parameter(self.alpha, self.master.post.num, allow_none=False)
-    self.beta = parameter(self.beta, self.master.post.num, allow_none=False)
 
-    if isinstance(self.membrane_var, str):
-      if not hasattr(self.master.post, self.membrane_var):
-        raise KeyError(f'Post-synaptic group does not have membrane variable: {self.membrane_var}')
-      self.membrane_var = getattr(self.master.post, self.membrane_var)
-    elif isinstance(self.membrane_var, bm.Variable):
-      self.membrane_var = self.membrane_var
+    self.E = parameter(self._E, self.master.post.num, allow_none=False)
+    self.cc_Mg = parameter(self._cc_Mg, self.master.post.num, allow_none=False)
+    self.alpha = parameter(self._alpha, self.master.post.num, allow_none=False)
+    self.beta = parameter(self._beta, self.master.post.num, allow_none=False)
+    if isinstance(self._membrane_var, str):
+      if not hasattr(self.master.post, self._membrane_var):
+        raise KeyError(f'Post-synaptic group does not have membrane variable: {self._membrane_var}')
+      self.membrane_var = getattr(self.master.post, self._membrane_var)
+    elif isinstance(self._membrane_var, bm.Variable):
+      self.membrane_var = self._membrane_var
     else:
       raise TypeError('"membrane_var" must be instance of string or Variable. '
-                      f'But we got {type(self.membrane_var)}')
+                      f'But we got {type(self._membrane_var)}')
 
   def filter(self, g):
     V = self.membrane_var.value
     I = g * (self.E - V) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * V))
     return super(MgBlock, self).filter(I)
+
+  def clone(self):
+    return MgBlock(E=self._E, cc_Mg=self._cc_Mg, alpha=self._alpha,
+                   beta=self._beta, membrane_var=self._membrane_var)

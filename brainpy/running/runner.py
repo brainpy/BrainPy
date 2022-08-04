@@ -12,6 +12,7 @@ from brainpy.base.collector import TensorCollector
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools.checking import check_dict_data
 from brainpy.tools.others import DotDict
+from . import constants as C
 
 __all__ = [
   'Runner',
@@ -72,11 +73,11 @@ class Runner(object):
     # jit instruction
     self.jit = dict()
     if isinstance(jit, bool):
-      self.jit = {'predict': jit}
+      self.jit = {C.PREDICT_PHASE: jit}
     elif isinstance(jit, dict):
       for k, v in jit.items():
         self.jit[k] = v
-      self.jit = {'predict': jit.pop('predict', True)}
+      self.jit[C.PREDICT_PHASE] = jit.pop(C.PREDICT_PHASE, True)
     else:
       raise ValueError(f'Unknown "jit" setting: {jit}')
 

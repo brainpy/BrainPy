@@ -377,10 +377,7 @@ class MorrisLecar(NeuGroup):
   References
   ----------
 
-  .. [4] Meier, Stephen R., Jarrett L. Lancaster, and Joseph M. Starobin.
-         "Bursting regimes in a reaction-diffusion system with action
-         potential-dependent equilibrium." PloS one 10.3 (2015):
-         e0122401.
+  .. [4] Lecar, Harold. "Morris-lecar model." Scholarpedia 2.10 (2007): 1333.
   .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
   .. [6] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
   """
