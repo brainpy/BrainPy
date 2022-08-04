@@ -4,7 +4,7 @@ from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
-from brainpy.dyn.base import NeuGroup, SynOutput, SynSTP, TwoEndConn
+from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, parameter
 from brainpy.types import Tensor
 from ..synouts import CUBA

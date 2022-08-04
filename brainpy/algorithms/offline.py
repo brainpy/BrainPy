@@ -39,11 +39,35 @@ class OfflineAlgorithm(Base):
   def __init__(self, name=None):
     super(OfflineAlgorithm, self).__init__(name=name)
 
-  def __call__(self, targets, inputs, outputs) -> Tensor:
+  def __call__(self, identifier, target, input, output):
     """The training procedure.
 
     Parameters
     ----------
+    identifier: str
+      The variable name.
+    target: JaxArray, ndarray
+      The 2d target data with the shape of `(num_batch, num_output)`.
+    input: JaxArray, ndarray
+      The 2d input data with the shape of `(num_batch, num_input)`.
+    output: JaxArray, ndarray
+      The 2d output data with the shape of `(num_batch, num_output)`.
+
+    Returns
+    -------
+    weight: JaxArray
+      The weights after fit.
+    """
+    return self.call(identifier, target, input, output)
+
+  def call(self, identifier, targets, inputs, outputs) -> Tensor:
+    """The training procedure.
+
+    Parameters
+    ----------
+    identifier: str
+      The identifier.
+
     inputs: JaxArray, jax.numpy.ndarray, numpy.ndarray
       The 3d input data with the shape of `(num_batch, num_time, num_input)`,
       or, the 2d input data with the shape of `(num_time, num_input)`.
@@ -67,8 +91,7 @@ class OfflineAlgorithm(Base):
     return self.__class__.__name__
 
   def initialize(self, identifier, *args, **kwargs):
-    raise NotImplementedError('Must implement the initialize() '
-                              'function by the subclass itself.')
+    pass
 
 
 def _check_data_2d_atls(x):
@@ -166,7 +189,7 @@ class LinearRegression(RegressionAlgorithm):
                                            regularizer=Regularization(0.))
     self.gradient_descent = gradient_descent
 
-  def __call__(self, targets, inputs, outputs=None):
+  def call(self, identifier, targets, inputs, outputs=None):
     # checking
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))
@@ -225,7 +248,7 @@ class RidgeRegression(RegressionAlgorithm):
                                           regularizer=L2Regularization(alpha=alpha))
     self.gradient_descent = gradient_descent
 
-  def __call__(self, targets, inputs, outputs=None):
+  def call(self, identifier, targets, inputs, outputs=None):
     # checking
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))
@@ -284,7 +307,7 @@ class LassoRegression(RegressionAlgorithm):
     assert gradient_descent
     self.degree = degree
 
-  def __call__(self, targets, inputs, outputs=None):
+  def call(self, identifier, targets, inputs, outputs=None):
     # checking
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))
@@ -332,7 +355,7 @@ class LogisticRegression(RegressionAlgorithm):
     self.gradient_descent = gradient_descent
     self.sigmoid = Sigmoid()
 
-  def __call__(self, targets, inputs, outputs=None) -> Tensor:
+  def call(self, identifier, targets, inputs, outputs=None) -> Tensor:
     # prepare data
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))
@@ -395,11 +418,11 @@ class PolynomialRegression(LinearRegression):
     self.degree = degree
     self.add_bias = add_bias
 
-  def __call__(self, targets, inputs, outputs=None):
+  def call(self, identifier, targets, inputs, outputs=None):
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))
     inputs = polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias)
-    return super(PolynomialRegression, self).__call__(targets, inputs)
+    return super(PolynomialRegression, self).call(identifier, targets, inputs)
 
   def predict(self, W, X):
     X = _check_data_2d_atls(bm.asarray(X))
@@ -431,12 +454,12 @@ class PolynomialRidgeRegression(RidgeRegression):
     self.degree = degree
     self.add_bias = add_bias
 
-  def __call__(self, targets, inputs, outputs=None):
+  def call(self, identifier, targets, inputs, outputs=None):
     # checking
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))
     inputs = polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias)
-    return super(PolynomialRidgeRegression, self).__call__(targets, inputs)
+    return super(PolynomialRidgeRegression, self).call(identifier, targets, inputs)
 
   def predict(self, W, X):
     X = _check_data_2d_atls(bm.asarray(X))
@@ -489,7 +512,7 @@ class ElasticNetRegression(RegressionAlgorithm):
     self.gradient_descent = gradient_descent
     assert gradient_descent
 
-  def __call__(self, targets, inputs, outputs=None):
+  def call(self, identifier, targets, inputs, outputs=None):
     # checking
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))

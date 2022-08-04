@@ -8,4 +8,5 @@
 .. toctree::
     :maxdepth: 1
 
-    auto/datasets/chaotic_systems
+    auto/datasets/chaos
+    auto/datasets/vision

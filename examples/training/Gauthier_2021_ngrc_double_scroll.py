@@ -109,8 +109,8 @@ class NGRC(bp.dyn.DynamicalSystem):
     self.r = bp.layers.NVAR(num_in, delay=2, order=3, mode=bp.modes.batching)
     self.di = bp.layers.Dense(self.r.num_out, num_in, mode=bp.modes.training)
 
-  def update(self, shared, x):
-    di = self.di(shared, self.r(shared, x))
+  def update(self, sha, x):
+    di = self.di(sha, self.r(sha, x))
     return x + di
 
 

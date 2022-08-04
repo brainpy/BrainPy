@@ -38,7 +38,13 @@ class Dropout(DynamicalSystem):
          research 15.1 (2014): 1929-1958.
   """
 
-  def __init__(self, prob, seed=None, mode: Mode = training, name=None):
+  def __init__(
+      self,
+      prob: float,
+      seed: int = None,
+      mode: Mode = training,
+      name: str = None
+  ):
     super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = prob
     self.rng = bm.random.RandomState(seed=seed)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from functools import partial
+
 from typing import Optional
 
 import jax.numpy as jnp
@@ -97,7 +97,9 @@ __all__ = [
   'savetxt', 'savez_compressed', 'show_config', 'typename',
 
   # others
-  'clip_by_norm', 'as_device_array', 'as_variable', 'as_numpy', 'remove_diag',
+  'clip_by_norm', 'remove_diag',
+  'as_device_array', 'as_jax', 'as_ndarray', 'as_numpy',
+  'as_variable',
 ]
 
 _min = min
@@ -156,7 +158,10 @@ def as_device_array(tensor, dtype=None):
     return jnp.asarray(tensor, dtype=dtype)
 
 
-def as_numpy(tensor, dtype=None):
+as_jax = as_device_array
+
+
+def as_ndarray(tensor, dtype=None):
   """Convert the input to a ``numpy.ndarray``.
 
   Parameters
@@ -175,9 +180,12 @@ def as_numpy(tensor, dtype=None):
     is already an ndarray with matching dtype.
   """
   if isinstance(tensor, JaxArray):
-    return tensor.numpy(dtype=dtype)
+    return tensor.to_numpy(dtype=dtype)
   else:
     return np.asarray(tensor, dtype=dtype)
+
+
+as_numpy = as_ndarray
 
 
 def as_variable(tensor, dtype=None):
@@ -1844,7 +1852,6 @@ def linspace(*args, **kwargs):
     return JaxArray(res)
 
 
-
 @wraps(jnp.logspace)
 def logspace(*args, **kwargs):
   return JaxArray(jnp.logspace(*args, **kwargs))
@@ -1886,7 +1893,7 @@ def vander(x, N=None, increasing=False):
   return JaxArray(jnp.vander(x, N=N, increasing=increasing))
 
 
-@wraps(jnp.fill_diagonal)
+@wraps(np.fill_diagonal)
 def fill_diagonal(a, val):
   if not isinstance(a, JaxArray):
     raise ValueError(f'Must be a JaxArray, but got {type(a)}')

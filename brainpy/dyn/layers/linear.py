@@ -9,7 +9,7 @@ from brainpy import math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.modes import Mode, Training, training
+from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Tensor
 
@@ -37,7 +37,7 @@ class Dense(DynamicalSystem):
     The weight initialization.
   b_initializer: optional, Initializer
     The bias initialization.
-  trainable: bool
+  mode: Mode
     Enable training this node or not. (default True)
   """
 
@@ -71,7 +71,7 @@ class Dense(DynamicalSystem):
     # parameter initialization
     self.W = parameter(self.weight_initializer, (num_in, self.num_out))
     self.b = parameter(self.bias_initializer, (self.num_out,))
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 

@@ -3,11 +3,11 @@
 
 __all__ = [
   'Mode',
-  'NonBatching',
-  'Batching',
-  'Training',
+  'NormalMode',
+  'BatchingMode',
+  'TrainingMode',
 
-  'nonbatching',
+  'normal',
   'batching',
   'training',
 ]
@@ -18,20 +18,22 @@ class Mode(object):
     return self.__class__.__name__
 
 
-class NonBatching(Mode):
+class NormalMode(Mode):
+  """Normal non-batching mode."""
   pass
 
 
-class Batching(Mode):
+class BatchingMode(Mode):
+  """Batching mode."""
   pass
 
 
-class Training(Batching):
+class TrainingMode(BatchingMode):
+  """Training mode requires data batching."""
   pass
 
 
-nonbatching = NonBatching()
-batching = Batching()
-training = Training()
-
+normal = NormalMode()
+batching = BatchingMode()
+training = TrainingMode()
 

@@ -5,6 +5,7 @@ from .base import InterLayerInitializer
 
 __all__ = [
   'ZeroInit',
+  'Constant',
   'OneInit',
   'Identity',
 ]
@@ -24,8 +25,8 @@ class ZeroInit(InterLayerInitializer):
     return self.__class__.__name__
 
 
-class OneInit(InterLayerInitializer):
-  """One initializer.
+class Constant(InterLayerInitializer):
+  """Constant initializer.
 
   Initialize the weights with the given values.
 
@@ -36,7 +37,7 @@ class OneInit(InterLayerInitializer):
   """
 
   def __init__(self, value=1.):
-    super(OneInit, self).__init__()
+    super(Constant, self).__init__()
     self.value = value
 
   def __call__(self, shape, dtype=None):
@@ -45,6 +46,12 @@ class OneInit(InterLayerInitializer):
 
   def __repr__(self):
     return f'{self.__class__.__name__}(value={self.value})'
+
+
+class OneInit(Constant):
+  """One initializer.
+  """
+  pass
 
 
 class Identity(InterLayerInitializer):

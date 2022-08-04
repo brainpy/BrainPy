@@ -29,9 +29,16 @@ class Collector(dict):
     self[key] = new_value
 
   def update(self, other, **kwargs):
-    assert isinstance(other, dict)
-    for key, value in other.items():
-      self[key] = value
+    assert isinstance(other, (dict, list, tuple))
+    if isinstance(other, dict):
+      for key, value in other.items():
+        self[key] = value
+    elif isinstance(other, (tuple, list)):
+      num = len(self)
+      for i, value in enumerate(other):
+        self[f'_var{i+num}'] = value
+    else:
+      raise ValueError(f'Only supports dict/list/tuple, but we got {type(other)}')
     for key, value in kwargs.items():
       self[key] = value
 

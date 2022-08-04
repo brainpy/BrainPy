@@ -120,7 +120,7 @@ class Base(object):
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
-        if isinstance(v, math.Variable):
+        if isinstance(v, math.Variable) and not k.startswith('_') and not k.endswith('_'):
           gather[f'{node_path}.{k}' if node_path else k] = v
       gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather

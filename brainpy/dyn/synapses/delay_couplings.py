@@ -8,7 +8,8 @@ from jax import vmap
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import Initializer
-from brainpy.tools.checking import check_sequence, check_integer
+from brainpy.modes import Mode, TrainingMode, normal
+from brainpy.tools.checking import check_sequence
 from brainpy.types import Tensor
 
 __all__ = [
@@ -25,7 +26,7 @@ class DelayCoupling(DynamicalSystem):
   ----------
   delay_var: Variable
     The delay variable.
-  target_var: Variable, sequence of Variable
+  var_to_output: Variable, sequence of Variable
     The target variables to output.
   conn_mat: JaxArray, ndarray
     The connection matrix.
@@ -40,14 +41,15 @@ class DelayCoupling(DynamicalSystem):
   def __init__(
       self,
       delay_var: bm.Variable,
-      target_var: Union[bm.Variable, Sequence[bm.Variable]],
+      var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: Tensor,
       required_shape: Tuple[int, ...],
       delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(DelayCoupling, self).__init__(name=name)
+    super(DelayCoupling, self).__init__(name=name, mode=mode)
 
     # delay variable
     if not isinstance(delay_var, bm.Variable):
@@ -56,10 +58,10 @@ class DelayCoupling(DynamicalSystem):
     self.delay_var = delay_var
 
     # output variables
-    if isinstance(target_var, bm.Variable):
-      target_var = [target_var]
-    check_sequence(target_var, 'output_var', elem_type=bm.Variable, allow_none=False)
-    self.output_var = target_var
+    if isinstance(var_to_output, bm.Variable):
+      var_to_output = [var_to_output]
+    check_sequence(var_to_output, 'output_var', elem_type=bm.Variable, allow_none=False)
+    self.output_var = var_to_output
 
     # Connection matrix
     self.conn_mat = bm.asarray(conn_mat)
@@ -73,10 +75,6 @@ class DelayCoupling(DynamicalSystem):
       self.delay_steps = None
       self.delay_type = 'none'
       num_delay_step = None
-    elif isinstance(delay_steps, int):
-      self.delay_steps = delay_steps
-      num_delay_step = delay_steps
-      self.delay_type = 'int'
     elif callable(delay_steps):
       delay_steps = delay_steps(required_shape)
       if delay_steps.dtype not in [bm.int32, bm.int64, bm.uint32, bm.uint64]:
@@ -87,22 +85,30 @@ class DelayCoupling(DynamicalSystem):
     elif isinstance(delay_steps, (bm.JaxArray, jnp.ndarray)):
       if delay_steps.dtype not in [bm.int32, bm.int64, bm.uint32, bm.uint64]:
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
-      if delay_steps.shape != required_shape:
-        raise ValueError(f'we expect the delay matrix has the shape of {required_shape}. '
-                         f'While we got {delay_steps.shape}.')
+      if delay_steps.ndim == 0:
+        self.delay_type = 'int'
+      else:
+        self.delay_type = 'array'
+        if delay_steps.shape != required_shape:
+          raise ValueError(f'we expect the delay matrix has the shape of '
+                           f'(pre.num, post.num), i.e., {required_shape}. '
+                           f'While we got {delay_steps.shape}.')
       self.delay_steps = delay_steps
-      self.delay_type = 'array'
       num_delay_step = self.delay_steps.max()
+    elif isinstance(delay_steps, int):
+      self.delay_steps = delay_steps
+      num_delay_step = delay_steps
+      self.delay_type = 'int'
     else:
       raise ValueError(f'Unknown type of delay steps: {type(delay_steps)}')
 
     # delay variables
-    self.delay_step = self.register_delay(f'delay_{id(delay_var)}',
-                                          delay_step=num_delay_step,
-                                          delay_target=delay_var,
-                                          initial_delay_data=initial_delay_data)
+    _ = self.register_delay(f'delay_{id(delay_var)}',
+                            delay_step=num_delay_step,
+                            delay_target=delay_var,
+                            initial_delay_data=initial_delay_data)
 
-  def reset(self):
+  def reset_state(self, batch_size=None):
     pass
 
 
@@ -120,10 +126,10 @@ class DiffusiveCoupling(DelayCoupling):
 
   >>> import brainpy as bp
   >>> from brainpy.dyn import rates
-  >>> areas = rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
-  >>> conn = rates.DiffusiveCoupling(areas.x, areas.x, areas.input,
-  >>>                                 conn_mat=Cmat, delay_steps=Dmat,
-  >>>                                 initial_delay_data=bp.init.Uniform(0, 0.05))
+  >>> areas = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+  >>> conn = bp.synapses.DiffusiveCoupling(areas.x, areas.x, areas.input,
+  >>>                                      conn_mat=Cmat, delay_steps=Dmat,
+  >>>                                      initial_delay_data=bp.init.Uniform(0, 0.05))
   >>> net = bp.dyn.Network(areas, conn)
 
   Parameters
@@ -132,7 +138,7 @@ class DiffusiveCoupling(DelayCoupling):
     The first coupling variable, used for delay.
   coupling_var2: Variable
     Another coupling variable.
-  target_var: Variable, sequence of Variable
+  var_to_output: Variable, sequence of Variable
     The target variables to output.
   conn_mat: JaxArray, ndarray
     The connection matrix.
@@ -148,11 +154,12 @@ class DiffusiveCoupling(DelayCoupling):
       self,
       coupling_var1: bm.Variable,
       coupling_var2: bm.Variable,
-      target_var: Union[bm.Variable, Sequence[bm.Variable]],
+      var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: Tensor,
       delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     if not isinstance(coupling_var1, bm.Variable):
       raise ValueError(f'"coupling_var1" must be an instance of brainpy.math.Variable. '
@@ -169,12 +176,13 @@ class DiffusiveCoupling(DelayCoupling):
 
     super(DiffusiveCoupling, self).__init__(
       delay_var=coupling_var1,
-      target_var=target_var,
+      var_to_output=var_to_output,
       conn_mat=conn_mat,
       required_shape=(coupling_var1.size, coupling_var2.size),
       delay_steps=delay_steps,
       initial_delay_data=initial_delay_data,
-      name=name
+      name=name,
+      mode=mode,
     )
 
     self.coupling_var1 = coupling_var1
@@ -182,22 +190,29 @@ class DiffusiveCoupling(DelayCoupling):
 
   def update(self, tdi):
     # delays
+    axis = self.coupling_var1.ndim
+    delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
     if self.delay_steps is None:
-      diffusive = bm.expand_dims(self.coupling_var1, axis=1) - self.coupling_var2
-      diffusive = (self.conn_mat * diffusive).sum(axis=0)
+      diffusive = (bm.expand_dims(self.coupling_var1, axis=axis) -
+                   bm.expand_dims(self.coupling_var2, axis=axis - 1))
+      diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'array':
-      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
-      f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var2.size)))  # (post.num,)
-      delays = f(bm.arange(self.coupling_var1.size).value)  # (pre.num, post.num)
-      diffusive = delays - self.coupling_var2  # (pre.num, post.num)
-      diffusive = (self.conn_mat * diffusive).sum(axis=0)
+      if isinstance(self.mode, TrainingMode):
+        indices = (slice(None, None, None), bm.arange(self.coupling_var1.size),)
+      else:
+        indices = (bm.arange(self.coupling_var1.size),)
+      f = vmap(lambda i: delay_var(self.delay_steps[:, i], *indices))  # (..., pre.num)
+      delays = f(bm.arange(self.coupling_var2.size).value)  # (..., post.num, pre.num)
+      diffusive = (bm.moveaxis(delays, axis - 1, axis) -
+                   bm.expand_dims(self.coupling_var2, axis=axis - 1))  # (..., pre.num, post.num)
+      diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'int':
-      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
-      delayed_var = delay_var(self.delay_steps)
-      diffusive = bm.expand_dims(delayed_var, axis=1) - self.coupling_var2
-      diffusive = (self.conn_mat * diffusive).sum(axis=0)
+      delayed_data = delay_var(self.delay_steps)  # (..., pre.num)
+      diffusive = (bm.expand_dims(delayed_data, axis=axis) -
+                   bm.expand_dims(self.coupling_var2, axis=axis - 1))  # (..., pre.num, post.num)
+      diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     else:
-      raise ValueError
+      raise ValueError(f'Unknown delay type {self.delay_type}')
 
     # output to target variable
     for target in self.output_var:
@@ -216,7 +231,7 @@ class AdditiveCoupling(DelayCoupling):
   ----------
   coupling_var: Variable
     The coupling variable, used for delay.
-  target_var: Variable, sequence of Variable
+  var_to_output: Variable, sequence of Variable
     The target variables to output.
   conn_mat: JaxArray, ndarray
     The connection matrix.
@@ -231,11 +246,12 @@ class AdditiveCoupling(DelayCoupling):
   def __init__(
       self,
       coupling_var: bm.Variable,
-      target_var: Union[bm.Variable, Sequence[bm.Variable]],
+      var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: Tensor,
       delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     if not isinstance(coupling_var, bm.Variable):
       raise ValueError(f'"coupling_var" must be an instance of brainpy.math.Variable. '
@@ -246,29 +262,34 @@ class AdditiveCoupling(DelayCoupling):
 
     super(AdditiveCoupling, self).__init__(
       delay_var=coupling_var,
-      target_var=target_var,
+      var_to_output=var_to_output,
       conn_mat=conn_mat,
       required_shape=(coupling_var.size, coupling_var.size),
       delay_steps=delay_steps,
       initial_delay_data=initial_delay_data,
-      name=name
+      name=name,
+      mode=mode,
     )
 
     self.coupling_var = coupling_var
 
-  def update(self, t, dt):
+  def update(self, tdi):
     # delay function
+    axis = self.coupling_var.ndim
+    delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
     if self.delay_steps is None:
       additive = self.coupling_var @ self.conn_mat
     elif self.delay_type == 'array':
-      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
-      f = vmap(lambda i: delay_var(self.delay_steps[i], bm.arange(self.coupling_var.size)))  # (pre.num,)
-      delays = f(bm.arange(self.coupling_var.size).value)  # (post.num, pre.num)
-      additive = (self.conn_mat * delays.T).sum(axis=0)
+      if isinstance(self.mode, TrainingMode):
+        indices = (slice(None, None, None), bm.arange(self.coupling_var.size),)
+      else:
+        indices = (bm.arange(self.coupling_var.size),)
+      f = vmap(lambda i: delay_var(self.delay_steps[:, i], *indices))  # (.., pre.num,)
+      delays = f(bm.arange(self.coupling_var.size).value)  # (..., post.num, pre.num)
+      additive = (self.conn_mat * bm.moveaxis(delays, axis - 1, axis)).sum(axis=axis - 1)
     elif self.delay_type == 'int':
-      delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
-      delayed_var = delay_var(self.delay_steps)
-      additive = (self.conn_mat * delayed_var).sum(axis=0)
+      delayed_var = delay_var(self.delay_steps)  # (..., pre.num)
+      additive = delayed_var @ self.conn_mat
     else:
       raise ValueError
 

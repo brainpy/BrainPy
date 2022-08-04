@@ -11,7 +11,7 @@ from brainpy.initialize import (XavierNormal,
                                 parameter,
                                 variable,
                                 Initializer)
-from brainpy.modes import Mode, Training, training
+from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import (check_integer,
                                     check_initializer)
 from brainpy.types import Tensor
@@ -41,7 +41,7 @@ class RecurrentCell(DynamicalSystem):
 
     # state
     self.state = variable(bm.zeros, mode, self.num_out)
-    if train_state and isinstance(self.mode, Training):
+    if train_state and isinstance(self.mode, TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
@@ -123,7 +123,7 @@ class VanillaRNN(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out))
     self.b = parameter(self._b_initializer, (self.num_out,))
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
@@ -221,7 +221,7 @@ class GRU(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3))
     self.b = parameter(self._b_initializer, (self.num_out * 3,))
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = bm.TrainVar(self.b) if (self.b is not None) else None
@@ -345,7 +345,7 @@ class LSTM(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 4))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 4))
     self.b = parameter(self._b_initializer, (self.num_out * 4,))
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)

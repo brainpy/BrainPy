@@ -1,4 +1,4 @@
-Dynamics Training
+Model Training
 =================
 
 This tutorial shows how to train a dynamical system from data or task,

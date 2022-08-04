@@ -163,6 +163,8 @@ class FractionalFHR(FractionalNeuron):
     self.V.value = V
     self.w.value = w
     self.y.value = y
+
+  def clear_input(self):
     self.input[:] = 0.
 
 
@@ -304,4 +306,6 @@ class FractionalIzhikevich(FractionalNeuron):
     self.V.value = bm.where(spikes, self.c, V)
     self.u.value = bm.where(spikes, u + self.d, u)
     self.spike.value = spikes
+
+  def clear_input(self):
     self.input[:] = 0.

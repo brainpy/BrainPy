@@ -6,7 +6,7 @@ import jax.lax
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import XavierNormal, ZeroInit, parameter
-from brainpy.modes import Mode, Training, training
+from brainpy.modes import Mode, TrainingMode, training
 
 __all__ = [
   'GeneralConv',
@@ -117,7 +117,7 @@ class GeneralConv(DynamicalSystem):
     kernel_shape = _check_tuple(self.kernel_size) + (self.in_channels // self.groups, self.out_channels)
     self.w = parameter(self.w_init, kernel_shape)
     self.b = parameter(self.b_init, (1,) * len(self.kernel_size) + (self.out_channels,))
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
 

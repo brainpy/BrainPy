@@ -16,7 +16,7 @@ from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import ModelBuildError, NoImplementationError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
-from brainpy.modes import Mode, Training, Batching, nonbatching, training
+from brainpy.modes import Mode, TrainingMode, BatchingMode, normal, training
 from brainpy.tools.others import to_size, size2num
 from brainpy.types import Tensor, Shape
 
@@ -25,7 +25,7 @@ __all__ = [
   'DynamicalSystem',
 
   # containers
-  'Container', 'Network', 'Sequential',
+  'Container', 'Network', 'Sequential', 'System',
 
   # channel models
   'Channel',
@@ -34,40 +34,21 @@ __all__ = [
   'NeuGroup', 'CondNeuGroup',
 
   # synapse models
-  'SynConn', 'SynOutput', 'SynSTP', 'SynLTP', 'TwoEndConn',
+  'SynConn',
+  'TwoEndConn',
+  'SynOut', 'NullSynOut',
+  'SynSTP', 'NullSynSTP',
+  'SynLTP', 'NullSynLTP',
 ]
-
-
-def not_customized(fun: Callable) -> Callable:
-  """Marks the given module method is not implemented.
-
-  Methods wrapped in @not_customized can define submodules directly within the method.
-
-  For instance::
-
-    @not_customized
-    init_fb(self):
-      ...
-
-    @not_customized
-    def feedback(self):
-      ...
-  """
-  fun.not_implemented = True
-  return fun
 
 
 class DynamicalSystem(Base):
   """Base Dynamical System class.
 
-  Any object has step functions will be a dynamical system.
-  That is to say, in BrainPy, the essence of the dynamical system
-  is the "step functions".
-
   Parameters
   ----------
-  name : str, optional
-    The name of the dynamic system.
+  name : optional, str
+    The name of the dynamical system.
   mode: Mode
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
@@ -87,7 +68,7 @@ class DynamicalSystem(Base):
   def __init__(
       self,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Optional[Mode] = None,
   ):
     super(DynamicalSystem, self).__init__(name=name)
 
@@ -95,6 +76,7 @@ class DynamicalSystem(Base):
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
     # mode setting
+    if mode is None: mode = normal
     if not isinstance(mode, Mode):
       raise ValueError(f'Should be instance of {Mode.__name__}, but we got {type(Mode)}: {Mode}')
     self._mode = mode
@@ -105,7 +87,7 @@ class DynamicalSystem(Base):
     self.fit_record = dict()
 
   @property
-  def mode(self):
+  def mode(self) -> Mode:
     return self._mode
 
   @mode.setter
@@ -261,6 +243,7 @@ class DynamicalSystem(Base):
     if len(child_nodes) > 0:
       for node in child_nodes.values():
         node.reset_state(batch_size=batch_size)
+      self.reset_local_delays(child_nodes)
     else:
       raise NotImplementedError('Must implement "reset_state" function by subclass self. '
                                 f'Error of {self.name}')
@@ -324,25 +307,29 @@ class DynamicalSystem(Base):
       del self.__dict__[key]
     gc.collect()
 
-  @not_customized
+  @tools.not_customized
   def online_init(self):
     raise NoImplementationError('Subclass must implement online_init() function when using OnlineTrainer.')
 
-  @not_customized
+  @tools.not_customized
   def offline_init(self):
     raise NoImplementationError('Subclass must implement offline_init() function when using OfflineTrainer.')
 
-  @not_customized
+  @tools.not_customized
   def online_fit(self,
                  target: Tensor,
                  fit_record: Dict[str, Tensor]):
     raise NoImplementationError('Subclass must implement online_fit() function when using OnlineTrainer.')
 
-  @not_customized
+  @tools.not_customized
   def offline_fit(self,
                   target: Tensor,
                   fit_record: Dict[str, Tensor]):
     raise NoImplementationError('Subclass must implement offline_fit() function when using OfflineTrainer.')
+
+  def clear_input(self):
+    for node in self.nodes(level=1, include_self=False).subset(NeuGroup).unique().values():
+      node.clear_input()
 
 
 class Container(DynamicalSystem):
@@ -366,27 +353,10 @@ class Container(DynamicalSystem):
       self,
       *ds_tuple,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **ds_dict
   ):
     super(Container, self).__init__(name=name, mode=mode)
-
-    # # children dynamical systems
-    # self.implicit_nodes = Collector()
-    # for ds in ds_tuple:
-    #   if not isinstance(ds, DynamicalSystem):
-    #     raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
-    #                           f'DynamicalSystem, however, we got {type(ds)}.')
-    #   if ds.name in self.implicit_nodes:
-    #     raise ValueError(f'{ds.name} has been paired with {ds}. Please change a unique name.')
-    # self.register_implicit_nodes({node.name: node for node in ds_tuple})
-    # for key, ds in ds_dict.items():
-    #   if not isinstance(ds, DynamicalSystem):
-    #     raise ModelBuildError(f'{self.__class__.__name__} receives instances of '
-    #                           f'DynamicalSystem, however, we got {type(ds)}.')
-    #   if key in self.implicit_nodes:
-    #     raise ValueError(f'{key} has been paired with {ds}. Please change a unique name.')
-    # self.register_implicit_nodes(ds_dict)
 
     # add tuple-typed components
     for module in ds_tuple:
@@ -446,6 +416,92 @@ class Container(DynamicalSystem):
       return super(Container, self).__getattribute__(item)
 
 
+class Sequential(Container):
+  def __init__(
+      self,
+      *modules,
+      name: str = None,
+      mode: Mode = normal,
+      **kw_modules
+  ):
+    super(Sequential, self).__init__(*modules, name=name, mode=mode, **kw_modules)
+
+  def __getattr__(self, item):
+    """Wrap the dot access ('self.'). """
+    child_ds = super(Sequential, self).__getattribute__('implicit_nodes')
+    if item in child_ds:
+      return child_ds[item]
+    else:
+      return super(Sequential, self).__getattribute__(item)
+
+  def __getitem__(self, key: Union[int, slice]):
+    if isinstance(key, str):
+      if key not in self.implicit_nodes:
+        raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
+      return self.implicit_nodes[key]
+    elif isinstance(key, slice):
+      keys = tuple(self.implicit_nodes.keys())[key]
+      components = tuple(self.implicit_nodes.values())[key]
+      return Sequential(dict(zip(keys, components)))
+    elif isinstance(key, int):
+      return self.implicit_nodes.values()[key]
+    elif isinstance(key, (tuple, list)):
+      all_keys = tuple(self.implicit_nodes.keys())
+      all_vals = tuple(self.implicit_nodes.values())
+      keys, vals = [], []
+      for i in key:
+        if isinstance(i, int):
+          raise KeyError(f'We excepted a tuple/list of int, but we got {type(i)}')
+        keys.append(all_keys[i])
+        vals.append(all_vals[i])
+      return Sequential(dict(zip(keys, vals)))
+    else:
+      raise KeyError(f'Unknown type of key: {type(key)}')
+
+  def __repr__(self):
+    def f(x):
+      if not isinstance(x, DynamicalSystem) and callable(x):
+        signature = inspect.signature(x)
+        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
+                if v.default is not inspect.Parameter.empty]
+        args = ', '.join(args)
+        while not hasattr(x, '__name__'):
+          if not hasattr(x, 'func'):
+            break
+          x = x.func  # Handle functools.partial
+        if not hasattr(x, '__name__') and hasattr(x, '__class__'):
+          return x.__class__.__name__
+        if args:
+          return f'{x.__name__}(*, {args})'
+        return x.__name__
+      else:
+        x = repr(x).split('\n')
+        x = [x[0]] + ['  ' + y for y in x[1:]]
+        return '\n'.join(x)
+
+    entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
+    return f'{self.__class__.__name__}(\n{entries}\n)'
+
+  def update(self, sha: dict, x: Any) -> Tensor:
+    """Update function of a sequential model.
+
+    Parameters
+    ----------
+    sha: dict
+      The shared arguments (ShA) across multiple layers.
+    x: Any
+      The input information.
+
+    Returns
+    -------
+    y: Tensor
+      The output tensor.
+    """
+    for node in self.implicit_nodes.values():
+      x = node(sha, x)
+    return x
+
+
 class Network(Container):
   """Base class to model network objects, an alias of Container.
 
@@ -468,7 +524,7 @@ class Network(Container):
       self,
       *ds_tuple,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **ds_dict
   ):
     super(Network, self).__init__(*ds_tuple,
@@ -528,6 +584,10 @@ class Network(Container):
     self.reset_local_delays(nodes)
 
 
+class System(Network):
+  pass
+
+
 class NeuGroup(DynamicalSystem):
   """Base class to model neuronal groups.
 
@@ -556,7 +616,7 @@ class NeuGroup(DynamicalSystem):
       size: Shape,
       name: str = None,
       keep_size: bool = False,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     # size
     if isinstance(size, (list, tuple)):
@@ -603,6 +663,9 @@ class NeuGroup(DynamicalSystem):
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
                               f'implement "update" function.')
 
+  def clear_input(self):
+    pass
+
 
 class SynConn(DynamicalSystem):
   """Base class to model two-end synaptic connections.
@@ -625,7 +688,7 @@ class SynConn(DynamicalSystem):
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(SynConn, self).__init__(name=name, mode=mode)
 
@@ -693,28 +756,77 @@ class SynConn(DynamicalSystem):
 class SynComponent(DynamicalSystem):
   master: SynConn
 
+  def __init__(self, *args, **kwargs):
+    super(SynComponent, self).__init__(*args, **kwargs)
+
+    self._registered = False
+
+  @property
+  def isregistered(self) -> bool:
+    return self._registered
+
+  @isregistered.setter
+  def isregistered(self, val: bool):
+    if not isinstance(val, bool):
+      raise ValueError('Must be an instance of bool.')
+    self._registered = val
+
   def reset_state(self, batch_size=None):
     pass
-
-  def filter(self, g):
-    return g
-
-  def __call__(self, *args, **kwargs):
-    return self.filter(*args, **kwargs)
 
   def register_master(self, master: SynConn):
     if not isinstance(master, SynConn):
       raise TypeError(f'master must be instance of {SynConn.__name__}, but we got {type(master)}')
+    if self.isregistered:
+      raise ValueError(f'master has been registered, but we got another master going to be registered.')
     if hasattr(self, 'master') and self.master != master:
       raise ValueError(f'master has been registered, but we got another master going to be registered.')
     self.master = master
+    self._registered = True
 
   def __repr__(self):
     return self.__class__.__name__
 
+  def __call__(self, *args, **kwargs):
+    return self.filter(*args, **kwargs)
 
-class SynOutput(SynComponent):
+  def clone(self) -> 'SynComponent':
+    raise NotImplementedError
+
+  def filter(self, g):
+    raise NotImplementedError
+
+
+class SynOut(SynComponent):
   """Base class for synaptic current output."""
+
+  def __init__(
+      self,
+      name: str = None,
+      target_var: Union[str, bm.Variable] = None,
+  ):
+    super(SynOut, self).__init__(name=name)
+    # check target variable
+    if target_var is not None:
+      if not isinstance(target_var, (str, bm.Variable)):
+        raise TypeError('"target_var" must be instance of string or Variable. '
+                        f'But we got {type(target_var)}')
+    self.target_var: Optional[bm.Variable] = target_var
+
+  def register_master(self, master: SynConn):
+    super(SynOut, self).register_master(master)
+
+    # initialize target variable to output
+    if isinstance(self.target_var, str):
+      if not hasattr(self.master.post, self.target_var):
+        raise KeyError(f'Post-synaptic group does not have target variable: {self.target_var}')
+      self.target_var = getattr(self.master.post, self.target_var)
+
+  def filter(self, g):
+    if self.target_var is None:
+      return g
+    else:
+      self.target_var += g
 
   def update(self, tdi):
     pass
@@ -734,6 +846,27 @@ class SynLTP(SynComponent):
     pass
 
 
+class NullSynOut(SynOut):
+  def clone(self):
+    return NullSynOut()
+
+
+class NullSynSTP(SynSTP):
+  def clone(self):
+    return NullSynSTP()
+
+  def filter(self, g):
+    return g
+
+
+class NullSynLTP(SynLTP):
+  def clone(self):
+    return NullSynLTP()
+
+  def filter(self, g):
+    return g
+
+
 class TwoEndConn(SynConn):
   """Base class to model synaptic connections.
 
@@ -745,25 +878,25 @@ class TwoEndConn(SynConn):
     Post-synaptic neuron group.
   conn : optional, ndarray, JaxArray, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
-  output: SynOutput
+  output: Optional, SynOutput
     The output for the synaptic current.
 
     .. versionadded:: 2.1.13
        The output component for a two-end connection model.
 
-  stp: SynSTP
+  stp: Optional, SynSTP
     The short-term plasticity model for the synaptic variables.
 
     .. versionadded:: 2.1.13
        The short-term plasticity component for a two-end connection model.
 
-  ltp: SynLTP
+  ltp: Optional, SynLTP
     The long-term plasticity model for the synaptic variables.
 
     .. versionadded:: 2.1.13
        The long-term plasticity component for a two-end connection model.
 
-  name : str, optional
+  name: Optional, str
     The name of the dynamic system.
   """
 
@@ -772,11 +905,11 @@ class TwoEndConn(SynConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
-      output: Optional[SynOutput] = None,
-      stp: Optional[SynSTP] = None,
-      ltp: Optional[SynLTP] = None,
+      output: SynOut = NullSynOut(),
+      stp: SynSTP = NullSynSTP(),
+      ltp: SynLTP = NullSynLTP(),
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(TwoEndConn, self).__init__(pre=pre,
                                      post=post,
@@ -785,27 +918,31 @@ class TwoEndConn(SynConn):
                                      mode=mode)
 
     # synaptic output
-    if output is None: output = SynOutput()
-    if not isinstance(output, SynOutput):
-      raise TypeError(f'output must be instance of {SynOutput.__name__}, but we got {type(output)}')
-    self.output: SynOutput = output
-    self.output.register_master(master=self)
+    output = NullSynOut() if output is None else output
+    if output.isregistered: output = output.clone()
+    if not isinstance(output, SynOut):
+      raise TypeError(f'output must be instance of {SynOut.__name__}, '
+                      f'but we got {type(output)}')
+    output.register_master(master=self)
+    self.output: SynOut = output
 
     # short-term synaptic plasticity
-    if stp is not None:
-      if not isinstance(stp, SynSTP):
-        raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
-                        f'but we got {type(stp)}')
-      stp.register_master(master=self)
-    self.stp: Optional[SynSTP] = stp
+    stp = NullSynSTP() if stp is None else stp
+    if stp.isregistered: stp = stp.clone()
+    if not isinstance(stp, SynSTP):
+      raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
+                      f'but we got {type(stp)}')
+    stp.register_master(master=self)
+    self.stp: SynSTP = stp
 
     # long-term synaptic plasticity
-    if ltp is not None:
-      if not isinstance(ltp, SynLTP):
-        raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
-                        f'but we got {type(ltp)}')
-      ltp.register_master(master=self)
-    self.ltp: Optional[SynLTP] = ltp
+    ltp = NullSynLTP() if ltp is None else ltp
+    if ltp.isregistered: ltp = ltp.clone()
+    if not isinstance(ltp, SynLTP):
+      raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
+                      f'but we got {type(ltp)}')
+    ltp.register_master(master=self)
+    self.ltp: SynLTP = ltp
 
   def init_weights(
       self,
@@ -845,13 +982,13 @@ class TwoEndConn(SynConn):
         raise ValueError(f'Unknown connection type: {comp_method}')
 
     # training weights
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
   def syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
-      if isinstance(self.mode, Batching):
+      if isinstance(self.mode, BatchingMode):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
         post_vs = bm.sum(syn_value)
@@ -931,7 +1068,7 @@ class CondNeuGroup(NeuGroup, Container):
       noise: Union[float, Tensor, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       **channels
   ):
     NeuGroup.__init__(self, size, keep_size=keep_size, mode=mode)
@@ -947,7 +1084,7 @@ class CondNeuGroup(NeuGroup, Container):
     # variables
     self.V = variable(V_initializer, mode, self.varshape)
     self.input = variable(bm.zeros, mode, self.varshape)
-    sp_type = bm.dftype() if isinstance(self.mode, Batching) else bool
+    sp_type = bm.dftype() if isinstance(self.mode, BatchingMode) else bool
     self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), mode, self.varshape)
 
     # function
@@ -965,7 +1102,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    sp_type = bm.dftype() if isinstance(self.mode, Batching) else bool
+    sp_type = bm.dftype() if isinstance(self.mode, BatchingMode) else bool
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
 
@@ -993,7 +1130,7 @@ class Channel(DynamicalSystem):
       size: Union[int, Sequence[int]],
       name: str = None,
       keep_size: bool = False,
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
   ):
     super(Channel, self).__init__(name=name, mode=mode)
     # the geometry size
@@ -1042,89 +1179,3 @@ def check_master(master, *channels, **named_channels):
     if not isinstance(channel, Channel):
       raise ValueError(f'Do not support {type(channel)}. ')
     _check(master, channel)
-
-
-class Sequential(Container):
-  def __init__(
-      self,
-      *modules,
-      name: str = None,
-      mode: Mode = nonbatching,
-      **kw_modules
-  ):
-    super(Sequential, self).__init__(*modules, name=name, mode=mode, **kw_modules)
-
-  def __getattr__(self, item):
-    """Wrap the dot access ('self.'). """
-    child_ds = super(Sequential, self).__getattribute__('implicit_nodes')
-    if item in child_ds:
-      return child_ds[item]
-    else:
-      return super(Sequential, self).__getattribute__(item)
-
-  def __getitem__(self, key: Union[int, slice]):
-    if isinstance(key, str):
-      if key not in self.implicit_nodes:
-        raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
-      return self.implicit_nodes[key]
-    elif isinstance(key, slice):
-      keys = tuple(self.implicit_nodes.keys())[key]
-      components = tuple(self.implicit_nodes.values())[key]
-      return Sequential(dict(zip(keys, components)))
-    elif isinstance(key, int):
-      return self.implicit_nodes.values()[key]
-    elif isinstance(key, (tuple, list)):
-      all_keys = tuple(self.implicit_nodes.keys())
-      all_vals = tuple(self.implicit_nodes.values())
-      keys, vals = [], []
-      for i in key:
-        if isinstance(i, int):
-          raise KeyError(f'We excepted a tuple/list of int, but we got {type(i)}')
-        keys.append(all_keys[i])
-        vals.append(all_vals[i])
-      return Sequential(dict(zip(keys, vals)))
-    else:
-      raise KeyError(f'Unknown type of key: {type(key)}')
-
-  def __repr__(self):
-    def f(x):
-      if not isinstance(x, DynamicalSystem) and callable(x):
-        signature = inspect.signature(x)
-        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
-                if v.default is not inspect.Parameter.empty]
-        args = ', '.join(args)
-        while not hasattr(x, '__name__'):
-          if not hasattr(x, 'func'):
-            break
-          x = x.func  # Handle functools.partial
-        if not hasattr(x, '__name__') and hasattr(x, '__class__'):
-          return x.__class__.__name__
-        if args:
-          return f'{x.__name__}(*, {args})'
-        return x.__name__
-      else:
-        x = repr(x).split('\n')
-        x = [x[0]] + ['  ' + y for y in x[1:]]
-        return '\n'.join(x)
-
-    entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
-    return f'{self.__class__.__name__}(\n{entries}\n)'
-
-  def update(self, sha: dict, x: Any) -> Tensor:
-    """Update function of a sequential model.
-
-    Parameters
-    ----------
-    sha: dict
-      The shared arguments (ShA) across multiple layers.
-    x: Any
-      The input information.
-
-    Returns
-    -------
-    y: Tensor
-      The output tensor.
-    """
-    for node in self.implicit_nodes.values():
-      x = node(sha, x)
-    return x

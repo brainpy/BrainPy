@@ -340,7 +340,7 @@ class SlowPointFinder(base.DSAnalyzer):
     f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
-      return f_eval_loss(tree_map(lambda a: a.value,
+      return f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
                                   fixed_points,
                                   is_leaf=lambda x: isinstance(x, bm.JaxArray))).mean()
 
@@ -386,9 +386,11 @@ class SlowPointFinder(base.DSAnalyzer):
                 f'is below tolerance {tolerance:0.10f}.')
 
     self._opt_losses = bm.concatenate(opt_losses)
-    self._losses = f_eval_loss(tree_map(lambda a: a.value, fixed_points,
+    self._losses = f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
+                                        fixed_points,
                                         is_leaf=lambda x: isinstance(x, bm.JaxArray)))
-    self._fixed_points = tree_map(lambda a: a.value, fixed_points,
+    self._fixed_points = tree_map(lambda a: bm.as_device_array(a),
+                                  fixed_points,
                                   is_leaf=lambda x: isinstance(x, bm.JaxArray))
     self._selected_ids = jnp.arange(num_candidate)
 
@@ -425,7 +427,7 @@ class SlowPointFinder(base.DSAnalyzer):
       print(f"Optimizing with {opt_solver} to find fixed points:")
 
     # optimizing
-    res = f_opt(tree_map(lambda a: a.value,
+    res = f_opt(tree_map(lambda a: bm.as_device_array(a),
                          candidates,
                          is_leaf=lambda a: isinstance(a, bm.JaxArray)))
 
@@ -720,16 +722,27 @@ class SlowPointFinder(base.DSAnalyzer):
     shared = DotDict(t=t, dt=dt, i=0)
 
     def f_cell(h: Dict):
+      target.clear_input()
+
+      # update target variables
       for k, v in self.target_vars.items():
         v.value = (bm.asarray(h[k], dtype=v.dtype)
                    if v.batch_axis is None else
                    bm.asarray(bm.expand_dims(h[k], axis=v.batch_axis), dtype=v.dtype))
+
+      # update excluded variables
       for k, v in self.excluded_vars.items():
         v.value = self.excluded_data[k]
+
+      # add inputs
       if f_input is not None:
         f_input(shared)
+
+      # call update functions
       args = (shared,) + self.args
       target.update(*args)
+
+      # get new states
       new_h = {k: (v.value if v.batch_axis is None else jnp.squeeze(v.value, axis=v.batch_axis))
                for k, v in self.target_vars.items()}
       return new_h

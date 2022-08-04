@@ -8,12 +8,12 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOutput
+from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
 from brainpy.dyn.synouts import COBA, MgBlock
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Tensor
-from brainpy.modes import Mode, Batching, Training, nonbatching, batching, training
+from brainpy.modes import Mode, BatchingMode, TrainingMode, normal, batching, training
 
 __all__ = [
   'AMPA',
@@ -140,7 +140,7 @@ class AMPA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = COBA(E=0.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
@@ -150,24 +150,16 @@ class AMPA(TwoEndConn):
       T: float = 0.5,
       T_duration: float = 0.5,
       method: str = 'exp_auto',
+
+      # other parameters
       name: str = None,
-
-      # training parameters
-      mode: Mode = nonbatching,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
-
-      # deprecated
-      E: float = None,
   ):
-    _E = 0.
-    if E is not None:
-      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
-                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
-      _E = E
     super(AMPA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,
-                               output=COBA(E=_E) if output is None else output,
+                               output=output,
                                stp=stp,
                                name=name,
                                mode=mode)
@@ -225,7 +217,7 @@ class AMPA(TwoEndConn):
 
     # update synaptic variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, t, TT, dt)
@@ -240,14 +232,13 @@ class AMPA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if isinstance(self.mode, Batching): f = vmap(f)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    post_vs = self.output(post_vs)
 
     # output
-    self.post.input += post_vs
+    return self.output(post_vs)
 
 
 class GABAa(AMPA):
@@ -323,7 +314,7 @@ class GABAa(AMPA):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynOutput = None,
+      output: SynOut = COBA(E=-80.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
@@ -333,24 +324,19 @@ class GABAa(AMPA):
       T: Union[float, Tensor] = 1.,
       T_duration: Union[float, Tensor] = 1.,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
-      mode: Mode = nonbatching,
+      # other parameters
+      name: str = None,
+      mode: Mode = normal,
       stop_spike_gradient: bool = False,
 
       # deprecated
       E: Union[float, Tensor] = None,
   ):
-    _E = -80.
-    if E is not None:
-      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
-                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
-      _E = E
     super(GABAa, self).__init__(pre=pre,
                                 post=post,
                                 conn=conn,
-                                output=COBA(E=_E) if output is None else output,
+                                output=output,
                                 stp=stp,
                                 comp_method=comp_method,
                                 delay_step=delay_step,
@@ -491,7 +477,7 @@ class BioNMDA(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: Optional[SynOutput] = None,
+      output: SynOut = MgBlock(E=0.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
       g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
@@ -503,16 +489,16 @@ class BioNMDA(TwoEndConn):
       T_0: Union[float, Tensor] = 1.,
       T_dur: Union[float, Tensor] = 0.5,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # training parameters
-      mode: Mode = nonbatching,
+      # other parameters
+      mode: Mode = normal,
+      name: str = None,
       stop_spike_gradient: bool = False,
   ):
     super(BioNMDA, self).__init__(pre=pre,
                                   post=post,
                                   conn=conn,
-                                  output=MgBlock(E=0.) if output is None else output,
+                                  output=output,
                                   stp=stp,
                                   name=name,
                                   mode=mode)
@@ -580,7 +566,7 @@ class BioNMDA(TwoEndConn):
 
     # update synapse variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-    if isinstance(self.mode, Training):
+    if isinstance(self.mode, TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
@@ -595,11 +581,10 @@ class BioNMDA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
-        if isinstance(self.mode, Batching): f = vmap(f)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    post_vs = self.output(post_vs)
 
     # output
-    self.post.input += post_vs
+    return self.output(post_vs)

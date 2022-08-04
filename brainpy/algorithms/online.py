@@ -2,6 +2,8 @@
 
 import brainpy.math as bm
 from brainpy.base import Base
+from jax import vmap
+import jax.numpy as jnp
 
 __all__ = [
   # base class
@@ -25,12 +27,12 @@ class OnlineAlgorithm(Base):
   def __init__(self, name=None):
     super(OnlineAlgorithm, self).__init__(name=name)
 
-  def __call__(self, name, target, input, output):
+  def __call__(self, identifier, target, input, output):
     """The training procedure.
 
     Parameters
     ----------
-    name: str
+    identifier: str
       The variable name.
     target: JaxArray, ndarray
       The 2d target data with the shape of `(num_batch, num_output)`.
@@ -44,11 +46,10 @@ class OnlineAlgorithm(Base):
     weight: JaxArray
       The weights after fit.
     """
-    return self.call(name, target, input, output)
+    return self.call(identifier, target, input, output)
 
   def initialize(self, identifier, *args, **kwargs):
-    raise NotImplementedError('Must implement the initialize() '
-                              'function by the subclass itself.')
+    pass
 
   def call(self, identifier, target, input, output):
     """The training procedure.
@@ -146,11 +147,11 @@ class LMS(OnlineAlgorithm):
     super(LMS, self).__init__(name=name)
     self.alpha = alpha
 
-  def initialize(self, identifier, *args, **kwargs):
-    pass
-
   def call(self, identifier, target, input, output):
-    return -self.alpha * bm.dot(output - target, output)
+    assert target.shape[0] == input.shape[0] == output.shape[0], 'Batch size should be consistent.'
+    error = bm.as_jax(output - target)
+    input = bm.as_jax(input)
+    return -self.alpha * bm.sum(vmap(jnp.outer)(input, error), axis=0)
 
 
 name2func['lms'] = LMS

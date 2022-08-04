@@ -15,7 +15,7 @@ from brainpy.dyn import synapses, synouts
 
 
 class PoissonStim(bp.dyn.NeuGroup):
-  def __init__(self, size, freq_mean, freq_var, t_interval, mode=bp.modes.NonBatching()):
+  def __init__(self, size, freq_mean, freq_var, t_interval, mode=bp.modes.NormalMode()):
     super(PoissonStim, self).__init__(size=size, mode=mode)
 
     # parameters
@@ -43,12 +43,12 @@ class PoissonStim(bp.dyn.NeuGroup):
     in_interval = bm.logical_and(in_interval, (t - self.freq_t_last_change) >= self.t_interval)
     self.freq.value = bm.where(in_interval, self.rng.normal(self.freq_mean, self.freq_var, self.freq.shape), prev_freq)
     self.freq_t_last_change.value = bm.where(in_interval, t, self.freq_t_last_change)
-    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bp.modes.Batching) else self.varshape
+    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bp.modes.BatchingMode) else self.varshape
     self.spike.value = self.rng.random(shape) < self.freq * self.dt
 
 
 class DecisionMaking(bp.dyn.Network):
-  def __init__(self, scale=1., mu0=40., coherence=25.6, f=0.15, mode=bp.modes.NonBatching()):
+  def __init__(self, scale=1., mu0=40., coherence=25.6, f=0.15, mode=bp.modes.NormalMode()):
     super(DecisionMaking, self).__init__()
 
     num_exc = int(1600 * scale)
@@ -76,25 +76,25 @@ class DecisionMaking(bp.dyn.Network):
 
     # E neurons/pyramid neurons
 
-    A = bp.dyn.LIF(num_A, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
-                   tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
-    B = bp.dyn.LIF(num_B, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
-                   tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
-    N = bp.dyn.LIF(num_N, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
-                   tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
+    A = bp.neurons.LIF(num_A, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
+                       tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
+    B = bp.neurons.LIF(num_B, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
+                       tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
+    N = bp.neurons.LIF(num_N, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
+                       tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
     # I neurons/interneurons
-    I = bp.dyn.LIF(num_inh, V_rest=-70., V_reset=-55., V_th=-50., tau=10., R=0.05,
-                   tau_ref=1., V_initializer=bp.init.OneInit(-70.), mode=mode)
+    I = bp.neurons.LIF(num_inh, V_rest=-70., V_reset=-55., V_th=-50., tau=10., R=0.05,
+                       tau_ref=1., V_initializer=bp.init.OneInit(-70.), mode=mode)
 
     # poisson stimulus
     IA = PoissonStim(num_A, freq_var=10., t_interval=50., freq_mean=mu0 + mu0 / 100. * coherence, mode=mode)
     IB = PoissonStim(num_B, freq_var=10., t_interval=50., freq_mean=mu0 - mu0 / 100. * coherence, mode=mode)
 
     # noise neurons
-    self.noise_B = bp.dyn.PoissonGroup(num_B, freqs=poisson_freq, mode=mode)
-    self.noise_A = bp.dyn.PoissonGroup(num_A, freqs=poisson_freq, mode=mode)
-    self.noise_N = bp.dyn.PoissonGroup(num_N, freqs=poisson_freq, mode=mode)
-    self.noise_I = bp.dyn.PoissonGroup(num_inh, freqs=poisson_freq, mode=mode)
+    self.noise_B = bp.neurons.PoissonGroup(num_B, freqs=poisson_freq, mode=mode)
+    self.noise_A = bp.neurons.PoissonGroup(num_A, freqs=poisson_freq, mode=mode)
+    self.noise_N = bp.neurons.PoissonGroup(num_N, freqs=poisson_freq, mode=mode)
+    self.noise_I = bp.neurons.PoissonGroup(num_inh, freqs=poisson_freq, mode=mode)
 
     # define external inputs
     self.IA2A = synapses.Exponential(IA, A, bp.conn.One2One(), g_max=g_ext2E_AMPA,
@@ -112,14 +112,14 @@ class DecisionMaking(bp.dyn.Network):
                                          output=synouts.COBA(E=0.), mode=mode, **ampa_par)
     self.N2I_AMPA = synapses.Exponential(N, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
                                          output=synouts.COBA(E=0.), mode=mode, **ampa_par)
-    self.N2B_NMDA = bp.dyn.NMDA(N, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
-                                output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
-    self.N2A_NMDA = bp.dyn.NMDA(N, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
-                                output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
-    self.N2N_NMDA = bp.dyn.NMDA(N, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
-                                output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
-    self.N2I_NMDA = bp.dyn.NMDA(N, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
-                                output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
+    self.N2B_NMDA = synapses.NMDA(N, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
+                                  output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
+    self.N2A_NMDA = synapses.NMDA(N, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
+                                  output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
+    self.N2N_NMDA = synapses.NMDA(N, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
+                                  output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
+    self.N2I_NMDA = synapses.NMDA(N, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
+                                  output=synouts.MgBlock(E=0., cc_Mg=1.), mode=mode, **nmda_par)
 
     self.B2B_AMPA = synapses.Exponential(B, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_pos,
                                          output=synouts.COBA(E=0.), mode=mode, **ampa_par)
@@ -163,7 +163,7 @@ class DecisionMaking(bp.dyn.Network):
     self.I2N = synapses.Exponential(I, N, bp.conn.All2All(), g_max=g_I2E_GABAa,
                                     output=synouts.COBA(E=-70.), mode=mode, **gaba_par)
     self.I2I = synapses.Exponential(I, I, bp.conn.All2All(), g_max=g_I2I_GABAa,
-                                    output=synouts.COBA(E=-70.),  mode=mode, **gaba_par)
+                                    output=synouts.COBA(E=-70.), mode=mode, **gaba_par)
 
     # define external projections
     self.noise2B = synapses.Exponential(self.noise_B, B, bp.conn.One2One(), g_max=g_ext2E_AMPA,
@@ -262,9 +262,9 @@ def single_run():
 
 def batching_run():
   num_row, num_col = 3, 4
-  num_batch = 200
+  num_batch = 12
   coherence = bm.expand_dims(bm.linspace(-100, 100., num_batch), 1)
-  net = DecisionMaking(scale=1., coherence=coherence, mu0=20., mode=bp.modes.Batching())
+  net = DecisionMaking(scale=1., coherence=coherence, mu0=20., mode=bp.modes.batching)
   net.reset_state(batch_size=num_batch)
 
   runner = bp.dyn.DSRunner(
@@ -272,20 +272,20 @@ def batching_run():
   )
   runner.run(total_period)
 
-  # coherence = coherence.to_numpy()
-  # fig, gs = bp.visualize.get_figure(num_row, num_col, 3, 4)
-  # for i in range(num_row):
-  #   for j in range(num_col):
-  #     idx = i * num_col + j
-  #     if idx < num_batch:
-  #       mon = {'A.spike': runner.mon['A.spike'][:, idx],
-  #              'B.spike': runner.mon['B.spike'][:, idx],
-  #              'IA.freq': runner.mon['IA.freq'][:, idx],
-  #              'IB.freq': runner.mon['IB.freq'][:, idx],
-  #              'ts': runner.mon['ts']}
-  #       ax = fig.add_subplot(gs[i, j])
-  #       visualize_raster(ax, mon=mon, title=f'coherence={coherence[idx, 0]}%')
-  # plt.show()
+  coherence = coherence.to_numpy()
+  fig, gs = bp.visualize.get_figure(num_row, num_col, 3, 4)
+  for i in range(num_row):
+    for j in range(num_col):
+      idx = i * num_col + j
+      if idx < num_batch:
+        mon = {'A.spike': runner.mon['A.spike'][:, idx],
+               'B.spike': runner.mon['B.spike'][:, idx],
+               'IA.freq': runner.mon['IA.freq'][:, idx],
+               'IB.freq': runner.mon['IB.freq'][:, idx],
+               'ts': runner.mon['ts']}
+        ax = fig.add_subplot(gs[i, j])
+        visualize_raster(ax, mon=mon, title=f'coherence={coherence[idx, 0]}%')
+  plt.show()
 
 
 if __name__ == '__main__':

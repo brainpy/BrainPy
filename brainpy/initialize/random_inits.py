@@ -5,6 +5,7 @@ import numpy as np
 from brainpy import math as bm, tools
 from .base import InterLayerInitializer
 
+
 __all__ = [
   'Normal',
   'Uniform',
@@ -110,16 +111,15 @@ class VarianceScaling(InterLayerInitializer):
       denominator = (fan_in + fan_out) / 2
     else:
       raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
-    variance = bm.array(self.scale / denominator, dtype=dtype)
+    variance = np.array(self.scale / denominator, dtype=dtype)
     if self.distribution == "truncated_normal":
-      from scipy.stats import truncnorm
-      # constant is stddev of standard normal truncated to (-2, 2)
-      stddev = bm.sqrt(variance) / bm.array(.87962566103423978, dtype)
-      res = truncnorm(-2, 2).rvs(shape) * stddev
+      stddev = bm.array(np.sqrt(variance) / .87962566103423978, dtype)
+      rng = bm.random.RandomState(self.rng.randint(0, int(1e7)))
+      return rng.truncated_normal(-2, 2, shape, dtype) * stddev
     elif self.distribution == "normal":
-      res = self.rng.normal(size=shape) * bm.sqrt(variance)
+      res = self.rng.randn(*shape) * np.sqrt(variance)
     elif self.distribution == "uniform":
-      res = self.rng.uniform(low=-1, high=1, size=shape) * bm.sqrt(3 * variance)
+      res = self.rng.uniform(low=-1, high=1, size=shape) * np.sqrt(3 * variance)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
     return bm.asarray(res, dtype=dtype)
