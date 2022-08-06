@@ -49,12 +49,13 @@ class OUProcess(NeuGroup):
       mean: Union[float, Tensor, Initializer, Callable] = 0.,
       sigma: Union[float, Tensor, Initializer, Callable] = 1.,
       tau: Union[float, Tensor, Initializer, Callable] = 10.,
-      method: str = 'euler',
+      method: str = 'exp_euler',
       keep_size: bool = False,
       mode: Mode = normal,
       name: str = None,
   ):
     super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
+
 
     # parameters
     self.mean = init.parameter(mean, self.varshape, allow_none=False)
@@ -76,5 +77,5 @@ class OUProcess(NeuGroup):
   def dg(self, x, t):
     return self.sigma
 
-  def update(self, tdi, x=None):
+  def update(self, tdi):
     self.x.value = self.integral(self.x, tdi['t'], tdi['dt'])

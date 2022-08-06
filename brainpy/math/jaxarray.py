@@ -76,6 +76,15 @@ class JaxArray(object):
     """
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
+    if isinstance(value, JaxArray):
+      value = value.value
+    elif isinstance(value, np.ndarray):
+      value = jnp.asarray(value)
+    elif isinstance(value, jnp.ndarray):
+      pass
+    else:
+      value = jnp.asarray(value)
+    # check
     if value.shape != self._value.shape:
       raise MathError(f"The shape of the original data is {self._value.shape}, "
                       f"while we got {value.shape}.")

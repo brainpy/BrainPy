@@ -130,10 +130,10 @@ class RegressionAlgorithm(OfflineAlgorithm):
   def initialize(self, identifier, *args, **kwargs):
     pass
 
-  def init_weights(self, n_features):
+  def init_weights(self, n_features, n_out):
     """ Initialize weights randomly [-1/N, 1/N] """
     limit = 1 / np.sqrt(n_features)
-    return bm.random.uniform(-limit, limit, (n_features,))
+    return bm.random.uniform(-limit, limit, (n_features, n_out))
 
   def gradient_descent_solve(self, targets, inputs, outputs=None):
     # checking
@@ -141,7 +141,7 @@ class RegressionAlgorithm(OfflineAlgorithm):
     targets = _check_data_2d_atls(bm.asarray(targets))
 
     # initialize weights
-    w = self.init_weights(n_features=inputs.shape[1])
+    w = self.init_weights(inputs.shape[1], targets.shape[1])
 
     def cond_fun(a):
       i, par_old, par_new = a
@@ -151,18 +151,18 @@ class RegressionAlgorithm(OfflineAlgorithm):
     def body_fun(a):
       i, par_old, par_new = a
       # Gradient of regularization loss w.r.t w
-      y_pred = inputs.dot(w)
-      grad_w = -(targets - y_pred).dot(inputs) + self.regularizer.grad(par_new)
+      y_pred = inputs.dot(par_old)
+      grad_w = bm.dot(inputs.T, -(targets - y_pred)) + self.regularizer.grad(par_new)
       # Update the weights
       par_new2 = par_new - self.learning_rate * grad_w
       return i + 1, par_new, par_new2
 
     # Tune parameters for n iterations
-    r = while_loop(cond_fun, body_fun, (0, w, w + 1.))
+    r = while_loop(cond_fun, body_fun, (0, w, w + 1e-8))
     return r[-1]
 
   def predict(self, W, X):
-    return X.dot(W)
+    return bm.dot(X, W)
 
 
 class LinearRegression(RegressionAlgorithm):
@@ -314,7 +314,7 @@ class LassoRegression(RegressionAlgorithm):
 
     # solving
     inputs = normalize(polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias))
-    super(LassoRegression, self).gradient_descent_solve(targets, inputs)
+    return super(LassoRegression, self).gradient_descent_solve(targets, inputs)
 
   def predict(self, W, X):
     X = _check_data_2d_atls(bm.asarray(X))
@@ -364,7 +364,7 @@ class LogisticRegression(RegressionAlgorithm):
     targets = targets.flatten()
 
     # initialize parameters
-    param = self.init_weights(inputs.shape[1])
+    param = self.init_weights(inputs.shape[1], targets.shape[1])
 
     def cond_fun(a):
       i, par_old, par_new = a
@@ -518,7 +518,7 @@ class ElasticNetRegression(RegressionAlgorithm):
     targets = _check_data_2d_atls(bm.asarray(targets))
     # solving
     inputs = normalize(polynomial_features(inputs, degree=self.degree))
-    super(ElasticNetRegression, self).gradient_descent_solve(targets, inputs)
+    return super(ElasticNetRegression, self).gradient_descent_solve(targets, inputs)
 
   def predict(self, W, X):
     X = _check_data_2d_atls(bm.asarray(X))

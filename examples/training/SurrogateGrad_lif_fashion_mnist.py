@@ -45,9 +45,7 @@ class SNN(bp.dyn.Network):
                                        mode=bp.modes.training)
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
-                                       delay_step=int(1 / bm.get_dt()),
-                                       output=bp.synouts.CUBA(),
-                                       tau=10.,
+                                       output=bp.synouts.CUBA(), tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=2.),
                                        mode=bp.modes.training)
 

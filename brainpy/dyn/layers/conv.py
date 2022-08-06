@@ -6,7 +6,7 @@ import jax.lax
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import XavierNormal, ZeroInit, parameter
-from brainpy.modes import Mode, TrainingMode, training
+from brainpy.modes import Mode, TrainingMode, NormalMode, training, check
 
 __all__ = [
   'GeneralConv',
@@ -91,6 +91,7 @@ class GeneralConv(DynamicalSystem):
       name: str = None,
   ):
     super(GeneralConv, self).__init__(name=name, mode=mode)
+
     self.in_channels = in_channels
     self.out_channels = out_channels
     self.kernel_size = kernel_size

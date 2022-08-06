@@ -75,6 +75,12 @@ class Dense(DynamicalSystem):
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(name={self.name}, '
+            f'num_in={self.num_in}, '
+            f'num_out={self.num_out}, '
+            f'mode={self.mode})')
+
   def reset_state(self, batch_size=None):
     pass
 
@@ -173,7 +179,7 @@ class Dense(DynamicalSystem):
       xs = bm.concatenate([bm.ones(xs.shape[:2] + (1,)), xs], axis=-1)  # (..., 1 + num_ff_input)
 
     # solve weights by offline training methods
-    weights = self.offline_fit_by(target, xs, ys)
+    weights = self.offline_fit_by(self.name, target, xs, ys)
 
     # assign trained weights
     if self.b is None:

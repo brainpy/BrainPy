@@ -10,10 +10,10 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
   delay differential equations (DDEs),
   fractional differential equations (FDEs), etc.
 - **Dynamics building** with the modular and composable programming interface.
-- **Dynamics simulation** tools for various brain objects.
-- **Dynamics training** tools with various machine learning algorithms,
+- **Dynamics simulation** for various brain objects with parallel supports.
+- **Dynamics training** with various machine learning algorithms,
   like FORCE learning, ridge regression, back-propagation, etc.
-- **Dynamics analysis** tools for differential equations, including
+- **Dynamics analysis** for low- and high-dimensional systems, including
   phase plane analysis, bifurcation analysis, linearization analysis,
   and fixed/slow point finding.
 - And more others ......
