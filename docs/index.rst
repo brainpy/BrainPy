@@ -47,7 +47,7 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 2
    :caption: BDP Tutorials
 
-   tutorial_basics/index
+   tutorial_math/index
    tutorial_building/index
    tutorial_simulation/index
    tutorial_training/index
@@ -76,13 +76,13 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   tutorial_math/variables
-   tutorial_math/base
-   tutorial_math/compilation
-   tutorial_math/differentiation
-   tutorial_math/control_flows
-   tutorial_math/low-level_operator_customization
-   tutorial_math/interoperation
+   tutorial_advanced/variables
+   tutorial_advanced/base
+   tutorial_advanced/compilation
+   tutorial_advanced/differentiation
+   tutorial_advanced/control_flows
+   tutorial_advanced/low-level_operator_customization
+   tutorial_advanced/interoperation
 
 
 .. toctree::

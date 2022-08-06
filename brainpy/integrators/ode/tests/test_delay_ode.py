@@ -44,7 +44,8 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
     self.ref2 = delay_odeint(20., self.eq1, args={'xdelay': case2_delay}, state_delays={'x': case2_delay}, method='euler')
 
   @parameterized.named_parameters(
-    {'testcase_name': f'constant_delay_{name}', 'method': name}
+    {'testcase_name': f'constant_delay_{name}',
+     'method': name}
     for name in get_supported_methods()
   )
   def test1(self, method):
@@ -54,8 +55,8 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
     case1 = delay_odeint(20., self.eq1, args={'xdelay': case1_delay}, state_delays={'x': case1_delay}, method=method)
     case2 = delay_odeint(20., self.eq1, args={'xdelay': case2_delay}, state_delays={'x': case2_delay}, method=method)
 
-    self.assertTrue((case1.x - self.ref1.x).mean() < 1e-3)
-    self.assertTrue((case2.x - self.ref2.x).mean() < 1e-3)
+    self.assertTrue((case1['x'] - self.ref1['x']).mean() < 1e-3)
+    self.assertTrue((case2['x'] - self.ref2['x']).mean() < 1e-3)
 
     # fig, axs = plt.subplots(2, 1)
     # fig.tight_layout(rect=[0, 0, 1, 0.95], pad=3.0)
@@ -90,7 +91,7 @@ class TestNonConstantHist(parameterized.TestCase):
     case1 = delay_odeint(4., self.eq, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01, method=method)
     case2 = delay_odeint(4., self.eq, args={'xdelay': delay2}, state_delays={'x': delay2}, dt=0.01, method=method)
 
-    self.assertTrue((case1.x - self.ref1.x).mean() < 1e-1)
-    self.assertTrue((case2.x - self.ref2.x).mean() < 1e-1)
+    self.assertTrue((case1['x'] - self.ref1['x']).mean() < 1e-1)
+    self.assertTrue((case2['x'] - self.ref2['x']).mean() < 1e-1)
 
 
