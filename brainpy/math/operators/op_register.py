@@ -94,9 +94,9 @@ class XLACustomOp(Base):
 
 
 def register_op(
-    op_name: str,
+    name: str,
+    eval_shape: Union[Callable, ShapedArray, Sequence[ShapedArray]],
     cpu_func: Callable,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
     gpu_func: Callable = None,
     apply_cpu_func_to_gpu: bool = False
 ):
@@ -105,13 +105,13 @@ def register_op(
 
   Parameters
   ----------
-  op_name: str
+  name: str
     Name of the operators.
   cpu_func: Callble
     A callable numba-jitted function or pure function (can be lambda function) running on CPU.
   gpu_func: Callable, default = None
     A callable cuda-jitted kernel running on GPU.
-  out_shapes: Callable, ShapedArray, Sequence[ShapedArray], default = None
+  eval_shape: Callable, ShapedArray, Sequence[ShapedArray], default = None
     Outputs shapes of target function. `out_shapes` can be a `ShapedArray` or
     a sequence of `ShapedArray`. If it is a function, it takes as input the argument
     shapes and dtypes and should return correct output shapes of `ShapedArray`.
@@ -123,10 +123,10 @@ def register_op(
   A jitable JAX function.
   """
   _check_brainpylib(register_op.__name__)
-  f = brainpylib.register_op(op_name,
+  f = brainpylib.register_op(name,
                              cpu_func=cpu_func,
                              gpu_func=gpu_func,
-                             out_shapes=out_shapes,
+                             out_shapes=eval_shape,
                              apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
 
   def fixed_op(*inputs):

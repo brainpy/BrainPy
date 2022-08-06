@@ -149,16 +149,16 @@ class RegressionAlgorithm(OfflineAlgorithm):
                             i < self.max_iter).value
 
     def body_fun(a):
-      i, par_old, par_new = a
+      i, _, par_new = a
       # Gradient of regularization loss w.r.t w
-      y_pred = inputs.dot(par_old)
+      y_pred = inputs.dot(par_new)
       grad_w = bm.dot(inputs.T, -(targets - y_pred)) + self.regularizer.grad(par_new)
       # Update the weights
       par_new2 = par_new - self.learning_rate * grad_w
       return i + 1, par_new, par_new2
 
     # Tune parameters for n iterations
-    r = while_loop(cond_fun, body_fun, (0, w, w + 1e-8))
+    r = while_loop(cond_fun, body_fun, (0, w - 1e-8, w))
     return r[-1]
 
   def predict(self, W, X):
