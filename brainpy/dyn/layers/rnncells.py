@@ -39,18 +39,6 @@ class RecurrentCell(DynamicalSystem):
     check_integer(num_out, 'num_out', min_bound=1, allow_none=False)
     self.train_state = train_state
 
-    # state
-    self.state = variable(bm.zeros, mode, self.num_out)
-    if train_state and isinstance(self.mode, TrainingMode):
-      self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
-      self.state[:] = self.state2train
-
-  def reset_state(self, batch_size=None):
-    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
-    if self.train_state:
-      self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
-      self.state[:] = self.state2train
-
 
 class VanillaRNN(RecurrentCell):
   r"""Basic fully-connected RNN core.
@@ -127,6 +115,18 @@ class VanillaRNN(RecurrentCell):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
+
+    # state
+    self.state = variable(bm.zeros, mode, self.num_out)
+    if train_state and isinstance(self.mode, TrainingMode):
+      self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
+      self.state[:] = self.state2train
+
+  def reset_state(self, batch_size=None):
+    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+    if self.train_state:
+      self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
+      self.state[:] = self.state2train
 
   def update(self, sha, x):
     h = x @ self.Wi
@@ -225,6 +225,18 @@ class GRU(RecurrentCell):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = bm.TrainVar(self.b) if (self.b is not None) else None
+
+    # state
+    self.state = variable(bm.zeros, mode, self.num_out)
+    if train_state and isinstance(self.mode, TrainingMode):
+      self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
+      self.state[:] = self.state2train
+
+  def reset_state(self, batch_size=None):
+    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+    if self.train_state:
+      self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
+      self.state[:] = self.state2train
 
   def update(self, sha, x):
     gates_x = bm.matmul(x, self.Wi)
@@ -350,8 +362,20 @@ class LSTM(RecurrentCell):
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
+    # state
+    self.state = variable(bm.zeros, mode, self.num_out * 2)
+    if train_state and isinstance(self.mode, TrainingMode):
+      self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out * 2,), allow_none=False))
+      self.state[:] = self.state2train
+
+  def reset_state(self, batch_size=None):
+    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out * 2), allow_none=False)
+    if self.train_state:
+      self.state2train.value = parameter(self._state_initializer, self.num_out * 2, allow_none=False)
+      self.state[:] = self.state2train
+
   def update(self, sha, x):
-    h, c = bm.split(self.state, 2)
+    h, c = bm.split(self.state, 2, axis=-1)
     gated = x @ self.Wi
     if self.b is not None:
       gated += self.b
@@ -359,13 +383,13 @@ class LSTM(RecurrentCell):
     i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
     c = bm.sigmoid(f + 1.) * c + bm.sigmoid(i) * self.activation(g)
     h = bm.sigmoid(o) * self.activation(c)
-    self.state.value = bm.vstack([h, c])
+    self.state.value = bm.concatenate([h, c], axis=-1)
     return h
 
   @property
   def h(self):
     """Hidden state."""
-    return bm.split(self.state, 2)[0]
+    return bm.split(self.state, 2, axis=-1)[0]
 
   @h.setter
   def h(self, value):
@@ -376,7 +400,7 @@ class LSTM(RecurrentCell):
   @property
   def c(self):
     """Memory cell."""
-    return bm.split(self.state, 2)[1]
+    return bm.split(self.state, 2, axis=-1)[1]
 
   @c.setter
   def c(self, value):

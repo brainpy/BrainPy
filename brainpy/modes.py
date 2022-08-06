@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+import numpy as np
+
 __all__ = [
   'Mode',
   'NormalMode',
@@ -10,6 +12,8 @@ __all__ = [
   'normal',
   'batching',
   'training',
+
+  'check',
 ]
 
 
@@ -36,4 +40,30 @@ class TrainingMode(BatchingMode):
 normal = NormalMode()
 batching = BatchingMode()
 training = TrainingMode()
+
+
+def check(mode, supported_modes, name=''):
+  """Check whether the used mode is in the list of the supported models.
+
+  Parameters
+  ----------
+  mode: Mode
+    The mode used.
+  supported_modes: list of type, tuple of type
+    The list of all types to support.
+  name: Any
+    The name.
+  """
+  if isinstance(supported_modes, type):
+    supported_modes = (supported_modes,)
+  if not isinstance(supported_modes, (tuple, list)):
+    raise TypeError(f'supported_modes must be a tuple/list of type. But wwe got {type(supported_modes)}')
+  for smode in supported_modes:
+    if not isinstance(smode, type):
+      raise TypeError(f'supported_modes must be a tuple/list of type. But wwe got {smode}')
+  checking = np.asarray([issubclass(smode, type(mode)) for smode in supported_modes])
+  if not np.isin(True, checking):
+    raise NotImplementedError(f"{name} does not support {mode}. We only support "
+                              f"{', '.join([mode.__name__ for mode in supported_modes])}. ")
+
 

@@ -9,7 +9,7 @@ from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import (ZeroInit, OneInit, Initializer,
                                 parameter, variable, noise as init_noise)
 from brainpy.integrators import sdeint, odeint, JointEq
-from brainpy.modes import Mode, BatchingMode, TrainingMode, normal
+from brainpy.modes import Mode, NormalMode, BatchingMode, TrainingMode, normal, check
 from brainpy.tools.checking import check_initializer, check_callable
 from brainpy.types import Shape, Tensor
 
@@ -87,6 +87,7 @@ class LeakyIntegrator(NeuGroup):
                                           mode=mode,
                                           keep_size=keep_size,
                                           name=name)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -203,6 +204,7 @@ class LIF(NeuGroup):
                               name=name,
                               keep_size=keep_size,
                               mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -415,6 +417,7 @@ class ExpIF(NeuGroup):
                                 name=name,
                                 mode=mode,
                                 keep_size=keep_size, )
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -583,6 +586,7 @@ class AdExIF(NeuGroup):
                                  keep_size=keep_size,
                                  name=name,
                                  mode=mode, )
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -739,6 +743,7 @@ class QuaIF(NeuGroup):
                                 keep_size=keep_size,
                                 name=name,
                                 mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -907,6 +912,7 @@ class AdQuaIF(NeuGroup):
                                   keep_size=keep_size,
                                   name=name,
                                   mode=mode, )
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -1090,6 +1096,7 @@ class GIF(NeuGroup):
                               keep_size=keep_size,
                               name=name,
                               mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # params
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -1254,6 +1261,7 @@ class ALIFBellec2020(NeuGroup):
                                          size=size,
                                          keep_size=keep_size,
                                          mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -1445,6 +1453,7 @@ class Izhikevich(NeuGroup):
                                      keep_size=keep_size,
                                      name=name,
                                      mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # params
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -1674,6 +1683,7 @@ class HindmarshRose(NeuGroup):
                                         keep_size=keep_size,
                                         name=name,
                                         mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -1852,6 +1862,7 @@ class FHN(NeuGroup):
                               keep_size=keep_size,
                               name=name,
                               mode=mode)
+    check(self.mode, (TrainingMode, NormalMode), self.__class__)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)

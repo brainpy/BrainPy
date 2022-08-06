@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, BatchingMode, batching
+from brainpy.modes import Mode, NormalMode, BatchingMode, batching, check
 from brainpy.tools.checking import (check_integer, check_sequence)
 
 __all__ = [
@@ -73,6 +73,7 @@ class NVAR(DynamicalSystem):
       name: str = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)
+    check(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
 
     # parameters
     order = tuple() if order is None else order
