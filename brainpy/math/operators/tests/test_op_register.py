@@ -23,7 +23,7 @@ def event_sum_op(outs, ins):
         outs[index] += v
 
 
-event_sum = bm.register_op(op_name='event_sum', cpu_func=event_sum_op, out_shapes=abs_eval)
+event_sum = bm.register_op(name='event_sum', cpu_func=event_sum_op, eval_shape=abs_eval)
 event_sum = bm.jit(event_sum)
 
 

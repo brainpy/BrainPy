@@ -292,7 +292,7 @@ class IntegratorRunner(Runner):
         start_t = float(self._start_t)
     end_t = float(start_t + duration)
     # times
-    times = np.arange(start_t, end_t, self.dt)
+    times = bm.arange(start_t, end_t, self.dt).value
 
     # running
     if self.progress_bar:
@@ -306,13 +306,17 @@ class IntegratorRunner(Runner):
       running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()
+
     # post-running
     hists.update(returns)
-    self._post(times, hists)
-    self._start_t = end_t
+    times += self.dt
     if self.numpy_mon_after_run:
-      self.mon.ts = np.asarray(self.mon.ts)
-      for key in returns.keys():
-        self.mon[key] = np.asarray(self.mon[key])
+      times = np.asarray(times)
+      for key in list(hists.keys()):
+        hists[key] = np.asarray(hists[key])
+    self.mon.ts = times
+    for key in hists.keys():
+      self.mon[key] = hists[key]
+    self._start_t = end_t
     if eval_time:
       return running_time

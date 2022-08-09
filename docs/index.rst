@@ -77,11 +77,10 @@ The code of BrainPy is open-sourced at GitHub:
    :caption: Advanced Tutorials
 
    tutorial_advanced/variables
-   tutorial_advanced/base
+   tutorial_advanced/base_and_collector
    tutorial_advanced/compilation
    tutorial_advanced/differentiation
-   tutorial_advanced/control_flows
-   tutorial_advanced/low-level_operator_customization
+   tutorial_advanced/operator_customization
    tutorial_advanced/interoperation
 
 
