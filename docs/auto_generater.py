@@ -257,7 +257,7 @@ def generate_datasets_docs(path='apis/auto/datasets/'):
                header='Chaotic Systems')
   write_module(module_name='brainpy.datasets.vision',
                filename=os.path.join(path, 'vision.rst'),
-               header='Chaotic Systems')
+               header='Vision Datasets')
 
 
 def generate_dyn_docs(path='apis/auto/dyn/'):
