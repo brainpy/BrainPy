@@ -327,7 +327,7 @@ class LengthDelay(AbstractDelay):
     # delay data
     if self.data is None:
       if batch_axis is None:
-        if hasattr(delay_target, 'batch_axis') and (delay_target.batch_axis is not None):
+        if isinstance(delay_target, Variable) and (delay_target.batch_axis is not None):
           batch_axis = delay_target.batch_axis + 1
       self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape,
                                      dtype=delay_target.dtype),
@@ -348,7 +348,8 @@ class LengthDelay(AbstractDelay):
 
   def _check_delay(self, delay_len):
     raise ValueError(f'The request delay length should be less than the '
-                     f'maximum delay {self.num_delay_step}. But we got {delay_len}')
+                     f'maximum delay {self.num_delay_step}. '
+                     f'But we got {delay_len}')
 
   def __call__(self, delay_len, *indices):
     # check

@@ -98,24 +98,29 @@ def variable(
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(data(var_shape))
-    else:
+    elif isinstance(batch_size_or_mode, int):
       new_shape = var_shape[:batch_axis] + (int(batch_size_or_mode),) + var_shape[batch_axis:]
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
+    else:
+      raise ValueError('Unknown batch_size_or_mode.')
+
   else:
     if var_shape is not None:
       if bm.shape(data) != var_shape:
         raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {var_shape}')
     if isinstance(batch_size_or_mode, NormalMode):
-      return bm.Variable(data(var_shape))
+      return bm.Variable(data)
     elif isinstance(batch_size_or_mode, BatchingMode):
       return bm.Variable(bm.expand_dims(data, axis=batch_axis), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(data)
-    else:
+    elif isinstance(batch_size_or_mode, int):
       return bm.Variable(bm.repeat(bm.expand_dims(data, axis=batch_axis),
                                    int(batch_size_or_mode),
                                    axis=batch_axis),
                          batch_axis=batch_axis)
+    else:
+      raise ValueError('Unknown batch_size_or_mode.')
 
 
 def noise(
