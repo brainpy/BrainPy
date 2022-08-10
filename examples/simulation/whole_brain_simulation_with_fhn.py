@@ -7,8 +7,6 @@ import numpy as np
 import brainpy as bp
 import brainpy.math as bm
 
-bp.check.turn_off()
-
 
 def bifurcation_analysis():
   model = bp.rates.FHN(1, method='exp_auto')
@@ -34,22 +32,27 @@ class Network(bp.dyn.Network):
     hcp = np.load('data/hcp.npz')
     conn_mat = bm.asarray(hcp['Cmat'])
     bm.fill_diagonal(conn_mat, 0)
-    delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt())
+    delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt()).astype(bm.int_)
     bm.fill_diagonal(delay_mat, 0)
 
-    self.fhn = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
+    self.fhn = bp.rates.FHN(
+      80,
+      x_ou_sigma=0.01,
+      y_ou_sigma=0.01,
+    )
     self.coupling = bp.synapses.DiffusiveCoupling(
-      self.fhn.x, self.fhn.x,
+      self.fhn.x,
+      self.fhn.x,
       var_to_output=self.fhn.input,
       conn_mat=conn_mat,
-      delay_steps=delay_mat.astype(bm.int_),
+      delay_steps=delay_mat,
       initial_delay_data=bp.init.Uniform(0, 0.05)
     )
 
 
 def net_simulation():
   net = Network()
-  runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72])
+  runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72], jit=True)
   runner.run(6e3)
 
   plt.rcParams['image.cmap'] = 'plasma'
@@ -91,5 +94,5 @@ def net_analysis():
 
 if __name__ == '__main__':
   # bifurcation_analysis()
-  # net_simulation()
-  net_analysis()
+  net_simulation()
+  # net_analysis()
