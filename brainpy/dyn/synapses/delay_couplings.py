@@ -6,8 +6,10 @@ import jax.numpy as jnp
 from jax import vmap
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
+from brainpy.dyn.base import SynConn, SynOut
+from brainpy.dyn.synouts import CUBA
 from brainpy.initialize import Initializer
+from brainpy.dyn.neurons.input_groups import InputGroup, OutputGroup
 from brainpy.modes import Mode, TrainingMode, normal
 from brainpy.tools.checking import check_sequence
 from brainpy.types import Tensor
@@ -19,7 +21,7 @@ __all__ = [
 ]
 
 
-class DelayCoupling(DynamicalSystem):
+class DelayCoupling(SynConn):
   """Delay coupling.
 
   Parameters
@@ -49,7 +51,10 @@ class DelayCoupling(DynamicalSystem):
       name: str = None,
       mode: Mode = normal,
   ):
-    super(DelayCoupling, self).__init__(name=name, mode=mode)
+    super(DelayCoupling, self).__init__(name=name,
+                                        mode=mode,
+                                        pre=InputGroup(1),
+                                        post=OutputGroup(1))
 
     # delay variable
     if not isinstance(delay_var, bm.Variable):
@@ -201,8 +206,8 @@ class DiffusiveCoupling(DelayCoupling):
         indices = (slice(None, None, None), bm.arange(self.coupling_var1.size),)
       else:
         indices = (bm.arange(self.coupling_var1.size),)
-      f = vmap(lambda i: delay_var(self.delay_steps[:, i], *indices))  # (..., pre.num)
-      delays = f(bm.arange(self.coupling_var2.size).value)  # (..., post.num, pre.num)
+      f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (..., pre.num)
+      delays = f(self.delay_steps)  # (..., post.num, pre.num)
       diffusive = (bm.moveaxis(delays, axis - 1, axis) -
                    bm.expand_dims(self.coupling_var2, axis=axis - 1))  # (..., pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
@@ -284,8 +289,8 @@ class AdditiveCoupling(DelayCoupling):
         indices = (slice(None, None, None), bm.arange(self.coupling_var.size),)
       else:
         indices = (bm.arange(self.coupling_var.size),)
-      f = vmap(lambda i: delay_var(self.delay_steps[:, i], *indices))  # (.., pre.num,)
-      delays = f(bm.arange(self.coupling_var.size).value)  # (..., post.num, pre.num)
+      f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (.., pre.num,)
+      delays = f(self.delay_steps)  # (..., post.num, pre.num)
       additive = (self.conn_mat * bm.moveaxis(delays, axis - 1, axis)).sum(axis=axis - 1)
     elif self.delay_type == 'int':
       delayed_var = delay_var(self.delay_steps)  # (..., pre.num)

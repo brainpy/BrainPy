@@ -39,7 +39,6 @@ class SNN(bp.dyn.Network):
                                        mode=bp.modes.training)
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
-                                       # delay_step=10,
                                        output=bp.synouts.CUBA(), tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=20.),
                                        mode=bp.modes.training)
@@ -64,7 +63,6 @@ def plot_voltage_traces(mem, spk=None, dim=(3, 5), spike_height=5):
     else:
       ax = plt.subplot(gs[i], sharey=a0)
     ax.plot(mem[i])
-    # ax.axis("off")
   plt.tight_layout()
   plt.show()
 
