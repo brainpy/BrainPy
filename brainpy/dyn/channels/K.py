@@ -8,16 +8,17 @@ This module implements voltage-dependent potassium channels.
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
+from brainpy.modes import Mode, BatchingMode, normal
 from .base import PotassiumChannel
 
 __all__ = [
   'IK_p4_markov',
   'IKDR_Ba2002',
   'IK_TM1991',
-  'IK_HH',
+  'IK_HH1952',
 
   'IKA_p4q_ss',
   'IKA1_HM1992',
@@ -70,20 +71,24 @@ class IK_p4_markov(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(IK_p4_markov, self).__init__(size, keep_size=keep_size, name=name)
+    super(IK_p4_markov, self).__init__(size,
+                                       keep_size=keep_size,
+                                       name=name,
+                                       mode=mode)
 
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -91,16 +96,18 @@ class IK_p4_markov(PotassiumChannel):
   def derivative(self, p, t, V):
     return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
 
-  def update(self, t, dt, V):
-    self.p.value = self.integral(self.p, t, V, dt=dt)
+  def update(self, tdi, V):
+    self.p.value = self.integral(self.p, tdi['t'], V, tdi['dt'])
 
   def current(self, V):
     return self.g_max * self.p ** 4 * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
 
   def f_p_alpha(self, V):
     raise NotImplementedError
@@ -160,14 +167,15 @@ class IKDR_Ba2002(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = -50.,
-      T_base: Union[float, Tensor] = 3.,
-      T: Union[float, Tensor] = 36.,
-      phi: Optional[Union[float, Tensor, Initializer, Callable]] = None,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      V_sh: Union[float, Array, Initializer, Callable] = -50.,
+      T_base: Union[float, Array] = 3.,
+      T: Union[float, Array] = 36.,
+      phi: Optional[Union[float, Array, Initializer, Callable]] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     phi = T_base ** ((T - 36) / 10) if phi is None else phi
     super(IKDR_Ba2002, self).__init__(size,
@@ -176,12 +184,13 @@ class IKDR_Ba2002(IK_p4_markov):
                                       method=method,
                                       g_max=g_max,
                                       phi=phi,
-                                      E=E)
+                                      E=E,
+                                      mode=mode)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base = init_param(T_base, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base = parameter(T_base, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     tmp = V - self.V_sh - 15.
@@ -235,12 +244,13 @@ class IK_TM1991(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -60.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -60.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(IK_TM1991, self).__init__(size,
                                     keep_size=keep_size,
@@ -248,8 +258,9 @@ class IK_TM1991(IK_p4_markov):
                                     method=method,
                                     phi=phi,
                                     E=E,
-                                    g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                    g_max=g_max,
+                                    mode=mode)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     c = 15 - V + self.V_sh
@@ -259,7 +270,7 @@ class IK_TM1991(IK_p4_markov):
     return 0.5 * bm.exp((10 - V + self.V_sh) / 40)
 
 
-class IK_HH(IK_p4_markov):
+class IK_HH1952(IK_p4_markov):
   r"""The potassium channel described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this channel is given by:
@@ -297,28 +308,30 @@ class IK_HH(IK_p4_markov):
 
   See Also
   --------
-  INa_HH
+  INa_HH1952
   """
 
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -45.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(IK_HH, self).__init__(size,
-                                keep_size=keep_size,
-                                name=name,
-                                method=method,
-                                phi=phi,
-                                E=E,
-                                g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    super(IK_HH1952, self).__init__(size,
+                                    keep_size=keep_size,
+                                    name=name,
+                                    method=method,
+                                    phi=phi,
+                                    E=E,
+                                    g_max=g_max,
+                                    mode=mode)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh + 10
@@ -355,9 +368,9 @@ class IKA_p4q_ss(PotassiumChannel):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -374,24 +387,28 @@ class IKA_p4q_ss(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(IKA_p4q_ss, self).__init__(size, keep_size=keep_size, name=name)
+    super(IKA_p4q_ss, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     mode=mode)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -402,15 +419,19 @@ class IKA_p4q_ss(PotassiumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value, self.q.value = self.integral(self.p.value, self.q.value, t, V, dt)
 
   def current(self, V):
     return self.g_max * self.p ** 4 * self.q * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def f_p_inf(self, V):
     raise NotImplementedError
@@ -456,11 +477,11 @@ class IKA1_HM1992(IKA_p4q_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -481,13 +502,14 @@ class IKA1_HM1992(IKA_p4q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 30.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 30.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(IKA1_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -496,10 +518,11 @@ class IKA1_HM1992(IKA_p4q_ss):
                                       E=E,
                                       g_max=g_max,
                                       phi_p=phi_p,
-                                      phi_q=phi_q)
+                                      phi_q=phi_q,
+                                      mode=mode)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1. + bm.exp(-(V - self.V_sh + 60.) / 8.5))
@@ -549,11 +572,11 @@ class IKA2_HM1992(IKA_p4q_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -574,13 +597,14 @@ class IKA2_HM1992(IKA_p4q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 20.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 20.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(IKA2_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -589,10 +613,11 @@ class IKA2_HM1992(IKA_p4q_ss):
                                       E=E,
                                       g_max=g_max,
                                       phi_q=phi_q,
-                                      phi_p=phi_p)
+                                      phi_p=phi_p,
+                                      mode=mode)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1. + bm.exp(-(V - self.V_sh + 36.) / 20.))
@@ -637,9 +662,9 @@ class IKK2_pq_ss(PotassiumChannel):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -657,24 +682,28 @@ class IKK2_pq_ss(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(IKK2_pq_ss, self).__init__(size, keep_size=keep_size, name=name)
+    super(IKK2_pq_ss, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     mode=mode)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -685,15 +714,19 @@ class IKK2_pq_ss(PotassiumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value, self.q.value = self.integral(self.p.value, self.q.value, t, V, dt)
 
   def current(self, V):
     return self.g_max * self.p * self.q * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def f_p_inf(self, V):
     raise NotImplementedError
@@ -738,11 +771,11 @@ class IKK2A_HM1992(IKK2_pq_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -760,13 +793,14 @@ class IKK2A_HM1992(IKK2_pq_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(IKK2A_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -775,10 +809,11 @@ class IKK2A_HM1992(IKK2_pq_ss):
                                        phi_p=phi_p,
                                        phi_q=phi_q,
                                        g_max=g_max,
-                                       E=E)
+                                       E=E,
+                                       mode=mode)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
@@ -827,11 +862,11 @@ class IKK2B_HM1992(IKK2_pq_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -849,13 +884,14 @@ class IKK2B_HM1992(IKK2_pq_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(IKK2B_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -864,10 +900,11 @@ class IKK2B_HM1992(IKK2_pq_ss):
                                        phi_p=phi_p,
                                        phi_q=phi_q,
                                        g_max=g_max,
-                                       E=E)
+                                       E=E,
+                                       mode=mode)
 
     # parameters
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
@@ -915,11 +952,11 @@ class IKNI_Ya1989(PotassiumChannel):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  tau_max: float, Tensor, Callable, Initializer
+  tau_max: float, Array, Callable, Initializer
     The :math:`tau_{\max}` parameter.
 
   References
@@ -932,27 +969,31 @@ class IKNI_Ya1989(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.004,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_max: Union[float, Tensor, Initializer, Callable] = 4e3,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 0.004,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      tau_max: Union[float, Array, Initializer, Callable] = 4e3,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(IKNI_Ya1989, self).__init__(size, keep_size=keep_size, name=name)
+    super(IKNI_Ya1989, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      mode=mode)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.tau_max = init_param(tau_max, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.tau_max = parameter(tau_max, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)
@@ -960,14 +1001,17 @@ class IKNI_Ya1989(PotassiumChannel):
   def dp(self, p, t, V):
     return self.phi_p * (self.f_p_inf(V) - p) / self.f_p_tau(V)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value = self.integral(self.p.value, t, V, dt)
 
   def current(self, V):
     return self.g_max * self.p * (self.E - V)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
 
   def f_p_inf(self, V):
     raise 1. / (1. + bm.exp(-(V - self.V_sh + 35.) / 10.))

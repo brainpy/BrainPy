@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import warnings
 from functools import partial
 
@@ -10,7 +11,7 @@ from jax.scipy.optimize import minimize
 import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
-from brainpy.analysis.base import BrainPyAnalyzer
+from brainpy.analysis.base import DSAnalyzer
 from brainpy.base.collector import Collector
 
 pyplot = None
@@ -22,7 +23,7 @@ __all__ = [
 ]
 
 
-class LowDimAnalyzer(BrainPyAnalyzer):
+class LowDimAnalyzer(DSAnalyzer):
   r"""Automatic Analyzer for Low-dimensional Dynamical Systems.
 
   A dynamical model is characterized by a series of dynamical
@@ -155,10 +156,12 @@ class LowDimAnalyzer(BrainPyAnalyzer):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
-      warnings.warn('The `resolutions` is specified to all parameters and variables. '
-                    'Analysis computation may occupy too much memory if `resolutions` is small. '
-                    'Please specify `resolutions` by dict, such as resolutions={"V": 0.1}.',
-                    category=UserWarning)
+      if len(self.target_pars) >= 1:
+        warnings.warn('The `resolutions` is specified to all parameters and variables. '
+                      'Analysis computation may occupy too much memory if `resolutions` is small. '
+                      'Please specify `resolutions` for each parameter and variable by dict, '
+                      'such as resolutions={"V": 0.1}.',
+                      category=UserWarning)
       for key, lim in self.target_vars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():
@@ -258,9 +261,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
     >>> self.F_fx(v1, v2, p1, p2)
     """
     if C.F_fx not in self.analyzed_results:
-      _, arguments = utils.get_args(self.model.F[self.x_var])
+      _, arguments = utils.get_args(self.model.f_derivatives[self.x_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
-      f = wrapper(self.model.F[self.x_var])
+      f = wrapper(self.model.f_derivatives[self.x_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
       f = utils.remove_return_shape(f)
@@ -419,9 +422,9 @@ class Num2DAnalyzer(Num1DAnalyzer):
     >>> self.F_fy(v1, v2, p1, p2)
     """
     if C.F_fy not in self.analyzed_results:
-      variables, arguments = utils.get_args(self.model.F[self.y_var])
+      variables, arguments = utils.get_args(self.model.f_derivatives[self.y_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
-      f = wrapper(self.model.F[self.y_var])
+      f = wrapper(self.model.f_derivatives[self.y_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
       f = utils.remove_return_shape(f)
@@ -431,18 +434,18 @@ class Num2DAnalyzer(Num1DAnalyzer):
   @property
   def F_int_x(self):
     if C.F_int_x not in self.analyzed_results:
-      wrap_x = utils.std_derivative(utils.get_args(self.model.F[self.x_var])[1],
+      wrap_x = utils.std_derivative(utils.get_args(self.model.f_derivatives[self.x_var])[1],
                                     self.target_var_names, self.target_par_names)
-      init_x = partial(wrap_x(self.model.INTG[0]), **(self.pars_update + self.fixed_vars))
+      init_x = partial(wrap_x(self.model.f_integrals[0]), **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_int_x] = init_x
     return self.analyzed_results[C.F_int_x]
 
   @property
   def F_int_y(self):
     if C.F_int_y not in self.analyzed_results:
-      wrap_x = utils.std_derivative(utils.get_args(self.model.F[self.y_var])[1],
+      wrap_x = utils.std_derivative(utils.get_args(self.model.f_derivatives[self.y_var])[1],
                                     self.target_var_names, self.target_par_names)
-      init_x = partial(wrap_x(self.model.INTG[1]), **(self.pars_update + self.fixed_vars))
+      init_x = partial(wrap_x(self.model.f_integrals[1]), **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_int_y] = init_x
     return self.analyzed_results[C.F_int_y]
 
@@ -1028,9 +1031,9 @@ class Num3DAnalyzer(Num2DAnalyzer):
   def F_fz(self):
     """The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`."""
     if C.F_fz not in self.analyzed_results:
-      variables, arguments = utils.get_args(self.model.F[self.z_var])
+      variables, arguments = utils.get_args(self.model.f_derivatives[self.z_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
-      f = wrapper(self.model.F[self.z_var])
+      f = wrapper(self.model.f_derivatives[self.z_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_fz] = bm.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fz]

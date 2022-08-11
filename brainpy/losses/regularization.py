@@ -11,6 +11,7 @@ __all__ = [
   'mean_absolute',
   'mean_square',
   'log_cosh',
+  'smooth_labels',
 ]
 
 
@@ -57,3 +58,23 @@ def log_cosh(errors):
   r = tree_map(lambda a: bm.logaddexp(a, -a) - bm.log(2.0).astype(a.dtype),
                errors, is_leaf=_is_leaf)
   return _multi_return(r)
+
+
+def smooth_labels(labels, alpha: float) -> jnp.ndarray:
+  r"""Apply label smoothing.
+  Label smoothing is often used in combination with a cross-entropy loss.
+  Smoothed labels favour small logit gaps, and it has been shown that this can
+  provide better model calibration by preventing overconfident predictions.
+  References:
+    [Müller et al, 2019](https://arxiv.org/pdf/1906.02629.pdf)
+  Args:
+    labels: one hot labels to be smoothed.
+    alpha: the smoothing factor, the greedy category with be assigned
+      probability `(1-alpha) + alpha / num_categories`
+  Returns:
+    a smoothed version of the one hot input labels.
+  """
+  r = tree_map(lambda tar: (1.0 - alpha) * tar + alpha / tar.shape[-1],
+               labels, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  return _multi_return(r)
+

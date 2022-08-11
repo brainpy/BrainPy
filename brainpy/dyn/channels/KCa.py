@@ -9,9 +9,10 @@ This module implements calcium-dependent potassium channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators.ode import odeint
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
+from brainpy.modes import Mode, BatchingMode, normal
 from .base import Calcium, CalciumChannel, PotassiumChannel
 
 __all__ = [
@@ -74,27 +75,32 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -95.,
-      n: Union[float, Tensor, Initializer, Callable] = 2,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      alpha: Union[float, Tensor, Initializer, Callable] = 48.,
-      beta: Union[float, Tensor, Initializer, Callable] = 0.09,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -95.,
+      n: Union[float, Array, Initializer, Callable] = 2,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      alpha: Union[float, Array, Initializer, Callable] = 48.,
+      beta: Union[float, Array, Initializer, Callable] = 0.09,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    CalciumChannel.__init__(self, size, keep_size=keep_size, name=name)
+    CalciumChannel.__init__(self,
+                            size=size,
+                            keep_size=keep_size,
+                            name=name,
+                            mode=mode)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.n = init_param(n, self.var_shape, allow_none=False)
-    self.alpha = init_param(alpha, self.var_shape, allow_none=False)
-    self.beta = init_param(beta, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.n = parameter(n, self.varshape, allow_none=False)
+    self.alpha = parameter(alpha, self.varshape, allow_none=False)
+    self.beta = parameter(beta, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)
@@ -104,13 +110,18 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     C3 = C2 + self.beta
     return self.phi * (C2 / C3 - p) * C3
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
+  def update(self, tdi, V, C_Ca, E_Ca):
+    t, dt = tdi['t'], tdi['dt']
     self.p.value = self.integral(self.p, t, C_Ca=C_Ca, dt=dt)
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * self.p * self.p * (self.E - V)
 
-  def reset(self, V, C_Ca, E_Ca):
+  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
     C2 = self.alpha * bm.power(C_Ca, self.n)
     C3 = C2 + self.beta
-    self.p.value = C2 / C3
+    if batch_size is None:
+      self.p.value = bm.broadcast_to(C2 / C3, self.varshape)
+    else:
+      self.p.value = bm.broadcast_to(C2 / C3, (batch_size,) + self.varshape)
+      assert self.p.shape[0] == batch_size

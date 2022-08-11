@@ -8,16 +8,17 @@ This module implements voltage-dependent sodium channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.initialize import Initializer, init_param
+from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Tensor, Shape
+from brainpy.types import Array, Shape
+from brainpy.modes import Mode, BatchingMode, normal
 from .base import SodiumChannel
 
 __all__ = [
   'INa_p3q_markov',
   'INa_Ba2002',
   'INa_TM1991',
-  'INa_HH',
+  'INa_HH1952',
 ]
 
 
@@ -38,11 +39,11 @@ class INa_p3q_markov(SodiumChannel):
 
   Parameters
   ----------
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Tensor, Callable, Initializer
+  E : float, Array, Callable, Initializer
     The reversal potential (mV).
-  phi : float, Tensor, Callable, Initializer
+  phi : float, Array, Callable, Initializer
     The temperature-dependent factor.
   method: str
     The numerical method
@@ -55,33 +56,40 @@ class INa_p3q_markov(SodiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, Tensor, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Tensor, Initializer, Callable] = 90.,
-      phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
+      E: Union[int, float, Array, Initializer, Callable] = 50.,
+      g_max: Union[int, float, Array, Initializer, Callable] = 90.,
+      phi: Union[int, float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
+      mode: Mode = normal,
   ):
-    super(INa_p3q_markov, self).__init__(size, keep_size=keep_size, name=name)
+    super(INa_p3q_markov, self).__init__(size=size,
+                                         keep_size=keep_size,
+                                         name=name,
+                                         mode=mode)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
     alpha = self.f_q_alpha(V)
     beta = self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def dp(self, p, t, V):
     return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
@@ -89,7 +97,8 @@ class INa_p3q_markov(SodiumChannel):
   def dq(self, q, t, V):
     return self.phi * (self.f_q_alpha(V) * (1. - q) - self.f_q_beta(V) * q)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
+    t, dt = tdi['t'], tdi['dt']
     p, q = self.integral(self.p, self.q, t, V, dt)
     self.p.value, self.q.value = p, q
 
@@ -132,13 +141,13 @@ class INa_Ba2002(INa_p3q_markov):
 
   Parameters
   ----------
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Tensor, Callable, Initializer
+  E : float, Array, Callable, Initializer
     The reversal potential (mV).
-  T : float, Tensor
+  T : float, Array
     The temperature (Celsius, :math:`^{\circ}C`).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The shift of the membrane potential to spike.
 
   References
@@ -156,12 +165,13 @@ class INa_Ba2002(INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[int, float, Tensor] = 36.,
-      E: Union[int, float, Tensor, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Tensor, Initializer, Callable] = 90.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -50.,
+      T: Union[int, float, Array] = 36.,
+      E: Union[int, float, Array, Initializer, Callable] = 50.,
+      g_max: Union[int, float, Array, Initializer, Callable] = 90.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -50.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(INa_Ba2002, self).__init__(size,
                                      keep_size=keep_size,
@@ -169,9 +179,10 @@ class INa_Ba2002(INa_p3q_markov):
                                      method=method,
                                      phi=3 ** ((T - 36) / 10),
                                      g_max=g_max,
-                                     E=E)
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                     E=E,
+                                     mode=mode)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh - 13.
@@ -220,11 +231,11 @@ class INa_TM1991(INa_p3q_markov):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Tensor, Callable, Initializer
+  E : float, Array, Callable, Initializer
     The reversal potential (mV).
-  V_sh: float, Tensor, Callable, Initializer
+  V_sh: float, Array, Callable, Initializer
     The membrane shift.
 
   References
@@ -241,12 +252,13 @@ class INa_TM1991(INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, Tensor, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Tensor, Initializer, Callable] = 120.,
-      phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -63.,
+      E: Union[int, float, Array, Initializer, Callable] = 50.,
+      g_max: Union[int, float, Array, Initializer, Callable] = 120.,
+      phi: Union[int, float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -63.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(INa_TM1991, self).__init__(size,
                                      keep_size=keep_size,
@@ -254,8 +266,9 @@ class INa_TM1991(INa_p3q_markov):
                                      method=method,
                                      E=E,
                                      phi=phi,
-                                     g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                     g_max=g_max,
+                                     mode=mode)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = 13 - V + self.V_sh
@@ -272,7 +285,7 @@ class INa_TM1991(INa_p3q_markov):
     return 4. / (1 + bm.exp(-(V - self.V_sh - 40) / 5))
 
 
-class INa_HH(INa_p3q_markov):
+class INa_HH1952(INa_p3q_markov):
   r"""The sodium current model described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this sodium current model is given by:
@@ -304,11 +317,11 @@ class INa_HH(INa_p3q_markov):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Tensor, Callable, Initializer
+  E : float, Array, Callable, Initializer
     The reversal potential (mV).
-  V_sh: float, Tensor, Callable, Initializer
+  V_sh: float, Array, Callable, Initializer
     The membrane shift.
 
   References
@@ -319,28 +332,30 @@ class INa_HH(INa_p3q_markov):
 
   See Also
   --------
-  IK_HH
+  IK_HH1952
   """
 
   def __init__(
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, Tensor, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Tensor, Initializer, Callable] = 120.,
-      phi: Union[int, float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -45.,
+      E: Union[int, float, Array, Initializer, Callable] = 50.,
+      g_max: Union[int, float, Array, Initializer, Callable] = 120.,
+      phi: Union[int, float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(INa_HH, self).__init__(size,
-                                 keep_size=keep_size,
-                                 name=name,
-                                 method=method,
-                                 E=E,
-                                 phi=phi,
-                                 g_max=g_max)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    super(INa_HH1952, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     method=method,
+                                     E=E,
+                                     phi=phi,
+                                     g_max=g_max,
+                                     mode=mode)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh - 5

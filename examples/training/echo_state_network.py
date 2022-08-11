@@ -4,40 +4,40 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class ESN(bp.train.TrainingSystem):
+class ESN(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
-    self.r = bp.train.Reservoir(num_in, num_hidden,
-                                Win_initializer=bp.init.Uniform(-0.1, 0.1),
-                                Wrec_initializer=bp.init.Normal(scale=0.1),
-                                ff_connectivity=0.02,
-                                fb_connectivity=0.02,
-                                rec_connectivity=0.02,
-                                conn_type='dense')
-    self.o = bp.train.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
+    self.r = bp.layers.Reservoir(num_in, num_hidden,
+                                 Win_initializer=bp.init.Uniform(-0.1, 0.1),
+                                 Wrec_initializer=bp.init.Normal(scale=0.1),
+                                 in_connectivity=0.02,
+                                 rec_connectivity=0.02,
+                                 comp_type='dense',
+                                 mode=bp.modes.batching)
+    self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
 
-  def forward(self, x, shared_args=None):
-    return self.o(self.r(x, shared_args), shared_args)
+  def update(self, sha, x):
+    return self.o(sha, self.r(sha, x))
 
 
-class NGRC(bp.train.TrainingSystem):
+class NGRC(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
-    self.r = bp.train.NVAR(num_in, delay=2, order=2)
-    self.o = bp.train.Dense(self.r.num_out, num_out,
-                            W_initializer=bp.init.Normal(0.1),
-                            trainable=True)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=2, mode=bp.modes.batching)
+    self.o = bp.layers.Dense(self.r.num_out, num_out,
+                             W_initializer=bp.init.Normal(0.1),
+                             mode=bp.modes.training)
 
-  def forward(self, x, shared_args=None):
-    return self.o(self.r(x, shared_args), shared_args)
+  def update(self, shared_args, x):
+    return self.o(shared_args, self.r(shared_args, x))
 
 
 def train_esn_with_ridge(num_in=100, num_out=30):
   model = ESN(num_in, 2000, num_out)
 
   # input-output
-  print(model(bm.ones((1, num_in))))
+  print(model(dict(), bm.ones((1, num_in))))
 
   X = bm.random.random((1, 200, num_in))
   Y = bm.random.random((1, 200, num_out))
@@ -68,7 +68,7 @@ def train_esn_with_force(num_in=100, num_out=30):
   model = ESN(num_in, 2000, num_out)
 
   # input-output
-  print(model(bm.ones((1, num_in))))
+  print(model(dict(), bm.ones((1, num_in))))
 
   X = bm.random.random((1, 200, num_in))
   Y = bm.random.random((1, 200, num_out))
@@ -78,8 +78,8 @@ def train_esn_with_force(num_in=100, num_out=30):
   trainer.fit([X, Y])
 
   # prediction
-  runner = bp.train.DSRunner(model, monitors=['r.state'], jit=True)
-  outputs = runner.predict(X)
+  runner = bp.dyn.DSRunner(model, monitors=['r.state'], jit=True, inputs=[])
+  outputs = runner.predict(inputs=X, inputs_are_batching=True)
   print(runner.mon['r.state'].shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
   print()
@@ -93,12 +93,12 @@ def ngrc(num_in=10, num_out=30):
 
   X = bm.random.random((1, 200, num_in))  # (num_batch, num_time, num_feature)
   Y = bm.random.random((1, 200, num_out))
-  trainer = bp.train.RidgeTrainer(model, beta=1e-6)
-  outputs = trainer.predict(X)
+  trainer = bp.train.RidgeTrainer(model, alpha=1e-6)
+  outputs = trainer.predict(inputs=X)
   print(outputs.shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
   trainer.fit([X, Y])
-  outputs = trainer.predict(X)
+  outputs = trainer.predict(inputs=X)
   print(bp.losses.mean_absolute_error(outputs, Y))
 
 
@@ -108,7 +108,7 @@ def ngrc_bacth(num_in=10, num_out=30):
   model.reset_state(batch_size)
   X = bm.random.random((batch_size, 200, num_in))
   Y = bm.random.random((batch_size, 200, num_out))
-  trainer = bp.train.RidgeTrainer(model, beta=1e-6)
+  trainer = bp.train.RidgeTrainer(model, alpha=1e-6)
   outputs = trainer.predict(X)
   print(bp.losses.mean_absolute_error(outputs, Y))
   trainer.fit([X, Y])

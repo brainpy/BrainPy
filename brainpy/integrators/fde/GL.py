@@ -4,7 +4,7 @@
 This module provides numerical solvers for Grünwald–Letnikov derivative FDEs.
 """
 
-from typing import Dict, Union, Callable
+from typing import Dict, Union, Callable, Any
 
 import jax.numpy as jnp
 
@@ -127,8 +127,8 @@ class GLShortMemory(FDEIntegrator):
   def __init__(
       self,
       f: Callable,
-      alpha,
-      inits,
+      alpha: Any,
+      inits: Any,
       num_memory: int,
       dt: float = None,
       name: str = None,
@@ -152,9 +152,9 @@ class GLShortMemory(FDEIntegrator):
     # delays
     self.delays = {}
     for key, val in inits.items():
-      delay = bm.Variable(bm.zeros((self.num_step,) + val.shape, dtype=val.dtype))
+      delay = bm.Variable(bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype))
       delay[0] = val
-      self.delays[key] = delay
+      self.delays[key+'_delay'] = delay
     self._idx = bm.Variable(bm.asarray([1]))
     self.register_implicit_vars(self.delays)
 
@@ -171,7 +171,7 @@ class GLShortMemory(FDEIntegrator):
     self._idx.value = bm.asarray([1])
     inits = check_inits(inits, self.variables)
     for key, val in inits.items():
-      delay = bm.zeros((self.num_step,) + val.shape, dtype=val.dtype)
+      delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
       delay[0] = val
       self.delays[key].value = delay
 
@@ -199,13 +199,14 @@ class GLShortMemory(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = (self._idx + bm.arange(self.num_step)) % self.num_step
+    idx = (self._idx + bm.arange(self.num_memory)) % self.num_memory
     for i, var in enumerate(self.variables):
-      summation = self._binomial_coef[:, i] @ self.delays[var][idx]
+      delay_var = var + '_delay'
+      summation = self._binomial_coef[:, i] @ self.delays[delay_var][idx]
       integral = (dt ** self.alpha[i]) * devs[var] - summation
-      self.delays[var][self._idx[0]] = integral
+      self.delays[delay_var][self._idx[0]] = integral
       integrals.append(integral)
-    self._idx.value = (self._idx + 1) % self.num_step
+    self._idx.value = (self._idx + 1) % self.num_memory
 
     # return integrals
     if len(self.variables) == 1:

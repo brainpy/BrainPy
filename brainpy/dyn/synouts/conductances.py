@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
-from brainpy.dyn.base import SynapseOutput
-from brainpy.initialize import init_param, Initializer
-from brainpy.types import Tensor
+from brainpy.math import Variable
+from brainpy.dyn.base import SynOut
+from brainpy.initialize import parameter, Initializer
+from brainpy.types import Array
 
 __all__ = [
   'COBA',
@@ -12,7 +13,7 @@ __all__ = [
 ]
 
 
-class CUBA(SynapseOutput):
+class CUBA(SynOut):
   r"""Current-based synaptic output.
 
   Given the conductance, this model outputs the post-synaptic current with a identity function:
@@ -32,14 +33,19 @@ class CUBA(SynapseOutput):
   COBA
   """
 
-  def __init__(self, name: str = None):
-    super(CUBA, self).__init__(name=name)
+  def __init__(
+      self,
+      target_var: Optional[Union[str, Variable]] = 'input',
+      name: str = None,
+  ):
+    self._target_var = target_var
+    super(CUBA, self).__init__(name=name, target_var=target_var)
 
-  def filter(self, g):
-    return g
+  def clone(self):
+    return CUBA(target_var=self._target_var)
 
 
-class COBA(SynapseOutput):
+class COBA(SynOut):
   r"""Conductance-based synaptic output.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -62,15 +68,37 @@ class COBA(SynapseOutput):
 
   def __init__(
       self,
-      E: Union[float, Tensor, Callable, Initializer] = 0.,
-      name: str = None
+      E: Union[float, Array, Callable, Initializer] = 0.,
+      target_var: Optional[Union[str, Variable]] = 'input',
+      membrane_var: Union[str, Variable] = 'V',
+      name: str = None,
   ):
-    super(COBA, self).__init__(name=name)
+    super(COBA, self).__init__(name=name, target_var=target_var)
     self._E = E
+    self._target_var = target_var
+    self._membrane_var = membrane_var
+
+  def clone(self):
+    return COBA(E=self._E, target_var=self._target_var, membrane_var=self._membrane_var)
 
   def register_master(self, master):
     super(COBA, self).register_master(master)
-    self.E = init_param(self._E, self.master.post.num, allow_none=False)
+
+    # reversal potential
+    self.E = parameter(self._E, self.master.post.num, allow_none=False)
+
+    # membrane potential
+    if isinstance(self._membrane_var, str):
+      if not hasattr(self.master.post, self._membrane_var):
+        raise KeyError(f'Post-synaptic group does not have membrane variable: {self._membrane_var}')
+      self.membrane_var = getattr(self.master.post, self._membrane_var)
+    elif isinstance(self._membrane_var, Variable):
+      self.membrane_var = self._membrane_var
+    else:
+      raise TypeError('"membrane_var" must be instance of string or Variable. '
+                      f'But we got {type(self._membrane_var)}')
 
   def filter(self, g):
-    return g * (self.E - self.master.post.V)
+    V = self.membrane_var.value
+    I = g * (self.E - V)
+    return super(COBA, self).filter(I)

@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
+
 import warnings
 from typing import Union, Dict, Callable, Optional
 
+from jax import vmap
+from jax.lax import stop_gradient
+
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, TwoEndConn, SynapsePlasticity, SynapseOutput
-from brainpy.initialize import Initializer, init_param
+from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
+from brainpy.dyn.synouts import COBA, MgBlock
+from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Tensor
-from ..synouts import COBA, MgBlock
+from brainpy.types import Array
+from brainpy.modes import Mode, BatchingMode, TrainingMode, normal, batching, training
 
 __all__ = [
   'AMPA',
@@ -94,7 +99,7 @@ class AMPA(TwoEndConn):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
@@ -134,37 +139,34 @@ class AMPA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = None,
-      plasticity: Optional[SynapsePlasticity] = None,
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      alpha: Union[float, Tensor] = 0.98,
-      beta: Union[float, Tensor] = 0.18,
-      T: Union[float, Tensor] = 0.5,
-      T_duration: Union[float, Tensor] = 0.5,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = COBA(E=0.),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'dense',
+      g_max: Union[float, Array, Initializer, Callable] = 0.42,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      alpha: float = 0.98,
+      beta: float = 0.18,
+      T: float = 0.5,
+      T_duration: float = 0.5,
       method: str = 'exp_auto',
-      name: str = None,
 
-      # deprecated
-      E: Union[float, Tensor] = None,
+      # other parameters
+      name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
   ):
-    _E = 0.
-    if E is not None:
-      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
-                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
-      _E = E
     super(AMPA, self).__init__(pre=pre,
                                post=post,
                                conn=conn,
-                               output=COBA(E=_E) if output is None else output,
-                               plasticity=plasticity,
-                               name=name)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input', 'V')
+                               output=output,
+                               stp=stp,
+                               name=name,
+                               mode=mode)
 
     # parameters
+    self.stop_spike_gradient = stop_spike_gradient
+    self.comp_method = comp_method
     self.alpha = alpha
     self.beta = beta
     self.T = T
@@ -179,87 +181,64 @@ class AMPA(TwoEndConn):
       raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # connection
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = bm.Variable(bm.zeros(self.pre.num))
-    self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
-    self.delay_step = self.register_delay(f"{self.pre.name}.spike",
-                                          delay_step=delay_step,
-                                          delay_target=self.pre.spike)
+    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # functions
     self.integral = odeint(method=method, f=self.dg)
 
-  def reset(self):
-    self.g[:] = 0
-    self.output.reset()
-    self.plasticity.reset()
+  def reset_state(self, batch_size=None):
+    self.g = variable(bm.zeros, batch_size, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dg(self, g, t, TT):
     dg = self.alpha * TT * (1 - g) - self.beta * g
     return dg
 
-  def update(self, t, dt):
+  def update(self, tdi, pre_spike=None):
+    t, dt = tdi['t'], tdi['dt']
+
     # delays
-    pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-    self.output.update(t, dt)
-    self.plasticity.update(t, dt, pre_spike, self.post.spike)
+    if pre_spike is None:
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
+
+    # update sub-components
+    self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
+    if isinstance(self.mode, TrainingMode):
+      self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
-    self.g.value = self.integral(self.g, t, TT, dt=dt)
+    self.g.value = self.integral(self.g, t, TT, dt)
 
     # post-synaptic values
-    syn_value = self.plasticity.filter(self.g)
-    if isinstance(self.conn, One2One):
-      post_g = self.g_max * syn_value
-    elif isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_g = bm.sum(syn_value)
-        if not self.conn.include_self:
-          post_g = post_g - syn_value
-        post_g = post_g * self.g_max
-      else:
-        post_g = syn_value @ self.g_max
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
+    if isinstance(self.conn, All2All):
+      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+    elif isinstance(self.conn, One2One):
+      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
-      if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(syn_value, self.post.num, self.post_ids, self.pre_ids)
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        post_vs = f(syn_value)
       else:
-        if self.weight_type == 'homo':
-          post_g = (self.g_max * syn_value) @ self.conn_mat
-        else:
-          post_g = syn_value @ self.g_max
+        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
-    self.post.input += self.output.filter(post_g)
+    return self.output(post_vs)
 
 
 class GABAa(AMPA):
@@ -295,7 +274,7 @@ class GABAa(AMPA):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
@@ -334,33 +313,32 @@ class GABAa(AMPA):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = None,
-      plasticity: Optional[SynapsePlasticity] = None,
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      alpha: Union[float, Tensor] = 0.53,
-      beta: Union[float, Tensor] = 0.18,
-      T: Union[float, Tensor] = 1.,
-      T_duration: Union[float, Tensor] = 1.,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = COBA(E=-80.),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'dense',
+      g_max: Union[float, Array, Initializer, Callable] = 0.04,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      alpha: Union[float, Array] = 0.53,
+      beta: Union[float, Array] = 0.18,
+      T: Union[float, Array] = 1.,
+      T_duration: Union[float, Array] = 1.,
       method: str = 'exp_auto',
+
+      # other parameters
       name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
 
       # deprecated
-      E: Union[float, Tensor] = None,
+      E: Union[float, Array] = None,
   ):
-    _E = -80.
-    if E is not None:
-      warnings.warn('"E" is deprecated in AMPA model. Please define "E" with '
-                    'brainpy.dyn.synouts.COBA.', DeprecationWarning)
-      _E = E
     super(GABAa, self).__init__(pre=pre,
                                 post=post,
                                 conn=conn,
-                                output=COBA(E=_E) if output is None else output,
-                                plasticity=plasticity,
-                                conn_type=conn_type,
+                                output=output,
+                                stp=stp,
+                                comp_method=comp_method,
                                 delay_step=delay_step,
                                 g_max=g_max,
                                 alpha=alpha,
@@ -368,7 +346,9 @@ class GABAa(AMPA):
                                 T=T,
                                 T_duration=T_duration,
                                 method=method,
-                                name=name)
+                                name=name,
+                                mode=mode,
+                                stop_spike_gradient=stop_spike_gradient, )
 
 
 class BioNMDA(TwoEndConn):
@@ -458,7 +438,7 @@ class BioNMDA(TwoEndConn):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
@@ -473,7 +453,6 @@ class BioNMDA(TwoEndConn):
     The conversion rate of x from inactive to active. Default 1 ms^-1.
   beta2: float, JaxArray, ndarray
     The conversion rate of x from active to inactive. Default 0.5 ms^-1.
-
   name: str
     The name of this synaptic projection.
   method: str
@@ -497,29 +476,32 @@ class BioNMDA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      output: SynapseOutput = None,
-      plasticity: Optional[SynapsePlasticity] = None,
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      alpha1: Union[float, Tensor] = 2.,
-      beta1: Union[float, Tensor] = 0.01,
-      alpha2: Union[float, Tensor] = 1.,
-      beta2: Union[float, Tensor] = 0.5,
-      T_0: Union[float, Tensor] = 1.,
-      T_dur: Union[float, Tensor] = 0.5,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = MgBlock(E=0.),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'dense',
+      g_max: Union[float, Array, Initializer, Callable] = 0.15,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      alpha1: Union[float, Array] = 2.,
+      beta1: Union[float, Array] = 0.01,
+      alpha2: Union[float, Array] = 1.,
+      beta2: Union[float, Array] = 0.5,
+      T_0: Union[float, Array] = 1.,
+      T_dur: Union[float, Array] = 0.5,
       method: str = 'exp_auto',
+
+      # other parameters
+      mode: Mode = normal,
       name: str = None,
+      stop_spike_gradient: bool = False,
   ):
     super(BioNMDA, self).__init__(pre=pre,
                                   post=post,
                                   conn=conn,
-                                  output=MgBlock(E=0.) if output is None else output,
-                                  plasticity=plasticity,
-                                  name=name)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input', 'V')
+                                  output=output,
+                                  stp=stp,
+                                  name=name,
+                                  mode=mode)
 
     # parameters
     self.beta1 = beta1
@@ -540,50 +522,27 @@ class BioNMDA(TwoEndConn):
       raise ValueError(f'"T_0" must be a scalar or a tensor with size of 1. But we got {T_0}')
     if bm.size(T_dur) != 1:
       raise ValueError(f'"T_dur" must be a scalar or a tensor with size of 1. But we got {T_dur}')
+    self.comp_method = comp_method
+    self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = bm.Variable(bm.zeros(self.pre.num))
-    self.x = bm.Variable(bm.zeros(self.pre.num))
-    self.spike_arrival_time = bm.Variable(bm.ones(self.pre.num) * -1e7)
+    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.x = variable(bm.zeros, mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
 
-  def reset(self):
-    self.g.value = bm.zeros(self.pre.num)
-    self.x.value = bm.zeros(self.pre.num)
-    self.spike_arrival_time.value = bm.ones(self.pre.num) * -1e7
-    self.plasticity.reset()
+  def reset_state(self, batch_size=None):
+    self.g = variable(bm.zeros, batch_size, self.pre.num)
+    self.x = variable(bm.zeros, batch_size, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dg(self, g, t, x):
     return self.alpha1 * x * (1 - g) - self.beta1 * g
@@ -591,37 +550,41 @@ class BioNMDA(TwoEndConn):
   def dx(self, x, t, T):
     return self.alpha2 * T * (1 - x) - self.beta2 * x
 
-  def update(self, t, dt):
-    # delays
-    pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+  def update(self, tdi, pre_spike=None):
+    t, dt = tdi['t'], tdi['dt']
 
-    self.plasticity.update(t, dt, pre_spike, self.post.spike)
+    # pre-synaptic spikes
+    if pre_spike is None:
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
+
+    # update sub-components
+    self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
+    if isinstance(self.mode, TrainingMode):
+      self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0
-    self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt=dt)
+    self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
 
     # post-synaptic value
-    syn_value = self.plasticity.filter(self.g.value)
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_g = bm.sum(syn_value)
-        if not self.conn.include_self:
-          post_g = post_g - syn_value
-        post_g = post_g * self.g_max
-      else:
-        post_g = syn_value @ self.g_max
+      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_g = self.g_max * syn_value
+      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
-      if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(syn_value, self.post.num, self.post_ids, self.pre_ids)
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        post_vs = f(syn_value)
       else:
-        if self.weight_type == 'homo':
-          post_g = (self.g_max * syn_value) @ self.conn_mat
-        else:
-          post_g = syn_value @ self.g_max
+        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
-    self.post.input += self.output.filter(post_g)
+    return self.output(post_vs)

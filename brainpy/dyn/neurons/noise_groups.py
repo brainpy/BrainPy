@@ -2,11 +2,12 @@
 
 from typing import Union, Callable
 
-import brainpy.math as bm
+from brainpy import math as bm, initialize as init
 from brainpy.dyn.base import NeuGroup
-from brainpy.initialize import init_param, Initializer
+from brainpy.initialize import Initializer
 from brainpy.integrators.sde import sdeint
-from brainpy.types import Tensor, Shape
+from brainpy.modes import Mode, normal
+from brainpy.types import Array, Shape
 
 __all__ = [
   'OUProcess',
@@ -45,34 +46,36 @@ class OUProcess(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      mean: Union[float, Tensor, Initializer, Callable] = 0.,
-      sigma: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau: Union[float, Tensor, Initializer, Callable] = 10.,
-      method: str = 'euler',
-      name: str = None
+      mean: Union[float, Array, Initializer, Callable] = 0.,
+      sigma: Union[float, Array, Initializer, Callable] = 1.,
+      tau: Union[float, Array, Initializer, Callable] = 10.,
+      method: str = 'exp_euler',
+      keep_size: bool = False,
+      mode: Mode = normal,
+      name: str = None,
   ):
-    super(OUProcess, self).__init__(size=size, name=name)
+    super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
+
 
     # parameters
-    self.mean = init_param(mean, self.num, allow_none=False)
-    self.sigma = init_param(sigma, self.num, allow_none=False)
-    self.tau = init_param(tau, self.num, allow_none=False)
+    self.mean = init.parameter(mean, self.varshape, allow_none=False)
+    self.sigma = init.parameter(sigma, self.varshape, allow_none=False)
+    self.tau = init.parameter(tau, self.varshape, allow_none=False)
 
     # variables
-    self.x = bm.Variable(bm.ones(self.num) * mean)
+    self.x = init.variable(lambda s: bm.ones(s) * self.mean, mode, self.varshape)
 
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)
 
-  def reset(self):
-    self.x[:] = self.mean
+  def reset_state(self, batch_size=None):
+    self.x.value = init.variable(lambda s: bm.ones(s) * self.mean, batch_size, self.varshape)
 
   def df(self, x, t):
-    f_x_ou = (self.mean - x) / self.tau
-    return f_x_ou
+    return (self.mean - x) / self.tau
 
   def dg(self, x, t):
     return self.sigma
 
-  def update(self, t, dt):
-    self.x.value = self.integral(self.x, t, dt)
+  def update(self, tdi):
+    self.x.value = self.integral(self.x, tdi['t'], tdi['dt'])

@@ -7,8 +7,10 @@ This module implements leakage channels.
 
 from typing import Union, Callable
 
-from brainpy.initialize import Initializer, init_param
-from brainpy.types import Tensor, Shape
+from brainpy.initialize import Initializer, parameter
+from brainpy.types import Array, Shape
+from brainpy.modes import Mode, BatchingMode, normal
+
 from .base import LeakyChannel
 
 __all__ = [
@@ -32,21 +34,25 @@ class IL(LeakyChannel):
       self,
       size,
       keep_size: bool = False,
-      g_max: Union[int, float, Tensor, Initializer, Callable] = 0.1,
-      E: Union[int, float, Tensor, Initializer, Callable] = -70.,
+      g_max: Union[int, float, Array, Initializer, Callable] = 0.1,
+      E: Union[int, float, Array, Initializer, Callable] = -70.,
       method: str = None,
       name: str = None,
+      mode: Mode = normal,
   ):
-    super(IL, self).__init__(size, keep_size=keep_size, name=name)
+    super(IL, self).__init__(size,
+                             keep_size=keep_size,
+                             name=name,
+                             mode=mode)
 
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
     self.method = method
 
-  def reset(self, V):
+  def reset_state(self, V, batch_size=None):
     pass
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
     pass
 
   def current(self, V):
@@ -69,9 +75,16 @@ class IKL(IL):
       self,
       size: Shape,
       keep_size: bool = False,
-      g_max: Union[int, float, Tensor, Initializer, Callable] = 0.005,
-      E: Union[int, float, Tensor, Initializer, Callable] = -90.,
-      method=None,
-      name=None,
+      g_max: Union[int, float, Array, Initializer, Callable] = 0.005,
+      E: Union[int, float, Array, Initializer, Callable] = -90.,
+      method: str = None,
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(IKL, self).__init__(size=size, keep_size=keep_size, g_max=g_max, E=E, method=method, name=name)
+    super(IKL, self).__init__(size=size,
+                              keep_size=keep_size,
+                              g_max=g_max,
+                              E=E,
+                              method=method,
+                              name=name,
+                              mode=mode)

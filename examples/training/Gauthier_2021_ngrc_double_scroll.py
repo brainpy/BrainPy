@@ -14,6 +14,7 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+
 bm.enable_x64()
 
 
@@ -102,14 +103,14 @@ Y_test = get_subset(data_series,
 # ----- #
 
 
-class NGRC(bp.train.TrainingSystem):
+class NGRC(bp.dyn.DynamicalSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
-    self.r = bp.train.NVAR(num_in, delay=2, order=3)
-    self.di = bp.train.Dense(self.r.num_out, num_in, trainable=True)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=3, mode=bp.modes.batching)
+    self.di = bp.layers.Dense(self.r.num_out, num_in, mode=bp.modes.training)
 
-  def forward(self, x, shared_args=None):
-    di = self.di(self.r(x, shared_args), shared_args)
+  def update(self, sha, x):
+    di = self.di(sha, self.r(sha, x))
     return x + di
 
 
@@ -119,7 +120,7 @@ model = NGRC(3)
 # -------- #
 
 # warm-up
-trainer = bp.train.RidgeTrainer(model, beta=1e-5, jit=True)
+trainer = bp.train.RidgeTrainer(model, alpha=1e-5, jit=True)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 
@@ -128,10 +129,11 @@ trainer.fit([X_train, {'di': dX_train}])
 plot_weights(model.di.W, model.r.get_feature_names(for_plot=True), model.di.b)
 
 # prediction
+shared = dict()
 model_jit = bm.jit(model)
-outputs = [model_jit(X_test[:, 0])]
+outputs = [model_jit(shared, X_test[:, 0])]
 for i in range(1, X_test.shape[1]):
-  outputs.append(model_jit(outputs[i - 1]))
+  outputs.append(model_jit(shared, outputs[i - 1]))
 outputs = bm.asarray(outputs).squeeze()
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
-plot_double_scroll(Y_test.numpy().squeeze(), outputs.numpy())
+plot_double_scroll(bm.as_numpy(Y_test).squeeze(), bm.as_numpy(outputs))

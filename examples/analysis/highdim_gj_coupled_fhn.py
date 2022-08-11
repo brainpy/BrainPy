@@ -39,7 +39,8 @@ class GJCoupledFHN(bp.dyn.DynamicalSystem):
     dw = (V + self.a - self.b * w) / self.tau
     return dw
 
-  def update(self, t, dt):
+  def update(self, tdi):
+    t, dt = tdi.get('t'), tdi.get('dt')
     self.V.value = self.int_V(self.V, t, self.w, self.Iext, dt)
     self.w.value = self.int_w(self.w, t, self.V, dt)
     self.Iext[:] = 0.
@@ -59,7 +60,7 @@ def d4_system():
 
   # analysis
   finder = bp.analysis.SlowPointFinder(f_cell=model,
-                                       included_vars={'V': model.V, 'w': model.w},
+                                       target_vars={'V': model.V, 'w': model.w},
                                        inputs=['Iext', Iext])
   # finder.find_fps_with_gd_method(
   #   candidates={'V': bm.random.normal(0., 2., (1000, model.num)),
@@ -75,17 +76,7 @@ def d4_system():
 
   print('fixed_points: ', finder.fixed_points)
   print('losses:', finder.losses)
-  if len(finder.fixed_points):
-    jac = finder.compute_jacobians(finder.fixed_points)
-    for i in range(len(finder.selected_ids)):
-      eigval, eigvec = np.linalg.eig(np.asarray(jac[i]))
-      plt.figure()
-      plt.scatter(np.real(eigval), np.imag(eigval))
-      plt.plot([1, 1], [-1, 1], '--')
-      plt.xlabel('Real')
-      plt.ylabel('Imaginary')
-      plt.title(f'FP {i}')
-      plt.show()
+  jac = finder.compute_jacobians(finder.fixed_points, plot=True)
 
 
 def d8_system():
@@ -102,7 +93,7 @@ def d8_system():
                          show=True)
 
   finder = bp.analysis.SlowPointFinder(f_cell=model,
-                                       included_vars={'V': model.V, 'w': model.w},
+                                       target_vars={'V': model.V, 'w': model.w},
                                        inputs=[model.Iext, Iext])
   finder.find_fps_with_gd_method(
     candidates={'V': bm.random.normal(0., 2., (1000, model.num)),
@@ -116,19 +107,9 @@ def d8_system():
 
   print('fixed_points: ', finder.fixed_points)
   print('losses:', finder.losses)
-  if len(finder.fixed_points):
-    jac = finder.compute_jacobians(finder.fixed_points)
-    for i in range(finder.num_fps):
-      eigval, eigvec = np.linalg.eig(np.asarray(jac[i]))
-      plt.figure()
-      plt.scatter(np.real(eigval), np.imag(eigval))
-      plt.plot([1, 1], [-1, 1], '--')
-      plt.xlabel('Real')
-      plt.ylabel('Imaginary')
-      plt.title(f'FP {i}')
-      plt.show()
+  jac = finder.compute_jacobians(finder.fixed_points, plot=True)
 
 
 if __name__ == '__main__':
-  d4_system()
+  # d4_system()
   d8_system()

@@ -5,6 +5,8 @@ jaxlib>=0.3.0
 scipy>=1.1.0
 brainpylib>=0.0.5
 numba
+requests
+pillow
 
 # document requirements
 pandoc

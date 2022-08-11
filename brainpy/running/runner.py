@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import gc
 import types
 from typing import Callable, Dict, Sequence, Union
 
@@ -11,6 +12,7 @@ from brainpy.base.collector import TensorCollector
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools.checking import check_dict_data
 from brainpy.tools.others import DotDict
+from . import constants as C
 
 __all__ = [
   'Runner',
@@ -24,6 +26,7 @@ class Runner(object):
   ----------
   target: Any
     The target model.
+
   monitors: None, sequence of str, dict, Monitor
     Variables to monitor.
 
@@ -36,14 +39,18 @@ class Runner(object):
     Monitoring variables by callable functions. Should be a dict.
     The `key` should be a string for later retrieval by `runner.mon[key]`.
     The `value` should be a callable function which receives two arguments: `t` and `dt`.
+
   jit: bool, dict
     The JIT settings.
+
   progress_bar: bool
-    Use progress bar or not?
+    Use progress bar to report the running progress or not?
+
   dyn_vars: Optional, dict
     The dynamically changed variables. Instance of :py:class:`~.Variable`.
+
   numpy_mon_after_run : bool
-    Transform the JAX arrays into numpy ndarray or not, when finishing the network running?
+    When finishing the network running, transform the JAX arrays into numpy ndarray or not?
   """
 
   mon: DotDict
@@ -66,11 +73,11 @@ class Runner(object):
     # jit instruction
     self.jit = dict()
     if isinstance(jit, bool):
-      self.jit = {'predict': jit}
+      self.jit = {C.PREDICT_PHASE: jit}
     elif isinstance(jit, dict):
       for k, v in jit.items():
         self.jit[k] = v
-      self.jit = {'predict': jit.pop('predict', True)}
+      self.jit[C.PREDICT_PHASE] = jit.pop(C.PREDICT_PHASE, True)
     else:
       raise ValueError(f'Unknown "jit" setting: {jit}')
 
@@ -206,5 +213,13 @@ class Runner(object):
           monitors[key] = (getattr(master, splits[-1]), index)
     return monitors
 
-  def build_monitors(self, return_without_idx, return_with_idx) -> Callable:
+  def build_monitors(self, return_without_idx, return_with_idx, shared_args) -> Callable:
     raise NotImplementedError
+
+  def __del__(self):
+    if hasattr(self, 'mon'):
+      for key in tuple(self.mon.keys()):
+        del self.mon[key]
+    for key in tuple(self.__dict__.keys()):
+      del self.__dict__[key]
+    gc.collect()

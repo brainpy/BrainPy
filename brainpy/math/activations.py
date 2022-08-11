@@ -355,7 +355,7 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
   num_classes = jax.core.concrete_or_error(
     int, num_classes, "The error arose in jax.nn.one_hot argument `num_classes`.")
   dtype = jax.dtypes.canonicalize_dtype(jnp.float64 if dtype is None else dtype)
-  x = jnp.asarray(x)
+  x = jnp.asarray(x.value if isinstance(x, JaxArray) else x)
   try:
     output_pos_axis = _canonicalize_axis(axis, x.ndim + 1)
   except TypeError:

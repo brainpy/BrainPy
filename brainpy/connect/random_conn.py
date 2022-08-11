@@ -3,7 +3,7 @@
 import numpy as np
 
 from brainpy.errors import ConnectorError
-from brainpy.tools.others import numba_seed, numba_jit, SUPPORT_NUMBA
+from brainpy.tools.others import numba_seed, numba_jit, SUPPORT_NUMBA, format_seed
 from .base import *
 
 __all__ = [
@@ -41,8 +41,8 @@ class FixedProb(TwoEndConnector):
     self.prob = prob
     self.pre_ratio = pre_ratio
     self.include_self = include_self
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
 
     rng = np.random if SUPPORT_NUMBA else self.rng
 
@@ -58,7 +58,7 @@ class FixedProb(TwoEndConnector):
   def build_conn(self):
     # seed
     self.seed = self.rng.randint(1, int(1e7))
-    numba_seed(self.seed)
+    if SUPPORT_NUMBA: numba_seed(self.seed)
 
     # make connections
     ind = []
@@ -72,15 +72,6 @@ class FixedProb(TwoEndConnector):
     indptr = np.concatenate(([0], count)).cumsum()
 
     return 'csr', (ind, indptr)
-
-
-# @tools.numba_jit
-def _fixed_num_prob(rng, num_need, num_total, i=0, include_self=False):
-  prob = rng.random(num_total)
-  if not include_self and i <= num_total:
-    prob[i] = 1.
-  neu_idx = np.argsort(prob)[:num_need]
-  return np.asarray(neu_idx, dtype=IDX_DTYPE)
 
 
 class FixedNum(TwoEndConnector):
@@ -106,9 +97,9 @@ class FixedNum(TwoEndConnector):
     else:
       raise ConnectorError(f'Unknown type: {type(num)}')
     self.num = num
-    self.seed = seed
+    self.seed = format_seed(seed)
     self.include_self = include_self
-    self.rng = np.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed=self.seed)
     rng = np.random if SUPPORT_NUMBA else self.rng
 
     def _fixed_num_prob(num_need, num_total, i=0):
@@ -251,8 +242,8 @@ class GaussianProb(OneEndConnector):
     self.normalize = normalize
     self.include_self = include_self
     self.periodic_boundary = periodic_boundary
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
 
   def build_conn(self):
     # value range to encode
@@ -362,8 +353,8 @@ class SmallWorld(TwoEndConnector):
     self.num_neighbor = num_neighbor
     self.include_self = include_self
 
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
     rng = np.random if SUPPORT_NUMBA else self.rng
 
     def _smallworld_rewire(i, all_j):
@@ -483,8 +474,8 @@ class ScaleFreeBA(TwoEndConnector):
     super(ScaleFreeBA, self).__init__()
     self.m = m
     self.directed = directed
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
     rng = np.random if SUPPORT_NUMBA else self.rng
 
     def _random_subset(seq, m):
@@ -569,8 +560,8 @@ class ScaleFreeBADual(TwoEndConnector):
     self.m2 = m2
     self.p = p
     self.directed = directed
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
     rng = np.random if SUPPORT_NUMBA else self.rng
 
     def _random_subset(seq, m):
@@ -679,8 +670,8 @@ class PowerLaw(TwoEndConnector):
     if self.p > 1 or self.p < 0:
       raise ConnectorError(f"p must be in [0,1], while p={self.p}")
     self.directed = directed
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
     rng = np.random if SUPPORT_NUMBA else self.rng
 
     def _random_subset(seq, m):
@@ -773,8 +764,8 @@ class ProbDist(TwoEndConnector):
     self.prob = prob
     self.pre_ratio = pre_ratio
     self.dist = dist
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
     self.include_self = include_self
 
     rng = np.random if SUPPORT_NUMBA else self.rng

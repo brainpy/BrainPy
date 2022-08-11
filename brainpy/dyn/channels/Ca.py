@@ -5,15 +5,15 @@ This module implements voltage-dependent calcium channels.
 
 """
 
-
 from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy.dyn.base import Channel
-from brainpy.initialize import OneInit, Initializer, init_param
+from brainpy.initialize import OneInit, Initializer, parameter, variable
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
+from brainpy.modes import Mode, BatchingMode, normal
 from .base import Calcium, CalciumChannel
 
 __all__ = [
@@ -46,29 +46,31 @@ class CalciumFixed(Calcium):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = 120.,
-      C: Union[float, Tensor, Initializer, Callable] = 2.4e-4,
+      E: Union[float, Array, Initializer, Callable] = 120.,
+      C: Union[float, Array, Initializer, Callable] = 2.4e-4,
       method: str = 'exp_auto',
       name: str = None,
+      mode: Mode = normal,
       **channels
   ):
     super(CalciumFixed, self).__init__(size,
                                        keep_size=keep_size,
                                        method=method,
                                        name=name,
+                                       mode=mode,
                                        **channels)
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.C = init_param(C, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.C = parameter(C, self.varshape, allow_none=False)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
     for node in self.implicit_nodes.values():
-      node.update(t, dt, V, self.C, self.E)
+      node.update(tdi, V, self.C, self.E)
 
-  def reset(self, V, C_Ca=None, E_Ca=None):
+  def reset_state(self, V, C_Ca=None, E_Ca=None, batch_size=None):
     C_Ca = self.C if C_Ca is None else C_Ca
     E_Ca = self.E if E_Ca is None else E_Ca
     for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
-      node.reset(V, C_Ca, E_Ca)
+      node.reset_state(V, C_Ca, E_Ca, batch_size=batch_size)
 
 
 class CalciumDyna(Calcium):
@@ -80,11 +82,11 @@ class CalciumDyna(Calcium):
     The ion size.
   keep_size: bool
     Keep the geometry size.
-  C0: float, Tensor, Initializer, Callable
+  C0: float, Array, Initializer, Callable
     The Calcium concentration outside of membrane.
-  T: float, Tensor, Initializer, Callable
+  T: float, Array, Initializer, Callable
     The temperature.
-  C_initializer: Initializer, Callable, Tensor
+  C_initializer: Initializer, Callable, Array
     The initializer for Calcium concentration.
   method: str
     The numerical method.
@@ -98,28 +100,31 @@ class CalciumDyna(Calcium):
       self,
       size: Shape,
       keep_size: bool = False,
-      C0: Union[float, Tensor, Initializer, Callable] = 2.,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.4e-4),
+      C0: Union[float, Array, Initializer, Callable] = 2.,
+      T: Union[float, Array, Initializer, Callable] = 36.,
+      C_initializer: Union[Initializer, Callable, Array] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
+      mode: Mode = normal,
       **channels
   ):
     super(CalciumDyna, self).__init__(size,
                                       keep_size=keep_size,
                                       method=method,
                                       name=name,
+                                      mode=mode,
                                       **channels)
 
     # parameters
-    self.C0 = init_param(C0, self.var_shape, allow_none=False)
-    self.T = init_param(T, self.var_shape, allow_none=False)  # temperature
+    self.C0 = parameter(C0, self.varshape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)  # temperature
     self._C_initializer = C_initializer
     self._constant = self.R / (2 * self.F) * (273.15 + self.T)
 
     # variables
-    self.C = bm.Variable(init_param(C_initializer, self.var_shape))  # Calcium concentration
-    self.E = bm.Variable(self._reversal_potential(self.C))  # Reversal potential
+    self.C = variable(C_initializer, mode, self.varshape)  # Calcium concentration
+    self.E = bm.Variable(self._reversal_potential(self.C),
+                         batch_axis=0 if isinstance(mode, BatchingMode) else None)  # Reversal potential
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -127,16 +132,16 @@ class CalciumDyna(Calcium):
   def derivative(self, C, t, V):
     raise NotImplementedError
 
-  def reset(self, V, C_Ca=None, E_Ca=None):
-    self.C[:] = init_param(self._C_initializer, self.var_shape) if (C_Ca is None) else C_Ca
+  def reset_state(self, V, C_Ca=None, E_Ca=None, batch_size=None):
+    self.C.value = variable(self._C_initializer, batch_size, self.varshape) if (C_Ca is None) else C_Ca
     self.E.value = self._reversal_potential(self.C)
     for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
-      node.reset(V, self.C, self.E)
+      node.reset(V, self.C, self.E, batch_size=batch_size)
 
-  def update(self, t, dt, V):
+  def update(self, tdi, V):
     for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
-      node.update(t, dt, V, self.C, self.E)
-    self.C.value = self.integral(self.C.value, t, V, dt)
+      node.update(tdi, V, self.C, self.E)
+    self.C.value = self.integral(self.C.value, tdi['t'], V, tdi['dt'])
     self.E.value = self._reversal_potential(self.C)
 
   def _reversal_potential(self, C):
@@ -258,14 +263,15 @@ class CalciumDetailed(CalciumDyna):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      d: Union[float, Tensor, Initializer, Callable] = 1.,
-      C_rest: Union[float, Tensor, Initializer, Callable] = 2.4e-4,
-      tau: Union[float, Tensor, Initializer, Callable] = 5.,
-      C0: Union[float, Tensor, Initializer, Callable] = 2.,
-      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.4e-4),
+      T: Union[float, Array, Initializer, Callable] = 36.,
+      d: Union[float, Array, Initializer, Callable] = 1.,
+      C_rest: Union[float, Array, Initializer, Callable] = 2.4e-4,
+      tau: Union[float, Array, Initializer, Callable] = 5.,
+      C0: Union[float, Array, Initializer, Callable] = 2.,
+      C_initializer: Union[Initializer, Callable, Array] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
+      mode: Mode = normal,
       **channels
   ):
     super(CalciumDetailed, self).__init__(size,
@@ -275,12 +281,13 @@ class CalciumDetailed(CalciumDyna):
                                           T=T,
                                           C0=C0,
                                           C_initializer=C_initializer,
+                                          mode=mode,
                                           **channels)
 
     # parameters
-    self.d = init_param(d, self.var_shape, allow_none=False)
-    self.tau = init_param(tau, self.var_shape, allow_none=False)
-    self.C_rest = init_param(C_rest, self.var_shape, allow_none=False)
+    self.d = parameter(d, self.varshape, allow_none=False)
+    self.tau = parameter(tau, self.varshape, allow_none=False)
+    self.C_rest = parameter(C_rest, self.varshape, allow_none=False)
 
   def derivative(self, C, t, V):
     ICa = self.current(V, C, self.E)
@@ -301,13 +308,14 @@ class CalciumFirstOrder(CalciumDyna):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      alpha: Union[float, Tensor, Initializer, Callable] = 0.13,
-      beta: Union[float, Tensor, Initializer, Callable] = 0.075,
-      C0: Union[float, Tensor, Initializer, Callable] = 2.,
-      C_initializer: Union[Initializer, Callable, Tensor] = OneInit(2.4e-4),
+      T: Union[float, Array, Initializer, Callable] = 36.,
+      alpha: Union[float, Array, Initializer, Callable] = 0.13,
+      beta: Union[float, Array, Initializer, Callable] = 0.075,
+      C0: Union[float, Array, Initializer, Callable] = 2.,
+      C_initializer: Union[Initializer, Callable, Array] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
+      mode: Mode = normal,
       **channels
   ):
     super(CalciumFirstOrder, self).__init__(size,
@@ -317,11 +325,12 @@ class CalciumFirstOrder(CalciumDyna):
                                             T=T,
                                             C0=C0,
                                             C_initializer=C_initializer,
+                                            mode=mode,
                                             **channels)
 
     # parameters
-    self.alpha = init_param(alpha, self.var_shape, allow_none=False)
-    self.beta = init_param(beta, self.var_shape, allow_none=False)
+    self.alpha = parameter(alpha, self.varshape, allow_none=False)
+    self.beta = parameter(beta, self.varshape, allow_none=False)
 
   def derivative(self, C, t, V):
     ICa = self.current(V, C, self.E)
@@ -356,11 +365,11 @@ class ICa_p2q_ss(CalciumChannel):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximum conductance.
-  phi_p : float, Tensor, Callable, Initializer
+  phi_p : float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : float, Tensor, Callable, Initializer
+  phi_q : float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   """
@@ -369,22 +378,26 @@ class ICa_p2q_ss(CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 3.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 3.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 2.,
+      phi_p: Union[float, Array, Initializer, Callable] = 3.,
+      phi_q: Union[float, Array, Initializer, Callable] = 3.,
+      g_max: Union[float, Array, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
+      mode: Mode = normal,
       name: str = None
   ):
-    super(ICa_p2q_ss, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICa_p2q_ss, self).__init__(size,
+                                     keep_size=keep_size,
+                                     name=name,
+                                     mode=mode, )
 
     # parameters
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -395,15 +408,18 @@ class ICa_p2q_ss(CalciumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
+  def update(self, tdi, V, C_Ca, E_Ca):
+    self.p.value, self.q.value = self.integral(self.p, self.q, tdi['t'], V, tdi['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * self.p * self.p * self.q * (E_Ca - V)
 
-  def reset(self, V, C_Ca, E_Ca):
+  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def f_p_inf(self, V):
     raise NotImplementedError
@@ -442,11 +458,11 @@ class ICa_p2q_markov(CalciumChannel):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximum conductance.
-  phi_p : float, Tensor, Callable, Initializer
+  phi_p : float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : float, Tensor, Callable, Initializer
+  phi_q : float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   """
@@ -455,22 +471,26 @@ class ICa_p2q_markov(CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 3.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 3.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 2.,
+      phi_p: Union[float, Array, Initializer, Callable] = 3.,
+      phi_q: Union[float, Array, Initializer, Callable] = 3.,
+      g_max: Union[float, Array, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(ICa_p2q_markov, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICa_p2q_markov, self).__init__(size,
+                                         keep_size=keep_size,
+                                         name=name,
+                                         mode=mode)
 
     # parameters
-    self.phi_p = init_param(phi_p, self.var_shape, allow_none=False)
-    self.phi_q = init_param(phi_q, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
+    self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
+    self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -481,17 +501,20 @@ class ICa_p2q_markov(CalciumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_alpha(V) * (1 - q) - self.f_q_beta(V) * q)
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value, self.q.value = self.integral(self.p, self.q, t, V, dt)
+  def update(self, tdi, V, C_Ca, E_Ca):
+    self.p.value, self.q.value = self.integral(self.p, self.q, tdi['t'], V, tdi['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * self.p * self.p * self.q * (E_Ca - V)
 
-  def reset(self, V, C_Ca, E_Ca):
+  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
     alpha, beta = self.f_p_alpha(V), self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
     alpha, beta = self.f_q_alpha(V), self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
+      assert self.q.shape[0] == batch_size
 
   def f_p_alpha(self, V):
     raise NotImplementedError
@@ -550,21 +573,25 @@ class ICaN_IS2008(CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = 10.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = 10.,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
-    super(ICaN_IS2008, self).__init__(size, keep_size=keep_size, name=name)
+    super(ICaN_IS2008, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      mode=mode)
 
     # parameters
-    self.E = init_param(E, self.var_shape, allow_none=False)
-    self.g_max = init_param(g_max, self.var_shape, allow_none=False)
-    self.phi = init_param(phi, self.var_shape, allow_none=False)
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -574,16 +601,18 @@ class ICaN_IS2008(CalciumChannel):
     p_inf = 2.7 / (bm.exp(-(V + 55.) / 15.) + bm.exp((V + 55.) / 15.)) + 1.6
     return self.phi * (phi_p - p) / p_inf
 
-  def update(self, t, dt, V, C_Ca, E_Ca):
-    self.p.value = self.integral(self.p, t, V, dt)
+  def update(self, tdi, V, C_Ca, E_Ca):
+    self.p.value = self.integral(self.p, tdi['t'], V, tdi['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     M = C_Ca / (C_Ca + 0.2)
     g = self.g_max * M * self.p
     return g * (self.E - V)
 
-  def reset(self, V, C_Ca, E_Ca):
+  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
     self.p.value = 1.0 / (1 + bm.exp(-(V + 43.) / 5.2))
+    if batch_size is not None:
+      assert self.p.shape[0] == batch_size
 
 
 class ICaT_HM1992(ICa_p2q_ss):
@@ -608,19 +637,19 @@ class ICaT_HM1992(ICa_p2q_ss):
 
   Parameters
   ----------
-  T : float, Tensor
+  T : float, Array
     The temperature.
-  T_base_p : float, Tensor
+  T_base_p : float, Array
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Tensor
+  T_base_q : float, Array
     The base temperature factor of :math:`q` channel.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximum conductance.
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -638,15 +667,16 @@ class ICaT_HM1992(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor] = 36.,
-      T_base_p: Union[float, Tensor] = 3.55,
-      T_base_q: Union[float, Tensor] = 3.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 2.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = -3.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = None,
-      phi_q: Union[float, Tensor, Initializer, Callable] = None,
+      T: Union[float, Array] = 36.,
+      T_base_p: Union[float, Array] = 3.55,
+      T_base_q: Union[float, Array] = 3.,
+      g_max: Union[float, Array, Initializer, Callable] = 2.,
+      V_sh: Union[float, Array, Initializer, Callable] = -3.,
+      phi_p: Union[float, Array, Initializer, Callable] = None,
+      phi_q: Union[float, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
@@ -656,13 +686,14 @@ class ICaT_HM1992(ICa_p2q_ss):
                                       method=method,
                                       g_max=g_max,
                                       phi_p=phi_p,
-                                      phi_q=phi_q)
+                                      phi_q=phi_q,
+                                      mode=mode)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base_p = parameter(T_base_p, self.varshape, allow_none=False)
+    self.T_base_q = parameter(T_base_q, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1 + bm.exp(-(V + 59. - self.V_sh) / 6.2))
@@ -703,19 +734,19 @@ class ICaT_HP1992(ICa_p2q_ss):
 
   Parameters
   ----------
-  T : float, Tensor
+  T : float, Array
     The temperature.
-  T_base_p : float, Tensor
+  T_base_p : float, Array
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Tensor
+  T_base_q : float, Array
     The base temperature factor of :math:`q` channel.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximum conductance.
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -734,15 +765,16 @@ class ICaT_HP1992(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor] = 36.,
-      T_base_p: Union[float, Tensor] = 5.,
-      T_base_q: Union[float, Tensor] = 3.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.75,
-      V_sh: Union[float, Tensor, Initializer, Callable] = -3.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = None,
-      phi_q: Union[float, Tensor, Initializer, Callable] = None,
-      method='exp_auto',
-      name=None
+      T: Union[float, Array] = 36.,
+      T_base_p: Union[float, Array] = 5.,
+      T_base_q: Union[float, Array] = 3.,
+      g_max: Union[float, Array, Initializer, Callable] = 1.75,
+      V_sh: Union[float, Array, Initializer, Callable] = -3.,
+      phi_p: Union[float, Array, Initializer, Callable] = None,
+      phi_q: Union[float, Array, Initializer, Callable] = None,
+      method: str = 'exp_auto',
+      name: str = None,
+      mode: Mode = normal,
   ):
     phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
@@ -752,13 +784,14 @@ class ICaT_HP1992(ICa_p2q_ss):
                                       method=method,
                                       g_max=g_max,
                                       phi_p=phi_p,
-                                      phi_q=phi_q)
+                                      phi_q=phi_q,
+                                      mode=mode)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base_p = parameter(T_base_p, self.varshape, allow_none=False)
+    self.T_base_q = parameter(T_base_q, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1. + bm.exp(-(V + 52. - self.V_sh) / 7.4))
@@ -802,15 +835,15 @@ class ICaHT_HM1992(ICa_p2q_ss):
 
   Parameters
   ----------
-  T : float, Tensor
+  T : float, Array
     The temperature.
-  T_base_p : float, Tensor
+  T_base_p : float, Array
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Tensor
+  T_base_q : float, Array
     The base temperature factor of :math:`q` channel.
-  g_max : float, Tensor, Initializer, Callable
+  g_max : float, Array, Initializer, Callable
     The maximum conductance.
-  V_sh : float, Tensor, Initializer, Callable
+  V_sh : float, Array, Initializer, Callable
     The membrane potential shift.
 
   References
@@ -827,13 +860,14 @@ class ICaHT_HM1992(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor] = 36.,
-      T_base_p: Union[float, Tensor] = 3.55,
-      T_base_q: Union[float, Tensor] = 3.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 2.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 25.,
+      T: Union[float, Array] = 36.,
+      T_base_p: Union[float, Array] = 3.55,
+      T_base_q: Union[float, Array] = 3.,
+      g_max: Union[float, Array, Initializer, Callable] = 2.,
+      V_sh: Union[float, Array, Initializer, Callable] = 25.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(ICaHT_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -841,17 +875,18 @@ class ICaHT_HM1992(ICa_p2q_ss):
                                        method=method,
                                        g_max=g_max,
                                        phi_p=T_base_p ** ((T - 24) / 10),
-                                       phi_q=T_base_q ** ((T - 24) / 10))
+                                       phi_q=T_base_q ** ((T - 24) / 10),
+                                       mode=mode)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base_p = parameter(T_base_p, self.varshape, allow_none=False)
+    self.T_base_q = parameter(T_base_q, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
     # variables
-    self.p = bm.Variable(bm.zeros(self.var_shape))
-    self.q = bm.Variable(bm.zeros(self.var_shape))
+    self.p = variable(bm.zeros, mode, self.varshape)
+    self.q = variable(bm.zeros, mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -900,20 +935,20 @@ class ICaHT_Re1993(ICa_p2q_markov):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Tensor, Callable, Initializer
+  g_max : float, Array, Callable, Initializer
     The maximum conductance.
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  T : float, Tensor
+  T : float, Array
     The temperature.
-  T_base_p : float, Tensor
+  T_base_p : float, Array
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Tensor
+  T_base_q : float, Array
     The base temperature factor of :math:`q` channel.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
     If `None`, :math:`\phi_p = \mathrm{T_base_p}^{\frac{T-23}{10}}`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
     If `None`, :math:`\phi_q = \mathrm{T_base_q}^{\frac{T-23}{10}}`.
 
@@ -930,15 +965,16 @@ class ICaHT_Re1993(ICa_p2q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor] = 36.,
-      T_base_p: Union[float, Tensor] = 2.3,
-      T_base_q: Union[float, Tensor] = 2.3,
-      phi_p: Union[float, Tensor, Initializer, Callable] = None,
-      phi_q: Union[float, Tensor, Initializer, Callable] = None,
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
+      T: Union[float, Array] = 36.,
+      T_base_p: Union[float, Array] = 2.3,
+      T_base_q: Union[float, Array] = 2.3,
+      phi_p: Union[float, Array, Initializer, Callable] = None,
+      phi_q: Union[float, Array, Initializer, Callable] = None,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     phi_p = T_base_p ** ((T - 23.) / 10.) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 23.) / 10.) if phi_q is None else phi_q
@@ -948,11 +984,12 @@ class ICaHT_Re1993(ICa_p2q_markov):
                                        method=method,
                                        g_max=g_max,
                                        phi_p=phi_p,
-                                       phi_q=phi_q)
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+                                       phi_q=phi_q,
+                                       mode=mode)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base_p = parameter(T_base_p, self.varshape, allow_none=False)
+    self.T_base_q = parameter(T_base_q, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
     temp = -27 - V + self.V_sh
@@ -1017,13 +1054,14 @@ class ICaL_IS2008(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Tensor, Initializer, Callable] = 36.,
-      T_base_p: Union[float, Tensor, Initializer, Callable] = 3.55,
-      T_base_q: Union[float, Tensor, Initializer, Callable] = 3.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
+      T: Union[float, Array, Initializer, Callable] = 36.,
+      T_base_p: Union[float, Array, Initializer, Callable] = 3.55,
+      T_base_q: Union[float, Array, Initializer, Callable] = 3.,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
-      name: str = None
+      name: str = None,
+      mode: Mode = normal,
   ):
     super(ICaL_IS2008, self).__init__(size,
                                       keep_size=keep_size,
@@ -1031,13 +1069,14 @@ class ICaL_IS2008(ICa_p2q_ss):
                                       method=method,
                                       g_max=g_max,
                                       phi_p=T_base_p ** ((T - 24) / 10),
-                                      phi_q=T_base_q ** ((T - 24) / 10))
+                                      phi_q=T_base_q ** ((T - 24) / 10),
+                                      mode=mode)
 
     # parameters
-    self.T = init_param(T, self.var_shape, allow_none=False)
-    self.T_base_p = init_param(T_base_p, self.var_shape, allow_none=False)
-    self.T_base_q = init_param(T_base_q, self.var_shape, allow_none=False)
-    self.V_sh = init_param(V_sh, self.var_shape, allow_none=False)
+    self.T = parameter(T, self.varshape, allow_none=False)
+    self.T_base_p = parameter(T_base_p, self.varshape, allow_none=False)
+    self.T_base_q = parameter(T_base_q, self.varshape, allow_none=False)
+    self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
     return 1. / (1 + bm.exp(-(V + 10. - self.V_sh) / 4.))

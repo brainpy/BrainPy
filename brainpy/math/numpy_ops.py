@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from functools import partial
+
 from typing import Optional
 
 import jax.numpy as jnp
@@ -97,7 +97,9 @@ __all__ = [
   'savetxt', 'savez_compressed', 'show_config', 'typename',
 
   # others
-  'clip_by_norm', 'as_device_array', 'as_variable', 'as_numpy', 'remove_diag',
+  'clip_by_norm', 'remove_diag',
+  'as_device_array', 'as_jax', 'as_ndarray', 'as_numpy',
+  'as_variable',
 ]
 
 _min = min
@@ -156,7 +158,10 @@ def as_device_array(tensor, dtype=None):
     return jnp.asarray(tensor, dtype=dtype)
 
 
-def as_numpy(tensor, dtype=None):
+as_jax = as_device_array
+
+
+def as_ndarray(tensor, dtype=None):
   """Convert the input to a ``numpy.ndarray``.
 
   Parameters
@@ -175,9 +180,12 @@ def as_numpy(tensor, dtype=None):
     is already an ndarray with matching dtype.
   """
   if isinstance(tensor, JaxArray):
-    return tensor.numpy(dtype=dtype)
+    return tensor.to_numpy(dtype=dtype)
   else:
     return np.asarray(tensor, dtype=dtype)
+
+
+as_numpy = as_ndarray
 
 
 def as_variable(tensor, dtype=None):
@@ -406,7 +414,7 @@ def lexsort(keys, axis=-1):
   return JaxArray(jnp.lexsort(keys, axis))
 
 
-load = wraps(jnp.histogram_bin_edges)(jnp.load)
+load = wraps(jnp.load)(jnp.load)
 
 
 @wraps(np.save)
@@ -1788,7 +1796,7 @@ def identity(n, dtype=None):
 
 
 @wraps(jnp.array)
-def array(a, dtype=None, copy=True, order="K", ndmin=0):
+def array(a, dtype=None, copy=True, order="K", ndmin=0) -> JaxArray:
   a = _remove_jaxarray(a)
   try:
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
@@ -1815,7 +1823,7 @@ def asarray(a, dtype=None, order=None):
 
   Returns
   -------
-  out : ndarray
+  out : JaxArray
     Array interpretation of `a`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
@@ -1832,11 +1840,15 @@ def asarray(a, dtype=None, order=None):
 
 @wraps(jnp.arange)
 def arange(*args, **kwargs):
+  args = [_remove_jaxarray(a) for a in args]
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
   return JaxArray(jnp.arange(*args, **kwargs))
 
 
 @wraps(jnp.linspace)
 def linspace(*args, **kwargs):
+  args = [_remove_jaxarray(a) for a in args]
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
   res = jnp.linspace(*args, **kwargs)
   if isinstance(res, tuple):
     return JaxArray(res[0]), res[1]
@@ -1844,9 +1856,10 @@ def linspace(*args, **kwargs):
     return JaxArray(res)
 
 
-
 @wraps(jnp.logspace)
 def logspace(*args, **kwargs):
+  args = [_remove_jaxarray(a) for a in args]
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
   return JaxArray(jnp.logspace(*args, **kwargs))
 
 
@@ -1886,7 +1899,7 @@ def vander(x, N=None, increasing=False):
   return JaxArray(jnp.vander(x, N=N, increasing=increasing))
 
 
-@wraps(jnp.fill_diagonal)
+@wraps(np.fill_diagonal)
 def fill_diagonal(a, val):
   if not isinstance(a, JaxArray):
     raise ValueError(f'Must be a JaxArray, but got {type(a)}')
@@ -2402,7 +2415,6 @@ def asfarray(a, dtype=np.float_):
   return asarray(a, dtype=dtype)
 
 
-@wraps(np.asscalar)
 def asscalar(a):
   return a.item()
 
