@@ -7,7 +7,7 @@ from jax.lax import while_loop
 
 import brainpy.math as bm
 from brainpy.base import Base
-from brainpy.types import Tensor
+from brainpy.types import Array
 from .utils import (Sigmoid,
                     Regularization, L1Regularization, L1L2Regularization, L2Regularization,
                     polynomial_features, normalize)
@@ -60,7 +60,7 @@ class OfflineAlgorithm(Base):
     """
     return self.call(identifier, target, input, output)
 
-  def call(self, identifier, targets, inputs, outputs) -> Tensor:
+  def call(self, identifier, targets, inputs, outputs) -> Array:
     """The training procedure.
 
     Parameters
@@ -355,7 +355,7 @@ class LogisticRegression(RegressionAlgorithm):
     self.gradient_descent = gradient_descent
     self.sigmoid = Sigmoid()
 
-  def call(self, identifier, targets, inputs, outputs=None) -> Tensor:
+  def call(self, identifier, targets, inputs, outputs=None) -> Array:
     # prepare data
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))

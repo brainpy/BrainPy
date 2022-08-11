@@ -16,7 +16,7 @@ from jax.tree_util import tree_map
 from jax.lax import scan
 
 import brainpy.math as bm
-from brainpy.types import Tensor
+from brainpy.types import Array
 from .utils import _return, _multi_return, _is_leaf
 
 __all__ = [
@@ -43,7 +43,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
   r"""This criterion combines ``LogSoftmax`` and `NLLLoss`` in one single class.
 
   It is useful when training a classification problem with `C` classes.
-  If provided, the optional argument :attr:`weight` should be a 1D `Tensor`
+  If provided, the optional argument :attr:`weight` should be a 1D `Array`
   assigning weight to each of the classes. This is particularly useful when
   you have an unbalanced training set.
 
@@ -72,7 +72,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
 
   Parameters
   ----------
-  predicts : Tensor
+  predicts : Array
     :math:`(N, C)` where `C = number of classes`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` with :math:`K \geq 1`
     in the case of `K`-dimensional loss.
@@ -421,13 +421,13 @@ def log_cosh_loss(predicts, targets):
 
 
 def ctc_loss_with_forward_probs(
-    logits: Tensor,
-    logit_paddings: Tensor,
-    labels: Tensor,
-    label_paddings: Tensor,
+    logits: Array,
+    logit_paddings: Array,
+    labels: Array,
+    label_paddings: Array,
     blank_id: int = 0,
     log_epsilon: float = -1e5
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> Tuple[Array, Array, Array]:
   r"""Computes CTC loss and CTC forward-probabilities.
   The CTC loss is a loss function based on log-likelihoods of the model that
   introduces a special blank symbol :math:`\phi` to represent variable-length
@@ -545,12 +545,12 @@ def ctc_loss_with_forward_probs(
   return per_seq_loss, logalpha_phi, logalpha_emit
 
 
-def ctc_loss(logits: Tensor,
-             logit_paddings: Tensor,
-             labels: Tensor,
-             label_paddings: Tensor,
+def ctc_loss(logits: Array,
+             logit_paddings: Array,
+             labels: Array,
+             label_paddings: Array,
              blank_id: int = 0,
-             log_epsilon: float = -1e5) -> Tensor:
+             log_epsilon: float = -1e5) -> Array:
   """Computes CTC loss.
   See docstring for ``ctc_loss_with_forward_probs`` for details.
   Args:

@@ -18,7 +18,7 @@ from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import build_inputs, check_and_format_inputs
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.tools.others.dicts import DotDict
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 __all__ = [
   'SlowPointFinder',
@@ -295,7 +295,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def find_fps_with_gd_method(
       self,
-      candidates: Union[Tensor, Dict[str, Tensor]],
+      candidates: Union[Array, Dict[str, Array]],
       tolerance: Union[float, Dict[str, float]] = 1e-5,
       num_batch: int = 100,
       num_opt: int = 10000,
@@ -305,7 +305,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    candidates : Tensor, dict
+    candidates : Array, dict
       The array with the shape of (batch size, state dim) of hidden states
       of RNN to start training for fixed points.
 
@@ -402,14 +402,14 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def find_fps_with_opt_solver(
       self,
-      candidates: Union[Tensor, Dict[str, Tensor]],
+      candidates: Union[Array, Dict[str, Array]],
       opt_solver: str = 'BFGS'
   ):
     """Optimize fixed points with nonlinear optimization solvers.
 
     Parameters
     ----------
-    candidates: Tensor, dict
+    candidates: Array, dict
       The candidate (initial) fixed points.
     opt_solver: str
       The solver of the optimization.
@@ -536,7 +536,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def compute_jacobians(
       self,
-      points: Union[Tensor, Dict[str, Tensor]],
+      points: Union[Array, Dict[str, Array]],
       stack_dict_var: bool = True,
       plot: bool = False,
       num_col: int = 4,

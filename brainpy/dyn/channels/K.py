@@ -10,7 +10,7 @@ from typing import Union, Callable, Optional
 import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
 from brainpy.modes import Mode, BatchingMode, normal
 from .base import PotassiumChannel
 
@@ -71,9 +71,9 @@ class IK_p4_markov(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -167,12 +167,12 @@ class IKDR_Ba2002(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = -50.,
-      T_base: Union[float, Tensor] = 3.,
-      T: Union[float, Tensor] = 36.,
-      phi: Optional[Union[float, Tensor, Initializer, Callable]] = None,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      V_sh: Union[float, Array, Initializer, Callable] = -50.,
+      T_base: Union[float, Array] = 3.,
+      T: Union[float, Array] = 36.,
+      phi: Optional[Union[float, Array, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -244,10 +244,10 @@ class IK_TM1991(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -60.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -60.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -315,10 +315,10 @@ class IK_HH1952(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Tensor, Initializer, Callable] = -45.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, Array, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -368,9 +368,9 @@ class IKA_p4q_ss(PotassiumChannel):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -387,10 +387,10 @@ class IKA_p4q_ss(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -477,11 +477,11 @@ class IKA1_HM1992(IKA_p4q_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -502,11 +502,11 @@ class IKA1_HM1992(IKA_p4q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 30.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 30.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -572,11 +572,11 @@ class IKA2_HM1992(IKA_p4q_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -597,11 +597,11 @@ class IKA2_HM1992(IKA_p4q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 20.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 20.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -662,9 +662,9 @@ class IKK2_pq_ss(PotassiumChannel):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -682,10 +682,10 @@ class IKK2_pq_ss(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -771,11 +771,11 @@ class IKK2A_HM1992(IKK2_pq_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -793,11 +793,11 @@ class IKK2A_HM1992(IKK2_pq_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -862,11 +862,11 @@ class IKK2B_HM1992(IKK2_pq_ss):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Tensor, Callable, Initializer
+  phi_q : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -884,11 +884,11 @@ class IKK2B_HM1992(IKK2_pq_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -952,11 +952,11 @@ class IKNI_Ya1989(PotassiumChannel):
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, JaxArray, ndarray, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Tensor, Callable, Initializer
+  V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Tensor, Callable, Initializer
+  phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  tau_max: float, Tensor, Callable, Initializer
+  tau_max: float, Array, Callable, Initializer
     The :math:`tau_{\max}` parameter.
 
   References
@@ -969,12 +969,12 @@ class IKNI_Ya1989(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -90.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.004,
-      phi_p: Union[float, Tensor, Initializer, Callable] = 1.,
-      phi_q: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_max: Union[float, Tensor, Initializer, Callable] = 4e3,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
+      E: Union[float, Array, Initializer, Callable] = -90.,
+      g_max: Union[float, Array, Initializer, Callable] = 0.004,
+      phi_p: Union[float, Array, Initializer, Callable] = 1.,
+      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      tau_max: Union[float, Array, Initializer, Callable] = 4e3,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,

@@ -8,7 +8,7 @@ import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
 from brainpy.tools.checking import check_dict_data
-from brainpy.types import Tensor, Output
+from brainpy.types import Array, Output
 from ..running import constants as c
 
 __all__ = [
@@ -38,7 +38,7 @@ class DSTrainer(DSRunner):
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -50,7 +50,7 @@ class DSTrainer(DSRunner):
 
     Parameters
     ----------
-    inputs: Tensor, sequence of Tensor, dict of Tensor
+    inputs: Array, sequence of Array, dict of Array
       The input values.
     reset_state: bool
       Reset the target state before running.
@@ -61,7 +61,7 @@ class DSTrainer(DSRunner):
 
     Returns
     -------
-    output: Tensor, sequence of Tensor, dict of Tensor
+    output: Array, sequence of Array, dict of Array
       The running output.
     """
     return super(DSTrainer, self).predict(duration=None,

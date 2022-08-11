@@ -10,7 +10,7 @@ from jax.lax import cond
 from brainpy.errors import MathError
 from brainpy.math.jaxarray import JaxArray
 from brainpy.math.numpy_ops import as_device_array
-from brainpy.types import Tensor
+from brainpy.types import Array
 from .pre2syn import pre2syn
 from .syn2post import syn2post_mean
 from .utils import _check_brainpylib
@@ -42,10 +42,10 @@ def _raise_pre_ids_is_none(pre_ids):
                     f'(brainpy.math.ndim(pre_values) != 0).')
 
 
-def pre2post_event_sum(events: Tensor,
-                       pre2post: Tuple[Tensor, Tensor],
+def pre2post_event_sum(events: Array,
+                       pre2post: Tuple[Array, Array],
                        post_num: int,
-                       values: Union[float, Tensor] = 1.):
+                       values: Union[float, Array] = 1.):
   """The pre-to-post synaptic computation with event-driven summation.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -77,13 +77,13 @@ def pre2post_event_sum(events: Tensor,
 
   Parameters
   ----------
-  events: Tensor
+  events: Array
     The events, must be bool.
-  pre2post: tuple of Tensor, tuple of Tensor
+  pre2post: tuple of Array, tuple of Array
     A tuple contains the connection information of pre-to-post.
   post_num: int
     The number of post-synaptic group.
-  values: float, Tensor
+  values: float, Array
     The value to make summation.
 
   Returns
@@ -100,10 +100,10 @@ def pre2post_event_sum(events: Tensor,
   return brainpylib.event_sum(events, (indices, idnptr), post_num, values)
 
 
-def pre2post_event_sum2(events: Tensor,
-                        pre2post: Tuple[Tensor, Tensor],
+def pre2post_event_sum2(events: Array,
+                        pre2post: Tuple[Array, Array],
                         post_num: int,
-                        values: Union[float, Tensor] = 1.):
+                        values: Union[float, Array] = 1.):
   """The pre-to-post synaptic computation with event-driven summation.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -135,13 +135,13 @@ def pre2post_event_sum2(events: Tensor,
 
   Parameters
   ----------
-  events: Tensor
+  events: Array
     The events, must be bool.
-  pre2post: tuple of Tensor, tuple of Tensor
+  pre2post: tuple of Array, tuple of Array
     A tuple contains the connection information of pre-to-post.
   post_num: int
     The number of post-synaptic group.
-  values: float, Tensor
+  values: float, Array
     The value to make summation.
 
   Returns

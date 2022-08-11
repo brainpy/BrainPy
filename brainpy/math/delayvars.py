@@ -271,7 +271,7 @@ class LengthDelay(AbstractDelay):
     The initial delay data.
   delay_len: int
     The maximum delay length.
-  initial_delay_data: Tensor
+  initial_delay_data: Array
     The delay data.
   name: str
     The delay object name.

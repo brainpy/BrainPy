@@ -11,7 +11,7 @@ from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.modes import Mode, BatchingMode, normal
-from brainpy.types import Tensor
+from brainpy.types import Array
 from ..synouts import CUBA, MgBlock
 
 __all__ = [
@@ -87,12 +87,12 @@ class Delta(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = CUBA(target_var='V'),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[float, Tensor, Initializer, Callable] = None,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      delay_step: Union[float, Array, Initializer, Callable] = None,
       post_ref_key: str = None,
 
       # other parameters
@@ -264,13 +264,13 @@ class Exponential(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau: Union[float, Tensor] = 8.0,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      tau: Union[float, Array] = 8.0,
       method: str = 'exp_auto',
 
       # other parameters
@@ -447,14 +447,14 @@ class DualExponential(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       stp: Optional[SynSTP] = None,
       output: SynOut = CUBA(),
       comp_method: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_decay: Union[float, Tensor] = 10.0,
-      tau_rise: Union[float, Tensor] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      tau_decay: Union[float, Array] = 10.0,
+      tau_rise: Union[float, Array] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
 
       # other parameters
@@ -627,13 +627,13 @@ class Alpha(DualExponential):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau_decay: Union[float, Tensor] = 10.0,
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      tau_decay: Union[float, Array] = 10.0,
       method: str = 'exp_auto',
 
       # other parameters
@@ -788,15 +788,15 @@ class NMDA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = MgBlock(E=0., alpha=0.062, beta=3.57, cc_Mg=1.2),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau_decay: Union[float, Tensor] = 100.,
-      a: Union[float, Tensor] = 0.5,
-      tau_rise: Union[float, Tensor] = 2.,
+      g_max: Union[float, Array, Initializer, Callable] = 0.15,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      tau_decay: Union[float, Array] = 100.,
+      a: Union[float, Array] = 0.5,
+      tau_rise: Union[float, Array] = 2.,
       method: str = 'exp_auto',
 
       # other parameters
