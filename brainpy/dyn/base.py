@@ -18,7 +18,7 @@ from brainpy.initialize import Initializer, parameter, variable, Uniform, noise 
 from brainpy.integrators import odeint, sdeint
 from brainpy.modes import Mode, TrainingMode, BatchingMode, normal, training
 from brainpy.tools.others import to_size, size2num
-from brainpy.types import Tensor, Shape
+from brainpy.types import Array, Shape
 
 __all__ = [
   # general class
@@ -70,16 +70,16 @@ class DynamicalSystem(Base):
       name: str = None,
       mode: Optional[Mode] = None,
   ):
-    super(DynamicalSystem, self).__init__(name=name)
-
-    # local delay variables
-    self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
-
     # mode setting
     if mode is None: mode = normal
     if not isinstance(mode, Mode):
       raise ValueError(f'Should be instance of {Mode.__name__}, but we got {type(Mode)}: {Mode}')
     self._mode = mode
+
+    super(DynamicalSystem, self).__init__(name=name)
+
+    # local delay variables
+    self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
     # fitting parameters
     self.online_fit_by = None
@@ -106,9 +106,9 @@ class DynamicalSystem(Base):
   def register_delay(
       self,
       identifier: str,
-      delay_step: Optional[Union[int, Tensor, Callable, Initializer]],
+      delay_step: Optional[Union[int, Array, Callable, Initializer]],
       delay_target: bm.Variable,
-      initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
+      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
   ):
     """Register delay variable.
 
@@ -317,14 +317,14 @@ class DynamicalSystem(Base):
 
   @tools.not_customized
   def online_fit(self,
-                 target: Tensor,
-                 fit_record: Dict[str, Tensor]):
+                 target: Array,
+                 fit_record: Dict[str, Array]):
     raise NoImplementationError('Subclass must implement online_fit() function when using OnlineTrainer.')
 
   @tools.not_customized
   def offline_fit(self,
-                  target: Tensor,
-                  fit_record: Dict[str, Tensor]):
+                  target: Array,
+                  fit_record: Dict[str, Array]):
     raise NoImplementationError('Subclass must implement offline_fit() function when using OfflineTrainer.')
 
   def clear_input(self):
@@ -482,7 +482,7 @@ class Sequential(Container):
     entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  def update(self, sha: dict, x: Any) -> Tensor:
+  def update(self, sha: dict, x: Any) -> Array:
     """Update function of a sequential model.
 
     Parameters
@@ -494,7 +494,7 @@ class Sequential(Container):
 
     Returns
     -------
-    y: Tensor
+    y: Array
       The output tensor.
     """
     for node in self.implicit_nodes.values():
@@ -686,7 +686,7 @@ class SynConn(DynamicalSystem):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]] = None,
       name: str = None,
       mode: Mode = normal,
   ):
@@ -904,7 +904,7 @@ class TwoEndConn(SynConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]] = None,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]] = None,
       output: SynOut = NullSynOut(),
       stp: SynSTP = NullSynSTP(),
       ltp: SynLTP = NullSynLTP(),
@@ -946,10 +946,10 @@ class TwoEndConn(SynConn):
 
   def init_weights(
       self,
-      weight: Union[float, Tensor, Initializer, Callable],
+      weight: Union[float, Array, Initializer, Callable],
       comp_method: str,
       sparse_data: str = 'csr'
-  ) -> Union[float, Tensor]:
+  ) -> Union[float, Array]:
     if comp_method not in ['sparse', 'dense']:
       raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
     if sparse_data not in ['csr', 'ij']:
@@ -1061,11 +1061,11 @@ class CondNeuGroup(NeuGroup, Container):
       self,
       size: Shape,
       keep_size: bool = False,
-      C: Union[float, Tensor, Initializer, Callable] = 1.,
-      A: Union[float, Tensor, Initializer, Callable] = 1e-3,
-      V_th: Union[float, Tensor, Initializer, Callable] = 0.,
-      V_initializer: Union[Initializer, Callable, Tensor] = Uniform(-70, -60.),
-      noise: Union[float, Tensor, Initializer, Callable] = None,
+      C: Union[float, Array, Initializer, Callable] = 1.,
+      A: Union[float, Array, Initializer, Callable] = 1e-3,
+      V_th: Union[float, Array, Initializer, Callable] = 0.,
+      V_initializer: Union[Initializer, Callable, Array] = Uniform(-70, -60.),
+      noise: Union[float, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
