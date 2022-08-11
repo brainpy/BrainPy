@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
@@ -204,9 +204,9 @@ class HH(NeuGroup):
       V_th: Union[float, Array, Initializer, Callable] = 20.,
       C: Union[float, Array, Initializer, Callable] = 1.0,
       V_initializer: Union[Initializer, Callable, Array] = Uniform(-70, -60.),
-      m_initializer: Union[Initializer, Callable, Array] = OneInit(0.5),
-      h_initializer: Union[Initializer, Callable, Array] = OneInit(0.6),
-      n_initializer: Union[Initializer, Callable, Array] = OneInit(0.32),
+      m_initializer: Optional[Union[Initializer, Callable, Array]] = None,
+      h_initializer: Optional[Union[Initializer, Callable, Array]] = None,
+      n_initializer: Optional[Union[Initializer, Callable, Array]] = None,
       noise: Union[float, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
@@ -233,9 +233,9 @@ class HH(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=4)
 
     # initializers
-    check_initializer(m_initializer, 'm_initializer', allow_none=False)
-    check_initializer(h_initializer, 'h_initializer', allow_none=False)
-    check_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check_initializer(m_initializer, 'm_initializer', allow_none=True)
+    check_initializer(h_initializer, 'h_initializer', allow_none=True)
+    check_initializer(n_initializer, 'n_initializer', allow_none=True)
     check_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._m_initializer = m_initializer
     self._h_initializer = h_initializer
@@ -243,10 +243,19 @@ class HH(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.m = variable(self._m_initializer, mode, self.varshape)
-    self.h = variable(self._h_initializer, mode, self.varshape)
-    self.n = variable(self._n_initializer, mode, self.varshape)
     self.V = variable(self._V_initializer, mode, self.varshape)
+    if self._m_initializer is None:
+      self.m = bm.Variable(self.m_inf(self.V.value))
+    else:
+      self.m = variable(self._m_initializer, mode, self.varshape)
+    if self._h_initializer is None:
+      self.h = bm.Variable(self.h_inf(self.V.value))
+    else:
+      self.h = variable(self._h_initializer, mode, self.varshape)
+    if self._n_initializer is None:
+      self.n = bm.Variable(self.n_inf(self.V.value))
+    else:
+      self.n = variable(self._n_initializer, mode, self.varshape)
     self.input = variable(bm.zeros, mode, self.varshape)
     self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
 
@@ -256,31 +265,40 @@ class HH(NeuGroup):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
+  # m channel
+  m_alpha = lambda self, V: 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
+  m_beta = lambda self, V: 4.0 * bm.exp(-(V + 65) / 18)
+  m_inf = lambda self, V: self.m_alpha(V) / (self.m_alpha(V) + self.m_beta(V))
+  dm = lambda self, m, t, V: self.m_alpha(V) * (1 - m) - self.m_beta(V) * m
+
+  # h channel
+  h_alpha = lambda self, V: 0.07 * bm.exp(-(V + 65) / 20.)
+  h_beta = lambda self, V: 1 / (1 + bm.exp(-(V + 35) / 10))
+  h_inf = lambda self, V: self.h_alpha(V) / (self.h_alpha(V) + self.h_beta(V))
+  dh = lambda self, h, t, V: self.h_alpha(V) * (1 - h) - self.h_beta(V) * h
+
+  # n channel
+  n_alpha = lambda self, V: 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
+  n_beta = lambda self, V: 0.125 * bm.exp(-(V + 65) / 80)
+  n_inf = lambda self, V: self.n_alpha(V) / (self.n_alpha(V) + self.n_beta(V))
+  dn = lambda self, n, t, V: self.n_alpha(V) * (1 - n) - self.n_beta(V) * n
+
   def reset_state(self, batch_size=None):
-    self.m.value = variable(self._m_initializer, batch_size, self.varshape)
-    self.h.value = variable(self._h_initializer, batch_size, self.varshape)
-    self.n.value = variable(self._n_initializer, batch_size, self.varshape)
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    if self._m_initializer is None:
+      self.m.value = self.m_inf(self.V.value)
+    else:
+      self.m.value = variable(self._m_initializer, batch_size, self.varshape)
+    if self._h_initializer is None:
+      self.h.value = self.h_inf(self.V.value)
+    else:
+      self.h.value = variable(self._h_initializer, batch_size, self.varshape)
+    if self._n_initializer is None:
+      self.n.value = self.n_inf(self.V.value)
+    else:
+      self.n.value = variable(self._n_initializer, batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
-
-  def dm(self, m, t, V):
-    alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
-    beta = 4.0 * bm.exp(-(V + 65) / 18)
-    dmdt = alpha * (1 - m) - beta * m
-    return dmdt
-
-  def dh(self, h, t, V):
-    alpha = 0.07 * bm.exp(-(V + 65) / 20.)
-    beta = 1 / (1 + bm.exp(-(V + 35) / 10))
-    dhdt = alpha * (1 - h) - beta * h
-    return dhdt
-
-  def dn(self, n, t, V):
-    alpha = 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
-    beta = 0.125 * bm.exp(-(V + 65) / 80)
-    dndt = alpha * (1 - n) - beta * n
-    return dndt
 
   def dV(self, V, t, m, h, n, I_ext):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
