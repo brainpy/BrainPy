@@ -5,6 +5,6 @@ Math Basics
    :maxdepth: 1
 
    overview
-   tensors_and_variables
+   arrays_and_variables
    jit_compilation
    control_flows
