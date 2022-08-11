@@ -273,6 +273,8 @@ def test_net_vars_2():
 
 def test_hidden_variables():
   class BPClass(bp.base.Base):
+    _excluded_vars = ('_rng_', )
+
     def __init__(self):
       super(BPClass, self).__init__()
 
