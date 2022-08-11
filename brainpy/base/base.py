@@ -124,7 +124,6 @@ class Base(object):
         v = getattr(node, k)
         if isinstance(v, math.Variable):
           if k not in node._excluded_vars:
-          # if not k.startswith('_') and not k.endswith('_'):
             gather[f'{node_path}.{k}' if node_path else k] = v
       gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
