@@ -10,7 +10,7 @@ from typing import Union, Callable
 import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
 from brainpy.modes import Mode, BatchingMode, normal
 from .base import IhChannel, CalciumChannel, Calcium
 
@@ -58,9 +58,9 @@ class Ih_HM1992(IhChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      g_max: Union[float, Tensor, Initializer, Callable] = 10.,
-      E: Union[float, Tensor, Initializer, Callable] = 43.,
-      phi: Union[float, Tensor, Initializer, Callable] = 1.,
+      g_max: Union[float, Array, Initializer, Callable] = 10.,
+      E: Union[float, Array, Initializer, Callable] = 43.,
+      phi: Union[float, Array, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -161,16 +161,16 @@ class Ih_De1996(IhChannel, CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Tensor, Initializer, Callable] = -40.,
-      k2: Union[float, Tensor, Initializer, Callable] = 4e-4,
-      k4: Union[float, Tensor, Initializer, Callable] = 1e-3,
-      V_sh: Union[float, Tensor, Initializer, Callable] = 0.,
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.02,
-      g_inc: Union[float, Tensor, Initializer, Callable] = 2.,
-      Ca_half: Union[float, Tensor, Initializer, Callable] = 2e-3,
-      T: Union[float, Tensor] = 36.,
-      T_base: Union[float, Tensor] = 3.,
-      phi: Union[float, Tensor, Initializer, Callable] = None,
+      E: Union[float, Array, Initializer, Callable] = -40.,
+      k2: Union[float, Array, Initializer, Callable] = 4e-4,
+      k4: Union[float, Array, Initializer, Callable] = 1e-3,
+      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      g_max: Union[float, Array, Initializer, Callable] = 0.02,
+      g_inc: Union[float, Array, Initializer, Callable] = 2.,
+      Ca_half: Union[float, Array, Initializer, Callable] = 2e-3,
+      T: Union[float, Array] = 36.,
+      T_base: Union[float, Array] = 3.,
+      phi: Union[float, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,

@@ -14,7 +14,7 @@ from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import UnsupportedError
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others import DotDict
-from brainpy.types import Tensor, Output
+from brainpy.types import Array, Output
 from ..running import constants as c
 from .base import DSTrainer
 
@@ -117,7 +117,7 @@ class BPTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
       reset_state: bool = True,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -130,7 +130,7 @@ class BPTrainer(DSTrainer):
 
     Parameters
     ----------
-    inputs: Tensor, sequence, dict
+    inputs: Array, sequence, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
     shared_args: dict
@@ -387,7 +387,7 @@ class BPFF(BPTT):
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
       reset_state: bool = True,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -400,7 +400,7 @@ class BPFF(BPTT):
 
     Parameters
     ----------
-    inputs: Tensor, dict
+    inputs: Array, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
     reset_state: bool
@@ -412,7 +412,7 @@ class BPFF(BPTT):
 
     Returns
     -------
-    output: Tensor, dict
+    output: Array, dict
       The model output.
     """
     # format input data

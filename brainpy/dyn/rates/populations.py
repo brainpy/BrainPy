@@ -11,7 +11,7 @@ from brainpy.integrators.ode import odeint
 from brainpy.modes import Mode, normal
 from brainpy.tools.checking import check_float, check_initializer
 from brainpy.tools.errors import check_error_in_jit
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
 
 __all__ = [
   'RateModel',
@@ -69,24 +69,24 @@ class FHN(RateModel):
       keep_size: bool = False,
 
       # fhn parameters
-      alpha: Union[float, Tensor, Initializer, Callable] = 3.0,
-      beta: Union[float, Tensor, Initializer, Callable] = 4.0,
-      gamma: Union[float, Tensor, Initializer, Callable] = -1.5,
-      delta: Union[float, Tensor, Initializer, Callable] = 0.0,
-      epsilon: Union[float, Tensor, Initializer, Callable] = 0.5,
-      tau: Union[float, Tensor, Initializer, Callable] = 20.0,
+      alpha: Union[float, Array, Initializer, Callable] = 3.0,
+      beta: Union[float, Array, Initializer, Callable] = 4.0,
+      gamma: Union[float, Array, Initializer, Callable] = -1.5,
+      delta: Union[float, Array, Initializer, Callable] = 0.0,
+      epsilon: Union[float, Array, Initializer, Callable] = 0.5,
+      tau: Union[float, Array, Initializer, Callable] = 20.0,
 
       # noise parameters
-      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
-      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
+      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
 
@@ -251,24 +251,24 @@ class FeedbackFHN(RateModel):
       keep_size: bool = False,
 
       # model parameters
-      a: Union[float, Tensor, Initializer, Callable] = 0.7,
-      b: Union[float, Tensor, Initializer, Callable] = 0.8,
-      delay: Union[float, Tensor, Initializer, Callable] = 10.,
-      tau: Union[float, Tensor, Initializer, Callable] = 12.5,
-      mu: Union[float, Tensor, Initializer, Callable] = 1.6886,
-      v0: Union[float, Tensor, Initializer, Callable] = -1,
+      a: Union[float, Array, Initializer, Callable] = 0.7,
+      b: Union[float, Array, Initializer, Callable] = 0.8,
+      delay: Union[float, Array, Initializer, Callable] = 10.,
+      tau: Union[float, Array, Initializer, Callable] = 12.5,
+      mu: Union[float, Array, Initializer, Callable] = 1.6886,
+      v0: Union[float, Array, Initializer, Callable] = -1,
 
       # noise parameters
-      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
-      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
+      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
       dt: float = None,
@@ -451,22 +451,22 @@ class QIF(RateModel):
       keep_size: bool = False,
 
       # model parameters
-      tau: Union[float, Tensor, Initializer, Callable] = 1.,
-      eta: Union[float, Tensor, Initializer, Callable] = -5.0,
-      delta: Union[float, Tensor, Initializer, Callable] = 1.0,
-      J: Union[float, Tensor, Initializer, Callable] = 15.,
+      tau: Union[float, Array, Initializer, Callable] = 1.,
+      eta: Union[float, Array, Initializer, Callable] = -5.0,
+      delta: Union[float, Array, Initializer, Callable] = 1.0,
+      J: Union[float, Array, Initializer, Callable] = 15.,
 
       # noise parameters
-      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
-      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.05),
+      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
 
@@ -594,20 +594,20 @@ class StuartLandauOscillator(RateModel):
       keep_size: bool = False,
 
       # model parameters
-      a: Union[float, Tensor, Initializer, Callable] = 0.25,
-      w: Union[float, Tensor, Initializer, Callable] = 0.2,
+      a: Union[float, Array, Initializer, Callable] = 0.25,
+      w: Union[float, Array, Initializer, Callable] = 0.2,
 
       # noise parameters
-      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
-      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(0, 0.5),
+      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.5),
+      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.5),
       method: str = 'exp_auto',
       name: str = None,
 
@@ -732,35 +732,35 @@ class WilsonCowanModel(RateModel):
       keep_size: bool = False,
 
       # Excitatory parameters
-      E_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # excitatory time constant
-      E_a: Union[float, Tensor, Initializer, Callable] = 1.2,  # excitatory gain
-      E_theta: Union[float, Tensor, Initializer, Callable] = 2.8,  # excitatory firing threshold
+      E_tau: Union[float, Array, Initializer, Callable] = 1.,  # excitatory time constant
+      E_a: Union[float, Array, Initializer, Callable] = 1.2,  # excitatory gain
+      E_theta: Union[float, Array, Initializer, Callable] = 2.8,  # excitatory firing threshold
 
       # Inhibitory parameters
-      I_tau: Union[float, Tensor, Initializer, Callable] = 1.,  # inhibitory time constant
-      I_a: Union[float, Tensor, Initializer, Callable] = 1.,  # inhibitory gain
-      I_theta: Union[float, Tensor, Initializer, Callable] = 4.0,  # inhibitory firing threshold
+      I_tau: Union[float, Array, Initializer, Callable] = 1.,  # inhibitory time constant
+      I_a: Union[float, Array, Initializer, Callable] = 1.,  # inhibitory gain
+      I_theta: Union[float, Array, Initializer, Callable] = 4.0,  # inhibitory firing threshold
 
       # connection parameters
-      wEE: Union[float, Tensor, Initializer, Callable] = 12.,  # local E-E coupling
-      wIE: Union[float, Tensor, Initializer, Callable] = 4.,  # local E-I coupling
-      wEI: Union[float, Tensor, Initializer, Callable] = 13.,  # local I-E coupling
-      wII: Union[float, Tensor, Initializer, Callable] = 11.,  # local I-I coupling
+      wEE: Union[float, Array, Initializer, Callable] = 12.,  # local E-E coupling
+      wIE: Union[float, Array, Initializer, Callable] = 4.,  # local E-I coupling
+      wEI: Union[float, Array, Initializer, Callable] = 13.,  # local I-E coupling
+      wII: Union[float, Array, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r: Union[float, Tensor, Initializer, Callable] = 1.,
+      r: Union[float, Array, Initializer, Callable] = 1.,
 
       # noise parameters
-      x_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Tensor, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Tensor, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
 
       # state initializer
-      x_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
-      y_initializer: Union[Initializer, Callable, Tensor] = Uniform(max_val=0.05),
+      x_initializer: Union[Initializer, Callable, Array] = Uniform(max_val=0.05),
+      y_initializer: Union[Initializer, Callable, Array] = Uniform(max_val=0.05),
 
       # other parameters
       method: str = 'exp_euler_auto',
@@ -910,14 +910,14 @@ class ThresholdLinearModel(RateModel):
   def __init__(
       self,
       size: Shape,
-      tau_e: Union[float, Callable, Initializer, Tensor] = 2e-2,
-      tau_i: Union[float, Callable, Initializer, Tensor] = 1e-2,
-      beta_e: Union[float, Callable, Initializer, Tensor] = .066,
-      beta_i: Union[float, Callable, Initializer, Tensor] = .351,
-      noise_e: Union[float, Callable, Initializer, Tensor] = 0.,
-      noise_i: Union[float, Callable, Initializer, Tensor] = 0.,
-      e_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      i_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      tau_e: Union[float, Callable, Initializer, Array] = 2e-2,
+      tau_i: Union[float, Callable, Initializer, Array] = 1e-2,
+      beta_e: Union[float, Callable, Initializer, Array] = .066,
+      beta_i: Union[float, Callable, Initializer, Array] = .351,
+      noise_e: Union[float, Callable, Initializer, Array] = 0.,
+      noise_i: Union[float, Callable, Initializer, Array] = 0.,
+      e_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      i_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
       seed: int = None,
       keep_size: bool = False,
       name: str = None,

@@ -14,7 +14,7 @@ from brainpy.initialize import (XavierNormal,
 from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import (check_integer,
                                     check_initializer)
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 __all__ = [
   'VanillaRNN',
@@ -26,7 +26,7 @@ __all__ = [
 class RecurrentCell(DynamicalSystem):
   def __init__(self,
                num_out: int,
-               state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+               state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
                mode: Mode = training,
                train_state: bool = False,
                name: str = None):
@@ -77,10 +77,10 @@ class VanillaRNN(RecurrentCell):
       self,
       num_in: int,
       num_out: int,
-      state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      Wi_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
-      Wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
-      b_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      Wi_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
+      Wh_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
+      b_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
       mode: Mode = training,
       train_state: bool = False,
@@ -188,10 +188,10 @@ class GRU(RecurrentCell):
       self,
       num_in: int,
       num_out: int,
-      Wi_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
-      Wh_initializer: Union[Tensor, Callable, Initializer] = Orthogonal(),
-      b_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      Wi_initializer: Union[Array, Callable, Initializer] = Orthogonal(),
+      Wh_initializer: Union[Array, Callable, Initializer] = Orthogonal(),
+      b_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
       mode: Mode = training,
       train_state: bool = False,
@@ -322,10 +322,10 @@ class LSTM(RecurrentCell):
       self,
       num_in: int,
       num_out: int,
-      Wi_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
-      Wh_initializer: Union[Tensor, Callable, Initializer] = XavierNormal(),
-      b_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
-      state_initializer: Union[Tensor, Callable, Initializer] = ZeroInit(),
+      Wi_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
+      Wh_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
+      b_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
       mode: Mode = training,
       train_state: bool = False,

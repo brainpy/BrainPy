@@ -5,7 +5,7 @@ from typing import Union, Callable, Optional
 import brainpy.math as bm
 from brainpy.dyn.base import SynOut
 from brainpy.initialize import parameter, Initializer
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 __all__ = [
   'MgBlock',
@@ -45,10 +45,10 @@ class MgBlock(SynOut):
 
   def __init__(
       self,
-      E: Union[float, Tensor, Callable, Initializer] = 0.,
-      cc_Mg: Union[float, Tensor, Callable, Initializer] = 1.2,
-      alpha: Union[float, Tensor, Callable, Initializer] = 0.062,
-      beta: Union[float, Tensor, Callable, Initializer] = 3.57,
+      E: Union[float, Array, Callable, Initializer] = 0.,
+      cc_Mg: Union[float, Array, Callable, Initializer] = 1.2,
+      alpha: Union[float, Array, Callable, Initializer] = 0.062,
+      beta: Union[float, Array, Callable, Initializer] = 3.57,
       target_var: Optional[Union[str, bm.Variable]] = 'input',
       membrane_var: Union[str, bm.Variable] = 'V',
       name: str = None,

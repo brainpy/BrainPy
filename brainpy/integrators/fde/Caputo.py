@@ -17,7 +17,7 @@ from brainpy.integrators.utils import check_inits, format_args
 from brainpy.tools.errors import check_error_in_jit
 from .base import FDEIntegrator
 from .generic import register_fde_integrator, get_supported_methods
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 __all__ = [
   'CaputoEuler',
@@ -115,9 +115,9 @@ class CaputoEuler(FDEIntegrator):
   def __init__(
       self,
       f: Callable,
-      alpha: Union[float, Sequence[float], Tensor],
+      alpha: Union[float, Sequence[float], Array],
       num_memory: int,
-      inits: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      inits: Union[Array, Sequence[Array], Dict[str, Array]],
       dt: float = None,
       name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
@@ -308,9 +308,9 @@ class CaputoL1Schema(FDEIntegrator):
   def __init__(
       self,
       f: Callable,
-      alpha: Union[float, Sequence[float], Tensor],
+      alpha: Union[float, Sequence[float], Array],
       num_memory: int,
-      inits: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      inits: Union[Array, Sequence[Array], Dict[str, Array]],
       dt: float = None,
       name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,

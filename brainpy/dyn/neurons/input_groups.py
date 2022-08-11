@@ -9,7 +9,7 @@ from brainpy.dyn.base import NeuGroup
 from brainpy.errors import ModelBuildError
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.modes import Mode, BatchingMode, normal
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
 
 __all__ = [
   'InputGroup',
@@ -112,8 +112,8 @@ class SpikeTimeGroup(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      times: Union[Sequence, Tensor],
-      indices: Union[Sequence, Tensor],
+      times: Union[Sequence, Array],
+      indices: Union[Sequence, Array],
       need_sort: bool = True,
       keep_size: bool = False,
       mode: Mode = normal,

@@ -12,7 +12,7 @@ from brainpy.initialize import Initializer
 from brainpy.dyn.neurons.input_groups import InputGroup, OutputGroup
 from brainpy.modes import Mode, TrainingMode, normal
 from brainpy.tools.checking import check_sequence
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 __all__ = [
   'DelayCoupling',
@@ -44,10 +44,10 @@ class DelayCoupling(SynConn):
       self,
       delay_var: bm.Variable,
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-      conn_mat: Tensor,
+      conn_mat: Array,
       required_shape: Tuple[int, ...],
-      delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
+      delay_steps: Optional[Union[int, Array, Initializer, Callable]] = None,
+      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
       name: str = None,
       mode: Mode = normal,
   ):
@@ -160,9 +160,9 @@ class DiffusiveCoupling(DelayCoupling):
       coupling_var1: bm.Variable,
       coupling_var2: bm.Variable,
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-      conn_mat: Tensor,
-      delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
+      conn_mat: Array,
+      delay_steps: Optional[Union[int, Array, Initializer, Callable]] = None,
+      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
       name: str = None,
       mode: Mode = normal,
   ):
@@ -252,9 +252,9 @@ class AdditiveCoupling(DelayCoupling):
       self,
       coupling_var: bm.Variable,
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-      conn_mat: Tensor,
-      delay_steps: Optional[Union[int, Tensor, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, Tensor, float, int, bool] = None,
+      conn_mat: Array,
+      delay_steps: Optional[Union[int, Array, Initializer, Callable]] = None,
+      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
       name: str = None,
       mode: Mode = normal,
   ):

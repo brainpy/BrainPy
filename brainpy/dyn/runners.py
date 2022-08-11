@@ -17,7 +17,7 @@ from brainpy.errors import RunningError
 from brainpy.running.runner import Runner
 from brainpy.tools.checking import check_float, serialize_kwargs
 from brainpy.tools.others.dicts import DotDict
-from brainpy.types import Tensor, Output, Monitor
+from brainpy.types import Array, Output, Monitor
 
 __all__ = [
   'DSRunner',
@@ -350,7 +350,7 @@ class DSRunner(Runner):
   def predict(
       self,
       duration: Union[float, int] = None,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]] = None,
+      inputs: Union[Array, Sequence[Array], Dict[str, Array]] = None,
       inputs_are_batching: bool = False,
       reset_state: bool = False,
       shared_args: Dict = None,
@@ -368,7 +368,7 @@ class DSRunner(Runner):
     ----------
     duration: int, float
       The simulation time length.
-    inputs: Tensor, dict of Tensor, sequence of Tensor
+    inputs: Array, dict of Array, sequence of Array
       The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
       PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
       Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
@@ -387,7 +387,7 @@ class DSRunner(Runner):
 
     Returns
     -------
-    output: Tensor, dict, sequence
+    output: Array, dict, sequence
       The model output.
     """
 
@@ -475,7 +475,7 @@ class DSRunner(Runner):
     ----------
     duration: int, float
       The simulation time length.
-    inputs: Tensor, dict of Tensor, sequence of Tensor
+    inputs: Array, dict of Array, sequence of Array
       The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
       PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
       Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
@@ -494,7 +494,7 @@ class DSRunner(Runner):
 
     Returns
     -------
-    output: Tensor, dict, sequence
+    output: Array, dict, sequence
       The model output.
     """
     return self.predict(*args, **kwargs)

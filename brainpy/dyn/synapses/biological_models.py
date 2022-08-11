@@ -12,7 +12,7 @@ from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
 from brainpy.dyn.synouts import COBA, MgBlock
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Tensor
+from brainpy.types import Array
 from brainpy.modes import Mode, BatchingMode, TrainingMode, normal, batching, training
 
 __all__ = [
@@ -139,12 +139,12 @@ class AMPA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = COBA(E=0.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.42,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      g_max: Union[float, Array, Initializer, Callable] = 0.42,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
       alpha: float = 0.98,
       beta: float = 0.18,
       T: float = 0.5,
@@ -313,16 +313,16 @@ class GABAa(AMPA):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = COBA(E=-80.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.04,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      alpha: Union[float, Tensor] = 0.53,
-      beta: Union[float, Tensor] = 0.18,
-      T: Union[float, Tensor] = 1.,
-      T_duration: Union[float, Tensor] = 1.,
+      g_max: Union[float, Array, Initializer, Callable] = 0.04,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      alpha: Union[float, Array] = 0.53,
+      beta: Union[float, Array] = 0.18,
+      T: Union[float, Array] = 1.,
+      T_duration: Union[float, Array] = 1.,
       method: str = 'exp_auto',
 
       # other parameters
@@ -331,7 +331,7 @@ class GABAa(AMPA):
       stop_spike_gradient: bool = False,
 
       # deprecated
-      E: Union[float, Tensor] = None,
+      E: Union[float, Array] = None,
   ):
     super(GABAa, self).__init__(pre=pre,
                                 post=post,
@@ -476,18 +476,18 @@ class BioNMDA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
       output: SynOut = MgBlock(E=0.),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      alpha1: Union[float, Tensor] = 2.,
-      beta1: Union[float, Tensor] = 0.01,
-      alpha2: Union[float, Tensor] = 1.,
-      beta2: Union[float, Tensor] = 0.5,
-      T_0: Union[float, Tensor] = 1.,
-      T_dur: Union[float, Tensor] = 0.5,
+      g_max: Union[float, Array, Initializer, Callable] = 0.15,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      alpha1: Union[float, Array] = 2.,
+      beta1: Union[float, Array] = 0.01,
+      alpha2: Union[float, Array] = 1.,
+      beta2: Union[float, Array] = 0.5,
+      T_0: Union[float, Array] = 1.,
+      T_dur: Union[float, Array] = 0.5,
       method: str = 'exp_auto',
 
       # other parameters

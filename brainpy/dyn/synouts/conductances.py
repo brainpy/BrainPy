@@ -5,7 +5,7 @@ from typing import Union, Callable, Optional
 from brainpy.math import Variable
 from brainpy.dyn.base import SynOut
 from brainpy.initialize import parameter, Initializer
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 __all__ = [
   'COBA',
@@ -68,7 +68,7 @@ class COBA(SynOut):
 
   def __init__(
       self,
-      E: Union[float, Tensor, Callable, Initializer] = 0.,
+      E: Union[float, Array, Callable, Initializer] = 0.,
       target_var: Optional[Union[str, Variable]] = 'input',
       membrane_var: Union[str, Variable] = 'V',
       name: str = None,

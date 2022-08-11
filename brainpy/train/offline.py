@@ -13,7 +13,7 @@ from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
 from brainpy.modes import TrainingMode
 from brainpy.tools.checking import serialize_kwargs
-from brainpy.types import Tensor, Output
+from brainpy.types import Array, Output
 from .base import DSTrainer
 
 __all__ = [
@@ -100,7 +100,7 @@ class OfflineTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[Tensor, Sequence[Tensor], Dict[str, Tensor]],
+      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -112,7 +112,7 @@ class OfflineTrainer(DSTrainer):
 
     Parameters
     ----------
-    inputs: Tensor, sequence of Tensor, dict of Tensor
+    inputs: Array, sequence of Array, dict of Array
       The input values.
     reset_state: bool
       Reset the target state before running.
@@ -123,7 +123,7 @@ class OfflineTrainer(DSTrainer):
 
     Returns
     -------
-    output: Tensor, sequence of Tensor, dict of Tensor
+    output: Array, sequence of Array, dict of Array
       The running output.
     """
     outs = super(OfflineTrainer, self).predict(inputs=inputs,
@@ -221,7 +221,7 @@ class OfflineTrainer(DSTrainer):
   def _make_fit_func(self, shared_args):
     shared_args = dict() if shared_args is None else shared_args
 
-    def train_func(monitor_data: Dict[str, Tensor], target_data: Dict[str, Tensor]):
+    def train_func(monitor_data: Dict[str, Array], target_data: Dict[str, Array]):
       for node in self.train_nodes:
         fit_record = monitor_data[f'{node.name}-fit_record']
         targets = target_data[node.name]
