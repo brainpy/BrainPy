@@ -84,30 +84,30 @@ def init_param(
 def variable(
     data: Union[Callable, Tensor],
     batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
-    var_shape: Shape = None,
+    size: Shape = None,
     batch_axis: int = 0,
 ):
-  var_shape = to_size(var_shape)
+  size = to_size(size)
   if callable(data):
-    if var_shape is None:
+    if size is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
     if isinstance(batch_size_or_mode, NormalMode):
-      return bm.Variable(data(var_shape))
+      return bm.Variable(data(size))
     elif isinstance(batch_size_or_mode, BatchingMode):
-      new_shape = var_shape[:batch_axis] + (1,) + var_shape[batch_axis:]
+      new_shape = size[:batch_axis] + (1,) + size[batch_axis:]
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
-      return bm.Variable(data(var_shape))
+      return bm.Variable(data(size))
     elif isinstance(batch_size_or_mode, int):
-      new_shape = var_shape[:batch_axis] + (int(batch_size_or_mode),) + var_shape[batch_axis:]
+      new_shape = size[:batch_axis] + (int(batch_size_or_mode),) + size[batch_axis:]
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
     else:
       raise ValueError('Unknown batch_size_or_mode.')
 
   else:
-    if var_shape is not None:
-      if bm.shape(data) != var_shape:
-        raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {var_shape}')
+    if size is not None:
+      if bm.shape(data) != size:
+        raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {size}')
     if isinstance(batch_size_or_mode, NormalMode):
       return bm.Variable(data)
     elif isinstance(batch_size_or_mode, BatchingMode):
