@@ -5,7 +5,7 @@ from jax import custom_gradient, custom_jvp
 
 from brainpy.math import numpy_ops as bm
 from brainpy.math.jaxarray import JaxArray
-from brainpy.types import Tensor
+from brainpy.types import Array
 
 from brainpy.math.setting import dftype
 
@@ -26,12 +26,12 @@ def _consistent_type(target, compare):
 
 
 @custom_gradient
-def spike_with_sigmoid_grad(x: Tensor, scale: float = None):
+def spike_with_sigmoid_grad(x: Array, scale: float = None):
   """Spike function with the sigmoid surrogate gradient.
 
   Parameters
   ----------
-  x: Tensor
+  x: Array
     The input data.
   scale: float
     The scaling factor.
@@ -52,14 +52,14 @@ def spike_with_sigmoid_grad(x: Tensor, scale: float = None):
 
 
 @custom_gradient
-def spike2_with_sigmoid_grad(x_new: Tensor, x_old: Tensor, scale: float = None):
+def spike2_with_sigmoid_grad(x_new: Array, x_old: Array, scale: float = None):
   """Spike function with the sigmoid surrogate gradient.
 
   Parameters
   ----------
-  x_new: Tensor
+  x_new: Array
     The input data.
-  x_old: Tensor
+  x_old: Array
     The input data.
   scale: optional, float
     The scaling factor.
@@ -85,12 +85,12 @@ def spike2_with_sigmoid_grad(x_new: Tensor, x_old: Tensor, scale: float = None):
 
 
 @custom_gradient
-def spike_with_linear_grad(x: Tensor, scale: float = None):
+def spike_with_linear_grad(x: Array, scale: float = None):
   """Spike function with the relu surrogate gradient.
 
   Parameters
   ----------
-  x: Tensor
+  x: Array
     The input data.
   scale: float
     The scaling factor.
@@ -110,14 +110,14 @@ def spike_with_linear_grad(x: Tensor, scale: float = None):
 
 
 @custom_gradient
-def spike2_with_linear_grad(x_new: Tensor, x_old: Tensor, scale: float = 10.):
+def spike2_with_linear_grad(x_new: Array, x_old: Array, scale: float = 10.):
   """Spike function with the linear surrogate gradient.
 
   Parameters
   ----------
-  x_new: Tensor
+  x_new: Array
     The input data.
-  x_old: Tensor
+  x_old: Array
     The input data.
   scale: float
     The scaling factor.

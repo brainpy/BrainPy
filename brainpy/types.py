@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 
 __all__ = [
-  'Tensor', 'Parameter',
+  'Array', 'Parameter',
 
   'Shape',
 
@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'JaxArray', 'Variable') # noqa
-Tensor = TypeVar('Tensor', 'JaxArray', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
+Array = TypeVar('Array', 'JaxArray', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
 
 Shape = TypeVar('Shape', int, Tuple[int, ...])
 

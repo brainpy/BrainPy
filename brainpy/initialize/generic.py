@@ -7,7 +7,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.tools.others import to_size
-from brainpy.types import Shape, Tensor
+from brainpy.types import Shape, Array
 from brainpy.modes import Mode, NormalMode, BatchingMode
 from .base import Initializer
 
@@ -82,7 +82,7 @@ def init_param(
 
 
 def variable(
-    data: Union[Callable, Tensor],
+    data: Union[Callable, Array],
     batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
     size: Shape = None,
     batch_axis: int = 0,

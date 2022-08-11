@@ -7,7 +7,7 @@ from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
 from brainpy.integrators.sde import sdeint
 from brainpy.modes import Mode, normal
-from brainpy.types import Tensor, Shape
+from brainpy.types import Array, Shape
 
 __all__ = [
   'OUProcess',
@@ -46,9 +46,9 @@ class OUProcess(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      mean: Union[float, Tensor, Initializer, Callable] = 0.,
-      sigma: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau: Union[float, Tensor, Initializer, Callable] = 10.,
+      mean: Union[float, Array, Initializer, Callable] = 0.,
+      sigma: Union[float, Array, Initializer, Callable] = 1.,
+      tau: Union[float, Array, Initializer, Callable] = 10.,
       method: str = 'exp_euler',
       keep_size: bool = False,
       mode: Mode = normal,
