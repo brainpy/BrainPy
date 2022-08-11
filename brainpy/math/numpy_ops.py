@@ -1840,11 +1840,15 @@ def asarray(a, dtype=None, order=None):
 
 @wraps(jnp.arange)
 def arange(*args, **kwargs):
+  args = [_remove_jaxarray(a) for a in args]
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
   return JaxArray(jnp.arange(*args, **kwargs))
 
 
 @wraps(jnp.linspace)
 def linspace(*args, **kwargs):
+  args = [_remove_jaxarray(a) for a in args]
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
   res = jnp.linspace(*args, **kwargs)
   if isinstance(res, tuple):
     return JaxArray(res[0]), res[1]
@@ -1854,6 +1858,8 @@ def linspace(*args, **kwargs):
 
 @wraps(jnp.logspace)
 def logspace(*args, **kwargs):
+  args = [_remove_jaxarray(a) for a in args]
+  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
   return JaxArray(jnp.logspace(*args, **kwargs))
 
 

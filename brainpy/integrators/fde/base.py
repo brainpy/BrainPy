@@ -55,8 +55,8 @@ class FDEIntegrator(Integrator):
     arguments = parses[2]  # function arguments
 
     # memory length
-    check_integer(num_memory, 'num_step', allow_none=False, min_bound=1)
-    self.num_step = num_memory
+    check_integer(num_memory, 'num_memory', allow_none=False, min_bound=1)
+    self.num_memory = num_memory
 
     # super initialization
     super(FDEIntegrator, self).__init__(name=name,

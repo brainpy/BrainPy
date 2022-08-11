@@ -29,6 +29,8 @@ class Base(object):
 
   """
 
+  _excluded_vars = ()
+
   def __init__(self, name=None):
     # check whether the object has a unique name.
     self._name = None
@@ -120,8 +122,10 @@ class Base(object):
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
-        if isinstance(v, math.Variable) and not k.startswith('_') and not k.endswith('_'):
-          gather[f'{node_path}.{k}' if node_path else k] = v
+        if isinstance(v, math.Variable):
+          if k not in node._excluded_vars:
+          # if not k.startswith('_') and not k.endswith('_'):
+            gather[f'{node_path}.{k}' if node_path else k] = v
       gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
 

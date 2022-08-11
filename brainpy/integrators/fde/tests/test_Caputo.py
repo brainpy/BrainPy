@@ -25,7 +25,7 @@ class TestCaputoL1(unittest.TestCase):
 
       intg.idx[0] = N - 1
       intg.diff_states['a_diff'][:N - 1] = bp.math.asarray(diff)
-      idx = ((intg.num_step - intg.idx) + np.arange(intg.num_step)) % intg.num_step
+      idx = ((intg.num_memory - intg.idx) + np.arange(intg.num_memory)) % intg.num_memory
       memory_trace2 = intg.coef[idx, 0] @ intg.diff_states['a_diff']
 
       print()
