@@ -114,9 +114,9 @@ class Euler(SDEIntegrator):
     # diffusion values
     diffusions = self.g(**all_args)
     if len(self.variables) == 1:
-      if not isinstance(diffusions, (bm.ndarray, jnp.ndarray)):
-        raise ValueError('Diffusion values must be a tensor when there '
-                         'is only one variable in the equation.')
+      # if not isinstance(diffusions, (bm.ndarray, jnp.ndarray)):
+      #   raise ValueError('Diffusion values must be a tensor when there '
+      #                    'is only one variable in the equation.')
       diffusions = {self.variables[0]: diffusions}
     else:
       if not isinstance(diffusions, (tuple, list)):

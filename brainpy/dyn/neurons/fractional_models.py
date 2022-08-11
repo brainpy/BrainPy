@@ -226,7 +226,7 @@ class FractionalIzhikevich(FractionalNeuron):
       self,
       size: Shape,
       alpha: Union[float, Sequence[float]],
-      num_step: int,
+      num_memory: int,
       a: Union[float, Tensor, Initializer, Callable] = 0.02,
       b: Union[float, Tensor, Initializer, Callable] = 0.20,
       c: Union[float, Tensor, Initializer, Callable] = -65.,
@@ -272,10 +272,10 @@ class FractionalIzhikevich(FractionalNeuron):
     self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # functions
-    check_integer(num_step, 'num_step', allow_none=False)
+    check_integer(num_memory, 'num_step', allow_none=False)
     self.integral = CaputoL1Schema(f=self.derivative,
                                    alpha=alpha,
-                                   num_memory=num_step,
+                                   num_memory=num_memory,
                                    inits=[self.V, self.u])
 
   def reset_state(self, batch_size=None):

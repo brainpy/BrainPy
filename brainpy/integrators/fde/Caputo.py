@@ -154,7 +154,7 @@ class CaputoEuler(FDEIntegrator):
 
   def _check_step(self, args):
     dt, t = args
-    raise ValueError(f'The maximum number of step is {self.num_step}, '
+    raise ValueError(f'The maximum number of step is {self.num_memory}, '
                      f'however, the current time {t} require a time '
                      f'step number {t / dt}.')
 
@@ -164,7 +164,7 @@ class CaputoEuler(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
+      check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -185,11 +185,11 @@ class CaputoEuler(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = ((self.num_step - 1 - self.idx) + bm.arange(self.num_step)) % self.num_step
+    idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
     for i, key in enumerate(self.variables):
       integral = self.inits[key] + self.coef[idx, i] @ self.f_states[key]
       integrals.append(integral * (dt ** self.alpha[i] / self.alpha[i]))
-    self.idx.value = (self.idx + 1) % self.num_step
+    self.idx.value = (self.idx + 1) % self.num_memory
 
     # return integrals
     if len(self.variables) == 1:
@@ -344,19 +344,19 @@ class CaputoL1Schema(FDEIntegrator):
                                                           dtype=self.inits[v].dtype))
                         for v in self.variables}
     self.register_implicit_vars(self.diff_states)
-    self.idx = bm.Variable(bm.asarray([self.num_step - 1]))
+    self.idx = bm.Variable(bm.asarray([self.num_memory - 1]))
 
     # integral function
     self.set_integral(self._integral_func)
 
   def reset(self, inits):
     """Reset function."""
-    self.idx.value = bm.asarray([self.num_step - 1])
+    self.idx.value = bm.asarray([self.num_memory - 1])
     inits = check_inits(inits, self.variables)
     for key, value in inits.items():
       self.inits[key].value = value
     for key, val in inits.items():
-      self.diff_states[key + "_diff"].value = bm.zeros((self.num_step,) + val.shape, dtype=val.dtype)
+      self.diff_states[key + "_diff"].value = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
 
   def hists(self, var=None, numpy=True):
     """Get the recorded history values."""
@@ -378,7 +378,7 @@ class CaputoL1Schema(FDEIntegrator):
 
   def _check_step(self, args):
     dt, t = args
-    raise ValueError(f'The maximum number of step is {self.num_step}, '
+    raise ValueError(f'The maximum number of step is {self.num_memory}, '
                      f'however, the current time {t} require a time '
                      f'step number {t / dt}.')
 
@@ -388,7 +388,7 @@ class CaputoL1Schema(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
+      check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -405,7 +405,7 @@ class CaputoL1Schema(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = ((self.num_step - 1 - self.idx) + bm.arange(self.num_step)) % self.num_step
+    idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
     for i, key in enumerate(self.variables):
       self.diff_states[key + '_diff'][self.idx[0]] = all_args[key] - self.inits[key]
       self.inits[key].value = all_args[key]
@@ -413,7 +413,7 @@ class CaputoL1Schema(FDEIntegrator):
       memory_trace = self.coef[idx, i] @ self.diff_states[key + '_diff']
       integral = markov_term - memory_trace
       integrals.append(integral)
-    self.idx.value = (self.idx + 1) % self.num_step
+    self.idx.value = (self.idx + 1) % self.num_memory
 
     # return integrals
     if len(self.variables) == 1:

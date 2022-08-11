@@ -113,12 +113,12 @@ def constant_input(I_and_duration, dt=None):
 
   # get the current
   start = 0
-  I_current = jnp.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
+  I_current = bm.zeros((int(np.ceil(I_duration / dt)),) + I_shape)
   for c_size, duration in I_and_duration:
     length = int(duration / dt)
-    I_current = I_current.at[start: start + length].set(c_size)
+    I_current[start: start + length] = c_size
     start += length
-  return I_current, I_duration
+  return I_current.value, I_duration
 
 
 def constant_current(*args, **kwargs):
@@ -172,12 +172,12 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   if isinstance(sp_sizes, (float, int)):
     sp_sizes = [sp_sizes] * len(sp_times)
 
-  current = jnp.zeros(int(np.ceil(duration / dt)))
+  current = bm.zeros(int(np.ceil(duration / dt)))
   for time, dur, size in zip(sp_times, sp_lens, sp_sizes):
     pp = int(time / dt)
     p_len = int(dur / dt)
-    current = current.at[pp: pp + p_len].set(size)
-  return current
+    current[pp: pp + p_len] = size
+  return current.value
 
 
 def spike_current(*args, **kwargs):
@@ -218,12 +218,12 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt = bm.get_dt() if dt is None else dt
   t_end = duration if t_end is None else t_end
 
-  current = jnp.zeros(int(np.ceil(duration / dt)))
+  current = bm.zeros(int(np.ceil(duration / dt)))
   p1 = int(np.ceil(t_start / dt))
   p2 = int(np.ceil(t_end / dt))
   cc = jnp.array(jnp.linspace(c_start, c_end, p2 - p1))
-  current = current.at[p1: p2].set(cc)
-  return current
+  current[p1: p2] = cc
+  return current.value
 
 
 def ramp_current(*args, **kwargs):
@@ -265,9 +265,9 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
   i_start = int(t_start / dt)
   i_end = int(t_end / dt)
   noises = rng.standard_normal((i_end - i_start, n)) * jnp.sqrt(dt)
-  currents = jnp.zeros((int(duration / dt), n))
-  currents = currents.at[i_start: i_end].set(bm.as_device_array(noises))
-  return currents
+  currents = bm.zeros((int(duration / dt), n))
+  currents[i_start: i_end] = noises
+  return currents.value
 
 
 def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None, seed=None):

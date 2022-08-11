@@ -53,11 +53,16 @@ class CANN2D(bp.dyn.NeuGroup):
   def make_conn(self):
     x1, x2 = bm.meshgrid(self.x, self.x)
     value = bm.stack([x1.flatten(), x2.flatten()]).T
-    d = self.dist(bm.abs(value[0] - value))
-    d = bm.linalg.norm(d, axis=1)
-    d = d.reshape((self.length, self.length))
-    Jxx = self.J0 * bm.exp(-0.5 * bm.square(d / self.a)) / (bm.sqrt(2 * bm.pi) * self.a)
-    return Jxx
+
+    @jax.vmap
+    def get_J(v):
+      d = self.dist(bm.abs(v - value))
+      d = bm.linalg.norm(d, axis=1)
+      # d = d.reshape((self.length, self.length))
+      Jxx = self.J0 * bm.exp(-0.5 * bm.square(d / self.a)) / (bm.sqrt(2 * bm.pi) * self.a)
+      return Jxx
+
+    return get_J(value)
 
   def get_stimulus_by_pos(self, pos):
     assert bm.size(pos) == 2
@@ -72,20 +77,19 @@ class CANN2D(bp.dyn.NeuGroup):
     r1 = bm.square(self.u)
     r2 = 1.0 + self.k * bm.sum(r1)
     self.r.value = r1 / r2
-    r = bm.fft.fft2(self.r)
-    jjft = bm.fft.fft2(self.conn_mat)
-    interaction = bm.real(bm.fft.ifft2(r * jjft))
+    interaction = (self.r.flatten() @ self.conn_mat).reshape((self.length, self.length))
     self.u.value = self.u + (-self.u + self.input + interaction) / self.tau * tdi.dt
     self.input[:] = 0.
 
 
-cann = CANN2D(length=512, k=0.1)
+cann = CANN2D(length=100, k=0.1)
 cann.show_conn()
 
 # encoding
 Iext, length = bp.inputs.section_input(
   values=[cann.get_stimulus_by_pos([0., 0.]), 0.],
-  durations=[10., 20.], return_length=True
+  durations=[10., 20.],
+  return_length=True
 )
 runner = bp.dyn.DSRunner(cann,
                          inputs=['input', Iext, 'iter'],
@@ -93,7 +97,8 @@ runner = bp.dyn.DSRunner(cann,
                          dyn_vars=cann.vars())
 runner.run(length)
 
-bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length))
+bp.visualize.animate_2D(values=runner.mon.r.reshape((-1, cann.num)),
+                        net_size=(cann.length, cann.length))
 
 # tracking
 length = 20
@@ -102,8 +107,8 @@ positions = bm.stack([positions, positions]).T
 Iext = jax.vmap(cann.get_stimulus_by_pos)(positions)
 runner = bp.dyn.DSRunner(cann,
                          inputs=['input', Iext, 'iter'],
-                         monitors=['r'],
-                         dyn_vars=cann.vars())
+                         monitors=['r'])
 runner.run(length)
 
-bp.visualize.animate_2D(values=runner.mon.r, net_size=(cann.length, cann.length))
+bp.visualize.animate_2D(values=runner.mon.r.reshape((-1, cann.num)),
+                        net_size=(cann.length, cann.length))
