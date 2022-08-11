@@ -134,10 +134,11 @@ class IntegratorRunner(Runner):
     numpy_mon_after_run: bool
     """
 
-    # initialize variables
     if not isinstance(target, Integrator):
       raise TypeError(f'Target must be instance of {Integrator.__name__}, '
                       f'but we got {type(target)}')
+
+    # get maximum size and initial variables
     if inits is not None:
       if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
         assert len(target.variables) == len(inits)
@@ -148,6 +149,8 @@ class IntegratorRunner(Runner):
     else:
       max_size = 1
       inits = dict()
+
+    # initialize variables
     self.variables = TensorCollector({v: bm.Variable(bm.zeros(max_size))
                                       for v in target.variables})
     for k in inits.keys():
@@ -207,7 +210,6 @@ class IntegratorRunner(Runner):
     self.dyn_vars.update(self.target.vars().unique())
 
     # Variables
-
     self.dyn_vars.update(self.variables)
     if len(self._dyn_args) > 0:
       self.idx = bm.Variable(bm.zeros(1, dtype=jnp.int_))
@@ -240,11 +242,6 @@ class IntegratorRunner(Runner):
         return out_vars, returns
     self.step_func = _loop_func
 
-  def _post(self, times, returns: dict):  # monitor
-    self.mon.ts = times + self.dt
-    for key in returns.keys():
-      self.mon[key] = bm.asarray(returns[key])
-
   def _step(self, t):
     # arguments
     kwargs = dict()
@@ -254,10 +251,12 @@ class IntegratorRunner(Runner):
     if len(self._dyn_args) > 0:
       kwargs.update({k: v[self.idx.value] for k, v in self._dyn_args.items()})
       self.idx += 1
+
     # return of function monitors
     returns = dict()
     for key, func in self.fun_monitors.items():
       returns[key] = func(t, self.dt)
+
     # call integrator function
     update_values = self.target(**kwargs)
     if len(self.target.variables) == 1:
@@ -265,6 +264,8 @@ class IntegratorRunner(Runner):
     else:
       for i, v in enumerate(self.target.variables):
         self.variables[v].update(update_values[i])
+
+    # progress bar
     if self.progress_bar:
       id_tap(lambda *args: self._pbar.update(), ())
     return returns
