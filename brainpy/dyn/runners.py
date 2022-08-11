@@ -490,7 +490,7 @@ class DSRunner(Runner):
     progress_bar: bool
       Whether report the progress of the simulation using progress bar.
     eval_time: bool
-      Whether ro evaluate the running time.
+      Whether to evaluate the running time.
 
     Returns
     -------
