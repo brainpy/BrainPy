@@ -51,6 +51,9 @@ class Optimizer(Base):
   def __repr__(self):
     return f"{self.__class__.__name__}(lr={self.lr})"
 
+  def update(self, grads: dict):
+    raise NotImplementedError
+
 
 class SGD(Optimizer):
   r"""Stochastic gradient descent optimizer.

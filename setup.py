@@ -9,6 +9,7 @@ from setuptools import setup
 
 try:
   import pkg_resources
+
   installed_packages = pkg_resources.working_set
   for i in installed_packages:
     if i.key == 'brainpy-simulator':
@@ -23,7 +24,6 @@ try:
                         '>>> pip uninstall brain-py')
 except ModuleNotFoundError:
   pass
-
 
 # version
 here = os.path.abspath(os.path.dirname(__file__))
@@ -52,13 +52,16 @@ setup(
     'tqdm',
   ],
   extras_require={
-    'cpu': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
-    'cuda': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
-    'all': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4',
-            'numba>=0.50', 'scipy>=1.1.0',
-            'networkx', 'matplotlib']
+    'cpu': ['jaxlib>=0.3.0', 'brainpylib>=0.0.6'],
+    'cuda': ['jaxlib>=0.3.0', 'brainpylib>=0.0.6'],
+    'all': ['jaxlib>=0.3.0', 'brainpylib>=0.0.6', 'numba>=0.50', 'scipy>=1.1.0', 'matplotlib']
   },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
+  project_urls={
+    "Bug Tracker": "https://github.com/PKU-NIP-Lab/BrainPy/issues",
+    "Documentation": "https://brainpy.readthedocs.io/",
+    "Source Code": "https://github.com/PKU-NIP-Lab/BrainPy",
+  },
   keywords='computational neuroscience, '
            'brain-inspired computation, '
            'dynamical systems, '

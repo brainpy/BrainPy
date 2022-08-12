@@ -1013,6 +1013,7 @@ def _update_tol(op):
   return tol
 
 
+@jtu.with_config(jax_numpy_dtype_promotion='standard')
 class IndexedUpdateTest(jtu.JaxTestCase):
 
   @parameterized.named_parameters(jtu.named_cases_from_sampler(lambda s: ({
@@ -1044,8 +1045,11 @@ class IndexedUpdateTest(jtu.JaxTestCase):
     "testcase_name": "{}_inshape={}_indexer={}_update={}_op={}".format(
       name, jtu.format_shape_dtype_string(shape, dtype), indexer,
       jtu.format_shape_dtype_string(update_shape, update_dtype), op.name),
-    "shape": shape, "dtype": dtype, "indexer": indexer,
-    "update_shape": update_shape, "update_dtype": update_dtype,
+    "shape": shape,
+    "dtype": dtype,
+    "indexer": indexer,
+    "update_shape": update_shape,
+    "update_dtype": update_dtype,
     "op": op
   } for name, index_specs in s(ADVANCED_INDEXING_TESTS_NO_REPEATS)
       for shape, indexer, update_shape in s(index_specs)

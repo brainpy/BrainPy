@@ -6,13 +6,10 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.dyn import rates
-
-bp.check.turn_off()
 
 
 def bifurcation_analysis():
-  model = rates.FHN(1, method='exp_auto')
+  model = bp.rates.FHN(1, method='exp_auto')
   pp = bp.analysis.Bifurcation2D(
     model,
     target_vars={'x': [-2, 2], 'y': [-2, 2]},
@@ -35,19 +32,27 @@ class Network(bp.dyn.Network):
     hcp = np.load('data/hcp.npz')
     conn_mat = bm.asarray(hcp['Cmat'])
     bm.fill_diagonal(conn_mat, 0)
-    delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt())
+    delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt()).astype(bm.int_)
     bm.fill_diagonal(delay_mat, 0)
 
-    self.fhn = rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
-    self.coupling = rates.DiffusiveCoupling(self.fhn.x, self.fhn.x, self.fhn.input,
-                                            conn_mat=conn_mat,
-                                            delay_steps=delay_mat.astype(bm.int_),
-                                            initial_delay_data=bp.init.Uniform(0, 0.05))
+    self.fhn = bp.rates.FHN(
+      80,
+      x_ou_sigma=0.01,
+      y_ou_sigma=0.01,
+    )
+    self.coupling = bp.synapses.DiffusiveCoupling(
+      self.fhn.x,
+      self.fhn.x,
+      var_to_output=self.fhn.input,
+      conn_mat=conn_mat,
+      delay_steps=delay_mat,
+      initial_delay_data=bp.init.Uniform(0, 0.05)
+    )
 
 
-def brain_simulation():
+def net_simulation():
   net = Network()
-  runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72])
+  runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72], jit=True)
   runner.run(6e3)
 
   plt.rcParams['image.cmap'] = 'plasma'
@@ -55,11 +60,39 @@ def brain_simulation():
   fc = bp.measure.functional_connectivity(runner.mon['fhn.x'])
   ax = axs[0].imshow(fc)
   plt.colorbar(ax, ax=axs[0])
-  axs[1].plot(runner.mon.ts, runner.mon['fhn.x'][:, ::5], alpha=0.8)
+  axs[1].plot(runner.mon['ts'], runner.mon['fhn.x'][:, ::5], alpha=0.8)
   plt.tight_layout()
   plt.show()
 
 
+def net_analysis():
+  net = Network()
+
+  # get candidate points
+  runner = bp.dyn.DSRunner(
+    net,
+    monitors={'x': net.fhn.x, 'y': net.fhn.y},
+    inputs=(net.fhn.input, 0.72),
+    numpy_mon_after_run=False
+  )
+  runner.run(1e3)
+  candidates = dict(x=runner.mon.x, y=runner.mon.y)
+
+  # analysis
+  finder = bp.analysis.SlowPointFinder(
+    net,
+    inputs=(net.fhn.input, 0.72),
+    target_vars={'x': net.fhn.x, 'y': net.fhn.y}
+  )
+  finder.find_fps_with_opt_solver(candidates=candidates)
+  finder.filter_loss(1e-5)
+  finder.keep_unique(1e-3)
+  finder.compute_jacobians({'x': finder._fixed_points['x'][:10],
+                            'y': finder._fixed_points['y'][:10]},
+                           plot=True)
+
+
 if __name__ == '__main__':
-  bifurcation_analysis()
-  brain_simulation()
+  # bifurcation_analysis()
+  net_simulation()
+  # net_analysis()

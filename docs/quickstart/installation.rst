@@ -35,6 +35,14 @@ of BrainPy, you can use:
    pip install --pre brainpy
 
 
+To install ``brainpylib`` (needed in dedicated operators), you can use:
+
+.. code-block:: bash
+
+    pip install brainpylib
+
+
+
 Installation from source
 ------------------------
 
@@ -82,7 +90,11 @@ Linux & MacOS
 
 Currently, JAX supports **Linux** (Ubuntu 16.04 or later) and **macOS** (10.12 or
 later) platforms. The provided binary releases of JAX for Linux and macOS
-systems are available at https://storage.googleapis.com/jax-releases/jax_releases.html .
+systems are available at
+
+- for CPU: https://storage.googleapis.com/jax-releases/jax_releases.html
+- for GPU: https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
 
 To install a CPU-only version of JAX, you can run
 
@@ -95,7 +107,7 @@ If you want to install JAX with both CPU and NVidia GPU support, you must first 
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 Alternatively, you can download the preferred release ".whl" file for jaxlib, and install it via ``pip``:
 
@@ -153,13 +165,7 @@ packages:
 
     conda install numba
 
-- brainpylib: needed in dedicated operators
 
-.. code-block:: bash
-
-    pip install brainpylib
-    
- 
 - `matplotlib`_: required in some visualization functions, but now it is recommended that users explicitly import matplotlib for visualization
 
 .. code-block:: bash
@@ -170,15 +176,6 @@ packages:
 
     conda install matplotlib
 
-- `NetworkX`_: needed in the visualization of network training
-
-.. code-block:: bash
-
-    pip install networkx
-
-    # or
-
-    conda install networkx
 
 .. _NumPy: https://numpy.org/
 .. _Matplotlib: https://matplotlib.org/
@@ -190,4 +187,3 @@ packages:
 .. _Numba: https://numba.pydata.org/
 .. _CUDA: https://developer.nvidia.com/cuda-downloads
 .. _CuDNN: https://developer.nvidia.com/CUDNN
-.. _NetworkX: https://networkx.org/

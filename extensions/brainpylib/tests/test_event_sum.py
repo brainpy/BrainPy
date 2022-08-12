@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import unittest
+from jax import vmap
 from brainpylib import event_sum
 import brainpy as bp
 import brainpy.math as bm
@@ -29,6 +30,26 @@ class TestEventSum(unittest.TestCase):
     a = event_sum(sps, (post_ids.value, indptr.value), size, value)
     print(a)
 
+  def test_homo_values_batching(self):
+    bp.math.random.seed(1345)
+    size = 200
+    conn = bp.conn.FixedProb(prob=0.5, seed=123)
+
+    conn(pre_size=size, post_size=size)
+    post_ids, indptr = conn.require('pre2post')
+    sps = bm.random.random((10, size)).value < 0.5
+    value = 3.0233
+    f = vmap(bm.pre2post_event_sum, in_axes=(0, None, None, None))
+    a1 = f(sps, (post_ids.value, indptr.value), size, value)
+
+    print(a1)
+
+    f = vmap(lambda events: bm.pre2post_event_sum(events, (post_ids.value, indptr.value), size, value))
+    a2 = f(sps)
+
+    print(a2)
+    self.assertTrue(jnp.array_equal(a1, a2))
+
   def test_heter_value(self):
     bp.math.random.seed(3)
     size = 200
@@ -42,6 +63,23 @@ class TestEventSum(unittest.TestCase):
     # values = bm.ones(post_ids.size)
     a = event_sum(sps, (post_ids.value, indptr.value), size, values.value)
     print(a)
+
+  def test_heter_values_batching(self):
+    bp.math.random.seed(1345)
+    size = 200
+    conn = bp.conn.FixedProb(prob=0.5, seed=123)
+
+    conn(pre_size=size, post_size=size)
+    post_ids, indptr = conn.require('pre2post')
+    sps = bm.random.random((10, size)).value < 0.5
+    values = bm.random.rand(post_ids.size)
+    f = vmap(bm.pre2post_event_sum, in_axes=(0, None, None, None))
+    a1 = f(sps, (post_ids.value, indptr.value), size, values)
+
+    f = vmap(lambda events: bm.pre2post_event_sum(events, (post_ids.value, indptr.value), size, values))
+    a2 = f(sps)
+
+    self.assertTrue(jnp.array_equal(a1, a2))
 
 
 # def test1():

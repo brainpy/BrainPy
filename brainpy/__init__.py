@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.1.12"
+__version__ = "2.2.0"
 
 
 try:
@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 
 # fundamental modules
-from . import errors, tools, check
+from . import errors, tools, check, modes
 
 
 # "base" module
@@ -29,7 +29,15 @@ from . import math
 
 
 # toolboxes
-from . import connect, initialize, optimizers, measure, losses, datasets, inputs
+from . import (connect,  # synaptic connection
+               initialize,  # weight initialization
+               optimizers,  # gradient descent optimizers
+               losses,  # loss functions
+               measure,  # methods for data analysis
+               datasets,  # methods for generating data
+               inputs,  # methods for generating input currents
+               algorithms,  # online or offline training algorithms
+               )
 
 
 # numerical integrators
@@ -45,26 +53,32 @@ from .integrators.joint_eq import JointEq
 
 # dynamics simulation
 from . import dyn
+from .dyn import (channels,  # channel models
+                  layers,  # ANN layers
+                  networks,  # network models
+                  neurons,  # neuron groups
+                  rates,  # rate models
+                  synapses,  # synaptic dynamics
+                  synouts,   # synaptic output
+                  synplast,  # synaptic plasticity
+                  )
+from .dyn.runners import *
 
 
-# neural networks modeling
-from . import nn
-
-
-# running
-from . import running
+# dynamics training
+from . import train
 
 
 # automatic dynamics analysis
 from . import analysis
 
 
+# running
+from . import running
+
+
 # "visualization" module, will be removed soon
 from .visualization import visualize
-
-
-# compatible interface
-from .compat import *  # compat
 
 
 # convenient access

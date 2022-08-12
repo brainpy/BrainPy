@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Callable
+from typing import Dict, Callable, Union, Sequence
 
 from brainpy import math as bm, errors
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
-from brainpy.integrators.constants import DT
 
 __all__ = [
   'SDEIntegrator',
@@ -33,8 +32,9 @@ class SDEIntegrator(Integrator):
       intg_type: str = None,
       wiener_type: str = None,
       state_delays: Dict[str, bm.AbstractDelay] = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
   ):
-
+    self.dyn_vars = dyn_vars
     dt = bm.get_dt() if dt is None else dt
     parses = utils.get_args(f)
     variables = parses[0]  # variable names, (before 't')
@@ -77,10 +77,12 @@ class SDEIntegrator(Integrator):
 
     # code scope
     self.code_scope = {constants.F: f, constants.G: g, 'math': bm, 'random': self.rng}
-
     # code lines
     self.func_name = f_names(f)
     self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
-
     # others
     self.show_code = show_code
+
+  def _check_vector_wiener_dim(self, noise_size, var_size):
+    if noise_size[:-1] > var_size[-len(noise_size) +1:]:
+      raise ValueError(f"Incompatible shapes for shapes of noise {noise_size} and variable {var_size}")

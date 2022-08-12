@@ -3,9 +3,8 @@
 import os
 import re
 
-from jax import dtypes
-import jax.config
-import jax.numpy as jnp
+from jax import dtypes, config, numpy as jnp
+from jax.lib import xla_bridge
 
 __all__ = [
   'enable_x64',
@@ -13,13 +12,20 @@ __all__ = [
   'set_platform',
   'set_host_device_count',
 
-  # data types
+  # device memory
+  'clear_buffer_memory',
+  'disable_gpu_memory_preallocation',
+  'enable_gpu_memory_preallocation',
+
+  # default data types
   'bool_',
   'int_',
   'float_',
   'complex_',
+  'ditype',
+  'dftype',
 
-  # change default data types
+  # default numerical integration step
   'set_dt',
   'get_dt',
 ]
@@ -31,6 +37,16 @@ bool_ = jnp.bool_
 int_ = jnp.int32
 float_ = jnp.float32
 complex_ = jnp.complex_
+
+
+def ditype():
+  """Default int type."""
+  return jnp.int64 if config.read('jax_enable_x64') else jnp.int32
+
+
+def dftype():
+  """Default float type."""
+  return jnp.float64 if config.read('jax_enable_x64') else jnp.float32
 
 
 # numerical precision
@@ -69,11 +85,11 @@ def get_dt():
 
 def enable_x64(mode=True):
   assert mode in [True, False]
-  jax.config.update("jax_enable_x64", mode)
+  config.update("jax_enable_x64", mode)
 
 
 def disable_x64():
-  jax.config.update("jax_enable_x64", False)
+  config.update("jax_enable_x64", False)
 
 
 def set_platform(platform):
@@ -82,7 +98,7 @@ def set_platform(platform):
   effect at the beginning of your program.
   """
   assert platform in ['cpu', 'gpu', 'tpu']
-  jax.config.update("jax_platform_name", platform)
+  config.update("jax_platform_name", platform)
 
 
 def set_host_device_count(n):
@@ -107,3 +123,36 @@ def set_host_device_count(n):
   xla_flags = os.getenv("XLA_FLAGS", "")
   xla_flags = re.sub(r"--xla_force_host_platform_device_count=\S+", "", xla_flags).split()
   os.environ["XLA_FLAGS"] = " ".join(["--xla_force_host_platform_device_count={}".format(n)] + xla_flags)
+
+
+def clear_buffer_memory(platform=None):
+  """Clear all on-device buffers.
+
+  This function will be very useful when you call models in a Python loop,
+  because it can clear all cached arrays, and clear device memory.
+
+  .. warning::
+
+     This operation may cause errors when you use a deleted buffer.
+     Therefore, regenerate data always.
+
+  Parameters
+  ----------
+  platform: str
+    The device to clear its memory.
+  """
+  for buf in xla_bridge.get_backend(platform=platform).live_buffers():
+    buf.delete()
+
+
+def disable_gpu_memory_preallocation():
+  """Disable pre-allocating the GPU memory."""
+  os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
+  os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'
+
+
+def enable_gpu_memory_preallocation():
+  """Disable pre-allocating the GPU memory."""
+  os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'true'
+  os.environ.pop('XLA_PYTHON_CLIENT_ALLOCATOR')
+

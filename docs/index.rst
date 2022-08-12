@@ -9,11 +9,11 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
   stochastic differential equations (SDEs),
   delay differential equations (DDEs),
   fractional differential equations (FDEs), etc.
-- **Dynamics simulation** tools for various brain objects, like
-  neurons, synapses, networks, soma, dendrites, channels, and even more.
-- **Dynamics training** tools with various machine learning algorithms,
+- **Dynamics building** with the modular and composable programming interface.
+- **Dynamics simulation** for various brain objects with parallel supports.
+- **Dynamics training** with various machine learning algorithms,
   like FORCE learning, ridge regression, back-propagation, etc.
-- **Dynamics analysis** tools for differential equations, including
+- **Dynamics analysis** for low- and high-dimensional systems, including
   phase plane analysis, bifurcation analysis, linearization analysis,
   and fixed/slow point finding.
 - And more others ......
@@ -38,7 +38,6 @@ The code of BrainPy is open-sourced at GitHub:
 
    quickstart/installation
    quickstart/simulation
-   quickstart/rate_model
    quickstart/training
    quickstart/analysis
 
@@ -47,7 +46,8 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 2
    :caption: BDP Tutorials
 
-   tutorial_basics/index
+   tutorial_math/index
+   tutorial_building/index
    tutorial_simulation/index
    tutorial_training/index
    tutorial_analysis/index
@@ -65,9 +65,6 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_toolbox/synaptic_connections
    tutorial_toolbox/synaptic_weights
    tutorial_toolbox/optimizers
-   tutorial_toolbox/runners
-   tutorial_toolbox/inputs
-   tutorial_toolbox/monitors
    tutorial_toolbox/saving_and_loading
 
 
@@ -75,13 +72,12 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   tutorial_math/variables
-   tutorial_math/base
-   tutorial_math/compilation
-   tutorial_math/differentiation
-   tutorial_math/control_flows
-   tutorial_math/low-level_operator_customization
-   tutorial_math/interoperation
+   tutorial_advanced/variables
+   tutorial_advanced/base_and_collector
+   tutorial_advanced/compilation
+   tutorial_advanced/differentiation
+   tutorial_advanced/operator_customization
+   tutorial_advanced/interoperation
 
 
 .. toctree::
@@ -91,10 +87,11 @@ The code of BrainPy is open-sourced at GitHub:
    apis/auto/base.rst
    apis/math.rst
    apis/dyn.rst
-   apis/nn.rst
+   apis/train.rst
    apis/analysis.rst
    apis/integrators.rst
    apis/datasets.rst
+   apis/algorithms.rst
    apis/auto/inputs.rst
    apis/auto/connect.rst
    apis/auto/initialize.rst
@@ -103,7 +100,6 @@ The code of BrainPy is open-sourced at GitHub:
    apis/auto/measure.rst
    apis/auto/running.rst
    apis/tools.rst
-   apis/compat.rst
    apis/auto/changelog-brainpy.rst
    apis/auto/changelog-brainpylib.rst
 

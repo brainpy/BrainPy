@@ -12,15 +12,15 @@ __all__ = [
 
 name2method = {}
 
-_DEFAULT_DDE_METHOD = 'CaputoL1'
+_DEFAULT_DDE_METHOD = 'l1'
 
 
 def fdeint(
     alpha,
-    num_step,
+    num_memory,
     inits,
     f=None,
-    method='CaputoL1',
+    method='l1',
     dt: str = None,
     name: str = None
 ):
@@ -34,7 +34,7 @@ def fdeint(
     The shortcut name of the numerical integrator.
   alpha: int, float, jnp.ndarray, bm.ndarray, sequence
     The fractional-order of the derivative function. Should be in the range of ``(0., 1.]``.
-  num_step: int
+  num_memory: int
     The number of the memory length.
   inits: sequence
     A sequence of the initial values for variables.
@@ -54,9 +54,9 @@ def fdeint(
                      f'BrainPy supports: {list(name2method.keys())}')
 
   if f is None:
-    return lambda f: name2method[method](f, dt=dt, name=name, inits=inits, num_step=num_step, alpha=alpha)
+    return lambda f: name2method[method](f, dt=dt, name=name, inits=inits, num_memory=num_memory, alpha=alpha)
   else:
-    return name2method[method](f, dt=dt, name=name, inits=inits, num_step=num_step, alpha=alpha)
+    return name2method[method](f, dt=dt, name=name, inits=inits, num_memory=num_memory, alpha=alpha)
 
 
 def set_default_fdeint(method):
@@ -98,7 +98,7 @@ def register_fde_integrator(name, integrator):
     The integrator.
   """
   if name in name2method:
-    raise ValueError(f'"{name}" has been registered in ODE integrators.')
+    raise ValueError(f'"{name}" has been registered in FDE integrators.')
   if not issubclass(integrator, FDEIntegrator):
     raise ValueError(f'"integrator" must be an instance of {FDEIntegrator.__name__}')
   name2method[name] = integrator

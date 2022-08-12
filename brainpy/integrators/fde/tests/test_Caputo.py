@@ -14,7 +14,7 @@ class TestCaputoL1(unittest.TestCase):
     alpha = 0.9
     intg = bp.fde.CaputoL1Schema(lambda a, t: a,
                                  alpha=alpha,
-                                 num_step=10,
+                                 num_memory=10,
                                  inits=[1., ])
     for N in [2, 3, 4, 5, 6, 7, 8]:
       diff = np.random.rand(N - 1, 1)
@@ -25,7 +25,7 @@ class TestCaputoL1(unittest.TestCase):
 
       intg.idx[0] = N - 1
       intg.diff_states['a_diff'][:N - 1] = bp.math.asarray(diff)
-      idx = ((intg.num_step - intg.idx) + np.arange(intg.num_step)) % intg.num_step
+      idx = ((intg.num_memory - intg.idx) + np.arange(intg.num_memory)) % intg.num_memory
       memory_trace2 = intg.coef[idx, 0] @ intg.diff_states['a_diff']
 
       print()

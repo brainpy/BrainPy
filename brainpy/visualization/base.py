@@ -94,6 +94,11 @@ class visualize(object):
                       figsize=figsize, gif_dpi=gif_dpi, video_fps=video_fps, save_path=save_path, show=show)
 
   @staticmethod
+  def remove_axis(ax, *pos):
+    from .plots import remove_axis
+    return remove_axis(ax, *pos)
+
+  @staticmethod
   def plot_style1(fontsize=22,
                   axes_edgecolor='black',
                   figsize='5,4',

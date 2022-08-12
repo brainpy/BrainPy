@@ -22,7 +22,7 @@ class TestGLShortMemory(unittest.TestCase):
 
     integral = bp.fde.GLShortMemory(lorenz,
                                     alpha=0.99,
-                                    num_step=500,
+                                    num_memory=500,
                                     inits=[1., 0., 1.])
     runner = bp.integrators.IntegratorRunner(integral,
                                              monitors=list('xyz'),

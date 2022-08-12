@@ -96,7 +96,7 @@ class IntegratorRunner(Runner):
       fun_monitors: Dict[str, Callable] = None,
       monitors: Sequence[str] = None,
       dyn_vars: Dict[str, bm.Variable] = None,
-      jit: bool = True,
+      jit: Union[bool, Dict[str, bool]] = True,
       numpy_mon_after_run: bool = True,
       progress_bar: bool = True
   ):
@@ -105,8 +105,11 @@ class IntegratorRunner(Runner):
     Parameters
     ----------
     target: Integrator
+      The target to run.
     monitors: sequence of str
+      The variables to monitor.
     fun_monitors: dict
+      The monitors with callable functions.
     inits: sequence, dict
       The initial value of variables. With this parameter,
       you can easily control the number of variables to simulate.
@@ -130,6 +133,34 @@ class IntegratorRunner(Runner):
     progress_bar: bool
     numpy_mon_after_run: bool
     """
+
+    if not isinstance(target, Integrator):
+      raise TypeError(f'Target must be instance of {Integrator.__name__}, '
+                      f'but we got {type(target)}')
+
+    # get maximum size and initial variables
+    if inits is not None:
+      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
+        assert len(target.variables) == len(inits)
+        inits = {k: inits[i] for i, k in enumerate(target.variables)}
+      assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'
+      sizes = np.unique([np.size(v) for v in list(inits.values())])
+      max_size = np.max(sizes)
+    else:
+      max_size = 1
+      inits = dict()
+
+    # initialize variables
+    self.variables = TensorCollector({v: bm.Variable(bm.zeros(max_size))
+                                      for v in target.variables})
+    for k in inits.keys():
+      self.variables[k][:] = inits[k]
+
+    # format string monitors
+    monitors = self._format_seq_monitors(monitors)
+    monitors = {k: (self.variables[k], i) for k, i in monitors}
+
+    # initialize super class
     super(IntegratorRunner, self).__init__(target=target,
                                            monitors=monitors,
                                            fun_monitors=fun_monitors,
@@ -167,7 +198,7 @@ class IntegratorRunner(Runner):
       self._dyn_args.update(dyn_args)
 
     # monitors
-    for k in self.mon.item_names:
+    for k in self.mon.var_names:
       if k not in self.target.variables and k not in self.fun_monitors:
         raise MonitorError(f'Variable "{k}" to monitor is not defined '
                            f'in the integrator {self.target}.')
@@ -179,36 +210,22 @@ class IntegratorRunner(Runner):
     self.dyn_vars.update(self.target.vars().unique())
 
     # Variables
-    if inits is not None:
-      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
-        assert len(self.target.variables) == len(inits)
-        inits = {k: inits[i] for i, k in enumerate(self.target.variables)}
-      assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'
-      sizes = np.unique([np.size(v) for v in list(inits.values())])
-      max_size = np.max(sizes)
-    else:
-      max_size = 1
-      inits = dict()
-    self.variables = TensorCollector({v: bm.Variable(bm.zeros(max_size))
-                                      for v in self.target.variables})
-    for k in inits.keys():
-      self.variables[k][:] = inits[k]
     self.dyn_vars.update(self.variables)
     if len(self._dyn_args) > 0:
       self.idx = bm.Variable(bm.zeros(1, dtype=jnp.int_))
       self.dyn_vars['_idx'] = self.idx
 
     # build the update step
-    if jit:
+    if self.jit['predict']:
       _loop_func = bm.make_loop(
         self._step,
         dyn_vars=self.dyn_vars,
-        out_vars={k: self.variables[k] for k in self.mon.item_names},
+        out_vars={k: self.variables[k] for k in self.monitors.keys()},
         has_return=True
       )
     else:
       def _loop_func(times):
-        out_vars = {k: [] for k in self.mon.item_names}
+        out_vars = {k: [] for k in self.monitors.keys()}
         returns = {k: [] for k in self.fun_monitors.keys()}
         for i in range(len(times)):
           _t = times[i]
@@ -219,16 +236,11 @@ class IntegratorRunner(Runner):
           # step call
           self._step(_t)
           # variable monitors
-          for k in self.mon.item_names:
+          for k in self.monitors.keys():
             out_vars[k].append(bm.as_device_array(self.variables[k]))
-        out_vars = {k: bm.asarray(out_vars[k]) for k in self.mon.item_names}
+        out_vars = {k: bm.asarray(out_vars[k]) for k in self.monitors.keys()}
         return out_vars, returns
     self.step_func = _loop_func
-
-  def _post(self, times, returns: dict):  # monitor
-    self.mon.ts = times + self.dt
-    for key in returns.keys():
-      self.mon.item_contents[key] = bm.asarray(returns[key])
 
   def _step(self, t):
     # arguments
@@ -239,10 +251,12 @@ class IntegratorRunner(Runner):
     if len(self._dyn_args) > 0:
       kwargs.update({k: v[self.idx.value] for k, v in self._dyn_args.items()})
       self.idx += 1
+
     # return of function monitors
     returns = dict()
     for key, func in self.fun_monitors.items():
       returns[key] = func(t, self.dt)
+
     # call integrator function
     update_values = self.target(**kwargs)
     if len(self.target.variables) == 1:
@@ -250,14 +264,13 @@ class IntegratorRunner(Runner):
     else:
       for i, v in enumerate(self.target.variables):
         self.variables[v].update(update_values[i])
+
+    # progress bar
     if self.progress_bar:
       id_tap(lambda *args: self._pbar.update(), ())
     return returns
 
-  def run(self, duration, start_t=None):
-    self.__call__(duration, start_t)
-
-  def __call__(self, duration, start_t=None):
+  def run(self, duration, start_t=None, eval_time=False):
     """The running function.
 
     Parameters
@@ -265,11 +278,9 @@ class IntegratorRunner(Runner):
     duration : float, int, tuple, list
       The running duration.
     start_t : float, optional
-
-    Returns
-    -------
-    running_time : float
-      The total running time.
+      The start time to simulate.
+    eval_time: bool
+      Evaluate the running time or not?
     """
     if len(self._dyn_args) > 0:
       self.dyn_vars['_idx'][0] = 0
@@ -282,22 +293,31 @@ class IntegratorRunner(Runner):
         start_t = float(self._start_t)
     end_t = float(start_t + duration)
     # times
-    times = np.arange(start_t, end_t, self.dt)
+    times = bm.arange(start_t, end_t, self.dt).value
 
     # running
     if self.progress_bar:
       self._pbar = tqdm.auto.tqdm(total=times.size)
       self._pbar.set_description(f"Running a duration of {round(float(duration), 3)} ({times.size} steps)",
                                  refresh=True)
-    t0 = time.time()
+    if eval_time:
+      t0 = time.time()
     hists, returns = self.step_func(times)
-    running_time = time.time() - t0
+    if eval_time:
+      running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()
+
     # post-running
     hists.update(returns)
-    self._post(times, hists)
-    self._start_t = end_t
+    times += self.dt
     if self.numpy_mon_after_run:
-      self.mon.numpy()
-    return running_time
+      times = np.asarray(times)
+      for key in list(hists.keys()):
+        hists[key] = np.asarray(hists[key])
+    self.mon.ts = times
+    for key in hists.keys():
+      self.mon[key] = hists[key]
+    self._start_t = end_t
+    if eval_time:
+      return running_time

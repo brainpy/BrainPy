@@ -5,7 +5,7 @@ This module provides numerical methods for integrating Caputo fractional derivat
 
 """
 
-from typing import Union, Dict
+from typing import Union, Dict, Sequence, Callable
 
 import jax.numpy as jnp
 
@@ -16,7 +16,8 @@ from brainpy.integrators.constants import DT
 from brainpy.integrators.utils import check_inits, format_args
 from brainpy.tools.errors import check_error_in_jit
 from .base import FDEIntegrator
-from .generic import register_fde_integrator
+from .generic import register_fde_integrator, get_supported_methods
+from brainpy.types import Array
 
 __all__ = [
   'CaputoEuler',
@@ -78,7 +79,7 @@ class CaputoEuler(FDEIntegrator):
   >>> duration = 30.
   >>> dt = 0.005
   >>> inits = [1., 0., 1.]
-  >>> f = bp.fde.CaputoEuler(lorenz, alpha=0.97, num_step=int(duration / dt), inits=inits)
+  >>> f = bp.fde.CaputoEuler(lorenz, alpha=0.97, num_memory=int(duration / dt), inits=inits)
   >>> runner = bp.integrators.IntegratorRunner(f, monitors=list('xyz'), dt=dt, inits=inits)
   >>> runner.run(duration)
   >>>
@@ -93,7 +94,7 @@ class CaputoEuler(FDEIntegrator):
     The derivative function.
   alpha: int, float, jnp.ndarray, bm.ndarray, sequence
     The fractional-order of the derivative function. Should be in the range of ``(0., 1.)``.
-  num_step: int
+  num_memory: int
     The total time step of the simulation.
   inits: sequence
     A sequence of the initial values for variables.
@@ -113,19 +114,19 @@ class CaputoEuler(FDEIntegrator):
 
   def __init__(
       self,
-      f,
-      alpha,
-      num_step,
-      inits,
-      dt=None,
-      name=None,
+      f: Callable,
+      alpha: Union[float, Sequence[float], Array],
+      num_memory: int,
+      inits: Union[Array, Sequence[Array], Dict[str, Array]],
+      dt: float = None,
+      name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
   ):
     super(CaputoEuler, self).__init__(f=f,
                                       alpha=alpha,
                                       dt=dt,
                                       name=name,
-                                      num_step=num_step,
+                                      num_memory=num_memory,
                                       state_delays=state_delays)
 
     # fractional order
@@ -139,12 +140,12 @@ class CaputoEuler(FDEIntegrator):
     # coefficients
     from scipy.special import rgamma
     rgamma_alpha = bm.asarray(rgamma(bm.as_numpy(self.alpha)))
-    ranges = bm.asarray([bm.arange(num_step + 1) for _ in self.variables]).T
+    ranges = bm.asarray([bm.arange(num_memory + 1) for _ in self.variables]).T
     coef = rgamma_alpha * bm.diff(bm.power(ranges, self.alpha), axis=0)
     self.coef = bm.flip(coef, axis=0)
 
     # variable states
-    self.f_states = {v: bm.Variable(bm.zeros((num_step,) + self.inits[v].shape))
+    self.f_states = {v: bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape))
                      for v in self.variables}
     self.register_implicit_vars(self.f_states)
     self.idx = bm.Variable(bm.asarray([1]))
@@ -153,7 +154,7 @@ class CaputoEuler(FDEIntegrator):
 
   def _check_step(self, args):
     dt, t = args
-    raise ValueError(f'The maximum number of step is {self.num_step}, '
+    raise ValueError(f'The maximum number of step is {self.num_memory}, '
                      f'however, the current time {t} require a time '
                      f'step number {t / dt}.')
 
@@ -163,7 +164,7 @@ class CaputoEuler(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
+      check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -184,11 +185,11 @@ class CaputoEuler(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = ((self.num_step - 1 - self.idx) + bm.arange(self.num_step)) % self.num_step
+    idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
     for i, key in enumerate(self.variables):
       integral = self.inits[key] + self.coef[idx, i] @ self.f_states[key]
       integrals.append(integral * (dt ** self.alpha[i] / self.alpha[i]))
-    self.idx.value = (self.idx + 1) % self.num_step
+    self.idx.value = (self.idx + 1) % self.num_memory
 
     # return integrals
     if len(self.variables) == 1:
@@ -197,7 +198,7 @@ class CaputoEuler(FDEIntegrator):
       return integrals
 
 
-register_fde_integrator(name='CaputoEuler', integrator=CaputoEuler)
+register_fde_integrator(name='euler', integrator=CaputoEuler)
 
 
 class CaputoL1Schema(FDEIntegrator):
@@ -273,7 +274,7 @@ class CaputoL1Schema(FDEIntegrator):
   >>> duration = 30.
   >>> dt = 0.005
   >>> inits = [1., 0., 1.]
-  >>> f = bp.fde.CaputoL1Schema(lorenz, alpha=0.99, num_step=int(duration / dt), inits=inits)
+  >>> f = bp.fde.CaputoL1Schema(lorenz, alpha=0.99, num_memory=int(duration / dt), inits=inits)
   >>> runner = bp.integrators.IntegratorRunner(f, monitors=list('xz'), dt=dt, inits=inits)
   >>> runner.run(duration)
   >>>
@@ -288,7 +289,7 @@ class CaputoL1Schema(FDEIntegrator):
     The derivative function.
   alpha: int, float, jnp.ndarray, bm.ndarray, sequence
     The fractional-order of the derivative function. Should be in the range of ``(0., 1.]``.
-  num_step: int
+  num_memory: int
     The total time step of the simulation.
   inits: sequence
     A sequence of the initial values for variables.
@@ -306,19 +307,19 @@ class CaputoL1Schema(FDEIntegrator):
 
   def __init__(
       self,
-      f,
-      alpha,
-      num_step,
-      inits,
-      dt=None,
-      name=None,
+      f: Callable,
+      alpha: Union[float, Sequence[float], Array],
+      num_memory: int,
+      inits: Union[Array, Sequence[Array], Dict[str, Array]],
+      dt: float = None,
+      name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
   ):
     super(CaputoL1Schema, self).__init__(f=f,
                                          alpha=alpha,
                                          dt=dt,
                                          name=name,
-                                         num_step=num_step,
+                                         num_memory=num_memory,
                                          state_delays=state_delays)
 
     # fractional order
@@ -334,28 +335,28 @@ class CaputoL1Schema(FDEIntegrator):
     self.register_implicit_vars(self.inits)
 
     # coefficients
-    ranges = bm.asarray([bm.arange(1, num_step + 2) for _ in self.variables]).T
+    ranges = bm.asarray([bm.arange(1, num_memory + 2) for _ in self.variables]).T
     coef = bm.diff(bm.power(ranges, 1 - self.alpha), axis=0)
     self.coef = bm.flip(coef, axis=0)
 
     # variable states
-    self.diff_states = {v + "_diff": bm.Variable(bm.zeros((num_step,) + self.inits[v].shape,
+    self.diff_states = {v + "_diff": bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape,
                                                           dtype=self.inits[v].dtype))
                         for v in self.variables}
     self.register_implicit_vars(self.diff_states)
-    self.idx = bm.Variable(bm.asarray([self.num_step - 1]))
+    self.idx = bm.Variable(bm.asarray([self.num_memory - 1]))
 
     # integral function
     self.set_integral(self._integral_func)
 
   def reset(self, inits):
     """Reset function."""
-    self.idx.value = bm.asarray([self.num_step - 1])
+    self.idx.value = bm.asarray([self.num_memory - 1])
     inits = check_inits(inits, self.variables)
     for key, value in inits.items():
       self.inits[key].value = value
     for key, val in inits.items():
-      self.diff_states[key + "_diff"].value = bm.zeros((self.num_step,) + val.shape, dtype=val.dtype)
+      self.diff_states[key + "_diff"].value = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
 
   def hists(self, var=None, numpy=True):
     """Get the recorded history values."""
@@ -377,7 +378,7 @@ class CaputoL1Schema(FDEIntegrator):
 
   def _check_step(self, args):
     dt, t = args
-    raise ValueError(f'The maximum number of step is {self.num_step}, '
+    raise ValueError(f'The maximum number of step is {self.num_memory}, '
                      f'however, the current time {t} require a time '
                      f'step number {t / dt}.')
 
@@ -387,7 +388,7 @@ class CaputoL1Schema(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check_error_in_jit(self.num_step * dt < t, self._check_step, (dt, t))
+      check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -404,7 +405,7 @@ class CaputoL1Schema(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = ((self.num_step - 1 - self.idx) + bm.arange(self.num_step)) % self.num_step
+    idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
     for i, key in enumerate(self.variables):
       self.diff_states[key + '_diff'][self.idx[0]] = all_args[key] - self.inits[key]
       self.inits[key].value = all_args[key]
@@ -412,7 +413,7 @@ class CaputoL1Schema(FDEIntegrator):
       memory_trace = self.coef[idx, i] @ self.diff_states[key + '_diff']
       integral = markov_term - memory_trace
       integrals.append(integral)
-    self.idx.value = (self.idx + 1) % self.num_step
+    self.idx.value = (self.idx + 1) % self.num_memory
 
     # return integrals
     if len(self.variables) == 1:
@@ -421,5 +422,4 @@ class CaputoL1Schema(FDEIntegrator):
       return integrals
 
 
-register_fde_integrator(name='CaputoL1', integrator=CaputoL1Schema)
-register_fde_integrator(name='CaputoL1Schema', integrator=CaputoL1Schema)
+register_fde_integrator(name='l1', integrator=CaputoL1Schema)

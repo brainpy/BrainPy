@@ -5,10 +5,9 @@ from typing import Union, Dict, Callable
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup, TwoEndConn
-from brainpy.initialize import Initializer
-from brainpy.dyn.utils import init_delay
+from brainpy.initialize import Initializer, delay as init_delay
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Tensor, Parameter
+from brainpy.types import Array, Parameter
 
 __all__ = [
   'STP'
@@ -177,19 +176,18 @@ class STP(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      U: float = 0.15,
-      tau_f: float = 1500.,
-      tau_d: float = 200.,
-      tau: float = 8.,
-      A: float = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      U: Union[float, Array] = 0.15,
+      tau_f: Union[float, Array] = 1500.,
+      tau_d: Union[float, Array] = 200.,
+      tau: Union[float, Array] = 8.,
+      A: Union[float, Array] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
     super(STP, self).__init__(pre=pre, post=post, conn=conn, name=name)
     self.check_post_attrs('input')
-    self.check_pre_attrs('spike')
 
     # parameters
     self.tau_d = tau_d
@@ -203,9 +201,9 @@ class STP(TwoEndConn):
 
     # variables
     self.num = len(self.pre_ids)
-    self.x = bm.Variable(bm.ones(self.num, dtype=bm.float_))
-    self.u = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
-    self.I = bm.Variable(bm.zeros(self.num, dtype=bm.float_))
+    self.x = bm.Variable(bm.ones(self.num))
+    self.u = bm.Variable(bm.zeros(self.num))
+    self.I = bm.Variable(bm.zeros(self.num))
     self.delay_type, self.delay_step, self.delay_I = init_delay(delay_step, self.I)
 
     # integral
@@ -224,7 +222,7 @@ class STP(TwoEndConn):
     dx = lambda x, t: (1 - x) / self.tau_d
     return JointEq([dI, du, dx])
 
-  def update(self, t, dt):
+  def update(self, tdi):
     # delayed pre-synaptic spikes
     if self.delay_type == 'homo':
       delayed_I = self.delay_I(self.delay_step)
@@ -233,7 +231,7 @@ class STP(TwoEndConn):
     else:
       delayed_I = self.I
     self.post.input += bm.syn2post(delayed_I, self.post_ids, self.post.num)
-    self.I.value, u, x = self.integral(self.I, self.u, self.x, t, dt=dt)
+    self.I.value, u, x = self.integral(self.I, self.u, self.x, tdi.t, tdi.dt)
     syn_sps = bm.pre2syn(self.pre.spike, self.pre_ids)
     u = bm.where(syn_sps, u + self.U * (1 - self.u), u)
     x = bm.where(syn_sps, x - u * self.x, x)

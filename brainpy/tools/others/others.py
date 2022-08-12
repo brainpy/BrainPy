@@ -2,7 +2,7 @@
 
 import _thread as thread
 import threading
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 import numpy as np
 from jax import lax
@@ -10,11 +10,32 @@ from jax.experimental import host_callback
 from tqdm.auto import tqdm
 
 __all__ = [
+  'not_customized',
   'to_size',
   'size2num',
   'timeout',
   'init_progress_bar',
 ]
+
+
+
+def not_customized(fun: Callable) -> Callable:
+  """Marks the given module method is not implemented.
+
+  Methods wrapped in @not_customized can define submodules directly within the method.
+
+  For instance::
+
+    @not_customized
+    init_fb(self):
+      ...
+
+    @not_customized
+    def feedback(self):
+      ...
+  """
+  fun.not_customized = True
+  return fun
 
 
 def size2num(size):

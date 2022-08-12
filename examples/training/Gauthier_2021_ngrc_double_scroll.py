@@ -14,8 +14,8 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+
 bm.enable_x64()
-bm.set_dfloat(bm.float64)
 
 
 def get_subset(data, start, end):
@@ -102,40 +102,38 @@ Y_test = get_subset(data_series,
 # Model #
 # ----- #
 
-i = bp.nn.Input(3)
-r = bp.nn.NVAR(delay=2, order=3)
-di = bp.nn.LinearReadout(3, trainable=True, name='readout')
-o = bp.nn.Summation()
-#
-# Cannot express the model as
-#
-#     [i >> r >> di, i] >> o
-#     (i >> r >> di, i) >> o
-# because it will concatenate the outputs of "i" and "di",
-# then feed into the node "o". This is not the connection
-# we want.
-model = {i >> r >> di, i} >> o
-# model = (i >> r >> di >> o) & (i >> o)
-model.plot_node_graph()
-model.initialize(num_batch=1)
+
+class NGRC(bp.dyn.DynamicalSystem):
+  def __init__(self, num_in):
+    super(NGRC, self).__init__()
+    self.r = bp.layers.NVAR(num_in, delay=2, order=3, mode=bp.modes.batching)
+    self.di = bp.layers.Dense(self.r.num_out, num_in, mode=bp.modes.training)
+
+  def update(self, sha, x):
+    di = self.di(sha, self.r(sha, x))
+    return x + di
+
+
+model = NGRC(3)
 
 # Training #
 # -------- #
 
 # warm-up
-trainer = bp.nn.RidgeTrainer(model, beta=1e-5, jit=True)
-
-# training
+trainer = bp.train.RidgeTrainer(model, alpha=1e-5, jit=True)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
-trainer.fit([X_train, {'readout': dX_train}])
-plot_weights(di.Wff, r.get_feature_names_for_plot(), di.bias)
+
+# training
+trainer.fit([X_train, {'di': dX_train}])
+plot_weights(model.di.W, model.r.get_feature_names(for_plot=True), model.di.b)
 
 # prediction
-model = bm.jit(model)
-outputs = [model(X_test[:, 0])]
+shared = dict()
+model_jit = bm.jit(model)
+outputs = [model_jit(shared, X_test[:, 0])]
 for i in range(1, X_test.shape[1]):
-  outputs.append(model(outputs[i - 1]))
+  outputs.append(model_jit(shared, outputs[i - 1]))
 outputs = bm.asarray(outputs).squeeze()
 print('Prediction NMS: ', bp.losses.mean_squared_error(outputs, Y_test))
-plot_double_scroll(Y_test.numpy().squeeze(), outputs.numpy())
+plot_double_scroll(bm.as_numpy(Y_test).squeeze(), bm.as_numpy(outputs))

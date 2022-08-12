@@ -36,7 +36,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=find_packages(exclude=['lib*']),
   include_package_data=True,
-  install_requires=["jax", "jaxlib", "pybind11>=2.6, <2.8", "cffi", "numba"],
+  install_requires=["jax", "jaxlib", "pybind11>=2.6", "cffi", "numba"],
   extras_require={"test": "pytest"},
   python_requires='>=3.7',
   url='https://github.com/PKU-NIP-Lab/BrainPy',
