@@ -77,12 +77,11 @@ class XLACustomOp(Base):
       gpu_func = None
 
     # register OP
-    _, self.op = brainpylib.register_op(self.name,
-                                        cpu_func=cpu_func,
-                                        gpu_func=gpu_func,
-                                        out_shapes=eval_shape,
-                                        apply_cpu_func_to_gpu=apply_cpu_func_to_gpu,
-                                        return_primitive=True)
+    self.op = brainpylib.register_op(self.name,
+                                     cpu_func=cpu_func,
+                                     gpu_func=gpu_func,
+                                     out_shapes=eval_shape,
+                                     apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
 
   def __call__(self, *args, **kwargs):
     args = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,
@@ -131,6 +130,7 @@ def register_op(
 
   def fixed_op(*inputs):
     inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
-    return f(*inputs)
+    res = f.bind(*inputs)
+    return res[0] if len(res) == 1 else res
 
   return fixed_op
