@@ -6,3 +6,5 @@ from .nvar import *
 from .reservoir import *
 from .rnncells import *
 from .conv import *
+from .normalization import *
+from .pooling import *
