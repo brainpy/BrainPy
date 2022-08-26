@@ -5,9 +5,8 @@
 #cd /io/
 
 
-version=0.0.5
+version=0.0.6
 linux_version=manylinux2010_x86_64
-
 linux_version=manylinux2014_x86_64
 
 

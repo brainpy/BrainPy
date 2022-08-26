@@ -14,6 +14,7 @@ examples/analysis/data
 extensions/.idea
 extensions/wheelhouse
 extensions/dist
+extensions/win_dll
 extensions/fixed_wheels
 extensions/build
 extensions/cmake-build-debug
