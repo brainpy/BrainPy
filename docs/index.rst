@@ -32,6 +32,12 @@ The code of BrainPy is open-sourced at GitHub:
 
 
 
+.. note::
+   BrainPy version 2.2.x has been released. See
+   `release note <https://github.com/PKU-NIP-Lab/BrainPy/releases/tag/V2.2.0>`_
+   for details about changes from brainpy 2.1.x.
+
+
 .. toctree::
    :maxdepth: 1
    :caption: Quickstart
@@ -72,12 +78,13 @@ The code of BrainPy is open-sourced at GitHub:
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   tutorial_advanced/variables
-   tutorial_advanced/base_and_collector
-   tutorial_advanced/compilation
-   tutorial_advanced/differentiation
-   tutorial_advanced/operator_customization
-   tutorial_advanced/interoperation
+   tutorial_advanced/variables.ipynb
+   tutorial_advanced/base_and_collector.ipynb
+   tutorial_advanced/compilation.ipynb
+   tutorial_advanced/differentiation.ipynb
+   tutorial_advanced/adavanced_lowdim_analysis.ipynb
+   tutorial_advanced/operator_customization.ipynb
+   tutorial_advanced/interoperation.ipynb
 
 
 .. toctree::

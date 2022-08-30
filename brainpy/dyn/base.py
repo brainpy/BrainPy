@@ -16,7 +16,7 @@ from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import ModelBuildError, NoImplementationError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
-from brainpy.modes import Mode, TrainingMode, BatchingMode, normal, training
+from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
 from brainpy.tools.others import to_size, size2num
 from brainpy.types import Array, Shape
 
@@ -1084,8 +1084,7 @@ class CondNeuGroup(NeuGroup, Container):
     # variables
     self.V = variable(V_initializer, mode, self.varshape)
     self.input = variable(bm.zeros, mode, self.varshape)
-    sp_type = bm.dftype() if isinstance(self.mode, BatchingMode) else bool
-    self.spike = variable(lambda s: bm.zeros(s, dtype=sp_type), mode, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
 
     # function
     if self.noise is None:
@@ -1102,8 +1101,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    sp_type = bm.dftype() if isinstance(self.mode, BatchingMode) else bool
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=sp_type), batch_size, self.varshape)
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
     self.input.value = variable(bm.zeros, batch_size, self.varshape)
 
   def update(self, tdi, *args, **kwargs):

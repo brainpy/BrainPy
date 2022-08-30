@@ -206,8 +206,7 @@ class OfflineTrainer(DSTrainer):
       node.fit_record.clear()  # clear fit records
     if self.true_numpy_mon_after_run:
       for key in self.mon.keys():
-        if key != 'var_names':
-          self.mon[key] = np.asarray(self.mon[key])
+        self.mon[key] = np.asarray(self.mon[key])
 
     return outs
 
