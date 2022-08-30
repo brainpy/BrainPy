@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import matplotlib
-
-matplotlib.use('WebAgg')
 
 import matplotlib.pyplot as plt
 

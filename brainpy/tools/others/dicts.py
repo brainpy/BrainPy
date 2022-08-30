@@ -26,17 +26,63 @@ class DotDict(dict):
   30
   """
 
+  '''Used to exclude variables that '''
+  excluded_vars = ('excluded_vars', 'var_names')
+
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.__dict__ = self
+    self.var_names = ()
+
+  def keys(self):
+    """Retrieve all keys in the dict, excluding ignored keys."""
+    keys = []
+    for k in super(DotDict, self).keys():
+      if k not in self.excluded_vars:
+        keys.append(k)
+    return tuple(keys)
+
+  def values(self):
+    """Retrieve all values in the dict, excluding values of ignored keys."""
+    values = []
+    for k, v in super(DotDict, self).items():
+      if k not in self.excluded_vars:
+        values.append(v)
+    return tuple(values)
+
+  def items(self):
+    """Retrieve all items in the dict, excluding ignored items."""
+    items = []
+    for k, v in super(DotDict, self).items():
+      if k not in self.excluded_vars:
+        items.append((k, v))
+    return items
 
   def to_numpy(self):
+    """Change all values to numpy arrays."""
     for key in tuple(self.keys()):
       self[key] = np.asarray(self[key])
+
+  def add_excluded_var(self, *args):
+    """Add excluded variable names. """
+    for arg in args:
+      if not isinstance(arg, str):
+        raise TypeError('Only support string.')
+    self.excluded_vars += args
+
+
+def flatten_func(x: DotDict):
+  keys = []
+  values = []
+  for k, v in x.items():
+    if k not in x.excluded_vars:
+      values.append(v)
+      keys.append(k)
+  return tuple(values), tuple(keys)
 
 
 register_pytree_node(
   DotDict,
-  lambda x: (tuple(x.values()), tuple(x.keys())),
+  flatten_func,
   lambda keys, values: DotDict(safe_zip(keys, values))
 )
