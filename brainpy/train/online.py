@@ -269,7 +269,7 @@ class OnlineTrainer(DSTrainer):
       def run_func(all_inputs):
         times, indices, xs, ys = all_inputs
         outputs = []
-        monitors = {key: [] for key in (set(self.mon.var_names) | set(self.fun_monitors.keys()))}
+        monitors = {key: [] for key in ((set(self.mon.keys()) - {'ts'}) | set(self.fun_monitors.keys()))}
         for i in range(times.shape[0]):
           x = tree_map(lambda x: x[i], xs)
           y = tree_map(lambda x: x[i], ys)

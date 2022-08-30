@@ -595,7 +595,7 @@ class DSRunner(Runner):
           times, indices, xs = xs
 
           outputs = []
-          monitors = {key: [] for key in set(self.mon.var_names) | set(self.fun_monitors.keys())}
+          monitors = {key: [] for key in (set(self.mon.var_names) | set(self.fun_monitors.keys()))}
           for i in range(times.shape[0]):
             # data at time i
             x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))

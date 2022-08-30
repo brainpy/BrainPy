@@ -62,7 +62,7 @@ trainer.fit(train_data,
             num_epoch=30,
             num_report=200)
 
-plt.plot(trainer.train_losses.numpy())
+plt.plot(bm.as_numpy(trainer.train_losses))
 plt.show()
 
 model.reset_state(1)
