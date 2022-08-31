@@ -37,7 +37,7 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
 
 # setup
 setup(
-  name='brainpy',
+  name='brain-py',
   version=version,
   description='BrainPy: Brain Dynamics Programming in Python',
   long_description=README,
