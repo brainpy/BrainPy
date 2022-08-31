@@ -79,7 +79,9 @@ class COBA(SynOut):
     self._membrane_var = membrane_var
 
   def clone(self):
-    return COBA(E=self._E, target_var=self._target_var, membrane_var=self._membrane_var)
+    return COBA(E=self._E,
+                target_var=self._target_var,
+                membrane_var=self._membrane_var)
 
   def register_master(self, master):
     super(COBA, self).register_master(master)

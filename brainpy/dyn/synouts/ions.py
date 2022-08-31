@@ -58,6 +58,7 @@ class MgBlock(SynOut):
     self._cc_Mg = cc_Mg
     self._alpha = alpha
     self._beta = beta
+    self._target_var = target_var
     self._membrane_var = membrane_var
 
   def register_master(self, master):
@@ -83,5 +84,9 @@ class MgBlock(SynOut):
     return super(MgBlock, self).filter(I)
 
   def clone(self):
-    return MgBlock(E=self._E, cc_Mg=self._cc_Mg, alpha=self._alpha,
-                   beta=self._beta, membrane_var=self._membrane_var)
+    return MgBlock(E=self._E,
+                   cc_Mg=self._cc_Mg,
+                   alpha=self._alpha,
+                   beta=self._beta,
+                   target_var=self._target_var,
+                   membrane_var=self._membrane_var)
