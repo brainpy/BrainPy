@@ -119,6 +119,8 @@ class LeakyIntegrator(NeuGroup):
   def update(self, tdi, x=None):
     if x is not None: self.input += x
     self.V.value = self.integral(self.V.value, tdi.t, self.input.value, tdi.dt)
+
+  def clear_input(self):
     self.input[:] = 0.
 
 

@@ -47,6 +47,7 @@ class Base(object):
 
   @property
   def name(self):
+    """Name of the model."""
     return self._name
 
   @name.setter

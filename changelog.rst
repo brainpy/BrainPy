@@ -7,7 +7,7 @@ brainpy 2.2.x
 
 BrainPy 2.2.x is a complete re-design of the framework,
 tackling the shortcomings of brainpy 2.1.x generation,
-effectively bringing it to industry needs and standards.
+effectively bringing it to research needs and standards.
 
 
 Version 2.2.0 (2022.08.12)
