@@ -274,7 +274,7 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   # "channels" module
   write_module(module_name='brainpy.dyn.channels.base',
                filename=os.path.join(path, 'channel_base.rst'),
-               header='Base Channel Models')
+               header='Basic Channel Classes')
   write_module(module_name='brainpy.dyn.channels.Na',
                filename=os.path.join(path, 'channel_sodium.rst'),
                header='Voltage-dependent Sodium Channel Models')
@@ -315,6 +315,8 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
     ('linear', 'Dense Connection Layers'),
     ('nvar', 'NVAR Layers'),
     ('reservoir', 'Reservoir Layers'),
+    ('normalization', 'Normalization Layers'),
+    ('pooling', 'Pooling Layers'),
     ('rnncells', 'Artificial Recurrent Layers'),
   ]
   write_submodules(module_name='brainpy.dyn.layers',
@@ -333,19 +335,19 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   ]
   write_submodules(module_name='brainpy.dyn.synapses',
                    filename=os.path.join(path, 'synapses.rst'),
-                   header='Synapse Models',
+                   header='Synapse Dynamics',
                    submodule_names=[a[0] for a in module_and_name],
                    section_names=[a[1] for a in module_and_name])
 
   # "synouts" module
   write_module(module_name='brainpy.dyn.synouts',
                filename=os.path.join(path, 'synouts.rst'),
-               header='Synaptic Output Models')
+               header='Synaptic Outputs')
 
   # "synplast" module
   write_module(module_name='brainpy.dyn.synplast',
                filename=os.path.join(path, 'synplast.rst'),
-               header='Synaptic Plasticity Models')
+               header='Synaptic Plasticity')
 
   # "rates" module
   module_and_name = [
