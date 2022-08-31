@@ -53,16 +53,16 @@ class DynamicalSystem(Base):
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
-  '''Global delay data, which stores the delay variables and corresponding delay targets. 
+  """Global delay data, which stores the delay variables and corresponding delay targets. 
    
   This variable is useful when the same target variable is used in multiple mappings, 
-  as it can reduce the duplicate delay variable registration.'''
+  as it can reduce the duplicate delay variable registration."""
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
-  '''Online fitting method.'''
+  """Online fitting method."""
   online_fit_by: Optional[OnlineAlgorithm]
 
-  '''Offline fitting method.'''
+  """Offline fitting method."""
   offline_fit_by: Optional[OfflineAlgorithm]
 
   def __init__(
@@ -88,6 +88,7 @@ class DynamicalSystem(Base):
 
   @property
   def mode(self) -> Mode:
+    """Mode of the model, which is useful to control the multiple behaviors of the model."""
     return self._mode
 
   @mode.setter

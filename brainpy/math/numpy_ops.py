@@ -94,7 +94,7 @@ __all__ = [
   'add_docstring', 'add_newdoc', 'add_newdoc_ufunc', 'array2string', 'asanyarray',
   'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'disp', 'genfromtxt',
   'loadtxt', 'info', 'issubclass_', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
-  'savetxt', 'savez_compressed', 'show_config', 'typename',
+  'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
 
   # others
   'clip_by_norm', 'remove_diag',
@@ -323,7 +323,6 @@ def gradient(f, *varargs, axis=None, edge_order=None):
     return JaxArray(res)
 
 
-
 @wraps(jnp.histogram2d)
 def histogram2d(x, y, bins=10, range=None, weights=None, density=None):
   x = _remove_jaxarray(x)
@@ -366,7 +365,6 @@ def indices(dimensions, dtype=None, sparse=False):
     return tuple(JaxArray(r) for r in res)
   else:
     return JaxArray(res)
-
 
 
 @wraps(jnp.insert)
@@ -1976,8 +1974,8 @@ def ptp(x, axis=None, keepdims=None):
 
 @wraps(jnp.percentile)
 def percentile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
-                  keepdims: bool = False,
-                  interpolation = None):
+               keepdims: bool = False,
+               interpolation=None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
   r = jnp.percentile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
@@ -1988,7 +1986,7 @@ def percentile(a, q, axis=None, out=None, overwrite_input: bool = False, method:
 @wraps(jnp.nanpercentile)
 def nanpercentile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
                   keepdims: bool = False,
-                  interpolation = None):
+                  interpolation=None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
   r = jnp.nanpercentile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
@@ -1998,8 +1996,8 @@ def nanpercentile(a, q, axis=None, out=None, overwrite_input: bool = False, meth
 
 @wraps(jnp.quantile)
 def quantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
-                  keepdims: bool = False,
-                  interpolation = None):
+             keepdims: bool = False,
+             interpolation=None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
   r = jnp.quantile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
@@ -2009,8 +2007,8 @@ def quantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: s
 
 @wraps(jnp.nanquantile)
 def nanquantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
-                  keepdims: bool = False,
-                  interpolation = None):
+                keepdims: bool = False,
+                interpolation=None):
   a = _remove_jaxarray(a)
   q = _remove_jaxarray(q)
   r = jnp.nanquantile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
@@ -2477,6 +2475,7 @@ def polydiv(u, v, **kwargs):
   else:
     return JaxArray(res)
 
+
 # @wraps(np.polydiv)
 # def polydiv(u, v, **kwargs):
 #   """
@@ -2585,3 +2584,37 @@ def savez_compressed(file, *args, **kwds):
 
 show_config = np.show_config
 typename = np.typename
+
+
+@wraps(np.copyto)
+def copyto(dst, src):
+  if not isinstance(dst, JaxArray):
+    raise ValueError('dst must be an instance of JaxArray.')
+  dst[:] = src
+
+
+@wraps(np.matrix)
+def matrix(data, dtype=None):
+  data = array(data, copy=True, dtype=dtype)
+  if data.ndim > 2:
+    raise ValueError(f'shape too large {data.shape} to be a matrix.')
+  if data.ndim != 2:
+    for i in range(2 - data.ndim):
+      data = expand_dims(data, 0)
+  return data
+
+
+@wraps(np.asmatrix)
+def asmatrix(data, dtype=None):
+  data = array(data, dtype=dtype)
+  if data.ndim > 2:
+    raise ValueError(f'shape too large {data.shape} to be a matrix.')
+  if data.ndim != 2:
+    for i in range(2 - data.ndim):
+      data = expand_dims(data, 0)
+  return data
+
+
+@wraps(np.mat)
+def mat(data, dtype=None):
+  return asmatrix(data, dtype=dtype)
