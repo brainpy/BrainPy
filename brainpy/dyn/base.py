@@ -1134,6 +1134,8 @@ class CondNeuGroup(NeuGroup, Container):
     V = self.integral(self.V.value, tdi['t'], tdi['dt'])
 
     channels = self.nodes(level=1, include_self=False).subset(Channel).unique()
+    # check whether the children channels have the correct parents.
+    check_master(type(self), **channels)
 
     # update variables
     for node in channels.values():
