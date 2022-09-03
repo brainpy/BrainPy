@@ -269,9 +269,13 @@ class DynamicalSystem(Base):
     """
     # update delays
     if nodes is None:
-      nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values()
+      nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
+    elif isinstance(nodes, DynamicalSystem):
+      nodes = (nodes, )
     elif isinstance(nodes, dict):
-      nodes = nodes.values()
+      nodes = tuple(nodes.values())
+    if not isinstance(nodes, (tuple, list)):
+      raise ValueError('Please provide nodes as a list/tuple/dict of DynamicalSystem.')
     for node in nodes:
       for name in node.local_delay_vars:
         delay = self.global_delay_data[name][0]
