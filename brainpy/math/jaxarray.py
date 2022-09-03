@@ -907,8 +907,8 @@ class Variable(JaxArray):
                         f'but the batch axis is set to be {batch_axis}.')
 
   @property
-  def nbshape(self) -> Tuple[int, ...]:
-    """Non-batch shape."""
+  def shape_nb(self) -> Tuple[int, ...]:
+    """Shape without batch axis."""
     shape = list(self.value.shape)
     if self.batch_axis is not None:
       shape.pop(self.batch_axis)
@@ -1500,7 +1500,8 @@ class VariableRef(Variable):
     self.index = index
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
-    super(VariableRef, self).__init__(jnp.zeros(1), batch_axis=value.batch_axis)
+    temp_shape = tuple([1] * len(index))
+    super(VariableRef, self).__init__(jnp.zeros(temp_shape), batch_axis=value.batch_axis)
     self._value = value
 
   @property
@@ -1510,17 +1511,17 @@ class VariableRef(Variable):
   @value.setter
   def value(self, value):
     int_shape = self.shape
-    if self._batch_axis is None:
+    if self.batch_axis is None:
       ext_shape = value.shape
     else:
-      ext_shape = value.shape[:self._batch_axis] + value.shape[self._batch_axis + 1:]
-      int_shape = int_shape[:self._batch_axis] + int_shape[self._batch_axis + 1:]
+      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
+      int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
     if ext_shape != int_shape:
       error = f"The shape of the original data is {int_shape}, while we got {value.shape}"
-      if self._batch_axis is None:
+      if self.batch_axis is None:
         error += '. Do you forget to set "batch_axis" when initialize this variable?'
       else:
-        error += f' with batch_axis={self._batch_axis}.'
+        error += f' with batch_axis={self.batch_axis}.'
       raise MathError(error)
     if value.dtype != self._value.dtype:
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "

@@ -658,6 +658,9 @@ class NeuGroup(DynamicalSystem):
     """The shape of variables in the neuron group."""
     return self.size if self.keep_size else (self.num,)
 
+  def __repr__(self):
+    return f'{self.__class__.__name__}(name={self.name}, mode={self.mode}, size={self.size})'
+
   def get_batch_shape(self, batch_size=None):
     if batch_size is None:
       return self.varshape
@@ -742,6 +745,12 @@ class SynConn(DynamicalSystem):
       self.conn = None
     else:
       raise ModelBuildError(f'Unknown "conn" type: {conn}')
+
+  def __repr__(self):
+    names = self.__class__.__name__
+    return (f'{names}(name={self.name}, mode={self.mode}, '
+            f'{" " * len(names)} pre={self.pre}, '
+            f'{" " * len(names)} post={self.post})')
 
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
@@ -1222,6 +1231,8 @@ class DSView(DynamicalSystem):
   >>> import brainpy as bp
   >>> hh = bp.dyn.HH(10)
   >>> bp.dyn.DSView(hh, slice(5, 10, None))
+  >>> # or, simply
+  >>> hh[5:]
   """
 
   def __init__(
@@ -1254,7 +1265,7 @@ class DSView(DynamicalSystem):
           raise UnsupportedError('Should provide varshape when the target does '
                                  f'not define its {SLICE_VARS}')
       all_vars = target.vars(level=1, include_self=True, method='relative')
-      all_vars = {k: v for k, v in all_vars.items() if v.shape == varshape}
+      all_vars = {k: v for k, v in all_vars.items() if v.shape_nb == varshape}
     else:
       all_vars = {}
       for var_str in getattr(self.target, SLICE_VARS):
@@ -1264,16 +1275,28 @@ class DSView(DynamicalSystem):
     # slice variables
     self.slice_vars = dict()
     for k, v in all_vars.items():
-      self.slice_vars[k] = bm.VariableRef(v, self.index)
+      if v.batch_axis is not None:
+        index = ((self.index[:v.batch_axis] +
+                 (slice(None, None, None), ) +
+                 self.index[v.batch_axis:])
+                 if len(self.index) > v.batch_axis else
+                 (self.index + tuple([slice(None, None, None)
+                                     for _ in range(v.batch_axis - len(self.index) + 1)])))
+      else:
+        index = self.index
+      self.slice_vars[k] = bm.VariableRef(v, index)
 
     # sub-nodes
     nodes = target.nodes(method='relative', level=1, include_self=False).subset(DynamicalSystem)
     for k, node in nodes.items():
       if isinstance(node, NeuGroup):
-        node = NeuGroupView(node, index)
+        node = NeuGroupView(node, self.index)
       else:
-        node = DSView(node, index, varshape)
+        node = DSView(node, self.index, varshape)
       setattr(self, k, node)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(target={self.target}, index={self.index})'
 
   def __getattribute__(self, item):
     try:
