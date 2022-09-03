@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+
 import warnings
+from typing import Optional, Tuple
 
 import numpy as np
 from jax import numpy as jnp
@@ -14,6 +16,7 @@ __all__ = [
   'Variable',
   'TrainVar',
   'Parameter',
+  'VariableRef',
 ]
 
 # Ways to change values in a zero-dimensional array
@@ -95,23 +98,25 @@ class JaxArray(object):
 
   @property
   def dtype(self):
-    return self._value.dtype
+    """Variable dtype."""
+    return self.value.dtype
 
   @property
   def shape(self):
-    return self._value.shape
+    """Variable shape."""
+    return self.value.shape
 
   @property
   def ndim(self):
-    return self._value.ndim
+    return self.value.ndim
 
   @property
   def imag(self):
-    return self._value.image
+    return self.value.image
 
   @property
   def real(self):
-    return JaxArray(self._value.real)
+    return JaxArray(self.value.real)
 
   @property
   def size(self):
@@ -216,199 +221,199 @@ class JaxArray(object):
     return JaxArray(self._value.__invert__())
 
   def __eq__(self, oc):
-    return JaxArray(self._value == (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value == (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __ne__(self, oc):
-    return JaxArray(self._value != (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value != (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __lt__(self, oc):
-    return JaxArray(self._value < (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value < (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __le__(self, oc):
-    return JaxArray(self._value <= (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value <= (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __gt__(self, oc):
-    return JaxArray(self._value > (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value > (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __ge__(self, oc):
-    return JaxArray(self._value >= (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value >= (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __add__(self, oc):
-    return JaxArray(self._value + (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value + (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __radd__(self, oc):
-    return JaxArray(self._value + (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value + (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __iadd__(self, oc):
     # a += b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value += (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value += (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __sub__(self, oc):
-    return JaxArray(self._value - (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value - (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rsub__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) - self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) - self._value)
 
   def __isub__(self, oc):
     # a -= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value - (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value - (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __mul__(self, oc):
-    return JaxArray(self._value * (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value * (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rmul__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) * self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) * self._value)
 
   def __imul__(self, oc):
     # a *= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value * (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value * (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __rdiv__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) / self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) / self._value)
 
   def __truediv__(self, oc):
-    return JaxArray(self._value / (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value / (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rtruediv__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) / self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) / self._value)
 
   def __itruediv__(self, oc):
     # a /= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value / (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value / (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __floordiv__(self, oc):
-    return JaxArray(self._value // (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value // (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rfloordiv__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) // self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) // self._value)
 
   def __ifloordiv__(self, oc):
     # a //= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value // (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value // (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __divmod__(self, oc):
-    return JaxArray(self._value.__divmod__(oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value.__divmod__(oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rdivmod__(self, oc):
-    return JaxArray(self._value.__rdivmod__(oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value.__rdivmod__(oc.value if isinstance(oc, JaxArray) else oc))
 
   def __mod__(self, oc):
-    return JaxArray(self._value % (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value % (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rmod__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) % self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) % self._value)
 
   def __imod__(self, oc):
     # a %= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value % (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value % (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __pow__(self, oc):
-    return JaxArray(self._value ** (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value ** (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rpow__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) ** self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) ** self._value)
 
   def __ipow__(self, oc):
     # a **= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value ** (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value ** (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __matmul__(self, oc):
-    return JaxArray(self._value @ (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value @ (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rmatmul__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) @ self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) @ self._value)
 
   def __imatmul__(self, oc):
     # a @= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value @ (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value @ (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __and__(self, oc):
-    return JaxArray(self._value & (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value & (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rand__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) & self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) & self._value)
 
   def __iand__(self, oc):
     # a &= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value & (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value & (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __or__(self, oc):
-    return JaxArray(self._value | (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value | (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __ror__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) | self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) | self._value)
 
   def __ior__(self, oc):
     # a |= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value | (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value | (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __xor__(self, oc):
-    return JaxArray(self._value ^ (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value ^ (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rxor__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) ^ self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) ^ self._value)
 
   def __ixor__(self, oc):
     # a ^= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value ^ (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value ^ (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __lshift__(self, oc):
-    return JaxArray(self._value << (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value << (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rlshift__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) << self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) << self._value)
 
   def __ilshift__(self, oc):
     # a <<= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value << (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value << (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __rshift__(self, oc):
-    return JaxArray(self._value >> (oc._value if isinstance(oc, JaxArray) else oc))
+    return JaxArray(self._value >> (oc.value if isinstance(oc, JaxArray) else oc))
 
   def __rrshift__(self, oc):
-    return JaxArray((oc._value if isinstance(oc, JaxArray) else oc) >> self._value)
+    return JaxArray((oc.value if isinstance(oc, JaxArray) else oc) >> self._value)
 
   def __irshift__(self, oc):
     # a >>= b
     if self._outside_global_jit and _global_jit_mode:
       raise MathError(msg)
-    self._value = self._value >> (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self._value >> (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __round__(self, ndigits=None):
@@ -902,7 +907,15 @@ class Variable(JaxArray):
                         f'but the batch axis is set to be {batch_axis}.')
 
   @property
-  def batch_axis(self):
+  def shape_nb(self) -> Tuple[int, ...]:
+    """Shape without batch axis."""
+    shape = list(self.value.shape)
+    if self.batch_axis is not None:
+      shape.pop(self.batch_axis)
+    return tuple(shape)
+
+  @property
+  def batch_axis(self) -> Optional[int]:
     return self._batch_axis
 
   @batch_axis.setter
@@ -910,8 +923,11 @@ class Variable(JaxArray):
     raise ValueError(f'Cannot set "batch_axis" after creating a {self.__class__.__name__} instance.')
 
   @property
-  def batch_size(self):
-    return self.ndim[self._batch_axis]
+  def batch_size(self) -> Optional[int]:
+    if self.batch_axis is None:
+      return None
+    else:
+      return self.shape[self.batch_axis]
 
   @batch_size.setter
   def batch_size(self, val):
@@ -922,19 +938,19 @@ class Variable(JaxArray):
     """
     if self._batch_axis is None:
       ext_shape = value.shape
-      int_shape = self._value.shape
+      int_shape = self.shape
     else:
       ext_shape = value.shape[:self._batch_axis] + value.shape[self._batch_axis + 1:]
-      int_shape = self._value.shape[:self._batch_axis] + self._value.shape[self._batch_axis + 1:]
+      int_shape = self.shape[:self._batch_axis] + self.shape[self._batch_axis + 1:]
     if ext_shape != int_shape:
-      error = f"The shape of the original data is {self._value.shape}, while we got {value.shape}"
+      error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
       if self._batch_axis is None:
         error += '. Do you forget to set "batch_axis" when initialize this variable?'
       else:
         error += f' with batch_axis={self._batch_axis}.'
       raise MathError(error)
-    if value.dtype != self._value.dtype:
-      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+    if value.dtype != self.dtype:
+      raise MathError(f"The dtype of the original data is {self.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value.value if isinstance(value, JaxArray) else value
 
@@ -952,71 +968,81 @@ class Variable(JaxArray):
       index = index.value
 
     # update
-    self._value = self._value.at[index].set(value)
+    self._value = self.value.at[index].set(value)
 
   def __iadd__(self, oc):
     # a += b
-    self._value += (oc._value if isinstance(oc, JaxArray) else oc)
+    # self._value += (oc.value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value + (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __isub__(self, oc):
     # a -= b
-    self._value = self._value - (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value - (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value -= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __imul__(self, oc):
     # a *= b
-    self._value = self._value * (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value * (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value *= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __itruediv__(self, oc):
     # a /= b
-    self._value = self._value / (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value / (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value /= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __ifloordiv__(self, oc):
     # a //= b
-    self._value = self._value // (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value // (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value //= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __imod__(self, oc):
     # a %= b
-    self._value = self._value % (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value % (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value %= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __ipow__(self, oc):
     # a **= b
-    self._value = self._value ** (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value ** (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value **= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __imatmul__(self, oc):
     # a @= b
-    self._value = self._value @ (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value @ (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value @= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __iand__(self, oc):
     # a &= b
-    self._value = self._value.__and__(oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value.__and__(oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value &= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __ior__(self, oc):
     # a |= b
-    self._value = self._value | (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value | (oc.value if isinstance(oc, JaxArray) else oc)
+    # self._value |= (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __ixor__(self, oc):
     # a ^= b
-    self._value = self._value ^ (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value ^ (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __ilshift__(self, oc):
     # a <<= b
-    self._value = self._value << (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value << (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def __irshift__(self, oc):
     # a >>= b
-    self._value = self._value >> (oc._value if isinstance(oc, JaxArray) else oc)
+    self._value = self.value >> (oc.value if isinstance(oc, JaxArray) else oc)
     return self
 
   def fill(self, value):
@@ -1032,130 +1058,130 @@ class Variable(JaxArray):
   # ---------- #
 
   def __bool__(self) -> bool:
-    return self._value.__bool__()
+    return self.value.__bool__()
 
   def __len__(self) -> int:
-    return len(self._value)
+    return len(self.value)
 
   def __neg__(self):
-    return self._value.__neg__()
+    return self.value.__neg__()
 
   def __pos__(self):
-    return self._value.__pos__()
+    return self.value.__pos__()
 
   def __abs__(self):
-    return self._value.__abs__()
+    return self.value.__abs__()
 
   def __invert__(self):
-    return self._value.__invert__()
+    return self.value.__invert__()
 
   def __eq__(self, oc):
-    return self._value == (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value == (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __ne__(self, oc):
-    return self._value != (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value != (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __lt__(self, oc):
-    return self._value < (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value < (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __le__(self, oc):
-    return self._value <= (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value <= (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __gt__(self, oc):
-    return self._value > (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value > (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __ge__(self, oc):
-    return self._value >= (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value >= (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __add__(self, oc):
-    return self._value + (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value + (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __radd__(self, oc):
-    return self._value + (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value + (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __sub__(self, oc):
-    return self._value - (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value - (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rsub__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) - self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) - self.value
 
   def __mul__(self, oc):
-    return self._value * (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value * (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rmul__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) * self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) * self.value
 
   def __rdiv__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) / self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) / self.value
 
   def __truediv__(self, oc):
-    return self._value / (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value / (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rtruediv__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) / self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) / self.value
 
   def __floordiv__(self, oc):
-    return self._value // (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value // (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rfloordiv__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) // self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) // self.value
 
   def __divmod__(self, oc):
-    return self._value.__divmod__(oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value.__divmod__(oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rdivmod__(self, oc):
-    return self._value.__rdivmod__(oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value.__rdivmod__(oc.value if isinstance(oc, JaxArray) else oc)
 
   def __mod__(self, oc):
-    return self._value % (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value % (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rmod__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) % self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) % self.value
 
   def __pow__(self, oc):
-    return self._value ** (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value ** (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rpow__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) ** self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) ** self.value
 
   def __matmul__(self, oc):
-    return self._value @ (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value @ (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rmatmul__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) @ self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) @ self.value
 
   def __and__(self, oc):
-    return self._value & (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value & (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rand__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) & self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) & self.value
 
   def __or__(self, oc):
-    return self._value | (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value | (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __ror__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) | self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) | self.value
 
   def __xor__(self, oc):
-    return self._value ^ (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value ^ (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rxor__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) ^ self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) ^ self.value
 
   def __lshift__(self, oc):
-    return self._value << (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value << (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rlshift__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) << self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) << self.value
 
   def __rshift__(self, oc):
-    return self._value >> (oc._value if isinstance(oc, JaxArray) else oc)
+    return self.value >> (oc.value if isinstance(oc, JaxArray) else oc)
 
   def __rrshift__(self, oc):
-    return (oc._value if isinstance(oc, JaxArray) else oc) >> self._value
+    return (oc.value if isinstance(oc, JaxArray) else oc) >> self.value
 
   def __round__(self, ndigits=None):
-    return self._value.__round__(ndigits)
+    return self.value.__round__(ndigits)
 
   # ----------------------- #
   #      NumPy methods      #
@@ -1384,33 +1410,8 @@ class Variable(JaxArray):
 
   def split(self, indices_or_sections, axis=0):
     """Split an array into multiple sub-arrays as views into ``ary``.
-
-    Parameters
-    ----------
-    indices_or_sections : int, 1-D array
-      If `indices_or_sections` is an integer, N, the array will be divided
-      into N equal arrays along `axis`.  If such a split is not possible,
-      an error is raised.
-
-      If `indices_or_sections` is a 1-D array of sorted integers, the entries
-      indicate where along `axis` the array is split.  For example,
-      ``[2, 3]`` would, for ``axis=0``, result in
-
-        - ary[:2]
-        - ary[2:3]
-        - ary[3:]
-
-      If an index exceeds the dimension of the array along `axis`,
-      an empty sub-array is returned correspondingly.
-    axis : int, optional
-      The axis along which to split, default is 0.
-
-    Returns
-    -------
-    sub-arrays : list of ndarrays
-      A list of sub-arrays as views into `ary`.
     """
-    return [JaxArray(a) for a in self.value.split(indices_or_sections, axis=axis)]
+    return self.value.split(indices_or_sections, axis=axis)
 
   def take(self, indices, axis=None, mode=None):
     """Return an array formed from the elements of a at the given indices."""
@@ -1443,65 +1444,10 @@ class Variable(JaxArray):
 
   def transpose(self, *axes):
     """Returns a view of the array with axes transposed.
-
-    For a 1-D array this has no effect, as a transposed vector is simply the
-    same vector. To convert a 1-D array into a 2D column vector, an additional
-    dimension must be added. `np.atleast2d(a).T` achieves this, as does
-    `a[:, np.newaxis]`.
-    For a 2-D array, this is a standard matrix transpose.
-    For an n-D array, if axes are given, their order indicates how the
-    axes are permuted (see Examples). If axes are not provided and
-    ``a.shape = (i[0], i[1], ... i[n-2], i[n-1])``, then
-    ``a.transpose().shape = (i[n-1], i[n-2], ... i[1], i[0])``.
-
-    Parameters
-    ----------
-    axes : None, tuple of ints, or `n` ints
-
-     * None or no argument: reverses the order of the axes.
-
-     * tuple of ints: `i` in the `j`-th place in the tuple means `a`'s
-       `i`-th axis becomes `a.transpose()`'s `j`-th axis.
-
-     * `n` ints: same as an n-tuple of the same ints (this form is
-       intended simply as a "convenience" alternative to the tuple form)
-
-    Returns
-    -------
-    out : ndarray
-        View of `a`, with axes suitably permuted.
     """
     return self.value.transpose(*axes)
 
   def tile(self, reps):
-    """Construct an array by repeating A the number of times given by reps.
-
-    If `reps` has length ``d``, the result will have dimension of
-    ``max(d, A.ndim)``.
-
-    If ``A.ndim < d``, `A` is promoted to be d-dimensional by prepending new
-    axes. So a shape (3,) array is promoted to (1, 3) for 2-D replication,
-    or shape (1, 1, 3) for 3-D replication. If this is not the desired
-    behavior, promote `A` to d-dimensions manually before calling this
-    function.
-
-    If ``A.ndim > d``, `reps` is promoted to `A`.ndim by pre-pending 1's to it.
-    Thus for an `A` of shape (2, 3, 4, 5), a `reps` of (2, 2) is treated as
-    (1, 1, 2, 2).
-
-    Note : Although tile may be used for broadcasting, it is strongly
-    recommended to use numpy's broadcasting operations and functions.
-
-    Parameters
-    ----------
-    reps : array_like
-        The number of repetitions of `A` along each axis.
-
-    Returns
-    -------
-    c : ndarray
-        The tiled output array.
-    """
     return self.value.tile(reps.value if isinstance(reps, JaxArray) else reps)
 
   def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
@@ -1546,3 +1492,127 @@ register_pytree_node(TrainVar,
 register_pytree_node(Parameter,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: Parameter(*flat_contents))
+
+
+class VariableRef(Variable):
+  """A reference of Variable instance."""
+  def __init__(self, value: Variable, index):
+    self.index = index
+    if not isinstance(value, Variable):
+      raise ValueError('Must be instance of Variable.')
+    temp_shape = tuple([1] * len(index))
+    super(VariableRef, self).__init__(jnp.zeros(temp_shape), batch_axis=value.batch_axis)
+    self._value = value
+
+  @property
+  def value(self):
+    return self._value[self.index]
+
+  @value.setter
+  def value(self, value):
+    int_shape = self.shape
+    if self.batch_axis is None:
+      ext_shape = value.shape
+    else:
+      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
+      int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
+    if ext_shape != int_shape:
+      error = f"The shape of the original data is {int_shape}, while we got {value.shape}"
+      if self.batch_axis is None:
+        error += '. Do you forget to set "batch_axis" when initialize this variable?'
+      else:
+        error += f' with batch_axis={self.batch_axis}.'
+      raise MathError(error)
+    if value.dtype != self._value.dtype:
+      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+                      f"while we got {value.dtype}.")
+    self._value[self.index] = value
+
+  def __setitem__(self, index, value):
+    # value is JaxArray
+    if isinstance(value, JaxArray):
+      value = value.value
+
+    # tuple index
+    if isinstance(index, tuple):
+      index = tuple(x.value if isinstance(x, JaxArray) else x for x in index)
+
+    # JaxArray index
+    elif isinstance(index, JaxArray):
+      index = index.value
+
+    # update
+    self._value[self.index] = self.value.at[index].set(value)
+
+  def __iadd__(self, oc):
+    # a += b
+    self._value[self.index] = self.value + (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __isub__(self, oc):
+    # a -= b
+    self._value[self.index] = self.value - (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __imul__(self, oc):
+    # a *= b
+    self._value[self.index] = self.value * (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __itruediv__(self, oc):
+    # a /= b
+    self._value[self.index] = self.value / (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __ifloordiv__(self, oc):
+    # a //= b
+    self._value[self.index] = self.value // (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __imod__(self, oc):
+    # a %= b
+    self._value[self.index] = self.value % (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __ipow__(self, oc):
+    # a **= b
+    self._value[self.index] = self.value ** (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __imatmul__(self, oc):
+    # a @= b
+    self._value[self.index] = self.value @ (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __iand__(self, oc):
+    # a &= b
+    self._value[self.index] = self.value.__and__(oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __ior__(self, oc):
+    # a |= b
+    self._value[self.index] = self.value | (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __ixor__(self, oc):
+    # a ^= b
+    self._value[self.index] = self.value ^ (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __ilshift__(self, oc):
+    # a <<= b
+    self._value[self.index] = self.value << (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def __irshift__(self, oc):
+    # a >>= b
+    self._value[self.index] = self.value >> (oc.value if isinstance(oc, JaxArray) else oc)
+    return self
+
+  def fill(self, value):
+    """Fill the array with a scalar value."""
+    self._value[self.index] = jnp.ones_like(self.value) * value
+
+  def sort(self, axis=-1, kind=None, order=None):
+    """Sort an array in-place."""
+    self._value[self.index] = self.value.sort(axis=axis, kind=kind, order=order)

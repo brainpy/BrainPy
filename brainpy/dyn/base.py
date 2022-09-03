@@ -3,6 +3,7 @@
 import gc
 import inspect
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
+import collections
 
 import jax.numpy as jnp
 import numpy as np
@@ -13,11 +14,11 @@ from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
-from brainpy.errors import ModelBuildError, NoImplementationError
+from brainpy.errors import ModelBuildError, NoImplementationError, UnsupportedError, MathError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
 from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
-from brainpy.tools.others import to_size, size2num
+from brainpy.tools.others import to_size, size2num, numba_jit, DotDict
 from brainpy.types import Array, Shape
 
 __all__ = [
@@ -39,7 +40,12 @@ __all__ = [
   'SynOut', 'NullSynOut',
   'SynSTP', 'NullSynSTP',
   'SynLTP', 'NullSynLTP',
+
+  # slice
+  'DSView', 'NeuGroupView',
 ]
+
+SLICE_VARS = 'slice_vars'
 
 
 class DynamicalSystem(Base):
@@ -53,17 +59,17 @@ class DynamicalSystem(Base):
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
-  """Global delay data, which stores the delay variables and corresponding delay targets. 
-   
-  This variable is useful when the same target variable is used in multiple mappings, 
-  as it can reduce the duplicate delay variable registration."""
-  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
-
-  """Online fitting method."""
+  '''Online fitting method.'''
   online_fit_by: Optional[OnlineAlgorithm]
 
-  """Offline fitting method."""
+  '''Offline fitting method.'''
   offline_fit_by: Optional[OfflineAlgorithm]
+
+  '''Global delay data, which stores the delay variables and corresponding delay targets. 
+   
+  This variable is useful when the same target variable is used in multiple mappings, 
+  as it can reduce the duplicate delay variable registration.'''
+  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
   def __init__(
       self,
@@ -251,6 +257,10 @@ class DynamicalSystem(Base):
 
   def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
     """Update local delay variables.
+
+    This function should be called after updating neuron groups or delay sources.
+    For example, in a network model,
+
 
     Parameters
     ----------
@@ -610,13 +620,15 @@ class NeuGroup(DynamicalSystem):
     Whether keep the geometry information.
 
     .. versionadded:: 2.1.13
+  mode: Mode
+    .. versionadded:: 2.2.0
   """
 
   def __init__(
       self,
       size: Shape,
-      name: str = None,
       keep_size: bool = False,
+      name: str = None,
       mode: Mode = normal,
   ):
     # size
@@ -643,7 +655,11 @@ class NeuGroup(DynamicalSystem):
 
   @property
   def varshape(self):
+    """The shape of variables in the neuron group."""
     return self.size if self.keep_size else (self.num,)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(name={self.name}, mode={self.mode}, size={self.size})'
 
   def get_batch_shape(self, batch_size=None):
     if batch_size is None:
@@ -665,7 +681,12 @@ class NeuGroup(DynamicalSystem):
                               f'implement "update" function.')
 
   def clear_input(self):
+    """Function to clear inputs in the neuron group.
+    It will be useful when monitoring inputs of the object received."""
     pass
+
+  def __getitem__(self, item):
+    return NeuGroupView(target=self, index=item)
 
 
 class SynConn(DynamicalSystem):
@@ -725,6 +746,12 @@ class SynConn(DynamicalSystem):
     else:
       raise ModelBuildError(f'Unknown "conn" type: {conn}')
 
+  def __repr__(self):
+    names = self.__class__.__name__
+    return (f'{names}(name={self.name}, mode={self.mode}, '
+            f'{" " * len(names)} pre={self.pre}, '
+            f'{" " * len(names)} post={self.post})')
+
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
     if not hasattr(self, 'pre'):
@@ -755,6 +782,11 @@ class SynConn(DynamicalSystem):
 
 
 class SynComponent(DynamicalSystem):
+  """Base class for modeling synaptic components,
+  including synaptic output, synaptic short-term plasticity,
+  synaptic long-term plasticity, and others. """
+
+  '''Master of this component.'''
   master: SynConn
 
   def __init__(self, *args, **kwargs):
@@ -764,6 +796,7 @@ class SynComponent(DynamicalSystem):
 
   @property
   def isregistered(self) -> bool:
+    """State of the component, representing whether it has been registered."""
     return self._registered
 
   @isregistered.setter
@@ -792,6 +825,7 @@ class SynComponent(DynamicalSystem):
     return self.filter(*args, **kwargs)
 
   def clone(self) -> 'SynComponent':
+    """The function useful to clone a new object when it has been used."""
     raise NotImplementedError
 
   def filter(self, g):
@@ -1107,16 +1141,24 @@ class CondNeuGroup(NeuGroup, Container):
 
   def update(self, tdi, *args, **kwargs):
     V = self.integral(self.V.value, tdi['t'], tdi['dt'])
+
     channels = self.nodes(level=1, include_self=False).subset(Channel).unique()
+    # check whether the children channels have the correct parents.
+    check_master(type(self), **channels)
+
+    # update variables
     for node in channels.values():
       node.update(tdi, self.V.value)
     self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
-    self.input[:] = 0.
     self.V.value = V
 
   def register_implicit_nodes(self, *channels, **named_channels):
     check_master(type(self), *channels, **named_channels)
     super(CondNeuGroup, self).register_implicit_nodes(*channels, **named_channels)
+
+  def clear_input(self):
+    """Useful for monitoring inputs. """
+    self.input.value = bm.zeros_like(self.input)
 
 
 class Channel(DynamicalSystem):
@@ -1178,3 +1220,171 @@ def check_master(master, *channels, **named_channels):
     if not isinstance(channel, Channel):
       raise ValueError(f'Do not support {type(channel)}. ')
     _check(master, channel)
+
+
+class DSView(DynamicalSystem):
+  """DSView, an object used to get a view of a dynamical system instance.
+
+  It can get a subset view of variables in a dynamical system instance.
+  For instance,
+
+  >>> import brainpy as bp
+  >>> hh = bp.dyn.HH(10)
+  >>> bp.dyn.DSView(hh, slice(5, 10, None))
+  >>> # or, simply
+  >>> hh[5:]
+  """
+
+  def __init__(
+      self,
+      target: DynamicalSystem,
+      index: Union[slice, Sequence, Array],
+      varshape: Tuple[int, ...] = None,
+      name: str = None,
+      mode: Mode = None
+  ):
+    # initialization
+    DynamicalSystem.__init__(self, name=name, mode=mode)
+
+    # check target
+    if not isinstance(target, DynamicalSystem):
+      raise TypeError(f'Should be instance of DynamicalSystem, but we got {type(target)}.')
+    self.target = target  # the target object to slice
+
+    # check slicing
+    if isinstance(index, (int, slice)):
+      index = (index,)
+    self.index = index  # the slice
+
+    # get all variables for slicing
+    if not hasattr(self.target, SLICE_VARS):
+      if varshape is None:
+        if isinstance(target, NeuGroup):
+          varshape = target.varshape
+        else:
+          raise UnsupportedError('Should provide varshape when the target does '
+                                 f'not define its {SLICE_VARS}')
+      all_vars = target.vars(level=1, include_self=True, method='relative')
+      all_vars = {k: v for k, v in all_vars.items() if v.shape_nb == varshape}
+    else:
+      all_vars = {}
+      for var_str in getattr(self.target, SLICE_VARS):
+        v = eval(f'target.{var_str}')
+        all_vars[var_str] = v
+
+    # slice variables
+    self.slice_vars = dict()
+    for k, v in all_vars.items():
+      if v.batch_axis is not None:
+        index = ((self.index[:v.batch_axis] +
+                 (slice(None, None, None), ) +
+                 self.index[v.batch_axis:])
+                 if len(self.index) > v.batch_axis else
+                 (self.index + tuple([slice(None, None, None)
+                                     for _ in range(v.batch_axis - len(self.index) + 1)])))
+      else:
+        index = self.index
+      self.slice_vars[k] = bm.VariableRef(v, index)
+
+    # sub-nodes
+    nodes = target.nodes(method='relative', level=1, include_self=False).subset(DynamicalSystem)
+    for k, node in nodes.items():
+      if isinstance(node, NeuGroup):
+        node = NeuGroupView(node, self.index)
+      else:
+        node = DSView(node, self.index, varshape)
+      setattr(self, k, node)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(target={self.target}, index={self.index})'
+
+  def __getattribute__(self, item):
+    try:
+      slice_vars = object.__getattribute__(self, 'slice_vars')
+      if item in slice_vars:
+        value = slice_vars[item]
+        return value
+      return object.__getattribute__(self, item)
+    except AttributeError:
+      return object.__getattribute__(self, item)
+
+  def __setattr__(self, key, value):
+    if hasattr(self, 'slice_vars'):
+      slice_vars = super(DSView, self).__getattribute__('slice_vars')
+      if key in slice_vars:
+        v = slice_vars[key]
+        v.value = value
+        return
+    super(DSView, self).__setattr__(key, value)
+
+  def update(self, *args, **kwargs):
+    pass
+
+  def reset_state(self, batch_size=None):
+    pass
+
+
+@numba_jit
+def _slice_to_num(slice_: slice, length: int):
+  # start
+  start = slice_.start
+  if start is None:
+    start = 0
+  if start < 0:
+    start = length + start
+  start = max(start, 0)
+  # stop
+  stop = slice_.stop
+  if stop is None:
+    stop = length
+  if stop < 0:
+    stop = length + stop
+  stop = min(stop, length)
+  # step
+  step = slice_.step
+  if step is None:
+    step = 1
+  # number
+  num = 0
+  while start < stop:
+    start += step
+    num += 1
+  return num
+
+
+class NeuGroupView(DSView, NeuGroup):
+  """A view for a neuron group instance."""
+
+  def __init__(
+      self,
+      target: NeuGroup,
+      index: Union[slice, Sequence, Array],
+      name: str = None,
+      mode: Mode = None
+  ):
+    DSView.__init__(self, target, index)
+
+    # check slicing
+    var_shapes = target.varshape
+    if len(self.index) > len(var_shapes):
+      raise ValueError(f"Length of the index should be less than "
+                       f"that of the target's varshape. But we "
+                       f"got {len(self.index)} > {len(var_shapes)}")
+
+    # get size
+    size = []
+    for i, idx in enumerate(self.index):
+      if isinstance(idx, int):
+        size.append(1)
+      elif isinstance(idx, slice):
+        size.append(_slice_to_num(idx, var_shapes[i]))
+      else:
+        # should be a list/tuple/array of int
+        # do not check again
+        if not isinstance(idx, collections.Iterable):
+          raise TypeError('Should be an iterable object of int.')
+        size.append(len(idx))
+    size += list(var_shapes[len(self.index):])
+
+    # initialization
+    NeuGroup.__init__(self, tuple(size), name=name, mode=mode)

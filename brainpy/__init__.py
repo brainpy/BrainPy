@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.0"
+__version__ = "2.2.1"
 
 
 try:
@@ -62,6 +62,18 @@ from .dyn import (channels,  # channel models
                   synouts,   # synaptic output
                   synplast,  # synaptic plasticity
                   )
+from brainpy.dyn.base import (DynamicalSystem,
+                              Container,
+                              Sequential,
+                              Network,
+                              NeuGroup,
+                              SynConn,
+                              SynOut,
+                              SynSTP,
+                              SynLTP,
+                              TwoEndConn,
+                              CondNeuGroup,
+                              Channel,)
 from .dyn.runners import *
 
 

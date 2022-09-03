@@ -601,6 +601,43 @@ def for_loop(body_fun: Callable,
              unroll: int = 1):
   """``for-loop`` control flow with :py:class:`~.Variable`.
 
+  Simply speaking, all dynamically changed variables used in the body function should
+  be labeld in ``dyn_vars`` argument. All returns in body function will be gathered
+  as the return of the whole loop.
+
+  >>> import brainpy.math as bm
+  >>> a = bm.Variable(bm.zeros(1))
+  >>> b = bm.Variable(bm.ones(1))
+  >>> # first example
+  >>> def body(x):
+  >>>    a.value += x
+  >>>    b.value *= x
+  >>>    return a.value
+  >>> a_hist = bm.for_loop(body, dyn_vars=[a, b], operands=bm.arange(1, 5))
+  >>> a_hist
+  DeviceArray([[ 1.],
+             [ 3.],
+             [ 6.],
+             [10.]], dtype=float32)
+  >>> a
+  Variable([10.], dtype=float32)
+  >>> b
+  Variable([24.], dtype=float32)
+  >>>
+  >>> # another example
+  >>> def body(x, y):
+  >>>   a.value += x
+  >>>   b.value *= y
+  >>>   return a.value
+  >>> a_hist = bm.for_loop(body,
+  >>>                      dyn_vars=[a, b],
+  >>>                      operands=(bm.arange(1, 5), bm.arange(2, 6)))
+  >>> a_hist
+  [[11.]
+   [13.]
+   [16.]
+   [20.]]
+
   .. versionadded:: 2.1.11
 
   Parameters
@@ -615,6 +652,9 @@ def for_loop(body_fun: Callable,
     The value over which to scan along the leading axis,
     where ``operands`` can be an array or any pytree (nested Python
     tuple/list/dict) thereof with consistent leading axis sizes.
+    If body function `body_func` receives multiple arguments,
+    `operands` should be a tuple/list whose length is equal to the
+    number of arguments.
   reverse: bool
     Optional boolean specifying whether to run the scan iteration
     forward (the default) or in reverse, equivalent to reversing the leading
@@ -630,6 +670,8 @@ def for_loop(body_fun: Callable,
     The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
   """
   # check variables
+  if dyn_vars is None:
+    dyn_vars = ()
   if isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
@@ -641,19 +683,26 @@ def for_loop(body_fun: Callable,
                      f'only support dict/list/tuple of {Variable.__name__}')
   for v in dyn_vars:
     if not isinstance(v, Variable):
-      raise ValueError(f'brainpy.math.for_loop only support {Variable.__name__} in "dyn_vars", but got {type(v)}')
+      raise ValueError(f'brainpy.math.for_loop only support {Variable.__name__} '
+                       f'in "dyn_vars", but got {type(v)}')
 
   # functions
   def fun2scan(dyn_vals, x):
     for v, d in zip(dyn_vars, dyn_vals): v._value = d
-    results = body_fun(x)
+    if not isinstance(x, (tuple, list)):
+      x = (x,)
+    results = body_fun(*x)
     return [v.value for v in dyn_vars], results
 
   # functions
   init_vals = [v.value for v in dyn_vars]
   try:
     turn_on_global_jit()
-    dyn_vals, out_vals = lax.scan(f=fun2scan, init=init_vals, xs=operands, reverse=reverse, unroll=unroll)
+    dyn_vals, out_vals = lax.scan(f=fun2scan,
+                                  init=init_vals,
+                                  xs=operands,
+                                  reverse=reverse,
+                                  unroll=unroll)
     turn_off_global_jit()
   except UnexpectedTracerError as e:
     turn_off_global_jit()
@@ -675,6 +724,31 @@ def while_loop(
 ):
   """``while-loop`` control flow with :py:class:`~.Variable`.
 
+  Note the diference between ``for_loop`` and ``while_loop``:
+
+  1. ``while_loop`` does not support accumulating history values.
+  2. The returns on the body function of ``for_loop`` represent the values to stack at one moment.
+     However, the functional returns of body function in ``while_loop`` represent the operands'
+     values at the next moment, meaning that the body function of ``while_loop`` defines the
+     updating rule of how the operands are updated.
+
+  >>> import brainpy.math as bm
+  >>>
+  >>> a = bm.Variable(bm.zeros(1))
+  >>> b = bm.Variable(bm.ones(1))
+  >>>
+  >>> def cond(x, y):
+  >>>    return x < 6.
+  >>>
+  >>> def body(x, y):
+  >>>    a.value += x
+  >>>    b.value *= y
+  >>>    return x + b[0], y + 1.
+  >>>
+  >>> res = bm.while_loop(body, cond, dyn_vars=[a, b], operands=(1., 1.))
+  >>> res
+  (10.0, 4.0)
+
   .. versionadded:: 2.1.11
 
   Parameters
@@ -691,7 +765,7 @@ def while_loop(
   """
   # iterable variables
   if isinstance(dyn_vars, Variable):
-    dyn_vars = (dyn_vars, )
+    dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())
   elif isinstance(dyn_vars, (tuple, list)):
@@ -702,17 +776,21 @@ def while_loop(
   for v in dyn_vars:
     if not isinstance(v, Variable):
       raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
+  if not isinstance(operands, (list, tuple)):
+    operands = (operands, )
 
   def _body_fun(op):
     dyn_vals, static_vals = op
     for v, d in zip(dyn_vars, dyn_vals): v._value = d
-    body_fun(static_vals)
-    return [v.value for v in dyn_vars], static_vals
+    if not isinstance(static_vals, (tuple, list)):
+      static_vals = (static_vals, )
+    new_vals = body_fun(*static_vals)
+    return [v.value for v in dyn_vars], new_vals
 
   def _cond_fun(op):
     dyn_vals, static_vals = op
     for v, d in zip(dyn_vars, dyn_vals): v._value = d
-    r = cond_fun(static_vals)
+    r = cond_fun(*static_vals)
     return r if isinstance(r, JaxArray) else r
 
   dyn_init = [v.value for v in dyn_vars]
