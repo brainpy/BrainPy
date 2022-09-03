@@ -68,7 +68,7 @@ class FixedProb(TwoEndConnector):
       if posts is not None:
         ind.append(posts)
         count[i] = len(posts)
-    ind = np.concatenate(ind)
+    ind = np.concatenate(ind) if len(ind) > 0 else np.asarray([], dtype=IDX_DTYPE)
     indptr = np.concatenate(([0], count)).cumsum()
 
     return 'csr', (ind, indptr)
@@ -143,7 +143,7 @@ class FixedPreNum(FixedNum):
     for i in range(self.post_num):
       pres = self._connect(num_need=num, num_total=self.pre_num, i=i)
       pre_ids.append(pres)
-    pre_ids = np.concatenate(pre_ids)
+    pre_ids = np.concatenate(pre_ids) if len(pre_ids) > 0 else np.asarray([], dtype=IDX_DTYPE)
     post_ids = np.repeat(np.arange(self.post_num), num)
 
     return 'ij', (pre_ids, post_ids)
