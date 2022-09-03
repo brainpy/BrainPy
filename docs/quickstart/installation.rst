@@ -118,17 +118,12 @@ Alternatively, you can download the preferred release ".whl" file for jaxlib, an
     pip install jax
 
 
-.. warning::
-    For m1 macOS users, you should run your python environment on ``Apple`` silicon instead of ``intel``
-    silicon since ``rosetta2`` cannot translate ``jaxlib``. One suggestion is uninstall miniconda3 and install
-    miniforge3 for managing your python environment.
-
 Windows
 ^^^^^^^
 
 For **Windows** users, JAX can be installed by the following methods:
 
-- **Method 1**: There are several community supported Windows build for jax, please refer
+- **Method 1**: There are several communities support JAX for Windows, please refer
   to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
   Simply speaking, the provided binary releases of JAX for Windows
   are available at https://whls.blob.core.windows.net/unstable/index.html .
