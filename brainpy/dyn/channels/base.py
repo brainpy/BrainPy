@@ -102,7 +102,9 @@ class Calcium(Ion, Container):
   def current(self, V, C_Ca=None, E_Ca=None):
     C_Ca = self.C if (C_Ca is None) else C_Ca
     E_Ca = self.E if (E_Ca is None) else E_Ca
-    nodes = list(self.nodes(level=1, include_self=False).unique().subset(Channel).values())
+    nodes = tuple(self.nodes(level=1, include_self=False).unique().subset(Channel).values())
+    check_master(type(self), *nodes)
+
     if len(nodes) == 0:
       return 0.
     else:
