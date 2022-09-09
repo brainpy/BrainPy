@@ -39,7 +39,7 @@ def not_customized(fun: Callable) -> Callable:
 
 
 def size2num(size):
-  if isinstance(size, int):
+  if isinstance(size, (int, np.integer)):
     return size
   elif isinstance(size, (tuple, list)):
     a = 1
@@ -53,7 +53,7 @@ def size2num(size):
 def to_size(x) -> Optional[Tuple[int]]:
   if isinstance(x, (tuple, list)):
     return tuple(x)
-  if isinstance(x, int):
+  if isinstance(x, (int, np.integer)):
     return (x, )
   if x is None:
     return x

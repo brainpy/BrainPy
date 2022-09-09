@@ -10,6 +10,111 @@ tackling the shortcomings of brainpy 2.1.x generation,
 effectively bringing it to research needs and standards.
 
 
+
+
+Version 2.2.1 (2022.09.09)
+==========================
+
+This release fixes bugs found in the codebase and improves the usability and functions of BrainPy.
+
+Bug fixes
+~~~~~~~~~~~~~~
+
+
+#. Fix the bug of operator customization in ``brainpy.math.XLACustomOp`` and ``brainpy.math.register_op``. Now, it supports operator customization by using NumPy and Numba interface. For instance,
+
+.. code-block:: python
+
+   import brainpy.math as bm
+
+   def abs_eval(events, indices, indptr, post_val, values):
+         return post_val
+
+   def con_compute(outs, ins):
+         post_val = outs
+         events, indices, indptr, _, values = ins
+         for i in range(events.size):
+           if events[i]:
+             for j in range(indptr[i], indptr[i + 1]):
+               index = indices[j]
+               old_value = post_val[index]
+               post_val[index] = values + old_value
+
+   event_sum = bm.XLACustomOp(eval_shape=abs_eval, con_compute=con_compute)
+
+
+#. Fix the bug of ``brainpy.tools.DotDict``. Now, it is compatible with the transformations of JAX. For instance,
+
+.. code-block:: python
+
+   import brainpy as bp
+   from jax import vmap
+
+   @vmap
+   def multiple_run(I):
+     hh = bp.neurons.HH(1)
+     runner = bp.dyn.DSRunner(hh, inputs=('input', I), numpy_mon_after_run=False)
+     runner.run(100.)
+     return runner.mon
+
+   mon = multiple_run(bp.math.arange(2, 10, 2))
+
+New features
+~~~~~~~~~~~~~~
+
+
+#. Add numpy operators ``brainpy.math.mat``\ , ``brainpy.math.matrix``\ , ``brainpy.math.asmatrix``.
+#. Improve translation rules of brainpylib operators, improve its running speeds.
+#. Support ``DSView`` of ``DynamicalSystem`` instance. Now, it supports defining models with a slice view of a DS instance. For example,
+
+.. code-block:: python
+
+   import brainpy as bp
+   import brainpy.math as bm
+
+
+   class EINet_V2(bp.dyn.Network):
+     def __init__(self, scale=1.0, method='exp_auto'):
+       super(EINet_V2, self).__init__()
+
+       # network size
+       num_exc = int(3200 * scale)
+       num_inh = int(800 * scale)
+
+       # neurons
+       self.N = bp.neurons.LIF(num_exc + num_inh,
+                               V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                               method=method, V_initializer=bp.initialize.Normal(-55., 2.))
+
+       # synapses
+       we = 0.6 / scale  # excitatory synaptic weight (voltage)
+       wi = 6.7 / scale  # inhibitory synaptic weight
+       self.Esyn = bp.synapses.Exponential(pre=self.N[:num_exc], post=self.N,
+                                           conn=bp.connect.FixedProb(0.02),
+                                           g_max=we, tau=5.,
+                                           output=bp.synouts.COBA(E=0.),
+                                           method=method)
+       self.Isyn = bp.synapses.Exponential(pre=self.N[num_exc:], post=self.N,
+                                           conn=bp.connect.FixedProb(0.02),
+                                           g_max=wi, tau=10.,
+                                           output=bp.synouts.COBA(E=-80.),
+                                           method=method)
+
+   net = EINet_V2(scale=1., method='exp_auto')
+   # simulation
+   runner = bp.dyn.DSRunner(
+       net,
+       monitors={'spikes': net.N.spike},
+       inputs=[(net.N.input, 20.)]
+     )
+   runner.run(100.)
+
+   # visualization
+   bp.visualize.raster_plot(runner.mon.ts, runner.mon['spikes'], show=True)
+
+
+
+
 Version 2.2.0 (2022.08.12)
 ==========================
 

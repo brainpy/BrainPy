@@ -299,6 +299,9 @@ class LengthDelay(AbstractDelay):
     # initialization
     self.reset(delay_target, delay_len, initial_delay_data, batch_axis)
 
+  def __repr__(self):
+    return f'{self.__class__.__name__}(num_delay_step={self.num_delay_step}, delay_target_shape={self.data.shape[1:]})'
+
   def reset(
       self,
       delay_target,
