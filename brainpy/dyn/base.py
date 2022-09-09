@@ -269,9 +269,13 @@ class DynamicalSystem(Base):
     """
     # update delays
     if nodes is None:
-      nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values()
+      nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
+    elif isinstance(nodes, DynamicalSystem):
+      nodes = (nodes, )
     elif isinstance(nodes, dict):
-      nodes = nodes.values()
+      nodes = tuple(nodes.values())
+    if not isinstance(nodes, (tuple, list)):
+      raise ValueError('Please provide nodes as a list/tuple/dict of DynamicalSystem.')
     for node in nodes:
       for name in node.local_delay_vars:
         delay = self.global_delay_data[name][0]
@@ -554,7 +558,8 @@ class Network(Container):
     nodes = nodes.unique()
     neuron_groups = nodes.subset(NeuGroup)
     synapse_groups = nodes.subset(SynConn)
-    other_nodes = nodes - neuron_groups - synapse_groups
+    ds_views = nodes.subset(DSView)
+    other_nodes = nodes - neuron_groups - synapse_groups - ds_views
 
     # shared arguments
     shared = args[0]
@@ -636,11 +641,11 @@ class NeuGroup(DynamicalSystem):
       if len(size) <= 0:
         raise ModelBuildError(f'size must be int, or a tuple/list of int. '
                               f'But we got {type(size)}')
-      if not isinstance(size[0], int):
+      if not isinstance(size[0], (int, np.integer)):
         raise ModelBuildError('size must be int, or a tuple/list of int.'
                               f'But we got {type(size)}')
       size = tuple(size)
-    elif isinstance(size, int):
+    elif isinstance(size, (int, np.integer)):
       size = (size,)
     else:
       raise ModelBuildError('size must be int, or a tuple/list of int.'
@@ -1318,7 +1323,7 @@ class DSView(DynamicalSystem):
     super(DSView, self).__setattr__(key, value)
 
   def update(self, *args, **kwargs):
-    pass
+    raise NoImplementationError(f'DSView {self} cannot be updated. Please update its parent {self.target}')
 
   def reset_state(self, batch_size=None):
     pass
