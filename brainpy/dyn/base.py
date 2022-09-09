@@ -558,7 +558,8 @@ class Network(Container):
     nodes = nodes.unique()
     neuron_groups = nodes.subset(NeuGroup)
     synapse_groups = nodes.subset(SynConn)
-    other_nodes = nodes - neuron_groups - synapse_groups
+    ds_views = nodes.subset(DSView)
+    other_nodes = nodes - neuron_groups - synapse_groups - ds_views
 
     # shared arguments
     shared = args[0]
@@ -1322,7 +1323,7 @@ class DSView(DynamicalSystem):
     super(DSView, self).__setattr__(key, value)
 
   def update(self, *args, **kwargs):
-    pass
+    raise NoImplementationError(f'DSView {self} cannot be updated. Please update its parent {self.target}')
 
   def reset_state(self, batch_size=None):
     pass
