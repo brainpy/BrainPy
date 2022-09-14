@@ -1289,7 +1289,7 @@ class DSView(DynamicalSystem):
                                      for _ in range(v.batch_axis - len(self.index) + 1)])))
       else:
         index = self.index
-      self.slice_vars[k] = bm.VariableRef(v, index)
+      self.slice_vars[k] = bm.VariableView(v, index)
 
     # sub-nodes
     nodes = target.nodes(method='relative', level=1, include_self=False).subset(DynamicalSystem)

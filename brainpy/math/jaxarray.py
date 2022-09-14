@@ -16,7 +16,7 @@ __all__ = [
   'Variable',
   'TrainVar',
   'Parameter',
-  'VariableRef',
+  'VariableView',
 ]
 
 # Ways to change values in a zero-dimensional array
@@ -1494,14 +1494,20 @@ register_pytree_node(Parameter,
                      lambda aux_data, flat_contents: Parameter(*flat_contents))
 
 
-class VariableRef(Variable):
-  """A reference of Variable instance."""
+class VariableView(Variable):
+  """A view of a Variable instance.
+
+  This class is used to create a slice view of ``brainpy.math.Variable``.
+
+  ``VariableView`` can be used to update the subset of the original
+  Variable instance, and make operations on this subset of the Variable.
+  """
   def __init__(self, value: Variable, index):
     self.index = index
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
     temp_shape = tuple([1] * len(index))
-    super(VariableRef, self).__init__(jnp.zeros(temp_shape), batch_axis=value.batch_axis)
+    super(VariableView, self).__init__(jnp.zeros(temp_shape), batch_axis=value.batch_axis)
     self._value = value
 
   @property
