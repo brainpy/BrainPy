@@ -785,6 +785,10 @@ def while_loop(
     if not isinstance(static_vals, (tuple, list)):
       static_vals = (static_vals, )
     new_vals = body_fun(*static_vals)
+    if new_vals is None:
+      new_vals = tuple()
+    if not isinstance(new_vals, tuple):
+      new_vals = (new_vals, )
     return [v.value for v in dyn_vars], new_vals
 
   def _cond_fun(op):
