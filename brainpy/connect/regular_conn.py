@@ -5,6 +5,7 @@ import logging
 import numpy as np
 
 from brainpy.errors import ConnectorError
+from brainpy.tools.others import numba_jit
 
 from .base import *
 
@@ -66,7 +67,7 @@ class All2All(TwoEndConnector):
 all2all = All2All(include_self=True)
 
 
-# @tools.numba_jit
+@numba_jit
 def _grid_four(height, width, row, include_self):
   conn_i = []
   conn_j = []
@@ -122,10 +123,11 @@ class GridFour(OneEndConnector):
 
     return 'ij', (pre_ids, post_ids)
 
+
 grid_four = GridFour()
 
 
-# @tools.numba_jit
+@numba_jit
 def _grid_n(height, width, row, n, include_self):
   conn_i = []
   conn_j = []

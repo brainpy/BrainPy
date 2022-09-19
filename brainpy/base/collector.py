@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-import jax
-import jax.numpy as jnp
-from contextlib import contextmanager
+from typing import Dict, Sequence, Union
 
 math = None
 
@@ -29,31 +27,73 @@ class Collector(dict):
     """Replace the original key with the new value."""
     self.pop(key)
     self[key] = new_value
-    # dict.__setitem__(self, key, new_value)
 
   def update(self, other, **kwargs):
-    assert isinstance(other, dict)
-    for key, value in other.items():
-      self[key] = value
+    assert isinstance(other, (dict, list, tuple))
+    if isinstance(other, dict):
+      for key, value in other.items():
+        self[key] = value
+    elif isinstance(other, (tuple, list)):
+      num = len(self)
+      for i, value in enumerate(other):
+        self[f'_var{i+num}'] = value
+    else:
+      raise ValueError(f'Only supports dict/list/tuple, but we got {type(other)}')
     for key, value in kwargs.items():
       self[key] = value
 
   def __add__(self, other):
+    """Merging two dicts.
+
+    Parameters
+    ----------
+    other: dict
+      The other dict instance.
+
+    Returns
+    -------
+    gather: Collector
+      The new collector.
+    """
     gather = type(self)(self)
     gather.update(other)
     return gather
 
-  def __sub__(self, other):
+  def __sub__(self, other: Union[Dict, Sequence]):
+    """Remove other item in the collector.
+
+    Parameters
+    ----------
+    other: dict, sequence
+      The items to remove.
+
+    Returns
+    -------
+    gather: Collector
+      The new collector.
+    """
     if not isinstance(other, dict):
       raise ValueError(f'Only support dict, but we got {type(other)}.')
-    gather = type(self)()
-    for key, val in self.values():
-      if key in other:
-        if id(val) != id(other[key]):
-          raise ValueError(f'Cannot remove {key}, because we got two different values: '
-                           f'{val} != {other[key]}')
-      else:
-        gather[key] = val
+    gather = type(self)(self)
+    if isinstance(other, dict):
+      for key, val in other.items():
+        if key in gather:
+          if id(val) != id(gather[key]):
+            raise ValueError(f'Cannot remove {key}, because we got two different values: '
+                             f'{val} != {gather[key]}')
+          gather.pop(key)
+        else:
+          raise ValueError(f'Cannot remove {key}, because we do not find it '
+                           f'in {self.keys()}.')
+    elif isinstance(other, (list, tuple)):
+      for key in other:
+        if key in gather:
+          gather.pop(key)
+        else:
+          raise ValueError(f'Cannot remove {key}, because we do not find it '
+                           f'in {self.keys()}.')
+    else:
+      raise KeyError(f'Unknown type of "other". Only support dict/tuple/list, but we got {type(other)}')
     return gather
 
   def subset(self, var_type):
@@ -146,38 +186,3 @@ class TensorCollector(Collector):
   def data(self):
     """Get all data in each value."""
     return [x.value for x in self.values()]
-
-  # @contextmanager
-  # def replicate(self):
-  #   """A context manager to use in a with statement that replicates
-  #   the variables in this collection to multiple devices.
-  #
-  #   Important: replicating also updates the random state in order
-  #   to have a new one per device.
-  #   """
-  #   global math
-  #   if math is None: from brainpy import math
-  #
-  #   replicated, saved_states = {}, {}
-  #   x = jnp.zeros((jax.local_device_count(), 1), dtype=math.float_)
-  #   sharded_x = jax.pmap(lambda x: x, axis_name='device')(x)
-  #   devices = [b.device() for b in sharded_x.device_buffers]
-  #   num_device = len(devices)
-  #   for k, d in self.items():
-  #     if isinstance(d, math.random.RandomState):
-  #       replicated[k] = jax.device_put_sharded([shard for shard in d.split(num_device)], devices)
-  #       saved_states[k] = d.value
-  #     else:
-  #       replicated[k] = jax.device_put_replicated(d.value, devices)
-  #   self.assign(replicated)
-  #   yield
-  #   visited = set()
-  #   for k, d in self.items():
-  #     # Careful not to reduce twice in case of
-  #     # a variable and a reference to it.
-  #     if id(d) not in visited:
-  #       if isinstance(d, math.random.RandomState):
-  #         d.value = saved_states[k]
-  #       else:
-  #         d.value = reduce_func(d)
-  #       visited.add(id(d))

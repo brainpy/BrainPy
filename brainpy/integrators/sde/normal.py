@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import inspect
+from typing import Union, Callable, Dict, Sequence
 
-from brainpy import errors, math
-from brainpy.integrators import constants, utils
-from brainpy.integrators.analysis_by_ast import separate_variables
+import jax.numpy as jnp
+
+from brainpy import errors, math as bm
+from brainpy.base import Collector
+from brainpy.integrators import constants, utils, joint_eq
 from brainpy.integrators.sde.base import SDEIntegrator
 from .generic import register_sde_integrator
-
-try:
-  import sympy
-  from brainpy.integrators import analysis_by_sympy
-except (ModuleNotFoundError, ImportError):
-  sympy = analysis_by_sympy = None
+from brainpy.integrators.utils import format_args
+from brainpy.integrators.constants import DT
 
 __all__ = [
   'Euler',
   'Heun',
   'Milstein',
+  'MilsteinGradFree',
   'ExponentialEuler',
 ]
 
@@ -42,213 +41,471 @@ def dfdt(code_lines, variables):
 
 
 def noise_terms(code_lines, variables):
-  # num_vars = len(variables)
-  # if num_vars > 1:
-  #     code_lines.append(f'  all_dW = math.normal(0.0, dt_sqrt, ({num_vars},)+math.shape({variables[0]}_dg))')
-  #     for i, var in enumerate(variables):
-  #         code_lines.append(f'  {var}_dW = all_dW[{i}]')
-  # else:
-  #     var = variables[0]
-  #     code_lines.append(f'  {var}_dW = math.normal(0.0, dt_sqrt, math.shape({var}))')
-  # code_lines.append('  ')
-
   for var in variables:
-    code_lines.append(f'  {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var})).value')
+    code_lines.append(f'  if {var}_dg is not None:')
+    code_lines.append(f'    {var}_dW = random.normal(0.000, dt_sqrt, math.shape({var})).value')
   code_lines.append('  ')
 
 
 class Euler(SDEIntegrator):
-  def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None,
-               state_delays=None):
-    super(Euler, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
+  r"""Euler method for the Ito and Stratonovich integrals.
+
+  For Ito schema, the Euler method (also called as Euler-Maruyama method) is given by:
+  
+  .. math::
+      
+     \begin{aligned}
+      Y_{n+1} &=Y_{n}+f\left(Y_{n}\right) h_{n}+g\left(Y_{n}\right) \Delta W_{n} \\
+      \Delta W_{n} &=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+      \end{aligned}
+
+  As the order of convergence for the Euler-Maruyama method is low (strong
+  order of convergence 0.5, weak order of convergence 1), the numerical results
+  are inaccurate unless a small step size is used. In fact, Euler-Maruyama
+  represents the order 0.5 strong Taylor scheme.
+
+  For Stratonovich scheme, the Euler-Heun method has to be used instead of the Euler-Maruyama method
+
+  .. math::
+
+     \begin{aligned}
+      Y_{n+1} &=Y_{n}+f_{n} h+\frac{1}{2}\left[g_{n}+g\left(\bar{Y}_{n}\right)\right] \Delta W_{n} \\
+      \bar{Y}_{n} &=Y_{n}+g_{n} \Delta W_{n} \\
+      \Delta W_{n} &=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+      \end{aligned}
+
+
+  See Also
+  --------
+  Heun
+
+  """
+
+  def __init__(
+      self, f, g, dt=None, name=None, show_code=False,
+      var_type=None, intg_type=None, wiener_type=None,
+      state_delays=None, dyn_vars=None
+  ):
+    super(Euler, self).__init__(f=f, g=g, dt=dt, name=name,
                                 var_type=var_type, intg_type=intg_type,
-                                wiener_type=wiener_type, state_delays=state_delays)
-    self.build()
+                                wiener_type=wiener_type,
+                                state_delays=state_delays,
+                                dyn_vars=dyn_vars)
 
-  def build(self):
-    self.code_lines.append(f'  {constants.DT}_sqrt = {constants.DT} ** 0.5')
+    self.set_integral(self.step)
 
-    # 2.1 df, dg
-    df_and_dg(self.code_lines, self.variables, self.parameters)
+  def step(self, *args, **kwargs):
+    all_args = format_args(args, kwargs, self.arg_names)
+    dt = all_args.pop(DT, self.dt)
 
-    # 2.2 dfdt
-    dfdt(self.code_lines, self.variables)
-
-    # 2.3 dW
-    noise_terms(self.code_lines, self.variables)
-
-    # 2.3 dgdW
-    # ----
-    # SCALAR_WIENER : dg * dW
-    # VECTOR_WIENER : math.sum(dg * dW, axis=-1)
-
-    if self.wiener_type == constants.SCALAR_WIENER:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
+    # drift values
+    drifts = self.f(**all_args)
+    if len(self.variables) == 1:
+      if not isinstance(drifts, (bm.ndarray, jnp.ndarray)):
+        raise ValueError('Drift values must be a tensor when there '
+                         'is only one variable in the equation.')
+      drifts = {self.variables[0]: drifts}
     else:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_dgdW = math.sum({var}_dg * {var}_dW, axis=-1)')
-    self.code_lines.append('  ')
+      if not isinstance(drifts, (tuple, list)):
+        raise ValueError('Drift values must be a list/tuple of tensors '
+                         'when there are multiple variables in the equation.')
+      drifts = {var: drifts[i] for i, var in enumerate(self.variables)}
 
+    # diffusion values
+    diffusions = self.g(**all_args)
+    if len(self.variables) == 1:
+      # if not isinstance(diffusions, (bm.ndarray, jnp.ndarray)):
+      #   raise ValueError('Diffusion values must be a tensor when there '
+      #                    'is only one variable in the equation.')
+      diffusions = {self.variables[0]: diffusions}
+    else:
+      if not isinstance(diffusions, (tuple, list)):
+        raise ValueError('Diffusion values must be a list/tuple of tensors '
+                         'when there are multiple variables in the equation.')
+      diffusions = {var: diffusions[i] for i, var in enumerate(self.variables)}
+    if self.wiener_type == constants.VECTOR_WIENER:
+      for key, val in diffusions.items():
+        if val is not None and bm.ndim(val) == 0:
+          raise ValueError(f"{constants.VECTOR_WIENER} wiener process needs multiple "
+                           f"dimensional diffusion value. But we got a scale value for "
+                           f"variable {key}.")
+
+    # integral results
+    integrals = []
     if self.intg_type == constants.ITO_SDE:
-      # 2.4 new var
-      # ----
-      # y = x + dfdt + dgdW
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_new = {var} + {var}_dfdt + {var}_dgdW')
-      self.code_lines.append('  ')
+      for key in self.variables:
+        integral = all_args[key] + drifts[key] * dt
+        if diffusions[key] is not None:
+          shape = bm.shape(all_args[key])
+          if self.wiener_type == constants.SCALAR_WIENER:
+            integral += diffusions[key] * self.rng.randn(*shape) * bm.sqrt(dt)
+          else:
+            shape += bm.shape(diffusions[key])[-1:]
+            integral += bm.sum(diffusions[key] * self.rng.randn(*shape), axis=-1) * bm.sqrt(dt)
+        integrals.append(integral)
 
-    elif self.intg_type == constants.STRA_SDE:
-      # 2.4  y_bar = x + math.sum(dgdW, axis=-1)
-      all_bar = [f'{var}_bar' for var in self.variables]
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_bar = {var} + {var}_dgdW')
-      self.code_lines.append('  ')
-
-      # 2.5  dg_bar = g(y_bar, t, *args)
-      all_dg_bar = [f'{var}_dg_bar' for var in self.variables]
-      self.code_lines.append(f'  {", ".join(all_dg_bar)} = g({", ".join(all_bar + self.parameters)})')
-
-      # 2.6 dgdW2
-      # ----
-      # SCALAR_WIENER : dgdW2 = dg_bar * dW
-      # VECTOR_WIENER : dgdW2 = math.sum(dg_bar * dW, axis=-1)
-      if self.wiener_type == constants.SCALAR_WIENER:
-        for var in self.variables:
-          self.code_lines.append(f'  {var}_dgdW2 = {var}_dg_bar * {var}_dW')
-      else:
-        for var in self.variables:
-          self.code_lines.append(f'  {var}_dgdW2 = math.sum({var}_dg_bar * {var}_dW, axis=-1)')
-      self.code_lines.append('  ')
-
-      # 2.7 new var
-      # ----
-      # y = x + dfdt + 0.5 * (dgdW + dgdW2)
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_new = {var} + {var}_dfdt + 0.5 * ({var}_dgdW + {var}_dgdW2)')
-      self.code_lines.append('  ')
     else:
-      raise ValueError(f'Unknown SDE_INT type: {self.intg_type}. We only '
-                       f'supports {constants.SUPPORTED_INTG_TYPE}.')
+      # \bar{Y}_{n}=Y_{n}+g_{n} \Delta W_{n}
+      all_args_bar = {key: val for key, val in all_args.items()}
+      all_noises = {}
+      for key in self.variables:
+        if diffusions[key] is None:
+          all_args_bar[key] = all_args[key]
+        else:
+          shape = bm.shape(all_args[key])
+          if self.wiener_type == constants.VECTOR_WIENER:
+            noise_shape = bm.shape(diffusions[key])
+            self._check_vector_wiener_dim(noise_shape, shape)
+            shape += noise_shape[-1:]
+          noise = self.rng.randn(*shape)
+          all_noises[key] = noise * bm.sqrt(dt)
+          if self.wiener_type == constants.VECTOR_WIENER:
+            y_bar = all_args[key] + bm.sum(diffusions[key] * noise, axis=-1)
+          else:
+            y_bar = all_args[key] + diffusions[key] * noise
+          all_args_bar[key] = y_bar
+      # g(\bar{Y}_{n})
+      diffusion_bars = self.g(**all_args_bar)
+      if len(self.variables) == 1:
+        diffusion_bars = {self.variables[0]: diffusion_bars}
+      else:
+        diffusion_bars = {var: diffusion_bars[i] for i, var in enumerate(self.variables)}
+      # Y_{n+1}=Y_{n}+f_{n} h+\frac{1}{2}\left[g_{n}+g\left(\bar{Y}_{n}\right)\right] \Delta W_{n}
+      for key in self.variables:
+        integral = all_args[key] + drifts[key] * dt
+        if diffusion_bars[key] is not None:
+          integral += (diffusions[key] + diffusion_bars[key]) / 2 * all_noises[key]
+        integrals.append(integral)
 
-    # returns
-    new_vars = [f'{var}_new' for var in self.variables]
-    self.code_lines.append(f'  return {", ".join(new_vars)}')
-
-    # return and compile
-    self.integral = utils.compile_code(
-      code_scope={k: v for k, v in self.code_scope.items()},
-      code_lines=self.code_lines,
-      show_code=self.show_code,
-      func_name=self.func_name)
+    # return integrals
+    if len(self.variables) == 1:
+      return integrals[0]
+    else:
+      return integrals
 
 
 register_sde_integrator('euler', Euler)
 
 
 class Heun(Euler):
+  r"""The Euler-Heun method for Stratonovich integral scheme.
+
+  Its mathematical expression is given by
+
+  .. math::
+
+   \begin{aligned}
+    Y_{n+1} &=Y_{n}+f_{n} h+\frac{1}{2}\left[g_{n}+g\left(\bar{Y}_{n}\right)\right] \Delta W_{n} \\
+    \bar{Y}_{n} &=Y_{n}+g_{n} \Delta W_{n} \\
+    \Delta W_{n} &=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+    \end{aligned}
+
+
+  See Also
+  --------
+  Euler
+
+  """
+
   def __init__(self, f, g, dt=None, name=None, show_code=False,
                var_type=None, intg_type=None, wiener_type=None,
-               state_delays=None):
+               state_delays=None, dyn_vars=None):
     if intg_type != constants.STRA_SDE:
-      raise errors.IntegratorError(f'Heun method only supports Stranovich integral of SDEs, '
-                                   f'but we got {intg_type} integral.')
-    super(Heun, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
+      raise errors.IntegratorError(f'Heun method only supports Stranovich '
+                                   f'integral of SDEs, but we got {intg_type} integral.')
+    super(Heun, self).__init__(f=f, g=g, dt=dt, name=name,
                                var_type=var_type, intg_type=intg_type,
-                               wiener_type=wiener_type, state_delays=state_delays)
-    self.build()
+                               wiener_type=wiener_type, state_delays=state_delays,
+                               dyn_vars=dyn_vars)
 
 
 register_sde_integrator('heun', Heun)
 
 
 class Milstein(SDEIntegrator):
-  def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None,
-               state_delays=None):
-    super(Milstein, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
-                                   var_type=var_type, intg_type=intg_type,
-                                   wiener_type=wiener_type, state_delays=state_delays)
-    self.build()
+  r"""Milstein method for Ito or Stratonovich integrals.
 
-  def build(self):
-    # 2. code lines
-    self.code_lines.append(f'  {constants.DT}_sqrt = {constants.DT} ** 0.5')
+  The Milstein scheme represents the order 1.0 strong Taylor scheme. For the Ito integral,
 
-    # 2.1 df, dg
-    df_and_dg(self.code_lines, self.variables, self.parameters)
+  .. math::
 
-    # 2.2 dfdt
-    dfdt(self.code_lines, self.variables)
+     \begin{aligned}
+      &Y_{n+1}=Y_{n}+f_{n} h+g_{n} \Delta W_{n}+\frac{1}{2} g_{n} g_{n}^{\prime}\left[\left(\Delta W_{n}\right)^{2}-h\right] \\
+      &\Delta W_{n}=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+      \end{aligned}
 
-    # 2.3 dW
-    noise_terms(self.code_lines, self.variables)
+  where :math:`g_{n}^{\prime}=\frac{d g\left(Y_{n}\right)}{d Y_{n}}` is the first derivative of :math:`g_n`.
 
-    # 2.3 dgdW
-    # ----
-    # dg * dW
-    for var in self.variables:
-      self.code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
-    self.code_lines.append('  ')
 
-    # 2.4  df_bar = x + dfdt + math.sum(dg * dt_sqrt, axis=-1)
-    all_df_bar = [f'{var}_df_bar' for var in self.variables]
-    if self.wiener_type == constants.SCALAR_WIENER:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_df_bar = {var} + {var}_dfdt + {var}_dg * {constants.DT}_sqrt')
+  For the Stratonovich integral, the Milstein method is given by
+
+  .. math::
+
+     \begin{aligned}
+     &Y_{n+1}=Y_{n}+f_{n} h+g_{n} \Delta W_{n}+\frac{1}{2} g_{n} g_{n}^{\prime}\left(\Delta W_{n}\right)^{2} \\
+     &\Delta W_{n}=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+     \end{aligned}
+
+  """
+
+  def __init__(
+      self,
+      f: Callable,
+      g: Callable,
+      dt: float = None,
+      name: str = None,
+      show_code=False,
+      var_type: str = None,
+      intg_type: str = None,
+      wiener_type: str = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+  ):
+    super(Milstein, self).__init__(f=f,
+                                   g=g,
+                                   dt=dt,
+                                   name=name,
+                                   var_type=var_type,
+                                   intg_type=intg_type,
+                                   wiener_type=wiener_type,
+                                   state_delays=state_delays,
+                                   dyn_vars=dyn_vars)
+    self.set_integral(self.step)
+
+  def _get_g_grad(self, f, allow_raise=False, need_grad=True):
+    if isinstance(f, joint_eq.JointEq):
+      results = []
+      state = True
+      for sub_eq in f.eqs:
+        r, r_state = self._get_g_grad(sub_eq, allow_raise, need_grad)
+        results.extend(r)
+        state &= r_state
+      return results, state
     else:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_df_bar = {var} + {var}_dfdt + math.sum('
-                               f'{var}_dg * {constants.DT}_sqrt, axis=-1)')
+      res = [None, None, None]
+      state = True
+      try:
+        vars, pars, _ = utils.get_args(f)
+        if len(vars) != 1:
+          raise errors.DiffEqError(constants.multi_vars_msg.format(cls=self.__class__.__name__,
+                                                                   vars=str(vars), eq=str(f)))
+        res[1] = vars
+        res[2] = pars
+      except errors.DiffEqError as e:
+        state = False
+        if not allow_raise:
+          raise e
+      if need_grad:
+        res[0] = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars)
+      return [tuple(res)], state
 
-    # 2.5  dg_bar = g(y_bar, t, *args)
-    all_dg_bar = [f'{var}_dg_bar' for var in self.variables]
-    self.code_lines.append(f'  {", ".join(all_dg_bar)} = g({", ".join(all_df_bar + self.parameters)})')
-    self.code_lines.append('  ')
+  def step(self, *args, **kwargs):
+    # parse grad function and individual arguments
+    parses, state = self._get_g_grad(self.g, allow_raise=False, need_grad=True)
+    if not state:
+      parses2 = self._get_g_grad(self.f, allow_raise=True, need_grad=False)
+      if len(parses2) != len(parses):
+        raise ValueError(f'"f" and "g" should defined with JointEq both, and should '
+                         f'keep the same structure.')
+      parses = [a[:1] + b[1:] for a, b in zip(parses, parses2)]
 
-    # 2.6 dgdW2
-    # ----
-    # dgdW2 = 0.5 * (dg_bar - dg) * (dW * dW / dt_sqrt - dt_sqrt)
-    if self.intg_type == constants.ITO_SDE:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_dgdW2 = 0.5 * ({var}_dg_bar - {var}_dg) * '
-                               f'({var}_dW * {var}_dW / {constants.DT}_sqrt - {constants.DT}_sqrt)')
-    elif self.intg_type == constants.STRA_SDE:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_dgdW2 = 0.5 * ({var}_dg_bar - {var}_dg) * '
-                               f'{var}_dW * {var}_dW / {constants.DT}_sqrt')
+    # input arguments
+    all_args = format_args(args, kwargs, self.arg_names)
+    dt = all_args.pop(DT, self.dt)
+
+    # drift values
+    drifts = self.f(**all_args)
+    if len(self.variables) == 1:
+      if not isinstance(drifts, (bm.ndarray, jnp.ndarray)):
+        raise ValueError('Drift values must be a tensor when there '
+                         'is only one variable in the equation.')
+      drifts = {self.variables[0]: drifts}
     else:
-      raise ValueError(f'Unknown SDE_INT type: {self.intg_type}')
-    self.code_lines.append('  ')
+      if not isinstance(drifts, (tuple, list)):
+        raise ValueError('Drift values must be a list/tuple of tensors '
+                         'when there are multiple variables in the equation.')
+      drifts = {var: drifts[i] for i, var in enumerate(self.variables)}
 
-    # 2.7 new var
-    # ----
-    # SCALAR_WIENER : y = x + dfdt + dgdW + dgdW2
-    # VECTOR_WIENER : y = x + dfdt + math.sum(dgdW + dgdW2, axis=-1)
-    if self.wiener_type == constants.SCALAR_WIENER:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_new = {var} + {var}_dfdt + {var}_dgdW + {var}_dgdW2')
-    elif self.wiener_type == constants.VECTOR_WIENER:
-      for var in self.variables:
-        self.code_lines.append(f'  {var}_new = {var} + {var}_dfdt + math.sum({var}_dgdW + {var}_dgdW2, axis=-1)')
+    # diffusion values
+    diffusions = self.g(**all_args)
+    if len(self.variables) == 1:
+      if not isinstance(diffusions, (bm.ndarray, jnp.ndarray)):
+        raise ValueError('Diffusion values must be a tensor when there '
+                         'is only one variable in the equation.')
+      diffusions = {self.variables[0]: diffusions}
     else:
-      raise ValueError(f'Unknown Wiener Process : {self.wiener_type}')
-    self.code_lines.append('  ')
+      if not isinstance(diffusions, (tuple, list)):
+        raise ValueError('Diffusion values must be a list/tuple of tensors '
+                         'when there are multiple variables in the equation.')
+      diffusions = {var: diffusions[i] for i, var in enumerate(self.variables)}
+    if self.wiener_type == constants.VECTOR_WIENER:
+      for key, val in diffusions.items():
+        if val is not None and bm.ndim(val) == 0:
+          raise ValueError(f"{constants.VECTOR_WIENER} wiener process needs multiple "
+                           f"dimensional diffusion value. But we got a scale value for "
+                           f"variable {key}.")
 
-    # returns
-    new_vars = [f'{var}_new' for var in self.variables]
-    self.code_lines.append(f'  return {", ".join(new_vars)}')
+    # derivative of diffusion parts
+    all_dg = {}
+    for i, key in enumerate(self.variables):
+      f_dg, vars_, pars_ = parses[i]
+      vps = vars_ + pars_
+      all_dg[key] = f_dg(all_args[vps[0]], **{arg: all_args[arg] for arg in vps[1:] if arg in all_args})
 
-    # return and compile
-    self.integral = utils.compile_code(
-      code_scope={k: v for k, v in self.code_scope.items()},
-      code_lines=self.code_lines,
-      show_code=self.show_code,
-      func_name=self.func_name)
+    # integral results
+    integrals = []
+    for i, key in enumerate(self.variables):
+      integral = all_args[key] + drifts[key] * dt
+      if diffusions[key] is not None:
+        shape = bm.shape(all_args[key])
+        if self.wiener_type == constants.VECTOR_WIENER:
+          noise_shape = bm.shape(diffusions[key])
+          self._check_vector_wiener_dim(noise_shape, shape)
+          shape += noise_shape[-1:]
+        noise = self.rng.randn(*shape) * bm.sqrt(dt)
+        if self.wiener_type == constants.VECTOR_WIENER:
+          integral += bm.sum(diffusions[key] * noise, axis=-1)
+        else:
+          integral += diffusions[key] * noise
+        noise_p2 = (noise ** 2 - dt) if self.intg_type == constants.ITO_SDE else noise ** 2
+        diffusion = diffusions[key] * all_dg[key] / 2 * noise_p2
+        diffusion = bm.sum(diffusion, axis=-1) if self.wiener_type == constants.VECTOR_WIENER else diffusion
+        integral += diffusion
+      integrals.append(integral)
+    return integrals if len(self.variables) > 1 else integrals[0]
 
 
 register_sde_integrator('milstein', Milstein)
+
+
+class MilsteinGradFree(SDEIntegrator):
+  r"""Derivative-free Milstein method for Ito or Stratonovich integrals.
+
+  The following implementation approximates the frist derivative of :math:`g` thanks to a Runge-Kutta approach.
+  For the Ito integral, the derivative-free Milstein method is given by
+
+  .. math::
+
+     \begin{aligned}
+    Y_{n+1} &=Y_{n}+f_{n} h+g_{n} \Delta W_{n}+\frac{1}{2 \sqrt{h}}\left[g\left(\bar{Y}_{n}\right)-g_{n}\right]\left[\left(\Delta W_{n}\right)^{2}-h\right] \\
+    \bar{Y}_{n} &=Y_{n}+f_{n} h+g_{n} \sqrt{h} \\
+    \Delta W_{n} &=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+    \end{aligned}
+
+
+  For the Stratonovich integral, the derivative-free Milstein method is given by
+
+  .. math::
+
+     \begin{aligned}
+    Y_{n+1} &=Y_{n}+f_{n} h+g_{n} \Delta W_{n}+\frac{1}{2 \sqrt{h}}\left[g\left(\bar{Y}_{n}\right)-g_{n}\right]\left(\Delta W_{n}\right)^{2} \\
+    \bar{Y}_{n} &=Y_{n}+f_{n} h+g_{n} \sqrt{h} \\
+    \Delta W_{n} &=\left[W_{t+h}-W_{t}\right] \sim \sqrt{h} \mathcal{N}(0,1)
+    \end{aligned}
+
+  """
+
+  def __init__(
+      self,
+      f: Callable,
+      g: Callable,
+      dt: float = None,
+      name: str = None,
+      show_code=False,
+      var_type: str = None,
+      intg_type: str = None,
+      wiener_type: str = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+  ):
+    super(MilsteinGradFree, self).__init__(f=f,
+                                           g=g,
+                                           dt=dt,
+                                           name=name,
+                                           var_type=var_type,
+                                           intg_type=intg_type,
+                                           wiener_type=wiener_type,
+                                           state_delays=state_delays,
+                                           dyn_vars=dyn_vars)
+    self.set_integral(self.step)
+
+  def step(self, *args, **kwargs):
+    # input arguments
+    all_args = format_args(args, kwargs, self.arg_names)
+    dt = all_args.pop(DT, self.dt)
+
+    # drift values
+    drifts = self.f(**all_args)
+    if len(self.variables) == 1:
+      if not isinstance(drifts, (bm.ndarray, jnp.ndarray)):
+        raise ValueError('Drift values must be a tensor when there '
+                         'is only one variable in the equation.')
+      drifts = {self.variables[0]: drifts}
+    else:
+      if not isinstance(drifts, (tuple, list)):
+        raise ValueError('Drift values must be a list/tuple of tensors '
+                         'when there are multiple variables in the equation.')
+      drifts = {var: drifts[i] for i, var in enumerate(self.variables)}
+
+    # diffusion values
+    diffusions = self.g(**all_args)
+    if len(self.variables) == 1:
+      if not isinstance(diffusions, (bm.ndarray, jnp.ndarray)):
+        raise ValueError('Diffusion values must be a tensor when there '
+                         'is only one variable in the equation.')
+      diffusions = {self.variables[0]: diffusions}
+    else:
+      if not isinstance(diffusions, (tuple, list)):
+        raise ValueError('Diffusion values must be a list/tuple of tensors '
+                         'when there are multiple variables in the equation.')
+      diffusions = {var: diffusions[i] for i, var in enumerate(self.variables)}
+    if self.wiener_type == constants.VECTOR_WIENER:
+      for key, val in diffusions.items():
+        if val is not None and bm.ndim(val) == 0:
+          raise ValueError(f"{constants.VECTOR_WIENER} wiener process needs multiple "
+                           f"dimensional diffusion value. But we got a scale value for "
+                           f"variable {key}.")
+
+    # intermediate results
+    y_bars = {k: v for k, v in all_args.items()}
+    for key in self.variables:
+      bar = all_args[key] + drifts[key] * dt
+      if diffusions[key] is not None:
+        bar += diffusions[key] * bm.sqrt(dt)
+      y_bars[key] = bar
+    diffusion_bars = self.g(**y_bars)
+    if len(self.variables) == 1:
+      diffusion_bars = {self.variables[0]: diffusion_bars}
+    else:
+      diffusion_bars = {var: diffusion_bars[i] for i, var in enumerate(self.variables)}
+
+    # integral results
+    integrals = []
+    for i, key in enumerate(self.variables):
+      integral = all_args[key] + drifts[key] * dt
+      if diffusions[key] is not None:
+        shape = bm.shape(all_args[key])
+        if self.wiener_type == constants.VECTOR_WIENER:
+          noise_shape = bm.shape(diffusions[key])
+          self._check_vector_wiener_dim(noise_shape, shape)
+          shape += noise_shape[-1:]
+        noise = self.rng.randn(*shape) * bm.sqrt(dt)
+        if self.wiener_type == constants.VECTOR_WIENER:
+          integral += bm.sum(diffusions[key] * noise, axis=-1)
+        else:
+          integral += diffusions[key] * noise
+        noise_p2 = (noise ** 2 - dt) if self.intg_type == constants.ITO_SDE else noise ** 2
+        minus = (diffusion_bars[key] - diffusions[key]) / 2 / bm.sqrt(dt)
+        if self.wiener_type == constants.VECTOR_WIENER:
+          integral += minus * bm.sum(noise_p2, axis=-1)
+        else:
+          integral += minus * noise_p2
+      integrals.append(integral)
+    return integrals if len(self.variables) > 1 else integrals[0]
+
+
+register_sde_integrator('milstein2', Milstein)
+register_sde_integrator('milstein_grad_free', Milstein)
 
 
 class ExponentialEuler(SDEIntegrator):
@@ -273,147 +530,115 @@ class ExponentialEuler(SDEIntegrator):
   ----------
   .. [1] Erdoğan, Utku, and Gabriel J. Lord. "A new class of exponential integrators for stochastic
          differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
+
+
+  See Also
+  --------
+  Euler, Heun, Milstein
   """
 
-  def __init__(self, f, g, dt=None, name=None, show_code=False,
-               var_type=None, intg_type=None, wiener_type=None,
-               state_delays=None):
-    super(ExponentialEuler, self).__init__(f=f, g=g, dt=dt, show_code=show_code, name=name,
-                                           var_type=var_type, intg_type=intg_type,
-                                           wiener_type=wiener_type, state_delays=state_delays)
-    self.build()
+  def __init__(
+      self,
+      f: Callable,
+      g: Callable,
+      dt: float = None,
+      name: str = None,
+      show_code: bool = False,
+      var_type: str = None,
+      intg_type: str = None,
+      wiener_type: str = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      state_delays: Dict[str, bm.AbstractDelay] = None
+  ):
+    super(ExponentialEuler, self).__init__(f=f,
+                                           g=g,
+                                           dt=dt,
+                                           show_code=show_code,
+                                           name=name,
+                                           var_type=var_type,
+                                           intg_type=intg_type,
+                                           wiener_type=wiener_type,
+                                           dyn_vars=dyn_vars,
+                                           state_delays=state_delays)
+
+    if self.intg_type == constants.STRA_SDE:
+      raise NotImplementedError(f'{self.__class__.__name__} does not support integral type of {constants.STRA_SDE}. '
+                                f'It only supports {constants.ITO_SDE} now. ')
+
+    # build the integrator
+    self.integral = self.build()
 
   def build(self):
-    # if math.get_backend_name() == 'jax':
-    #   raise NotImplementedError
-    # else:
-    self.symbolic_build()
+    parses = self._build_integrator(self.f)
+    all_vps = self.variables + self.parameters
 
-  def autograd_build(self):
-    pass
+    def integral_func(*args, **kwargs):
+      # format arguments
+      params_in = Collector()
+      for i, arg in enumerate(args):
+        params_in[all_vps[i]] = arg
+      params_in.update(kwargs)
+      dt = params_in.pop(constants.DT, self.dt)
 
-  def symbolic_build(self):
-    if self.var_type == constants.SYSTEM_VAR:
-      raise errors.IntegratorError(f'Exponential Euler method do not support {self.var_type} variable type.')
-    if self.intg_type != constants.ITO_SDE:
-      raise errors.IntegratorError(f'Exponential Euler method only supports Ito integral, but we got {self.intg_type}.')
+      # diffusion part
+      diffusions = self.g(**params_in)
 
-    if sympy is None or analysis_by_sympy is None:
-      raise errors.PackageMissingError('SymPy must be installed when '
-                                       'using exponential integrators.')
+      # call integrals
+      results = []
+      params_in[constants.DT] = dt
+      for i, parse in enumerate(parses):
+        f_integral, vars_, pars_ = parse
+        vps = vars_ + pars_ + [constants.DT]
+        # integral of the drift part
+        r = f_integral(params_in[vps[0]], **{arg: params_in[arg] for arg in vps[1:] if arg in params_in})
+        if isinstance(diffusions, (tuple, list)):
+          diffusion = diffusions[i]
+        else:
+          assert len(parses) == 1
+          diffusion = diffusions
+        # diffusion part
+        shape = bm.shape(params_in[vps[0]])
+        if diffusion is not None:
+          if self.wiener_type == constants.VECTOR_WIENER:
+            noise_shape = bm.shape(diffusion)
+            self._check_vector_wiener_dim(noise_shape, shape)
+            shape += noise_shape[-1:]
+            diffusion = bm.sum(diffusion * self.rng.randn(*shape), axis=-1)
+          else:
+            diffusion = diffusion * self.rng.randn(*shape)
+          r += diffusion * bm.sqrt(params_in[constants.DT])
+        # final result
+        results.append(r)
+      return results if len(self.variables) > 1 else results[0]
 
-    # check bound method
-    if hasattr(self.derivative[constants.F], '__self__'):
-      self.code_lines = [f'def {self.func_name}({", ".join(["self"] + list(self.arguments))}):']
+    return integral_func
 
-    # 1. code scope
-    closure_vars = inspect.getclosurevars(self.derivative[constants.F])
-    self.code_scope.update(closure_vars.nonlocals)
-    self.code_scope.update(dict(closure_vars.globals))
-    self.code_scope['math'] = math
+  def _build_integrator(self, f):
+    if isinstance(f, joint_eq.JointEq):
+      results = []
+      for sub_eq in f.eqs:
+        results.extend(self._build_integrator(sub_eq))
+      return results
 
-    # 2. code lines
-    code_lines = self.code_lines
-    # code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
-    code_lines.append(f'  {constants.DT}_sqrt = {constants.DT} ** 0.5')
-
-    # 2.1 dg
-    # dg = g(x, t, *args)
-    all_dg = [f'{var}_dg' for var in self.variables]
-    code_lines.append(f'  {", ".join(all_dg)} = g({", ".join(self.variables + self.parameters)})')
-    code_lines.append('  ')
-
-    # 2.2 dW
-    noise_terms(code_lines, self.variables)
-
-    # 2.3 dgdW
-    # ----
-    # SCALAR_WIENER : dg * dW
-    # VECTOR_WIENER : math.sum(dg * dW, axis=-1)
-
-    if self.wiener_type == constants.SCALAR_WIENER:
-      for var in self.variables:
-        code_lines.append(f'  {var}_dgdW = {var}_dg * {var}_dW')
     else:
-      for var in self.variables:
-        code_lines.append(f'  {var}_dgdW = math.sum({var}_dg * {var}_dW, axis=-1)')
-    code_lines.append('  ')
+      vars, pars, _ = utils.get_args(f)
+      if len(vars) != 1:
+        raise errors.DiffEqError(constants.multi_vars_msg.format(cls=self.__class__.__name__,
+                                                                 vars=str(vars), eq=str(f)))
+      value_and_grad = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
 
-    # 2.4 new var
-    # ----
-    analysis = separate_variables(self.derivative[constants.F])
-    variables_for_returns = analysis['variables_for_returns']
-    expressions_for_returns = analysis['expressions_for_returns']
-    for vi, (key, vars) in enumerate(variables_for_returns.items()):
-      # separate variables
-      sd_variables = []
-      for v in vars:
-        if len(v) > 1:
-          raise ValueError('Cannot analyze multi-assignment code line.')
-        sd_variables.append(v[0])
-      expressions = expressions_for_returns[key]
-      var_name = self.variables[vi]
-      diff_eq = analysis_by_sympy.SingleDiffEq(var_name=var_name,
-                                               variables=sd_variables,
-                                               expressions=expressions,
-                                               derivative_expr=key,
-                                               scope=self.code_scope,
-                                               func_name=self.func_name)
+      # integration function
+      def integral(*args, **kwargs):
+        assert len(args) > 0
+        dt = kwargs.pop('dt', self.dt)
+        linear, derivative = value_and_grad(*args, **kwargs)
+        phi = bm.where(linear == 0., bm.ones_like(linear), (bm.exp(dt * linear) - 1) / (dt * linear))
+        return args[0] + dt * phi * derivative
 
-      f_expressions = diff_eq.get_f_expressions(substitute_vars=diff_eq.var_name)
-
-      # code lines
-      code_lines.extend([f"  {str(expr)}" for expr in f_expressions[:-1]])
-
-      # get the linear system using sympy
-      f_res = f_expressions[-1]
-      df_expr = analysis_by_sympy.str2sympy(f_res.code).expr.expand()
-      s_df = sympy.Symbol(f"{f_res.var_name}")
-      code_lines.append(f'  {s_df.name} = {analysis_by_sympy.sympy2str(df_expr)}')
-      var = sympy.Symbol(diff_eq.var_name, real=True)
-
-      # get df part
-      s_linear = sympy.Symbol(f'_{diff_eq.var_name}_linear')
-      s_linear_exp = sympy.Symbol(f'_{diff_eq.var_name}_linear_exp')
-      s_df_part = sympy.Symbol(f'_{diff_eq.var_name}_df_part')
-      if df_expr.has(var):
-        # linear
-        linear = sympy.collect(df_expr, var, evaluate=False)[var]
-        code_lines.append(f'  {s_linear.name} = {analysis_by_sympy.sympy2str(linear)}')
-        # linear exponential
-        code_lines.append(f'  {s_linear_exp.name} = math.exp({analysis_by_sympy.sympy2str(linear)} * {constants.DT})')
-        # df part
-        df_part = (s_linear_exp - 1) / s_linear * s_df
-        code_lines.append(f'  {s_df_part.name} = {analysis_by_sympy.sympy2str(df_part)}')
-
-      else:
-        # linear exponential
-        code_lines.append(f'  {s_linear_exp.name} = {constants.DT}_sqrt')
-        # df part
-        code_lines.append(f'  {s_df_part.name} = {s_df.name} * {constants.DT}')
-
-      # update expression
-      update = var + s_df_part
-
-      # The actual update step
-      code_lines.append(f'  {diff_eq.var_name}_new = {analysis_by_sympy.sympy2str(update)} + {var_name}_dgdW')
-      code_lines.append('')
-
-    # returns
-    new_vars = [f'{var}_new' for var in self.variables]
-    code_lines.append(f'  return {", ".join(new_vars)}')
-
-    # return and compile
-    self.integral = utils.compile_code(
-      code_scope={k: v for k, v in self.code_scope.items()},
-      code_lines=self.code_lines,
-      show_code=self.show_code,
-      func_name=self.func_name)
-
-    if hasattr(self.derivative[constants.F], '__self__'):
-      host = self.derivative[constants.F].__self__
-      self.integral = self.integral.__get__(host, host.__class__)
+      return [(integral, vars, pars), ]
 
 
 register_sde_integrator('exponential_euler', ExponentialEuler)
 register_sde_integrator('exp_euler', ExponentialEuler)
+register_sde_integrator('exp_euler_auto', ExponentialEuler)
+register_sde_integrator('exp_auto', ExponentialEuler)

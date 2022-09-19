@@ -110,12 +110,12 @@ def test_gaussian_prob4():
 
 
 def test_SmallWorld1():
-    conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5, include_self=False)
-    conn(pre_size=10, post_size=10)
+  conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5, include_self=False)
+  conn(pre_size=10, post_size=10)
 
-    mat = conn.require(bp.connect.CONN_MAT)
+  mat = conn.require(bp.connect.CONN_MAT)
 
-    print('conn_mat', mat)
+  print('conn_mat', mat)
 
 
 def test_SmallWorld3():
@@ -125,6 +125,7 @@ def test_SmallWorld3():
   mat = conn.require(bp.connect.CONN_MAT)
 
   print('conn_mat', mat)
+
 
 def test_SmallWorld2():
   conn = bp.connect.SmallWorld(num_neighbor=2, prob=0.5)

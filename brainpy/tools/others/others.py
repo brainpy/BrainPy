@@ -2,7 +2,7 @@
 
 import _thread as thread
 import threading
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 import numpy as np
 from jax import lax
@@ -10,6 +10,7 @@ from jax.experimental import host_callback
 from tqdm.auto import tqdm
 
 __all__ = [
+  'not_customized',
   'to_size',
   'size2num',
   'timeout',
@@ -17,8 +18,28 @@ __all__ = [
 ]
 
 
+
+def not_customized(fun: Callable) -> Callable:
+  """Marks the given module method is not implemented.
+
+  Methods wrapped in @not_customized can define submodules directly within the method.
+
+  For instance::
+
+    @not_customized
+    init_fb(self):
+      ...
+
+    @not_customized
+    def feedback(self):
+      ...
+  """
+  fun.not_customized = True
+  return fun
+
+
 def size2num(size):
-  if isinstance(size, int):
+  if isinstance(size, (int, np.integer)):
     return size
   elif isinstance(size, (tuple, list)):
     a = 1
@@ -32,7 +53,7 @@ def size2num(size):
 def to_size(x) -> Optional[Tuple[int]]:
   if isinstance(x, (tuple, list)):
     return tuple(x)
-  if isinstance(x, int):
+  if isinstance(x, (int, np.integer)):
     return (x, )
   if x is None:
     return x

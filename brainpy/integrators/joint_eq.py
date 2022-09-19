@@ -117,19 +117,22 @@ class JointEq(object):
 
   Parameters
   ----------
-  eqs : sequence of function, sequence of callable
+  *eqs :
     The elements of derivative function to compose.
   """
 
-  def __init__(self, eqs):
-    # equations
-    if not isinstance(eqs, (tuple, list)):
-      raise errors.DiffEqError(f'"eqs" only supports list/tuple of '
-                               f'derivative functions, but got {eqs}.')
+  def _check_eqs(self, eqs):
     for eq in eqs:
-      if not callable(eq):
-        raise errors.DiffEqError(f'"eqs" only supports list/tuple of '
-                                 f'derivative functions, but got {eq}.')
+      if isinstance(eq, (list, tuple)):
+        for a in self._check_eqs(eq):
+          yield a
+      elif callable(eq):
+        yield eq
+      else:
+        raise errors.DiffEqError(f'Elements in "eqs" only supports callable function, but got {eq}.')
+
+  def __init__(self, *eqs):
+    eqs = list(self._check_eqs(eqs))
 
     # variables in equations
     self.vars_in_eqs = []

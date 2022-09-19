@@ -588,55 +588,6 @@ namespace brainpy_lib {
         }
 
 
-        template<typename F, typename I>
-        __global__ void event_sum5_heter_kernel(const std::uint32_t max_post_conn,
-                                                const std::uint32_t pre_size,
-                                                const bool *events,
-                                                const I *indices,
-                                                const I *indptr,
-                                                const F *values,
-                                                F *result) {
-            __shared__ bool shared_event;
-            __shared__ I shPreStartID[32];
-            __shared__ I shPreEndID[32];
-
-            if (threadIdx.x == 0) {
-                if (threadIdx.y == 0){
-                    shared_event = events[0];
-                }
-            }
-            __syncthreads();
-
-            const I id = blockIdx.x * 32 + threadIdx.x;
-            if (id < max_post_conn) {
-                const unsigned int num_iter = (pre_size + 32 - 1) / 32;
-                for (unsigned int r = 0; r < num_iter; r++) {
-                    const unsigned int num_event = (r == num_iter - 1) ? ((pre_size - 1) % 32) + 1 : 32;
-                    // assume "max_post_conn" >= num_event
-                    // TODO: fix the bug
-                    if (threadIdx.x < num_event) {
-                        const unsigned int pre_i = (r * 32) + threadIdx.x;
-                        shared_events[threadIdx.x] = events[pre_i];
-                        if (shared_events[threadIdx.x])
-                        {
-                            shPreStartID[threadIdx.x] = indptr[pre_i];
-                            shRowLength[threadIdx.x] = indptr[pre_i + 1] - shPreStartID[threadIdx.x];
-                        }
-                    }
-                    __syncthreads();
-                    for (unsigned int j = 0; j < num_event; j++) {
-                        if (shared_events[j]) {
-                            if (id < shRowLength[j]) {
-                                const I syn_i = shPreStartID[j] + id;
-                                const I post_i = indices[syn_i];
-                                atomicAdd(&result[post_i], values[syn_i]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
 
     }  // namespace
 

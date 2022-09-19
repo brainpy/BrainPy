@@ -6,6 +6,11 @@ import brainpy as bp
 
 
 class TestCrossCorrelation(unittest.TestCase):
+  def test_c(self):
+    spikes = bp.math.asarray([[1, 0, 1, 0, 1, 0, 1, 0, 0], [1, 1, 1, 1, 1, 1, 1, 0, 0]]).T
+    cc1 = bp.measure.cross_correlation(spikes, 1., dt=1.)
+    print(cc1)
+
   def test_cc(self):
     spikes = bp.math.ones((1000, 10))
     cc1 = bp.measure.cross_correlation(spikes, 1.)

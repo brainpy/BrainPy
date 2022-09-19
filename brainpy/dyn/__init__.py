@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Dynamics simulation module.
+Module for brain dynamics model building.
 """
 
-
-from .neurons import *
-from .synapses import *
-from .channels import *
 from .base import *
-from .utils import *
+from .neurons.compat import *
+from .synapses.compat import *
 from .runners import *
 
-from . import neurons, synapses, channels, rates, utils, runners
+from . import (channels, neurons, rates,  # neuron related
+               synapses, synouts, synplast,  # synapse related
+               networks,
+               layers,  # ANN related
+               runners)

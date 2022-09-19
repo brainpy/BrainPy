@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import copy
+import numpy as np
+from jax.tree_util import register_pytree_node
+from jax.util import safe_zip
 
 __all__ = [
-  'DictPlus',
+  'DotDict',
 ]
 
 
-class DictPlus(dict):
+class DotDict(dict):
   """Python dictionaries with advanced dot notation access.
 
   For example:
 
-  >>> d = DictPlus({'a': 10, 'b': 20})
+  >>> d = DotDict({'a': 10, 'b': 20})
   >>> d.a
   10
   >>> d['a']
@@ -22,118 +24,79 @@ class DictPlus(dict):
   >>> d.c = 30  # but you can assign a value to a non-existing item
   >>> d.c
   30
+
+  In general, all attributes will be included ad keys in the dict.
+  For example, if you add an attribute to specify what variable names
+  you have:
+
+  >>> d.names = ('a', 'b')
+
+  This attribute `names` will cause error when you treat the object as
+  a PyTree.
+
+  >>> from jax import jit
+  >>> f = jit(lambda x: x)
+  >>> f(d)
+  TypeError: Argument 'a' of type <class 'str'> is not a valid JAX type.
+
+  At this moment, you can label this attribute `names` as not a key in the dictionary
+  by using the syntax::
+
+  >>> d.add_attr_not_key('names')
+  >>> f(d)
+  {'a': DeviceArray(10, dtype=int32, weak_type=True),
+   'b': DeviceArray(20, dtype=int32, weak_type=True),
+   'c': DeviceArray(30, dtype=int32, weak_type=True)}
+
   """
 
+  '''Used to exclude variables that '''
+  attrs_not_keys = ('attrs_not_keys', 'var_names')
+
   def __init__(self, *args, **kwargs):
-    object.__setattr__(self, '__parent', kwargs.pop('__parent', None))
-    object.__setattr__(self, '__key', kwargs.pop('__key', None))
+    super().__init__(*args, **kwargs)
+    self.__dict__ = self
+    self.var_names = ()
+
+  def keys(self):
+    """Retrieve all keys in the dict, excluding ignored keys."""
+    keys = []
+    for k in super(DotDict, self).keys():
+      if k not in self.attrs_not_keys:
+        keys.append(k)
+    return tuple(keys)
+
+  def values(self):
+    """Retrieve all values in the dict, excluding values of ignored keys."""
+    values = []
+    for k, v in super(DotDict, self).items():
+      if k not in self.attrs_not_keys:
+        values.append(v)
+    return tuple(values)
+
+  def items(self):
+    """Retrieve all items in the dict, excluding ignored items."""
+    items = []
+    for k, v in super(DotDict, self).items():
+      if k not in self.attrs_not_keys:
+        items.append((k, v))
+    return items
+
+  def to_numpy(self):
+    """Change all values to numpy arrays."""
+    for key in tuple(self.keys()):
+      self[key] = np.asarray(self[key])
+
+  def add_attr_not_key(self, *args):
+    """Add excluded attribute when retrieving dictionary keys. """
     for arg in args:
-      if not arg:
-        continue
-      elif isinstance(arg, dict):
-        for key, val in arg.items():
-          self[key] = self._hook(val)
-      elif isinstance(arg, tuple) and (not isinstance(arg[0], tuple)):
-        self[arg[0]] = self._hook(arg[1])
-      else:
-        for key, val in iter(arg):
-          self[key] = self._hook(val)
+      if not isinstance(arg, str):
+        raise TypeError('Only support string.')
+    self.attrs_not_keys += args
 
-    for key, val in kwargs.items():
-      self[key] = self._hook(val)
 
-  def __setattr__(self, name, value):
-    if hasattr(self.__class__, name):
-      raise AttributeError(f"Attribute '{name}' is read-only in '{type(self)}' object.")
-    else:
-      self[name] = value
-
-  def __setitem__(self, name, value):
-    super(DictPlus, self).__setitem__(name, value)
-    try:
-      p = object.__getattribute__(self, '__parent')
-      key = object.__getattribute__(self, '__key')
-    except AttributeError:
-      p = None
-      key = None
-    if p is not None:
-      p[key] = self
-      object.__delattr__(self, '__parent')
-      object.__delattr__(self, '__key')
-
-  def __add__(self, other):
-    if not self.keys():
-      return other
-    else:
-      self_type = type(self).__name__
-      other_type = type(other).__name__
-      msg = "Unsupported operand type(s) for +: '{}' and '{}'"
-      raise TypeError(msg.format(self_type, other_type))
-
-  @classmethod
-  def _hook(cls, item):
-    if isinstance(item, dict):
-      return cls(item)
-    elif isinstance(item, (list, tuple)):
-      return type(item)(cls._hook(elem) for elem in item)
-    return item
-
-  def __getattr__(self, item):
-    return self.__getitem__(item)
-
-  def __delattr__(self, name):
-    del self[name]
-
-  def copy(self):
-    return copy.copy(self)
-
-  def deepcopy(self):
-    return copy.deepcopy(self)
-
-  def __deepcopy__(self, memo):
-    other = self.__class__()
-    memo[id(self)] = other
-    for key, value in self.items():
-      other[copy.deepcopy(key, memo)] = copy.deepcopy(value, memo)
-    return other
-
-  def to_dict(self):
-    base = {}
-    for key, value in self.items():
-      if isinstance(value, type(self)):
-        base[key] = value.to_dict()
-      elif isinstance(value, (list, tuple)):
-        base[key] = type(value)(item.to_dict() if isinstance(item, type(self)) else item
-                                for item in value)
-      else:
-        base[key] = value
-    return base
-
-  def update(self, *args, **kwargs):
-    other = {}
-    if args:
-      if len(args) > 1:
-        raise TypeError()
-      other.update(args[0])
-    other.update(kwargs)
-    for k, v in other.items():
-      if (k not in self) or (not isinstance(self[k], dict)) or (not isinstance(v, dict)):
-        self[k] = v
-      else:
-        self[k].update(v)
-
-  def __getnewargs__(self):
-    return tuple(self.items())
-
-  def __getstate__(self):
-    return self
-
-  def __setstate__(self, state):
-    self.update(state)
-
-  def setdefault(self, key, default=None):
-    if key in self:
-      return self[key]
-    else:
-      self[key] = default
-      return default
+register_pytree_node(
+  DotDict,
+  lambda x: (x.values(), x.keys()),
+  lambda keys, values: DotDict(safe_zip(keys, values))
+)

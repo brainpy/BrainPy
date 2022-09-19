@@ -41,8 +41,7 @@ def cubic_system1():
 def cubic_system_2():
   @bp.odeint
   def int_x(x, t, Iext):
-    dx = x ** 3 - x + Iext
-    return dx
+    return x ** 3 - x + Iext
 
   analyzer = bp.analysis.PhasePlane1D(model=int_x,
                                       target_vars={'x': [-2, 2]},

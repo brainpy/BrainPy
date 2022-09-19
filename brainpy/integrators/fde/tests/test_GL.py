@@ -4,15 +4,13 @@
 import unittest
 
 import brainpy as bp
+import matplotlib.pyplot as plt
 
-plt = None
+block = False
 
 
 class TestGLShortMemory(unittest.TestCase):
   def test_lorenz(self):
-    global plt
-    if plt is None:
-      import matplotlib.pyplot as plt
 
     a, b, c = 10, 28, 8 / 3
 
@@ -33,6 +31,6 @@ class TestGLShortMemory(unittest.TestCase):
     runner.run(100.)
 
     plt.plot(runner.mon.x.flatten(), runner.mon.z.flatten())
-    plt.show(block=False)
+    plt.show(block=block)
 
 

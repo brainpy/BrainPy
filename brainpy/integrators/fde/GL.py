@@ -4,14 +4,16 @@
 This module provides numerical solvers for Grünwald–Letnikov derivative FDEs.
 """
 
+from typing import Dict, Union, Callable, Any
+
 import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.constants import DT
-from brainpy.tools.checking import check_integer
-from .base import FDEIntegrator
 from brainpy.integrators.utils import check_inits, format_args
+from .base import FDEIntegrator
+from .generic import register_fde_integrator
 
 __all__ = [
   'GLShortMemory'
@@ -79,7 +81,7 @@ class GLShortMemory(FDEIntegrator):
   >>>
   >>> integral = bp.fde.GLShortMemory(lorenz,
   >>>                                 alpha=0.96,
-  >>>                                 num_memory=500,
+  >>>                                 num_step=500,
   >>>                                 inits=[1., 0., 1.])
   >>> runner = bp.integrators.IntegratorRunner(integral,
   >>>                                          monitors=list('xyz'),
@@ -100,6 +102,9 @@ class GLShortMemory(FDEIntegrator):
     The fractional-order of the derivative function. Should be in the range of ``(0., 1.)``.
   num_memory: int
     The length of the short memory.
+
+    .. versionchanged:: 2.1.11
+
   inits: sequence
     A sequence of the initial values for variables.
   dt: float, int
@@ -119,17 +124,27 @@ class GLShortMemory(FDEIntegrator):
          Communications, vol. 78, pp. 162-172, 2017.
   """
 
-  def __init__(self, f, alpha, num_memory, inits, dt=None, name=None):
-    super(GLShortMemory, self).__init__(f=f, alpha=alpha, dt=dt, name=name)
+  def __init__(
+      self,
+      f: Callable,
+      alpha: Any,
+      inits: Any,
+      num_memory: int,
+      dt: float = None,
+      name: str = None,
+      state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+  ):
+    super(GLShortMemory, self).__init__(f=f,
+                                        alpha=alpha,
+                                        dt=dt,
+                                        name=name,
+                                        num_memory=num_memory,
+                                        state_delays=state_delays)
 
     # fractional order
-    if not jnp.all(jnp.logical_and(self.alpha <= 1, self.alpha > 0)):
+    if not bm.all(bm.logical_and(self.alpha <= 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
-
-    # memory length
-    check_integer(num_memory, 'num_memory', min_bound=1, allow_none=False)
-    self.num_memory = num_memory
 
     # initial values
     inits = check_inits(inits, self.variables)
@@ -139,21 +154,21 @@ class GLShortMemory(FDEIntegrator):
     for key, val in inits.items():
       delay = bm.Variable(bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype))
       delay[0] = val
-      self.delays[key] = delay
-    self._idx = bm.Variable(bm.asarray([1], dtype=bm.int32))
+      self.delays[key+'_delay'] = delay
+    self._idx = bm.Variable(bm.asarray([1]))
     self.register_implicit_vars(self.delays)
 
     # binomial coefficients
     bc = (1 - (1 + self.alpha.reshape((-1, 1))) / jnp.arange(1, num_memory + 1))
-    bc = jnp.cumprod(jnp.vstack([jnp.ones_like(self.alpha), bc.T]), axis=0)
-    self._binomial_coef = jnp.flip(bc[1:], axis=0)
+    bc = bm.cumprod(bm.vstack([bm.ones_like(self.alpha), bc.T]), axis=0)
+    self._binomial_coef = bm.flip(bc[1:], axis=0)
 
     # integral function
     self.set_integral(self._integral_func)
 
   def reset(self, inits):
     """Reset function of the delay variables."""
-    self._idx.value = bm.asarray([1], dtype=bm.int32)
+    self._idx.value = bm.asarray([1])
     inits = check_inits(inits, self.variables)
     for key, val in inits.items():
       delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
@@ -162,7 +177,7 @@ class GLShortMemory(FDEIntegrator):
 
   @property
   def binomial_coef(self):
-    return bm.as_numpy(jnp.flip(self._binomial_coef, axis=0))
+    return bm.as_numpy(bm.flip(self._binomial_coef, axis=0))
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
@@ -186,9 +201,10 @@ class GLShortMemory(FDEIntegrator):
     integrals = []
     idx = (self._idx + bm.arange(self.num_memory)) % self.num_memory
     for i, var in enumerate(self.variables):
-      summation = self._binomial_coef[:, i] @ self.delays[var][idx]
+      delay_var = var + '_delay'
+      summation = self._binomial_coef[:, i] @ self.delays[delay_var][idx]
       integral = (dt ** self.alpha[i]) * devs[var] - summation
-      self.delays[var][self._idx[0]] = integral
+      self.delays[delay_var][self._idx[0]] = integral
       integrals.append(integral)
     self._idx.value = (self._idx + 1) % self.num_memory
 
@@ -197,3 +213,6 @@ class GLShortMemory(FDEIntegrator):
       return integrals[0]
     else:
       return integrals
+
+
+register_fde_integrator(name='short-memory', integrator=GLShortMemory)

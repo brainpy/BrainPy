@@ -5,6 +5,7 @@ import numpy as np
 from brainpy import math as bm, tools
 from .base import InterLayerInitializer
 
+
 __all__ = [
   'Normal',
   'Uniform',
@@ -41,12 +42,12 @@ class Normal(InterLayerInitializer):
     super(Normal, self).__init__()
     self.scale = scale
     self.mean = mean
-    self.seed = seed
+    self.seed = tools.format_seed(seed)
     self.rng = np.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
-    weights = self.rng.normal(size=shape, loc=self.mean,  scale=self.scale)
+    weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
 
   def __repr__(self):
@@ -62,15 +63,14 @@ class Uniform(InterLayerInitializer):
     The lower limit of the uniform distribution.
   max_val : float
     The upper limit of the uniform distribution.
-
   """
 
-  def __init__(self, min_val=0., max_val=1., seed=None):
+  def __init__(self, min_val: float = 0., max_val: float = 1., seed=None):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = tools.format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -83,14 +83,22 @@ class Uniform(InterLayerInitializer):
 
 
 class VarianceScaling(InterLayerInitializer):
-  def __init__(self, scale, mode, distribution, in_axis=-2, out_axis=-1, seed=None):
+  def __init__(
+      self,
+      scale: float,
+      mode: str,
+      distribution: str,
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
     self.scale = scale
     self.mode = mode
     self.in_axis = in_axis
     self.out_axis = out_axis
     self.distribution = distribution
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = tools.format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]
@@ -103,16 +111,15 @@ class VarianceScaling(InterLayerInitializer):
       denominator = (fan_in + fan_out) / 2
     else:
       raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
-    variance = bm.array(self.scale / denominator, dtype=dtype)
+    variance = np.array(self.scale / denominator, dtype=dtype)
     if self.distribution == "truncated_normal":
-      from scipy.stats import truncnorm
-      # constant is stddev of standard normal truncated to (-2, 2)
-      stddev = bm.sqrt(variance) / bm.array(.87962566103423978, dtype)
-      res = truncnorm(-2, 2).rvs(shape) * stddev
+      stddev = bm.array(np.sqrt(variance) / .87962566103423978, dtype)
+      rng = bm.random.RandomState(self.rng.randint(0, int(1e7)))
+      return rng.truncated_normal(-2, 2, shape, dtype) * stddev
     elif self.distribution == "normal":
-      res = self.rng.normal(size=shape) * bm.sqrt(variance)
+      res = self.rng.randn(*shape) * np.sqrt(variance)
     elif self.distribution == "uniform":
-      res = self.rng.uniform(low=-1, high=1, size=shape) * bm.sqrt(3 * variance)
+      res = self.rng.uniform(low=-1, high=1, size=shape) * np.sqrt(3 * variance)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
     return bm.asarray(res, dtype=dtype)
@@ -125,62 +132,110 @@ class VarianceScaling(InterLayerInitializer):
 
 
 class KaimingUniform(VarianceScaling):
-  def __init__(self, scale=2.0, mode="fan_in",
-               distribution="uniform",
-               in_axis=-2, out_axis=-1,
-               seed=None):
-    super(KaimingUniform, self).__init__(scale, mode, distribution,
-                                         in_axis=in_axis, out_axis=out_axis,
+  def __init__(
+      self,
+      scale: float = 2.0,
+      mode: str = "fan_in",
+      distribution: str = "uniform",
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
+    super(KaimingUniform, self).__init__(scale,
+                                         mode,
+                                         distribution,
+                                         in_axis=in_axis,
+                                         out_axis=out_axis,
                                          seed=seed)
 
 
 class KaimingNormal(VarianceScaling):
-  def __init__(self, scale=2.0, mode="fan_in",
-               distribution="truncated_normal",
-               in_axis=-2, out_axis=-1,
-               seed=None):
-    super(KaimingNormal, self).__init__(scale, mode, distribution,
-                                        in_axis=in_axis, out_axis=out_axis,
+  def __init__(
+      self,
+      scale: float = 2.0,
+      mode: str = "fan_in",
+      distribution: str = "truncated_normal",
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
+    super(KaimingNormal, self).__init__(scale,
+                                        mode,
+                                        distribution,
+                                        in_axis=in_axis,
+                                        out_axis=out_axis,
                                         seed=seed)
 
 
 class XavierUniform(VarianceScaling):
-  def __init__(self, scale=1.0, mode="fan_avg",
-               distribution="uniform",
-               in_axis=-2, out_axis=-1,
-               seed=None):
-    super(XavierUniform, self).__init__(scale, mode, distribution,
-                                        in_axis=in_axis, out_axis=out_axis,
+  def __init__(
+      self,
+      scale: float = 1.0,
+      mode: str = "fan_avg",
+      distribution: str = "uniform",
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
+    super(XavierUniform, self).__init__(scale,
+                                        mode,
+                                        distribution,
+                                        in_axis=in_axis,
+                                        out_axis=out_axis,
                                         seed=seed)
 
 
 class XavierNormal(VarianceScaling):
-  def __init__(self, scale=1.0, mode="fan_avg",
-               distribution="truncated_normal",
-               in_axis=-2, out_axis=-1,
-               seed=None):
-    super(XavierNormal, self).__init__(scale, mode, distribution,
-                                       in_axis=in_axis, out_axis=out_axis,
+  def __init__(
+      self,
+      scale: float = 1.0,
+      mode: str = "fan_avg",
+      distribution: str = "truncated_normal",
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
+    super(XavierNormal, self).__init__(scale,
+                                       mode,
+                                       distribution,
+                                       in_axis=in_axis,
+                                       out_axis=out_axis,
                                        seed=seed)
 
 
 class LecunUniform(VarianceScaling):
-  def __init__(self, scale=1.0, mode="fan_in",
-               distribution="uniform",
-               in_axis=-2, out_axis=-1,
-               seed=None):
-    super(LecunUniform, self).__init__(scale, mode, distribution,
-                                       in_axis=in_axis, out_axis=out_axis,
+  def __init__(
+      self,
+      scale: float = 1.0,
+      mode: str = "fan_in",
+      distribution: str = "uniform",
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
+    super(LecunUniform, self).__init__(scale,
+                                       mode,
+                                       distribution,
+                                       in_axis=in_axis,
+                                       out_axis=out_axis,
                                        seed=seed)
 
 
 class LecunNormal(VarianceScaling):
-  def __init__(self, scale=1.0, mode="fan_in",
-               distribution="truncated_normal",
-               in_axis=-2, out_axis=-1,
-               seed=None):
-    super(LecunNormal, self).__init__(scale, mode, distribution,
-                                      in_axis=in_axis, out_axis=out_axis,
+  def __init__(
+      self,
+      scale: float = 1.0,
+      mode: str = "fan_in",
+      distribution: str = "truncated_normal",
+      in_axis: int = -2,
+      out_axis: int = -1,
+      seed: int = None
+  ):
+    super(LecunNormal, self).__init__(scale,
+                                      mode,
+                                      distribution,
+                                      in_axis=in_axis,
+                                      out_axis=out_axis,
                                       seed=seed)
 
 
@@ -192,12 +247,17 @@ class Orthogonal(InterLayerInitializer):
   depending on which side is smaller.
   """
 
-  def __init__(self, scale=1., axis=-1, seed=None):
+  def __init__(
+      self,
+      scale: float = 1.,
+      axis: int = -1,
+      seed: int = None
+  ):
     super(Orthogonal, self).__init__()
     self.scale = scale
     self.axis = axis
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = tools.format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]

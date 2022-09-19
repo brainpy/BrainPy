@@ -240,7 +240,7 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
 
   Parameters
   ----------
-  func : function, Base
+  func : callable, function, Base
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers.
     Argument arrays in the positions specified by ``argnums`` must be of

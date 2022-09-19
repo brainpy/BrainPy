@@ -47,7 +47,8 @@ class WilsonCowanModel(bp.dyn.DynamicalSystem):
     self.int_e = bp.odeint(de, method=method)
     self.int_i = bp.odeint(di, method=method)
 
-  def update(self, t, dt):
+  def update(self, tdi):
+    t, dt = tdi['t'], tdi['dt']
     self.e.value = self.int_e(self.e, t, self.i, self.Iext, dt)
     self.i.value = self.int_i(self.i, t, self.e, dt)
     self.Iext[:] = 0.

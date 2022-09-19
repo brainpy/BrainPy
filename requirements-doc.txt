@@ -2,15 +2,18 @@
 
 matplotlib>=3.4
 jaxlib>=0.3.0
-sympy>=1.6
 scipy>=1.1.0
-brainpylib>=0.0.4
+brainpylib>=0.0.5
 numba
+requests
+pillow
 
 # document requirements
 pandoc
 Jinja2
 sphinx
 myst-nb
-sphinx_rtd_theme>=1.0.0
+sphinx_book_theme
 sphinx-autodoc-typehints
+sphinx_thebe
+sphinx-mathjax-offline

@@ -28,7 +28,7 @@ class TestCollectionFunction(unittest.TestCase):
 
     net = bp.dyn.Network(a1=A(), a2=A())
     print(net.nodes(level=2))
-    self.assertTrue(len(net.nodes(level=0)) == 0)
+    self.assertTrue(len(net.nodes(level=0)) == 1)
     self.assertTrue(len(net.nodes(level=0, include_self=False)) == 0)
     self.assertTrue(len(net.nodes(level=1)) == (1 + 2))
     self.assertTrue(len(net.nodes(level=1, include_self=False)) == 2)

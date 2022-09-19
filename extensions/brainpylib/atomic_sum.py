@@ -9,6 +9,7 @@ from functools import partial
 import jax.numpy as jnp
 import numpy as np
 from jax import core
+from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla
 from jax.lib import xla_client
 
@@ -49,24 +50,22 @@ def atomic_sum(values, post_ids, post_num, pre_ids=None):
     raise ValueError(f'The size of "values" must be 1 (a scalar) or longer than pre_size (a vector), '
                      f'while we got {values.size} != 1 <= {pre_ids.max()}')
   values = values.flatten()
-  out = jnp.zeros(post_num, dtype=values.dtype)
 
   # bind operator
-  return _atomic_sum_prim.bind(values, pre_ids, post_ids, out)
+  return _atomic_sum_prim.bind(values, pre_ids, post_ids, post_num=post_num)
 
 
-def _atomic_sum_abstract(values, pre_ids, post_ids, out):
-  return out
+def _atomic_sum_abstract(values, pre_ids, post_ids, *, post_num):
+  return ShapedArray(dtype=values.dtype, shape=(post_num,))
 
 
 _atomic_sum_prim.def_abstract_eval(_atomic_sum_abstract)
 _atomic_sum_prim.def_impl(partial(xla.apply_primitive, _atomic_sum_prim))
 
 
-def _atomic_sum_translation(c, values, pre_ids, post_ids, out, *, platform="cpu"):
+def _atomic_sum_translation(c, values, pre_ids, post_ids, *, post_num, platform="cpu"):
   # The conn/post shape
   conn_size = np.array(c.get_shape(post_ids).dimensions()[0], dtype=np.uint32)
-  out_size = np.array(c.get_shape(out).dimensions()[0], dtype=np.uint32)
   _conn_shape = x_shape(np.dtype(np.uint32), (), ())
   _out_shape = x_shape(np.dtype(np.uint32), (), ())
 
@@ -75,13 +74,14 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, out, *, platform="cpu"
   assert Itype in [np.uint32, np.uint64]
 
   # The value shape
-  Ftype = c.get_shape(out).element_type()
-  assert Ftype in [np.float32, np.float64]
+  values_info = c.get_shape(values)
+  values_dtype = values_info.element_type()
+  assert values_dtype in [np.float32, np.float64]
 
   # We dispatch a different call depending on the dtype
-  values_dim = c.get_shape(values).dimensions()
+  values_dim = values_info.dimensions()
   v_type = b'_atomic_sum_homo' if (values_dim[0] == 1) else b'_atomic_sum_heter'
-  f_type = b'_f32' if Ftype == np.float32 else b'_f64'
+  f_type = b'_f32' if values_dtype == np.float32 else b'_f64'
   i_type = b'_i32' if Itype == np.uint32 else b'_i64'
 
   # And then the following is what changes between the GPU and CPU
@@ -89,34 +89,45 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, out, *, platform="cpu"
     if values_dim[0] != 1:
       return x_ops.CustomCallWithLayout(
         c, platform.encode() + v_type + f_type + i_type,
-        operands=(values, pre_ids, post_ids,
+        operands=(values,
+                  pre_ids,
+                  post_ids,
                   x_ops.ConstantLiteral(c, conn_size),
-                  x_ops.ConstantLiteral(c, out_size)),
-        operand_shapes_with_layout=(c.get_shape(values), c.get_shape(pre_ids),
-                                    c.get_shape(post_ids), _conn_shape, _out_shape),
-        shape_with_layout=c.get_shape(out),
+                  x_ops.ConstantLiteral(c, post_num)),
+        operand_shapes_with_layout=(c.get_shape(values),
+                                    c.get_shape(pre_ids),
+                                    c.get_shape(post_ids),
+                                    _conn_shape,
+                                    _out_shape),
+        shape_with_layout=x_shape(np.dtype(values_dtype), (post_num,), (0,)),
       )
     else:
       return x_ops.CustomCallWithLayout(
         c, platform.encode() + v_type + f_type + i_type,
-        operands=(values, post_ids,
+        operands=(values,
+                  post_ids,
                   x_ops.ConstantLiteral(c, conn_size),
-                  x_ops.ConstantLiteral(c, out_size)),
+                  x_ops.ConstantLiteral(c, post_num)),
         operand_shapes_with_layout=(c.get_shape(values),
                                     c.get_shape(post_ids),
-                                    _conn_shape, _out_shape),
-        shape_with_layout=c.get_shape(out),
+                                    _conn_shape,
+                                    _out_shape),
+        shape_with_layout=x_shape(np.dtype(values_dtype), (post_num,), (0,)),
       )
   elif platform == 'gpu':
     if gpu_ops is None: raise ValueError('Cannot find compiled gpu wheels.')
 
-    opaque = gpu_ops.build_atomic_sum_descriptor(conn_size, out_size)
+    opaque = gpu_ops.build_atomic_sum_descriptor(conn_size, post_num)
     if values_dim[0] != 1:
       return x_ops.CustomCallWithLayout(
         c, platform.encode() + v_type + f_type + i_type,
-        operands=(values, pre_ids, post_ids),
-        operand_shapes_with_layout=(c.get_shape(values), c.get_shape(pre_ids), c.get_shape(post_ids)),
-        shape_with_layout=c.get_shape(out),
+        operands=(values,
+                  pre_ids,
+                  post_ids),
+        operand_shapes_with_layout=(c.get_shape(values),
+                                    c.get_shape(pre_ids),
+                                    c.get_shape(post_ids)),
+        shape_with_layout=x_shape(np.dtype(values_dtype), (post_num,), (0,)),
         opaque=opaque,
       )
     else:
@@ -124,7 +135,7 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, out, *, platform="cpu"
         c, platform.encode() + v_type + f_type + i_type,
         operands=(values, post_ids),
         operand_shapes_with_layout=(c.get_shape(values), c.get_shape(post_ids)),
-        shape_with_layout=c.get_shape(out),
+        shape_with_layout=x_shape(np.dtype(values_dtype), (post_num,), (0,)),
         opaque=opaque,
       )
 
