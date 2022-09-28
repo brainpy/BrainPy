@@ -566,8 +566,7 @@ class DSRunner(Runner):
 
       monitor_func = self.build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
 
-      def _step_func(inputs):
-        t, i, x = inputs
+      def _step_func(t, i, x):
         self.target.clear_input()
         # input step
         shared = DotDict(t=t, i=i, dt=self.dt)
@@ -586,8 +585,7 @@ class DSRunner(Runner):
       if self.jit['predict']:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
-        f = bm.make_loop(_step_func, dyn_vars=dyn_vars.unique(), has_return=True)
-        run_func = lambda all_inputs: f(all_inputs)[1]
+        run_func = lambda all_inputs: bm.for_loop(_step_func, dyn_vars.unique(), all_inputs)
 
       else:
         def run_func(xs):
@@ -601,7 +599,7 @@ class DSRunner(Runner):
             x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
 
             # step at the i
-            output, mon = _step_func((times[i], indices[i], x))
+            output, mon = _step_func(times[i], indices[i], x)
 
             # append output and monitor
             outputs.append(output)

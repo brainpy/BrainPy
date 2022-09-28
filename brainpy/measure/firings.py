@@ -36,7 +36,7 @@ def raster_plot(sp_matrix, times):
   return index, time
 
 
-@jit
+# @jit
 def _firing_rate(sp_matrix, window):
   sp_matrix = bm.as_device_array(sp_matrix)
   rate = jnp.sum(sp_matrix, axis=1) / sp_matrix.shape[1]

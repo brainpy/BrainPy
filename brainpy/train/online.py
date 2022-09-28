@@ -234,8 +234,7 @@ class OnlineTrainer(DSTrainer):
 
     monitor_func = self.build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
 
-    def _step_func(all_inputs):
-      t, i, x, ys = all_inputs
+    def _step_func(t, i, x, ys):
       shared = DotDict(t=t, dt=self.dt, i=i)
 
       # input step
@@ -262,8 +261,7 @@ class OnlineTrainer(DSTrainer):
     if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
-      f = bm.make_loop(_step_func, dyn_vars=dyn_vars.unique(), has_return=True)
-      return lambda all_inputs: f(all_inputs)[1]
+      return lambda all_inputs: bm.for_loop(_step_func, dyn_vars.unique(), all_inputs)
 
     else:
       def run_func(all_inputs):
@@ -273,7 +271,7 @@ class OnlineTrainer(DSTrainer):
         for i in range(times.shape[0]):
           x = tree_map(lambda x: x[i], xs)
           y = tree_map(lambda x: x[i], ys)
-          output, mon = _step_func((times[i], indices[i], x, y))
+          output, mon = _step_func(times[i], indices[i], x, y)
           outputs.append(output)
           for key, value in mon.items():
             monitors[key].append(value)

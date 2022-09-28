@@ -128,17 +128,17 @@ class RNN(bp.dyn.DynamicalSystem):
     self.mask = bm.asarray(mask, dtype=bm.dftype())
 
     # input weight
-    self.w_ir = bm.TrainVar(w_ir(num_input, num_hidden))
+    self.w_ir = bm.TrainVar(w_ir((num_input, num_hidden)))
 
     # recurrent weight
     bound = 1 / num_hidden ** 0.5
-    self.w_rr = bm.TrainVar(w_rr(num_hidden, num_hidden))
+    self.w_rr = bm.TrainVar(w_rr((num_hidden, num_hidden)))
     self.w_rr[:, :self.e_size] /= (self.e_size / self.i_size)
     self.b_rr = bm.TrainVar(self.rng.uniform(-bound, bound, num_hidden))
 
     # readout weight
     bound = 1 / self.e_size ** 0.5
-    self.w_ro = bm.TrainVar(w_ro(self.e_size, num_output))
+    self.w_ro = bm.TrainVar(w_ro((self.e_size, num_output)))
     self.b_ro = bm.TrainVar(self.rng.uniform(-bound, bound, num_output))
 
     # variables
@@ -158,15 +158,13 @@ class RNN(bp.dyn.DynamicalSystem):
     def f(x):
       h.value = self.cell(x, h.value)
       o.value = self.readout(h.value[:, :self.e_size])
+      return h.value, o.value
 
     return f
 
   def predict(self, xs):
     self.h[:] = 0.
-    f = bm.make_loop(self.make_update(self.h, self.o),
-                     dyn_vars=self.vars(),
-                     out_vars=[self.h, self.o])
-    return f(xs)
+    return bm.for_loop(self.make_update(self.h, self.o), self.vars(), xs)
 
   def loss(self, xs, ys):
     hs, os = self.predict(xs)
@@ -247,7 +245,7 @@ for i in range(num_trial):
   rnn_activity, action_pred = predict(inputs)
 
   # Compute performance
-  action_pred = action_pred.numpy()
+  action_pred = bm.as_numpy(action_pred)
   choice = np.argmax(action_pred[-1, 0, :])
   correct = choice == gt[-1]
 
@@ -257,7 +255,7 @@ for i in range(num_trial):
   trial_infos[i] = trial_info
 
   # Log stimulus period activity
-  rnn_activity = rnn_activity.numpy()[:, 0, :]
+  rnn_activity = bm.as_numpy(rnn_activity)[:, 0, :]
   activity_dict[i] = rnn_activity
 
   # Compute stimulus selectivity for all units
@@ -312,7 +310,7 @@ plt.ylabel('Number of neurons')
 plt.show()
 
 # %%
-W = (bm.abs(net.w_rr) * net.mask).numpy()
+W = bm.as_numpy(bm.abs(net.w_rr) * net.mask)
 # Sort by selectivity
 W = W[:, ind_sort][ind_sort, :]
 wlim = np.max(np.abs(W))

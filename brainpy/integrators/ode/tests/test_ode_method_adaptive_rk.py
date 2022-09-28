@@ -45,7 +45,7 @@ def run_integrator(method, show=False, tol=0.001, adaptive=True):
 
   if show:
     fig = plt.figure()
-    ax = fig.gca(projection='3d')
+    ax = fig.add_subplot(111, projection='3d')
     plt.plot(mon_x, mon_y, mon_z)
     ax.set_xlabel('x')
     ax.set_xlabel('y')

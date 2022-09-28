@@ -17,12 +17,14 @@ def _check_brainpylib(ops_name):
       raise PackageMissingError(
         f'"{ops_name}" operator need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
         f'Please install it through:\n\n'
-        f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION} -U'
+        f'>>> pip install brainpylib=={_BRAINPYLIB_MINIMAL_VERSION}\n'
+        f'>>> # or \n'
+        f'>>> pip install brainpylib -U'
       )
   else:
     raise PackageMissingError(
       f'"brainpylib" must be installed when the user '
       f'wants to use "{ops_name}" operator. \n'
       f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
-      f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}'
+      f'>>> pip install brainpylib'
     )

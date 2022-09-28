@@ -244,20 +244,17 @@ class HH(NeuGroup):
 
     # variables
     self.V = variable(self._V_initializer, mode, self.varshape)
-    if self._m_initializer is None:
-      self.m = bm.Variable(self.m_inf(self.V.value))
-    else:
-      self.m = variable(self._m_initializer, mode, self.varshape)
-    if self._h_initializer is None:
-      self.h = bm.Variable(self.h_inf(self.V.value))
-    else:
-      self.h = variable(self._h_initializer, mode, self.varshape)
-    if self._n_initializer is None:
-      self.n = bm.Variable(self.n_inf(self.V.value))
-    else:
-      self.n = variable(self._n_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
+    self.m = (bm.Variable(self.m_inf(self.V.value))
+              if m_initializer is None else
+              variable(self._m_initializer, mode, self.varshape))
+    self.h = (bm.Variable(self.h_inf(self.V.value))
+              if h_initializer is None else
+              variable(self._h_initializer, mode, self.varshape))
+    self.n = (bm.Variable(self.n_inf(self.V.value))
+              if n_initializer is None else
+              variable(self._n_initializer, mode, self.varshape))
     self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
+    self.input = variable(bm.zeros, mode, self.varshape)
 
     # integral
     if self.noise is None:
@@ -309,7 +306,7 @@ class HH(NeuGroup):
 
   @property
   def derivative(self):
-    return JointEq([self.dV, self.dm, self.dh, self.dn])
+    return JointEq(self.dV, self.dm, self.dh, self.dn)
 
   def update(self, tdi, x=None):
     t, dt = tdi['t'], tdi['dt']
