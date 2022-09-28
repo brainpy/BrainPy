@@ -355,8 +355,7 @@ class SlowPointFinder(base.DSAnalyzer):
       return loss
 
     def batch_train(start_i, n_batch):
-      f = bm.make_loop(train, dyn_vars=dyn_vars, has_return=True)
-      return f(bm.arange(start_i, start_i + n_batch))
+      return bm.for_loop(train, dyn_vars, bm.arange(start_i, start_i + n_batch))
 
     # Run the optimization
     if self.verbose:
@@ -369,7 +368,7 @@ class SlowPointFinder(base.DSAnalyzer):
         break
       batch_idx_start = oidx * num_batch
       start_time = time.time()
-      (_, train_losses) = batch_train(start_i=batch_idx_start, n_batch=num_batch)
+      train_losses = batch_train(start_i=batch_idx_start, n_batch=num_batch)
       batch_time = time.time() - start_time
       opt_losses.append(train_losses)
 
@@ -722,8 +721,6 @@ class SlowPointFinder(base.DSAnalyzer):
     shared = DotDict(t=t, dt=dt, i=0)
 
     def f_cell(h: Dict):
-      target.clear_input()
-
       # update target variables
       for k, v in self.target_vars.items():
         v.value = (bm.asarray(h[k], dtype=v.dtype)
@@ -735,6 +732,7 @@ class SlowPointFinder(base.DSAnalyzer):
         v.value = self.excluded_data[k]
 
       # add inputs
+      target.clear_input()
       if f_input is not None:
         f_input(shared)
 
@@ -743,7 +741,7 @@ class SlowPointFinder(base.DSAnalyzer):
       target.update(*args)
 
       # get new states
-      new_h = {k: (v.value if v.batch_axis is None else jnp.squeeze(v.value, axis=v.batch_axis))
+      new_h = {k: (v.value if (v.batch_axis is None) else jnp.squeeze(v.value, axis=v.batch_axis))
                for k, v in self.target_vars.items()}
       return new_h
 

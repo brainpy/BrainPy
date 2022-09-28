@@ -217,16 +217,12 @@ class IntegratorRunner(Runner):
 
     # build the update step
     if self.jit['predict']:
-      _loop_func = bm.make_loop(
-        self._step,
-        dyn_vars=self.dyn_vars,
-        out_vars={k: self.variables[k] for k in self.monitors.keys()},
-        has_return=True
-      )
+      def _loop_func(times):
+        return bm.for_loop(self._step, self.dyn_vars, times)
     else:
       def _loop_func(times):
-        out_vars = {k: [] for k in self.monitors.keys()}
         returns = {k: [] for k in self.fun_monitors.keys()}
+        returns.update({k: [] for k in self.monitors.keys()})
         for i in range(len(times)):
           _t = times[i]
           _dt = self.dt
@@ -237,9 +233,9 @@ class IntegratorRunner(Runner):
           self._step(_t)
           # variable monitors
           for k in self.monitors.keys():
-            out_vars[k].append(bm.as_device_array(self.variables[k]))
-        out_vars = {k: bm.asarray(out_vars[k]) for k in self.monitors.keys()}
-        return out_vars, returns
+            returns[k].append(bm.as_device_array(self.variables[k]))
+        returns = {k: bm.asarray(returns[k]) for k in returns.keys()}
+        return returns
     self.step_func = _loop_func
 
   def _step(self, t):
@@ -252,11 +248,6 @@ class IntegratorRunner(Runner):
       kwargs.update({k: v[self.idx.value] for k, v in self._dyn_args.items()})
       self.idx += 1
 
-    # return of function monitors
-    returns = dict()
-    for key, func in self.fun_monitors.items():
-      returns[key] = func(t, self.dt)
-
     # call integrator function
     update_values = self.target(**kwargs)
     if len(self.target.variables) == 1:
@@ -268,6 +259,13 @@ class IntegratorRunner(Runner):
     # progress bar
     if self.progress_bar:
       id_tap(lambda *args: self._pbar.update(), ())
+
+    # return of function monitors
+    returns = dict()
+    for key, func in self.fun_monitors.items():
+      returns[key] = func(t, self.dt)
+    for k in self.monitors.keys():
+      returns[k] = self.variables[k].value
     return returns
 
   def run(self, duration, start_t=None, eval_time=False):
@@ -302,14 +300,13 @@ class IntegratorRunner(Runner):
                                  refresh=True)
     if eval_time:
       t0 = time.time()
-    hists, returns = self.step_func(times)
+    hists = self.step_func(times)
     if eval_time:
       running_time = time.time() - t0
     if self.progress_bar:
       self._pbar.close()
 
     # post-running
-    hists.update(returns)
     times += self.dt
     if self.numpy_mon_after_run:
       times = np.asarray(times)

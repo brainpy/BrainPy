@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-@jit
+# @jit
 @partial(vmap, in_axes=(None, 0, 0))
 def _cc(states, i, j):
   sqrt_ij = jnp.sqrt(jnp.sum(states[i]) * jnp.sum(states[j]))
@@ -86,7 +86,7 @@ def _var(neu_signal, i):
   return jnp.mean(neu_signal * neu_signal) - jnp.mean(neu_signal) ** 2
 
 
-@jit
+# @jit
 def voltage_fluctuation(potentials):
   r"""Calculate neuronal synchronization via voltage variance.
 
@@ -202,7 +202,7 @@ def functional_connectivity(activities):
   return np.nan_to_num(fc)
 
 
-@jit
+# @jit
 def functional_connectivity_dynamics(activities, window_size=30, step_size=5):
   """Computes functional connectivity dynamics (FCD) matrix.
 
@@ -233,7 +233,7 @@ def _weighted_cov(x, y, w):
   return jnp.sum(w * (x - _weighted_mean(x, w)) * (y - _weighted_mean(y, w))) / jnp.sum(w)
 
 
-@jit
+# @jit
 def weighted_correlation(x, y, w):
   """Weighted Pearson correlation of two data series.
 
