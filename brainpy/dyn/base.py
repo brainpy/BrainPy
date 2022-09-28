@@ -343,8 +343,7 @@ class DynamicalSystem(Base):
     raise NoImplementationError('Subclass must implement offline_fit() function when using OfflineTrainer.')
 
   def clear_input(self):
-    for node in self.nodes(level=1, include_self=False).subset(NeuGroup).unique().values():
-      node.clear_input()
+    pass
 
 
 class Container(DynamicalSystem):
@@ -429,6 +428,10 @@ class Container(DynamicalSystem):
       return child_ds[item]
     else:
       return super(Container, self).__getattribute__(item)
+
+  def clear_input(self):
+    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+      node.clear_input()
 
 
 class Sequential(Container):
