@@ -112,14 +112,14 @@ class TrajectModel(DynamicalSystem):
 
     # variables
     assert isinstance(initial_vars, dict)
-    initial_vars = {k: bm.Variable(jnp.asarray(bm.as_device_array(v), dtype=jnp.float_))
+    initial_vars = {k: bm.Variable(jnp.asarray(bm.as_device_array(v), dtype=bm.dftype()))
                     for k, v in initial_vars.items()}
     self.register_implicit_vars(initial_vars)
 
     # parameters
     pars = dict() if pars is None else pars
     assert isinstance(pars, dict)
-    self.pars = [jnp.asarray(bm.as_device_array(v), dtype=jnp.float_)
+    self.pars = [jnp.asarray(bm.as_device_array(v), dtype=bm.dftype())
                  for k, v in pars.items()]
 
     # integrals
@@ -128,7 +128,8 @@ class TrajectModel(DynamicalSystem):
     # runner
     self.runner = DSRunner(self,
                            monitors=list(initial_vars.keys()),
-                           dyn_vars=self.vars().unique(), dt=dt,
+                           dyn_vars=self.vars().unique(),
+                           dt=dt,
                            progress_bar=False)
 
   def update(self, sha):

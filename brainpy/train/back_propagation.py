@@ -520,7 +520,7 @@ class OnlineBPTT(BPTT):
     shared_args_str = serialize_kwargs(shared_args)
     if shared_args_str not in self._f_train_compiled:
 
-      def train_step(x):
+      def train_step(*x):
         # t, i, input_, target_ = x
         res = self.f_grad(shared_args)(*x)
         self.optimizer.update(res[0])
@@ -529,8 +529,7 @@ class OnlineBPTT(BPTT):
       if self.jit[c.FIT_PHASE]:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
-        f = bm.make_loop(train_step, dyn_vars=dyn_vars.unique(), has_return=True)
-        run_func = lambda all_inputs: f(all_inputs)[1]
+        run_func = lambda all_inputs: bm.for_loop(train_step, dyn_vars.unique(), all_inputs)
 
       else:
         def run_func(xs):
@@ -541,7 +540,7 @@ class OnlineBPTT(BPTT):
             x = tree_map(lambda x: x[i], inputs, is_leaf=_is_jax_array)
             y = tree_map(lambda x: x[i], targets, is_leaf=_is_jax_array)
             # step at the i
-            loss = train_step((times[i], indices[i], x, y))
+            loss = train_step(times[i], indices[i], x, y)
             # append output and monitor
             losses.append(loss)
           return bm.asarray(losses)

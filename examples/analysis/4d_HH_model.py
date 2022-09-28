@@ -3,13 +3,15 @@
 import brainpy as bp
 import brainpy.math as bm
 
+
 I = 5.
 model = bp.dyn.neurons.HH(1)
-runner = bp.dyn.DSRunner(model, inputs=('input', I), monitors=['V'])
+runner = bp.dyn.DSRunner(model, inputs=(model.input, I), monitors=['V'])
 runner.run(100)
 bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
 
 # analysis
+bm.enable_x64()
 model = bp.dyn.neurons.HH(1, method='euler')
 finder = bp.analysis.SlowPointFinder(
   model,
@@ -18,13 +20,14 @@ finder = bp.analysis.SlowPointFinder(
                'm': model.m,
                'h': model.h,
                'n': model.n},
-  dt=1.
+  dt=10.
 )
-candidates = {'V': bm.random.normal(0., 5., (1000, model.num)) - 50.,
+finder.find_fps_with_opt_solver(
+  candidates={'V': bm.random.normal(0., 10., (1000, model.num)) - 50.,
               'm': bm.random.random((1000, model.num)),
               'h': bm.random.random((1000, model.num)),
               'n': bm.random.random((1000, model.num))}
-finder.find_fps_with_opt_solver(candidates=candidates)
+)
 finder.filter_loss(1e-7)
 finder.keep_unique(tolerance=1e-1)
 print('fixed_points: ', finder.fixed_points)
