@@ -51,7 +51,7 @@ if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
    for jaxlib's Windows wheels.
 ----------------------------------------------------------------------
 
-''')
+''') from None
 
 # setup
 setup(

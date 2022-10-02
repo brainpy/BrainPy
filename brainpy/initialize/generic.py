@@ -11,10 +11,10 @@ from brainpy.types import Shape, Array
 from brainpy.modes import Mode, NormalMode, BatchingMode
 from .base import Initializer
 
-
 __all__ = [
   'parameter',
   'variable',
+  'variable2',
   'noise',
   'delay',
 
@@ -79,6 +79,15 @@ def init_param(
     allow_none: bool = True,
 ):
   return parameter(param, size, allow_none)
+
+
+def variable2(
+    data: Union[Callable, Array],
+    size: Shape = None,
+    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    batch_axis: int = 0,
+):
+  return variable(data, batch_size_or_mode, size, batch_axis)
 
 
 def variable(
@@ -198,4 +207,3 @@ def delay(
     delays = None
 
   return delay_type, delay_step, delays
-
