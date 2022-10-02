@@ -1528,42 +1528,42 @@ register_pytree_node(Parameter,
 class VariableView(Variable):
   """A view of a Variable instance.
 
-  This class is used to create a slice view of ``brainpy.math.Variable``.
+  This class is used to create a subset view of ``brainpy.math.Variable``.
+
+  >>> import brainpy.math as bm
+  >>> bm.random.seed(123)
+  >>> origin = bm.Variable(bm.random.random(5))
+  >>> view = bm.VariableView(origin, slice(None, 2, None))  # origin[:2]
+  VariableView([0.02920651, 0.19066381], dtype=float32)
 
   ``VariableView`` can be used to update the subset of the original
   Variable instance, and make operations on this subset of the Variable.
+
+  >>> view[:] = 1.
+  >>> view
+  VariableView([1., 1.], dtype=float32)
+  >>> origin
+  Variable([1.       , 1.       , 0.5482849, 0.6564884, 0.8446237], dtype=float32)
+  >>> view + 10
+  DeviceArray([11., 11.], dtype=float32)
+  >>> view *= 10
+  VariableView([10., 10.], dtype=float32)
+
+  The above example demonstrates that the updating of an ``VariableView`` instance
+  is actually made in the original ``Variable`` instance.
+
+  Moreover, it's worthy to note that ``VariableView`` is not a PyTree.
   """
   def __init__(self, value: Variable, index):
     self.index = index
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
-    temp_shape = tuple([1] * len(index))
-    super(VariableView, self).__init__(jnp.zeros(temp_shape), batch_axis=value.batch_axis)
+    super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis)
     self._value = value
 
   @property
   def value(self):
     return self._value[self.index]
-
-  @value.setter
-  def value(self, value):
-    int_shape = self.shape
-    if self.batch_axis is None:
-      ext_shape = value.shape
-    else:
-      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
-      int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
-    if ext_shape != int_shape:
-      error = f"The shape of the original data is {int_shape}, while we got {value.shape}"
-      if self.batch_axis is None:
-        error += '. Do you forget to set "batch_axis" when initialize this variable?'
-      else:
-        error += f' with batch_axis={self.batch_axis}.'
-      raise MathError(error)
-    if value.dtype != self._value.dtype:
-      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
-                      f"while we got {value.dtype}.")
-    self._value[self.index] = value
 
   def __setitem__(self, index, value):
     # value is JaxArray
@@ -1653,3 +1653,23 @@ class VariableView(Variable):
   def sort(self, axis=-1, kind=None, order=None):
     """Sort an array in-place."""
     self._value[self.index] = self.value.sort(axis=axis, kind=kind, order=order)
+
+  def update(self, value):
+    if self.batch_axis is None:
+      ext_shape = value.shape
+      int_shape = self.shape
+    else:
+      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
+      int_shape = self.shape[:self.batch_axis] + self.shape[self.batch_axis + 1:]
+    if ext_shape != int_shape:
+      error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
+      if self.batch_axis is None:
+        error += '. Do you forget to set "batch_axis" when initialize this variable?'
+      else:
+        error += f' with batch_axis={self.batch_axis}.'
+      raise MathError(error)
+    if value.dtype != self._value.dtype:
+      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+                      f"while we got {value.dtype}.")
+    self._value[self.index] = value.value if isinstance(value, JaxArray) else value
+
