@@ -115,7 +115,8 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, *, post_num, platform=
         shape_with_layout=x_shape(np.dtype(values_dtype), (post_num,), (0,)),
       )
   elif platform == 'gpu':
-    if gpu_ops is None: raise ValueError('Cannot find compiled gpu wheels.')
+    if gpu_ops is None:
+      raise ValueError('Cannot find compiled gpu wheels.')
 
     opaque = gpu_ops.build_atomic_sum_descriptor(conn_size, post_num)
     if values_dim[0] != 1:

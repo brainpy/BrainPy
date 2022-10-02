@@ -29,8 +29,8 @@ class GapJunction(TwoEndConn):
                                       conn=conn,
                                       name=name)
     # checking
-    self.check_pre_attrs('V', 'spike')
-    self.check_post_attrs('V', 'input', 'spike')
+    self.check_pre_attrs('V')
+    self.check_post_attrs('V', 'input')
 
     # assert isinstance(self.output, _NullSynOut)
     # assert isinstance(self.stp, _NullSynSTP)

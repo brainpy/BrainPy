@@ -7,13 +7,16 @@ __all__ = [
 
 from functools import partial
 
+from typing import Union, Tuple
 import jax.numpy as jnp
 import numpy as np
-from jax import core
+from jax import core, dtypes
 from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla, batching
 from jax.lax import scan
 from jax.lib import xla_client
+
+from .utils import GPUOperatorNotFound
 
 try:
   from . import gpu_ops
@@ -26,7 +29,10 @@ x_ops = xla_client.ops
 _event_sum_prim = core.Primitive("event_sum")
 
 
-def event_sum(events, pre2post, post_num, values):
+def event_sum(events: jnp.ndarray,
+              pre2post: Tuple[jnp.ndarray, jnp.ndarray],
+              post_num: int,
+              values: Union[float, jnp.ndarray]):
   # events
   if events.dtype != jnp.bool_:
     raise ValueError(f'"events" must be a vector of bool, while we got {events.dtype}')
@@ -39,17 +45,16 @@ def event_sum(events, pre2post, post_num, values):
   if indices.dtype != indptr.dtype:
     raise ValueError(f"The dtype of pre2post[0] must be equal to that of pre2post[1], "
                      f"while we got {(indices.dtype, indptr.dtype)}")
-  if indices.dtype not in [jnp.uint32, jnp.uint64]:
-    raise ValueError(f'The dtype of pre2post must be uint32 or uint64, while we got {indices.dtype}')
+  if indices.dtype not in [jnp.uint32, jnp.uint64, jnp.int32, jnp.int64]:
+    raise ValueError(f'The dtype of pre2post must be integer, while we got {indices.dtype}')
 
   # output value
-  values = jnp.asarray([values])
-  if values.dtype not in [jnp.float32, jnp.float64]:
-    raise ValueError(f'The dtype of "values" must be float32 or float64, while we got {values.dtype}.')
-  if values.size not in [1, indices.size]:
+  dtype = values.dtype if isinstance(values, jnp.ndarray) else dtypes.canonicalize_dtype(type(values))
+  if dtype not in [jnp.float32, jnp.float64]:
+    raise ValueError(f'The dtype of "values" must be float32 or float64, while we got {dtype}.')
+  if np.size(values) not in [1, indices.size]:
     raise ValueError(f'The size of "values" must be 1 (a scalar) or len(pre2post[0]) (a vector), '
-                     f'while we got {values.size} != 1 != {indices.size}')
-  values = values.flatten()
+                     f'while we got {np.size(values)} != 1 != {indices.size}')
   # bind operator
   return _event_sum_prim.bind(events, indices, indptr, values, post_num=post_num)
 
@@ -58,12 +63,8 @@ def _event_sum_abstract(events, indices, indptr, values, *, post_num):
   return ShapedArray(dtype=values.dtype, shape=(post_num,))
 
 
-_event_sum_prim.def_abstract_eval(_event_sum_abstract)
-_event_sum_prim.def_impl(partial(xla.apply_primitive, _event_sum_prim))
-
-
 def _event_sum_translation(c, events, indices, indptr, values, *, post_num, platform="cpu"):
-  # The pre/post shape
+  # The shape of pre/post
   pre_size = np.array(c.get_shape(events).dimensions()[0], dtype=np.uint32)
   _pre_shape = x_shape(np.dtype(np.uint32), (), ())
   _post_shape = x_shape(np.dtype(np.uint32), (), ())
@@ -71,21 +72,18 @@ def _event_sum_translation(c, events, indices, indptr, values, *, post_num, plat
   # The indices shape
   indices_shape = c.get_shape(indices)
   Itype = indices_shape.element_type()
-  assert Itype in [np.uint32, np.uint64]
 
   # The value shape
   values_shape = c.get_shape(values)
   Ftype = values_shape.element_type()
-  assert Ftype in [np.float32, np.float64]
   values_dim = values_shape.dimensions()
 
   # We dispatch a different call depending on the dtype
-  f_type = b'_f32' if Ftype == np.float32 else b'_f64'
-  i_type = b'_i32' if Itype == np.uint32 else b'_i64'
+  f_type = b'_f32' if Ftype in np.float32 else b'_f64'
+  i_type = b'_i32' if Itype in [np.uint32, np.int32] else b'_i64'
 
-  # And then the following is what changes between the GPU and CPU
   if platform == "cpu":
-    v_type = b'_event_sum_homo' if values_dim[0] == 1 else b'_event_sum_heter'
+    v_type = b'_event_sum_homo' if len(values_dim) == 0 else b'_event_sum_heter'
     return x_ops.CustomCallWithLayout(
       c,
       platform.encode() + v_type + f_type + i_type,
@@ -103,9 +101,12 @@ def _event_sum_translation(c, events, indices, indptr, values, *, post_num, plat
                                   c.get_shape(values)),
       shape_with_layout=x_shape(np.dtype(Ftype), (post_num,), (0,)),
     )
+
+  # GPU platform
   elif platform == 'gpu':
     if gpu_ops is None:
-      raise ValueError('Cannot find compiled gpu wheels.')
+      raise GPUOperatorNotFound('event_sum')
+
     v_type = b'_event_sum_homo' if values_dim[0] == 1 else b'_event_sum_heter'
     opaque = gpu_ops.build_event_sum_descriptor(pre_size, post_num)
     return x_ops.CustomCallWithLayout(
@@ -127,11 +128,7 @@ def _event_sum_translation(c, events, indices, indptr, values, *, post_num, plat
     raise ValueError("Unsupported platform, we only support 'cpu' or 'gpu'")
 
 
-xla.backend_specific_translations["cpu"][_event_sum_prim] = partial(_event_sum_translation, platform="cpu")
-xla.backend_specific_translations["gpu"][_event_sum_prim] = partial(_event_sum_translation, platform="gpu")
-
-
-def _event_sum_batch(args, axes):
+def _event_sum_batch(args, axes, *, post_num):
   batch_axes, batch_args, non_batch_args = [], {}, {}
   for ax_i, ax in enumerate(axes):
     if ax is None:
@@ -143,18 +140,21 @@ def _event_sum_batch(args, axes):
   def f(_, x):
     pars = tuple([(x[f'ax{i}'] if i in batch_axes else non_batch_args[f'ax{i}'])
                   for i in range(len(axes))])
-    return 0, _event_sum_prim.bind(*pars)
+    return 0, _event_sum_prim.bind(*pars, post_num=post_num)
+
   _, outs = scan(f, 0, batch_args)
   return outs, 0
 
 
+_event_sum_prim.def_abstract_eval(_event_sum_abstract)
+_event_sum_prim.def_impl(partial(xla.apply_primitive, _event_sum_prim))
 batching.primitive_batchers[_event_sum_prim] = _event_sum_batch
-
+xla.backend_specific_translations["cpu"][_event_sum_prim] = partial(_event_sum_translation, platform="cpu")
+xla.backend_specific_translations["gpu"][_event_sum_prim] = partial(_event_sum_translation, platform="gpu")
 
 # ---------------------------
 # event sum kernel 2
 # ---------------------------
-
 
 _event_sum2_prim = core.Primitive("event_sum2")
 
