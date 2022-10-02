@@ -113,9 +113,11 @@ Alternatively, you can download the preferred release ".whl" file for jaxlib, an
 
 .. code-block:: bash
 
-    pip install xxxx.whl
+    pip install xxx-0.3.14-xxx.whl
 
-    pip install jax
+    pip install jax==0.3.14
+
+Note that the versions of `jaxlib` and `jax` should be consistent.
 
 
 Windows
@@ -132,9 +134,9 @@ For **Windows** users, JAX can be installed by the following methods:
 
 .. code-block:: bash
 
-    pip install xxxx.whl
+    pip install xxx-0.3.14-xxx.whl
 
-    pip install jax
+    pip install jax==0.3.14
 
 - **Method 2**: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
   The installation guide can be found in `WSL Installation Guide for Windows 10`_.
@@ -142,6 +144,22 @@ For **Windows** users, JAX can be installed by the following methods:
 
 
 - **Method 3**: You can also `build JAX from source`_.
+
+
+
+Dependency 3: brainpylib
+------------------------
+
+Many customized operators in BrainPy are implemented in ``brainpylib``.
+``brainpylib`` can also be installed through `pypi <https://pypi.org/project/brainpylib/>`_.
+
+.. code-block:: bash
+
+   pip install brainpylib
+
+For GPU operators, you should compile ``brainpylib`` from source.
+The details please see
+`Compile GPU operators in brainpylib <../tutorial_advanced/compile_brainpylib.rst>`_.
 
 
 Other Dependency

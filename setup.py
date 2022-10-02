@@ -3,11 +3,13 @@
 import io
 import os
 import re
+import sys
 
 from setuptools import find_packages
 from setuptools import setup
 
 try:
+  # require users to uninstall previous brainpy releases.
   import pkg_resources
 
   installed_packages = pkg_resources.working_set
@@ -35,6 +37,22 @@ version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
   README = f.read()
 
+# require users to install jaxlib before installing brainpy on Windows platform
+if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+  try:
+    import jaxlib
+  except ModuleNotFoundError:
+    raise ModuleNotFoundError('''
+    
+----------------------------------------------------------------------
+   We detect that your are using Windows platform. 
+   Please manually install "jaxlib" before installing "brainpy". 
+   See https://whls.blob.core.windows.net/unstable/index.html 
+   for jaxlib's Windows wheels.
+----------------------------------------------------------------------
+
+''') from None
+
 # setup
 setup(
   name='brainpy',
@@ -49,13 +67,9 @@ setup(
   install_requires=[
     'numpy>=1.15',
     'jax>=0.3.0',
+    'jaxlib>=0.3.0',
     'tqdm',
   ],
-  extras_require={
-    'cpu': ['jaxlib>=0.3.0', 'brainpylib>=0.0.6'],
-    'cuda': ['jaxlib>=0.3.0', 'brainpylib>=0.0.6'],
-    'all': ['jaxlib>=0.3.0', 'brainpylib>=0.0.6', 'numba>=0.50', 'scipy>=1.1.0', 'matplotlib']
-  },
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/PKU-NIP-Lab/BrainPy/issues",
@@ -67,6 +81,7 @@ setup(
            'dynamical systems, '
            'differential equations, '
            'brain modeling, '
+           'brain dynamics modeling, '
            'brain dynamics programming',
   classifiers=[
     'Natural Language :: English',

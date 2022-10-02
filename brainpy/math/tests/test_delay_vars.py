@@ -5,6 +5,7 @@ import unittest
 import jax.numpy as jnp
 
 import brainpy.math as bm
+from brainpy.math.delayvars import ROTATION_UPDATING, CONCAT_UPDATING
 
 
 class TestTimeDelay(unittest.TestCase):
@@ -80,36 +81,47 @@ class TestTimeDelay(unittest.TestCase):
 class TestLengthDelay(unittest.TestCase):
   def test1(self):
     dim = 3
-    delay = bm.LengthDelay(jnp.zeros(dim), 10)
-    print(delay(1))
-    self.assertTrue(jnp.array_equal(delay(1), jnp.zeros(dim)))
+    for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
+      delay = bm.LengthDelay(jnp.zeros(dim), 10, update_method=update_method)
+      print(delay(1))
+      self.assertTrue(jnp.array_equal(delay(1), jnp.zeros(dim)))
 
-    delay = bm.jit(delay)
-    print(delay(1))
-    self.assertTrue(jnp.array_equal(delay(1), jnp.zeros(dim)))
+      delay = bm.jit(delay)
+      print(delay(1))
+      self.assertTrue(jnp.array_equal(delay(1), jnp.zeros(dim)))
 
   def test2(self):
     dim = 3
-    delay = bm.LengthDelay(jnp.zeros(dim), 10, initial_delay_data=jnp.arange(1, 11).reshape((10, 1)))
-    print(delay(0))
-    self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
-    print(delay(1))
-    self.assertTrue(jnp.array_equal(delay(1), jnp.ones(dim) * 10))
+    for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
+      delay = bm.LengthDelay(jnp.zeros(dim), 10,
+                             initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
+                             update_method=update_method)
+      print(delay(0))
+      self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
+      print(delay(1))
+      self.assertTrue(jnp.array_equal(delay(1), jnp.ones(dim) * 10))
 
-    delay = bm.jit(delay)
-    print(delay(0))
-    self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
-    print(delay(1))
-    self.assertTrue(jnp.array_equal(delay(1), jnp.ones(dim) * 10))
+      delay = bm.jit(delay)
+      print(delay(0))
+      self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
+      print(delay(1))
+      self.assertTrue(jnp.array_equal(delay(1), jnp.ones(dim) * 10))
 
   def test3(self):
     dim = 3
-    delay = bm.LengthDelay(jnp.zeros(dim), 10, initial_delay_data=jnp.arange(1, 11).reshape((10, 1)))
-    print(delay(jnp.asarray([1, 2, 3]),
-                jnp.arange(3)))
-    # self.assertTrue(bm.array_equal(delay(0), bm.zeros(dim)))
+    for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
+      delay = bm.LengthDelay(jnp.zeros(dim), 10,
+                             initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
+                             update_method=update_method)
+      print(delay(jnp.asarray([1, 2, 3]),
+                  jnp.arange(3)))
+      self.assertTrue(bm.array_equal(delay(jnp.asarray([1, 2, 3]), jnp.arange(3)),
+                                     bm.asarray([10., 9., 8.])))
 
-    delay = bm.jit(delay)
-    print(delay(jnp.asarray([1, 2, 3]),
-                jnp.arange(3)))
-    # self.assertTrue(bm.array_equal(delay(1), bm.ones(dim) * 10))
+      delay = bm.jit(delay)
+      print(delay(jnp.asarray([1, 2, 3]),
+                  jnp.arange(3)))
+      self.assertTrue(bm.array_equal(delay(jnp.asarray([1, 2, 3]), jnp.arange(3)),
+                                     bm.asarray([10., 9., 8.])))
+
+
