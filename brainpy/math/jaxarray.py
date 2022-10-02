@@ -183,7 +183,7 @@ class JaxArray(object):
     if isinstance(index, slice) and (index == _all_slice):
       return self.value
     elif isinstance(index, tuple):
-      index = tuple(_check_input_array(x) for x in index)
+      index = tuple((x.value if isinstance(x, JaxArray) else x) for x in index)
     elif isinstance(index, JaxArray):
       index = index.value
     return self.value[index]
