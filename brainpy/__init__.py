@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.1"
+__version__ = "2.2.3"
 
 
 try:
@@ -11,7 +11,7 @@ except ModuleNotFoundError:
     'Please install jaxlib. See '
     'https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax '
     'for installation instructions.'
-  )
+  ) from None
 
 
 # fundamental modules
@@ -29,15 +29,16 @@ from . import math
 
 
 # toolboxes
-from . import (connect,  # synaptic connection
-               initialize,  # weight initialization
-               optimizers,  # gradient descent optimizers
-               losses,  # loss functions
-               measure,  # methods for data analysis
-               datasets,  # methods for generating data
-               inputs,  # methods for generating input currents
-               algorithms,  # online or offline training algorithms
-               )
+from . import (
+  connect,  # synaptic connection
+  initialize,  # weight initialization
+  optimizers,  # gradient descent optimizers
+  losses,  # loss functions
+  measure,  # methods for data analysis
+  datasets,  # methods for generating data
+  inputs,  # methods for generating input currents
+  algorithms,  # online or offline training algorithms
+)
 
 
 # numerical integrators
@@ -53,27 +54,30 @@ from .integrators.joint_eq import JointEq
 
 # dynamics simulation
 from . import dyn
-from .dyn import (channels,  # channel models
-                  layers,  # ANN layers
-                  networks,  # network models
-                  neurons,  # neuron groups
-                  rates,  # rate models
-                  synapses,  # synaptic dynamics
-                  synouts,   # synaptic output
-                  synplast,  # synaptic plasticity
-                  )
-from brainpy.dyn.base import (DynamicalSystem,
-                              Container,
-                              Sequential,
-                              Network,
-                              NeuGroup,
-                              SynConn,
-                              SynOut,
-                              SynSTP,
-                              SynLTP,
-                              TwoEndConn,
-                              CondNeuGroup,
-                              Channel,)
+from .dyn import (
+  channels,  # channel models
+  layers,  # ANN layers
+  networks,  # network models
+  neurons,  # neuron groups
+  rates,  # rate models
+  synapses,  # synaptic dynamics
+  synouts,   # synaptic output
+  synplast,  # synaptic plasticity
+)
+from brainpy.dyn.base import (
+  DynamicalSystem,
+  Container,
+  Sequential,
+  Network,
+  NeuGroup,
+  SynConn,
+  SynOut,
+  SynSTP,
+  SynLTP,
+  TwoEndConn,
+  CondNeuGroup,
+  Channel,
+)
 from .dyn.runners import *
 
 
