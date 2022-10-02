@@ -756,8 +756,8 @@ class SynConn(DynamicalSystem):
 
   def __repr__(self):
     names = self.__class__.__name__
-    return (f'{names}(name={self.name}, mode={self.mode}, '
-            f'{" " * len(names)} pre={self.pre}, '
+    return (f'{names}(name={self.name}, mode={self.mode}, \n'
+            f'{" " * len(names)} pre={self.pre}, \n'
             f'{" " * len(names)} post={self.post})')
 
   def check_pre_attrs(self, *attrs):

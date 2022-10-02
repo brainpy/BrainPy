@@ -53,6 +53,13 @@ if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
 
 ''') from None
 
+
+packages = find_packages()
+if 'docs' in packages:
+  packages.remove('docs')
+if 'tests' in packages:
+  packages.remove('tests')
+
 # setup
 setup(
   name='brainpy',
@@ -62,7 +69,7 @@ setup(
   long_description_content_type="text/markdown",
   author='BrainPy Team',
   author_email='chao.brain@qq.com',
-  packages=find_packages(),
+  packages=packages,
   python_requires='>=3.7',
   install_requires=[
     'numpy>=1.15',
