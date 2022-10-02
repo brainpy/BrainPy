@@ -40,3 +40,14 @@ class TestJaxArray(unittest.TestCase):
       ee = a + e
 
 
+class TestVariable(unittest.TestCase):
+  def test_variable_init(self):
+    self.assertTrue(
+      bm.array_equal(bm.Variable(bm.zeros(10)),
+                     bm.Variable(10))
+    )
+    bm.random.seed(123)
+    self.assertTrue(
+      not bm.array_equal(bm.Variable(bm.random.rand(10)),
+                         bm.Variable(10))
+    )

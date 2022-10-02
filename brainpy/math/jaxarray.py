@@ -885,10 +885,42 @@ ndarray = JaxArray
 
 class Variable(JaxArray):
   """The pointer to specify the dynamical variable.
+
+  Initializing an instance of ``Variable`` by two ways:
+
+  >>> import brainpy.math as bm
+  >>> # 1. init a Variable by the concreate data
+  >>> v1 = bm.Variable(bm.zeros(10))
+  >>> # 2. init a Variable by the data shape
+  >>> v2 = bm.Variable(10)
+
+  Note that when initializing a `Variable` by the data shape,
+  all values in this `Variable` will be initialized as zeros.
+
+  Parameters
+  ----------
+  value_or_size: Shape, Array
+    The value or the size of the value.
+  dtype:
+    The type of the data.
+  batch_axis: optional, int
+    The batch axis.
   """
   __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self, value, dtype=None, batch_axis: int = None):
+  def __init__(
+      self,
+      value_or_size,
+      dtype=None,
+      batch_axis: int = None
+  ):
+    if isinstance(value_or_size, int):
+      value = jnp.zeros(value_or_size, dtype=dtype)
+    elif isinstance(value_or_size, (tuple, list)) and all([isinstance(s, int) for s in value_or_size]):
+      value = jnp.zeros(value_or_size, dtype=dtype)
+    else:
+      value = value_or_size
+
     super(Variable, self).__init__(value, dtype=dtype)
 
     # check batch axis
@@ -1464,8 +1496,8 @@ class TrainVar(Variable):
   """
   __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self, value, dtype=None, batch_axis: int = None):
-    super(TrainVar, self).__init__(value, dtype=dtype, batch_axis=batch_axis)
+  def __init__(self, value_or_size, dtype=None, batch_axis: int = None):
+    super(TrainVar, self).__init__(value_or_size, dtype=dtype, batch_axis=batch_axis)
 
 
 class Parameter(Variable):
@@ -1473,8 +1505,8 @@ class Parameter(Variable):
   """
   __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self, value, dtype=None, batch_axis: int = None):
-    super(Parameter, self).__init__(value, dtype=dtype, batch_axis=batch_axis)
+  def __init__(self, value_or_size, dtype=None, batch_axis: int = None):
+    super(Parameter, self).__init__(value_or_size, dtype=dtype, batch_axis=batch_axis)
 
 
 register_pytree_node(JaxArray,
