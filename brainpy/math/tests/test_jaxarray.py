@@ -4,6 +4,7 @@
 import unittest
 
 import jax.numpy as jnp
+import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
 
 import brainpy.math as bm
@@ -38,6 +39,12 @@ class TestJaxArray(unittest.TestCase):
     e = bm.TrainVar(bm.zeros(10))
     with self.assertRaises(TypeError):
       ee = a + e
+
+  def test_operation_with_numpy_array(self):
+    rng = bm.random.RandomState(123)
+    add = lambda: rng.rand(10) + np.zeros(1)
+    self.assertTrue(isinstance(add(), bm.JaxArray))
+    self.assertTrue(isinstance(bm.jit(add, dyn_vars=rng)(), bm.JaxArray))
 
 
 class TestVariable(unittest.TestCase):
