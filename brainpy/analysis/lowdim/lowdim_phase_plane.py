@@ -6,7 +6,7 @@ from jax import vmap
 
 import brainpy.math as bm
 from brainpy import errors, math
-from brainpy.analysis import stability, constants as C, utils
+from brainpy.analysis import stability, plotstyle, constants as C, utils
 from brainpy.analysis.lowdim.lowdim_analyzer import *
 
 pyplot = None
@@ -107,8 +107,8 @@ class PhasePlane1D(Num1DAnalyzer):
     if with_plot:
       for fp_type, points in container.items():
         if len(points):
-          plot_style = stability.plot_scheme[fp_type]
-          pyplot.plot(points, [0] * len(points), '.', markersize=20, **plot_style, label=fp_type)
+          plot_style = plotstyle.plot_schema[fp_type]
+          pyplot.plot(points, [0] * len(points), **plot_style, label=fp_type)
       pyplot.legend()
       if show:
         pyplot.show()
@@ -248,9 +248,9 @@ class PhasePlane2D(Num2DAnalyzer):
 
     if with_plot:
       if x_style is None:
-        x_style = dict(color='cornflowerblue', alpha=.7, )
-      fmt = x_style.pop('fmt', '.')
-      pyplot.plot(x_values_in_fx, y_values_in_fx, fmt, **x_style, label=f"{self.x_var} nullcline")
+        x_style = dict(color='cornflowerblue', alpha=.7, fmt='.')
+      line_args = (x_style.pop('fmt'), ) if 'fmt' in x_style else tuple()
+      pyplot.plot(x_values_in_fx, y_values_in_fx, *line_args, **x_style, label=f"{self.x_var} nullcline")
 
     # Nullcline of the y variable
     utils.output('I am computing fy-nullcline ...')
@@ -260,9 +260,9 @@ class PhasePlane2D(Num2DAnalyzer):
 
     if with_plot:
       if y_style is None:
-        y_style = dict(color='lightcoral', alpha=.7, )
-      fmt = y_style.pop('fmt', '.')
-      pyplot.plot(x_values_in_fy, y_values_in_fy, fmt, **y_style, label=f"{self.y_var} nullcline")
+        y_style = dict(color='lightcoral', alpha=.7, fmt='.')
+      line_args = (y_style.pop('fmt'), ) if 'fmt' in y_style else tuple()
+      pyplot.plot(x_values_in_fy, y_values_in_fy, *line_args, **y_style, label=f"{self.y_var} nullcline")
 
     if with_plot:
       pyplot.xlabel(self.x_var)
@@ -349,8 +349,8 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_plot:
       for fp_type, points in container.items():
         if len(points['x']):
-          plot_style = stability.plot_scheme[fp_type]
-          pyplot.plot(points['x'], points['y'], '.', markersize=20, **plot_style, label=fp_type)
+          plot_style = plotstyle.plot_schema[fp_type]
+          pyplot.plot(points['x'], points['y'], **plot_style, label=fp_type)
       pyplot.legend()
       if show:
         pyplot.show()

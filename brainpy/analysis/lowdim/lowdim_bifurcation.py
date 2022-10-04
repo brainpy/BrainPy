@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy import errors
-from brainpy.analysis import stability, utils, constants as C
+from brainpy.analysis import stability, plotstyle, utils, constants as C
 from brainpy.analysis.lowdim.lowdim_analyzer import *
 
 pyplot = None
@@ -79,8 +79,8 @@ class Bifurcation1D(Num1DAnalyzer):
         pyplot.figure(self.x_var)
         for fp_type, points in container.items():
           if len(points['x']):
-            plot_style = stability.plot_scheme[fp_type]
-            pyplot.plot(points['p'], points['x'], '.', **plot_style, label=fp_type)
+            plot_style = plotstyle.plot_schema[fp_type]
+            pyplot.plot(points['p'], points['x'], **plot_style, label=fp_type)
         pyplot.xlabel(self.target_par_names[0])
         pyplot.ylabel(self.x_var)
 
@@ -107,10 +107,11 @@ class Bifurcation1D(Num1DAnalyzer):
         ax = fig.add_subplot(projection='3d')
         for fp_type, points in container.items():
           if len(points['x']):
-            plot_style = stability.plot_scheme[fp_type]
+            plot_style = plotstyle.plot_schema[fp_type]
             xs = points['p0']
             ys = points['p1']
             zs = points['x']
+            plot_style.pop('linestyle')
             ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
 
         ax.set_xlabel(self.target_par_names[0])
@@ -298,8 +299,8 @@ class Bifurcation2D(Num2DAnalyzer):
           pyplot.figure(var)
           for fp_type, points in container.items():
             if len(points['p']):
-              plot_style = stability.plot_scheme[fp_type]
-              pyplot.plot(points['p'], points[var], '.', **plot_style, label=fp_type)
+              plot_style = plotstyle.plot_schema[fp_type]
+              pyplot.plot(points['p'], points[var], **plot_style, label=fp_type)
           pyplot.xlabel(self.target_par_names[0])
           pyplot.ylabel(var)
 
@@ -330,10 +331,11 @@ class Bifurcation2D(Num2DAnalyzer):
           ax = fig.add_subplot(projection='3d')
           for fp_type, points in container.items():
             if len(points['p0']):
-              plot_style = stability.plot_scheme[fp_type]
+              plot_style = plotstyle.plot_schema[fp_type]
               xs = points['p0']
               ys = points['p1']
               zs = points[var]
+              plot_style.pop('linestyle')
               ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
 
           ax.set_xlabel(self.target_par_names[0])
