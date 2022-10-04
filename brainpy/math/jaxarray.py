@@ -1673,3 +1673,23 @@ class VariableView(Variable):
                       f"while we got {value.dtype}.")
     self._value[self.index] = value.value if isinstance(value, JaxArray) else value
 
+  @value.setter
+  def value(self, value):
+    int_shape = self.shape
+    if self.batch_axis is None:
+      ext_shape = value.shape
+    else:
+      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
+      int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
+    if ext_shape != int_shape:
+      error = f"The shape of the original data is {int_shape}, while we got {value.shape}"
+      if self.batch_axis is None:
+        error += '. Do you forget to set "batch_axis" when initialize this variable?'
+      else:
+        error += f' with batch_axis={self.batch_axis}.'
+      raise MathError(error)
+    if value.dtype != self._value.dtype:
+      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+                      f"while we got {value.dtype}.")
+    self._value[self.index] = value.value if isinstance(value, JaxArray) else value
+
