@@ -72,7 +72,6 @@ class DecisionMaking(bp.dyn.Network):
     nmda_par = dict(delay_step=int(0.5 / bm.get_dt()), tau_decay=100, tau_rise=2., a=0.5)
 
     # E neurons/pyramid neurons
-
     A = bp.neurons.LIF(num_A, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,
                        tau_ref=2., V_initializer=bp.init.OneInit(-70.), mode=mode)
     B = bp.neurons.LIF(num_B, V_rest=-70., V_reset=-55., V_th=-50., tau=20., R=0.04,

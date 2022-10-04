@@ -22,6 +22,4 @@ from .lowdim.lowdim_phase_plane import *
 from .lowdim.lowdim_bifurcation import *
 
 from .constants import *
-from . import constants as C
-from . import stability
-from . import utils
+from . import constants as C, stability, plotstyle, utils

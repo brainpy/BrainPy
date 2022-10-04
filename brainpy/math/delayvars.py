@@ -435,7 +435,7 @@ class LengthDelay(AbstractDelay):
       self.idx.value = stop_gradient((self.idx + 1) % self.num_delay_step)
 
     elif self.update_method == CONCAT_UPDATING:
-      self.data.value = bm.concatenate([self.data[1:], bm.broadcast_to(value, self.delay_target_shape)], axis=0)
+      self.data.value = bm.vstack([self.data[1:], bm.broadcast_to(value,self.data.shape[1:])])
 
     else:
       raise ValueError(f'Unknown updating method "{self.update_method}"')

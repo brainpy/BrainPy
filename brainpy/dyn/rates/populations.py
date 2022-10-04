@@ -180,8 +180,8 @@ class FHN(RateModel):
     self.y.value = y
 
   def clear_input(self):
-    self.input[:] = 0.
-    self.input_y[:] = 0.
+    self.input.value = bm.zeros_like(self.input)
+    self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class FeedbackFHN(RateModel):
@@ -375,8 +375,8 @@ class FeedbackFHN(RateModel):
     self.y.value = y
 
   def clear_input(self):
-    self.input[:] = 0.
-    self.input_y[:] = 0.
+    self.input.value = bm.zeros_like(self.input)
+    self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class QIF(RateModel):
@@ -558,8 +558,8 @@ class QIF(RateModel):
     self.y.value = y
 
   def clear_input(self):
-    self.input[:] = 0.
-    self.input_y[:] = 0.
+    self.input.value = bm.zeros_like(self.input)
+    self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class StuartLandauOscillator(RateModel):
@@ -700,8 +700,8 @@ class StuartLandauOscillator(RateModel):
     self.y.value = y
 
   def clear_input(self):
-    self.input[:] = 0.
-    self.input_y[:] = 0.
+    self.input.value = bm.zeros_like(self.input)
+    self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class WilsonCowanModel(RateModel):
@@ -857,8 +857,8 @@ class WilsonCowanModel(RateModel):
     self.y.value = y
 
   def clear_input(self):
-    self.input[:] = 0.
-    self.input_y[:] = 0.
+    self.input.value = bm.zeros_like(self.input)
+    self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class JansenRitModel(RateModel):
@@ -976,5 +976,5 @@ class ThresholdLinearModel(RateModel):
     self.i.value = bm.maximum(self.i + di * dt, 0.)
 
   def clear_input(self):
-    self.Ie[:] = 0.
-    self.Ii[:] = 0.
+    self.Ie.value = bm.zeros_like(self.Ie)
+    self.Ii.value = bm.zeros_like(self.Ii)
