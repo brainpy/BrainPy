@@ -58,3 +58,36 @@ class TestVariable(unittest.TestCase):
       not bm.array_equal(bm.Variable(bm.random.rand(10)),
                          bm.Variable(10))
     )
+
+
+class TestVariableView(unittest.TestCase):
+  def test_update(self):
+    origin = bm.Variable(bm.zeros(10))
+    view = bm.VariableView(origin, slice(0, 5, None))
+
+    view.update(bm.ones(5))
+    self.assertTrue(
+      bm.array_equal(origin, bm.concatenate([bm.ones(5), bm.zeros(5)]))
+    )
+
+    view.value = bm.arange(5.)
+    self.assertTrue(
+      bm.array_equal(origin, bm.concatenate([bm.arange(5), bm.zeros(5)]))
+    )
+
+    view += 10
+    self.assertTrue(
+      bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
+    )
+
+    bm.random.shuffle(view)
+    print(view)
+    print(origin)
+
+    view.sort()
+    self.assertTrue(
+      bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
+    )
+
+    self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
+
