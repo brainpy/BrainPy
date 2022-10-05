@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.3"
+__version__ = "2.2.3.1"
 
 
 try:
@@ -8,10 +8,15 @@ try:
   del jaxlib
 except ModuleNotFoundError:
   raise ModuleNotFoundError(
-    'Please install jaxlib. See '
-    'https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax '
-    'for installation instructions.'
-  ) from None
+    '''
+
+Please install jaxlib. See
+ 
+https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
+
+for installation instructions.
+    
+    ''') from None
 
 
 # fundamental modules
