@@ -11,6 +11,7 @@ from brainpy.initialize import Initializer, parameter, variable
 from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.types import Shape, Array
 
+
 __all__ = [
   'InputGroup',
   'OutputGroup',
@@ -205,3 +206,4 @@ class PoissonGroup(NeuGroup):
 
   def reset_state(self, batch_size=None):
     self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+

@@ -4,7 +4,7 @@
 import jax.lax
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, TrainingMode, NormalMode, training, check
+from brainpy.modes import Mode, training
 
 __all__ = [
   'Pool',
