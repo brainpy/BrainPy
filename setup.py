@@ -37,25 +37,6 @@ version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
   README = f.read()
 
-# require users to install jaxlib before installing brainpy on Windows platform
-requirements = ['numpy>=1.15', 'jax>=0.3.0', 'tqdm']
-if sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
-  try:
-    import jaxlib
-  except ModuleNotFoundError:
-    raise ModuleNotFoundError('''
-    
-----------------------------------------------------------------------
-   We detect that your are using Windows platform. 
-   Please manually install "jaxlib" before installing "brainpy". 
-   See https://whls.blob.core.windows.net/unstable/index.html 
-   for jaxlib's Windows wheels.
-----------------------------------------------------------------------
-
-''') from None
-else:
-  requirements.append('jaxlib>=0.3.0')
-
 # installation packages
 packages = find_packages()
 if 'docs' in packages:
@@ -74,7 +55,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.7',
-  install_requires=requirements,
+  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm'],
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/PKU-NIP-Lab/BrainPy/issues",
