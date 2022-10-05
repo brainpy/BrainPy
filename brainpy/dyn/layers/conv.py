@@ -6,7 +6,7 @@ import jax.lax
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import XavierNormal, ZeroInit, parameter
-from brainpy.modes import Mode, TrainingMode, NormalMode, training, check
+from brainpy.modes import Mode, TrainingMode, training
 
 __all__ = [
   'GeneralConv',

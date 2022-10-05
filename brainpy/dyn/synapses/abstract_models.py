@@ -3,14 +3,15 @@
 from typing import Union, Dict, Callable, Optional
 
 from jax import vmap
-from jax.lax import stop_gradient
+from jax.lax import stop_gradient, cond
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn
+from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.modes import Mode, BatchingMode, normal
+from brainpy.tools.checking import check_integer, check_float
+from brainpy.modes import Mode, BatchingMode, normal, NormalMode, check_mode
 from brainpy.types import Array
 from ..synouts import CUBA, MgBlock
 
@@ -20,6 +21,7 @@ __all__ = [
   'DualExponential',
   'Alpha',
   'NMDA',
+  'PoissonInput',
 ]
 
 
@@ -882,3 +884,67 @@ class NMDA(TwoEndConn):
 
     # output
     return self.output(post_vs)
+
+
+class PoissonInput(SynConn):
+  """Poisson Input to the given `Variable`.
+
+  Adds independent Poisson input to a target variable. For large
+  numbers of inputs, this is much more efficient than creating a
+  `PoissonGroup`. The synaptic events are generated randomly during the
+  simulation and are not preloaded and stored in memory. All the inputs must
+  target the same variable, have the same frequency and same synaptic weight.
+  All neurons in the target variable receive independent realizations of
+  Poisson spike trains.
+
+  Parameters
+  ----------
+  target_var: Variable
+    The variable that is targeted by this input.
+  num_input: int
+    The number of inputs.
+  freq: float
+    The frequency of each of the inputs. Must be a scalar.
+  weight: float
+    The synaptic weight. Must be a scalar.
+  """
+
+  def __init__(
+      self,
+      target_var: bm.Variable,
+      num_input: int,
+      freq: Union[int, float],
+      weight: Union[int, float],
+      seed: Optional[int] = None,
+      mode: Mode = normal,
+      name: str = None
+  ):
+    from ..neurons.input_groups import InputGroup, OutputGroup
+    super(PoissonInput, self).__init__(InputGroup(1), OutputGroup(1), name=name, mode=mode)
+
+    # check data
+    if not isinstance(target_var, bm.Variable):
+      raise TypeError(f'"target_var" must be an instance of Variable. '
+                      f'But we got {type(target_var)}: {target_var}')
+    check_integer(num_input, 'num_input', min_bound=1)
+    check_float(freq, 'freq', min_bound=0., allow_int=True)
+    check_float(weight, 'weight', allow_int=True)
+    check_mode(mode, NormalMode, name=self.__class__.__name__)
+
+    # parameters
+    self.target_var = target_var
+    self.num_input = num_input
+    self.freq = freq
+    self.weight = weight
+    self.seed = seed
+    self.rng = bm.random.RandomState(self.seed)
+
+  def update(self, tdi):
+    p = self.freq * tdi.dt / 1e3
+    a = self.num_input * p
+    b = self.num_input * (1 - p)
+    inp = bm.cond((a > 5) * (b > 5),
+                  lambda _: self.rng.normal(a, b * p, self.target_var.shape),
+                  lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
+                  None)
+    self.target_var += inp

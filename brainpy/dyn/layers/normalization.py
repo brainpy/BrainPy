@@ -9,7 +9,7 @@ import jax.lax
 import brainpy.math as bm
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, TrainingMode, NormalMode, training, check
+from brainpy.modes import Mode, TrainingMode, NormalMode, training, check_mode
 
 __all__ = [
   'BatchNorm',

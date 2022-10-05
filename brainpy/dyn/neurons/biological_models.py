@@ -8,7 +8,7 @@ from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise a
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
-from brainpy.modes import Mode, BatchingMode, TrainingMode, NormalMode, normal, check
+from brainpy.modes import Mode, BatchingMode, TrainingMode, NormalMode, normal, check_mode
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Array
 
@@ -219,7 +219,7 @@ class HH(NeuGroup):
                              keep_size=keep_size,
                              name=name,
                              mode=mode)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -427,7 +427,7 @@ class MorrisLecar(NeuGroup):
                                       keep_size=keep_size,
                                       name=name,
                                       mode=mode)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -685,7 +685,7 @@ class PinskyRinzelModel(NeuGroup):
                                             keep_size=keep_size,
                                             name=name,
                                             mode=mode)
-    check(self.mode, (NormalMode, BatchingMode), self.__class__)
+    check_mode(self.mode, (NormalMode, BatchingMode), self.__class__)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -994,7 +994,7 @@ class WangBuzsakiModel(NeuGroup):
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
