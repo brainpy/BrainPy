@@ -195,14 +195,19 @@ class JaxArray(object):
     # value is JaxArray
     if isinstance(value, JaxArray):
       value = value.value
+    # value is numpy.ndarray
+    elif isinstance(value, np.ndarray):
+      value = jnp.asarray(value)
 
-    # tuple index
+    # index is a tuple
     if isinstance(index, tuple):
       index = tuple(_check_input_array(x) for x in index)
-
-    # JaxArray index
+    # index is JaxArray
     elif isinstance(index, JaxArray):
       index = index.value
+    # index is numpy.ndarray
+    elif isinstance(index, np.ndarray):
+      index = jnp.asarray(index)
 
     # update
     self._value = self._value.at[index].set(value)
@@ -1569,6 +1574,8 @@ class VariableView(Variable):
     # value is JaxArray
     if isinstance(value, JaxArray):
       value = value.value
+    elif isinstance(value, np.ndarray):
+      value = jnp.asarray(value)
 
     # tuple index
     if isinstance(index, tuple):
