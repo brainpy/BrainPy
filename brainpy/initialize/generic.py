@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Union, Callable, Optional
 
 import jax.numpy as jnp
@@ -14,6 +14,7 @@ from .base import Initializer
 __all__ = [
   'parameter',
   'variable',
+  'variable_',
   'variable2',
   'noise',
   'delay',
@@ -81,12 +82,22 @@ def init_param(
   return parameter(param, size, allow_none)
 
 
+def variable_(
+    data: Union[Callable, Array],
+    size: Shape = None,
+    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    batch_axis: int = 0,
+):
+  return variable(data, batch_size_or_mode, size, batch_axis)
+
+
 def variable2(
     data: Union[Callable, Array],
     size: Shape = None,
     batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
     batch_axis: int = 0,
 ):
+  warnings.warn('Use brainpy.init.variable_() instead. ', UserWarning)
   return variable(data, batch_size_or_mode, size, batch_axis)
 
 

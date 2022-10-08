@@ -63,13 +63,13 @@ class OUProcess(NeuGroup):
     self.tau = init.parameter(tau, self.varshape, allow_none=False)
 
     # variables
-    self.x = init.variable(lambda s: bm.ones(s) * self.mean, mode, self.varshape)
+    self.x = init.variable_(lambda s: bm.ones(s) * self.mean, self.varshape, mode)
 
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)
 
   def reset_state(self, batch_size=None):
-    self.x.value = init.variable(lambda s: bm.ones(s) * self.mean, batch_size, self.varshape)
+    self.x.value = init.variable_(lambda s: bm.ones(s) * self.mean, self.varshape, batch_size)
 
   def df(self, x, t):
     return (self.mean - x) / self.tau
