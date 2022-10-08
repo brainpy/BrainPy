@@ -3,17 +3,18 @@
 from typing import Union, Dict, Callable, Optional
 
 from jax import vmap
-from jax.lax import stop_gradient, cond
+from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
 from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
-from brainpy.initialize import Initializer, variable
+from brainpy.initialize import Initializer, variable_
 from brainpy.integrators import odeint, JointEq
 from brainpy.tools.checking import check_integer, check_float
 from brainpy.modes import Mode, BatchingMode, normal, NormalMode, check_mode
 from brainpy.types import Array
 from ..synouts import CUBA, MgBlock
+
 
 __all__ = [
   'Delta',
@@ -298,14 +299,14 @@ class Exponential(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.post.num)
+    self.g = variable_(bm.zeros, self.post.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
   def reset_state(self, batch_size=None):
-    self.g.value = variable(bm.zeros, batch_size, self.post.num)
+    self.g.value = variable_(bm.zeros, self.post.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -489,16 +490,16 @@ class DualExponential(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.h = variable(bm.zeros, mode, self.pre.num)
-    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.h = variable_(bm.zeros, self.pre.num, mode)
+    self.g = variable_(bm.zeros, self.pre.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dh]))
 
   def reset_state(self, batch_size=None):
-    self.h.value = variable(bm.zeros, batch_size, self.pre.num)
-    self.g.value = variable(bm.zeros, batch_size, self.pre.num)
+    self.h.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -831,8 +832,8 @@ class NMDA(TwoEndConn):
     self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.pre.num)
-    self.x = variable(bm.zeros, mode, self.pre.num)
+    self.g = variable_(bm.zeros, self.pre.num, mode)
+    self.x = variable_(bm.zeros, self.pre.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -845,8 +846,8 @@ class NMDA(TwoEndConn):
     return -x / self.tau_rise
 
   def reset_state(self, batch_size=None):
-    self.g.value = variable(bm.zeros, batch_size, self.pre.num)
-    self.x.value = variable(bm.zeros, batch_size, self.pre.num)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.x.value = variable_(bm.zeros, self.pre.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -921,6 +922,8 @@ class PoissonInput(SynConn):
   ):
     from ..neurons.input_groups import InputGroup, OutputGroup
     super(PoissonInput, self).__init__(InputGroup(1), OutputGroup(1), name=name, mode=mode)
+    self.pre = None
+    self.post = None
 
     # check data
     if not isinstance(target_var, bm.Variable):
@@ -929,7 +932,7 @@ class PoissonInput(SynConn):
     check_integer(num_input, 'num_input', min_bound=1)
     check_float(freq, 'freq', min_bound=0., allow_int=True)
     check_float(weight, 'weight', allow_int=True)
-    check_mode(mode, NormalMode, name=self.__class__.__name__)
+    check_mode(mode, (NormalMode, BatchingMode), name=self.__class__.__name__)
 
     # parameters
     self.target_var = target_var
@@ -943,8 +946,27 @@ class PoissonInput(SynConn):
     p = self.freq * tdi.dt / 1e3
     a = self.num_input * p
     b = self.num_input * (1 - p)
-    inp = bm.cond((a > 5) * (b > 5),
-                  lambda _: self.rng.normal(a, b * p, self.target_var.shape),
-                  lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
-                  None)
-    self.target_var += inp
+    if isinstance(tdi.dt, (int, float)):  # dt is not in tracing
+      if (a > 5) and (b > 5):
+        inp = self.rng.normal(a, b * p, self.target_var.shape)
+      else:
+        inp = self.rng.binomial(self.num_input, p, self.target_var.shape)
+
+    else:  # dt is in tracing
+      inp = bm.cond((a > 5) * (b > 5),
+                    lambda _: self.rng.normal(a, b * p, self.target_var.shape),
+                    lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
+                    None)
+    self.target_var += inp * self.weight
+
+  def __repr__(self):
+    names = self.__class__.__name__
+    return f'{names}(name={self.name}, num_input={self.num_input}, freq={self.freq}, weight={self.weight})'
+
+  def reset_state(self, batch_size=None):
+    pass
+
+  def reset(self, batch_size=None):
+    self.rng.seed(self.seed)
+    self.reset_state(batch_size)
+
