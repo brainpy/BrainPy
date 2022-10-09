@@ -616,9 +616,9 @@ def for_loop(body_fun: Callable,
   >>> a_hist = bm.for_loop(body, dyn_vars=[a, b], operands=bm.arange(1, 5))
   >>> a_hist
   DeviceArray([[ 1.],
-             [ 3.],
-             [ 6.],
-             [10.]], dtype=float32)
+               [ 3.],
+               [ 6.],
+               [10.]], dtype=float32)
   >>> a
   Variable([10.], dtype=float32)
   >>> b
