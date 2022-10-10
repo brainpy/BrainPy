@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.3.1"
+__version__ = "2.2.3.2"
 
 
 try:
@@ -28,9 +28,9 @@ BrainPy needs jaxlib, please install jaxlib.
 
    >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
-Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3.14", "jaxlib=0.3.14".  
+Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3.14" and "jaxlib=0.3.14".  
 
-More detail installation instruction, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
+For more detail installation instructions, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
     
     ''') from None
 
