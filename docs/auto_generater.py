@@ -491,6 +491,19 @@ def generate_math_docs(path='apis/auto/math/'):
   with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
     f.write(codes)
 
+  module_and_name = [
+    ('pre_syn_post',   '``pre-syn-post`` Transformations',),
+    ('multiplication', 'Sparse Matrix Multiplication',),
+    ('spikegrad',      'Surrogate Gradients for Spike Operation',),
+    ('op_register',    'Operator Registration',),
+    ('wrap_jax',       'Other Operators',),
+  ]
+  write_submodules(module_name='brainpy.math.operators',
+                   filename=os.path.join(path, 'operators.rst'),
+                   header='Sparse & Event-based Operators',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
   write_module(module_name='brainpy.math.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
@@ -500,9 +513,7 @@ def generate_math_docs(path='apis/auto/math/'):
   write_module(module_name='brainpy.math.controls',
                filename=os.path.join(path, 'controls.rst'),
                header='Control Flows')
-  write_module(module_name='brainpy.math.operators',
-               filename=os.path.join(path, 'operators.rst'),
-               header='Operators')
+
   write_module(module_name='brainpy.math.parallels',
                filename=os.path.join(path, 'parallels.rst'),
                header='Parallel Compilation')

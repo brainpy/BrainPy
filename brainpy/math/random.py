@@ -393,14 +393,16 @@ class RandomState(Variable):
     Parameters
     ----------
     seed : int, jax.DeviceArray, Optional
-      The initial seed of the random number generator.
+      It can be an integer for initial seed of the random number generator,
+      or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
     """
     if seed is None:
       seed = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed, int):
       key = jr.PRNGKey(seed)
     else:
-      assert len(seed) == 2
+      if len(seed) != 2 and seed.dtype != np.uint32:
+        raise ValueError
       key = seed
     super(RandomState, self).__init__(key)
 
@@ -408,16 +410,24 @@ class RandomState(Variable):
   # seed and random key #
   # ------------------- #
 
-  def seed(self, seed):
+  def seed(self, seed=None):
     """Sets a new random seed.
 
     Parameters
     ----------
-    seed : int
-      The new initial seed of the random number generator.
+    seed : int, ndarray
+      It can be an integer for initial seed of the random number generator,
+      or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
     """
-    if seed is not None:
-      self.value = jr.PRNGKey(seed)
+    if seed is None:
+      seed = np.random.randint(0, 100000, 2, dtype=np.uint32)
+    if isinstance(seed, int):
+      key = jr.PRNGKey(seed)
+    else:
+      if len(seed) != 2 and seed.dtype != np.uint32:
+        raise ValueError
+      key = seed
+    self.value = key
 
   def split_key(self):
     """Create a new seed from the current seed.
