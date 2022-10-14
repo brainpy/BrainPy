@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
+import jax
 import numpy as np
 
+from brainpy import math as bm
 from brainpy.errors import ConnectorError
 from brainpy.tools.others import numba_seed, numba_jit, SUPPORT_NUMBA, format_seed
 from .base import *
@@ -42,29 +43,36 @@ class FixedProb(TwoEndConnector):
     self.pre_ratio = pre_ratio
     self.include_self = include_self
     self.seed = format_seed(seed)
-    self.rng = np.random.RandomState(seed=self.seed)
+    self.rng = bm.random.RandomState(seed=self.seed)
 
-    rng = np.random if SUPPORT_NUMBA else self.rng
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(prob={self.prob}, pre_ratio={self.pre_ratio}, '
+            f'include_self={self.include_self}, seed={self.seed})')
 
-    def _connect(pre_i, num_post):
+  def build_conn(self):
+    if SUPPORT_NUMBA:
+      numba_seed(self.seed)
+      rng = np.random
+    else:
+      rng = np.random.RandomState(self.seed)
+
+    include_self = self.include_self
+    pre_ratio = self.pre_ratio
+    prob = self.prob
+
+    @numba_jit
+    def f_connect(pre_i, num_post):
       if rng.random() < pre_ratio:
         p = rng.random(num_post) <= prob
         if (not include_self) and pre_i < num_post:
           p[pre_i] = False
         return np.where(p)[0]
 
-    self._connect = numba_jit(_connect)
-
-  def build_conn(self):
-    # seed
-    self.seed = self.rng.randint(1, int(1e7))
-    if SUPPORT_NUMBA: numba_seed(self.seed)
-
     # make connections
     ind = []
     count = np.zeros(self.pre_num, dtype=IDX_DTYPE)
     for i in range(self.pre_num):
-      posts = self._connect(pre_i=i, num_post=self.post_num)
+      posts = f_connect(pre_i=i, num_post=self.post_num)
       if posts is not None:
         ind.append(posts)
         count[i] = len(posts)
@@ -72,6 +80,56 @@ class FixedProb(TwoEndConnector):
     indptr = np.concatenate(([0], count)).cumsum()
 
     return 'csr', (ind, indptr)
+
+  def build_mat(self, pre_size, post_size):
+    pre_num = np.prod(pre_size)
+    post_num = np.prod(post_size)
+    pre_state = self.rng.rand(pre_num, 1) < self.pre_ratio
+    mat = (self.rng.rand(pre_num, post_num) < self.prob) * pre_state
+    if not self.include_self:
+      bm.fill_diagonal(mat, False)
+    return mat.astype(MAT_DTYPE)
+
+  def build_coo(self, pre_size, post_size):
+    pre_num = np.prod(pre_size)
+    post_num = np.prod(post_size)
+    post_num_to_select = int(post_num * self.prob)
+    post_ids = bm.arange(post_num)
+    if self.pre_ratio < 1.:
+      pre_num_to_select = int(pre_num * self.pre_ratio)
+      pre_ids = self.rng.choice(pre_num, size=pre_num_to_select, replace=False)
+    else:
+      pre_ids = bm.arange(pre_num)
+
+    @jax.vmap
+    def f(i, key):
+      posts = bm.delete(post_ids, i) if not self.include_self else post_ids
+      return self.rng.permutation(posts, key=key)[:post_num_to_select]
+
+    selected_pre_ids = bm.repeat(pre_ids, post_num_to_select)
+    selected_post_ids = f(pre_ids, self.rng.split_keys(pre_ids.size)).flatten()
+    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
+
+  def build_csr(self, pre_size, post_size):
+    pre_num = np.prod(pre_size)
+    post_num = np.prod(post_size)
+    post_num_to_select = int(post_num * self.prob)
+    post_ids = bm.arange(post_num)
+    if self.pre_ratio < 1.:
+      pre_num_to_select = int(pre_num * self.pre_ratio)
+      pre_ids = self.rng.choice(pre_num, size=pre_num_to_select, replace=False)
+    else:
+      pre_num_to_select = pre_num
+      pre_ids = bm.arange(pre_num)
+
+    @jax.vmap
+    def f(i, key):
+      posts = bm.delete(post_ids, i) if not self.include_self else post_ids
+      return self.rng.permutation(posts, key=key)[:post_num_to_select]
+
+    selected_post_ids = f(pre_ids, self.rng.split_keys(pre_ids.size)).flatten()
+    selected_pre_inptr = bm.cumsum(bm.concatenate([bm.zeros(1), bm.ones(pre_num_to_select) * post_num_to_select]))
+    return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
 
 
 class FixedNum(TwoEndConnector):
@@ -111,6 +169,11 @@ class FixedNum(TwoEndConnector):
 
     self._connect = numba_jit(_fixed_num_prob)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(num={self.num}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
+
 
 class FixedPreNum(FixedNum):
   """Connect the pre-synaptic neurons with fixed number for each post-synaptic neuron.
@@ -123,6 +186,11 @@ class FixedPreNum(FixedNum):
   include_self : bool
     Whether create (i, i) conn ?
   """
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(num={self.num}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
 
   def build_conn(self):
     # check
@@ -162,6 +230,11 @@ class FixedPostNum(FixedNum):
   seed : None, int
       Seed the random generator.
   """
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(num={self.num}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
 
   def build_conn(self):
     # check
@@ -244,6 +317,13 @@ class GaussianProb(OneEndConnector):
     self.periodic_boundary = periodic_boundary
     self.seed = format_seed(seed)
     self.rng = np.random.RandomState(self.seed)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(sigma={self.sigma}, '
+            f'normalize={self.normalize}, '
+            f'periodic_boundary={self.periodic_boundary}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
 
   def build_conn(self):
     # value range to encode
@@ -373,6 +453,13 @@ class SmallWorld(TwoEndConnector):
 
     self._connect = numba_jit(_smallworld_rewire)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(prob={self.prob}, '
+            f'directed={self.directed}, '
+            f'num_neighbor={self.num_neighbor}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
+
   def build_conn(self):
     assert self.pre_size == self.post_size
 
@@ -487,6 +574,11 @@ class ScaleFreeBA(TwoEndConnector):
 
     self._connect = numba_jit(_random_subset)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(m={self.m}, '
+            f'directed={self.directed}, '
+            f'seed={self.seed})')
+
   def build_conn(self):
     assert self.pre_num == self.post_num
 
@@ -572,6 +664,10 @@ class ScaleFreeBADual(TwoEndConnector):
       return targets
 
     self._connect = numba_jit(_random_subset)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(m1={self.m1}, m2={self.m2}, '
+            f'p={self.p}, directed={self.directed}, seed={self.seed})')
 
   def build_conn(self):
     assert self.pre_num == self.post_num
@@ -682,6 +778,9 @@ class PowerLaw(TwoEndConnector):
       return targets
 
     self._connect = numba_jit(_random_subset)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(m={self.m}, p={self.p}, directed={self.directed}, seed={self.seed})')
 
   def build_conn(self):
     assert self.pre_num == self.post_num
