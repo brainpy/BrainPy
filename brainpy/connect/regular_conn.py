@@ -24,6 +24,7 @@ class One2One(TwoEndConnector):
   """Connect two neuron groups one by one. This means
   The two neuron groups should have the same size.
   """
+
   def __init__(self):
     super(One2One, self).__init__()
 
@@ -55,6 +56,9 @@ class All2All(TwoEndConnector):
   def __init__(self, include_self=True):
     self.include_self = include_self
     super(All2All, self).__init__()
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(include_self={self.include_self})')
 
   def build_conn(self):
     mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
@@ -102,6 +106,9 @@ class GridFour(OneEndConnector):
   def __init__(self, include_self=False):
     super(GridFour, self).__init__()
     self.include_self = include_self
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(include_self={self.include_self})')
 
   def build_conn(self):
     # only the 1- or 2-D structure is supported
@@ -169,6 +176,9 @@ class GridN(OneEndConnector):
     super(GridN, self).__init__()
     self.N = N
     self.include_self = include_self
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(N={self.N}, include_self={self.include_self})')
 
   def build_conn(self):
     if len(self.pre_size) == 1:

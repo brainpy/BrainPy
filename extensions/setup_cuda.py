@@ -6,7 +6,10 @@ import re
 import subprocess
 import sys
 
-import pybind11
+try:
+  import pybind11
+except ModuleNotFoundError:
+  raise ModuleNotFoundError('Please install pybind11 before installing brainpylib!')
 from setuptools import find_packages, setup, Extension
 from setuptools.command.build_ext import build_ext
 
@@ -55,23 +58,17 @@ class CMakeBuildExt(build_ext):
     print(" ".join(cmake_args))
 
     os.makedirs(self.build_temp, exist_ok=True)
-    subprocess.check_call(
-      ["cmake", '-DCMAKE_CUDA_FLAGS="-arch=sm_61"', HERE] + cmake_args, cwd=self.build_temp
-    )
+    subprocess.check_call(["cmake", '-DCMAKE_CUDA_FLAGS="-arch=sm_80"', HERE] + cmake_args,
+                          cwd=self.build_temp)
 
     # Build all the extensions
     super().build_extensions()
 
     # Finally run install
-    subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
-                          cwd=self.build_temp)
+    subprocess.check_call(["cmake", "--build", ".", "--target", "install"], cwd=self.build_temp)
 
   def build_extension(self, ext):
-    # target_name = ext.name.split(".")[-1]
-    #subprocess.check_call(
-    #  ["cmake", "."], cwd=self.build_temp)
-    subprocess.check_call(["cmake", "--build", ".", "--target", "gpu_ops"],
-                          cwd=self.build_temp)
+    subprocess.check_call(["cmake", "--build", ".", "--target", "gpu_ops"], cwd=self.build_temp)
 
 # version control
 with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
