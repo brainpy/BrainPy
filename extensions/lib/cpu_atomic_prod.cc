@@ -1,9 +1,9 @@
-#include "atomic_prod_cpu.h"
+#include "cpu_atomic_prod.h"
 
 namespace brainpy_lib {
 namespace{
     template <typename F, typename I>
-    void cpu_atomic_prod_heter(void *out, const void **in) {
+    void cpu_coo_atomic_prod_heter(void *out, const void **in) {
       // The inputs
       const F *values = reinterpret_cast<const F *>(in[0]);
       const I *pre_ids = reinterpret_cast<const I *>(in[1]);
@@ -23,7 +23,7 @@ namespace{
     }
     
     template <typename F, typename I>
-    void cpu_atomic_prod_homo(void *out, const void **in) {
+    void cpu_coo_atomic_prod_homo(void *out, const void **in) {
       // The inputs
       const F *values = reinterpret_cast<const F *>(in[0]);  // scalar as a vector
       const F value = values[0];
@@ -43,14 +43,22 @@ namespace{
     }
 }
 
-void cpu_atomic_prod_heter_f32_i32(void *out, const void **in){cpu_atomic_prod_heter<float, std::uint32_t>(out, in);}
-void cpu_atomic_prod_heter_f32_i64(void *out, const void **in){cpu_atomic_prod_heter<float, std::uint64_t>(out, in);}
-void cpu_atomic_prod_heter_f64_i32(void *out, const void **in){cpu_atomic_prod_heter<double, std::uint32_t>(out, in);}
-void cpu_atomic_prod_heter_f64_i64(void *out, const void **in){cpu_atomic_prod_heter<double, std::uint64_t>(out, in);}
+void cpu_coo_atomic_prod_heter_f32_i32(void *out, const void **in){
+    cpu_coo_atomic_prod_heter<float, std::uint32_t>(out, in);}
+void cpu_coo_atomic_prod_heter_f32_i64(void *out, const void **in){
+    cpu_coo_atomic_prod_heter<float, std::uint64_t>(out, in);}
+void cpu_coo_atomic_prod_heter_f64_i32(void *out, const void **in){
+    cpu_coo_atomic_prod_heter<double, std::uint32_t>(out, in);}
+void cpu_coo_atomic_prod_heter_f64_i64(void *out, const void **in){
+    cpu_coo_atomic_prod_heter<double, std::uint64_t>(out, in);}
 
-void cpu_atomic_prod_homo_f32_i32(void *out, const void **in){cpu_atomic_prod_homo<float, std::uint32_t>(out, in);}
-void cpu_atomic_prod_homo_f32_i64(void *out, const void **in){cpu_atomic_prod_homo<float, std::uint64_t>(out, in);}
-void cpu_atomic_prod_homo_f64_i32(void *out, const void **in){cpu_atomic_prod_homo<double, std::uint32_t>(out, in);}
-void cpu_atomic_prod_homo_f64_i64(void *out, const void **in){cpu_atomic_prod_homo<double, std::uint64_t>(out, in);}
+void cpu_coo_atomic_prod_homo_f32_i32(void *out, const void **in){
+    cpu_coo_atomic_prod_homo<float, std::uint32_t>(out, in);}
+void cpu_coo_atomic_prod_homo_f32_i64(void *out, const void **in){
+    cpu_coo_atomic_prod_homo<float, std::uint64_t>(out, in);}
+void cpu_coo_atomic_prod_homo_f64_i32(void *out, const void **in){
+    cpu_coo_atomic_prod_homo<double, std::uint32_t>(out, in);}
+void cpu_coo_atomic_prod_homo_f64_i64(void *out, const void **in){
+    cpu_coo_atomic_prod_homo<double, std::uint64_t>(out, in);}
 
 }

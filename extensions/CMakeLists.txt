@@ -22,17 +22,17 @@ include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 pybind11_add_module(
     gpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc
-        ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cu
-        ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_prod_gpu.cu
-        ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_gpu.cu)
+        ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_event_sum.cu
+        ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_atomic_prod.cu
+        ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_atomic_sum.cu)
 install(TARGETS gpu_ops DESTINATION brainpylib)
 pybind11_add_module(
     cpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/event_prod_cpu.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_prod_cpu.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_event_prod.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_event_sum.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_atomic_prod.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_atomic_sum.cc
     )
 install(TARGETS cpu_ops DESTINATION brainpylib)
 

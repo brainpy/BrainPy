@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = [
-  'atomic_prod',
+  'coo_atomic_prod',
 ]
 
 from functools import partial
@@ -21,10 +21,10 @@ except ImportError:
 x_shape = xla_client.Shape.array_shape
 x_ops = xla_client.ops
 
-_atomic_prod_prim = core.Primitive("atomic_prod")
+coo_atomic_prod_p1 = core.Primitive("coo_atomic_prod_p1")
 
 
-def atomic_prod(values, post_ids, post_num, pre_ids=None):
+def coo_atomic_prod(values, post_ids, post_num, pre_ids=None):
   # connections
   if jnp.size(values) != 1:
     assert pre_ids is not None, 'Must provide "pre_ids" when "values" is not a scalar.'
@@ -50,18 +50,17 @@ def atomic_prod(values, post_ids, post_num, pre_ids=None):
     raise ValueError(f'The size of "values" must be 1 (a scalar) or longer than pre_size (a vector), '
                      f'while we got {values.size} != 1 <= {pre_ids.max()}')
   values = values.flatten()
-  out = jnp.zeros(post_num, dtype=values.dtype)
 
   # bind operator
-  return _atomic_prod_prim.bind(values, pre_ids, post_ids, post_num=post_num)
+  return coo_atomic_prod_p1.bind(values, pre_ids, post_ids, post_num=post_num)
 
 
 def _atomic_prod_abstract(values, pre_ids, post_ids, *, post_num):
   return ShapedArray(shape=(post_num, ), dtype=values.dtype)
 
 
-_atomic_prod_prim.def_abstract_eval(_atomic_prod_abstract)
-_atomic_prod_prim.def_impl(partial(xla.apply_primitive, _atomic_prod_prim))
+coo_atomic_prod_p1.def_abstract_eval(_atomic_prod_abstract)
+coo_atomic_prod_p1.def_impl(partial(xla.apply_primitive, coo_atomic_prod_p1))
 
 
 def _atomic_prod_translation(c, values, pre_ids, post_ids, *, post_num, platform="cpu"):
@@ -83,7 +82,7 @@ def _atomic_prod_translation(c, values, pre_ids, post_ids, *, post_num, platform
 
   # We dispatch a different call depending on the dtype
   values_dim = values_info.dimensions()
-  v_type = b'_atomic_prod_homo' if (values_dim[0] == 1) else b'_atomic_prod_heter'
+  v_type = b'_coo_atomic_prod_homo' if (values_dim[0] == 1) else b'_coo_atomic_prod_heter'
   f_type = b'_f32' if values_dtype == np.float32 else b'_f64'
   i_type = b'_i32' if Itype == np.uint32 else b'_i64'
 
@@ -91,7 +90,8 @@ def _atomic_prod_translation(c, values, pre_ids, post_ids, *, post_num, platform
   if platform == "cpu":
     if values_dim[0] != 1:
       return x_ops.CustomCallWithLayout(
-        c, platform.encode() + v_type + f_type + i_type,
+        c,
+        platform.encode() + v_type + f_type + i_type,
         operands=(values,
                   pre_ids,
                   post_ids,
@@ -106,7 +106,8 @@ def _atomic_prod_translation(c, values, pre_ids, post_ids, *, post_num, platform
       )
     else:
       return x_ops.CustomCallWithLayout(
-        c, platform.encode() + v_type + f_type + i_type,
+        c,
+        platform.encode() + v_type + f_type + i_type,
         operands=(values,
                   post_ids,
                   x_ops.ConstantLiteral(c, conn_size),
@@ -120,7 +121,7 @@ def _atomic_prod_translation(c, values, pre_ids, post_ids, *, post_num, platform
   elif platform == 'gpu':
     if gpu_ops is None: raise ValueError('Cannot find compiled gpu wheels.')
 
-    opaque = gpu_ops.build_atomic_prod_descriptor(conn_size, post_num)
+    opaque = gpu_ops.build_coo_atomic_prod_descriptor(conn_size, post_num)
     if values_dim[0] != 1:
       return x_ops.CustomCallWithLayout(
         c, platform.encode() + v_type + f_type + i_type,
@@ -148,5 +149,5 @@ def _atomic_prod_translation(c, values, pre_ids, post_ids, *, post_num, platform
     raise ValueError("Unsupported platform; this must be either 'cpu' or 'gpu'")
 
 
-xla.backend_specific_translations["cpu"][_atomic_prod_prim] = partial(_atomic_prod_translation, platform="cpu")
-xla.backend_specific_translations["gpu"][_atomic_prod_prim] = partial(_atomic_prod_translation, platform="gpu")
+xla.backend_specific_translations["cpu"][coo_atomic_prod_p1] = partial(_atomic_prod_translation, platform="cpu")
+xla.backend_specific_translations["gpu"][coo_atomic_prod_p1] = partial(_atomic_prod_translation, platform="gpu")

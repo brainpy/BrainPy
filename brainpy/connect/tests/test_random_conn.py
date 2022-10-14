@@ -2,23 +2,27 @@
 
 import pytest
 
+import unittest
+
 import brainpy as bp
 
 
-def test_random_prob():
-  conn1 = bp.connect.FixedProb(prob=0.1, seed=123)
-  conn1(pre_size=(10, 20), post_size=(10, 20))
-  pre_ids, post_ids, pre2post = conn1.require('pre_ids', 'post_ids', 'pre2post')
+class TestFixedProb(unittest.TestCase):
+  def test_size_consistent(self):
+    conn1 = bp.connect.FixedProb(prob=0.1, seed=123)
+    conn1(pre_size=(10, 20), post_size=(10, 20))
+    pre_ids, post_ids, pre2post = conn1.require('pre_ids', 'post_ids', 'pre2post')
+    self.assertTrue(len(pre_ids) == len(post_ids))
+    self.assertTrue(len(pre_ids) == len(pre2post[0]))
 
-  conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
-  conn2(pre_size=(10, 20), post_size=(10, 20))
-  mat = conn2.require(bp.connect.CONN_MAT)
-  pre_ids2, post_ids2 = bp.math.where(mat)
+  def test_require_method(self):
+    conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
+    conn2(pre_size=(10, 20), post_size=(10, 20))
+    mat = conn2.require(100, 1000, bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (100, 1000))
 
-  print()
-  assert bp.math.array_equal(pre_ids, pre_ids2)
-  assert bp.math.array_equal(post_ids, post_ids2)
-  print('weight_mat', mat)
+    mat = conn2.require(bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (200, 200))
 
 
 def test_random_fix_pre1():

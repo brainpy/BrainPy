@@ -1,15 +1,15 @@
-#include "event_sum_cpu.h"
+#include "cpu_event_sum.h"
 
 namespace brainpy_lib {
 namespace{
     template <typename F, typename I>
-    void cpu_event_sum_homo(void *out, const void **in) {
+    void cpu_csr_event_sum_homo(void *out, const void **in) {
       const std::uint32_t pre_size = *reinterpret_cast<const std::uint32_t *>(in[0]);
       const std::uint32_t post_size = *reinterpret_cast<const std::uint32_t *>(in[1]);
       const bool *events = reinterpret_cast<const bool *>(in[2]);
       const I *indices = reinterpret_cast<const I *>(in[3]);
       const I *indptr = reinterpret_cast<const I *>(in[4]);
-      const F weight = *reinterpret_cast<const F *>(in[5]);
+      const F weight = reinterpret_cast<const F *>(in[5])[0];
       F *result = reinterpret_cast<F *>(out);
 
       // algorithm
@@ -25,7 +25,7 @@ namespace{
 
     // TODO:: batch version of "event_sum_homo" CPU operator
     template <typename F, typename I>
-    void cpu_event_sum_batch_homo(void *out, const void **in) {
+    void cpu_csr_event_sum_batch_homo(void *out, const void **in) {
       const std::uint32_t pre_size = *reinterpret_cast<const std::uint32_t *>(in[0]);
       const std::uint32_t post_size = *reinterpret_cast<const std::uint32_t *>(in[1]);
       const bool *events = reinterpret_cast<const bool *>(in[2]);
@@ -46,7 +46,7 @@ namespace{
     }
 
     template <typename F, typename I>
-    void cpu_event_sum_heter(void *out, const void **in) {
+    void cpu_csr_event_sum_heter(void *out, const void **in) {
       const std::uint32_t pre_size = *reinterpret_cast<const std::uint32_t *>(in[0]);
       const std::uint32_t post_size = *reinterpret_cast<const std::uint32_t *>(in[1]);
       const bool *events = reinterpret_cast<const bool *>(in[2]);
@@ -69,7 +69,7 @@ namespace{
 
     // TODO:: batch version of "event_sum_heter" CPU operator
     template <typename F, typename I>
-    void cpu_event_sum_batch_heter(void *out, const void **in) {
+    void cpu_csr_event_sum_batch_heter(void *out, const void **in) {
       const std::uint32_t pre_size = *reinterpret_cast<const std::uint32_t *>(in[0]);
       const std::uint32_t post_size = *reinterpret_cast<const std::uint32_t *>(in[1]);
       const bool *events = reinterpret_cast<const bool *>(in[2]);
@@ -92,13 +92,13 @@ namespace{
 
 }
 
-void cpu_event_sum_homo_f32_i32(void *out, const void **in){cpu_event_sum_homo<float, std::uint32_t>(out, in);}
-void cpu_event_sum_homo_f32_i64(void *out, const void **in){cpu_event_sum_homo<float, std::uint64_t>(out, in);}
-void cpu_event_sum_homo_f64_i32(void *out, const void **in){cpu_event_sum_homo<double, std::uint32_t>(out, in);}
-void cpu_event_sum_homo_f64_i64(void *out, const void **in){cpu_event_sum_homo<double, std::uint64_t>(out, in);}
+void cpu_csr_event_sum_homo_f32_i32(void *out, const void **in){cpu_csr_event_sum_homo<float, std::uint32_t>(out, in);}
+void cpu_csr_event_sum_homo_f32_i64(void *out, const void **in){cpu_csr_event_sum_homo<float, std::uint64_t>(out, in);}
+void cpu_csr_event_sum_homo_f64_i32(void *out, const void **in){cpu_csr_event_sum_homo<double, std::uint32_t>(out, in);}
+void cpu_csr_event_sum_homo_f64_i64(void *out, const void **in){cpu_csr_event_sum_homo<double, std::uint64_t>(out, in);}
 
-void cpu_event_sum_heter_f32_i32(void *out, const void **in){cpu_event_sum_heter<float, std::uint32_t>(out, in);}
-void cpu_event_sum_heter_f32_i64(void *out, const void **in){cpu_event_sum_heter<float, std::uint64_t>(out, in);}
-void cpu_event_sum_heter_f64_i32(void *out, const void **in){cpu_event_sum_heter<double, std::uint32_t>(out, in);}
-void cpu_event_sum_heter_f64_i64(void *out, const void **in){cpu_event_sum_heter<double, std::uint64_t>(out, in);}
+void cpu_csr_event_sum_heter_f32_i32(void *out, const void **in){cpu_csr_event_sum_heter<float, std::uint32_t>(out, in);}
+void cpu_csr_event_sum_heter_f32_i64(void *out, const void **in){cpu_csr_event_sum_heter<float, std::uint64_t>(out, in);}
+void cpu_csr_event_sum_heter_f64_i32(void *out, const void **in){cpu_csr_event_sum_heter<double, std::uint32_t>(out, in);}
+void cpu_csr_event_sum_heter_f64_i64(void *out, const void **in){cpu_csr_event_sum_heter<double, std::uint64_t>(out, in);}
 }
