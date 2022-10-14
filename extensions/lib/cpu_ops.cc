@@ -15,48 +15,48 @@ namespace {
       pybind11::dict dict;
 
       // event_sum for homogeneous value
-      dict["cpu_event_sum_homo_f32_i32"] = EncapsulateFunction(cpu_event_sum_homo_f32_i32);
-      dict["cpu_event_sum_homo_f32_i64"] = EncapsulateFunction(cpu_event_sum_homo_f32_i64);
-      dict["cpu_event_sum_homo_f64_i32"] = EncapsulateFunction(cpu_event_sum_homo_f64_i32);
-      dict["cpu_event_sum_homo_f64_i64"] = EncapsulateFunction(cpu_event_sum_homo_f64_i64);
+      dict["cpu_csr_event_sum_homo_f32_i32"] = EncapsulateFunction(cpu_csr_event_sum_homo_f32_i32);
+      dict["cpu_csr_event_sum_homo_f32_i64"] = EncapsulateFunction(cpu_csr_event_sum_homo_f32_i64);
+      dict["cpu_csr_event_sum_homo_f64_i32"] = EncapsulateFunction(cpu_csr_event_sum_homo_f64_i32);
+      dict["cpu_csr_event_sum_homo_f64_i64"] = EncapsulateFunction(cpu_csr_event_sum_homo_f64_i64);
       // event_sum for heterogeneous values
-      dict["cpu_event_sum_heter_f32_i32"] = EncapsulateFunction(cpu_event_sum_heter_f32_i32);
-      dict["cpu_event_sum_heter_f32_i64"] = EncapsulateFunction(cpu_event_sum_heter_f32_i64);
-      dict["cpu_event_sum_heter_f64_i32"] = EncapsulateFunction(cpu_event_sum_heter_f64_i32);
-      dict["cpu_event_sum_heter_f64_i64"] = EncapsulateFunction(cpu_event_sum_heter_f64_i64);
+      dict["cpu_csr_event_sum_heter_f32_i32"] = EncapsulateFunction(cpu_csr_event_sum_heter_f32_i32);
+      dict["cpu_csr_event_sum_heter_f32_i64"] = EncapsulateFunction(cpu_csr_event_sum_heter_f32_i64);
+      dict["cpu_csr_event_sum_heter_f64_i32"] = EncapsulateFunction(cpu_csr_event_sum_heter_f64_i32);
+      dict["cpu_csr_event_sum_heter_f64_i64"] = EncapsulateFunction(cpu_csr_event_sum_heter_f64_i64);
 
       // event_prod for homogeneous value
-      dict["cpu_event_prod_homo_f32_i32"] = EncapsulateFunction(cpu_event_prod_homo_f32_i32);
-      dict["cpu_event_prod_homo_f32_i64"] = EncapsulateFunction(cpu_event_prod_homo_f32_i64);
-      dict["cpu_event_prod_homo_f64_i32"] = EncapsulateFunction(cpu_event_prod_homo_f64_i32);
-      dict["cpu_event_prod_homo_f64_i64"] = EncapsulateFunction(cpu_event_prod_homo_f64_i64);
+      dict["cpu_csr_event_prod_homo_f32_i32"] = EncapsulateFunction(cpu_csr_event_prod_homo_f32_i32);
+      dict["cpu_csr_event_prod_homo_f32_i64"] = EncapsulateFunction(cpu_csr_event_prod_homo_f32_i64);
+      dict["cpu_csr_event_prod_homo_f64_i32"] = EncapsulateFunction(cpu_csr_event_prod_homo_f64_i32);
+      dict["cpu_csr_event_prod_homo_f64_i64"] = EncapsulateFunction(cpu_csr_event_prod_homo_f64_i64);
       // event_prod for heterogeneous values
-      dict["cpu_event_prod_heter_f32_i32"] = EncapsulateFunction(cpu_event_prod_heter_f32_i32);
-      dict["cpu_event_prod_heter_f32_i64"] = EncapsulateFunction(cpu_event_prod_heter_f32_i64);
-      dict["cpu_event_prod_heter_f64_i32"] = EncapsulateFunction(cpu_event_prod_heter_f64_i32);
-      dict["cpu_event_prod_heter_f64_i64"] = EncapsulateFunction(cpu_event_prod_heter_f64_i64);
+      dict["cpu_csr_event_prod_heter_f32_i32"] = EncapsulateFunction(cpu_csr_event_prod_heter_f32_i32);
+      dict["cpu_csr_event_prod_heter_f32_i64"] = EncapsulateFunction(cpu_csr_event_prod_heter_f32_i64);
+      dict["cpu_csr_event_prod_heter_f64_i32"] = EncapsulateFunction(cpu_csr_event_prod_heter_f64_i32);
+      dict["cpu_csr_event_prod_heter_f64_i64"] = EncapsulateFunction(cpu_csr_event_prod_heter_f64_i64);
 
       // atomic_sum for heterogeneous values
-      dict["cpu_atomic_sum_heter_f32_i32"] = EncapsulateFunction(cpu_atomic_sum_heter_f32_i32);
-      dict["cpu_atomic_sum_heter_f32_i64"] = EncapsulateFunction(cpu_atomic_sum_heter_f32_i64);
-      dict["cpu_atomic_sum_heter_f64_i32"] = EncapsulateFunction(cpu_atomic_sum_heter_f64_i32);
-      dict["cpu_atomic_sum_heter_f64_i64"] = EncapsulateFunction(cpu_atomic_sum_heter_f64_i64);
+      dict["cpu_coo_atomic_sum_heter_f32_i32"] = EncapsulateFunction(cpu_coo_atomic_sum_heter_f32_i32);
+      dict["cpu_coo_atomic_sum_heter_f32_i64"] = EncapsulateFunction(cpu_coo_atomic_sum_heter_f32_i64);
+      dict["cpu_coo_atomic_sum_heter_f64_i32"] = EncapsulateFunction(cpu_coo_atomic_sum_heter_f64_i32);
+      dict["cpu_coo_atomic_sum_heter_f64_i64"] = EncapsulateFunction(cpu_coo_atomic_sum_heter_f64_i64);
       // atomic_sum for homogeneous value
-      dict["cpu_atomic_sum_homo_f32_i32"] = EncapsulateFunction(cpu_atomic_sum_homo_f32_i32);
-      dict["cpu_atomic_sum_homo_f32_i64"] = EncapsulateFunction(cpu_atomic_sum_homo_f32_i64);
-      dict["cpu_atomic_sum_homo_f64_i32"] = EncapsulateFunction(cpu_atomic_sum_homo_f64_i32);
-      dict["cpu_atomic_sum_homo_f64_i64"] = EncapsulateFunction(cpu_atomic_sum_homo_f64_i64);
+      dict["cpu_coo_atomic_sum_homo_f32_i32"] = EncapsulateFunction(cpu_coo_atomic_sum_homo_f32_i32);
+      dict["cpu_coo_atomic_sum_homo_f32_i64"] = EncapsulateFunction(cpu_coo_atomic_sum_homo_f32_i64);
+      dict["cpu_coo_atomic_sum_homo_f64_i32"] = EncapsulateFunction(cpu_coo_atomic_sum_homo_f64_i32);
+      dict["cpu_coo_atomic_sum_homo_f64_i64"] = EncapsulateFunction(cpu_coo_atomic_sum_homo_f64_i64);
       
       // atomic_prod for heterogeneous values
-      dict["cpu_atomic_prod_heter_f32_i32"] = EncapsulateFunction(cpu_atomic_prod_heter_f32_i32);
-      dict["cpu_atomic_prod_heter_f32_i64"] = EncapsulateFunction(cpu_atomic_prod_heter_f32_i64);
-      dict["cpu_atomic_prod_heter_f64_i32"] = EncapsulateFunction(cpu_atomic_prod_heter_f64_i32);
-      dict["cpu_atomic_prod_heter_f64_i64"] = EncapsulateFunction(cpu_atomic_prod_heter_f64_i64);
+      dict["cpu_coo_atomic_prod_heter_f32_i32"] = EncapsulateFunction(cpu_coo_atomic_prod_heter_f32_i32);
+      dict["cpu_coo_atomic_prod_heter_f32_i64"] = EncapsulateFunction(cpu_coo_atomic_prod_heter_f32_i64);
+      dict["cpu_coo_atomic_prod_heter_f64_i32"] = EncapsulateFunction(cpu_coo_atomic_prod_heter_f64_i32);
+      dict["cpu_coo_atomic_prod_heter_f64_i64"] = EncapsulateFunction(cpu_coo_atomic_prod_heter_f64_i64);
       // atomic_prod for homogeneous value
-      dict["cpu_atomic_prod_homo_f32_i32"] = EncapsulateFunction(cpu_atomic_prod_homo_f32_i32);
-      dict["cpu_atomic_prod_homo_f32_i64"] = EncapsulateFunction(cpu_atomic_prod_homo_f32_i64);
-      dict["cpu_atomic_prod_homo_f64_i32"] = EncapsulateFunction(cpu_atomic_prod_homo_f64_i32);
-      dict["cpu_atomic_prod_homo_f64_i64"] = EncapsulateFunction(cpu_atomic_prod_homo_f64_i64);
+      dict["cpu_coo_atomic_prod_homo_f32_i32"] = EncapsulateFunction(cpu_coo_atomic_prod_homo_f32_i32);
+      dict["cpu_coo_atomic_prod_homo_f32_i64"] = EncapsulateFunction(cpu_coo_atomic_prod_homo_f32_i64);
+      dict["cpu_coo_atomic_prod_homo_f64_i32"] = EncapsulateFunction(cpu_coo_atomic_prod_homo_f64_i32);
+      dict["cpu_coo_atomic_prod_homo_f64_i64"] = EncapsulateFunction(cpu_coo_atomic_prod_homo_f64_i64);
       
       return dict;
     }

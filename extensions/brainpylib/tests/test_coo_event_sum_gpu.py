@@ -7,13 +7,12 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 import unittest
-from jax import vmap
-from brainpylib import event_sum
+from brainpylib import coo_event_sum
 import brainpy as bp
 import brainpy.math as bm
 
 
-# bm.set_platform('gpu')
+bm.set_platform('gpu')
 
 
 class TestEventSum(unittest.TestCase):
@@ -23,32 +22,12 @@ class TestEventSum(unittest.TestCase):
     conn = bp.conn.FixedProb(prob=0.5, seed=123)
     # conn = bp.conn.All2All()
     conn(pre_size=size, post_size=size)
-    post_ids, indptr = conn.require('pre2post')
+    pre_ids, post_ids = conn.require('pre_ids', 'post_ids')
     sps = bm.random.random(size).value < 0.5
     # print(sps)
     value = 3.0233
-    a = event_sum(sps, (post_ids.value, indptr.value), size, value)
+    a = coo_event_sum(sps, pre_ids.value, post_ids.value, size, value)
     print(a)
-
-  def test_homo_values_batching(self):
-    bp.math.random.seed(1345)
-    size = 200
-    conn = bp.conn.FixedProb(prob=0.5, seed=123)
-
-    conn(pre_size=size, post_size=size)
-    post_ids, indptr = conn.require('pre2post')
-    sps = bm.random.random((10, size)).value < 0.5
-    value = 3.0233
-    f = vmap(bm.pre2post_event_sum, in_axes=(0, None, None, None))
-    a1 = f(sps, (post_ids.value, indptr.value), size, value)
-
-    print(a1)
-
-    f = vmap(lambda events: bm.pre2post_event_sum(events, (post_ids.value, indptr.value), size, value))
-    a2 = f(sps)
-
-    print(a2)
-    self.assertTrue(jnp.array_equal(a1, a2))
 
   def test_heter_value(self):
     bp.math.random.seed(3)
@@ -56,30 +35,27 @@ class TestEventSum(unittest.TestCase):
     conn = bp.conn.FixedProb(prob=0.5, seed=3)
     # conn = bp.conn.One2One()
     conn(pre_size=size, post_size=size)
-    post_ids, indptr = conn.require('pre2post')
+    pre_ids, post_ids = conn.require('pre_ids', 'post_ids')
     # sps = bm.random.randint(0, 2, size).value < 1
     sps = bm.random.random(size).value < 0.5
     values = bm.random.rand(post_ids.size)
     # values = bm.ones(post_ids.size)
-    a = event_sum(sps, (post_ids.value, indptr.value), size, values.value)
+    a = coo_event_sum(sps, pre_ids.value, post_ids.value , size, values.value)
     print(a)
 
-  def test_heter_values_batching(self):
-    bp.math.random.seed(1345)
-    size = 200
-    conn = bp.conn.FixedProb(prob=0.5, seed=123)
-
-    conn(pre_size=size, post_size=size)
-    post_ids, indptr = conn.require('pre2post')
-    sps = bm.random.random((10, size)).value < 0.5
-    values = bm.random.rand(post_ids.size)
-    f = vmap(bm.pre2post_event_sum, in_axes=(0, None, None, None))
-    a1 = f(sps, (post_ids.value, indptr.value), size, values)
-
-    f = vmap(lambda events: bm.pre2post_event_sum(events, (post_ids.value, indptr.value), size, values))
-    a2 = f(sps)
-
-    self.assertTrue(jnp.array_equal(a1, a2))
+#
+#
+# bp.math.random.seed(1345)
+# size = 200
+# conn = bp.conn.FixedProb(prob=0.5, seed=123)
+# conn(pre_size=size, post_size=size)
+# post_ids, indptr = conn.require('pre2post')
+# sps = bm.random.random(size).value < 0.5
+# # print(sps)
+# value = 3.0233
+# a = event_sum3(sps, (post_ids.value, indptr.value), size, value,
+#                 max_post_conn=bm.diff(indptr).max())
+# print(a)
 
 
 # def test1():
