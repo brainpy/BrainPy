@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = [
-  'atomic_sum',
+  'coo_atomic_sum',
 ]
 
 from functools import partial
@@ -21,10 +21,10 @@ except ImportError:
 x_shape = xla_client.Shape.array_shape
 x_ops = xla_client.ops
 
-_atomic_sum_prim = core.Primitive("atomic_sum")
+coo_atomic_sum_p1 = core.Primitive("coo_atomic_sum_p1")
 
 
-def atomic_sum(values, post_ids, post_num, pre_ids=None):
+def coo_atomic_sum(values, post_ids, post_num, pre_ids=None):
   # connections
   if jnp.size(values) != 1:
     assert pre_ids is not None, 'Must provide "pre_ids" when "values" is not a scalar.'
@@ -52,15 +52,15 @@ def atomic_sum(values, post_ids, post_num, pre_ids=None):
   values = values.flatten()
 
   # bind operator
-  return _atomic_sum_prim.bind(values, pre_ids, post_ids, post_num=post_num)
+  return coo_atomic_sum_p1.bind(values, pre_ids, post_ids, post_num=post_num)
 
 
 def _atomic_sum_abstract(values, pre_ids, post_ids, *, post_num):
   return ShapedArray(dtype=values.dtype, shape=(post_num,))
 
 
-_atomic_sum_prim.def_abstract_eval(_atomic_sum_abstract)
-_atomic_sum_prim.def_impl(partial(xla.apply_primitive, _atomic_sum_prim))
+coo_atomic_sum_p1.def_abstract_eval(_atomic_sum_abstract)
+coo_atomic_sum_p1.def_impl(partial(xla.apply_primitive, coo_atomic_sum_p1))
 
 
 def _atomic_sum_translation(c, values, pre_ids, post_ids, *, post_num, platform="cpu"):
@@ -80,7 +80,7 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, *, post_num, platform=
 
   # We dispatch a different call depending on the dtype
   values_dim = values_info.dimensions()
-  v_type = b'_atomic_sum_homo' if (values_dim[0] == 1) else b'_atomic_sum_heter'
+  v_type = b'_coo_atomic_sum_homo' if (values_dim[0] == 1) else b'_coo_atomic_sum_heter'
   f_type = b'_f32' if values_dtype == np.float32 else b'_f64'
   i_type = b'_i32' if Itype == np.uint32 else b'_i64'
 
@@ -118,7 +118,7 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, *, post_num, platform=
     if gpu_ops is None:
       raise ValueError('Cannot find compiled gpu wheels.')
 
-    opaque = gpu_ops.build_atomic_sum_descriptor(conn_size, post_num)
+    opaque = gpu_ops.build_coo_atomic_sum_descriptor(conn_size, post_num)
     if values_dim[0] != 1:
       return x_ops.CustomCallWithLayout(
         c, platform.encode() + v_type + f_type + i_type,
@@ -144,5 +144,5 @@ def _atomic_sum_translation(c, values, pre_ids, post_ids, *, post_num, platform=
     raise ValueError("Unsupported platform; this must be either 'cpu' or 'gpu'")
 
 
-xla.backend_specific_translations["cpu"][_atomic_sum_prim] = partial(_atomic_sum_translation, platform="cpu")
-xla.backend_specific_translations["gpu"][_atomic_sum_prim] = partial(_atomic_sum_translation, platform="gpu")
+xla.backend_specific_translations["cpu"][coo_atomic_sum_p1] = partial(_atomic_sum_translation, platform="cpu")
+xla.backend_specific_translations["gpu"][coo_atomic_sum_p1] = partial(_atomic_sum_translation, platform="gpu")
