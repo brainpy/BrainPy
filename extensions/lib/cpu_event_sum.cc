@@ -1,4 +1,4 @@
-#include "event_sum_cpu.h"
+#include "cpu_event_sum.h"
 
 namespace brainpy_lib {
 namespace{

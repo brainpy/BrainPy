@@ -2,10 +2,10 @@
 // It is exposed as a standard pybind11 module defining "capsule" objects containing our
 // method. For simplicity, we export a separate capsule for each supported dtype.
 
-#include "event_sum_cpu.h"
-#include "event_prod_cpu.h"
-#include "atomic_sum_cpu.h"
-#include "atomic_prod_cpu.h"
+#include "cpu_event_sum.h"
+#include "cpu_event_prod.h"
+#include "cpu_atomic_sum.h"
+#include "cpu_atomic_prod.h"
 #include "pybind11_kernel_helpers.h"
 
 using namespace brainpy_lib;

@@ -1,4 +1,4 @@
-#include "atomic_prod_cpu.h"
+#include "cpu_atomic_prod.h"
 
 namespace brainpy_lib {
 namespace{

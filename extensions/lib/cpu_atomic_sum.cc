@@ -1,4 +1,4 @@
-#include "atomic_sum_cpu.h"
+#include "cpu_atomic_sum.h"
 
 namespace brainpy_lib {
 namespace{

@@ -5,9 +5,9 @@
 // custom call can be found in kernels.cc.cu.
 
 #include "pybind11_kernel_helpers.h"
-#include "event_sum_gpu.h"
-#include "atomic_sum_gpu.h"
-#include "atomic_prod_gpu.h"
+#include "gpu_event_sum.h"
+#include "gpu_atomic_sum.h"
+#include "gpu_atomic_prod.h"
 
 using namespace brainpy_lib;
 

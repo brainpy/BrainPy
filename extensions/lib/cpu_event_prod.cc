@@ -1,4 +1,4 @@
-#include "event_prod_cpu.h"
+#include "cpu_event_prod.h"
 
 namespace brainpy_lib {
 namespace{
