@@ -21,7 +21,7 @@ class TestEventProd(unittest.TestCase):
     sps = bm.random.random(size).value < 0.5
     # print(sps)
     value = 1.0233
-    a = csr_event_prod(sps, (post_ids.value, indptr.value), size, value)
+    a = csr_event_prod(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
     print(a)
 
   def test_heter_value(self):
@@ -35,6 +35,6 @@ class TestEventProd(unittest.TestCase):
     sps = bm.random.random(size).value < 0.5
     values = bm.random.rand(post_ids.size)
     # values = bm.ones(post_ids.size)
-    a = csr_event_prod(sps, (post_ids.value, indptr.value), size, values.value)
+    a = csr_event_prod(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values.value)
     print(a)
 
