@@ -4,8 +4,8 @@
 // the CUDA code itself doesn't include pybind11. I don't think that this is
 // strictly necessary, but they do it in jaxlib, so let's do it here too.
 
-#ifndef _BRAINPY_EXTENSION_PYBIND11_KERNEL_HELPERS_H_
-#define _BRAINPY_EXTENSION_PYBIND11_KERNEL_HELPERS_H_
+#ifndef _BRAINPYLIB_PYBIND11_KERNEL_HELPERS_H_
+#define _BRAINPYLIB_PYBIND11_KERNEL_HELPERS_H_
 
 #include <pybind11/pybind11.h>
 #include "kernel_helpers.h"

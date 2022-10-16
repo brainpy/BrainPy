@@ -27,7 +27,7 @@ class TestEventSum(unittest.TestCase):
     sps = bm.random.random(size).value < 0.5
     # print(sps)
     value = 3.0233
-    a = csr_event_sum(sps, (post_ids.value, indptr.value), size, value)
+    a = csr_event_sum(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
     print(a)
 
   def test_homo_values_batching(self):
@@ -40,11 +40,11 @@ class TestEventSum(unittest.TestCase):
     sps = bm.random.random((10, size)).value < 0.5
     value = 3.0233
     f = vmap(csr_event_sum, in_axes=(0, None, None, None))
-    a1 = f(sps, (post_ids.value, indptr.value), size, value)
+    a1 = f(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
 
     print(a1)
 
-    f = vmap(lambda events: csr_event_sum(events, (post_ids.value, indptr.value), size, value))
+    f = vmap(lambda events: csr_event_sum(events, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value))
     a2 = f(sps)
 
     print(a2)
@@ -61,7 +61,7 @@ class TestEventSum(unittest.TestCase):
     sps = bm.random.random(size).value < 0.5
     values = bm.random.rand(post_ids.size)
     # values = bm.ones(post_ids.size)
-    a = csr_event_sum(sps, (post_ids.value, indptr.value), size, values.value)
+    a = csr_event_sum(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values.value)
     print(a)
 
   def test_heter_values_batching(self):
@@ -74,9 +74,9 @@ class TestEventSum(unittest.TestCase):
     sps = bm.random.random((10, size)).value < 0.5
     values = bm.random.rand(post_ids.size).value
     f = vmap(csr_event_sum, in_axes=(0, None, None, None))
-    a1 = f(sps, (post_ids.value, indptr.value), size, values)
+    a1 = f(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values)
 
-    f = vmap(lambda events: csr_event_sum(events, (post_ids.value, indptr.value), size, values))
+    f = vmap(lambda events: csr_event_sum(events, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values))
     a2 = f(sps)
 
     print(a1, a2)
