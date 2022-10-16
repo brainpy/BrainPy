@@ -3,7 +3,9 @@
 import os
 import re
 import glob
+import sys
 
+import pybind11
 from pybind11.setup_helpers import Pybind11Extension
 from setuptools import find_packages, setup
 from setuptools.command.build_ext import build_ext
@@ -19,10 +21,10 @@ with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
-                    sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
+                    sources=glob.glob("lib/cpu_*.cc"),
                     cxx_std=11,
-                    # extra_link_args=["-rpath", "/Users/ztqakita/miniforge3/lib"], # m1
-                    extra_link_args=["-rpath", "/Users/ztqakita/opt/miniconda3/lib"], # intel
+                    # extra_link_args=["-rpath", os.environ["CONDA_PREFIX"] + "/lib"],
+                    extra_link_args=["-rpath", re.sub('/lib/.*', '/lib', sys.path[1])],
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
 
