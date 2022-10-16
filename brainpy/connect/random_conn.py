@@ -148,7 +148,7 @@ class FixedPreNum(FixedNum):
       pres = bm.delete(pre_ids, post_i) if not self.include_self else pre_ids
       return self.rng.permutation(pres, key=key)[:pre_num_to_select]
 
-    selected_pre_ids = f(post_ids, self.rng.split_keys(pre_num)).flatten()
+    selected_pre_ids = f(post_ids, self.rng.split_keys(post_num)).flatten()
     selected_post_ids = bm.repeat(post_ids, pre_num_to_select)
     return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
 

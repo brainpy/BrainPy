@@ -3,6 +3,7 @@
 import abc
 from typing import Union, List, Tuple, Any
 
+import jax.numpy as jnp
 import numpy as onp
 
 from brainpy import tools, math as bm
@@ -359,16 +360,16 @@ class TwoEndConnector(Connector):
     self.check(structures)
     if self.is_version2_style:
       if len(structures) == 1:
-        if PRE2POST in structures:
+        if PRE2POST in structures and not hasattr(self.build_csr, 'not_customized'):
           return self.build_csr(pre_size, post_size)
-        elif CONN_MAT in structures:
+        elif CONN_MAT in structures and not hasattr(self.build_mat, 'not_customized'):
           return self.build_mat(pre_size, post_size)
-        elif PRE_IDS in structures:
+        elif PRE_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
           return self.build_coo(pre_size, post_size)[0]
-        elif POST_IDS in structures:
+        elif POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
           return self.build_coo(pre_size, post_size)[1]
       elif len(structures) == 2:
-        if PRE_IDS in structures and POST_IDS in structures:
+        if PRE_IDS in structures and POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
           return self.build_coo(pre_size, post_size)
 
       conn_data = dict(csr=None, ij=None, mat=None)
@@ -443,6 +444,8 @@ def csr2csc(csr, post_num, data=None):
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
 
   sort_ids = np.argsort(indices, kind=kind)  # to maintain the original order of the elements with the same value
+  if isinstance(sort_ids, bm.JaxArray):
+    sort_ids = sort_ids.value
   pre_ids_new = np.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
 
   unique_post_ids, count = np.unique(indices, return_counts=True)
@@ -504,7 +507,7 @@ def ij2csr(pre_ids, post_ids, num_pre):
 
   # sorting
   sort_ids = np.argsort(pre_ids, kind=kind)
-  post_ids = post_ids[sort_ids]
+  post_ids = post_ids[sort_ids.value if isinstance(sort_ids, bm.JaxArray) else sort_ids]
 
   indices = post_ids
   unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)

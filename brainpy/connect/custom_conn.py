@@ -35,8 +35,8 @@ class MatConn(TwoEndConnector):
     return self
 
   def build_mat(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(pre_size)
-    post_num = get_post_num(post_size)
+    pre_num = get_pre_num(self, pre_size)
+    post_num = get_post_num(self, post_size)
     assert self.conn_mat.shape[0] == pre_num
     assert self.conn_mat.shape[1] == post_num
     return self.conn_mat
@@ -69,8 +69,8 @@ class IJConn(TwoEndConnector):
     return self
 
   def build_coo(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(pre_size)
-    post_num = get_post_num(post_size)
+    pre_num = get_pre_num(self, pre_size)
+    post_num = get_post_num(self, post_size)
     if pre_num <= self.max_pre:
       raise ConnectorError(f'pre_num ({pre_num}) should be greater than '
                            f'the maximum id ({self.max_pre}) of self.pre_ids.')
@@ -91,20 +91,12 @@ class CSRConn(TwoEndConnector):
     self.pre_num = self.inptr.size - 1
     self.max_post = bm.max(self.indices)
 
-  def __call__(self, pre_size, post_size):
-    if self.pre_num != tools.size2num(pre_size):
-      raise ConnectorError(f'(pre_size, post_size) is inconsistent with the shape of the sparse matrix.')
-    self.post_num = np.prod(post_size)
-    if self.post_num <= self.max_post:
-      raise ConnectorError(f'post_num ({self.post_num}) should be greater than '
-                           f'the maximum id ({self.max_post}) of self.post_ids.')
-    assert self.post_num == tools.size2num(post_size)
-    return self
-
   def build_csr(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(pre_size)
-    post_num = get_post_num(post_size)
-    if pre_num != tools.size2num(pre_size):
+    pre_size = get_pre_size(self, pre_size)
+    post_size = get_post_size(self, post_size)
+    pre_num = np.prod(pre_size)
+    post_num = np.prod(post_size)
+    if pre_num != self.pre_num:
       raise ConnectorError(f'(pre_size, post_size) is inconsistent with '
                            f'the shape of the sparse matrix.')
     if post_num <= self.max_post:
