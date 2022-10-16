@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = [
-  'csr_event_sum',
+  'csr_event_sum', 'event_sum',
   'coo_event_sum',
 ]
 
@@ -60,6 +60,8 @@ def csr_event_sum(events: jnp.ndarray,
   # bind operator
   return csr_event_sum_p1.bind(events, indices, indptr, values, post_num=post_num)
 
+
+event_sum = csr_event_sum
 
 def _event_sum_abstract(events, indices, indptr, values, *, post_num):
   return ShapedArray(dtype=values.dtype, shape=(post_num,))

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = [
-  'coo_atomic_prod',
+  'coo_atomic_prod', 'atomic_prod'
 ]
 
 from functools import partial
@@ -53,6 +53,9 @@ def coo_atomic_prod(values, post_ids, post_num, pre_ids=None):
 
   # bind operator
   return coo_atomic_prod_p1.bind(values, pre_ids, post_ids, post_num=post_num)
+
+
+atomic_prod = coo_atomic_prod
 
 
 def _atomic_prod_abstract(values, pre_ids, post_ids, *, post_num):

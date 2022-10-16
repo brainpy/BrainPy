@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __all__ = [
-  'coo_atomic_sum',
+  'coo_atomic_sum', 'atomic_sum'
 ]
 
 from functools import partial
@@ -53,6 +53,9 @@ def coo_atomic_sum(values, post_ids, post_num, pre_ids=None):
 
   # bind operator
   return coo_atomic_sum_p1.bind(values, pre_ids, post_ids, post_num=post_num)
+
+
+atomic_sum = coo_atomic_sum
 
 
 def _atomic_sum_abstract(values, pre_ids, post_ids, *, post_num):
