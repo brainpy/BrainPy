@@ -41,13 +41,13 @@ def csr_event_prod(events, pre2post, post_num, values):
     raise ValueError(f'The dtype of pre2post must be uint32 or uint64, while we got {indices.dtype}')
 
   # output value
-  values = jnp.asarray([values])
+  if np.ndim(values) == 0:
+    values = jnp.asarray([values])
   if values.dtype not in [jnp.float32, jnp.float64]:
     raise ValueError(f'The dtype of "values" must be float32 or float64, while we got {values.dtype}.')
   if values.size not in [1, indices.size]:
     raise ValueError(f'The size of "values" must be 1 (a scalar) or len(pre2post[0]) (a vector), '
                      f'while we got {values.size} != 1 != {indices.size}')
-  values = values.flatten()
   # bind operator
   return csr_event_prod_p1.bind(events, indices, indptr, values, post_num=post_num)
 

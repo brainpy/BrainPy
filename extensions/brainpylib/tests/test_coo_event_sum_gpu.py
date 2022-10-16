@@ -26,7 +26,7 @@ class TestEventSum(unittest.TestCase):
     sps = bm.random.random(size).value < 0.5
     # print(sps)
     value = 3.0233
-    a = coo_event_sum(sps, pre_ids.value, post_ids.value, size, value)
+    a = coo_event_sum(sps, bp.math.as_jax(pre_ids), bp.math.as_jax(post_ids), size, value)
     print(a)
 
   def test_heter_value(self):
@@ -40,7 +40,7 @@ class TestEventSum(unittest.TestCase):
     sps = bm.random.random(size).value < 0.5
     values = bm.random.rand(post_ids.size)
     # values = bm.ones(post_ids.size)
-    a = coo_event_sum(sps, pre_ids.value, post_ids.value , size, values.value)
+    a = coo_event_sum(sps, bp.math.as_jax(pre_ids), bp.math.as_jax(post_ids) , size, values.value)
     print(a)
 
 #

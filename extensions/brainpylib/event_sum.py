@@ -49,7 +49,7 @@ def csr_event_sum(events: jnp.ndarray,
     raise ValueError(f'The dtype of pre2post must be integer, while we got {indices.dtype}')
 
   # output value
-  if not isinstance(values, jnp.ndarray):
+  if np.ndim(values) == 0:
     values = jnp.asarray([values])
   dtype = values.dtype
   if dtype not in [jnp.float32, jnp.float64]:
@@ -178,7 +178,7 @@ def coo_event_sum(events, pre_ids, post_ids, post_num, values):
                      f'while we got {pre_ids.dtype}')
 
   # output value
-  if not isinstance(values, jnp.ndarray):
+  if np.ndim(values) == 0:
     values = jnp.asarray([values])
   if values.dtype not in [jnp.float32, jnp.float64]:
     raise ValueError(f'The dtype of "values" must be float32 or float64, while we got {values.dtype}.')

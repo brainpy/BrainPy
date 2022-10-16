@@ -40,7 +40,8 @@ def coo_atomic_prod(values, post_ids, post_num, pre_ids=None):
     raise ValueError(f'The dtype of post_ids must be uint32 or uint64, while we got {post_ids.dtype}')
 
   # output value
-  values = jnp.asarray([values])
+  if np.ndim(values) == 0:
+    values = jnp.asarray([values])
   if values.dtype not in [jnp.float32, jnp.float64]:
     raise ValueError(f'The dtype of "values" must be float32 or float64, while we got {values.dtype}.')
   # if values.size not in [1, pre_ids.size]:
@@ -49,7 +50,6 @@ def coo_atomic_prod(values, post_ids, post_num, pre_ids=None):
   if values.size != 1 and values.size <= pre_ids.max():
     raise ValueError(f'The size of "values" must be 1 (a scalar) or longer than pre_size (a vector), '
                      f'while we got {values.size} != 1 <= {pre_ids.max()}')
-  values = values.flatten()
 
   # bind operator
   return coo_atomic_prod_p1.bind(values, pre_ids, post_ids, post_num=post_num)
