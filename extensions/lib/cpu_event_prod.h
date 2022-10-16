@@ -1,5 +1,5 @@
-#ifndef _BRAINPY_EVENT_prod_H_
-#define _BRAINPY_EVENT_prod_H_
+#ifndef _BRAINPYLIB_EVENT_PROD_H_
+#define _BRAINPYLIB_EVENT_PROD_H_
 
 #include <cstdint>
 #include <cstring>
