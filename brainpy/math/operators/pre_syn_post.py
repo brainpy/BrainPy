@@ -385,6 +385,9 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
     return syn2post_mean(pre_values, post_ids, post_num)
 
 
+_pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
+
+
 def pre2syn(pre_values, pre_ids):
   """The pre-to-syn computation.
 
