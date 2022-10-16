@@ -16,7 +16,9 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose
 from jax.util import safe_map
 
 from brainpy import errors
-from brainpy.math.jaxarray import JaxArray
+from brainpy.base.naming import get_unique_name
+from brainpy.math.jaxarray import JaxArray, add_context, del_context
+
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -28,20 +30,26 @@ __all__ = [
 
 def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
                         argnums, return_value, has_aux):
+  name = get_unique_name('_brainpy_object_oriented_grad_')
+
   # outputs
   def call_func(*args, **kwargs):
     old_grad_vs = [v.value for v in grad_vars]
     old_dyn_vs = [v.value for v in dyn_vars]
     try:
+      add_context(name)
       grads, (outputs, new_grad_vs, new_dyn_vs) = grad_func(old_grad_vs,
                                                             old_dyn_vs,
                                                             *args,
                                                             **kwargs)
+      del_context(name)
     except UnexpectedTracerError as e:
+      del_context(name)
       for v, d in zip(grad_vars, old_grad_vs): v._value = d
       for v, d in zip(dyn_vars, old_dyn_vs): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars + grad_vars) from e
     except Exception as e:
+      del_context(name)
       for v, d in zip(grad_vars, old_grad_vs): v._value = d
       for v, d in zip(dyn_vars, old_dyn_vs): v._value = d
       raise e
