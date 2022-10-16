@@ -49,7 +49,7 @@ def test_random_fix_pre2():
 
 
 def test_random_fix_pre3():
-  with pytest.raises(AssertionError):
+  with pytest.raises(bp.errors.ConnectorError):
     conn1 = bp.connect.FixedPreNum(num=6, seed=1234)(pre_size=3, post_size=4)
     conn1.require(bp.connect.CONN_MAT)
 
@@ -77,7 +77,7 @@ def test_random_fix_post2():
 
 
 def test_random_fix_post3():
-  with pytest.raises(AssertionError):
+  with pytest.raises(bp.errors.ConnectorError):
     conn1 = bp.connect.FixedPostNum(num=6, seed=1234)(pre_size=3, post_size=4)
     conn1.require(bp.connect.CONN_MAT)
 

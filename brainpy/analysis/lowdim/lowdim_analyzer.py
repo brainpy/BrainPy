@@ -96,6 +96,9 @@ class LowDimAnalyzer(DSAnalyzer):
     for key in self.target_vars.keys():
       if key not in self.model.variables:
         raise errors.AnalyzerError(f'{key} is not a dynamical variable in {self.model}.')
+      value = self.target_vars[key]
+      if value[0] > value[1]:
+        raise errors.AnalyzerError(f'The range of variable {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
 
     # fixed variables
     # ----------------
@@ -137,6 +140,10 @@ class LowDimAnalyzer(DSAnalyzer):
     for key in target_pars.keys():
       if key not in self.model.parameters:
         raise errors.AnalyzerError(f'"{key}" is not a valid parameter in "{self.model}" model.')
+      value = self.target_vars[key]
+      if value[0] > value[1]:
+        raise errors.AnalyzerError(f'The range of parameter {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
+
     self.target_pars = Collector(target_pars)
     self.target_par_names = list(self.target_pars.keys())  # list of target_pars
 
