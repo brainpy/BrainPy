@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from brainpylib import coo_atomic_prod
 
 import brainpy as bp
+import brainpy.math as bm
 
 bp.math.set_platform('cpu')
 
@@ -37,7 +38,7 @@ class TestAtomicProd(unittest.TestCase):
     conn = bp.conn.FixedProb(prob=1, seed=123)
     conn(pre_size=size, post_size=size)
     post_ids = conn.require('post_ids')
-    a = coo_atomic_prod(value, post_ids.value, size)
+    a = coo_atomic_prod(value, bm.as_jax(post_ids), size)
     print(a)
 
   def test_heter_fixedpro(self):
@@ -46,5 +47,5 @@ class TestAtomicProd(unittest.TestCase):
     conn = bp.conn.FixedProb(prob=1, seed=123)
     conn(pre_size=size, post_size=size)
     pre_ids, post_ids = conn.require('pre_ids', 'post_ids')
-    a = coo_atomic_prod(value, post_ids.value, size, pre_ids.value)
+    a = coo_atomic_prod(value, bm.as_jax(post_ids), size, bm.as_jax(pre_ids))
     print(a)

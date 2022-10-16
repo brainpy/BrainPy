@@ -54,18 +54,20 @@ class TestCrossCorrelation(unittest.TestCase):
 class TestVoltageFluctuation(unittest.TestCase):
   def test_vf1(self):
     rng = bp.math.random.RandomState(122)
-    voltages = rng.normal(0, 10, size=(1000, 100))
+    voltages = rng.normal(0, 10, size=(1000, 100)).value
     print(bp.measure.voltage_fluctuation(voltages))
 
-    voltages = bp.math.ones((1000, 100))
+    bm.enable_x64()
+    voltages = bp.math.ones((1000, 100)).value
     r1 = bp.measure.voltage_fluctuation(voltages)
 
     jit_f = jit(partial(bp.measure.voltage_fluctuation, numpy=False))
+    jit_f = jit(lambda a: bp.measure.voltage_fluctuation(a, numpy=False))
     r2 = jit_f(voltages)
-
     print(r1, r2)  # TODO: JIT results are different?
-
     # self.assertTrue(r1 == r2)
+
+    bm.disable_x64()
 
 
 class TestFunctionalConnectivity(unittest.TestCase):
