@@ -65,7 +65,7 @@ def check_context(arr_context):
     if len(_jax_transformation_context_) > 0:
       raise MathError(f'JaxArray created outside of the transformation functions '
                       f'({_jax_transformation_context_[-1]}) cannot be updated. '
-                      f'You should mark it as a Variable instead.')
+                      f'You should mark it as a brainpy.math.Variable instead.')
       return True
     else:
       return False
@@ -75,8 +75,9 @@ def check_context(arr_context):
         raise MathError(f'JaxArray context "{arr_context}" differs from the JAX '
                         f'transformation context "{_jax_transformation_context_[-1]}"'
                         '\n\n'
-                        'JaxArray created outside of the transformation functions '
-                        'cannot be updated. You should mark it as a Variable instead.')
+                        'JaxArray created in one transformation function '
+                        'cannot be updated another transformation function. '
+                        'You should mark it as a brainpy.math.Variable instead.')
         return True
     else:
       return False

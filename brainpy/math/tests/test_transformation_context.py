@@ -45,3 +45,12 @@ class TestJIT(unittest.TestCase):
 
     with self.assertRaises(bp.errors.MathError):
       print(f2(f1(bm.ones(2))))
+
+  def test4(self):
+    @bm.jit
+    def f2(a):
+      b = bm.ones(1)
+      b += 10
+      return a + b
+
+    print(f2(bm.ones(1)))
