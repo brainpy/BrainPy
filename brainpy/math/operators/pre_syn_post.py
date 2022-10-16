@@ -104,7 +104,7 @@ def pre2post_csr_event_sum(events: Array,
   indices = as_device_array(indices)
   idnptr = as_device_array(idnptr)
   values = as_device_array(values)
-  return brainpylib.event_sum(events, (indices, idnptr), post_num, values)
+  return brainpylib.csr_event_sum(events, (indices, idnptr), post_num, values)
 
 
 pre2post_event_sum = pre2post_csr_event_sum
@@ -124,7 +124,7 @@ def pre2post_coo_event_sum(events: Array,
   pre_ids: Array
     Pre-synaptic ids.
   post_ids: Array
-    Post-synaptic idsd.
+    Post-synaptic ids.
   post_num: int
     The number of post-synaptic group.
   values: float, Array
@@ -140,7 +140,7 @@ def pre2post_coo_event_sum(events: Array,
   post_ids = as_device_array(post_ids)
   pre_ids = as_device_array(pre_ids)
   values = as_device_array(values)
-  return brainpylib.event_sum2(events, pre_ids, post_ids, post_num, values)
+  return brainpylib.coo_event_sum(events, pre_ids, post_ids, post_num, values)
 
 
 def pre2post_csr_event_prod(events, pre2post, post_num, values=1.):
@@ -195,7 +195,7 @@ def pre2post_csr_event_prod(events, pre2post, post_num, values=1.):
   indices = as_device_array(indices)
   idnptr = as_device_array(idnptr)
   values = as_device_array(values)
-  return brainpylib.event_prod(events, (indices, idnptr), post_num, values)
+  return brainpylib.csr_event_prod(events, (indices, idnptr), post_num, values)
 
 
 pre2post_event_prod = pre2post_csr_event_prod
@@ -385,37 +385,6 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
     return syn2post_mean(pre_values, post_ids, post_num)
 
 
-def pre2post_matmul(event, conn):
-  event = event.value if isinstance(event, JaxArray) else event
-  Cl = conn[0].value if isinstance(conn[0], JaxArray) else conn[0]
-  Cr = conn[1].value if isinstance(conn[1], JaxArray) else conn[1]
-  if jnp.ndim(event) != 1:
-    raise ValueError(f'"event" must be a one-dimensional vector. But we got {jnp.shape(event)}')
-  if jnp.ndim(Cl) != 2:
-    raise ValueError(f'"conn" must be a two-dimensional matrix. But we got {jnp.shape(Cl)}')
-  if jnp.ndim(Cr) != 2:
-    raise ValueError(f'"conn" must be a two-dimensional matrix. But we got {jnp.shape(Cr)}')
-
-  f0 = vmap(lambda i, j: event[i] * (Cl[i] * Cr[:, j]).sum(), in_axes=(0, None))
-  ii = jnp.arange(Cl.shape[0])
-  f1 = vmap(lambda j: f0(ii, j).sum(), in_axes=(None, 0))
-  return f1(jnp.arange(Cr.shape[1]))
-
-
-def pre2post_matmul2(event, conn):
-  event = event.value if isinstance(event, JaxArray) else event
-  Cl = conn[0].value if isinstance(conn[0], JaxArray) else conn[0]
-  Cr = conn[1].value if isinstance(conn[1], JaxArray) else conn[1]
-  if jnp.ndim(event) != 1:
-    raise ValueError(f'"event" must be a one-dimensional vector. But we got {jnp.shape(event)}')
-  if jnp.ndim(Cl) != 2:
-    raise ValueError(f'"conn" must be a two-dimensional matrix. But we got {jnp.shape(Cl)}')
-  if jnp.ndim(Cr) != 2:
-    raise ValueError(f'"conn" must be a two-dimensional matrix. But we got {jnp.shape(Cr)}')
-  f1 = vmap(lambda j: (event * (Cl * Cr[:, j]).sum(1)).sum())
-  return f1(jnp.arange(Cr.shape[1]))
-
-
 _pre2syn = vmap(lambda pre_id, pre_vs: pre_vs[pre_id], in_axes=(0, None))
 
 
@@ -459,7 +428,7 @@ _jit_seg_max = jit(jops.segment_max, static_argnums=(2, 3))
 _jit_seg_min = jit(jops.segment_min, static_argnums=(2, 3))
 
 
-def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   """The syn-to-post summation computation.
 
   This function is equivalent to:
@@ -495,7 +464,7 @@ def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=True):
 syn2post = syn2post_sum
 
 
-def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   """The syn-to-post product computation.
 
   This function is equivalent to:
@@ -532,7 +501,7 @@ def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   return _jit_seg_prod(syn_values, post_ids, post_num, indices_are_sorted)
 
 
-def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   """The syn-to-post maximum computation.
 
   This function is equivalent to:
@@ -569,7 +538,7 @@ def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   return _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
 
 
-def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   """The syn-to-post minimization computation.
 
   This function is equivalent to:
@@ -606,7 +575,7 @@ def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   return _jit_seg_min(syn_values, post_ids, post_num, indices_are_sorted)
 
 
-def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   """The syn-to-post mean computation.
 
   Parameters
@@ -636,7 +605,7 @@ def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=True):
   return jnp.nan_to_num(nominator / denominator)
 
 
-def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=True):
+def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   """The syn-to-post softmax computation.
 
   Parameters

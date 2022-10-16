@@ -1,5 +1,5 @@
-#ifndef _BRAINPY_EVENT_SUM_H_
-#define _BRAINPY_EVENT_SUM_H_
+#ifndef _BRAINPYLIB_EVENT_SUM_H_
+#define _BRAINPYLIB_EVENT_SUM_H_
 
 #include <cstdint>
 #include <cstring>

@@ -19,7 +19,7 @@ with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
-                    sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
+                    sources=glob.glob("lib/cpu_*.cc"),
                     cxx_std=11,
                     define_macros=[('VERSION_INFO', __version__)]),
 ]

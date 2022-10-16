@@ -8,7 +8,7 @@ except ModuleNotFoundError:
   brainpylib = None
 
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.0.6'
+_BRAINPYLIB_MINIMAL_VERSION = '0.0.7'
 
 
 def _check_brainpylib(ops_name):
@@ -17,7 +17,7 @@ def _check_brainpylib(ops_name):
       raise PackageMissingError(
         f'"{ops_name}" operator need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
         f'Please install it through:\n\n'
-        f'>>> pip install brainpylib=={_BRAINPYLIB_MINIMAL_VERSION}\n'
+        f'>>> pip install brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}\n'
         f'>>> # or \n'
         f'>>> pip install brainpylib -U'
       )

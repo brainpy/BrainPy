@@ -3,8 +3,8 @@
 // descriptors that are used with the "opaque" parameter of the GPU custom call. In our example
 // we'll use this parameter to pass the size of our problem.
 
-#ifndef _BRAINPY_LIB_KERNEL_HELPERS_H_
-#define _BRAINPY_LIB_KERNEL_HELPERS_H_
+#ifndef _BRAINPYLIB_KERNEL_HELPERS_H_
+#define _BRAINPYLIB_KERNEL_HELPERS_H_
 
 #include <cstdint>
 #include <stdexcept>

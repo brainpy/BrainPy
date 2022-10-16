@@ -3,6 +3,7 @@
 import abc
 from typing import Union, List, Tuple, Any
 
+import jax.numpy as jnp
 import numpy as onp
 
 from brainpy import tools, math as bm
@@ -204,13 +205,15 @@ class TwoEndConnector(Connector):
 
     require_other_structs = len([s for s in structures if s != CONN_MAT]) > 0
     if require_other_structs:
-      pre_ids, post_ids = onp.where(mat > 0)
-      pre_ids = onp.ascontiguousarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = onp.ascontiguousarray(post_ids, dtype=IDX_DTYPE)
+      np = onp if isinstance(mat, onp.ndarray) else bm
+      pre_ids, post_ids = np.where(mat > 0)
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
       self._return_by_ij(structures, ij=(pre_ids, post_ids), all_data=all_data)
 
   def _return_by_csr(self, structures, csr: tuple, all_data: dict):
     indices, indptr = csr
+    np = onp if isinstance(indices, onp.ndarray) else bm
     assert self.pre_num == indptr.size - 1
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
@@ -218,7 +221,7 @@ class TwoEndConnector(Connector):
       all_data[CONN_MAT] = bm.asarray(conn_mat, dtype=MAT_DTYPE)
 
     if (PRE_IDS in structures) and (PRE_IDS not in all_data):
-      pre_ids = onp.repeat(onp.arange(self.pre_num), onp.diff(indptr))
+      pre_ids = np.repeat(np.arange(self.pre_num), np.diff(indptr))
       all_data[PRE_IDS] = bm.asarray(pre_ids, dtype=IDX_DTYPE)
 
     if (POST_IDS in structures) and (POST_IDS not in all_data):
@@ -234,12 +237,12 @@ class TwoEndConnector(Connector):
                             bm.asarray(indptrc, dtype=IDX_DTYPE))
 
     if (PRE2SYN in structures) and (PRE2SYN not in all_data):
-      syn_seq = onp.arange(indices.size, dtype=IDX_DTYPE)
+      syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
       all_data[PRE2SYN] = (bm.asarray(syn_seq, dtype=IDX_DTYPE),
                            bm.asarray(indptr, dtype=IDX_DTYPE))
 
     if (POST2SYN in structures) and (POST2SYN not in all_data):
-      syn_seq = onp.arange(indices.size, dtype=IDX_DTYPE)
+      syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
       _, indptrc, syn_seqc = csr2csc((indices, indptr), self.post_num, syn_seq)
       all_data[POST2SYN] = (bm.asarray(syn_seqc, dtype=IDX_DTYPE),
                             bm.asarray(indptrc, dtype=IDX_DTYPE))
@@ -297,7 +300,7 @@ class TwoEndConnector(Connector):
 
     # "mat" structure
     if mat is not None:
-      assert isinstance(mat, onp.ndarray) and onp.ndim(mat) == 2
+      assert mat.ndim == 2
       if (CONN_MAT in structures) and (CONN_MAT not in all_data):
         all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
       self._return_by_mat(structures, mat=mat, all_data=all_data)
@@ -316,6 +319,7 @@ class TwoEndConnector(Connector):
     else:
       return tuple([all_data[n] for n in structures])
 
+  @tools.not_customized
   def build_conn(self):
     """build connections with certain data type.
 
@@ -326,7 +330,7 @@ class TwoEndConnector(Connector):
     Or a dict with three elements: csr, mat and ij.
       example: return dict(csr=(ind, indptr), mat=None, ij=None)
     """
-    raise NotImplementedError
+    pass
 
   def require(self, *sizes_or_structures):
     sizes_or_structures = list(sizes_or_structures)
@@ -355,26 +359,24 @@ class TwoEndConnector(Connector):
 
     self.check(structures)
     if self.is_version2_style:
-      if (pre_size is None) or (post_size is None):
-        raise ConnectorError('Please provide both "pre_size" and "post_size".')
       if len(structures) == 1:
-        if PRE2POST in structures:
+        if PRE2POST in structures and not hasattr(self.build_csr, 'not_customized'):
           return self.build_csr(pre_size, post_size)
-        elif CONN_MAT in structures:
+        elif CONN_MAT in structures and not hasattr(self.build_mat, 'not_customized'):
           return self.build_mat(pre_size, post_size)
-        elif PRE_IDS in structures:
+        elif PRE_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
           return self.build_coo(pre_size, post_size)[0]
-        elif POST_IDS in structures:
+        elif POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
           return self.build_coo(pre_size, post_size)[1]
       elif len(structures) == 2:
-        if PRE_IDS in structures and POST_IDS in structures:
+        if PRE_IDS in structures and POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
           return self.build_coo(pre_size, post_size)
 
       conn_data = dict(csr=None, ij=None, mat=None)
-      if not hasattr(self.build_csr, 'not_customized'):
-        conn_data['csr'] = self.build_csr(pre_size, post_size)
-      elif not hasattr(self.build_coo, 'not_customized'):
+      if not hasattr(self.build_coo, 'not_customized'):
         conn_data['ij'] = self.build_coo(pre_size, post_size)
+      elif not hasattr(self.build_csr, 'not_customized'):
+        conn_data['csr'] = self.build_csr(pre_size, post_size)
       elif not hasattr(self.build_mat, 'not_customized'):
         conn_data['mat'] = self.build_mat(pre_size, post_size)
     else:
@@ -385,15 +387,15 @@ class TwoEndConnector(Connector):
     return self.require(*sizes_or_structures)
 
   @tools.not_customized
-  def build_mat(self, pre_size, post_size):
+  def build_mat(self, pre_size=None, post_size=None):
     pass
 
   @tools.not_customized
-  def build_csr(self, pre_size, post_size):
+  def build_csr(self, pre_size=None, post_size=None):
     pass
 
   @tools.not_customized
-  def build_coo(self, pre_size, post_size):
+  def build_coo(self, pre_size=None, post_size=None):
     pass
 
 
@@ -442,6 +444,8 @@ def csr2csc(csr, post_num, data=None):
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
 
   sort_ids = np.argsort(indices, kind=kind)  # to maintain the original order of the elements with the same value
+  if isinstance(sort_ids, bm.JaxArray):
+    sort_ids = sort_ids.value
   pre_ids_new = np.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
 
   unique_post_ids, count = np.unique(indices, return_counts=True)
@@ -503,7 +507,7 @@ def ij2csr(pre_ids, post_ids, num_pre):
 
   # sorting
   sort_ids = np.argsort(pre_ids, kind=kind)
-  post_ids = post_ids[sort_ids]
+  post_ids = post_ids[sort_ids.value if isinstance(sort_ids, bm.JaxArray) else sort_ids]
 
   indices = post_ids
   unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
