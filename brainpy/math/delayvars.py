@@ -280,12 +280,24 @@ class LengthDelay(AbstractDelay):
     It can also be arrays. Or a callable function or instance of ``Connector``.
     Note that ``initial_delay_data`` should be arranged as the following way::
 
-       delay = delay_len     [ data
-       delay = delay_len-1     data
-       ...                     ....
-       ...                     ....
+       delay = 1             [ data
        delay = 2               data
-       delay = 1               data ]
+       ...                     ....
+       ...                     ....
+       delay = delay_len-1     data
+       delay = delay_len       data ]
+
+    .. versionchanged:: 2.2.3.2
+
+       The data in the previous version of ``LengthDelay`` is::
+
+         delay = delay_len     [ data
+         delay = delay_len-1     data
+         ...                     ....
+         ...                     ....
+         delay = 2               data
+         delay = 1               data ]
+
 
   name: str
     The delay object name.
@@ -368,13 +380,13 @@ class LengthDelay(AbstractDelay):
                                    dtype=delay_target.dtype)
 
     # update delay data
-    self.data[-1] = delay_target
+    self.data[0] = delay_target
     if initial_delay_data is None:
       pass
     elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int, bool)):
-      self.data[:-1] = initial_delay_data
+      self.data[1:] = initial_delay_data
     elif callable(initial_delay_data):
-      self.data[:-1] = initial_delay_data((delay_len,) + delay_target.shape,
+      self.data[1:] = initial_delay_data((delay_len,) + delay_target.shape,
                                           dtype=delay_target.dtype)
     else:
       raise ValueError(f'"delay_data" does not support {type(initial_delay_data)}')
@@ -406,20 +418,22 @@ class LengthDelay(AbstractDelay):
       check_error_in_jit(bm.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
 
     if self.update_method == ROTATION_UPDATING:
-      # the delay length
-      delay_idx = (self.idx[0] - delay_len - 1) % self.num_delay_step
+      delay_idx = (self.idx[0] + delay_len) % self.num_delay_step
       delay_idx = stop_gradient(delay_idx)
-      if not jnp.issubdtype(delay_idx.dtype, jnp.integer):
-        raise ValueError(f'"delay_len" must be integer, but we got {delay_len}')
 
     elif self.update_method == CONCAT_UPDATING:
-      delay_idx = self.num_delay_step - 1 - delay_len
+      delay_idx = delay_len
 
     else:
       raise ValueError(f'Unknown updating method "{self.update_method}"')
 
-    # the delay data
+    # the delay index
+    if isinstance(delay_idx, int):
+      pass
+    elif hasattr(delay_idx, 'dtype') and not jnp.issubdtype(delay_idx.dtype, jnp.integer):
+      raise ValueError(f'"delay_len" must be integer, but we got {delay_idx}')
     indices = (delay_idx,) + tuple(indices)
+    # the delay data
     return self.data[indices]
 
   def update(self, value: Union[float, int, bool, JaxArray, jnp.DeviceArray]):
@@ -435,7 +449,10 @@ class LengthDelay(AbstractDelay):
       self.idx.value = stop_gradient((self.idx + 1) % self.num_delay_step)
 
     elif self.update_method == CONCAT_UPDATING:
-      self.data.value = bm.vstack([self.data[1:], bm.broadcast_to(value,self.data.shape[1:])])
+      if self.num_delay_step >= 2:
+        self.data.value = bm.vstack([bm.broadcast_to(value, self.data.shape[1:]), self.data[1:]])
+      else:
+        self.data[:] = value
 
     else:
       raise ValueError(f'Unknown updating method "{self.update_method}"')
