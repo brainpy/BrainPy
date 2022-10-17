@@ -33,20 +33,54 @@ _all_slice = slice(None, None, None)
 msg = ('JaxArray created outside of the jit function '
        'cannot be updated in JIT mode. You should '
        'mark it as brainpy.math.Variable instead.')
-_global_jit_mode = False
+
+_jax_transformation_context_ = []
 
 
-def turn_on_global_jit():
-  """Turn on the global JIT mode to declare
-  all instantiated JaxArray cannot be updated."""
-  global _global_jit_mode
-  _global_jit_mode = True
+def add_context(name):
+  _jax_transformation_context_.append(name)
 
 
-def turn_off_global_jit():
-  """Turn off the global JIT mode."""
-  global _global_jit_mode
-  _global_jit_mode = False
+def del_context(name=None):
+  try:
+    context = _jax_transformation_context_.pop(-1)
+    if name is not None:
+      if context != name:
+        raise MathError('Transformation context is different!')
+        # warnings.warn(, UserWarning)
+  except IndexError:
+    raise MathError('No transformation context!')
+    # warnings.warn('No transformation context!', UserWarning)
+
+
+def get_context():
+  if len(_jax_transformation_context_) > 0:
+    return _jax_transformation_context_[-1]
+  else:
+    return None
+
+
+def check_context(arr_context):
+  if arr_context is None:
+    if len(_jax_transformation_context_) > 0:
+      raise MathError(f'JaxArray created outside of the transformation functions '
+                      f'({_jax_transformation_context_[-1]}) cannot be updated. '
+                      f'You should mark it as a brainpy.math.Variable instead.')
+      return True
+    else:
+      return False
+  else:
+    if len(_jax_transformation_context_) > 0:
+      if arr_context != _jax_transformation_context_[-1]:
+        raise MathError(f'JaxArray context "{arr_context}" differs from the JAX '
+                        f'transformation context "{_jax_transformation_context_[-1]}"'
+                        '\n\n'
+                        'JaxArray created in one transformation function '
+                        'cannot be updated another transformation function. '
+                        'You should mark it as a brainpy.math.Variable instead.')
+        return True
+    else:
+      return False
 
 
 def _check_input_array(array):
@@ -61,7 +95,7 @@ def _check_input_array(array):
 class JaxArray(object):
   """Multiple-dimensional array in JAX backend.
   """
-  __slots__ = ("_value", "_outside_global_jit")
+  __slots__ = ("_value", "_transform_context")
 
   def __init__(self, value, dtype=None):
     # array value
@@ -73,7 +107,7 @@ class JaxArray(object):
       value = jnp.asarray(value, dtype=dtype)
     self._value = value
     # jit mode
-    self._outside_global_jit = False if _global_jit_mode else True
+    self._transform_context = get_context()
 
   @property
   def value(self):
@@ -86,7 +120,7 @@ class JaxArray(object):
   def update(self, value):
     """Update the value of this JaxArray.
     """
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     if isinstance(value, JaxArray):
       value = value.value
@@ -189,7 +223,7 @@ class JaxArray(object):
     return self.value[index]
 
   def __setitem__(self, index, value):
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
 
     # value is JaxArray
@@ -260,7 +294,7 @@ class JaxArray(object):
 
   def __iadd__(self, oc):
     # a += b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value += _check_input_array(oc)
     return self
@@ -273,7 +307,7 @@ class JaxArray(object):
 
   def __isub__(self, oc):
     # a -= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value - _check_input_array(oc)
     return self
@@ -286,7 +320,7 @@ class JaxArray(object):
 
   def __imul__(self, oc):
     # a *= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value * _check_input_array(oc)
     return self
@@ -302,7 +336,7 @@ class JaxArray(object):
 
   def __itruediv__(self, oc):
     # a /= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value / _check_input_array(oc)
     return self
@@ -315,7 +349,7 @@ class JaxArray(object):
 
   def __ifloordiv__(self, oc):
     # a //= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value // _check_input_array(oc)
     return self
@@ -334,7 +368,7 @@ class JaxArray(object):
 
   def __imod__(self, oc):
     # a %= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value % _check_input_array(oc)
     return self
@@ -347,7 +381,7 @@ class JaxArray(object):
 
   def __ipow__(self, oc):
     # a **= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value ** _check_input_array(oc)
     return self
@@ -360,7 +394,7 @@ class JaxArray(object):
 
   def __imatmul__(self, oc):
     # a @= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value @ _check_input_array(oc)
     return self
@@ -373,7 +407,7 @@ class JaxArray(object):
 
   def __iand__(self, oc):
     # a &= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value & _check_input_array(oc)
     return self
@@ -386,7 +420,7 @@ class JaxArray(object):
 
   def __ior__(self, oc):
     # a |= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value | _check_input_array(oc)
     return self
@@ -399,7 +433,7 @@ class JaxArray(object):
 
   def __ixor__(self, oc):
     # a ^= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value ^ _check_input_array(oc)
     return self
@@ -412,7 +446,7 @@ class JaxArray(object):
 
   def __ilshift__(self, oc):
     # a <<= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value << _check_input_array(oc)
     return self
@@ -425,7 +459,7 @@ class JaxArray(object):
 
   def __irshift__(self, oc):
     # a >>= b
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self._value >> _check_input_array(oc)
     return self
@@ -547,7 +581,7 @@ class JaxArray(object):
 
   def fill(self, value):
     """Fill the array with a scalar value."""
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = jnp.ones_like(self.value) * value
 
@@ -675,7 +709,7 @@ class JaxArray(object):
         but unspecified fields will still be used, in the order in which
         they come up in the dtype, to break ties.
     """
-    if self._outside_global_jit and _global_jit_mode:
+    if check_context(self._transform_context):
       raise MathError(msg)
     self._value = self.value.sort(axis=axis, kind=kind, order=order)
 
@@ -1513,23 +1547,6 @@ class Parameter(Variable):
     super(Parameter, self).__init__(value_or_size, dtype=dtype, batch_axis=batch_axis)
 
 
-register_pytree_node(JaxArray,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: JaxArray(*flat_contents))
-
-register_pytree_node(Variable,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: Variable(*flat_contents))
-
-register_pytree_node(TrainVar,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: TrainVar(*flat_contents))
-
-register_pytree_node(Parameter,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: Parameter(*flat_contents))
-
-
 class VariableView(Variable):
   """A view of a Variable instance.
 
@@ -1559,6 +1576,7 @@ class VariableView(Variable):
 
   Moreover, it's worthy to note that ``VariableView`` is not a PyTree.
   """
+
   def __init__(self, value: Variable, index):
     self.index = index
     if not isinstance(value, Variable):
@@ -1700,3 +1718,25 @@ class VariableView(Variable):
                       f"while we got {value.dtype}.")
     self._value[self.index] = value.value if isinstance(value, JaxArray) else value
 
+
+def _jaxarray_unflatten(aux_data, flat_contents):
+  r = JaxArray(*flat_contents)
+  r._transform_context = aux_data[0]
+  return r
+
+
+register_pytree_node(JaxArray,
+                     lambda t: ((t.value,), (t._transform_context, )),
+                     _jaxarray_unflatten)
+
+register_pytree_node(Variable,
+                     lambda t: ((t.value,), None),
+                     lambda aux_data, flat_contents: Variable(*flat_contents))
+
+register_pytree_node(TrainVar,
+                     lambda t: ((t.value,), None),
+                     lambda aux_data, flat_contents: TrainVar(*flat_contents))
+
+register_pytree_node(Parameter,
+                     lambda t: ((t.value,), None),
+                     lambda aux_data, flat_contents: Parameter(*flat_contents))

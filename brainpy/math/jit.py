@@ -15,12 +15,13 @@ import jax
 try:
   from jax.errors import UnexpectedTracerError, ConcretizationTypeError
 except ImportError:
-  from jax.core import UnexpectedTracerError
+  from jax.core import UnexpectedTracerError, ConcretizationTypeError
 
 from brainpy import errors
 from brainpy.base.base import Base
+from brainpy.base.naming import get_unique_name
 from brainpy.base.collector import TensorCollector
-from brainpy.math.jaxarray import JaxArray, turn_on_global_jit, turn_off_global_jit
+from brainpy.math.jaxarray import JaxArray, add_context, del_context
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -38,22 +39,24 @@ def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=No
     changes = vars.dict()
     return out, changes
 
+  name = get_unique_name('_brainpy_object_oriented_jit_')
+
   def call(*args, **kwargs):
     variable_data = vars.dict()
     try:
-      turn_on_global_jit()
+      add_context(name)
       out, changes = jitted_func(variable_data, *args, **kwargs)
-      turn_off_global_jit()
+      del_context(name)
     except UnexpectedTracerError as e:
-      turn_off_global_jit()
+      del_context(name)
       for key, v in vars.items(): v._value = variable_data[key]
       raise errors.JaxTracerError(variables=vars) from e
     except ConcretizationTypeError as e:
-      turn_off_global_jit()
+      del_context(name)
       for key, v in vars.items(): v._value = variable_data[key]
       raise errors.ConcretizationTypeError() from e
     except Exception as e:
-      turn_off_global_jit()
+      del_context(name)
       for key, v in vars.items(): v._value = variable_data[key]
       raise e
     for key, v in vars.items(): v._value = changes[key]
@@ -64,11 +67,12 @@ def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=No
 
 def _make_jit_without_vars(func, static_argnames=None, device=None, f_name=None):
   jit_f = jax.jit(func, static_argnames=static_argnames, device=device)
+  name = get_unique_name('_jax_functional_jit_')
 
   def call(*args, **kwargs):
-    turn_on_global_jit()
+    add_context(name)
     r = jit_f(*args, **kwargs)
-    turn_off_global_jit()
+    del_context(name)
     return r
 
   return change_func_name(name=f_name, f=call) if f_name else call
