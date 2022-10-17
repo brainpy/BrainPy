@@ -94,7 +94,8 @@ class TestLengthDelay(unittest.TestCase):
     dim = 3
     for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
       delay = bm.LengthDelay(jnp.zeros(dim), 10,
-                             initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
+                             # initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
+                             initial_delay_data=jnp.arange(10, 0, -1).reshape((10, 1)),
                              update_method=update_method)
       print(delay(0))
       self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
@@ -111,7 +112,8 @@ class TestLengthDelay(unittest.TestCase):
     dim = 3
     for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
       delay = bm.LengthDelay(jnp.zeros(dim), 10,
-                             initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
+                             # initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
+                             initial_delay_data=jnp.arange(10, 0, -1).reshape((10, 1)),
                              update_method=update_method)
       print(delay(jnp.asarray([1, 2, 3]),
                   jnp.arange(3)))
