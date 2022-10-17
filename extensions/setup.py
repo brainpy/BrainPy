@@ -19,7 +19,7 @@ with open(os.path.join(HERE, 'brainpylib', '__init__.py'), 'r') as f:
 # extension modules
 ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
-                    sources=["lib/cpu_ops.cc"] + glob.glob("lib/*_cpu.cc"),
+                    sources=glob.glob("lib/cpu_*.cc"),
                     cxx_std=11,
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
@@ -34,7 +34,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=find_packages(exclude=['lib*']),
   include_package_data=True,
-  install_requires=["jax", "jaxlib", "pybind11>=2.6, <2.8", "cffi", "numba"],
+  install_requires=["jax", "jaxlib", "pybind11>=2.6", "cffi", "numba"],
   extras_require={"test": "pytest"},
   python_requires='>=3.7',
   url='https://github.com/PKU-NIP-Lab/BrainPy',

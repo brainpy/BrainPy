@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
+from typing import Union, Tuple, List
 
-import logging
-
+import jax
 import numpy as np
 
+from brainpy import math as bm
 from brainpy.errors import ConnectorError
-
 from .base import *
-
-logger = logging.getLogger('brainpy.building.connect')
 
 __all__ = [
   'One2One', 'one2one',
@@ -23,6 +21,7 @@ class One2One(TwoEndConnector):
   """Connect two neuron groups one by one. This means
   The two neuron groups should have the same size.
   """
+
   def __init__(self):
     super(One2One, self).__init__()
 
@@ -35,11 +34,25 @@ class One2One(TwoEndConnector):
                            f'same size, but {self.pre_num} != {self.post_num}.')
     return self
 
-  def build_conn(self):
-    ind = np.arange(self.pre_num)
-    indptr = np.arange(self.pre_num + 1)
+  def build_coo(self):
+    if self.pre_num != self.post_num:
+      raise ConnectorError(f'One2One connection must be defined in two groups with the '
+                           f'same size, but {self.pre_num} != {self.post_num}.')
+    return bm.arange(self.pre_num, dtype=IDX_DTYPE), bm.arange(self.post_num, dtype=IDX_DTYPE),
 
-    return dict(csr=(ind, indptr), mat=None, ij=None)
+  def build_csr(self):
+    if self.pre_num != self.post_num:
+      raise ConnectorError(f'One2One connection must be defined in two groups with the '
+                           f'same size, but {self.pre_num} != {self.post_num}.')
+    ind = bm.arange(self.pre_num)
+    indptr = np.arange(self.pre_num + 1)
+    return bm.asarray(ind, dtype=IDX_DTYPE), bm.arange(indptr, dtype=IDX_DTYPE),
+
+  def build_mat(self, pre_size=None, post_size=None):
+    if self.pre_num != self.post_num:
+      raise ConnectorError(f'One2One connection must be defined in two groups with the '
+                           f'same size, but {self.pre_num} != {self.post_num}.')
+    return bm.fill_diagonal(bm.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE), True)
 
 
 one2one = One2One()
@@ -55,94 +68,158 @@ class All2All(TwoEndConnector):
     self.include_self = include_self
     super(All2All, self).__init__()
 
-  def build_conn(self):
-    mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
-    if not self.include_self:
-      np.fill_diagonal(mat, False)
+  def __repr__(self):
+    return f'{self.__class__.__name__}(include_self={self.include_self})'
 
-    return dict(csr=None, mat=mat, ij=None)
+  def build_mat(self):
+    mat = bm.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    if not self.include_self:
+      bm.fill_diagonal(mat, False)
+    return mat
 
 
 all2all = All2All(include_self=True)
 
 
-# @tools.numba_jit
-def _grid_four(height, width, row, include_self):
-  conn_i = []
-  conn_j = []
-
-  for col in range(width):
-    i_index = (row * width) + col
-    if 0 <= row - 1 < height:
-      j_index = ((row - 1) * width) + col
-      conn_i.append(i_index)
-      conn_j.append(j_index)
-    if 0 <= row + 1 < height:
-      j_index = ((row + 1) * width) + col
-      conn_i.append(i_index)
-      conn_j.append(j_index)
-    if 0 <= col - 1 < width:
-      j_index = (row * width) + col - 1
-      conn_i.append(i_index)
-      conn_j.append(j_index)
-    if 0 <= col + 1 < width:
-      j_index = (row * width) + col + 1
-      conn_i.append(i_index)
-      conn_j.append(j_index)
-    if include_self:
-      conn_i.append(i_index)
-      conn_j.append(i_index)
-  return conn_i, conn_j
+def get_size_length(sizes: Union[Tuple, List]):
+  if not isinstance(sizes, (tuple, list)):
+    raise TypeError
+  lengths = []
+  a = 1
+  for s in reversed(sizes):
+    lengths.insert(0, a)
+    a *= s
+  return np.asarray(lengths)
 
 
-class GridFour(OneEndConnector):
-  """The nearest four neighbors conn method."""
-
-  def __init__(self, include_self=False):
-    super(GridFour, self).__init__()
+class GridConn(OneEndConnector):
+  def __init__(
+      self,
+      strides,
+      include_self: bool = False,
+      periodic_boundary: bool = False,
+  ):
+    super(GridConn, self).__init__()
+    self.strides = strides
     self.include_self = include_self
+    self.periodic_boundary = periodic_boundary
 
-  def build_conn(self):
-    # only the 1- or 2-D structure is supported
-    if len(self.pre_size) == 1:
-      height, width = self.pre_size[0], 1
-    elif len(self.pre_size) == 2:
-      height, width = self.pre_size
+  def __repr__(self):
+    return f'{self.__class__.__name__}(include_self={self.include_self}, periodic_boundary={self.periodic_boundary})'
+
+  def _format(self):
+    dim = len(self.post_size)
+    if self.pre_num != self.post_num:
+      raise ConnectorError(f'{self.__class__.__name__} is used to for connection within '
+                           f'a same population. But we detect pre_num != post_num '
+                           f'({self.pre_num} != {self.post_num}).')
+    # point indices
+    indices = bm.meshgrid(*(bm.arange(size) for size in self.post_size), indexing='ij')
+    indices = bm.asarray(indices)
+    indices = indices.reshape(dim, self.post_num).T
+    lengths = bm.asarray(self.post_size)
+    return lengths, dim, indices
+
+  def _get_strides(self, dim):
+    # increments
+    increments = np.asarray(np.meshgrid(*(self.strides for _ in range(dim)))).reshape(dim, -1).T
+    select_ids = self._select_stride(increments)
+    increments = bm.asarray(increments[select_ids])
+    return increments
+
+  def _select_stride(self, stride: np.ndarray) -> np.ndarray:
+    raise NotImplementedError
+
+  def _select_dist(self, dist: bm.ndarray) -> bm.ndarray:
+    raise NotImplementedError
+
+  def build_mat(self):
+    sizes, _, indices = self._format()
+
+    @jax.vmap
+    def f_connect(pre_id):
+      # pre_id: R^(num_dim)
+      dist = bm.abs(pre_id - indices)
+      if self.periodic_boundary:
+        dist = bm.where(dist > sizes / 2, sizes - dist, dist)
+      return self._select_dist(dist)
+
+    return bm.asarray(f_connect(indices), dtype=MAT_DTYPE)
+
+  def build_coo(self):
+    sizes, dim, indices = self._format()
+    strides = self._get_strides(dim)
+
+    @jax.vmap
+    def f_connect(pre_id):
+      # pre_id: R^(num_dim)
+      post_ids = pre_id + strides
+      if self.periodic_boundary:
+        post_ids = post_ids % sizes
+      else:
+        post_ids = bm.where(post_ids < sizes, post_ids, -1)
+      size = len(post_ids)
+      pre_ids = bm.repeat(pre_id, size).reshape(dim, size).T
+      return pre_ids, post_ids
+
+    pres, posts = f_connect(indices)
+    pres = pres.reshape(-1, dim)
+    posts = posts.reshape(-1, dim)
+    idx = bm.nonzero(bm.all(posts >= 0, axis=1))[0]
+    pres = pres[idx]
+    posts = posts[idx]
+    if dim == 1:
+      pres = pres.flatten()
+      posts = posts.flatten()
     else:
-      raise ConnectorError(f'Currently, GridFour only supports the two-dimensional geometry.')
+      strides = bm.asarray(get_size_length(self.post_size))
+      pres = bm.sum(pres * strides, axis=1)
+      posts = bm.sum(posts * strides, axis=1)
+    return bm.asarray(pres, dtype=IDX_DTYPE), bm.asarray(posts, dtype=IDX_DTYPE)
 
-    conn_i = []
-    conn_j = []
-    for row in range(height):
-      a = _grid_four(height, width, row, include_self=self.include_self)
-      conn_i.extend(a[0])
-      conn_j.extend(a[1])
-    pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
-    post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
 
-    return 'ij', (pre_ids, post_ids)
+class GridFour(GridConn):
+  """The nearest four neighbors connection method.
+
+  Parameters
+  ----------
+  periodic_boundary : bool
+    Whether the neuron encode the value space with the periodic boundary.
+    .. versionadded:: 2.2.3.2
+
+  include_self : bool
+    Whether create connection at the same position.
+  """
+
+  def __init__(
+      self,
+      include_self: bool = False,
+      periodic_boundary: bool = False
+  ):
+    super(GridFour, self).__init__(strides=np.asarray([-1, 0, 1]),
+                                   include_self=include_self,
+                                   periodic_boundary=periodic_boundary)
+    self.include_self = include_self
+    self.periodic_boundary = periodic_boundary
+
+  def _select_stride(self, stride: np.ndarray) -> np.ndarray:
+    temp = abs(stride).sum(axis=1)
+    return (temp <= 1) if self.include_self else (temp == 1)
+
+  def _select_dist(self, dist: bm.ndarray) -> bm.ndarray:
+    dist = bm.linalg.norm(dist, axis=1)
+    return dist <= 1 if self.include_self else dist == 1
+    # dist = bm.abs(dist)
+    # if self.include_self:
+    #   return bm.prod(dist <= 1, axis=1)
+    # else:
+    #   return bm.prod(dist == 1, axis=1)
+
 
 grid_four = GridFour()
 
 
-# @tools.numba_jit
-def _grid_n(height, width, row, n, include_self):
-  conn_i = []
-  conn_j = []
-  for col in range(width):
-    i_index = (row * width) + col
-    for row_diff in range(-n, n + 1):
-      for col_diff in range(-n, n + 1):
-        if (not include_self) and (row_diff == col_diff == 0):
-          continue
-        if 0 <= row + row_diff < height and 0 <= col + col_diff < width:
-          j_index = ((row + row_diff) * width) + col + col_diff
-          conn_i.append(i_index)
-          conn_j.append(j_index)
-  return conn_i, conn_j
-
-
-class GridN(OneEndConnector):
+class GridN(GridConn):
   """The nearest (2*N+1) * (2*N+1) neighbors conn method.
 
   Parameters
@@ -160,40 +237,55 @@ class GridN(OneEndConnector):
           [x x x x x]
           [x x x x x]
   include_self : bool
-      Whether create (i, i) conn ?
+    Whether create (i, i) conn ?
+  periodic_boundary: bool
+    Whether the neuron encode the value space with the periodic boundary.
+    .. versionadded:: 2.2.3.2
   """
 
-  def __init__(self, N=1, include_self=False):
-    super(GridN, self).__init__()
+  def __init__(
+      self,
+      N: int = 1,
+      include_self: bool = False,
+      periodic_boundary: bool = False
+  ):
+    super(GridN, self).__init__(strides=np.arange(-N, N + 1, 1),
+                                include_self=include_self,
+                                periodic_boundary=periodic_boundary)
     self.N = N
-    self.include_self = include_self
 
-  def build_conn(self):
-    if len(self.pre_size) == 1:
-      height, width = self.pre_size[0], 1
-    elif len(self.pre_size) == 2:
-      height, width = self.pre_size
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(N={self.N}, '
+            f'include_self={self.include_self}, '
+            f'periodic_boundary={self.periodic_boundary})')
+
+  def _select_stride(self, stride: np.ndarray) -> np.ndarray:
+    return (np.ones(len(stride), dtype=bool)
+            if self.include_self else
+            (np.sum(np.abs(stride), axis=1) > 0))
+
+  def _select_dist(self, dist: bm.ndarray) -> bm.ndarray:
+    if self.include_self:
+      return bm.all(dist <= self.N, axis=1)
     else:
-      raise ConnectorError(f'Currently, GridN only supports the two-dimensional geometry.')
-
-    conn_i = []
-    conn_j = []
-    for row in range(height):
-      res = _grid_n(height=height, width=width, row=row,
-                    n=self.N, include_self=self.include_self)
-      conn_i.extend(res[0])
-      conn_j.extend(res[1])
-    pre_ids = np.asarray(conn_i, dtype=IDX_DTYPE)
-    post_ids = np.asarray(conn_j, dtype=IDX_DTYPE)
-
-    return 'ij', (pre_ids, post_ids)
+      return bm.logical_and(bm.all(dist <= self.N, axis=1),
+                            bm.logical_not(bm.all(dist == 0, axis=1)))
 
 
 class GridEight(GridN):
-  """The nearest eight neighbors conn method."""
+  """The nearest eight neighbors conn method.
 
-  def __init__(self, include_self=False):
-    super(GridEight, self).__init__(N=1, include_self=include_self)
+  Parameters
+  ----------
+  include_self : bool
+    Whether create (i, i) conn ?
+  periodic_boundary: bool
+    Whether the neurons encode the value space with the periodic boundary.
+    .. versionadded:: 2.2.3.2
+  """
+
+  def __init__(self, include_self=False, periodic_boundary: bool = False):
+    super(GridEight, self).__init__(N=1, include_self=include_self, periodic_boundary=periodic_boundary)
 
 
 grid_eight = GridEight()

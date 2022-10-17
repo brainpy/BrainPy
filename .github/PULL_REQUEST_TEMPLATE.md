@@ -14,10 +14,6 @@
 <!--- For example, markdown files should pass markdownlint locally according to the rules -->
 <!--- See how your change affects other areas of the code, etc. -->
 
-## Screenshots(optional)
-<!--- If Screenshots is not necessary or not available in this pull request, you can delete this section -->
-<!--- Changes including html and css are required to have screenshots -->
-
 ## Types of changes
 <!--- What types of changes does your code introduce? -->
 <!--- Only left the line that best describes this pull request -->

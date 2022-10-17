@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-def get_figure(row_num, col_num, row_len=3, col_len=6):
+def get_figure(row_num, col_num, row_len=3, col_len=6, name=None):
   """Get the constrained_layout figure.
 
   Parameters
@@ -28,6 +28,9 @@ def get_figure(row_num, col_num, row_len=3, col_len=6):
   fig_and_gs : tuple
       Figure and GridSpec.
   """
-  fig = plt.figure(figsize=(col_num * col_len, row_num * row_len), constrained_layout=True)
+  if name is None:
+    fig = plt.figure(figsize=(col_num * col_len, row_num * row_len), constrained_layout=True)
+  else:
+    fig = plt.figure(name, figsize=(col_num * col_len, row_num * row_len), constrained_layout=True)
   gs = GridSpec(row_num, col_num, figure=fig)
   return fig, gs

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from functools import partial
 
 import numpy as np
-from jax import vmap
 from jax import numpy as jnp
+from jax import vmap
 from jax.scipy.optimize import minimize
 
 import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
+from brainpy.analysis.base import DSAnalyzer
 from brainpy.base.collector import Collector
 
 pyplot = None
@@ -21,7 +23,7 @@ __all__ = [
 ]
 
 
-class LowDimAnalyzer(object):
+class LowDimAnalyzer(DSAnalyzer):
   r"""Automatic Analyzer for Low-dimensional Dynamical Systems.
 
   A dynamical model is characterized by a series of dynamical
@@ -68,16 +70,18 @@ class LowDimAnalyzer(object):
     The optional setting. Maybe needed in the individual analyzer.
   """
 
-  def __init__(self,
-               model,
-               target_vars,
-               fixed_vars=None,
-               target_pars=None,
-               pars_update=None,
-               resolutions=None,
-               jit_device=None,
-               lim_scale=1.05,
-               options=None, ):
+  def __init__(
+      self,
+      model,
+      target_vars,
+      fixed_vars=None,
+      target_pars=None,
+      pars_update=None,
+      resolutions=None,
+      jit_device=None,
+      lim_scale=1.05,
+      options=None,
+  ):
     # model
     # -----
     self.model = utils.model_transform(model)
@@ -92,6 +96,9 @@ class LowDimAnalyzer(object):
     for key in self.target_vars.keys():
       if key not in self.model.variables:
         raise errors.AnalyzerError(f'{key} is not a dynamical variable in {self.model}.')
+      value = self.target_vars[key]
+      if value[0] > value[1]:
+        raise errors.AnalyzerError(f'The range of variable {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
 
     # fixed variables
     # ----------------
@@ -133,6 +140,10 @@ class LowDimAnalyzer(object):
     for key in target_pars.keys():
       if key not in self.model.parameters:
         raise errors.AnalyzerError(f'"{key}" is not a valid parameter in "{self.model}" model.')
+      value = self.target_vars[key]
+      if value[0] > value[1]:
+        raise errors.AnalyzerError(f'The range of parameter {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
+
     self.target_pars = Collector(target_pars)
     self.target_par_names = list(self.target_pars.keys())  # list of target_pars
 
@@ -152,6 +163,12 @@ class LowDimAnalyzer(object):
       for key, lim in self.target_pars.items():
         self.resolutions[key] = bm.linspace(*lim, 20)
     elif isinstance(resolutions, float):
+      if len(self.target_pars) >= 1:
+        warnings.warn('The `resolutions` is specified to all parameters and variables. '
+                      'Analysis computation may occupy too much memory if `resolutions` is small. '
+                      'Please specify `resolutions` for each parameter and variable by dict, '
+                      'such as resolutions={"V": 0.1}.',
+                      category=UserWarning)
       for key, lim in self.target_vars.items():
         self.resolutions[key] = bm.arange(*lim, resolutions)
       for key, lim in self.target_pars.items():
@@ -163,7 +180,7 @@ class LowDimAnalyzer(object):
         if key in self.target_par_names:
           continue
         raise errors.AnalyzerError(f'The resolution setting target "{key}" is not found in '
-                                   f'the target variables {self.target_var_names} and '
+                                   f'the target variables {self.target_var_names} or '
                                    f'the target parameters {self.target_par_names}.')
       for key in self.target_var_names + self.target_par_names:
         if key not in resolutions:
@@ -206,7 +223,7 @@ class LowDimAnalyzer(object):
     # 'x_by_y_in_fy' :
     # 'y_by_x_in_fx' :
     # 'x_by_y_in_fx' :
-    self.analyzed_results = tools.DictPlus()
+    self.analyzed_results = tools.DotDict()
 
   def show_figure(self):
     global pyplot
@@ -251,9 +268,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
     >>> self.F_fx(v1, v2, p1, p2)
     """
     if C.F_fx not in self.analyzed_results:
-      _, arguments = utils.get_args(self.model.F[self.x_var])
+      _, arguments = utils.get_args(self.model.f_derivatives[self.x_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
-      f = wrapper(self.model.F[self.x_var])
+      f = wrapper(self.model.f_derivatives[self.x_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
       f = utils.remove_return_shape(f)
@@ -412,9 +429,9 @@ class Num2DAnalyzer(Num1DAnalyzer):
     >>> self.F_fy(v1, v2, p1, p2)
     """
     if C.F_fy not in self.analyzed_results:
-      variables, arguments = utils.get_args(self.model.F[self.y_var])
+      variables, arguments = utils.get_args(self.model.f_derivatives[self.y_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
-      f = wrapper(self.model.F[self.y_var])
+      f = wrapper(self.model.f_derivatives[self.y_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
       f = utils.remove_return_shape(f)
@@ -424,18 +441,18 @@ class Num2DAnalyzer(Num1DAnalyzer):
   @property
   def F_int_x(self):
     if C.F_int_x not in self.analyzed_results:
-      wrap_x = utils.std_derivative(utils.get_args(self.model.F[self.x_var])[1],
+      wrap_x = utils.std_derivative(utils.get_args(self.model.f_derivatives[self.x_var])[1],
                                     self.target_var_names, self.target_par_names)
-      init_x = partial(wrap_x(self.model.INTG[0]), **(self.pars_update + self.fixed_vars))
+      init_x = partial(wrap_x(self.model.f_integrals[0]), **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_int_x] = init_x
     return self.analyzed_results[C.F_int_x]
 
   @property
   def F_int_y(self):
     if C.F_int_y not in self.analyzed_results:
-      wrap_x = utils.std_derivative(utils.get_args(self.model.F[self.y_var])[1],
+      wrap_x = utils.std_derivative(utils.get_args(self.model.f_derivatives[self.y_var])[1],
                                     self.target_var_names, self.target_par_names)
-      init_x = partial(wrap_x(self.model.INTG[1]), **(self.pars_update + self.fixed_vars))
+      init_x = partial(wrap_x(self.model.f_integrals[1]), **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_int_y] = init_x
     return self.analyzed_results[C.F_int_y]
 
@@ -1021,9 +1038,9 @@ class Num3DAnalyzer(Num2DAnalyzer):
   def F_fz(self):
     """The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`."""
     if C.F_fz not in self.analyzed_results:
-      variables, arguments = utils.get_args(self.model.F[self.z_var])
+      variables, arguments = utils.get_args(self.model.f_derivatives[self.z_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
-      f = wrapper(self.model.F[self.z_var])
+      f = wrapper(self.model.f_derivatives[self.z_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_fz] = bm.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fz]

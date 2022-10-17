@@ -1,4 +1,4 @@
-Dynamics Analysis
+Model Analysis
 =================
 
 .. toctree::

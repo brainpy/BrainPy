@@ -5,7 +5,7 @@ message(STATUS "Using CMake version " ${CMAKE_VERSION})
 find_package(CUDA REQUIRED)
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 set(CUDA_TOOLKIT_ROOT_DIR ${CUDA_TOOLKIT_ROOT_DIR} "/usr/local/cuda")
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/home/brainpy/miniconda3/lib/python3.9/site-packages/pybind11/share/cmake/")
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} )
 find_package(pybind11 REQUIRED)
 
 include_directories(
@@ -22,14 +22,17 @@ include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 pybind11_add_module(
     gpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc
-        ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cu
-        ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_gpu.cu)
+        ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_event_sum.cu
+        ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_atomic_prod.cu
+        ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_atomic_sum.cu)
 install(TARGETS gpu_ops DESTINATION brainpylib)
 pybind11_add_module(
     cpu_ops
     ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_ops.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
-    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_event_prod.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_event_sum.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_atomic_prod.cc
+        ${CMAKE_CURRENT_LIST_DIR}/lib/cpu_atomic_sum.cc
     )
 install(TARGETS cpu_ops DESTINATION brainpylib)
 

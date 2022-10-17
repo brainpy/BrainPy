@@ -13,7 +13,7 @@ class IzhiJoint(bp.dyn.NeuGroup):
 
 	@property
 	def derivative(self):
-		return bp.JointEq([self.dV, self.du])
+		return bp.JointEq(self.dV, self.du)
 
 	def __init__(self, size):
 		super().__init__(size)
@@ -24,15 +24,15 @@ class IzhiJoint(bp.dyn.NeuGroup):
 
 		self.integral = bp.odeint(self.derivative, method='rk2')
 
-	def update(self, t, dt):
-		V, u = self.integral(self.V, self.u, t, self.input, dt=dt)
+	def update(self, tdi):
+		V, u = self.integral(self.V, self.u, tdi.t, self.input, tdi.dt)
 		spike = V >= 0.
 		self.V.value = bm.where(spike, -65., V)
 		self.u.value = bm.where(spike, u + 8., u)
 		self.input[:] = 0.
 
 
-class IzhiSeparate(bp.NeuGroup):
+class IzhiSeparate(bp.dyn.NeuGroup):
 	def dV(self, V, t, u, Iext):
 		return 0.04 * V * V + 5 * V + 140 - u + Iext
 
@@ -49,9 +49,9 @@ class IzhiSeparate(bp.NeuGroup):
 		self.int_V = bp.odeint(self.dV, method='rk2')
 		self.int_u = bp.odeint(self.du, method='rk2')
 
-	def update(self, t, dt):
-		V = self.int_V(self.V, t, self.u, self.input, dt=dt)
-		u = self.int_u(self.u, t, self.V, dt=dt)
+	def update(self, tdi):
+		V = self.int_V(self.V, tdi.t, self.u, self.input, tdi.dt)
+		u = self.int_u(self.u, tdi.t, self.V, tdi.dt)
 		spike = V >= 0.
 		self.V.value = bm.where(spike, -65., V)
 		self.u.value = bm.where(spike, u + 8., u)
@@ -59,11 +59,11 @@ class IzhiSeparate(bp.NeuGroup):
 
 
 neu1 = IzhiJoint(1)
-runner = bp.StructRunner(neu1, monitors=['V'], inputs=('input', 20.), dt=0.2)
+runner = bp.dyn.DSRunner(neu1, monitors=['V'], inputs=('input', 20.), dt=0.2)
 runner(800)
 bp.visualize.line_plot(runner.mon.ts, runner.mon.V, alpha=0.6, legend='V - joint', show=False)
 
 neu2 = IzhiSeparate(1)
-runner = bp.StructRunner(neu2, monitors=['V'], inputs=('input', 20.), dt=0.2)
+runner = bp.dyn.DSRunner(neu2, monitors=['V'], inputs=('input', 20.), dt=0.2)
 runner(800)
 bp.visualize.line_plot(runner.mon.ts, runner.mon.V, alpha=0.6, legend='V - separate', show=True)

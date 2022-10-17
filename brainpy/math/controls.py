@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Sequence, Any, Dict, Callable
+from typing import Union, Sequence, Any, Dict, Callable, Optional
 
 import jax.numpy as jnp
 from jax import lax
@@ -13,17 +13,21 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
+from brainpy.base.naming import get_unique_name
 from brainpy.math.jaxarray import (JaxArray, Variable,
-                                   turn_on_global_jit,
-                                   turn_off_global_jit)
+                                   add_context,
+                                   del_context)
 from brainpy.math.numpy_ops import as_device_array
 
 __all__ = [
   'make_loop',
   'make_while',
   'make_cond',
+
   'cond',
   'ifelse',
+  'for_loop',
+  'while_loop',
 ]
 
 
@@ -92,7 +96,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   >>> a = bm.Variable(bm.zeros(1))
   >>> def f(x): a.value += 1.
   >>> loop = bm.make_loop(f, dyn_vars=[a], out_vars=a)
-  >>> loop(length=10)
+  >>> loop(bm.arange(10))
   Variable([[ 1.],
             [ 2.],
             [ 3.],
@@ -108,7 +112,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
   >>>   b.value += 1
   >>>   return b + 1
   >>> loop = bm.make_loop(f, dyn_vars=[b], out_vars=b, has_return=True)
-  >>> hist_b, hist_b_plus = loop(length=10)
+  >>> hist_b, hist_b_plus = loop(bm.arange(10))
   >>> hist_b
   Variable([[ 1.],
             [ 2.],
@@ -155,38 +159,40 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
                                             out_vars=out_vars,
                                             has_return=has_return)
 
+  name = get_unique_name('_brainpy_object_oriented_make_loop_')
+
   # functions
   if has_return:
     def call(xs=None, length=None):
       init_values = [v.value for v in dyn_vars]
       try:
-        turn_on_global_jit()
+        add_context(name)
         dyn_values, (out_values, results) = lax.scan(
           f=fun2scan, init=init_values, xs=xs, length=length)
-        turn_off_global_jit()
+        del_context(name)
       except UnexpectedTracerError as e:
-        turn_off_global_jit()
-        for v, d in zip(dyn_vars, init_values): v.value = d
+        del_context(name)
+        for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       return tree_unflatten(tree, out_values), results
 
   else:
     def call(xs):
       init_values = [v.value for v in dyn_vars]
       try:
-        turn_on_global_jit()
+        add_context(name)
         dyn_values, out_values = lax.scan(f=fun2scan, init=init_values, xs=xs)
-        turn_off_global_jit()
+        del_context(name)
       except UnexpectedTracerError as e:
-        turn_off_global_jit()
+        del_context(name)
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       except Exception as e:
-        turn_off_global_jit()
+        del_context(name)
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise e
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       return tree_unflatten(tree, out_values)
 
   return call
@@ -252,23 +258,25 @@ def make_while(cond_fun, body_fun, dyn_vars):
     for v, d in zip(dyn_vars, dyn_values): v._value = d
     return as_device_array(cond_fun(static_values))
 
+  name = get_unique_name('_brainpy_object_oriented_make_while_')
+
   def call(x=None):
     dyn_init = [v.value for v in dyn_vars]
     try:
-      turn_on_global_jit()
+      add_context(name)
       dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
                                      body_fun=_body_fun,
                                      init_val=(dyn_init, x))
-      turn_off_global_jit()
+      del_context(name)
     except UnexpectedTracerError as e:
-      turn_off_global_jit()
+      del_context(name)
       for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     except Exception as e:
-      turn_off_global_jit()
+      del_context(name)
       for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise e
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
 
   return call
 
@@ -327,6 +335,8 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
     if not isinstance(v, JaxArray):
       raise ValueError(f'Only support {JaxArray.__name__}, but got {type(v)}')
 
+  name = get_unique_name('_brainpy_object_oriented_make_cond_')
+
   if len(dyn_vars) > 0:
     def _true_fun(op):
       dyn_vals, static_vals = op
@@ -345,25 +355,25 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
     def call(pred, x=None):
       old_values = [v.value for v in dyn_vars]
       try:
-        turn_on_global_jit()
+        add_context(name)
         dyn_values, res = lax.cond(pred, _true_fun, _false_fun, (old_values, x))
-        turn_off_global_jit()
+        del_context(name)
       except UnexpectedTracerError as e:
-        turn_off_global_jit()
+        del_context(name)
         for v, d in zip(dyn_vars, old_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       except Exception as e:
-        turn_off_global_jit()
+        del_context(name)
         for v, d in zip(dyn_vars, old_values): v._value = d
         raise e
-      for v, d in zip(dyn_vars, dyn_values): v.value = d
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
       return res
 
   else:
     def call(pred, x=None):
-      turn_on_global_jit()
+      add_context(name)
       res = lax.cond(pred, true_fun, false_fun, x)
-      turn_off_global_jit()
+      del_context(name)
       return res
 
   return call
@@ -374,6 +384,10 @@ def _check_f(f):
     return f
   else:
     return (lambda _: f)
+
+
+def _check_sequence(a):
+  return isinstance(a, (list, tuple))
 
 
 def cond(
@@ -405,8 +419,10 @@ def cond(
     Boolean scalar type, indicating which branch function to apply.
   true_fun: callable, jnp.ndarray, JaxArray, float, int, bool
     Function to be applied if ``pred`` is True.
+    This function must receive one arguement for ``operands``.
   false_fun: callable, jnp.ndarray, JaxArray, float, int, bool
     Function to be applied if ``pred`` is False.
+    This function must receive one arguement for ``operands``.
   operands: Any
     Operands (A) input to branching function depending on ``pred``. The type
     can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
@@ -436,6 +452,8 @@ def cond(
     if not isinstance(v, Variable):
       raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
 
+  name = get_unique_name('_brainpy_object_oriented_cond_')
+
   # calling the model
   if len(dyn_vars) > 0:
     def _true_fun(op):
@@ -454,25 +472,25 @@ def cond(
 
     old_values = [v.value for v in dyn_vars]
     try:
-      turn_on_global_jit()
+      add_context(name)
       dyn_values, res = lax.cond(pred=pred,
                                  true_fun=_true_fun,
                                  false_fun=_false_fun,
                                  operand=(old_values, operands))
-      turn_off_global_jit()
+      del_context(name)
     except UnexpectedTracerError as e:
-      turn_off_global_jit()
+      del_context(name)
       for v, d in zip(dyn_vars, old_values): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     except Exception as e:
-      turn_off_global_jit()
+      del_context(name)
       for v, d in zip(dyn_vars, old_values): v._value = d
       raise e
-    for v, d in zip(dyn_vars, dyn_values): v.value = d
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
   else:
-    turn_on_global_jit()
+    add_context(name)
     res = lax.cond(pred, true_fun, false_fun, operands)
-    turn_off_global_jit()
+    del_context(name)
   return res
 
 
@@ -483,7 +501,7 @@ def ifelse(
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     show_code: bool = False,
 ):
-  """If-else control flows like native Pythonic programming.
+  """``If-else`` control flows looks like native Pythonic programming.
 
   Examples
   --------
@@ -502,7 +520,8 @@ def ifelse(
   >>> def f(a):
   >>>   return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
   >>>                    branches=[1, 2, 3, 4, 5])
-
+  >>> f(3)
+  3
 
   Parameters
   ----------
@@ -512,6 +531,7 @@ def ifelse(
     The branches, at least has two elements. Elements can be functions,
     arrays, or numbers. The number of ``branches`` and ``conditions`` has
     the relationship of `len(branches) == len(conditions) + 1`.
+    Each branch should receive one arguement for ``operands``.
   operands: optional, Any
     The operands for each branch.
   dyn_vars: Variable, sequence of Variable, dict
@@ -580,4 +600,233 @@ def ifelse(
     if show_code: print(codes)
     exec(compile(codes.strip(), '', 'exec'), code_scope)
     f = code_scope['f']
-    return f(operands)
+    name = get_unique_name('_brainpy_object_oriented_ifelse_')
+    add_context(name)
+    r = f(operands)
+    del_context(name)
+    return r
+
+
+def for_loop(body_fun: Callable,
+             dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
+             operands: Any,
+             reverse: bool = False,
+             unroll: int = 1):
+  """``for-loop`` control flow with :py:class:`~.Variable`.
+
+  Simply speaking, all dynamically changed variables used in the body function should
+  be labeld in ``dyn_vars`` argument. All returns in body function will be gathered
+  as the return of the whole loop.
+
+  >>> import brainpy.math as bm
+  >>> a = bm.Variable(bm.zeros(1))
+  >>> b = bm.Variable(bm.ones(1))
+  >>> # first example
+  >>> def body(x):
+  >>>    a.value += x
+  >>>    b.value *= x
+  >>>    return a.value
+  >>> a_hist = bm.for_loop(body, dyn_vars=[a, b], operands=bm.arange(1, 5))
+  >>> a_hist
+  DeviceArray([[ 1.],
+               [ 3.],
+               [ 6.],
+               [10.]], dtype=float32)
+  >>> a
+  Variable([10.], dtype=float32)
+  >>> b
+  Variable([24.], dtype=float32)
+  >>>
+  >>> # another example
+  >>> def body(x, y):
+  >>>   a.value += x
+  >>>   b.value *= y
+  >>>   return a.value
+  >>> a_hist = bm.for_loop(body,
+  >>>                      dyn_vars=[a, b],
+  >>>                      operands=(bm.arange(1, 5), bm.arange(2, 6)))
+  >>> a_hist
+  [[11.]
+   [13.]
+   [16.]
+   [20.]]
+
+  .. versionadded:: 2.1.11
+
+  Parameters
+  ----------
+  body_fun: callable
+    A Python function to be scanned. This function accepts one argument and returns one output.
+    The argument denotes a slice of ``operands`` along its leading axis, and that
+    output represents a slice of the return value.
+  dyn_vars: Variable, sequence of Variable, dict
+    The instances of :py:class:`~.Variable`.
+  operands: Any
+    The value over which to scan along the leading axis,
+    where ``operands`` can be an array or any pytree (nested Python
+    tuple/list/dict) thereof with consistent leading axis sizes.
+    If body function `body_func` receives multiple arguments,
+    `operands` should be a tuple/list whose length is equal to the
+    number of arguments.
+  reverse: bool
+    Optional boolean specifying whether to run the scan iteration
+    forward (the default) or in reverse, equivalent to reversing the leading
+    axes of the arrays in both ``xs`` and in ``ys``.
+  unroll: int
+    Optional positive int specifying, in the underlying operation of the
+    scan primitive, how many scan iterations to unroll within a single
+    iteration of a loop.
+
+  Returns
+  -------
+  outs: Any
+    The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
+  """
+  # check variables
+  if dyn_vars is None:
+    dyn_vars = ()
+  if isinstance(dyn_vars, Variable):
+    dyn_vars = (dyn_vars,)
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {Variable.__name__}')
+  for v in dyn_vars:
+    if not isinstance(v, Variable):
+      raise ValueError(f'brainpy.math.for_loop only support {Variable.__name__} '
+                       f'in "dyn_vars", but got {type(v)}')
+
+  # functions
+  def fun2scan(dyn_vals, x):
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+    if not isinstance(x, (tuple, list)):
+      x = (x,)
+    results = body_fun(*x)
+    return [v.value for v in dyn_vars], results
+
+  name = get_unique_name('_brainpy_object_oriented_for_loop_')
+
+  # functions
+  init_vals = [v.value for v in dyn_vars]
+  try:
+    add_context(name)
+    dyn_vals, out_vals = lax.scan(f=fun2scan,
+                                  init=init_vals,
+                                  xs=operands,
+                                  reverse=reverse,
+                                  unroll=unroll)
+    del_context(name)
+  except UnexpectedTracerError as e:
+    del_context(name)
+    for v, d in zip(dyn_vars, init_vals): v._value = d
+    raise errors.JaxTracerError(variables=dyn_vars) from e
+  except Exception as e:
+    del_context(name)
+    for v, d in zip(dyn_vars, init_vals): v._value = d
+    raise e
+  for v, d in zip(dyn_vars, dyn_vals): v._value = d
+  return out_vals
+
+
+def while_loop(
+    body_fun: Callable,
+    cond_fun: Callable,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
+    operands: Any,
+):
+  """``while-loop`` control flow with :py:class:`~.Variable`.
+
+  Note the diference between ``for_loop`` and ``while_loop``:
+
+  1. ``while_loop`` does not support accumulating history values.
+  2. The returns on the body function of ``for_loop`` represent the values to stack at one moment.
+     However, the functional returns of body function in ``while_loop`` represent the operands'
+     values at the next moment, meaning that the body function of ``while_loop`` defines the
+     updating rule of how the operands are updated.
+
+  >>> import brainpy.math as bm
+  >>>
+  >>> a = bm.Variable(bm.zeros(1))
+  >>> b = bm.Variable(bm.ones(1))
+  >>>
+  >>> def cond(x, y):
+  >>>    return x < 6.
+  >>>
+  >>> def body(x, y):
+  >>>    a.value += x
+  >>>    b.value *= y
+  >>>    return x + b[0], y + 1.
+  >>>
+  >>> res = bm.while_loop(body, cond, dyn_vars=[a, b], operands=(1., 1.))
+  >>> res
+  (10.0, 4.0)
+
+  .. versionadded:: 2.1.11
+
+  Parameters
+  ----------
+  body_fun: callable
+    A function which define the updating logic. It receives one argument for ``operands``, without returns.
+  cond_fun: callable
+    A function which define the stop condition. It receives one argument for ``operands``,
+    with one boolean value return.
+  dyn_vars: Variable, sequence of Variable, dict
+    The dynamically changed variables.
+  operands: Any
+    The operands for ``body_fun`` and ``cond_fun`` functions.
+  """
+  # iterable variables
+  if isinstance(dyn_vars, Variable):
+    dyn_vars = (dyn_vars,)
+  elif isinstance(dyn_vars, dict):
+    dyn_vars = tuple(dyn_vars.values())
+  elif isinstance(dyn_vars, (tuple, list)):
+    dyn_vars = tuple(dyn_vars)
+  else:
+    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
+                     f'only support dict/list/tuple of {Variable.__name__}')
+  for v in dyn_vars:
+    if not isinstance(v, Variable):
+      raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
+  if not isinstance(operands, (list, tuple)):
+    operands = (operands, )
+
+  def _body_fun(op):
+    dyn_vals, static_vals = op
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+    if not isinstance(static_vals, (tuple, list)):
+      static_vals = (static_vals, )
+    new_vals = body_fun(*static_vals)
+    if new_vals is None:
+      new_vals = tuple()
+    if not isinstance(new_vals, tuple):
+      new_vals = (new_vals, )
+    return [v.value for v in dyn_vars], new_vals
+
+  def _cond_fun(op):
+    dyn_vals, static_vals = op
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+    r = cond_fun(*static_vals)
+    return r if isinstance(r, JaxArray) else r
+
+  name = get_unique_name('_brainpy_object_oriented_while_loop_')
+  dyn_init = [v.value for v in dyn_vars]
+  try:
+    add_context(name)
+    dyn_values, out = lax.while_loop(cond_fun=_cond_fun,
+                                     body_fun=_body_fun,
+                                     init_val=(dyn_init, operands))
+    del_context(name)
+  except UnexpectedTracerError as e:
+    del_context(name)
+    for v, d in zip(dyn_vars, dyn_init): v._value = d
+    raise errors.JaxTracerError(variables=dyn_vars) from e
+  except Exception as e:
+    del_context(name)
+    for v, d in zip(dyn_vars, dyn_init): v._value = d
+    raise e
+  for v, d in zip(dyn_vars, dyn_values): v._value = d
+  return out

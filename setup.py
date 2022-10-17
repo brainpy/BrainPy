@@ -3,45 +3,15 @@
 import io
 import os
 import re
+import sys
 
 from setuptools import find_packages
 from setuptools import setup
 
-# --------------For pip install backup plan--------------
-
-# from pip._internal.utils.compat import stdlib_pkgs
-# from typing import cast
-# def get_installed_distributions(
-#     local_only: bool = True,
-#     skip = stdlib_pkgs,
-#     include_editables: bool = True,
-#     editables_only: bool = False,
-#     user_only: bool = False,
-#     paths = None,
-# ):
-#   """Return a list of installed Distribution objects.
-#   Left for compatibility until direct pkg_resources uses are refactored out.
-#   """
-#   from pip._internal.metadata import get_default_environment, get_environment
-#   from pip._internal.metadata.pkg_resources import Distribution as _Dist
-#
-#   if paths is None:
-#     env = get_default_environment()
-#   else:
-#     env = get_environment(paths)
-#   dists = env.iter_installed_distributions(
-#     local_only=local_only,
-#     skip=skip,
-#     include_editables=include_editables,
-#     editables_only=editables_only,
-#     user_only=user_only,
-#   )
-#   return [cast(_Dist, dist)._dist for dist in dists]
-
-# ----------------------------------------------------
-
 try:
+  # require users to uninstall previous brainpy releases.
   import pkg_resources
+
   installed_packages = pkg_resources.working_set
   for i in installed_packages:
     if i.key == 'brainpy-simulator':
@@ -57,7 +27,6 @@ try:
 except ModuleNotFoundError:
   pass
 
-
 # version
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
@@ -68,6 +37,13 @@ version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
   README = f.read()
 
+# installation packages
+packages = find_packages()
+if 'docs' in packages:
+  packages.remove('docs')
+if 'tests' in packages:
+  packages.remove('tests')
+
 # setup
 setup(
   name='brainpy',
@@ -77,27 +53,22 @@ setup(
   long_description_content_type="text/markdown",
   author='BrainPy Team',
   author_email='chao.brain@qq.com',
-  packages=find_packages(),
+  packages=packages,
   python_requires='>=3.7',
-  install_requires=[
-    'numpy>=1.15',
-    'jax>=0.3.0',
-    'tqdm',
-  ],
-  extras_require={
-    'cpu': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
-    'cuda': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4'],
-    'all': ['jaxlib>=0.3.0', 'brainpylib>=0.0.4',
-            'numba>=0.50', 'scipy>=1.1.0',
-            'networkx', 'matplotlib']
-  },
+  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm'],
   url='https://github.com/PKU-NIP-Lab/BrainPy',
-  keywords='computational neuroscience, '
-           'brain-inspired computation, '
-           'dynamical systems, '
-           'differential equations, '
-           'brain modeling, '
-           'brain dynamics programming',
+  project_urls={
+    "Bug Tracker": "https://github.com/PKU-NIP-Lab/BrainPy/issues",
+    "Documentation": "https://brainpy.readthedocs.io/",
+    "Source Code": "https://github.com/PKU-NIP-Lab/BrainPy",
+  },
+  keywords=('computational neuroscience, '
+            'brain-inspired computation, '
+            'dynamical systems, '
+            'differential equations, '
+            'brain modeling, '
+            'brain dynamics modeling, '
+            'brain dynamics programming'),
   classifiers=[
     'Natural Language :: English',
     'Operating System :: OS Independent',

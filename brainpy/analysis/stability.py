@@ -6,7 +6,7 @@ __all__ = [
   'get_1d_stability_types',
   'get_2d_stability_types',
   'get_3d_stability_types',
-  'plot_scheme',
+
 
   'stability_analysis',
 
@@ -27,17 +27,13 @@ __all__ = [
   'UNSTABLE_LINE_2D',
 ]
 
-plot_scheme = {}
+
 
 SADDLE_NODE = 'saddle node'
 CENTER_MANIFOLD = 'center manifold'
-plot_scheme[CENTER_MANIFOLD] = {'color': 'orangered'}
-plot_scheme[SADDLE_NODE] = {"color": 'tab:blue'}
 
 STABLE_POINT_1D = 'stable point'
 UNSTABLE_POINT_1D = 'unstable point'
-plot_scheme[STABLE_POINT_1D] = {"color": 'tab:red'}
-plot_scheme[UNSTABLE_POINT_1D] = {"color": 'tab:olive'}
 
 CENTER_2D = 'center'
 STABLE_NODE_2D = 'stable node'
@@ -49,18 +45,7 @@ UNSTABLE_FOCUS_2D = 'unstable focus'
 UNSTABLE_STAR_2D = 'unstable star'
 UNSTABLE_DEGENERATE_2D = 'unstable degenerate'
 UNSTABLE_LINE_2D = 'unstable line'
-plot_scheme.update({
-  CENTER_2D: {'color': 'lime'},
-  STABLE_NODE_2D: {"color": 'tab:red'},
-  STABLE_FOCUS_2D: {"color": 'tab:purple'},
-  STABLE_STAR_2D: {'color': 'tab:olive'},
-  STABLE_DEGENERATE_2D: {'color': 'blueviolet'},
-  UNSTABLE_NODE_2D: {"color": 'tab:orange'},
-  UNSTABLE_FOCUS_2D: {"color": 'tab:cyan'},
-  UNSTABLE_STAR_2D: {'color': 'green'},
-  UNSTABLE_DEGENERATE_2D: {'color': 'springgreen'},
-  UNSTABLE_LINE_2D: {'color': 'dodgerblue'},
-})
+
 
 STABLE_POINT_3D = 'unclassified stable point'
 UNSTABLE_POINT_3D = 'unclassified unstable point'
@@ -71,17 +56,6 @@ STABLE_FOCUS_3D = 'stable focus'
 UNSTABLE_FOCUS_3D = 'unstable focus'
 UNSTABLE_CENTER_3D = 'unstable center'
 UNKNOWN_3D = 'unknown 3d'
-plot_scheme.update({
-  STABLE_POINT_3D: {'color': 'tab:gray'},
-  UNSTABLE_POINT_3D: {'color': 'tab:purple'},
-  STABLE_NODE_3D: {'color': 'tab:green'},
-  UNSTABLE_SADDLE_3D: {'color': 'tab:red'},
-  UNSTABLE_FOCUS_3D: {'color': 'tab:pink'},
-  STABLE_FOCUS_3D: {'color': 'tab:purple'},
-  UNSTABLE_NODE_3D: {'color': 'tab:orange'},
-  UNSTABLE_CENTER_3D: {'color': 'tab:olive'},
-  UNKNOWN_3D: {'color': 'tab:cyan'},
-})
 
 
 def get_1d_stability_types():

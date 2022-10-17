@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import abc
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Any
 
-import numpy as np
+import jax.numpy as jnp
+import numpy as onp
 
 from brainpy import tools, math as bm
 from brainpy.errors import ConnectorError
@@ -42,8 +43,8 @@ SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
                            PRE2SYN, POST2SYN,
                            PRE_SLICE, POST_SLICE]
 
-MAT_DTYPE = np.bool_
-IDX_DTYPE = np.uint32
+MAT_DTYPE = onp.bool_
+IDX_DTYPE = onp.uint32
 
 
 def set_default_dtype(mat_dtype=None, idx_dtype=None):
@@ -92,13 +93,48 @@ class Connector(abc.ABC):
 
 
 class TwoEndConnector(Connector):
-  """Synaptic connector to build synapse connections between two neuron groups."""
+  """Synaptic connector to build connections between two neuron groups.
+
+  If users want to customize their `Connector`, there are two ways:
+
+  1. Implementing ``build_conn(self)`` function, which returns one of
+     the connection data ``csr`` (CSR sparse data, a tuple of <post_ids, inptr>),
+     ``ij`` (COO sparse data, a tuple of <pre_ids, post_ids>), and ``mat``
+     (a binary connection matrix). For instance,
+
+     .. code-block:: python
+
+        import brainpy as bp
+        class MyConnector(bp.conn.TwoEndConnector):
+          def build_conn(self):
+            return dict(csr=, mat=, ij=)
+
+  2. Implementing functions ``build_mat()``, ``build_csr()``, and
+     ``build_coo()``. Users can provide all three functions, or one of them.
+
+     .. code-block:: python
+
+        import brainpy as bp
+        class MyConnector(bp.conn.TwoEndConnector):
+          def build_mat(self, ):
+            return conn_matrix
+
+          def build_csr(self, ):
+            return post_ids, inptr
+
+          def build_coo(self, ):
+            return pre_ids, post_ids
+
+  """
 
   def __init__(self, ):
     self.pre_size = None
     self.post_size = None
     self.pre_num = None
     self.post_num = None
+
+  def __repr__(self):
+    return self.__class__.__name__
 
   def __call__(self, pre_size, post_size):
     """Create the concrete connections between two end objects.
@@ -140,15 +176,16 @@ class TwoEndConnector(Connector):
     """
     self.__call__(pre_size, post_size)
 
-  def check(self, structures: Union[Tuple, List, str]):
-    # check "pre_num" and "post_num"
-    try:
-      assert self.pre_num is not None and self.post_num is not None
-    except AssertionError:
-      raise ConnectorError(f'self.pre_num or self.post_num is not defined. '
-                           f'Please use self.__call__(pre_size, post_size) '
-                           f'before requiring properties.')
+  @property
+  def is_version2_style(self):
+    if ((hasattr(self.build_coo, 'not_customized') and self.build_coo.not_customized) and
+        (hasattr(self.build_csr, 'not_customized') and self.build_csr.not_customized) and
+        (hasattr(self.build_mat, 'not_customized') and self.build_mat.not_customized)):
+      return False
+    else:
+      return True
 
+  def check(self, structures: Union[Tuple, List, str]):
     # check synaptic structures
     if isinstance(structures, str):
       structures = [structures]
@@ -160,21 +197,21 @@ class TwoEndConnector(Connector):
                              f'Only {SUPPORTED_SYN_STRUCTURE} is supported.')
 
   def _return_by_mat(self, structures, mat, all_data: dict):
-    assert isinstance(mat, np.ndarray) and np.ndim(mat) == 2
+    assert mat.ndim == 2
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
       all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
 
     require_other_structs = len([s for s in structures if s != CONN_MAT]) > 0
     if require_other_structs:
+      np = onp if isinstance(mat, onp.ndarray) else bm
       pre_ids, post_ids = np.where(mat > 0)
-      pre_ids = np.ascontiguousarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.ascontiguousarray(post_ids, dtype=IDX_DTYPE)
+      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
+      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
       self._return_by_ij(structures, ij=(pre_ids, post_ids), all_data=all_data)
 
   def _return_by_csr(self, structures, csr: tuple, all_data: dict):
     indices, indptr = csr
-    assert isinstance(indices, np.ndarray)
-    assert isinstance(indptr, np.ndarray)
+    np = onp if isinstance(indices, onp.ndarray) else bm
     assert self.pre_num == indptr.size - 1
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
@@ -210,8 +247,6 @@ class TwoEndConnector(Connector):
 
   def _return_by_ij(self, structures, ij: tuple, all_data: dict):
     pre_ids, post_ids = ij
-    assert isinstance(pre_ids, np.ndarray)
-    assert isinstance(post_ids, np.ndarray)
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
       all_data[CONN_MAT] = bm.asarray(ij2mat(ij, self.pre_num, self.post_num), dtype=MAT_DTYPE)
@@ -232,9 +267,9 @@ class TwoEndConnector(Connector):
     """Make the desired synaptic structures and return them.
     """
     if isinstance(conn_data, dict):
-      csr = conn_data['csr']
-      mat = conn_data['mat']
-      ij = conn_data['ij']
+      csr = conn_data.get('csr', None)
+      mat = conn_data.get('mat', None)
+      ij = conn_data.get('ij', None)
     elif isinstance(conn_data, tuple):
       if conn_data[0] == 'csr':
         csr = conn_data[1]
@@ -244,6 +279,8 @@ class TwoEndConnector(Connector):
         ij = conn_data[1]
       else:
         raise ConnectorError(f'Must provide one of "csr", "mat" or "ij". Got "{conn_data[0]}" instead.')
+    else:
+      raise ConnectorError
 
     # checking
     all_data = dict()
@@ -254,22 +291,20 @@ class TwoEndConnector(Connector):
 
     # "csr" structure
     if csr is not None:
-      assert isinstance(csr[0], np.ndarray)
-      assert isinstance(csr[1], np.ndarray)
       if (PRE2POST in structures) and (PRE2POST not in all_data):
         all_data[PRE2POST] = (bm.asarray(csr[0], dtype=IDX_DTYPE),
                               bm.asarray(csr[1], dtype=IDX_DTYPE))
       self._return_by_csr(structures, csr=csr, all_data=all_data)
+
     # "mat" structure
     if mat is not None:
-      assert isinstance(mat, np.ndarray) and np.ndim(mat) == 2
+      assert mat.ndim == 2
       if (CONN_MAT in structures) and (CONN_MAT not in all_data):
         all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
       self._return_by_mat(structures, mat=mat, all_data=all_data)
+
     # "ij" structure
     if ij is not None:
-      assert isinstance(ij[0], np.ndarray)
-      assert isinstance(ij[1], np.ndarray)
       if (PRE_IDS in structures) and (PRE_IDS not in structures):
         all_data[PRE_IDS] = bm.asarray(ij[0], dtype=IDX_DTYPE)
       if (POST_IDS in structures) and (POST_IDS not in structures):
@@ -282,6 +317,7 @@ class TwoEndConnector(Connector):
     else:
       return tuple([all_data[n] for n in structures])
 
+  @tools.not_customized
   def build_conn(self):
     """build connections with certain data type.
 
@@ -292,15 +328,59 @@ class TwoEndConnector(Connector):
     Or a dict with three elements: csr, mat and ij.
       example: return dict(csr=(ind, indptr), mat=None, ij=None)
     """
-    raise NotImplementedError
+    pass
 
   def require(self, *structures):
+    try:
+      assert self.pre_num is not None and self.post_num is not None
+    except AssertionError:
+      raise ConnectorError(f'self.pre_num or self.post_num is not defined. '
+                           f'Please use self.__call__() '
+                           f'before requiring connection data.')
+
     self.check(structures)
-    conn_data = self.build_conn()
+    if self.is_version2_style:
+      if len(structures) == 1:
+        if PRE2POST in structures and not hasattr(self.build_csr, 'not_customized'):
+          r = self.build_csr()
+          return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
+        elif CONN_MAT in structures and not hasattr(self.build_mat, 'not_customized'):
+          return bm.asarray(self.build_mat(), dtype=MAT_DTYPE)
+        elif PRE_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
+          return bm.asarray(self.build_coo()[0], dtype=IDX_DTYPE)
+        elif POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
+          return bm.asarray(self.build_coo()[1], dtype=IDX_DTYPE)
+      elif len(structures) == 2:
+        if PRE_IDS in structures and POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
+          r = self.build_coo()
+          return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
+
+      conn_data = dict(csr=None, ij=None, mat=None)
+      if not hasattr(self.build_coo, 'not_customized'):
+        conn_data['ij'] = self.build_coo()
+      elif not hasattr(self.build_csr, 'not_customized'):
+        conn_data['csr'] = self.build_csr()
+      elif not hasattr(self.build_mat, 'not_customized'):
+        conn_data['mat'] = self.build_mat()
+
+    else:
+      conn_data = self.build_conn()
     return self.make_returns(structures, conn_data)
 
   def requires(self, *structures):
     return self.require(*structures)
+
+  @tools.not_customized
+  def build_mat(self):
+    pass
+
+  @tools.not_customized
+  def build_csr(self):
+    pass
+
+  @tools.not_customized
+  def build_coo(self):
+    pass
 
 
 class OneEndConnector(TwoEndConnector):
@@ -329,23 +409,26 @@ class OneEndConnector(TwoEndConnector):
     else:
       post_size = tuple(post_size)
     self.pre_size, self.post_size = pre_size, post_size
-
     self.pre_num = tools.size2num(self.pre_size)
     self.post_num = tools.size2num(self.post_size)
     return self
 
   def _reset_conn(self, pre_size, post_size=None):
     self.__init__()
-
     self.__call__(pre_size, post_size)
 
 
 def csr2csc(csr, post_num, data=None):
   """Convert csr to csc."""
   indices, indptr = csr
+  np = onp if isinstance(indices, onp.ndarray) else bm
+  kind = 'quicksort' if isinstance(indices, onp.ndarray) else 'stable'
+
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
 
-  sort_ids = np.argsort(indices, kind='mergesort')  # to maintain the original order of the elements with the same value
+  sort_ids = np.argsort(indices, kind=kind)  # to maintain the original order of the elements with the same value
+  if isinstance(sort_ids, bm.JaxArray):
+    sort_ids = sort_ids.value
   pre_ids_new = np.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
 
   unique_post_ids, count = np.unique(indices, return_counts=True)
@@ -365,8 +448,8 @@ def csr2csc(csr, post_num, data=None):
 
 def mat2csr(dense):
   """convert a dense matrix to (indices, indptr)."""
-  if isinstance(dense, bm.ndarray):
-    dense = np.asarray(dense)
+  np = onp if isinstance(dense, onp.ndarray) else bm
+
   pre_ids, post_ids = np.where(dense > 0)
   pre_num = dense.shape[0]
 
@@ -382,6 +465,8 @@ def mat2csr(dense):
 def csr2mat(csr, num_pre, num_post):
   """convert (indices, indptr) to a dense matrix."""
   indices, indptr = csr
+  np = onp if isinstance(indices, onp.ndarray) else bm
+
   d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
   d[pre_ids, indices] = True
@@ -391,6 +476,8 @@ def csr2mat(csr, num_pre, num_post):
 def ij2mat(ij, num_pre, num_post):
   """convert (indices, indptr) to a dense matrix."""
   pre_ids, post_ids = ij
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
+
   d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
   d[pre_ids, post_ids] = True
   return d
@@ -398,9 +485,12 @@ def ij2mat(ij, num_pre, num_post):
 
 def ij2csr(pre_ids, post_ids, num_pre):
   """convert pre_ids, post_ids to (indices, indptr)."""
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
+  kind = 'quicksort' if isinstance(pre_ids, onp.ndarray) else 'stable'
+
   # sorting
-  sort_ids = np.argsort(pre_ids, kind='mergesort')
-  post_ids = post_ids[sort_ids]
+  sort_ids = np.argsort(pre_ids, kind=kind)
+  post_ids = post_ids[sort_ids.value if isinstance(sort_ids, bm.JaxArray) else sort_ids]
 
   indices = post_ids
   unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)

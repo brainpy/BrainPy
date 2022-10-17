@@ -14,11 +14,12 @@ This module provides analysis tools for differential equations.
 Details in the following.
 """
 
+from .base import *
+
 from .highdim.slow_points import *
 
 from .lowdim.lowdim_phase_plane import *
 from .lowdim.lowdim_bifurcation import *
 
-from . import constants as C
-from . import stability
-from . import utils
+from .constants import *
+from . import constants as C, stability, plotstyle, utils

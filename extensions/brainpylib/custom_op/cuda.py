@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import ctypes
 import ctypes.util
 import sys

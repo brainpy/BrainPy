@@ -1,39 +1,46 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Optional
+
+from jax import vmap
+from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, TwoEndConn
-from brainpy.initialize import Initializer, init_param
+from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
+from brainpy.initialize import Initializer, variable_
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Tensor
+from brainpy.tools.checking import check_integer, check_float
+from brainpy.modes import Mode, BatchingMode, normal, NormalMode, check_mode
+from brainpy.types import Array
+from ..synouts import CUBA, MgBlock
+
 
 __all__ = [
-  'DeltaSynapse',
-  'ExpCUBA',
-  'ExpCOBA',
-  'DualExpCUBA',
-  'DualExpCOBA',
-  'AlphaCUBA',
-  'AlphaCOBA',
+  'Delta',
+  'Exponential',
+  'DualExponential',
+  'Alpha',
   'NMDA',
+  'PoissonInput',
 ]
 
 
-class DeltaSynapse(TwoEndConn):
-  """Voltage Jump Synapse Model, or alias of Delta Synapse Model.
+class Delta(TwoEndConn):
+  r"""Voltage Jump Synapse Model, or alias of Delta Synapse Model.
 
   **Model Descriptions**
 
   .. math::
 
-      I_{syn} (t) = \sum_{j\in C} w \delta(t-t_j-D)
+      I_{syn} (t) = \sum_{j\in C} g_{\mathrm{max}} * \mathrm{STP} * \delta(t-t_j-D)
 
-  where :math:`w` denotes the chemical synaptic strength, :math:`t_j` the spiking
-  moment of the presynaptic neuron :math:`j`, :math:`C` the set of neurons connected
-  to the post-synaptic neuron, and :math:`D` the transmission delay of chemical
-  synapses. For simplicity, the rise and decay phases of post-synaptic currents are
+  where :math:`g_{\mathrm{max}}` denotes the chemical synaptic strength,
+  :math:`t_j` the spiking moment of the presynaptic neuron :math:`j`,
+  :math:`C` the set of neurons connected to the post-synaptic neuron,
+  :math:`D` the transmission delay of chemical synapses,
+  and :math:`\mathrm{STP}` the short-term plasticity effect.
+  For simplicity, the rise and decay phases of post-synaptic currents are
   omitted in this model.
 
   **Model Examples**
@@ -42,11 +49,12 @@ class DeltaSynapse(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.DeltaSynapse(neu1, neu2, bp.connect.All2All(), weights=5.)
+    >>> neu1 = neurons.LIF(1)
+    >>> neu2 = neurons.LIF(1)
+    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), weights=5.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])
@@ -67,17 +75,14 @@ class DeltaSynapse(TwoEndConn):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  weights: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength. Default is 1.
-  post_key: str
-    The key of the post variable. It should be a string. The key should
-    be the attribute of the post-synaptic neuron group.
-  post_has_ref: bool
+  post_ref_key: str
     Whether the post-synaptic group has refractory period.
   """
 
@@ -85,106 +90,86 @@ class DeltaSynapse(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'sparse',
-      weights: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[float, Tensor, Initializer, Callable] = None,
-      post_key: str = 'V',
-      post_has_ref: bool = False,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = CUBA(target_var='V'),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'sparse',
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      delay_step: Union[float, Array, Initializer, Callable] = None,
+      post_ref_key: str = None,
+
+      # other parameters
       name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
   ):
-    super(DeltaSynapse, self).__init__(pre=pre, post=post, conn=conn, name=name)
-    self.check_pre_attrs('spike')
+    super(Delta, self).__init__(name=name,
+                                pre=pre,
+                                post=post,
+                                conn=conn,
+                                output=output,
+                                stp=stp,
+                                mode=mode)
 
     # parameters
-    self.post_key = post_key
-    self.check_post_attrs(post_key)
-    self.post_has_ref = post_has_ref
-    if post_has_ref:
-      self.check_post_attrs('refractory')
+    self.stop_spike_gradient = stop_spike_gradient
+    self.post_ref_key = post_ref_key
+    if post_ref_key:
+      self.check_post_attrs(post_ref_key)
+    self.comp_method = comp_method
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.weights = init_param(weights, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.weights = init_param(weights, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.weights) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.weights, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre2post = self.conn.require('pre2post')
-        self.weights = init_param(weights, self.pre2post[1].shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.weights = init_param(weights, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.weights) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method=comp_method, sparse_data='csr')
 
-    # variables
-    self.delay_step = self.register_delay(f"{self.pre.name}.spike",
-                                          delay_step=delay_step,
-                                          delay_target=self.pre.spike)
+    # register delay
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
-  def reset(self):
-    if self.delay_step is not None:
-      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
+  def reset_state(self, batch_size=None):
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
-  def update(self, t, dt):
-    # delays
-    if self.delay_step is None:
-      pre_spike = self.pre.spike
-    else:
+  def update(self, tdi, pre_spike=None):
+    # pre-synaptic spikes
+    if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", delay_data=self.pre.spike)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
 
-    # post values
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
+    # update sub-components
+    self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
+
+    # synaptic values onto the post
     if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_vs = bm.sum(pre_spike)
-        if not self.conn.include_self:
-          post_vs = post_vs - pre_spike
-        post_vs *= self.weights
-      else:
-        post_vs = bm.expand_dims(pre_spike, 1) * self.weights
-        post_vs = post_vs.sum(axis=0)
+      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = pre_spike * self.weights
+      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
-      if self.conn_type == 'sparse':
-        post_vs = bm.pre2post_event_sum(pre_spike,
-                                        self.pre2post,
-                                        self.post.num,
-                                        self.weights)
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        post_vs = f(pre_spike)
+        # if not isinstance(self.stp, _NullSynSTP):
+        #   raise NotImplementedError()
+        #   stp_value = self.stp(1.)
+        #   f2 = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        #   if self.trainable: f2 = vmap(f2)
+        #   post_vs *= f2(stp_value)
       else:
-        if self.weight_type == 'homo':
-          post_vs = self.weights * (pre_spike @ self.conn_mat)
-        else:
-          post_vs = pre_spike @ self.weights
+        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+    if self.post_ref_key:
+      post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))
 
     # update outputs
-    target = getattr(self.post, self.post_key)
-    if self.post_has_ref:
-      target += post_vs * bm.logical_not(self.post.refractory)
-    else:
-      target += post_vs
+    return self.output(post_vs)
 
 
-class ExpCUBA(TwoEndConn):
-  r"""Current-based exponential decay synapse model.
+class Exponential(TwoEndConn):
+  r"""Exponential decay synapse model.
 
   **Model Descriptions**
 
@@ -206,17 +191,13 @@ class ExpCUBA(TwoEndConn):
   .. math::
 
       \begin{aligned}
-       & g_{\mathrm{syn}}(t) = g_{max} g \\
+       & g_{\mathrm{syn}}(t) = g_{max} g * \mathrm{STP} \\
        & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
        \end{aligned}
-
-  For the current output onto the post-synaptic neuron, its expression is given by
-
-  .. math::
-
-      I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
-
-
+  
+  where :math:`\mathrm{STP}` is used to model the short-term plasticity effect.
+  
+  
   **Model Examples**
 
   - `(Brunel & Hakim, 1999) Fast Global Oscillation <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html>`_
@@ -228,11 +209,13 @@ class ExpCUBA(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.ExpCUBA(neu1, neu2, bp.conn.All2All(), g_max=5.)
+    >>> neu1 = neurons.LIF(1)
+    >>> neu2 = neurons.LIF(1)
+    >>> syn1 = synapses.Exponential(neu1, neu2, bp.conn.All2All(),
+    >>>                             g_max=5., output=synouts.CUBA())
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
@@ -257,7 +240,7 @@ class ExpCUBA(TwoEndConn):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
@@ -277,342 +260,223 @@ class ExpCUBA(TwoEndConn):
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
           "The Synapse." Principles of Computational Modelling in Neuroscience.
           Cambridge: Cambridge UP, 2011. 172-95. Print.
+
   """
 
   def __init__(
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'sparse',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau: Union[float, Tensor] = 8.0,
-      name: str = None,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = CUBA(),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'sparse',
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      tau: Union[float, Array] = 8.0,
       method: str = 'exp_auto',
-  ):
-    super(ExpCUBA, self).__init__(pre=pre, post=post, conn=conn, name=name)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input', 'V')
 
+      # other parameters
+      name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
+  ):
+    super(Exponential, self).__init__(pre=pre,
+                                      post=post,
+                                      conn=conn,
+                                      output=output,
+                                      stp=stp,
+                                      name=name,
+                                      mode=mode)
     # parameters
+    self.stop_spike_gradient = stop_spike_gradient
+    self.comp_method = comp_method
     self.tau = tau
     if bm.size(self.tau) != 1:
-      raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. '
-                       f'But we got {self.tau}')
+      raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre2post = self.conn.require('pre2post')
-        self.g_max = init_param(g_max, self.pre2post[1].shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = bm.Variable(bm.zeros(self.post.num))
+    self.g = variable_(bm.zeros, self.post.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
-  def reset(self):
-    self.g.value = bm.zeros(self.post.num)
-    if self.delay_step is not None:
-      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
+  def reset_state(self, batch_size=None):
+    self.g.value = variable_(bm.zeros, self.post.num, batch_size)
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
-  def update(self, t, dt):
+  def update(self, tdi, pre_spike=None):
+    t, dt = tdi['t'], tdi['dt']
+
     # delays
-    if self.delay_step is None:
-      pre_spike = self.pre.spike
-    else:
+    if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
+
+    # update sub-components
+    self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # post values
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
     if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_vs = bm.sum(pre_spike)
-        if not self.conn.include_self:
-          post_vs = post_vs - pre_spike
-        post_vs = self.g_max * post_vs
-      else:
-        post_vs = pre_spike @ self.g_max
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None: syn_value = self.stp(syn_value)
+      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = pre_spike * self.g_max
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None: syn_value = self.stp(syn_value)
+      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
-      if self.conn_type == 'sparse':
-        post_vs = bm.pre2post_event_sum(pre_spike,
-                                        self.pre2post,
-                                        self.post.num,
-                                        self.g_max)
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        post_vs = f(pre_spike)
+        # if not isinstance(self.stp, _NullSynSTP):
+        #   raise NotImplementedError()
       else:
-        if self.weight_type == 'homo':
-          post_vs = self.g_max * (pre_spike @ self.conn_mat)
-        else:
-          post_vs = pre_spike @ self.g_max
-
+        syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+        if self.stp is not None: syn_value = self.stp(syn_value)
+        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
-    self.g.value = self.integral(self.g.value, t, dt=dt) + post_vs
-    self.post.input += self.output(self.g)
+    self.g.value = self.integral(self.g.value, t, dt) + post_vs
 
-  def output(self, g_post):
-    return g_post
-
-
-class ExpCOBA(ExpCUBA):
-  """Conductance-based exponential decay synapse model.
-
-  **Model Descriptions**
-
-  The conductance-based exponential decay synapse model is similar with the
-  `current-based exponential decay synapse model <./brainmodels.synapses.ExpCUBA.rst>`_,
-  except the expression which output onto the post-synaptic neurons:
-
-  .. math::
-
-      I_{syn}(t) = g_{\mathrm{syn}}(t) (V(t)-E)
-
-  where :math:`V(t)` is the membrane potential of the post-synaptic neuron,
-  :math:`E` is the reversal potential.
-
-  **Model Examples**
-
-  - `(Brette, et, al., 2007) COBA <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Brette_2007_COBA.html>`_
-  - `(Brette, et, al., 2007) COBAHH <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Brette_2007_COBAHH.html>`_
+    # output
+    return self.output(self.g)
 
 
-  .. plot::
-    :include-source: True
+class DualExponential(TwoEndConn):
+  r"""Dual exponential synapse model.
 
-    >>> import brainpy as bp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.ExpCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>>
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.legend()
-    >>> plt.show()
+    **Model Descriptions**
 
-  Parameters
-  ----------
-  pre: NeuGroup
-    The pre-synaptic neuron group.
-  post: NeuGroup
-    The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
-    The synaptic connections.
-  conn_type: str
-    The connection type used for model speed optimization. It can be
-    `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
-    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-  tau: float, JaxArray, ndarray
-    The time constant of decay. [ms]
-  g_max: float, ndarray, JaxArray, Initializer, Callable
-    The synaptic strength (the maximum conductance). Default is 1.
-  name: str
-    The name of this synaptic projection.
-  method: str
-    The numerical integration methods.
+    The dual exponential synapse model [1]_, also named as *difference of two exponentials* model,
+    is given by:
 
-  References
-  ----------
+    .. math::
 
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-          "The Synapse." Principles of Computational Modelling in Neuroscience.
-          Cambridge: Cambridge UP, 2011. 172-95. Print.
-  """
+      g_{\mathrm{syn}}(t)=g_{\mathrm{max}} \frac{\tau_{1} \tau_{2}}{
+          \tau_{1}-\tau_{2}}\left(\exp \left(-\frac{t-t_{0}}{\tau_{1}}\right)
+          -\exp \left(-\frac{t-t_{0}}{\tau_{2}}\right)\right)
 
-  def __init__(
-      self,
-      pre: NeuGroup,
-      post: NeuGroup,
-      # connection
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'sparse',
-      # connection strength
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      # synapse parameter
-      tau: Union[float, Tensor] = 8.0,
-      E: Union[float, Tensor] = 0.,
-      # synapse delay
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      # others
-      method: str = 'exp_auto',
-      name: str = None
-  ):
-    super(ExpCOBA, self).__init__(pre=pre, post=post, conn=conn,
-                                  conn_type=conn_type,
-                                  g_max=g_max, delay_step=delay_step,
-                                  tau=tau, method=method, name=name)
+    where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
+    is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
+    spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
 
-    # parameter
-    self.E = E
-    if bm.size(self.E) != 1:
-      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. '
-                       f'But we got {self.E}')
+    However, in practice, this formula is hard to implement. The equivalent solution is
+    two coupled linear differential equations [2]_:
 
-  def output(self, g_post):
-    return g_post * (self.E - self.post.V)
+    .. math::
 
+        \begin{aligned}
+        &g_{\mathrm{syn}}(t)=g_{\mathrm{max}} g * \mathrm{STP} \\
+        &\frac{d g}{d t}=-\frac{g}{\tau_{\mathrm{decay}}}+h \\
+        &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
+        \end{aligned}
 
-class DualExpCUBA(TwoEndConn):
-  r"""Current-based dual exponential synapse model.
+    where :math:`\mathrm{STP}` is used to model the short-term plasticity effect of synapses.
 
-  **Model Descriptions**
+    **Model Examples**
 
-  The dual exponential synapse model [1]_, also named as *difference of two exponentials* model,
-  is given by:
+    .. plot::
+      :include-source: True
 
-  .. math::
+      >>> import brainpy as bp
+      >>> from brainpy.dyn import neurons, synapses, synouts
+      >>> import matplotlib.pyplot as plt
+      >>>
+      >>> neu1 = neurons.LIF(1)
+      >>> neu2 = neurons.LIF(1)
+      >>> syn1 = synapses.DualExponential(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
+      >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+      >>>
+      >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+      >>> runner.run(150.)
+      >>>
+      >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+      >>> fig.add_subplot(gs[0, 0])
+      >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+      >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+      >>> plt.legend()
+      >>>
+      >>> fig.add_subplot(gs[1, 0])
+      >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+      >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
+      >>> plt.legend()
+      >>> plt.show()
 
-    g_{\mathrm{syn}}(t)=g_{\mathrm{max}} \frac{\tau_{1} \tau_{2}}{
-        \tau_{1}-\tau_{2}}\left(\exp \left(-\frac{t-t_{0}}{\tau_{1}}\right)
-        -\exp \left(-\frac{t-t_{0}}{\tau_{2}}\right)\right)
+    Parameters
+    ----------
+    pre: NeuGroup
+      The pre-synaptic neuron group.
+    post: NeuGroup
+      The post-synaptic neuron group.
+    conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+      The synaptic connections.
+    comp_method: str
+      The connection type used for model speed optimization. It can be
+      `sparse` and `dense`. The default is `sparse`.
+    delay_step: int, ndarray, JaxArray, Initializer, Callable
+      The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
+    tau_decay: float, JaxArray, JaxArray, ndarray
+      The time constant of the synaptic decay phase. [ms]
+    tau_rise: float, JaxArray, JaxArray, ndarray
+      The time constant of the synaptic rise phase. [ms]
+    g_max: float, ndarray, JaxArray, Initializer, Callable
+      The synaptic strength (the maximum conductance). Default is 1.
+    name: str
+      The name of this synaptic projection.
+    method: str
+      The numerical integration methods.
 
-  where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
-  is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
-  spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
+    References
+    ----------
 
-  However, in practice, this formula is hard to implement. The equivalent solution is
-  two coupled linear differential equations [2]_:
+    .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
+           "The Synapse." Principles of Computational Modelling in Neuroscience.
+           Cambridge: Cambridge UP, 2011. 172-95. Print.
+    .. [2] Roth, A., & Van Rossum, M. C. W. (2009). Modeling Synapses. Computational
+           Modeling Methods for Neuroscientists.
 
-  .. math::
-
-      \begin{aligned}
-      &g_{\mathrm{syn}}(t)=g_{\mathrm{max}} g \\
-      &\frac{d g}{d t}=-\frac{g}{\tau_{\mathrm{decay}}}+h \\
-      &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
-      \end{aligned}
-
-  The current onto the post-synaptic neuron is given by
-
-  .. math::
-
-      I_{syn}(t) = g_{\mathrm{syn}}(t).
-
-
-  **Model Examples**
-
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.DualExpCUBA(neu1, neu2, bp.connect.All2All())
-    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>>
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
-    >>> plt.legend()
-    >>> plt.show()
-
-  Parameters
-  ----------
-  pre: NeuGroup
-    The pre-synaptic neuron group.
-  post: NeuGroup
-    The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
-    The synaptic connections.
-  conn_type: str
-    The connection type used for model speed optimization. It can be
-    `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
-    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau_decay: float, JaxArray, JaxArray, ndarray
-    The time constant of the synaptic decay phase. [ms]
-  tau_rise: float, JaxArray, JaxArray, ndarray
-    The time constant of the synaptic rise phase. [ms]
-  g_max: float, ndarray, JaxArray, Initializer, Callable
-    The synaptic strength (the maximum conductance). Default is 1.
-  name: str
-    The name of this synaptic projection.
-  method: str
-    The numerical integration methods.
-
-  References
-  ----------
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-         "The Synapse." Principles of Computational Modelling in Neuroscience.
-         Cambridge: Cambridge UP, 2011. 172-95. Print.
-  .. [2] Roth, A., & Van Rossum, M. C. W. (2009). Modeling Synapses. Computational
-         Modeling Methods for Neuroscientists.
-
-  """
+    """
 
   def __init__(
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      tau_decay: Union[float, Tensor] = 10.0,
-      tau_rise: Union[float, Tensor] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      stp: Optional[SynSTP] = None,
+      output: SynOut = CUBA(),
+      comp_method: str = 'dense',
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      tau_decay: Union[float, Array] = 10.0,
+      tau_rise: Union[float, Array] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None
-  ):
-    super(DualExpCUBA, self).__init__(pre=pre, post=post, conn=conn, name=name)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input')
 
+      # other parameters
+      name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
+  ):
+    super(DualExponential, self).__init__(pre=pre,
+                                          post=post,
+                                          conn=conn,
+                                          output=output,
+                                          stp=stp,
+                                          name=name,
+                                          mode=mode)
     # parameters
+    # self.check_pre_attrs('spike')
+    self.check_post_attrs('input')
+    self.stop_spike_gradient = stop_spike_gradient
+    self.comp_method = comp_method
     self.tau_rise = tau_rise
     self.tau_decay = tau_decay
     if bm.size(self.tau_rise) != 1:
@@ -623,47 +487,21 @@ class DualExpCUBA(TwoEndConn):
                        f'But we got {self.tau_decay}')
 
     # connections
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.h = bm.Variable(bm.zeros(self.pre.num))
-    self.g = bm.Variable(bm.zeros(self.pre.num))
+    self.h = variable_(bm.zeros, self.pre.num, mode)
+    self.g = variable_(bm.zeros, self.pre.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dh]))
 
-  def reset(self):
-    self.h.value = bm.zeros(self.pre.num)
-    self.g.value = bm.zeros(self.pre.num)
-    if self.delay_step is not None:
-      self.reset_delay(f"{self.pre.name}.spike", self.pre.spike)
+  def reset_state(self, batch_size=None):
+    self.h.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def dh(self, h, t):
     return -h / self.tau_rise
@@ -671,158 +509,45 @@ class DualExpCUBA(TwoEndConn):
   def dg(self, g, t, h):
     return -g / self.tau_decay + h
 
-  def update(self, t, dt):
-    # delays
-    if self.delay_step is None:
-      pre_spike = self.pre.spike
-    else:
+  def update(self, tdi, pre_spike=None):
+    t, dt = tdi['t'], tdi['dt']
+
+    # pre-synaptic spikes
+    if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
+
+    # update sub-components
+    self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
     self.g.value, self.h.value = self.integral(self.g, self.h, t, dt)
     self.h += pre_spike
 
-    # post-synaptic values
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
+    # post values
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_vs = bm.sum(self.g)
-        if not self.conn.include_self:
-          post_vs = post_vs - self.g
-        post_vs = self.g_max * post_vs
-      else:
-        post_vs = self.g @ self.g_max
+      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.g_max * self.g
+      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
-      if self.conn_type == 'sparse':
-        post_vs = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        post_vs = f(syn_value)
       else:
-        if self.weight_type == 'homo':
-          post_vs = (self.g_max * self.g) @ self.conn_mat
-        else:
-          post_vs = self.g @ self.g_max
+        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
-    self.post.input += self.output(post_vs)
-
-  def output(self, g_post):
-    return g_post
+    return self.output(post_vs)
 
 
-class DualExpCOBA(DualExpCUBA):
-  """Conductance-based dual exponential synapse model.
-
-  **Model Descriptions**
-
-  The conductance-based dual exponential synapse model is similar with the
-  `current-based dual exponential synapse model <./brainmodels.synapses.DualExpCUBA.rst>`_,
-  except the expression which output onto the post-synaptic neurons:
-
-  .. math::
-
-      I_{syn}(t) = g_{\mathrm{syn}}(t) (V(t)-E)
-
-  where :math:`V(t)` is the membrane potential of the post-synaptic neuron,
-  :math:`E` is the reversal potential.
-
-  **Model Examples**
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.DualExpCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>>
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
-    >>> plt.legend()
-    >>> plt.show()
-
-  Parameters
-  ----------
-  pre: NeuGroup
-    The pre-synaptic neuron group.
-  post: NeuGroup
-    The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
-    The synaptic connections.
-  conn_type: str
-    The connection type used for model speed optimization. It can be
-    `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
-    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-  tau_decay: float, JaxArray, ndarray
-    The time constant of the synaptic decay phase. [ms]
-  tau_rise: float, JaxArray, ndarray
-    The time constant of the synaptic rise phase. [ms]
-  g_max: float, ndarray, JaxArray, Initializer, Callable
-    The synaptic strength (the maximum conductance). Default is 1.
-  name: str
-    The name of this synaptic projection.
-  method: str
-    The numerical integration methods.
-
-  References
-  ----------
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-         "The Synapse." Principles of Computational Modelling in Neuroscience.
-         Cambridge: Cambridge UP, 2011. 172-95. Print.
-
-  """
-
-  def __init__(
-      self,
-      pre: NeuGroup,
-      post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau_decay: Union[float, Tensor] = 10.0,
-      tau_rise: Union[float, Tensor] = 1.,
-      E: Union[float, Tensor] = 0.,
-      method: str = 'exp_auto',
-      name: str = None
-  ):
-    super(DualExpCOBA, self).__init__(pre, post, conn, conn_type=conn_type,
-                                      delay_step=delay_step, g_max=g_max,
-                                      tau_decay=tau_decay, tau_rise=tau_rise,
-                                      method=method, name=name)
-    self.check_post_attrs('V')
-
-    # parameters
-    self.E = E
-    if bm.size(self.E) != 1:
-      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. '
-                       f'But we got {self.E}')
-
-  def output(self, g_post):
-    return g_post * (self.E - self.post.V)
-
-
-class AlphaCUBA(DualExpCUBA):
-  r"""Current-based alpha synapse model.
+class Alpha(DualExponential):
+  r"""Alpha synapse model.
 
   **Model Descriptions**
 
@@ -843,24 +568,18 @@ class AlphaCUBA(DualExpCUBA):
       &\frac{d h}{d t}=-\frac{h}{\tau}+\delta\left(t_{0}-t\right)
       \end{aligned}
 
-  The current onto the post-synaptic neuron is given by
-
-  .. math::
-
-      I_{syn}(t) = g_{\mathrm{syn}}(t).
-
-
   **Model Examples**
 
   .. plot::
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.AlphaCUBA(neu1, neu2, bp.connect.All2All())
+    >>> neu1 = neurons.LIF(1)
+    >>> neu2 = neurons.LIF(1)
+    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
@@ -885,7 +604,7 @@ class AlphaCUBA(DualExpCUBA):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
@@ -911,126 +630,38 @@ class AlphaCUBA(DualExpCUBA):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau_decay: Union[float, Tensor] = 10.0,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = CUBA(),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'dense',
+      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      tau_decay: Union[float, Array] = 10.0,
       method: str = 'exp_auto',
-      name: str = None
+
+      # other parameters
+      name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
   ):
-    super(AlphaCUBA, self).__init__(pre=pre, post=post, conn=conn,
-                                    conn_type=conn_type,
-                                    delay_step=delay_step,
-                                    g_max=g_max,
-                                    tau_decay=tau_decay,
-                                    tau_rise=tau_decay,
-                                    method=method,
-                                    name=name)
-
-
-class AlphaCOBA(DualExpCOBA):
-  """Conductance-based alpha synapse model.
-
-  **Model Descriptions**
-
-  The conductance-based alpha synapse model is similar with the
-  `current-based alpha synapse model <./brainmodels.synapses.AlphaCUBA.rst>`_,
-  except the expression which output onto the post-synaptic neurons:
-
-  .. math::
-
-      I_{syn}(t) = g_{\mathrm{syn}}(t) (V(t)-E)
-
-  where :math:`V(t)` is the membrane potential of the post-synaptic neuron,
-  :math:`E` is the reversal potential.
-
-
-  **Model Examples**
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.AlphaCOBA(neu1, neu2, bp.connect.All2All(), E=0.)
-    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
-    >>> plt.legend()
-    >>> plt.show()
-
-  Parameters
-  ----------
-  pre: NeuGroup
-    The pre-synaptic neuron group.
-  post: NeuGroup
-    The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
-    The synaptic connections.
-  conn_type: str
-    The connection type used for model speed optimization. It can be
-    `sparse` and `dense`. The default is `dense`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
-    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-  tau_decay: float, JaxArray, ndarray
-    The time constant of the synaptic decay phase. [ms]
-  g_max: float, ndarray, JaxArray, Initializer, Callable
-    The synaptic strength (the maximum conductance). Default is 1.
-  name: str
-    The name of this synaptic projection.
-  method: str
-    The numerical integration methods.
-
-  References
-  ----------
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-          "The Synapse." Principles of Computational Modelling in Neuroscience.
-          Cambridge: Cambridge UP, 2011. 172-95. Print.
-
-  """
-
-  def __init__(
-      self,
-      pre: NeuGroup,
-      post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Callable, Initializer] = 1.,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      tau_decay: Union[float, Tensor] = 10.0,
-      E: Union[float, Tensor] = 0.,
-      method: str = 'exp_auto',
-      name: str = None
-  ):
-    super(AlphaCOBA, self).__init__(pre=pre, post=post, conn=conn,
-                                    conn_type=conn_type,
-                                    delay_step=delay_step,
-                                    g_max=g_max, E=E,
-                                    tau_decay=tau_decay,
-                                    tau_rise=tau_decay,
-                                    method=method,
-                                    name=name)
+    super(Alpha, self).__init__(pre=pre,
+                                post=post,
+                                conn=conn,
+                                comp_method=comp_method,
+                                delay_step=delay_step,
+                                g_max=g_max,
+                                tau_decay=tau_decay,
+                                tau_rise=tau_decay,
+                                method=method,
+                                output=output,
+                                stp=stp,
+                                name=name,
+                                mode=mode,
+                                stop_spike_gradient=stop_spike_gradient)
 
 
 class NMDA(TwoEndConn):
-  r"""Conductance-based NMDA synapse model.
+  r"""NMDA synapse model.
 
   **Model Descriptions**
 
@@ -1062,7 +693,7 @@ class NMDA(TwoEndConn):
 
   .. math::
 
-      I_{syn} = g_{NMDA}(t) (V(t)-E) \cdot g_{\infty}
+      I_{syn} = g_\mathrm{NMDA}(t) (V(t)-E) \cdot g_{\infty}
 
   where :math:`V(t)` is the post-synaptic neuron potential, :math:`E` is the
   reversal potential.
@@ -1071,7 +702,7 @@ class NMDA(TwoEndConn):
 
   .. math::
 
-      & g_{NMDA} (t) = g_{max} g \\
+      & g_\mathrm{NMDA} (t) = g_{max} g \\
       & \frac{d g}{dt} = -\frac{g} {\tau_{decay}}+a x(1-g) \\
       & \frac{d x}{dt} = -\frac{x}{\tau_{rise}}+ \sum_{k} \delta(t-t_{j}^{k})
 
@@ -1091,11 +722,12 @@ class NMDA(TwoEndConn):
     :include-source: True
 
     >>> import brainpy as bp
+    >>> from brainpy.dyn import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.HH(1)
-    >>> neu2 = bp.dyn.HH(1)
-    >>> syn1 = bp.dyn.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> neu1 = neurons.HH(1)
+    >>> neu2 = neurons.HH(1)
+    >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
@@ -1121,21 +753,13 @@ class NMDA(TwoEndConn):
     The post-synaptic neuron group.
   conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
-  conn_type: str
+  comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ndarray, JaxArray, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
   g_max: float, ndarray, JaxArray, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  E: float, JaxArray, ndarray
-    The reversal potential for the synaptic current. [mV]
-  alpha: float, JaxArray, ndarray
-    Binding constant. Default 0.062
-  beta: float, JaxArray, ndarray
-    Unbinding constant. Default 3.57
-  cc_Mg: float, JaxArray, ndarray
-    Concentration of Magnesium ion. Default 1.2 [mM].
   tau_decay: float, JaxArray, ndarray
     The time constant of the synaptic decay phase. Default 100 [ms]
   tau_rise: float, JaxArray, ndarray
@@ -1167,83 +791,53 @@ class NMDA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Tensor, Dict[str, Tensor]],
-      conn_type: str = 'dense',
-      g_max: Union[float, Tensor, Initializer, Callable] = 0.15,
-      delay_step: Union[int, Tensor, Initializer, Callable] = None,
-      E: Union[float, Tensor] = 0.,
-      cc_Mg: Union[float, Tensor] = 1.2,
-      alpha: Union[float, Tensor] = 0.062,
-      beta: Union[float, Tensor] = 3.57,
-      tau_decay: Union[float, Tensor] = 100.,
-      a: Union[float, Tensor] = 0.5,
-      tau_rise: Union[float, Tensor] = 2.,
+      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      output: SynOut = MgBlock(E=0., alpha=0.062, beta=3.57, cc_Mg=1.2),
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'dense',
+      g_max: Union[float, Array, Initializer, Callable] = 0.15,
+      delay_step: Union[int, Array, Initializer, Callable] = None,
+      tau_decay: Union[float, Array] = 100.,
+      a: Union[float, Array] = 0.5,
+      tau_rise: Union[float, Array] = 2.,
       method: str = 'exp_auto',
-      name: str = None,
-  ):
-    super(NMDA, self).__init__(pre=pre, post=post, conn=conn, name=name)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input', 'V')
 
+      # other parameters
+      name: str = None,
+      mode: Mode = normal,
+      stop_spike_gradient: bool = False,
+  ):
+    super(NMDA, self).__init__(pre=pre,
+                               post=post,
+                               conn=conn,
+                               output=output,
+                               stp=stp,
+                               name=name,
+                               mode=mode)
     # parameters
-    self.E = E
-    self.alpha = alpha
-    self.beta = beta
-    self.cc_Mg = cc_Mg
+    # self.check_post_attrs('input', 'V')
     self.tau_decay = tau_decay
     self.tau_rise = tau_rise
     self.a = a
     if bm.size(a) != 1:
       raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
-    if bm.size(E) != 1:
-      raise ValueError(f'"E" must be a scalar or a tensor with size of 1. But we got {E}')
-    if bm.size(alpha) != 1:
-      raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
-    if bm.size(beta) != 1:
-      raise ValueError(f'"beta" must be a scalar or a tensor with size of 1. But we got {beta}')
-    if bm.size(cc_Mg) != 1:
-      raise ValueError(f'"cc_Mg" must be a scalar or a tensor with size of 1. But we got {cc_Mg}')
     if bm.size(tau_decay) != 1:
       raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. But we got {tau_decay}')
     if bm.size(tau_rise) != 1:
       raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. But we got {tau_rise}')
+    self.comp_method = comp_method
+    self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
-    self.conn_type = conn_type
-    if conn_type not in ['sparse', 'dense']:
-      raise ValueError(f'"conn_type" must be in "sparse" and "dense", but we got {conn_type}')
-    if self.conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
-    if isinstance(self.conn, One2One):
-      self.g_max = init_param(g_max, (self.pre.num,), allow_none=False)
-      self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-    elif isinstance(self.conn, All2All):
-      self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-      if bm.size(self.g_max) != 1:
-        self.weight_type = 'heter'
-        bm.fill_diagonal(self.g_max, 0.)
-      else:
-        self.weight_type = 'homo'
-    else:
-      if conn_type == 'sparse':
-        self.pre_ids, self.post_ids = self.conn.require('pre_ids', 'post_ids')
-        self.g_max = init_param(g_max, self.post_ids.shape, allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-      elif conn_type == 'dense':
-        self.g_max = init_param(g_max, (self.pre.num, self.post.num), allow_none=False)
-        self.weight_type = 'heter' if bm.size(self.g_max) != 1 else 'homo'
-        if self.weight_type == 'homo':
-          self.conn_mat = self.conn.require('conn_mat')
-      else:
-        raise ValueError(f'Unknown connection type: {conn_type}')
+    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
-    self.x = bm.Variable(bm.zeros(self.pre.num, dtype=bm.float_))
+    self.g = variable_(bm.zeros, self.pre.num, mode)
+    self.x = variable_(bm.zeros, self.pre.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
-    self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
+    self.integral = odeint(method=method, f=JointEq(self.dg, self.dx))
 
   def dg(self, g, t, x):
     return -g / self.tau_decay + self.a * x * (1 - g)
@@ -1251,40 +845,128 @@ class NMDA(TwoEndConn):
   def dx(self, x, t):
     return -x / self.tau_rise
 
-  def update(self, t, dt):
+  def reset_state(self, batch_size=None):
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.x.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
+
+  def update(self, tdi, pre_spike=None):
+    t, dt = tdi['t'], tdi['dt']
     # delays
-    if self.delay_step is None:
-      delayed_pre_spike = self.pre.spike
-    else:
-      delayed_pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
-      self.update_delay(f"{self.pre.name}.spike", self.pre.spike)
+    if pre_spike is None:
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    if self.stop_spike_gradient:
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = stop_gradient(pre_spike)
+
+    # update sub-components
+    self.output.update(tdi)
+    if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
     self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)
-    self.x += delayed_pre_spike
+    self.x += pre_spike
 
     # post-synaptic value
-    assert self.weight_type in ['homo', 'heter']
-    assert self.conn_type in ['sparse', 'dense']
+    syn_value = self.g.value
+    if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      if self.weight_type == 'homo':
-        post_g = bm.sum(self.g)
-        if not self.conn.include_self:
-          post_g = post_g - self.g
-        post_g = post_g * self.g_max
-      else:
-        post_g = self.g @ self.g_max
+      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_g = self.g_max * self.g
+      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
     else:
-      if self.conn_type == 'sparse':
-        post_g = bm.pre2post_sum(self.g, self.post.num, self.post_ids, self.pre_ids)
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        post_vs = f(syn_value)
       else:
-        if self.weight_type == 'homo':
-          post_g = (self.g_max * self.g) @ self.conn_mat
-        else:
-          post_g = self.g @ self.g_max
+        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
-    g_inf = 1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post.V)
-    self.post.input += post_g * (self.E - self.post.V) / g_inf
+    return self.output(post_vs)
+
+
+class PoissonInput(SynConn):
+  """Poisson Input to the given `Variable`.
+
+  Adds independent Poisson input to a target variable. For large
+  numbers of inputs, this is much more efficient than creating a
+  `PoissonGroup`. The synaptic events are generated randomly during the
+  simulation and are not preloaded and stored in memory. All the inputs must
+  target the same variable, have the same frequency and same synaptic weight.
+  All neurons in the target variable receive independent realizations of
+  Poisson spike trains.
+
+  Parameters
+  ----------
+  target_var: Variable
+    The variable that is targeted by this input.
+  num_input: int
+    The number of inputs.
+  freq: float
+    The frequency of each of the inputs. Must be a scalar.
+  weight: float
+    The synaptic weight. Must be a scalar.
+  """
+
+  def __init__(
+      self,
+      target_var: bm.Variable,
+      num_input: int,
+      freq: Union[int, float],
+      weight: Union[int, float],
+      seed: Optional[int] = None,
+      mode: Mode = normal,
+      name: str = None
+  ):
+    from ..neurons.input_groups import InputGroup, OutputGroup
+    super(PoissonInput, self).__init__(InputGroup(1), OutputGroup(1), name=name, mode=mode)
+    self.pre = None
+    self.post = None
+
+    # check data
+    if not isinstance(target_var, bm.Variable):
+      raise TypeError(f'"target_var" must be an instance of Variable. '
+                      f'But we got {type(target_var)}: {target_var}')
+    check_integer(num_input, 'num_input', min_bound=1)
+    check_float(freq, 'freq', min_bound=0., allow_int=True)
+    check_float(weight, 'weight', allow_int=True)
+    check_mode(mode, (NormalMode, BatchingMode), name=self.__class__.__name__)
+
+    # parameters
+    self.target_var = target_var
+    self.num_input = num_input
+    self.freq = freq
+    self.weight = weight
+    self.seed = seed
+    self.rng = bm.random.RandomState(self.seed)
+
+  def update(self, tdi):
+    p = self.freq * tdi.dt / 1e3
+    a = self.num_input * p
+    b = self.num_input * (1 - p)
+    if isinstance(tdi.dt, (int, float)):  # dt is not in tracing
+      if (a > 5) and (b > 5):
+        inp = self.rng.normal(a, b * p, self.target_var.shape)
+      else:
+        inp = self.rng.binomial(self.num_input, p, self.target_var.shape)
+
+    else:  # dt is in tracing
+      inp = bm.cond((a > 5) * (b > 5),
+                    lambda _: self.rng.normal(a, b * p, self.target_var.shape),
+                    lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
+                    None)
+    self.target_var += inp * self.weight
+
+  def __repr__(self):
+    names = self.__class__.__name__
+    return f'{names}(name={self.name}, num_input={self.num_input}, freq={self.freq}, weight={self.weight})'
+
+  def reset_state(self, batch_size=None):
+    pass
+
+  def reset(self, batch_size=None):
+    self.rng.seed(self.seed)
+    self.reset_state(batch_size)
+

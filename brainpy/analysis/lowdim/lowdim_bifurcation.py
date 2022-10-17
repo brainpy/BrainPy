@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy import errors
-from brainpy.analysis import stability, utils, constants as C
+from brainpy.analysis import stability, plotstyle, utils, constants as C
 from brainpy.analysis.lowdim.lowdim_analyzer import *
 
 pyplot = None
@@ -79,8 +79,8 @@ class Bifurcation1D(Num1DAnalyzer):
         pyplot.figure(self.x_var)
         for fp_type, points in container.items():
           if len(points['x']):
-            plot_style = stability.plot_scheme[fp_type]
-            pyplot.plot(points['p'], points['x'], '.', **plot_style, label=fp_type)
+            plot_style = plotstyle.plot_schema[fp_type]
+            pyplot.plot(points['p'], points['x'], **plot_style, label=fp_type)
         pyplot.xlabel(self.target_par_names[0])
         pyplot.ylabel(self.x_var)
 
@@ -107,10 +107,11 @@ class Bifurcation1D(Num1DAnalyzer):
         ax = fig.add_subplot(projection='3d')
         for fp_type, points in container.items():
           if len(points['x']):
-            plot_style = stability.plot_scheme[fp_type]
+            plot_style = plotstyle.plot_schema[fp_type]
             xs = points['p0']
             ys = points['p1']
             zs = points['x']
+            plot_style.pop('linestyle')
             ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
 
         ax.set_xlabel(self.target_par_names[0])
@@ -298,8 +299,8 @@ class Bifurcation2D(Num2DAnalyzer):
           pyplot.figure(var)
           for fp_type, points in container.items():
             if len(points['p']):
-              plot_style = stability.plot_scheme[fp_type]
-              pyplot.plot(points['p'], points[var], '.', **plot_style, label=fp_type)
+              plot_style = plotstyle.plot_schema[fp_type]
+              pyplot.plot(points['p'], points[var], **plot_style, label=fp_type)
           pyplot.xlabel(self.target_par_names[0])
           pyplot.ylabel(var)
 
@@ -330,10 +331,11 @@ class Bifurcation2D(Num2DAnalyzer):
           ax = fig.add_subplot(projection='3d')
           for fp_type, points in container.items():
             if len(points['p0']):
-              plot_style = stability.plot_scheme[fp_type]
+              plot_style = plotstyle.plot_schema[fp_type]
               xs = points['p0']
               ys = points['p1']
               zs = points[var]
+              plot_style.pop('linestyle')
               ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
 
           ax.set_xlabel(self.target_par_names[0])
@@ -354,8 +356,17 @@ class Bifurcation2D(Num2DAnalyzer):
     if with_return:
       return final_fps, final_pars, jacobians
 
-  def plot_limit_cycle_by_sim(self, duration=100, with_plot=True, with_return=False,
-                              plot_style=None, tol=0.001, show=False, dt=None, offset=1.):
+  def plot_limit_cycle_by_sim(
+      self,
+      duration=100,
+      with_plot: bool = True,
+      with_return: bool = False,
+      plot_style: dict = None,
+      tol: float = 0.001,
+      show: bool = False,
+      dt: float = None,
+      offset: float = 1.
+  ):
     global pyplot
     if pyplot is None: from matplotlib import pyplot
     utils.output('I am plotting the limit cycle ...')
@@ -400,10 +411,16 @@ class Bifurcation2D(Num2DAnalyzer):
         if len(ps_limit_cycle[0]):
           for i, var in enumerate(self.target_var_names):
             pyplot.figure(var)
-            pyplot.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['max'],
-                        **plot_style, label='limit cycle (max)')
-            pyplot.plot(ps_limit_cycle[0], ps_limit_cycle[1], vs_limit_cycle[i]['min'],
-                        **plot_style, label='limit cycle (min)')
+            pyplot.plot(ps_limit_cycle[0],
+                        ps_limit_cycle[1],
+                        vs_limit_cycle[i]['max'],
+                        **plot_style,
+                        label='limit cycle (max)')
+            pyplot.plot(ps_limit_cycle[0],
+                        ps_limit_cycle[1],
+                        vs_limit_cycle[i]['min'],
+                        **plot_style,
+                        label='limit cycle (min)')
             pyplot.legend()
 
       elif len(self.target_par_names) == 1:
@@ -427,8 +444,16 @@ class Bifurcation2D(Num2DAnalyzer):
 
 
 class FastSlow1D(Bifurcation1D):
-  def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
-               pars_update=None, resolutions=None, options=None):
+  def __init__(
+      self,
+      model,
+      fast_vars: dict,
+      slow_vars: dict,
+      fixed_vars: dict = None,
+      pars_update: dict = None,
+      resolutions=None,
+      options: dict = None
+  ):
     super(FastSlow1D, self).__init__(model=model,
                                      target_pars=slow_vars,
                                      target_vars=fast_vars,
@@ -510,8 +535,16 @@ class FastSlow1D(Bifurcation1D):
 
 
 class FastSlow2D(Bifurcation2D):
-  def __init__(self, model, fast_vars, slow_vars, fixed_vars=None,
-               pars_update=None, resolutions=0.1, options=None):
+  def __init__(
+      self,
+      model,
+      fast_vars: dict,
+      slow_vars: dict,
+      fixed_vars: dict = None,
+      pars_update: dict = None,
+      resolutions=0.1,
+      options: dict = None
+  ):
     super(FastSlow2D, self).__init__(model=model,
                                      target_pars=slow_vars,
                                      target_vars=fast_vars,

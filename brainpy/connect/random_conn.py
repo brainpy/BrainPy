@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from typing import Optional
 
 from brainpy.errors import ConnectorError
-
+from brainpy.tools.others import numba_seed, numba_jit, numba_range, SUPPORT_NUMBA, format_seed
 from .base import *
 
 __all__ = [
@@ -11,6 +12,7 @@ __all__ = [
   'FixedPreNum',
   'FixedPostNum',
   'GaussianProb',
+  'ProbDist',
 
   'SmallWorld',
   'ScaleFreeBA',
@@ -19,85 +21,110 @@ __all__ = [
 ]
 
 
-# @tools.numba_jit
-def _random_prob_conn(rng, pre_i, num_post, prob, include_self):
-  p = rng.random(num_post) <= prob
-  if (not include_self) and pre_i < num_post:
-    p[pre_i] = False
-  conn_j = np.asarray(np.where(p)[0], dtype=IDX_DTYPE)
-  return conn_j
-
-
 class FixedProb(TwoEndConnector):
   """Connect the post-synaptic neurons with fixed probability.
 
+
   Parameters
   ----------
-  prob : float
-      The conn probability.
+  prob: float
+    The conn probability.
+  pre_ratio: float
+    The ratio of pre-synaptic neurons to connect.
   include_self : bool
-      Whether create (i, i) conn?
+    Whether create (i, i) conn?
+  allow_multi_conn: bool
+    Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
+
+    .. versionadded:: 2.2.3.2
+
   seed : optional, int
-      Seed the random generator.
+    Seed the random generator.
   """
 
-  def __init__(self, prob, include_self=True, seed=None):
+  def __init__(self, prob, pre_ratio=1., include_self=True, allow_multi_conn=False, seed=None):
     super(FixedProb, self).__init__()
     assert 0. <= prob <= 1.
+    assert 0. <= pre_ratio <= 1.
     self.prob = prob
+    self.pre_ratio = pre_ratio
     self.include_self = include_self
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
+    self.allow_multi_conn = allow_multi_conn
 
-  def build_conn(self):
-    ind = []
-    count = np.zeros(self.pre_num, dtype=IDX_DTYPE)
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(prob={self.prob}, pre_ratio={self.pre_ratio}, '
+            f'include_self={self.include_self}, allow_multi_conn={self.allow_multi_conn}, '
+            f'seed={self.seed})')
 
-    for i in range(self.pre_num):
-      posts = _random_prob_conn(self.rng, pre_i=i, num_post=self.post_num,
-                                prob=self.prob, include_self=self.include_self)
-      ind.append(posts)
-      count[i] = len(posts)
+  def _iii(self):
+    if (not self.include_self) and (self.pre_num != self.post_num):
+      raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
+                           f'But `include_self` is set to True.')
 
-    ind = np.concatenate(ind)
-    indptr = np.concatenate(([0], count)).cumsum()
+    if self.pre_ratio < 1.:
+      pre_num_to_select = int(self.pre_num * self.pre_ratio)
+      pre_ids = self.rng.choice(self.pre_num, size=pre_num_to_select, replace=False)
+    else:
+      pre_num_to_select = self.pre_num
+      pre_ids = np.arange(self.pre_num)
 
-    return 'csr', (ind, indptr)
+    post_num_total = self.post_num
+    post_num_to_select = int(self.post_num * self.prob)
+    if SUPPORT_NUMBA:
+      rng = np.random
+      numba_seed(self.rng.randint(0, int(1e8)))
+    else:
+      rng = self.rng
+
+    if self.allow_multi_conn:
+      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
+
+    else:
+      @numba_jit#(parallel=True, nogil=True)
+      def single_conn():
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.int32)
+        for i in numba_range(pre_num_to_select):
+          posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
+        return posts
+
+      selected_post_ids = single_conn()
+    return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
+
+  def build_coo(self):
+    _, post_num_to_select, selected_post_ids, pre_ids = self._iii()
+    selected_post_ids = selected_post_ids.flatten()
+    selected_pre_ids = np.repeat(pre_ids, post_num_to_select)
+    if not self.include_self:
+      true_ids = selected_pre_ids != selected_post_ids
+      selected_pre_ids = selected_pre_ids[true_ids]
+      selected_post_ids = selected_post_ids[true_ids]
+    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
+
+  def build_csr(self):
+    pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._iii()
+    pre_nums = np.ones(pre_num_to_select) * post_num_to_select
+    if not self.include_self:
+      true_ids = selected_post_ids == np.reshape(pre_ids, (-1, 1))
+      pre_nums -= np.sum(true_ids, axis=1)
+      selected_post_ids = selected_post_ids.flatten()[np.logical_not(true_ids).flatten()]
+    else:
+      selected_post_ids = selected_post_ids.flatten()
+    selected_pre_inptr = np.cumsum(np.concatenate([np.zeros(1), pre_nums]))
+    return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
+
+  def build_mat(self):
+    pre_state = self.rng.rand(self.pre_num, 1) < self.pre_ratio
+    mat = (self.rng.rand(self.pre_num, self.post_num) < self.prob) * pre_state
+    if not self.include_self:
+      np.fill_diagonal(mat, False)
+    return mat.astype(MAT_DTYPE)
 
 
-# @tools.numba_jit
-def _fixed_num_prob(rng, num_need, num_total, i=0, include_self=False):
-  prob = rng.random(num_total)
-  if not include_self and i <= num_total:
-    prob[i] = 1.
-  neu_idx = np.argsort(prob)[:num_need]
-  return np.asarray(neu_idx, dtype=IDX_DTYPE)
-
-
-class FixedPreNum(TwoEndConnector):
-  """Connect the pre-synaptic neurons with fixed number for each post-synaptic neuron.
-
-  Parameters
-  ----------
-  num : float, int
-    The connection probability (if "num" is float) or the fixed number of
-    connectivity (if "num" is int).
-  include_self : bool
-    Whether create (i, i) conn ?
-  seed : None, int
-    Seed the random generator.
-
-    - ``matrix``: This method will create a big matrix, then, the connectivity is constructed
-      from this matrix :math:`(N_{pre}, N_{post})`. In a large network, this method will
-      consume huge memories, including a matrix: :math:`(N_{pre}, N_{post})`, two vectors:
-      :math:`2 * N_{need} * N_{post}`.
-    - ``iter``: This method will iteratively build the synaptic connections. It has the
-      minimum pressure of memory consuming, only :math:`2 * N_{need} * N_{post}`
-      (``i`` and ``j`` vectors).
-  """
-
-  def __init__(self, num, include_self=True, seed=None):
-    super(FixedPreNum, self).__init__()
+class FixedNum(TwoEndConnector):
+  def __init__(self, num, include_self=True, allow_multi_conn=False, seed=None):
+    super(FixedNum, self).__init__()
     if isinstance(num, int):
       assert num >= 0, '"num" must be a non-negative integer.'
     elif isinstance(num, float):
@@ -105,33 +132,17 @@ class FixedPreNum(TwoEndConnector):
     else:
       raise ConnectorError(f'Unknown type: {type(num)}')
     self.num = num
-    self.seed = seed
+    self.seed = format_seed(seed)
     self.include_self = include_self
-    self.rng = np.random.RandomState(seed=seed)
+    self.allow_multi_conn = allow_multi_conn
+    self.rng = np.random.RandomState(seed=self.seed)
 
-  def build_conn(self):
-    # check
-    if isinstance(self.num, int):
-      assert 0 <= self.num <= self.pre_num, f'"num" must be smaller than "self.pre_num", ' \
-                                            f'but got {self.num} > {self.pre_num}'
-      num = self.num
-    else:
-      assert 0. <= self.num <= 1., f'"num" must be in [0., 1.), but got {self.num}'
-      num = int(self.pre_num * self.num)
-
-    pre_ids = []
-    for i in range(self.post_num):
-      pres = _fixed_num_prob(rng=self.rng, num_need=num, num_total=self.pre_num,
-                             i=i, include_self=self.include_self)
-      pre_ids.append(pres)
-    pre_ids = np.concatenate(pre_ids)
-    post_ids = np.repeat(np.arange(self.post_num), num)
-
-    return 'ij', (pre_ids, post_ids)
+  def __repr__(self):
+    return f'{self.__class__.__name__}(num={self.num}, include_self={self.include_self}, seed={self.seed})'
 
 
-class FixedPostNum(TwoEndConnector):
-  """Connect the post-synaptic neurons with fixed number for each pre-synaptic neuron.
+class FixedPreNum(FixedNum):
+  """Connect a fixed number pf pre-synaptic neurons for each post-synaptic neuron.
 
   Parameters
   ----------
@@ -142,54 +153,124 @@ class FixedPostNum(TwoEndConnector):
       Whether create (i, i) conn ?
   seed : None, int
       Seed the random generator.
-  method : str
-    The method used to create the connection.
+  allow_multi_conn: bool
+    Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
 
-    - ``matrix``: This method will create a big matrix, then, the connectivity is constructed
-      from this matrix :math:`(N_{pre}, N_{post})`. In a large network, this method will
-      consume huge memories, including a matrix: :math:`(N_{pre}, N_{post})`, two vectors:
-      :math:`2 * N_{need} * N_{pre}`.
-    - ``iter``: This method will iteratively build the synaptic connections. It has the
-      minimum pressure of memory consuming, only :math:`2 * N_{need} * N_{pre}`
-      (``i`` and ``j`` vectors).
+    .. versionadded:: 2.2.3.2
+
   """
 
-  def __init__(self, num, include_self=True, seed=None):
-    super(FixedPostNum, self).__init__()
-    if isinstance(num, int):
-      assert num >= 0, '"num" must be a non-negative integer.'
-    elif isinstance(num, float):
-      assert 0. <= num <= 1., '"num" must be in [0., 1.).'
+  def build_coo(self):
+    if isinstance(self.num, int) and self.num > self.pre_num:
+      raise ConnectorError(f'"num" must be smaller than "pre_num", '
+                           f'but got {self.num} > {self.pre_num}')
+    if (not self.include_self) and (self.pre_num != self.post_num):
+      raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
+                           f'But `include_self` is set to True.')
+    pre_num_to_select = int(self.pre_num * self.num) if isinstance(self.num, float) else self.num
+    pre_num_total = self.pre_num
+    post_num_total = self.post_num
+    seed = self.seed
+    if SUPPORT_NUMBA:
+      rng = np.random
+      numba_seed(self.rng.randint(0, int(1e8)))
     else:
-      raise ConnectorError(f'Unknown type: {type(num)}')
-    self.num = num
-    self.seed = seed
-    self.include_self = include_self
-    self.rng = np.random.RandomState(seed=seed)
-
-  def build_conn(self):
-    # check
-    if isinstance(self.num, int):
-      assert 0 <= self.num <= self.post_num, f'"num" must be smaller than "self.post_num", ' \
-                                             f'but got {self.num} > {self.post_num}'
-      prob = self.num / self.post_num
-      num = self.num
+      rng = self.rng
+    if self.allow_multi_conn:
+      selected_pre_ids = self.rng.randint(0, pre_num_total, (post_num_total, pre_num_to_select, ))
     else:
-      assert 0. <= self.num <= 1., f'"num" must be in [0., 1.), but got {self.num}'
-      num = int(self.post_num * self.num)
-      prob = self.num
+      @numba_jit#(parallel=True, nogil=True)
+      def single_conn():
+        posts = np.zeros((post_num_total, pre_num_to_select), dtype=np.int32)
+        for i in numba_range(post_num_total):
+          posts[i] = rng.choice(pre_num_total, pre_num_to_select, replace=False)
+        return posts
 
-    post_ids = []  # i.e. post_ids
-    for i in range(self.pre_num):
-      posts = _fixed_num_prob(rng=self.rng, num_need=num, num_total=self.post_num,
-                              i=i, include_self=self.include_self)
-      post_ids.append(posts)
+      selected_pre_ids = single_conn()
 
-    post_ids = np.concatenate(post_ids)
-    count = np.ones(self.pre_num, dtype=IDX_DTYPE) * num
-    indptr = np.concatenate(([0], count)).cumsum()
+    post_nums = np.ones((post_num_total,), dtype=np.int32) * pre_num_to_select
+    if not self.include_self:
+      true_ids = selected_pre_ids == np.reshape(np.arange(pre_num_total), (-1, 1))
+      post_nums -= np.sum(true_ids, axis=1)
+      selected_pre_ids = selected_pre_ids.flatten()[np.logical_not(true_ids).flatten()]
+    else:
+      selected_pre_ids = selected_pre_ids.flatten()
+    selected_post_ids = np.repeat(np.arange(post_num_total), post_nums)
+    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
 
-    return 'csr', (post_ids, indptr)
+
+class FixedPostNum(FixedNum):
+  """Connect the fixed number of post-synaptic neurons for each pre-synaptic neuron.
+
+  Parameters
+  ----------
+  num : float, int
+      The conn probability (if "num" is float) or the fixed number of
+      connectivity (if "num" is int).
+  include_self : bool
+      Whether create (i, i) conn ?
+  seed : None, int
+      Seed the random generator.
+  allow_multi_conn: bool
+    Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
+
+    .. versionadded:: 2.2.3.2
+
+  """
+
+  def _ii(self):
+    if isinstance(self.num, int) and self.num > self.post_num:
+      raise ConnectorError(f'"num" must be smaller than "post_num", '
+                           f'but got {self.num} > {self.post_num}')
+    if (not self.include_self) and (self.pre_num != self.post_num):
+      raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
+                           f'But `include_self` is set to True.')
+    post_num_to_select = int(self.post_num * self.num) if isinstance(self.num, float) else self.num
+    pre_num_to_select = self.pre_num
+    pre_ids = np.arange(self.pre_num)
+
+    post_num_total = self.post_num
+    if SUPPORT_NUMBA:
+      rng = np.random
+      numba_seed(self.rng.randint(0, int(1e8)))
+    else:
+      rng = self.rng
+
+    if self.allow_multi_conn:
+      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
+
+    else:
+      @numba_jit#(parallel=True, nogil=True)
+      def single_conn():
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.int32)
+        for i in numba_range(pre_num_to_select):
+          posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
+        return posts
+
+      selected_post_ids = single_conn()
+    return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
+
+  def build_coo(self):
+    _, post_num_to_select, selected_post_ids, pre_ids = self._ii()
+    selected_post_ids = selected_post_ids.flatten()
+    selected_pre_ids = np.repeat(pre_ids, post_num_to_select)
+    if not self.include_self:
+      true_ids = selected_pre_ids != selected_post_ids
+      selected_pre_ids = selected_pre_ids[true_ids]
+      selected_post_ids = selected_post_ids[true_ids]
+    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
+
+  def build_csr(self):
+    pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._ii()
+    pre_nums = np.ones(pre_num_to_select) * post_num_to_select
+    if not self.include_self:
+      true_ids = selected_post_ids == np.reshape(pre_ids, (-1, 1))
+      pre_nums -= np.sum(true_ids, axis=1)
+      selected_post_ids = selected_post_ids.flatten()[np.logical_not(true_ids).flatten()]
+    else:
+      selected_post_ids = selected_post_ids.flatten()
+    selected_pre_inptr = np.cumsum(np.concatenate([np.zeros(1), pre_nums]))
+    return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
 
 
 class GaussianProb(OneEndConnector):
@@ -225,23 +306,37 @@ class GaussianProb(OneEndConnector):
   normalize : bool
       Whether normalize the connection probability .
   include_self : bool
-      Whether create the conn at the same position.
+      Whether create the connection at the same position.
   seed : int
       The random seed.
   """
 
-  def __init__(self, sigma, encoding_values=None, normalize=True, include_self=True,
-               periodic_boundary=False, seed=None):
+  def __init__(
+      self,
+      sigma: float,
+      encoding_values: Optional[np.ndarray] = None,
+      normalize: bool = True,
+      include_self: bool = True,
+      periodic_boundary: bool = False,
+      seed: int = None
+  ):
     super(GaussianProb, self).__init__()
     self.sigma = sigma
     self.encoding_values = encoding_values
     self.normalize = normalize
     self.include_self = include_self
     self.periodic_boundary = periodic_boundary
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
 
-  def build_conn(self):
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(sigma={self.sigma}, '
+            f'normalize={self.normalize}, '
+            f'periodic_boundary={self.periodic_boundary}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
+
+  def build_mat(self, pre_size=None, post_size=None):
     # value range to encode
     if self.encoding_values is None:
       value_ranges = tuple([(0, s) for s in self.pre_size])
@@ -268,6 +363,7 @@ class GaussianProb(OneEndConnector):
 
     # values
     values = [np.linspace(vs[0], vs[1], n + 1)[:n] for vs, n in zip(value_ranges, self.pre_size)]
+    # post_values = np.stack([v.flatten() for v in np.meshgrid(*values, indexing='ij')])
     post_values = np.stack([v.flatten() for v in np.meshgrid(*values)])
     value_sizes = np.array([v[1] - v[0] for v in value_ranges])
     if value_sizes.ndim < post_values.ndim:
@@ -296,28 +392,10 @@ class GaussianProb(OneEndConnector):
       prob_mat /= prob_mat.max()
 
     # connectivity
-    conn_mat = prob_mat >= self.rng.random(prob_mat.shape)
-
+    conn_mat = np.asarray(prob_mat) >= self.rng.random(prob_mat.shape)
     if not self.include_self:
       np.fill_diagonal(conn_mat, False)
-
-    return 'mat', conn_mat
-
-
-# @tools.numba_jit
-def _smallworld_rewire(prob, i, all_j, include_self):
-  if np.random.random(1) < prob:
-    non_connected = np.where(all_j == False)[0]
-    if len(non_connected) <= 1:
-      return -1
-    # Enforce no self-loops or multiple edges
-    w = np.random.choice(non_connected)
-    while (not include_self) and w == i:
-      # non_connected.remove(w)
-      w = np.random.choice(non_connected)
-    return w
-  else:
-    return -1
+    return conn_mat
 
 
 class SmallWorld(TwoEndConnector):
@@ -351,15 +429,53 @@ class SmallWorld(TwoEndConnector):
          Nature, 393, pp. 440--442, 1998.
   """
 
-  def __init__(self, num_neighbor, prob, directed=False, include_self=False):
+  def __init__(
+      self,
+      num_neighbor,
+      prob,
+      directed=False,
+      include_self=False,
+      seed=None
+  ):
     super(SmallWorld, self).__init__()
     self.prob = prob
     self.directed = directed
     self.num_neighbor = num_neighbor
     self.include_self = include_self
 
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(seed=self.seed)
+    rng = np.random if SUPPORT_NUMBA else self.rng
+
+    def _smallworld_rewire(i, all_j):
+      if rng.random(1) < prob:
+        non_connected = np.where(np.logical_not(all_j))[0]
+        if len(non_connected) <= 1:
+          return -1
+        # Enforce no self-loops or multiple edges
+        w = rng.choice(non_connected)
+        while (not include_self) and w == i:
+          # non_connected.remove(w)
+          w = rng.choice(non_connected)
+        return w
+      else:
+        return -1
+
+    self._connect = numba_jit(_smallworld_rewire)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(prob={self.prob}, '
+            f'directed={self.directed}, '
+            f'num_neighbor={self.num_neighbor}, '
+            f'include_self={self.include_self}, '
+            f'seed={self.seed})')
+
   def build_conn(self):
     assert self.pre_size == self.post_size
+
+    # seed
+    self.seed = self.rng.randint(1, int(1e7))
+    numba_seed(self.seed)
 
     if isinstance(self.pre_size, int) or (isinstance(self.pre_size, (tuple, list)) and len(self.pre_size) == 1):
       num_node = self.pre_num
@@ -386,18 +502,18 @@ class SmallWorld(TwoEndConnector):
           if self.directed:
             # inner loop in node order
             for u, v in zip(nodes, targets):
-              w = _smallworld_rewire(prob=self.prob, i=u, all_j=conn[u], include_self=self.include_self)
+              w = self._connect(prob=self.prob, i=u, all_j=conn[u])
               if w != -1:
                 conn[u, v] = False
                 conn[u, w] = True
-              w = _smallworld_rewire(prob=self.prob, i=u, all_j=conn[:, u], include_self=self.include_self)
+              w = self._connect(prob=self.prob, i=u, all_j=conn[:, u])
               if w != -1:
                 conn[v, u] = False
                 conn[w, u] = True
           else:
             # inner loop in node order
             for u, v in zip(nodes, targets):
-              w = _smallworld_rewire(prob=self.prob, i=u, all_j=conn[u], include_self=self.include_self)
+              w = self._connect(i=u, all_j=conn[u])
               if w != -1:
                 conn[u, v] = False
                 conn[v, u] = False
@@ -410,19 +526,19 @@ class SmallWorld(TwoEndConnector):
     return 'mat', conn
 
 
-def _random_subset(seq, m, rng):
-  """Return m unique elements from seq.
-
-  This differs from random.sample which can return repeated
-  elements if seq holds repeated elements.
-
-  Note: rng is a random.Random or numpy.random.RandomState instance.
-  """
-  targets = set()
-  while len(targets) < m:
-    x = rng.choice(seq)
-    targets.add(x)
-  return targets
+# def _random_subset(seq, m, rng):
+#   """Return m unique elements from seq.
+#
+#   This differs from random.sample which can return repeated
+#   elements if seq holds repeated elements.
+#
+#   Note: rng is a random.Random or numpy.random.RandomState instance.
+#   """
+#   targets = set()
+#   while len(targets) < m:
+#     x = rng.choice(seq)
+#     targets.add(x)
+#   return targets
 
 
 class ScaleFreeBA(TwoEndConnector):
@@ -455,11 +571,31 @@ class ScaleFreeBA(TwoEndConnector):
     super(ScaleFreeBA, self).__init__()
     self.m = m
     self.directed = directed
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
+    rng = np.random if SUPPORT_NUMBA else self.rng
+
+    def _random_subset(seq, m):
+      targets = set()
+      while len(targets) < m:
+        x = rng.choice(seq)
+        targets.add(x)
+      return targets
+
+    self._connect = numba_jit(_random_subset)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(m={self.m}, '
+            f'directed={self.directed}, '
+            f'seed={self.seed})')
 
   def build_conn(self):
     assert self.pre_num == self.post_num
+
+    # seed
+    self.seed = self.rng.randint(1, int(1e7))
+    numba_seed(self.seed)
+
     num_node = self.pre_num
     if self.m < 1 or self.m >= num_node:
       raise ConnectorError(f"Barabási–Albert network must have m >= 1 and "
@@ -485,7 +621,7 @@ class ScaleFreeBA(TwoEndConnector):
       repeated_nodes.extend([source] * self.m)
       # Now choose m unique nodes from the existing nodes
       # Pick uniformly from repeated_nodes (preferential attachment)
-      targets = list(_random_subset(repeated_nodes, self.m, self.rng))
+      targets = list(self._connect(np.asarray(repeated_nodes), self.m))
       source += 1
 
     return 'mat', conn
@@ -526,11 +662,29 @@ class ScaleFreeBADual(TwoEndConnector):
     self.m2 = m2
     self.p = p
     self.directed = directed
-    self.seed = seed
-    self.rng = np.random.RandomState(seed=seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
+    rng = np.random if SUPPORT_NUMBA else self.rng
+
+    def _random_subset(seq, m):
+      targets = set()
+      while len(targets) < m:
+        x = rng.choice(seq)
+        targets.add(x)
+      return targets
+
+    self._connect = numba_jit(_random_subset)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(m1={self.m1}, m2={self.m2}, '
+            f'p={self.p}, directed={self.directed}, seed={self.seed})')
 
   def build_conn(self):
     assert self.pre_num == self.post_num
+    # seed
+    self.seed = self.rng.randint(1, int(1e7))
+    numba_seed(self.seed)
+
     num_node = self.pre_num
     if self.m1 < 1 or self.m1 >= num_node:
       raise ConnectorError(f"Dual Barabási–Albert network must have m1 >= 1 and m1 < num_node, "
@@ -565,7 +719,7 @@ class ScaleFreeBADual(TwoEndConnector):
       m = self.m1 if self.rng.random() < self.p else self.m2
       # Now choose m unique nodes from the existing nodes
       # Pick uniformly from repeated_nodes (preferential attachment)
-      targets = list(_random_subset(repeated_nodes, m, self.rng))
+      targets = list(self._connect(np.asarray(repeated_nodes), m))
       source += 1
 
     return 'mat', conn
@@ -622,11 +776,27 @@ class PowerLaw(TwoEndConnector):
     if self.p > 1 or self.p < 0:
       raise ConnectorError(f"p must be in [0,1], while p={self.p}")
     self.directed = directed
-    self.seed = seed
-    self.rng = np.random.RandomState(seed)
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
+    rng = np.random if SUPPORT_NUMBA else self.rng
+
+    def _random_subset(seq, m):
+      targets = set()
+      while len(targets) < m:
+        x = rng.choice(seq)
+        targets.add(x)
+      return targets
+
+    self._connect = numba_jit(_random_subset)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(m={self.m}, p={self.p}, directed={self.directed}, seed={self.seed})')
 
   def build_conn(self):
     assert self.pre_num == self.post_num
+    # seed
+    self.seed = self.rng.randint(1, int(1e7))
+    numba_seed(self.seed)
     num_node = self.pre_num
     if self.m < 1 or num_node < self.m:
       raise ConnectorError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
@@ -636,7 +806,7 @@ class PowerLaw(TwoEndConnector):
     # with nodes repeated once for each adjacent edge
     source = self.m  # next node is m
     while source < num_node:  # Now add the other n-1 nodes
-      possible_targets = _random_subset(repeated_nodes, self.m, self.rng)
+      possible_targets = self._connect(np.asarray(repeated_nodes), self.m)
       # do one preferential attachment for new node
       target = possible_targets.pop()
       conn[source, target] = True
@@ -668,3 +838,169 @@ class PowerLaw(TwoEndConnector):
 
     return 'mat', conn
 
+
+@numba_jit
+def pos2ind(pos, size):
+  idx = 0
+  for i, p in enumerate(pos):
+    idx += p * np.prod(size[i + 1:])
+  return idx
+
+
+class ProbDist(TwoEndConnector):
+  """Connection with a maximum distance under a probability `p`.
+
+  .. versionadded:: 2.1.13
+
+  Parameters
+  ----------
+  dist: float, int
+    The maximum distance between two points.
+  prob: float
+    The connection probability, within 0. and 1.
+  pre_ratio: float
+    The ratio of pre-synaptic neurons to connect.
+  seed: optional, int
+    The random seed.
+  include_self: bool
+    Whether include the point at the same position.
+
+  """
+
+  def __init__(self, dist=1, prob=1., pre_ratio=1., seed=None, include_self=True):
+    super(ProbDist, self).__init__()
+
+    self.prob = prob
+    self.pre_ratio = pre_ratio
+    self.dist = dist
+    self.seed = format_seed(seed)
+    self.rng = np.random.RandomState(self.seed)
+    self.include_self = include_self
+
+    rng = np.random if SUPPORT_NUMBA else self.rng
+
+    def _connect_1d(pre_pos, pre_size, post_size, n_dim):
+      all_post_ids = []
+      all_pre_ids = []
+      if rng.random() < pre_ratio:
+        normalized_pos = []
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos.append(pre_pos[i] * post_len / pre_len)
+        for i in range(post_size[0]):
+          post_pos = np.asarray((i,))
+          d = np.sum(np.abs(pre_pos - post_pos))
+          if d <= dist:
+            if d == 0. and not include_self:
+              continue
+            if rng.random() <= prob:
+              all_post_ids.append(pos2ind(post_pos, post_size))
+              all_pre_ids.append(pos2ind(pre_pos, pre_size))
+      return all_pre_ids, all_post_ids
+
+    def _connect_2d(pre_pos, pre_size, post_size, n_dim):
+      all_post_ids = []
+      all_pre_ids = []
+      if rng.random() < pre_ratio:
+        normalized_pos = []
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos.append(pre_pos[i] * post_len / pre_len)
+        for i in range(post_size[0]):
+          for j in range(post_size[1]):
+            post_pos = np.asarray((i, j))
+            d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+            if d <= dist:
+              if d == 0. and not include_self:
+                continue
+              if np.random.random() <= prob:
+                all_post_ids.append(pos2ind(post_pos, post_size))
+                all_pre_ids.append(pos2ind(pre_pos, pre_size))
+      return all_pre_ids, all_post_ids
+
+    def _connect_3d(pre_pos, pre_size, post_size, n_dim):
+      all_post_ids = []
+      all_pre_ids = []
+      if rng.random() < pre_ratio:
+        normalized_pos = []
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos.append(pre_pos[i] * post_len / pre_len)
+        for i in range(post_size[0]):
+          for j in range(post_size[1]):
+            for k in range(post_size[2]):
+              post_pos = np.asarray((i, j, k))
+              d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+              if d <= dist:
+                if d == 0. and not include_self:
+                  continue
+                if np.random.random() <= prob:
+                  all_post_ids.append(pos2ind(post_pos, post_size))
+                  all_pre_ids.append(pos2ind(pre_pos, pre_size))
+      return all_pre_ids, all_post_ids
+
+    def _connect_4d(pre_pos, pre_size, post_size, n_dim):
+      all_post_ids = []
+      all_pre_ids = []
+      if rng.random() < pre_ratio:
+        normalized_pos = []
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos.append(pre_pos[i] * post_len / pre_len)
+        for i in range(post_size[0]):
+          for j in range(post_size[1]):
+            for k in range(post_size[2]):
+              for l in range(post_size[3]):
+                post_pos = np.asarray((i, j, k, l))
+                d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+                if d <= dist:
+                  if d == 0. and not include_self:
+                    continue
+                  if np.random.random() <= prob:
+                    all_post_ids.append(pos2ind(post_pos, post_size))
+                    all_pre_ids.append(pos2ind(pre_pos, pre_size))
+      return all_pre_ids, all_post_ids
+
+    self._connect_1d = numba_jit(_connect_1d)
+    self._connect_2d = numba_jit(_connect_2d)
+    self._connect_3d = numba_jit(_connect_3d)
+    self._connect_4d = numba_jit(_connect_4d)
+
+  def build_conn(self):
+    if len(self.pre_size) != len(self.post_size):
+      raise ValueError('The dimensions of shapes of two objects to establish connections should '
+                       f'be the same. But we got dimension {len(self.pre_size)} != {len(self.post_size)}. '
+                       f'Specifically, pre size = {self.pre_size}, post size = {self.post_size}')
+    self.seed = self.rng.randint(1, int(1e7))
+    numba_seed(self.seed)
+
+    # connections
+    n_dim = len(self.pre_size)
+    if n_dim == 1:
+      f = self._connect_1d
+    elif n_dim == 2:
+      f = self._connect_2d
+    elif n_dim == 3:
+      f = self._connect_3d
+    elif n_dim == 4:
+      f = self._connect_4d
+    else:
+      raise NotImplementedError('Does not support the network dimension bigger than 4.')
+
+    pre_size = np.asarray(self.pre_size)
+    post_size = np.asarray(self.post_size)
+    connected_pres = []
+    connected_posts = []
+    pre_ids = np.meshgrid(*(np.arange(p) for p in self.pre_size), indexing='ij')
+    pre_ids = tuple([(np.moveaxis(p, 0, 1).flatten()) if p.ndim > 1 else p.flatten() for p in pre_ids])
+    size = np.prod(pre_size)
+    for i in range(size):
+      pre_pos = np.asarray([p[i] for p in pre_ids])
+      pres, posts = f(pre_pos, pre_size=pre_size, post_size=post_size, n_dim=n_dim)
+      connected_pres.extend(pres)
+      connected_posts.extend(posts)
+    return 'ij', (np.asarray(connected_pres), np.asarray(connected_posts))

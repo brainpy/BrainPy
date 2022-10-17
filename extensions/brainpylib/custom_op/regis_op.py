@@ -4,12 +4,11 @@ import collections.abc
 from functools import partial
 from typing import Callable, Union, Sequence
 
-import jax.numpy as jnp
 import numba
 import numpy as np
 from jax import core
 from jax.abstract_arrays import ShapedArray
-from jax.interpreters import xla
+from jax.interpreters import xla, batching
 from numba import cuda
 from numba.core.dispatcher import Dispatcher
 
@@ -22,9 +21,10 @@ _lambda_no = 0
 def register_op(
     op_name: str,
     cpu_func: Callable,
+    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
     gpu_func: Callable = None,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]] = None,
-    apply_cpu_func_to_gpu: bool = False
+    batch_fun: Callable = None,
+    apply_cpu_func_to_gpu: bool = False,
 ):
   """
   Converting the numba-jitted function in a Jax/XLA compatible primitive.
@@ -41,12 +41,14 @@ def register_op(
     Outputs shapes of target function. `out_shapes` can be a `ShapedArray` or
     a sequence of `ShapedArray`. If it is a function, it takes as input the argument
     shapes and dtypes and should return correct output shapes of `ShapedArray`.
-  apply_cpu_func_to_gpu: bool, default = True
+  apply_cpu_func_to_gpu: bool,
     True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
+    Default is True.
 
   Returns
   -------
-  A jitable JAX function.
+  op: callable
+    A jitable JAX function.
   """
   if gpu_func is not None:
     raise RuntimeError('Currently cuda.jit function is not supported to convert into a Jax/XLA compatible primitive.'
@@ -105,21 +107,21 @@ def register_op(
     # Return the outputs
     return tuple(outputs)
 
-  def bind_primitive(*inputs):
-    result = prim.bind(*inputs)
-    return result[0] if len(result) == 1 else result
-
-  # binding
+  # cpu function
   prim.def_abstract_eval(abs_eval_rule)
   prim.def_impl(eval_rule)
-  # registering
   xla.backend_specific_translations['cpu'][prim] = partial(func_cpu_translation, cpu_func, abs_eval_rule)
   if apply_cpu_func_to_gpu:
     xla.backend_specific_translations['gpu'][prim] = partial(func_gpu_translation, cpu_func, abs_eval_rule)
 
+  # gpu function
   if gpu_func is not None:
     if not isinstance(gpu_func, Dispatcher):
       gpu_func = cuda.jit(gpu_func)
     xla.backend_specific_translations['gpu'][prim] = partial(func_gpu_translation, gpu_func, abs_eval_rule)
 
-  return bind_primitive
+  # batching
+  if batch_fun is not None:
+    batching.primitive_batchers[prim] = batch_fun
+
+  return prim

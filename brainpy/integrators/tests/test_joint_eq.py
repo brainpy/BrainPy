@@ -85,10 +85,14 @@ class TestJointEqs(unittest.TestCase):
   def test_variables2(self):
     # with self.assertRaises(DiffEqError):
       EQ = JointEq((dV,))
+      EQ = JointEq(dV)
 
   def test_call1(self):
-    je = JointEq([dV, dn])
-    print(je(10., 1., 0., I=0.1, m=0.5, h=0.5))
+    je1 = JointEq([dV, dn])
+    res1 = je1(10., 1., 0., I=0.1, m=0.5, h=0.5)
+    je2 = JointEq(dV, dn)
+    res2 = je2(10., 1., 0., I=0.1, m=0.5, h=0.5)
+    self.assertTrue(res1 == res2)
 
   def test_do_not_change_par_position(self):
     EQ = JointEq((dV,))
@@ -98,10 +102,17 @@ class TestJointEqs(unittest.TestCase):
   def test_return_is_list(self):
     EQ = JointEq((dV,))
     self.assertTrue(isinstance(EQ(V=10., t=0., m=0.1, h=0.2, n=0.3, I=0.), list))
+    EQ = JointEq(dV)
+    self.assertTrue(isinstance(EQ(V=10., t=0., m=0.1, h=0.2, n=0.3, I=0.), list))
 
   def test_nested_joint_eq1(self):
     EQ1 = JointEq((dm, dh))
     EQ2 = JointEq((EQ1, dn))
     EQ3 = JointEq((EQ2, dV))
+    print(EQ3(m=0.1, h=0.2, n=0.3, V=10., t=0., I=0.))
+
+    EQ1 = JointEq(dm, dh)
+    EQ2 = JointEq(EQ1, dn)
+    EQ3 = JointEq(EQ2, dV)
     print(EQ3(m=0.1, h=0.2, n=0.3, V=10., t=0., I=0.))
 
