@@ -126,7 +126,7 @@ def _compile_gpu_signature(func, input_dtypes, input_shapes,
   )
 
   args_in = [
-    f'empty(input_shapes[{i}], dtype=input_dtypes[{i}])'
+    f'empty(input_shapes[{i}], dtype=input_dtypes[{i}]),'
     for i in range(len(input_shapes))
   ]
   cuMemcpyAsync_in = [
@@ -134,7 +134,7 @@ def _compile_gpu_signature(func, input_dtypes, input_shapes,
     for i in range(len(input_shapes))
   ]
   args_out = [
-    f'empty(output_shapes[{i}], dtype=output_dtypes[{i}])'
+    f'empty(output_shapes[{i}], dtype=output_dtypes[{i}]),'
     for i in range(len(output_shapes))
   ]
   cuMemcpyAsync_out = [
@@ -155,8 +155,8 @@ def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
   cuStreamSynchronize(stream)
   func_to_call(args_out, args_in)
   {cuMemcpyAsync_out}
-    '''.format(args_in=",\n    ".join(args_in),
-               args_out=",\n    ".join(args_out),
+    '''.format(args_in="\n    ".join(args_in),
+               args_out="\n    ".join(args_out),
                cuMemcpyAsync_in="\n  ".join(cuMemcpyAsync_in),
                cuMemcpyAsync_out="\n  ".join(cuMemcpyAsync_out))
   # print(code_string)
@@ -185,12 +185,6 @@ def func_gpu_translation(func, abs_eval_fn, c, *inputs, **info):
   input_shapes = [c.get_shape(arg) for arg in inputs]
   for v in info.values():
     input_shapes.append(xla_client.Shape.array_shape(dtypes.canonicalize_dtype(type(v)), (), ()))
-    # if isinstance(v, int):
-    #   input_shapes.append(xla_client.Shape.array_shape(np.dtype(np.int_), (), ()))
-    # elif isinstance(v, float):
-    #   input_shapes.append(xla_client.Shape.array_shape(np.dtype(np.float_), (), ()))
-    # else:
-    #   raise TypeError
   input_dtypes = tuple(shape.element_type() for shape in input_shapes)
   input_dimensions = tuple(shape.dimensions() for shape in input_shapes)
   output_abstract_arrays = abs_eval_fn(*tuple(ShapedArray(shape.dimensions(), shape.element_type())
