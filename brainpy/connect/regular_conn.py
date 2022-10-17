@@ -6,9 +6,7 @@ import numpy as np
 
 from brainpy import math as bm
 from brainpy.errors import ConnectorError
-from brainpy.tools import size2num
 from .base import *
-from .utils import *
 
 __all__ = [
   'One2One', 'one2one',
@@ -36,31 +34,25 @@ class One2One(TwoEndConnector):
                            f'same size, but {self.pre_num} != {self.post_num}.')
     return self
 
-  def build_coo(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    if pre_num != post_num:
+  def build_coo(self):
+    if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
-                           f'same size, but {pre_num} != {post_num}.')
-    return bm.arange(pre_num, dtype=IDX_DTYPE), bm.arange(post_num, dtype=IDX_DTYPE),
+                           f'same size, but {self.pre_num} != {self.post_num}.')
+    return bm.arange(self.pre_num, dtype=IDX_DTYPE), bm.arange(self.post_num, dtype=IDX_DTYPE),
 
-  def build_csr(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    if pre_num != post_num:
+  def build_csr(self):
+    if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
-                           f'same size, but {pre_num} != {post_num}.')
-    ind = bm.arange(pre_num)
-    indptr = np.arange(pre_num + 1)
+                           f'same size, but {self.pre_num} != {self.post_num}.')
+    ind = bm.arange(self.pre_num)
+    indptr = np.arange(self.pre_num + 1)
     return bm.asarray(ind, dtype=IDX_DTYPE), bm.arange(indptr, dtype=IDX_DTYPE),
 
   def build_mat(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    if pre_num != post_num:
+    if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
-                           f'same size, but {pre_num} != {post_num}.')
-    return bm.fill_diagonal(bm.zeros((pre_num, post_num), dtype=MAT_DTYPE), True)
+                           f'same size, but {self.pre_num} != {self.post_num}.')
+    return bm.fill_diagonal(bm.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE), True)
 
 
 one2one = One2One()
@@ -79,10 +71,8 @@ class All2All(TwoEndConnector):
   def __repr__(self):
     return f'{self.__class__.__name__}(include_self={self.include_self})'
 
-  def build_mat(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    mat = bm.ones((pre_num, post_num), dtype=MAT_DTYPE)
+  def build_mat(self):
+    mat = bm.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
     if not self.include_self:
       bm.fill_diagonal(mat, False)
     return mat
@@ -117,22 +107,18 @@ class GridConn(OneEndConnector):
   def __repr__(self):
     return f'{self.__class__.__name__}(include_self={self.include_self}, periodic_boundary={self.periodic_boundary})'
 
-  def _format(self, pre_size, post_size):
-    pre_size = get_pre_size(self, pre_size)
-    post_size = get_post_size(self, post_size)
-    pre_num = size2num(pre_size)
-    post_num = size2num(post_size)
-    dim = len(post_size)
-    if pre_num != post_num:
+  def _format(self):
+    dim = len(self.post_size)
+    if self.pre_num != self.post_num:
       raise ConnectorError(f'{self.__class__.__name__} is used to for connection within '
                            f'a same population. But we detect pre_num != post_num '
-                           f'({pre_num} != {post_num}).')
+                           f'({self.pre_num} != {self.post_num}).')
     # point indices
-    indices = bm.meshgrid(*(bm.arange(size) for size in post_size), indexing='ij')
+    indices = bm.meshgrid(*(bm.arange(size) for size in self.post_size), indexing='ij')
     indices = bm.asarray(indices)
-    indices = indices.reshape(dim, post_num).T
-    lengths = bm.asarray(post_size)
-    return lengths, post_size, dim, indices
+    indices = indices.reshape(dim, self.post_num).T
+    lengths = bm.asarray(self.post_size)
+    return lengths, dim, indices
 
   def _get_strides(self, dim):
     # increments
@@ -147,8 +133,8 @@ class GridConn(OneEndConnector):
   def _select_dist(self, dist: bm.ndarray) -> bm.ndarray:
     raise NotImplementedError
 
-  def build_mat(self, pre_size=None, post_size=None):
-    sizes, post_size, _, indices = self._format(pre_size, post_size)
+  def build_mat(self):
+    sizes, _, indices = self._format()
 
     @jax.vmap
     def f_connect(pre_id):
@@ -160,8 +146,8 @@ class GridConn(OneEndConnector):
 
     return bm.asarray(f_connect(indices), dtype=MAT_DTYPE)
 
-  def build_coo(self, pre_size=None, post_size=None):
-    sizes, post_size, dim, indices = self._format(pre_size, post_size)
+  def build_coo(self):
+    sizes, dim, indices = self._format()
     strides = self._get_strides(dim)
 
     @jax.vmap
@@ -186,7 +172,7 @@ class GridConn(OneEndConnector):
       pres = pres.flatten()
       posts = posts.flatten()
     else:
-      strides = bm.asarray(get_size_length(post_size))
+      strides = bm.asarray(get_size_length(self.post_size))
       pres = bm.sum(pres * strides, axis=1)
       posts = bm.sum(posts * strides, axis=1)
     return bm.asarray(pres, dtype=IDX_DTYPE), bm.asarray(posts, dtype=IDX_DTYPE)

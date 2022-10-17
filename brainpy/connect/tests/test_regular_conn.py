@@ -65,9 +65,9 @@ class TestGridConn(unittest.TestCase):
       for include_self in [True, False]:
         for size in (10, [10, 10], (4, 4, 5)):
           conn = bp.conn.GridFour(include_self=include_self,
-                                  periodic_boundary=periodic_boundary)
-          mat = conn.build_mat(size, size)
-          pre_ids, post_ids = conn.build_coo(size, size)
+                                  periodic_boundary=periodic_boundary)(size, size)
+          mat = conn.build_mat()
+          pre_ids, post_ids = conn.build_coo()
           new_mat = bp.math.zeros((np.prod(size), np.prod(size)), dtype=bool)
           new_mat[pre_ids, post_ids] = True
 
@@ -79,9 +79,9 @@ class TestGridConn(unittest.TestCase):
       for include_self in [True, False]:
         for size in (10, [10, 10], (4, 4, 5)):
           conn = bp.conn.GridEight(include_self=include_self,
-                                   periodic_boundary=periodic_boundary)
-          mat = conn.build_mat(size, size)
-          pre_ids, post_ids = conn.build_coo(size, size)
+                                   periodic_boundary=periodic_boundary)(size, size)
+          mat = conn.build_mat()
+          pre_ids, post_ids = conn.build_coo()
           new_mat = bp.math.zeros((np.prod(size), np.prod(size)), dtype=bool)
           new_mat[pre_ids, post_ids] = True
 
@@ -94,9 +94,9 @@ class TestGridConn(unittest.TestCase):
         for size in (10, [10, 10], (4, 4, 5)):
           conn = bp.conn.GridN(include_self=include_self,
                                periodic_boundary=periodic_boundary,
-                               N=2)
-          mat = conn.build_mat(size, size)
-          pre_ids, post_ids = conn.build_coo(size, size)
+                               N=2)(size, size)
+          mat = conn.build_mat()
+          pre_ids, post_ids = conn.build_coo()
           new_mat = bp.math.zeros((np.prod(size), np.prod(size)), dtype=bool)
           new_mat[pre_ids, post_ids] = True
 

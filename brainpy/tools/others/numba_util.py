@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
+import numba
 import numpy as np
 try:
   from numba import njit
@@ -11,6 +10,7 @@ except (ImportError, ModuleNotFoundError):
 __all__ = [
   'numba_jit',
   'numba_seed',
+  'numba_range',
   'SUPPORT_NUMBA',
 ]
 
@@ -38,3 +38,4 @@ def numba_seed(seed):
      _seed(seed)
 
 
+numba_range = numba.prange if SUPPORT_NUMBA else range
