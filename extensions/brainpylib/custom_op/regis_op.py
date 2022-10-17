@@ -71,9 +71,9 @@ def register_op(
     cpu_func = numba.jit(fastmath=True, nopython=True)(cpu_func)
 
   # output shape evaluation function
-  def abs_eval_rule(*input_shapes):
+  def abs_eval_rule(*input_shapes, **info):
     if callable(out_shapes):
-      shapes = out_shapes(*input_shapes)
+      shapes = out_shapes(*input_shapes, **info)
     elif isinstance(out_shapes, ShapedArray):
       shapes = [out_shapes]
     elif isinstance(out_shapes, (tuple, list)):
@@ -95,17 +95,18 @@ def register_op(
       return shapes
 
   # output evaluation function
-  def eval_rule(*inputs):
+  def eval_rule(*inputs, **info):
     # compute the output shapes
-    output_shapes = abs_eval_rule(*inputs)
+    output_shapes = abs_eval_rule(*inputs, **info)
     # Preallocate the outputs
     outputs = tuple(np.zeros(shape.shape, dtype=shape.dtype) for shape in output_shapes)
     # convert inputs to a tuple
     inputs = tuple(np.asarray(arg) for arg in inputs)
+    inputs += tuple(info.values())
     # call the kernel
     cpu_func(outputs, inputs)
     # Return the outputs
-    return tuple(outputs)
+    return outputs[0] if len(outputs) == 1 else tuple(outputs)
 
   # cpu function
   prim.def_abstract_eval(abs_eval_rule)

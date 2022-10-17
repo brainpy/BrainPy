@@ -1,11 +1,91 @@
 # -*- coding: utf-8 -*-
 
-import numba
+import ctypes
+import ctypes.util
+import sys
+
 import numpy as np
+from cffi import FFI
 from jax.abstract_arrays import ShapedArray
 from jax.lib import xla_client
+from jax import dtypes
+from numba import cuda, cfunc, types
 
-from .cuda import *
+
+class Dl_info(ctypes.Structure):
+  """
+  Structure of the Dl_info returned by the CFFI of dl.dladdr
+  """
+
+  _fields_ = (
+    ("dli_fname", ctypes.c_char_p),
+    ("dli_fbase", ctypes.c_void_p),
+    ("dli_sname", ctypes.c_char_p),
+    ("dli_saddr", ctypes.c_void_p),
+  )
+
+
+# Find the dynamic linker library path. Only works on unix-like os
+libdl_path = ctypes.util.find_library("dl")
+if libdl_path:
+  # Load the dynamic linker dynamically
+  libdl = ctypes.CDLL(libdl_path)
+
+  # Define dladdr to get the pointer to a symbol in a shared
+  # library already loaded.
+  # https://man7.org/linux/man-pages/man3/dladdr.3.html
+  libdl.dladdr.argtypes = (ctypes.c_void_p, ctypes.POINTER(Dl_info))
+  # restype is None as it returns by reference
+else:
+  # On Windows it is nontrivial to have libdl, so we disable everything about
+  # it and use other ways to find paths of libraries
+  libdl = None
+
+
+def find_path_of_symbol_in_library(symbol):
+  if libdl is None:
+    raise ValueError("libdl not found.")
+
+  info = Dl_info()
+  result = libdl.dladdr(symbol, ctypes.byref(info))
+  if result and info.dli_fname:
+    return info.dli_fname.decode(sys.getfilesystemencoding())
+  else:
+    raise ValueError("Cannot determine path of Library.")
+
+
+try:
+  _libcuda = cuda.driver.find_driver()
+  if sys.platform == "win32":
+    libcuda_path = ctypes.util.find_library(_libcuda._name)
+  else:
+    libcuda_path = find_path_of_symbol_in_library(_libcuda.cuMemcpy)
+  numba_cffi_loaded = True
+except Exception:
+  numba_cffi_loaded = False
+
+
+if numba_cffi_loaded:
+  # functions needed
+  ffi = FFI()
+  ffi.cdef("int cuMemcpy(void* dst, void* src, unsigned int len, int type);")
+  ffi.cdef("int cuMemcpyAsync(void* dst, void* src, unsigned int len, int type, void* stream);")
+  ffi.cdef("int cuStreamSynchronize(void* stream);")
+  ffi.cdef("int cudaMallocHost(void** ptr, size_t size);")
+  ffi.cdef("int cudaFreeHost(void* ptr);")
+
+  # load libraray
+  # could  ncuda.driver.find_library()
+  libcuda = ffi.dlopen(libcuda_path)
+  cuMemcpy = libcuda.cuMemcpy
+  cuMemcpyAsync = libcuda.cuMemcpyAsync
+  cuStreamSynchronize = libcuda.cuStreamSynchronize
+
+  memcpyHostToHost = types.int32(0)
+  memcpyHostToDevice = types.int32(1)
+  memcpyDeviceToHost = types.int32(2)
+  memcpyDeviceToDevice = types.int32(3)
+
 
 _lambda_no = 0
 ctypes.pythonapi.PyCapsule_New.argtypes = [
@@ -83,7 +163,7 @@ def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
   exec(compile(code_string.strip(), '', 'exec'), code_scope)
 
   new_f = code_scope['xla_gpu_custom_call_target']
-  wrapper = numba.cfunc(types.void(
+  wrapper = cfunc(types.void(
     types.voidptr,
     types.CPointer(types.voidptr),
     types.voidptr, types.uint64))
@@ -98,15 +178,24 @@ def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
   return target_name
 
 
-def func_gpu_translation(func, abs_eval_fn, c, *inputs):
+def func_gpu_translation(func, abs_eval_fn, c, *inputs, **info):
   if not numba_cffi_loaded:
     raise RuntimeError("Numba cffi could not be loaded.")
 
   input_shapes = [c.get_shape(arg) for arg in inputs]
+  for v in info.values():
+    input_shapes.append(xla_client.Shape.array_shape(dtypes.canonicalize_dtype(type(v)), (), ()))
+    # if isinstance(v, int):
+    #   input_shapes.append(xla_client.Shape.array_shape(np.dtype(np.int_), (), ()))
+    # elif isinstance(v, float):
+    #   input_shapes.append(xla_client.Shape.array_shape(np.dtype(np.float_), (), ()))
+    # else:
+    #   raise TypeError
   input_dtypes = tuple(shape.element_type() for shape in input_shapes)
   input_dimensions = tuple(shape.dimensions() for shape in input_shapes)
   output_abstract_arrays = abs_eval_fn(*tuple(ShapedArray(shape.dimensions(), shape.element_type())
-                                              for shape in input_shapes))
+                                              for shape in input_shapes[:len(inputs)]),
+                                       **info)
   output_shapes = tuple(array.shape for array in output_abstract_arrays)
   output_dtypes = tuple(array.dtype for array in output_abstract_arrays)
   output_layouts = map(lambda shape: range(len(shape) - 1, -1, -1), output_shapes)
@@ -120,7 +209,10 @@ def func_gpu_translation(func, abs_eval_fn, c, *inputs):
   return xla_client.ops.CustomCallWithLayout(
     c,
     target_name,
-    operands=inputs,
+    operands=inputs + tuple(xla_client.ops.ConstantLiteral(c, i) for i in info.values()),
     operand_shapes_with_layout=input_shapes,
     shape_with_layout=xla_output_shape,
   )
+
+
+
