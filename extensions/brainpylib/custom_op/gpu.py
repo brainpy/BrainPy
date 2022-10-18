@@ -64,7 +64,6 @@ try:
 except Exception:
   numba_cffi_loaded = False
 
-
 if numba_cffi_loaded:
   # functions needed
   ffi = FFI()
@@ -86,7 +85,6 @@ if numba_cffi_loaded:
   memcpyDeviceToHost = types.int32(2)
   memcpyDeviceToDevice = types.int32(3)
 
-
 _lambda_no = 0
 ctypes.pythonapi.PyCapsule_New.argtypes = [
   ctypes.c_void_p,  # void* pointer
@@ -96,8 +94,14 @@ ctypes.pythonapi.PyCapsule_New.argtypes = [
 ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
 
 
-def _compile_gpu_signature(func, input_dtypes, input_shapes,
-                           output_dtypes, output_shapes):
+def _compile_gpu_signature(
+    func,
+    input_dtypes,
+    input_shapes,
+    output_dtypes,
+    output_shapes,
+    debug=False
+):
   input_byte_size = tuple(
     np.prod(shape) * dtype.itemsize
     for (shape, dtype) in zip(input_shapes, input_dtypes)
@@ -159,7 +163,7 @@ def xla_gpu_custom_call_target(stream, inout_gpu_ptrs, opaque, opaque_len):
                args_out="\n    ".join(args_out),
                cuMemcpyAsync_in="\n  ".join(cuMemcpyAsync_in),
                cuMemcpyAsync_out="\n  ".join(cuMemcpyAsync_out))
-  # print(code_string)
+  if debug: print(code_string)
   exec(compile(code_string.strip(), '', 'exec'), code_scope)
 
   new_f = code_scope['xla_gpu_custom_call_target']
@@ -197,8 +201,10 @@ def func_gpu_translation(func, abs_eval_fn, c, *inputs, **info):
                        for arg in zip(output_dtypes, output_shapes, output_layouts)]
   xla_output_shape = xla_client.Shape.tuple_shape(xla_output_shapes)
   target_name = _compile_gpu_signature(func,
-                                       input_dtypes, input_dimensions,
-                                       output_dtypes, output_shapes)
+                                       input_dtypes,
+                                       input_dimensions,
+                                       output_dtypes,
+                                       output_shapes)
 
   return xla_client.ops.CustomCallWithLayout(
     c,
@@ -207,6 +213,3 @@ def func_gpu_translation(func, abs_eval_fn, c, *inputs, **info):
     operand_shapes_with_layout=input_shapes,
     shape_with_layout=xla_output_shape,
   )
-
-
-

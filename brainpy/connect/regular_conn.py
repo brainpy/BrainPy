@@ -38,21 +38,21 @@ class One2One(TwoEndConnector):
     if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
                            f'same size, but {self.pre_num} != {self.post_num}.')
-    return bm.arange(self.pre_num, dtype=IDX_DTYPE), bm.arange(self.post_num, dtype=IDX_DTYPE),
+    return np.arange(self.pre_num, dtype=IDX_DTYPE), np.arange(self.post_num, dtype=IDX_DTYPE),
 
   def build_csr(self):
     if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
                            f'same size, but {self.pre_num} != {self.post_num}.')
-    ind = bm.arange(self.pre_num)
+    ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
-    return bm.asarray(ind, dtype=IDX_DTYPE), bm.arange(indptr, dtype=IDX_DTYPE),
+    return np.asarray(ind, dtype=IDX_DTYPE), np.arange(indptr, dtype=IDX_DTYPE),
 
   def build_mat(self, pre_size=None, post_size=None):
     if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
                            f'same size, but {self.pre_num} != {self.post_num}.')
-    return bm.fill_diagonal(bm.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE), True)
+    return np.fill_diagonal(np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE), True)
 
 
 one2one = One2One()
@@ -72,9 +72,9 @@ class All2All(TwoEndConnector):
     return f'{self.__class__.__name__}(include_self={self.include_self})'
 
   def build_mat(self):
-    mat = bm.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    mat = np.ones((self.pre_num, self.post_num), dtype=MAT_DTYPE)
     if not self.include_self:
-      bm.fill_diagonal(mat, False)
+      np.fill_diagonal(mat, False)
     return mat
 
 

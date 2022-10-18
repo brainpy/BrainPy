@@ -2,10 +2,9 @@
 
 import ctypes
 
-import numpy as np
+from jax import dtypes
 from jax.abstract_arrays import ShapedArray
 from jax.lib import xla_client
-from jax import dtypes
 from numba import types, carray, cfunc
 
 _lambda_no = 0
@@ -17,8 +16,14 @@ ctypes.pythonapi.PyCapsule_New.argtypes = [
 ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
 
 
-def _compile_cpu_signature(func, input_dtypes, input_shapes,
-                           output_dtypes, output_shapes, debug=False):
+def _compile_cpu_signature(
+    func,
+    input_dtypes,
+    input_shapes,
+    output_dtypes,
+    output_shapes,
+    debug=False
+):
   code_scope = dict(
     func_to_call=func,
     input_shapes=input_shapes,
@@ -53,7 +58,7 @@ def xla_cpu_custom_call_target(output_ptrs, input_ptrs):
 
   new_f = code_scope['xla_cpu_custom_call_target']
   xla_c_rule = cfunc(types.void(types.CPointer(types.voidptr),
-                                      types.CPointer(types.voidptr)))(new_f)
+                                types.CPointer(types.voidptr)))(new_f)
   target_name = xla_c_rule.native_name.encode("ascii")
   capsule = ctypes.pythonapi.PyCapsule_New(
     xla_c_rule.address,  # A CFFI pointer to a function
@@ -83,8 +88,10 @@ def func_cpu_translation(func, abs_eval_fn, c, *inputs, **info):
                        for arg in zip(output_dtypes, output_shapes, output_layouts)]
   xla_output_shape = xla_client.Shape.tuple_shape(xla_output_shapes)
   target_name = _compile_cpu_signature(func,
-                                       input_dtypes, input_dimensions,
-                                       output_dtypes, output_shapes)
+                                       input_dtypes,
+                                       input_dimensions,
+                                       output_dtypes,
+                                       output_shapes)
 
   return xla_client.ops.CustomCallWithLayout(
     c,
