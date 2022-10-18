@@ -445,8 +445,8 @@ class LengthDelay(AbstractDelay):
       The value of the latest data, used to update this delay variable.
     """
     if self.update_method == ROTATION_UPDATING:
+      self.idx.value = stop_gradient((self.idx - 1) % self.num_delay_step)
       self.data[self.idx[0]] = value
-      self.idx.value = stop_gradient((self.idx + 1) % self.num_delay_step)
 
     elif self.update_method == CONCAT_UPDATING:
       if self.num_delay_step >= 2:
