@@ -102,7 +102,7 @@ def register_op(
     outputs = tuple(np.zeros(shape.shape, dtype=shape.dtype) for shape in output_shapes)
     # convert inputs to a tuple
     inputs = tuple(np.asarray(arg) for arg in inputs)
-    inputs += tuple(info.values())
+    inputs += tuple(np.asarray(i) for i in info.values())
     # call the kernel
     cpu_func(outputs, inputs)
     # Return the outputs
