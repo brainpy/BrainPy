@@ -18,11 +18,12 @@ class TestFixedProb(unittest.TestCase):
   def test_require_method(self):
     conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
     conn2(pre_size=(10, 20), post_size=(10, 20))
-    mat = conn2.require(100, 1000, bp.connect.CONN_MAT)
-    self.assertTrue(mat.shape == (100, 1000))
-
     mat = conn2.require(bp.connect.CONN_MAT)
     self.assertTrue(mat.shape == (200, 200))
+
+    mat = conn2(100, 1000).require(bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (100, 1000))
+
 
 
 def test_random_fix_pre1():
@@ -34,8 +35,11 @@ def test_random_fix_pre1():
     mat2 = conn2.require(bp.connect.CONN_MAT)
 
     print()
+    print(f'num = {num}')
     print('conn_mat 1\n', mat1)
+    print(mat1.sum())
     print('conn_mat 2\n', mat2)
+    print(mat2.sum())
 
     assert bp.math.array_equal(mat1, mat2)
 

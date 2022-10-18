@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import jax
 import numpy as np
 from typing import Optional
 
-from brainpy import math as bm
 from brainpy.errors import ConnectorError
-from brainpy.tools.others import numba_seed, numba_jit, SUPPORT_NUMBA, format_seed
+from brainpy.tools.others import numba_seed, numba_jit, numba_range, SUPPORT_NUMBA, format_seed
 from .base import *
-from .utils import *
 
 __all__ = [
   'FixedProb',
@@ -27,7 +24,6 @@ __all__ = [
 class FixedProb(TwoEndConnector):
   """Connect the post-synaptic neurons with fixed probability.
 
-  .. versionchanged:: 2.2.3.2
 
   Parameters
   ----------
@@ -37,11 +33,16 @@ class FixedProb(TwoEndConnector):
     The ratio of pre-synaptic neurons to connect.
   include_self : bool
     Whether create (i, i) conn?
+  allow_multi_conn: bool
+    Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
+
+    .. versionadded:: 2.2.3.2
+
   seed : optional, int
     Seed the random generator.
   """
 
-  def __init__(self, prob, pre_ratio=1., include_self=True, seed=None):
+  def __init__(self, prob, pre_ratio=1., include_self=True, allow_multi_conn=False, seed=None):
     super(FixedProb, self).__init__()
     assert 0. <= prob <= 1.
     assert 0. <= pre_ratio <= 1.
@@ -49,57 +50,80 @@ class FixedProb(TwoEndConnector):
     self.pre_ratio = pre_ratio
     self.include_self = include_self
     self.seed = format_seed(seed)
-    self.rng = bm.random.RandomState(seed=self.seed)
+    self.rng = np.random.RandomState(seed=self.seed)
+    self.allow_multi_conn = allow_multi_conn
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(prob={self.prob}, pre_ratio={self.pre_ratio}, '
-            f'include_self={self.include_self}, seed={self.seed})')
+            f'include_self={self.include_self}, allow_multi_conn={self.allow_multi_conn}, '
+            f'seed={self.seed})')
 
-  def build_mat(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    pre_state = self.rng.rand(pre_num, 1) < self.pre_ratio
-    mat = (self.rng.rand(pre_num, post_num) < self.prob) * pre_state
-    if not self.include_self:
-      bm.fill_diagonal(mat, False)
-    return mat.astype(MAT_DTYPE)
-
-  def _iii(self, pre_size, post_size):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    if (not self.include_self) and (pre_num != post_num):
-      raise ConnectorError(f'We found pre_num != post_num ({pre_num} != {post_num}). '
+  def _iii(self):
+    if (not self.include_self) and (self.pre_num != self.post_num):
+      raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
                            f'But `include_self` is set to True.')
-    post_num_to_select = int(post_num * self.prob)
-    post_ids = bm.arange(post_num)
+
     if self.pre_ratio < 1.:
-      pre_num_to_select = int(pre_num * self.pre_ratio)
-      pre_ids = self.rng.choice(pre_num, size=pre_num_to_select, replace=False)
+      pre_num_to_select = int(self.pre_num * self.pre_ratio)
+      pre_ids = self.rng.choice(self.pre_num, size=pre_num_to_select, replace=False)
     else:
-      pre_num_to_select = pre_num
-      pre_ids = bm.arange(pre_num)
+      pre_num_to_select = self.pre_num
+      pre_ids = np.arange(self.pre_num)
 
-    @jax.vmap
-    def f(i, key):
-      posts = bm.delete(post_ids, i) if not self.include_self else post_ids
-      return self.rng.permutation(posts, key=key)[:post_num_to_select]
+    post_num_total = self.post_num
+    post_num_to_select = int(self.post_num * self.prob)
+    if SUPPORT_NUMBA:
+      rng = np.random
+      numba_seed(self.rng.randint(0, int(1e8)))
+    else:
+      rng = self.rng
 
-    selected_post_ids = f(pre_ids, self.rng.split_keys(pre_ids.size)).flatten()
+    if self.allow_multi_conn:
+      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
+
+    else:
+      @numba_jit#(parallel=True, nogil=True)
+      def single_conn():
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.int32)
+        for i in numba_range(pre_num_to_select):
+          posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
+        return posts
+
+      selected_post_ids = single_conn()
     return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
 
-  def build_coo(self, pre_size=None, post_size=None):
-    _, post_num_to_select, selected_post_ids, pre_ids = self._iii(pre_size, post_size)
-    selected_pre_ids = bm.repeat(pre_ids, post_num_to_select)
+  def build_coo(self):
+    _, post_num_to_select, selected_post_ids, pre_ids = self._iii()
+    selected_post_ids = selected_post_ids.flatten()
+    selected_pre_ids = np.repeat(pre_ids, post_num_to_select)
+    if not self.include_self:
+      true_ids = selected_pre_ids != selected_post_ids
+      selected_pre_ids = selected_pre_ids[true_ids]
+      selected_post_ids = selected_post_ids[true_ids]
     return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
 
-  def build_csr(self, pre_size=None, post_size=None):
-    pre_num_to_select, post_num_to_select, selected_post_ids, _ = self._iii(pre_size, post_size)
-    selected_pre_inptr = bm.cumsum(bm.concatenate([bm.zeros(1), bm.ones(pre_num_to_select) * post_num_to_select]))
+  def build_csr(self):
+    pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._iii()
+    pre_nums = np.ones(pre_num_to_select) * post_num_to_select
+    if not self.include_self:
+      true_ids = selected_post_ids == np.reshape(pre_ids, (-1, 1))
+      pre_nums -= np.sum(true_ids, axis=1)
+      selected_post_ids = selected_post_ids.flatten()[np.logical_not(true_ids).flatten()]
+    else:
+      selected_post_ids = selected_post_ids.flatten()
+    selected_pre_inptr = np.cumsum(np.concatenate([np.zeros(1), pre_nums]))
     return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
+
+  def build_mat(self):
+    pre_state = self.rng.rand(self.pre_num, 1) < self.pre_ratio
+    mat = (self.rng.rand(self.pre_num, self.post_num) < self.prob) * pre_state
+    if not self.include_self:
+      np.fill_diagonal(mat, False)
+    return mat.astype(MAT_DTYPE)
 
 
 class FixedNum(TwoEndConnector):
-  def __init__(self, num, include_self=True, seed=None):
+  def __init__(self, num, include_self=True, allow_multi_conn=False, seed=None):
     super(FixedNum, self).__init__()
     if isinstance(num, int):
       assert num >= 0, '"num" must be a non-negative integer.'
@@ -110,7 +134,8 @@ class FixedNum(TwoEndConnector):
     self.num = num
     self.seed = format_seed(seed)
     self.include_self = include_self
-    self.rng = bm.random.RandomState(seed=self.seed)
+    self.allow_multi_conn = allow_multi_conn
+    self.rng = np.random.RandomState(seed=self.seed)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(num={self.num}, include_self={self.include_self}, seed={self.seed})'
@@ -128,28 +153,49 @@ class FixedPreNum(FixedNum):
       Whether create (i, i) conn ?
   seed : None, int
       Seed the random generator.
+  allow_multi_conn: bool
+    Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
+
+    .. versionadded:: 2.2.3.2
+
   """
 
-  def build_coo(self, pre_size=None, post_size=None):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    if isinstance(self.num, int) and self.num > pre_num:
+  def build_coo(self):
+    if isinstance(self.num, int) and self.num > self.pre_num:
       raise ConnectorError(f'"num" must be smaller than "pre_num", '
-                           f'but got {self.num} > {pre_num}')
-    if (not self.include_self) and (pre_num != post_num):
-      raise ConnectorError(f'We found pre_num != post_num ({pre_num} != {post_num}). '
+                           f'but got {self.num} > {self.pre_num}')
+    if (not self.include_self) and (self.pre_num != self.post_num):
+      raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
                            f'But `include_self` is set to True.')
-    pre_num_to_select = int(pre_num * self.num) if isinstance(self.num, float) else self.num
-    pre_ids = bm.arange(pre_num)
-    post_ids = bm.arange(post_num)
+    pre_num_to_select = int(self.pre_num * self.num) if isinstance(self.num, float) else self.num
+    pre_num_total = self.pre_num
+    post_num_total = self.post_num
+    seed = self.seed
+    if SUPPORT_NUMBA:
+      rng = np.random
+      numba_seed(self.rng.randint(0, int(1e8)))
+    else:
+      rng = self.rng
+    if self.allow_multi_conn:
+      selected_pre_ids = self.rng.randint(0, pre_num_total, (post_num_total, pre_num_to_select, ))
+    else:
+      @numba_jit#(parallel=True, nogil=True)
+      def single_conn():
+        posts = np.zeros((post_num_total, pre_num_to_select), dtype=np.int32)
+        for i in numba_range(post_num_total):
+          posts[i] = rng.choice(pre_num_total, pre_num_to_select, replace=False)
+        return posts
 
-    @jax.vmap
-    def f(post_i, key):
-      pres = bm.delete(pre_ids, post_i) if not self.include_self else pre_ids
-      return self.rng.permutation(pres, key=key)[:pre_num_to_select]
+      selected_pre_ids = single_conn()
 
-    selected_pre_ids = f(post_ids, self.rng.split_keys(post_num)).flatten()
-    selected_post_ids = bm.repeat(post_ids, pre_num_to_select)
+    post_nums = np.ones((post_num_total,), dtype=np.int32) * pre_num_to_select
+    if not self.include_self:
+      true_ids = selected_pre_ids == np.reshape(np.arange(pre_num_total), (-1, 1))
+      post_nums -= np.sum(true_ids, axis=1)
+      selected_pre_ids = selected_pre_ids.flatten()[np.logical_not(true_ids).flatten()]
+    else:
+      selected_pre_ids = selected_pre_ids.flatten()
+    selected_post_ids = np.repeat(np.arange(post_num_total), post_nums)
     return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
 
 
@@ -165,38 +211,66 @@ class FixedPostNum(FixedNum):
       Whether create (i, i) conn ?
   seed : None, int
       Seed the random generator.
+  allow_multi_conn: bool
+    Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
+
+    .. versionadded:: 2.2.3.2
+
   """
 
-  def _ii(self, pre_size, post_size):
-    pre_num = get_pre_num(self, pre_size)
-    post_num = get_post_num(self, post_size)
-    if isinstance(self.num, int) and self.num > post_num:
+  def _ii(self):
+    if isinstance(self.num, int) and self.num > self.post_num:
       raise ConnectorError(f'"num" must be smaller than "post_num", '
-                           f'but got {self.num} > {post_num}')
-    if (not self.include_self) and (pre_num != post_num):
-      raise ConnectorError(f'We found pre_num != post_num ({pre_num} != {post_num}). '
+                           f'but got {self.num} > {self.post_num}')
+    if (not self.include_self) and (self.pre_num != self.post_num):
+      raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
                            f'But `include_self` is set to True.')
-    post_num_to_select = int(post_num * self.num) if isinstance(self.num, float) else self.num
-    pre_ids = bm.arange(pre_num)
-    post_ids = bm.arange(post_num)
+    post_num_to_select = int(self.post_num * self.num) if isinstance(self.num, float) else self.num
+    pre_num_to_select = self.pre_num
+    pre_ids = np.arange(self.pre_num)
 
-    @jax.vmap
-    def f(pre_i, key):
-      posts = bm.delete(post_ids, pre_i) if not self.include_self else post_ids
-      return self.rng.permutation(posts, key=key)[:post_num_to_select]
+    post_num_total = self.post_num
+    if SUPPORT_NUMBA:
+      rng = np.random
+      numba_seed(self.rng.randint(0, int(1e8)))
+    else:
+      rng = self.rng
 
-    selected_post_ids = f(pre_ids, self.rng.split_keys(pre_num)).flatten()
-    return pre_num, post_num_to_select, selected_post_ids
+    if self.allow_multi_conn:
+      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
 
-  def build_csr(self, pre_size=None, post_size=None):
-    pre_num, post_num, selected_post_ids = self._ii(pre_size, post_size)
-    selected_pre_inptr = bm.cumsum(bm.concatenate([bm.zeros(1), bm.ones(pre_num) * post_num]))
-    return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
+    else:
+      @numba_jit#(parallel=True, nogil=True)
+      def single_conn():
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.int32)
+        for i in numba_range(pre_num_to_select):
+          posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
+        return posts
 
-  def build_coo(self, pre_size=None, post_size=None):
-    pre_num, post_num, selected_post_ids = self._ii(pre_size, post_size)
-    selected_pre_ids = bm.repeat(bm.arange(pre_num), post_num)
+      selected_post_ids = single_conn()
+    return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
+
+  def build_coo(self):
+    _, post_num_to_select, selected_post_ids, pre_ids = self._ii()
+    selected_post_ids = selected_post_ids.flatten()
+    selected_pre_ids = np.repeat(pre_ids, post_num_to_select)
+    if not self.include_self:
+      true_ids = selected_pre_ids != selected_post_ids
+      selected_pre_ids = selected_pre_ids[true_ids]
+      selected_post_ids = selected_post_ids[true_ids]
     return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
+
+  def build_csr(self):
+    pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._ii()
+    pre_nums = np.ones(pre_num_to_select) * post_num_to_select
+    if not self.include_self:
+      true_ids = selected_post_ids == np.reshape(pre_ids, (-1, 1))
+      pre_nums -= np.sum(true_ids, axis=1)
+      selected_post_ids = selected_post_ids.flatten()[np.logical_not(true_ids).flatten()]
+    else:
+      selected_post_ids = selected_post_ids.flatten()
+    selected_pre_inptr = np.cumsum(np.concatenate([np.zeros(1), pre_nums]))
+    return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
 
 
 class GaussianProb(OneEndConnector):
@@ -253,7 +327,7 @@ class GaussianProb(OneEndConnector):
     self.include_self = include_self
     self.periodic_boundary = periodic_boundary
     self.seed = format_seed(seed)
-    self.rng = bm.random.RandomState(self.seed)
+    self.rng = np.random.RandomState(self.seed)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(sigma={self.sigma}, '
@@ -318,9 +392,9 @@ class GaussianProb(OneEndConnector):
       prob_mat /= prob_mat.max()
 
     # connectivity
-    conn_mat = bm.asarray(prob_mat) >= self.rng.random(prob_mat.shape)
+    conn_mat = np.asarray(prob_mat) >= self.rng.random(prob_mat.shape)
     if not self.include_self:
-      bm.fill_diagonal(conn_mat, False)
+      np.fill_diagonal(conn_mat, False)
     return conn_mat
 
 
