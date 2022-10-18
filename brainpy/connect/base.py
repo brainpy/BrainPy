@@ -116,13 +116,13 @@ class TwoEndConnector(Connector):
 
         import brainpy as bp
         class MyConnector(bp.conn.TwoEndConnector):
-          def build_mat(self, pre_size, post_size):
+          def build_mat(self, ):
             return conn_matrix
 
-          def build_csr(self, pre_size, post_size):
+          def build_csr(self, ):
             return post_ids, inptr
 
-          def build_coo(self, pre_size, post_size):
+          def build_coo(self, ):
             return pre_ids, post_ids
 
   """
@@ -195,8 +195,6 @@ class TwoEndConnector(Connector):
       if n not in SUPPORTED_SYN_STRUCTURE:
         raise ConnectorError(f'Unknown synapse structure "{n}". '
                              f'Only {SUPPORTED_SYN_STRUCTURE} is supported.')
-
-
 
   def _return_by_mat(self, structures, mat, all_data: dict):
     assert mat.ndim == 2
@@ -332,70 +330,56 @@ class TwoEndConnector(Connector):
     """
     pass
 
-  def require(self, *sizes_or_structures):
-    sizes_or_structures = list(sizes_or_structures)
-    pre_size = sizes_or_structures.pop(0) if len(sizes_or_structures) >= 1 else None
-    post_size = sizes_or_structures.pop(0) if len(sizes_or_structures) >= 1 else None
-    structures = sizes_or_structures
-    if isinstance(post_size, str):
-      structures.insert(0, post_size)
-      post_size = None
-    if isinstance(pre_size, str):
-      structures.insert(0, pre_size)
-      pre_size = None
-
-    version2_style = (pre_size is not None) and (post_size is not None)
-    if not version2_style:
-      try:
-        assert self.pre_num is not None and self.post_num is not None
-      except AssertionError:
-        raise ConnectorError(f'self.pre_num or self.post_num is not defined. '
-                             f'Please use self.__call__(pre_size, post_size) '
-                             f'before requiring connection data.')
-      if pre_size is None:
-        pre_size = self.pre_size
-      if post_size is None:
-        post_size = self.post_size
+  def require(self, *structures):
+    try:
+      assert self.pre_num is not None and self.post_num is not None
+    except AssertionError:
+      raise ConnectorError(f'self.pre_num or self.post_num is not defined. '
+                           f'Please use self.__call__() '
+                           f'before requiring connection data.')
 
     self.check(structures)
     if self.is_version2_style:
       if len(structures) == 1:
         if PRE2POST in structures and not hasattr(self.build_csr, 'not_customized'):
-          return self.build_csr(pre_size, post_size)
+          r = self.build_csr()
+          return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
         elif CONN_MAT in structures and not hasattr(self.build_mat, 'not_customized'):
-          return self.build_mat(pre_size, post_size)
+          return bm.asarray(self.build_mat(), dtype=MAT_DTYPE)
         elif PRE_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
-          return self.build_coo(pre_size, post_size)[0]
+          return bm.asarray(self.build_coo()[0], dtype=IDX_DTYPE)
         elif POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
-          return self.build_coo(pre_size, post_size)[1]
+          return bm.asarray(self.build_coo()[1], dtype=IDX_DTYPE)
       elif len(structures) == 2:
         if PRE_IDS in structures and POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
-          return self.build_coo(pre_size, post_size)
+          r = self.build_coo()
+          return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
 
       conn_data = dict(csr=None, ij=None, mat=None)
       if not hasattr(self.build_coo, 'not_customized'):
-        conn_data['ij'] = self.build_coo(pre_size, post_size)
+        conn_data['ij'] = self.build_coo()
       elif not hasattr(self.build_csr, 'not_customized'):
-        conn_data['csr'] = self.build_csr(pre_size, post_size)
+        conn_data['csr'] = self.build_csr()
       elif not hasattr(self.build_mat, 'not_customized'):
-        conn_data['mat'] = self.build_mat(pre_size, post_size)
+        conn_data['mat'] = self.build_mat()
+
     else:
       conn_data = self.build_conn()
     return self.make_returns(structures, conn_data)
 
-  def requires(self, *sizes_or_structures):
-    return self.require(*sizes_or_structures)
+  def requires(self, *structures):
+    return self.require(*structures)
 
   @tools.not_customized
-  def build_mat(self, pre_size=None, post_size=None):
+  def build_mat(self):
     pass
 
   @tools.not_customized
-  def build_csr(self, pre_size=None, post_size=None):
+  def build_csr(self):
     pass
 
   @tools.not_customized
-  def build_coo(self, pre_size=None, post_size=None):
+  def build_coo(self):
     pass
 
 
@@ -425,7 +409,6 @@ class OneEndConnector(TwoEndConnector):
     else:
       post_size = tuple(post_size)
     self.pre_size, self.post_size = pre_size, post_size
-
     self.pre_num = tools.size2num(self.pre_size)
     self.post_num = tools.size2num(self.post_size)
     return self

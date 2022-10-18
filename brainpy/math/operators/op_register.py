@@ -128,9 +128,9 @@ def register_op(
                              out_shapes=eval_shape,
                              apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
 
-  def fixed_op(*inputs):
+  def fixed_op(*inputs, **info):
     inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
-    res = f.bind(*inputs)
+    res = f.bind(*inputs, **info)
     return res[0] if len(res) == 1 else res
 
   return fixed_op
