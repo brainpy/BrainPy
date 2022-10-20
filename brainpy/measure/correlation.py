@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from functools import partial
 
 import numpy as onp
 from jax import vmap, lax, numpy as jnp
 
 from brainpy import math as bm
+from brainpy.errors import UnsupportedError
 
 __all__ = [
   'cross_correlation',
@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-def cross_correlation(spikes, bin, dt=None, numpy=True):
+def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
   r"""Calculate cross correlation index between neurons.
 
   The coherence [1]_ between two neurons i and j is measured by their
@@ -52,6 +52,12 @@ def cross_correlation(spikes, bin, dt=None, numpy=True):
   numpy: bool
     Whether we use numpy array as the functional output.
     If ``False``, this function can be JIT compiled.
+  method: str
+    The method to calculate all pairs of cross correlation.
+    Supports two kinds of methods: `loop` and `vmap`.
+    `vmap` method needs much more memory.
+
+    .. versionadded:: 2.2.3.4
 
   Returns
   -------
@@ -70,24 +76,38 @@ def cross_correlation(spikes, bin, dt=None, numpy=True):
   bin_size = int(bin / dt)
   num_hist, num_neu = spikes.shape
   num_bin = int(onp.ceil(num_hist / bin_size))
-
-  @partial(vmap, in_axes=(None, 0, 0))
-  def _cc(states, i, j):
-    sqrt_ij = jnp.sqrt(jnp.sum(states[i]) * jnp.sum(states[j]))
-    return lax.cond(sqrt_ij == 0.,
-                    lambda _: 0.,
-                    lambda _: jnp.sum(states[i] * states[j]) / sqrt_ij,
-                    None)
-
   if num_bin * bin_size != num_hist:
     spikes = np.append(spikes, np.zeros((num_bin * bin_size - num_hist, num_neu)), axis=0)
   states = spikes.T.reshape((num_neu, num_bin, bin_size))
   states = jnp.asarray(np.sum(states, axis=2) > 0., dtype=jnp.float_)
   indices = jnp.tril_indices(num_neu, k=-1)
-  return onp.mean(np.asarray(_cc(states, *indices)))
+
+  if method == 'loop':
+    def _f(i, j):
+      sqrt_ij = jnp.sqrt(jnp.sum(states[i]) * jnp.sum(states[j]))
+      return lax.cond(sqrt_ij == 0.,
+                      lambda _: 0.,
+                      lambda _: jnp.sum(states[i] * states[j]) / sqrt_ij,
+                      None)
+    res = bm.for_loop(_f, dyn_vars=[], operands=indices)
+
+  elif method == 'vmap':
+    @vmap
+    def _cc(i, j):
+      sqrt_ij = jnp.sqrt(jnp.sum(states[i]) * jnp.sum(states[j]))
+      return lax.cond(sqrt_ij == 0.,
+                      lambda _: 0.,
+                      lambda _: jnp.sum(states[i] * states[j]) / sqrt_ij,
+                      None)
+
+    res = _cc(*indices)
+  else:
+    raise UnsupportedError(f'Do not support {method}. We only support "loop" or "vmap".')
+
+  return np.mean(np.asarray(res))
 
 
-def voltage_fluctuation(potentials, numpy=True):
+def voltage_fluctuation(potentials, numpy=True, method='loop'):
   r"""Calculate neuronal synchronization via voltage variance.
 
   The method comes from [1]_ [2]_ [3]_.
@@ -130,6 +150,13 @@ def voltage_fluctuation(potentials, numpy=True):
   numpy: bool
     Whether we use numpy array as the functional output.
     If ``False``, this function can be JIT compiled.
+  method: str
+    The method to calculate all pairs of cross correlation.
+    Supports two kinds of methods: `loop` and `vmap`.
+    `vmap` method will consume much more memory.
+
+    .. versionadded:: 2.2.3.4
+
 
   Returns
   -------
@@ -148,7 +175,17 @@ def voltage_fluctuation(potentials, numpy=True):
   potentials = bm.as_device_array(potentials)
   avg = jnp.mean(potentials, axis=1)
   avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
-  _var = vmap(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2, in_axes=1)
+
+  if method == 'loop':
+    _var = lambda aa: bm.for_loop(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2,
+                                  dyn_vars=(),
+                                  operands=bm.moveaxis(aa, 0, 1))
+
+  elif method == 'vmap':
+    _var = vmap(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2, in_axes=1)
+  else:
+    raise UnsupportedError(f'Do not support {method}. We only support "loop" or "vmap".')
+
   var_mean = jnp.mean(_var(potentials))
   r = jnp.where(var_mean == 0., 1., avg_var / var_mean)
   return bm.as_numpy(r) if numpy else r
