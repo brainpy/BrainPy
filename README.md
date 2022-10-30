@@ -44,4 +44,4 @@ For detailed installation instructions, please refer to the documentation: [Quic
 
 ## License
 
-[GNU General Public License v3.0](https://github.com/PKU-NIP-Lab/BrainPy/blob/master/LICENSE)
+[Apache License, Version 2.0](https://github.com/PKU-NIP-Lab/BrainPy/blob/master/LICENSE)
