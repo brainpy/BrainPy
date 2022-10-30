@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from collections import namedtuple
 from functools import partial
 from operator import index
@@ -86,9 +86,8 @@ def _get_tr_params(n, p):
   m = jnp.floor((n + 1) * p).astype(n.dtype)
   log_p = jnp.log(p)
   log1_p = jnp.log1p(-p)
-  log_h = (m + 0.5) * (jnp.log((m + 1.0) / (n - m + 1.0)) + log1_p - log_p) + (
-      _stirling_approx_tail(m) + _stirling_approx_tail(n - m)
-  )
+  log_h = ((m + 0.5) * (jnp.log((m + 1.0) / (n - m + 1.0)) + log1_p - log_p) +
+           _stirling_approx_tail(m) + _stirling_approx_tail(n - m))
   return _tr_params(c, b, a, alpha, u_r, v_r, m, log_p, log1_p, log_h)
 
 
@@ -105,10 +104,9 @@ def _stirling_approx_tail(k):
                            0.008330563433362871, ])
   kp1 = k + 1
   kp1sq = (k + 1) ** 2
-  return jnp.where(
-    k < 10, precomputed[k],
-    (1.0 / 12 - (1.0 / 360 - (1.0 / 1260) / kp1sq) / kp1sq) / kp1,
-  )
+  return jnp.where(k < 10,
+                   precomputed[k],
+                   (1.0 / 12 - (1.0 / 360 - (1.0 / 1260) / kp1sq) / kp1sq) / kp1)
 
 
 def _binomial_btrs(key, p, n):
@@ -290,9 +288,9 @@ def _multinomial(key, p, n, n_max, shape=()):
     excess = 0
   # NB: we transpose to move batch shape to the front
   indices_2D = (jnp.reshape(indices * mask, (n_max, -1))).T
-  samples_2D = vmap(_scatter_add_one, (0, 0, 0))(jnp.zeros((indices_2D.shape[0], p.shape[-1]), dtype=indices.dtype),
-                                                 jnp.expand_dims(indices_2D, axis=-1),
-                                                 jnp.ones(indices_2D.shape, dtype=indices.dtype))
+  samples_2D = vmap(_scatter_add_one)(jnp.zeros((indices_2D.shape[0], p.shape[-1]), dtype=indices.dtype),
+                                      jnp.expand_dims(indices_2D, axis=-1),
+                                      jnp.ones(indices_2D.shape, dtype=indices.dtype))
   return jnp.reshape(samples_2D, shape + p.shape[-1:]) - excess
 
 
@@ -387,46 +385,78 @@ class RandomState(Variable):
   """RandomState that track the random generator state. """
   __slots__ = ()
 
-  def __init__(self, seed=None):
+  def __init__(self, seed_or_key=None, seed=None):
     """RandomState constructor.
 
     Parameters
     ----------
-    seed : int, jax.DeviceArray, Optional
+    seed_or_key: int, Array, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
+
+      .. versionadded:: 2.2.3.4
+
+    seed : int, Array, optional
+      Same as `seed_or_key`.
+
+      .. deprecated:: 2.2.3.4
+         Will be removed since version 2.4.
     """
-    if seed is None:
-      seed = np.random.randint(0, 100000, 2, dtype=np.uint32)
-    if isinstance(seed, int):
-      key = jr.PRNGKey(seed)
+    if seed is not None:
+      if seed_or_key is not None:
+        raise ValueError('Please set "seed_or_key" or "seed", not both.')
+      seed_or_key = seed
+      warnings.warn('Please use seed_or_key instead. '
+                    'seed will be removed since 2.4.0', UserWarning)
+
+    if seed_or_key is None:
+      seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+    if isinstance(seed_or_key, int):
+      key = jr.PRNGKey(seed_or_key)
     else:
-      if len(seed) != 2 and seed.dtype != np.uint32:
-        raise ValueError
-      key = seed
+      if len(seed_or_key) != 2 and seed_or_key.dtype != np.uint32:
+        raise ValueError('key must be an array with dtype uint32. '
+                         f'But we got {seed_or_key}')
+      key = seed_or_key
     super(RandomState, self).__init__(key)
 
   # ------------------- #
   # seed and random key #
   # ------------------- #
 
-  def seed(self, seed=None):
+  def seed(self, seed_or_key=None, seed=None):
     """Sets a new random seed.
 
     Parameters
     ----------
-    seed : int, ndarray
+    seed_or_key: int, Array, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
+
+      .. versionadded:: 2.2.3.4
+
+    seed : int, Array, optional
+      Same as `seed_or_key`.
+
+      .. deprecated:: 2.2.3.4
+         Will be removed since version 2.4.
     """
-    if seed is None:
-      seed = np.random.randint(0, 100000, 2, dtype=np.uint32)
-    if isinstance(seed, int):
-      key = jr.PRNGKey(seed)
+    if seed is not None:
+      if seed_or_key is not None:
+        raise ValueError('Please set "seed_or_key" or "seed", not both.')
+      seed_or_key = seed
+      warnings.warn('Please use seed_or_key instead. '
+                    'seed will be removed since 2.4.0', UserWarning)
+
+    if seed_or_key is None:
+      seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+    if isinstance(seed_or_key, int):
+      key = jr.PRNGKey(seed_or_key)
     else:
-      if len(seed) != 2 and seed.dtype != np.uint32:
-        raise ValueError
-      key = seed
+      if len(seed_or_key) != 2 and seed_or_key.dtype != np.uint32:
+        raise ValueError('key must be an array with dtype uint32. '
+                         f'But we got {seed_or_key}')
+      key = seed_or_key
     self.value = key
 
   def split_key(self):
@@ -519,11 +549,11 @@ class RandomState(Variable):
     return JaxArray(jr.choice(key, a=a, shape=_size2shape(size),
                               replace=replace, p=p))
 
-  def permutation(self, x, key=None):
+  def permutation(self, x, axis: int = 0, independent: bool = False, key=None):
     x = x.value if isinstance(x, JaxArray) else x
     x = _check_py_seq(x)
     key = self.split_key() if key is None else key
-    return JaxArray(jr.permutation(key, x))
+    return JaxArray(jr.permutation(key, x, axis=axis, independent=independent))
 
   def shuffle(self, x, axis=0, key=None):
     assert isinstance(x, JaxArray), f'Must be a JaxArray, but got {type(x)}'
@@ -1127,8 +1157,8 @@ def choice(a, size=None, replace=True, p=None, key=None):
 
 
 @wraps(np.random.permutation)
-def permutation(x, key=None):
-  return DEFAULT.permutation(x, key=key)
+def permutation(x, axis: int = 0, independent: bool = False, key=None):
+  return DEFAULT.permutation(x, axis=axis, independent=independent, key=key)
 
 
 @wraps(np.random.shuffle)

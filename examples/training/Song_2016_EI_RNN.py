@@ -120,7 +120,7 @@ class RNN(bp.dyn.DynamicalSystem):
     else:
       self.alpha = dt / self.tau
     self.sigma_rec = (2 * self.alpha) ** 0.5 * sigma_rec  # Recurrent noise
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed)
 
     # hidden mask
     mask = np.tile([1] * self.e_size + [-1] * self.i_size, (num_hidden, 1))

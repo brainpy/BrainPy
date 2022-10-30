@@ -43,7 +43,7 @@ class Dropout(DynamicalSystem):
   ):
     super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = prob
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed)
 
   def update(self, sha, x):
     if sha.get('fit', True):
