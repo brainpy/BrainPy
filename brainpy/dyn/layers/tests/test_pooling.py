@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-import random
 
-import pytest
 from unittest import TestCase
-import brainpy as bp
+
 import jax.numpy as jnp
-import jax
 import numpy as np
+
+import brainpy as bp
+import brainpy.math as bm
 
 
 class TestPool(TestCase):
@@ -14,28 +14,43 @@ class TestPool(TestCase):
     class MaxPoolNet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(MaxPoolNet, self).__init__()
-        self.maxpool = bp.dyn.layers.MaxPool((2, 2))
+        self.maxpool = bp.dyn.layers.MaxPool((2, 2), 1, channel_axis=-1)
 
       def update(self, sha, x):
-        x = self.maxpool(sha, x)
-        return x
+        return self.maxpool(sha, x)
 
     x = jnp.arange(9).reshape((1, 3, 3, 1)).astype(jnp.float32)
+    print(jnp.arange(9).reshape(3, 3))
+    print(x)
+    print(x.shape)
     shared = {'fit': False}
     net = MaxPoolNet()
     y = net(shared, x)
     print("out shape: ", y.shape)
-    expected_y = jnp.array([
-      [4., 5.],
-      [7., 8.],
-    ]).reshape((1, 2, 2, 1))
+    expected_y = jnp.array([[4., 5.],
+                            [7., 8.]]).reshape((1, 2, 2, 1))
     np.testing.assert_allclose(y, expected_y)
+
+  def test_maxpool2(self):
+    class MaxPoolNet(bp.dyn.DynamicalSystem):
+      def __init__(self):
+        super(MaxPoolNet, self).__init__()
+        self.maxpool = bp.dyn.layers.MaxPool((2, 2), (2, 2), channel_axis=-1)
+
+      def update(self, sha, x):
+        return self.maxpool(sha, x)
+
+    rng = bm.random.RandomState(123)
+    x = rng.rand(10, 20, 20, 4)
+    net = MaxPoolNet()
+    y = net(None, x)
+    print("out shape: ", y.shape)
 
   def test_minpool(self):
     class MinPoolNet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(MinPoolNet, self).__init__()
-        self.maxpool = bp.dyn.layers.MinPool((2, 2))
+        self.maxpool = bp.dyn.layers.MinPool((2, 2), 1, channel_axis=-1)
 
       def update(self, sha, x):
         x = self.maxpool(sha, x)
@@ -56,7 +71,7 @@ class TestPool(TestCase):
     class AvgPoolNet(bp.dyn.DynamicalSystem):
       def __init__(self):
         super(AvgPoolNet, self).__init__()
-        self.maxpool = bp.dyn.layers.AvgPool((2, 2))
+        self.maxpool = bp.dyn.layers.AvgPool((2, 2), 1, channel_axis=-1)
 
       def update(self, sha, x):
         x = self.maxpool(sha, x)
