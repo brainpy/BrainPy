@@ -179,7 +179,7 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
   if method == 'loop':
     _var = lambda aa: bm.for_loop(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2,
                                   dyn_vars=(),
-                                  operands=bm.moveaxis(aa, 0, 1))
+                                  operands=bm.moveaxis(aa, 0, 1).value)
 
   elif method == 'vmap':
     _var = vmap(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2, in_axes=1)
