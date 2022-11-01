@@ -82,7 +82,7 @@ class NVAR(DynamicalSystem):
     self.order = tuple(order)
     check_sequence(order, 'order', allow_none=False)
     for o in order:
-      check_integer(o, 'delay', allow_none=False, min_bound=2)
+      check_integer(o, 'order', allow_none=False, min_bound=2)
     check_integer(delay, 'delay', allow_none=False, min_bound=1)
     check_integer(stride, 'stride', allow_none=False, min_bound=1)
     assert isinstance(constant, bool), f'Must be an instance of boolean, but got {constant}.'

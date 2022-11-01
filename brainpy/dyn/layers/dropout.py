@@ -15,7 +15,7 @@ class Dropout(DynamicalSystem):
   In training, to compensate for the fraction of input values dropped (`rate`),
   all surviving values are multiplied by `1 / (1 - rate)`.
 
-  This layer is active only during training (`mode='train'`). In other
+  This layer is active only during training (`mode=brainpy.modes.training`). In other
   circumstances it is a no-op.
 
   Parameters
@@ -24,6 +24,8 @@ class Dropout(DynamicalSystem):
     Probability to keep element of the tensor.
   seed : optional, int
     The random sampling seed.
+  mode: Mode
+    The computation mode of the object.
   name : str, optional
     The name of the dynamic system.
 
@@ -43,7 +45,7 @@ class Dropout(DynamicalSystem):
   ):
     super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = prob
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed)
 
   def update(self, sha, x):
     if sha.get('fit', True):

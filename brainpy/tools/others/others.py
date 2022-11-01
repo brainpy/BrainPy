@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import collections.abc
 import _thread as thread
 import threading
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple, Callable, Union, Sequence, TypeVar
 
 import numpy as np
 from jax import lax
@@ -10,6 +11,7 @@ from jax.experimental import host_callback
 from tqdm.auto import tqdm
 
 __all__ = [
+  'replicate',
   'not_customized',
   'to_size',
   'size2num',
@@ -17,6 +19,25 @@ __all__ = [
   'init_progress_bar',
 ]
 
+
+T = TypeVar('T')
+
+
+def replicate(
+    element: Union[T, Sequence[T]],
+    num_replicate: int,
+    name: str,
+) -> Tuple[T, ...]:
+  """Replicates entry in `element` `num_replicate` if needed."""
+  if isinstance(element, (str, bytes)) or not isinstance(element, collections.abc.Sequence):
+    return (element,) * num_replicate
+  elif len(element) == 1:
+    return tuple(element * num_replicate)
+  elif len(element) == num_replicate:
+    return tuple(element)
+  else:
+    raise TypeError(f"{name} must be a scalar or sequence of length 1 or "
+                    f"sequence of length {num_replicate}.")
 
 
 def not_customized(fun: Callable) -> Callable:
