@@ -45,7 +45,6 @@ import shutil
 
 changelogs = [
   ('../changelog.rst', 'apis/auto/changelog-brainpy.rst'),
-  ('../extensions/changelog.rst', 'apis/auto/changelog-brainpylib.rst'),
 ]
 for source, dest in changelogs:
   if os.path.exists(dest): os.remove(dest)
