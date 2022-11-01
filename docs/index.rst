@@ -87,6 +87,7 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_advanced/operator_customization.ipynb
    tutorial_advanced/interoperation.ipynb
    tutorial_advanced/compile_brainpylib
+   tutorial_advanced/citing_and_publication
 
 
 .. toctree::
