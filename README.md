@@ -17,7 +17,7 @@
 
 
 
-BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax)). It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **simulation**, **training**, **analysis**, etc. 
+BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax)). It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
 
 - **Website (documentation and APIs)**: https://brainpy.readthedocs.io/en/latest
 - **Source**: https://github.com/PKU-NIP-Lab/BrainPy
@@ -37,11 +37,19 @@ $ pip install brainpy -U
 
 The following packages are required for ``BrainPy``: 
 
-`numpy >= 1.15` and `jax >= 0.3.0` ([how to install jax?](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax))
+`numpy >= 1.15` and `jax >= 0.3.0`
 
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
+
+
 
 
 ## License
 
 [Apache License, Version 2.0](https://github.com/PKU-NIP-Lab/BrainPy/blob/master/LICENSE)
+
+
+
+## Citing
+
+If you use BrainPy, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_advanced/citing_and_publication.html). 
