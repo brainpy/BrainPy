@@ -73,7 +73,7 @@ class DynamicalSystem(Base):
 
   def __init__(
       self,
-      name: str = None,
+      name: Optional[str] = None,
       mode: Optional[Mode] = None,
   ):
     # mode setting

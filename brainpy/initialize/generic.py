@@ -15,7 +15,6 @@ __all__ = [
   'parameter',
   'variable',
   'variable_',
-  'variable2',
   'noise',
   'delay',
 
@@ -28,6 +27,7 @@ def parameter(
     param: Union[Callable, Initializer, bm.ndarray, np.ndarray, jnp.ndarray, float, int, bool],
     size: Shape,
     allow_none: bool = True,
+    allow_scalar: bool = True,
 ):
   """Initialize parameters.
 
@@ -43,11 +43,17 @@ def parameter(
     The shape of the parameter.
   allow_none: bool
     Whether allow the parameter is None.
+  allow_scalar: bool
+    Whether allow the parameter is a scalar value.
 
   Returns
   -------
-  param: JaxArray, float, None
+  param: JaxArray, float, int, bool, None
     The initialized parameter.
+
+  See Also
+  --------
+  variable_, noise, delay
   """
   if param is None:
     if allow_none:
@@ -56,9 +62,9 @@ def parameter(
       raise ValueError(f'Expect a parameter with type of float, JaxArray, Initializer, or '
                        f'Callable function, but we got None. ')
   size = to_size(size)
-  if isinstance(param, (float, int, bool)):
+  if allow_scalar and isinstance(param, (float, int, bool)):
     return param
-  elif callable(param):
+  if callable(param):
     param = bm.asarray(param(size))
   elif isinstance(param, (np.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
@@ -68,9 +74,11 @@ def parameter(
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
-  if param.shape != () and param.shape != (1,) and param.shape != size:
-    raise ValueError(f'The shape of the parameters should be (), (1,) '
-                     f'or {size}, but we got {param.shape}')
+  if allow_scalar:
+    if param.shape == () or param.shape != (1,):
+      return param
+  if param.shape != size:
+    raise ValueError(f'The shape of the parameters should be {size}, but we got {param.shape}')
   return param
 
 
@@ -79,6 +87,11 @@ def init_param(
     size: Shape,
     allow_none: bool = True,
 ):
+  """Initialize parameters. Same as ``parameter()``.
+
+  .. deprecated:: 2.2.3.4
+     Will be removed since version 2.4.0.
+  """
   return parameter(param, size, allow_none)
 
 
@@ -88,16 +101,32 @@ def variable_(
     batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
     batch_axis: int = 0,
 ):
-  return variable(data, batch_size_or_mode, size, batch_axis)
+  """Initialize variables. Same as `variable()`.
 
+  Parameters
+  ----------
+  data: callable, function, Array
+    The data to be initialized as a ``Variable``.
+  batch_size_or_mode: int, bool, Mode, optional
+    The batch size, model ``Mode``, boolean state.
+    This is used to specify the batch size of this variable.
+    If it is a boolean or an instance of ``Mode``, the batch size will be 1.
+    If it is None, the variable has no batch axis.
+  size: Shape
+    The shape of the variable.
+  batch_axis: int
+    The batch axis.
 
-def variable2(
-    data: Union[Callable, Array],
-    size: Shape = None,
-    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
-    batch_axis: int = 0,
-):
-  warnings.warn('Use brainpy.init.variable_() instead. ', UserWarning)
+  Returns
+  -------
+  variable: bm.Variable
+    The target ``Variable`` instance.
+
+  See Also
+  --------
+  variable, parameter, noise, delay
+
+  """
   return variable(data, batch_size_or_mode, size, batch_axis)
 
 
@@ -107,6 +136,32 @@ def variable(
     size: Shape = None,
     batch_axis: int = 0,
 ):
+  """Initialize variables.
+
+  Parameters
+  ----------
+  data: callable, function, Array
+    The data to be initialized as a ``Variable``.
+  batch_size_or_mode: int, bool, Mode, optional
+    The batch size, model ``Mode``, boolean state.
+    This is used to specify the batch size of this variable.
+    If it is a boolean or an instance of ``Mode``, the batch size will be 1.
+    If it is None, the variable has no batch axis.
+  size: Shape
+    The shape of the variable.
+  batch_axis: int
+    The batch axis.
+
+  Returns
+  -------
+  variable: bm.Variable
+    The target ``Variable`` instance.
+
+  See Also
+  --------
+  variable_, parameter, noise, delay
+
+  """
   size = to_size(size)
   if callable(data):
     if size is None:
@@ -144,11 +199,33 @@ def variable(
 
 
 def noise(
-    noises: Optional[Union[int, bm.ndarray, jnp.ndarray, Initializer, Callable]],
+    noises: Optional[Union[int, float, bm.ndarray, jnp.ndarray, Initializer, Callable]],
     size: Shape,
     num_vars: int = 1,
     noise_idx: int = 0,
 ) -> Optional[Callable]:
+  """Initialize a noise function.
+
+  Parameters
+  ----------
+  noises: Any
+  size: Shape
+    The size of the noise.
+  num_vars: int
+    The number of variables.
+  noise_idx: int
+    The index of the current noise among all noise variables.
+
+  Returns
+  -------
+  noise_func: function, None
+    The noise function.
+
+  See Also
+  --------
+  variable_, parameter, delay
+
+  """
   if callable(noises):
     return noises
   elif noises is None:
@@ -182,6 +259,10 @@ def delay(
   -------
   info: tuple
     The triple of delay type, delay steps, and delay variable.
+
+  See Also
+  --------
+  variable_, parameter, noise
   """
   # check delay type
   if delay_step is None:

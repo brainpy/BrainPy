@@ -1,262 +1,374 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union
+from typing import Union, Optional, Sequence
 
-import jax.nn
-import jax.numpy as jnp
-import jax.lax
+from jax import lax, numpy as jnp
 
 import brainpy.math as bm
-from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, TrainingMode, NormalMode, training, check_mode
+from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
+from brainpy.modes import Mode, TrainingMode, training
 
 __all__ = [
-  'BatchNorm',
-  'BatchNorm1d',
-  'BatchNorm2d',
-  'BatchNorm3d',
-  'GroupNorm',
+  'BatchNorm1D',
+  'BatchNorm2D',
+  'BatchNorm3D',
+
   'LayerNorm',
+  'GroupNorm',
   'InstanceNorm',
 ]
 
 
+def _abs_sq(x):
+  """Computes the elementwise square of the absolute value |x|^2."""
+  if jnp.iscomplexobj(x):
+    return lax.square(lax.real(x)) + lax.square(lax.imag(x))
+  else:
+    return lax.square(x)
+
+
 class BatchNorm(DynamicalSystem):
-  """Batch Normalization node.
+  """Batch Normalization layer.
+
   This layer aims to reduce the internal covariant shift of data. It
   normalizes a batch of data by fixing the mean and variance of inputs
   on each feature (channel). Most commonly, the first axis of the data
   is the batch, and the last is the channel. However, users can specify
   the axes to be normalized.
 
-  adapted from jax.example_libraries.stax.BatchNorm
-  https://jax.readthedocs.io/en/latest/_modules/jax/example_libraries/stax.html#BatchNorm
-
   Parameters
   ----------
+  num_features: int
+    ``C`` from an expected input of size ``(..., C)``.
   axis: int, tuple, list
-    axes where the data will be normalized. The feature (channel) axis should be excluded.
+    Axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
-    a value added to the denominator for numerical stability. Default: 1e-5
-  use_bias: bool
-    whether to translate data in refactoring. Default: True
-  use_scale: bool
-    whether to scale data in refactoring. Default: True
-  beta_init: brainpy.init.Initializer
-    an initializer generating the original translation matrix
-  gamma_init: brainpy.init.Initializer
-    an initializer generating the original scaling matrix
+    A value added to the denominator for numerical stability. Default: 1e-5
+  affine: bool
+    A boolean value that when set to ``True``, this module has
+    learnable affine parameters. Default: ``True``
+  bias_init: Initializer
+    An initializer generating the original translation matrix
+  scale_init: Initializer
+    An initializer generating the original scaling matrix
   """
 
-  def __init__(self,
-               axis: Union[int, tuple, list],
-               epsilon: float = 1e-5,
-               use_bias: bool = True,
-               use_scale: bool = True,
-               beta_init: Initializer = ZeroInit(),
-               gamma_init: Initializer = OneInit(),
-               mode: Mode = training,
-               name: str = None,
-               **kwargs):
+  def __init__(
+      self,
+      num_features: int,
+      axis: Union[int, Sequence[int]],
+      epsilon: float = 1e-5,
+      momentum: Optional[float] = 0.99,
+      affine: bool = True,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      mode: Mode = training,
+      name: str = None,
+  ):
     super(BatchNorm, self).__init__(name=name, mode=mode)
+
+    # parameters
+    self.num_features = num_features
     self.epsilon = epsilon
-    self.bias = use_bias
-    self.scale = use_scale
-    self.beta_init = beta_init if use_bias else ()
-    self.gamma_init = gamma_init if use_scale else ()
+    self.momentum = momentum
+    self.affine = affine
+    self.bias_init = bias_init
+    self.scale_init = scale_init
     self.axis = (axis,) if jnp.isscalar(axis) else axis
 
+    # variables
+    self.running_mean = bm.Variable(bm.zeros(self.num_features))
+    self.running_var = bm.Variable(bm.ones(self.num_features))
+    if self.affine:
+      assert isinstance(self.mode, TrainingMode)
+      self.bias = bm.TrainVar(parameter(self.bias_init, self.num_features))
+      self.scale = bm.TrainVar(parameter(self.scale_init, self.num_features))
+
   def _check_input_dim(self, x):
-    pass
+    raise NotImplementedError
 
   def update(self, sha, x):
     self._check_input_dim(x)
 
-    input_shape = tuple(d for i, d in enumerate(x.shape) if i not in self.axis)
-    self.beta = parameter(self.beta_init, input_shape) if self.bias else None
-    self.gamma = parameter(self.gamma_init, input_shape) if self.scale else None
-    if isinstance(self.mode, TrainingMode):
-      self.beta = bm.TrainVar(self.beta)
-      self.gamma = bm.TrainVar(self.gamma)
+    if sha['fit']:
+      mean = bm.mean(x, self.axis)
+      mean2 = bm.mean(_abs_sq(x), self.axis)
+      var = jnp.maximum(0., mean2 - _abs_sq(mean))
+      self.running_mean.value = (self.momentum * self.running_mean.value +
+                                 (1 - self.momentum) * mean)
+      self.running_var.value = (self.momentum * self.running_var.value +
+                                (1 - self.momentum) * var)
+    else:
+      mean = self.running_mean.value
+      var = self.running_var.value
+    stats_shape = [(1 if i in self.axis else x.shape[i]) for i in range(x.ndim)]
+    mean = mean.reshape(stats_shape)
+    var = var.reshape(stats_shape)
 
-    ed = tuple(None if i in self.axis else slice(None) for i in range(jnp.ndim(x)))
-    # output = bm.normalize(x, self.axis, epsilon=self.epsilon)
-    print(x)
-    output = jax.nn.standardize(x.value, self.axis, epsilon=self.epsilon)
-    print(output)
-    if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
-    if self.bias: return output + self.beta[ed]
-    if self.scale: return self.gamma[ed] * output
-    return output
+    y = x - mean
+    mul = lax.rsqrt(var + lax.convert_element_type(self.epsilon, x.dtype))
+    if self.affine:
+      mul *= self.scale
+    y *= mul
+    if self.affine:
+      y += self.bias
+    return y
 
   def reset_state(self, batch_size=None):
     pass
 
 
-class BatchNorm1d(BatchNorm):
+class BatchNorm1D(BatchNorm):
   """1-D batch normalization.
+
   The data should be of `(b, l, c)`, where `b` is the batch dimension,
-  `l` is the layer dimension, and `c` is the channel dimension, or of
-  '(b, c)'.
+  `l` is the layer dimension, and `c` is the channel dimension.
 
   Parameters
   ----------
+  num_features: int
+    ``C`` from an expected input of size ``(B, L, C)``.
+  axis: int, tuple, list
+    axes where the data will be normalized. The feature (channel) axis should be excluded.
+  epsilon: float
+    A value added to the denominator for numerical stability. Default: 1e-5
+  affine: bool
+    A boolean value that when set to ``True``, this module has
+    learnable affine parameters. Default: ``True``
+  bias_init: Initializer
+    an initializer generating the original translation matrix
+  scale_init: Initializer
+    an initializer generating the original scaling matrix
+  """
+
+  def __init__(
+      self,
+      num_features: int,
+      axis: Union[int, Sequence[int]] = (0, 1),
+      epsilon: float = 1e-5,
+      momentum: Optional[float] = 0.99,
+      affine: bool = True,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      mode: Mode = training,
+      name: str = None,
+  ):
+    super(BatchNorm1D, self).__init__(num_features=num_features,
+                                      axis=axis,
+                                      epsilon=epsilon,
+                                      momentum=momentum,
+                                      affine=affine,
+                                      bias_init=bias_init,
+                                      scale_init=scale_init,
+                                      mode=mode,
+                                      name=name)
+
+  def _check_input_dim(self, x):
+    if x.ndim != 3:
+      raise ValueError(f"expected 3D input (got {x.ndim}D input)")
+    assert x.shape[-1] == self.num_features
+
+
+class BatchNorm2D(BatchNorm):
+  """2-D batch normalization.
+
+  The data should be of `(b, h, w, c)`, where `b` is the batch dimension,
+  `h` is the height dimension, `w` is the width dimension, and `c` is the
+  channel dimension.
+
+  Parameters
+  ----------
+  num_features: int
+    ``C`` from an expected input of size ``(B, H, W, C)``.
   axis: int, tuple, list
     axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  use_bias: bool
-    whether to translate data in refactoring. Default: True
-  use_scale: bool
-    whether to scale data in refactoring. Default: True
-  beta_init: brainpy.init.Initializer
+  affine: bool
+    A boolean value that when set to ``True``, this module has
+    learnable affine parameters. Default: ``True``
+  bias_init: Initializer
     an initializer generating the original translation matrix
-  gamma_init: brainpy.init.Initializer
+  scale_init: Initializer
     an initializer generating the original scaling matrix
   """
-  def __init__(self, axis=(0, 1), **kwargs):
-    super(BatchNorm1d, self).__init__(axis=axis, **kwargs)
+
+  def __init__(
+      self,
+      num_features: int,
+      axis: Union[int, Sequence[int]] = (0, 1, 2),
+      epsilon: float = 1e-5,
+      momentum: Optional[float] = 0.99,
+      affine: bool = True,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      mode: Mode = training,
+      name: str = None,
+  ):
+    super(BatchNorm2D, self).__init__(num_features=num_features,
+                                      axis=axis,
+                                      epsilon=epsilon,
+                                      momentum=momentum,
+                                      affine=affine,
+                                      bias_init=bias_init,
+                                      scale_init=scale_init,
+                                      mode=mode,
+                                      name=name)
 
   def _check_input_dim(self, x):
-    ndim = len(x.shape)
-    if ndim != 2 and ndim != 3:
-      raise ValueError(
-        "expected 2D or 3D input (got {}D input)".format(ndim)
-      )
-    if ndim == 2 and len(self.axis) == 2:
-      self.axis = (0,)
+    if x.ndim != 4:
+      raise ValueError(f"expected 4D input (got {x.ndim}D input)")
+    assert x.shape[-1] == self.num_features
 
 
-class BatchNorm2d(BatchNorm):
-  """2-D batch normalization.
-    The data should be of `(b, h, w, c)`, where `b` is the batch dimension,
-    `h` is the height dimension, `w` is the width dimension, and `c` is the
-    channel dimension.
-
-    Parameters
-    ----------
-    axis: int, tuple, list
-      axes where the data will be normalized. The feature (channel) axis should be excluded.
-    epsilon: float
-      a value added to the denominator for numerical stability. Default: 1e-5
-    use_bias: bool
-      whether to translate data in refactoring. Default: True
-    use_scale: bool
-      whether to scale data in refactoring. Default: True
-    beta_init: brainpy.init.Initializer
-      an initializer generating the original translation matrix
-    gamma_init: brainpy.init.Initializer
-      an initializer generating the original scaling matrix
-    """
-  def __init__(self, axis=(0, 1, 2), **kwargs):
-    super(BatchNorm2d, self).__init__(axis=axis, **kwargs)
-
-  def _check_input_dim(self, x):
-    ndim = len(x.shape)
-    if ndim != 4:
-      raise ValueError(
-        "expected 4D input (got {}D input)".format(ndim)
-      )
-
-
-class BatchNorm3d(BatchNorm):
+class BatchNorm3D(BatchNorm):
   """3-D batch normalization.
-    The data should be of `(b, h, w, d, c)`, where `b` is the batch dimension,
-    `h` is the height dimension, `w` is the width dimension, `d` is the depth
-    dimension, and `c` is the channel dimension.
 
-    Parameters
-    ----------
-    axis: int, tuple, list
-      axes where the data will be normalized. The feature (channel) axis should be excluded.
-    epsilon: float
-      a value added to the denominator for numerical stability. Default: 1e-5
-    use_bias: bool
-      whether to translate data in refactoring. Default: True
-    use_scale: bool
-      whether to scale data in refactoring. Default: True
-    beta_init: brainpy.init.Initializer
-      an initializer generating the original translation matrix
-    gamma_init: brainpy.init.Initializer
-      an initializer generating the original scaling matrix
-      """
-  def __init__(self, axis=(0, 1, 2, 3), **kwargs):
-    super(BatchNorm3d, self).__init__(axis=axis, **kwargs)
+  The data should be of `(b, h, w, d, c)`, where `b` is the batch dimension,
+  `h` is the height dimension, `w` is the width dimension, `d` is the depth
+  dimension, and `c` is the channel dimension.
+
+  Parameters
+  ----------
+  num_features: int
+    ``C`` from an expected input of size ``(B, H, W, D, C)``.
+  axis: int, tuple, list
+    axes where the data will be normalized. The feature (channel) axis should be excluded.
+  epsilon: float
+    a value added to the denominator for numerical stability. Default: 1e-5
+  affine: bool
+    A boolean value that when set to ``True``, this module has
+    learnable affine parameters. Default: ``True``
+  bias_init: Initializer
+    an initializer generating the original translation matrix
+  scale_init: Initializer
+    an initializer generating the original scaling matrix
+  """
+
+  def __init__(
+      self,
+      num_features: int,
+      axis: Union[int, Sequence[int]] = (0, 1, 2, 3),
+      epsilon: float = 1e-5,
+      momentum: Optional[float] = 0.99,
+      affine: bool = True,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      mode: Mode = training,
+      name: str = None,
+  ):
+    super(BatchNorm3D, self).__init__(num_features=num_features,
+                                      axis=axis,
+                                      epsilon=epsilon,
+                                      momentum=momentum,
+                                      affine=affine,
+                                      bias_init=bias_init,
+                                      scale_init=scale_init,
+                                      mode=mode,
+                                      name=name)
 
   def _check_input_dim(self, x):
-    ndim = len(x.shape)
-    if ndim != 5:
-      raise ValueError(
-        "expected 5D input (got {}D input)".format(ndim)
-      )
+    if x.ndim != 5:
+      raise ValueError(f"expected 5D input (got {x.ndim}D input)")
+    assert x.shape[-1] == self.num_features
 
 
 class LayerNorm(DynamicalSystem):
   """Layer normalization (https://arxiv.org/abs/1607.06450).
 
+  .. math::
+      y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
+
   This layer normalizes data on each example, independently of the batch. More
   specifically, it normalizes data of shape (b, d1, d2, ..., c) on the axes of
   the data dimensions and the channel (d1, d2, ..., c). Different from batch
-  normalization, gamma and beta are assigned to each position (elementwise
+  normalization, scale and bias are assigned to each position (elementwise
   operation) instead of the whole channel. If users want to assign a single
-  gamma and beta to a whole example/whole channel, please use GroupNorm/
+  scale and bias to a whole example/whole channel, please use GroupNorm/
   InstanceNorm.
 
   Parameters
   ----------
+  normalized_shape: int, sequence of int
+    The input shape from an expected input of size
+
+    .. math::
+        [* \times \text{normalized\_shape}[0] \times \text{normalized\_shape}[1]
+            \times \ldots \times \text{normalized\_shape}[-1]]
+
+    If a single integer is used, it is treated as a singleton list, and this module will
+    normalize over the last dimension which is expected to be of that specific size.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  use_bias: bool
-    whether to translate data in refactoring. Default: True
-  use_scale: bool
-    whether to scale data in refactoring. Default: True
-  beta_init: brainpy.init.Initializer
+  bias_init: Initializer
     an initializer generating the original translation matrix
-  gamma_init: brainpy.init.Initializer
+  scale_init: Initializer
     an initializer generating the original scaling matrix
-  axis: int, tuple, list
-    axes where the data will be normalized. The batch axis should be excluded.
-  """
-  def __init__(self,
-               epsilon: float = 1e-5,
-               use_bias: bool = True,
-               use_scale: bool = True,
-               beta_init: Initializer = ZeroInit(),
-               gamma_init: Initializer = OneInit(),
-               axis: Union[int, tuple] = None,
-               mode: Mode = training,
-               name: str = None,
-               **kwargs):
-    super(LayerNorm, self).__init__(name=name, mode=mode)
-    self.epsilon = epsilon
-    self.bias = use_bias
-    self.scale = use_scale
-    self.beta_init = beta_init if use_bias else ()
-    self.gamma_init = gamma_init if use_scale else ()
-    self.axis = (axis,) if jnp.isscalar(axis) else axis
+  elementwise_affine: bool
+    A boolean value that when set to ``True``, this module
+    has learnable per-element affine parameters initialized to ones (for weights)
+    and zeros (for biases). Default: ``True``.
 
-  def default_axis(self, x):
-    # default: the first axis (batch dim) is excluded
-    return tuple(i for i in range(1, len(x.shape)))
+  Examples
+  --------
+  >>> import brainpy as bp
+  >>> import brainpy.math as bm
+  >>>
+  >>> # NLP Example
+  >>> batch, sentence_length, embedding_dim = 20, 5, 10
+  >>> embedding = bm.random.randn(batch, sentence_length, embedding_dim)
+  >>> layer_norm = bp.layers.LayerNorm(embedding_dim)
+  >>> # Activate module
+  >>> layer_norm(embedding)
+  >>>
+  >>> # Image Example
+  >>> N, C, H, W = 20, 5, 10, 10
+  >>> input = bm.random.randn(N, H, W, C)
+  >>> # Normalize over the last three dimensions (i.e. the channel and spatial dimensions)
+  >>> # as shown in the image below
+  >>> layer_norm = bp.layers.LayerNorm([H, W, C])
+  >>> output = layer_norm(input)
+
+  """
+
+  def __init__(
+      self,
+      normalized_shape: Union[int, Sequence[int]],
+      epsilon: float = 1e-5,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      elementwise_affine: bool = True,
+      mode: Mode = training,
+      name: str = None
+  ):
+    super(LayerNorm, self).__init__(name=name, mode=mode)
+
+    self.epsilon = epsilon
+    self.bias_init = bias_init
+    self.scale_init = scale_init
+    if isinstance(normalized_shape, int):
+      normalized_shape = (normalized_shape, )
+    self.normalized_shape = tuple(normalized_shape)
+    assert all([isinstance(s, int) for s in normalized_shape]), 'Must be a sequence of integer.'
+    self.elementwise_affine = elementwise_affine
+    if self.elementwise_affine:
+      assert isinstance(self.mode, TrainingMode)
+      self.bias = bm.TrainVar(parameter(self.bias_init, self.normalized_shape))
+      self.scale = bm.TrainVar(parameter(self.scale_init, self.normalized_shape))
 
   def update(self, sha, x):
-    if self.axis is None:
-      self.axis = self.default_axis(x)
-    # todo: what if elementwise_affine = False?
-    input_shape = tuple(d for i, d in enumerate(x.shape) if i in self.axis)
-    self.beta = parameter(self.beta_init, input_shape) if self.bias else None
-    self.gamma = parameter(self.gamma_init, input_shape) if self.scale else None
-    if isinstance(self.mode, TrainingMode):
-      self.beta = bm.TrainVar(self.beta)
-      self.gamma = bm.TrainVar(self.gamma)
-
-    ed = tuple(None if i not in self.axis else slice(None) for i in range(jnp.ndim(x)))
-    output = bm.normalize(x, self.axis, epsilon=self.epsilon)
-    if self.bias and self.scale: return self.gamma[ed] * output + self.beta[ed]
-    if self.bias: return output + self.beta[ed]
-    if self.scale: return self.gamma[ed] * output
-    return output
+    if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
+      raise ValueError(f'Expect the input shape should be (..., {", ".join(self.normalized_shape)}), '
+                       f'but we got {x.shape}')
+    axis = tuple(range(0, x.ndim - len(self.normalized_shape)))
+    mean = jnp.mean(bm.as_jax(x), axis=axis, keepdims=True)
+    variance = jnp.var(bm.as_jax(x), axis=axis, keepdims=True)
+    inv = lax.rsqrt(variance + lax.convert_element_type(self.epsilon, x.dtype))
+    out = (x - mean) * inv
+    if self.elementwise_affine:
+      out = self.scale * out + self.bias
+    return out
 
   def reset_state(self, batch_size=None):
     pass
@@ -265,107 +377,88 @@ class LayerNorm(DynamicalSystem):
 class GroupNorm(DynamicalSystem):
   """Group normalization layer.
 
+  .. math::
+    y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
+
+
   This layer divides channels into groups and normalizes the features within each
   group. Its computation is also independent of the batch size. The feature size
   must be multiple of the group size.
 
   The shape of the data should be (b, d1, d2, ..., c), where `d` denotes the batch
-  size and `c` denotes the feature (channel) size. The `d` and `c` axis should be
-  excluded in parameter `axis`.
+  size and `c` denotes the feature (channel) size.
 
   Parameters
   ----------
   num_groups: int
-    the number of groups. It should be a factor of the number of features.
-  group_size: int
-    the group size. It should equal to int(num_features / num_groups).
-    Either `num_groups` or `group_size` should be specified.
+    The number of groups. It should be a factor of the number of channels.
+  num_channels: int
+    The number of channels expected in input.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  use_bias: bool
-    whether to translate data in refactoring. Default: True
-  use_scale: bool
-    whether to scale data in refactoring. Default: True
-  beta_init: brainpy.init.Initializer
-    an initializer generating the original translation matrix
-  gamma_init: brainpy.init.Initializer
-    an initializer generating the original scaling matrix
-  axis: int, tuple, list
-    axes where the data will be normalized. Besides the batch axis, the channel
-    axis should be also excluded, since it will be automatically added to `axis`.
+  affine: bool
+    A boolean value that when set to ``True``, this module
+    has learnable per-channel affine parameters initialized to ones (for weights)
+    and zeros (for biases). Default: ``True``.
+  bias_init: Initializer
+    An initializer generating the original translation matrix
+  scale_init: Initializer
+    An initializer generating the original scaling matrix
+
+  Examples
+  --------
+  >>> import brainpy as bp
+  >>> import brainpy.math as bm
+  >>> input = bm.random.randn(20, 10, 10, 6)
+  >>> # Separate 6 channels into 3 groups
+  >>> m = bp.layers.GroupNorm(3, 6)
+  >>> # Separate 6 channels into 6 groups (equivalent with InstanceNorm)
+  >>> m = bp.layers.GroupNorm(6, 6)
+  >>> # Put all 6 channels into a single group (equivalent with LayerNorm)
+  >>> m = bp.layers.GroupNorm(1, 6)
+  >>> # Activating the module
+  >>> output = m(input)
   """
-  def __init__(self,
-               num_groups: int = None,
-               group_size: int = None,
-               epsilon: float = 1e-5,
-               use_bias: bool = True,
-               use_scale: bool = True,
-               beta_init: Initializer = ZeroInit(),
-               gamma_init: Initializer = OneInit(),
-               axis: Union[int, tuple] = None,
-               mode: Mode = training,
-               name: str = None,
-               **kwargs):
+
+  def __init__(
+      self,
+      num_groups: int,
+      num_channels: int,
+      epsilon: float = 1e-5,
+      affine: bool = True,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      mode: Mode = training,
+      name: str = None,
+  ):
     super(GroupNorm, self).__init__(name=name, mode=mode)
+    if num_channels % num_groups != 0:
+      raise ValueError('num_channels must be divisible by num_groups')
     self.num_groups = num_groups
-    self.group_size = group_size
+    self.num_channels = num_channels
     self.epsilon = epsilon
-    self.bias = use_bias
-    self.scale = use_scale
-    self.beta_init = beta_init if use_bias else ()
-    self.gamma_init = gamma_init if use_scale else ()
-    self.norm_axis = (axis,) if jnp.isscalar(axis) else axis
+    self.affine = affine
+    self.bias_init = bias_init
+    self.scale_init = scale_init
+    if self.affine:
+      assert isinstance(self.mode, TrainingMode)
+      self.bias = bm.TrainVar(parameter(self.bias_init, self.num_channels))
+      self.scale = bm.TrainVar(parameter(self.scale_init, self.num_channels))
 
   def update(self, sha, x):
-    num_channels = x.shape[-1]
-    self.ndim = len(x)
-
-    # compute num_groups and group_size
-    if ((self.num_groups is None and self.group_size is None) or
-        (self.num_groups is not None and self.group_size is not None)):
-      raise ValueError('Either `num_groups` or `group_size` should be specified. '
-                       'Once one is specified, the other will be automatically '
-                       'computed.')
-
-    if self.num_groups is None:
-      assert self.group_size > 0, '`group_size` should be a positive integer.'
-      if num_channels % self.group_size != 0:
-        raise ValueError('The number of channels ({}) is not multiple of the '
-                         'group size ({}).'.format(num_channels, self.group_size))
-      else:
-        self.num_groups = num_channels // self.group_size
-    else:  # self.num_groups is not None:
-      assert self.num_groups > 0, '`num_groups` should be a positive integer.'
-      if num_channels % self.num_groups != 0:
-        raise ValueError('The number of channels ({}) is not multiple of the '
-                         'number of groups ({}).'.format(num_channels, self.num_groups))
-      else:
-        self.group_size = num_channels // self.num_groups
-
-    # axes for normalization
-    if self.norm_axis is None:
-      # default: the first axis (batch dim) and the second-last axis (num_group dim) are excluded
-      self.norm_axis = tuple(i for i in range(1, len(x.shape) - 1)) + (self.ndim,)
-
-    group_shape = x.shape[:-1] + (self.num_groups, self.group_size)
-    input_shape = tuple(d for i, d in enumerate(group_shape) if i in self.norm_axis)
-    self.beta = parameter(self.beta_init, input_shape) if self.bias else None
-    self.gamma = parameter(self.gamma_init, input_shape) if self.scale else None
-    if isinstance(self.mode, TrainingMode):
-      self.beta = bm.TrainVar(self.beta)
-      self.gamma = bm.TrainVar(self.gamma)
-
-    group_shape = x.shape[:-1] + (self.num_groups, self.group_size)
-    ff_reshape = x.reshape(group_shape)
-    ed = tuple(None if i not in self.norm_axis else slice(None) for i in range(jnp.ndim(ff_reshape)))
-    output = bm.normalize(ff_reshape, self.norm_axis, epsilon=self.epsilon)
-    if self.bias and self.scale:
-      output = self.gamma[ed] * output + self.beta[ed]
-    elif self.bias:
-      output = output + self.beta[ed]
-    elif self.scale:
-      output = self.gamma[ed] * output
-    return output.reshape(x.shape)
+    assert x.shape[-1] == self.num_channels
+    origin_shape, origin_dim = x.shape, x.ndim
+    group_shape = (-1,) + x.shape[1:-1] + (self.num_groups, self.num_channels // self.num_groups)
+    x = bm.as_jax(x.reshape(group_shape))
+    reduction_axes = tuple(range(1, x.ndim - 1)) + (-1,)
+    mean = jnp.mean(x, reduction_axes, keepdims=True)
+    var = jnp.var(x, reduction_axes, keepdims=True)
+    x = (x - mean) * lax.rsqrt(var + lax.convert_element_type(self.epsilon, x.dtype))
+    x = x.reshape(origin_shape)
+    if self.affine:
+      x = x * lax.broadcast_to_rank(self.scale, origin_dim)
+      x = x + lax.broadcast_to_rank(self.bias, origin_dim)
+    return x
 
 
 class InstanceNorm(GroupNorm):
@@ -376,28 +469,35 @@ class InstanceNorm(GroupNorm):
 
   Parameters
   ----------
+  num_channels: int
+    The number of channels expected in input.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  use_bias: bool
-    whether to translate data in refactoring. Default: True
-  use_scale: bool
-    whether to scale data in refactoring. Default: True
-  beta_init: brainpy.init.Initializer
+  affine: bool
+    A boolean value that when set to ``True``, this module
+    has learnable per-channel affine parameters initialized to ones (for weights)
+    and zeros (for biases). Default: ``True``.
+  bias_init: Initializer
     an initializer generating the original translation matrix
-  gamma_init: brainpy.init.Initializer
+  scale_init: Initializer
     an initializer generating the original scaling matrix
-  axis: int, tuple, list
-    axes where the data will be normalized. The batch and channel axes
-    should be excluded.
   """
-  def __init__(self,
-               epsilon: float = 1e-5,
-               use_bias: bool = True,
-               use_scale: bool = True,
-               beta_init: Initializer = ZeroInit(),
-               gamma_init: Initializer = OneInit(),
-               axis: Union[int, tuple] = None,
-               **kwargs):
-    super(InstanceNorm, self).__init__(group_size=1, epsilon=epsilon, use_bias=use_bias,
-                                       use_scale=use_scale, beta_init=beta_init,
-                                       gamma_init=gamma_init, axis=axis, **kwargs)
+
+  def __init__(
+      self,
+      num_channels: int,
+      epsilon: float = 1e-5,
+      affine: bool = True,
+      bias_init: Initializer = ZeroInit(),
+      scale_init: Initializer = OneInit(),
+      mode: Mode = training,
+      name: str = None,
+  ):
+    super(InstanceNorm, self).__init__(num_channels=num_channels,
+                                       num_groups=num_channels,
+                                       epsilon=epsilon,
+                                       affine=affine,
+                                       bias_init=bias_init,
+                                       scale_init=scale_init,
+                                       mode=mode,
+                                       name=name)

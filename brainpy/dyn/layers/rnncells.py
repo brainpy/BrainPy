@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
+import warnings
 from typing import Union, Callable
 
 import brainpy.math as bm
@@ -17,19 +17,22 @@ from brainpy.tools.checking import (check_integer,
 from brainpy.types import Array
 
 __all__ = [
-  'VanillaRNN',
-  'GRU',
-  'LSTM',
+  'RNNCell', 'GRUCell', 'LSTMCell',
+
+  # deprecated
+  'VanillaRNN', 'GRU', 'LSTM',
 ]
 
 
 class RecurrentCell(DynamicalSystem):
-  def __init__(self,
-               num_out: int,
-               state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
-               mode: Mode = training,
-               train_state: bool = False,
-               name: str = None):
+  def __init__(
+      self,
+      num_out: int,
+      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      mode: Mode = training,
+      train_state: bool = False,
+      name: str = None
+  ):
     super(RecurrentCell, self).__init__(mode=mode, name=name)
 
     # parameters
@@ -40,7 +43,7 @@ class RecurrentCell(DynamicalSystem):
     self.train_state = train_state
 
 
-class VanillaRNN(RecurrentCell):
+class RNNCell(RecurrentCell):
   r"""Basic fully-connected RNN core.
 
   Given :math:`x_t` and the previous hidden state :math:`h_{t-1}` the
@@ -68,8 +71,6 @@ class VanillaRNN(RecurrentCell):
   activation: str, callable
     The activation function. It can be a string or a callable function.
     See ``brainpy.math.activations`` for more details.
-  trainable: bool
-    Whether set the node is trainable.
 
   """
 
@@ -86,11 +87,11 @@ class VanillaRNN(RecurrentCell):
       train_state: bool = False,
       name: str = None,
   ):
-    super(VanillaRNN, self).__init__(num_out=num_out,
-                                     state_initializer=state_initializer,
-                                     train_state=train_state,
-                                     mode=mode,
-                                     name=name)
+    super(RNNCell, self).__init__(num_out=num_out,
+                                  state_initializer=state_initializer,
+                                  train_state=train_state,
+                                  mode=mode,
+                                  name=name)
 
     # parameters
     self.num_in = num_in
@@ -137,7 +138,7 @@ class VanillaRNN(RecurrentCell):
     return self.state.value
 
 
-class GRU(RecurrentCell):
+class GRUCell(RecurrentCell):
   r"""Gated Recurrent Unit.
 
   The implementation is based on (Chung, et al., 2014) [1]_ with biases.
@@ -174,8 +175,6 @@ class GRU(RecurrentCell):
   activation: str, callable
     The activation function. It can be a string or a callable function.
     See ``brainpy.math.activations`` for more details.
-  trainable: bool
-    Whether set the node is trainable.
 
   References
   ----------
@@ -197,11 +196,11 @@ class GRU(RecurrentCell):
       train_state: bool = False,
       name: str = None,
   ):
-    super(GRU, self).__init__(num_out=num_out,
-                              state_initializer=state_initializer,
-                              train_state=train_state,
-                              mode=mode,
-                              name=name)
+    super(GRUCell, self).__init__(num_out=num_out,
+                                  state_initializer=state_initializer,
+                                  train_state=train_state,
+                                  mode=mode,
+                                  name=name)
     # parameters
     self.num_in = num_in
     check_integer(num_in, 'num_in', min_bound=1, allow_none=False)
@@ -259,7 +258,7 @@ class GRU(RecurrentCell):
     return self.state.value
 
 
-class LSTM(RecurrentCell):
+class LSTMCell(RecurrentCell):
   r"""Long short-term memory (LSTM) RNN core.
 
   The implementation is based on (zaremba, et al., 2014) [1]_. Given
@@ -305,8 +304,6 @@ class LSTM(RecurrentCell):
   activation: str, callable
     The activation function. It can be a string or a callable function.
     See ``brainpy.math.activations`` for more details.
-  trainable: bool
-    Whether set the node is trainable.
 
   References
   ----------
@@ -331,11 +328,11 @@ class LSTM(RecurrentCell):
       train_state: bool = False,
       name: str = None,
   ):
-    super(LSTM, self).__init__(num_out=num_out,
-                               state_initializer=state_initializer,
-                               train_state=train_state,
-                               mode=mode,
-                               name=name)
+    super(LSTMCell, self).__init__(num_out=num_out,
+                                   state_initializer=state_initializer,
+                                   train_state=train_state,
+                                   mode=mode,
+                                   name=name)
     # parameters
     self.num_in = num_in
     check_integer(num_in, 'num_in', min_bound=1, allow_none=False)
@@ -409,17 +406,62 @@ class LSTM(RecurrentCell):
     self.state[self.state.shape[0] // 2:, :] = value
 
 
-class ConvNDLSTM(DynamicalSystem):
+class VanillaRNN(RNNCell):
+  """Vanilla RNN.
+
+  .. deprecated:: 2.2.3.4
+     Use `RNNCell` instead. `VanillaRNN` will be removed since version 2.4.0.
+
+  """
+
+  def __init__(self, *args, **kwargs):
+    super(VanillaRNN, self).__init__(*args, **kwargs)
+    warnings.warn('Use "brainpy.layers.RNNCell" instead. '
+                  '"brainpy.layers.VanillaRNN" is deprecated and will be removed since 2.4.0.',
+                  UserWarning)
+
+
+class GRU(GRUCell):
+  """GRU.
+
+  .. deprecated:: 2.2.3.4
+     Use `GRUCell` instead. `GRU` will be removed since version 2.4.0.
+
+  """
+
+  def __init__(self, *args, **kwargs):
+    super(GRU, self).__init__(*args, **kwargs)
+    warnings.warn('Use "brainpy.layers.GRUCell" instead. '
+                  '"brainpy.layers.GRU" is deprecated and will be removed since 2.4.0.',
+                  UserWarning)
+
+
+class LSTM(LSTMCell):
+  """LSTM.
+
+  .. deprecated:: 2.2.3.4
+     Use `LSTMCell` instead. `LSTM` will be removed since version 2.4.0.
+
+  """
+
+  def __init__(self, *args, **kwargs):
+    super(LSTM, self).__init__(*args, **kwargs)
+    warnings.warn('Use "brainpy.layers.LSTMCell" instead. '
+                  '"brainpy.layers.LSTM" is deprecated and will be removed since 2.4.0.',
+                  UserWarning)
+
+
+class ConvNDLSTMCell(DynamicalSystem):
   pass
 
 
-class Conv1DLSTM(ConvNDLSTM):
+class Conv1DLSTMCell(ConvNDLSTMCell):
   pass
 
 
-class Conv2DLSTM(ConvNDLSTM):
+class Conv2DLSTMCell(ConvNDLSTMCell):
   pass
 
 
-class Conv3DLSTM(ConvNDLSTM):
+class Conv3DLSTMCell(ConvNDLSTMCell):
   pass
