@@ -2,7 +2,7 @@
 
 from typing import Union, Sequence, Callable
 
-from jax.abstract_arrays import ShapedArray
+from jax.core import ShapedArray
 from jax.tree_util import tree_map
 
 from brainpy.base import Base
@@ -77,11 +77,11 @@ class XLACustomOp(Base):
       gpu_func = None
 
     # register OP
-    self.op = brainpylib.register_op(self.name,
-                                     cpu_func=cpu_func,
-                                     gpu_func=gpu_func,
-                                     out_shapes=eval_shape,
-                                     apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
+    self.op = brainpylib.register_op_with_numba(self.name,
+                                                cpu_func=cpu_func,
+                                                gpu_func=gpu_func,
+                                                out_shapes=eval_shape,
+                                                apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
 
   def __call__(self, *args, **kwargs):
     args = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,
@@ -89,7 +89,7 @@ class XLACustomOp(Base):
     kwargs = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,
                       kwargs, is_leaf=lambda a: isinstance(a, JaxArray))
     res = self.op.bind(*args, **kwargs)
-    return res[0] if len(res) == 1 else res
+    return res
 
 
 def register_op(
@@ -131,6 +131,6 @@ def register_op(
   def fixed_op(*inputs, **info):
     inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
     res = f.bind(*inputs, **info)
-    return res[0] if len(res) == 1 else res
+    return res
 
   return fixed_op

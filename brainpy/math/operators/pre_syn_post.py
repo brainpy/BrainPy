@@ -6,8 +6,7 @@ import jax.numpy as jnp
 from jax import vmap, jit, ops as jops
 
 from brainpy.errors import MathError
-from brainpy.math.jaxarray import JaxArray
-from brainpy.math.numpy_ops import as_device_array
+from brainpy.math.numpy_ops import as_jax
 from brainpy.types import Array
 from .utils import _check_brainpylib
 
@@ -25,9 +24,9 @@ __all__ = [
   'pre2post_mean',
 
   # pre-to-post event operator
-  'pre2post_csr_event_sum', 'pre2post_event_sum',
+  'pre2post_event_sum',
   'pre2post_coo_event_sum',
-  'pre2post_csr_event_prod', 'pre2post_event_prod',
+  'pre2post_event_prod',
 
   # pre-to-syn
   'pre2syn',
@@ -49,10 +48,10 @@ def _raise_pre_ids_is_none(pre_ids):
                     f'(brainpy.math.ndim(pre_values) != 0).')
 
 
-def pre2post_csr_event_sum(events: Array,
-                           pre2post: Tuple[Array, Array],
-                           post_num: int,
-                           values: Union[float, Array] = 1.):
+def pre2post_event_sum(events: Array,
+                       pre2post: Tuple[Array, Array],
+                       post_num: int,
+                       values: Union[float, Array] = 1.):
   """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -100,14 +99,13 @@ def pre2post_csr_event_sum(events: Array,
   """
   _check_brainpylib('pre2post_event_sum')
   indices, idnptr = pre2post
-  events = as_device_array(events)
-  indices = as_device_array(indices)
-  idnptr = as_device_array(idnptr)
-  values = as_device_array(values)
-  return brainpylib.csr_event_sum(events, (indices, idnptr), post_num, values)
-
-
-pre2post_event_sum = pre2post_csr_event_sum
+  events = as_jax(events)
+  indices = as_jax(indices)
+  idnptr = as_jax(idnptr)
+  values = as_jax(values)
+  return brainpylib.event_csr_matvec(values, indices, idnptr, events,
+                                     shape=(events.shape[0], post_num),
+                                     transpose=True)
 
 
 def pre2post_coo_event_sum(events: Array,
@@ -136,14 +134,14 @@ def pre2post_coo_event_sum(events: Array,
     A tensor with the shape of ``post_num``.
   """
   _check_brainpylib('pre2post_event_sum')
-  events = as_device_array(events)
-  post_ids = as_device_array(post_ids)
-  pre_ids = as_device_array(pre_ids)
-  values = as_device_array(values)
+  events = as_jax(events)
+  post_ids = as_jax(post_ids)
+  pre_ids = as_jax(pre_ids)
+  values = as_jax(values)
   return brainpylib.coo_event_sum(events, pre_ids, post_ids, post_num, values)
 
 
-def pre2post_csr_event_prod(events, pre2post, post_num, values=1.):
+def pre2post_event_prod(events, pre2post, post_num, values=1.):
   """The pre-to-post synaptic computation with event-driven production.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -191,14 +189,11 @@ def pre2post_csr_event_prod(events, pre2post, post_num, values=1.):
   """
   _check_brainpylib('pre2post_event_prod')
   indices, idnptr = pre2post
-  events = as_device_array(events)
-  indices = as_device_array(indices)
-  idnptr = as_device_array(idnptr)
-  values = as_device_array(values)
+  events = as_jax(events)
+  indices = as_jax(indices)
+  idnptr = as_jax(idnptr)
+  values = as_jax(values)
   return brainpylib.csr_event_prod(events, (indices, idnptr), post_num, values)
-
-
-pre2post_event_prod = pre2post_csr_event_prod
 
 
 def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
@@ -230,11 +225,11 @@ def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
-  pre_values = as_device_array(pre_values)
-  post_ids = as_device_array(post_ids)
+  pre_values = as_jax(pre_values)
+  post_ids = as_jax(post_ids)
   if jnp.ndim(pre_values) != 0:
     _raise_pre_ids_is_none(pre_ids)
-    pre_ids = as_device_array(pre_ids)
+    pre_ids = as_jax(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].add(pre_values)
 
@@ -268,11 +263,11 @@ def pre2post_prod(pre_values, post_num, post_ids, pre_ids=None):
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
-  pre_values = as_device_array(pre_values)
-  post_ids = as_device_array(post_ids)
+  pre_values = as_jax(pre_values)
+  post_ids = as_jax(post_ids)
   if jnp.ndim(pre_values) != 0:
     _raise_pre_ids_is_none(pre_ids)
-    pre_ids = as_device_array(pre_ids)
+    pre_ids = as_jax(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].multiply(pre_values)
 
@@ -306,11 +301,11 @@ def pre2post_min(pre_values, post_num, post_ids, pre_ids=None):
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
-  pre_values = as_device_array(pre_values)
-  post_ids = as_device_array(post_ids)
+  pre_values = as_jax(pre_values)
+  post_ids = as_jax(post_ids)
   if jnp.ndim(pre_values) != 0:
     _raise_pre_ids_is_none(pre_ids)
-    pre_ids = as_device_array(pre_ids)
+    pre_ids = as_jax(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].min(pre_values)
 
@@ -344,11 +339,11 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
-  pre_values = as_device_array(pre_values)
-  post_ids = as_device_array(post_ids)
+  pre_values = as_jax(pre_values)
+  post_ids = as_jax(post_ids)
   if jnp.ndim(pre_values) != 0:
     _raise_pre_ids_is_none(pre_ids)
-    pre_ids = as_device_array(pre_ids)
+    pre_ids = as_jax(pre_ids)
     pre_values = pre_values[pre_ids]
   return out.at[post_ids].max(pre_values)
 
@@ -373,14 +368,14 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
-  pre_values = as_device_array(pre_values)
-  post_ids = as_device_array(post_ids)
+  pre_values = as_jax(pre_values)
+  post_ids = as_jax(post_ids)
   if jnp.ndim(pre_values) == 0:
     return out.at[post_ids].set(pre_values)
     # return out.at[jnp.unique(post_ids)].set(pre_values)
   else:
     _raise_pre_ids_is_none(pre_ids)
-    pre_ids = as_device_array(pre_ids)
+    pre_ids = as_jax(pre_ids)
     pre_values = pre2syn(pre_values, pre_ids)
     return syn2post_mean(pre_values, post_ids, post_num)
 
@@ -414,8 +409,8 @@ def pre2syn(pre_values, pre_ids):
   syn_val: jax.numpy.ndarray, JaxArray
     The synaptic value.
   """
-  pre_values = as_device_array(pre_values)
-  pre_ids = as_device_array(pre_ids)
+  pre_values = as_jax(pre_values)
+  pre_ids = as_jax(pre_ids)
   if jnp.ndim(pre_values) == 0:
     return jnp.ones(len(pre_ids), dtype=pre_values.dtype) * pre_values
   else:
@@ -454,8 +449,8 @@ def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
-  post_ids = as_device_array(post_ids)
-  syn_values = as_device_array(syn_values)
+  post_ids = as_jax(post_ids)
+  syn_values = as_jax(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
   return _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
@@ -494,8 +489,8 @@ def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=False)
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
-  post_ids = as_device_array(post_ids)
-  syn_values = as_device_array(syn_values)
+  post_ids = as_jax(post_ids)
+  syn_values = as_jax(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
   return _jit_seg_prod(syn_values, post_ids, post_num, indices_are_sorted)
@@ -531,8 +526,8 @@ def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
-  post_ids = as_device_array(post_ids)
-  syn_values = as_device_array(syn_values)
+  post_ids = as_jax(post_ids)
+  syn_values = as_jax(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
   return _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
@@ -568,8 +563,8 @@ def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=False):
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
-  post_ids = as_device_array(post_ids)
-  syn_values = as_device_array(syn_values)
+  post_ids = as_jax(post_ids)
+  syn_values = as_jax(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
   return _jit_seg_min(syn_values, post_ids, post_num, indices_are_sorted)
@@ -596,8 +591,8 @@ def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False)
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
-  post_ids = as_device_array(post_ids)
-  syn_values = as_device_array(syn_values)
+  post_ids = as_jax(post_ids)
+  syn_values = as_jax(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
   nominator = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
@@ -626,8 +621,8 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Fal
   post_val: jax.numpy.ndarray, JaxArray
     The post-synaptic value.
   """
-  post_ids = as_device_array(post_ids)
-  syn_values = as_device_array(syn_values)
+  post_ids = as_jax(post_ids)
+  syn_values = as_jax(syn_values)
   if syn_values.dtype == jnp.bool_:
     syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
   syn_maxs = _jit_seg_max(syn_values, post_ids, post_num, indices_are_sorted)
