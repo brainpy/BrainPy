@@ -132,11 +132,11 @@ def register_op(
   A jitable JAX function.
   """
   _check_brainpylib(register_op.__name__)
-  f = brainpylib.register_op(name,
-                             cpu_func=cpu_func,
-                             gpu_func_translation=gpu_func,
-                             out_shapes=eval_shape,
-                             apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
+  f = brainpylib.register_op_with_numba(name,
+                                        cpu_func=cpu_func,
+                                        gpu_func_translation=gpu_func,
+                                        out_shapes=eval_shape,
+                                        apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
 
   def fixed_op(*inputs, **info):
     inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
