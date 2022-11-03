@@ -134,7 +134,7 @@ def register_op(
   _check_brainpylib(register_op.__name__)
   f = brainpylib.register_op(name,
                              cpu_func=cpu_func,
-                             gpu_func=gpu_func,
+                             gpu_func_translation=gpu_func,
                              out_shapes=eval_shape,
                              apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
 
