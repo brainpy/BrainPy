@@ -97,7 +97,7 @@ def pre2post_event_sum(events: Array,
   out: JaxArray, jax.numpy.ndarray
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('pre2post_event_sum')
+  _check_brainpylib('event_csr_matvec')
   indices, idnptr = pre2post
   events = as_jax(events)
   indices = as_jax(indices)

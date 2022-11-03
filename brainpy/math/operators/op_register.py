@@ -57,6 +57,10 @@ class XLACustomOp(Base):
       gpu_func: Callable = None,
       apply_cpu_func_to_gpu: bool = False,
       name: str = None,
+      batching_translation: Callable = None,
+      jvp_translation: Callable = None,
+      transpose_translation: Callable = None,
+      multiple_results: bool = False,
   ):
     _check_brainpylib(register_op.__name__)
     super(XLACustomOp, self).__init__(name=name)
@@ -77,11 +81,17 @@ class XLACustomOp(Base):
       gpu_func = None
 
     # register OP
-    self.op = brainpylib.register_op_with_numba(self.name,
-                                                cpu_func=cpu_func,
-                                                gpu_func=gpu_func,
-                                                out_shapes=eval_shape,
-                                                apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
+    self.op = brainpylib.register_op_with_numba(
+      self.name,
+      cpu_func=cpu_func,
+      gpu_func_translation=gpu_func,
+      out_shapes=eval_shape,
+      apply_cpu_func_to_gpu=apply_cpu_func_to_gpu,
+      batching_translation=batching_translation,
+      jvp_translation=jvp_translation,
+      transpose_translation=transpose_translation,
+      multiple_results=multiple_results,
+    )
 
   def __call__(self, *args, **kwargs):
     args = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,
