@@ -493,7 +493,8 @@ def generate_math_docs(path='apis/auto/math/'):
 
   module_and_name = [
     ('pre_syn_post',   '``pre-syn-post`` Transformations',),
-    ('multiplication', 'Sparse Matrix Multiplication',),
+    ('sparse_matmul', 'Sparse Matrix Multiplication',),
+    ('event_matmul', 'Event-based Matrix Multiplication',),
     ('spikegrad',      'Surrogate Gradients for Spike Operation',),
     ('op_register',    'Operator Registration',),
     ('wrap_jax',       'Other Operators',),

@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 
-
-from typing import Union, Dict
+from typing import Union, Dict, Tuple
 
 import jax.numpy as jnp
-from jax import ops as jops
+from jax import ops
 
 from brainpy.math.jaxarray import JaxArray
-from brainpy.math.numpy_ops import _remove_jaxarray
+from brainpy.math.numpy_ops import as_jax
+from .utils import _check_brainpylib
+from brainpy.types import Array
+
+try:
+  import brainpylib
+except ModuleNotFoundError:
+  brainpylib = None
 
 __all__ = [
-  'sparse_matmul'
+  'sparse_matmul',
+  'csr_matvec',
 ]
 
 
@@ -42,16 +49,16 @@ def _matmul_with_left_sparse(
   shape = sparse['shape']
   if len(shape) != 2:
     raise ValueError(f'Sparse matrix must be a two-dimensional matrix. But we got {shape}')
-  values = _remove_jaxarray(values)
-  rows = _remove_jaxarray(rows)
-  cols = _remove_jaxarray(cols)
-  dense = _remove_jaxarray(dense)
+  values = as_jax(values)
+  rows = as_jax(rows)
+  cols = as_jax(cols)
+  dense = as_jax(dense)
   B = dense.take(cols, axis=0)
   if B.ndim == 2:
     prod = B * jnp.reshape(values, (-1, 1))
   else:
     prod = B * values
-  return jops.segment_sum(prod, rows, shape[0])
+  return ops.segment_sum(prod, rows, shape[0])
 
 
 def _matmul_with_right_sparse(
@@ -82,17 +89,17 @@ def _matmul_with_right_sparse(
   shape = sparse['shape']
   if len(shape) != 2:
     raise ValueError(f'Sparse matrix must be a two-dimensional matrix. But we got {shape}')
-  values = _remove_jaxarray(values)
-  rows = _remove_jaxarray(rows)
-  cols = _remove_jaxarray(cols)
-  dense = _remove_jaxarray(dense)
+  values = as_jax(values)
+  rows = as_jax(rows)
+  cols = as_jax(cols)
+  dense = as_jax(dense)
   if dense.ndim == 2:
     A = dense[:, rows]
     prod = (A * values).T
-    res = jops.segment_sum(prod, cols, shape[1]).T
+    res = ops.segment_sum(prod, cols, shape[1]).T
   else:
     prod = dense[rows] * values
-    res = jops.segment_sum(prod, cols, shape[1])
+    res = ops.segment_sum(prod, cols, shape[1])
   return res
 
 
@@ -164,3 +171,43 @@ def sparse_matmul(A, B):
                        f'A:\n{A}\n'
                        f'B:\n{B}')
     return _matmul_with_right_sparse(A, B)
+
+
+def csr_matvec(values: Array,
+               indices: Array,
+               indptr: Array,
+               vector: Array,
+               shape: Tuple[int, ...],
+               transpose: bool = False):
+  """Product of CSR sparse matrix and a dense vector.
+
+  Parameters
+  ----------
+  values: Array
+    An array of shape ``(nse,)``.
+  indices: ndarray
+    An array of shape ``(nse,)``.
+  indptr: Array
+    An array of shape ``(shape[0] + 1,)`` and dtype ``indices.dtype``.
+  vector: Array
+    An array of shape ``(shape[0] if transpose else shape[1],)``
+    and dtype ``data.dtype``.
+  shape: tuple of int
+    A length-2 tuple representing the matrix shape.
+  transpose: bool
+    A boolean specifying whether to transpose the sparse matrix
+    before computing.
+
+  Returns
+  -------
+  y : Array
+    The array of shape ``(shape[1] if transpose else shape[0],)`` representing
+    the matrix vector product.
+  """
+  _check_brainpylib('pre2post_event_sum')
+  vector = as_jax(vector)
+  indices = as_jax(indices)
+  indptr = as_jax(indptr)
+  values = as_jax(values)
+  return brainpylib.csr_matvec(values, indices, indptr, vector,
+                               shape=shape, transpose=transpose)
