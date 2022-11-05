@@ -16,6 +16,8 @@
 
 
 import pytest
+pytest.skip("No need to test.", allow_module_level=True)
+
 import enum
 import itertools
 import typing
