@@ -1,5 +1,6 @@
--r requirements.txt
-
+numpy>=1.15
+jax>=0.3.0
+tqdm
 numba
 matplotlib>=3.4
 jaxlib>=0.3.0
@@ -11,3 +12,4 @@ pillow
 
 # test requirements
 pytest
+absl-py
