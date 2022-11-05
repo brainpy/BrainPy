@@ -75,7 +75,7 @@ def parameter(
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
   if allow_scalar:
-    if param.shape == () or param.shape != (1,):
+    if param.shape == () or param.shape == (1,):
       return param
   if param.shape != size:
     raise ValueError(f'The shape of the parameters should be {size}, but we got {param.shape}')
