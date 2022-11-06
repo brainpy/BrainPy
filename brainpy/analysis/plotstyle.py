@@ -16,7 +16,7 @@ from .stability import (CENTER_MANIFOLD, SADDLE_NODE, STABLE_POINT_1D,
                         UNSTABLE_FOCUS_3D, UNSTABLE_CENTER_3D, UNKNOWN_3D)
 
 
-_markersize = 20
+_markersize = 10
 
 plot_schema = {}
 
