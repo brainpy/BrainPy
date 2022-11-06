@@ -112,6 +112,7 @@ class Bifurcation1D(Num1DAnalyzer):
             ys = points['p1']
             zs = points['x']
             plot_style.pop('linestyle')
+            plot_style['s'] = plot_style.pop('markersize', None)
             ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
 
         ax.set_xlabel(self.target_par_names[0])
@@ -336,6 +337,7 @@ class Bifurcation2D(Num2DAnalyzer):
               ys = points['p1']
               zs = points[var]
               plot_style.pop('linestyle')
+              plot_style['s'] = plot_style.pop('markersize', None)
               ax.scatter(xs, ys, zs, **plot_style, label=fp_type)
 
           ax.set_xlabel(self.target_par_names[0])
