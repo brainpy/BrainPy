@@ -5,6 +5,7 @@ from functools import partial
 import jax.numpy as jnp
 from jax import vmap
 import numpy as np
+from copy import deepcopy
 
 import brainpy.math as bm
 from brainpy import errors
@@ -79,7 +80,7 @@ class Bifurcation1D(Num1DAnalyzer):
         pyplot.figure(self.x_var)
         for fp_type, points in container.items():
           if len(points['x']):
-            plot_style = plotstyle.plot_schema[fp_type]
+            plot_style = deepcopy(plotstyle.plot_schema[fp_type])
             pyplot.plot(points['p'], points['x'], **plot_style, label=fp_type)
         pyplot.xlabel(self.target_par_names[0])
         pyplot.ylabel(self.x_var)
@@ -107,7 +108,7 @@ class Bifurcation1D(Num1DAnalyzer):
         ax = fig.add_subplot(projection='3d')
         for fp_type, points in container.items():
           if len(points['x']):
-            plot_style = plotstyle.plot_schema[fp_type]
+            plot_style = deepcopy(plotstyle.plot_schema[fp_type])
             xs = points['p0']
             ys = points['p1']
             zs = points['x']
@@ -300,7 +301,7 @@ class Bifurcation2D(Num2DAnalyzer):
           pyplot.figure(var)
           for fp_type, points in container.items():
             if len(points['p']):
-              plot_style = plotstyle.plot_schema[fp_type]
+              plot_style = deepcopy(plotstyle.plot_schema[fp_type])
               pyplot.plot(points['p'], points[var], **plot_style, label=fp_type)
           pyplot.xlabel(self.target_par_names[0])
           pyplot.ylabel(var)
@@ -332,7 +333,7 @@ class Bifurcation2D(Num2DAnalyzer):
           ax = fig.add_subplot(projection='3d')
           for fp_type, points in container.items():
             if len(points['p0']):
-              plot_style = plotstyle.plot_schema[fp_type]
+              plot_style = deepcopy(plotstyle.plot_schema[fp_type])
               xs = points['p0']
               ys = points['p1']
               zs = points[var]
