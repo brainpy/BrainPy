@@ -54,7 +54,7 @@ class TestBifurcation1D(unittest.TestCase):
     pp = bp.analysis.PhasePlane1D(
       model=int_x,
       target_vars={'x': [-bp.math.pi, bp.math.pi]},
-      resolutions=0.01
+      resolutions=0.1
     )
     pp.plot_vector_field()
     pp.plot_fixed_point(show=True)
@@ -67,21 +67,21 @@ class TestBifurcation1D(unittest.TestCase):
     )
     bf.plot_bifurcation(show=False)
     plt.show(block=block)
-
+    plt.close()
     bp.math.disable_x64()
 
-  # def test_bifurcation_2d(self):
-  #   bp.math.enable_x64()
-  #
-  #   model = FitzHughNagumoModel()
-  #   bif = bp.analysis.Bifurcation2D(
-  #     model=model,
-  #     target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
-  #     target_pars={'Iext': [0., 1.]},
-  #     resolutions={'Iext': 0.1}
-  #   )
-  #   bif.plot_bifurcation()
-  #   bif.plot_limit_cycle_by_sim()
-  #   plt.show(block=block)
-  #
+  def test_bifurcation_2d(self):
+    bp.math.enable_x64()
+
+    model = FitzHughNagumoModel()
+    bif = bp.analysis.Bifurcation2D(
+      model=model,
+      target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
+      target_pars={'Iext': [0., 1.]},
+      resolutions={'Iext': 0.1}
+    )
+    bif.plot_bifurcation()
+    bif.plot_limit_cycle_by_sim()
+    plt.show(block=block)
+
   #   bp.math.disable_x64()
