@@ -54,7 +54,7 @@ class TestBifurcation1D(unittest.TestCase):
     pp = bp.analysis.PhasePlane1D(
       model=int_x,
       target_vars={'x': [-bp.math.pi, bp.math.pi]},
-      resolutions=0.001
+      resolutions=0.01
     )
     pp.plot_vector_field()
     pp.plot_fixed_point(show=True)
@@ -63,7 +63,7 @@ class TestBifurcation1D(unittest.TestCase):
       model=int_x,
       target_vars={'x': [-bp.math.pi, bp.math.pi]},
       target_pars={'a': [0.5, 1.5], 'b': [0.5, 1.5]},
-      resolutions={'a': 0.01, 'b': 0.01}
+      resolutions={'a': 0.1, 'b': 0.1}
     )
     bf.plot_bifurcation(show=False)
     plt.show(block=block)
@@ -77,7 +77,7 @@ class TestBifurcation1D(unittest.TestCase):
     bif = bp.analysis.Bifurcation2D(
       model=model,
       target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
-      target_pars={'Iext': [-1., 2.]},
+      target_pars={'Iext': [0., 1.]},
       resolutions={'Iext': 0.1}
     )
     bif.plot_bifurcation()
