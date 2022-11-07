@@ -74,15 +74,13 @@ class TestBifurcation1D(unittest.TestCase):
     bp.math.enable_x64()
 
     model = FitzHughNagumoModel()
-
-    # codimension 1 bifurcation
     bif = bp.analysis.Bifurcation2D(
       model=model,
       target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
       target_pars={'Iext': [-1., 2.]},
-      resolutions=0.01
+      resolutions={'Iext': 0.1}
     )
-    bif.plot_bifurcation(num_par_segments=2)
+    bif.plot_bifurcation()
     bif.plot_limit_cycle_by_sim()
     plt.show(block=block)
 
