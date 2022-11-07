@@ -70,18 +70,18 @@ class TestBifurcation1D(unittest.TestCase):
 
     bp.math.disable_x64()
 
-  def test_bifurcation_2d(self):
-    bp.math.enable_x64()
-
-    model = FitzHughNagumoModel()
-    bif = bp.analysis.Bifurcation2D(
-      model=model,
-      target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
-      target_pars={'Iext': [0., 1.]},
-      resolutions={'Iext': 0.1}
-    )
-    bif.plot_bifurcation()
-    bif.plot_limit_cycle_by_sim()
-    plt.show(block=block)
-
-    bp.math.disable_x64()
+  # def test_bifurcation_2d(self):
+  #   bp.math.enable_x64()
+  #
+  #   model = FitzHughNagumoModel()
+  #   bif = bp.analysis.Bifurcation2D(
+  #     model=model,
+  #     target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
+  #     target_pars={'Iext': [0., 1.]},
+  #     resolutions={'Iext': 0.1}
+  #   )
+  #   bif.plot_bifurcation()
+  #   bif.plot_limit_cycle_by_sim()
+  #   plt.show(block=block)
+  #
+  #   bp.math.disable_x64()
