@@ -182,7 +182,8 @@ class DynamicalSystem(Base):
         elif delay.num_delay_step - 1 < max_delay_step:
           self.global_delay_data[identifier][0].reset(delay_target, max_delay_step, initial_delay_data)
     else:
-      self.global_delay_data[identifier] = (None, delay_target)
+      if identifier not in self.global_delay_data:
+        self.global_delay_data[identifier] = (None, delay_target)
     self.register_implicit_nodes(self.local_delay_vars)
     return delay_step
 
