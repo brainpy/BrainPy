@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.3.5"
-
+__version__ = "2.2.3.6"
 
 try:
   import jaxlib
+
   del jaxlib
 except ModuleNotFoundError:
   raise ModuleNotFoundError(
@@ -34,20 +34,16 @@ For more detail installation instructions, please see https://brainpy.readthedoc
     
     ''') from None
 
-
 # fundamental modules
 from . import errors, tools, check, modes
-
 
 # "base" module
 from . import base
 from .base.base import Base
 from .base.collector import Collector, TensorCollector
 
-
 # math foundation
 from . import math
-
 
 # toolboxes
 from . import (
@@ -61,7 +57,6 @@ from . import (
   algorithms,  # online or offline training algorithms
 )
 
-
 # numerical integrators
 from . import integrators
 from .integrators import ode
@@ -72,7 +67,6 @@ from .integrators.sde import sdeint
 from .integrators.fde import fdeint
 from .integrators.joint_eq import JointEq
 
-
 # dynamics simulation
 from . import dyn
 from .dyn import (
@@ -82,10 +76,10 @@ from .dyn import (
   neurons,  # neuron groups
   rates,  # rate models
   synapses,  # synaptic dynamics
-  synouts,   # synaptic output
+  synouts,  # synaptic output
   synplast,  # synaptic plasticity
 )
-from brainpy.dyn.base import (
+from .dyn.base import (
   DynamicalSystem,
   Container,
   Sequential,
@@ -101,22 +95,32 @@ from brainpy.dyn.base import (
 )
 from .dyn.runners import *
 
-
 # dynamics training
 from . import train
-
+from .train import (
+  DSTrainer,
+  OnlineTrainer, ForceTrainer,
+  OfflineTrainer, RidgeTrainer,
+  BPFF,
+  BPTT,
+  OnlineBPTT,
+)
 
 # automatic dynamics analysis
 from . import analysis
-
+from .analysis import (
+  DSAnalyzer,
+  PhasePlane1D, PhasePlane2D,
+  Bifurcation1D, Bifurcation2D,
+  FastSlow1D, FastSlow2D,
+  SlowPointFinder,
+)
 
 # running
 from . import running
 
-
 # "visualization" module, will be removed soon
 from .visualization import visualize
-
 
 # convenient access
 conn = connect
