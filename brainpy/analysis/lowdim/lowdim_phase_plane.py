@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax import vmap
 
+from copy import deepcopy
 import brainpy.math as bm
 from brainpy import errors, math
 from brainpy.analysis import stability, plotstyle, constants as C, utils
@@ -107,7 +108,7 @@ class PhasePlane1D(Num1DAnalyzer):
     if with_plot:
       for fp_type, points in container.items():
         if len(points):
-          plot_style = plotstyle.plot_schema[fp_type]
+          plot_style = deepcopy(plotstyle.plot_schema[fp_type])
           pyplot.plot(points, [0] * len(points), **plot_style, label=fp_type)
       pyplot.legend()
       if show:
@@ -349,7 +350,7 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_plot:
       for fp_type, points in container.items():
         if len(points['x']):
-          plot_style = plotstyle.plot_schema[fp_type]
+          plot_style = deepcopy(plotstyle.plot_schema[fp_type])
           pyplot.plot(points['x'], points['y'], **plot_style, label=fp_type)
       pyplot.legend()
       if show:
