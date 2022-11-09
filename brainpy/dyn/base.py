@@ -581,7 +581,7 @@ class Network(Container):
       node.update(shared)
 
     # update delays
-    self.update_local_delays(nodes)
+    self.update_local_delays(synapse_groups)
 
   def reset_state(self, batch_size=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
