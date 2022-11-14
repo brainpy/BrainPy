@@ -194,7 +194,7 @@ class PoissonGroup(NeuGroup):
 
     # variables
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed)
 
   def update(self, tdi, x=None):
     shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, BatchingMode) else self.varshape

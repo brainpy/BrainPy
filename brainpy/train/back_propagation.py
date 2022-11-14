@@ -64,7 +64,7 @@ class BPTrainer(DSTrainer):
                                     **kwargs)
 
     self.shuffle_data = shuffle_data
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed)
 
     # jit settings
     self.jit[c.PREDICT_PHASE] = self.jit.get(c.PREDICT_PHASE, True)

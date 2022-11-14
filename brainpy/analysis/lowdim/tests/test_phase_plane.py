@@ -3,13 +3,13 @@
 import unittest
 
 import brainpy as bp
+import matplotlib.pyplot as plt
 
 block = False
 
 
 class TestPhasePlane(unittest.TestCase):
   def test_1d(self):
-    import matplotlib.pyplot as plt
     bp.math.enable_x64()
 
     @bp.odeint
@@ -30,8 +30,6 @@ class TestPhasePlane(unittest.TestCase):
     bp.math.disable_x64()
 
   def test_2d_decision_making_model(self):
-    import matplotlib.pyplot as plt
-
     bp.math.enable_x64()
     gamma = 0.641  # Saturation factor for gating variable
     tau = 0.06  # Synaptic time constant [sec]

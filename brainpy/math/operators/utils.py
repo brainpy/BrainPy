@@ -8,7 +8,7 @@ except ModuleNotFoundError:
   brainpylib = None
 
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.0.7'
+_BRAINPYLIB_MINIMAL_VERSION = '0.1.0'
 
 
 def _check_brainpylib(ops_name):
