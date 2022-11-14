@@ -23,7 +23,6 @@ ext_modules = [
   Pybind11Extension("brainpylib/cpu_ops",
                     sources=glob.glob("lib/cpu_*.cc"),
                     cxx_std=11,
-                    # extra_link_args=["-rpath", os.environ["CONDA_PREFIX"] + "/lib"],
                     extra_link_args=["-rpath", re.sub('/lib/.*', '/lib', sys.path[1])],
                     define_macros=[('VERSION_INFO', __version__)]),
 ]
