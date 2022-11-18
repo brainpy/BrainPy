@@ -166,7 +166,7 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
   References
   ----------
   .. [1] Golomb, D. and Rinzel J. (1993) Dynamics of globally coupled
-         inhibitory neurons with heterogeneity. Phys. Rev. reversal_potential 48:4810-4814.
+         inhibitory neurons with heterogeneity. Phys. Rev. E 48:4810-4814.
   .. [2] Golomb D. and Rinzel J. (1994) Clustering in globally coupled
          inhibitory neurons. Physica D 72:259-282.
   .. [3] David Golomb (2007) Neuronal synchrony measures. Scholarpedia, 2(1):1347.

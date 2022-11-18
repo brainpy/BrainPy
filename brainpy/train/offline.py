@@ -231,6 +231,7 @@ class OfflineTrainer(DSTrainer):
     if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
       train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())
     return train_func
 
