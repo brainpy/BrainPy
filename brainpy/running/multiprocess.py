@@ -21,7 +21,7 @@ def process_pool(func, all_params, num_process):
   ----------
   func : callable
       The function to run model.
-  all_params : a_list, tuple
+  all_params : list, tuple, dict
       The parameters of the function arguments.
       The parameters for each process can be a tuple, or a dictionary.
   num_process : int
@@ -47,7 +47,7 @@ def process_pool(func, all_params, num_process):
   return [r.get() for r in results]
 
 
-def process_pool_lock(func, all_net_params, nb_process):
+def process_pool_lock(func, all_params, nb_process):
   """Run multiple models in multi-processes with lock.
 
   Sometimes, you want to synchronize the processes. For example,
@@ -73,7 +73,7 @@ def process_pool_lock(func, all_net_params, nb_process):
   ----------
   func : callable
       The function to run model.
-  all_net_params : a_list, tuple
+  all_params : list, tuple, dict
       The parameters of the function arguments.
   nb_process : int
       The number of the processes.
@@ -83,12 +83,12 @@ def process_pool_lock(func, all_net_params, nb_process):
   results : list
       Process results.
   """
-  print('{} jobs total.'.format(len(all_net_params)))
+  print('{} jobs total.'.format(len(all_params)))
   pool = multiprocessing.Pool(processes=nb_process)
   m = multiprocessing.Manager()
   lock = m.Lock()
   results = []
-  for net_params in all_net_params:
+  for net_params in all_params:
     if isinstance(net_params, (list, tuple)):
       results.append(pool.apply_async(func, args=tuple(net_params) + (lock,)))
     elif isinstance(net_params, dict):
