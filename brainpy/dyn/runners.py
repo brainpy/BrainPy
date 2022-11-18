@@ -585,6 +585,7 @@ class DSRunner(Runner):
       if self.jit['predict']:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         run_func = lambda all_inputs: bm.for_loop(_step_func, dyn_vars.unique(), all_inputs)
 
       else:

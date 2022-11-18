@@ -261,6 +261,7 @@ class OnlineTrainer(DSTrainer):
     if self.jit['fit']:
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
       return lambda all_inputs: bm.for_loop(_step_func, dyn_vars.unique(), all_inputs)
 
     else:

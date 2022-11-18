@@ -300,6 +300,7 @@ class BPTT(BPTrainer):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars)
     return self._f_loss_compiled[shared_args_str]
@@ -311,6 +312,7 @@ class BPTT(BPTrainer):
       _f_loss_internal = self.f_loss(shared_args, jit=False)
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
       tran_vars = dyn_vars.subset(bm.TrainVar)
       grad_f = bm.grad(_f_loss_internal,
                        dyn_vars=dyn_vars.unique(),
@@ -339,6 +341,7 @@ class BPTT(BPTrainer):
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
         dyn_vars.update(self.optimizer.vars())
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_train_compiled[shared_args_str] = bm.jit(train_func, dyn_vars=dyn_vars.unique())
       else:
         self._f_train_compiled[shared_args_str] = train_func
@@ -453,6 +456,7 @@ class BPFF(BPTT):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars)
       else:
@@ -480,6 +484,7 @@ class BPFF(BPTT):
       if self.jit[c.PREDICT_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_predict_compiled[shared_args_str] = bm.jit(run_func, dyn_vars=dyn_vars.unique())
       else:
         self._f_predict_compiled[shared_args_str] = run_func
@@ -505,6 +510,7 @@ class OnlineBPTT(BPTT):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars)
       else:
@@ -529,6 +535,7 @@ class OnlineBPTT(BPTT):
       if self.jit[c.FIT_PHASE]:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         run_func = lambda all_inputs: bm.for_loop(train_step, dyn_vars.unique(), all_inputs)
 
       else:
@@ -582,6 +589,7 @@ class OnlineBPTT(BPTT):
       if self.jit[c.FIT_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_predict_compiled[shared_args_str] = bm.jit(run_func, dyn_vars=dyn_vars.unique())
       else:
         self._f_predict_compiled[shared_args_str] = run_func
