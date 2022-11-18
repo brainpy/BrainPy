@@ -2,7 +2,8 @@
 
 import numpy as np
 from typing import Optional
-
+import jax
+import jax.numpy as jnp
 from brainpy.errors import ConnectorError
 from brainpy.tools.others import numba_seed, numba_jit, numba_range, SUPPORT_NUMBA, format_seed
 from .base import *
@@ -11,6 +12,7 @@ __all__ = [
   'FixedProb',
   'FixedPreNum',
   'FixedPostNum',
+  'FixedTotalNum',
   'GaussianProb',
   'ProbDist',
 
@@ -50,7 +52,7 @@ class FixedProb(TwoEndConnector):
     self.pre_ratio = pre_ratio
     self.include_self = include_self
     self.seed = format_seed(seed)
-    self.rng = np.random.RandomState(seed=self.seed)
+    self.rng = jax.random.PRNGKey(self.seed)
     self.allow_multi_conn = allow_multi_conn
 
   def __repr__(self):
@@ -65,37 +67,37 @@ class FixedProb(TwoEndConnector):
 
     if self.pre_ratio < 1.:
       pre_num_to_select = int(self.pre_num * self.pre_ratio)
-      pre_ids = self.rng.choice(self.pre_num, size=pre_num_to_select, replace=False)
+      pre_ids = jax.random.choice(self.rng, self.pre_num, size=(pre_num_to_select,), replace=False)
     else:
       pre_num_to_select = self.pre_num
-      pre_ids = np.arange(self.pre_num)
+      pre_ids = jnp.arange(self.pre_num)
 
     post_num_total = self.post_num
     post_num_to_select = int(self.post_num * self.prob)
     if SUPPORT_NUMBA:
       rng = np.random
-      numba_seed(self.rng.randint(0, int(1e8)))
+      numba_seed(rng.RandomState(self.seed).randint(0, int(1e8)))
     else:
       rng = self.rng
 
     if self.allow_multi_conn:
-      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
+      selected_post_ids = jax.random.randint(self.rng, (pre_num_to_select, post_num_to_select), 0, post_num_total)
 
     else:
-      @numba_jit#(parallel=True, nogil=True)
+      @numba_jit #(parallel=True, nogil=True)
       def single_conn():
-        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.int32)
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.uint32)
         for i in numba_range(pre_num_to_select):
           posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
         return posts
-
-      selected_post_ids = single_conn()
+ 
+      selected_post_ids = jnp.asarray(single_conn())
     return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
 
   def build_coo(self):
     _, post_num_to_select, selected_post_ids, pre_ids = self._iii()
     selected_post_ids = selected_post_ids.flatten()
-    selected_pre_ids = np.repeat(pre_ids, post_num_to_select)
+    selected_pre_ids = jnp.repeat(pre_ids, post_num_to_select)
     if not self.include_self:
       true_ids = selected_pre_ids != selected_post_ids
       selected_pre_ids = selected_pre_ids[true_ids]
@@ -104,21 +106,22 @@ class FixedProb(TwoEndConnector):
 
   def build_csr(self):
     pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._iii()
-    pre_nums = np.ones(pre_num_to_select) * post_num_to_select
+    pre_nums = jnp.ones(pre_num_to_select) * post_num_to_select
     if not self.include_self:
-      true_ids = selected_post_ids == np.reshape(pre_ids, (-1, 1))
-      pre_nums -= np.sum(true_ids, axis=1)
-      selected_post_ids = selected_post_ids.flatten()[np.logical_not(true_ids).flatten()]
+      true_ids = selected_post_ids == jnp.reshape(pre_ids, (-1, 1))
+      pre_nums -= jnp.sum(true_ids, axis=1)
+      selected_post_ids = selected_post_ids.flatten()[jnp.logical_not(true_ids).flatten()]
     else:
       selected_post_ids = selected_post_ids.flatten()
-    selected_pre_inptr = np.cumsum(np.concatenate([np.zeros(1), pre_nums]))
+    selected_pre_inptr = jnp.cumsum(jnp.concatenate([jnp.zeros(1), pre_nums]))
     return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
 
   def build_mat(self):
-    pre_state = self.rng.rand(self.pre_num, 1) < self.pre_ratio
-    mat = (self.rng.rand(self.pre_num, self.post_num) < self.prob) * pre_state
+    pre_state = jax.random.uniform(self.rng,(self.pre_num, 1)) < self.pre_ratio
+    mat = (jax.random.uniform(self.rng,(self.pre_num, self.post_num)) < self.prob) * pre_state
     if not self.include_self:
-      np.fill_diagonal(mat, False)
+      for i in range(len(mat)):
+        mat = mat.at[i,i].set(False)
     return mat.astype(MAT_DTYPE)
 
 
@@ -135,12 +138,31 @@ class FixedNum(TwoEndConnector):
     self.seed = format_seed(seed)
     self.include_self = include_self
     self.allow_multi_conn = allow_multi_conn
-    self.rng = np.random.RandomState(seed=self.seed)
+    self.rng = jax.random.PRNGKey(self.seed)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(num={self.num}, include_self={self.include_self}, seed={self.seed})'
+  
 
+class FixedTotalNum(FixedNum):
+  """Connect the synaptic neurons with fixed total number.
 
+  Parameters
+  ----------
+  num : float,int
+    The conn total number.
+  """
+
+  def build_coo(self):
+    if self.num > self.pre_num*self.post_num:
+      raise ConnectorError(f'"num" must be smaller than "all2all num", '
+                           f'but got {self.num} > {self.pre_num *self.post_num}')
+    selected_pre_ids = jax.random.randint(
+        self.rng, (self.num, ), 0, self.pre_num)
+    selected_post_ids = jax.random.randint(
+        self.rng, (self.num, ), 0, self.post_num)
+    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
+  
 class FixedPreNum(FixedNum):
   """Connect a fixed number pf pre-synaptic neurons for each post-synaptic neuron.
 
@@ -173,29 +195,31 @@ class FixedPreNum(FixedNum):
     seed = self.seed
     if SUPPORT_NUMBA:
       rng = np.random
-      numba_seed(self.rng.randint(0, int(1e8)))
+      numba_seed(rng.RandomState(seed).randint(0, int(1e8)))
     else:
       rng = self.rng
+      
     if self.allow_multi_conn:
-      selected_pre_ids = self.rng.randint(0, pre_num_total, (post_num_total, pre_num_to_select, ))
+      selected_pre_ids = jax.random.randint(self.rng, (post_num_total, pre_num_to_select,), 0, pre_num_total)
+      
     else:
-      @numba_jit#(parallel=True, nogil=True)
+      @numba_jit #(parallel=True, nogil=True)
       def single_conn():
-        posts = np.zeros((post_num_total, pre_num_to_select), dtype=np.int32)
+        posts = np.zeros((post_num_total, pre_num_to_select), dtype=np.uint32)
         for i in numba_range(post_num_total):
           posts[i] = rng.choice(pre_num_total, pre_num_to_select, replace=False)
         return posts
+      
+      selected_pre_ids = jnp.asarray(single_conn())
 
-      selected_pre_ids = single_conn()
-
-    post_nums = np.ones((post_num_total,), dtype=np.int32) * pre_num_to_select
+    post_nums = jnp.ones((post_num_total,), dtype=IDX_DTYPE) * pre_num_to_select
     if not self.include_self:
-      true_ids = selected_pre_ids == np.reshape(np.arange(pre_num_total), (-1, 1))
-      post_nums -= np.sum(true_ids, axis=1)
-      selected_pre_ids = selected_pre_ids.flatten()[np.logical_not(true_ids).flatten()]
+      true_ids = selected_pre_ids == jnp.reshape(jnp.arange(pre_num_total), (-1, 1))
+      post_nums -= jnp.sum(true_ids, axis=1)
+      selected_pre_ids = selected_pre_ids.flatten()[jnp.logical_not(true_ids).flatten()]
     else:
       selected_pre_ids = selected_pre_ids.flatten()
-    selected_post_ids = np.repeat(np.arange(post_num_total), post_nums)
+    selected_post_ids = jnp.repeat(jnp.arange(post_num_total), post_nums)
     return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
 
 
@@ -227,33 +251,33 @@ class FixedPostNum(FixedNum):
                            f'But `include_self` is set to True.')
     post_num_to_select = int(self.post_num * self.num) if isinstance(self.num, float) else self.num
     pre_num_to_select = self.pre_num
-    pre_ids = np.arange(self.pre_num)
-
+    pre_ids = jnp.arange(self.pre_num)
+    seed = self.seed
     post_num_total = self.post_num
     if SUPPORT_NUMBA:
       rng = np.random
-      numba_seed(self.rng.randint(0, int(1e8)))
+      numba_seed(rng.RandomState(seed).randint(0, int(1e8)))
     else:
       rng = self.rng
 
     if self.allow_multi_conn:
-      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
+      selected_post_ids = jax.random.randint(self.rng, (pre_num_to_select, post_num_to_select,), 0, post_num_total)
 
     else:
-      @numba_jit#(parallel=True, nogil=True)
+      @numba_jit #(parallel=True, nogil=True)
       def single_conn():
-        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.int32)
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.uint32)
         for i in numba_range(pre_num_to_select):
           posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
         return posts
 
-      selected_post_ids = single_conn()
+      selected_post_ids = jnp.asarray(single_conn())
     return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
 
   def build_coo(self):
     _, post_num_to_select, selected_post_ids, pre_ids = self._ii()
     selected_post_ids = selected_post_ids.flatten()
-    selected_pre_ids = np.repeat(pre_ids, post_num_to_select)
+    selected_pre_ids = jnp.repeat(pre_ids, post_num_to_select)
     if not self.include_self:
       true_ids = selected_pre_ids != selected_post_ids
       selected_pre_ids = selected_pre_ids[true_ids]
@@ -262,16 +286,15 @@ class FixedPostNum(FixedNum):
 
   def build_csr(self):
     pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._ii()
-    pre_nums = np.ones(pre_num_to_select) * post_num_to_select
+    pre_nums = jnp.ones(pre_num_to_select) * post_num_to_select
     if not self.include_self:
-      true_ids = selected_post_ids == np.reshape(pre_ids, (-1, 1))
-      pre_nums -= np.sum(true_ids, axis=1)
-      selected_post_ids = selected_post_ids.flatten()[np.logical_not(true_ids).flatten()]
+      true_ids = selected_post_ids == jnp.reshape(pre_ids, (-1, 1))
+      pre_nums -= jnp.sum(true_ids, axis=1)
+      selected_post_ids = selected_post_ids.flatten()[jnp.logical_not(true_ids).flatten()]
     else:
       selected_post_ids = selected_post_ids.flatten()
-    selected_pre_inptr = np.cumsum(np.concatenate([np.zeros(1), pre_nums]))
+    selected_pre_inptr = jnp.cumsum(jnp.concatenate([jnp.zeros(1), pre_nums]))
     return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
-
 
 class GaussianProb(OneEndConnector):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,
