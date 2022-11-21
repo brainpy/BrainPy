@@ -1,6 +1,6 @@
 ---
 name: 'Bug Report'
-about: 'Report a bug to help improve the package'
+about: 'Report a bug or unexpected behavior to help us improve the package'
 labels: 'bug'
 ---
 
