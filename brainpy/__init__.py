@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.3.6"
+__version__ = "2.2.4.0"
 
 try:
   import jaxlib
