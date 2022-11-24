@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
+from typing import Union, Sequence, Dict
 import multiprocessing
-
 
 __all__ = [
   'process_pool',
   'process_pool_lock',
-  'vectorize_map',
-  'parallelize_map',
 ]
 
 
-def process_pool(func, all_params, num_process):
+def process_pool(func: callable,
+                 all_params: Union[Sequence, Dict],
+                 num_process: int):
   """Run multiple models in multi-processes.
 
   .. Note::
@@ -21,7 +21,7 @@ def process_pool(func, all_params, num_process):
   ----------
   func : callable
       The function to run model.
-  all_params : a_list, tuple
+  all_params : list, tuple, dict
       The parameters of the function arguments.
       The parameters for each process can be a tuple, or a dictionary.
   num_process : int
@@ -47,7 +47,9 @@ def process_pool(func, all_params, num_process):
   return [r.get() for r in results]
 
 
-def process_pool_lock(func, all_net_params, nb_process):
+def process_pool_lock(func: callable,
+                      all_params: Union[Sequence, Dict],
+                      num_process: int):
   """Run multiple models in multi-processes with lock.
 
   Sometimes, you want to synchronize the processes. For example,
@@ -71,11 +73,11 @@ def process_pool_lock(func, all_net_params, nb_process):
 
   Parameters
   ----------
-  func : callable
+  func: callable
       The function to run model.
-  all_net_params : a_list, tuple
+  all_params : list, tuple, dict
       The parameters of the function arguments.
-  nb_process : int
+  num_process : int
       The number of the processes.
 
   Returns
@@ -83,12 +85,12 @@ def process_pool_lock(func, all_net_params, nb_process):
   results : list
       Process results.
   """
-  print('{} jobs total.'.format(len(all_net_params)))
-  pool = multiprocessing.Pool(processes=nb_process)
+  print('{} jobs total.'.format(len(all_params)))
+  pool = multiprocessing.Pool(processes=num_process)
   m = multiprocessing.Manager()
   lock = m.Lock()
   results = []
-  for net_params in all_net_params:
+  for net_params in all_params:
     if isinstance(net_params, (list, tuple)):
       results.append(pool.apply_async(func, args=tuple(net_params) + (lock,)))
     elif isinstance(net_params, dict):
@@ -99,14 +101,3 @@ def process_pool_lock(func, all_net_params, nb_process):
   pool.close()
   pool.join()
   return [r.get() for r in results]
-
-
-def vectorize_map(func, all_params, num_thread):
-  pass
-
-
-def parallelize_map(func, all_params, num_process):
-  pass
-
-
-
