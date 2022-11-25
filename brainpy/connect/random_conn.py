@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
 from typing import Optional
-import jax
+
 import jax.numpy as jnp
+import numpy as np
+
+import brainpy.math as bm
 from brainpy.errors import ConnectorError
 from brainpy.tools.others import numba_seed, numba_jit, numba_range, SUPPORT_NUMBA, format_seed
 from .base import *
@@ -25,7 +27,6 @@ __all__ = [
 
 class FixedProb(TwoEndConnector):
   """Connect the post-synaptic neurons with fixed probability.
-
 
   Parameters
   ----------
@@ -52,7 +53,8 @@ class FixedProb(TwoEndConnector):
     self.pre_ratio = pre_ratio
     self.include_self = include_self
     self.seed = format_seed(seed)
-    self.rng = jax.random.PRNGKey(self.seed)
+    self._jaxrand = bm.random.RandomState(self.seed)
+    self._nprand = np.random.RandomState(self.seed)
     self.allow_multi_conn = allow_multi_conn
 
   def __repr__(self):
@@ -67,32 +69,33 @@ class FixedProb(TwoEndConnector):
 
     if self.pre_ratio < 1.:
       pre_num_to_select = int(self.pre_num * self.pre_ratio)
-      pre_ids = jax.random.choice(self.rng, self.pre_num, size=(pre_num_to_select,), replace=False)
+      pre_ids = self._jaxrand.choice(self.pre_num, size=(pre_num_to_select,), replace=False)
     else:
       pre_num_to_select = self.pre_num
       pre_ids = jnp.arange(self.pre_num)
 
     post_num_total = self.post_num
     post_num_to_select = int(self.post_num * self.prob)
-    if SUPPORT_NUMBA:
-      rng = np.random
-      numba_seed(rng.RandomState(self.seed).randint(0, int(1e8)))
-    else:
-      rng = self.rng
 
     if self.allow_multi_conn:
-      selected_post_ids = jax.random.randint(self.rng, (pre_num_to_select, post_num_to_select), 0, post_num_total)
+      selected_post_ids = self._jaxrand.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
 
     else:
-      @numba_jit #(parallel=True, nogil=True)
+      if SUPPORT_NUMBA:
+        rng = np.random
+        numba_seed(self._nprand.randint(0, int(1e8)))
+      else:
+        rng = self._nprand
+
+      @numba_jit  # (parallel=True, nogil=True)
       def single_conn():
         posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.uint32)
         for i in numba_range(pre_num_to_select):
           posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
         return posts
- 
+
       selected_post_ids = jnp.asarray(single_conn())
-    return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
+    return pre_num_to_select, post_num_to_select, bm.as_jax(selected_post_ids), bm.as_jax(pre_ids)
 
   def build_coo(self):
     _, post_num_to_select, selected_post_ids, pre_ids = self._iii()
@@ -117,12 +120,47 @@ class FixedProb(TwoEndConnector):
     return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
 
   def build_mat(self):
-    pre_state = jax.random.uniform(self.rng,(self.pre_num, 1)) < self.pre_ratio
-    mat = (jax.random.uniform(self.rng,(self.pre_num, self.post_num)) < self.prob) * pre_state
+    pre_state = self._jaxrand.uniform(size=(self.pre_num, 1)) < self.pre_ratio
+    mat = (self._jaxrand.uniform(size=(self.pre_num, self.post_num)) < self.prob) * pre_state
+    mat = bm.asarray(mat)
     if not self.include_self:
-      for i in range(len(mat)):
-        mat = mat.at[i,i].set(False)
+      bm.fill_diagonal(mat, False)
     return mat.astype(MAT_DTYPE)
+
+
+class FixedTotalNum(TwoEndConnector):
+  """Connect the synaptic neurons with fixed total number.
+
+  Parameters
+  ----------
+  num : float,int
+    The conn total number.
+  seed: int, optional
+    The random number seed.
+  """
+
+  def __init__(self, num, seed=None):
+    super(FixedTotalNum, self).__init__()
+    if isinstance(num, int):
+      assert num >= 0, '"num" must be a non-negative integer.'
+    elif isinstance(num, float):
+      assert 0. <= num <= 1., '"num" must be in [0., 1.).'
+    else:
+      raise ConnectorError(f'Unknown type: {type(num)}')
+    self.num = num
+    self.seed = format_seed(seed)
+    self.rng = bm.random.RandomState(self.seed)
+
+  def build_coo(self):
+    if self.num > self.pre_num * self.post_num:
+      raise ConnectorError(f'"num" must be smaller than "all2all num", '
+                           f'but got {self.num} > {self.pre_num * self.post_num}')
+    selected_pre_ids = self.rng.randint(0, self.pre_num, (self.num,))
+    selected_post_ids = self.rng.randint(0, self.post_num, (self.num,))
+    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(num={self.num}, seed={self.seed})'
 
 
 class FixedNum(TwoEndConnector):
@@ -138,31 +176,12 @@ class FixedNum(TwoEndConnector):
     self.seed = format_seed(seed)
     self.include_self = include_self
     self.allow_multi_conn = allow_multi_conn
-    self.rng = jax.random.PRNGKey(self.seed)
+    self.rng = bm.random.RandomState(self.seed) if allow_multi_conn else np.random.RandomState(self.seed)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(num={self.num}, include_self={self.include_self}, seed={self.seed})'
-  
 
-class FixedTotalNum(FixedNum):
-  """Connect the synaptic neurons with fixed total number.
 
-  Parameters
-  ----------
-  num : float,int
-    The conn total number.
-  """
-
-  def build_coo(self):
-    if self.num > self.pre_num*self.post_num:
-      raise ConnectorError(f'"num" must be smaller than "all2all num", '
-                           f'but got {self.num} > {self.pre_num *self.post_num}')
-    selected_pre_ids = jax.random.randint(
-        self.rng, (self.num, ), 0, self.pre_num)
-    selected_post_ids = jax.random.randint(
-        self.rng, (self.num, ), 0, self.post_num)
-    return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
-  
 class FixedPreNum(FixedNum):
   """Connect a fixed number pf pre-synaptic neurons for each post-synaptic neuron.
 
@@ -192,24 +211,24 @@ class FixedPreNum(FixedNum):
     pre_num_to_select = int(self.pre_num * self.num) if isinstance(self.num, float) else self.num
     pre_num_total = self.pre_num
     post_num_total = self.post_num
-    seed = self.seed
-    if SUPPORT_NUMBA:
-      rng = np.random
-      numba_seed(rng.RandomState(seed).randint(0, int(1e8)))
-    else:
-      rng = self.rng
-      
+
     if self.allow_multi_conn:
-      selected_pre_ids = jax.random.randint(self.rng, (post_num_total, pre_num_to_select,), 0, pre_num_total)
-      
+      selected_pre_ids = self.rng.randint(0, pre_num_total, (post_num_total, pre_num_to_select,))
+
     else:
-      @numba_jit #(parallel=True, nogil=True)
+      if SUPPORT_NUMBA:
+        rng = np.random
+        numba_seed(self.rng.randint(0, int(1e8)))
+      else:
+        rng = self.rng
+
+      @numba_jit  # (parallel=True, nogil=True)
       def single_conn():
         posts = np.zeros((post_num_total, pre_num_to_select), dtype=np.uint32)
         for i in numba_range(post_num_total):
           posts[i] = rng.choice(pre_num_total, pre_num_to_select, replace=False)
         return posts
-      
+
       selected_pre_ids = jnp.asarray(single_conn())
 
     post_nums = jnp.ones((post_num_total,), dtype=IDX_DTYPE) * pre_num_to_select
@@ -252,19 +271,19 @@ class FixedPostNum(FixedNum):
     post_num_to_select = int(self.post_num * self.num) if isinstance(self.num, float) else self.num
     pre_num_to_select = self.pre_num
     pre_ids = jnp.arange(self.pre_num)
-    seed = self.seed
     post_num_total = self.post_num
-    if SUPPORT_NUMBA:
-      rng = np.random
-      numba_seed(rng.RandomState(seed).randint(0, int(1e8)))
-    else:
-      rng = self.rng
 
     if self.allow_multi_conn:
-      selected_post_ids = jax.random.randint(self.rng, (pre_num_to_select, post_num_to_select,), 0, post_num_total)
+      selected_post_ids = self.rng.randint(0, post_num_total, (pre_num_to_select, post_num_to_select,))
 
     else:
-      @numba_jit #(parallel=True, nogil=True)
+      if SUPPORT_NUMBA:
+        rng = np.random
+        numba_seed(self.rng.randint(0, int(1e8)))
+      else:
+        rng = self.rng
+
+      @numba_jit  # (parallel=True, nogil=True)
       def single_conn():
         posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=np.uint32)
         for i in numba_range(pre_num_to_select):
@@ -272,7 +291,7 @@ class FixedPostNum(FixedNum):
         return posts
 
       selected_post_ids = jnp.asarray(single_conn())
-    return pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids
+    return pre_num_to_select, post_num_to_select, bm.as_jax(selected_post_ids), bm.as_jax(pre_ids)
 
   def build_coo(self):
     _, post_num_to_select, selected_post_ids, pre_ids = self._ii()
@@ -295,6 +314,7 @@ class FixedPostNum(FixedNum):
       selected_post_ids = selected_post_ids.flatten()
     selected_pre_inptr = jnp.cumsum(jnp.concatenate([jnp.zeros(1), pre_nums]))
     return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
+
 
 class GaussianProb(OneEndConnector):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,

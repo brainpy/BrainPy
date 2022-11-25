@@ -209,11 +209,6 @@ class GridFour(GridConn):
   def _select_dist(self, dist: bm.ndarray) -> bm.ndarray:
     dist = bm.linalg.norm(dist, axis=1)
     return dist <= 1 if self.include_self else dist == 1
-    # dist = bm.abs(dist)
-    # if self.include_self:
-    #   return bm.prod(dist <= 1, axis=1)
-    # else:
-    #   return bm.prod(dist == 1, axis=1)
 
 
 grid_four = GridFour()
