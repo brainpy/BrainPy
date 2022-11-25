@@ -25,7 +25,7 @@ __all__ = [
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # methods
-  'csr2csc', 'csr2mat', 'mat2csr', 'ij2csr', 'ij2csr2'
+  'csr2csc', 'csr2mat', 'mat2csr', 'ij2csr'
 ]
 
 CONN_MAT = 'conn_mat'
@@ -46,6 +46,7 @@ SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
 
 MAT_DTYPE = jnp.bool_
 IDX_DTYPE = jnp.uint32
+
 
 def set_default_dtype(mat_dtype=None, idx_dtype=None):
   """Set the default dtype.
@@ -99,7 +100,7 @@ class TwoEndConnector(Connector):
 
   1. Implementing ``build_conn(self)`` function, which returns one of
      the connection data ``csr`` (CSR sparse data, a tuple of <post_ids, inptr>),
-     ``ij`` (COO sparse data, a tuple of <pre_ids, post_ids>), and ``mat``
+     ``ij`` (COO sparse data, a tuple of <pre_ids, post_ids>), or ``mat``
      (a binary connection matrix). For instance,
 
      .. code-block:: python
@@ -185,7 +186,7 @@ class TwoEndConnector(Connector):
     else:
       return True
 
-  def check(self, structures: Union[Tuple, List, str]):
+  def _check(self, structures: Union[Tuple, List, str]):
     # check synaptic structures
     if isinstance(structures, str):
       structures = [structures]
@@ -203,7 +204,7 @@ class TwoEndConnector(Connector):
 
     require_other_structs = len([s for s in structures if s != CONN_MAT]) > 0
     if require_other_structs:
-      np = jnp if isinstance(mat, jnp.ndarray) else bm
+      np = onp if isinstance(mat, onp.ndarray) else bm
       pre_ids, post_ids = np.where(mat > 0)
       pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
       post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
@@ -211,7 +212,7 @@ class TwoEndConnector(Connector):
 
   def _return_by_csr(self, structures, csr: tuple, all_data: dict):
     indices, indptr = csr
-    np = jnp if isinstance(indices, jnp.ndarray) else bm
+    np = onp if isinstance(indices, onp.ndarray) else bm
     assert self.pre_num == indptr.size - 1
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
@@ -260,15 +261,15 @@ class TwoEndConnector(Connector):
     require_other_structs = len([s for s in structures
                                  if s not in [CONN_MAT, PRE_IDS, POST_IDS]]) > 0
     if require_other_structs:
-      if config.read('jax_platform_name') == "gpu":
-        csr = ij2csr(pre_ids, post_ids, self.pre_num)
-      else:
-        csr = ij2csr2(pre_ids, post_ids, self.pre_num)   
+      csr = ij2csr(pre_ids, post_ids, self.pre_num)
       self._return_by_csr(structures, csr=csr, all_data=all_data)
 
-  def make_returns(self, structures, conn_data, csr=None, mat=None, ij=None):
+  def _make_returns(self, structures, conn_data):
     """Make the desired synaptic structures and return them.
     """
+    csr = None
+    mat = None
+    ij = None
     if isinstance(conn_data, dict):
       csr = conn_data.get('csr', None)
       mat = conn_data.get('mat', None)
@@ -320,28 +321,41 @@ class TwoEndConnector(Connector):
     else:
       return tuple([all_data[n] for n in structures])
 
-  @tools.not_customized
-  def build_conn(self):
-    """build connections with certain data type.
-
-    Returns
-    -------
-    A tuple with two elements: connection type (str) and connection data.
-      example: return 'csr', (ind, indptr)
-    Or a dict with three elements: csr, mat and ij.
-      example: return dict(csr=(ind, indptr), mat=None, ij=None)
-    """
-    pass
-
   def require(self, *structures):
+    """Require all the connection data needed.
+
+    Examples
+    --------
+
+    >>> import brainpy as bp
+    >>> conn = bp.connect.FixedProb(0.1)
+    >>> mat = conn.require(10, 20, 'conn_mat')
+    >>> mat.shape
+    (10, 20)
+    """
+
+    if len(structures) > 0:
+      pre_size = None
+      post_size = None
+      if not isinstance(structures[0], str):
+        pre_size = structures[0]
+        structures = structures[1:]
+        if len(structures) > 0:
+          if not isinstance(structures[0], str):
+            post_size = structures[0]
+            structures = structures[1:]
+      if pre_size is not None:
+        self.__call__(pre_size, post_size)
+    else:
+      return tuple()
+
     try:
       assert self.pre_num is not None and self.post_num is not None
     except AssertionError:
       raise ConnectorError(f'self.pre_num or self.post_num is not defined. '
-                           f'Please use self.__call__() '
-                           f'before requiring connection data.')
+                           f'Please use "self.require(pre_size, post_size, DATA1, DATA2, ...)" ')
 
-    self.check(structures)
+    self._check(structures)
     if self.is_version2_style:
       if len(structures) == 1:
         if PRE2POST in structures and not hasattr(self.build_csr, 'not_customized'):
@@ -368,21 +382,74 @@ class TwoEndConnector(Connector):
 
     else:
       conn_data = self.build_conn()
-    return self.make_returns(structures, conn_data)
+    return self._make_returns(structures, conn_data)
 
   def requires(self, *structures):
+    """Require all the connection data needed."""
     return self.require(*structures)
 
   @tools.not_customized
+  def build_conn(self):
+    """build connections with certain data type.
+
+    If users want to customize their connections, please provide one
+    of the following functions:
+
+    - ``build_mat()``: build a matrix binary connection matrix.
+    - ``build_csr()``: build a csr sparse connection data.
+    - ``build_coo()``: build a coo sparse connection data.
+    - ``build_conn()``: deprecated.
+
+    Returns
+    -------
+    conn: tuple, dict
+      A tuple with two elements: connection type (str) and connection data.
+      For example: ``return 'csr', (ind, indptr)``
+      Or a dict with three elements: csr, mat and ij. For example:
+      ``return dict(csr=(ind, indptr), mat=None, ij=None)``
+    """
+    pass
+
+  @tools.not_customized
   def build_mat(self):
+    """Build a binary matrix connection data.
+
+
+    If users want to customize their connections, please provide one
+    of the following functions:
+
+    - ``build_mat()``: build a matrix binary connection matrix.
+    - ``build_csr()``: build a csr sparse connection data.
+    - ``build_coo()``: build a coo sparse connection data.
+    - ``build_conn()``: deprecated.
+
+    Returns
+    -------
+    conn: Array
+      A binary matrix with the shape ``(num_pre, num_post)``.
+    """
     pass
 
   @tools.not_customized
   def build_csr(self):
+    """Build a csr sparse connection data.
+
+    Returns
+    -------
+    conn: tuple
+      A tuple denoting the ``(indices, indptr)``.
+    """
     pass
 
   @tools.not_customized
   def build_coo(self):
+    """Build a coo sparse connection data.
+
+    Returns
+    -------
+    conn: tuple
+      A tuple denoting the ``(pre_ids, post_ids)``.
+    """
     pass
 
 
@@ -424,7 +491,7 @@ class OneEndConnector(TwoEndConnector):
 def csr2csc(csr, post_num, data=None):
   """Convert csr to csc."""
   indices, indptr = csr
-  np = jnp if isinstance(indices, jnp.ndarray) else bm
+  np = onp if isinstance(indices, onp.ndarray) else bm
   # kind = 'quicksort' if isinstance(indices, jnp.ndarray) else 'stable'
 
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
@@ -436,7 +503,7 @@ def csr2csc(csr, post_num, data=None):
 
   unique_post_ids, count = np.unique(indices, return_counts=True)
   post_count = np.zeros(post_num, dtype=IDX_DTYPE)
-  post_count = post_count.at[unique_post_ids.value if isinstance(unique_post_ids, bm.JaxArray) else unique_post_ids].set(count.value if isinstance(count, bm.JaxArray) else count)
+  post_count[unique_post_ids] = count
 
   indptr_new = post_count.cumsum()
   indptr_new = np.insert(indptr_new, 0, 0)
@@ -451,14 +518,14 @@ def csr2csc(csr, post_num, data=None):
 
 def mat2csr(dense):
   """convert a dense matrix to (indices, indptr)."""
-  np = jnp if isinstance(dense, jnp.ndarray) else bm
+  np = onp if isinstance(dense, onp.ndarray) else bm
 
   pre_ids, post_ids = np.where(dense > 0)
   pre_num = dense.shape[0]
 
   uni_idx, count = np.unique(pre_ids, return_counts=True)
   pre_count = np.zeros(pre_num, dtype=IDX_DTYPE)
-  pre_count = pre_count.at[uni_idx.value if isinstance(uni_idx, bm.JaxArray) else uni_idx].set(count.value if isinstance(count, bm.JaxArray) else count)
+  pre_count[uni_idx] = count
   indptr = count.cumsum()
   indptr = np.insert(indptr, 0, 0)
 
@@ -468,54 +535,65 @@ def mat2csr(dense):
 def csr2mat(csr, num_pre, num_post):
   """convert (indices, indptr) to a dense matrix."""
   indices, indptr = csr
-  np = jnp if isinstance(indices, jnp.ndarray) else bm
-
+  np = onp if isinstance(indices, onp.ndarray) else bm
   d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
-  d = d.at[pre_ids.value if isinstance(pre_ids, bm.JaxArray) else pre_ids, indices.value if isinstance(indices, bm.JaxArray) else indices].set(True)
+  d[pre_ids, indices] = True
   return d
 
 
 def ij2mat(ij, num_pre, num_post):
   """convert (indices, indptr) to a dense matrix."""
   pre_ids, post_ids = ij
-  np = jnp if isinstance(pre_ids, jnp.ndarray) else bm
-
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
   d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
-  d = d.at[pre_ids.value if isinstance(pre_ids, bm.JaxArray) else pre_ids, post_ids.value if isinstance(post_ids, bm.JaxArray) else post_ids].set(True)
+  d[pre_ids, post_ids] = True
   return d
 
 
 def ij2csr(pre_ids, post_ids, num_pre):
   """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
-  np = jnp if isinstance(pre_ids, jnp.ndarray) else bm
-  sort_ids = np.argsort(pre_ids)
-  post_ids = post_ids[sort_ids.value if isinstance(sort_ids, bm.JaxArray) else sort_ids]
+  if isinstance(pre_ids, onp.ndarray):
+    return _cpu_ij2csr(pre_ids, post_ids, num_pre)
+  elif isinstance(pre_ids, (jnp.ndarray, bm.ndarray)):
+    if pre_ids.device().platform == 'cpu':
+      return _cpu_ij2csr(pre_ids, post_ids, num_pre)
+    else:
+      return _gpu_ij2csr(pre_ids, post_ids, num_pre)
+  else:
+    raise TypeError
+
+
+def _gpu_ij2csr(pre_ids, post_ids, num_pre):
+  """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
+  sort_ids = bm.argsort(pre_ids)
+  post_ids = post_ids[sort_ids]
   indices = post_ids
+  unique_pre_ids, pre_count = bm.unique(pre_ids, return_counts=True)
+  final_pre_count = bm.zeros(num_pre, dtype=jnp.uint32)
+  final_pre_count[unique_pre_ids] = pre_count
+  indptr = final_pre_count.cumsum()
+  indptr = bm.insert(indptr, 0, 0)
+  return bm.asarray(indices, dtype=IDX_DTYPE), bm.asarray(indptr, dtype=IDX_DTYPE)
+
+
+def _cpu_ij2csr(pre_ids, post_ids, num_pre):
+  """convert pre_ids, post_ids to (indices, indptr). and use numba for sort function when'jax_platform_name' = 'cpu'"""
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
   unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
-  final_pre_count = np.zeros(num_pre, dtype=jnp.uint32)
-  final_pre_count = final_pre_count.at[unique_pre_ids.value if isinstance(unique_pre_ids, bm.JaxArray) else unique_pre_ids].set(pre_count.value if isinstance(pre_count, bm.JaxArray) else pre_count)
+  final_pre_count = np.zeros(num_pre, dtype=np.uint32)
+  final_pre_count[unique_pre_ids] = pre_count
   indptr = final_pre_count.cumsum()
   indptr = np.insert(indptr, 0, 0)
 
-  return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
-
-def ij2csr2(pre_ids, post_ids, num_pre):
-  """convert pre_ids, post_ids to (indices, indptr). and use numba for sort function when'jax_platform_name' = 'cpu'"""
-  np = jnp if isinstance(pre_ids, jnp.ndarray) else bm
-  post_ids = onp.asarray(post_ids)
-  unique_pre_ids, pre_count = onp.unique(pre_ids, return_counts=True)
-  final_pre_count = onp.zeros(num_pre, dtype=onp.uint32)
-  final_pre_count[unique_pre_ids] = pre_count
-  indptr = final_pre_count.cumsum()
-  indptr = onp.insert(indptr, 0, 0)
-  @numba_jit (parallel=True, nogil=True)
-  def single_sort(pre_ids,post_ids,indptr):
+  @numba_jit(parallel=True, nogil=True)
+  def single_sort(pre_ids, post_ids, indptr):
     pre_tmp = indptr.copy()
-    indices= onp.zeros((indptr[-1],))
+    indices = onp.zeros((indptr[-1],))
     for i in numba_range(indptr[-1]):
-      indices[pre_tmp[pre_ids[i]]]=post_ids[i]
-      pre_tmp[pre_ids[i]]+=1
+      indices[pre_tmp[pre_ids[i]]] = post_ids[i]
+      pre_tmp[pre_ids[i]] += 1
     return indices
-  indices = single_sort(onp.asarray(pre_ids),onp.asarray(post_ids),indptr)
+
+  indices = single_sort(bm.as_numpy(pre_ids), bm.as_numpy(post_ids), bm.as_numpy(indptr))
   return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)

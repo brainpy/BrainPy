@@ -476,17 +476,17 @@ class JaxArray(object):
     return self.value.at
 
   def block_host_until_ready(self, *args):
-    self._value.block_host_until_ready(*args)
+    return self.value.block_host_until_ready(*args)
 
   def block_until_ready(self, *args):
-    self._value.block_until_ready(*args)
+    return self.value.block_until_ready(*args)
 
   def device(self):
-    raise self.value.device()
+    return self.value.device()
 
   @property
   def device_buffer(self):
-    raise self.value.device_buffer
+    return self.value.device_buffer
 
   # ----------------------- #
   #      NumPy methods      #
