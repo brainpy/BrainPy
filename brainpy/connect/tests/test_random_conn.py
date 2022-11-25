@@ -24,6 +24,8 @@ class TestFixedProb(unittest.TestCase):
     mat = conn2(100, 1000).require(bp.connect.CONN_MAT)
     self.assertTrue(mat.shape == (100, 1000))
 
+    mat = conn2.require(10, 20, bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (10, 20))
 
 
 def test_random_fix_pre1():

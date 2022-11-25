@@ -33,7 +33,7 @@ __all__ = [
 def _parallel(ordered: bool,
               function: Callable,
               arguments: Union[Sequence[Iterable], Dict[str, Iterable]],
-              num_thread: Union[int, float] = None,
+              num_process: Union[int, float] = None,
               num_task: int = None,
               **tqdm_kwargs: Any) -> Generator:
   """Perform a parallel map with a progress bar.
@@ -46,7 +46,7 @@ def _parallel(ordered: bool,
     The function to apply to each element of the given Iterables.
   arguments: sequence of Iterable, dict
     One or more Iterables containing the data to be mapped.
-  num_thread: int, float
+  num_process: int, float
     Number of threads used for parallel running. If `int`, it is
     the number of threads to be used; if `float`, it is the fraction
     of total threads to be used for running.
@@ -70,15 +70,15 @@ def _parallel(ordered: bool,
       '''
     )
 
-  # Determine num_thread
-  if num_thread is None:
-    num_thread = cpu_count()
-  elif isinstance(num_thread, int):
+  # Determine num_process
+  if num_process is None:
+    num_process = cpu_count()
+  elif isinstance(num_process, int):
     pass
-  elif isinstance(num_thread, float):
-    num_thread = int(round(num_thread * cpu_count()))
+  elif isinstance(num_process, float):
+    num_process = int(round(num_process * cpu_count()))
   else:
-    raise ValueError('"num_thread" must be an int or a float.')
+    raise ValueError('"num_process" must be an int or a float.')
 
   # arguments
   if isinstance(arguments, dict):
@@ -96,7 +96,7 @@ def _parallel(ordered: bool,
   num_task = num_task or (min(lengths) if lengths else None)
 
   # Create parallel generator
-  pool = ProcessPool(nodes=num_thread)
+  pool = ProcessPool(nodes=num_process)
   if ordered:
     map_func = pool.imap
   else:
@@ -112,7 +112,7 @@ def _parallel(ordered: bool,
 def cpu_ordered_parallel(
     func: Callable,
     arguments: Union[Sequence[Iterable], Dict[str, Iterable]],
-    num_thread: Optional[Union[int, float]] = None,
+    num_process: Optional[Union[int, float]] = None,
     num_task: Optional[int] = None,
     **tqdm_kwargs: Any
 ) -> List[Any]:
@@ -136,7 +136,7 @@ def cpu_ordered_parallel(
   >>>   return runner.mon.spike.sum()
   >>>
   >>> if __name__ == '__main__':  # This is important!
-  >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_thread=10)
+  >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
   >>>   print(results)
   Parameters
   ----------
@@ -144,7 +144,7 @@ def cpu_ordered_parallel(
     The function to apply to each element of the given Iterables.
   arguments: sequence of Iterable, dict
     One or more Iterables containing the data to be mapped.
-  num_thread: int, float
+  num_process: int, float
     Number of threads used for parallel running. If `int`, it is
     the number of threads to be used; if `float`, it is the fraction
     of total threads to be used for running.
@@ -161,7 +161,7 @@ def cpu_ordered_parallel(
   generator = _parallel(True,
                         func,
                         arguments,
-                        num_thread=num_thread,
+                        num_process=num_process,
                         num_task=num_task,
                         **tqdm_kwargs)
   return list(generator)
@@ -170,7 +170,7 @@ def cpu_ordered_parallel(
 def cpu_unordered_parallel(
     func: Callable,
     arguments: Union[Sequence[Iterable], Dict[str, Iterable]],
-    num_thread: Optional[Union[int, float]] = None,
+    num_process: Optional[Union[int, float]] = None,
     num_task: Optional[int] = None,
     **tqdm_kwargs: Any
 ) -> List[Any]:
@@ -193,7 +193,7 @@ def cpu_unordered_parallel(
   >>>   return runner.mon.spike.sum()
   >>>
   >>> if __name__ == '__main__':  # This is important!
-  >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_thread=10)
+  >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
   >>>   print(results)
 
   Parameters
@@ -202,7 +202,7 @@ def cpu_unordered_parallel(
     The function to apply to each element of the given Iterables.
   arguments: sequence of Iterable, dict
     One or more Iterables containing the data to be mapped.
-  num_thread: int, float
+  num_process: int, float
     Number of threads used for parallel running. If `int`, it is
     the number of threads to be used; if `float`, it is the fraction
     of total threads to be used for running.
@@ -219,7 +219,7 @@ def cpu_unordered_parallel(
   generator = _parallel(False,
                         func,
                         arguments,
-                        num_thread=num_thread,
+                        num_process=num_process,
                         num_task=num_task,
                         **tqdm_kwargs)
   return list(generator)
