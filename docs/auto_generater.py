@@ -565,7 +565,9 @@ def generate_running_docs(path='apis/auto/'):
     os.makedirs(path)
 
   module_and_name = [
-    ('multiprocess', 'Parallel Pool'),
+    ('pathos_multiprocessing', 'Parallel Processing 1'),
+    ('native_multiprocessing', 'Parallel Processing 2'),
+    ('jax_multiprocessing', 'Parallel Processing 3'),
     ('runner', 'Runners')
   ]
   write_submodules(module_name='brainpy.running',
