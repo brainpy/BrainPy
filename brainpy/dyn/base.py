@@ -988,7 +988,7 @@ class TwoEndConn(SynConn):
     ltp.register_master(master=self)
     self.ltp: SynLTP = ltp
 
-  def init_weights(
+  def _init_weights(
       self,
       weight: Union[float, Array, Initializer, Callable],
       comp_method: str,
@@ -1030,7 +1030,7 @@ class TwoEndConn(SynConn):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
-  def syn2post_with_all2all(self, syn_value, syn_weight):
+  def _syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
       if isinstance(self.mode, BatchingMode):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
@@ -1043,10 +1043,10 @@ class TwoEndConn(SynConn):
       post_vs = syn_value @ syn_weight
     return post_vs
 
-  def syn2post_with_one2one(self, syn_value, syn_weight):
+  def _syn2post_with_one2one(self, syn_value, syn_weight):
     return syn_value * syn_weight
 
-  def syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
+  def _syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
     if bm.ndim(syn_weight) == 0:
       post_vs = (syn_weight * syn_value) @ conn_mat
     else:
