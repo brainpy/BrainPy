@@ -13,7 +13,7 @@ GNU/Linux, and OSX. It only relies on Python libraries.
 Installation with pip
 ---------------------
 
-You can install ``BrainPy`` from the `pypi <https://pypi.org/project/brain-py/>`_.
+You can install ``BrainPy`` from the `pypi <https://pypi.org/project/brainpy/>`_.
 To do so, use:
 
 .. code-block:: bash
@@ -46,7 +46,7 @@ To install ``brainpylib`` (needed in dedicated operators), you can use:
 Installation from source
 ------------------------
 
-If you decide not to use ``conda`` or ``pip``, you can install ``BrainPy`` from
+If you decide not to use ``pip``, you can install ``BrainPy`` from
 `GitHub <https://github.com/PKU-NIP-Lab/BrainPy>`_,
 or `OpenI <https://git.openi.org.cn/OpenI/BrainPy>`_.
 
