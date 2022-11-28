@@ -1018,7 +1018,7 @@ class TwoEndConn(SynConn):
           conn_mask = self.conn.require('post_ids', 'pre_ids')
         else:
           ValueError(f'Unknown sparse data type: {sparse_data}')
-        weight = parameter(weight, conn_mask[1].shape, allow_none=False)
+        weight = parameter(weight, conn_mask[0].shape, allow_none=False)
       elif comp_method == 'dense':
         weight = parameter(weight, (self.pre.num, self.post.num), allow_none=False)
         conn_mask = self.conn.require('conn_mat')
