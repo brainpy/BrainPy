@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import abc
-from typing import Union, List, Tuple, Any
+from typing import Union, List, Tuple
 
 import jax.numpy as jnp
 import numpy as onp
-from jax import config
+
 from brainpy import tools, math as bm
 from brainpy.errors import ConnectorError
-from brainpy.tools.others import numba_jit, numba_range
 
 __all__ = [
   # the connection types
@@ -553,47 +552,15 @@ def ij2mat(ij, num_pre, num_post):
 
 def ij2csr(pre_ids, post_ids, num_pre):
   """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
-  if isinstance(pre_ids, onp.ndarray):
-    return _cpu_ij2csr(pre_ids, post_ids, num_pre)
-  elif isinstance(pre_ids, (jnp.ndarray, bm.ndarray)):
-    if pre_ids.device().platform == 'cpu':
-      return _cpu_ij2csr(pre_ids, post_ids, num_pre)
-    else:
-      return _gpu_ij2csr(pre_ids, post_ids, num_pre)
-  else:
-    raise TypeError
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
 
-
-def _gpu_ij2csr(pre_ids, post_ids, num_pre):
-  """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
-  sort_ids = bm.argsort(pre_ids)
+  sort_ids = np.argsort(pre_ids)
   post_ids = post_ids[sort_ids]
   indices = post_ids
-  unique_pre_ids, pre_count = bm.unique(pre_ids, return_counts=True)
-  final_pre_count = bm.zeros(num_pre, dtype=jnp.uint32)
-  final_pre_count[unique_pre_ids] = pre_count
-  indptr = final_pre_count.cumsum()
-  indptr = bm.insert(indptr, 0, 0)
-  return bm.asarray(indices, dtype=IDX_DTYPE), bm.asarray(indptr, dtype=IDX_DTYPE)
-
-
-def _cpu_ij2csr(pre_ids, post_ids, num_pre):
-  """convert pre_ids, post_ids to (indices, indptr). and use numba for sort function when'jax_platform_name' = 'cpu'"""
-  np = onp if isinstance(pre_ids, onp.ndarray) else bm
   unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
-  final_pre_count = np.zeros(num_pre, dtype=np.uint32)
+  final_pre_count = np.zeros(num_pre, dtype=jnp.uint32)
   final_pre_count[unique_pre_ids] = pre_count
   indptr = final_pre_count.cumsum()
   indptr = np.insert(indptr, 0, 0)
-
-  @numba_jit(parallel=True, nogil=True)
-  def single_sort(pre_ids, post_ids, indptr):
-    pre_tmp = indptr.copy()
-    indices = onp.zeros((indptr[-1],))
-    for i in numba_range(indptr[-1]):
-      indices[pre_tmp[pre_ids[i]]] = post_ids[i]
-      pre_tmp[pre_ids[i]] += 1
-    return indices
-
-  indices = single_sort(bm.as_numpy(pre_ids), bm.as_numpy(post_ids), bm.as_numpy(indptr))
   return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
+
