@@ -1,11 +1,11 @@
 numpy>=1.15
-jax>=0.3.0
 tqdm
 numba
 matplotlib>=3.4
+jax>=0.3.0
 jaxlib>=0.3.0
 scipy>=1.1.0
-brainpylib>=0.0.5
+brainpylib
 h5py
 requests
 pillow
