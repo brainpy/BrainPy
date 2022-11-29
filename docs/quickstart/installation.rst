@@ -167,7 +167,7 @@ Many customized operators in BrainPy are implemented in ``brainpylib``.
 
 For GPU operators, you should compile ``brainpylib`` from source.
 The details please see
-`Compile GPU operators in brainpylib <https://brainpy.readthedocs.io/en/latest/quickstart/installation.html>`_.
+`Compile GPU operators in brainpylib <https://brainpylib.readthedocs.io/en/latest/quickstart/installation.html>`_.
 
 
 Other Dependency
