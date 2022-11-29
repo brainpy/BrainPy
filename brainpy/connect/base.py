@@ -24,7 +24,9 @@ __all__ = [
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # methods
-  'csr2csc', 'csr2mat', 'mat2csr', 'ij2csr'
+  'mat2coo', 'mat2csc', 'mat2csr',
+  'csr2csc', 'csr2mat', 'csr2coo',
+  'coo2csr', 'coo2csc', 'coo2mat',
 ]
 
 CONN_MAT = 'conn_mat'
@@ -36,12 +38,16 @@ PRE2SYN = 'pre2syn'
 POST2SYN = 'post2syn'
 PRE_SLICE = 'pre_slice'
 POST_SLICE = 'post_slice'
+COO = 'coo'
+CSR = 'csr'
+CSC = 'csc'
 
 SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
                            PRE_IDS, POST_IDS,
                            PRE2POST, POST2PRE,
                            PRE2SYN, POST2SYN,
-                           PRE_SLICE, POST_SLICE]
+                           PRE_SLICE, POST_SLICE,
+                           COO, CSR, CSC]
 
 MAT_DTYPE = jnp.bool_
 IDX_DTYPE = jnp.uint32
@@ -99,7 +105,7 @@ class TwoEndConnector(Connector):
 
   1. Implementing ``build_conn(self)`` function, which returns one of
      the connection data ``csr`` (CSR sparse data, a tuple of <post_ids, inptr>),
-     ``ij`` (COO sparse data, a tuple of <pre_ids, post_ids>), or ``mat``
+     ``coo`` (COO sparse data, a tuple of <pre_ids, post_ids>), or ``mat``
      (a binary connection matrix). For instance,
 
      .. code-block:: python
@@ -107,7 +113,7 @@ class TwoEndConnector(Connector):
         import brainpy as bp
         class MyConnector(bp.conn.TwoEndConnector):
           def build_conn(self):
-            return dict(csr=, mat=, ij=)
+            return dict(csr=, mat=, coo=)
 
   2. Implementing functions ``build_mat()``, ``build_csr()``, and
      ``build_coo()``. Users can provide all three functions, or one of them.
@@ -201,13 +207,10 @@ class TwoEndConnector(Connector):
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
       all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
 
-    require_other_structs = len([s for s in structures if s != CONN_MAT]) > 0
-    if require_other_structs:
-      np = onp if isinstance(mat, onp.ndarray) else bm
-      pre_ids, post_ids = np.where(mat > 0)
-      pre_ids = np.asarray(pre_ids, dtype=IDX_DTYPE)
-      post_ids = np.asarray(post_ids, dtype=IDX_DTYPE)
-      self._return_by_ij(structures, ij=(pre_ids, post_ids), all_data=all_data)
+    if len([s for s in structures
+            if s not in [CONN_MAT]]) > 0:
+      ij = mat2coo(mat)
+      self._return_by_coo(structures, coo=ij, all_data=all_data)
 
   def _return_by_csr(self, structures, csr: tuple, all_data: dict):
     indices, indptr = csr
@@ -225,14 +228,28 @@ class TwoEndConnector(Connector):
     if (POST_IDS in structures) and (POST_IDS not in all_data):
       all_data[POST_IDS] = bm.asarray(indices, dtype=IDX_DTYPE)
 
+    if (COO in structures) and (COO not in all_data):
+      pre_ids = np.repeat(np.arange(self.pre_num), np.diff(indptr))
+      all_data[COO] = (bm.asarray(pre_ids, dtype=IDX_DTYPE),
+                       bm.asarray(indices, dtype=IDX_DTYPE))
+
     if (PRE2POST in structures) and (PRE2POST not in all_data):
       all_data[PRE2POST] = (bm.asarray(indices, dtype=IDX_DTYPE),
                             bm.asarray(indptr, dtype=IDX_DTYPE))
+
+    if (CSR in structures) and (CSR not in all_data):
+      all_data[CSR] = (bm.asarray(indices, dtype=IDX_DTYPE),
+                       bm.asarray(indptr, dtype=IDX_DTYPE))
 
     if (POST2PRE in structures) and (POST2PRE not in all_data):
       indc, indptrc = csr2csc((indices, indptr), self.post_num)
       all_data[POST2PRE] = (bm.asarray(indc, dtype=IDX_DTYPE),
                             bm.asarray(indptrc, dtype=IDX_DTYPE))
+
+    if (CSC in structures) and (CSC not in all_data):
+      indc, indptrc = csr2csc((indices, indptr), self.post_num)
+      all_data[CSC] = (bm.asarray(indc, dtype=IDX_DTYPE),
+                       bm.asarray(indptrc, dtype=IDX_DTYPE))
 
     if (PRE2SYN in structures) and (PRE2SYN not in all_data):
       syn_seq = np.arange(indices.size, dtype=IDX_DTYPE)
@@ -245,11 +262,11 @@ class TwoEndConnector(Connector):
       all_data[POST2SYN] = (bm.asarray(syn_seqc, dtype=IDX_DTYPE),
                             bm.asarray(indptrc, dtype=IDX_DTYPE))
 
-  def _return_by_ij(self, structures, ij: tuple, all_data: dict):
-    pre_ids, post_ids = ij
+  def _return_by_coo(self, structures, coo: tuple, all_data: dict):
+    pre_ids, post_ids = coo
 
     if (CONN_MAT in structures) and (CONN_MAT not in all_data):
-      all_data[CONN_MAT] = bm.asarray(ij2mat(ij, self.pre_num, self.post_num), dtype=MAT_DTYPE)
+      all_data[CONN_MAT] = bm.asarray(coo2mat(coo, self.pre_num, self.post_num), dtype=MAT_DTYPE)
 
     if (PRE_IDS in structures) and (PRE_IDS not in all_data):
       all_data[PRE_IDS] = bm.asarray(pre_ids, dtype=IDX_DTYPE)
@@ -257,10 +274,24 @@ class TwoEndConnector(Connector):
     if (POST_IDS in structures) and (POST_IDS not in all_data):
       all_data[POST_IDS] = bm.asarray(post_ids, dtype=IDX_DTYPE)
 
-    require_other_structs = len([s for s in structures
-                                 if s not in [CONN_MAT, PRE_IDS, POST_IDS]]) > 0
-    if require_other_structs:
-      csr = ij2csr(pre_ids, post_ids, self.pre_num)
+    if (COO in structures) and (COO not in all_data):
+      all_data[COO] = (bm.asarray(pre_ids, dtype=IDX_DTYPE),
+                       bm.asarray(post_ids, dtype=IDX_DTYPE))
+
+    if CSC in structures and CSC not in all_data:
+      csc = coo2csc(coo, self.post_num)
+      all_data[CSC] = (bm.asarray(csc[0], dtype=IDX_DTYPE),
+                       bm.asarray(csc[1], dtype=IDX_DTYPE))
+
+    if POST2PRE in structures and POST2PRE not in all_data:
+      csc = coo2csc(coo, self.post_num)
+      all_data[POST2PRE] = (bm.asarray(csc[0], dtype=IDX_DTYPE),
+                            bm.asarray(csc[1], dtype=IDX_DTYPE))
+
+    if (len([s for s in structures
+             if s not in [CONN_MAT, PRE_IDS, POST_IDS,
+                          COO, CSC, POST2PRE]]) > 0):
+      csr = coo2csr(coo, self.pre_num)
       self._return_by_csr(structures, csr=csr, all_data=all_data)
 
   def _make_returns(self, structures, conn_data):
@@ -268,30 +299,30 @@ class TwoEndConnector(Connector):
     """
     csr = None
     mat = None
-    ij = None
+    coo = None
     if isinstance(conn_data, dict):
       csr = conn_data.get('csr', None)
       mat = conn_data.get('mat', None)
-      ij = conn_data.get('ij', None)
+      coo = conn_data.get('coo', None)
     elif isinstance(conn_data, tuple):
       if conn_data[0] == 'csr':
         csr = conn_data[1]
       elif conn_data[0] == 'mat':
         mat = conn_data[1]
-      elif conn_data[0] == 'ij':
-        ij = conn_data[1]
+      elif conn_data[0] == 'coo':
+        coo = conn_data[1]
       else:
-        raise ConnectorError(f'Must provide one of "csr", "mat" or "ij". Got "{conn_data[0]}" instead.')
+        raise ConnectorError(f'Must provide one of "csr", "mat" or "coo". Got "{conn_data[0]}" instead.')
     else:
-      raise ConnectorError
+      raise ConnectorError('Unknown type')
 
     # checking
-    all_data = dict()
-    if (csr is None) and (mat is None) and (ij is None):
-      raise ConnectorError('Must provide one of "csr", "mat" or "ij".')
+    if (csr is None) and (mat is None) and (coo is None):
+      raise ConnectorError('Must provide one of "csr", "mat" or "coo".')
     structures = (structures,) if isinstance(structures, str) else structures
     assert isinstance(structures, (tuple, list))
 
+    all_data = dict()
     # "csr" structure
     if csr is not None:
       if (PRE2POST in structures) and (PRE2POST not in all_data):
@@ -306,13 +337,13 @@ class TwoEndConnector(Connector):
         all_data[CONN_MAT] = bm.asarray(mat, dtype=MAT_DTYPE)
       self._return_by_mat(structures, mat=mat, all_data=all_data)
 
-    # "ij" structure
-    if ij is not None:
+    # "coo" structure
+    if coo is not None:
       if (PRE_IDS in structures) and (PRE_IDS not in structures):
-        all_data[PRE_IDS] = bm.asarray(ij[0], dtype=IDX_DTYPE)
+        all_data[PRE_IDS] = bm.asarray(coo[0], dtype=IDX_DTYPE)
       if (POST_IDS in structures) and (POST_IDS not in structures):
-        all_data[POST_IDS] = bm.asarray(ij[1], dtype=IDX_DTYPE)
-      self._return_by_ij(structures, ij=ij, all_data=all_data)
+        all_data[POST_IDS] = bm.asarray(coo[1], dtype=IDX_DTYPE)
+      self._return_by_coo(structures, coo=coo, all_data=all_data)
 
     # return
     if len(structures) == 1:
@@ -348,36 +379,91 @@ class TwoEndConnector(Connector):
     else:
       return tuple()
 
-    try:
-      assert self.pre_num is not None and self.post_num is not None
-    except AssertionError:
+    if self.pre_num is None or self.post_num is None:
       raise ConnectorError(f'self.pre_num or self.post_num is not defined. '
                            f'Please use "self.require(pre_size, post_size, DATA1, DATA2, ...)" ')
 
+    _has_coo_imp = not hasattr(self.build_coo, 'not_customized')
+    _has_csr_imp = not hasattr(self.build_csr, 'not_customized')
+    _has_mat_imp = not hasattr(self.build_mat, 'not_customized')
+
     self._check(structures)
-    if self.is_version2_style:
+    if (_has_coo_imp or _has_csr_imp or _has_mat_imp):
       if len(structures) == 1:
-        if PRE2POST in structures and not hasattr(self.build_csr, 'not_customized'):
+        if PRE2POST in structures and _has_csr_imp:
           r = self.build_csr()
           return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
-        elif CONN_MAT in structures and not hasattr(self.build_mat, 'not_customized'):
-          return bm.asarray(self.build_mat(), dtype=MAT_DTYPE)
-        elif PRE_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
-          return bm.asarray(self.build_coo()[0], dtype=IDX_DTYPE)
-        elif POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
-          return bm.asarray(self.build_coo()[1], dtype=IDX_DTYPE)
-      elif len(structures) == 2:
-        if PRE_IDS in structures and POST_IDS in structures and not hasattr(self.build_coo, 'not_customized'):
-          r = self.build_coo()
+        elif CSR in structures and _has_csr_imp:
+          r = self.build_csr()
           return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
+        elif CONN_MAT in structures and _has_mat_imp:
+          return bm.asarray(self.build_mat(), dtype=MAT_DTYPE)
+        elif PRE_IDS in structures and _has_coo_imp:
+          return bm.asarray(self.build_coo()[0], dtype=IDX_DTYPE)
+        elif POST_IDS in structures and _has_coo_imp:
+          return bm.asarray(self.build_coo()[1], dtype=IDX_DTYPE)
+        elif COO in structures and not _has_coo_imp:
+          return bm.asarray(self.build_coo(), dtype=IDX_DTYPE)
+
+      elif len(structures) == 2:
+        if (PRE_IDS in structures and POST_IDS in structures and _has_coo_imp):
+          r = self.build_coo()
+          if structures[0] == PRE_IDS:
+            return bm.asarray(r[0], dtype=IDX_DTYPE), bm.asarray(r[1], dtype=IDX_DTYPE)
+          else:
+            return bm.asarray(r[1], dtype=IDX_DTYPE), bm.asarray(r[0], dtype=IDX_DTYPE)
+
+        if ((CSR in structures or PRE2POST in structures)
+            and _has_csr_imp and COO in structures and _has_coo_imp):
+          csr = self.build_csr()
+          csr = (bm.asarray(csr[0], dtype=IDX_DTYPE), bm.asarray(csr[1], dtype=IDX_DTYPE))
+          coo = self.build_coo()
+          coo = (bm.asarray(coo[0], dtype=IDX_DTYPE), bm.asarray(coo[1], dtype=IDX_DTYPE))
+          if structures[0] == COO:
+            return coo, csr
+          else:
+            return csr, coo
+
+        if ((CSR in structures or PRE2POST in structures)
+            and _has_csr_imp and CONN_MAT in structures and _has_mat_imp):
+          csr = self.build_csr()
+          csr = (bm.asarray(csr[0], dtype=IDX_DTYPE), bm.asarray(csr[1], dtype=IDX_DTYPE))
+          mat = bm.asarray(self.build_mat(), dtype=MAT_DTYPE)
+          if structures[0] == CONN_MAT:
+            return mat, csr
+          else:
+            return csr, mat
+
+        if (COO in structures and _has_coo_imp and CONN_MAT in structures and _has_mat_imp):
+          coo = self.build_coo()
+          coo = (bm.asarray(coo[0], dtype=IDX_DTYPE), bm.asarray(coo[1], dtype=IDX_DTYPE))
+          mat = bm.asarray(self.build_mat(), dtype=MAT_DTYPE)
+          if structures[0] == COO:
+            return coo, mat
+          else:
+            return mat, coo
 
       conn_data = dict(csr=None, ij=None, mat=None)
-      if not hasattr(self.build_coo, 'not_customized'):
-        conn_data['ij'] = self.build_coo()
-      elif not hasattr(self.build_csr, 'not_customized'):
+      if _has_coo_imp:
+        conn_data['coo'] = self.build_coo()
+        # if (CSR in structures or PRE2POST in structures) and _has_csr_imp:
+        #   conn_data['csr'] = self.build_csr()
+        # if CONN_MAT in structures and _has_mat_imp:
+        #   conn_data['mat'] = self.build_mat()
+      elif _has_csr_imp:
         conn_data['csr'] = self.build_csr()
-      elif not hasattr(self.build_mat, 'not_customized'):
+        # if COO in structures and _has_coo_imp:
+        #   conn_data['coo'] = self.build_coo()
+        # if CONN_MAT in structures and _has_mat_imp:
+        #   conn_data['mat'] = self.build_mat()
+      elif _has_mat_imp:
         conn_data['mat'] = self.build_mat()
+        # if COO in structures and _has_coo_imp:
+        #   conn_data['coo'] = self.build_coo()
+        # if (CSR in structures or PRE2POST in structures) and _has_csr_imp:
+        #   conn_data['csr'] = self.build_csr()
+      else:
+        raise ValueError
 
     else:
       conn_data = self.build_conn()
@@ -404,8 +490,8 @@ class TwoEndConnector(Connector):
     conn: tuple, dict
       A tuple with two elements: connection type (str) and connection data.
       For example: ``return 'csr', (ind, indptr)``
-      Or a dict with three elements: csr, mat and ij. For example:
-      ``return dict(csr=(ind, indptr), mat=None, ij=None)``
+      Or a dict with three elements: csr, mat and coo. For example:
+      ``return dict(csr=(ind, indptr), mat=None, coo=None)``
     """
     pass
 
@@ -487,17 +573,80 @@ class OneEndConnector(TwoEndConnector):
     self.__call__(pre_size, post_size)
 
 
-def csr2csc(csr, post_num, data=None):
-  """Convert csr to csc."""
+def mat2csr(dense):
+  """convert a dense matrix to (indices, indptr)."""
+  np = onp if isinstance(dense, onp.ndarray) else bm
+  pre_ids, post_ids = np.where(dense > 0)
+  return coo2csr((pre_ids, post_ids), dense.shape[0])
+
+
+def mat2coo(dense):
+  np = onp if isinstance(dense, onp.ndarray) else bm
+  pre_ids, post_ids = np.where(dense > 0)
+  return np.asarray(pre_ids, dtype=IDX_DTYPE), np.asarray(post_ids, dtype=IDX_DTYPE)
+
+
+def mat2csc(dense):
+  np = onp if isinstance(dense, onp.ndarray) else bm
+  pre_ids, post_ids = np.where(dense > 0)
+  return coo2csr((post_ids, pre_ids), dense.shape[1])
+
+
+def csr2mat(csr, num_pre, num_post):
+  """convert (indices, indptr) to a dense matrix."""
   indices, indptr = csr
   np = onp if isinstance(indices, onp.ndarray) else bm
-  # kind = 'quicksort' if isinstance(indices, jnp.ndarray) else 'stable'
-
+  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
+  d[pre_ids, indices] = True
+  return d
 
-  sort_ids = np.argsort(indices)  # to maintain the original order of the elements with the same value
-  if isinstance(sort_ids, bm.JaxArray):
-    sort_ids = sort_ids.value
+
+def csr2csc(csr, post_num, data=None):
+  """Convert csr to csc."""
+  return coo2csc(csr2coo(csr), post_num, data)
+
+
+def csr2coo(csr):
+  np = onp if isinstance(csr[0], onp.ndarray) else bm
+  indices, indptr = csr
+  pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
+  return pre_ids, indices
+
+
+def coo2mat(ij, num_pre, num_post):
+  """convert (indices, indptr) to a dense matrix."""
+  pre_ids, post_ids = ij
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
+  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
+  d[pre_ids, post_ids] = True
+  return d
+
+
+def coo2csr(coo, num_pre):
+  """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
+  pre_ids, post_ids = coo
+  np = onp if isinstance(pre_ids, onp.ndarray) else bm
+
+  sort_ids = np.argsort(pre_ids)
+  post_ids = np.asarray(post_ids)
+  post_ids = post_ids[sort_ids]
+  indices = post_ids
+  unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
+  final_pre_count = np.zeros(num_pre, dtype=jnp.uint32)
+  final_pre_count[unique_pre_ids] = pre_count
+  indptr = final_pre_count.cumsum()
+  indptr = np.insert(indptr, 0, 0)
+  return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
+
+
+def coo2csc(coo, post_num, data=None):
+  """Convert csr to csc."""
+  pre_ids, indices = coo
+  np = onp if isinstance(indices, onp.ndarray) else bm
+
+  # to maintain the original order of the elements with the same value
+  sort_ids = np.argsort(indices)
   pre_ids_new = np.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
 
   unique_post_ids, count = np.unique(indices, return_counts=True)
@@ -513,55 +662,3 @@ def csr2csc(csr, post_num, data=None):
   else:
     data_new = data[sort_ids]
     return pre_ids_new, indptr_new, data_new
-
-
-def mat2csr(dense):
-  """convert a dense matrix to (indices, indptr)."""
-  np = onp if isinstance(dense, onp.ndarray) else bm
-
-  pre_ids, post_ids = np.where(dense > 0)
-  pre_num = dense.shape[0]
-
-  uni_idx, count = np.unique(pre_ids, return_counts=True)
-  pre_count = np.zeros(pre_num, dtype=IDX_DTYPE)
-  pre_count[uni_idx] = count
-  indptr = count.cumsum()
-  indptr = np.insert(indptr, 0, 0)
-
-  return np.asarray(post_ids, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
-
-
-def csr2mat(csr, num_pre, num_post):
-  """convert (indices, indptr) to a dense matrix."""
-  indices, indptr = csr
-  np = onp if isinstance(indices, onp.ndarray) else bm
-  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
-  pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
-  d[pre_ids, indices] = True
-  return d
-
-
-def ij2mat(ij, num_pre, num_post):
-  """convert (indices, indptr) to a dense matrix."""
-  pre_ids, post_ids = ij
-  np = onp if isinstance(pre_ids, onp.ndarray) else bm
-  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
-  d[pre_ids, post_ids] = True
-  return d
-
-
-def ij2csr(pre_ids, post_ids, num_pre):
-  """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
-  np = onp if isinstance(pre_ids, onp.ndarray) else bm
-
-  sort_ids = np.argsort(pre_ids)
-  post_ids = np.asarray(post_ids)
-  post_ids = post_ids[sort_ids]
-  indices = post_ids
-  unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
-  final_pre_count = np.zeros(num_pre, dtype=jnp.uint32)
-  final_pre_count[unique_pre_ids] = pre_count
-  indptr = final_pre_count.cumsum()
-  indptr = np.insert(indptr, 0, 0)
-  return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
-

@@ -81,8 +81,8 @@ class CSRConn(TwoEndConnector):
   def __init__(self, indices, inptr):
     super(CSRConn, self).__init__()
 
-    self.indices = bm.asarray(indices).astype(IDX_DTYPE)
-    self.inptr = bm.asarray(inptr).astype(IDX_DTYPE)
+    self.indices = bm.asarray(indices, dtype=IDX_DTYPE)
+    self.inptr = bm.asarray(inptr, dtype=IDX_DTYPE)
     self.pre_num = self.inptr.size - 1
     self.max_post = bm.max(self.indices)
 
@@ -110,3 +110,5 @@ class SparseMatConn(CSRConn):
     self.csr_mat = csr_mat
     super(SparseMatConn, self).__init__(indices=bm.asarray(self.csr_mat.indices, dtype=IDX_DTYPE),
                                         inptr=bm.asarray(self.csr_mat.indptr, dtype=IDX_DTYPE))
+    self.pre_num = csr_mat.shape[0]
+    self.post_num = csr_mat.shape[1]
