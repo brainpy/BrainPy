@@ -119,7 +119,7 @@ class Delta(TwoEndConn):
     self.comp_method = comp_method
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method=comp_method, sparse_data='csr')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method=comp_method, sparse_data='csr')
 
     # register delay
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
@@ -143,10 +143,10 @@ class Delta(TwoEndConn):
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
       syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
       syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
@@ -160,7 +160,7 @@ class Delta(TwoEndConn):
         #   post_vs *= f2(stp_value)
       else:
         syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     if self.post_ref_key:
       post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))
 
@@ -296,7 +296,7 @@ class Exponential(TwoEndConn):
       raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='csr')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
     self.g = variable_(bm.zeros, self.post.num, mode)
@@ -328,11 +328,11 @@ class Exponential(TwoEndConn):
     if isinstance(self.conn, All2All):
       syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
       if self.stp is not None: syn_value = self.stp(syn_value)
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
       syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
       if self.stp is not None: syn_value = self.stp(syn_value)
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
@@ -343,7 +343,7 @@ class Exponential(TwoEndConn):
       else:
         syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
         if self.stp is not None: syn_value = self.stp(syn_value)
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
     self.g.value = self.integral(self.g.value, t, dt) + post_vs
 
@@ -487,7 +487,7 @@ class DualExponential(TwoEndConn):
                        f'But we got {self.tau_decay}')
 
     # connections
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
     self.h = variable_(bm.zeros, self.pre.num, mode)
@@ -531,16 +531,16 @@ class DualExponential(TwoEndConn):
     syn_value = self.g.value
     if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
     return self.output(post_vs)
@@ -829,7 +829,7 @@ class NMDA(TwoEndConn):
     self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
     self.g = variable_(bm.zeros, self.pre.num, mode)
@@ -872,16 +872,16 @@ class NMDA(TwoEndConn):
     syn_value = self.g.value
     if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
     return self.output(post_vs)

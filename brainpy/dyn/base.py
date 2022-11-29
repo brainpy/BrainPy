@@ -988,7 +988,7 @@ class TwoEndConn(SynConn):
     ltp.register_master(master=self)
     self.ltp: SynLTP = ltp
 
-  def init_weights(
+  def _init_weights(
       self,
       weight: Union[float, Array, Initializer, Callable],
       comp_method: str,
@@ -996,7 +996,7 @@ class TwoEndConn(SynConn):
   ) -> Union[float, Array]:
     if comp_method not in ['sparse', 'dense']:
       raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
-    if sparse_data not in ['csr', 'ij']:
+    if sparse_data not in ['csr', 'ij', 'coo']:
       raise ValueError(f'"sparse_data" must be in "csr" and "ij", but we got {sparse_data}')
     if self.conn is None:
       raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
@@ -1014,11 +1014,11 @@ class TwoEndConn(SynConn):
       if comp_method == 'sparse':
         if sparse_data == 'csr':
           conn_mask = self.conn.require('pre2post')
-        elif sparse_data == 'ij':
+        elif sparse_data in ['ij', 'coo']:
           conn_mask = self.conn.require('post_ids', 'pre_ids')
         else:
           ValueError(f'Unknown sparse data type: {sparse_data}')
-        weight = parameter(weight, conn_mask[1].shape, allow_none=False)
+        weight = parameter(weight, conn_mask[0].shape, allow_none=False)
       elif comp_method == 'dense':
         weight = parameter(weight, (self.pre.num, self.post.num), allow_none=False)
         conn_mask = self.conn.require('conn_mat')
@@ -1030,7 +1030,7 @@ class TwoEndConn(SynConn):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
-  def syn2post_with_all2all(self, syn_value, syn_weight):
+  def _syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
       if isinstance(self.mode, BatchingMode):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
@@ -1043,10 +1043,10 @@ class TwoEndConn(SynConn):
       post_vs = syn_value @ syn_weight
     return post_vs
 
-  def syn2post_with_one2one(self, syn_value, syn_weight):
+  def _syn2post_with_one2one(self, syn_value, syn_weight):
     return syn_value * syn_weight
 
-  def syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
+  def _syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
     if bm.ndim(syn_weight) == 0:
       post_vs = (syn_weight * syn_value) @ conn_mat
     else:

@@ -55,7 +55,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.7',
-  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm'],
+  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm', 'brainpylib'],
   url='https://github.com/PKU-NIP-Lab/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/PKU-NIP-Lab/BrainPy/issues",
