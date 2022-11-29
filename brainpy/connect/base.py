@@ -555,6 +555,7 @@ def ij2csr(pre_ids, post_ids, num_pre):
   np = onp if isinstance(pre_ids, onp.ndarray) else bm
 
   sort_ids = np.argsort(pre_ids)
+  post_ids = np.asarray(post_ids)
   post_ids = post_ids[sort_ids]
   indices = post_ids
   unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
