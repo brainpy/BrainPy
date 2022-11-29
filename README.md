@@ -17,13 +17,21 @@
 
 
 
-BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax)). It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
+BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax), [Numba](https://github.com/numba/numba), and other JIT compilers). It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
 
 - **Website (documentation and APIs)**: https://brainpy.readthedocs.io/en/latest
 - **Source**: https://github.com/PKU-NIP-Lab/BrainPy
 - **Bug reports**: https://github.com/PKU-NIP-Lab/BrainPy/issues
 - **Source on OpenI**: https://git.openi.org.cn/OpenI/BrainPy
-- **Examples from literature**: https://brainpy-examples.readthedocs.io/
+
+
+
+## Ecosystem
+
+- **BrainPy**: The solution for the general-purpose brain dynamics programming. https://github.com/PKU-NIP-Lab/BrainPy
+- **brainpylib**: Efficient operators for the sparse and event-driven computation. https://github.com/PKU-NIP-Lab/brainpylib
+- **BrainPyExamples**: Comprehensive examples of BrainPy computation. https://github.com/PKU-NIP-Lab/BrainPyExamples
+- **brainpy-largescale**: One solution for the large-scale brain modeling. https://github.com/NH-NCL/brainpy-largescale
 
 
 
@@ -35,12 +43,7 @@ BrainPy is based on Python (>=3.7) and can be installed on  Linux (Ubuntu 16.04 
 $ pip install brainpy -U
 ```
 
-The following packages are required for ``BrainPy``: 
-
-`numpy >= 1.15` and `jax >= 0.3.0`
-
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
-
 
 
 
@@ -52,4 +55,4 @@ For detailed installation instructions, please refer to the documentation: [Quic
 
 ## Citing
 
-If you use BrainPy, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+If you are using BrainPy, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
