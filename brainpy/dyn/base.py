@@ -996,7 +996,7 @@ class TwoEndConn(SynConn):
   ) -> Union[float, Array]:
     if comp_method not in ['sparse', 'dense']:
       raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
-    if sparse_data not in ['csr', 'ij']:
+    if sparse_data not in ['csr', 'ij', 'coo']:
       raise ValueError(f'"sparse_data" must be in "csr" and "ij", but we got {sparse_data}')
     if self.conn is None:
       raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
@@ -1014,7 +1014,7 @@ class TwoEndConn(SynConn):
       if comp_method == 'sparse':
         if sparse_data == 'csr':
           conn_mask = self.conn.require('pre2post')
-        elif sparse_data == 'ij':
+        elif sparse_data in ['ij', 'coo']:
           conn_mask = self.conn.require('post_ids', 'pre_ids')
         else:
           ValueError(f'Unknown sparse data type: {sparse_data}')
