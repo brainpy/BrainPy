@@ -28,10 +28,10 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 
 ## Ecosystem
 
-- **BrainPy**: The solution for the general-purpose brain dynamics programming. https://github.com/PKU-NIP-Lab/BrainPy
-- **brainpylib**: Efficient operators for the sparse and event-driven computation. https://github.com/PKU-NIP-Lab/brainpylib
-- **BrainPyExamples**: Comprehensive examples of BrainPy computation. https://github.com/PKU-NIP-Lab/BrainPyExamples
-- **brainpy-largescale**: One solution for the large-scale brain modeling. https://github.com/NH-NCL/brainpy-largescale
+- **[BrainPy](https://github.com/PKU-NIP-Lab/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
+- **[brainpylib](https://github.com/PKU-NIP-Lab/brainpylib)**: Efficient operators for the sparse and event-driven computation. 
+- **[BrainPyExamples](https://github.com/PKU-NIP-Lab/BrainPyExamples)**: Comprehensive examples of BrainPy computation. 
+- **[brainpy-largescale](https://github.com/NH-NCL/brainpy-largescale)**: One solution for the large-scale brain modeling. 
 
 
 
