@@ -181,7 +181,7 @@ class AMPA(TwoEndConn):
       raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # connection
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
     self.g = variable(bm.zeros, mode, self.pre.num)
@@ -226,16 +226,16 @@ class AMPA(TwoEndConn):
     syn_value = self.g.value
     if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
     return self.output(post_vs)
@@ -526,7 +526,7 @@ class BioNMDA(TwoEndConn):
     self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
     self.g = variable(bm.zeros, mode, self.pre.num)
@@ -575,16 +575,16 @@ class BioNMDA(TwoEndConn):
     syn_value = self.g.value
     if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
     return self.output(post_vs)

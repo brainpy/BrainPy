@@ -3,13 +3,14 @@
 import os
 import re
 
-from jax import dtypes, config, numpy as jnp
+from jax import dtypes, config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
 __all__ = [
   'enable_x64',
   'disable_x64',
   'set_platform',
+  'get_platform',
   'set_host_device_count',
 
   # device memory
@@ -92,13 +93,24 @@ def disable_x64():
   config.update("jax_enable_x64", False)
 
 
-def set_platform(platform):
+def set_platform(platform: str):
   """
   Changes platform to CPU, GPU, or TPU. This utility only takes
   effect at the beginning of your program.
   """
   assert platform in ['cpu', 'gpu', 'tpu']
   config.update("jax_platform_name", platform)
+
+
+def get_platform() -> str:
+  """Get the computing platform.
+
+  Returns
+  -------
+  platform: str
+    Either 'cpu', 'gpu' or 'tpu'.
+  """
+  return devices()[0].platform
 
 
 def set_host_device_count(n):

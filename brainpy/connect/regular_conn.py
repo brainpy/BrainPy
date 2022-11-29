@@ -46,7 +46,7 @@ class One2One(TwoEndConnector):
                            f'same size, but {self.pre_num} != {self.post_num}.')
     ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
-    return np.asarray(ind, dtype=IDX_DTYPE), np.arange(indptr, dtype=IDX_DTYPE),
+    return (np.asarray(ind, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE))
 
   def build_mat(self, pre_size=None, post_size=None):
     if self.pre_num != self.post_num:

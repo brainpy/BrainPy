@@ -69,7 +69,7 @@ extensions = [
   'sphinx.ext.autosummary',
   'sphinx.ext.intersphinx',
   'sphinx.ext.mathjax',
-  'sphinx-mathjax-offline',
+  # 'sphinx-mathjax-offline',
   'sphinx.ext.napoleon',
   'sphinx.ext.viewcode',
   'sphinx_autodoc_typehints',

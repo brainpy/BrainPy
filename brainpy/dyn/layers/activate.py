@@ -1,15 +1,16 @@
-from brainpy.dyn.base import DynamicalSystem
-from typing import Optional
-from brainpy.modes import Mode
 from typing import Callable
+from typing import Optional
+
+from brainpy.dyn.base import DynamicalSystem
+from brainpy.modes import Mode, training
 
 
 class Activation(DynamicalSystem):
-  r"""Applies a activation to the inputs
+  r"""Applies an activation function to the inputs
 
   Parameters:
   ----------
-  activate_fun: Callable
+  activate_fun: Callable, function
     The function of Activation
   name: str, Optional
     The name of the object
@@ -17,12 +18,13 @@ class Activation(DynamicalSystem):
     Enable training this node or not. (default True).
   """
 
-  def __init__(self,
-               activate_fun: Callable,
-               name: Optional[str] = None,
-               mode: Optional[Mode] = None,
-               **kwargs,
-      ):
+  def __init__(
+      self,
+      activate_fun: Callable,
+      name: Optional[str] = None,
+      mode: Mode = training,
+      **kwargs,
+  ):
     super().__init__(name, mode)
     self.activate_fun = activate_fun
     self.kwargs = kwargs
