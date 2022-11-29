@@ -1,5 +1,5 @@
 <p align="center">
-  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="./images/logo.png" width=80%>
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://github.com/PKU-NIP-Lab/BrainPy/blob/master/images/logo.png" width=80%>
 </p> 
 
 
@@ -10,8 +10,8 @@
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brainpy"><img alt="PyPI version" src="https://badge.fury.io/py/brainpy.svg"></a>
     <a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="Linux CI" src="https://github.com/PKU-NIP-Lab/BrainPy/actions/workflows/Linux_CI.yml/badge.svg"></a>
-    <a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="Linux CI" src="https://github.com/PKU-NIP-Lab/BrainPy/actions/workflows/Windows_CI.yml/badge.svg"></a>
-    <a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="Linux CI" src="https://github.com/PKU-NIP-Lab/BrainPy/actions/workflows/MacOS_CI.yml/badge.svg"></a>
+    <a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="Windows CI" src="https://github.com/PKU-NIP-Lab/BrainPy/actions/workflows/Windows_CI.yml/badge.svg"></a>
+    <a href="https://github.com/PKU-NIP-Lab/BrainPy"><img alt="MacOS CI" src="https://github.com/PKU-NIP-Lab/BrainPy/actions/workflows/MacOS_CI.yml/badge.svg"></a>
 </p>
 
 
@@ -52,4 +52,4 @@ For detailed installation instructions, please refer to the documentation: [Quic
 
 ## Citing
 
-If you use BrainPy, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_advanced/citing_and_publication.html). 
+If you use BrainPy, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
