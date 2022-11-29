@@ -86,8 +86,14 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_advanced/adavanced_lowdim_analysis.ipynb
    tutorial_advanced/operator_customization.ipynb
    tutorial_advanced/interoperation.ipynb
-   tutorial_advanced/compile_brainpylib
-   tutorial_advanced/citing_and_publication
+
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Frequently Asked Questions
+
+   tutorial_FAQs/citing_and_publication
 
 
 .. toctree::

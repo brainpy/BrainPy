@@ -35,13 +35,6 @@ of BrainPy, you can use:
    pip install --pre brainpy
 
 
-To install ``brainpylib`` (needed in dedicated operators), you can use:
-
-.. code-block:: bash
-
-    pip install brainpylib
-
-
 
 Installation from source
 ------------------------
@@ -174,7 +167,7 @@ Many customized operators in BrainPy are implemented in ``brainpylib``.
 
 For GPU operators, you should compile ``brainpylib`` from source.
 The details please see
-`Compile GPU operators in brainpylib <../tutorial_advanced/compile_brainpylib.html>`_.
+`Compile GPU operators in brainpylib <https://brainpy.readthedocs.io/en/latest/quickstart/installation.html>`_.
 
 
 Other Dependency
@@ -214,3 +207,4 @@ packages:
 .. _Numba: https://numba.pydata.org/
 .. _CUDA: https://developer.nvidia.com/cuda-downloads
 .. _CuDNN: https://developer.nvidia.com/CUDNN
+
