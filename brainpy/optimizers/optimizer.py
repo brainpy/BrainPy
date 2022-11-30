@@ -482,8 +482,8 @@ class LARS(Optimizer):
     for k, p in self.vars_to_train.items():
       g = grads[k]
       m = self.implicit_vars[k + '_m']
-      p_norm = jnp.linalg.norm(bm.as_device_array(p))
-      g_norm = jnp.linalg.norm(bm.as_device_array(g))
+      p_norm = jnp.linalg.norm(bm.as_jax(p))
+      g_norm = jnp.linalg.norm(bm.as_jax(g))
       trust_ratio = self.tc * p_norm / (g_norm + self.weight_decay * p_norm + self.eps)
       local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
       m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)

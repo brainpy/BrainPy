@@ -2,18 +2,13 @@
 
 from typing import Union, Dict, Tuple
 
+import brainpylib
 import jax.numpy as jnp
 from jax import ops
 
 from brainpy.math.jaxarray import JaxArray
 from brainpy.math.numpy_ops import as_jax
-from .utils import _check_brainpylib
 from brainpy.types import Array
-
-try:
-  import brainpylib
-except ModuleNotFoundError:
-  brainpylib = None
 
 __all__ = [
   'sparse_matmul',
@@ -204,7 +199,6 @@ def csr_matvec(values: Array,
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  _check_brainpylib('pre2post_event_sum')
   vector = as_jax(vector)
   indices = as_jax(indices)
   indptr = as_jax(indptr)

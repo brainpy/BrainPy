@@ -7,9 +7,8 @@ from . import pre_syn_post as pre_syn_post_module
 from . import wrap_jax
 from . import spikegrad
 
-__all__ = event_matmul.__all__ + sparse_matmul.__all__ + op_register.__all__
-__all__ += pre_syn_post_module.__all__ + wrap_jax.__all__ + spikegrad.__all__
-
+__all__ = (event_matmul.__all__ + sparse_matmul.__all__ + op_register.__all__
+           + pre_syn_post_module.__all__ + wrap_jax.__all__ + spikegrad.__all__)
 
 from .event_matmul import *
 from .sparse_matmul import *

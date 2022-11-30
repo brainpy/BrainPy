@@ -23,7 +23,6 @@ def event_sum_op(outs, ins):
         outs[index] += v
 
 
-event_sum = bm.register_op(name='event_sum1', cpu_func=event_sum_op, eval_shape=abs_eval)
 event_sum2 = bm.XLACustomOp(name='event_sum2', cpu_func=event_sum_op, eval_shape=abs_eval)
 
 
@@ -50,36 +49,6 @@ class ExponentialSyn(bp.dyn.TwoEndConn):
   def update(self, tdi):
     self.g.value = self.integral(self.g, tdi['t'], dt=tdi['dt'])
     self.g += bm.pre2post_event_sum(self.pre.spike, self.pre2post, self.post.num, self.g_max)
-    self.post.input += self.g * (self.E - self.post.V)
-
-
-class ExponentialSyn2(bp.dyn.TwoEndConn):
-  def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
-               method='exp_auto'):
-    super(ExponentialSyn2, self).__init__(pre=pre, post=post, conn=conn)
-    self.check_pre_attrs('spike')
-    self.check_post_attrs('input', 'V')
-
-    # parameters
-    self.E = E
-    self.tau = tau
-    self.delay = delay
-    self.g_max = g_max
-    self.pre2post = self.conn.require('pre2post')
-
-    # variables
-    self.g = bm.Variable(bm.zeros(self.post.num))
-
-    # function
-    self.integral = bp.odeint(lambda g, t: -g / self.tau, method=method)
-
-  def update(self, tdi):
-    self.g.value = self.integral(self.g, tdi['t'], tdi['dt'])
-    # Customized operator
-    # ------------------------------------------------------------------------------------------------------------
-    post_val = bm.zeros(self.post.num)
-    self.g += event_sum(self.pre.spike, self.pre2post[0], self.pre2post[1], post_val, self.g_max)
-    # ------------------------------------------------------------------------------------------------------------
     self.post.input += self.g * (self.E - self.post.V)
 
 
@@ -137,7 +106,6 @@ class EINet(bp.dyn.Network):
     self.I2I = syn_class(self.I, self.I, bp.conn.FixedProb(0.02), E=-80., g_max=wi, tau=10., method=method)
 
 
-
 class TestOpRegister(unittest.TestCase):
   def test_op(self):
 
@@ -154,17 +122,6 @@ class TestOpRegister(unittest.TestCase):
     ax = fig.add_subplot(gs[0, 0])
     bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], ax=ax)
 
-    net2 = EINet(ExponentialSyn2, scale=1., method='euler')
-    runner2 = bp.dyn.DSRunner(
-      net2,
-      inputs=[(net2.E.input, 20.), (net2.I.input, 20.)],
-      monitors={'E.spike': net2.E.spike},
-    )
-    t, _ = runner2.run(100., eval_time=True)
-    print(t)
-    ax = fig.add_subplot(gs[0, 1])
-    bp.visualize.raster_plot(runner2.mon.ts, runner2.mon['E.spike'], ax=ax)
-
     net3 = EINet(ExponentialSyn3, scale=1., method='euler')
     runner3 = bp.dyn.DSRunner(
       net3,
@@ -175,4 +132,6 @@ class TestOpRegister(unittest.TestCase):
     print(t)
     ax = fig.add_subplot(gs[0, 2])
     bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
+
+    bm.clear_buffer_memory()
     plt.close()

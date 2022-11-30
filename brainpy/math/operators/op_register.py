@@ -1,22 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Callable
+from typing import Callable
 
-from jax.core import ShapedArray
+import brainpylib
 from jax.tree_util import tree_map
 
 from brainpy.base import Base
 from brainpy.math.jaxarray import JaxArray
-from .utils import _check_brainpylib
-
-try:
-  import brainpylib
-except ModuleNotFoundError:
-  brainpylib = None
 
 __all__ = [
   'XLACustomOp',
-  'register_op',
 ]
 
 
@@ -62,7 +55,6 @@ class XLACustomOp(Base):
       transpose_translation: Callable = None,
       multiple_results: bool = False,
   ):
-    _check_brainpylib(register_op.__name__)
     super(XLACustomOp, self).__init__(name=name)
 
     # abstract evaluation function
@@ -101,46 +93,3 @@ class XLACustomOp(Base):
     res = self.op.bind(*args, **kwargs)
     return res
 
-
-def register_op(
-    name: str,
-    eval_shape: Union[Callable, ShapedArray, Sequence[ShapedArray]],
-    cpu_func: Callable,
-    gpu_func: Callable = None,
-    apply_cpu_func_to_gpu: bool = False
-):
-  """
-  Converting the numba-jitted function in a Jax/XLA compatible primitive.
-
-  Parameters
-  ----------
-  name: str
-    Name of the operators.
-  cpu_func: Callble
-    A callable numba-jitted function or pure function (can be lambda function) running on CPU.
-  gpu_func: Callable, default = None
-    A callable cuda-jitted kernel running on GPU.
-  eval_shape: Callable, ShapedArray, Sequence[ShapedArray], default = None
-    Outputs shapes of target function. `out_shapes` can be a `ShapedArray` or
-    a sequence of `ShapedArray`. If it is a function, it takes as input the argument
-    shapes and dtypes and should return correct output shapes of `ShapedArray`.
-  apply_cpu_func_to_gpu: bool, default = False
-    True when gpu_func is implemented on CPU and other logics(data transfer) is implemented on GPU.
-
-  Returns
-  -------
-  A jitable JAX function.
-  """
-  _check_brainpylib(register_op.__name__)
-  f = brainpylib.register_op_with_numba(name,
-                                        cpu_func=cpu_func,
-                                        gpu_func_translation=gpu_func,
-                                        out_shapes=eval_shape,
-                                        apply_cpu_func_to_gpu=apply_cpu_func_to_gpu)
-
-  def fixed_op(*inputs, **info):
-    inputs = tuple([i.value if isinstance(i, JaxArray) else i for i in inputs])
-    res = f.bind(*inputs, **info)
-    return res
-
-  return fixed_op
