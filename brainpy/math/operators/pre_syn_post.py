@@ -2,18 +2,13 @@
 
 from typing import Union, Tuple
 
+import brainpylib
 import jax.numpy as jnp
 from jax import vmap, jit, ops as jops
 
 from brainpy.errors import MathError
 from brainpy.math.numpy_ops import as_jax
 from brainpy.types import Array
-from .utils import _check_brainpylib
-
-try:
-  import brainpylib
-except ModuleNotFoundError:
-  brainpylib = None
 
 __all__ = [
   # pre-to-post
@@ -97,7 +92,6 @@ def pre2post_event_sum(events: Array,
   out: JaxArray, jax.numpy.ndarray
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('event_csr_matvec')
   indices, idnptr = pre2post
   events = as_jax(events)
   indices = as_jax(indices)
@@ -133,7 +127,6 @@ def pre2post_coo_event_sum(events: Array,
   out: JaxArray, jax.numpy.ndarray
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('pre2post_event_sum')
   events = as_jax(events)
   post_ids = as_jax(post_ids)
   pre_ids = as_jax(pre_ids)
@@ -187,7 +180,6 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   out: JaxArray, jax.numpy.ndarray
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('pre2post_event_prod')
   indices, idnptr = pre2post
   events = as_jax(events)
   indices = as_jax(indices)
