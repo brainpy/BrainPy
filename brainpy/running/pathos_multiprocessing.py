@@ -30,12 +30,14 @@ __all__ = [
 ]
 
 
-def _parallel(ordered: bool,
-              function: Callable,
-              arguments: Union[Sequence[Iterable], Dict[str, Iterable]],
-              num_process: Union[int, float] = None,
-              num_task: int = None,
-              **tqdm_kwargs: Any) -> Generator:
+def _parallel(
+    ordered: bool,
+    function: Callable,
+    arguments: Union[Sequence[Iterable], Dict[str, Iterable]],
+    num_process: Union[int, float] = None,
+    num_task: int = None,
+    **tqdm_kwargs: Any
+) -> Generator:
   """Perform a parallel map with a progress bar.
 
   Parameters
@@ -138,6 +140,7 @@ def cpu_ordered_parallel(
   >>> if __name__ == '__main__':  # This is important!
   >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
   >>>   print(results)
+
   Parameters
   ----------
   func: callable, function
