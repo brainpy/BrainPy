@@ -13,11 +13,11 @@
 
 import os
 import sys
+import shutil
 
 sys.path.insert(0, os.path.abspath('../'))
 
 import brainpy
-
 from docs import auto_generater
 
 auto_generater.generate_base_docs()
@@ -36,18 +36,14 @@ auto_generater.generate_optimizers_docs()
 auto_generater.generate_measure_docs()
 auto_generater.generate_datasets_docs()
 auto_generater.generate_tools_docs()
-# auto_generater.generate_nn_docs()
-# auto_generater.generate_compact_docs()
-# auto_generater.generate_math_compact_docs()
 
-
-import shutil
 
 changelogs = [
-  ('../changelog.rst', 'apis/auto/changelog-brainpy.rst'),
+  ('../changelog.rst', 'apis/auto/changelog.rst'),
 ]
 for source, dest in changelogs:
-  if os.path.exists(dest): os.remove(dest)
+  if os.path.exists(dest):
+    os.remove(dest)
   shutil.copyfile(source, dest)
 
 # -- Project information -----------------------------------------------------
