@@ -88,6 +88,14 @@ The code of BrainPy is open-sourced at GitHub:
    tutorial_advanced/interoperation.ipynb
 
 
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Frequently Asked Questions
+
+   tutorial_FAQs/citing_and_publication
+
+
 .. toctree::
    :maxdepth: 1
    :caption: API Documentation
@@ -108,8 +116,7 @@ The code of BrainPy is open-sourced at GitHub:
    apis/auto/measure.rst
    apis/auto/running.rst
    apis/tools.rst
-   apis/auto/changelog-brainpy.rst
-   apis/auto/changelog-brainpylib.rst
+   apis/auto/changelog.rst
 
 
 Indices and tables

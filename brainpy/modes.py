@@ -13,7 +13,7 @@ __all__ = [
   'batching',
   'training',
 
-  'check',
+  'check_mode',
 ]
 
 
@@ -42,14 +42,14 @@ batching = BatchingMode()
 training = TrainingMode()
 
 
-def check(mode, supported_modes, name=''):
+def check_mode(mode, supported_modes, name=''):
   """Check whether the used mode is in the list of the supported models.
 
   Parameters
   ----------
   mode: Mode
     The mode used.
-  supported_modes: list of type, tuple of type
+  supported_modes: type, list of type, tuple of type
     The list of all types to support.
   name: Any
     The name.

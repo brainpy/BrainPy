@@ -262,6 +262,10 @@ class NeuTimeDelay(TimeDelay):
   pass
 
 
+ROTATION_UPDATING = 'rotation'
+CONCAT_UPDATING = 'concatenate'
+
+
 class LengthDelay(AbstractDelay):
   """Delay variable which has a fixed delay length.
 
@@ -271,10 +275,36 @@ class LengthDelay(AbstractDelay):
     The initial delay data.
   delay_len: int
     The maximum delay length.
-  initial_delay_data: Array
-    The delay data.
+  initial_delay_data: Any
+    The delay data. It can be a Python number, like float, int, boolean values.
+    It can also be arrays. Or a callable function or instance of ``Connector``.
+    Note that ``initial_delay_data`` should be arranged as the following way::
+
+       delay = 1             [ data
+       delay = 2               data
+       ...                     ....
+       ...                     ....
+       delay = delay_len-1     data
+       delay = delay_len       data ]
+
+    .. versionchanged:: 2.2.3.2
+
+       The data in the previous version of ``LengthDelay`` is::
+
+         delay = delay_len     [ data
+         delay = delay_len-1     data
+         ...                     ....
+         ...                     ....
+         delay = 2               data
+         delay = 1               data ]
+
+
   name: str
     The delay object name.
+  batch_axis: int
+    The batch axis. If not provided, it will be inferred from the `delay_target`.
+  update_method: str
+    The method used for updating delay.
 
   See Also
   --------
@@ -288,19 +318,35 @@ class LengthDelay(AbstractDelay):
       initial_delay_data: Union[float, int, bool, ndarray, jnp.ndarray, Callable] = None,
       name: str = None,
       batch_axis: int = None,
+      update_method: str = ROTATION_UPDATING
   ):
     super(LengthDelay, self).__init__(name=name)
 
+    assert update_method in [ROTATION_UPDATING, CONCAT_UPDATING]
+    self.update_method = update_method
     # attributes and variables
+    self.data: Variable = None
     self.num_delay_step: int = None
     self.idx: Variable = None
-    self.data: Variable = None
 
     # initialization
     self.reset(delay_target, delay_len, initial_delay_data, batch_axis)
 
+  @property
+  def delay_shape(self):
+    """The data shape of this delay variable."""
+    return self.data.shape
+
+  @property
+  def delay_target_shape(self):
+    """The data shape of the delay target."""
+    return self.data.shape[1:]
+
   def __repr__(self):
-    return f'{self.__class__.__name__}(num_delay_step={self.num_delay_step}, delay_target_shape={self.data.shape[1:]})'
+    name = self.__class__.__name__
+    return (f'{name}(num_delay_step={self.num_delay_step}, '
+            f'delay_target_shape={self.delay_target_shape}, '
+            f'update_method={self.update_method})')
 
   def reset(
       self,
@@ -321,13 +367,7 @@ class LengthDelay(AbstractDelay):
       delay_len = self.num_delay_step - 1
     self.num_delay_step = delay_len + 1
 
-    # time variables
-    if self.idx is None:
-      self.idx = Variable(jnp.asarray([0], dtype=jnp.int32))
-    else:
-      self.idx.value = jnp.asarray([0], dtype=jnp.int32)
-
-    # delay data
+    # initialize delay data
     if self.data is None:
       if batch_axis is None:
         if isinstance(delay_target, Variable) and (delay_target.batch_axis is not None):
@@ -338,16 +378,25 @@ class LengthDelay(AbstractDelay):
     else:
       self.data._value = jnp.zeros((self.num_delay_step,) + delay_target.shape,
                                    dtype=delay_target.dtype)
-    self.data[-1] = delay_target
+
+    # update delay data
+    self.data[0] = delay_target
     if initial_delay_data is None:
       pass
     elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int, bool)):
-      self.data[:-1] = initial_delay_data
+      self.data[1:] = initial_delay_data
     elif callable(initial_delay_data):
-      self.data[:-1] = initial_delay_data((delay_len,) + delay_target.shape,
+      self.data[1:] = initial_delay_data((delay_len,) + delay_target.shape,
                                           dtype=delay_target.dtype)
     else:
       raise ValueError(f'"delay_data" does not support {type(initial_delay_data)}')
+
+    # time variables
+    if self.update_method == ROTATION_UPDATING:
+      if self.idx is None:
+        self.idx = Variable(stop_gradient(jnp.asarray([0], dtype=jnp.int32)))
+      else:
+        self.idx.value = stop_gradient(jnp.asarray([0], dtype=jnp.int32))
 
   def _check_delay(self, delay_len):
     raise ValueError(f'The request delay length should be less than the '
@@ -355,22 +404,58 @@ class LengthDelay(AbstractDelay):
                      f'But we got {delay_len}')
 
   def __call__(self, delay_len, *indices):
-    # check
+    return self.retrieve(delay_len, *indices)
+
+  def retrieve(self, delay_len, *indices):
+    """Retrieve the delay data acoording to the delay length.
+
+    Parameters
+    ----------
+    delay_len: int, Array
+      The delay length used to retrieve the data.
+    """
     if check.is_checking():
       check_error_in_jit(bm.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
-    # the delay length
-    delay_idx = (self.idx[0] - delay_len - 1) % self.num_delay_step
-    delay_idx = stop_gradient(delay_idx)
-    if not jnp.issubdtype(delay_idx.dtype, jnp.integer):
-      raise ValueError(f'"delay_len" must be integer, but we got {delay_len}')
-    # the delay data
+
+    if self.update_method == ROTATION_UPDATING:
+      delay_idx = (self.idx[0] + delay_len) % self.num_delay_step
+      delay_idx = stop_gradient(delay_idx)
+
+    elif self.update_method == CONCAT_UPDATING:
+      delay_idx = delay_len
+
+    else:
+      raise ValueError(f'Unknown updating method "{self.update_method}"')
+
+    # the delay index
+    if isinstance(delay_idx, int):
+      pass
+    elif hasattr(delay_idx, 'dtype') and not jnp.issubdtype(delay_idx.dtype, jnp.integer):
+      raise ValueError(f'"delay_len" must be integer, but we got {delay_idx}')
     indices = (delay_idx,) + tuple(indices)
+    # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[float, JaxArray, jnp.DeviceArray]):
-    idx = stop_gradient(self.idx[0])
-    self.data[idx] = value
-    self.idx.value = stop_gradient((self.idx + 1) % self.num_delay_step)
+  def update(self, value: Union[float, int, bool, JaxArray, jnp.DeviceArray]):
+    """Update delay variable with the new data.
+
+    Parameters
+    ----------
+    value: Any
+      The value of the latest data, used to update this delay variable.
+    """
+    if self.update_method == ROTATION_UPDATING:
+      self.idx.value = stop_gradient((self.idx - 1) % self.num_delay_step)
+      self.data[self.idx[0]] = value
+
+    elif self.update_method == CONCAT_UPDATING:
+      if self.num_delay_step >= 2:
+        self.data.value = bm.vstack([bm.broadcast_to(value, self.data.shape[1:]), self.data[1:]])
+      else:
+        self.data[:] = value
+
+    else:
+      raise ValueError(f'Unknown updating method "{self.update_method}"')
 
 
 class NeuLenDelay(LengthDelay):

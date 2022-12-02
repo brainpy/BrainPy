@@ -7,9 +7,10 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.errors import ModelBuildError
-from brainpy.initialize import Initializer, parameter, variable
+from brainpy.initialize import Initializer, parameter, variable_
 from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.types import Shape, Array
+
 
 __all__ = [
   'InputGroup',
@@ -138,7 +139,7 @@ class SpikeTimeGroup(NeuGroup):
 
     # variables
     self.i = bm.Variable(bm.zeros(1, dtype=bm.ditype()))
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
     if need_sort:
       sort_idx = bm.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
@@ -161,7 +162,7 @@ class SpikeTimeGroup(NeuGroup):
 
   def reset_state(self, batch_size=None):
     self.i[0] = 1
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def update(self, tdi, x=None):
     self.spike[:] = False
@@ -192,8 +193,8 @@ class PoissonGroup(NeuGroup):
     self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
-    self.rng = bm.random.RandomState(seed=seed)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.rng = bm.random.RandomState(seed)
 
   def update(self, tdi, x=None):
     shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, BatchingMode) else self.varshape
@@ -204,4 +205,5 @@ class PoissonGroup(NeuGroup):
     self.reset_state(batch_size)
 
   def reset_state(self, batch_size=None):
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
+

@@ -2,23 +2,30 @@
 
 import pytest
 
+import unittest
+
 import brainpy as bp
 
 
-def test_random_prob():
-  conn1 = bp.connect.FixedProb(prob=0.1, seed=123)
-  conn1(pre_size=(10, 20), post_size=(10, 20))
-  pre_ids, post_ids, pre2post = conn1.require('pre_ids', 'post_ids', 'pre2post')
+class TestFixedProb(unittest.TestCase):
+  def test_size_consistent(self):
+    conn1 = bp.connect.FixedProb(prob=0.1, seed=123)
+    conn1(pre_size=(10, 20), post_size=(10, 20))
+    pre_ids, post_ids, pre2post = conn1.require('pre_ids', 'post_ids', 'pre2post')
+    self.assertTrue(len(pre_ids) == len(post_ids))
+    self.assertTrue(len(pre_ids) == len(pre2post[0]))
 
-  conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
-  conn2(pre_size=(10, 20), post_size=(10, 20))
-  mat = conn2.require(bp.connect.CONN_MAT)
-  pre_ids2, post_ids2 = bp.math.where(mat)
+  def test_require_method(self):
+    conn2 = bp.connect.FixedProb(prob=0.1, seed=123)
+    conn2(pre_size=(10, 20), post_size=(10, 20))
+    mat = conn2.require(bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (200, 200))
 
-  print()
-  assert bp.math.array_equal(pre_ids, pre_ids2)
-  assert bp.math.array_equal(post_ids, post_ids2)
-  print('weight_mat', mat)
+    mat = conn2(100, 1000).require(bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (100, 1000))
+
+    mat = conn2.require(10, 20, bp.connect.CONN_MAT)
+    self.assertTrue(mat.shape == (10, 20))
 
 
 def test_random_fix_pre1():
@@ -30,8 +37,11 @@ def test_random_fix_pre1():
     mat2 = conn2.require(bp.connect.CONN_MAT)
 
     print()
+    print(f'num = {num}')
     print('conn_mat 1\n', mat1)
+    print(mat1.sum())
     print('conn_mat 2\n', mat2)
+    print(mat2.sum())
 
     assert bp.math.array_equal(mat1, mat2)
 
@@ -45,7 +55,7 @@ def test_random_fix_pre2():
 
 
 def test_random_fix_pre3():
-  with pytest.raises(AssertionError):
+  with pytest.raises(bp.errors.ConnectorError):
     conn1 = bp.connect.FixedPreNum(num=6, seed=1234)(pre_size=3, post_size=4)
     conn1.require(bp.connect.CONN_MAT)
 
@@ -73,7 +83,7 @@ def test_random_fix_post2():
 
 
 def test_random_fix_post3():
-  with pytest.raises(AssertionError):
+  with pytest.raises(bp.errors.ConnectorError):
     conn1 = bp.connect.FixedPostNum(num=6, seed=1234)(pre_size=3, post_size=4)
     conn1.require(bp.connect.CONN_MAT)
 

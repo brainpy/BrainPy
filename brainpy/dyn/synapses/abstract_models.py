@@ -7,12 +7,14 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector, All2All, One2One
-from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn
-from brainpy.initialize import Initializer, variable
+from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
+from brainpy.initialize import Initializer, variable_
 from brainpy.integrators import odeint, JointEq
-from brainpy.modes import Mode, BatchingMode, normal
+from brainpy.tools.checking import check_integer, check_float
+from brainpy.modes import Mode, BatchingMode, normal, NormalMode, check_mode
 from brainpy.types import Array
 from ..synouts import CUBA, MgBlock
+
 
 __all__ = [
   'Delta',
@@ -20,6 +22,7 @@ __all__ = [
   'DualExponential',
   'Alpha',
   'NMDA',
+  'PoissonInput',
 ]
 
 
@@ -116,7 +119,7 @@ class Delta(TwoEndConn):
     self.comp_method = comp_method
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method=comp_method, sparse_data='csr')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method=comp_method, sparse_data='csr')
 
     # register delay
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
@@ -140,10 +143,10 @@ class Delta(TwoEndConn):
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
       syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
       syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
@@ -157,7 +160,7 @@ class Delta(TwoEndConn):
         #   post_vs *= f2(stp_value)
       else:
         syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     if self.post_ref_key:
       post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))
 
@@ -293,17 +296,17 @@ class Exponential(TwoEndConn):
       raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='csr')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.post.num)
+    self.g = variable_(bm.zeros, self.post.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
   def reset_state(self, batch_size=None):
-    self.g.value = variable(bm.zeros, batch_size, self.post.num)
+    self.g.value = variable_(bm.zeros, self.post.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -325,11 +328,11 @@ class Exponential(TwoEndConn):
     if isinstance(self.conn, All2All):
       syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
       if self.stp is not None: syn_value = self.stp(syn_value)
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
       syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
       if self.stp is not None: syn_value = self.stp(syn_value)
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
@@ -340,7 +343,7 @@ class Exponential(TwoEndConn):
       else:
         syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
         if self.stp is not None: syn_value = self.stp(syn_value)
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
     self.g.value = self.integral(self.g.value, t, dt) + post_vs
 
@@ -484,19 +487,19 @@ class DualExponential(TwoEndConn):
                        f'But we got {self.tau_decay}')
 
     # connections
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.h = variable(bm.zeros, mode, self.pre.num)
-    self.g = variable(bm.zeros, mode, self.pre.num)
+    self.h = variable_(bm.zeros, self.pre.num, mode)
+    self.g = variable_(bm.zeros, self.pre.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dh]))
 
   def reset_state(self, batch_size=None):
-    self.h.value = variable(bm.zeros, batch_size, self.pre.num)
-    self.g.value = variable(bm.zeros, batch_size, self.pre.num)
+    self.h.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -528,16 +531,16 @@ class DualExponential(TwoEndConn):
     syn_value = self.g.value
     if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
     return self.output(post_vs)
@@ -826,11 +829,11 @@ class NMDA(TwoEndConn):
     self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
-    self.g_max, self.conn_mask = self.init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.pre.num)
-    self.x = variable(bm.zeros, mode, self.pre.num)
+    self.g = variable_(bm.zeros, self.pre.num, mode)
+    self.x = variable_(bm.zeros, self.pre.num, mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -843,8 +846,8 @@ class NMDA(TwoEndConn):
     return -x / self.tau_rise
 
   def reset_state(self, batch_size=None):
-    self.g.value = variable(bm.zeros, batch_size, self.pre.num)
-    self.x.value = variable(bm.zeros, batch_size, self.pre.num)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.x.value = variable_(bm.zeros, self.pre.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -869,16 +872,101 @@ class NMDA(TwoEndConn):
     syn_value = self.g.value
     if self.stp is not None: syn_value = self.stp(syn_value)
     if isinstance(self.conn, All2All):
-      post_vs = self.syn2post_with_all2all(syn_value, self.g_max)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      post_vs = self.syn2post_with_one2one(syn_value, self.g_max)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
-        post_vs = self.syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # output
     return self.output(post_vs)
+
+
+class PoissonInput(SynConn):
+  """Poisson Input to the given `Variable`.
+
+  Adds independent Poisson input to a target variable. For large
+  numbers of inputs, this is much more efficient than creating a
+  `PoissonGroup`. The synaptic events are generated randomly during the
+  simulation and are not preloaded and stored in memory. All the inputs must
+  target the same variable, have the same frequency and same synaptic weight.
+  All neurons in the target variable receive independent realizations of
+  Poisson spike trains.
+
+  Parameters
+  ----------
+  target_var: Variable
+    The variable that is targeted by this input.
+  num_input: int
+    The number of inputs.
+  freq: float
+    The frequency of each of the inputs. Must be a scalar.
+  weight: float
+    The synaptic weight. Must be a scalar.
+  """
+
+  def __init__(
+      self,
+      target_var: bm.Variable,
+      num_input: int,
+      freq: Union[int, float],
+      weight: Union[int, float],
+      seed: Optional[int] = None,
+      mode: Mode = normal,
+      name: str = None
+  ):
+    from ..neurons.input_groups import InputGroup, OutputGroup
+    super(PoissonInput, self).__init__(InputGroup(1), OutputGroup(1), name=name, mode=mode)
+    self.pre = None
+    self.post = None
+
+    # check data
+    if not isinstance(target_var, bm.Variable):
+      raise TypeError(f'"target_var" must be an instance of Variable. '
+                      f'But we got {type(target_var)}: {target_var}')
+    check_integer(num_input, 'num_input', min_bound=1)
+    check_float(freq, 'freq', min_bound=0., allow_int=True)
+    check_float(weight, 'weight', allow_int=True)
+    check_mode(mode, (NormalMode, BatchingMode), name=self.__class__.__name__)
+
+    # parameters
+    self.target_var = target_var
+    self.num_input = num_input
+    self.freq = freq
+    self.weight = weight
+    self.seed = seed
+    self.rng = bm.random.RandomState(self.seed)
+
+  def update(self, tdi):
+    p = self.freq * tdi.dt / 1e3
+    a = self.num_input * p
+    b = self.num_input * (1 - p)
+    if isinstance(tdi.dt, (int, float)):  # dt is not in tracing
+      if (a > 5) and (b > 5):
+        inp = self.rng.normal(a, b * p, self.target_var.shape)
+      else:
+        inp = self.rng.binomial(self.num_input, p, self.target_var.shape)
+
+    else:  # dt is in tracing
+      inp = bm.cond((a > 5) * (b > 5),
+                    lambda _: self.rng.normal(a, b * p, self.target_var.shape),
+                    lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
+                    None)
+    self.target_var += inp * self.weight
+
+  def __repr__(self):
+    names = self.__class__.__name__
+    return f'{names}(name={self.name}, num_input={self.num_input}, freq={self.freq}, weight={self.weight})'
+
+  def reset_state(self, batch_size=None):
+    pass
+
+  def reset(self, batch_size=None):
+    self.rng.seed(self.seed)
+    self.reset_state(batch_size)
+

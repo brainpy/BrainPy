@@ -50,7 +50,7 @@ def lorenz_system(method, **kwargs):
   mon3 = bp.math.array(mon3).to_numpy()
 
   fig = plt.figure()
-  ax = fig.gca(projection='3d')
+  ax = fig.add_subplot(111, projection='3d')
   plt.plot(mon1, mon2, mon3)
   ax.set_xlabel('x')
   ax.set_xlabel('y')

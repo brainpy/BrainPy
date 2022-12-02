@@ -158,9 +158,9 @@ def spike_with_gaussian_grad(x, sigma=None, scale=None):
     dE_dx = dE_dz * _gaussian(x, 0., _sigma) * _scale
     returns = (_consistent_type(dE_dx, x),)
     if sigma is not None:
-      returns += (_consistent_type(bm.zeros_like(_sigma), sigma), )
+      returns += (_consistent_type(bm.zeros_like(_sigma), sigma),)
     if scale is not None:
-      returns += (_consistent_type(bm.zeros_like(_scale), scale), )
+      returns += (_consistent_type(bm.zeros_like(_scale), scale),)
     return returns
 
   return z, grad

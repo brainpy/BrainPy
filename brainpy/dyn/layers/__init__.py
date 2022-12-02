@@ -8,3 +8,4 @@ from .rnncells import *
 from .conv import *
 from .normalization import *
 from .pooling import *
+from .activate import *

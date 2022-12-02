@@ -75,7 +75,7 @@ class EligSNN(bp.dyn.Network):
 
   def update(self, shared, x):
     self.r.input += self.i2r(shared, x)
-    z = self.r.spike if self.eprop else stop_gradient(self.r.spike.value)
+    z = stop_gradient(self.r.spike.value) if self.eprop else self.r.spike.value
     self.r.input += self.r2r(shared, z)
     self.r(shared)
     self.o.input += self.r2o(shared, self.r.spike.value)

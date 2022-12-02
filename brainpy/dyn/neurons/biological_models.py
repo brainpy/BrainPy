@@ -4,11 +4,11 @@ from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
-from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable
+from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
-from brainpy.modes import Mode, BatchingMode, TrainingMode, NormalMode, normal, check
+from brainpy.modes import Mode, BatchingMode, NormalMode, normal, check_mode
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, Array
 
@@ -219,7 +219,7 @@ class HH(NeuGroup):
                              keep_size=keep_size,
                              name=name,
                              mode=mode)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -243,21 +243,18 @@ class HH(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable(self._V_initializer, mode, self.varshape)
-    if self._m_initializer is None:
-      self.m = bm.Variable(self.m_inf(self.V.value))
-    else:
-      self.m = variable(self._m_initializer, mode, self.varshape)
-    if self._h_initializer is None:
-      self.h = bm.Variable(self.h_inf(self.V.value))
-    else:
-      self.h = variable(self._h_initializer, mode, self.varshape)
-    if self._n_initializer is None:
-      self.n = bm.Variable(self.n_inf(self.V.value))
-    else:
-      self.n = variable(self._n_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
+    self.V = variable_(self._V_initializer, self.varshape, mode)
+    self.m = (bm.Variable(self.m_inf(self.V.value))
+              if m_initializer is None else
+              variable_(self._m_initializer, self.varshape, mode))
+    self.h = (bm.Variable(self.h_inf(self.V.value))
+              if h_initializer is None else
+              variable_(self._h_initializer, self.varshape, mode))
+    self.n = (bm.Variable(self.n_inf(self.V.value))
+              if n_initializer is None else
+              variable_(self._n_initializer, self.varshape, mode))
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.input = variable_(bm.zeros, self.varshape, mode)
 
     # integral
     if self.noise is None:
@@ -284,21 +281,21 @@ class HH(NeuGroup):
   dn = lambda self, n, t, V: self.n_alpha(V) * (1 - n) - self.n_beta(V) * n
 
   def reset_state(self, batch_size=None):
-    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
+    self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
     if self._m_initializer is None:
       self.m.value = self.m_inf(self.V.value)
     else:
-      self.m.value = variable(self._m_initializer, batch_size, self.varshape)
+      self.m.value = variable_(self._m_initializer, self.varshape, batch_size)
     if self._h_initializer is None:
       self.h.value = self.h_inf(self.V.value)
     else:
-      self.h.value = variable(self._h_initializer, batch_size, self.varshape)
+      self.h.value = variable_(self._h_initializer, self.varshape, batch_size)
     if self._n_initializer is None:
       self.n.value = self.n_inf(self.V.value)
     else:
-      self.n.value = variable(self._n_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+      self.n.value = variable_(self._n_initializer, self.varshape, batch_size)
+    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def dV(self, V, t, m, h, n, I_ext):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -309,7 +306,7 @@ class HH(NeuGroup):
 
   @property
   def derivative(self):
-    return JointEq([self.dV, self.dm, self.dh, self.dn])
+    return JointEq(self.dV, self.dm, self.dh, self.dn)
 
   def update(self, tdi, x=None):
     t, dt = tdi['t'], tdi['dt']
@@ -430,7 +427,7 @@ class MorrisLecar(NeuGroup):
                                       keep_size=keep_size,
                                       name=name,
                                       mode=mode)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -455,10 +452,10 @@ class MorrisLecar(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.W = variable(self._W_initializer, mode, self.varshape)
-    self.V = variable(self._V_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
+    self.W = variable_(self._W_initializer, self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, mode)
+    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
 
     # integral
     if self.noise is None:
@@ -467,10 +464,10 @@ class MorrisLecar(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset_state(self, batch_size=None):
-    self.W.value = variable(self._W_initializer, batch_size, self.varshape)
-    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    self.W.value = variable_(self._W_initializer, self.varshape, batch_size)
+    self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
+    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
@@ -688,7 +685,7 @@ class PinskyRinzelModel(NeuGroup):
                                             keep_size=keep_size,
                                             name=name,
                                             mode=mode)
-    check(self.mode, (NormalMode, BatchingMode), self.__class__)
+    check_mode(self.mode, (NormalMode, BatchingMode), self.__class__)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -721,16 +718,16 @@ class PinskyRinzelModel(NeuGroup):
     self._Ca_initializer = Ca_initializer
 
     # variables
-    self.Vs = variable(self._Vs_initializer, mode, self.varshape)
-    self.Vd = variable(self._Vd_initializer, mode, self.varshape)
-    self.Ca = variable(self._Ca_initializer, mode, self.varshape)
+    self.Vs = variable_(self._Vs_initializer, self.varshape, mode)
+    self.Vd = variable_(self._Vd_initializer, self.varshape, mode)
+    self.Ca = variable_(self._Ca_initializer, self.varshape, mode)
     self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
     self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
     self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
     self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
     self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.Id = variable(bm.zeros, mode, self.varshape)  # input to soma
-    self.Is = variable(bm.zeros, mode, self.varshape)  # input to dendrite
+    self.Id = variable_(bm.zeros, self.varshape, mode)  # input to soma
+    self.Is = variable_(bm.zeros, self.varshape, mode)  # input to dendrite
     # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
@@ -740,17 +737,17 @@ class PinskyRinzelModel(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset_state(self, batch_size=None):
-    self.Vd.value = variable(self._Vd_initializer, batch_size, self.varshape)
-    self.Vs.value = variable(self._Vs_initializer, batch_size, self.varshape)
-    self.Ca.value = variable(self._Ca_initializer, batch_size, self.varshape)
+    self.Vd.value = variable_(self._Vd_initializer, self.varshape, batch_size)
+    self.Vs.value = variable_(self._Vs_initializer, self.varshape, batch_size)
+    self.Ca.value = variable_(self._Ca_initializer, self.varshape, batch_size)
     batch_axis = 0 if isinstance(self.mode, BatchingMode) else None
     self.h.value = bm.Variable(self.inf_h(self.Vs), batch_axis=batch_axis)
     self.n.value = bm.Variable(self.inf_n(self.Vs), batch_axis=batch_axis)
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
     self.c.value = bm.Variable(self.inf_c(self.Vd), batch_axis=batch_axis)
     self.q.value = bm.Variable(self.inf_q(self.Ca), batch_axis=batch_axis)
-    self.Id.value = variable(bm.zeros, batch_size, self.varshape)
-    self.Is.value = variable(bm.zeros, batch_size, self.varshape)
+    self.Id.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.Is.value = variable_(bm.zeros, self.varshape, batch_size)
     # self.spike[:] = False
 
   def dCa(self, Ca, t, s, Vd):
@@ -997,7 +994,7 @@ class WangBuzsakiModel(NeuGroup):
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -1020,11 +1017,11 @@ class WangBuzsakiModel(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.h = variable(self._h_initializer, mode, self.varshape)
-    self.n = variable(self._n_initializer, mode, self.varshape)
-    self.V = variable(self._V_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
+    self.h = variable_(self._h_initializer, self.varshape, mode)
+    self.n = variable_(self._n_initializer, self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, mode)
+    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
 
     # integral
     if self.noise is None:
@@ -1033,11 +1030,11 @@ class WangBuzsakiModel(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset_state(self, batch_size=None):
-    self.h.value = variable(self._h_initializer, batch_size, self.varshape)
-    self.n.value = variable(self._n_initializer, batch_size, self.varshape)
-    self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    self.h.value = variable_(self._h_initializer, self.varshape, batch_size)
+    self.n.value = variable_(self._n_initializer, self.varshape, batch_size)
+    self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
+    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def m_inf(self, V):
     alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)

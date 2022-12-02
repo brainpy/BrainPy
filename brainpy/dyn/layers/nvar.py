@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, NormalMode, BatchingMode, batching, check
+from brainpy.modes import Mode, NormalMode, BatchingMode, batching, check_mode
 from brainpy.tools.checking import (check_integer, check_sequence)
 
 __all__ = [
@@ -73,7 +73,7 @@ class NVAR(DynamicalSystem):
       name: str = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)
-    check(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
+    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
 
     # parameters
     order = tuple() if order is None else order
@@ -82,7 +82,7 @@ class NVAR(DynamicalSystem):
     self.order = tuple(order)
     check_sequence(order, 'order', allow_none=False)
     for o in order:
-      check_integer(o, 'delay', allow_none=False, min_bound=2)
+      check_integer(o, 'order', allow_none=False, min_bound=2)
     check_integer(delay, 'delay', allow_none=False, min_bound=1)
     check_integer(stride, 'stride', allow_none=False, min_bound=1)
     assert isinstance(constant, bool), f'Must be an instance of boolean, but got {constant}.'

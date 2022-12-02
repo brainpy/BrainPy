@@ -64,7 +64,7 @@ class BPTrainer(DSTrainer):
                                     **kwargs)
 
     self.shuffle_data = shuffle_data
-    self.rng = bm.random.RandomState(seed=seed)
+    self.rng = bm.random.RandomState(seed)
 
     # jit settings
     self.jit[c.PREDICT_PHASE] = self.jit.get(c.PREDICT_PHASE, True)
@@ -300,6 +300,7 @@ class BPTT(BPTrainer):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars)
     return self._f_loss_compiled[shared_args_str]
@@ -311,6 +312,7 @@ class BPTT(BPTrainer):
       _f_loss_internal = self.f_loss(shared_args, jit=False)
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
       tran_vars = dyn_vars.subset(bm.TrainVar)
       grad_f = bm.grad(_f_loss_internal,
                        dyn_vars=dyn_vars.unique(),
@@ -339,6 +341,7 @@ class BPTT(BPTrainer):
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
         dyn_vars.update(self.optimizer.vars())
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_train_compiled[shared_args_str] = bm.jit(train_func, dyn_vars=dyn_vars.unique())
       else:
         self._f_train_compiled[shared_args_str] = train_func
@@ -453,6 +456,7 @@ class BPFF(BPTT):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars)
       else:
@@ -480,6 +484,7 @@ class BPFF(BPTT):
       if self.jit[c.PREDICT_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_predict_compiled[shared_args_str] = bm.jit(run_func, dyn_vars=dyn_vars.unique())
       else:
         self._f_predict_compiled[shared_args_str] = run_func
@@ -505,6 +510,7 @@ class OnlineBPTT(BPTT):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars)
       else:
@@ -520,7 +526,7 @@ class OnlineBPTT(BPTT):
     shared_args_str = serialize_kwargs(shared_args)
     if shared_args_str not in self._f_train_compiled:
 
-      def train_step(x):
+      def train_step(*x):
         # t, i, input_, target_ = x
         res = self.f_grad(shared_args)(*x)
         self.optimizer.update(res[0])
@@ -529,8 +535,8 @@ class OnlineBPTT(BPTT):
       if self.jit[c.FIT_PHASE]:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
-        f = bm.make_loop(train_step, dyn_vars=dyn_vars.unique(), has_return=True)
-        run_func = lambda all_inputs: f(all_inputs)[1]
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+        run_func = lambda all_inputs: bm.for_loop(train_step, dyn_vars.unique(), all_inputs)
 
       else:
         def run_func(xs):
@@ -541,7 +547,7 @@ class OnlineBPTT(BPTT):
             x = tree_map(lambda x: x[i], inputs, is_leaf=_is_jax_array)
             y = tree_map(lambda x: x[i], targets, is_leaf=_is_jax_array)
             # step at the i
-            loss = train_step((times[i], indices[i], x, y))
+            loss = train_step(times[i], indices[i], x, y)
             # append output and monitor
             losses.append(loss)
           return bm.asarray(losses)
@@ -583,6 +589,7 @@ class OnlineBPTT(BPTT):
       if self.jit[c.FIT_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_predict_compiled[shared_args_str] = bm.jit(run_func, dyn_vars=dyn_vars.unique())
       else:
         self._f_predict_compiled[shared_args_str] = run_func
