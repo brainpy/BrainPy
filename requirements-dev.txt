@@ -9,6 +9,7 @@ brainpylib
 h5py
 requests
 pillow
+pathos
 
 # test requirements
 pytest

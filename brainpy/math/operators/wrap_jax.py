@@ -8,6 +8,7 @@ from jax import lax
 from jax import ops as jops
 
 from brainpy.math.jaxarray import JaxArray
+from brainpy.math.numpy_ops import as_jax
 
 __all__ = [
   'segment_sum',
@@ -56,8 +57,8 @@ def segment_sum(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_sum(data.value if isinstance(data, JaxArray) else data,
-                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+  return JaxArray(jops.segment_sum(as_jax(data),
+                                   as_jax(segment_ids),
                                    num_segments,
                                    indices_are_sorted,
                                    unique_indices,
@@ -103,8 +104,8 @@ def segment_prod(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_prod(data.value if isinstance(data, JaxArray) else data,
-                                    segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+  return JaxArray(jops.segment_prod(as_jax(data),
+                                    as_jax(segment_ids),
                                     num_segments,
                                     indices_are_sorted,
                                     unique_indices,
@@ -150,8 +151,8 @@ def segment_max(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_max(data.value if isinstance(data, JaxArray) else data,
-                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+  return JaxArray(jops.segment_max(as_jax(data),
+                                   as_jax(segment_ids),
                                    num_segments,
                                    indices_are_sorted,
                                    unique_indices,
@@ -197,9 +198,10 @@ def segment_min(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_min(data.value if isinstance(data, JaxArray) else data,
-                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
+  return JaxArray(jops.segment_min(as_jax(data),
+                                   as_jax(segment_ids),
                                    num_segments,
                                    indices_are_sorted,
                                    unique_indices,
-                                   bucket_size, mode))
+                                   bucket_size,
+                                   mode))

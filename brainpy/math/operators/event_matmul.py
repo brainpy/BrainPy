@@ -3,14 +3,10 @@
 
 from typing import Tuple
 
+import brainpylib
+
 from brainpy.math.numpy_ops import as_jax
 from brainpy.types import Array
-from .utils import _check_brainpylib
-
-try:
-  import brainpylib
-except ModuleNotFoundError:
-  brainpylib = None
 
 __all__ = [
   'event_csr_matvec',
@@ -48,7 +44,6 @@ def event_csr_matvec(values: Array,
     A tensor with the shape of ``shape[1]`` if `transpose=True`,
     or ``shape[0]`` if `transpose=False`.
   """
-  _check_brainpylib('event_csr_matvec')
   events = as_jax(events)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
