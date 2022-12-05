@@ -3,7 +3,7 @@
 from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
-from jax.lax import cond
+from jax.lax import cond, rsqrt
 
 import brainpy.math as bm
 from brainpy.base.base import Base
@@ -886,3 +886,118 @@ class AdamW(Optimizer):
       p.value -= lr * m / denom
     self.lr.update()
 
+
+class SM3(Optimizer):
+  """SM3 algorithm [1]_.
+
+  The 'Square-root of Minima of Sums of Maxima of Squared-gradients Method'
+  (SM3) algorithm is a memory-efficient adaptive optimization algorithm similar
+  to Adam and Adagrad with greatly reduced memory usage for history tensors.
+  For an `n x m` matrix, Adam and Adagrad use `O(nm)` memory for history
+  tensors, while SM3 uses `O(n+m)` due to the chosen cover. In general, a tensor
+  of shape `(n_1, n_2, ..., n_k)` optimized using Adam will use `O(prod n_i)`
+  memory for storage tensors, while the optimization using SM3 will use
+  `O(sum n_i)` memory. Despite storing fewer parameters, this optimization
+  algorithm manages to be comparably effective.
+
+  This advantage drastically shrinks when `momentum > 0`. The momentum is
+  tracked using a tensor of the same shape as the tensor being optimized. With
+  momentum, SM3 will use just over half as much memory as Adam, and a bit more
+  than Adagrad.
+
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
+  momentum: float
+    coefficient used to scale prior updates
+    before adding. This drastically increases memory usage if
+    `momentum > 0.0`. (default: 0.0)
+  beta: float
+    coefficient used for exponential moving averages (default: 0.0)
+  eps: float
+    Term added to square-root in denominator to
+    improve numerical stability (default: 1e-30).
+
+  References
+  ----------
+  .. [1] Anil, Rohan, Vineet Gupta, Tomer Koren and Yoram Singer. “Memory Efficient Adaptive Optimization.” Neural Information Processing Systems (2019).
+
+  """
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      beta: float = 0.,
+      momentum: float = 0.,
+      eps: float = 1e-30,
+      name: Optional[str] = None,
+  ):
+    super(SM3, self).__init__(lr, train_vars, name)
+
+    if not 0.0 <= momentum < 1.0:
+      raise ValueError("Invalid momentum: {0}".format(momentum))
+    if not 0.0 <= beta < 1.0:
+      raise ValueError("Invalid beta: {0}".format(beta))
+    if not 0.0 <= eps:
+      raise ValueError("Invalid eps: {0}".format(eps))
+
+    self.eps = eps
+    self.beta = beta
+    self.momentum = momentum
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"beta={self.beta}, eps={self.eps}, momentum={self.momentum})")
+
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+    train_vars = dict() if train_vars is None else train_vars
+    if not isinstance(train_vars, dict):
+      raise MathError('"train_vars" must be a dict of Variable.')
+    self.vars_to_train.update(train_vars)
+    vs = dict()
+    for k, v in train_vars.items():
+      rank, ndim = v.shape, v.ndim
+      for i in range(ndim):
+        shape = [1] * ndim
+        shape[i] = rank[i]
+        vs[f'{k}_m{i}'] = bm.Variable(bm.zeros(shape, dtype=v.dtype))
+    self.register_implicit_vars(vs)
+    if self.momentum > 0.:
+      ms = {k + '_mbuffer': bm.Variable(bm.zeros_like(v))
+            for k, v in train_vars.items()}
+      self.register_implicit_vars(ms)
+
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    lr = self.lr()
+
+    for k, p in self.vars_to_train.items():
+      g = grads[k]
+      ndim = p.ndim
+      update = self.implicit_vars[f'{k}_m0']
+      for i in range(1, ndim):
+        update = bm.minimum(update, self.implicit_vars[f'{k}_m{i}'])
+      if self.beta > 0.:
+        update *= self.beta
+      update += g * g * (1 - self.beta)
+      # Computes max along all dimensions except the given dim.
+      # If tensor is a scalar, it returns tensor.
+      for i in range(ndim):
+        result = update
+        for j in range(ndim):
+          if i != j:
+            result = result.max(axis=j, keepdim=True)
+        acc = self.implicit_vars[f'{k}_m{i}']
+        if self.beta > 0.:
+          acc.value = bm.maximum(acc, result)
+        else:
+          # No need to compare - nu_max is bigger because of grad ** 2
+          acc.value = result
+      update = g / bm.sqrt(update + self.eps)
+      if self.momentum > 0.:
+        m_buffer = self.implicit_vars[f'{k}_mbuffer']
+        update = update * (1. - self.momentum) + m_buffer * self.momentum
+        m_buffer.value = update
+      p -= lr * update
+    self.lr.update()
