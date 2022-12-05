@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict, Optional
+from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
+from jax.lax import cond
 
 import brainpy.math as bm
 from brainpy.base.base import Base
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MathError
-from brainpy.math.jaxarray import Variable
 from .scheduler import make_schedule, Scheduler
 
 __all__ = [
@@ -21,32 +21,40 @@ __all__ = [
   'RMSProp',
   'Adam',
   'LARS',
+  'Adan',
 ]
 
 
 class Optimizer(Base):
   """Base Optimizer Class.
+
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
   """
+
+  lr: Scheduler  # learning rate
+  vars_to_train: TensorCollector  # variables to train
 
   def __init__(
       self,
-      lr: Union[float, int, Scheduler],
-      train_vars: Union[Sequence[Variable], Dict[str, Variable]] = None,
-      name: str = None
+      lr: Union[float, Scheduler],
+      train_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      name: Optional[str] = None
   ):
     super(Optimizer, self).__init__(name=name)
-    self.lr = make_schedule(lr)
+    self.lr: Scheduler = make_schedule(lr)
     self.vars_to_train = TensorCollector()
     self.register_vars(train_vars)
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     raise NotImplementedError
 
   def check_grads(self, grads):
     if len(grads) != len(self.vars_to_train):
-      raise MathError(
-        f'The length of "grads" must be equal to "self.vars_to_train", '
-        f'while we got {len(grads)} != {len(self.vars_to_train)}!')
+      raise MathError(f'The length of "grads" must be equal to "self.vars_to_train", '
+                      f'while we got {len(grads)} != {len(self.vars_to_train)}!')
 
   def __repr__(self):
     return f"{self.__class__.__name__}(lr={self.lr})"
@@ -65,12 +73,23 @@ class SGD(Optimizer):
 
       \theta = \theta - \eta \cdot \nabla_\theta J(\theta; x; y)
 
+
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
+
   """
 
-  def __init__(self, lr, train_vars=None, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      name: Optional[str] = None
+  ):
     super(SGD, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -99,6 +118,10 @@ class Momentum(Optimizer):
     \end{split}
     \end{align}
 
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
 
   References
   ----------
@@ -109,17 +132,23 @@ class Momentum(Optimizer):
 
   """
 
-  def __init__(self, lr, train_vars=None, momentum=0.9, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      momentum: float = 0.9,
+      name: Optional[str] = None
+  ):
     super(Momentum, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    vs = dict((key + '_v', Variable(bm.zeros_like(x)))
+    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x)))
               for key, x in train_vars.items())
     self.register_implicit_vars(vs)
 
@@ -149,6 +178,10 @@ class MomentumNesterov(Optimizer):
       \end{split}
       \end{align}
 
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
 
   References
   ----------
@@ -156,17 +189,23 @@ class MomentumNesterov(Optimizer):
 
   """
 
-  def __init__(self, lr, train_vars=None, momentum=0.9, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      momentum: float = 0.9,
+      name: Optional[str] = None
+  ):
     super(MomentumNesterov, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    vs = dict((key + '_v', Variable(bm.zeros_like(x)))
+    vs = dict((key + '_v', bm.Variable(bm.zeros_like(x)))
               for key, x in train_vars.items())
     self.register_implicit_vars(vs)
 
@@ -204,22 +243,33 @@ class Adagrad(Optimizer):
   This in turn causes the learning rate to shrink and eventually become infinitesimally
   small, at which point the algorithm is no longer able to acquire additional knowledge.
 
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
+
   References
   ----------
   .. [3] Duchi, J., Hazan, E., & Singer, Y. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. Journal of Machine Learning Research, 12, 2121–2159. Retrieved from http://jmlr.org/papers/v12/duchi11a.html
 
   """
 
-  def __init__(self, lr, train_vars=None, epsilon=1e-6, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      epsilon: float = 1e-6,
+      name: Optional[str] = None
+  ):
     super(Adagrad, self).__init__(lr=lr, train_vars=train_vars, name=name)
     self.epsilon = epsilon
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+    caches = dict((key + '_cache', bm.Variable(bm.zeros_like(x)))
                   for key, x in train_vars.items())
     self.register_implicit_vars(caches)
 
@@ -269,26 +319,38 @@ class Adadelta(Optimizer):
   keep it at this value. epsilon is important for the very first update (so the
   numerator does not become 0).
 
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
+
   References
   ----------
   .. [4] Zeiler, M. D. (2012). ADADELTA: An Adaptive Learning Rate Method. Retrieved from http://arxiv.org/abs/1212.5701
 
   """
 
-  def __init__(self, train_vars=None, lr=0.01, epsilon=1e-6, rho=0.95, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler] = 0.01,
+      train_vars: Dict[str, bm.Variable] = None,
+      epsilon: float = 1e-6,
+      rho: float = 0.95,
+      name: Optional[str] = None
+  ):
     super(Adadelta, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.epsilon = epsilon
     self.rho = rho
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+    caches = dict((key + '_cache', bm.Variable(bm.zeros_like(x)))
                   for key, x in train_vars.items())
-    deltas = dict((key + '_delta', Variable(bm.zeros_like(x)))
+    deltas = dict((key + '_delta', bm.Variable(bm.zeros_like(x)))
                   for key, x in train_vars.items())
     self.register_implicit_vars(caches)
     self.register_implicit_vars(deltas)
@@ -328,6 +390,11 @@ class RMSProp(Optimizer):
   The centered version additionally maintains a moving average of the gradients,
   and uses that average to estimate the variance.
 
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
+
   References
   ----------
   .. [5] Tieleman, T. and Hinton, G. (2012):
@@ -335,18 +402,25 @@ class RMSProp(Optimizer):
          Coursera. http://www.youtube.com/watch?v=O3sxAc4hxZU (formula @5:20)
   """
 
-  def __init__(self, lr, train_vars=None, epsilon=1e-6, rho=0.9, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      epsilon: float = 1e-6,
+      rho: float = 0.9,
+      name: Optional[str] = None
+  ):
     super(RMSProp, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.epsilon = epsilon
     self.rho = rho
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    caches = dict((key + '_cache', Variable(bm.zeros_like(x)))
+    caches = dict((key + '_cache', bm.Variable(bm.zeros_like(x)))
                   for key, x in train_vars.items())
     self.register_implicit_vars(caches)
 
@@ -374,6 +448,8 @@ class Adam(Optimizer):
 
   Parameters
   ----------
+  lr: float, Scheduler
+    learning rate.
   beta1: optional, float
     A positive scalar value for beta_1, the exponential decay rate
     for the first moment estimates (default 0.9).
@@ -391,7 +467,15 @@ class Adam(Optimizer):
   .. [6] Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
   """
 
-  def __init__(self, lr, train_vars=None, beta1=0.9, beta2=0.999, eps=1e-8, name=None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      beta1: float = 0.9,
+      beta2: float = 0.999,
+      eps: float = 1e-8,
+      name: Optional[str] = None
+  ):
     super(Adam, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.beta1 = beta1
@@ -402,15 +486,15 @@ class Adam(Optimizer):
     return (f"{self.__class__.__name__}(lr={self.lr}, "
             f"beta1={self.beta1}, beta2={self.beta2}, eps={self.eps})")
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    ms = dict((k + '_m', Variable(bm.zeros_like(x)))
+    ms = dict((k + '_m', bm.Variable(bm.zeros_like(x)))
               for k, x in train_vars.items())
     self.register_implicit_vars(ms)
-    vs = dict((k + '_v', Variable(bm.zeros_like(x)))
+    vs = dict((k + '_v', bm.Variable(bm.zeros_like(x)))
               for k, x in train_vars.items())
     self.register_implicit_vars(vs)
 
@@ -437,6 +521,8 @@ class LARS(Optimizer):
 
   Parameters
   ----------
+  lr: float, Scheduler
+    learning rate.
   momentum: float
     coefficient used for the moving average of the gradient.
   weight_decay: float
@@ -447,14 +533,16 @@ class LARS(Optimizer):
     epsilon used for trust ratio computation.
   """
 
-  def __init__(self,
-               lr: Union[float, int, Scheduler],
-               train_vars: Dict[str, Variable] = None,
-               momentum: float = 0.9,
-               weight_decay: float = 1e-4,
-               tc: float = 1e-3,
-               eps: float = 1e-5,
-               name: str = None):
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      momentum: float = 0.9,
+      weight_decay: float = 1e-4,
+      tc: float = 1e-3,
+      eps: float = 1e-5,
+      name: Optional[str] = None
+  ):
     super(LARS, self).__init__(lr=lr, train_vars=train_vars, name=name)
 
     self.momentum = momentum
@@ -467,14 +555,13 @@ class LARS(Optimizer):
             f"momentum={self.momentum}, weight_decay={self.weight_decay}, "
             f"tc={self.tc}, eps={self.eps})")
 
-  def register_vars(self, train_vars: Optional[Dict[str, Variable]] = None):
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
     self.vars_to_train.update(train_vars)
-    ms = dict((k + '_m', Variable(bm.zeros_like(x)))
-              for k, x in train_vars.items())
-    self.register_implicit_vars(ms)
+    self.register_implicit_vars({k + '_m': bm.Variable(bm.zeros_like(x))
+                                 for k, x in train_vars.items()})
 
   def update(self, grads: dict):
     self.check_grads(grads)
@@ -488,4 +575,140 @@ class LARS(Optimizer):
       local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
       m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
       p.value -= m.value
+    self.lr.update()
+
+
+class Adan(Optimizer):
+  r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models [1]_.
+
+  .. math::
+
+     \begin{equation}
+      \begin{aligned}
+      & \mathbf{m}_k=\left(1-\beta_1\right) \mathbf{m}_{k-1}+\beta_1 \mathbf{g}_k \\
+      & \mathbf{v}_k=\left(1-\beta_2\right) \mathbf{v}_{k-1}+\beta_2\left(\mathbf{g}_k-\mathbf{g}_{k-1}\right)  \\
+      & \mathbf{n}_k=\left(1-\beta_3\right) \mathbf{n}_{k-1}+\beta_3\left[\mathbf{g}_k+\left(1-\beta_2\right)\left(\mathbf{g}_k-\mathbf{g}_{k-1}\right)\right]^2  \\
+      & \boldsymbol{\eta}_k=\eta /\left(\sqrt{\mathbf{n}_k+\varepsilon}\right)  \\
+      & \boldsymbol{\theta}_{k+1}=\left(1+\lambda_k \eta\right)^{-1}\left[\boldsymbol{\theta}_k-\boldsymbol{\eta}_k \circ\left(\mathbf{m}_k+\left(1-\beta_2\right) \mathbf{v}_k\right)\right] \\
+      \end{aligned}
+      \end{equation}
+
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate. Can be much higher than Adam, up to 5-10x. (default: 1e-3)
+  betas : tuple
+     Coefficients used for computing running averages of gradient and its norm. (default: (0.02, 0.08, 0.01))
+  eps : float
+    The term added to the denominator to improve numerical stability. (default: 1e-8)
+  weight_decay : float
+    decoupled weight decay (L2 penalty) (default: 0)
+  no_prox: bool
+    how to perform the decoupled weight decay (default: False).
+    It determines the update rule of parameters with weight decay.
+    By default, Adan updates the parameters in the way presented in Algorithm 1 in the paper:
+
+    .. math::
+       \boldsymbol{\theta}_{k+1} = ( 1+\lambda \eta)^{-1}\left[\boldsymbol{\theta}_k - \boldsymbol{\eta}_k \circ (\mathbf{m}_k+(1-{\color{blue}\beta_2})\mathbf{v}k)\right],
+
+    But one also can update the parameter like Adamw:
+
+    .. math::
+       \boldsymbol{\theta}_{k+1} = ( 1-\lambda \eta)\boldsymbol{\theta}_k - \boldsymbol{\eta}_k \circ (\mathbf{m}_k+(1-{\color{blue}\beta_2})\mathbf{v}_k).
+
+  References
+  ----------
+  .. [1] Xie, Xingyu, Pan Zhou, Huan Li, Zhouchen Lin and Shuicheng Yan. 
+         “Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing 
+         Deep Models.” ArXiv abs/2208.06677 (2022): n. pag.
+  """
+
+  def __init__(
+      self,
+      lr: Union[float, Scheduler] = 1e-3,
+      train_vars: Dict[str, bm.Variable] = None,
+      betas: Tuple[float, float, float] = (0.02, 0.08, 0.01),
+      eps: float = 1e-8,
+      weight_decay: float = 0.02,
+      no_prox: bool = False,
+      name: Optional[str] = None,
+  ):
+    super(Adan, self).__init__(lr=lr, train_vars=train_vars, name=name)
+
+    assert len(betas) == 3
+    if eps < 0.:
+      raise ValueError("Invalid epsilon value: {}".format(eps))
+    if not 0.0 <= betas[0] < 1.0:
+      raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+    if not 0.0 <= betas[1] < 1.0:
+      raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+    if not 0.0 <= betas[2] < 1.0:
+      raise ValueError("Invalid beta parameter at index 2: {}".format(betas[2]))
+
+    self.betas = betas
+    self.eps = eps
+    self.weight_decay = weight_decay
+    self.no_prox = no_prox
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"betas={self.betas}, "
+            f"weight_decay={self.weight_decay}, "
+            f"no_prox={self.no_prox}, "
+            f"eps={self.eps}")
+
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+    train_vars = dict() if train_vars is None else train_vars
+    if not isinstance(train_vars, dict):
+      raise MathError('"train_vars" must be a dict of Variable.')
+    self.vars_to_train.update(train_vars)
+    # Exponential moving average of gradient values
+    exp_avg = {k + '_m': bm.Variable(bm.zeros_like(x)) for k, x in train_vars.items()}
+    # Exponential moving average of squared gradient values
+    exp_avg_sq = {k + '_v': bm.Variable(bm.zeros_like(x)) for k, x in train_vars.items()}
+    # Exponential moving average of gradient difference
+    exp_avg_diff = {k + '_n': bm.Variable(bm.zeros_like(x)) for k, x in train_vars.items()}
+    # previous gradient
+    pre_grad = {k + '_prev_grad': bm.Variable(bm.zeros_like(x)) for k, x in train_vars.items()}
+    self.register_implicit_vars(exp_avg, exp_avg_sq, exp_avg_diff, pre_grad)
+
+  def _update_moments(self, m, n, v, pre_g, g):
+    m = m * (1 - self.betas[0]) + self.betas[0] * g
+    gd = g - pre_g
+    v = v * (1 - self.betas[1]) + self.betas[1] * gd
+    n = n * (1 - self.betas[2]) + self.betas[2] * (g + (1 - self.betas[1]) * gd) ** 2
+    return m, n, v
+
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    lr = self.lr()
+    step = self.lr.step[0]
+    correct_m = 1 / (1 - (1 - self.betas[0]) ** (step + 1))
+    correct_v = 1 / (1 - (1 - self.betas[1]) ** (step + 1))
+    correct_n = 1 / (1 - (1 - self.betas[2]) ** (step + 1))
+    for key, p_var in self.vars_to_train.items():
+      m_var = self.implicit_vars[key + '_m']
+      n_var = self.implicit_vars[key + '_n']
+      v_var = self.implicit_vars[key + '_v']
+      prev_g_var = self.implicit_vars[key + '_prev_grad']
+      g = grads[key]
+      pre_g = cond(step == 0, lambda pg, g: g, lambda pg, g: pg, (prev_g_var.value, g))
+      diff = g - pre_g
+      m = m_var.value * (1 - self.betas[0]) + self.betas[0] * g
+      v = v_var.value * (1 - self.betas[1]) + self.betas[1] * diff
+      n = n_var.value * (1 - self.betas[2]) + self.betas[2] * (g + (1 - self.betas[1]) * diff) ** 2
+      weighted_step_size = lr / (bm.sqrt(n * correct_n) + self.eps)
+      if self.no_prox:
+        p = (p_var.value * (1 - self.weight_decay * lr) -
+             weighted_step_size * (m * correct_m + (1 - self.betas[1]) * v * correct_v))
+      else:
+        p = (
+            (p_var.value - weighted_step_size * (m * correct_m + (1 - self.betas[1]) * v * correct_v))
+            / (1 + self.weight_decay * lr)
+        )
+      m_var.value = m
+      n_var.value = n
+      v_var.value = v
+      prev_g_var.value = g
+      p_var.value = p
     self.lr.update()
