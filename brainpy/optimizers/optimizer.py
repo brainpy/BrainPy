@@ -22,6 +22,7 @@ __all__ = [
   'Adam',
   'LARS',
   'Adan',
+  'AdamW',
 ]
 
 
@@ -517,7 +518,19 @@ class Adam(Optimizer):
 
 
 class LARS(Optimizer):
-  """Layer-wise adaptive rate scaling (LARS) optimizer.
+  r"""Layer-wise adaptive rate scaling (LARS) optimizer [1]_.
+
+  Layer-wise Adaptive Rate Scaling, or LARS, is a large batch
+  optimization technique. There are two notable differences
+  between LARS and other adaptive algorithms such as `Adam` or `RMSProp`:
+  first, LARS uses a separate learning rate for each layer and not for
+  each weight. And second, the magnitude of the update is controlled
+  with respect to the weight norm for better control of training speed.
+
+  .. math::
+
+     m_{t} = \beta_{1}m_{t-1} + \left(1-\beta_{1}\right)\left(g_{t} + \lambda{x_{t}}\right) \\
+     x_{t+1}^{\left(i\right)} = x_{t}^{\left(i\right)}  - \eta_{t}\frac{\phi\left(|| x_{t}^{\left(i\right)} ||\right)}{|| m_{t}^{\left(i\right)} || }m_{t}^{\left(i\right)}
 
   Parameters
   ----------
@@ -531,6 +544,10 @@ class LARS(Optimizer):
     trust coefficient eta ( < 1) for trust ratio computation.
   eps: float
     epsilon used for trust ratio computation.
+
+  References
+  ----------
+  .. [1] You, Yang, Igor Gitman and Boris Ginsburg. “Large Batch Training of Convolutional Networks.” arXiv: Computer Vision and Pattern Recognition (2017): n. pag.
   """
 
   def __init__(
@@ -569,10 +586,10 @@ class LARS(Optimizer):
     for k, p in self.vars_to_train.items():
       g = grads[k]
       m = self.implicit_vars[k + '_m']
-      p_norm = jnp.linalg.norm(bm.as_jax(p))
-      g_norm = jnp.linalg.norm(bm.as_jax(g))
+      p_norm = bm.linalg.norm(p)
+      g_norm = bm.linalg.norm(g)
       trust_ratio = self.tc * p_norm / (g_norm + self.weight_decay * p_norm + self.eps)
-      local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
+      local_lr = lr * bm.maximum(bm.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
       m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
       p.value -= m.value
     self.lr.update()
@@ -712,3 +729,160 @@ class Adan(Optimizer):
       prev_g_var.value = g
       p_var.value = p
     self.lr.update()
+
+
+class AdamW(Optimizer):
+  r"""Adam with weight decay regularization [1]_.
+
+  AdamW uses weight decay to regularize learning towards small weights, as
+  this leads to better generalization. In SGD you can also use L2 regularization
+  to implement this as an additive loss term, however L2 regularization
+  does not behave as intended for adaptive gradient algorithms such as Adam.
+
+  .. math::
+     \begin{aligned}
+        &\rule{110mm}{0.4pt}                                                                 \\
+        &\textbf{input}      : \gamma \text{(lr)}, \: \beta_1, \beta_2
+            \text{(betas)}, \: \theta_0 \text{(params)}, \: f(\theta) \text{(objective)},
+            \: \epsilon \text{ (epsilon)}                                                    \\
+        &\hspace{13mm}      \lambda \text{(weight decay)},  \: \textit{amsgrad},
+            \: \textit{maximize}                                                             \\
+        &\textbf{initialize} : m_0 \leftarrow 0 \text{ (first moment)}, v_0 \leftarrow 0
+            \text{ ( second moment)}, \: \widehat{v_0}^{max}\leftarrow 0              \\[-1.ex]
+        &\rule{110mm}{0.4pt}                                                                 \\
+        &\textbf{for} \: t=1 \: \textbf{to} \: \ldots \: \textbf{do}                         \\
+
+        &\hspace{5mm}\textbf{if} \: \textit{maximize}:                                       \\
+        &\hspace{10mm}g_t           \leftarrow   -\nabla_{\theta} f_t (\theta_{t-1})          \\
+        &\hspace{5mm}\textbf{else}                                                           \\
+        &\hspace{10mm}g_t           \leftarrow   \nabla_{\theta} f_t (\theta_{t-1})           \\
+        &\hspace{5mm} \theta_t \leftarrow \theta_{t-1} - \gamma \lambda \theta_{t-1}         \\
+        &\hspace{5mm}m_t           \leftarrow   \beta_1 m_{t-1} + (1 - \beta_1) g_t          \\
+        &\hspace{5mm}v_t           \leftarrow   \beta_2 v_{t-1} + (1-\beta_2) g^2_t          \\
+        &\hspace{5mm}\widehat{m_t} \leftarrow   m_t/\big(1-\beta_1^t \big)                   \\
+        &\hspace{5mm}\widehat{v_t} \leftarrow   v_t/\big(1-\beta_2^t \big)                   \\
+        &\hspace{5mm}\textbf{if} \: amsgrad                                                  \\
+        &\hspace{10mm}\widehat{v_t}^{max} \leftarrow \mathrm{max}(\widehat{v_t}^{max},
+            \widehat{v_t})                                                                   \\
+        &\hspace{10mm}\theta_t \leftarrow \theta_t - \gamma \widehat{m_t}/
+            \big(\sqrt{\widehat{v_t}^{max}} + \epsilon \big)                                 \\
+        &\hspace{5mm}\textbf{else}                                                           \\
+        &\hspace{10mm}\theta_t \leftarrow \theta_t - \gamma \widehat{m_t}/
+            \big(\sqrt{\widehat{v_t}} + \epsilon \big)                                       \\
+        &\rule{110mm}{0.4pt}                                                          \\[-1.ex]
+        &\bf{return} \:  \theta_t                                                     \\[-1.ex]
+        &\rule{110mm}{0.4pt}                                                          \\[-1.ex]
+     \end{aligned}
+
+
+  Parameters
+  ----------
+  lr: float, Scheduler
+    learning rate.
+  beta1: optional, float
+    A positive scalar value for beta_1, the exponential decay rate
+    for the first moment estimates. Generally close to 1.
+  beta2: optional, float
+    A positive scalar value for beta_2, the exponential decay rate
+    for the second moment estimates. Generally close to 1.
+  eps: optional, float
+    A positive scalar value for epsilon, a small constant for
+    numerical stability.
+  weight_decay: float
+    Strength of the weight decay regularization. Note that this
+    weight decay is multiplied with the learning rate.
+  amsgrad: bool
+    whether to use the AMSGrad variant of this algorithm
+    from the paper `On the Convergence of Adam and Beyond`.
+  name : optional, str
+    The optimizer name.
+
+  References
+  ----------
+  .. [1] Loshchilov, Ilya and Frank Hutter. “Decoupled Weight Decay Regularization.” International Conference on Learning Representations (2019).
+
+  """
+
+  def __init__(
+      self,
+      lr: Union[float, Scheduler],
+      train_vars: Dict[str, bm.Variable] = None,
+      beta1: float = 0.9,
+      beta2: float = 0.999,
+      eps: float = 1e-8,
+      weight_decay: float = 1e-2,
+      amsgrad: bool = False,
+      name: Optional[str] = None,
+  ):
+    super(AdamW, self).__init__(lr, train_vars, name)
+
+    if eps < 0.:
+      raise ValueError("Invalid epsilon value: {}".format(eps))
+    if not 0.0 <= beta1 < 1.0:
+      raise ValueError("Invalid beta parameter at index 0: {}".format(beta1))
+    if not 0.0 <= beta2 < 1.0:
+      raise ValueError("Invalid beta parameter at index 1: {}".format(beta2))
+    if weight_decay < 0.:
+      raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+
+    self.beta1 = beta1
+    self.beta2 = beta2
+    self.eps = eps
+    self.weight_decay = weight_decay
+    self.amsgrad = amsgrad
+
+  def __repr__(self):
+    return (f"{self.__class__.__name__}(lr={self.lr}, "
+            f"beta1={self.beta1}, "
+            f"beta2={self.beta2}, "
+            f"weight_decay={self.weight_decay}, "
+            f"eps={self.eps}, "
+            f"amsgrad={self.amsgrad})")
+
+  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+    train_vars = dict() if train_vars is None else train_vars
+    if not isinstance(train_vars, dict):
+      raise MathError('"train_vars" must be a dict of Variable.')
+    self.vars_to_train.update(train_vars)
+    # Exponential moving average of gradient values
+    ms = dict((k + '_m', bm.Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
+    # Exponential moving average of squared gradient values
+    vs = dict((k + '_v', bm.Variable(bm.zeros_like(x)))
+              for k, x in train_vars.items())
+    self.register_implicit_vars(ms, vs)
+    # Maintains max of all exp. moving avg. of sq. grad. values
+    if self.amsgrad:
+      gs = {k + '_vmax': bm.Variable(bm.zeros_like(x))
+            for k, x in train_vars.items()}
+      self.register_implicit_vars(gs)
+
+  def update(self, grads: dict):
+    self.check_grads(grads)
+    lr_old = self.lr()
+    step = self.lr.step[0] + 1
+    bias_correction1 = 1 - self.beta1 ** step
+    bias_correction2 = 1 - self.beta2 ** step
+    lr = lr_old * bm.sqrt(bias_correction2) / bias_correction1
+    for key, p in self.vars_to_train.items():
+      m = self.implicit_vars[key + '_m']
+      v = self.implicit_vars[key + '_v']
+      g = grads[key]
+      if self.weight_decay != 0:
+        p *= (1 - lr_old * self.weight_decay)
+      # First  moment estimate.
+      m.value = self.beta1 * m.value + (1 - self.beta1) * g
+      # Second moment estimate.
+      v.value = self.beta2 * v.value + (1 - self.beta2) * g ** 2
+      if self.amsgrad:
+        # Maintains the maximum of all 2nd moment running avg. till now
+        vmax = self.implicit_vars[key + '_vmax']
+        vmax.value = bm.maximum(vmax, v)
+        # Use the max. for normalizing running avg. of gradient
+        denom = bm.sqrt(vmax) + self.eps
+      else:
+        denom = bm.sqrt(v) + self.eps
+      # Bias correction.
+      p.value -= lr * m / denom
+    self.lr.update()
+
