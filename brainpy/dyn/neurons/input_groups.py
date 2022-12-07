@@ -45,7 +45,7 @@ class InputGroup(NeuGroup):
     self.spike = None
 
   def update(self, tdi, x=None):
-    pass
+    return x
 
   def reset_state(self, batch_size=None):
     pass

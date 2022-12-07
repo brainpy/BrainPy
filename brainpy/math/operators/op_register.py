@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from typing import Callable
 
 import brainpylib
@@ -40,6 +41,9 @@ class XLACustomOp(Base):
   apply_cpu_func_to_gpu: bool
     Whether allows to apply CPU function on GPU backend. If True, the GPU data will move to CPU,
     and after calculation, the returned outputs on CPU backend will move to GPU.
+
+    .. deprecated:: 2.2.4.1
+       No longer supported.
   """
 
   def __init__(
@@ -48,7 +52,7 @@ class XLACustomOp(Base):
       con_compute: Callable = None,
       cpu_func: Callable = None,
       gpu_func: Callable = None,
-      apply_cpu_func_to_gpu: bool = False,
+      apply_cpu_func_to_gpu: bool = None,
       name: str = None,
       batching_translation: Callable = None,
       jvp_translation: Callable = None,
@@ -56,6 +60,9 @@ class XLACustomOp(Base):
       multiple_results: bool = False,
   ):
     super(XLACustomOp, self).__init__(name=name)
+
+    if apply_cpu_func_to_gpu is not None:
+      warnings.warn('"apply_cpu_func_to_gpu" has been removed.', UserWarning)
 
     # abstract evaluation function
     if eval_shape is None:
@@ -78,7 +85,6 @@ class XLACustomOp(Base):
       cpu_func=cpu_func,
       gpu_func_translation=gpu_func,
       out_shapes=eval_shape,
-      apply_cpu_func_to_gpu=apply_cpu_func_to_gpu,
       batching_translation=batching_translation,
       jvp_translation=jvp_translation,
       transpose_translation=transpose_translation,
