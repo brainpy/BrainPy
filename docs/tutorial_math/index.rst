@@ -8,3 +8,4 @@ Math Basics
    arrays_and_variables
    jit_compilation
    control_flows
+   random_number_generation
