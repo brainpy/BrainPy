@@ -6,11 +6,6 @@ class BrainPyError(Exception):
   pass
 
 
-class ModelBuildError(BrainPyError):
-  """The error occurred during the definition of models."""
-  pass
-
-
 class RunningError(BrainPyError):
   """The error occurred in the running function."""
   pass

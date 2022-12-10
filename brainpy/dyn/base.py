@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import gc
 import inspect
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
-import collections
 
 import jax.numpy as jnp
 import numpy as np
@@ -14,7 +14,7 @@ from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.base.base import Base
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
-from brainpy.errors import ModelBuildError, NoImplementationError, UnsupportedError, MathError
+from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
 from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
@@ -272,7 +272,7 @@ class DynamicalSystem(Base):
     if nodes is None:
       nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
     elif isinstance(nodes, DynamicalSystem):
-      nodes = (nodes, )
+      nodes = (nodes,)
     elif isinstance(nodes, dict):
       nodes = tuple(nodes.values())
     if not isinstance(nodes, (tuple, list)):
@@ -643,17 +643,17 @@ class NeuGroup(DynamicalSystem):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
-        raise ModelBuildError(f'size must be int, or a tuple/list of int. '
-                              f'But we got {type(size)}')
+        raise ValueError(f'size must be int, or a tuple/list of int. '
+                         f'But we got {type(size)}')
       if not isinstance(size[0], (int, np.integer)):
-        raise ModelBuildError('size must be int, or a tuple/list of int.'
-                              f'But we got {type(size)}')
+        raise ValueError('size must be int, or a tuple/list of int.'
+                         f'But we got {type(size)}')
       size = tuple(size)
     elif isinstance(size, (int, np.integer)):
       size = (size,)
     else:
-      raise ModelBuildError('size must be int, or a tuple/list of int.'
-                            f'But we got {type(size)}')
+      raise ValueError('size must be int, or a tuple/list of int.'
+                       f'But we got {type(size)}')
     self.size = size
     self.keep_size = keep_size
     # number of neurons
@@ -726,9 +726,9 @@ class SynConn(DynamicalSystem):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
-      raise ModelBuildError('"pre" must be an instance of NeuGroup.')
+      raise TypeError('"pre" must be an instance of NeuGroup.')
     if not isinstance(post, NeuGroup):
-      raise ModelBuildError('"post" must be an instance of NeuGroup.')
+      raise TypeError('"post" must be an instance of NeuGroup.')
     self.pre = pre
     self.post = post
 
@@ -738,22 +738,22 @@ class SynConn(DynamicalSystem):
       self.conn = conn(pre.size, post.size)
     elif isinstance(conn, (bm.ndarray, np.ndarray, jnp.ndarray)):
       if (pre.num, post.num) != conn.shape:
-        raise ModelBuildError(f'"conn" is provided as a matrix, and it is expected '
-                              f'to be an array with shape of (pre.num, post.num) = '
-                              f'{(pre.num, post.num)}, however we got {conn.shape}')
+        raise ValueError(f'"conn" is provided as a matrix, and it is expected '
+                         f'to be an array with shape of (pre.num, post.num) = '
+                         f'{(pre.num, post.num)}, however we got {conn.shape}')
       self.conn = MatConn(conn_mat=conn)
     elif isinstance(conn, dict):
       if not ('i' in conn and 'j' in conn):
-        raise ModelBuildError(f'"conn" is provided as a dict, and it is expected to '
-                              f'be a dictionary with "i" and "j" specification, '
-                              f'however we got {conn}')
+        raise ValueError(f'"conn" is provided as a dict, and it is expected to '
+                         f'be a dictionary with "i" and "j" specification, '
+                         f'however we got {conn}')
       self.conn = IJConn(i=conn['i'], j=conn['j'])
     elif isinstance(conn, str):
       self.conn = conn
     elif conn is None:
       self.conn = None
     else:
-      raise ModelBuildError(f'Unknown "conn" type: {conn}')
+      raise ValueError(f'Unknown "conn" type: {conn}')
 
   def __repr__(self):
     names = self.__class__.__name__
@@ -764,22 +764,22 @@ class SynConn(DynamicalSystem):
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
     if not hasattr(self, 'pre'):
-      raise ModelBuildError('Please call __init__ function first.')
+      raise ValueError('Please call __init__ function first.')
     for attr in attrs:
       if not isinstance(attr, str):
-        raise ValueError(f'Must be string. But got {attr}.')
+        raise TypeError(f'Must be string. But got {attr}.')
       if not hasattr(self.pre, attr):
-        raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
+        raise ValueError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
   def check_post_attrs(self, *attrs):
     """Check whether post group satisfies the requirement."""
     if not hasattr(self, 'post'):
-      raise ModelBuildError('Please call __init__ function first.')
+      raise ValueError('Please call __init__ function first.')
     for attr in attrs:
       if not isinstance(attr, str):
-        raise ValueError(f'Must be string. But got {attr}.')
+        raise TypeError(f'Must be string. But got {attr}.')
       if not hasattr(self.post, attr):
-        raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
+        raise ValueError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
   def update(self, tdi, pre_spike=None):
     """The function to specify the updating rule.
@@ -1286,11 +1286,11 @@ class DSView(DynamicalSystem):
     for k, v in all_vars.items():
       if v.batch_axis is not None:
         index = ((self.index[:v.batch_axis] +
-                 (slice(None, None, None), ) +
-                 self.index[v.batch_axis:])
+                  (slice(None, None, None),) +
+                  self.index[v.batch_axis:])
                  if len(self.index) > v.batch_axis else
                  (self.index + tuple([slice(None, None, None)
-                                     for _ in range(v.batch_axis - len(self.index) + 1)])))
+                                      for _ in range(v.batch_axis - len(self.index) + 1)])))
       else:
         index = self.index
       self.slice_vars[k] = bm.VariableView(v, index)

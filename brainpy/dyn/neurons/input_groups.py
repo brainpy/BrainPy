@@ -6,11 +6,9 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
-from brainpy.errors import ModelBuildError
 from brainpy.initialize import Initializer, parameter, variable_
 from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.types import Shape, Array
-
 
 __all__ = [
   'InputGroup',
@@ -129,8 +127,8 @@ class SpikeTimeGroup(NeuGroup):
     if keep_size:
       raise NotImplementedError(f'Do not support keep_size=True in {self.__class__.__name__}')
     if len(indices) != len(times):
-      raise ModelBuildError(f'The length of "indices" and "times" must be the same. '
-                            f'However, we got {len(indices)} != {len(times)}.')
+      raise ValueError(f'The length of "indices" and "times" must be the same. '
+                       f'However, we got {len(indices)} != {len(times)}.')
     self.num_times = len(times)
 
     # data about times and indices
@@ -206,4 +204,3 @@ class PoissonGroup(NeuGroup):
 
   def reset_state(self, batch_size=None):
     self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
-
