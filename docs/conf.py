@@ -141,4 +141,4 @@ html_theme_options = {
 
 # -- Options for myst ----------------------------------------------
 # Notebook cell execution timeout; defaults to 30.
-execution_timeout = 200
+# execution_timeout = 200
