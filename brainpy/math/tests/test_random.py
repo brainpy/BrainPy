@@ -1,6 +1,7 @@
 import unittest
 
 import jax
+import jax.random as jr
 import jax.numpy as jnp
 import numpy as np
 import numpy.random as nr
@@ -23,6 +24,11 @@ class TestRandom(unittest.TestCase):
     a = br.rand(3, 2)
     self.assertTupleEqual(a.shape, (3, 2))
     self.assertTrue((a >= 0).all() and (a < 1).all())
+
+    key = jr.PRNGKey(123)
+    jres = jr.uniform(key, shape=(10, 100))
+    self.assertTrue(bm.allclose(jres, br.rand(10, 100, key=key)))
+    self.assertTrue(bm.allclose(jres, br.rand(10, 100, key=123)))
 
   def test_randint1(self):
     br.seed()

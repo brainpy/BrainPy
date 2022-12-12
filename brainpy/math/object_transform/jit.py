@@ -19,10 +19,9 @@ except ImportError:
 
 from brainpy import errors
 from brainpy.base.base import Base
-from brainpy.base.naming import get_unique_name
 from brainpy.base.collector import TensorCollector
 from brainpy.math.jaxarray import JaxArray, add_context, del_context
-from brainpy.tools.codes import change_func_name
+from .base import ObjectTransform
 
 __all__ = [
   'jit',
@@ -31,51 +30,55 @@ __all__ = [
 logger = logging.getLogger('brainpy.math.jit')
 
 
-def _make_jit_with_vars(func, vars, static_argnames=None, device=None, f_name=None):
-  @functools.partial(jax.jit, static_argnames=static_argnames, device=device)
-  def jitted_func(variable_data, *args, **kwargs):
-    for key, v in vars.items(): v._value = variable_data[key]
-    out = func(*args, **kwargs)
-    changes = vars.dict()
-    return out, changes
+class FunctionJIT(ObjectTransform):
+  def __init__(self, func, static_argnames=None, device=None, name=None):
+    super().__init__(name=name)
+    self._f = jax.jit(func, static_argnames=static_argnames, device=device)
 
-  name = get_unique_name('_brainpy_object_oriented_jit_')
-
-  def call(*args, **kwargs):
-    variable_data = vars.dict()
-    try:
-      add_context(name)
-      out, changes = jitted_func(variable_data, *args, **kwargs)
-      del_context(name)
-    except UnexpectedTracerError as e:
-      del_context(name)
-      for key, v in vars.items(): v._value = variable_data[key]
-      raise errors.JaxTracerError(variables=vars) from e
-    except ConcretizationTypeError as e:
-      del_context(name)
-      for key, v in vars.items(): v._value = variable_data[key]
-      raise errors.ConcretizationTypeError() from e
-    except Exception as e:
-      del_context(name)
-      for key, v in vars.items(): v._value = variable_data[key]
-      raise e
-    for key, v in vars.items(): v._value = changes[key]
-    return out
-
-  return change_func_name(name=f_name, f=call) if f_name else call
-
-
-def _make_jit_without_vars(func, static_argnames=None, device=None, f_name=None):
-  jit_f = jax.jit(func, static_argnames=static_argnames, device=device)
-  name = get_unique_name('_jax_functional_jit_')
-
-  def call(*args, **kwargs):
-    add_context(name)
-    r = jit_f(*args, **kwargs)
-    del_context(name)
+  def __call__(self, *args, **kwargs):
+    add_context(self.name)
+    r = self._f(*args, **kwargs)
+    del_context(self.name)
     return r
 
-  return change_func_name(name=f_name, f=call) if f_name else call
+
+class ObjectJIT(ObjectTransform):
+  def __init__(self, func, vars, static_argnames=None, device=None, name=None):
+    super().__init__(name=name)
+
+    @functools.partial(jax.jit, static_argnames=static_argnames, device=device)
+    def jitted_func(variable_data, *args, **kwargs):
+      for key, v in vars.items(): v._value = variable_data[key]
+      out = func(*args, **kwargs)
+      changes = vars.dict()
+      return out, changes
+
+    self._vars = vars
+    self._f = jitted_func
+    self.register_implicit_vars(vars)
+
+  def __call__(self, *args, **kwargs):
+    variable_data = self._vars.dict()
+    try:
+      add_context(self.name)
+      out, changes = self._f(variable_data, *args, **kwargs)
+      del_context(self.name)
+    except UnexpectedTracerError as e:
+      del_context(self.name)
+      for key, v in self._vars.items(): v._value = variable_data[key]
+      raise errors.JaxTracerError(variables=self._vars) from e
+    except ConcretizationTypeError as e:
+      del_context(self.name)
+      for key, v in self._vars.items(): v._value = variable_data[key]
+      raise errors.ConcretizationTypeError() from e
+    except Exception as e:
+      del_context(self.name)
+      for key, v in self._vars.items(): v._value = variable_data[key]
+      raise e
+    for key, v in self._vars.items(): v._value = changes[key]
+    return out
+
+
 
 
 def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True):
@@ -214,13 +217,10 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
         dyn_vars = TensorCollector()
 
     if len(dyn_vars) == 0:  # pure function
-      return _make_jit_without_vars(func, static_argnames=static_argnames, device=device)
+      return FunctionJIT(func, static_argnames=static_argnames, device=device)
 
     else:  # Base object which implements __call__, or bounded method of Base object
-      return _make_jit_with_vars(vars=dyn_vars,
-                                 func=func,
-                                 static_argnames=static_argnames,
-                                 device=device)
+      return ObjectJIT(vars=dyn_vars, func=func, static_argnames=static_argnames, device=device)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '

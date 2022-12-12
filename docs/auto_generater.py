@@ -4,8 +4,8 @@ import importlib
 import inspect
 import os
 
-from brainpy.math import (activations, autograd, controls, function,
-                          jit, parallels, setting, delayvars, operators)
+from brainpy.math import (activations, function, setting, delayvars, operators)
+from brainpy.math.object_transform import jit, autograd, controls, parallels
 
 block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
 for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, operators]:
@@ -255,9 +255,6 @@ def generate_datasets_docs(path='apis/auto/datasets/'):
   write_module(module_name='brainpy.datasets.chaos',
                filename=os.path.join(path, 'chaos.rst'),
                header='Chaotic Systems')
-  write_module(module_name='brainpy.datasets.vision',
-               filename=os.path.join(path, 'vision.rst'),
-               header='Vision Datasets')
 
 
 def generate_dyn_docs(path='apis/auto/dyn/'):

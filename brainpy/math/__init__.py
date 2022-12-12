@@ -48,10 +48,8 @@ from . import random
 # operators
 from .operators import *
 
-# JAX transformations extended on Variable and class objects
-from .autograd import *
-from .controls import *
-from .jit import *
+# JAX transformations for Variable and class objects
+from .object_transform import *
 
 # settings
 from . import setting
