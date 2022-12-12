@@ -85,5 +85,5 @@ setup(
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'Topic :: Software Development :: Libraries',
   ],
-  license='GPL-3.0 License',
+  license='GPL-3.0 license',
 )
