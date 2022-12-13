@@ -10,6 +10,11 @@ tackling the shortcomings of brainpy 2.1.x generation,
 effectively bringing it to research needs and standards.
 
 
+.. note::
+
+   All history release notes please see `GitHub <https://github.com/brainpy/BrainPy/releases>`_.
+
+
 
 
 Version 2.2.1 (2022.09.09)
