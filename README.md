@@ -47,12 +47,7 @@ For detailed installation instructions, please refer to the documentation: [Quic
 
 
 
-## License
-
-[Apache License, Version 2.0](https://github.com/brainpy/BrainPy/blob/master/LICENSE)
-
-
 
 ## Citing
 
-If you are using BrainPy, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
