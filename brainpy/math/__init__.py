@@ -54,4 +54,4 @@ from .object_transform import *
 # settings
 from . import setting
 from .setting import *
-from .function import *
+from brainpy.math.object_transform.function import *

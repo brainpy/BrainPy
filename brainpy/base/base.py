@@ -10,20 +10,21 @@ from brainpy.base.collector import Collector, TensorCollector
 math = None
 
 __all__ = [
+  'BrainPyObject',
   'Base',
 ]
 
 logger = logging.getLogger('brainpy.base')
 
 
-class Base(object):
-  """The Base class for whole BrainPy ecosystem.
+class BrainPyObject(object):
+  """The BrainPyObject class for whole BrainPy ecosystem.
 
-  The subclass of Base includes:
+  The subclass of BrainPyObject includes:
 
   - ``DynamicalSystem`` in *brainpy.dyn.base.py*
   - ``Integrator`` in *brainpy.integrators.base.py*
-  - ``Function`` in *brainpy.base.function.py*
+  - ``FunAsAObject`` in *brainpy.base.function.py*
   - ``Optimizer`` in *brainpy.optimizers.py*
   - ``Scheduler`` in *brainpy.optimizers.py*
 
@@ -64,7 +65,7 @@ class Base(object):
         for v in variable:
           if not isinstance(v, Variable):
             raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
-          self.implicit_vars[f'var{id(variable)}'] = v
+          self.implicit_vars[f'var{id(v)}'] = v
       elif isinstance(variable, dict):
         for k, v in variable.items():
           if not isinstance(v, Variable):
@@ -79,23 +80,23 @@ class Base(object):
 
   def register_implicit_nodes(self, *nodes, **named_nodes):
     for node in nodes:
-      if isinstance(node, Base):
+      if isinstance(node, BrainPyObject):
         self.implicit_nodes[node.name] = node
       elif isinstance(node, (tuple, list)):
         for n in node:
-          if not isinstance(n, Base):
-            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          if not isinstance(n, BrainPyObject):
+            raise ValueError(f'Must be instance of {BrainPyObject.__name__}, but we got {type(n)}')
           self.implicit_nodes[n.name] = n
       elif isinstance(node, dict):
         for k, n in node.items():
-          if not isinstance(n, Base):
-            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          if not isinstance(n, BrainPyObject):
+            raise ValueError(f'Must be instance of {BrainPyObject.__name__}, but we got {type(n)}')
           self.implicit_nodes[k] = n
       else:
         raise ValueError(f'Unknown type: {type(node)}')
     for key, node in named_nodes.items():
-      if not isinstance(node, Base):
-        raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(node)}')
+      if not isinstance(node, BrainPyObject):
+        raise ValueError(f'Must be instance of {BrainPyObject.__name__}, but we got {type(node)}')
       self.implicit_nodes[key] = node
 
   def vars(self, method='absolute', level=-1, include_self=True):
@@ -166,7 +167,7 @@ class Base(object):
     if method == 'absolute':
       nodes = []
       for k, v in self.__dict__.items():
-        if isinstance(v, Base):
+        if isinstance(v, BrainPyObject):
           path = (id(self), id(v))
           if path not in _paths:
             _paths.add(path)
@@ -188,7 +189,7 @@ class Base(object):
     elif method == 'relative':
       nodes = []
       for k, v in self.__dict__.items():
-        if isinstance(v, Base):
+        if isinstance(v, BrainPyObject):
           path = (id(self), id(v))
           if path not in _paths:
             _paths.add(path)
@@ -323,3 +324,6 @@ class Base(object):
   # def tpu(self):
   #   global math
   #   if math is None: from brainpy import math
+
+
+Base = BrainPyObject

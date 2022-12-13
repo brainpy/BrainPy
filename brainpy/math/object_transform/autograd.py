@@ -18,6 +18,7 @@ from jax.util import safe_map
 from brainpy import errors
 from brainpy.base.naming import get_unique_name
 from brainpy.math.jaxarray import JaxArray, add_context, del_context
+from ._utils import infer_dyn_vars
 from .base import ObjectTransform
 
 __all__ = [
@@ -29,7 +30,13 @@ __all__ = [
 
 
 class FunctionGradient(ObjectTransform):
-  def __init__(self, func: Callable, dyn_vars: Any, grad_vars: Any, name: str = None):
+  def __init__(
+      self,
+      func: Callable,
+      dyn_vars: Any,
+      grad_vars: Any,
+      name: str = None
+  ):
     super().__init__(name=name)
 
     self._f = func
@@ -40,10 +47,17 @@ class FunctionGradient(ObjectTransform):
 
 
 class ObjectGradient(ObjectTransform):
-  def __init__(self,
-               grad_func: Callable,
-               grad_tree, grad_vars, dyn_vars,
-               argnums, return_value, has_aux, name: str = None):
+  def __init__(
+      self,
+      grad_func: Callable,
+      grad_tree,
+      grad_vars,
+      dyn_vars,
+      argnums,
+      return_value: bool,
+      has_aux: bool,
+      name: str = None
+  ):
     super().__init__(name=name)
 
     self.register_implicit_vars(dyn_vars, grad_vars)
@@ -247,8 +261,11 @@ def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
   return grad_func
 
 
-def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
-         allow_int=False, reduce_axes=(), has_aux=None, return_value=False) -> callable:
+def grad(
+    func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
+    allow_int=False, reduce_axes=(), has_aux=None, return_value=False,
+    auto_infer=True
+) -> ObjectTransform:
   """Automatic gradient computation for functions or class objects.
 
   This gradient function only support scalar return. It creates a function
@@ -282,7 +299,7 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
   >>> import brainpy as bp
   >>> import brainpy.math as bm
   >>>
-  >>> class Example(bp.Base):
+  >>> class Example(bp.BrainPyObject):
   >>>   def __init__(self):
   >>>     super(Example, self).__init__()
   >>>     self.x = bm.TrainVar(bm.zeros(1))
@@ -323,7 +340,7 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
 
   Parameters
   ----------
-  func : callable, function, Base
+  func : callable, function, BrainPyObject
     Function to be differentiated. Its arguments at positions specified by
     ``argnums`` should be arrays, scalars, or standard Python containers.
     Argument arrays in the positions specified by ``argnums`` must be of
@@ -356,6 +373,9 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
     is a named batch axis, ``grad(f, reduce_axes=('batch',))`` will create a
     function that computes the total gradient while ``grad(f)`` will create
     one that computes the per-example gradient.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instances used in the target.
+
 
   Returns
   -------
@@ -367,6 +387,9 @@ def grad(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
     same shapes and types as the corresponding arguments. If ``has_aux`` is True
     then a pair of (gradient, auxiliary_data) is returned.
   """
+
+  if dyn_vars is None:
+    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
 
   dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
   # dyn_vars -> TensorCollector
@@ -511,8 +534,11 @@ def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
   return grad_func
 
 
-def jacrev(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
-           allow_int=False, has_aux=None, return_value=False):
+def jacrev(
+    func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
+    allow_int=False, has_aux=None, return_value=False,
+    auto_infer=True
+) -> ObjectTransform:
   """Extending automatic Jacobian (reverse-mode) of ``func`` to classes.
 
   This function extends the JAX official ``jacrev`` to make automatic jacobian
@@ -559,11 +585,17 @@ def jacrev(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
   allow_int: Optional, bool. Whether to allow differentiating with
     respect to integer valued inputs. The gradient of an integer input will
     have a trivial vector-space dtype (float0). Default False.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instance.
 
   Returns
   -------
   fun: ObjectTransform
+    The transformed object.
   """
+  if dyn_vars is None:
+    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+
   dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
   has_aux = False if has_aux is None else has_aux
 
@@ -662,8 +694,10 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
   return grad_func
 
 
-def jacfwd(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
-           has_aux=None, return_value=False):
+def jacfwd(
+    func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
+    has_aux=None, return_value=False, auto_infer=True
+) -> ObjectTransform:
   """Extending automatic Jacobian (forward-mode) of ``func`` to classes.
 
   This function extends the JAX official ``jacfwd`` to make automatic jacobian
@@ -706,7 +740,17 @@ def jacfwd(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
     positional argument(s) to differentiate with respect to (default ``0``).
   holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
     holomorphic. Default False.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instance.
+
+  Returns
+  -------
+  obj: ObjectTransform
+    The transformed object.
   """
+  if dyn_vars is None:
+    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+
   dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
   has_aux = False if has_aux is None else has_aux
 
@@ -741,7 +785,10 @@ def jacfwd(func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
                           has_aux=has_aux)
 
 
-def hessian(func, dyn_vars=None, grad_vars=None, argnums=None, holomorphic=False, return_value=False):
+def hessian(
+    func, grad_vars=None, dyn_vars=None, argnums=None,
+    holomorphic=False, return_value=False, auto_infer=True
+) -> ObjectTransform:
   """Hessian of ``func`` as a dense array.
 
   Parameters
@@ -761,7 +808,17 @@ def hessian(func, dyn_vars=None, grad_vars=None, argnums=None, holomorphic=False
     Indicates whether ``fun`` is promised to be holomorphic. Default False.
   return_value : bool
     Whether return the hessian values.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instance.
+
+  Returns
+  -------
+  obj: ObjectTransform
+    The transformed object.
   """
+  if dyn_vars is None:
+    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+
   dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
   argnums = 0 if argnums is None else argnums
 
@@ -832,7 +889,10 @@ def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
   return grad_func
 
 
-def vector_grad(func, dyn_vars=None, grad_vars=None, argnums=None, return_value=False, has_aux=None):
+def vector_grad(
+    func, dyn_vars=None, grad_vars=None, argnums=None,
+    return_value=False, has_aux=None, auto_infer=True
+) -> ObjectTransform:
   """Take vector-valued gradients for function ``func``.
 
   Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_,
@@ -872,12 +932,17 @@ def vector_grad(func, dyn_vars=None, grad_vars=None, argnums=None, return_value=
     Whether return the loss value.
   argnums: Optional, integer or sequence of integers. Specifies which
     positional argument(s) to differentiate with respect to (default ``0``).
+  auto_infer: bool
+    Automatically infer all ``Variable`` instance.
 
   Returns
   -------
-  func : callable
+  func : ObjectTransform
     The vector gradient function.
   """
+  if dyn_vars is None:
+    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+
   dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
   has_aux = False if has_aux is None else has_aux
 

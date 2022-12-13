@@ -11,7 +11,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy import tools
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import NoImplementationError, UnsupportedError
@@ -48,7 +48,7 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
-class DynamicalSystem(Base):
+class DynamicalSystem(BrainPyObject):
   """Base Dynamical System class.
 
   Parameters

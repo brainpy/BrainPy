@@ -14,7 +14,7 @@ __all__ = [
 class Collector(dict):
   """A Collector is a dictionary (name, var) with some additional methods to make manipulation
   of collections of variables easy. A Collector is ordered by insertion order. It is the object
-  returned by Base.vars() and used as input in many Collector instance: optimizers, jit, etc..."""
+  returned by BrainPyObject.vars() and used as input in many Collector instance: optimizers, jit, etc..."""
 
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""

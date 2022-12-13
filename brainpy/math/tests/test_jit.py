@@ -8,7 +8,7 @@ import unittest
 
 class TestJaxArrayJIT(unittest.TestCase):
   def test_jaxarray_outside_jit1(self):
-    class SomeProgram(bp.Base):
+    class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
         self.a = bm.zeros(2)
@@ -25,7 +25,7 @@ class TestJaxArrayJIT(unittest.TestCase):
   def test_jaxarray_inside_jit1(self):
     bp.math.random.seed()
 
-    class SomeProgram(bp.Base):
+    class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
         self.a = bm.zeros(2)

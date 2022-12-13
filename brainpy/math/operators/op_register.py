@@ -6,7 +6,7 @@ from typing import Callable
 import brainpylib
 from jax.tree_util import tree_map
 
-from brainpy.base import Base
+from brainpy.base import BrainPyObject
 from brainpy.math.jaxarray import JaxArray
 
 __all__ = [
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class XLACustomOp(Base):
+class XLACustomOp(BrainPyObject):
   """Creating a XLA custom call operator.
 
   Parameters

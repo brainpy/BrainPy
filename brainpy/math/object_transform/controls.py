@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Sequence, Any, Dict, Callable, Optional
+from typing import Union, Sequence, Any, Dict, Callable
 
 import jax.numpy as jnp
 from jax import lax
@@ -14,10 +14,12 @@ except ImportError:
 
 from brainpy import errors
 from brainpy.base.naming import get_unique_name
+from brainpy.base import TensorCollector
 from brainpy.math.jaxarray import (JaxArray, Variable,
                                    add_context,
                                    del_context)
 from brainpy.math.numpy_ops import as_device_array
+from ._utils import infer_dyn_vars
 
 __all__ = [
   'make_loop',
@@ -395,7 +397,8 @@ def cond(
     true_fun: Union[Callable, jnp.ndarray, JaxArray, float, int, bool],
     false_fun: Union[Callable, jnp.ndarray, JaxArray, float, int, bool],
     operands: Any,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    auto_infer: bool =True
 ):
   """Simple conditional statement (if-else) with instance of :py:class:`~.Variable`.
 
@@ -428,6 +431,8 @@ def cond(
     can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
   dyn_vars: optional, Variable, sequence of Variable, dict
     The dynamically changed variables.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instances used in the target.
 
   Returns
   -------
@@ -438,7 +443,7 @@ def cond(
   true_fun = _check_f(true_fun)
   false_fun = _check_f(false_fun)
   if dyn_vars is None:
-    dyn_vars = tuple()
+    dyn_vars = (infer_dyn_vars(true_fun) + infer_dyn_vars(false_fun)) if auto_infer else tuple()
   elif isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
@@ -500,6 +505,7 @@ def ifelse(
     operands: Any = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     show_code: bool = False,
+    auto_infer: bool = True,
 ):
   """``If-else`` control flows looks like native Pythonic programming.
 
@@ -538,6 +544,9 @@ def ifelse(
     The dynamically changed variables.
   show_code: bool
     Whether show the formatted code.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instances used in the target.
+
 
   Returns
   -------
@@ -559,7 +568,9 @@ def ifelse(
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
   if dyn_vars is None:
-    dyn_vars = []
+    dyn_vars = TensorCollector()
+    for f in branches:
+      dyn_vars += infer_dyn_vars(f)
   if isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
@@ -576,7 +587,11 @@ def ifelse(
   # format new codes
   if len(conditions) == 1:
     if len(dyn_vars) > 0:
-      return cond(conditions[0], branches[0], branches[1], operands, dyn_vars)
+      return cond(conditions[0],
+                  branches[0],
+                  branches[1],
+                  operands,
+                  dyn_vars)
     else:
       return lax.cond(conditions[0], branches[0], branches[1], operands)
   else:
@@ -607,11 +622,14 @@ def ifelse(
     return r
 
 
-def for_loop(body_fun: Callable,
-             dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
-             operands: Any,
-             reverse: bool = False,
-             unroll: int = 1):
+def for_loop(
+    body_fun: Callable,
+    operands: Any,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    reverse: bool = False,
+    unroll: int = 1,
+    auto_infer: bool =True
+):
   """``for-loop`` control flow with :py:class:`~.Variable`.
 
   Simply speaking, all dynamically changed variables used in the body function should
@@ -676,6 +694,9 @@ def for_loop(body_fun: Callable,
     Optional positive int specifying, in the underlying operation of the
     scan primitive, how many scan iterations to unroll within a single
     iteration of a loop.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instances used in the target.
+
 
   Returns
   -------
@@ -684,7 +705,7 @@ def for_loop(body_fun: Callable,
   """
   # check variables
   if dyn_vars is None:
-    dyn_vars = ()
+    dyn_vars = infer_dyn_vars(body_fun) if auto_infer else tuple()
   if isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
@@ -734,8 +755,9 @@ def for_loop(body_fun: Callable,
 def while_loop(
     body_fun: Callable,
     cond_fun: Callable,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
-    operands: Any,
+operands: Any,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]]=None,
+    auto_infer: bool =True
 ):
   """``while-loop`` control flow with :py:class:`~.Variable`.
 
@@ -777,9 +799,14 @@ def while_loop(
     The dynamically changed variables.
   operands: Any
     The operands for ``body_fun`` and ``cond_fun`` functions.
+  auto_infer: bool
+    Automatically infer all ``Variable`` instances used in the target.
+
   """
   # iterable variables
-  if isinstance(dyn_vars, Variable):
+  if dyn_vars is None:
+    dyn_vars = (infer_dyn_vars(body_fun) + infer_dyn_vars(cond_fun)) if auto_infer else tuple()
+  elif isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())
@@ -792,18 +819,18 @@ def while_loop(
     if not isinstance(v, Variable):
       raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
   if not isinstance(operands, (list, tuple)):
-    operands = (operands, )
+    operands = (operands,)
 
   def _body_fun(op):
     dyn_vals, static_vals = op
     for v, d in zip(dyn_vars, dyn_vals): v._value = d
     if not isinstance(static_vals, (tuple, list)):
-      static_vals = (static_vals, )
+      static_vals = (static_vals,)
     new_vals = body_fun(*static_vals)
     if new_vals is None:
       new_vals = tuple()
     if not isinstance(new_vals, tuple):
-      new_vals = (new_vals, )
+      new_vals = (new_vals,)
     return [v.value for v in dyn_vars], new_vals
 
   def _cond_fun(op):

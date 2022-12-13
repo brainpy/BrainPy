@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.4.0"
+__version__ = "2.2.4.1"
 
 
 # fundamental modules
@@ -8,7 +8,7 @@ from . import errors, tools, check, modes
 
 # "base" module
 from . import base
-from .base.base import Base
+from .base.base import BrainPyObject, Base
 from .base.collector import Collector, TensorCollector
 
 # math foundation
@@ -72,7 +72,6 @@ from .train import (
   OfflineTrainer, RidgeTrainer,
   BPFF,
   BPTT,
-  OnlineBPTT,
 )
 
 # automatic dynamics analysis

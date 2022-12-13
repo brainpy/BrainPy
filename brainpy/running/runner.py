@@ -7,7 +7,7 @@ from typing import Callable, Dict, Sequence, Union
 import numpy as np
 
 from brainpy import math as bm
-from brainpy.base import Base
+from brainpy.base import BrainPyObject
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools.checking import check_dict_data
@@ -55,11 +55,11 @@ class Runner(object):
 
   mon: DotDict
   jit: Dict[str, bool]
-  target: Base
+  target: BrainPyObject
 
   def __init__(
       self,
-      target: Base,
+      target: BrainPyObject,
       monitors: Union[Sequence, Dict] = None,
       fun_monitors: Dict[str, Callable] = None,
       jit: Union[bool, Dict[str, bool]] = True,
@@ -213,7 +213,7 @@ class Runner(object):
           monitors[key] = (getattr(master, splits[-1]), index)
     return monitors
 
-  def build_monitors(self, return_without_idx, return_with_idx, shared_args) -> Callable:
+  def _build_monitors(self, return_without_idx, return_with_idx, shared_args) -> Callable:
     raise NotImplementedError
 
   def __del__(self):

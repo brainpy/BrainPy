@@ -7,7 +7,7 @@ from jax import vmap
 from jax.lax import cond, stop_gradient
 
 from brainpy import check
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
 from brainpy.math.jaxarray import ndarray, Variable, JaxArray
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-class AbstractDelay(Base):
+class AbstractDelay(BrainPyObject):
   def update(self, *args, **kwargs):
     raise NotImplementedError
 

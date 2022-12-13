@@ -24,7 +24,7 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import TensorCollector
 from brainpy.math.random import RandomState
 from brainpy.math.jaxarray import JaxArray
@@ -78,7 +78,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
 
   Parameters
   ----------
-  func : Base, function, callable
+  func : BrainPyObject, function, callable
     The function or the module to compile.
   dyn_vars : dict, sequence
   batched_vars : dict
@@ -197,10 +197,10 @@ def vmap(func, dyn_vars=None, batched_vars=None,
     if auto_infer:
       if dyn_vars is not None:
         dyn_vars = dyn_vars
-      elif isinstance(func, Base):  # Base has '__call__()' implementation
+      elif isinstance(func, BrainPyObject):  # BrainPyObject has '__call__()' implementation
         dyn_vars = func.vars().unique()
       elif hasattr(func, '__self__'):
-        if isinstance(func.__self__, Base):
+        if isinstance(func.__self__, BrainPyObject):
           dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
@@ -266,7 +266,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
                         batch_idx=batch_idx)
 
   else:
-    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
+    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '
                               f'function, but we got {type(func)}.')
 
 
@@ -400,10 +400,10 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
   if callable(func):
     if dyn_vars is not None:
       dyn_vars = dyn_vars
-    elif isinstance(func, Base):  # Base has '__call__()' implementation
+    elif isinstance(func, BrainPyObject):  # BrainPyObject has '__call__()' implementation
       dyn_vars = func.vars().unique()
     elif hasattr(func, '__self__'):
-      if isinstance(func.__self__, Base):
+      if isinstance(func.__self__, BrainPyObject):
         dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
@@ -457,5 +457,5 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
       return func
 
   else:
-    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable function, '
+    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable function, '
                               f'but we got {type(func)}.')

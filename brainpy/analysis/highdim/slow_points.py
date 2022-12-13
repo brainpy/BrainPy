@@ -355,7 +355,7 @@ class SlowPointFinder(base.DSAnalyzer):
       return loss
 
     def batch_train(start_i, n_batch):
-      return bm.for_loop(train, dyn_vars, bm.arange(start_i, start_i + n_batch))
+      return bm.for_loop(train, bm.arange(start_i, start_i + n_batch), dyn_vars=dyn_vars)
 
     # Run the optimization
     if self.verbose:

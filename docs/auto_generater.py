@@ -4,11 +4,12 @@ import importlib
 import inspect
 import os
 
-from brainpy.math import (activations, function, setting, delayvars, operators)
-from brainpy.math.object_transform import jit, autograd, controls, parallels
+from brainpy.math import (activations, setting, delayvars, operators)
+from brainpy.math.object_transform import jit, autograd, controls, parallels, function
 
 block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
-for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, operators]:
+for module in [jit, autograd, controls, activations, parallels, function,
+               setting, delayvars, operators]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)

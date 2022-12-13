@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax.lax import cond, rsqrt
 
 import brainpy.math as bm
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import TensorCollector
 from brainpy.errors import MathError
 from .scheduler import make_schedule, Scheduler
@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 
-class Optimizer(Base):
+class Optimizer(BrainPyObject):
   """Base Optimizer Class.
 
   Parameters

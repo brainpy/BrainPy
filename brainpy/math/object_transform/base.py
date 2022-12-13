@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 
 __all__ = [
   'ObjectTransform'
 ]
 
 
-class ObjectTransform(Base):
+class ObjectTransform(BrainPyObject):
   """Object-oriented JAX transformation for BrainPy computation.
   """
   def __init__(self, name: str = None):

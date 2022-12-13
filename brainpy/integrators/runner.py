@@ -218,7 +218,7 @@ class IntegratorRunner(Runner):
     # build the update step
     if self.jit['predict']:
       def _loop_func(times):
-        return bm.for_loop(self._step, self.dyn_vars, times)
+        return bm.for_loop(self._step, times, dyn_vars=self.dyn_vars)
     else:
       def _loop_func(times):
         returns = {k: [] for k in self.fun_monitors.keys()}

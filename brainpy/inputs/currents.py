@@ -309,7 +309,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
     x.value = x + dt * ((mean - x) / tau) + sigma * dt_sqrt * rng.rand(n)
     return x.value
 
-  noises = bm.for_loop(_f, [x, rng], jnp.arange(t_start, t_end, dt))
+  noises = bm.for_loop(_f, jnp.arange(t_start, t_end, dt), dyn_vars=[x, rng])
 
   t_end = duration if t_end is None else t_end
   i_start = int(t_start / dt)

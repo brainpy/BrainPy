@@ -205,7 +205,7 @@ class Flatten(DynamicalSystem):
   def __init__(
       self,
       name: Optional[str] = None,
-      mode: Optional[Mode] = batching,
+      mode: Mode = batching,
   ):
     super().__init__(name, mode)
 
