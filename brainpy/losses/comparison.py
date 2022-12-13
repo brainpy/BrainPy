@@ -76,12 +76,12 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     :math:`(N, C)` where `C = number of classes`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` with :math:`K \geq 1`
     in the case of `K`-dimensional loss.
-  targets : JaxArray
+  targets : Array
     :math:`(N, C)` or :math:`(N)`  where each value is
     :math:`0 \leq \text{targets}[i] \leq C-1`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` or :math:`(d_1, d_2, ..., d_K, N)`
     with :math:`K \geq 1` in the case of K-dimensional loss.
-  weight : JaxArray, optional
+  weight : Array, optional
     A manual rescaling weight given to each class. If given, has to be an array of size `C`.
   reduction : str, optional
     Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
@@ -91,7 +91,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
 
   Returns
   -------
-  output : scalar, mjax.JaxArray
+  output : scalar, mjax.Array
     If :attr:`reduction` is ``'none'``, then the same size as the target:
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
@@ -106,7 +106,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     loss = logsumexp(bm.as_device_array(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
     return _return(outputs=loss, reduction=reduction)
 
-  r = tree_map(_cel, predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  r = tree_map(_cel, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -128,7 +128,7 @@ def cross_entropy_sparse(predicts, targets):
       logits = bm.take_along_axis(_prd, _tar, -1).squeeze(-1)
     return logsumexp(bm.as_device_array(_prd), axis=-1) - logits
 
-  r = tree_map(crs, predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  r = tree_map(crs, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -143,7 +143,7 @@ def cross_entropy_sigmoid(predicts, targets):
       (batch, ...) tensor of the cross-entropies for each entry.
   """
   r = tree_map(lambda pred, tar: bm.maximum(pred, 0) - pred * tar + bm.log(1 + bm.exp(-bm.abs(pred))),
-               predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+               predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -178,9 +178,9 @@ def l1_loos(logits, targets, reduction='sum'):
 
   Parameters
   ----------
-  logits : JaxArray
+  logits : Array
     :math:`(N, *)` where :math:`*` means, any number of additional dimensions.
-  targets : JaxArray
+  targets : Array
     :math:`(N, *)`, same shape as the input.
   reduction : str
     Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
@@ -200,7 +200,7 @@ def l1_loos(logits, targets, reduction='sum'):
     norm = jnp.linalg.norm(bm.as_device_array(diff), ord=1, axis=1, keepdims=False)
     return _return(outputs=norm, reduction=reduction)
 
-  r = tree_map(loss, logits, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  r = tree_map(loss, logits, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -213,9 +213,9 @@ def l2_loss(predicts, targets):
   Parameters
   ----------
 
-  predicts: JaxArray
+  predicts: Array
     A vector of arbitrary shape.
-  targets: JaxArray
+  targets: Array
     A vector of shape compatible with predictions.
 
   Returns
@@ -228,7 +228,7 @@ def l2_loss(predicts, targets):
   .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
   """
   r = tree_map(lambda pred, tar: 0.5 * (pred - tar) ** 2, predicts, targets,
-               is_leaf=lambda a: isinstance(a, bm.JaxArray))
+               is_leaf=lambda a: isinstance(a, bm.Array))
   return _multi_return(r)
 
 
@@ -287,9 +287,9 @@ def huber_loss(predicts, targets, delta: float = 1.0):
 
   Parameters
   ----------
-  predicts: JaxArray
+  predicts: Array
     predictions
-  targets: JaxArray
+  targets: Array
     ground truth
   delta: float
     radius of quadratic behavior
@@ -329,7 +329,7 @@ def binary_logistic_loss(predicts: float, targets: int, ) -> float:
   # softplus = proba * logit - xlogx(proba) - xlogx(1 - proba),
   # where xlogx(proba) = proba * log(proba).
   r = tree_map(lambda a, b: bm.activations.softplus(a) - b * a,
-               predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+               predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -348,7 +348,7 @@ def multiclass_logistic_loss(label: int, logits: jnp.ndarray) -> float:
     one_hot = bm.one_hot(tar, pred.shape[0])
     return logsumexp(pred) - bm.dot(pred, one_hot)
 
-  r = tree_map(loss, logits, label, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  r = tree_map(loss, logits, label, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -373,7 +373,7 @@ def sigmoid_binary_cross_entropy(logits, labels):
     log_not_p = bm.log_sigmoid(-pred)
     return -tar * log_p - (1. - tar) * log_not_p
 
-  r = tree_map(loss, logits, labels, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  r = tree_map(loss, logits, labels, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -393,7 +393,7 @@ def softmax_cross_entropy(logits, labels):
     the cross entropy loss.
   """
   r = tree_map(lambda pred, tar: -bm.sum(tar * bm.log_softmax(pred, axis=-1), axis=-1),
-               logits, labels, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+               logits, labels, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -416,7 +416,7 @@ def log_cosh_loss(predicts, targets):
     errors = bm.as_device_array(pred - tar)
     return jnp.logaddexp(errors, -errors) - jnp.log(2.0).astype(errors.dtype)
 
-  r = tree_map(loss, predicts, targets, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+  r = tree_map(loss, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
 
 
@@ -479,10 +479,10 @@ def ctc_loss_with_forward_probs(
   assert (labels.shape == label_paddings.shape)
   assert (logits.shape[:2] == logit_paddings.shape)
 
-  logits = logits.value if isinstance(logits, bm.JaxArray) else logits
-  logit_paddings = logit_paddings.value if isinstance(logit_paddings, bm.JaxArray) else logit_paddings
-  labels = labels.value if isinstance(labels, bm.JaxArray) else labels
-  label_paddings = label_paddings.value if isinstance(label_paddings, bm.JaxArray) else label_paddings
+  logits = logits.value if isinstance(logits, bm.Array) else logits
+  logit_paddings = logit_paddings.value if isinstance(logit_paddings, bm.Array) else logit_paddings
+  labels = labels.value if isinstance(labels, bm.Array) else labels
+  label_paddings = label_paddings.value if isinstance(label_paddings, bm.Array) else label_paddings
 
   logprobs = bm.log_softmax(logits).value
   labellens = maxlabellen - jnp.sum(label_paddings, axis=1).astype(jnp.int32)

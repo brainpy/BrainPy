@@ -3,19 +3,19 @@
 from typing import Optional, Union, Callable, Tuple
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variable
 from brainpy.modes import Mode, TrainingMode, batching
 from brainpy.tools.checking import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
 from brainpy.types import Array
+from .base import Layer
 
 __all__ = [
   'Reservoir',
 ]
 
 
-class Reservoir(DynamicalSystem):
+class Reservoir(Layer):
   r"""Reservoir node, a pool of leaky-integrator neurons
   with random recurrent connections [1]_.
 

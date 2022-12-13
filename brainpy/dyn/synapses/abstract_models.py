@@ -73,14 +73,14 @@ class Delta(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength. Default is 1.
   post_ref_key: str
     Whether the post-synaptic group has refractory period.
@@ -133,7 +133,7 @@ class Delta(TwoEndConn):
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -238,16 +238,16 @@ class Exponential(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau: float, JaxArray, ndarray
+  tau: float, Array, ndarray
     The time constant of decay. [ms]
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   name: str
     The name of this synaptic projection.
@@ -317,7 +317,7 @@ class Exponential(TwoEndConn):
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -417,18 +417,18 @@ class DualExponential(TwoEndConn):
       The pre-synaptic neuron group.
     post: NeuGroup
       The post-synaptic neuron group.
-    conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+    conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
     comp_method: str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ndarray, JaxArray, Initializer, Callable
+    delay_step: int, ndarray, Array, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    tau_decay: float, JaxArray, JaxArray, ndarray
+    tau_decay: float, ArrayArray, ndarray
       The time constant of the synaptic decay phase. [ms]
-    tau_rise: float, JaxArray, JaxArray, ndarray
+    tau_rise: float, ArrayArray, ndarray
       The time constant of the synaptic rise phase. [ms]
-    g_max: float, ndarray, JaxArray, Initializer, Callable
+    g_max: float, ndarray, Array, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
     name: str
       The name of this synaptic projection.
@@ -516,7 +516,7 @@ class DualExponential(TwoEndConn):
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -602,16 +602,16 @@ class Alpha(DualExponential):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau_decay: float, JaxArray, ndarray
+  tau_decay: float, Array, ndarray
     The time constant of the synaptic decay phase. [ms]
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   name: str
     The name of this synaptic projection.
@@ -751,20 +751,20 @@ class NMDA(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  tau_decay: float, JaxArray, ndarray
+  tau_decay: float, Array, ndarray
     The time constant of the synaptic decay phase. Default 100 [ms]
-  tau_rise: float, JaxArray, ndarray
+  tau_rise: float, Array, ndarray
     The time constant of the synaptic rise phase. Default 2 [ms]
-  a: float, JaxArray, ndarray
+  a: float, Array, ndarray
     Default 0.5 ms^-1.
   name: str
     The name of this synaptic projection.
@@ -857,7 +857,7 @@ class NMDA(TwoEndConn):
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components

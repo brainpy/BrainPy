@@ -20,7 +20,7 @@ except ImportError:
 from brainpy import errors
 from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import TensorCollector
-from brainpy.math.jaxarray import JaxArray, add_context, del_context
+from brainpy.math.jaxarray import Array, add_context, del_context
 from .base import ObjectTransform
 from ._utils import infer_dyn_vars
 
@@ -173,7 +173,7 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
   ----------
   func : Base, function, callable
     The instance of Base or a function.
-  dyn_vars : optional, dict, tuple, list, JaxArray
+  dyn_vars : optional, dict, tuple, list, Array
     These variables will be changed in the function, or needed in the computation.
   static_argnames : optional, str, list, tuple, dict
     An optional string or collection of strings specifying which named arguments to treat
@@ -196,7 +196,7 @@ def jit(func, dyn_vars=None, static_argnames=None, device=None, auto_infer=True)
   """
   if callable(func):
     if dyn_vars is not None:
-      if isinstance(dyn_vars, JaxArray):
+      if isinstance(dyn_vars, Array):
         dyn_vars = TensorCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
         dyn_vars = TensorCollector(dyn_vars)

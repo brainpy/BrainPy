@@ -30,11 +30,11 @@ class DelayCoupling(SynConn):
     The delay variable.
   var_to_output: Variable, sequence of Variable
     The target variables to output.
-  conn_mat: JaxArray, ndarray
+  conn_mat: Array, ndarray
     The connection matrix.
   required_shape: sequence of int
     The required shape of `(pre, post)`.
-  delay_steps: int, JaxArray, ndarray
+  delay_steps: int, Array, ndarray
     The matrix of delay time steps. Must be int.
   initial_delay_data: Initializer, Callable
     The initializer of the initial delay data.
@@ -87,7 +87,7 @@ class DelayCoupling(SynConn):
       self.delay_steps = delay_steps
       self.delay_type = 'array'
       num_delay_step = self.delay_steps.max()
-    elif isinstance(delay_steps, (bm.JaxArray, jnp.ndarray)):
+    elif isinstance(delay_steps, (bm.Array, jnp.ndarray)):
       if delay_steps.dtype not in [bm.int32, bm.int64, bm.uint32, bm.uint64]:
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
       if delay_steps.ndim == 0:
@@ -145,9 +145,9 @@ class DiffusiveCoupling(DelayCoupling):
     Another coupling variable.
   var_to_output: Variable, sequence of Variable
     The target variables to output.
-  conn_mat: JaxArray, ndarray
+  conn_mat: Array, ndarray
     The connection matrix.
-  delay_steps: int, JaxArray, ndarray
+  delay_steps: int, Array, ndarray
     The matrix of delay time steps. Must be int.
   initial_delay_data: Initializer, Callable
     The initializer of the initial delay data.
@@ -238,9 +238,9 @@ class AdditiveCoupling(DelayCoupling):
     The coupling variable, used for delay.
   var_to_output: Variable, sequence of Variable
     The target variables to output.
-  conn_mat: JaxArray, ndarray
+  conn_mat: Array, ndarray
     The connection matrix.
-  delay_steps: int, JaxArray, ndarray
+  delay_steps: int, Array, ndarray
     The matrix of delay time steps. Must be int.
   initial_delay_data: Initializer, Callable
     The initializer of the initial delay data.

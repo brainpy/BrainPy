@@ -29,7 +29,7 @@ __all__ = [
 
 
 def _is_jax_array(s):
-  return isinstance(s, bm.JaxArray)
+  return isinstance(s, bm.Array)
 
 
 class BPTrainer(DSTrainer):
@@ -378,7 +378,7 @@ class BPTrainer(DSTrainer):
     self.progress_bar = true_progress_bar
 
   def _get_batch_size(self, xs, batch_axis=0):
-    if isinstance(xs, (bm.JaxArray, jnp.ndarray)):
+    if isinstance(xs, (bm.Array, jnp.ndarray)):
       return xs.shape[batch_axis]
     else:
       num_batch_sizes = [leaf.shape[batch_axis] for leaf in tree_flatten(xs, is_leaf=_is_jax_array)[0]]

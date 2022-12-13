@@ -18,7 +18,7 @@ import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import Array
 
 
 __all__ = [
@@ -67,11 +67,11 @@ def get(activation):
 
 
 def tanh(x):
-  return jnp.tanh((x.value if isinstance(x, JaxArray) else x))
+  return jnp.tanh((x.value if isinstance(x, Array) else x))
 
 
 def identity(x):
-  return x.value if isinstance(x, JaxArray) else x
+  return x.value if isinstance(x, Array) else x
 
 
 def celu(x, alpha=1.0):
@@ -91,13 +91,13 @@ def celu(x, alpha=1.0):
 
   Parameters
   ----------
-  x : JaxArray, jnp.ndarray
+  x : Array, jnp.ndarray
     The input array.
   alpha : ndarray, float
     The default is 1.0.
   """
-  x = x.value if isinstance(x, JaxArray) else x
-  alpha = alpha.value if isinstance(alpha, JaxArray) else alpha
+  x = x.value if isinstance(x, Array) else x
+  alpha = alpha.value if isinstance(alpha, Array) else alpha
   return jnp.where(x > 0, x, alpha * jnp.expm1(x / alpha))
 
 
@@ -116,11 +116,11 @@ def elu(x, alpha=1.0):
   ----------
   x: JaxArray, jnp.ndarray
     The input array.
-  alpha : scalar or JaxArray
+  alpha : scalar or Array
     default: 1.0.
   """
-  x = x.value if isinstance(x, JaxArray) else x
-  alpha = alpha.value if isinstance(alpha, JaxArray) else alpha
+  x = x.value if isinstance(x, Array) else x
+  alpha = alpha.value if isinstance(alpha, Array) else alpha
   safe_x = jnp.where(x > 0, 0., x)
   return jnp.where(x > 0, x, alpha * jnp.expm1(safe_x))
 
@@ -145,12 +145,12 @@ def gelu(x, approximate=True):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   approximate: bool
     whether to use the approximate or exact formulation.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   if approximate:
     sqrt_2_over_pi = np.sqrt(2 / np.pi).astype(x.dtype)
     cdf = 0.5 * (1.0 + jnp.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
@@ -165,14 +165,14 @@ def glu(x, axis=-1):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   axis: int
     The axis along which the split should be computed (default: -1)
   """
   size = x.shape[axis]
   assert size % 2 == 0, "axis size must be divisible by 2"
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   x1, x2 = jnp.split(x, 2, axis)
   return x1 * sigmoid(x2)
 
@@ -191,10 +191,10 @@ def hard_tanh(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return jnp.where(x > 1, 1, jnp.where(x < -1, -1, x))
 
 
@@ -208,7 +208,7 @@ def hard_sigmoid(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
   return relu6(x + 3.) / 6.
@@ -224,7 +224,7 @@ def hard_silu(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
   return x * hard_sigmoid(x)
@@ -248,12 +248,12 @@ def leaky_relu(x, negative_slope=1e-2):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   negative_slope : float
     The scalar specifying the negative slope (default: 0.01)
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return jnp.where(x >= 0, x, negative_slope * x)
 
 
@@ -267,10 +267,10 @@ def softplus(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return jnp.logaddexp(x, 0)
 
 
@@ -284,7 +284,7 @@ def log_sigmoid(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
   return -softplus(-x)
@@ -302,13 +302,13 @@ def log_softmax(x, axis=-1):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   axis: int
     The axis or axes along which the :code:`log_softmax` should be
     computed. Either an integer or a tuple of integers.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
   return shifted - jnp.log(jnp.sum(jnp.exp(shifted), axis, keepdims=True))
 
@@ -355,7 +355,7 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
   num_classes = jax.core.concrete_or_error(
     int, num_classes, "The error arose in jax.nn.one_hot argument `num_classes`.")
   dtype = jax.dtypes.canonicalize_dtype(jnp.float64 if dtype is None else dtype)
-  x = jnp.asarray(x.value if isinstance(x, JaxArray) else x)
+  x = jnp.asarray(x.value if isinstance(x, Array) else x)
   try:
     output_pos_axis = _canonicalize_axis(axis, x.ndim + 1)
   except TypeError:
@@ -376,7 +376,7 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
 
 def normalize(x, axis=-1, mean=None, variance=None, epsilon=1e-5):
   """Normalizes an array by subtracting mean and dividing by sqrt(var)."""
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   if mean is None:
     mean = jnp.mean(x, axis, keepdims=True)
   if variance is None:
@@ -390,7 +390,7 @@ def normalize(x, axis=-1, mean=None, variance=None, epsilon=1e-5):
 
 
 def relu(x):
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return jax.nn.relu(x)
 
 
@@ -404,10 +404,10 @@ def relu6(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return jnp.minimum(jnp.maximum(x, 0), 6.)
 
 
@@ -421,10 +421,10 @@ def sigmoid(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return jax.scipy.special.expit(x)
 
 
@@ -438,10 +438,10 @@ def soft_sign(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return x / (jnp.abs(x) + 1)
 
 
@@ -456,14 +456,14 @@ def softmax(x, axis=-1):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   axis: int
     The axis or axes along which the softmax should be computed. The
     softmax output summed across these dimensions should sum to :math:`1`.
     Either an integer or a tuple of integers.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   unnormalized = jnp.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
   return unnormalized / unnormalized.sum(axis, keepdims=True)
 
@@ -478,10 +478,10 @@ def silu(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   return x * sigmoid(x)
 
 
@@ -508,11 +508,11 @@ def selu(x):
 
   Parameters
   ----------
-  x: JaxArray, jnp.ndarray
+  x: Array, jnp.ndarray
     The input array.
   """
   alpha = 1.6732632423543772848170429916717
   scale = 1.0507009873554804934193349852946
-  x = x.value if isinstance(x, JaxArray) else x
+  x = x.value if isinstance(x, Array) else x
   safe_x = jnp.where(x > 0, 0., x)
   return scale * jnp.where(x > 0, x, alpha * jnp.expm1(safe_x))

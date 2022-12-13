@@ -97,30 +97,30 @@ class AMPA(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float, JaxArray, ndarray
+  E: float, Array, ndarray
     The reversal potential for the synaptic current. [mV]
 
     .. deprecated:: 2.1.13
        `E` is deprecated in AMPA model. Please define `E` with brainpy.dyn.synouts.COBA.
        This parameter will be removed since 2.2.0
 
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  alpha: float, JaxArray, ndarray
+  alpha: float, Array, ndarray
     Binding constant.
-  beta: float, JaxArray, ndarray
+  beta: float, Array, ndarray
     Unbinding constant.
-  T: float, JaxArray, ndarray
+  T: float, Array, ndarray
     Transmitter concentration when synapse is triggered by
     a pre-synaptic spike.. Default 1 [mM].
-  T_duration: float, JaxArray, ndarray
+  T_duration: float, Array, ndarray
     Transmitter concentration duration time after being triggered. Default 1 [ms]
   name: str
     The name of this synaptic projection.
@@ -208,7 +208,7 @@ class AMPA(TwoEndConn):
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -272,30 +272,30 @@ class GABAa(AMPA):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float, JaxArray, ndarray
+  E: float, Array, ndarray
     The reversal potential for the synaptic current. [mV]
 
     .. deprecated:: 2.1.13
        `E` is deprecated in AMPA model. Please define `E` with brainpy.dyn.synouts.COBA.
        This parameter will be removed since 2.2.0
 
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  alpha: float, JaxArray, ndarray
+  alpha: float, Array, ndarray
     Binding constant. Default 0.062
-  beta: float, JaxArray, ndarray
+  beta: float, Array, ndarray
     Unbinding constant. Default 3.57
-  T: float, JaxArray, ndarray
+  T: float, Array, ndarray
     Transmitter concentration when synapse is triggered by
     a pre-synaptic spike.. Default 1 [mM].
-  T_duration: float, JaxArray, ndarray
+  T_duration: float, Array, ndarray
     Transmitter concentration duration time after being triggered. Default 1 [ms]
   name: str
     The name of this synaptic projection.
@@ -436,22 +436,22 @@ class BioNMDA(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, JaxArray, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
-  delay_step: int, ndarray, JaxArray, Initializer, Callable
+  delay_step: int, ndarray, Array, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  g_max: float, ndarray, JaxArray, Initializer, Callable
+  g_max: float, ndarray, Array, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  alpha1: float, JaxArray, ndarray
+  alpha1: float, Array, ndarray
     The conversion rate of g from inactive to active. Default 2 ms^-1.
-  beta1: float, JaxArray, ndarray
+  beta1: float, Array, ndarray
     The conversion rate of g from active to inactive. Default 0.01 ms^-1.
-  alpha2: float, JaxArray, ndarray
+  alpha2: float, Array, ndarray
     The conversion rate of x from inactive to active. Default 1 ms^-1.
-  beta2: float, JaxArray, ndarray
+  beta2: float, Array, ndarray
     The conversion rate of x from active to inactive. Default 0.5 ms^-1.
   name: str
     The name of this synaptic projection.
@@ -557,7 +557,7 @@ class BioNMDA(TwoEndConn):
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.JaxArray) else pre_spike
+      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components

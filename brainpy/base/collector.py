@@ -108,7 +108,7 @@ class Collector(dict):
     >>> # get all trainable variables
     >>> some_collector.subset(bp.math.TrainVar)
     >>>
-    >>> # get all JaxArray
+    >>> # get all Array
     >>> some_collector.subset(bp.math.Variable)
 
     or, it can be used to get a subset of integrators:

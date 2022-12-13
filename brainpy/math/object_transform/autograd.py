@@ -17,7 +17,7 @@ from jax.util import safe_map
 
 from brainpy import errors
 from brainpy.base.naming import get_unique_name
-from brainpy.math.jaxarray import JaxArray, add_context, del_context
+from brainpy.math.jaxarray import Array, add_context, del_context
 from ._utils import infer_dyn_vars
 from .base import ObjectTransform
 
@@ -178,21 +178,21 @@ def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
 
 def _check_vars(variables):
   if variables is None:
-    vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, JaxArray))
+    vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, Array))
     return vars, tree
   if isinstance(variables, dict):
     variables = dict(variables)
   elif isinstance(variables, (list, tuple)):
     variables = tuple(variables)
-  elif isinstance(variables, JaxArray):
+  elif isinstance(variables, Array):
     pass
   else:
     raise ValueError
-  vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, JaxArray))
+  vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, Array))
   for v in vars:
-    if not isinstance(v, JaxArray):
+    if not isinstance(v, Array):
       raise ValueError(f'"dyn_vars" and "grad_vars" only supports dict '
-                       f'of JaxArray, but got {type(v)}: {v}')
+                       f'of Array, but got {type(v)}: {v}')
   return vars, tree
 
 
@@ -224,8 +224,8 @@ def _grad_checking(func: Callable,
 def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
               holomorphic=False, allow_int=False, reduce_axes=()):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of JaxArray
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of JaxArray
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # gradient functions
@@ -243,7 +243,7 @@ def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
       outputs = func(*args, **kwargs)
       # outputs: [0] is the value for gradient,
       #          [1] is other values for return
-      output = outputs[0].value if isinstance(outputs[0], JaxArray) else outputs[0]
+      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
   else:
     @partial(jax.grad,
@@ -255,7 +255,7 @@ def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
       # Users should return the scalar value like this::
       # >>> return scalar_loss
       output = func(*args, **kwargs)
-      output2 = output.value if isinstance(output, JaxArray) else output
+      output2 = output.value if isinstance(output, Array) else output
       return output2, (output, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   return grad_func
@@ -346,9 +346,9 @@ def grad(
     Argument arrays in the positions specified by ``argnums`` must be of
     inexact (i.e., floating-point or complex) type. It should return a scalar
     (which includes arrays with shape ``()`` but not arrays with shape ``(1,)`` etc.)
-  dyn_vars : optional, JaxArray, sequence of JaxArray, dict
+  dyn_vars : optional, Array, sequence of Array, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, JaxArray, sequence of JaxArray, dict
+  grad_vars : optional, Array, sequence of Array, dict
     The variables in ``func`` to take their gradients.
   argnums : optional, integer or sequence of integers
     Specifies which positional argument(s) to differentiate with respect to (default 0).
@@ -473,7 +473,7 @@ def _std_basis(pytree):
   return _unravel_array_into_pytree(pytree, 1, flat_basis)
 
 
-_isleaf = lambda x: isinstance(x, JaxArray)
+_isleaf = lambda x: isinstance(x, Array)
 
 
 def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, return_value=False):
@@ -504,8 +504,8 @@ def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, r
 def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
                 holomorphic=False, allow_int=False, has_aux=False):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of JaxArray
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of JaxArray
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # final functions
@@ -518,7 +518,7 @@ def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
       # outputs: [0] is the value for gradient,
       #          [1] is other values for return
       outputs = func(*args, **kwargs)
-      output = outputs[0].value if isinstance(outputs[0], JaxArray) else outputs[0]
+      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   else:
@@ -528,7 +528,7 @@ def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
       for v, d in zip(dyn_vars, dyn_values): v._value = d
       for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
-      output = outputs.value if isinstance(outputs, JaxArray) else outputs
+      output = outputs.value if isinstance(outputs, Array) else outputs
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   return grad_func
@@ -568,9 +568,9 @@ def jacrev(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, JaxArray, sequence of JaxArray, dict
+  dyn_vars : optional, Array, sequence of Array, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, JaxArray, sequence of JaxArray, dict
+  grad_vars : optional, Array, sequence of Array, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
@@ -664,8 +664,8 @@ def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False
 
 def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=False):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of JaxArray
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of JaxArray
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # final functions
@@ -678,7 +678,7 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
       # outputs: [0] is the value for gradient,
       #          [1] is other values for return
       outputs = func(*args, **kwargs)
-      output = outputs[0].value if isinstance(outputs[0], JaxArray) else outputs[0]
+      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   else:
@@ -688,7 +688,7 @@ def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=F
       for v, d in zip(dyn_vars, dyn_values): v._value = d
       for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
-      output = outputs.value if isinstance(outputs, JaxArray) else outputs
+      output = outputs.value if isinstance(outputs, Array) else outputs
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   return grad_func
@@ -726,9 +726,9 @@ def jacfwd(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, JaxArray, sequence of JaxArray, dict
+  dyn_vars : optional, Array, sequence of Array, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, JaxArray, sequence of JaxArray, dict
+  grad_vars : optional, Array, sequence of Array, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
@@ -798,9 +798,9 @@ def hessian(
     specified by ``argnums`` should be arrays, scalars, or standard Python
     containers thereof. It should return arrays, scalars, or standard Python
     containers thereof.
-  dyn_vars : optional, ArrayCollector, sequence of JaxArray
+  dyn_vars : optional, ArrayCollector, sequence of Array
     The dynamical changed variables.
-  grad_vars : optional, ArrayCollector, sequence of JaxArray
+  grad_vars : optional, ArrayCollector, sequence of Array
     The variables required to compute their gradients.
   argnums: Optional, integer or sequence of integers
     Specifies which positional argument(s) to differentiate with respect to (default ``0``).
@@ -863,8 +863,8 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
 
 def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of JaxArray
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of JaxArray
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # final functions
@@ -874,7 +874,7 @@ def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
       for v, d in zip(dyn_vars, dyn_values): v._value = d
       for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
-      output = outputs[0].value if isinstance(outputs[0], JaxArray) else outputs[0]
+      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   else:
@@ -883,7 +883,7 @@ def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
       for v, d in zip(dyn_vars, dyn_values): v._value = d
       for v, d in zip(grad_vars, grad_values): v._value = d
       outputs = func(*args, **kwargs)
-      output = outputs.value if isinstance(outputs, JaxArray) else outputs
+      output = outputs.value if isinstance(outputs, Array) else outputs
       return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
 
   return grad_func
@@ -920,9 +920,9 @@ def vector_grad(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, JaxArray, sequence of JaxArray, dict
+  dyn_vars : optional, Array, sequence of Array, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, JaxArray, sequence of JaxArray, dict
+  grad_vars : optional, Array, sequence of Array, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the

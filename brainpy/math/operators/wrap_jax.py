@@ -7,7 +7,7 @@ import jax.numpy as jnp
 from jax import lax
 from jax import ops as jops
 
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import Array
 from brainpy.math.numpy_ops import as_jax
 
 __all__ = [
@@ -18,14 +18,14 @@ __all__ = [
 ]
 
 
-def segment_sum(data: Union[JaxArray, jnp.ndarray],
-                segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_sum(data: Union[Array, jnp.ndarray],
+                segment_ids: Union[Array, jnp.ndarray],
                 num_segments: Optional[int] = None,
                 indices_are_sorted: bool = False,
                 unique_indices: bool = False,
                 bucket_size: Optional[int] = None,
-                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_sum`` operator for brainpy `JaxArray` and `Variable`.
+                mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_sum`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -57,22 +57,22 @@ def segment_sum(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_sum(as_jax(data),
-                                   as_jax(segment_ids),
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size, mode))
+  return Array(jops.segment_sum(as_jax(data),
+                                as_jax(segment_ids),
+                                num_segments,
+                                indices_are_sorted,
+                                unique_indices,
+                                bucket_size, mode))
 
 
-def segment_prod(data: Union[JaxArray, jnp.ndarray],
-                 segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_prod(data: Union[Array, jnp.ndarray],
+                 segment_ids: Union[Array, jnp.ndarray],
                  num_segments: Optional[int] = None,
                  indices_are_sorted: bool = False,
                  unique_indices: bool = False,
                  bucket_size: Optional[int] = None,
-                 mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_prod`` operator for brainpy `JaxArray` and `Variable`.
+                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_prod`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -104,22 +104,22 @@ def segment_prod(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_prod(as_jax(data),
-                                    as_jax(segment_ids),
-                                    num_segments,
-                                    indices_are_sorted,
-                                    unique_indices,
-                                    bucket_size, mode))
+  return Array(jops.segment_prod(as_jax(data),
+                                 as_jax(segment_ids),
+                                 num_segments,
+                                 indices_are_sorted,
+                                 unique_indices,
+                                 bucket_size, mode))
 
 
-def segment_max(data: Union[JaxArray, jnp.ndarray],
-                segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_max(data: Union[Array, jnp.ndarray],
+                segment_ids: Union[Array, jnp.ndarray],
                 num_segments: Optional[int] = None,
                 indices_are_sorted: bool = False,
                 unique_indices: bool = False,
                 bucket_size: Optional[int] = None,
-                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_max`` operator for brainpy `JaxArray` and `Variable`.
+                mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_max`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -151,22 +151,22 @@ def segment_max(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_max(as_jax(data),
-                                   as_jax(segment_ids),
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size, mode))
+  return Array(jops.segment_max(as_jax(data),
+                                as_jax(segment_ids),
+                                num_segments,
+                                indices_are_sorted,
+                                unique_indices,
+                                bucket_size, mode))
 
 
-def segment_min(data: Union[JaxArray, jnp.ndarray],
-                segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_min(data: Union[Array, jnp.ndarray],
+                segment_ids: Union[Array, jnp.ndarray],
                 num_segments: Optional[int] = None,
                 indices_are_sorted: bool = False,
                 unique_indices: bool = False,
                 bucket_size: Optional[int] = None,
-                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_min`` operator for brainpy `JaxArray` and `Variable`.
+                mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_min`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -198,10 +198,10 @@ def segment_min(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_min(as_jax(data),
-                                   as_jax(segment_ids),
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size,
-                                   mode))
+  return Array(jops.segment_min(as_jax(data),
+                                as_jax(segment_ids),
+                                num_segments,
+                                indices_are_sorted,
+                                unique_indices,
+                                bucket_size,
+                                mode))

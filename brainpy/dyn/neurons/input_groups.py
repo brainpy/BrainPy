@@ -100,9 +100,9 @@ class SpikeTimeGroup(NeuGroup):
   ----------
   size : int, tuple, list
       The neuron group geometry.
-  indices : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
+  indices : list, tuple, np.ndarray, Array, jax.numpy.ndarray
       The neuron indices at each time point to emit spikes.
-  times : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
+  times : list, tuple, np.ndarray, Array, jax.numpy.ndarray
       The time points which generate the spikes.
   name : str, optional
       The name of the dynamic system.
@@ -174,7 +174,7 @@ class PoissonGroup(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      freqs: Union[int, float, jnp.ndarray, bm.JaxArray, Initializer],
+      freqs: Union[int, float, jnp.ndarray, bm.Array, Initializer],
       seed: int = None,
       keep_size: bool = False,
       mode: Mode = normal,

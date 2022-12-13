@@ -123,16 +123,16 @@ class DynamicalSystem(BrainPyObject):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, JaxArray, ndarray, callable, Initializer
+    delay_step: Optional, int, Array, ndarray, callable, Initializer
       The number of the steps of the delay.
     delay_target: Variable
       The target variable for delay.
-    initial_delay_data: float, int, JaxArray, ndarray, callable, Initializer
+    initial_delay_data: float, int, Array, ndarray, callable, Initializer
       The initializer for the delay data.
 
     Returns
     -------
-    delay_step: int, JaxArray, ndarray
+    delay_step: int, Array, ndarray
       The number of the delay steps.
     """
     # delay steps
@@ -190,8 +190,8 @@ class DynamicalSystem(BrainPyObject):
   def get_delay_data(
       self,
       identifier: str,
-      delay_step: Optional[Union[int, bm.JaxArray, jnp.DeviceArray]],
-      *indices: Union[int, slice, bm.JaxArray, jnp.DeviceArray],
+      delay_step: Optional[Union[int, bm.Array, jnp.DeviceArray]],
+      *indices: Union[int, slice, bm.Array, jnp.DeviceArray],
   ):
     """Get delay data according to the provided delay steps.
 
@@ -199,14 +199,14 @@ class DynamicalSystem(BrainPyObject):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, JaxArray, ndarray
+    delay_step: Optional, int, Array, ndarray
       The delay length.
-    indices: optional, int, slice, JaxArray, ndarray
+    indices: optional, int, slice, Array, ndarray
       The indices of the delay.
 
     Returns
     -------
-    delay_data: JaxArray, ndarray
+    delay_data: Array, ndarray
       The delay data at the given time.
     """
     if delay_step is None:
@@ -707,7 +707,7 @@ class SynConn(DynamicalSystem):
     Pre-synaptic neuron group.
   post : NeuGroup
     Post-synaptic neuron group.
-  conn : optional, ndarray, JaxArray, dict, TwoEndConnector
+  conn : optional, ndarray, Array, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
   name : str, optional
     The name of the dynamic system.
@@ -920,7 +920,7 @@ class TwoEndConn(SynConn):
     Pre-synaptic neuron group.
   post : NeuGroup
     Post-synaptic neuron group.
-  conn : optional, ndarray, JaxArray, dict, TwoEndConnector
+  conn : optional, ndarray, Array, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
   output: Optional, SynOutput
     The output for the synaptic current.

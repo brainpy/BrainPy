@@ -11,8 +11,8 @@ from jax.tree_util import register_pytree_node
 from brainpy.errors import MathError
 
 __all__ = [
-  'JaxArray',
-  'ndarray',  # alias of JaxArray
+  'Array',
+  'ndarray', 'JaxArray',  # alias of Array
   'Variable',
   'TrainVar',
   'Parameter',
@@ -30,7 +30,7 @@ __all__ = [
 
 _all_slice = slice(None, None, None)
 
-msg = ('JaxArray created outside of the jit function '
+msg = ('Array created outside of the jit function '
        'cannot be updated in JIT mode. You should '
        'mark it as brainpy.math.Variable instead.')
 
@@ -63,7 +63,7 @@ def get_context():
 def check_context(arr_context):
   if arr_context is None:
     if len(_jax_transformation_context_) > 0:
-      raise MathError(f'JaxArray created outside of the transformation functions '
+      raise MathError(f'Array created outside of the transformation functions '
                       f'({_jax_transformation_context_[-1]}) cannot be updated. '
                       f'You should mark it as a brainpy.math.Variable instead.')
       return True
@@ -72,10 +72,10 @@ def check_context(arr_context):
   else:
     if len(_jax_transformation_context_) > 0:
       if arr_context != _jax_transformation_context_[-1]:
-        raise MathError(f'JaxArray context "{arr_context}" differs from the JAX '
+        raise MathError(f'Array context "{arr_context}" differs from the JAX '
                         f'transformation context "{_jax_transformation_context_[-1]}"'
                         '\n\n'
-                        'JaxArray created in one transformation function '
+                        'Array created in one transformation function '
                         'cannot be updated another transformation function. '
                         'You should mark it as a brainpy.math.Variable instead.')
         return True
@@ -84,7 +84,7 @@ def check_context(arr_context):
 
 
 def _check_input_array(array):
-  if isinstance(array, JaxArray):
+  if isinstance(array, Array):
     return array.value
   elif isinstance(array, np.ndarray):
     return jnp.asarray(array)
@@ -92,14 +92,14 @@ def _check_input_array(array):
     return array
 
 
-class JaxArray(object):
+class Array(object):
   """Multiple-dimensional array in JAX backend.
   """
   __slots__ = ("_value", "_transform_context")
 
   def __init__(self, value, dtype=None):
     # array value
-    if isinstance(value, JaxArray):
+    if isinstance(value, Array):
       value = value._value
     elif isinstance(value, (tuple, list, np.ndarray)):
       value = jnp.asarray(value)
@@ -118,11 +118,11 @@ class JaxArray(object):
     self.update(value)
 
   def update(self, value):
-    """Update the value of this JaxArray.
+    """Update the value of this Array.
     """
     if check_context(self._transform_context):
       raise MathError(msg)
-    if isinstance(value, JaxArray):
+    if isinstance(value, Array):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)
@@ -137,7 +137,7 @@ class JaxArray(object):
     if value.dtype != self._value.dtype:
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "
                       f"while we got {value.dtype}.")
-    self._value = value.value if isinstance(value, JaxArray) else value
+    self._value = value.value if isinstance(value, Array) else value
 
   @property
   def dtype(self):
@@ -159,7 +159,7 @@ class JaxArray(object):
 
   @property
   def real(self):
-    return JaxArray(self.value.real)
+    return Array(self.value.real)
 
   @property
   def size(self):
@@ -167,7 +167,7 @@ class JaxArray(object):
 
   @property
   def T(self):
-    return JaxArray(self.value.T)
+    return Array(self.value.T)
 
   # ----------------------- #
   # Python inherent methods #
@@ -217,8 +217,8 @@ class JaxArray(object):
     if isinstance(index, slice) and (index == _all_slice):
       return self.value
     elif isinstance(index, tuple):
-      index = tuple((x.value if isinstance(x, JaxArray) else x) for x in index)
-    elif isinstance(index, JaxArray):
+      index = tuple((x.value if isinstance(x, Array) else x) for x in index)
+    elif isinstance(index, Array):
       index = index.value
     return self.value[index]
 
@@ -226,8 +226,8 @@ class JaxArray(object):
     if check_context(self._transform_context):
       raise MathError(msg)
 
-    # value is JaxArray
-    if isinstance(value, JaxArray):
+    # value is Array
+    if isinstance(value, Array):
       value = value.value
     # value is numpy.ndarray
     elif isinstance(value, np.ndarray):
@@ -236,8 +236,8 @@ class JaxArray(object):
     # index is a tuple
     if isinstance(index, tuple):
       index = tuple(_check_input_array(x) for x in index)
-    # index is JaxArray
-    elif isinstance(index, JaxArray):
+    # index is Array
+    elif isinstance(index, Array):
       index = index.value
     # index is numpy.ndarray
     elif isinstance(index, np.ndarray):
@@ -257,40 +257,40 @@ class JaxArray(object):
     return len(self._value)
 
   def __neg__(self):
-    return JaxArray(self._value.__neg__())
+    return Array(self._value.__neg__())
 
   def __pos__(self):
-    return JaxArray(self._value.__pos__())
+    return Array(self._value.__pos__())
 
   def __abs__(self):
-    return JaxArray(self._value.__abs__())
+    return Array(self._value.__abs__())
 
   def __invert__(self):
-    return JaxArray(self._value.__invert__())
+    return Array(self._value.__invert__())
 
   def __eq__(self, oc):
-    return JaxArray(self._value == _check_input_array(oc))
+    return Array(self._value == _check_input_array(oc))
 
   def __ne__(self, oc):
-    return JaxArray(self._value != _check_input_array(oc))
+    return Array(self._value != _check_input_array(oc))
 
   def __lt__(self, oc):
-    return JaxArray(self._value < _check_input_array(oc))
+    return Array(self._value < _check_input_array(oc))
 
   def __le__(self, oc):
-    return JaxArray(self._value <= _check_input_array(oc))
+    return Array(self._value <= _check_input_array(oc))
 
   def __gt__(self, oc):
-    return JaxArray(self._value > _check_input_array(oc))
+    return Array(self._value > _check_input_array(oc))
 
   def __ge__(self, oc):
-    return JaxArray(self._value >= _check_input_array(oc))
+    return Array(self._value >= _check_input_array(oc))
 
   def __add__(self, oc):
-    return JaxArray(self._value + _check_input_array(oc))
+    return Array(self._value + _check_input_array(oc))
 
   def __radd__(self, oc):
-    return JaxArray(self._value + _check_input_array(oc))
+    return Array(self._value + _check_input_array(oc))
 
   def __iadd__(self, oc):
     # a += b
@@ -300,10 +300,10 @@ class JaxArray(object):
     return self
 
   def __sub__(self, oc):
-    return JaxArray(self._value - _check_input_array(oc))
+    return Array(self._value - _check_input_array(oc))
 
   def __rsub__(self, oc):
-    return JaxArray(_check_input_array(oc) - self._value)
+    return Array(_check_input_array(oc) - self._value)
 
   def __isub__(self, oc):
     # a -= b
@@ -313,10 +313,10 @@ class JaxArray(object):
     return self
 
   def __mul__(self, oc):
-    return JaxArray(self._value * _check_input_array(oc))
+    return Array(self._value * _check_input_array(oc))
 
   def __rmul__(self, oc):
-    return JaxArray(_check_input_array(oc) * self._value)
+    return Array(_check_input_array(oc) * self._value)
 
   def __imul__(self, oc):
     # a *= b
@@ -326,13 +326,13 @@ class JaxArray(object):
     return self
 
   def __rdiv__(self, oc):
-    return JaxArray(_check_input_array(oc) / self._value)
+    return Array(_check_input_array(oc) / self._value)
 
   def __truediv__(self, oc):
-    return JaxArray(self._value / _check_input_array(oc))
+    return Array(self._value / _check_input_array(oc))
 
   def __rtruediv__(self, oc):
-    return JaxArray(_check_input_array(oc) / self._value)
+    return Array(_check_input_array(oc) / self._value)
 
   def __itruediv__(self, oc):
     # a /= b
@@ -342,10 +342,10 @@ class JaxArray(object):
     return self
 
   def __floordiv__(self, oc):
-    return JaxArray(self._value // _check_input_array(oc))
+    return Array(self._value // _check_input_array(oc))
 
   def __rfloordiv__(self, oc):
-    return JaxArray(_check_input_array(oc) // self._value)
+    return Array(_check_input_array(oc) // self._value)
 
   def __ifloordiv__(self, oc):
     # a //= b
@@ -355,16 +355,16 @@ class JaxArray(object):
     return self
 
   def __divmod__(self, oc):
-    return JaxArray(self._value.__divmod__(_check_input_array(oc)))
+    return Array(self._value.__divmod__(_check_input_array(oc)))
 
   def __rdivmod__(self, oc):
-    return JaxArray(self._value.__rdivmod__(_check_input_array(oc)))
+    return Array(self._value.__rdivmod__(_check_input_array(oc)))
 
   def __mod__(self, oc):
-    return JaxArray(self._value % _check_input_array(oc))
+    return Array(self._value % _check_input_array(oc))
 
   def __rmod__(self, oc):
-    return JaxArray(_check_input_array(oc) % self._value)
+    return Array(_check_input_array(oc) % self._value)
 
   def __imod__(self, oc):
     # a %= b
@@ -374,10 +374,10 @@ class JaxArray(object):
     return self
 
   def __pow__(self, oc):
-    return JaxArray(self._value ** _check_input_array(oc))
+    return Array(self._value ** _check_input_array(oc))
 
   def __rpow__(self, oc):
-    return JaxArray(_check_input_array(oc) ** self._value)
+    return Array(_check_input_array(oc) ** self._value)
 
   def __ipow__(self, oc):
     # a **= b
@@ -387,10 +387,10 @@ class JaxArray(object):
     return self
 
   def __matmul__(self, oc):
-    return JaxArray(self._value @ _check_input_array(oc))
+    return Array(self._value @ _check_input_array(oc))
 
   def __rmatmul__(self, oc):
-    return JaxArray(_check_input_array(oc) @ self._value)
+    return Array(_check_input_array(oc) @ self._value)
 
   def __imatmul__(self, oc):
     # a @= b
@@ -400,10 +400,10 @@ class JaxArray(object):
     return self
 
   def __and__(self, oc):
-    return JaxArray(self._value & _check_input_array(oc))
+    return Array(self._value & _check_input_array(oc))
 
   def __rand__(self, oc):
-    return JaxArray(_check_input_array(oc) & self._value)
+    return Array(_check_input_array(oc) & self._value)
 
   def __iand__(self, oc):
     # a &= b
@@ -413,10 +413,10 @@ class JaxArray(object):
     return self
 
   def __or__(self, oc):
-    return JaxArray(self._value | _check_input_array(oc))
+    return Array(self._value | _check_input_array(oc))
 
   def __ror__(self, oc):
-    return JaxArray(_check_input_array(oc) | self._value)
+    return Array(_check_input_array(oc) | self._value)
 
   def __ior__(self, oc):
     # a |= b
@@ -426,10 +426,10 @@ class JaxArray(object):
     return self
 
   def __xor__(self, oc):
-    return JaxArray(self._value ^ _check_input_array(oc))
+    return Array(self._value ^ _check_input_array(oc))
 
   def __rxor__(self, oc):
-    return JaxArray(_check_input_array(oc) ^ self._value)
+    return Array(_check_input_array(oc) ^ self._value)
 
   def __ixor__(self, oc):
     # a ^= b
@@ -439,10 +439,10 @@ class JaxArray(object):
     return self
 
   def __lshift__(self, oc):
-    return JaxArray(self._value << _check_input_array(oc))
+    return Array(self._value << _check_input_array(oc))
 
   def __rlshift__(self, oc):
-    return JaxArray(_check_input_array(oc) << self._value)
+    return Array(_check_input_array(oc) << self._value)
 
   def __ilshift__(self, oc):
     # a <<= b
@@ -452,10 +452,10 @@ class JaxArray(object):
     return self
 
   def __rshift__(self, oc):
-    return JaxArray(self._value >> _check_input_array(oc))
+    return Array(self._value >> _check_input_array(oc))
 
   def __rrshift__(self, oc):
-    return JaxArray(_check_input_array(oc) >> self._value)
+    return Array(_check_input_array(oc) >> self._value)
 
   def __irshift__(self, oc):
     # a >>= b
@@ -465,7 +465,7 @@ class JaxArray(object):
     return self
 
   def __round__(self, ndigits=None):
-    return JaxArray(self._value.__round__(ndigits))
+    return Array(self._value.__round__(ndigits))
 
   # ----------------------- #
   #       JAX methods       #
@@ -495,28 +495,28 @@ class JaxArray(object):
   def all(self, axis=None, keepdims=False):
     """Returns True if all elements evaluate to True."""
     r = self.value.all(axis=axis, keepdims=keepdims)
-    return r if (axis is None or keepdims) else JaxArray(r)
+    return r if (axis is None or keepdims) else Array(r)
 
   def any(self, axis=None, keepdims=False):
     """Returns True if any of the elements of a evaluate to True."""
     r = self.value.any(axis=axis, keepdims=keepdims)
-    return r if (axis is None or keepdims) else JaxArray(r)
+    return r if (axis is None or keepdims) else Array(r)
 
   def argmax(self, axis=None):
     """Return indices of the maximum values along the given axis."""
-    return JaxArray(self.value.argmax(axis=axis))
+    return Array(self.value.argmax(axis=axis))
 
   def argmin(self, axis=None):
     """Return indices of the minimum values along the given axis."""
-    return JaxArray(self.value.argmin(axis=axis))
+    return Array(self.value.argmin(axis=axis))
 
   def argpartition(self, kth, axis=-1, kind='introselect', order=None):
     """Returns the indices that would partition this array."""
-    return JaxArray(self.value.argpartition(kth=kth, axis=axis, kind=kind, order=order))
+    return Array(self.value.argpartition(kth=kth, axis=axis, kind=kind, order=order))
 
   def argsort(self, axis=-1, kind=None, order=None):
     """Returns the indices that would sort this array."""
-    return JaxArray(self.value.argsort(axis=axis, kind=kind, order=order))
+    return Array(self.value.argsort(axis=axis, kind=kind, order=order))
 
   def astype(self, dtype):
     """Copy of the array, cast to a specified type.
@@ -526,7 +526,7 @@ class JaxArray(object):
     dtype: str, dtype
       Typecode or data-type to which the array is cast.
     """
-    return JaxArray(self.value.astype(dtype=dtype))
+    return Array(self.value.astype(dtype=dtype))
 
   def byteswap(self, inplace=False):
     """Swap the bytes of the array elements
@@ -535,49 +535,49 @@ class JaxArray(object):
     returning a byteswapped array, optionally swapped in-place.
     Arrays of byte-strings are not swapped. The real and imaginary
     parts of a complex number are swapped individually."""
-    return JaxArray(self.value.byteswap(inplace=inplace))
+    return Array(self.value.byteswap(inplace=inplace))
 
   def choose(self, choices, mode='raise'):
     """Use an index array to construct a new array from a set of choices."""
-    choices = choices.value if isinstance(choices, JaxArray) else choices
-    return JaxArray(self.value.choose(choices=choices, mode=mode))
+    choices = choices.value if isinstance(choices, Array) else choices
+    return Array(self.value.choose(choices=choices, mode=mode))
 
   def clip(self, min=None, max=None):
     """Return an array whose values are limited to [min, max]. One of max or min must be given."""
-    return JaxArray(self.value.clip(min=min, max=max))
+    return Array(self.value.clip(min=min, max=max))
 
   def compress(self, condition, axis=None):
     """Return selected slices of this array along given axis."""
-    condition = condition.value if isinstance(condition, JaxArray) else condition
-    return JaxArray(self.value.compress(condition=condition, axis=axis))
+    condition = condition.value if isinstance(condition, Array) else condition
+    return Array(self.value.compress(condition=condition, axis=axis))
 
   def conj(self):
     """Complex-conjugate all elements."""
-    return JaxArray(self.value.conj())
+    return Array(self.value.conj())
 
   def conjugate(self):
     """Return the complex conjugate, element-wise."""
-    return JaxArray(self.value.conjugate())
+    return Array(self.value.conjugate())
 
   def copy(self):
     """Return a copy of the array."""
-    return JaxArray(self.value.copy())
+    return Array(self.value.copy())
 
   def cumprod(self, axis=None, dtype=None):
     """Return the cumulative product of the elements along the given axis."""
-    return JaxArray(self.value.cumprod(axis=axis, dtype=dtype))
+    return Array(self.value.cumprod(axis=axis, dtype=dtype))
 
   def cumsum(self, axis=None, dtype=None):
     """Return the cumulative sum of the elements along the given axis."""
-    return JaxArray(self.value.cumsum(axis=axis, dtype=dtype))
+    return Array(self.value.cumsum(axis=axis, dtype=dtype))
 
   def diagonal(self, offset=0, axis1=0, axis2=1):
     """Return specified diagonals."""
-    return JaxArray(self.value.diagonal(offset=offset, axis1=axis1, axis2=axis2))
+    return Array(self.value.diagonal(offset=offset, axis1=axis1, axis2=axis2))
 
   def dot(self, b):
     """Dot product of two arrays."""
-    return JaxArray(self.value.dot(b.value if isinstance(b, JaxArray) else b))
+    return Array(self.value.dot(b.value if isinstance(b, Array) else b))
 
   def fill(self, value):
     """Fill the array with a scalar value."""
@@ -586,7 +586,7 @@ class JaxArray(object):
     self._value = jnp.ones_like(self.value) * value
 
   def flatten(self, order='C'):
-    return JaxArray(self.value.flatten(order=order))
+    return Array(self.value.flatten(order=order))
 
   def item(self, *args):
     """Copy an element of an array to a standard Python scalar and return it."""
@@ -595,31 +595,31 @@ class JaxArray(object):
   def max(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the maximum along a given axis."""
     res = self.value.max(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else JaxArray(res)
+    return res if (axis is None or keepdims) else Array(res)
 
   def mean(self, axis=None, dtype=None, keepdims=False, *args, **kwargs):
     """Returns the average of the array elements along given axis."""
     res = self.value.mean(axis=axis, dtype=dtype, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else JaxArray(res)
+    return res if (axis is None or keepdims) else Array(res)
 
   def min(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the minimum along a given axis."""
     res = self.value.min(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else JaxArray(res)
+    return res if (axis is None or keepdims) else Array(res)
 
   def nonzero(self):
     """Return the indices of the elements that are non-zero."""
-    return tuple(JaxArray(a) for a in self.value.nonzero())
+    return tuple(Array(a) for a in self.value.nonzero())
 
   def prod(self, axis=None, dtype=None, keepdims=False, initial=1, where=True):
     """Return the product of the array elements over the given axis."""
     res = self.value.prod(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-    return res if (axis is None or keepdims) else JaxArray(res)
+    return res if (axis is None or keepdims) else Array(res)
 
   def ptp(self, axis=None, keepdims=False):
     """Peak to peak (maximum - minimum) value along a given axis."""
     r = self.value.ptp(axis=axis, keepdims=keepdims)
-    return r if (axis is None or keepdims) else JaxArray(r)
+    return r if (axis is None or keepdims) else Array(r)
 
   def put(self, indices, values):
     """Replaces specified elements of an array with given values.
@@ -635,15 +635,15 @@ class JaxArray(object):
 
   def ravel(self, order=None):
     """Return a flattened array."""
-    return JaxArray(self.value.ravel(order=order))
+    return Array(self.value.ravel(order=order))
 
   def repeat(self, repeats, axis=None):
     """Repeat elements of an array."""
-    return JaxArray(self.value.repeat(repeats=repeats, axis=axis))
+    return Array(self.value.repeat(repeats=repeats, axis=axis))
 
   def reshape(self, *shape, order='C'):
     """Returns an array containing the same data with a new shape."""
-    return JaxArray(self.value.reshape(*shape, order=order))
+    return Array(self.value.reshape(*shape, order=order))
 
   def resize(self, new_shape):
     """Change shape and size of array in-place."""
@@ -651,7 +651,7 @@ class JaxArray(object):
 
   def round(self, decimals=0):
     """Return ``a`` with each element rounded to the given number of decimals."""
-    return JaxArray(self.value.round(decimals=decimals))
+    return Array(self.value.round(decimals=decimals))
 
   def searchsorted(self, v, side='left', sorter=None):
     """Find indices where elements should be inserted to maintain order.
@@ -686,8 +686,8 @@ class JaxArray(object):
     indices : array of ints
         Array of insertion points with the same shape as `v`.
     """
-    v = v.value if isinstance(v, JaxArray) else v
-    return JaxArray(self.value.searchsorted(v=v, side=side, sorter=sorter))
+    v = v.value if isinstance(v, Array) else v
+    return Array(self.value.searchsorted(v=v, side=side, sorter=sorter))
 
   def sort(self, axis=-1, kind='quicksort', order=None):
     """Sort an array in-place.
@@ -715,7 +715,7 @@ class JaxArray(object):
 
   def squeeze(self, axis=None):
     """Remove axes of length one from ``a``."""
-    return JaxArray(self.value.squeeze(axis=axis))
+    return Array(self.value.squeeze(axis=axis))
 
   def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Compute the standard deviation along the specified axis.
@@ -757,16 +757,16 @@ class JaxArray(object):
         otherwise return a reference to the output array.
     """
     r = self.value.std(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
-    return r if (axis is None or keepdims) else JaxArray(r)
+    return r if (axis is None or keepdims) else Array(r)
 
   def sum(self, axis=None, dtype=None, keepdims=False, initial=0, where=True):
     """Return the sum of the array elements over the given axis."""
     res = self.value.sum(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-    return res if (axis is None or keepdims) else JaxArray(res)
+    return res if (axis is None or keepdims) else Array(res)
 
   def swapaxes(self, axis1, axis2):
     """Return a view of the array with `axis1` and `axis2` interchanged."""
-    return JaxArray(self.value.swapaxes(axis1, axis2))
+    return Array(self.value.swapaxes(axis1, axis2))
 
   def split(self, indices_or_sections, axis=0):
     """Split an array into multiple sub-arrays as views into ``ary``.
@@ -796,12 +796,12 @@ class JaxArray(object):
     sub-arrays : list of ndarrays
       A list of sub-arrays as views into `ary`.
     """
-    return [JaxArray(a) for a in self.value.split(indices_or_sections, axis=axis)]
+    return [Array(a) for a in self.value.split(indices_or_sections, axis=axis)]
 
   def take(self, indices, axis=None, mode=None):
     """Return an array formed from the elements of a at the given indices."""
-    indices = indices.value if isinstance(indices, JaxArray) else indices
-    return JaxArray(self.value.take(indices=indices, axis=axis, mode=mode))
+    indices = indices.value if isinstance(indices, Array) else indices
+    return Array(self.value.take(indices=indices, axis=axis, mode=mode))
 
   def tobytes(self, order='C'):
     """Construct Python bytes containing the raw data bytes in the array.
@@ -809,7 +809,7 @@ class JaxArray(object):
     Constructs Python bytes showing a copy of the raw contents of data memory.
     The bytes object is produced in C-order by default. This behavior is
     controlled by the ``order`` parameter."""
-    return JaxArray(self.value.tobytes(order=order))
+    return Array(self.value.tobytes(order=order))
 
   def tolist(self):
     """Return the array as an ``a.ndim``-levels deep nested list of Python scalars.
@@ -825,7 +825,7 @@ class JaxArray(object):
 
   def trace(self, offset=0, axis1=0, axis2=1, dtype=None):
     """Return the sum along diagonals of the array."""
-    return JaxArray(self.value.trace(offset=offset, axis1=axis1, axis2=axis2, dtype=dtype))
+    return Array(self.value.trace(offset=offset, axis1=axis1, axis2=axis2, dtype=dtype))
 
   def transpose(self, *axes):
     """Returns a view of the array with axes transposed.
@@ -857,7 +857,7 @@ class JaxArray(object):
     out : ndarray
         View of `a`, with axes suitably permuted.
     """
-    return JaxArray(self.value.transpose(*axes))
+    return Array(self.value.transpose(*axes))
 
   def tile(self, reps):
     """Construct an array by repeating A the number of times given by reps.
@@ -888,17 +888,17 @@ class JaxArray(object):
     c : ndarray
         The tiled output array.
     """
-    reps = reps.value if isinstance(reps, JaxArray) else reps
-    return JaxArray(self.value.tile(reps))
+    reps = reps.value if isinstance(reps, Array) else reps
+    return Array(self.value.tile(reps))
 
   def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Returns the variance of the array elements, along given axis."""
     r = self.value.var(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
-    return r if (axis is None or keepdims) else JaxArray(r)
+    return r if (axis is None or keepdims) else Array(r)
 
   def view(self, dtype=None, *args, **kwargs):
     """New view of array with the same data."""
-    return JaxArray(self.value.view(dtype=dtype, *args, **kwargs))
+    return Array(self.value.view(dtype=dtype, *args, **kwargs))
 
   # ------------------
   # NumPy support
@@ -928,10 +928,11 @@ class JaxArray(object):
     return self.value
 
 
-ndarray = JaxArray
+JaxArray = Array
+ndarray = Array
 
 
-class Variable(JaxArray):
+class Variable(Array):
   """The pointer to specify the dynamical variable.
 
   Initializing an instance of ``Variable`` by two ways:
@@ -1014,7 +1015,7 @@ class Variable(JaxArray):
     raise ValueError(f'Cannot set "batch_size" manually.')
 
   def update(self, value):
-    """Update the value of this JaxArray.
+    """Update the value of this Array.
     """
     if self._batch_axis is None:
       ext_shape = value.shape
@@ -1032,19 +1033,19 @@ class Variable(JaxArray):
     if value.dtype != self.dtype:
       raise MathError(f"The dtype of the original data is {self.dtype}, "
                       f"while we got {value.dtype}.")
-    self._value = value.value if isinstance(value, JaxArray) else value
+    self._value = value.value if isinstance(value, Array) else value
 
   def __setitem__(self, index, value):
-    # value is JaxArray
-    if isinstance(value, JaxArray):
+    # value is Array
+    if isinstance(value, Array):
       value = value.value
 
     # tuple index
     if isinstance(index, tuple):
       index = tuple(_check_input_array(x) for x in index)
 
-    # JaxArray index
-    elif isinstance(index, JaxArray):
+    # Array index
+    elif isinstance(index, Array):
       index = index.value
 
     # update
@@ -1302,7 +1303,7 @@ class Variable(JaxArray):
 
   def choose(self, choices, mode='raise'):
     """Use an index array to construct a new array from a set of choices."""
-    choices = choices.value if isinstance(choices, JaxArray) else choices
+    choices = choices.value if isinstance(choices, Array) else choices
     return self.value.choose(choices=choices, mode=mode)
 
   def clip(self, min=None, max=None):
@@ -1311,7 +1312,7 @@ class Variable(JaxArray):
 
   def compress(self, condition, axis=None):
     """Return selected slices of this array along given axis."""
-    condition = condition.value if isinstance(condition, JaxArray) else condition
+    condition = condition.value if isinstance(condition, Array) else condition
     return self.value.compress(condition=condition, axis=axis)
 
   def conj(self):
@@ -1340,7 +1341,7 @@ class Variable(JaxArray):
 
   def dot(self, b):
     """Dot product of two arrays."""
-    return self.value.dot(b.value if isinstance(b, JaxArray) else b)
+    return self.value.dot(b.value if isinstance(b, Array) else b)
 
   def flatten(self, order='C'):
     return self.value.flatten(order=order)
@@ -1422,7 +1423,7 @@ class Variable(JaxArray):
     indices : array of ints
         Array of insertion points with the same shape as `v`.
     """
-    v = v.value if isinstance(v, JaxArray) else v
+    v = v.value if isinstance(v, Array) else v
     return self.value.searchsorted(v=v, side=side, sorter=sorter)
 
   def squeeze(self, axis=None):
@@ -1485,7 +1486,7 @@ class Variable(JaxArray):
 
   def take(self, indices, axis=None, mode=None):
     """Return an array formed from the elements of a at the given indices."""
-    indices = indices.value if isinstance(indices, JaxArray) else indices
+    indices = indices.value if isinstance(indices, Array) else indices
     return self.value.take(indices=indices, axis=axis, mode=mode)
 
   def tobytes(self, order='C'):
@@ -1518,7 +1519,7 @@ class Variable(JaxArray):
     return self.value.transpose(*axes)
 
   def tile(self, reps):
-    return self.value.tile(reps.value if isinstance(reps, JaxArray) else reps)
+    return self.value.tile(reps.value if isinstance(reps, Array) else reps)
 
   def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Returns the variance of the array elements, along given axis."""
@@ -1589,8 +1590,8 @@ class VariableView(Variable):
     return self._value[self.index]
 
   def __setitem__(self, index, value):
-    # value is JaxArray
-    if isinstance(value, JaxArray):
+    # value is Array
+    if isinstance(value, Array):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)
@@ -1599,8 +1600,8 @@ class VariableView(Variable):
     if isinstance(index, tuple):
       index = tuple(_check_input_array(x) for x in index)
 
-    # JaxArray index
-    elif isinstance(index, JaxArray):
+    # Array index
+    elif isinstance(index, Array):
       index = index.value
 
     # update
@@ -1696,7 +1697,7 @@ class VariableView(Variable):
     if value.dtype != self._value.dtype:
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "
                       f"while we got {value.dtype}.")
-    self._value[self.index] = value.value if isinstance(value, JaxArray) else value
+    self._value[self.index] = value.value if isinstance(value, Array) else value
 
   @value.setter
   def value(self, value):
@@ -1716,16 +1717,16 @@ class VariableView(Variable):
     if value.dtype != self._value.dtype:
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "
                       f"while we got {value.dtype}.")
-    self._value[self.index] = value.value if isinstance(value, JaxArray) else value
+    self._value[self.index] = value.value if isinstance(value, Array) else value
 
 
 def _jaxarray_unflatten(aux_data, flat_contents):
-  r = JaxArray(*flat_contents)
+  r = Array(*flat_contents)
   r._transform_context = aux_data[0]
   return r
 
 
-register_pytree_node(JaxArray,
+register_pytree_node(Array,
                      lambda t: ((t.value,), (t._transform_context, )),
                      _jaxarray_unflatten)
 

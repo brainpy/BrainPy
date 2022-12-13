@@ -27,7 +27,7 @@ from brainpy import errors
 from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import TensorCollector
 from brainpy.math.random import RandomState
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import Array
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -210,7 +210,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
                       axis_name=axis_name)
 
     else:
-      if isinstance(dyn_vars, JaxArray):
+      if isinstance(dyn_vars, Array):
         dyn_vars = [dyn_vars]
       if isinstance(dyn_vars, (tuple, list)):
         dyn_vars = {f'_vmap_v{i}': v for i, v in enumerate(dyn_vars)}
@@ -275,8 +275,8 @@ def _device_reshape(x):
   num_device = jax.local_device_count()
 
   if not hasattr(x, 'ndim'):
-    raise errors.BrainPyError(f'Expected JaxArray, got {type(x)}. If you are trying to pass a scalar to '
-                              f'parallel, first convert it to a JaxArray, for example np.float(0.5)')
+    raise errors.BrainPyError(f'Expected Array, got {type(x)}. If you are trying to pass a scalar to '
+                              f'parallel, first convert it to a Array, for example np.float(0.5)')
   if x.ndim == 0:
     return np.broadcast_to(x, [num_device])
   if x.shape[0] % num_device != 0:

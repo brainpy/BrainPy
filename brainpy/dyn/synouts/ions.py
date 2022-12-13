@@ -31,13 +31,13 @@ class MgBlock(SynOut):
 
   Parameters
   ----------
-  E: float, JaxArray, ndarray, callable, Initializer
+  E: float, Array, ndarray, callable, Initializer
     The reversal potential for the synaptic current. [mV]
-  alpha: float, JaxArray, ndarray
+  alpha: float, Array, ndarray
     Binding constant. Default 0.062
-  beta: float, JaxArray, ndarray, callable, Initializer
+  beta: float, Array, ndarray, callable, Initializer
     Unbinding constant. Default 3.57
-  cc_Mg: float, JaxArray, ndarray, callable, Initializer
+  cc_Mg: float, Array, ndarray, callable, Initializer
     Concentration of Magnesium ion. Default 1.2 [mM].
   name: str
     The model name.

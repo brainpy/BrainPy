@@ -34,16 +34,16 @@ class OnlineAlgorithm(BrainPyObject):
     ----------
     identifier: str
       The variable name.
-    target: JaxArray, ndarray
+    target: Array, ndarray
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: JaxArray, ndarray
+    input: Array, ndarray
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: JaxArray, ndarray
+    output: Array, ndarray
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
     -------
-    weight: JaxArray
+    weight: Array
       The weights after fit.
     """
     return self.call(identifier, target, input, output)
@@ -58,16 +58,16 @@ class OnlineAlgorithm(BrainPyObject):
     ----------
     identifier: str
       The variable name.
-    target: JaxArray, ndarray
+    target: Array, ndarray
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: JaxArray, ndarray
+    input: Array, ndarray
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: JaxArray, ndarray
+    output: Array, ndarray
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
     -------
-    weight: JaxArray
+    weight: Array
       The weights after fit.
     """
     raise NotImplementedError('Must implement the call() function by the subclass itself.')

@@ -284,7 +284,7 @@ class ExponentialEuler(ODEIntegrator):
     The default numerical integration step.
   name : optional, str
     The integrator name.
-  dyn_vars : optional, dict, sequence of JaxArray, JaxArray
+  dyn_vars : optional, dict, sequence of Array, Array
   """
 
   def __init__(

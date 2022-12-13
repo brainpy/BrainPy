@@ -6,7 +6,7 @@ import brainpylib
 import jax.numpy as jnp
 from jax import ops
 
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import Array
 from brainpy.math.numpy_ops import as_jax
 from brainpy.types import Array
 
@@ -18,7 +18,7 @@ __all__ = [
 
 def _matmul_with_left_sparse(
     sparse: Dict,
-    dense: Union[JaxArray, jnp.ndarray]
+    dense: Union[Array, jnp.ndarray]
 ):
   r"""Matrix multiplication with sparse matrix on the left.
 
@@ -30,7 +30,7 @@ def _matmul_with_left_sparse(
   ----------
   sparse: dict
     The sparse matrix with shape of :math:`(N, M)`.
-  dense: JaxArray, jnp.ndarray
+  dense: Array, jnp.ndarray
     The dense matrix with the shape of :math:`(M, K)`.
 
   Returns
@@ -57,7 +57,7 @@ def _matmul_with_left_sparse(
 
 
 def _matmul_with_right_sparse(
-    dense: Union[JaxArray, jnp.ndarray],
+    dense: Union[Array, jnp.ndarray],
     sparse: Dict
 ):
   r"""Matrix multiplication with sparse matrix on the left.
@@ -68,7 +68,7 @@ def _matmul_with_right_sparse(
 
   Parameters
   ----------
-  dense: JaxArray, jnp.ndarray
+  dense: Array, jnp.ndarray
     The dense matrix with the shape of :math:`(N, M)`.
   sparse: dict
     The sparse matrix with shape of :math:`(M, K)`.
@@ -125,10 +125,10 @@ def sparse_matmul(A, B):
   >>> sparse = {'data': values, 'index': (rows, cols), 'shape': (3, 4)}
   >>> B = bm.arange(4)
   >>> bm.sparse_matmul(sparse, B)
-  JaxArray([14,  0,  9], dtype=int32)
+  Array([14,  0,  9], dtype=int32)
   >>> B = bm.random.rand(4, 3)
   >>> bm.sparse_matmul(sparse, B)
-  JaxArray([[3.8331761 , 1.3708692 , 4.510223  ],
+  Array([[3.8331761 , 1.3708692 , 4.510223  ],
             [0.9960836 , 0.37550318, 0.7370341 ],
             [2.3700516 , 0.7574289 , 4.1124535 ]], dtype=float32)
 
@@ -136,10 +136,10 @@ def sparse_matmul(A, B):
 
   >>> A = bm.arange(3)
   >>> bm.sparse_matmul(A, sparse)
-  JaxArray([1, 6, 0, 4], dtype=int32)
+  Array([1, 6, 0, 4], dtype=int32)
   >>> A = bm.random.rand(2, 3)
   >>> bm.sparse_matmul(A, sparse)
-  JaxArray([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
+  Array([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
             [0.9171978 , 1.1214957 , 0.        , 0.90534496]],  dtype=float32)
 
   Parameters
@@ -151,11 +151,11 @@ def sparse_matmul(A, B):
 
   Returns
   -------
-  results: JaxArray, jnp.ndarray
+  results: Array, jnp.ndarray
     The tensor with the shape of :math:`(N, K)`.
   """
   if isinstance(A, dict):
-    if not isinstance(B, (JaxArray, jnp.ndarray)):
+    if not isinstance(B, (Array, jnp.ndarray)):
       raise ValueError('A and B cannot be both sparse. \n'
                        f'A:\n{A}\n'
                        f'B:\n{B}')

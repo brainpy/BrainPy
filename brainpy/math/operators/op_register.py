@@ -7,7 +7,7 @@ import brainpylib
 from jax.tree_util import tree_map
 
 from brainpy.base import BrainPyObject
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.jaxarray import Array
 
 __all__ = [
   'XLACustomOp',
@@ -92,10 +92,10 @@ class XLACustomOp(BrainPyObject):
     )
 
   def __call__(self, *args, **kwargs):
-    args = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,
-                    args, is_leaf=lambda a: isinstance(a, JaxArray))
-    kwargs = tree_map(lambda a: a.value if isinstance(a, JaxArray) else a,
-                      kwargs, is_leaf=lambda a: isinstance(a, JaxArray))
+    args = tree_map(lambda a: a.value if isinstance(a, Array) else a,
+                    args, is_leaf=lambda a: isinstance(a, Array))
+    kwargs = tree_map(lambda a: a.value if isinstance(a, Array) else a,
+                      kwargs, is_leaf=lambda a: isinstance(a, Array))
     res = self.op.bind(*args, **kwargs)
     return res
 

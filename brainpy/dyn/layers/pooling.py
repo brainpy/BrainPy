@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Tuple, Sequence, Optional, Any, TypeVar
+from typing import Union, Tuple, Sequence, Optional, TypeVar
 
 import numpy as np
 from jax import lax
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.modes import Mode, training, BatchingMode
 from brainpy.types import Array
+from .base import Layer
 
 __all__ = [
   'MaxPool',
@@ -57,7 +57,7 @@ def _infer_shape(x: Array,
       return tuple((size if d != channel_axis else element) for d in range(0, x.ndim))
 
 
-class Pool(DynamicalSystem):
+class Pool(Layer):
   """Pooling functions are implemented using the ReduceWindow XLA op.
 
   Parameters
@@ -118,10 +118,6 @@ class Pool(DynamicalSystem):
                              window_dimensions=window_shape,
                              window_strides=strides,
                              padding=padding)
-
-  def reset_state(self, batch_size=None):
-    pass
-
 
 class MaxPool(Pool):
   """Pools the input by taking the maximum over a window.

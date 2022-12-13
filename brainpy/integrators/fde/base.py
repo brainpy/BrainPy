@@ -31,7 +31,7 @@ class FDEIntegrator(Integrator):
   """
 
   """The fraction order for each variable."""
-  alpha: bm.JaxArray
+  alpha: bm.Array
 
   """The numerical integration precision."""
   dt: Union[float, int]

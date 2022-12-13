@@ -414,8 +414,8 @@ class DSRunner(Runner):
 
     # format
     if inputs_are_batching:
-      outputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
-      hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+      outputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs, is_leaf=lambda x: isinstance(x, bm.Array))
+      hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists, is_leaf=lambda x: isinstance(x, bm.Array))
 
     # close the progress bar
     if self.progress_bar and progress_bar:
@@ -424,7 +424,7 @@ class DSRunner(Runner):
     # post-running for monitors
     hists['ts'] = times + self.dt
     if self.numpy_mon_after_run:
-      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
     self.i0 += times.shape[0]
@@ -559,7 +559,7 @@ class DSRunner(Runner):
     return times, indices, xs, num_step, num_batch, duration, description
 
   def _check_xs(self, xs, move_axis=True, inputs_are_batching=True):
-    leaves, tree = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+    leaves, tree = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
 
     # get information of time step and batch size
     if inputs_are_batching:
@@ -585,7 +585,7 @@ class DSRunner(Runner):
     if move_axis and inputs_are_batching:
       xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                     xs,
-                    is_leaf=lambda x: isinstance(x, bm.JaxArray))
+                    is_leaf=lambda x: isinstance(x, bm.Array))
     return xs, num_step, num_batch
 
   def _get_f_predict(self, shared_args: Dict = None):
@@ -627,7 +627,7 @@ class DSRunner(Runner):
           monitors = {key: [] for key in (set(self.mon.var_names) | set(self.fun_monitors.keys()))}
           for i in range(times.shape[0]):
             # data at time i
-            x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+            x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.Array))
 
             # step at the i
             output, mon = _step_func(times[i], indices[i], x)

@@ -10,7 +10,7 @@ from brainpy import check
 from brainpy.base.base import BrainPyObject
 from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
-from brainpy.math.jaxarray import ndarray, Variable, JaxArray
+from brainpy.math.jaxarray import ndarray, Variable, Array
 from brainpy.math.setting import get_dt
 from brainpy.tools.checking import check_float, check_integer
 from brainpy.tools.errors import check_error_in_jit
@@ -72,7 +72,7 @@ class TimeDelay(AbstractDelay):
 
   Parameters
   ----------
-  delay_target: JaxArray, ndarray, Variable
+  delay_target: Array, ndarray, Variable
     The initial delay data.
   t0: float, int
     The zero time.
@@ -120,8 +120,8 @@ class TimeDelay(AbstractDelay):
     super(TimeDelay, self).__init__(name=name)
 
     # shape
-    if not isinstance(delay_target, (jnp.ndarray, JaxArray)):
-      raise ValueError(f'Must be an instance of JaxArray or jax.numpy.ndarray. But we got {type(delay_target)}')
+    if not isinstance(delay_target, (jnp.ndarray, Array)):
+      raise ValueError(f'Must be an instance of Array or jax.numpy.ndarray. But we got {type(delay_target)}')
 
     # delay_len
     self.t0 = t0
@@ -175,13 +175,13 @@ class TimeDelay(AbstractDelay):
 
     Parameters
     ----------
-    delay_target: JaxArray, ndarray, Variable
+    delay_target: Array, ndarray, Variable
       The delay target.
     delay_len: float, int
       The maximum delay length. The unit is the time.
     t0: int, float
       The zero time.
-    before_t0: int, float, ndarray, JaxArray
+    before_t0: int, float, ndarray, Array
       The data before t0.
     """
     self.delay_len = delay_len
@@ -436,7 +436,7 @@ class LengthDelay(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[float, int, bool, JaxArray, jnp.DeviceArray]):
+  def update(self, value: Union[float, int, bool, Array, jnp.DeviceArray]):
     """Update delay variable with the new data.
 
     Parameters

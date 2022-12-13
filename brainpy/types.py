@@ -14,8 +14,8 @@ __all__ = [
   'Output', 'Monitor'
 ]
 
-Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'JaxArray', 'Variable') # noqa
-Array = TypeVar('Array', 'JaxArray', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
+Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'Array', 'Variable') # noqa
+Array = TypeVar('Array', 'Array', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
 
 Shape = TypeVar('Shape', int, Tuple[int, ...])
 

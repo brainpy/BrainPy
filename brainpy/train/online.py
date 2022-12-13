@@ -186,7 +186,7 @@ class OnlineTrainer(DSTrainer):
     # post-running for monitors
     hists['ts'] = times + self.dt
     if self.numpy_mon_after_run:
-      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
     self.i0 += times.shape[0]
@@ -218,7 +218,7 @@ class OnlineTrainer(DSTrainer):
     _fit_func = self._get_fit_func(shared_args)
     hists = _fit_func(xs + (ys,))
     hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists,
-                     is_leaf=lambda x: isinstance(x, bm.JaxArray))
+                     is_leaf=lambda x: isinstance(x, bm.Array))
     return hists
 
   def _get_fit_func(self, shared_args: Dict = None):

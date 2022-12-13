@@ -5,7 +5,7 @@ from jax import lax
 from typing import Union, Tuple, Optional, Sequence
 
 from brainpy import math as bm, tools
-from brainpy.dyn.base import DynamicalSystem
+from .base import Layer
 from brainpy.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.modes import Mode, TrainingMode, training
 from brainpy.types import Array
@@ -35,7 +35,7 @@ def to_dimension_numbers(num_spatial_dims: int, channels_last: bool, transpose: 
                                   out_spec=image_dn)
 
 
-class GeneralConv(DynamicalSystem):
+class GeneralConv(Layer):
   """Applies a convolution to the inputs.
 
   Parameters
@@ -163,9 +163,6 @@ class GeneralConv(DynamicalSystem):
       return y
     else:
       return y + self.b.value
-
-  def reset_state(self, batch_size=None):
-    pass
 
 
 class Conv1D(GeneralConv):

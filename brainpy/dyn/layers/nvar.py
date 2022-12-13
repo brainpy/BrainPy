@@ -7,9 +7,9 @@ import jax.numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.modes import Mode, NormalMode, BatchingMode, batching, check_mode
 from brainpy.tools.checking import (check_integer, check_sequence)
+from .base import Layer
 
 __all__ = [
   'NVAR'
@@ -35,7 +35,7 @@ def _comb(N, k):
     return 0
 
 
-class NVAR(DynamicalSystem):
+class NVAR(Layer):
   """Nonlinear vector auto-regression (NVAR) node.
 
   This class has the following features:
