@@ -14,6 +14,7 @@ from matplotlib.gridspec import GridSpec
 
 import brainpy as bp
 import brainpy.math as bm
+import brainpy_datasets as bd
 
 
 class SNN(bp.dyn.Network):
@@ -167,7 +168,7 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
   )
   trainer.fit(lambda: sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs),
               num_epoch=nb_epochs)
-  return trainer.train_losses
+  return trainer.get_hist_metric('fit')
 
 
 def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_steps=100, nb_inputs=28 * 28):
@@ -198,16 +199,8 @@ net = SNN(num_in=num_input, num_rec=100, num_out=10)
 
 # load the dataset
 root = r"D:\data\fashion-mnist"
-train_dataset = bp.datasets.FashionMNIST(root,
-                                         train=True,
-                                         transform=None,
-                                         target_transform=None,
-                                         download=True)
-test_dataset = bp.datasets.FashionMNIST(root,
-                                        train=False,
-                                        transform=None,
-                                        target_transform=None,
-                                        download=True)
+train_dataset = bd.vision.FashionMNIST(root, split='train', download=True)
+test_dataset = bd.vision.FashionMNIST(root, split='test', download=True)
 
 # Standardize data
 x_train = np.array(train_dataset.data, dtype=bm.dftype())
@@ -237,7 +230,7 @@ plt.show()
 
 nb_plt = 4
 gs = GridSpec(1, nb_plt)
-fig = plt.figure(figsize=(7, 3), dpi=150)
+plt.figure(figsize=(7, 3), dpi=150)
 for i in range(nb_plt):
   plt.subplot(gs[i])
   plt.imshow(bm.as_numpy(spikes[i]).T, cmap=plt.cm.gray_r, origin="lower")

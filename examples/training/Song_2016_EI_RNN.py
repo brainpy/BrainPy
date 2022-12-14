@@ -154,7 +154,7 @@ class RNN(bp.dyn.DynamicalSystem):
   def readout(self, h):
     return h @ self.w_ro + self.b_ro
 
-  def make_update(self, h: bm.JaxArray, o: bm.JaxArray):
+  def make_update(self, h: bm.Array, o: bm.Array):
     def f(x):
       h.value = self.cell(x, h.value)
       o.value = self.readout(h.value[:, :self.e_size])
@@ -164,7 +164,7 @@ class RNN(bp.dyn.DynamicalSystem):
 
   def predict(self, xs):
     self.h[:] = 0.
-    return bm.for_loop(self.make_update(self.h, self.o), self.vars(), xs)
+    return bm.for_loop(self.make_update(self.h, self.o), xs, dyn_vars=self.vars())
 
   def loss(self, xs, ys):
     hs, os = self.predict(xs)
@@ -191,19 +191,19 @@ opt = bp.optim.Adam(lr=0.001, train_vars=net.train_vars().unique())
 
 # %%
 # gradient function
-grad_f = bm.grad(net.loss,
-                 dyn_vars=net.vars(),
-                 grad_vars=net.train_vars().unique(),
-                 return_value=True)
+grad = bm.grad(net.loss,
+               dyn_vars=net.vars().unique(),
+               grad_vars=net.train_vars().unique(),
+               return_value=True)
 
 
 # %%
 @bm.jit
-@bm.function(nodes=(net, opt))
+@bm.to_object(child_objs=(grad, opt))  # add nodes and vars used
 def train(xs, ys):
-  grads, loss = grad_f(xs, ys)
+  grads, l = grad(xs, ys)
   opt.update(grads)
-  return loss
+  return l
 
 
 # %% [markdown]

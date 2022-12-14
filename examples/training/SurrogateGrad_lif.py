@@ -90,12 +90,12 @@ rng = bm.random.RandomState(123)
 # Before training
 runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
 out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
-# plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
-# plot_voltage_traces(out)
+plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
+plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)
 
 
-@bm.function(nodes=net, dyn_vars=rng)  # add nodes and vars used in this function
+@bm.to_object(child_objs=net, dyn_vars=rng)  # add nodes and vars used here
 def loss():
   key = rng.split_key()
   X = bm.random.permutation(x_data, key=key)
@@ -106,14 +106,11 @@ def loss():
   return bp.losses.cross_entropy_loss(predictions, Y)
 
 
-grad = bm.grad(loss,
-               grad_vars=loss.train_vars().unique(),
-               dyn_vars=loss.vars().unique(),
-               return_value=True)
+grad = bm.grad(loss, grad_vars=loss.train_vars().unique(), return_value=True)
 optimizer = bp.optim.Adam(lr=2e-3, train_vars=net.train_vars().unique())
 
 
-@bm.function(nodes=(grad, optimizer))  # add nodes and vars used in this function
+@bm.to_object(child_objs=(grad, optimizer))  # add nodes and vars used here
 def train(_):
   grads, l = grad()
   optimizer.update(grads)
@@ -125,7 +122,7 @@ net.reset_state(num_sample)
 train_losses = []
 for i in range(0, 3000, 100):
   t0 = time.time()
-  ls = bm.for_loop(train, dyn_vars=train.vars().unique(), operands=bm.arange(i, i + 100, 1))
+  ls = bm.for_loop(train, operands=bm.arange(i, i + 100, 1))
   print(f'Train {i + 100} epoch, loss = {bm.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
   train_losses.append(ls)
 

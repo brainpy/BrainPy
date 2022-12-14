@@ -2,6 +2,7 @@
 
 import brainpy as bp
 import brainpy.math as bm
+import brainpy_datasets as bd
 
 
 class FeedForwardModel(bp.DynamicalSystem):
@@ -25,7 +26,7 @@ class FeedForwardModel(bp.DynamicalSystem):
 
 
 # train dataset
-train_dataset = bp.datasets.MNIST(root='./data', train=True, download=True)
+train_dataset = bd.vision.MNIST(root='./data', split='train', download=True)
 x_train = bm.array(train_dataset.data, dtype=bm.dftype())
 x_train = x_train.reshape(x_train.shape + (1,)) / 255
 y_train = bm.array(train_dataset.targets, dtype=bm.ditype())
@@ -41,7 +42,7 @@ trainer = bp.train.BPFF(model,
 trainer.fit([x_train, y_train], num_epoch=2, batch_size=64)
 
 # test dataset
-test_dataset = bp.datasets.MNIST(root='./data', train=False, download=True)
+test_dataset = bd.vision.MNIST(root='./data', split='train', download=True)
 x_test = bm.array(test_dataset.data, dtype=bm.dftype())
 x_test = x_test.reshape(x_test.shape + (1,)) / 255
 y_test = bm.array(test_dataset.targets, dtype=bm.ditype())
