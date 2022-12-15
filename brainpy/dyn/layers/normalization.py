@@ -5,9 +5,9 @@ from typing import Union, Optional, Sequence
 from jax import lax, numpy as jnp
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.modes import Mode, TrainingMode, training
+from .base import Layer
 
 __all__ = [
   'BatchNorm1D',
@@ -28,7 +28,7 @@ def _abs_sq(x):
     return lax.square(x)
 
 
-class BatchNorm(DynamicalSystem):
+class BatchNorm(Layer):
   """Batch Normalization layer.
 
   This layer aims to reduce the internal covariant shift of data. It
@@ -114,9 +114,6 @@ class BatchNorm(DynamicalSystem):
     if self.affine:
       y += self.bias
     return y
-
-  def reset_state(self, batch_size=None):
-    pass
 
 
 class BatchNorm1D(BatchNorm):
@@ -274,7 +271,7 @@ class BatchNorm3D(BatchNorm):
     assert x.shape[-1] == self.num_features
 
 
-class LayerNorm(DynamicalSystem):
+class LayerNorm(Layer):
   """Layer normalization (https://arxiv.org/abs/1607.06450).
 
   .. math::
@@ -370,11 +367,8 @@ class LayerNorm(DynamicalSystem):
       out = self.scale * out + self.bias
     return out
 
-  def reset_state(self, batch_size=None):
-    pass
 
-
-class GroupNorm(DynamicalSystem):
+class GroupNorm(Layer):
   """Group normalization layer.
 
   .. math::

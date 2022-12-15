@@ -17,7 +17,7 @@ __all__ = [
 def f_without_jaxarray_return(f):
   def f2(*args, **kwargs):
     r = f(*args, **kwargs)
-    return r.value if isinstance(r, bm.JaxArray) else r
+    return r.value if isinstance(r, bm.Array) else r
 
   return f2
 

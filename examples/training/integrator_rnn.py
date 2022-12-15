@@ -12,9 +12,7 @@ num_step = int(1.0 / dt)
 num_batch = 128
 
 
-@partial(bm.jit,
-         dyn_vars=bp.TensorCollector({'a': bm.random.DEFAULT}),
-         static_argnames=['batch_size'])
+@partial(bm.jit, dyn_vars=bm.random.DEFAULT, static_argnames=['batch_size'])
 def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
   # Create the white noise input
   sample = bm.random.normal(size=(batch_size, 1, 1))
@@ -31,14 +29,15 @@ def train_data():
     yield build_inputs_and_targets(batch_size=num_batch)
 
 
-class RNN(bp.dyn.DynamicalSystem):
+class RNN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden):
     super(RNN, self).__init__()
-    self.rnn = bp.layers.VanillaRNN(num_in, num_hidden, train_state=True)
+    self.rnn = bp.layers.RNNCell(num_in, num_hidden, train_state=True)
     self.out = bp.layers.Dense(num_hidden, 1)
 
   def update(self, sha, x):
-    return self.out(sha, self.rnn(sha, x))
+    return self.out(sha,
+                    self.rnn(sha, x))
 
 
 model = RNN(1, 100)
@@ -58,11 +57,10 @@ opt = bp.optim.Adam(lr=lr, eps=1e-1)
 # create a trainer
 trainer = bp.train.BPTT(model, loss_fun=loss, optimizer=opt)
 trainer.fit(train_data,
-            batch_size=num_batch,
             num_epoch=30,
             num_report=200)
 
-plt.plot(bm.as_numpy(trainer.train_losses))
+plt.plot(bm.as_numpy(trainer.get_hist_metric()))
 plt.show()
 
 model.reset_state(1)

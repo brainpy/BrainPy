@@ -56,7 +56,7 @@ class COBA(SynOut):
 
   Parameters
   ----------
-  E: float, JaxArray, ndarray, callable, Initializer
+  E: float, Array, ndarray, callable, Initializer
     The reversal potential.
   name: str
     The model name.

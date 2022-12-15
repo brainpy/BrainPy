@@ -335,14 +335,14 @@ class SlowPointFinder(base.DSAnalyzer):
     # set up optimization
     num_candidate = self._check_candidates(candidates)
     if not (isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)) or isinstance(candidates, dict)):
-      raise ValueError('Candidates must be instance of JaxArray or dict of JaxArray.')
-    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+      raise ValueError('Candidates must be instance of Array or dict of Array.')
+    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.Array))
     f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
       return f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
                                   fixed_points,
-                                  is_leaf=lambda x: isinstance(x, bm.JaxArray))).mean()
+                                  is_leaf=lambda x: isinstance(x, bm.Array))).mean()
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
     optimizer.register_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
@@ -355,7 +355,7 @@ class SlowPointFinder(base.DSAnalyzer):
       return loss
 
     def batch_train(start_i, n_batch):
-      return bm.for_loop(train, dyn_vars, bm.arange(start_i, start_i + n_batch))
+      return bm.for_loop(train, bm.arange(start_i, start_i + n_batch), dyn_vars=dyn_vars)
 
     # Run the optimization
     if self.verbose:
@@ -387,10 +387,10 @@ class SlowPointFinder(base.DSAnalyzer):
     self._opt_losses = bm.concatenate(opt_losses)
     self._losses = f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
                                         fixed_points,
-                                        is_leaf=lambda x: isinstance(x, bm.JaxArray)))
+                                        is_leaf=lambda x: isinstance(x, bm.Array)))
     self._fixed_points = tree_map(lambda a: bm.as_device_array(a),
                                   fixed_points,
-                                  is_leaf=lambda x: isinstance(x, bm.JaxArray))
+                                  is_leaf=lambda x: isinstance(x, bm.Array))
     self._selected_ids = jnp.arange(num_candidate)
 
     if isinstance(self.target, DynamicalSystem):
@@ -428,7 +428,7 @@ class SlowPointFinder(base.DSAnalyzer):
     # optimizing
     res = f_opt(tree_map(lambda a: bm.as_device_array(a),
                          candidates,
-                         is_leaf=lambda a: isinstance(a, bm.JaxArray)))
+                         is_leaf=lambda a: isinstance(a, bm.Array)))
 
     # results
     valid_ids = jnp.where(res.success)[0]
@@ -546,7 +546,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    points: np.ndarray, bm.JaxArray, jax.ndarray
+    points: np.ndarray, bm.Array, jax.ndarray
       The fixed points with the shape of (num_point, num_dim).
     stack_dict_var: bool
       Stack dictionary variables to calculate Jacobian matrix?
@@ -561,7 +561,7 @@ class SlowPointFinder(base.DSAnalyzer):
     """
     # check data
     info = np.asarray([(l.ndim, l.shape[0])
-                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.JaxArray))[0]])
+                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.Array))[0]])
     ndim = np.unique(info[:, 0])
     if len(ndim) != 1: raise ValueError(f'Get multiple dimension of the evaluated points. {ndim}')
     if ndim[0] == 1:
@@ -606,7 +606,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    matrices: np.ndarray, bm.JaxArray, jax.ndarray
+    matrices: np.ndarray, bm.Array, jax.ndarray
       A 3D array with the shape of (num_matrices, dim, dim).
     sort_by: str
       The method of sorting.

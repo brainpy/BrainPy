@@ -2,7 +2,7 @@
 
 import jax.numpy as jnp
 
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.errors import MathError
 import brainpy.math as bm
 
@@ -30,7 +30,7 @@ def make_schedule(scalar_or_schedule):
     raise TypeError(type(scalar_or_schedule))
 
 
-class Scheduler(Base):
+class Scheduler(BrainPyObject):
   """The learning rate scheduler."""
 
   def __init__(self, lr):

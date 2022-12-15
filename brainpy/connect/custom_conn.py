@@ -22,7 +22,7 @@ class MatConn(TwoEndConnector):
   def __init__(self, conn_mat):
     super(MatConn, self).__init__()
 
-    assert isinstance(conn_mat, (np.ndarray, bm.JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
+    assert isinstance(conn_mat, (np.ndarray, bm.Array, jnp.ndarray)) and conn_mat.ndim == 2
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
 
@@ -45,8 +45,8 @@ class IJConn(TwoEndConnector):
   def __init__(self, i, j):
     super(IJConn, self).__init__()
 
-    assert isinstance(i, (np.ndarray, bm.JaxArray, jnp.ndarray)) and i.ndim == 1
-    assert isinstance(j, (np.ndarray, bm.JaxArray, jnp.ndarray)) and j.ndim == 1
+    assert isinstance(i, (np.ndarray, bm.Array, jnp.ndarray)) and i.ndim == 1
+    assert isinstance(j, (np.ndarray, bm.Array, jnp.ndarray)) and j.ndim == 1
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"

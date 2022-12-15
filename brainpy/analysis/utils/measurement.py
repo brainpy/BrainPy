@@ -49,7 +49,7 @@ def euclidean_distance(points: np.ndarray, num_point=None):
 
   Parameters
   ----------
-  points: jnp.ndarray, bm.JaxArray
+  points: jnp.ndarray, bm.Array
     The points.
 
   Returns
@@ -96,13 +96,13 @@ def euclidean_distance_jax(points: Union[jnp.ndarray, bm.ndarray], num_point=Non
 
   Parameters
   ----------
-  points: jnp.ndarray, bm.JaxArray
+  points: jnp.ndarray, bm.Array
     The points.
   num_point: int
 
   Returns
   -------
-  dist_matrix: JaxArray
+  dist_matrix: Array
     The distance matrix.
   """
   if isinstance(points, dict):

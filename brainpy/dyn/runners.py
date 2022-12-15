@@ -334,15 +334,6 @@ class DSRunner(Runner):
     # run function
     self._f_predict_compiled = dict()
 
-  def build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
-    def func(tdi):
-      res = {k: v.value for k, v in return_without_idx.items()}
-      res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-      res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-      return res
-
-    return func
-
   def reset_state(self):
     self.i0 = 0
     self.t0 = check_float(self._t0, 't0', allow_none=False, allow_int=True)
@@ -397,7 +388,8 @@ class DSRunner(Runner):
 
     # times and inputs
     times, indices, xs, num_step, num_batch, duration, description = self._format_xs(
-      duration, inputs, inputs_are_batching)
+      duration, inputs, inputs_are_batching
+    )
 
     # reset the states of the model and the runner
     if reset_state:
@@ -422,8 +414,8 @@ class DSRunner(Runner):
 
     # format
     if inputs_are_batching:
-      outputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
-      hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+      outputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs, is_leaf=lambda x: isinstance(x, bm.Array))
+      hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists, is_leaf=lambda x: isinstance(x, bm.Array))
 
     # close the progress bar
     if self.progress_bar and progress_bar:
@@ -432,7 +424,7 @@ class DSRunner(Runner):
     # post-running for monitors
     hists['ts'] = times + self.dt
     if self.numpy_mon_after_run:
-      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
     self.i0 += times.shape[0]
@@ -460,7 +452,7 @@ class DSRunner(Runner):
     outputs, hists
       A tuple of pair of (outputs, hists).
     """
-    _predict_func = self.f_predict(shared_args)
+    _predict_func = self._get_f_predict(shared_args)
     outputs, hists = _predict_func(xs)
     return outputs, hists
 
@@ -500,7 +492,44 @@ class DSRunner(Runner):
     return self.predict(*args, **kwargs)
 
   def __call__(self, *args, **kwargs) -> Output:
+    """The shortcut for predicting a series of input data.
+
+    Parameters
+    ----------
+    duration: int, float
+      The simulation time length.
+    inputs: Array, dict of Array, sequence of Array
+      The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
+      PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
+      Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
+      `(num_time, ...)`.
+    inputs_are_batching: bool
+      Whether the ``inputs`` are batching. If `True`, the batching axis is the
+      first dimension.
+    reset_state: bool
+      Whether reset the model states.
+    shared_args: optional, dict
+      The shared arguments across different layers.
+    progress_bar: bool
+      Whether report the progress of the simulation using progress bar.
+    eval_time: bool
+      Whether to evaluate the running time.
+
+    Returns
+    -------
+    output: Array, dict, sequence
+      The model output.
+    """
     return self.predict(*args, **kwargs)
+
+  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
+    def func(tdi):
+      res = {k: v.value for k, v in return_without_idx.items()}
+      res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
+      res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
+      return res
+
+    return func
 
   def _format_xs(self, duration, inputs, inputs_are_batching=True, move_axis=True):
     if duration is None:
@@ -530,7 +559,7 @@ class DSRunner(Runner):
     return times, indices, xs, num_step, num_batch, duration, description
 
   def _check_xs(self, xs, move_axis=True, inputs_are_batching=True):
-    leaves, tree = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+    leaves, tree = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
 
     # get information of time step and batch size
     if inputs_are_batching:
@@ -554,17 +583,18 @@ class DSRunner(Runner):
 
     # change shape to (num_time, num_sample, num_feature)
     if move_axis and inputs_are_batching:
-      xs = tree_map(lambda x: bm.moveaxis(x, 0, 1), xs,
-                    is_leaf=lambda x: isinstance(x, bm.JaxArray))
+      xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
+                    xs,
+                    is_leaf=lambda x: isinstance(x, bm.Array))
     return xs, num_step, num_batch
 
-  def f_predict(self, shared_args: Dict = None):
+  def _get_f_predict(self, shared_args: Dict = None):
     if shared_args is None: shared_args = dict()
 
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_predict_compiled:
 
-      monitor_func = self.build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
+      monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
 
       def _step_func(t, i, x):
         self.target.clear_input()
@@ -586,7 +616,7 @@ class DSRunner(Runner):
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
         dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        run_func = lambda all_inputs: bm.for_loop(_step_func, dyn_vars.unique(), all_inputs)
+        run_func = lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
 
       else:
         def run_func(xs):
@@ -597,7 +627,7 @@ class DSRunner(Runner):
           monitors = {key: [] for key in (set(self.mon.var_names) | set(self.fun_monitors.keys()))}
           for i in range(times.shape[0]):
             # data at time i
-            x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+            x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.Array))
 
             # step at the i
             output, mon = _step_func(times[i], indices[i], x)
@@ -619,7 +649,7 @@ class DSRunner(Runner):
     return self._f_predict_compiled[shared_kwargs_str]
 
   def __del__(self):
-    if hasattr(self, '_predict_func'):
+    if hasattr(self, '_f_predict_compiled'):
       for key in tuple(self._f_predict_compiled.keys()):
         del self._f_predict_compiled[key]
     super(DSRunner, self).__del__()

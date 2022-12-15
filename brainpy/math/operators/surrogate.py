@@ -4,9 +4,7 @@
 from jax import custom_gradient, custom_jvp
 
 from brainpy.math import numpy_ops as bm
-from brainpy.math.jaxarray import JaxArray
-from brainpy.types import Array
-
+from brainpy.math.ndarray import Array
 from brainpy.math.setting import dftype
 
 __all__ = [
@@ -22,7 +20,7 @@ __all__ = [
 
 
 def _consistent_type(target, compare):
-  return target.value if not isinstance(compare, JaxArray) else target
+  return target.value if not isinstance(compare, Array) else target
 
 
 @custom_gradient

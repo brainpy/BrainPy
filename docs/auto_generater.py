@@ -4,11 +4,12 @@ import importlib
 import inspect
 import os
 
-from brainpy.math import (activations, autograd, controls, function,
-                          jit, parallels, setting, delayvars, operators)
+from brainpy.math import (activations, setting, delayvars, operators)
+from brainpy.math.object_transform import jit, autograd, controls, parallels, function
 
 block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
-for module in [jit, autograd, function, controls, activations, parallels, setting, delayvars, operators]:
+for module in [jit, autograd, controls, activations, parallels, function,
+               setting, delayvars, operators]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -34,7 +35,7 @@ def get_class_funcs(module):
   return classes, functions, others
 
 
-def write_module(module_name, filename, header=None):
+def write_module(module_name, filename, header=None, template=False):
   module = importlib.import_module(module_name)
   classes, functions, others = get_class_funcs(module)
 
@@ -42,8 +43,6 @@ def write_module(module_name, filename, header=None):
   # write header
   if header is None:
     header = f'``{module_name}`` module'
-  else:
-    header = header
   fout.write(header + '\n')
   fout.write('=' * len(header) + '\n\n')
   fout.write(f'.. currentmodule:: {module_name} \n')
@@ -51,6 +50,8 @@ def write_module(module_name, filename, header=None):
 
   # write autosummary
   fout.write('.. autosummary::\n')
+  if template:
+    fout.write('   :template: class_template.rst\n')
   fout.write('   :toctree: generated/\n\n')
   for m in functions:
     fout.write(f'   {m}\n')
@@ -204,16 +205,20 @@ def generate_train_docs(path='apis/auto/train/'):
     os.makedirs(path)
   write_module(module_name='brainpy.train.base',
                filename=os.path.join(path, 'base.rst'),
-               header='Base Training Class')
+               header='Base Training Class',
+               template=False)
   write_module(module_name='brainpy.train.online',
                filename=os.path.join(path, 'online.rst'),
-               header='Online Training Method')
+               header='Online Training Method',
+               template=False)
   write_module(module_name='brainpy.train.offline',
                filename=os.path.join(path, 'offline.rst'),
-               header='Offline Training Method')
+               header='Offline Training Method',
+               template=False)
   write_module(module_name='brainpy.train.back_propagation',
                filename=os.path.join(path, 'back_propagation.rst'),
-               header='Back-propagation Training Method')
+               header='Back-propagation Training Method',
+               template=False)
 
 
 def generate_base_docs(path='apis/auto/'):
@@ -255,9 +260,6 @@ def generate_datasets_docs(path='apis/auto/datasets/'):
   write_module(module_name='brainpy.datasets.chaos',
                filename=os.path.join(path, 'chaos.rst'),
                header='Chaotic Systems')
-  write_module(module_name='brainpy.datasets.vision',
-               filename=os.path.join(path, 'vision.rst'),
-               header='Vision Datasets')
 
 
 def generate_dyn_docs(path='apis/auto/dyn/'):
@@ -493,43 +495,38 @@ def generate_math_docs(path='apis/auto/math/'):
 
   module_and_name = [
     ('pre_syn_post',   '``pre-syn-post`` Transformations',),
-    ('sparse_matmul', 'Sparse Matrix Multiplication',),
-    ('event_matmul', 'Event-based Matrix Multiplication',),
-    ('spikegrad',      'Surrogate Gradients for Spike Operation',),
+    ('surrogate',      'Surrogate Gradients',),
     ('op_register',    'Operator Registration',),
     ('wrap_jax',       'Other Operators',),
   ]
   write_submodules(module_name='brainpy.math.operators',
                    filename=os.path.join(path, 'operators.rst'),
-                   header='Sparse & Event-based Operators',
+                   header='Brain Dynamics Modeling Operators',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
+
+  module_and_name = [
+    ('autograd', 'Automatic Differentiation'),
+    ('controls', 'Control Flows'),
+    # ('parallels', 'Parallel Compilation'),
+    ('jit', 'JIT Compilation'),
+    ('function', 'Function to Object'),
+  ]
+  write_submodules(module_name='brainpy.math.object_transform',
+                   filename=os.path.join(path, 'object_transform.rst'),
+                   header='Object-oriented Transformation',
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
 
   write_module(module_name='brainpy.math.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
-  write_module(module_name='brainpy.math.autograd',
-               filename=os.path.join(path, 'autograd.rst'),
-               header='Automatic Differentiation')
-  write_module(module_name='brainpy.math.controls',
-               filename=os.path.join(path, 'controls.rst'),
-               header='Control Flows')
-
-  write_module(module_name='brainpy.math.parallels',
-               filename=os.path.join(path, 'parallels.rst'),
-               header='Parallel Compilation')
-  write_module(module_name='brainpy.math.jit',
-               filename=os.path.join(path, 'jit.rst'),
-               header='JIT Compilation')
-  write_module(module_name='brainpy.math.jaxarray',
+  write_module(module_name='brainpy.math.ndarray',
                filename=os.path.join(path, 'variables.rst'),
                header='Math Variables')
   write_module(module_name='brainpy.math.setting',
                filename=os.path.join(path, 'setting.rst'),
                header='Setting')
-  write_module(module_name='brainpy.math.function',
-               filename=os.path.join(path, 'function.rst'),
-               header='Function')
   write_module(module_name='brainpy.math.delayvars',
                filename=os.path.join(path, 'delay_vars.rst'),
                header='Delay Variables')

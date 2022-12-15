@@ -81,10 +81,10 @@ class Calcium(Ion, Container):
   master_type = CondNeuGroup
 
   """Reversal potential."""
-  E: Union[float, bm.Variable, bm.JaxArray]
+  E: Union[float, bm.Variable, bm.Array]
 
   """Calcium concentration."""
-  C: Union[float, bm.Variable, bm.JaxArray]
+  C: Union[float, bm.Variable, bm.Array]
 
   def __init__(
       self,

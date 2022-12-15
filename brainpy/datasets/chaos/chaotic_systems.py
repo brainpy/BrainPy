@@ -142,11 +142,11 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
   ----------
   duration: int
   dt: float, int, optional
-  beta: float, JaxArray
-  gamma: float, JaxArray
-  tau: float, JaxArray
-  n: float, JaxArray
-  inits: optional, float, JaxArray
+  beta: float, Array
+  gamma: float, Array
+  tau: float, Array
+  n: float, Array
+  inits: optional, float, Array
   method: str
   seed: optional, int
   progress_bar: bool

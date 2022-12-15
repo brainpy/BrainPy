@@ -6,7 +6,7 @@ import numpy as np
 from jax.lax import while_loop
 
 import brainpy.math as bm
-from brainpy.base import Base
+from brainpy.base import BrainPyObject
 from brainpy.types import Array
 from .utils import (Sigmoid,
                     Regularization, L1Regularization, L1L2Regularization, L2Regularization,
@@ -33,7 +33,7 @@ __all__ = [
 name2func = dict()
 
 
-class OfflineAlgorithm(Base):
+class OfflineAlgorithm(BrainPyObject):
   """Base class for offline training algorithm."""
 
   def __init__(self, name=None):
@@ -46,16 +46,16 @@ class OfflineAlgorithm(Base):
     ----------
     identifier: str
       The variable name.
-    target: JaxArray, ndarray
+    target: Array, ndarray
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: JaxArray, ndarray
+    input: Array, ndarray
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: JaxArray, ndarray
+    output: Array, ndarray
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
     -------
-    weight: JaxArray
+    weight: Array
       The weights after fit.
     """
     return self.call(identifier, target, input, output)
@@ -68,21 +68,21 @@ class OfflineAlgorithm(Base):
     identifier: str
       The identifier.
 
-    inputs: JaxArray, jax.numpy.ndarray, numpy.ndarray
+    inputs: Array, jax.numpy.ndarray, numpy.ndarray
       The 3d input data with the shape of `(num_batch, num_time, num_input)`,
       or, the 2d input data with the shape of `(num_time, num_input)`.
 
-    targets: JaxArray, jax.numpy.ndarray, numpy.ndarray
+    targets: Array, jax.numpy.ndarray, numpy.ndarray
       The 3d target data with the shape of `(num_batch, num_time, num_output)`,
       or the 2d target data with the shape of `(num_time, num_output)`.
 
-    outputs: JaxArray, jax.numpy.ndarray, numpy.ndarray
+    outputs: Array, jax.numpy.ndarray, numpy.ndarray
       The 3d output data with the shape of `(num_batch, num_time, num_output)`,
       or the 2d output data with the shape of `(num_time, num_output)`.
 
     Returns
     -------
-    weight: JaxArray
+    weight: Array
       The weights after fit.
     """
     raise NotImplementedError('Must implement the __call__ function by the subclass itself.')

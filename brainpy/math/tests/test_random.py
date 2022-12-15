@@ -1,6 +1,7 @@
 import unittest
 
 import jax
+import jax.random as jr
 import jax.numpy as jnp
 import numpy as np
 import numpy.random as nr
@@ -23,6 +24,11 @@ class TestRandom(unittest.TestCase):
     a = br.rand(3, 2)
     self.assertTupleEqual(a.shape, (3, 2))
     self.assertTrue((a >= 0).all() and (a < 1).all())
+
+    key = jr.PRNGKey(123)
+    jres = jr.uniform(key, shape=(10, 100))
+    self.assertTrue(bm.allclose(jres, br.rand(10, 100, key=key)))
+    self.assertTrue(bm.allclose(jres, br.rand(10, 100, key=123)))
 
   def test_randint1(self):
     br.seed()
@@ -56,7 +62,7 @@ class TestRandom(unittest.TestCase):
   def test_random1(self):
     br.seed()
     a = br.random()
-    self.assertIsInstance(a, bm.jaxarray.JaxArray)
+    self.assertIsInstance(a, bm.Array)
     self.assertTrue(0. <= a < 1)
 
   def test_random2(self):
@@ -118,7 +124,7 @@ class TestRandom(unittest.TestCase):
 
     # test that a is only shuffled along axis 1
     uni = bm.unique(bm.diff(a, axis=0))
-    self.assertEqual(uni, bm.JaxArray([3]))
+    self.assertEqual(uni, bm.Array([3]))
 
   def test_beta1(self):
     br.seed()
@@ -291,7 +297,7 @@ class TestRandom(unittest.TestCase):
     b = np.random.binomial(5, 0.5)
     print(a)
     print(b)
-    self.assertIsInstance(a, bm.JaxArray)
+    self.assertIsInstance(a, bm.Array)
     self.assertTupleEqual(a.shape, ())
     self.assertTrue(a.dtype, int)
 
@@ -309,7 +315,7 @@ class TestRandom(unittest.TestCase):
   def test_chisquare1(self):
     br.seed()
     a = bm.random.chisquare(3)
-    self.assertIsInstance(a, bm.JaxArray)
+    self.assertIsInstance(a, bm.Array)
     self.assertTupleEqual(a.shape, ())
     self.assertTrue(a.dtype, float)
 

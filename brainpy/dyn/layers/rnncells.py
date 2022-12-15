@@ -4,7 +4,6 @@ import warnings
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import (XavierNormal,
                                 ZeroInit,
                                 Orthogonal,
@@ -15,6 +14,7 @@ from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import (check_integer,
                                     check_initializer)
 from brainpy.types import Array
+from .base import Layer
 
 __all__ = [
   'RNNCell', 'GRUCell', 'LSTMCell',
@@ -24,7 +24,7 @@ __all__ = [
 ]
 
 
-class RecurrentCell(DynamicalSystem):
+class RecurrentCell(Layer):
   def __init__(
       self,
       num_out: int,
@@ -451,7 +451,7 @@ class LSTM(LSTMCell):
                   UserWarning)
 
 
-class ConvNDLSTMCell(DynamicalSystem):
+class ConvNDLSTMCell(Layer):
   pass
 
 

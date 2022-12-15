@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from .base import *
 from .dropout import *
 from .linear import *
 from .nvar import *
@@ -8,4 +9,4 @@ from .rnncells import *
 from .conv import *
 from .normalization import *
 from .pooling import *
-from .activate import *
+from .function import *

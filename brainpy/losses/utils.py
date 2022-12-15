@@ -10,7 +10,7 @@ _reduction_error = 'Only support reduction of "mean", "sum" and "none", but we g
 
 
 def _is_leaf(x):
-  return isinstance(x, bm.JaxArray)
+  return isinstance(x, bm.Array)
 
 
 def _return(outputs, reduction):

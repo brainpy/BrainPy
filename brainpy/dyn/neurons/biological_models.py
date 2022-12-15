@@ -150,29 +150,29 @@ class HH(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  ENa: float, JaxArray, ndarray, Initializer, callable
+  ENa: float, Array, ndarray, Initializer, callable
     The reversal potential of sodium. Default is 50 mV.
-  gNa: float, JaxArray, ndarray, Initializer, callable
+  gNa: float, Array, ndarray, Initializer, callable
     The maximum conductance of sodium channel. Default is 120 msiemens.
-  EK: float, JaxArray, ndarray, Initializer, callable
+  EK: float, Array, ndarray, Initializer, callable
     The reversal potential of potassium. Default is -77 mV.
-  gK: float, JaxArray, ndarray, Initializer, callable
+  gK: float, Array, ndarray, Initializer, callable
     The maximum conductance of potassium channel. Default is 36 msiemens.
-  EL: float, JaxArray, ndarray, Initializer, callable
+  EL: float, Array, ndarray, Initializer, callable
     The reversal potential of learky channel. Default is -54.387 mV.
-  gL: float, JaxArray, ndarray, Initializer, callable
+  gL: float, Array, ndarray, Initializer, callable
     The conductance of learky channel. Default is 0.03 msiemens.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, Array, ndarray, Initializer, callable
     The threshold of the membrane spike. Default is 20 mV.
-  C: float, JaxArray, ndarray, Initializer, callable
+  C: float, Array, ndarray, Initializer, callable
     The membrane capacitance. Default is 1 ufarad.
-  V_initializer: JaxArray, ndarray, Initializer, callable
+  V_initializer: Array, ndarray, Initializer, callable
     The initializer of membrane potential.
-  m_initializer: JaxArray, ndarray, Initializer, callable
+  m_initializer: Array, ndarray, Initializer, callable
     The initializer of m channel.
-  h_initializer: JaxArray, ndarray, Initializer, callable
+  h_initializer: Array, ndarray, Initializer, callable
     The initializer of h channel.
-  n_initializer: JaxArray, ndarray, Initializer, callable
+  n_initializer: Array, ndarray, Initializer, callable
     The initializer of n channel.
   method: str
     The numerical integration method.
@@ -596,41 +596,41 @@ class PinskyRinzelModel(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  gNa: float, JaxArray, ndarray, Initializer, callable
+  gNa: float, Array, ndarray, Initializer, callable
     The maximum conductance of sodium channel.
-  gK: float, JaxArray, ndarray, Initializer, callable
+  gK: float, Array, ndarray, Initializer, callable
     The maximum conductance of potassium delayed-rectifier channel.
-  gCa: float, JaxArray, ndarray, Initializer, callable
+  gCa: float, Array, ndarray, Initializer, callable
     The maximum conductance of calcium channel.
-  gAHP: float, JaxArray, ndarray, Initializer, callable
+  gAHP: float, Array, ndarray, Initializer, callable
     The maximum conductance of potassium after-hyper-polarization channel.
-  gC: float, JaxArray, ndarray, Initializer, callable
+  gC: float, Array, ndarray, Initializer, callable
     The maximum conductance of calcium activated potassium channel.
-  gL: float, JaxArray, ndarray, Initializer, callable
+  gL: float, Array, ndarray, Initializer, callable
     The conductance of leaky channel.
-  ENa: float, JaxArray, ndarray, Initializer, callable
+  ENa: float, Array, ndarray, Initializer, callable
     The reversal potential of sodium channel.
-  EK: float, JaxArray, ndarray, Initializer, callable
+  EK: float, Array, ndarray, Initializer, callable
     The reversal potential of potassium delayed-rectifier channel.
-  ECa: float, JaxArray, ndarray, Initializer, callable
+  ECa: float, Array, ndarray, Initializer, callable
     The reversal potential of calcium channel.
-  EL: float, JaxArray, ndarray, Initializer, callable
+  EL: float, Array, ndarray, Initializer, callable
     The reversal potential of leaky channel.
-  gc: float, JaxArray, ndarray, Initializer, callable
+  gc: float, Array, ndarray, Initializer, callable
     The coupling strength between the soma and dendrite.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, Array, ndarray, Initializer, callable
     The threshold of the membrane spike.
-  Cm: float, JaxArray, ndarray, Initializer, callable
+  Cm: float, Array, ndarray, Initializer, callable
     The threshold of the membrane spike.
-  A: float, JaxArray, ndarray, Initializer, callable
+  A: float, Array, ndarray, Initializer, callable
     The total cell membrane area, which is normalized to 1.
-  p: float, JaxArray, ndarray, Initializer, callable
+  p: float, Array, ndarray, Initializer, callable
     The proportion of cell area taken up by the soma.
-  Vs_initializer: JaxArray, ndarray, Initializer, callable
+  Vs_initializer: Array, ndarray, Initializer, callable
     The initializer of somatic membrane potential.
-  Vd_initializer: JaxArray, ndarray, Initializer, callable
+  Vd_initializer: Array, ndarray, Initializer, callable
     The initializer of dendritic membrane potential.
-  Ca_initializer: JaxArray, ndarray, Initializer, callable
+  Ca_initializer: Array, ndarray, Initializer, callable
     The initializer of Calcium concentration.
   method: str
     The numerical integration method.
@@ -934,29 +934,29 @@ class WangBuzsakiModel(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  ENa: float, JaxArray, ndarray, Initializer, callable
+  ENa: float, Array, ndarray, Initializer, callable
     The reversal potential of sodium. Default is 50 mV.
-  gNa: float, JaxArray, ndarray, Initializer, callable
+  gNa: float, Array, ndarray, Initializer, callable
     The maximum conductance of sodium channel. Default is 120 msiemens.
-  EK: float, JaxArray, ndarray, Initializer, callable
+  EK: float, Array, ndarray, Initializer, callable
     The reversal potential of potassium. Default is -77 mV.
-  gK: float, JaxArray, ndarray, Initializer, callable
+  gK: float, Array, ndarray, Initializer, callable
     The maximum conductance of potassium channel. Default is 36 msiemens.
-  EL: float, JaxArray, ndarray, Initializer, callable
+  EL: float, Array, ndarray, Initializer, callable
     The reversal potential of learky channel. Default is -54.387 mV.
-  gL: float, JaxArray, ndarray, Initializer, callable
+  gL: float, Array, ndarray, Initializer, callable
     The conductance of learky channel. Default is 0.03 msiemens.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, Array, ndarray, Initializer, callable
     The threshold of the membrane spike. Default is 20 mV.
-  C: float, JaxArray, ndarray, Initializer, callable
+  C: float, Array, ndarray, Initializer, callable
     The membrane capacitance. Default is 1 ufarad.
-  phi: float, JaxArray, ndarray, Initializer, callable
+  phi: float, Array, ndarray, Initializer, callable
     The temperature regulator constant.
-  V_initializer: JaxArray, ndarray, Initializer, callable
+  V_initializer: Array, ndarray, Initializer, callable
     The initializer of membrane potential.
-  h_initializer: JaxArray, ndarray, Initializer, callable
+  h_initializer: Array, ndarray, Initializer, callable
     The initializer of h channel.
-  n_initializer: JaxArray, ndarray, Initializer, callable
+  n_initializer: Array, ndarray, Initializer, callable
     The initializer of n channel.
   method: str
     The numerical integration method.

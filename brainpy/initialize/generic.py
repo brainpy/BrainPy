@@ -48,7 +48,7 @@ def parameter(
 
   Returns
   -------
-  param: JaxArray, float, int, bool, None
+  param: Array, float, int, bool, None
     The initialized parameter.
 
   See Also
@@ -59,7 +59,7 @@ def parameter(
     if allow_none:
       return None
     else:
-      raise ValueError(f'Expect a parameter with type of float, JaxArray, Initializer, or '
+      raise ValueError(f'Expect a parameter with type of float, Array, Initializer, or '
                        f'Callable function, but we got None. ')
   size = to_size(size)
   if allow_scalar and isinstance(param, (float, int, bool)):
@@ -70,7 +70,7 @@ def parameter(
     param = bm.asarray(param)
   elif isinstance(param, bm.Variable):
     param = param
-  elif isinstance(param, bm.JaxArray):
+  elif isinstance(param, bm.Array):
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
@@ -248,11 +248,11 @@ def delay(
 
   Parameters
   ----------
-  delay_step: int, ndarray, JaxArray
+  delay_step: int, ndarray, Array
     The number of delay steps. It can an integer of an array of integers.
-  delay_target: ndarray, JaxArray
+  delay_target: ndarray, Array
     The target variable to delay.
-  delay_data: optional, ndarray, JaxArray
+  delay_data: optional, ndarray, Array
     The initial delay data.
 
   Returns

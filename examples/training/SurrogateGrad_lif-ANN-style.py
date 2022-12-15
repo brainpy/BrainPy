@@ -10,8 +10,8 @@ Reproduce the results of the``spytorch`` tutorial 1:
 
 import time
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 
 import brainpy as bp
@@ -94,41 +94,34 @@ plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)
 
 
+@bm.to_object(child_objs=net, dyn_vars=rng)  # add nodes and vars used in this function
 def loss():
   key = rng.split_key()
-  X = rng.permutation(x_data, key=key)
-  Y = rng.permutation(y_data, key=key)
+  X = bm.random.permutation(x_data, key=key)
+  Y = bm.random.permutation(y_data, key=key)
   looper = bp.dyn.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
   predictions = looper.run(inputs=X, inputs_are_batching=True, reset_state=True)
   predictions = bm.max(predictions, axis=1)
   return bp.losses.cross_entropy_loss(predictions, Y)
 
 
-f_grad = bm.grad(loss,
-                 grad_vars=net.train_vars().unique(),
-                 dyn_vars=net.vars().unique() + {'rng': rng},
-                 return_value=True)
-f_opt = bp.optim.Adam(lr=2e-3, train_vars=net.train_vars().unique())
+grad = bm.grad(loss, grad_vars=loss.train_vars().unique(), return_value=True)
+optimizer = bp.optim.Adam(lr=2e-3, train_vars=net.train_vars().unique())
 
 
+@bm.to_object(child_objs=(grad, optimizer))  # add nodes and vars used in this function
 def train(_):
-  grads, l = f_grad()
-  f_opt.update(grads)
+  grads, l = grad()
+  optimizer.update(grads)
   return l
 
-
-f_train = bm.make_loop(
-  train,
-  dyn_vars=f_opt.vars() + net.vars() + {'rng': rng},
-  has_return=True
-)
 
 # train the network
 net.reset_state(num_sample)
 train_losses = []
 for i in range(0, 3000, 100):
   t0 = time.time()
-  _, ls = f_train(bm.arange(i, i + 100, 1))
+  ls = bm.for_loop(train, operands=bm.arange(i, i + 100, 1))
   print(f'Train {i + 100} epoch, loss = {bm.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
   train_losses.append(ls)
 

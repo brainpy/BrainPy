@@ -66,14 +66,14 @@ def set_default_dtype(mat_dtype=None, idx_dtype=None):
   >>>
   >>> conn = bp.conn.GridFour()(4, 4)
   >>> conn.require('conn_mat')
-  JaxArray(DeviceArray([[False,  True, False, False],
+  Array(DeviceArray([[False,  True, False, False],
                         [ True, False,  True, False],
                         [False,  True, False,  True],
                         [False, False,  True, False]], dtype=bool))
   >>> bp.conn.set_default_dtype(mat_dtype=np.float32)
   >>> conn = bp.conn.GridFour()(4, 4)
   >>> conn.require('conn_mat')
-  JaxArray(DeviceArray([[0., 1., 0., 0.],
+  Array(DeviceArray([[0., 1., 0., 0.],
                         [1., 0., 1., 0.],
                         [0., 1., 0., 1.],
                         [0., 0., 1., 0.]], dtype=float32))
