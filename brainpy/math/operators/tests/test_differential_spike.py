@@ -9,7 +9,8 @@ import brainpy.math as bm
 
 def test_sp_sigmoid_grad():
   f_grad = bm.vector_grad(lambda a: bm.spike_with_sigmoid_grad(a, 1.))
-  x = bm.random.random(10) - 0.5
+  rng = bm.random.RandomState()
+  x = rng.random(10) - 0.5
   print(f_grad(x))
 
 

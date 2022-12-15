@@ -96,8 +96,9 @@ class EINet(bp.dyn.Network):
     pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
     self.E = bp.neurons.LIF(num_exc, **pars, method=method)
     self.I = bp.neurons.LIF(num_inh, **pars, method=method)
-    self.E.V[:] = bp.math.random.randn(num_exc) * 2 - 55.
-    self.I.V[:] = bp.math.random.randn(num_inh) * 2 - 55.
+    rng = bm.random.RandomState()
+    self.E.V[:] = rng.randn(num_exc) * 2 - 55.
+    self.I.V[:] = rng.randn(num_inh) * 2 - 55.
 
     # synapses
     we = 0.6 / scale  # excitatory synaptic weight (voltage)

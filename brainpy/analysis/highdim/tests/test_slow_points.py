@@ -102,22 +102,24 @@ class TestFixedPointsFinding(unittest.TestCase):
 
     def step(s):
       return bm.asarray([ds1(s[0], 0., s[1]), ds2(s[1], 0., s[0])])
-
+    
+    rng = bm.random.RandomState(123)
     finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
-    finder.find_fps_with_opt_solver(bm.random.random((100, 2)))
+    finder.find_fps_with_opt_solver(rng.random((100, 2)))
     bm.clear_buffer_memory()
 
   def test_opt_solver_for_ds1(self):
     hh = HH(1)
     finder = bp.analysis.SlowPointFinder(f_cell=hh, excluded_vars=[hh.input, hh.spike])
+    rng = bm.random.RandomState(123)
 
     with self.assertRaises(ValueError):
-      finder.find_fps_with_opt_solver(bm.random.random((100, 4)))
+      finder.find_fps_with_opt_solver(rng.random((100, 4)))
 
-    finder.find_fps_with_opt_solver({'V': bm.random.random((100, 1)),
-                                     'm': bm.random.random((100, 1)),
-                                     'h': bm.random.random((100, 1)),
-                                     'n': bm.random.random((100, 1))})
+    finder.find_fps_with_opt_solver({'V': rng.random((100, 1)),
+                                     'm': rng.random((100, 1)),
+                                     'h': rng.random((100, 1)),
+                                     'n': rng.random((100, 1))})
     bm.clear_buffer_memory()
 
   def test_gd_method_for_func1(self):
@@ -149,21 +151,23 @@ class TestFixedPointsFinding(unittest.TestCase):
     def step(s):
       return bm.asarray([ds1(s[0], 0., s[1]), ds2(s[1], 0., s[0])])
 
+    rng = bm.random.RandomState(123)
     finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
-    finder.find_fps_with_gd_method(bm.random.random((100, 2)), num_opt=100)
+    finder.find_fps_with_gd_method(rng.random((100, 2)), num_opt=100)
     bm.clear_buffer_memory()
 
   def test_gd_method_for_func2(self):
     hh = HH(1)
     finder = bp.analysis.SlowPointFinder(f_cell=hh, excluded_vars=[hh.input, hh.spike])
-
+    rng = bm.random.RandomState(123)
+    
     with self.assertRaises(ValueError):
-      finder.find_fps_with_opt_solver(bm.random.random((100, 4)))
+      finder.find_fps_with_opt_solver(rng.random((100, 4)))
 
-    finder.find_fps_with_gd_method({'V': bm.random.random((100, 1)),
-                                    'm': bm.random.random((100, 1)),
-                                    'h': bm.random.random((100, 1)),
-                                    'n': bm.random.random((100, 1))},
+    finder.find_fps_with_gd_method({'V': rng.random((100, 1)),
+                                    'm': rng.random((100, 1)),
+                                    'h': rng.random((100, 1)),
+                                    'n': rng.random((100, 1))},
                                    num_opt=100)
     bm.clear_buffer_memory()
 

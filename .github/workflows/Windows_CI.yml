@@ -29,8 +29,8 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         python -m pip install numpy>=1.21.0
-        python -m pip install "jaxlib==0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
-        python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.14.tar.gz
+        python -m pip install "jaxlib==0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
+        python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.25.tar.gz
         python -m pip install -r requirements-dev.txt
         python -m pip install tqdm brainpylib
         pip uninstall brainpy -y
