@@ -12,14 +12,15 @@ try:
 except ImportError:
   from jax.core import UnexpectedTracerError
 
-from brainpy import errors
+from brainpy import errors, tools
 from brainpy.base.naming import get_unique_name
 from brainpy.base import TensorCollector
-from brainpy.math.jaxarray import (Array, Variable,
-                                   add_context,
-                                   del_context)
+from brainpy.math.ndarray import (Array, Variable,
+                                  add_context,
+                                  del_context)
 from brainpy.math.numpy_ops import as_device_array
 from ._utils import infer_dyn_vars
+from .base import ObjectTransform
 
 __all__ = [
   'make_loop',
@@ -31,6 +32,33 @@ __all__ = [
   'for_loop',
   'while_loop',
 ]
+
+
+class ControlObject(ObjectTransform):
+  def __init__(
+      self,
+      call: Callable,
+      dyn_vars,
+      repr_fun: Dict,
+      name=None
+  ):
+    super().__init__(name=name)
+
+    self._f = call
+    self._dyn_vars = dyn_vars
+    self.register_implicit_vars(dyn_vars)
+    self._repr_fun = repr_fun
+
+  def __call__(self, *args, **kwargs):
+    return self._f(*args, **kwargs)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    format_ref = [f'{k}={tools.repr_context(tools.repr_object(v), " " * (len(name) + len(k)))}'
+                  for k, v in self._repr_fun.items()]
+    splitor = ", " + " " * len(name) + "\n"
+    return (f'{name}({splitor.join(format_ref)}, \n' +
+            f'{" " * len(name)} num_of_dyn_vars={len(self._dyn_vars)}')
 
 
 def _get_scan_info(f, dyn_vars, out_vars=None, has_return=False):
@@ -87,7 +115,12 @@ def _get_scan_info(f, dyn_vars, out_vars=None, has_return=False):
   return fun2scan, dyn_vars, tree
 
 
-def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
+def make_loop(
+    body_fun,
+    dyn_vars,
+    out_vars=None,
+    has_return=False
+) -> ControlObject:
   """Make a for-loop function, which iterate over inputs.
 
   Examples
@@ -151,7 +184,7 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
 
   Returns
   -------
-  loop_func : callable, function
+  loop_func : ControlObject
     The function for loop iteration. This function receives one argument ``xs``, denoting
     the input tensor which interate over the time (note ``body_fun`` receive ``x``).
   """
@@ -197,15 +230,19 @@ def make_loop(body_fun, dyn_vars, out_vars=None, has_return=False):
       for v, d in zip(dyn_vars, dyn_values): v._value = d
       return tree_unflatten(tree, out_values)
 
-  return call
+  return ControlObject(call, dyn_vars=dyn_vars, repr_fun={'body_fun': body_fun})
 
 
-def make_while(cond_fun, body_fun, dyn_vars):
+def make_while(
+    cond_fun,
+    body_fun,
+    dyn_vars
+) -> ControlObject:
   """Make a while-loop function.
 
   This function is similar to the ``jax.lax.while_loop``. The difference is that,
   if you are using ``Array`` in your while loop codes, this function will help
-  you make a easy while loop function. Note: ``cond_fun`` and ``body_fun`` do no
+  you make an easy while loop function. Note: ``cond_fun`` and ``body_fun`` do no
   receive any arguments. ``cond_fun`` shoule return a boolean value. ``body_fun``
   does not support return values.
 
@@ -234,7 +271,7 @@ def make_while(cond_fun, body_fun, dyn_vars):
 
   Returns
   -------
-  loop_func : callable, function
+  loop_func : ControlObject
       The function for loop iteration, which receive one argument ``x`` for external input.
   """
   # iterable variables
@@ -280,10 +317,14 @@ def make_while(cond_fun, body_fun, dyn_vars):
       raise e
     for v, d in zip(dyn_vars, dyn_values): v._value = d
 
-  return call
+  return ControlObject(call, dyn_vars, repr_fun={'cond_fun': cond_fun, 'body_fun': body_fun})
 
 
-def make_cond(true_fun, false_fun, dyn_vars=None):
+def make_cond(
+    true_fun,
+    false_fun,
+    dyn_vars=None
+) -> ControlObject:
   """Make a condition (if-else) function.
 
   Examples
@@ -317,7 +358,7 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
 
   Returns
   -------
-  cond_func : callable, function
+  cond_func : ControlObject
       The condictional function receives two arguments: ``pred`` for true/false judgement
       and ``x`` for external input.
   """
@@ -378,7 +419,7 @@ def make_cond(true_fun, false_fun, dyn_vars=None):
       del_context(name)
       return res
 
-  return call
+  return ControlObject(call, dyn_vars, repr_fun={'true_fun': true_fun, 'false_fun': false_fun})
 
 
 def _check_f(f):
@@ -398,7 +439,7 @@ def cond(
     false_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    auto_infer: bool =True
+    auto_infer: bool = True
 ):
   """Simple conditional statement (if-else) with instance of :py:class:`~.Variable`.
 
@@ -628,9 +669,14 @@ def for_loop(
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     reverse: bool = False,
     unroll: int = 1,
-    auto_infer: bool =True
+    auto_infer: bool = True
 ):
   """``for-loop`` control flow with :py:class:`~.Variable`.
+
+  .. versionchanged:: 2.3.0
+     ``dyn_vars`` has been changed into a default argument.
+     Please change your call from ``for_loop(fun, dyn_vars, operands)``
+     to ``for_loop(fun, operands, dyn_vars)``.
 
   Simply speaking, all dynamically changed variables used in the body function should
   be labeld in ``dyn_vars`` argument. All returns in body function will be gathered
@@ -755,11 +801,16 @@ def for_loop(
 def while_loop(
     body_fun: Callable,
     cond_fun: Callable,
-operands: Any,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]]=None,
-    auto_infer: bool =True
+    operands: Any,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    auto_infer: bool = True
 ):
   """``while-loop`` control flow with :py:class:`~.Variable`.
+
+  .. versionchanged:: 2.3.0
+     ``dyn_vars`` has been changed into a default argument.
+     Please change your call from ``while_loop(f1, f2, dyn_vars, operands)``
+     to ``while_loop(f1, f2, operands, dyn_vars)``.
 
   Note the diference between ``for_loop`` and ``while_loop``:
 

@@ -36,7 +36,10 @@ class Optimizer(BrainPyObject):
   """
 
   lr: Scheduler  # learning rate
+  '''Learning rate'''
+
   vars_to_train: TensorCollector  # variables to train
+  '''Variables to train.'''
 
   def __init__(
       self,

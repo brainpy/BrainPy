@@ -30,14 +30,14 @@ class FDEIntegrator(Integrator):
     The integrator name.
   """
 
-  """The fraction order for each variable."""
   alpha: bm.Array
+  """The fraction order for each variable."""
 
-  """The numerical integration precision."""
   dt: Union[float, int]
+  """The numerical integration precision."""
 
-  """The fraction derivative function."""
   f: Callable
+  """The fraction derivative function."""
 
   def __init__(
       self,

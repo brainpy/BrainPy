@@ -7,7 +7,7 @@ import brainpylib
 from jax.tree_util import tree_map
 
 from brainpy.base import BrainPyObject
-from brainpy.math.jaxarray import Array
+from brainpy.math.ndarray import Array
 
 __all__ = [
   'XLACustomOp',

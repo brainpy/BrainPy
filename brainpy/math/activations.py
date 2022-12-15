@@ -18,7 +18,7 @@ import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 
-from brainpy.math.jaxarray import Array
+from brainpy.math.ndarray import Array
 
 
 __all__ = [

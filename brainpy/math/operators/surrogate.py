@@ -4,9 +4,7 @@
 from jax import custom_gradient, custom_jvp
 
 from brainpy.math import numpy_ops as bm
-from brainpy.math.jaxarray import Array
-from brainpy.types import Array
-
+from brainpy.math.ndarray import Array
 from brainpy.math.setting import dftype
 
 __all__ = [

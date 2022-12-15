@@ -54,7 +54,7 @@ class Delta(TwoEndConn):
     >>>
     >>> neu1 = neurons.LIF(1)
     >>> neu2 = neurons.LIF(1)
-    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), weights=5.)
+    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), g_max=5.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])

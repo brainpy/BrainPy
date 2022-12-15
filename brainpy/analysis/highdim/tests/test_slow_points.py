@@ -105,6 +105,7 @@ class TestFixedPointsFinding(unittest.TestCase):
 
     finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
     finder.find_fps_with_opt_solver(bm.random.random((100, 2)))
+    bm.clear_buffer_memory()
 
   def test_opt_solver_for_ds1(self):
     hh = HH(1)
@@ -117,6 +118,7 @@ class TestFixedPointsFinding(unittest.TestCase):
                                      'm': bm.random.random((100, 1)),
                                      'h': bm.random.random((100, 1)),
                                      'n': bm.random.random((100, 1))})
+    bm.clear_buffer_memory()
 
   def test_gd_method_for_func1(self):
     gamma = 0.641  # Saturation factor for gating variable
@@ -149,6 +151,7 @@ class TestFixedPointsFinding(unittest.TestCase):
 
     finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
     finder.find_fps_with_gd_method(bm.random.random((100, 2)), num_opt=100)
+    bm.clear_buffer_memory()
 
   def test_gd_method_for_func2(self):
     hh = HH(1)
@@ -162,4 +165,5 @@ class TestFixedPointsFinding(unittest.TestCase):
                                     'h': bm.random.random((100, 1)),
                                     'n': bm.random.random((100, 1))},
                                    num_opt=100)
+    bm.clear_buffer_memory()
 

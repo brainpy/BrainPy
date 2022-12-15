@@ -2,7 +2,7 @@
 
 from jax.numpy import linalg
 
-from brainpy.math.jaxarray import Array
+from brainpy.math.ndarray import Array
 from brainpy.math.numpy_ops import _remove_jaxarray
 
 __all__ = [

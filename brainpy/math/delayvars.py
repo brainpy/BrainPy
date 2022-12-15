@@ -10,7 +10,7 @@ from brainpy import check
 from brainpy.base.base import BrainPyObject
 from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
-from brainpy.math.jaxarray import ndarray, Variable, Array
+from brainpy.math.ndarray import ndarray, Variable, Array
 from brainpy.math.setting import get_dt
 from brainpy.tools.checking import check_float, check_integer
 from brainpy.tools.errors import check_error_in_jit

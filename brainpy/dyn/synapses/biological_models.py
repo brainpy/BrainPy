@@ -412,7 +412,7 @@ class BioNMDA(TwoEndConn):
     >>>
     >>> neu1 = neurons.HH(1)
     >>> neu2 = neurons.HH(1)
-    >>> syn1 = synapses.BioNMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> syn1 = synapses.BioNMDA(neu1, neu2, bp.connect.All2All())
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])

@@ -12,8 +12,9 @@ from jax import dtypes
 from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
-from brainpy.math.jaxarray import Array, Variable
+from brainpy.math.ndarray import Array, Variable
 from brainpy.tools.errors import check_error_in_jit
+from brainpy.errors import UnsupportedError
 from .utils import wraps
 
 __all__ = [
@@ -434,6 +435,15 @@ class RandomState(Variable):
       key = seed_or_key
     super(RandomState, self).__init__(key)
 
+  def __repr__(self) -> str:
+    print_code = repr(self.value)
+    i = print_code.index('(')
+
+    # if 'DeviceArray' in print_code:
+    #   print_code = print_code.replace('DeviceArray', '')
+    name = self.__class__.__name__
+    return f'{name}(key={print_code[i:]})'
+
   # ------------------- #
   # seed and random key #
   # ------------------- #
@@ -471,7 +481,7 @@ class RandomState(Variable):
         raise ValueError('key must be an array with dtype uint32. '
                          f'But we got {seed_or_key}')
       key = seed_or_key
-    self.value = key
+    self._value = key
 
   def split_key(self):
     """Create a new seed from the current seed.
@@ -495,6 +505,9 @@ class RandomState(Variable):
     keys = jr.split(self.value, n + 1)
     self._value = keys[0]
     return keys[1:]
+
+  def update(self, value):
+    raise UnsupportedError(f'Do not support change the value of a {self.__class__.__name__}.')
 
   # ---------------- #
   # random functions #

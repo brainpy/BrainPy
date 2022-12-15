@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from typing import Union, Dict, Tuple
 
 import brainpylib
 import jax.numpy as jnp
 from jax import ops
 
-from brainpy.math.jaxarray import Array
+from brainpy.math.ndarray import Array
 from brainpy.math.numpy_ops import as_jax
-from brainpy.types import Array
 
 __all__ = [
   'sparse_matmul',
@@ -172,7 +172,7 @@ def csr_matvec(values: Array,
                indices: Array,
                indptr: Array,
                vector: Array,
-               shape: Tuple[int, ...],
+               shape: Tuple[int, int],
                transpose: bool = False):
   """Product of CSR sparse matrix and a dense vector.
 
@@ -199,9 +199,10 @@ def csr_matvec(values: Array,
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
+  warnings.warn('Please use ``brainpylib.sparse_ops.csr_matvec()`` instead.', UserWarning)
   vector = as_jax(vector)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
   values = as_jax(values)
-  return brainpylib.csr_matvec(values, indices, indptr, vector,
-                               shape=shape, transpose=transpose)
+  return brainpylib.cusparse_csr_matvec(values, indices, indptr, vector,
+                                        shape=shape, transpose=transpose)

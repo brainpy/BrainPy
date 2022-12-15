@@ -24,10 +24,10 @@ class BrainPyObject(object):
 
   - ``DynamicalSystem`` in *brainpy.dyn.base.py*
   - ``Integrator`` in *brainpy.integrators.base.py*
-  - ``FunAsAObject`` in *brainpy.base.function.py*
+  - ``FunAsObject`` in *brainpy.base.function.py*
   - ``Optimizer`` in *brainpy.optimizers.py*
   - ``Scheduler`` in *brainpy.optimizers.py*
-
+  - and others.
   """
 
   _excluded_vars = ()

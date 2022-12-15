@@ -103,7 +103,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
   def _cel(_pred, _tar):
     if bm.ndim(_tar) + 1 == bm.ndim(_pred):
       _tar = bm.activations.one_hot(_tar, _pred.shape[-1])
-    loss = logsumexp(bm.as_device_array(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
+    loss = logsumexp(bm.as_jax(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
     return _return(outputs=loss, reduction=reduction)
 
   r = tree_map(_cel, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
@@ -126,7 +126,7 @@ def cross_entropy_sparse(predicts, targets):
       logits = _prd[..., _tar]
     else:
       logits = bm.take_along_axis(_prd, _tar, -1).squeeze(-1)
-    return logsumexp(bm.as_device_array(_prd), axis=-1) - logits
+    return logsumexp(bm.as_jax(_prd), axis=-1) - logits
 
   r = tree_map(crs, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
@@ -197,7 +197,7 @@ def l1_loos(logits, targets, reduction='sum'):
 
   def loss(pred, tar):
     diff = (pred - tar).reshape((pred.shape[0], -1))
-    norm = jnp.linalg.norm(bm.as_device_array(diff), ord=1, axis=1, keepdims=False)
+    norm = jnp.linalg.norm(bm.as_jax(diff), ord=1, axis=1, keepdims=False)
     return _return(outputs=norm, reduction=reduction)
 
   r = tree_map(loss, logits, targets, is_leaf=lambda x: isinstance(x, bm.Array))
@@ -344,7 +344,7 @@ def multiclass_logistic_loss(label: int, logits: jnp.ndarray) -> float:
   """
 
   def loss(pred, tar):
-    pred = bm.as_device_array(pred)
+    pred = bm.as_jax(pred)
     one_hot = bm.one_hot(tar, pred.shape[0])
     return logsumexp(pred) - bm.dot(pred, one_hot)
 
@@ -413,7 +413,7 @@ def log_cosh_loss(predicts, targets):
   """
 
   def loss(pred, tar):
-    errors = bm.as_device_array(pred - tar)
+    errors = bm.as_jax(pred - tar)
     return jnp.logaddexp(errors, -errors) - jnp.log(2.0).astype(errors.dtype)
 
   r = tree_map(loss, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))

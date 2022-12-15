@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base import FunAsAObject
+from brainpy.base import FunAsObject
 
 __all__ = [
   'to_object',
@@ -23,14 +23,14 @@ def to_object(f=None, child_objs=None, dyn_vars=None, name=None):
 
   Returns
   -------
-  func: FunAsAObject
+  func: FunAsObject
     The instance of ``BrainPyObject``.
   """
 
   if f is None:
-    return lambda func: FunAsAObject(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+    return lambda func: FunAsObject(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
 
   else:
     if child_objs is None:
       raise ValueError(f'"nodes" cannot be None when "f" is provided.')
-    return FunAsAObject(f=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+    return FunAsObject(f=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)

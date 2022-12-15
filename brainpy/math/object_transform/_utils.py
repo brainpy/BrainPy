@@ -2,6 +2,7 @@
 
 from brainpy.base import BrainPyObject, TensorCollector
 
+
 __all__ = [
   'infer_dyn_vars'
 ]
@@ -15,3 +16,4 @@ def infer_dyn_vars(target):
   else:
     dyn_vars = TensorCollector()
   return dyn_vars
+

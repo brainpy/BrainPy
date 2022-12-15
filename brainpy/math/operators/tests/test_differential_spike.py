@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-import brainpy.math as bm
-
+import unittest
 from functools import partial
 
-import unittest
+import brainpy.math as bm
 
 
 def test_sp_sigmoid_grad():

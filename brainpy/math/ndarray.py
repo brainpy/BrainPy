@@ -11,8 +11,7 @@ from jax.tree_util import register_pytree_node
 from brainpy.errors import MathError
 
 __all__ = [
-  'Array',
-  'ndarray', 'JaxArray',  # alias of Array
+  'Array', 'ndarray', 'JaxArray',  # alias of Array
   'Variable',
   'TrainVar',
   'Parameter',
@@ -37,11 +36,11 @@ msg = ('Array created outside of the jit function '
 _jax_transformation_context_ = []
 
 
-def add_context(name):
+def add_context(name) -> None:
   _jax_transformation_context_.append(name)
 
 
-def del_context(name=None):
+def del_context(name=None) -> None:
   try:
     context = _jax_transformation_context_.pop(-1)
     if name is not None:
@@ -60,7 +59,7 @@ def get_context():
     return None
 
 
-def check_context(arr_context):
+def check_context(arr_context) -> bool:
   if arr_context is None:
     if len(_jax_transformation_context_) > 0:
       raise MathError(f'Array created outside of the transformation functions '
@@ -1546,6 +1545,15 @@ class Parameter(Variable):
 
   def __init__(self, value_or_size, dtype=None, batch_axis: int = None):
     super(Parameter, self).__init__(value_or_size, dtype=dtype, batch_axis=batch_axis)
+
+
+class ParallelVariable(Variable):
+  pass
+
+
+class BatchVariable(Variable):
+  pass
+
 
 
 class VariableView(Variable):

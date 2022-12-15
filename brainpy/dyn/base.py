@@ -59,17 +59,16 @@ class DynamicalSystem(BrainPyObject):
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
-  '''Online fitting method.'''
   online_fit_by: Optional[OnlineAlgorithm]
+  '''Online fitting method.'''
 
-  '''Offline fitting method.'''
   offline_fit_by: Optional[OfflineAlgorithm]
+  '''Offline fitting method.'''
 
+  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
   '''Global delay data, which stores the delay variables and corresponding delay targets. 
-   
   This variable is useful when the same target variable is used in multiple mappings, 
   as it can reduce the duplicate delay variable registration.'''
-  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
   def __init__(
       self,
@@ -435,7 +434,7 @@ class Container(DynamicalSystem):
       node.clear_input()
 
 
-class Sequential(Container):
+class Sequential(DynamicalSystem):
   def __init__(
       self,
       *modules,
@@ -443,7 +442,37 @@ class Sequential(Container):
       mode: Mode = normal,
       **kw_modules
   ):
-    super(Sequential, self).__init__(*modules, name=name, mode=mode, **kw_modules)
+    super().__init__(name=name, mode=mode)
+    self._modules = tuple(modules) + tuple(kw_modules.values())
+
+    seq_modules = [m for m in modules if isinstance(m, BrainPyObject)]
+    dict_modules = {k: m for k, m in kw_modules.items() if isinstance(m, BrainPyObject)}
+
+    # add tuple-typed components
+    for module in seq_modules:
+      if isinstance(module, BrainPyObject):
+        self.implicit_nodes[module.name] = module
+      elif isinstance(module, (list, tuple)):
+        for m in module:
+          if not isinstance(m, BrainPyObject):
+            raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
+                             f'But we got {type(m)}')
+          self.implicit_nodes[m.name] = module
+      elif isinstance(module, dict):
+        for k, v in module.items():
+          if not isinstance(v, BrainPyObject):
+            raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
+                             f'But we got {type(v)}')
+          self.implicit_nodes[k] = v
+      else:
+        raise ValueError(f'Cannot parse sub-systems. They should be {BrainPyObject.__name__} '
+                         f'or a list/tuple/dict of  {BrainPyObject.__name__}.')
+    # add dict-typed components
+    for k, v in dict_modules.items():
+      if not isinstance(v, BrainPyObject):
+        raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
+                         f'But we got {type(v)}')
+      self.implicit_nodes[k] = v
 
   def __getattr__(self, item):
     """Wrap the dot access ('self.'). """
@@ -463,7 +492,7 @@ class Sequential(Container):
       components = tuple(self.implicit_nodes.values())[key]
       return Sequential(dict(zip(keys, components)))
     elif isinstance(key, int):
-      return self.implicit_nodes.values()[key]
+      return tuple(self.implicit_nodes.values())[key]
     elif isinstance(key, (tuple, list)):
       all_keys = tuple(self.implicit_nodes.keys())
       all_vals = tuple(self.implicit_nodes.values())
@@ -478,27 +507,7 @@ class Sequential(Container):
       raise KeyError(f'Unknown type of key: {type(key)}')
 
   def __repr__(self):
-    def f(x):
-      if not isinstance(x, DynamicalSystem) and callable(x):
-        signature = inspect.signature(x)
-        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
-                if v.default is not inspect.Parameter.empty]
-        args = ', '.join(args)
-        while not hasattr(x, '__name__'):
-          if not hasattr(x, 'func'):
-            break
-          x = x.func  # Handle functools.partial
-        if not hasattr(x, '__name__') and hasattr(x, '__class__'):
-          return x.__class__.__name__
-        if args:
-          return f'{x.__name__}(*, {args})'
-        return x.__name__
-      else:
-        x = repr(x).split('\n')
-        x = [x[0]] + ['  ' + y for y in x[1:]]
-        return '\n'.join(x)
-
-    entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
+    entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
   def update(self, sha: dict, x: Any) -> Array:
@@ -516,8 +525,11 @@ class Sequential(Container):
     y: Array
       The output tensor.
     """
-    for node in self.implicit_nodes.values():
-      x = node(sha, x)
+    for m in self._modules:
+      if isinstance(m, DynamicalSystem):
+        x = m(sha, x)
+      else:
+        x = m(x)
     return x
 
 

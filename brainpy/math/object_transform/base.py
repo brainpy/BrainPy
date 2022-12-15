@@ -15,3 +15,6 @@ class ObjectTransform(BrainPyObject):
 
   def __call__(self, *args, **kwargs):
     raise NotImplementedError
+
+  def __repr__(self):
+    return self.__class__.__name__

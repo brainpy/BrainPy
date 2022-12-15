@@ -186,3 +186,12 @@ class TensorCollector(Collector):
   def data(self):
     """Get all data in each value."""
     return [x.value for x in self.values()]
+
+  @classmethod
+  def from_other(cls, other: Union[Sequence, Dict]):
+    if isinstance(other, (tuple, list)):
+      return cls({id(o): o for o in other})
+    elif isinstance(other, dict):
+      return cls(other)
+    else:
+      raise TypeError

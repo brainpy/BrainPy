@@ -7,7 +7,7 @@ import jax.numpy as jnp
 from jax import lax
 from jax import ops as jops
 
-from brainpy.math.jaxarray import Array
+from brainpy.math.ndarray import Array
 from brainpy.math.numpy_ops import as_jax
 
 __all__ = [

@@ -15,9 +15,9 @@ from jax.errors import UnexpectedTracerError
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose, tree_structure
 from jax.util import safe_map
 
-from brainpy import errors
-from brainpy.base.naming import get_unique_name
-from brainpy.math.jaxarray import Array, add_context, del_context
+from brainpy import errors, tools
+from brainpy.base import get_unique_name, TensorCollector
+from brainpy.math.ndarray import Array, add_context, del_context
 from ._utils import infer_dyn_vars
 from .base import ObjectTransform
 
@@ -29,24 +29,36 @@ __all__ = [
 ]
 
 
-class FunctionGradient(ObjectTransform):
+class GradientFunTransform(ObjectTransform):
+  _excluded_vars = ('_origin_fun',)
+
   def __init__(
       self,
-      func: Callable,
+      grad_func: Callable,
       dyn_vars: Any,
       grad_vars: Any,
-      name: str = None
+      name: str = None,
+      origin_fun=None
   ):
     super().__init__(name=name)
 
-    self._f = func
+    self._origin_fun = origin_fun
+    self._f = grad_func
     self.register_implicit_vars(dyn_vars, grad_vars)
 
   def __call__(self, *args, **kwargs):
     return self._f(*args, **kwargs)
 
+  def __repr__(self):
+    name = self.__class__.__name__
+    f = tools.repr_object(self._origin_fun)
+    f = tools.repr_context(f, " " * (len(name) + 6))
+    return f'{name}(target={f})'
 
-class ObjectGradient(ObjectTransform):
+
+class GradientTransform(ObjectTransform):
+  _excluded_vars = ('_origin_fun',)
+
   def __init__(
       self,
       grad_func: Callable,
@@ -56,7 +68,8 @@ class ObjectGradient(ObjectTransform):
       argnums,
       return_value: bool,
       has_aux: bool,
-      name: str = None
+      name: str = None,
+      origin_fun=None
   ):
     super().__init__(name=name)
 
@@ -68,8 +81,18 @@ class ObjectGradient(ObjectTransform):
     self._argnums = argnums
     self._return_value = return_value
     self._has_aux = has_aux
+    self._origin_fun = origin_fun
 
     self.register_implicit_vars(dyn_vars, grad_vars)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    f = tools.repr_object(self._origin_fun)
+    f = tools.repr_context(f, " " * (len(name) + 6))
+    format_ref = (f'{name}(target={f}, \n' +
+                  f'{" " * len(name)} num_of_grad_vars={len(self._grad_vars)}, \n'
+                  f'{" " * len(name)} num_of_dyn_vars={len(self._dyn_vars)})')
+    return format_ref
 
   def __call__(self, *args, **kwargs):
     old_grad_vs = [v.value for v in self._grad_vars]
@@ -208,17 +231,14 @@ def _grad_checking(func: Callable,
   grad_vars, grad_tree = _check_vars(grad_vars)
 
   # check the duplicate in "dyn_vars" and "grad_vars"
+  dyn_vars = tuple(TensorCollector.from_other(dyn_vars).unique().values())
   new_dyn_vars = []
-  _dyn_var_ids = set()
+  _dyn_var_ids = set([id(v) for v in grad_vars])
   for v in dyn_vars:
     if id(v) not in _dyn_var_ids:
       new_dyn_vars.append(v)
       _dyn_var_ids.add(id(v))
-  for v in grad_vars:
-    if id(v) not in _dyn_var_ids:
-      new_dyn_vars.append(v)
-      _dyn_var_ids.add(id(v))
-  return new_dyn_vars, grad_vars, grad_tree
+  return tuple(new_dyn_vars), grad_vars, grad_tree
 
 
 def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
@@ -416,7 +436,7 @@ def grad(
           ans, g = result
           return g, ans
 
-      return FunctionGradient(call_func, dyn_vars=dyn_vars, grad_vars=grad_vars)
+      return GradientFunTransform(call_func, dyn_vars=dyn_vars, grad_vars=grad_vars, origin_fun=func)
 
     else:
       # has_aux = True: g, aux
@@ -427,7 +447,7 @@ def grad(
                            holomorphic=holomorphic,
                            allow_int=allow_int,
                            reduce_axes=reduce_axes)
-      return FunctionGradient(call_func, dyn_vars=dyn_vars, grad_vars=grad_vars)
+      return GradientFunTransform(call_func, dyn_vars=dyn_vars, grad_vars=grad_vars, origin_fun=func)
 
   else:
     # argnums
@@ -447,13 +467,14 @@ def grad(
                           allow_int=allow_int,
                           reduce_axes=reduce_axes)
 
-    return ObjectGradient(grad_func=grad_func,
-                          grad_tree=grad_tree,
-                          grad_vars=grad_vars,
-                          dyn_vars=dyn_vars,
-                          argnums=argnums,
-                          return_value=return_value,
-                          has_aux=has_aux)
+    return GradientTransform(grad_func=grad_func,
+                             grad_tree=grad_tree,
+                             grad_vars=grad_vars,
+                             dyn_vars=dyn_vars,
+                             argnums=argnums,
+                             return_value=return_value,
+                             has_aux=has_aux,
+                             origin_fun=func)
 
 
 def _unravel_array_into_pytree(pytree, axis, arr, is_leaf=None):
@@ -498,7 +519,7 @@ def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, r
     else:
       return (jac, aux) if has_aux else jac
 
-  return FunctionGradient(jacfun, dyn_vars=(), grad_vars=())
+  return GradientFunTransform(jacfun, dyn_vars=(), grad_vars=(), origin_fun=fun)
 
 
 def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
@@ -623,13 +644,14 @@ def jacrev(
                             holomorphic=holomorphic,
                             allow_int=allow_int)
 
-    return ObjectGradient(grad_func=grad_func,
-                          grad_tree=grad_tree,
-                          grad_vars=grad_vars,
-                          dyn_vars=dyn_vars,
-                          argnums=argnums,
-                          return_value=return_value,
-                          has_aux=has_aux)
+    return GradientTransform(grad_func=grad_func,
+                             grad_tree=grad_tree,
+                             grad_vars=grad_vars,
+                             dyn_vars=dyn_vars,
+                             argnums=argnums,
+                             return_value=return_value,
+                             has_aux=has_aux,
+                             origin_fun=func)
 
 
 jacobian = jacrev
@@ -659,7 +681,7 @@ def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False
     else:
       return (jac, aux) if has_aux else jac
 
-  return FunctionGradient(jacfun, dyn_vars=(), grad_vars=())
+  return GradientFunTransform(jacfun, dyn_vars=(), grad_vars=(), origin_fun=fun)
 
 
 def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=False):
@@ -776,13 +798,14 @@ def jacfwd(
                             has_aux=has_aux,
                             holomorphic=holomorphic)
 
-    return ObjectGradient(grad_func=grad_func,
-                          grad_tree=grad_tree,
-                          grad_vars=grad_vars,
-                          dyn_vars=dyn_vars,
-                          argnums=argnums,
-                          return_value=return_value,
-                          has_aux=has_aux)
+    return GradientTransform(grad_func=grad_func,
+                             grad_tree=grad_tree,
+                             grad_vars=grad_vars,
+                             dyn_vars=dyn_vars,
+                             argnums=argnums,
+                             return_value=return_value,
+                             has_aux=has_aux,
+                             origin_fun=func)
 
 
 def hessian(
@@ -824,7 +847,7 @@ def hessian(
 
   if (len(dyn_vars) == 0) and (len(grad_vars) == 0) and (not return_value):
     f = jax.hessian(func, argnums=argnums, holomorphic=holomorphic)
-    return FunctionGradient(f, dyn_vars=(), grad_vars=())
+    return GradientFunTransform(f, dyn_vars=(), grad_vars=(), origin_fun=func)
   else:
     return jacfwd(jacrev(func,
                          dyn_vars=dyn_vars,
@@ -858,7 +881,7 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
     else:
       return (grads, y) if return_value else grads
 
-  return FunctionGradient(grad_fun, (), ())
+  return GradientFunTransform(grad_fun, (), (), origin_fun=func)
 
 
 def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
@@ -967,10 +990,11 @@ def vector_grad(
                                  argnums=(0,) + _argnums,
                                  has_aux=has_aux)
 
-    return ObjectGradient(grad_func=grad_func,
-                          grad_tree=grad_tree,
-                          grad_vars=grad_vars,
-                          dyn_vars=dyn_vars,
-                          argnums=argnums,
-                          return_value=return_value,
-                          has_aux=has_aux)
+    return GradientTransform(grad_func=grad_func,
+                             grad_tree=grad_tree,
+                             grad_vars=grad_vars,
+                             dyn_vars=dyn_vars,
+                             argnums=argnums,
+                             return_value=return_value,
+                             has_aux=has_aux,
+                             origin_fun=func)

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+
+import matplotlib.pyplot as plt
+
 import brainpy as bp
 import brainpy.math as bm
-import matplotlib.pyplot as plt
 
 bm.set_platform('cpu')
 

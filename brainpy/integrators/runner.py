@@ -60,7 +60,7 @@ class IntegratorRunner(Runner):
     >>> sigma=10; beta=8 / 3; rho=28
     >>> g = lambda x, y, z, t, p: (p * x, p * y, p * z)
     >>> f = lambda x, y, z, t, p: [sigma * (y - x), x * (rho - z) - y, x * y - beta * z]
-    >>> lorenz = bp.sdeint(f, g, method='milstein')
+    >>> lorenz = bp.sdeint(f, g, method='milstein2')
     >>>
     >>> runner = bp.integrators.IntegratorRunner(
     >>>   lorenz,
@@ -233,7 +233,7 @@ class IntegratorRunner(Runner):
           self._step(_t)
           # variable monitors
           for k in self.monitors.keys():
-            returns[k].append(bm.as_device_array(self.variables[k]))
+            returns[k].append(bm.as_jax(self.variables[k]))
         returns = {k: bm.asarray(returns[k]) for k in returns.keys()}
         return returns
     self.step_func = _loop_func

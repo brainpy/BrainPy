@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map, tree_flatten, tree_unflatten
 
-from brainpy.math.jaxarray import Array, Variable
+from brainpy.math.ndarray import Array, Variable
 from .utils import wraps
 
 __all__ = [

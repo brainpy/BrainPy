@@ -190,10 +190,10 @@ class ExponentialEuler(ODEIntegrator):
     >>>
     >>>     return dVdt
     >>>
-    >>>   def update(self, _t, _dt):
-    >>>     h = self.int_h(self.h, _t, self.V, dt=_dt)
-    >>>     n = self.int_n(self.n, _t, self.V, dt=_dt)
-    >>>     V = self.int_V(self.V, _t,  self.h, self.n, self.input, dt=_dt)
+    >>>   def update(self, tdi):
+    >>>     h = self.int_h(self.h, tdi.t, self.V, dt=tdi.dt)
+    >>>     n = self.int_n(self.n, tdi.t, self.V, dt=tdi.dt)
+    >>>     V = self.int_V(self.V, tdi.t,  self.h, self.n, self.input, dt=tdi.dt)
     >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     >>>     self.V.value = V
     >>>     self.h.value = h
@@ -262,8 +262,8 @@ class ExponentialEuler(ODEIntegrator):
     >>>
     >>>     return dVdt
     >>>
-    >>>   def update(self, t, dt):
-    >>>     h, n, V = self.integral(self.h, self.n, self.V, _t, self.input, dt=_dt)
+    >>>   def update(self, tdi):
+    >>>     h, n, V = self.integral(self.h, self.n, self.V, tdi.t, self.input, dt=tdi.dt)
     >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     >>>     self.V.value = V
     >>>     self.h.value = h

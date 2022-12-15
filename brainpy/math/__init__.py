@@ -11,7 +11,7 @@ This module provides basic mathematical operations, including:
 - discrete fourier transform functions
 - just-in-time compilation for class objects
 - automatic differentiation for class objects
-- dedicated operators for brain dynamics
+- dedicated operators for brain dynamics modeling
 - activation functions
 - device/dtype switching
 - and others
@@ -31,7 +31,7 @@ Details in the following.
 
 
 # data structure
-from .jaxarray import *
+from .ndarray import *
 from .delayvars import *
 
 # functions
@@ -54,4 +54,3 @@ from .object_transform import *
 # settings
 from . import setting
 from .setting import *
-from brainpy.math.object_transform.function import *

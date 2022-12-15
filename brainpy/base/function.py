@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional, Callable
+
 from brainpy import errors
-from brainpy.base.base import BrainPyObject
 from brainpy.base import collector
+from brainpy.base.base import BrainPyObject
 
 math = None
 
 __all__ = [
-  'FunAsAObject',
+  'FunAsObject',
 ]
 
 
@@ -26,7 +27,7 @@ def _check_var(var):
                               f'{math.ndarray.__name__}, but we got {type(var)}.')
 
 
-class FunAsAObject(BrainPyObject):
+class FunAsObject(BrainPyObject):
   """The wrapper for Python functions.
 
   Parameters
@@ -46,8 +47,8 @@ class FunAsAObject(BrainPyObject):
     # ---
     self._f = f
     if name is None:
-      name = self.unique_name(type_=f.__name__ if hasattr(f, '__name__') else 'FunAsAObject')
-    super(FunAsAObject, self).__init__(name=name)
+      name = self.unique_name(type_=f.__name__ if hasattr(f, '__name__') else 'FunAsObject')
+    super(FunAsObject, self).__init__(name=name)
 
     # nodes 
     # ---
@@ -89,3 +90,19 @@ class FunAsAObject(BrainPyObject):
 
   def __call__(self, *args, **kwargs):
     return self._f(*args, **kwargs)
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    # indent = ' ' * (len(name) + 10)
+    # child_nodes = ['\n'.join([('' if i == 0 else indent) + l for i, l in enumerate(repr(node).split('\n'))])
+    #                for node in self.implicit_nodes.values()]
+    # first_line = f'{name}(objects=['
+    # format_res = (
+    #     first_line +
+    #     (',\n' + ' ' * (len(name) + 10)).join(child_nodes) +
+    #     '],\n'
+    #     + (" " * (len(name) + 1)) + f'number of variables = {len(self.implicit_vars)})'
+    # )
+    format_ref = (f'{name}(nodes=[{", ".join([n.name for n in tuple(self.implicit_nodes.values())])}],\n' +
+                  " " * (len(name) + 1) + f'num_of_vars={len(self.implicit_vars)})')
+    return format_ref
