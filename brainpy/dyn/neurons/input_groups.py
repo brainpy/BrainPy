@@ -6,11 +6,9 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
-from brainpy.errors import ModelBuildError
 from brainpy.initialize import Initializer, parameter, variable_
 from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.types import Shape, Array
-
 
 __all__ = [
   'InputGroup',
@@ -102,9 +100,9 @@ class SpikeTimeGroup(NeuGroup):
   ----------
   size : int, tuple, list
       The neuron group geometry.
-  indices : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
+  indices : list, tuple, np.ndarray, Array, jax.numpy.ndarray
       The neuron indices at each time point to emit spikes.
-  times : list, tuple, np.ndarray, JaxArray, jax.numpy.ndarray
+  times : list, tuple, np.ndarray, Array, jax.numpy.ndarray
       The time points which generate the spikes.
   name : str, optional
       The name of the dynamic system.
@@ -129,8 +127,8 @@ class SpikeTimeGroup(NeuGroup):
     if keep_size:
       raise NotImplementedError(f'Do not support keep_size=True in {self.__class__.__name__}')
     if len(indices) != len(times):
-      raise ModelBuildError(f'The length of "indices" and "times" must be the same. '
-                            f'However, we got {len(indices)} != {len(times)}.')
+      raise ValueError(f'The length of "indices" and "times" must be the same. '
+                       f'However, we got {len(indices)} != {len(times)}.')
     self.num_times = len(times)
 
     # data about times and indices
@@ -176,7 +174,7 @@ class PoissonGroup(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      freqs: Union[int, float, jnp.ndarray, bm.JaxArray, Initializer],
+      freqs: Union[int, float, jnp.ndarray, bm.Array, Initializer],
       seed: int = None,
       keep_size: bool = False,
       mode: Mode = normal,
@@ -206,4 +204,3 @@ class PoissonGroup(NeuGroup):
 
   def reset_state(self, batch_size=None):
     self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
-

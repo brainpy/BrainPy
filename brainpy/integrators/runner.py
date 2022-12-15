@@ -60,7 +60,7 @@ class IntegratorRunner(Runner):
     >>> sigma=10; beta=8 / 3; rho=28
     >>> g = lambda x, y, z, t, p: (p * x, p * y, p * z)
     >>> f = lambda x, y, z, t, p: [sigma * (y - x), x * (rho - z) - y, x * y - beta * z]
-    >>> lorenz = bp.sdeint(f, g, method='milstein')
+    >>> lorenz = bp.sdeint(f, g, method='milstein2')
     >>>
     >>> runner = bp.integrators.IntegratorRunner(
     >>>   lorenz,
@@ -140,7 +140,7 @@ class IntegratorRunner(Runner):
 
     # get maximum size and initial variables
     if inits is not None:
-      if isinstance(inits, (list, tuple, bm.JaxArray, jnp.ndarray)):
+      if isinstance(inits, (list, tuple, bm.Array, jnp.ndarray)):
         assert len(target.variables) == len(inits)
         inits = {k: inits[i] for i, k in enumerate(target.variables)}
       assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'
@@ -218,7 +218,7 @@ class IntegratorRunner(Runner):
     # build the update step
     if self.jit['predict']:
       def _loop_func(times):
-        return bm.for_loop(self._step, self.dyn_vars, times)
+        return bm.for_loop(self._step, times, dyn_vars=self.dyn_vars)
     else:
       def _loop_func(times):
         returns = {k: [] for k in self.fun_monitors.keys()}
@@ -233,7 +233,7 @@ class IntegratorRunner(Runner):
           self._step(_t)
           # variable monitors
           for k in self.monitors.keys():
-            returns[k].append(bm.as_device_array(self.variables[k]))
+            returns[k].append(bm.as_jax(self.variables[k]))
         returns = {k: bm.asarray(returns[k]) for k in returns.keys()}
         return returns
     self.step_func = _loop_func

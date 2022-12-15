@@ -49,15 +49,15 @@ class LeakyIntegrator(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  V_rest: float, JaxArray, ndarray, Initializer, callable
+  V_rest: float, Array, ndarray, Initializer, callable
     Resting membrane potential.
-  R: float, JaxArray, ndarray, Initializer, callable
+  R: float, Array, ndarray, Initializer, callable
     Membrane resistance.
-  tau: float, JaxArray, ndarray, Initializer, callable
+  tau: float, Array, ndarray, Initializer, callable
     Membrane time constant.
-  V_initializer: JaxArray, ndarray, Initializer, callable
+  V_initializer: Array, ndarray, Initializer, callable
     The initializer of membrane potential.
-  noise: JaxArray, ndarray, Initializer, callable
+  noise: Array, ndarray, Initializer, callable
     The noise added onto the membrane potential
   method: str
     The numerical integration method.
@@ -153,21 +153,21 @@ class LIF(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  V_rest: float, JaxArray, ndarray, Initializer, callable
+  V_rest: float, Array, ndarray, Initializer, callable
     Resting membrane potential.
-  V_reset: float, JaxArray, ndarray, Initializer, callable
+  V_reset: float, Array, ndarray, Initializer, callable
     Reset potential after spike.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, Array, ndarray, Initializer, callable
     Threshold potential of spike.
-  R: float, JaxArray, ndarray, Initializer, callable
+  R: float, Array, ndarray, Initializer, callable
     Membrane resistance.
-  tau: float, JaxArray, ndarray, Initializer, callable
+  tau: float, Array, ndarray, Initializer, callable
     Membrane time constant.
-  tau_ref: float, JaxArray, ndarray, Initializer, callable
+  tau_ref: float, Array, ndarray, Initializer, callable
     Refractory period length.(ms)
-  V_initializer: JaxArray, ndarray, Initializer, callable
+  V_initializer: Array, ndarray, Initializer, callable
     The initializer of membrane potential.
-  noise: JaxArray, ndarray, Initializer, callable
+  noise: Array, ndarray, Initializer, callable
     The noise added onto the membrane potential
   method: str
     The numerical integration method.

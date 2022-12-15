@@ -10,7 +10,7 @@ import pytest
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.math.autograd import _jacfwd
+from brainpy.math.object_transform.autograd import _jacfwd
 
 
 class TestPureFuncGrad(unittest.TestCase):
@@ -86,7 +86,7 @@ class TestPureFuncGrad(unittest.TestCase):
 
 class TestObjectFuncGrad(unittest.TestCase):
   def test_grad_ob1(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
 
@@ -115,7 +115,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert (grads == 1.).all()
 
   def test_grad_ob_aux(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
         self.a = bm.TrainVar(bm.ones(10))
@@ -141,7 +141,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
   def test_grad_ob_return(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
         self.a = bm.TrainVar(bm.ones(10))
@@ -165,7 +165,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert returns == t()
 
   def test_grad_ob_aux_return(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
         self.a = bm.TrainVar(bm.ones(10))
@@ -195,7 +195,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
   def test_grad_ob_argnums(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
         bp.math.random.seed()
@@ -231,7 +231,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert (arg_grads[0] == 2.).all()
 
   def test_grad_ob_argnums_aux(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
         self.a = bm.TrainVar(bm.ones(10))
@@ -274,7 +274,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
   def test_grad_ob_argnums_return(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
 
@@ -318,7 +318,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)
 
   def test_grad_ob_argnums_aux_return(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
         self.a = bm.TrainVar(bm.ones(10))
@@ -560,11 +560,11 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
-        self.y = bm.array([10., 5.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
+        self.y = bm.Variable(bm.array([10., 5.]))
 
       def __call__(self, ):
         a = self.x[0] * self.y[0]
@@ -593,11 +593,11 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
-        self.y = bm.array([10., 5.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
+        self.y = bm.Variable(bm.array([10., 5.]))
 
       def __call__(self, ):
         a = self.x[0] * self.y[0]
@@ -626,10 +626,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -660,10 +660,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -695,10 +695,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -734,10 +734,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -776,10 +776,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -816,10 +816,10 @@ class TestClassFuncJacobian(unittest.TestCase):
     _x = bm.array([1., 2., 3.])
     _y = bm.array([10., 5.])
 
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -965,11 +965,11 @@ class TestPureFuncVectorGrad(unittest.TestCase):
 
 class TestClassFuncVectorGrad(unittest.TestCase):
   def test1(self):
-    class Test(bp.Base):
+    class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.ones(5)
-        self.y = bm.ones(5)
+        self.x = bm.Variable(bm.ones(5))
+        self.y = bm.Variable(bm.ones(5))
 
       def __call__(self, *args, **kwargs):
         return self.x ** 2 + self.y ** 2 + 10

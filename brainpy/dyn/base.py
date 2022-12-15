@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import gc
 import inspect
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
-import collections
 
 import jax.numpy as jnp
 import numpy as np
@@ -11,10 +11,10 @@ import numpy as np
 import brainpy.math as bm
 from brainpy import tools
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
-from brainpy.errors import ModelBuildError, NoImplementationError, UnsupportedError, MathError
+from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
 from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
@@ -48,7 +48,7 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
-class DynamicalSystem(Base):
+class DynamicalSystem(BrainPyObject):
   """Base Dynamical System class.
 
   Parameters
@@ -59,17 +59,16 @@ class DynamicalSystem(Base):
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
-  '''Online fitting method.'''
   online_fit_by: Optional[OnlineAlgorithm]
+  '''Online fitting method.'''
 
-  '''Offline fitting method.'''
   offline_fit_by: Optional[OfflineAlgorithm]
+  '''Offline fitting method.'''
 
+  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
   '''Global delay data, which stores the delay variables and corresponding delay targets. 
-   
   This variable is useful when the same target variable is used in multiple mappings, 
   as it can reduce the duplicate delay variable registration.'''
-  global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], bm.Variable]] = dict()
 
   def __init__(
       self,
@@ -123,16 +122,16 @@ class DynamicalSystem(Base):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, JaxArray, ndarray, callable, Initializer
+    delay_step: Optional, int, Array, ndarray, callable, Initializer
       The number of the steps of the delay.
     delay_target: Variable
       The target variable for delay.
-    initial_delay_data: float, int, JaxArray, ndarray, callable, Initializer
+    initial_delay_data: float, int, Array, ndarray, callable, Initializer
       The initializer for the delay data.
 
     Returns
     -------
-    delay_step: int, JaxArray, ndarray
+    delay_step: int, Array, ndarray
       The number of the delay steps.
     """
     # delay steps
@@ -190,8 +189,8 @@ class DynamicalSystem(Base):
   def get_delay_data(
       self,
       identifier: str,
-      delay_step: Optional[Union[int, bm.JaxArray, jnp.DeviceArray]],
-      *indices: Union[int, slice, bm.JaxArray, jnp.DeviceArray],
+      delay_step: Optional[Union[int, bm.Array, jnp.DeviceArray]],
+      *indices: Union[int, slice, bm.Array, jnp.DeviceArray],
   ):
     """Get delay data according to the provided delay steps.
 
@@ -199,14 +198,14 @@ class DynamicalSystem(Base):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, JaxArray, ndarray
+    delay_step: Optional, int, Array, ndarray
       The delay length.
-    indices: optional, int, slice, JaxArray, ndarray
+    indices: optional, int, slice, Array, ndarray
       The indices of the delay.
 
     Returns
     -------
-    delay_data: JaxArray, ndarray
+    delay_data: Array, ndarray
       The delay data at the given time.
     """
     if delay_step is None:
@@ -272,7 +271,7 @@ class DynamicalSystem(Base):
     if nodes is None:
       nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
     elif isinstance(nodes, DynamicalSystem):
-      nodes = (nodes, )
+      nodes = (nodes,)
     elif isinstance(nodes, dict):
       nodes = tuple(nodes.values())
     if not isinstance(nodes, (tuple, list)):
@@ -435,7 +434,7 @@ class Container(DynamicalSystem):
       node.clear_input()
 
 
-class Sequential(Container):
+class Sequential(DynamicalSystem):
   def __init__(
       self,
       *modules,
@@ -443,7 +442,37 @@ class Sequential(Container):
       mode: Mode = normal,
       **kw_modules
   ):
-    super(Sequential, self).__init__(*modules, name=name, mode=mode, **kw_modules)
+    super().__init__(name=name, mode=mode)
+    self._modules = tuple(modules) + tuple(kw_modules.values())
+
+    seq_modules = [m for m in modules if isinstance(m, BrainPyObject)]
+    dict_modules = {k: m for k, m in kw_modules.items() if isinstance(m, BrainPyObject)}
+
+    # add tuple-typed components
+    for module in seq_modules:
+      if isinstance(module, BrainPyObject):
+        self.implicit_nodes[module.name] = module
+      elif isinstance(module, (list, tuple)):
+        for m in module:
+          if not isinstance(m, BrainPyObject):
+            raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
+                             f'But we got {type(m)}')
+          self.implicit_nodes[m.name] = module
+      elif isinstance(module, dict):
+        for k, v in module.items():
+          if not isinstance(v, BrainPyObject):
+            raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
+                             f'But we got {type(v)}')
+          self.implicit_nodes[k] = v
+      else:
+        raise ValueError(f'Cannot parse sub-systems. They should be {BrainPyObject.__name__} '
+                         f'or a list/tuple/dict of  {BrainPyObject.__name__}.')
+    # add dict-typed components
+    for k, v in dict_modules.items():
+      if not isinstance(v, BrainPyObject):
+        raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
+                         f'But we got {type(v)}')
+      self.implicit_nodes[k] = v
 
   def __getattr__(self, item):
     """Wrap the dot access ('self.'). """
@@ -463,7 +492,7 @@ class Sequential(Container):
       components = tuple(self.implicit_nodes.values())[key]
       return Sequential(dict(zip(keys, components)))
     elif isinstance(key, int):
-      return self.implicit_nodes.values()[key]
+      return tuple(self.implicit_nodes.values())[key]
     elif isinstance(key, (tuple, list)):
       all_keys = tuple(self.implicit_nodes.keys())
       all_vals = tuple(self.implicit_nodes.values())
@@ -478,27 +507,7 @@ class Sequential(Container):
       raise KeyError(f'Unknown type of key: {type(key)}')
 
   def __repr__(self):
-    def f(x):
-      if not isinstance(x, DynamicalSystem) and callable(x):
-        signature = inspect.signature(x)
-        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
-                if v.default is not inspect.Parameter.empty]
-        args = ', '.join(args)
-        while not hasattr(x, '__name__'):
-          if not hasattr(x, 'func'):
-            break
-          x = x.func  # Handle functools.partial
-        if not hasattr(x, '__name__') and hasattr(x, '__class__'):
-          return x.__class__.__name__
-        if args:
-          return f'{x.__name__}(*, {args})'
-        return x.__name__
-      else:
-        x = repr(x).split('\n')
-        x = [x[0]] + ['  ' + y for y in x[1:]]
-        return '\n'.join(x)
-
-    entries = '\n'.join(f'  [{i}] {f(x)}' for i, x in enumerate(self))
+    entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
   def update(self, sha: dict, x: Any) -> Array:
@@ -516,8 +525,11 @@ class Sequential(Container):
     y: Array
       The output tensor.
     """
-    for node in self.implicit_nodes.values():
-      x = node(sha, x)
+    for m in self._modules:
+      if isinstance(m, DynamicalSystem):
+        x = m(sha, x)
+      else:
+        x = m(x)
     return x
 
 
@@ -643,17 +655,17 @@ class NeuGroup(DynamicalSystem):
     # size
     if isinstance(size, (list, tuple)):
       if len(size) <= 0:
-        raise ModelBuildError(f'size must be int, or a tuple/list of int. '
-                              f'But we got {type(size)}')
+        raise ValueError(f'size must be int, or a tuple/list of int. '
+                         f'But we got {type(size)}')
       if not isinstance(size[0], (int, np.integer)):
-        raise ModelBuildError('size must be int, or a tuple/list of int.'
-                              f'But we got {type(size)}')
+        raise ValueError('size must be int, or a tuple/list of int.'
+                         f'But we got {type(size)}')
       size = tuple(size)
     elif isinstance(size, (int, np.integer)):
       size = (size,)
     else:
-      raise ModelBuildError('size must be int, or a tuple/list of int.'
-                            f'But we got {type(size)}')
+      raise ValueError('size must be int, or a tuple/list of int.'
+                       f'But we got {type(size)}')
     self.size = size
     self.keep_size = keep_size
     # number of neurons
@@ -707,7 +719,7 @@ class SynConn(DynamicalSystem):
     Pre-synaptic neuron group.
   post : NeuGroup
     Post-synaptic neuron group.
-  conn : optional, ndarray, JaxArray, dict, TwoEndConnector
+  conn : optional, ndarray, Array, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
   name : str, optional
     The name of the dynamic system.
@@ -726,9 +738,9 @@ class SynConn(DynamicalSystem):
     # pre or post neuron group
     # ------------------------
     if not isinstance(pre, NeuGroup):
-      raise ModelBuildError('"pre" must be an instance of NeuGroup.')
+      raise TypeError('"pre" must be an instance of NeuGroup.')
     if not isinstance(post, NeuGroup):
-      raise ModelBuildError('"post" must be an instance of NeuGroup.')
+      raise TypeError('"post" must be an instance of NeuGroup.')
     self.pre = pre
     self.post = post
 
@@ -738,22 +750,22 @@ class SynConn(DynamicalSystem):
       self.conn = conn(pre.size, post.size)
     elif isinstance(conn, (bm.ndarray, np.ndarray, jnp.ndarray)):
       if (pre.num, post.num) != conn.shape:
-        raise ModelBuildError(f'"conn" is provided as a matrix, and it is expected '
-                              f'to be an array with shape of (pre.num, post.num) = '
-                              f'{(pre.num, post.num)}, however we got {conn.shape}')
+        raise ValueError(f'"conn" is provided as a matrix, and it is expected '
+                         f'to be an array with shape of (pre.num, post.num) = '
+                         f'{(pre.num, post.num)}, however we got {conn.shape}')
       self.conn = MatConn(conn_mat=conn)
     elif isinstance(conn, dict):
       if not ('i' in conn and 'j' in conn):
-        raise ModelBuildError(f'"conn" is provided as a dict, and it is expected to '
-                              f'be a dictionary with "i" and "j" specification, '
-                              f'however we got {conn}')
+        raise ValueError(f'"conn" is provided as a dict, and it is expected to '
+                         f'be a dictionary with "i" and "j" specification, '
+                         f'however we got {conn}')
       self.conn = IJConn(i=conn['i'], j=conn['j'])
     elif isinstance(conn, str):
       self.conn = conn
     elif conn is None:
       self.conn = None
     else:
-      raise ModelBuildError(f'Unknown "conn" type: {conn}')
+      raise ValueError(f'Unknown "conn" type: {conn}')
 
   def __repr__(self):
     names = self.__class__.__name__
@@ -764,22 +776,22 @@ class SynConn(DynamicalSystem):
   def check_pre_attrs(self, *attrs):
     """Check whether pre group satisfies the requirement."""
     if not hasattr(self, 'pre'):
-      raise ModelBuildError('Please call __init__ function first.')
+      raise ValueError('Please call __init__ function first.')
     for attr in attrs:
       if not isinstance(attr, str):
-        raise ValueError(f'Must be string. But got {attr}.')
+        raise TypeError(f'Must be string. But got {attr}.')
       if not hasattr(self.pre, attr):
-        raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
+        raise ValueError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
   def check_post_attrs(self, *attrs):
     """Check whether post group satisfies the requirement."""
     if not hasattr(self, 'post'):
-      raise ModelBuildError('Please call __init__ function first.')
+      raise ValueError('Please call __init__ function first.')
     for attr in attrs:
       if not isinstance(attr, str):
-        raise ValueError(f'Must be string. But got {attr}.')
+        raise TypeError(f'Must be string. But got {attr}.')
       if not hasattr(self.post, attr):
-        raise ModelBuildError(f'{self} need "pre" neuron group has attribute "{attr}".')
+        raise ValueError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
   def update(self, tdi, pre_spike=None):
     """The function to specify the updating rule.
@@ -920,7 +932,7 @@ class TwoEndConn(SynConn):
     Pre-synaptic neuron group.
   post : NeuGroup
     Post-synaptic neuron group.
-  conn : optional, ndarray, JaxArray, dict, TwoEndConnector
+  conn : optional, ndarray, Array, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
   output: Optional, SynOutput
     The output for the synaptic current.
@@ -1286,11 +1298,11 @@ class DSView(DynamicalSystem):
     for k, v in all_vars.items():
       if v.batch_axis is not None:
         index = ((self.index[:v.batch_axis] +
-                 (slice(None, None, None), ) +
-                 self.index[v.batch_axis:])
+                  (slice(None, None, None),) +
+                  self.index[v.batch_axis:])
                  if len(self.index) > v.batch_axis else
                  (self.index + tuple([slice(None, None, None)
-                                     for _ in range(v.batch_axis - len(self.index) + 1)])))
+                                      for _ in range(v.batch_axis - len(self.index) + 1)])))
       else:
         index = self.index
       self.slice_vars[k] = bm.VariableView(v, index)

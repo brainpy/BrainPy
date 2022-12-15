@@ -54,11 +54,11 @@ class IK_p4_markov(PotassiumChannel):
   keep_size: bool
     Whether we use `size` to initialize the variable. Otherwise, variable shape
     will be initialized as `num`.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
-  phi : float, JaxArray, ndarray, Initializer, Callable
+  phi : float, Array, ndarray, Initializer, Callable
     The temperature-dependent factor.
   method: str
     The numerical integration method.
@@ -141,15 +141,15 @@ class IKDR_Ba2002(IK_p4_markov):
   keep_size: bool
     Whether we use `size` to initialize the variable. Otherwise, variable shape
     will be initialized as `num`.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
-  T_base : float, JaxArray, ndarray
+  T_base : float, Array, ndarray
     The base of temperature factor.
-  T : float, JaxArray, ndarray, Initializer, Callable
+  T : float, Array, ndarray, Initializer, Callable
     The temperature (Celsius, :math:`^{\circ}C`).
-  V_sh : float, JaxArray, ndarray, Initializer, Callable
+  V_sh : float, Array, ndarray, Initializer, Callable
     The shift of the membrane potential to spike.
   method: str
     The numerical integration method.
@@ -221,9 +221,9 @@ class IK_TM1991(IK_p4_markov):
   ----------
   size: int, sequence of int
     The geometry size.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   method: str
     The numerical integration method.
@@ -291,9 +291,9 @@ class IK_HH1952(IK_p4_markov):
   ----------
   size: int, sequence of int
     The geometry size.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   method: str
     The numerical integration method.
@@ -364,9 +364,9 @@ class IKA_p4q_ss(PotassiumChannel):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
@@ -473,9 +473,9 @@ class IKA1_HM1992(IKA_p4q_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
@@ -568,9 +568,9 @@ class IKA2_HM1992(IKA_p4q_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
@@ -658,9 +658,9 @@ class IKK2_pq_ss(PotassiumChannel):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   phi_p : optional, float, Array, Callable, Initializer
     The temperature factor for channel :math:`p`.
@@ -767,9 +767,9 @@ class IKK2A_HM1992(IKK2_pq_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
@@ -858,9 +858,9 @@ class IKK2B_HM1992(IKK2_pq_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   V_sh : float, Array, Callable, Initializer
     The membrane potential shift.
@@ -948,9 +948,9 @@ class IKNI_Ya1989(PotassiumChannel):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, Array, ndarray, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, Array, ndarray, Initializer, Callable
     The reversal potential (mV).
   V_sh : float, Array, Callable, Initializer
     The membrane potential shift.

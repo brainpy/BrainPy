@@ -11,7 +11,7 @@ This module provides basic mathematical operations, including:
 - discrete fourier transform functions
 - just-in-time compilation for class objects
 - automatic differentiation for class objects
-- dedicated operators for brain dynamics
+- dedicated operators for brain dynamics modeling
 - activation functions
 - device/dtype switching
 - and others
@@ -31,7 +31,7 @@ Details in the following.
 
 
 # data structure
-from .jaxarray import *
+from .ndarray import *
 from .delayvars import *
 
 # functions
@@ -48,12 +48,9 @@ from . import random
 # operators
 from .operators import *
 
-# JAX transformations extended on Variable and class objects
-from .autograd import *
-from .controls import *
-from .jit import *
+# JAX transformations for Variable and class objects
+from .object_transform import *
 
 # settings
 from . import setting
 from .setting import *
-from .function import *

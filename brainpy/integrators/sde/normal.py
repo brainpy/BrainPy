@@ -504,8 +504,8 @@ class MilsteinGradFree(SDEIntegrator):
     return integrals if len(self.variables) > 1 else integrals[0]
 
 
-register_sde_integrator('milstein2', Milstein)
-register_sde_integrator('milstein_grad_free', Milstein)
+register_sde_integrator('milstein2', MilsteinGradFree)
+register_sde_integrator('milstein_grad_free', MilsteinGradFree)
 
 
 class ExponentialEuler(SDEIntegrator):

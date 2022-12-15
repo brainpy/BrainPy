@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+
+import matplotlib.pyplot as plt
+
 import brainpy as bp
 import brainpy.math as bm
-import matplotlib.pyplot as plt
 
 bm.set_platform('cpu')
 
@@ -94,8 +96,9 @@ class EINet(bp.dyn.Network):
     pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
     self.E = bp.neurons.LIF(num_exc, **pars, method=method)
     self.I = bp.neurons.LIF(num_inh, **pars, method=method)
-    self.E.V[:] = bp.math.random.randn(num_exc) * 2 - 55.
-    self.I.V[:] = bp.math.random.randn(num_inh) * 2 - 55.
+    rng = bm.random.RandomState()
+    self.E.V[:] = rng.randn(num_exc) * 2 - 55.
+    self.I.V[:] = rng.randn(num_inh) * 2 - 55.
 
     # synapses
     we = 0.6 / scale  # excitatory synaptic weight (voltage)
@@ -133,5 +136,6 @@ class TestOpRegister(unittest.TestCase):
     ax = fig.add_subplot(gs[0, 2])
     bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
 
+    # clear
     bm.clear_buffer_memory()
     plt.close()

@@ -8,7 +8,7 @@ from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.base import Base
+from brainpy.base import BrainPyObject
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
 from brainpy.modes import TrainingMode
@@ -86,7 +86,7 @@ class OfflineTrainer(DSTrainer):
       node.offline_init()
 
     # update dynamical variables
-    if isinstance(self.fit_method, Base):
+    if isinstance(self.fit_method, BrainPyObject):
       self.dyn_vars.update(self.fit_method.vars().unique())
 
     # training function
@@ -193,7 +193,7 @@ class OfflineTrainer(DSTrainer):
     for node in self.train_nodes:
       key = f'{node.name}-fit_record'
       monitor_data[key] = self.mon.get(key)
-    self.f_train(shared_args)(monitor_data, ys)
+    self._get_f_train(shared_args)(monitor_data, ys)
     del monitor_data
 
     # close the progress bar
@@ -210,14 +210,14 @@ class OfflineTrainer(DSTrainer):
 
     return outs
 
-  def f_train(self, shared_args: Dict = None) -> Callable:
+  def _get_f_train(self, shared_args: Dict = None) -> Callable:
     """Get training function."""
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_train:
-      self._f_train[shared_kwargs_str] = self._make_fit_func(shared_args)
+      self._f_train[shared_kwargs_str] = self._get_fit_func(shared_args)
     return self._f_train[shared_kwargs_str]
 
-  def _make_fit_func(self, shared_args):
+  def _get_fit_func(self, shared_args: Dict = None):
     shared_args = dict() if shared_args is None else shared_args
 
     def train_func(monitor_data: Dict[str, Array], target_data: Dict[str, Array]):
@@ -235,7 +235,7 @@ class OfflineTrainer(DSTrainer):
       train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())
     return train_func
 
-  def build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
+  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
     if shared_args.get('fit', False):
       def func(tdi):
         res = {k: v.value for k, v in return_without_idx.items()}

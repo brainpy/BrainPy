@@ -62,16 +62,16 @@ class TestLoop(jtu.JaxTestCase):
       return update
 
     bp.math.random.seed()
-    _v1 = bm.random.normal(size=10)
-    _v2 = bm.random.random(size=10)
+    _v1 = bm.Variable(bm.random.normal(size=10))
+    _v2 = bm.as_variable(bm.random.random(size=10))
     _xs = bm.random.uniform(size=(4, 10))
 
     scan_f = bm.make_loop(make_node(_v1, _v2),
                           dyn_vars=(_v1, _v2),
                           out_vars=(_v1,),
                           has_return=True)
-    with self.assertRaises(bp.errors.MathError):
-      outs, returns = scan_f(_xs)
+    # with self.assertRaises(bp.errors.MathError):
+    outs, returns = scan_f(_xs)
 
   @parameterized.named_parameters(
     {"testcase_name": "_jit_scan={}_jit_f={}_unroll={}".format(jit_scan, jit_f, unroll),

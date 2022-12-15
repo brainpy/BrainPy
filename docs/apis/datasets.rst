@@ -9,4 +9,3 @@
     :maxdepth: 1
 
     auto/datasets/chaos
-    auto/datasets/vision

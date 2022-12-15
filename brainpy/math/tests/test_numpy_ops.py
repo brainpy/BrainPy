@@ -537,12 +537,12 @@ def _promote_like_jnp(fun, inexact=False):
 def bm_func(fun):
   def wrapper(*args, **kw):
     res = fun(*args, **kw)
-    if isinstance(res, bm.JaxArray):
+    if isinstance(res, bm.Array):
       return res.value
     elif isinstance(res, tuple):
-      return tuple(r.value if isinstance(r, bm.JaxArray) else r for r in res)
+      return tuple(r.value if isinstance(r, bm.Array) else r for r in res)
     elif isinstance(res, list):
-      return list(r.value if isinstance(r, bm.JaxArray) else r for r in res)
+      return list(r.value if isinstance(r, bm.Array) else r for r in res)
     else:
       return res
 

@@ -1,11 +1,10 @@
-Math Basics
-=================
+Math Foundation
+===============
 
 .. toctree::
    :maxdepth: 1
 
-   overview
    arrays_and_variables
-   jit_compilation
+   brainpy_transform_concept
    control_flows
    random_number_generation

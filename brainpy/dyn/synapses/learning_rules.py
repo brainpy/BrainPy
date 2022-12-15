@@ -76,9 +76,9 @@ class STP(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.STP(neu1, neu2, bp.connect.All2All(), U=0.2, tau_d=150., tau_f=2.)
+    >>> neu1 = bp.neurons.LIF(1)
+    >>> neu2 = bp.neurons.LIF(1)
+    >>> syn1 = bp.synapses.STP(neu1, neu2, bp.connect.All2All(), U=0.2, tau_d=150., tau_f=2.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 28.)], monitors=['syn.I', 'syn.u', 'syn.x'])

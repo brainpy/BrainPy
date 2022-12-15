@@ -65,9 +65,9 @@ def _check_missing(variables, filename):
 
 
 def _check_target(target):
-  from .base import Base
-  if not isinstance(target, Base):
-    raise TypeError(f'"target" must be instance of "{Base.__name__}", but we got {type(target)}')
+  from .base import BrainPyObject
+  if not isinstance(target, BrainPyObject):
+    raise TypeError(f'"target" must be instance of "{BrainPyObject.__name__}", but we got {type(target)}')
 
 
 not_found_msg = ('"{key}" is stored in {filename}. But we does '
@@ -178,8 +178,8 @@ def load_by_h5(filename: str, target, verbose: bool = False):
   ----------
   filename: str
     The filename to load variables.
-  target: Base
-    The instance of :py:class:`~.brainpy.Base`.
+  target: BrainPyObject
+    The instance of :py:class:`~.brainpy.BrainPyObject`.
   verbose: bool
     Whether report the load progress.
   """
@@ -243,8 +243,8 @@ def load_by_npz(filename, target, verbose=False):
   ----------
   filename: str
     The filename to load variables.
-  target: Base
-    The instance of :py:class:`~.brainpy.Base`.
+  target: BrainPyObject
+    The instance of :py:class:`~.brainpy.BrainPyObject`.
   verbose: bool
     Whether report the load progress.
   """
@@ -301,8 +301,8 @@ def load_by_pkl(filename, target, verbose=False):
   ----------
   filename: str
     The filename to load variables.
-  target: Base
-    The instance of :py:class:`~.brainpy.Base`.
+  target: BrainPyObject
+    The instance of :py:class:`~.brainpy.BrainPyObject`.
   verbose: bool
     Whether report the load progress.
   """
@@ -361,8 +361,8 @@ def load_by_mat(filename, target, verbose=False):
   ----------
   filename: str
     The filename to load variables.
-  target: Base
-    The instance of :py:class:`~.brainpy.Base`.
+  target: BrainPyObject
+    The instance of :py:class:`~.brainpy.BrainPyObject`.
   verbose: bool
     Whether report the load progress.
   """

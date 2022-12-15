@@ -6,20 +6,19 @@ from typing import Optional, Callable, Union, Dict
 import jax.numpy as jnp
 
 from brainpy import math as bm
-from brainpy.dyn.base import DynamicalSystem
+from .base import Layer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.modes import Mode, TrainingMode, BatchingMode, training, batching
+from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import check_initializer
 from brainpy.types import Array
 
 __all__ = [
   'Dense',
-  'Flatten'
 ]
 
 
-class Dense(DynamicalSystem):
+class Dense(Layer):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -81,9 +80,6 @@ class Dense(DynamicalSystem):
             f'num_in={self.num_in}, '
             f'num_out={self.num_out}, '
             f'mode={self.mode})')
-
-  def reset_state(self, batch_size=None):
-    pass
 
   def update(self, sha, x):
     res = x @ self.W
@@ -190,30 +186,3 @@ class Dense(DynamicalSystem):
       self.W.value = Wff
       self.b.value = bias[0]
 
-
-class Flatten(DynamicalSystem):
-  r"""Flattens a contiguous range of dims into 2D or 1D.
-
-  Parameters:
-  ----------
-  name: str, Optional
-    The name of the object
-  mode: Mode
-    Enable training this node or not. (default True)
-  """
-
-  def __init__(
-      self,
-      name: Optional[str] = None,
-      mode: Optional[Mode] = batching,
-  ):
-    super().__init__(name, mode)
-
-  def update(self, shr, x):
-    if isinstance(self.mode, BatchingMode):
-      return x.reshape((x.shape[0], -1))
-    else:
-      return x.flatten()
-
-  def reset_state(self, batch_size=None):
-    pass

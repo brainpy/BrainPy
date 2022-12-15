@@ -5,7 +5,9 @@
 # %% [markdown]
 # Implementation of the paper:
 #
-# - Sussillo, David, and Larry F. Abbott. "Generating coherent patterns of activity from chaotic neural networks." Neuron 63, no. 4 (2009): 544-557.
+# - Sussillo, David, and Larry F. Abbott. "Generating coherent patterns
+#   of activity from chaotic neural networks."
+#   Neuron 63, no. 4 (2009): 544-557.
 
 # %%
 import brainpy as bp
@@ -46,7 +48,7 @@ class EchoStateNet(bp.dyn.DynamicalSystem):
     self.w_rr = g * bm.random.normal(size=(num_hidden, num_hidden)) / bm.sqrt(num_hidden)
     self.w_or = bm.random.normal(size=(num_output, num_hidden))
     w_ro = bm.random.normal(size=(num_hidden, num_output)) / bm.sqrt(num_hidden)
-    self.w_ro = bm.Variable(w_ro)
+    self.w_ro = bm.Variable(w_ro)  # dynamically change this weight
 
     # variables
     self.h = bm.Variable(bm.random.normal(size=num_hidden) * 0.5)  # hidden
@@ -62,6 +64,7 @@ class EchoStateNet(bp.dyn.DynamicalSystem):
     self.h += self.dt / self.tau * dhdt
     self.r.value = bm.tanh(self.h)
     self.o.value = bm.dot(self.r, self.w_ro)
+    return self.r.value, self.o.value
 
   def rls(self, target):
     # update the inverse correlation matrix
@@ -75,17 +78,14 @@ class EchoStateNet(bp.dyn.DynamicalSystem):
     self.w_ro += dw
 
   def simulate(self, xs):
-    f = bm.make_loop(self.update, dyn_vars=self.vars(), out_vars=[self.r, self.o])
-    return f(xs)
+    return bm.for_loop(self.update, dyn_vars=self.vars(), operands=xs)
 
   def train(self, xs, targets):
-    def _f(x):
-      input, target = x
-      self.update(input)
+    def _f(x, target):
+      r, o = self.update(x)
       self.rls(target)
-
-    f = bm.make_loop(_f, dyn_vars=self.vars(), out_vars=[self.r, self.o])
-    return f([xs, targets])
+      return r, o
+    return bm.for_loop(_f, dyn_vars=self.vars(), operands=[xs, targets])
 
 
 # %%

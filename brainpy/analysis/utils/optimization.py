@@ -35,21 +35,21 @@ ECONVERR = -1
 
 
 def _logical_or(a, b):
-  a = a.value if isinstance(a, bm.JaxArray) else a
-  b = b.value if isinstance(b, bm.JaxArray) else b
+  a = a.value if isinstance(a, bm.Array) else a
+  b = b.value if isinstance(b, bm.Array) else b
   return jnp.logical_or(a, b)
 
 
 def _logical_and(a, b):
-  a = a.value if isinstance(a, bm.JaxArray) else a
-  b = b.value if isinstance(b, bm.JaxArray) else b
+  a = a.value if isinstance(a, bm.Array) else a
+  b = b.value if isinstance(b, bm.Array) else b
   return jnp.logical_and(a, b)
 
 
 def _where(p, a, b):
-  p = p.value if isinstance(p, bm.JaxArray) else p
-  a = a.value if isinstance(a, bm.JaxArray) else a
-  b = b.value if isinstance(b, bm.JaxArray) else b
+  p = p.value if isinstance(p, bm.Array) else p
+  a = a.value if isinstance(a, bm.Array) else a
+  b = b.value if isinstance(b, bm.Array) else b
   return jnp.where(p, a, b)
 
 
@@ -161,8 +161,8 @@ def jax_brentq(fun):
 
 def get_brentq_candidates(f, xs, ys):
   f = f_without_jaxarray_return(f)
-  xs = xs.value if isinstance(xs, bm.JaxArray) else xs
-  ys = ys.value if isinstance(ys, bm.JaxArray) else ys
+  xs = xs.value if isinstance(xs, bm.Array) else xs
+  ys = ys.value if isinstance(ys, bm.Array) else ys
   Y, X = jnp.meshgrid(ys, xs)
   vals = f(X, Y)
   signs = jnp.sign(vals)
@@ -175,7 +175,7 @@ def get_brentq_candidates(f, xs, ys):
 
 def brentq_candidates(vmap_f, *values, args=()):
   # change the position of meshgrid values
-  values = tuple((v.value if isinstance(v, bm.JaxArray) else v) for v in values)
+  values = tuple((v.value if isinstance(v, bm.Array) else v) for v in values)
   xs = values[0]
   mesh_values = jnp.meshgrid(*values)
   if bm.ndim(mesh_values[0]) > 1:
@@ -348,7 +348,7 @@ def scipy_minimize_with_jax(fun, x0,
   def fun_wrapper(x_flat, *args):
     x = unravel(x_flat)
     r = fun(x, *args)
-    r = r.value if isinstance(r, bm.JaxArray) else r
+    r = r.value if isinstance(r, bm.Array) else r
     return float(r)
 
   # Wrap the gradient in a similar manner
@@ -386,8 +386,8 @@ def roots_of_1d_by_x(f, candidates, args=()):
   """Find the roots of the given function by numerical methods.
   """
   f = f_without_jaxarray_return(f)
-  candidates = candidates.value if isinstance(candidates, bm.JaxArray) else candidates
-  args = tuple(a.value if isinstance(candidates, bm.JaxArray) else a for a in args)
+  candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
+  args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
   vals = f(candidates, *args)
   signs = jnp.sign(vals)
   zero_sign_idx = jnp.where(signs == 0)[0]

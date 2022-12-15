@@ -24,10 +24,10 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import TensorCollector
 from brainpy.math.random import RandomState
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.ndarray import Array
 from brainpy.tools.codes import change_func_name
 
 __all__ = [
@@ -78,7 +78,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
 
   Parameters
   ----------
-  func : Base, function, callable
+  func : BrainPyObject, function, callable
     The function or the module to compile.
   dyn_vars : dict, sequence
   batched_vars : dict
@@ -197,10 +197,10 @@ def vmap(func, dyn_vars=None, batched_vars=None,
     if auto_infer:
       if dyn_vars is not None:
         dyn_vars = dyn_vars
-      elif isinstance(func, Base):  # Base has '__call__()' implementation
+      elif isinstance(func, BrainPyObject):  # BrainPyObject has '__call__()' implementation
         dyn_vars = func.vars().unique()
       elif hasattr(func, '__self__'):
-        if isinstance(func.__self__, Base):
+        if isinstance(func.__self__, BrainPyObject):
           dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
@@ -210,7 +210,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
                       axis_name=axis_name)
 
     else:
-      if isinstance(dyn_vars, JaxArray):
+      if isinstance(dyn_vars, Array):
         dyn_vars = [dyn_vars]
       if isinstance(dyn_vars, (tuple, list)):
         dyn_vars = {f'_vmap_v{i}': v for i, v in enumerate(dyn_vars)}
@@ -266,7 +266,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
                         batch_idx=batch_idx)
 
   else:
-    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable '
+    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '
                               f'function, but we got {type(func)}.')
 
 
@@ -275,8 +275,8 @@ def _device_reshape(x):
   num_device = jax.local_device_count()
 
   if not hasattr(x, 'ndim'):
-    raise errors.BrainPyError(f'Expected JaxArray, got {type(x)}. If you are trying to pass a scalar to '
-                              f'parallel, first convert it to a JaxArray, for example np.float(0.5)')
+    raise errors.BrainPyError(f'Expected Array, got {type(x)}. If you are trying to pass a scalar to '
+                              f'parallel, first convert it to a Array, for example np.float(0.5)')
   if x.ndim == 0:
     return np.broadcast_to(x, [num_device])
   if x.shape[0] % num_device != 0:
@@ -400,10 +400,10 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
   if callable(func):
     if dyn_vars is not None:
       dyn_vars = dyn_vars
-    elif isinstance(func, Base):  # Base has '__call__()' implementation
+    elif isinstance(func, BrainPyObject):  # BrainPyObject has '__call__()' implementation
       dyn_vars = func.vars().unique()
     elif hasattr(func, '__self__'):
-      if isinstance(func.__self__, Base):
+      if isinstance(func.__self__, BrainPyObject):
         dyn_vars = func.__self__.vars().unique()
 
     if dyn_vars is None:
@@ -457,5 +457,5 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
       return func
 
   else:
-    raise errors.BrainPyError(f'Only support instance of {Base.__name__}, or a callable function, '
+    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable function, '
                               f'but we got {type(func)}.')

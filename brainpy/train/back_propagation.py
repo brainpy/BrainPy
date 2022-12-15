@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import time
-from typing import Union, Dict, Callable, Sequence
+import warnings
+from collections.abc import Iterable
+from typing import Union, Dict, Callable, Sequence, Any
 
 import numpy as np
 from jax import numpy as jnp
@@ -11,26 +14,26 @@ import brainpy.losses as losses
 import brainpy.math as bm
 import brainpy.optimizers as optim
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.errors import UnsupportedError
+from brainpy.errors import UnsupportedError, NoLongerSupportError
+from brainpy.running import constants as c
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others import DotDict
+from brainpy.train.base import DSTrainer
 from brainpy.types import Array, Output
-from ..running import constants as c
-from .base import DSTrainer
+from .utils import msg
 
 __all__ = [
   'BPTT',
   'BPFF',
-  'OnlineBPTT',
 ]
 
 
 def _is_jax_array(s):
-  return isinstance(s, bm.JaxArray)
+  return isinstance(s, bm.Array)
 
 
 class BPTrainer(DSTrainer):
-  """Trainer implementing back-propagation algorithm.
+  """Trainer implementing back-propagation algorithm for supervised trasks.
 
   Parameters
   ----------
@@ -43,9 +46,17 @@ class BPTrainer(DSTrainer):
     should be provided.
   optimizer: optim.Optimizer
     The optimizer used for training.
-  shuffle_data: bool
-  seed: int
   numpy_mon_after_run: bool
+    Make the monitored results as NumPy arrays.
+  logger: Any
+    A file-like object (stream); defaults to the current `sys.stdout`.
+
+  shuffle_data: bool
+    .. deprecated:: 2.2.4.1
+       Control the data shuffling by user self.
+  seed: int
+    .. deprecated:: 2.2.4.1
+       Control the data shuffling by user self.
   """
 
   def __init__(
@@ -53,18 +64,28 @@ class BPTrainer(DSTrainer):
       target: DynamicalSystem,
       loss_fun: Union[str, Callable],  # loss function
       optimizer: optim.Optimizer = None,  # optimizer
-      loss_has_aux: bool = False,
-      shuffle_data: bool = True,  # shuffle data
-      seed: int = None,  # random seed for data shuffling
+      loss_has_aux: bool = False,  # loss auxiliary
+
       numpy_mon_after_run: bool = False,
+      logger: Any = sys.stdout,
+
+      # -------------
+      # API deprecated
+      seed: int = None,  # deprecated
+      shuffle_data: bool = None,  # deprecated
+
       **kwargs,
   ):
     super(BPTrainer, self).__init__(target=target,
                                     numpy_mon_after_run=numpy_mon_after_run,
                                     **kwargs)
 
-    self.shuffle_data = shuffle_data
-    self.rng = bm.random.RandomState(seed)
+    if shuffle_data is not None:
+      raise NoLongerSupportError('"shuffle_data" is no longer supported. '
+                                 'Please shuffle your data by yourself.')
+    if seed is not None:
+      NoLongerSupportError('"seed" is no longer supported. '
+                           'Please shuffle your data by yourself.')
 
     # jit settings
     self.jit[c.PREDICT_PHASE] = self.jit.get(c.PREDICT_PHASE, True)
@@ -78,7 +99,7 @@ class BPTrainer(DSTrainer):
     self.optimizer: optim.Optimizer = optimizer
     self.optimizer.register_vars(self.target.vars(level=-1, include_self=True).subset(bm.TrainVar).unique())
 
-    # loss
+    # loss function
     self.loss_has_aux = loss_has_aux
     if isinstance(loss_fun, str):
       loss_fun = getattr(losses, loss_fun)
@@ -88,15 +109,20 @@ class BPTrainer(DSTrainer):
       raise UnsupportedError(f'Do not support {type(loss_fun)} to specify the loss function. '
                              f'We only support str and callable function.')
     self._loss_func = loss_fun
-    self._train_losses = None
-    self._train_loss_aux = None
-    self._test_losses = None
-    self._f_shuffle = None
+
+    # loss data
+    self._report_train_metrics = dict()
+    self._report_test_metrics = dict()
+    self._detailed_train_metrics = dict()
+    self._detailed_test_metrics = dict()
 
     # functions
     self._f_loss_compiled = dict()
     self._f_train_compiled = dict()
     self._f_grad_compiled = dict()
+
+    # others
+    self.logger = logger
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -106,14 +132,30 @@ class BPTrainer(DSTrainer):
             f'{prefix}loss={self._loss_func}, \n\t'
             f'{prefix}optimizer={self.optimizer})')
 
-  @property
-  def train_losses(self):
-    """Training loss."""
-    return self._train_losses
+  def get_hist_metric(self, phase='fit', metric='loss', which='detailed'):
+    """Get history losses."""
+    assert phase in [c.FIT_PHASE, c.TEST_PHASE, c.TRAIN_PHASE, c.PREDICT_PHASE]
+    assert which in ['report', 'detailed']
+    if phase in [c.FIT_PHASE, c.TRAIN_PHASE]:
+      if which == 'report':
+        return self._report_train_metrics.get(metric, None)
+      elif which == 'detailed':
+        return self._detailed_train_metrics.get(metric, None)
+    elif phase in [c.TEST_PHASE, c.PREDICT_PHASE]:
+      if which == 'report':
+        return self._report_test_metrics.get(metric, None)
+      elif which == 'detailed':
+        return self._detailed_test_metrics.get(metric, None)
 
   @property
-  def train_loss_aux(self):
-    return self._train_loss_aux
+  def train_losses(self):
+    warnings.warn('Use .get_hist_metric("fit") instead.', UserWarning)
+    return self._report_train_metrics
+
+  @property
+  def test_losses(self):
+    warnings.warn('Use .get_hist_metric("test") instead.', UserWarning)
+    return self._report_test_metrics
 
   def predict(
       self,
@@ -147,22 +189,26 @@ class BPTrainer(DSTrainer):
 
   def fit(
       self,
-      train_data: Union[Callable, Sequence],
-      batch_size: int = None,
+      train_data: Union[Callable, Iterable],
+      test_data: Union[Callable, Iterable] = None,
       num_epoch: int = 100,
-      num_report: int = 100,
+      num_report: int = -1,
       reset_state: bool = True,
       shared_args: Dict = None,
+
+      # ------
+      # API deprecated
+      batch_size: int = None,
   ):
     """
     Fit the target model according to the given training and testing data.
 
     Parameters
     ----------
-    train_data: callable, sequence of data
+    train_data: callable, iterable
       It can be a callable function, or a tuple/list representing `(X, Y)` data.
-      - Callable. This function should return a pair of `(X, Y)` data
-      - Sequence. It should be a pair of `(X, Y)` train set.
+      - Callable. This function should return a pair of `(X, Y)` data.
+      - Iterable. It should be a pair of `(X, Y)` train set.
         - ``X``: should be a tensor or a dict of tensors with the shape of
           `(num_sample, num_time, num_feature)`, where `num_sample` is
           the number of samples, `num_time` is the number of the time step,
@@ -172,10 +218,8 @@ class BPTrainer(DSTrainer):
             then we will only fit the model with the only last output.
           - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
             then the fitting happens on the whole data series.
-    batch_size: int
-      The batch size. Default 32. This setting is used when users provide
-      the ``train_data`` and ``test_data`` as a pair of `(X, Y)` data, rather
-      than a function.
+    test_data: callable, iterable, optional
+      Same as ``train_data``.
     num_epoch: int
       The number of training epoch. Default 100.
     num_report: int
@@ -185,72 +229,156 @@ class BPTrainer(DSTrainer):
     shared_args: dict
       The shared keyword arguments for the target models.
 
+    batch_size: int
+      .. deprecated:: 2.2.4.1
+         Please set batch size in your dataset.
     """
+    if batch_size is not None:
+      raise NoLongerSupportError('Please set batch size in your data. '
+                                 'Specifically, make an iterable dataset '
+                                 'which return a batch of (X, Y) data.')
+    if isinstance(train_data, (tuple, list)):
+      if len(train_data) == 2:
+        raise UnsupportedError(msg)
+
     true_progress_bar = self.progress_bar
     self.progress_bar = False
 
     # training the model
-    all_train_losses = []
-    all_train_loss_aux = None
-    # all_test_losses = []
+    detailed_train_metric = dict()
+    report_train_metric = dict()
+    detailed_test_metric = dict()
+    report_test_metric = dict()
 
-    train_i = 0
-    t0 = time.time()
-    for _ in range(num_epoch):
+    fit_i, fit_t = 0, 0
+    test_i, test_t = 0, 0
+    for epoch_idx in range(num_epoch):
+
       # training set
-      train_data_ = self._get_batchable_data(train_data, batch_size, self.shuffle_data)
-      for x, y in train_data_:
+      fit_t0 = time.time()
+      fit_epoch_metric = dict(loss=[])
+      for x, y in (train_data() if callable(train_data) else train_data):
+
+        # reset state
         if reset_state:
           self.target.reset_state(self._get_batch_size(x))
           self.reset_state()
 
         # training
-        res = self.f_train(shared_args)(x, y)
+        res = self._get_f_train(shared_args)(x, y)
 
         # loss
-        loss = res[0]
-        all_train_losses.append(loss)
+        fit_epoch_metric['loss'].append(res[0])
         if self.loss_has_aux:
-          if all_train_loss_aux is None:
-            all_train_loss_aux = {k: [] for k in res[1].keys()}
           if not isinstance(res[1], dict):
-            raise ValueError(f'Auxiliary data in loss function should be a dict. '
-                             f'But we got {type(res)}')
+            raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
           for k, v in res[1].items():
-            all_train_loss_aux[k].append(v)
+            if k not in fit_epoch_metric:
+              fit_epoch_metric[k] = []
+            fit_epoch_metric[k].append(v)
 
         # report
-        train_i += 1
-        if train_i % num_report == 0:
-          t1 = time.time()
-          msg = f'Train {train_i} steps, use {t1 - t0:.4f} s, train loss {round(float(loss), 5)}'
+        fit_i += 1
+        if num_report > 0 and fit_i % num_report == 0:
+          fit_t1 = time.time()
+          aux = {}
+          for k, v in fit_epoch_metric.items():
+            aux[k] = np.mean(np.asarray(v))
+            if k not in report_train_metric:
+              report_train_metric[k] = []
+              detailed_train_metric[k] = []
+            report_train_metric[k].append(aux[k])
+            detailed_train_metric[k].extend(v)
+            v.clear()
+          print((f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
+                 ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
+                file=self.logger)
+          fit_t0 = time.time()
+          fit_t = 0
+
+      if num_report <= 0:
+        fit_t1 = time.time()
+        aux = {}
+        for k, v in fit_epoch_metric.items():
+          aux[k] = np.mean(np.asarray(v))
+          if k not in report_train_metric:
+            report_train_metric[k] = []
+            detailed_train_metric[k] = []
+          report_train_metric[k].append(aux[k])
+          detailed_train_metric[k].extend(v)
+          v.clear()
+        print((f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
+               ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
+              file=self.logger)
+      else:
+        fit_t = time.time() - fit_t0
+
+      # testing set
+      if test_data is not None:
+        test_t0 = time.time()
+        test_epoch_metric = dict(loss=[])
+        for x, y in (test_data() if callable(test_data) else test_data):
+          # reset state
+          if reset_state:
+            self.target.reset_state(self._get_batch_size(x))
+            self.reset_state()
+
+          # training
+          res = self._get_f_loss(shared_args)(x, y)
+
+          # loss
+          test_epoch_metric['loss'].append(res[0])
           if self.loss_has_aux:
-            msg += ', {}'.format(", ".join([f"{k} {v}" for k, v in res[1].items()]))
-          print(msg)
-          t0 = t1
+            if not isinstance(res[1], dict):
+              raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
+            for k, v in res[1].items():
+              test_epoch_metric.get(k, []).append(v)
+
+          # report
+          test_i += 1
+          if num_report > 0 and test_i % num_report == 0:
+            test_t1 = time.time()
+            aux = {}
+            for k, v in test_epoch_metric.items():
+              aux[k] = np.mean(np.asarray(v))
+              if k not in report_test_metric:
+                report_test_metric[k] = []
+                detailed_test_metric[k] = []
+              report_test_metric[k].append(aux[k])
+              detailed_test_metric[k].extend(v)
+              v.clear()
+            print((f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
+                   ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
+                  file=self.logger)
+            test_t0 = time.time()
+            test_t = 0
+
+        if num_report <= 0:
+          test_t1 = time.time()
+          aux = {}
+          for k, v in fit_epoch_metric.items():
+            aux[k] = np.mean(np.asarray(v))
+            if k not in report_test_metric:
+              report_test_metric[k] = []
+              detailed_test_metric[k] = []
+            report_test_metric[k].append(aux[k])
+            detailed_test_metric[k].extend(v)
+            v.clear()
+          print((f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
+                 ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
+                file=self.logger)
+        else:
+          test_t = time.time() - test_t0
 
     # finally
-    self._train_losses = bm.asarray(all_train_losses)
-    if all_train_loss_aux is None:
-      self._train_loss_aux = dict()
-    else:
-      self._train_loss_aux = {k: bm.asarray(v) for k, v in all_train_loss_aux.items()}
+    self._report_train_metrics = {k: np.asarray(v) for k, v in report_train_metric.items()}
+    self._detailed_train_metrics = {k: np.asarray(v) for k, v in detailed_train_metric.items()}
+    self._report_test_metrics = {k: np.asarray(v) for k, v in report_test_metric.items()}
+    self._detailed_test_metrics = {k: np.asarray(v) for k, v in detailed_test_metric.items()}
     self.progress_bar = true_progress_bar
 
-  def _get_batchable_data(self, data, num_batch, shuffle=False):
-    if callable(data):
-      data = self._get_data_by_callable(data, num_batch)
-    elif isinstance(data, (tuple, list)):
-      if len(data) != 2:
-        raise ValueError(f"Must be (X, Y) pair, but got a sequence with "
-                         f"length {len(data)}")
-      data = self._get_data_by_tensor(data, num_batch=num_batch, shuffle=shuffle)
-    else:
-      raise ValueError(f'Train data does not support {type(data)}. ')
-    return data
-
   def _get_batch_size(self, xs, batch_axis=0):
-    if isinstance(xs, (bm.JaxArray, jnp.ndarray)):
+    if isinstance(xs, (bm.Array, jnp.ndarray)):
       return xs.shape[batch_axis]
     else:
       num_batch_sizes = [leaf.shape[batch_axis] for leaf in tree_flatten(xs, is_leaf=_is_jax_array)[0]]
@@ -259,16 +387,10 @@ class BPTrainer(DSTrainer):
                          f'the provided "xs". We got {set(num_batch_sizes)}.')
       return num_batch_sizes[0]
 
-  def _get_data_by_callable(self, dataset, num_batch):
+  def _get_f_train(self, shared_args=None) -> Callable:
     raise NotImplementedError
 
-  def _get_data_by_tensor(self, dataset, num_batch=None, shuffle=False):
-    raise NotImplementedError
-
-  def f_train(self, shared_args=None) -> Callable:
-    raise NotImplementedError
-
-  def f_loss(self, shared_args=None) -> Callable:
+  def _get_f_loss(self, shared_args=None) -> Callable:
     raise NotImplementedError
 
 
@@ -278,7 +400,7 @@ class BPTT(BPTrainer):
   algorithm for recurrent neural networks.
   """
 
-  def f_loss(self, shared_args=None, jit=True) -> Callable:
+  def _get_f_loss(self, shared_args=None, jit=True) -> Callable:
     """Get loss function."""
     if shared_args is None: shared_args = dict()
 
@@ -305,11 +427,11 @@ class BPTT(BPTrainer):
                                                         dyn_vars=dyn_vars)
     return self._f_loss_compiled[shared_args_str]
 
-  def f_grad(self, shared_args=None) -> Callable:
+  def _get_f_grad(self, shared_args=None) -> Callable:
     """Get gradient function."""
     shared_args_str = serialize_kwargs(shared_args)
     if shared_args_str not in self._f_grad_compiled:
-      _f_loss_internal = self.f_loss(shared_args, jit=False)
+      _f_loss_internal = self._get_f_loss(shared_args, jit=False)
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
@@ -322,7 +444,7 @@ class BPTT(BPTrainer):
       self._f_grad_compiled[shared_args_str] = grad_f
     return self._f_grad_compiled[shared_args_str]
 
-  def f_train(self, shared_args=None) -> Callable:
+  def _get_f_train(self, shared_args=None) -> Callable:
     """Get training function."""
     if shared_args is None: shared_args = dict()
     if not isinstance(shared_args, dict):
@@ -333,7 +455,7 @@ class BPTT(BPTrainer):
     if shared_args_str not in self._f_train_compiled:
 
       def train_func(inputs, targets):
-        res = self.f_grad(shared_args)(inputs, targets)
+        res = self._get_f_grad(shared_args)(inputs, targets)
         self.optimizer.update(res[0])
         return res[1:]
 
@@ -347,41 +469,8 @@ class BPTT(BPTrainer):
         self._f_train_compiled[shared_args_str] = train_func
     return self._f_train_compiled[shared_args_str]
 
-  def _get_data_by_callable(self, dataset: Callable, num_batch=None):
-    for xs, ys in dataset():
-      yield xs, ys
 
-  def _get_data_by_tensor(self, dataset, num_batch=None, shuffle=False):
-    if num_batch is None:
-      raise ValueError('Must provide "batch_size" when dataset is not a callable function.')
-    assert isinstance(dataset, (tuple, list)) and len(dataset) == 2
-    xs, ys = dataset
-    num_sample = self._get_batch_size(xs)
-    if shuffle:
-      xs, ys = self._shuffle(xs, ys)
-    for data_idx in range(0, num_sample, num_batch):
-      if (data_idx + num_batch) > num_sample:
-        inputs = tree_map(lambda v: v[data_idx:], xs, is_leaf=_is_jax_array)
-        targets = tree_map(lambda v: v[data_idx:], ys, is_leaf=_is_jax_array)
-      else:
-        inputs = tree_map(lambda v: v[data_idx: data_idx + num_batch], xs, is_leaf=_is_jax_array)
-        targets = tree_map(lambda v: v[data_idx: data_idx + num_batch], ys, is_leaf=_is_jax_array)
-      yield inputs, targets
-
-  def _shuffle(self, xs, ys):
-    key = self.rng.split_key()
-
-    if self._f_shuffle is None:
-      def shuffle(xs, ys, key):
-        xs = tree_map(lambda x: self.rng.permutation(x, key=key), xs)
-        ys = tree_map(lambda y: self.rng.permutation(y, key=key), ys)
-        return xs, ys
-
-      self._f_shuffle = bm.jit(shuffle)
-    return self._f_shuffle(xs, ys, key)
-
-
-class BPFF(BPTT):
+class BPFF(BPTrainer):
   """
   The trainer implementing back propagation algorithm
   for feedforward neural networks.
@@ -438,32 +527,7 @@ class BPFF(BPTT):
         self.mon[key] = np.asarray(self.mon[key])
     return outputs
 
-  def f_loss(self, shared_args=None, jit=True) -> Callable:
-    """Get loss function."""
-    if shared_args is None: shared_args = dict()
-
-    shared_args2 = {k: v for k, v in shared_args.items()}
-    shared_args2['_local_jit_'] = jit
-    shared_args_str = serialize_kwargs(shared_args2)
-    if shared_args_str not in self._f_loss_compiled:
-
-      def loss_fun(inputs, targets):
-        outputs, mon = self.f_predict(shared_args)(inputs)
-        outs = (outputs, mon) if len(mon) > 0 else outputs
-        loss = self._loss_func(outs, targets)
-        return loss
-
-      if self.jit[c.LOSS_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self.dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
-                                                        dyn_vars=dyn_vars)
-      else:
-        self._f_loss_compiled[shared_args_str] = loss_fun
-    return self._f_loss_compiled[shared_args_str]
-
-  def f_predict(self, shared_args: Dict = None, jit: bool = True):
+  def _get_f_predict(self, shared_args: Dict = None, jit: bool = True):
     if shared_args is None: shared_args = DotDict()
     if not isinstance(shared_args, dict):
       raise ValueError(f'"shared_args" must be a dict, '
@@ -474,7 +538,7 @@ class BPFF(BPTT):
     shared_args_str = serialize_kwargs(shared_args)
     if shared_args_str not in self._f_predict_compiled:
 
-      monitor_func = self.build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
+      monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
 
       def run_func(xs):
         outs = self.target(shared_args, xs)
@@ -490,10 +554,77 @@ class BPFF(BPTT):
         self._f_predict_compiled[shared_args_str] = run_func
     return self._f_predict_compiled[shared_args_str]
 
+  def _get_f_loss(self, shared_args=None, jit=True) -> Callable:
+    """Get loss function."""
+    if shared_args is None: shared_args = dict()
+
+    shared_args2 = {k: v for k, v in shared_args.items()}
+    shared_args2['_local_jit_'] = jit
+    shared_args_str = serialize_kwargs(shared_args2)
+    if shared_args_str not in self._f_loss_compiled:
+
+      def loss_fun(inputs, targets):
+        outputs, mon = self._get_f_predict(shared_args)(inputs)
+        outs = (outputs, mon) if len(mon) > 0 else outputs
+        loss = self._loss_func(outs, targets)
+        return loss
+
+      if self.jit[c.LOSS_PHASE] and jit:
+        dyn_vars = self.target.vars()
+        dyn_vars.update(self.dyn_vars)
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
+                                                        dyn_vars=dyn_vars)
+      else:
+        self._f_loss_compiled[shared_args_str] = loss_fun
+    return self._f_loss_compiled[shared_args_str]
+
+  def _get_f_grad(self, shared_args=None) -> Callable:
+    """Get gradient function."""
+    shared_args_str = serialize_kwargs(shared_args)
+    if shared_args_str not in self._f_grad_compiled:
+      _f_loss_internal = self._get_f_loss(shared_args, jit=False)
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self.dyn_vars)
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+      tran_vars = dyn_vars.subset(bm.TrainVar)
+      grad_f = bm.grad(_f_loss_internal,
+                       dyn_vars=dyn_vars.unique(),
+                       grad_vars=tran_vars.unique(),
+                       return_value=True,
+                       has_aux=self.loss_has_aux)
+      self._f_grad_compiled[shared_args_str] = grad_f
+    return self._f_grad_compiled[shared_args_str]
+
+  def _get_f_train(self, shared_args=None) -> Callable:
+    """Get training function."""
+    if shared_args is None: shared_args = dict()
+    if not isinstance(shared_args, dict):
+      raise ValueError(f'Only supports dict for "shared_args". '
+                       f'But got {type(shared_args)}: {shared_args}')
+
+    shared_args_str = serialize_kwargs(shared_args)
+    if shared_args_str not in self._f_train_compiled:
+
+      def train_func(inputs, targets):
+        res = self._get_f_grad(shared_args)(inputs, targets)
+        self.optimizer.update(res[0])
+        return res[1:]
+
+      if self.jit[c.FIT_PHASE]:
+        dyn_vars = self.target.vars()
+        dyn_vars.update(self.dyn_vars)
+        dyn_vars.update(self.optimizer.vars())
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+        self._f_train_compiled[shared_args_str] = bm.jit(train_func, dyn_vars=dyn_vars.unique())
+      else:
+        self._f_train_compiled[shared_args_str] = train_func
+    return self._f_train_compiled[shared_args_str]
+
 
 class OnlineBPTT(BPTT):
 
-  def f_loss(self, shared_args=None, jit=True) -> Callable:
+  def _get_f_loss(self, shared_args=None, jit=True) -> Callable:
     """Get loss function."""
     if shared_args is None: shared_args = dict()
 
@@ -503,7 +634,7 @@ class OnlineBPTT(BPTT):
     if shared_args_str not in self._f_loss_compiled:
 
       def loss_fun(t, i, input_, target_):
-        outputs, mon = self.f_predict_one_step(shared_args)(t, i, input_)
+        outputs, mon = self._get_f_predict_one_step(shared_args)(t, i, input_)
         predicts = (outputs, mon) if len(mon) > 0 else outputs
         return self._loss_func(predicts, target_)
 
@@ -517,7 +648,7 @@ class OnlineBPTT(BPTT):
         self._f_loss_compiled[shared_args_str] = loss_fun
     return self._f_loss_compiled[shared_args_str]
 
-  def f_train(self, shared_args=None) -> Callable:
+  def _get_f_train(self, shared_args=None) -> Callable:
     """Get training function."""
     if shared_args is None: shared_args = dict()
     if not isinstance(shared_args, dict):
@@ -528,7 +659,7 @@ class OnlineBPTT(BPTT):
 
       def train_step(*x):
         # t, i, input_, target_ = x
-        res = self.f_grad(shared_args)(*x)
+        res = self._get_f_grad(shared_args)(*x)
         self.optimizer.update(res[0])
         return res[1:]
 
@@ -536,7 +667,7 @@ class OnlineBPTT(BPTT):
         dyn_vars = self.target.vars()
         dyn_vars.update(self.dyn_vars)
         dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        run_func = lambda all_inputs: bm.for_loop(train_step, dyn_vars.unique(), all_inputs)
+        run_func = lambda all_inputs: bm.for_loop(train_step, all_inputs, dyn_vars=dyn_vars.unique())
 
       else:
         def run_func(xs):
@@ -564,7 +695,7 @@ class OnlineBPTT(BPTT):
       self._f_train_compiled[shared_args_str] = train_fun
     return self._f_train_compiled[shared_args_str]
 
-  def f_predict_one_step(self, shared_args: Dict = None, jit: bool = False):
+  def _get_f_predict_one_step(self, shared_args: Dict = None, jit: bool = False):
     if shared_args is None: shared_args = DotDict()
     if not isinstance(shared_args, dict):
       raise ValueError(f'"shared_args" must be a dict, '
@@ -576,7 +707,7 @@ class OnlineBPTT(BPTT):
     shared_args_str = serialize_kwargs(shared_args)
     if shared_args_str not in self._f_predict_compiled:
 
-      monitor_func = self.build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
+      monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
 
       def run_func(t, i, x):
         shared = DotDict(t=t, i=i, dt=self.dt)
@@ -594,3 +725,7 @@ class OnlineBPTT(BPTT):
       else:
         self._f_predict_compiled[shared_args_str] = run_func
     return self._f_predict_compiled[shared_args_str]
+
+
+class OTTT(BPTrainer):
+  pass

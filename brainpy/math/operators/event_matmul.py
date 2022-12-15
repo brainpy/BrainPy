@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
 from typing import Tuple
 
 import brainpylib
@@ -17,7 +18,7 @@ def event_csr_matvec(values: Array,
                      indices: Array,
                      indptr: Array,
                      events: Array,
-                     shape: Tuple[int, ...],
+                     shape: Tuple[int, int],
                      transpose: bool = False):
   """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.
 
@@ -44,6 +45,7 @@ def event_csr_matvec(values: Array,
     A tensor with the shape of ``shape[1]`` if `transpose=True`,
     or ``shape[0]`` if `transpose=False`.
   """
+  warnings.warn('Please use ``brainpylib.event_ops.event_csr_matvec()`` instead.', UserWarning)
   events = as_jax(events)
   indices = as_jax(indices)
   indptr = as_jax(indptr)

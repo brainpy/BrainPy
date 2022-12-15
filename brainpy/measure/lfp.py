@@ -111,4 +111,4 @@ def unitary_LFP(times, spikes, spike_type='exc',
   tts = times[iis] + delay[ids]
   exc_amp = A[ids]
   tau = (2 * sig_e * sig_e) if spike_type == 'exc' else (2 * sig_i * sig_i)
-  return bm.for_loop(lambda t: bm.sum(exc_amp * bm.exp(-(t - tts) ** 2 / tau)), [], times)
+  return bm.for_loop(lambda t: bm.sum(exc_amp * bm.exp(-(t - tts) ** 2 / tau)), times)

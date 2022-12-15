@@ -9,7 +9,7 @@ from jax.tree_util import tree_map
 
 import brainpy.math as bm
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.base import Base
+from brainpy.base import BrainPyObject
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
 from brainpy.modes import TrainingMode
@@ -86,7 +86,7 @@ class OnlineTrainer(DSTrainer):
       node.online_init()
 
     # update dynamical variables
-    if isinstance(self.fit_method, Base):
+    if isinstance(self.fit_method, BrainPyObject):
       self.dyn_vars.update(self.fit_method.vars().unique())
 
     # training function
@@ -186,7 +186,7 @@ class OnlineTrainer(DSTrainer):
     # post-running for monitors
     hists['ts'] = times + self.dt
     if self.numpy_mon_after_run:
-      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
     self.i0 += times.shape[0]
@@ -218,7 +218,7 @@ class OnlineTrainer(DSTrainer):
     _fit_func = self._get_fit_func(shared_args)
     hists = _fit_func(xs + (ys,))
     hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists,
-                     is_leaf=lambda x: isinstance(x, bm.JaxArray))
+                     is_leaf=lambda x: isinstance(x, bm.Array))
     return hists
 
   def _get_fit_func(self, shared_args: Dict = None):
@@ -232,7 +232,7 @@ class OnlineTrainer(DSTrainer):
     if not isinstance(shared_args, dict):
       raise ValueError(f'"shared_kwargs" must be a dict, but got {type(shared_args)}')
 
-    monitor_func = self.build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
+    monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
 
     def _step_func(t, i, x, ys):
       shared = DotDict(t=t, dt=self.dt, i=i)
@@ -262,7 +262,7 @@ class OnlineTrainer(DSTrainer):
       dyn_vars = self.target.vars()
       dyn_vars.update(self.dyn_vars)
       dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-      return lambda all_inputs: bm.for_loop(_step_func, dyn_vars.unique(), all_inputs)
+      return lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
 
     else:
       def run_func(all_inputs):
@@ -304,7 +304,7 @@ class OnlineTrainer(DSTrainer):
             f'interface "online_init()" function. '
           )
 
-  def build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
+  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
     if shared_args.get('fit', False):
       def func(tdi):
         res = {k: v.value for k, v in return_without_idx.items()}
