@@ -114,7 +114,7 @@ class EINet(bp.dyn.Network):
 class TestOpRegister(unittest.TestCase):
   def test_op(self):
 
-    fig, gs = bp.visualize.get_figure(1, 1, 4, 5)
+    fig, gs = bp.visualize.get_figure(1, 2, 4, 5)
 
     net = EINet(ExponentialSyn, scale=1., method='euler')
     runner = bp.dyn.DSRunner(
