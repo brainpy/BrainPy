@@ -53,8 +53,8 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
    tutorial_advanced/compilation.ipynb
    tutorial_advanced/differentiation.ipynb
    tutorial_advanced/adavanced_lowdim_analysis.ipynb
-   tutorial_advanced/operator_customization.ipynb
    tutorial_advanced/interoperation.ipynb
+   tutorial_advanced/brainpy_ecosystem.ipynb
 
 
 
