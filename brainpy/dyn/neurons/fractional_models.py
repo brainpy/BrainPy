@@ -10,7 +10,7 @@ from brainpy.integrators.fde import GLShortMemory
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.tools.checking import check_float, check_integer
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 
 __all__ = [
   'FractionalNeuron',
@@ -83,16 +83,16 @@ class FractionalFHR(FractionalNeuron):
       size: Shape,
       alpha: Union[float, Sequence[float]],
       num_memory: int = 1000,
-      a: Union[float, Array, Initializer, Callable] = 0.7,
-      b: Union[float, Array, Initializer, Callable] = 0.8,
-      c: Union[float, Array, Initializer, Callable] = -0.775,
-      d: Union[float, Array, Initializer, Callable] = 1.,
-      delta: Union[float, Array, Initializer, Callable] = 0.08,
-      mu: Union[float, Array, Initializer, Callable] = 0.0001,
-      Vth: Union[float, Array, Initializer, Callable] = 1.8,
-      V_initializer: Union[Initializer, Callable, Array] = OneInit(2.5),
-      w_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      y_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
+      a: Union[float, ArrayType, Initializer, Callable] = 0.7,
+      b: Union[float, ArrayType, Initializer, Callable] = 0.8,
+      c: Union[float, ArrayType, Initializer, Callable] = -0.775,
+      d: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delta: Union[float, ArrayType, Initializer, Callable] = 0.08,
+      mu: Union[float, ArrayType, Initializer, Callable] = 0.0001,
+      Vth: Union[float, ArrayType, Initializer, Callable] = 1.8,
+      V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.5),
+      w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      y_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       name: str = None,
       keep_size: bool = False,
   ):
@@ -227,18 +227,18 @@ class FractionalIzhikevich(FractionalNeuron):
       size: Shape,
       alpha: Union[float, Sequence[float]],
       num_memory: int,
-      a: Union[float, Array, Initializer, Callable] = 0.02,
-      b: Union[float, Array, Initializer, Callable] = 0.20,
-      c: Union[float, Array, Initializer, Callable] = -65.,
-      d: Union[float, Array, Initializer, Callable] = 8.,
-      f: Union[float, Array, Initializer, Callable] = 0.04,
-      g: Union[float, Array, Initializer, Callable] = 5.,
-      h: Union[float, Array, Initializer, Callable] = 140.,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 1.,
-      V_th: Union[float, Array, Initializer, Callable] = 30.,
-      V_initializer: Union[Initializer, Callable, Array] = OneInit(-65.),
-      u_initializer: Union[Initializer, Callable, Array] = OneInit(0.20 * -65.),
+      a: Union[float, ArrayType, Initializer, Callable] = 0.02,
+      b: Union[float, ArrayType, Initializer, Callable] = 0.20,
+      c: Union[float, ArrayType, Initializer, Callable] = -65.,
+      d: Union[float, ArrayType, Initializer, Callable] = 8.,
+      f: Union[float, ArrayType, Initializer, Callable] = 0.04,
+      g: Union[float, ArrayType, Initializer, Callable] = 5.,
+      h: Union[float, ArrayType, Initializer, Callable] = 140.,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 1.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 30.,
+      V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-65.),
+      u_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.20 * -65.),
       keep_size: bool = False,
       name: str = None
   ):

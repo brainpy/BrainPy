@@ -19,7 +19,7 @@ from brainpy.running import constants as c
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others import DotDict
 from brainpy.train.base import DSTrainer
-from brainpy.types import Array, Output
+from brainpy.types import ArrayType, Output
 from .utils import msg
 
 __all__ = [
@@ -159,7 +159,7 @@ class BPTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
+      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       reset_state: bool = True,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -172,7 +172,7 @@ class BPTrainer(DSTrainer):
 
     Parameters
     ----------
-    inputs: Array, sequence, dict
+    inputs: ArrayType, sequence, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
     shared_args: dict
@@ -283,7 +283,7 @@ class BPTrainer(DSTrainer):
           fit_t1 = time.time()
           aux = {}
           for k, v in fit_epoch_metric.items():
-            aux[k] = np.mean(np.asarray(v))
+            aux[k] = bm.mean(bm.asarray(v))
             if k not in report_train_metric:
               report_train_metric[k] = []
               detailed_train_metric[k] = []
@@ -332,7 +332,9 @@ class BPTrainer(DSTrainer):
             if not isinstance(res[1], dict):
               raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
             for k, v in res[1].items():
-              test_epoch_metric.get(k, []).append(v)
+              if k not in test_epoch_metric:
+                test_epoch_metric[k] = []
+              test_epoch_metric[k].append(v)
 
           # report
           test_i += 1
@@ -356,8 +358,8 @@ class BPTrainer(DSTrainer):
         if num_report <= 0:
           test_t1 = time.time()
           aux = {}
-          for k, v in fit_epoch_metric.items():
-            aux[k] = np.mean(np.asarray(v))
+          for k, v in test_epoch_metric.items():
+            aux[k] = bm.mean(bm.asarray(v))
             if k not in report_test_metric:
               report_test_metric[k] = []
               detailed_test_metric[k] = []
@@ -479,7 +481,7 @@ class BPFF(BPTrainer):
 
   def predict(
       self,
-      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
+      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       reset_state: bool = True,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -492,7 +494,7 @@ class BPFF(BPTrainer):
 
     Parameters
     ----------
-    inputs: Array, dict
+    inputs: ArrayType, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
     reset_state: bool
@@ -504,7 +506,7 @@ class BPFF(BPTrainer):
 
     Returns
     -------
-    output: Array, dict
+    output: ArrayType, dict
       The model output.
     """
     # format input data

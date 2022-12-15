@@ -12,7 +12,7 @@ from brainpy.dyn.base import Channel
 from brainpy.initialize import OneInit, Initializer, parameter, variable
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 from brainpy.modes import Mode, BatchingMode, normal
 from .base import Calcium, CalciumChannel
 
@@ -46,8 +46,8 @@ class CalciumFixed(Calcium):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = 120.,
-      C: Union[float, Array, Initializer, Callable] = 2.4e-4,
+      E: Union[float, ArrayType, Initializer, Callable] = 120.,
+      C: Union[float, ArrayType, Initializer, Callable] = 2.4e-4,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -82,11 +82,11 @@ class CalciumDyna(Calcium):
     The ion size.
   keep_size: bool
     Keep the geometry size.
-  C0: float, Array, Initializer, Callable
+  C0: float, ArrayType, Initializer, Callable
     The Calcium concentration outside of membrane.
-  T: float, Array, Initializer, Callable
+  T: float, ArrayType, Initializer, Callable
     The temperature.
-  C_initializer: Initializer, Callable, Array
+  C_initializer: Initializer, Callable, ArrayType
     The initializer for Calcium concentration.
   method: str
     The numerical method.
@@ -100,9 +100,9 @@ class CalciumDyna(Calcium):
       self,
       size: Shape,
       keep_size: bool = False,
-      C0: Union[float, Array, Initializer, Callable] = 2.,
-      T: Union[float, Array, Initializer, Callable] = 36.,
-      C_initializer: Union[Initializer, Callable, Array] = OneInit(2.4e-4),
+      C0: Union[float, ArrayType, Initializer, Callable] = 2.,
+      T: Union[float, ArrayType, Initializer, Callable] = 36.,
+      C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -263,12 +263,12 @@ class CalciumDetailed(CalciumDyna):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array, Initializer, Callable] = 36.,
-      d: Union[float, Array, Initializer, Callable] = 1.,
-      C_rest: Union[float, Array, Initializer, Callable] = 2.4e-4,
-      tau: Union[float, Array, Initializer, Callable] = 5.,
-      C0: Union[float, Array, Initializer, Callable] = 2.,
-      C_initializer: Union[Initializer, Callable, Array] = OneInit(2.4e-4),
+      T: Union[float, ArrayType, Initializer, Callable] = 36.,
+      d: Union[float, ArrayType, Initializer, Callable] = 1.,
+      C_rest: Union[float, ArrayType, Initializer, Callable] = 2.4e-4,
+      tau: Union[float, ArrayType, Initializer, Callable] = 5.,
+      C0: Union[float, ArrayType, Initializer, Callable] = 2.,
+      C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -308,11 +308,11 @@ class CalciumFirstOrder(CalciumDyna):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array, Initializer, Callable] = 36.,
-      alpha: Union[float, Array, Initializer, Callable] = 0.13,
-      beta: Union[float, Array, Initializer, Callable] = 0.075,
-      C0: Union[float, Array, Initializer, Callable] = 2.,
-      C_initializer: Union[Initializer, Callable, Array] = OneInit(2.4e-4),
+      T: Union[float, ArrayType, Initializer, Callable] = 36.,
+      alpha: Union[float, ArrayType, Initializer, Callable] = 0.13,
+      beta: Union[float, ArrayType, Initializer, Callable] = 0.075,
+      C0: Union[float, ArrayType, Initializer, Callable] = 2.,
+      C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -365,11 +365,11 @@ class ICa_p2q_ss(CalciumChannel):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
-  phi_p : float, Array, Callable, Initializer
+  phi_p : float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : float, Array, Callable, Initializer
+  phi_q : float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   """
@@ -378,9 +378,9 @@ class ICa_p2q_ss(CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      phi_p: Union[float, Array, Initializer, Callable] = 3.,
-      phi_q: Union[float, Array, Initializer, Callable] = 3.,
-      g_max: Union[float, Array, Initializer, Callable] = 2.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 3.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 3.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
       mode: Mode = normal,
       name: str = None
@@ -458,11 +458,11 @@ class ICa_p2q_markov(CalciumChannel):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
-  phi_p : float, Array, Callable, Initializer
+  phi_p : float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : float, Array, Callable, Initializer
+  phi_q : float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   """
@@ -471,9 +471,9 @@ class ICa_p2q_markov(CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      phi_p: Union[float, Array, Initializer, Callable] = 3.,
-      phi_q: Union[float, Array, Initializer, Callable] = 3.,
-      g_max: Union[float, Array, Initializer, Callable] = 2.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 3.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 3.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -573,9 +573,9 @@ class ICaN_IS2008(CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = 10.,
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      phi: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = 10.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -637,19 +637,19 @@ class ICaT_HM1992(ICa_p2q_ss):
 
   Parameters
   ----------
-  T : float, Array
+  T : float, ArrayType
     The temperature.
-  T_base_p : float, Array
+  T_base_p : float, ArrayType
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Array
+  T_base_q : float, ArrayType
     The base temperature factor of :math:`q` channel.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -667,13 +667,13 @@ class ICaT_HM1992(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array] = 36.,
-      T_base_p: Union[float, Array] = 3.55,
-      T_base_q: Union[float, Array] = 3.,
-      g_max: Union[float, Array, Initializer, Callable] = 2.,
-      V_sh: Union[float, Array, Initializer, Callable] = -3.,
-      phi_p: Union[float, Array, Initializer, Callable] = None,
-      phi_q: Union[float, Array, Initializer, Callable] = None,
+      T: Union[float, ArrayType] = 36.,
+      T_base_p: Union[float, ArrayType] = 3.55,
+      T_base_q: Union[float, ArrayType] = 3.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = -3.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = None,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -734,19 +734,19 @@ class ICaT_HP1992(ICa_p2q_ss):
 
   Parameters
   ----------
-  T : float, Array
+  T : float, ArrayType
     The temperature.
-  T_base_p : float, Array
+  T_base_p : float, ArrayType
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Array
+  T_base_q : float, ArrayType
     The base temperature factor of :math:`q` channel.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -765,13 +765,13 @@ class ICaT_HP1992(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array] = 36.,
-      T_base_p: Union[float, Array] = 5.,
-      T_base_q: Union[float, Array] = 3.,
-      g_max: Union[float, Array, Initializer, Callable] = 1.75,
-      V_sh: Union[float, Array, Initializer, Callable] = -3.,
-      phi_p: Union[float, Array, Initializer, Callable] = None,
-      phi_q: Union[float, Array, Initializer, Callable] = None,
+      T: Union[float, ArrayType] = 36.,
+      T_base_p: Union[float, ArrayType] = 5.,
+      T_base_q: Union[float, ArrayType] = 3.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.75,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = -3.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = None,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -835,15 +835,15 @@ class ICaHT_HM1992(ICa_p2q_ss):
 
   Parameters
   ----------
-  T : float, Array
+  T : float, ArrayType
     The temperature.
-  T_base_p : float, Array
+  T_base_p : float, ArrayType
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Array
+  T_base_q : float, ArrayType
     The base temperature factor of :math:`q` channel.
-  g_max : float, Array, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximum conductance.
-  V_sh : float, Array, Initializer, Callable
+  V_sh : float, ArrayType, Initializer, Callable
     The membrane potential shift.
 
   References
@@ -860,11 +860,11 @@ class ICaHT_HM1992(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array] = 36.,
-      T_base_p: Union[float, Array] = 3.55,
-      T_base_q: Union[float, Array] = 3.,
-      g_max: Union[float, Array, Initializer, Callable] = 2.,
-      V_sh: Union[float, Array, Initializer, Callable] = 25.,
+      T: Union[float, ArrayType] = 36.,
+      T_base_p: Union[float, ArrayType] = 3.55,
+      T_base_q: Union[float, ArrayType] = 3.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 25.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -935,20 +935,20 @@ class ICaHT_Re1993(ICa_p2q_markov):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  T : float, Array
+  T : float, ArrayType
     The temperature.
-  T_base_p : float, Array
+  T_base_p : float, ArrayType
     The base temperature factor of :math:`p` channel.
-  T_base_q : float, Array
+  T_base_q : float, ArrayType
     The base temperature factor of :math:`q` channel.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
     If `None`, :math:`\phi_p = \mathrm{T_base_p}^{\frac{T-23}{10}}`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
     If `None`, :math:`\phi_q = \mathrm{T_base_q}^{\frac{T-23}{10}}`.
 
@@ -965,13 +965,13 @@ class ICaHT_Re1993(ICa_p2q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array] = 36.,
-      T_base_p: Union[float, Array] = 2.3,
-      T_base_q: Union[float, Array] = 2.3,
-      phi_p: Union[float, Array, Initializer, Callable] = None,
-      phi_q: Union[float, Array, Initializer, Callable] = None,
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      T: Union[float, ArrayType] = 36.,
+      T_base_p: Union[float, ArrayType] = 2.3,
+      T_base_q: Union[float, ArrayType] = 2.3,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = None,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = None,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -1054,11 +1054,11 @@ class ICaL_IS2008(ICa_p2q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[float, Array, Initializer, Callable] = 36.,
-      T_base_p: Union[float, Array, Initializer, Callable] = 3.55,
-      T_base_q: Union[float, Array, Initializer, Callable] = 3.,
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      T: Union[float, ArrayType, Initializer, Callable] = 36.,
+      T_base_p: Union[float, ArrayType, Initializer, Callable] = 3.55,
+      T_base_q: Union[float, ArrayType, Initializer, Callable] = 3.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,

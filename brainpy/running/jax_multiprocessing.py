@@ -7,7 +7,7 @@ from jax import vmap, pmap
 from jax.tree_util import tree_unflatten, tree_flatten
 
 import brainpy.math as bm
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'jax_vectorize_map',
@@ -17,7 +17,7 @@ __all__ = [
 
 def jax_vectorize_map(
     func: callable,
-    arguments: Union[Dict[str, Array], Sequence[Array]],
+    arguments: Union[Dict[str, ArrayType], Sequence[ArrayType]],
     num_parallel: int,
     clear_buffer: bool = False
 ):
@@ -80,7 +80,7 @@ def jax_vectorize_map(
 
 def jax_parallelize_map(
     func: callable,
-    arguments: Union[Dict[str, Array], Sequence[Array]],
+    arguments: Union[Dict[str, ArrayType], Sequence[ArrayType]],
     num_parallel: int,
     clear_buffer: bool = False
 ):

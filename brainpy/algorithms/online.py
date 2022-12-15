@@ -34,16 +34,16 @@ class OnlineAlgorithm(BrainPyObject):
     ----------
     identifier: str
       The variable name.
-    target: Array, ndarray
+    target: ArrayType
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: Array, ndarray
+    input: ArrayType
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: Array, ndarray
+    output: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
     -------
-    weight: Array
+    weight: ArrayType
       The weights after fit.
     """
     return self.call(identifier, target, input, output)
@@ -58,16 +58,16 @@ class OnlineAlgorithm(BrainPyObject):
     ----------
     identifier: str
       The variable name.
-    target: Array, ndarray
+    target: ArrayType
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: Array, ndarray
+    input: ArrayType
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: Array, ndarray
+    output: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
     -------
-    weight: Array
+    weight: ArrayType
       The weights after fit.
     """
     raise NotImplementedError('Must implement the call() function by the subclass itself.')

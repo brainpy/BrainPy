@@ -13,12 +13,12 @@ from jax.tree_util import tree_flatten, tree_map
 import brainpy.math as bm
 from brainpy import optimizers as optim, losses
 from brainpy.analysis import utils, base, constants
-from brainpy.base import TensorCollector
+from brainpy.base import ArrayCollector
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import build_inputs, check_and_format_inputs
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.tools.others.dicts import DotDict
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'SlowPointFinder',
@@ -136,11 +136,11 @@ class SlowPointFinder(base.DSAnalyzer):
 
     # update function
     if target_vars is None:
-      self.target_vars = TensorCollector()
+      self.target_vars = ArrayCollector()
     else:
       if not isinstance(target_vars, dict):
         raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
-      self.target_vars = TensorCollector(target_vars)
+      self.target_vars = ArrayCollector(target_vars)
     excluded_vars = () if excluded_vars is None else excluded_vars
     if isinstance(excluded_vars, dict):
       excluded_vars = tuple(excluded_vars.values())
@@ -295,7 +295,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def find_fps_with_gd_method(
       self,
-      candidates: Union[Array, Dict[str, Array]],
+      candidates: Union[ArrayType, Dict[str, ArrayType]],
       tolerance: Union[float, Dict[str, float]] = 1e-5,
       num_batch: int = 100,
       num_opt: int = 10000,
@@ -305,7 +305,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    candidates : Array, dict
+    candidates : ArrayType, dict
       The array with the shape of (batch size, state dim) of hidden states
       of RNN to start training for fixed points.
 
@@ -335,7 +335,7 @@ class SlowPointFinder(base.DSAnalyzer):
     # set up optimization
     num_candidate = self._check_candidates(candidates)
     if not (isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)) or isinstance(candidates, dict)):
-      raise ValueError('Candidates must be instance of Array or dict of Array.')
+      raise ValueError('Candidates must be instance of ArrayType or dict of ArrayType.')
     fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.Array))
     f_eval_loss = self._get_f_eval_loss()
 
@@ -401,14 +401,14 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def find_fps_with_opt_solver(
       self,
-      candidates: Union[Array, Dict[str, Array]],
+      candidates: Union[ArrayType, Dict[str, ArrayType]],
       opt_solver: str = 'BFGS'
   ):
     """Optimize fixed points with nonlinear optimization solvers.
 
     Parameters
     ----------
-    candidates: Array, dict
+    candidates: ArrayType, dict
       The candidate (initial) fixed points.
     opt_solver: str
       The solver of the optimization.
@@ -535,7 +535,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def compute_jacobians(
       self,
-      points: Union[Array, Dict[str, Array]],
+      points: Union[ArrayType, Dict[str, ArrayType]],
       stack_dict_var: bool = True,
       plot: bool = False,
       num_col: int = 4,
@@ -546,7 +546,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    points: np.ndarray, bm.Array, jax.ndarray
+    points: np.ndarray, bm.ArrayType, jax.ndarray
       The fixed points with the shape of (num_point, num_dim).
     stack_dict_var: bool
       Stack dictionary variables to calculate Jacobian matrix?
@@ -606,7 +606,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    matrices: np.ndarray, bm.Array, jax.ndarray
+    matrices: np.ndarray, bm.ArrayType, jax.ndarray
       A 3D array with the shape of (num_matrices, dim, dim).
     sort_by: str
       The method of sorting.

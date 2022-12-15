@@ -71,7 +71,7 @@ class FunAsObject(BrainPyObject):
     # variables
     # ---
     if dyn_vars is not None:
-      self.implicit_vars = collector.TensorCollector()
+      self.implicit_vars = collector.ArrayCollector()
       global math
       if math is None: from brainpy import math
       if isinstance(dyn_vars, math.ndarray):

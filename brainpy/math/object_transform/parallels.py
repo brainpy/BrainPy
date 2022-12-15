@@ -25,7 +25,7 @@ except ImportError:
 
 from brainpy import errors
 from brainpy.base.base import BrainPyObject
-from brainpy.base.collector import TensorCollector
+from brainpy.base.collector import ArrayCollector
 from brainpy.math.random import RandomState
 from brainpy.math.ndarray import Array
 from brainpy.tools.codes import change_func_name
@@ -128,7 +128,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
   #
   #     # dynamical variables
   #     dyn_vars = (dyn_vars or func.vars().unique())
-  #     dyn_vars, rand_vars = TensorCollector(), TensorCollector()
+  #     dyn_vars, rand_vars = ArrayCollector(), ArrayCollector()
   #     for key, val in dyn_vars.items():
   #       if isinstance(val, RandomState):
   #         rand_vars[key] = val
@@ -217,7 +217,7 @@ def vmap(func, dyn_vars=None, batched_vars=None,
       assert isinstance(dyn_vars, dict)
 
       # dynamical variables
-      _dyn_vars, _rand_vars = TensorCollector(), TensorCollector()
+      _dyn_vars, _rand_vars = ArrayCollector(), ArrayCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           _rand_vars[key] = val
@@ -357,8 +357,8 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
   #
   #     # dynamical variables
   #     all_vars = (dyn_vars or func.vars().unique())
-  #     dyn_vars = TensorCollector()
-  #     rand_vars = TensorCollector()
+  #     dyn_vars = ArrayCollector()
+  #     rand_vars = ArrayCollector()
   #     for key, val in all_vars.items():
   #       if isinstance(val, RandomState):
   #         rand_vars[key] = val
@@ -419,8 +419,8 @@ def pmap(func, dyn_vars=None, axis_name=None, in_axes=0, out_axes=0, static_broa
                       global_arg_shapes=global_arg_shapes)
     else:
       # dynamical variables
-      dyn_vars = TensorCollector()
-      rand_vars = TensorCollector()
+      dyn_vars = ArrayCollector()
+      rand_vars = ArrayCollector()
       for key, val in dyn_vars.items():
         if isinstance(val, RandomState):
           rand_vars[key] = val

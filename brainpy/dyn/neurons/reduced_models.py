@@ -12,7 +12,7 @@ from brainpy.initialize import (ZeroInit, OneInit, Initializer,
 from brainpy.integrators import sdeint, odeint, JointEq
 from brainpy.modes import Mode, NormalMode, BatchingMode, TrainingMode, normal, check_mode
 from brainpy.tools.checking import check_initializer, check_callable
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 
 __all__ = [
   'LeakyIntegrator',
@@ -49,15 +49,15 @@ class LeakyIntegrator(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  V_rest: float, Array, ndarray, Initializer, callable
+  V_rest: float, ArrayType, Initializer, callable
     Resting membrane potential.
-  R: float, Array, ndarray, Initializer, callable
+  R: float, ArrayType, Initializer, callable
     Membrane resistance.
-  tau: float, Array, ndarray, Initializer, callable
+  tau: float, ArrayType, Initializer, callable
     Membrane time constant.
-  V_initializer: Array, ndarray, Initializer, callable
+  V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  noise: Array, ndarray, Initializer, callable
+  noise: ArrayType, Initializer, callable
     The noise added onto the membrane potential
   method: str
     The numerical integration method.
@@ -73,11 +73,11 @@ class LeakyIntegrator(NeuGroup):
       keep_size: bool = False,
 
       # neuron parameters
-      V_rest: Union[float, Array, Initializer, Callable] = 0.,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = 0.,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
 
       # other parameter
       name: str = None,
@@ -153,21 +153,21 @@ class LIF(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  V_rest: float, Array, ndarray, Initializer, callable
+  V_rest: float, ArrayType, Initializer, callable
     Resting membrane potential.
-  V_reset: float, Array, ndarray, Initializer, callable
+  V_reset: float, ArrayType, Initializer, callable
     Reset potential after spike.
-  V_th: float, Array, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     Threshold potential of spike.
-  R: float, Array, ndarray, Initializer, callable
+  R: float, ArrayType, Initializer, callable
     Membrane resistance.
-  tau: float, Array, ndarray, Initializer, callable
+  tau: float, ArrayType, Initializer, callable
     Membrane time constant.
-  tau_ref: float, Array, ndarray, Initializer, callable
+  tau_ref: float, ArrayType, Initializer, callable
     Refractory period length.(ms)
-  V_initializer: Array, ndarray, Initializer, callable
+  V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  noise: Array, ndarray, Initializer, callable
+  noise: ArrayType, Initializer, callable
     The noise added onto the membrane potential
   method: str
     The numerical integration method.
@@ -187,14 +187,14 @@ class LIF(NeuGroup):
       keep_size: bool = False,
 
       # other parameter
-      V_rest: Union[float, Array, Initializer, Callable] = 0.,
-      V_reset: Union[float, Array, Initializer, Callable] = -5.,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
-      tau_ref: Optional[Union[float, Array, Initializer, Callable]] = None,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Optional[Union[float, Array, Initializer, Callable]] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = 0.,
+      V_reset: Union[float, ArrayType, Initializer, Callable] = -5.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      tau_ref: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       name: Optional[str] = None,
 
@@ -400,16 +400,16 @@ class ExpIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Union[float, Array, Initializer, Callable] = -65.,
-      V_reset: Union[float, Array, Initializer, Callable] = -68.,
-      V_th: Union[float, Array, Initializer, Callable] = -30.,
-      V_T: Union[float, Array, Initializer, Callable] = -59.9,
-      delta_T: Union[float, Array, Initializer, Callable] = 3.48,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
-      tau_ref: Union[float, Array, Initializer, Callable] = None,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Initializer, Callable] = -68.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = -30.,
+      V_T: Union[float, ArrayType, Initializer, Callable] = -59.9,
+      delta_T: Union[float, ArrayType, Initializer, Callable] = 3.48,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       keep_size: bool = False,
       mode: Mode = normal,
       method: str = 'exp_auto',
@@ -569,20 +569,20 @@ class AdExIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Union[float, Array, Initializer, Callable] = -65.,
-      V_reset: Union[float, Array, Initializer, Callable] = -68.,
-      V_th: Union[float, Array, Initializer, Callable] = -30.,
-      V_T: Union[float, Array, Initializer, Callable] = -59.9,
-      delta_T: Union[float, Array, Initializer, Callable] = 3.48,
-      a: Union[float, Array, Initializer, Callable] = 1.,
-      b: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
-      tau_w: Union[float, Array, Initializer, Callable] = 30.,
-      tau_ref: Optional[Union[float, Array, Initializer, Callable]] = 30.,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      w_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Optional[Union[float, Array, Initializer, Callable]] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Initializer, Callable] = -68.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = -30.,
+      V_T: Union[float, ArrayType, Initializer, Callable] = -59.9,
+      delta_T: Union[float, ArrayType, Initializer, Callable] = 3.48,
+      a: Union[float, ArrayType, Initializer, Callable] = 1.,
+      b: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      tau_w: Union[float, ArrayType, Initializer, Callable] = 30.,
+      tau_ref: Optional[Union[float, ArrayType, Initializer, Callable]] = 30.,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       mode: Mode = normal,
@@ -744,16 +744,16 @@ class QuaIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Union[float, Array, Initializer, Callable] = -65.,
-      V_reset: Union[float, Array, Initializer, Callable] = -68.,
-      V_th: Union[float, Array, Initializer, Callable] = -30.,
-      V_c: Union[float, Array, Initializer, Callable] = -50.0,
-      c: Union[float, Array, Initializer, Callable] = .07,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
-      tau_ref: Union[float, Array, Initializer, Callable] = None,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Initializer, Callable] = -68.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = -30.,
+      V_c: Union[float, ArrayType, Initializer, Callable] = -50.0,
+      c: Union[float, ArrayType, Initializer, Callable] = .07,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       keep_size: bool = False,
       mode: Mode = normal,
       method: str = 'exp_auto',
@@ -912,18 +912,18 @@ class AdQuaIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Union[float, Array, Initializer, Callable] = -65.,
-      V_reset: Union[float, Array, Initializer, Callable] = -68.,
-      V_th: Union[float, Array, Initializer, Callable] = -30.,
-      V_c: Union[float, Array, Initializer, Callable] = -50.0,
-      a: Union[float, Array, Initializer, Callable] = 1.,
-      b: Union[float, Array, Initializer, Callable] = .1,
-      c: Union[float, Array, Initializer, Callable] = .07,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
-      tau_w: Union[float, Array, Initializer, Callable] = 10.,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      w_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Initializer, Callable] = -68.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = -30.,
+      V_c: Union[float, ArrayType, Initializer, Callable] = -50.0,
+      a: Union[float, ArrayType, Initializer, Callable] = 1.,
+      b: Union[float, ArrayType, Initializer, Callable] = .1,
+      c: Union[float, ArrayType, Initializer, Callable] = .07,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      tau_w: Union[float, ArrayType, Initializer, Callable] = 10.,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       mode: Mode = normal,
@@ -1085,25 +1085,25 @@ class GIF(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      V_rest: Union[float, Array, Initializer, Callable] = -70.,
-      V_reset: Union[float, Array, Initializer, Callable] = -70.,
-      V_th_inf: Union[float, Array, Initializer, Callable] = -50.,
-      V_th_reset: Union[float, Array, Initializer, Callable] = -60.,
-      R: Union[float, Array, Initializer, Callable] = 20.,
-      tau: Union[float, Array, Initializer, Callable] = 20.,
-      a: Union[float, Array, Initializer, Callable] = 0.,
-      b: Union[float, Array, Initializer, Callable] = 0.01,
-      k1: Union[float, Array, Initializer, Callable] = 0.2,
-      k2: Union[float, Array, Initializer, Callable] = 0.02,
-      R1: Union[float, Array, Initializer, Callable] = 0.,
-      R2: Union[float, Array, Initializer, Callable] = 1.,
-      A1: Union[float, Array, Initializer, Callable] = 0.,
-      A2: Union[float, Array, Initializer, Callable] = 0.,
-      V_initializer: Union[Initializer, Callable, Array] = OneInit(-70.),
-      I1_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      I2_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      Vth_initializer: Union[Initializer, Callable, Array] = OneInit(-50.),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -70.,
+      V_reset: Union[float, ArrayType, Initializer, Callable] = -70.,
+      V_th_inf: Union[float, ArrayType, Initializer, Callable] = -50.,
+      V_th_reset: Union[float, ArrayType, Initializer, Callable] = -60.,
+      R: Union[float, ArrayType, Initializer, Callable] = 20.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 20.,
+      a: Union[float, ArrayType, Initializer, Callable] = 0.,
+      b: Union[float, ArrayType, Initializer, Callable] = 0.01,
+      k1: Union[float, ArrayType, Initializer, Callable] = 0.2,
+      k2: Union[float, ArrayType, Initializer, Callable] = 0.02,
+      R1: Union[float, ArrayType, Initializer, Callable] = 0.,
+      R2: Union[float, ArrayType, Initializer, Callable] = 1.,
+      A1: Union[float, ArrayType, Initializer, Callable] = 0.,
+      A2: Union[float, ArrayType, Initializer, Callable] = 0.,
+      V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-70.),
+      I1_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      I2_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      Vth_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-50.),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None,
@@ -1256,18 +1256,18 @@ class ALIFBellec2020(NeuGroup):
       keep_size: bool = False,
 
       # model parameters
-      V_rest: Union[float, Array, Initializer, Callable] = -70.,
-      V_th: Union[float, Array, Initializer, Callable] = -60.,
-      R: Union[float, Array, Initializer, Callable] = 1.,
-      beta: Union[float, Array, Initializer, Callable] = 1.6,
-      tau: Union[float, Array, Initializer, Callable] = 20.,
-      tau_a: Union[float, Array, Initializer, Callable] = 2000.,
-      tau_ref: Union[float, Array, Initializer, Callable] = None,
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -70.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = -60.,
+      R: Union[float, ArrayType, Initializer, Callable] = 1.,
+      beta: Union[float, ArrayType, Initializer, Callable] = 1.6,
+      tau: Union[float, ArrayType, Initializer, Callable] = 20.,
+      tau_a: Union[float, ArrayType, Initializer, Callable] = 2000.,
+      tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
 
       # initializers
-      V_initializer: Union[Initializer, Callable, Array] = OneInit(-70.),
-      a_initializer: Union[Initializer, Callable, Array] = OneInit(-50.),
+      V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-70.),
+      a_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-50.),
 
       # parameter for training
       spike_fun: Callable = bm.spike_with_linear_grad,
@@ -1454,15 +1454,15 @@ class Izhikevich(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      a: Union[float, Array, Initializer, Callable] = 0.02,
-      b: Union[float, Array, Initializer, Callable] = 0.20,
-      c: Union[float, Array, Initializer, Callable] = -65.,
-      d: Union[float, Array, Initializer, Callable] = 8.,
-      V_th: Union[float, Array, Initializer, Callable] = 30.,
-      tau_ref: Union[float, Array, Initializer, Callable] = None,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      u_initializer: Union[Initializer, Callable, Array] = OneInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      a: Union[float, ArrayType, Initializer, Callable] = 0.02,
+      b: Union[float, ArrayType, Initializer, Callable] = 0.20,
+      c: Union[float, ArrayType, Initializer, Callable] = -65.,
+      d: Union[float, ArrayType, Initializer, Callable] = 8.,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 30.,
+      tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      u_initializer: Union[Initializer, Callable, ArrayType] = OneInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       mode: Mode = normal,
       spike_fun: Callable = bm.spike_with_sigmoid_grad,
@@ -1679,18 +1679,18 @@ class HindmarshRose(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      a: Union[float, Array, Initializer, Callable] = 1.,
-      b: Union[float, Array, Initializer, Callable] = 3.,
-      c: Union[float, Array, Initializer, Callable] = 1.,
-      d: Union[float, Array, Initializer, Callable] = 5.,
-      r: Union[float, Array, Initializer, Callable] = 0.01,
-      s: Union[float, Array, Initializer, Callable] = 4.,
-      V_rest: Union[float, Array, Initializer, Callable] = -1.6,
-      V_th: Union[float, Array, Initializer, Callable] = 1.0,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      y_initializer: Union[Initializer, Callable, Array] = OneInit(-10.),
-      z_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      a: Union[float, ArrayType, Initializer, Callable] = 1.,
+      b: Union[float, ArrayType, Initializer, Callable] = 3.,
+      c: Union[float, ArrayType, Initializer, Callable] = 1.,
+      d: Union[float, ArrayType, Initializer, Callable] = 5.,
+      r: Union[float, ArrayType, Initializer, Callable] = 0.01,
+      s: Union[float, ArrayType, Initializer, Callable] = 4.,
+      V_rest: Union[float, ArrayType, Initializer, Callable] = -1.6,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 1.0,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      y_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-10.),
+      z_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None,
@@ -1863,13 +1863,13 @@ class FHN(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      a: Union[float, Array, Initializer, Callable] = 0.7,
-      b: Union[float, Array, Initializer, Callable] = 0.8,
-      tau: Union[float, Array, Initializer, Callable] = 12.5,
-      Vth: Union[float, Array, Initializer, Callable] = 1.8,
-      V_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      w_initializer: Union[Initializer, Callable, Array] = ZeroInit(),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      a: Union[float, ArrayType, Initializer, Callable] = 0.7,
+      b: Union[float, ArrayType, Initializer, Callable] = 0.8,
+      tau: Union[float, ArrayType, Initializer, Callable] = 12.5,
+      Vth: Union[float, ArrayType, Initializer, Callable] = 1.8,
+      V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
       name: str = None,

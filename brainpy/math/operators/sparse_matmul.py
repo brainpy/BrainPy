@@ -30,7 +30,7 @@ def _matmul_with_left_sparse(
   ----------
   sparse: dict
     The sparse matrix with shape of :math:`(N, M)`.
-  dense: Array, jnp.ndarray
+  dense: ArrayType
     The dense matrix with the shape of :math:`(M, K)`.
 
   Returns
@@ -68,7 +68,7 @@ def _matmul_with_right_sparse(
 
   Parameters
   ----------
-  dense: Array, jnp.ndarray
+  dense: ArrayType
     The dense matrix with the shape of :math:`(N, M)`.
   sparse: dict
     The sparse matrix with shape of :math:`(M, K)`.
@@ -125,10 +125,10 @@ def sparse_matmul(A, B):
   >>> sparse = {'data': values, 'index': (rows, cols), 'shape': (3, 4)}
   >>> B = bm.arange(4)
   >>> bm.sparse_matmul(sparse, B)
-  Array([14,  0,  9], dtype=int32)
+  ArrayType([14,  0,  9], dtype=int32)
   >>> B = bm.random.rand(4, 3)
   >>> bm.sparse_matmul(sparse, B)
-  Array([[3.8331761 , 1.3708692 , 4.510223  ],
+  ArrayType([[3.8331761 , 1.3708692 , 4.510223  ],
             [0.9960836 , 0.37550318, 0.7370341 ],
             [2.3700516 , 0.7574289 , 4.1124535 ]], dtype=float32)
 
@@ -136,10 +136,10 @@ def sparse_matmul(A, B):
 
   >>> A = bm.arange(3)
   >>> bm.sparse_matmul(A, sparse)
-  Array([1, 6, 0, 4], dtype=int32)
+  ArrayType([1, 6, 0, 4], dtype=int32)
   >>> A = bm.random.rand(2, 3)
   >>> bm.sparse_matmul(A, sparse)
-  Array([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
+  ArrayType([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
             [0.9171978 , 1.1214957 , 0.        , 0.90534496]],  dtype=float32)
 
   Parameters
@@ -151,7 +151,7 @@ def sparse_matmul(A, B):
 
   Returns
   -------
-  results: Array, jnp.ndarray
+  results: ArrayType
     The tensor with the shape of :math:`(N, K)`.
   """
   if isinstance(A, dict):

@@ -50,7 +50,7 @@ SUPPORTED_SYN_STRUCTURE = [CONN_MAT,
                            COO, CSR, CSC]
 
 MAT_DTYPE = jnp.bool_
-IDX_DTYPE = jnp.uint32
+IDX_DTYPE = jnp.int32
 
 
 def set_default_dtype(mat_dtype=None, idx_dtype=None):
@@ -66,17 +66,17 @@ def set_default_dtype(mat_dtype=None, idx_dtype=None):
   >>>
   >>> conn = bp.conn.GridFour()(4, 4)
   >>> conn.require('conn_mat')
-  Array(DeviceArray([[False,  True, False, False],
-                        [ True, False,  True, False],
-                        [False,  True, False,  True],
-                        [False, False,  True, False]], dtype=bool))
+  Array([[False,  True, False, False],
+         [ True, False,  True, False],
+         [False,  True, False,  True],
+         [False, False,  True, False]], dtype=bool)
   >>> bp.conn.set_default_dtype(mat_dtype=np.float32)
   >>> conn = bp.conn.GridFour()(4, 4)
   >>> conn.require('conn_mat')
-  Array(DeviceArray([[0., 1., 0., 0.],
-                        [1., 0., 1., 0.],
-                        [0., 1., 0., 1.],
-                        [0., 0., 1., 0.]], dtype=float32))
+  Array([[0., 1., 0., 0.],
+         [1., 0., 1., 0.],
+         [0., 1., 0., 1.],
+         [0., 0., 1., 0.]], dtype=float32)
 
   Parameters
   ----------

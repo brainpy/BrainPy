@@ -7,7 +7,7 @@ from jax.lax import cond, rsqrt
 
 import brainpy.math as bm
 from brainpy.base.base import BrainPyObject
-from brainpy.base.collector import TensorCollector
+from brainpy.base.collector import ArrayCollector
 from brainpy.errors import MathError
 from .scheduler import make_schedule, Scheduler
 
@@ -38,7 +38,7 @@ class Optimizer(BrainPyObject):
   lr: Scheduler  # learning rate
   '''Learning rate'''
 
-  vars_to_train: TensorCollector  # variables to train
+  vars_to_train: ArrayCollector  # variables to train
   '''Variables to train.'''
 
   def __init__(
@@ -49,7 +49,7 @@ class Optimizer(BrainPyObject):
   ):
     super(Optimizer, self).__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
-    self.vars_to_train = TensorCollector()
+    self.vars_to_train = ArrayCollector()
     self.register_vars(train_vars)
 
   def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):

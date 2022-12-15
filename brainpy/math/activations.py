@@ -91,7 +91,7 @@ def celu(x, alpha=1.0):
 
   Parameters
   ----------
-  x : Array, jnp.ndarray
+  x : ArrayType
     The input array.
   alpha : ndarray, float
     The default is 1.0.
@@ -145,7 +145,7 @@ def gelu(x, approximate=True):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   approximate: bool
     whether to use the approximate or exact formulation.
@@ -165,7 +165,7 @@ def glu(x, axis=-1):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   axis: int
     The axis along which the split should be computed (default: -1)
@@ -191,7 +191,7 @@ def hard_tanh(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   x = x.value if isinstance(x, Array) else x
@@ -208,7 +208,7 @@ def hard_sigmoid(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   return relu6(x + 3.) / 6.
@@ -224,7 +224,7 @@ def hard_silu(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   return x * hard_sigmoid(x)
@@ -248,7 +248,7 @@ def leaky_relu(x, negative_slope=1e-2):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   negative_slope : float
     The scalar specifying the negative slope (default: 0.01)
@@ -267,7 +267,7 @@ def softplus(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   x = x.value if isinstance(x, Array) else x
@@ -284,7 +284,7 @@ def log_sigmoid(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   return -softplus(-x)
@@ -302,7 +302,7 @@ def log_softmax(x, axis=-1):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   axis: int
     The axis or axes along which the :code:`log_softmax` should be
@@ -404,7 +404,7 @@ def relu6(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   x = x.value if isinstance(x, Array) else x
@@ -421,7 +421,7 @@ def sigmoid(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   x = x.value if isinstance(x, Array) else x
@@ -438,7 +438,7 @@ def soft_sign(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   x = x.value if isinstance(x, Array) else x
@@ -456,7 +456,7 @@ def softmax(x, axis=-1):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   axis: int
     The axis or axes along which the softmax should be computed. The
@@ -478,7 +478,7 @@ def silu(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   x = x.value if isinstance(x, Array) else x
@@ -508,7 +508,7 @@ def selu(x):
 
   Parameters
   ----------
-  x: Array, jnp.ndarray
+  x: ArrayType
     The input array.
   """
   alpha = 1.6732632423543772848170429916717

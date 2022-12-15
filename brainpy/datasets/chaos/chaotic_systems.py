@@ -142,11 +142,11 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
   ----------
   duration: int
   dt: float, int, optional
-  beta: float, Array
-  gamma: float, Array
-  tau: float, Array
-  n: float, Array
-  inits: optional, float, Array
+  beta: float, ArrayType
+  gamma: float, ArrayType
+  tau: float, ArrayType
+  n: float, ArrayType
+  inits: optional, float, ArrayType
   method: str
   seed: optional, int
   progress_bar: bool
@@ -177,12 +177,16 @@ def mackey_glass_series(duration, dt=0.1, beta=2., gamma=1., tau=2., n=9.65,
     xtau = xdelay(t - tau)
     return beta * xtau / (1 + xtau ** n) - gamma * x
 
-  runner = IntegratorRunner(mg_eq,
-                            inits={'x': inits},
-                            monitors=['x'],
-                            fun_monitors={'x(tau)': lambda t, _: xdelay(t - tau)},
-                            progress_bar=progress_bar, dt=dt,
-                            numpy_mon_after_run=numpy_mon)
+  runner = IntegratorRunner(
+    mg_eq,
+    inits={'x': inits},
+    monitors=['x'],
+    fun_monitors={'x(tau)': lambda t, _: xdelay(t - tau)},
+    progress_bar=progress_bar,
+    dt=dt,
+    numpy_mon_after_run=numpy_mon,
+    jit=True
+  )
   runner.run(duration)
   return {'ts': runner.mon.ts,
           'x': runner.mon['x'],
@@ -234,6 +238,7 @@ def rabinovich_fabrikant_series(duration, dt=0.001, alpha=1.1, gamma=0.803,
   .. [7] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Rabinovich_Fabrikant_eq.html
 
   """
+
   @odeint(method=method)
   def rf_eqs(x, y, z, t):
     dx = y * (z - 1 + x * x) + gamma * x
@@ -277,6 +282,7 @@ def lu_chen_chaotic_series(duration, dt=0.001, a=36, c=20, b=3, u=-15.15,
   ----------
   .. [8] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Lu-Chen-attractor
   """
+
   @odeint(method=method)
   def lu_chen_system(x, y, z, t):
     dx = a * (y - x)
@@ -298,6 +304,7 @@ def chua_chaotic_series(duration, dt=0.001, alpha=10, beta=14.514, gamma=0, a=-1
   ----------
   .. [9] https://brainpy-examples.readthedocs.io/en/latest/classical_dynamical_systems/Multiscroll_attractor.html#Chua%E2%80%99s-system
   """
+
   @odeint(method=method)
   def chua_equation(x, y, z, t):
     fx = b * x + 0.5 * (a - b) * (bm.abs(x + 1) - bm.abs(x - 1))
@@ -356,8 +363,6 @@ def modified_Lorenz_series(duration, dt=0.001, a=10, b=8 / 3, c=137 / 5,
                                default_inits=dict(x=-8, y=4, z=10),
                                duration=duration, dt=dt, inits=inits,
                                numpy_mon=numpy_mon)
-
-
 
 
 def PWL_duffing_series(duration, dt=0.001, e=0.25, m0=-0.0845, m1=0.66, omega=1, i=-14,

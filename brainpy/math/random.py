@@ -407,13 +407,13 @@ class RandomState(Variable):
 
     Parameters
     ----------
-    seed_or_key: int, Array, optional
+    seed_or_key: int, ArrayType, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
 
       .. versionadded:: 2.2.3.4
 
-    seed : int, Array, optional
+    seed : int, ArrayType, optional
       Same as `seed_or_key`.
 
       .. deprecated:: 2.2.3.4
@@ -455,13 +455,13 @@ class RandomState(Variable):
 
     Parameters
     ----------
-    seed_or_key: int, Array, optional
+    seed_or_key: int, ArrayType, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
 
       .. versionadded:: 2.2.3.4
 
-    seed : int, Array, optional
+    seed : int, ArrayType, optional
       Same as `seed_or_key`.
 
       .. deprecated:: 2.2.3.4

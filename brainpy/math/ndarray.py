@@ -29,7 +29,7 @@ __all__ = [
 
 _all_slice = slice(None, None, None)
 
-msg = ('Array created outside of the jit function '
+msg = ('ArrayType created outside of the jit function '
        'cannot be updated in JIT mode. You should '
        'mark it as brainpy.math.Variable instead.')
 
@@ -176,14 +176,20 @@ class Array(object):
     print_code = repr(self.value)
     name = self.__class__.__name__
     if 'DeviceArray' in print_code:
-      print_code = print_code.replace('DeviceArray', name)
+      replace_name = 'DeviceArray'
+    elif 'Array' in print_code:
+      replace_name = 'Array'
+    else:
+      replace_name = ''
+    if replace_name:
+      print_code = print_code.replace(replace_name, name)
       lines = print_code.split("\n")
-      if len(name) > len('DeviceArray'):
-        num_len = len(name) - len('DeviceArray')
+      if len(name) > len(replace_name):
+        num_len = len(name) - len(replace_name)
         for i in range(1, len(lines)):
           lines[i] = " " * num_len + lines[i]
       else:
-        num_len = len('DeviceArray') - len(name)
+        num_len = len(replace_name) - len(name)
         for i in range(1, len(lines)):
           lines[i] = lines[i][num_len:]
       print_code = "\n".join(lines)
@@ -925,6 +931,10 @@ class Array(object):
 
   def __jax_array__(self):
     return self.value
+
+  def as_variable(self):
+    """As an instance of Variable."""
+    return Variable(self)
 
 
 JaxArray = Array

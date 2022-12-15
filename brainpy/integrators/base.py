@@ -139,7 +139,7 @@ class Integrator(AbstractIntegrator):
       if isinstance(delay, bm.LengthDelay):
         delay.update(dict_vars[key])
       elif isinstance(delay, bm.TimeDelay):
-        delay.update(kwargs['t'] + dt, dict_vars[key])
+        delay.update(dict_vars[key])
       else:
         raise ValueError('Unknown delay variable. We only supports '
                          'brainpy.math.LengthDelay, brainpy.math.TimeDelay. '

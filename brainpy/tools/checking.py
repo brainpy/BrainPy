@@ -8,7 +8,7 @@ import numpy as onp
 
 import brainpy.connect as conn
 import brainpy.initialize as init
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'check_shape_consistency',
@@ -184,7 +184,7 @@ def check_callable(fun: Callable,
   return fun
 
 
-def check_initializer(initializer: Union[Callable, init.Initializer, Array],
+def check_initializer(initializer: Union[Callable, init.Initializer, ArrayType],
                       name: str = None,
                       allow_none: bool = False):
   """Check the initializer.
@@ -208,7 +208,7 @@ def check_initializer(initializer: Union[Callable, init.Initializer, Array],
                      f'tensor or callable function. While we got {type(initializer)}')
 
 
-def check_connector(connector: Union[Callable, conn.Connector, Array],
+def check_connector(connector: Union[Callable, conn.Connector, ArrayType],
                     name: str = None, allow_none=False):
   """Check the connector.
   """

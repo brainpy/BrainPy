@@ -7,6 +7,7 @@ math = None
 
 __all__ = [
   'Collector',
+  'ArrayCollector',
   'TensorCollector',
 ]
 
@@ -108,7 +109,7 @@ class Collector(dict):
     >>> # get all trainable variables
     >>> some_collector.subset(bp.math.TrainVar)
     >>>
-    >>> # get all Array
+    >>> # get all Variable
     >>> some_collector.subset(bp.math.Variable)
 
     or, it can be used to get a subset of integrators:
@@ -142,7 +143,7 @@ class Collector(dict):
     return gather
 
 
-class TensorCollector(Collector):
+class ArrayCollector(Collector):
   """A ArrayCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
@@ -195,3 +196,6 @@ class TensorCollector(Collector):
       return cls(other)
     else:
       raise TypeError
+
+
+TensorCollector = ArrayCollector

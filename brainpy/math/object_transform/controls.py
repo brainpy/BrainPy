@@ -14,7 +14,7 @@ except ImportError:
 
 from brainpy import errors, tools
 from brainpy.base.naming import get_unique_name
-from brainpy.base import TensorCollector
+from brainpy.base import ArrayCollector
 from brainpy.math.ndarray import (Array, Variable,
                                   add_context,
                                   del_context)
@@ -160,7 +160,7 @@ def make_loop(
             [ 9.],
             [10.]], dtype=float32)
   >>> hist_b_plus
-  Array([[ 2.],
+  ArrayType([[ 2.],
             [ 3.],
             [ 4.],
             [ 5.],
@@ -175,9 +175,9 @@ def make_loop(
   ----------
   body_fun : callable, function
     A function receive one argument. This argument refers to the iterable input ``x``.
-  dyn_vars : dict of Array, sequence of Array
+  dyn_vars : dict of ArrayType, sequence of ArrayType
     The dynamically changed variables, while iterate between trials.
-  out_vars : optional, Array, dict of Array, sequence of Array
+  out_vars : optional, ArrayType, dict of ArrayType, sequence of ArrayType
     The variables to output their values.
   has_return : bool
     The function has the return values.
@@ -241,7 +241,7 @@ def make_while(
   """Make a while-loop function.
 
   This function is similar to the ``jax.lax.while_loop``. The difference is that,
-  if you are using ``Array`` in your while loop codes, this function will help
+  if you are using ``Variable`` in your while loop codes, this function will help
   you make an easy while loop function. Note: ``cond_fun`` and ``body_fun`` do no
   receive any arguments. ``cond_fun`` shoule return a boolean value. ``body_fun``
   does not support return values.
@@ -266,7 +266,7 @@ def make_while(
     A function receives one argument, but return a boolean value.
   body_fun : function, callable
     A function receives one argument, without any returns.
-  dyn_vars : dict of Array, sequence of Array
+  dyn_vars : dict of ArrayType, sequence of ArrayType
     The dynamically changed variables, while iterate between trials.
 
   Returns
@@ -353,7 +353,7 @@ def make_cond(
     A function receives one argument, without any returns.
   false_fun : callable, function
     A function receives one argument, without any returns.
-  dyn_vars : dict of Array, sequence of Array
+  dyn_vars : dict of ArrayType, sequence of ArrayType
     The dynamically changed variables.
 
   Returns
@@ -461,10 +461,10 @@ def cond(
   ----------
   pred: bool
     Boolean scalar type, indicating which branch function to apply.
-  true_fun: callable, jnp.ndarray, Array, float, int, bool
+  true_fun: callable, ArrayType, float, int, bool
     Function to be applied if ``pred`` is True.
     This function must receive one arguement for ``operands``.
-  false_fun: callable, jnp.ndarray, Array, float, int, bool
+  false_fun: callable, ArrayType, float, int, bool
     Function to be applied if ``pred`` is False.
     This function must receive one arguement for ``operands``.
   operands: Any
@@ -609,9 +609,10 @@ def ifelse(
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
   if dyn_vars is None:
-    dyn_vars = TensorCollector()
-    for f in branches:
-      dyn_vars += infer_dyn_vars(f)
+    dyn_vars = ArrayCollector()
+    if auto_infer:
+      for f in branches:
+        dyn_vars += infer_dyn_vars(f)
   if isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):

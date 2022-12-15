@@ -11,7 +11,7 @@ from brainpy.base.base import BrainPyObject
 from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
 from brainpy.math.ndarray import ndarray, Variable, Array
-from brainpy.math.setting import get_dt
+from brainpy.math.setting import get_dt, dftype
 from brainpy.tools.checking import check_float, check_integer
 from brainpy.tools.errors import check_error_in_jit
 
@@ -72,7 +72,7 @@ class TimeDelay(AbstractDelay):
 
   Parameters
   ----------
-  delay_target: Array, ndarray, Variable
+  delay_target: ArrayType
     The initial delay data.
   t0: float, int
     The zero time.
@@ -139,13 +139,14 @@ class TimeDelay(AbstractDelay):
     # time variables
     self.idx = Variable(jnp.asarray([0]))
     check_float(t0, 't0', allow_none=False, allow_int=True, )
-    self.current_time = Variable(jnp.asarray([t0]))
+    self.current_time = Variable(jnp.asarray([t0], dtype=dftype()))
 
     # delay data
     batch_axis = None
     if hasattr(delay_target, 'batch_axis') and (delay_target.batch_axis is not None):
       batch_axis = delay_target.batch_axis + 1
-    self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape, dtype=delay_target.dtype),
+    self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape,
+                                   dtype=delay_target.dtype),
                          batch_axis=batch_axis)
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
@@ -175,13 +176,13 @@ class TimeDelay(AbstractDelay):
 
     Parameters
     ----------
-    delay_target: Array, ndarray, Variable
+    delay_target: ArrayType
       The delay target.
     delay_len: float, int
       The maximum delay length. The unit is the time.
     t0: int, float
       The zero time.
-    before_t0: int, float, ndarray, Array
+    before_t0: int, float, ArrayType
       The data before t0.
     """
     self.delay_len = delay_len
@@ -212,8 +213,12 @@ class TimeDelay(AbstractDelay):
     # check
     if check.is_checking():
       current_time = self.current_time[0]
-      check_error_in_jit(time > current_time + 1e-6, self._check_time1, (time, current_time))
-      check_error_in_jit(time < current_time - self.delay_len - self.dt, self._check_time2, (time, current_time))
+      check_error_in_jit(time > current_time + 1e-6,
+                         self._check_time1,
+                         (time, current_time))
+      check_error_in_jit(time < current_time - self.delay_len - self.dt,
+                         self._check_time2,
+                         (time, current_time))
     if self._before_type == _FUNC_BEFORE:
       res = cond(time < self.t0,
                  self._before_t0,
@@ -251,9 +256,9 @@ class TimeDelay(AbstractDelay):
     idx %= self.num_delay_step
     return self._interp_fun(extra, jnp.asarray([0., self.dt]), self.data[idx])
 
-  def update(self, time, value):
+  def update(self, value):
     self.data[self.idx[0]] = value
-    self.current_time[0] = time
+    self.current_time += self.dt
     self.idx.value = (self.idx + 1) % self.num_delay_step
 
 
@@ -411,7 +416,7 @@ class LengthDelay(AbstractDelay):
 
     Parameters
     ----------
-    delay_len: int, Array
+    delay_len: int, ArrayType
       The delay length used to retrieve the data.
     """
     if check.is_checking():
