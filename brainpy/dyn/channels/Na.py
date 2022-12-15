@@ -10,7 +10,7 @@ from typing import Union, Callable
 import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Array, Shape
+from brainpy.types import ArrayType, Shape
 from brainpy.modes import Mode, BatchingMode, normal
 from .base import SodiumChannel
 
@@ -39,11 +39,11 @@ class INa_p3q_markov(SodiumChannel):
 
   Parameters
   ----------
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Array, Callable, Initializer
+  E : float, ArrayType, Callable, Initializer
     The reversal potential (mV).
-  phi : float, Array, Callable, Initializer
+  phi : float, ArrayType, Callable, Initializer
     The temperature-dependent factor.
   method: str
     The numerical method
@@ -56,9 +56,9 @@ class INa_p3q_markov(SodiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, Array, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Array, Initializer, Callable] = 90.,
-      phi: Union[int, float, Array, Initializer, Callable] = 1.,
+      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
+      g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
+      phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -141,13 +141,13 @@ class INa_Ba2002(INa_p3q_markov):
 
   Parameters
   ----------
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Array, Callable, Initializer
+  E : float, ArrayType, Callable, Initializer
     The reversal potential (mV).
-  T : float, Array
+  T : float, ArrayType
     The temperature (Celsius, :math:`^{\circ}C`).
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The shift of the membrane potential to spike.
 
   References
@@ -165,10 +165,10 @@ class INa_Ba2002(INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      T: Union[int, float, Array] = 36.,
-      E: Union[int, float, Array, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Array, Initializer, Callable] = 90.,
-      V_sh: Union[int, float, Array, Initializer, Callable] = -50.,
+      T: Union[int, float, ArrayType] = 36.,
+      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
+      g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
+      V_sh: Union[int, float, ArrayType, Initializer, Callable] = -50.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -231,11 +231,11 @@ class INa_TM1991(INa_p3q_markov):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Array, Callable, Initializer
+  E : float, ArrayType, Callable, Initializer
     The reversal potential (mV).
-  V_sh: float, Array, Callable, Initializer
+  V_sh: float, ArrayType, Callable, Initializer
     The membrane shift.
 
   References
@@ -252,10 +252,10 @@ class INa_TM1991(INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, Array, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Array, Initializer, Callable] = 120.,
-      phi: Union[int, float, Array, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Array, Initializer, Callable] = -63.,
+      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
+      g_max: Union[int, float, ArrayType, Initializer, Callable] = 120.,
+      phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, ArrayType, Initializer, Callable] = -63.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -317,11 +317,11 @@ class INa_HH1952(INa_p3q_markov):
     The numerical method
   name: str
     The name of the object.
-  g_max : float, Array, Callable, Initializer
+  g_max : float, ArrayType, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, Array, Callable, Initializer
+  E : float, ArrayType, Callable, Initializer
     The reversal potential (mV).
-  V_sh: float, Array, Callable, Initializer
+  V_sh: float, ArrayType, Callable, Initializer
     The membrane shift.
 
   References
@@ -339,10 +339,10 @@ class INa_HH1952(INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, Array, Initializer, Callable] = 50.,
-      g_max: Union[int, float, Array, Initializer, Callable] = 120.,
-      phi: Union[int, float, Array, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Array, Initializer, Callable] = -45.,
+      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
+      g_max: Union[int, float, ArrayType, Initializer, Callable] = 120.,
+      phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,

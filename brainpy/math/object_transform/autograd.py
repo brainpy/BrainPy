@@ -16,7 +16,7 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose
 from jax.util import safe_map
 
 from brainpy import errors, tools
-from brainpy.base import get_unique_name, TensorCollector
+from brainpy.base import get_unique_name, ArrayCollector
 from brainpy.math.ndarray import Array, add_context, del_context
 from ._utils import infer_dyn_vars
 from .base import ObjectTransform
@@ -226,12 +226,12 @@ def _grad_checking(func: Callable,
   if not callable(func):
     raise ValueError(f'Must be a callable object. But we got {func}')
 
-  # check "vars", make sure it is an instance of TensorCollector
+  # check "vars", make sure it is an instance of ArrayCollector
   dyn_vars, _ = _check_vars(dyn_vars)
   grad_vars, grad_tree = _check_vars(grad_vars)
 
   # check the duplicate in "dyn_vars" and "grad_vars"
-  dyn_vars = tuple(TensorCollector.from_other(dyn_vars).unique().values())
+  dyn_vars = tuple(ArrayCollector.from_other(dyn_vars).unique().values())
   new_dyn_vars = []
   _dyn_var_ids = set([id(v) for v in grad_vars])
   for v in dyn_vars:
@@ -244,8 +244,8 @@ def _grad_checking(func: Callable,
 def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
               holomorphic=False, allow_int=False, reduce_axes=()):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # gradient functions
@@ -366,9 +366,9 @@ def grad(
     Argument arrays in the positions specified by ``argnums`` must be of
     inexact (i.e., floating-point or complex) type. It should return a scalar
     (which includes arrays with shape ``()`` but not arrays with shape ``(1,)`` etc.)
-  dyn_vars : optional, Array, sequence of Array, dict
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, Array, sequence of Array, dict
+  grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   argnums : optional, integer or sequence of integers
     Specifies which positional argument(s) to differentiate with respect to (default 0).
@@ -412,8 +412,8 @@ def grad(
     dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
 
   dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
-  # dyn_vars -> TensorCollector
-  # grad_vars -> TensorCollector
+  # dyn_vars -> ArrayCollector
+  # grad_vars -> ArrayCollector
   has_aux = False if has_aux is None else has_aux
 
   # gradient
@@ -525,8 +525,8 @@ def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, r
 def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
                 holomorphic=False, allow_int=False, has_aux=False):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # final functions
@@ -589,9 +589,9 @@ def jacrev(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, Array, sequence of Array, dict
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, Array, sequence of Array, dict
+  grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
@@ -686,8 +686,8 @@ def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False
 
 def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=False):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # final functions
@@ -748,9 +748,9 @@ def jacfwd(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, Array, sequence of Array, dict
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, Array, sequence of Array, dict
+  grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
@@ -821,9 +821,9 @@ def hessian(
     specified by ``argnums`` should be arrays, scalars, or standard Python
     containers thereof. It should return arrays, scalars, or standard Python
     containers thereof.
-  dyn_vars : optional, ArrayCollector, sequence of Array
+  dyn_vars : optional, ArrayCollector, sequence of ArrayType
     The dynamical changed variables.
-  grad_vars : optional, ArrayCollector, sequence of Array
+  grad_vars : optional, ArrayCollector, sequence of ArrayType
     The variables required to compute their gradients.
   argnums: Optional, integer or sequence of integers
     Specifies which positional argument(s) to differentiate with respect to (default ``0``).
@@ -886,8 +886,8 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
 
 def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
   # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Array
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Array
+  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
+  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
   assert isinstance(argnums, (tuple, list))  # tuple/list of int
 
   # final functions
@@ -943,9 +943,9 @@ def vector_grad(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, Array, sequence of Array, dict
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
     The dynamically changed variables used in ``func``.
-  grad_vars : optional, Array, sequence of Array, dict
+  grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the

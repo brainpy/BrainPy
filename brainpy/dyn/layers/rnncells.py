@@ -13,7 +13,7 @@ from brainpy.initialize import (XavierNormal,
 from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import (check_integer,
                                     check_initializer)
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
@@ -28,7 +28,7 @@ class RecurrentCell(Layer):
   def __init__(
       self,
       num_out: int,
-      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       mode: Mode = training,
       train_state: bool = False,
       name: str = None
@@ -78,10 +78,10 @@ class RNNCell(RecurrentCell):
       self,
       num_in: int,
       num_out: int,
-      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
-      Wi_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
-      Wh_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
-      b_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      Wi_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
+      Wh_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
+      b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
       mode: Mode = training,
       train_state: bool = False,
@@ -187,10 +187,10 @@ class GRUCell(RecurrentCell):
       self,
       num_in: int,
       num_out: int,
-      Wi_initializer: Union[Array, Callable, Initializer] = Orthogonal(),
-      Wh_initializer: Union[Array, Callable, Initializer] = Orthogonal(),
-      b_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
-      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      Wi_initializer: Union[ArrayType, Callable, Initializer] = Orthogonal(),
+      Wh_initializer: Union[ArrayType, Callable, Initializer] = Orthogonal(),
+      b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
       mode: Mode = training,
       train_state: bool = False,
@@ -319,10 +319,10 @@ class LSTMCell(RecurrentCell):
       self,
       num_in: int,
       num_out: int,
-      Wi_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
-      Wh_initializer: Union[Array, Callable, Initializer] = XavierNormal(),
-      b_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
-      state_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      Wi_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
+      Wh_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
+      b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
       mode: Mode = training,
       train_state: bool = False,

@@ -7,7 +7,7 @@ from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup, TwoEndConn
 from brainpy.initialize import Initializer, delay as init_delay
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Array, Parameter
+from brainpy.types import ArrayType
 
 __all__ = [
   'STP'
@@ -176,13 +176,13 @@ class STP(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
-      U: Union[float, Array] = 0.15,
-      tau_f: Union[float, Array] = 1500.,
-      tau_d: Union[float, Array] = 200.,
-      tau: Union[float, Array] = 8.,
-      A: Union[float, Array] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
+      U: Union[float, ArrayType] = 0.15,
+      tau_f: Union[float, ArrayType] = 1500.,
+      tau_d: Union[float, ArrayType] = 200.,
+      tau: Union[float, ArrayType] = 8.,
+      A: Union[float, ArrayType] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):

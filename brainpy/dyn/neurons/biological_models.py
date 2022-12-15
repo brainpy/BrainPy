@@ -10,7 +10,7 @@ from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
 from brainpy.modes import Mode, BatchingMode, NormalMode, normal, check_mode
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 
 __all__ = [
   'HH',
@@ -150,29 +150,29 @@ class HH(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  ENa: float, Array, ndarray, Initializer, callable
+  ENa: float, ArrayType, Initializer, callable
     The reversal potential of sodium. Default is 50 mV.
-  gNa: float, Array, ndarray, Initializer, callable
+  gNa: float, ArrayType, Initializer, callable
     The maximum conductance of sodium channel. Default is 120 msiemens.
-  EK: float, Array, ndarray, Initializer, callable
+  EK: float, ArrayType, Initializer, callable
     The reversal potential of potassium. Default is -77 mV.
-  gK: float, Array, ndarray, Initializer, callable
+  gK: float, ArrayType, Initializer, callable
     The maximum conductance of potassium channel. Default is 36 msiemens.
-  EL: float, Array, ndarray, Initializer, callable
+  EL: float, ArrayType, Initializer, callable
     The reversal potential of learky channel. Default is -54.387 mV.
-  gL: float, Array, ndarray, Initializer, callable
+  gL: float, ArrayType, Initializer, callable
     The conductance of learky channel. Default is 0.03 msiemens.
-  V_th: float, Array, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     The threshold of the membrane spike. Default is 20 mV.
-  C: float, Array, ndarray, Initializer, callable
+  C: float, ArrayType, Initializer, callable
     The membrane capacitance. Default is 1 ufarad.
-  V_initializer: Array, ndarray, Initializer, callable
+  V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  m_initializer: Array, ndarray, Initializer, callable
+  m_initializer: ArrayType, Initializer, callable
     The initializer of m channel.
-  h_initializer: Array, ndarray, Initializer, callable
+  h_initializer: ArrayType, Initializer, callable
     The initializer of h channel.
-  n_initializer: Array, ndarray, Initializer, callable
+  n_initializer: ArrayType, Initializer, callable
     The initializer of n channel.
   method: str
     The numerical integration method.
@@ -195,19 +195,19 @@ class HH(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      ENa: Union[float, Array, Initializer, Callable] = 50.,
-      gNa: Union[float, Array, Initializer, Callable] = 120.,
-      EK: Union[float, Array, Initializer, Callable] = -77.,
-      gK: Union[float, Array, Initializer, Callable] = 36.,
-      EL: Union[float, Array, Initializer, Callable] = -54.387,
-      gL: Union[float, Array, Initializer, Callable] = 0.03,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      C: Union[float, Array, Initializer, Callable] = 1.0,
-      V_initializer: Union[Initializer, Callable, Array] = Uniform(-70, -60.),
-      m_initializer: Optional[Union[Initializer, Callable, Array]] = None,
-      h_initializer: Optional[Union[Initializer, Callable, Array]] = None,
-      n_initializer: Optional[Union[Initializer, Callable, Array]] = None,
-      noise: Union[float, Array, Initializer, Callable] = None,
+      ENa: Union[float, ArrayType, Initializer, Callable] = 50.,
+      gNa: Union[float, ArrayType, Initializer, Callable] = 120.,
+      EK: Union[float, ArrayType, Initializer, Callable] = -77.,
+      gK: Union[float, ArrayType, Initializer, Callable] = 36.,
+      EL: Union[float, ArrayType, Initializer, Callable] = -54.387,
+      gL: Union[float, ArrayType, Initializer, Callable] = 0.03,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      C: Union[float, ArrayType, Initializer, Callable] = 1.0,
+      V_initializer: Union[Initializer, Callable, ArrayType] = Uniform(-70, -60.),
+      m_initializer: Optional[Union[Initializer, Callable, ArrayType]] = None,
+      h_initializer: Optional[Union[Initializer, Callable, ArrayType]] = None,
+      n_initializer: Optional[Union[Initializer, Callable, ArrayType]] = None,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
 
@@ -400,22 +400,22 @@ class MorrisLecar(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      V_Ca: Union[float, Array, Initializer, Callable] = 130.,
-      g_Ca: Union[float, Array, Initializer, Callable] = 4.4,
-      V_K: Union[float, Array, Initializer, Callable] = -84.,
-      g_K: Union[float, Array, Initializer, Callable] = 8.,
-      V_leak: Union[float, Array, Initializer, Callable] = -60.,
-      g_leak: Union[float, Array, Initializer, Callable] = 2.,
-      C: Union[float, Array, Initializer, Callable] = 20.,
-      V1: Union[float, Array, Initializer, Callable] = -1.2,
-      V2: Union[float, Array, Initializer, Callable] = 18.,
-      V3: Union[float, Array, Initializer, Callable] = 2.,
-      V4: Union[float, Array, Initializer, Callable] = 30.,
-      phi: Union[float, Array, Initializer, Callable] = 0.04,
-      V_th: Union[float, Array, Initializer, Callable] = 10.,
-      W_initializer: Union[Callable, Initializer, Array] = OneInit(0.02),
-      V_initializer: Union[Callable, Initializer, Array] = Uniform(-70., -60.),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_Ca: Union[float, ArrayType, Initializer, Callable] = 130.,
+      g_Ca: Union[float, ArrayType, Initializer, Callable] = 4.4,
+      V_K: Union[float, ArrayType, Initializer, Callable] = -84.,
+      g_K: Union[float, ArrayType, Initializer, Callable] = 8.,
+      V_leak: Union[float, ArrayType, Initializer, Callable] = -60.,
+      g_leak: Union[float, ArrayType, Initializer, Callable] = 2.,
+      C: Union[float, ArrayType, Initializer, Callable] = 20.,
+      V1: Union[float, ArrayType, Initializer, Callable] = -1.2,
+      V2: Union[float, ArrayType, Initializer, Callable] = 18.,
+      V3: Union[float, ArrayType, Initializer, Callable] = 2.,
+      V4: Union[float, ArrayType, Initializer, Callable] = 30.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 0.04,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 10.,
+      W_initializer: Union[Callable, Initializer, ArrayType] = OneInit(0.02),
+      V_initializer: Union[Callable, Initializer, ArrayType] = Uniform(-70., -60.),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
 
@@ -596,41 +596,41 @@ class PinskyRinzelModel(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  gNa: float, Array, ndarray, Initializer, callable
+  gNa: float, ArrayType, Initializer, callable
     The maximum conductance of sodium channel.
-  gK: float, Array, ndarray, Initializer, callable
+  gK: float, ArrayType, Initializer, callable
     The maximum conductance of potassium delayed-rectifier channel.
-  gCa: float, Array, ndarray, Initializer, callable
+  gCa: float, ArrayType, Initializer, callable
     The maximum conductance of calcium channel.
-  gAHP: float, Array, ndarray, Initializer, callable
+  gAHP: float, ArrayType, Initializer, callable
     The maximum conductance of potassium after-hyper-polarization channel.
-  gC: float, Array, ndarray, Initializer, callable
+  gC: float, ArrayType, Initializer, callable
     The maximum conductance of calcium activated potassium channel.
-  gL: float, Array, ndarray, Initializer, callable
+  gL: float, ArrayType, Initializer, callable
     The conductance of leaky channel.
-  ENa: float, Array, ndarray, Initializer, callable
+  ENa: float, ArrayType, Initializer, callable
     The reversal potential of sodium channel.
-  EK: float, Array, ndarray, Initializer, callable
+  EK: float, ArrayType, Initializer, callable
     The reversal potential of potassium delayed-rectifier channel.
-  ECa: float, Array, ndarray, Initializer, callable
+  ECa: float, ArrayType, Initializer, callable
     The reversal potential of calcium channel.
-  EL: float, Array, ndarray, Initializer, callable
+  EL: float, ArrayType, Initializer, callable
     The reversal potential of leaky channel.
-  gc: float, Array, ndarray, Initializer, callable
+  gc: float, ArrayType, Initializer, callable
     The coupling strength between the soma and dendrite.
-  V_th: float, Array, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     The threshold of the membrane spike.
-  Cm: float, Array, ndarray, Initializer, callable
+  Cm: float, ArrayType, Initializer, callable
     The threshold of the membrane spike.
-  A: float, Array, ndarray, Initializer, callable
+  A: float, ArrayType, Initializer, callable
     The total cell membrane area, which is normalized to 1.
-  p: float, Array, ndarray, Initializer, callable
+  p: float, ArrayType, Initializer, callable
     The proportion of cell area taken up by the soma.
-  Vs_initializer: Array, ndarray, Initializer, callable
+  Vs_initializer: ArrayType, Initializer, callable
     The initializer of somatic membrane potential.
-  Vd_initializer: Array, ndarray, Initializer, callable
+  Vd_initializer: ArrayType, Initializer, callable
     The initializer of dendritic membrane potential.
-  Ca_initializer: Array, ndarray, Initializer, callable
+  Ca_initializer: ArrayType, Initializer, callable
     The initializer of Calcium concentration.
   method: str
     The numerical integration method.
@@ -653,29 +653,29 @@ class PinskyRinzelModel(NeuGroup):
       size: Shape,
       keep_size: bool = False,
       # maximum conductance
-      gNa: Union[float, Array, Initializer, Callable] = 30.,
-      gK: Union[float, Array, Initializer, Callable] = 15.,
-      gCa: Union[float, Array, Initializer, Callable] = 10.,
-      gAHP: Union[float, Array, Initializer, Callable] = 0.8,
-      gC: Union[float, Array, Initializer, Callable] = 15.,
-      gL: Union[float, Array, Initializer, Callable] = 0.1,
+      gNa: Union[float, ArrayType, Initializer, Callable] = 30.,
+      gK: Union[float, ArrayType, Initializer, Callable] = 15.,
+      gCa: Union[float, ArrayType, Initializer, Callable] = 10.,
+      gAHP: Union[float, ArrayType, Initializer, Callable] = 0.8,
+      gC: Union[float, ArrayType, Initializer, Callable] = 15.,
+      gL: Union[float, ArrayType, Initializer, Callable] = 0.1,
       # reversal potential
-      ENa: Union[float, Array, Initializer, Callable] = 60.,
-      EK: Union[float, Array, Initializer, Callable] = -75.,
-      ECa: Union[float, Array, Initializer, Callable] = 80.,
-      EL: Union[float, Array, Initializer, Callable] = -60.,
+      ENa: Union[float, ArrayType, Initializer, Callable] = 60.,
+      EK: Union[float, ArrayType, Initializer, Callable] = -75.,
+      ECa: Union[float, ArrayType, Initializer, Callable] = 80.,
+      EL: Union[float, ArrayType, Initializer, Callable] = -60.,
       # other parameters
-      gc: Union[float, Array, Initializer, Callable] = 2.1,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      Cm: Union[float, Array, Initializer, Callable] = 3.0,
-      p: Union[float, Array, Initializer, Callable] = 0.5,
-      A: Union[float, Array, Initializer, Callable] = 1.,
+      gc: Union[float, ArrayType, Initializer, Callable] = 2.1,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      Cm: Union[float, ArrayType, Initializer, Callable] = 3.0,
+      p: Union[float, ArrayType, Initializer, Callable] = 0.5,
+      A: Union[float, ArrayType, Initializer, Callable] = 1.,
       # initializers
-      Vs_initializer: Union[Initializer, Callable, Array] = OneInit(-64.6),
-      Vd_initializer: Union[Initializer, Callable, Array] = OneInit(-64.5),
-      Ca_initializer: Union[Initializer, Callable, Array] = OneInit(0.2),
+      Vs_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-64.6),
+      Vd_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-64.5),
+      Ca_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.2),
       # others
-      noise: Union[float, Array, Initializer, Callable] = None,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -934,29 +934,29 @@ class WangBuzsakiModel(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  ENa: float, Array, ndarray, Initializer, callable
+  ENa: float, ArrayType, Initializer, callable
     The reversal potential of sodium. Default is 50 mV.
-  gNa: float, Array, ndarray, Initializer, callable
+  gNa: float, ArrayType, Initializer, callable
     The maximum conductance of sodium channel. Default is 120 msiemens.
-  EK: float, Array, ndarray, Initializer, callable
+  EK: float, ArrayType, Initializer, callable
     The reversal potential of potassium. Default is -77 mV.
-  gK: float, Array, ndarray, Initializer, callable
+  gK: float, ArrayType, Initializer, callable
     The maximum conductance of potassium channel. Default is 36 msiemens.
-  EL: float, Array, ndarray, Initializer, callable
+  EL: float, ArrayType, Initializer, callable
     The reversal potential of learky channel. Default is -54.387 mV.
-  gL: float, Array, ndarray, Initializer, callable
+  gL: float, ArrayType, Initializer, callable
     The conductance of learky channel. Default is 0.03 msiemens.
-  V_th: float, Array, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     The threshold of the membrane spike. Default is 20 mV.
-  C: float, Array, ndarray, Initializer, callable
+  C: float, ArrayType, Initializer, callable
     The membrane capacitance. Default is 1 ufarad.
-  phi: float, Array, ndarray, Initializer, callable
+  phi: float, ArrayType, Initializer, callable
     The temperature regulator constant.
-  V_initializer: Array, ndarray, Initializer, callable
+  V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  h_initializer: Array, ndarray, Initializer, callable
+  h_initializer: ArrayType, Initializer, callable
     The initializer of h channel.
-  n_initializer: Array, ndarray, Initializer, callable
+  n_initializer: ArrayType, Initializer, callable
     The initializer of n channel.
   method: str
     The numerical integration method.
@@ -975,19 +975,19 @@ class WangBuzsakiModel(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      ENa: Union[float, Array, Initializer, Callable] = 55.,
-      gNa: Union[float, Array, Initializer, Callable] = 35.,
-      EK: Union[float, Array, Initializer, Callable] = -90.,
-      gK: Union[float, Array, Initializer, Callable] = 9.,
-      EL: Union[float, Array, Initializer, Callable] = -65,
-      gL: Union[float, Array, Initializer, Callable] = 0.1,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      phi: Union[float, Array, Initializer, Callable] = 5.0,
-      C: Union[float, Array, Initializer, Callable] = 1.0,
-      V_initializer: Union[Initializer, Callable, Array] = OneInit(-65.),
-      h_initializer: Union[Initializer, Callable, Array] = OneInit(0.6),
-      n_initializer: Union[Initializer, Callable, Array] = OneInit(0.32),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      ENa: Union[float, ArrayType, Initializer, Callable] = 55.,
+      gNa: Union[float, ArrayType, Initializer, Callable] = 35.,
+      EK: Union[float, ArrayType, Initializer, Callable] = -90.,
+      gK: Union[float, ArrayType, Initializer, Callable] = 9.,
+      EL: Union[float, ArrayType, Initializer, Callable] = -65,
+      gL: Union[float, ArrayType, Initializer, Callable] = 0.1,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      C: Union[float, ArrayType, Initializer, Callable] = 1.0,
+      V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-65.),
+      h_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.6),
+      n_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.32),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,

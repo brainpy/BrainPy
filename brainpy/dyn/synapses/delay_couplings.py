@@ -12,7 +12,7 @@ from brainpy.initialize import Initializer
 from brainpy.dyn.neurons.input_groups import InputGroup, OutputGroup
 from brainpy.modes import Mode, TrainingMode, normal
 from brainpy.tools.checking import check_sequence
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'DelayCoupling',
@@ -30,11 +30,11 @@ class DelayCoupling(SynConn):
     The delay variable.
   var_to_output: Variable, sequence of Variable
     The target variables to output.
-  conn_mat: Array, ndarray
+  conn_mat: ArrayType
     The connection matrix.
   required_shape: sequence of int
     The required shape of `(pre, post)`.
-  delay_steps: int, Array, ndarray
+  delay_steps: int, ArrayType
     The matrix of delay time steps. Must be int.
   initial_delay_data: Initializer, Callable
     The initializer of the initial delay data.
@@ -44,10 +44,10 @@ class DelayCoupling(SynConn):
       self,
       delay_var: bm.Variable,
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-      conn_mat: Array,
+      conn_mat: ArrayType,
       required_shape: Tuple[int, ...],
-      delay_steps: Optional[Union[int, Array, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
+      delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
+      initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
       mode: Mode = normal,
   ):
@@ -145,9 +145,9 @@ class DiffusiveCoupling(DelayCoupling):
     Another coupling variable.
   var_to_output: Variable, sequence of Variable
     The target variables to output.
-  conn_mat: Array, ndarray
+  conn_mat: ArrayType
     The connection matrix.
-  delay_steps: int, Array, ndarray
+  delay_steps: int, ArrayType
     The matrix of delay time steps. Must be int.
   initial_delay_data: Initializer, Callable
     The initializer of the initial delay data.
@@ -160,9 +160,9 @@ class DiffusiveCoupling(DelayCoupling):
       coupling_var1: bm.Variable,
       coupling_var2: bm.Variable,
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-      conn_mat: Array,
-      delay_steps: Optional[Union[int, Array, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
+      conn_mat: ArrayType,
+      delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
+      initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
       mode: Mode = normal,
   ):
@@ -238,9 +238,9 @@ class AdditiveCoupling(DelayCoupling):
     The coupling variable, used for delay.
   var_to_output: Variable, sequence of Variable
     The target variables to output.
-  conn_mat: Array, ndarray
+  conn_mat: ArrayType
     The connection matrix.
-  delay_steps: int, Array, ndarray
+  delay_steps: int, ArrayType
     The matrix of delay time steps. Must be int.
   initial_delay_data: Initializer, Callable
     The initializer of the initial delay data.
@@ -252,9 +252,9 @@ class AdditiveCoupling(DelayCoupling):
       self,
       coupling_var: bm.Variable,
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-      conn_mat: Array,
-      delay_steps: Optional[Union[int, Array, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
+      conn_mat: ArrayType,
+      delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
+      initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
       mode: Mode = normal,
   ):

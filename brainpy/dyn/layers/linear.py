@@ -11,7 +11,7 @@ from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.modes import Mode, TrainingMode, training
 from brainpy.tools.checking import check_initializer
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'Dense',
@@ -45,8 +45,8 @@ class Dense(Layer):
       self,
       num_in: int,
       num_out: int,
-      W_initializer: Union[Initializer, Callable, Array] = XavierNormal(),
-      b_initializer: Optional[Union[Initializer, Callable, Array]] = ZeroInit(),
+      W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
+      b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
       mode: Mode = training,
       name: str = None,
   ):
@@ -105,8 +105,8 @@ class Dense(Layer):
     self.online_fit_by.initialize(feature_in=num_input, feature_out=self.num_out, identifier=self.name)
 
   def online_fit(self,
-                 target: Array,
-                 fit_record: Dict[str, Array]):
+                 target: ArrayType,
+                 fit_record: Dict[str, ArrayType]):
     if not isinstance(target, (bm.ndarray, jnp.ndarray)):
       raise MathError(f'"target" must be a tensor, but got {type(target)}')
     x = fit_record['input']
@@ -147,8 +147,8 @@ class Dense(Layer):
     self.offline_fit_by.initialize(feature_in=num_input, feature_out=self.num_out, identifier=self.name)
 
   def offline_fit(self,
-                  target: Array,
-                  fit_record: Dict[str, Array]):
+                  target: ArrayType,
+                  fit_record: Dict[str, ArrayType]):
     """The offline training interface for the Dense node."""
     # data checking
     if not isinstance(target, (bm.ndarray, jnp.ndarray)):

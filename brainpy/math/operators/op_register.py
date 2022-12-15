@@ -57,7 +57,7 @@ class XLACustomOp(BrainPyObject):
       batching_translation: Callable = None,
       jvp_translation: Callable = None,
       transpose_translation: Callable = None,
-      multiple_results: bool = False,
+      multiple_results: bool = True,
   ):
     super(XLACustomOp, self).__init__(name=name)
 

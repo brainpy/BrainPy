@@ -7,7 +7,7 @@ from jax.lax import while_loop
 
 import brainpy.math as bm
 from brainpy.base import BrainPyObject
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from .utils import (Sigmoid,
                     Regularization, L1Regularization, L1L2Regularization, L2Regularization,
                     polynomial_features, normalize)
@@ -46,21 +46,21 @@ class OfflineAlgorithm(BrainPyObject):
     ----------
     identifier: str
       The variable name.
-    target: Array, ndarray
+    target: ArrayType
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: Array, ndarray
+    input: ArrayType
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: Array, ndarray
+    output: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
     -------
-    weight: Array
+    weight: ArrayType
       The weights after fit.
     """
     return self.call(identifier, target, input, output)
 
-  def call(self, identifier, targets, inputs, outputs) -> Array:
+  def call(self, identifier, targets, inputs, outputs) -> ArrayType:
     """The training procedure.
 
     Parameters
@@ -68,21 +68,21 @@ class OfflineAlgorithm(BrainPyObject):
     identifier: str
       The identifier.
 
-    inputs: Array, jax.numpy.ndarray, numpy.ndarray
+    inputs: ArrayType
       The 3d input data with the shape of `(num_batch, num_time, num_input)`,
       or, the 2d input data with the shape of `(num_time, num_input)`.
 
-    targets: Array, jax.numpy.ndarray, numpy.ndarray
+    targets: ArrayType
       The 3d target data with the shape of `(num_batch, num_time, num_output)`,
       or the 2d target data with the shape of `(num_time, num_output)`.
 
-    outputs: Array, jax.numpy.ndarray, numpy.ndarray
+    outputs: ArrayType
       The 3d output data with the shape of `(num_batch, num_time, num_output)`,
       or the 2d output data with the shape of `(num_time, num_output)`.
 
     Returns
     -------
-    weight: Array
+    weight: ArrayType
       The weights after fit.
     """
     raise NotImplementedError('Must implement the __call__ function by the subclass itself.')
@@ -355,7 +355,7 @@ class LogisticRegression(RegressionAlgorithm):
     self.gradient_descent = gradient_descent
     self.sigmoid = Sigmoid()
 
-  def call(self, identifier, targets, inputs, outputs=None) -> Array:
+  def call(self, identifier, targets, inputs, outputs=None) -> ArrayType:
     # prepare data
     inputs = _check_data_2d_atls(bm.asarray(inputs))
     targets = _check_data_2d_atls(bm.asarray(targets))

@@ -15,18 +15,27 @@ class TestTimeDelay(unittest.TestCase):
     # linear interp
     t0 = 0.
     before_t0 = jnp.repeat(jnp.arange(10).reshape((-1, 1)), 10, axis=1)
-    delay = bm.TimeDelay(jnp.zeros(10), delay_len=1., t0=t0, dt=0.1, before_t0=before_t0)
+    delay = bm.TimeDelay(jnp.zeros(10),
+                         delay_len=1.,
+                         t0=t0,
+                         dt=0.1,
+                         before_t0=before_t0,
+                         interp_method='linear_interp')
     print(delay(t0 - 0.1))
     print(delay(t0 - 0.15))
     self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones(10) * 9.))
     self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones(10) * 8.5))
     print()
     print(delay(t0 - 0.23))
-    print(delay(t0 - 0.23) - jnp.ones(10) * 8.7)
-    # self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones(10) * 8.7))
+    print(delay(t0 - 0.23) - 7.7)
+    self.assertTrue(bm.allclose(delay(t0 - 0.23), bm.ones(10) * 7.7))
 
     # round interp
-    delay = bm.TimeDelay(jnp.zeros(10), delay_len=1., t0=t0, dt=0.1, before_t0=before_t0,
+    delay = bm.TimeDelay(jnp.zeros(10),
+                         delay_len=1.,
+                         t0=t0,
+                         dt=0.1,
+                         before_t0=before_t0,
                          interp_method='round')
     self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones(10) * 9))
     print(delay(t0 - 0.15))
@@ -34,6 +43,7 @@ class TestTimeDelay(unittest.TestCase):
     self.assertTrue(jnp.array_equal(delay(t0 - 0.2), jnp.ones(10) * 8))
 
     bm.disable_x64()
+    bm.clear_buffer_memory()
 
   def test_dim2(self):
     t0 = 0.
@@ -42,7 +52,8 @@ class TestTimeDelay(unittest.TestCase):
     delay = bm.TimeDelay(jnp.zeros((10, 5)), delay_len=1., t0=t0, dt=0.1, before_t0=before_t0)
     self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones((10, 5)) * 9))
     self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones((10, 5)) * 8.5))
-    # self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones((10, 5)) * 8.7))
+    self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones((10, 5)) * 7.7))
+    bm.clear_buffer_memory()
 
   def test_dim3(self):
     t0 = 0.
@@ -52,16 +63,17 @@ class TestTimeDelay(unittest.TestCase):
     delay = bm.TimeDelay(jnp.zeros((10, 5, 3)), delay_len=1., t0=t0, dt=0.1, before_t0=before_t0)
     self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones((10, 5, 3)) * 9))
     self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones((10, 5, 3)) * 8.5))
-    # self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones((10, 5, 3)) * 8.7))
+    self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones((10, 5, 3)) * 7.7))
+    bm.clear_buffer_memory()
 
   def test1(self):
     print()
     delay = bm.TimeDelay(jnp.zeros(3), delay_len=1., dt=0.1, before_t0=lambda t: t)
-    print(delay(-0.2))
+    self.assertTrue(bm.allclose(delay(-0.2), bm.ones(3) * 0.2))
     delay = bm.TimeDelay(jnp.zeros((3, 2)), delay_len=1., dt=0.1, before_t0=lambda t: t)
-    print(delay(-0.6))
+    self.assertTrue(bm.allclose(delay(-0.6), bm.zeros((3, 2)) * -0.6))
     delay = bm.TimeDelay(jnp.zeros((3, 2, 1)), delay_len=1., dt=0.1, before_t0=lambda t: t)
-    print(delay(-0.8))
+    self.assertTrue(bm.allclose(delay(-0.8), jnp.zeros(3, 2, 1) * -0.8))
 
   def test_current_time2(self):
     print()
@@ -71,6 +83,7 @@ class TestTimeDelay(unittest.TestCase):
     before_t0 = jnp.repeat(before_t0.reshape((10, 10, 1)), 5, axis=2)
     delay = bm.TimeDelay(jnp.zeros((10, 5)), delay_len=1., dt=0.1, before_t0=before_t0)
     print(delay(0.))
+
 
   # def test_prev_time_beyond_boundary(self):
   #   with self.assertRaises(ValueError):

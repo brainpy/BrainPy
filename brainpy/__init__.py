@@ -8,8 +8,12 @@ from . import errors, tools, check, modes
 
 # "base" module
 from . import base
-from .base.base import BrainPyObject, Base
-from .base.collector import Collector, TensorCollector
+from .base.base import (BrainPyObject, Base)
+from .base.collector import (
+  Collector,
+  ArrayCollector,
+  TensorCollector
+)
 
 # math foundation
 from . import math

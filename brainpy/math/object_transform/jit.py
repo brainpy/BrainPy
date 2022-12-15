@@ -18,7 +18,7 @@ except ImportError:
 
 from brainpy import errors, tools
 from brainpy.base.base import BrainPyObject
-from brainpy.base.collector import TensorCollector
+from brainpy.base.collector import ArrayCollector
 from brainpy.math.ndarray import Array, add_context, del_context
 from .base import ObjectTransform
 from ._utils import infer_dyn_vars
@@ -36,7 +36,7 @@ class JITTransform(ObjectTransform):
   def __init__(
       self,
       func: callable,
-      dyn_vars: TensorCollector,
+      dyn_vars: ArrayCollector,
       static_argnames=None,
       device=None,
       name=None
@@ -194,7 +194,7 @@ def jit(
   ----------
   func : Base, function, callable
     The instance of Base or a function.
-  dyn_vars : optional, dict, tuple, list, Array
+  dyn_vars : optional, dict, tuple, list, ArrayType
     These variables will be changed in the function, or needed in the computation.
   static_argnames : optional, str, list, tuple, dict
     An optional string or collection of strings specifying which named arguments to treat
@@ -218,18 +218,18 @@ def jit(
   if callable(func):
     if dyn_vars is not None:
       if isinstance(dyn_vars, Array):
-        dyn_vars = TensorCollector({'_': dyn_vars})
+        dyn_vars = ArrayCollector({'_': dyn_vars})
       elif isinstance(dyn_vars, dict):
-        dyn_vars = TensorCollector(dyn_vars)
+        dyn_vars = ArrayCollector(dyn_vars)
       elif isinstance(dyn_vars, (tuple, list)):
-        dyn_vars = TensorCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
+        dyn_vars = ArrayCollector({f'_v{i}': v for i, v in enumerate(dyn_vars)})
       else:
         raise ValueError
     else:
       if auto_infer:
         dyn_vars = infer_dyn_vars(func)
       else:
-        dyn_vars = TensorCollector()
+        dyn_vars = ArrayCollector()
 
     # BrainPyObject object which implements __call__,
     # or bounded method of BrainPyObject object

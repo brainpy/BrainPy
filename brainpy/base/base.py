@@ -5,7 +5,7 @@ import os.path
 
 from brainpy import errors
 from brainpy.base import io, naming
-from brainpy.base.collector import Collector, TensorCollector
+from brainpy.base.collector import Collector, ArrayCollector
 
 math = None
 
@@ -40,7 +40,7 @@ class BrainPyObject(object):
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
-    self.implicit_vars = TensorCollector()
+    self.implicit_vars = ArrayCollector()
 
     # Used to wrap the implicit children nodes
     # which cannot be accessed by self.xxx
@@ -113,14 +113,14 @@ class BrainPyObject(object):
 
     Returns
     -------
-    gather : TensorCollector
+    gather : ArrayCollector
       The collection contained (the path, the variable).
     """
     global math
     if math is None: from brainpy import math
 
     nodes = self.nodes(method=method, level=level, include_self=include_self)
-    gather = TensorCollector()
+    gather = ArrayCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
@@ -144,7 +144,7 @@ class BrainPyObject(object):
 
     Returns
     -------
-    gather : TensorCollector
+    gather : ArrayCollector
       The collection contained (the path, the trainable variable).
     """
     global math
@@ -287,7 +287,7 @@ class BrainPyObject(object):
     ----------
     filename : str
       The file name which to store the model states.
-    variables: optional, dict, TensorCollector
+    variables: optional, dict, ArrayCollector
       The variables to save. If not provided, all variables retrieved by ``~.vars()`` will be used.
     """
     if variables is None:

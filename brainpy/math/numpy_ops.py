@@ -115,7 +115,7 @@ def remove_diag(arr):
 
   Parameters
   ----------
-  arr: Array, jnp.ndarray
+  arr: ArrayType
     The matrix with the shape of `(M, N)`.
 
   Returns
@@ -138,13 +138,13 @@ def as_device_array(tensor, dtype=None):
   tensor: array_like
     Input data, in any form that can be converted to an array.  This
     includes lists, lists of tuples, tuples, tuples of tuples, tuples
-    of lists, numpy.ndarray, Array, jax.numpy.ndarray.
+    of lists, ArrayType.
   dtype: data-type, optional
     By default, the data-type is inferred from the input data.
 
   Returns
   -------
-  out : ndarray
+  out : ArrayType
     Array interpretation of `tensor`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
@@ -169,7 +169,7 @@ def as_ndarray(tensor, dtype=None):
   tensor: array_like
     Input data, in any form that can be converted to an array.  This
     includes lists, lists of tuples, tuples, tuples of tuples, tuples
-    of lists, numpy.ndarray, Array, jax.numpy.ndarray.
+    of lists, ArrayType.
   dtype: data-type, optional
     By default, the data-type is inferred from the input data.
 
@@ -196,7 +196,7 @@ def as_variable(tensor, dtype=None):
   tensor: array_like
     Input data, in any form that can be converted to an array.  This
     includes lists, lists of tuples, tuples, tuples of tuples, tuples
-    of lists, numpy.ndarray, Array, jax.numpy.ndarray.
+    of lists, ArrayType.
   dtype: data-type, optional
     By default, the data-type is inferred from the input data.
 
@@ -1808,21 +1808,21 @@ def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
 
 @wraps(jnp.asarray)
 def asarray(a, dtype=None, order=None):
-  """Convert the input to a ``brainpy.math.Array``.
+  """Convert the input to a ``brainpy.math.ArrayType``.
 
   Parameters
   ----------
   a: array_like
     Input data, in any form that can be converted to an array.  This
     includes lists, lists of tuples, tuples, tuples of tuples, tuples
-    of lists, numpy.ndarray, Array, jax.numpy.ndarray.
+    of lists, ArrayType.
   dtype: data-type, optional
     By default, the data-type is inferred from the input data.
 
   Returns
   -------
   out : Array
-    Array interpretation of `a`.  No copy is performed if the input
+    ArrayType interpretation of `a`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
   a = _remove_jaxarray(a)
@@ -1900,7 +1900,7 @@ def vander(x, N=None, increasing=False):
 @wraps(np.fill_diagonal)
 def fill_diagonal(a, val):
   if not isinstance(a, Array):
-    raise ValueError(f'Must be a Array, but got {type(a)}')
+    raise ValueError(f'Must be a ArrayType, but got {type(a)}')
   if a.ndim < 2:
     raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
   val = _remove_jaxarray(val)
@@ -2501,9 +2501,9 @@ def polydiv(u, v, **kwargs):
 #
 #   Returns
 #   -------
-#   q : Array
+#   q : ArrayType
 #       Coefficients, including those equal to zero, of the quotient.
-#   r : Array
+#   r : ArrayType
 #       Coefficients, including those equal to zero, of the remainder.
 #
 #   See Also
@@ -2525,7 +2525,7 @@ def polydiv(u, v, **kwargs):
 #   >>> x = bm.array([3.0, 5.0, 2.0])
 #   >>> y = bm.array([2.0, 1.0])
 #   >>> bm.polydiv(x, y)
-#   (Array([1.5 , 1.75]), Array([0.25]))
+#   (ArrayType([1.5 , 1.75]), ArrayType([0.25]))
 #
 #   """
 #   u = atleast_1d(u) + 0.0
@@ -2543,7 +2543,7 @@ def polydiv(u, v, **kwargs):
 #     r[k:k + n + 1] -= d * v
 #   while allclose(r[0], 0, rtol=1e-14) and (r.shape[-1] > 1):
 #     r = r[1:]
-#   return Array(q), Array(r)
+#   return ArrayType(q), ArrayType(r)
 
 
 @wraps(np.put)
@@ -2589,7 +2589,7 @@ typename = np.typename
 @wraps(np.copyto)
 def copyto(dst, src):
   if not isinstance(dst, Array):
-    raise ValueError('dst must be an instance of Array.')
+    raise ValueError('dst must be an instance of ArrayType.')
   dst[:] = src
 
 

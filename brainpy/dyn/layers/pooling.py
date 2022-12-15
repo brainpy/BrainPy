@@ -7,7 +7,7 @@ from jax import lax
 
 import brainpy.math as bm
 from brainpy.modes import Mode, training, BatchingMode
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
 T = TypeVar('T')
 
 
-def _infer_shape(x: Array,
+def _infer_shape(x: ArrayType,
                  mode: Mode,
                  size: Union[T, Sequence[T]],
                  channel_axis: Optional[int] = None,

@@ -8,7 +8,7 @@ import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer, parameter, variable_
 from brainpy.modes import Mode, BatchingMode, normal
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 
 __all__ = [
   'InputGroup',
@@ -100,9 +100,9 @@ class SpikeTimeGroup(NeuGroup):
   ----------
   size : int, tuple, list
       The neuron group geometry.
-  indices : list, tuple, np.ndarray, Array, jax.numpy.ndarray
+  indices : list, tuple, ArrayType
       The neuron indices at each time point to emit spikes.
-  times : list, tuple, np.ndarray, Array, jax.numpy.ndarray
+  times : list, tuple, ArrayType
       The time points which generate the spikes.
   name : str, optional
       The name of the dynamic system.
@@ -111,8 +111,8 @@ class SpikeTimeGroup(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      times: Union[Sequence, Array],
-      indices: Union[Sequence, Array],
+      times: Union[Sequence, ArrayType],
+      indices: Union[Sequence, ArrayType],
       need_sort: bool = True,
       keep_size: bool = False,
       mode: Mode = normal,

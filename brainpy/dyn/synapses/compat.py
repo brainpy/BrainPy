@@ -5,7 +5,7 @@ from typing import Union, Dict, Callable
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from .abstract_models import Delta, Exponential, DualExponential, NMDA
 from ..synouts import COBA, CUBA
 
@@ -33,10 +33,10 @@ class DeltaSynapse(Delta):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'sparse',
-      weights: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[float, Array, Initializer, Callable] = None,
+      weights: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[float, ArrayType, Initializer, Callable] = None,
       post_input_key: str = 'V',
       post_has_ref: bool = False,
       name: str = None,
@@ -45,12 +45,11 @@ class DeltaSynapse(Delta):
     super(DeltaSynapse, self).__init__(pre=pre,
                                        post=post,
                                        conn=conn,
-                                       output=CUBA(),
+                                       output=CUBA(post_input_key),
                                        name=name,
                                        comp_method=conn_type,
                                        g_max=weights,
                                        delay_step=delay_step,
-                                       post_input_key=post_input_key,
                                        post_ref_key='refractory' if post_has_ref else None)
 
 
@@ -66,11 +65,11 @@ class ExpCUBA(Exponential):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'sparse',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau: Union[float, Array] = 8.0,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau: Union[float, ArrayType] = 8.0,
       name: str = None,
       method: str = 'exp_auto',
   ):
@@ -98,15 +97,15 @@ class ExpCOBA(Exponential):
       pre: NeuGroup,
       post: NeuGroup,
       # connection
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'sparse',
       # connection strength
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
       # synapse parameter
-      tau: Union[float, Array] = 8.0,
-      E: Union[float, Array] = 0.,
+      tau: Union[float, ArrayType] = 8.0,
+      E: Union[float, ArrayType] = 0.,
       # synapse delay
-      delay_step: Union[int, Array, Initializer, Callable] = None,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
       # others
       method: str = 'exp_auto',
       name: str = None
@@ -135,12 +134,12 @@ class DualExpCUBA(DualExponential):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      tau_decay: Union[float, Array] = 10.0,
-      tau_rise: Union[float, Array] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau_decay: Union[float, ArrayType] = 10.0,
+      tau_rise: Union[float, ArrayType] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -170,13 +169,13 @@ class DualExpCOBA(DualExponential):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau_decay: Union[float, Array] = 10.0,
-      tau_rise: Union[float, Array] = 1.,
-      E: Union[float, Array] = 0.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau_decay: Union[float, ArrayType] = 10.0,
+      tau_rise: Union[float, ArrayType] = 1.,
+      E: Union[float, ArrayType] = 0.,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -205,11 +204,11 @@ class AlphaCUBA(DualExpCUBA):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau_decay: Union[float, Array] = 10.0,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau_decay: Union[float, ArrayType] = 10.0,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -237,12 +236,12 @@ class AlphaCOBA(DualExpCOBA):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       conn_type: str = 'dense',
-      g_max: Union[float, Array, Callable, Initializer] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau_decay: Union[float, Array] = 10.0,
-      E: Union[float, Array] = 0.,
+      g_max: Union[float, ArrayType, Callable, Initializer] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau_decay: Union[float, ArrayType] = 10.0,
+      E: Union[float, ArrayType] = 0.,
       method: str = 'exp_auto',
       name: str = None
   ):

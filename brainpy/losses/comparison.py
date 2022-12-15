@@ -16,7 +16,7 @@ from jax.tree_util import tree_map
 from jax.lax import scan
 
 import brainpy.math as bm
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from .utils import _return, _multi_return, _is_leaf
 
 __all__ = [
@@ -72,16 +72,16 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
 
   Parameters
   ----------
-  predicts : Array
+  predicts : ArrayType
     :math:`(N, C)` where `C = number of classes`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` with :math:`K \geq 1`
     in the case of `K`-dimensional loss.
-  targets : Array
+  targets : ArrayType
     :math:`(N, C)` or :math:`(N)`  where each value is
     :math:`0 \leq \text{targets}[i] \leq C-1`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` or :math:`(d_1, d_2, ..., d_K, N)`
     with :math:`K \geq 1` in the case of K-dimensional loss.
-  weight : Array, optional
+  weight : ArrayType, optional
     A manual rescaling weight given to each class. If given, has to be an array of size `C`.
   reduction : str, optional
     Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
@@ -91,7 +91,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
 
   Returns
   -------
-  output : scalar, mjax.Array
+  output : scalar, ArrayType
     If :attr:`reduction` is ``'none'``, then the same size as the target:
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
@@ -178,9 +178,9 @@ def l1_loos(logits, targets, reduction='sum'):
 
   Parameters
   ----------
-  logits : Array
+  logits : ArrayType
     :math:`(N, *)` where :math:`*` means, any number of additional dimensions.
-  targets : Array
+  targets : ArrayType
     :math:`(N, *)`, same shape as the input.
   reduction : str
     Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
@@ -213,9 +213,9 @@ def l2_loss(predicts, targets):
   Parameters
   ----------
 
-  predicts: Array
+  predicts: ArrayType
     A vector of arbitrary shape.
-  targets: Array
+  targets: ArrayType
     A vector of shape compatible with predictions.
 
   Returns
@@ -287,9 +287,9 @@ def huber_loss(predicts, targets, delta: float = 1.0):
 
   Parameters
   ----------
-  predicts: Array
+  predicts: ArrayType
     predictions
-  targets: Array
+  targets: ArrayType
     ground truth
   delta: float
     radius of quadratic behavior
@@ -421,13 +421,13 @@ def log_cosh_loss(predicts, targets):
 
 
 def ctc_loss_with_forward_probs(
-    logits: Array,
-    logit_paddings: Array,
-    labels: Array,
-    label_paddings: Array,
+    logits: ArrayType,
+    logit_paddings: ArrayType,
+    labels: ArrayType,
+    label_paddings: ArrayType,
     blank_id: int = 0,
     log_epsilon: float = -1e5
-) -> Tuple[Array, Array, Array]:
+) -> Tuple[ArrayType, ArrayType, ArrayType]:
   r"""Computes CTC loss and CTC forward-probabilities.
   The CTC loss is a loss function based on log-likelihoods of the model that
   introduces a special blank symbol :math:`\phi` to represent variable-length
@@ -545,12 +545,12 @@ def ctc_loss_with_forward_probs(
   return per_seq_loss, logalpha_phi, logalpha_emit
 
 
-def ctc_loss(logits: Array,
-             logit_paddings: Array,
-             labels: Array,
-             label_paddings: Array,
+def ctc_loss(logits: ArrayType,
+             logit_paddings: ArrayType,
+             labels: ArrayType,
+             label_paddings: ArrayType,
              blank_id: int = 0,
-             log_epsilon: float = -1e5) -> Array:
+             log_epsilon: float = -1e5) -> ArrayType:
   """Computes CTC loss.
   See docstring for ``ctc_loss_with_forward_probs`` for details.
   Args:

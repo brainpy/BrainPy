@@ -15,7 +15,7 @@ from brainpy.errors import NoImplementationError
 from brainpy.modes import TrainingMode
 from brainpy.tools.checking import serialize_kwargs
 from brainpy.tools.others.dicts import DotDict
-from brainpy.types import Array, Output
+from brainpy.types import ArrayType, Output
 from .base import DSTrainer
 
 __all__ = [
@@ -101,7 +101,7 @@ class OnlineTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[Array, Sequence[Array], Dict[str, Array]],
+      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -113,7 +113,7 @@ class OnlineTrainer(DSTrainer):
 
     Parameters
     ----------
-    inputs: Array, sequence of Array, dict of Array
+    inputs: ArrayType
       The input values.
     reset_state: bool
       Reset the target state before running.
@@ -124,7 +124,7 @@ class OnlineTrainer(DSTrainer):
 
     Returns
     -------
-    output: Array, sequence of Array, dict of Array
+    output: ArrayType
       The running output.
     """
     outs = super(OnlineTrainer, self).predict(inputs=inputs,
@@ -196,7 +196,7 @@ class OnlineTrainer(DSTrainer):
   def _fit(
       self,
       xs: Tuple,
-      ys: Union[Array, Sequence[Array], Dict[str, Array]],
+      ys: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       shared_args: Dict = None,
   ):
     """Predict the output according to the inputs.
@@ -205,7 +205,7 @@ class OnlineTrainer(DSTrainer):
     ----------
     xs: tuple
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
-    ys: Array, sequence of Array, dict of Array
+    ys: ArrayType
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
     shared_args: optional, dict
       The shared keyword arguments.

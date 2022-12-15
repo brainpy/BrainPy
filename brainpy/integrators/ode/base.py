@@ -141,7 +141,7 @@ class ODEIntegrator(Integrator):
       if isinstance(delay, bm.LengthDelay):
         delay.update(dict_vars[key])
       elif isinstance(delay, bm.TimeDelay):
-        delay.update(kwargs['t'] + dt, dict_vars[key])
+        delay.update(dict_vars[key])
       else:
         raise ValueError('Unknown delay variable. We only supports '
                          f'{bm.LengthDelay.__name__} and {bm.TimeDelay.__name__}. '
