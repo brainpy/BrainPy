@@ -62,7 +62,7 @@ class TestRandom(unittest.TestCase):
   def test_random1(self):
     br.seed()
     a = br.random()
-    self.assertIsInstance(a, bm.jaxarray.Array)
+    self.assertIsInstance(a, bm.Array)
     self.assertTrue(0. <= a < 1)
 
   def test_random2(self):

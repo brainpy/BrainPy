@@ -8,7 +8,7 @@ from operator import index
 import jax
 import numpy as np
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core
-from jax import dtypes
+from jax._src import dtypes
 from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
@@ -75,10 +75,12 @@ def _remove_jax_array(a):
 
 
 def _const(example, val):
-  dtype = dtypes.dtype(example, canonicalize=True)
   if dtypes.is_python_scalar(example):
+    dtype = dtypes.canonicalize_dtype(type(example))
     val = dtypes.scalar_type_of(example)(val)
     return val if dtype == dtypes.dtype(val, canonicalize=True) else np.array(val, dtype)
+  else:
+    dtype = dtypes.canonicalize_dtype(example.dtype)
   return np.array(val, dtype)
 
 

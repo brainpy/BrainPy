@@ -563,8 +563,8 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
-        self.y = bm.array([10., 5.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
+        self.y = bm.Variable(bm.array([10., 5.]))
 
       def __call__(self, ):
         a = self.x[0] * self.y[0]
@@ -596,8 +596,8 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
-        self.y = bm.array([10., 5.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
+        self.y = bm.Variable(bm.array([10., 5.]))
 
       def __call__(self, ):
         a = self.x[0] * self.y[0]
@@ -629,7 +629,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -663,7 +663,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -698,7 +698,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -737,7 +737,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -779,7 +779,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -819,7 +819,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.array([1., 2., 3.])
+        self.x = bm.Variable(bm.array([1., 2., 3.]))
 
       def __call__(self, y):
         a = self.x[0] * y[0]
@@ -968,8 +968,8 @@ class TestClassFuncVectorGrad(unittest.TestCase):
     class Test(bp.BrainPyObject):
       def __init__(self):
         super(Test, self).__init__()
-        self.x = bm.ones(5)
-        self.y = bm.ones(5)
+        self.x = bm.Variable(bm.ones(5))
+        self.y = bm.Variable(bm.ones(5))
 
       def __call__(self, *args, **kwargs):
         return self.x ** 2 + self.y ** 2 + 10

@@ -135,5 +135,6 @@ class TestOpRegister(unittest.TestCase):
     ax = fig.add_subplot(gs[0, 2])
     bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
 
+    # clear
     bm.clear_buffer_memory()
     plt.close()
