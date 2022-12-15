@@ -7,7 +7,7 @@ import pickle
 import numpy as np
 
 from brainpy import errors
-from brainpy.base.collector import TensorCollector
+from brainpy.base.collector import ArrayCollector
 
 logger = logging.getLogger('brainpy.base.io')
 
@@ -124,7 +124,7 @@ def _load(
 
 
 def _unique_and_duplicate(collector: dict):
-  gather = TensorCollector()
+  gather = ArrayCollector()
   id2name = dict()
   duplicates = ([], [])
   for k, v in collector.items():

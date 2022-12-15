@@ -6,7 +6,7 @@ import brainpy.math as bm
 from brainpy.dyn.base import SynSTP
 from brainpy.integrators import odeint, JointEq
 from brainpy.tools.checking import check_float
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from brainpy.initialize import variable
 
 __all__ = [
@@ -133,9 +133,9 @@ class STP(SynSTP):
 
   def __init__(
       self,
-      U: Union[float, Array] = 0.15,
-      tau_f: Union[float, Array] = 1500.,
-      tau_d: Union[float, Array] = 200.,
+      U: Union[float, ArrayType] = 0.15,
+      tau_f: Union[float, ArrayType] = 1500.,
+      tau_d: Union[float, ArrayType] = 200.,
       method: str = 'exp_auto',
       name: str = None
   ):

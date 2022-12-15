@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 
 __all__ = [
-  'Array', 'Parameter',
+  'ArrayType', 'Parameter',
 
   'Shape',
 
@@ -15,7 +15,8 @@ __all__ = [
 ]
 
 Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'Array', 'Variable') # noqa
-Array = TypeVar('Array', 'Array', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
+ArrayType = TypeVar('Array', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
+Array = ArrayType
 
 Shape = TypeVar('Shape', int, Tuple[int, ...])
 

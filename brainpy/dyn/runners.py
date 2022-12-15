@@ -17,7 +17,7 @@ from brainpy.errors import RunningError
 from brainpy.running.runner import Runner
 from brainpy.tools.checking import check_float, serialize_kwargs
 from brainpy.tools.others.dicts import DotDict
-from brainpy.types import Array, Output, Monitor
+from brainpy.types import ArrayType, Output, Monitor
 
 __all__ = [
   'DSRunner',
@@ -341,7 +341,7 @@ class DSRunner(Runner):
   def predict(
       self,
       duration: Union[float, int] = None,
-      inputs: Union[Array, Sequence[Array], Dict[str, Array]] = None,
+      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]] = None,
       inputs_are_batching: bool = False,
       reset_state: bool = False,
       shared_args: Dict = None,
@@ -359,7 +359,7 @@ class DSRunner(Runner):
     ----------
     duration: int, float
       The simulation time length.
-    inputs: Array, dict of Array, sequence of Array
+    inputs: ArrayType, dict of ArrayType, sequence of ArrayType
       The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
       PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
       Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
@@ -378,7 +378,7 @@ class DSRunner(Runner):
 
     Returns
     -------
-    output: Array, dict, sequence
+    output: ArrayType, dict, sequence
       The model output.
     """
 
@@ -467,7 +467,7 @@ class DSRunner(Runner):
     ----------
     duration: int, float
       The simulation time length.
-    inputs: Array, dict of Array, sequence of Array
+    inputs: ArrayType, dict of ArrayType, sequence of ArrayType
       The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
       PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
       Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
@@ -486,7 +486,7 @@ class DSRunner(Runner):
 
     Returns
     -------
-    output: Array, dict, sequence
+    output: ArrayType, dict, sequence
       The model output.
     """
     return self.predict(*args, **kwargs)
@@ -498,7 +498,7 @@ class DSRunner(Runner):
     ----------
     duration: int, float
       The simulation time length.
-    inputs: Array, dict of Array, sequence of Array
+    inputs: ArrayType, dict of ArrayType, sequence of ArrayType
       The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
       PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
       Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
@@ -517,7 +517,7 @@ class DSRunner(Runner):
 
     Returns
     -------
-    output: Array, dict, sequence
+    output: ArrayType, dict, sequence
       The model output.
     """
     return self.predict(*args, **kwargs)

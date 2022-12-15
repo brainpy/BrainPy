@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 
-TRAIN_PHASE = 'fit'
+TRAIN_PHASE = 'train'
 FIT_PHASE = 'fit'
 
 TEST_PHASE = 'test'

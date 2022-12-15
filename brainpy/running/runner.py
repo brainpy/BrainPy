@@ -8,7 +8,7 @@ import numpy as np
 
 from brainpy import math as bm
 from brainpy.base import BrainPyObject
-from brainpy.base.collector import TensorCollector
+from brainpy.base.collector import ArrayCollector
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools.checking import check_dict_data
 from brainpy.tools.others import DotDict
@@ -147,7 +147,7 @@ class Runner(object):
       dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
     if not isinstance(dyn_vars, dict):
       raise RunningError(f'"dyn_vars" must be a dict, but we got {type(dyn_vars)}')
-    self.dyn_vars = TensorCollector(dyn_vars)
+    self.dyn_vars = ArrayCollector(dyn_vars)
 
     # numpy mon after run
     self.numpy_mon_after_run = numpy_mon_after_run

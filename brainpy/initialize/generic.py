@@ -7,7 +7,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.tools.others import to_size
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 from brainpy.modes import Mode, NormalMode, BatchingMode
 from .base import Initializer
 
@@ -48,7 +48,7 @@ def parameter(
 
   Returns
   -------
-  param: Array, float, int, bool, None
+  param: ArrayType, float, int, bool, None
     The initialized parameter.
 
   See Also
@@ -59,7 +59,7 @@ def parameter(
     if allow_none:
       return None
     else:
-      raise ValueError(f'Expect a parameter with type of float, Array, Initializer, or '
+      raise ValueError(f'Expect a parameter with type of float, ArrayType, Initializer, or '
                        f'Callable function, but we got None. ')
   size = to_size(size)
   if allow_scalar and isinstance(param, (float, int, bool)):
@@ -96,7 +96,7 @@ def init_param(
 
 
 def variable_(
-    data: Union[Callable, Array],
+    data: Union[Callable, ArrayType],
     size: Shape = None,
     batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
     batch_axis: int = 0,
@@ -105,7 +105,7 @@ def variable_(
 
   Parameters
   ----------
-  data: callable, function, Array
+  data: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
   batch_size_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
@@ -131,7 +131,7 @@ def variable_(
 
 
 def variable(
-    data: Union[Callable, Array],
+    data: Union[Callable, ArrayType],
     batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
     size: Shape = None,
     batch_axis: int = 0,
@@ -140,7 +140,7 @@ def variable(
 
   Parameters
   ----------
-  data: callable, function, Array
+  data: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
   batch_size_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
@@ -248,11 +248,11 @@ def delay(
 
   Parameters
   ----------
-  delay_step: int, ndarray, Array
+  delay_step: int, ndarray, ArrayType
     The number of delay steps. It can an integer of an array of integers.
-  delay_target: ndarray, Array
+  delay_target: ndarray, ArrayType
     The target variable to delay.
-  delay_data: optional, ndarray, Array
+  delay_data: optional, ndarray, ArrayType
     The initial delay data.
 
   Returns

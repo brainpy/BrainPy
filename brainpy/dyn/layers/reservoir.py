@@ -7,7 +7,7 @@ from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variabl
 from brainpy.modes import Mode, TrainingMode, batching
 from brainpy.tools.checking import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
@@ -29,7 +29,7 @@ class Reservoir(Layer):
     The initialization method for the feedforward connections.
   Wrec_initializer: Initializer
     The initialization method for the recurrent connections.
-  b_initializer: optional, Array, Initializer
+  b_initializer: optional, ArrayType, Initializer
     The initialization method for the bias.
   leaky_rate: float
     A float between 0 and 1.
@@ -92,9 +92,9 @@ class Reservoir(Layer):
       leaky_rate: float = 0.3,
       activation: Union[str, Callable] = 'tanh',
       activation_type: str = 'internal',
-      Win_initializer: Union[Initializer, Callable, Array] = Normal(scale=0.1),
-      Wrec_initializer: Union[Initializer, Callable, Array] = Normal(scale=0.1),
-      b_initializer: Optional[Union[Initializer, Callable, Array]] = ZeroInit(),
+      Win_initializer: Union[Initializer, Callable, ArrayType] = Normal(scale=0.1),
+      Wrec_initializer: Union[Initializer, Callable, ArrayType] = Normal(scale=0.1),
+      b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
       in_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       comp_type='dense',

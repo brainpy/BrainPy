@@ -48,11 +48,13 @@ class One2One(TwoEndConnector):
     indptr = np.arange(self.pre_num + 1)
     return (np.asarray(ind, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE))
 
-  def build_mat(self, pre_size=None, post_size=None):
+  def build_mat(self):
     if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
                            f'same size, but {self.pre_num} != {self.post_num}.')
-    return np.fill_diagonal(np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE), True)
+    mat = np.zeros((self.pre_num, self.post_num), dtype=MAT_DTYPE)
+    np.fill_diagonal(mat, True)
+    return mat
 
 
 one2one = One2One()

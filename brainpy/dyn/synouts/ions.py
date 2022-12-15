@@ -5,7 +5,7 @@ from typing import Union, Callable, Optional
 import brainpy.math as bm
 from brainpy.dyn.base import SynOut
 from brainpy.initialize import parameter, Initializer
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'MgBlock',
@@ -31,13 +31,13 @@ class MgBlock(SynOut):
 
   Parameters
   ----------
-  E: float, Array, ndarray, callable, Initializer
+  E: float, ArrayType, callable, Initializer
     The reversal potential for the synaptic current. [mV]
-  alpha: float, Array, ndarray
+  alpha: float, ArrayType
     Binding constant. Default 0.062
-  beta: float, Array, ndarray, callable, Initializer
+  beta: float, ArrayType, callable, Initializer
     Unbinding constant. Default 3.57
-  cc_Mg: float, Array, ndarray, callable, Initializer
+  cc_Mg: float, ArrayType, callable, Initializer
     Concentration of Magnesium ion. Default 1.2 [mM].
   name: str
     The model name.
@@ -45,10 +45,10 @@ class MgBlock(SynOut):
 
   def __init__(
       self,
-      E: Union[float, Array, Callable, Initializer] = 0.,
-      cc_Mg: Union[float, Array, Callable, Initializer] = 1.2,
-      alpha: Union[float, Array, Callable, Initializer] = 0.062,
-      beta: Union[float, Array, Callable, Initializer] = 3.57,
+      E: Union[float, ArrayType, Callable, Initializer] = 0.,
+      cc_Mg: Union[float, ArrayType, Callable, Initializer] = 1.2,
+      alpha: Union[float, ArrayType, Callable, Initializer] = 0.062,
+      beta: Union[float, ArrayType, Callable, Initializer] = 3.57,
       target_var: Optional[Union[str, bm.Variable]] = 'input',
       membrane_var: Union[str, bm.Variable] = 'V',
       name: str = None,

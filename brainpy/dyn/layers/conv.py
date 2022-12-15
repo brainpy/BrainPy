@@ -8,7 +8,7 @@ from brainpy import math as bm, tools
 from .base import Layer
 from brainpy.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.modes import Mode, TrainingMode, training
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'Conv1D',
@@ -72,7 +72,7 @@ class GeneralConv(Layer):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -93,7 +93,7 @@ class GeneralConv(Layer):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
+      mask: Optional[ArrayType] = None,
       mode: Mode = training,
       name: str = None,
   ):
@@ -200,7 +200,7 @@ class Conv1D(GeneralConv):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -221,7 +221,7 @@ class Conv1D(GeneralConv):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
+      mask: Optional[ArrayType] = None,
       mode: Mode = training,
       name: str = None,
   ):
@@ -283,7 +283,7 @@ class Conv2D(GeneralConv):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -304,7 +304,7 @@ class Conv2D(GeneralConv):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
+      mask: Optional[ArrayType] = None,
       mode: Mode = training,
       name: str = None,
   ):
@@ -366,7 +366,7 @@ class Conv3D(GeneralConv):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -387,7 +387,7 @@ class Conv3D(GeneralConv):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
+      mask: Optional[ArrayType] = None,
       mode: Mode = training,
       name: str = None,
   ):

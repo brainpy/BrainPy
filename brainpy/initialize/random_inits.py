@@ -43,7 +43,7 @@ class Normal(InterLayerInitializer):
     self.scale = scale
     self.mean = mean
     self.seed = tools.format_seed(seed)
-    self.rng = np.random.RandomState(seed=seed)
+    self.rng = np.random.RandomState(seed)
 
   def __call__(self, shape, dtype=None):
     shape = [tools.size2num(d) for d in shape]

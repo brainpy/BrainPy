@@ -19,7 +19,7 @@ from brainpy.initialize import Initializer, parameter, variable, Uniform, noise 
 from brainpy.integrators import odeint, sdeint
 from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
 from brainpy.tools.others import to_size, size2num, numba_jit, DotDict
-from brainpy.types import Array, Shape
+from brainpy.types import ArrayType, Shape
 
 __all__ = [
   # general class
@@ -112,9 +112,9 @@ class DynamicalSystem(BrainPyObject):
   def register_delay(
       self,
       identifier: str,
-      delay_step: Optional[Union[int, Array, Callable, Initializer]],
+      delay_step: Optional[Union[int, ArrayType, Callable, Initializer]],
       delay_target: bm.Variable,
-      initial_delay_data: Union[Initializer, Callable, Array, float, int, bool] = None,
+      initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
   ):
     """Register delay variable.
 
@@ -122,16 +122,16 @@ class DynamicalSystem(BrainPyObject):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, Array, ndarray, callable, Initializer
+    delay_step: Optional, int, ArrayType, callable, Initializer
       The number of the steps of the delay.
     delay_target: Variable
       The target variable for delay.
-    initial_delay_data: float, int, Array, ndarray, callable, Initializer
+    initial_delay_data: float, int, ArrayType, callable, Initializer
       The initializer for the delay data.
 
     Returns
     -------
-    delay_step: int, Array, ndarray
+    delay_step: int, ArrayType
       The number of the delay steps.
     """
     # delay steps
@@ -198,14 +198,14 @@ class DynamicalSystem(BrainPyObject):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, Array, ndarray
+    delay_step: Optional, int, ArrayType
       The delay length.
-    indices: optional, int, slice, Array, ndarray
+    indices: optional, int, slice, ArrayType
       The indices of the delay.
 
     Returns
     -------
-    delay_data: Array, ndarray
+    delay_data: ArrayType
       The delay data at the given time.
     """
     if delay_step is None:
@@ -332,14 +332,14 @@ class DynamicalSystem(BrainPyObject):
 
   @tools.not_customized
   def online_fit(self,
-                 target: Array,
-                 fit_record: Dict[str, Array]):
+                 target: ArrayType,
+                 fit_record: Dict[str, ArrayType]):
     raise NoImplementationError('Subclass must implement online_fit() function when using OnlineTrainer.')
 
   @tools.not_customized
   def offline_fit(self,
-                  target: Array,
-                  fit_record: Dict[str, Array]):
+                  target: ArrayType,
+                  fit_record: Dict[str, ArrayType]):
     raise NoImplementationError('Subclass must implement offline_fit() function when using OfflineTrainer.')
 
   def clear_input(self):
@@ -510,7 +510,7 @@ class Sequential(DynamicalSystem):
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  def update(self, sha: dict, x: Any) -> Array:
+  def update(self, sha: dict, x: Any) -> ArrayType:
     """Update function of a sequential model.
 
     Parameters
@@ -522,7 +522,7 @@ class Sequential(DynamicalSystem):
 
     Returns
     -------
-    y: Array
+    y: ArrayType
       The output tensor.
     """
     for m in self._modules:
@@ -719,7 +719,7 @@ class SynConn(DynamicalSystem):
     Pre-synaptic neuron group.
   post : NeuGroup
     Post-synaptic neuron group.
-  conn : optional, ndarray, Array, dict, TwoEndConnector
+  conn : optional, ndarray, ArrayType, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
   name : str, optional
     The name of the dynamic system.
@@ -729,7 +729,7 @@ class SynConn(DynamicalSystem):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]] = None,
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
       name: str = None,
       mode: Mode = normal,
   ):
@@ -932,7 +932,7 @@ class TwoEndConn(SynConn):
     Pre-synaptic neuron group.
   post : NeuGroup
     Post-synaptic neuron group.
-  conn : optional, ndarray, Array, dict, TwoEndConnector
+  conn : optional, ndarray, ArrayType, dict, TwoEndConnector
     The connection method between pre- and post-synaptic groups.
   output: Optional, SynOutput
     The output for the synaptic current.
@@ -960,7 +960,7 @@ class TwoEndConn(SynConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]] = None,
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
       output: SynOut = NullSynOut(),
       stp: SynSTP = NullSynSTP(),
       ltp: SynLTP = NullSynLTP(),
@@ -1002,10 +1002,10 @@ class TwoEndConn(SynConn):
 
   def _init_weights(
       self,
-      weight: Union[float, Array, Initializer, Callable],
+      weight: Union[float, ArrayType, Initializer, Callable],
       comp_method: str,
       sparse_data: str = 'csr'
-  ) -> Union[float, Array]:
+  ) -> Union[float, ArrayType]:
     if comp_method not in ['sparse', 'dense']:
       raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
     if sparse_data not in ['csr', 'ij', 'coo']:
@@ -1117,11 +1117,11 @@ class CondNeuGroup(NeuGroup, Container):
       self,
       size: Shape,
       keep_size: bool = False,
-      C: Union[float, Array, Initializer, Callable] = 1.,
-      A: Union[float, Array, Initializer, Callable] = 1e-3,
-      V_th: Union[float, Array, Initializer, Callable] = 0.,
-      V_initializer: Union[Initializer, Callable, Array] = Uniform(-70, -60.),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      C: Union[float, ArrayType, Initializer, Callable] = 1.,
+      A: Union[float, ArrayType, Initializer, Callable] = 1e-3,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 0.,
+      V_initializer: Union[Initializer, Callable, ArrayType] = Uniform(-70, -60.),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,
@@ -1259,7 +1259,7 @@ class DSView(DynamicalSystem):
   def __init__(
       self,
       target: DynamicalSystem,
-      index: Union[slice, Sequence, Array],
+      index: Union[slice, Sequence, ArrayType],
       varshape: Tuple[int, ...] = None,
       name: str = None,
       mode: Mode = None
@@ -1379,7 +1379,7 @@ class NeuGroupView(DSView, NeuGroup):
   def __init__(
       self,
       target: NeuGroup,
-      index: Union[slice, Sequence, Array],
+      index: Union[slice, Sequence, ArrayType],
       name: str = None,
       mode: Mode = None
   ):

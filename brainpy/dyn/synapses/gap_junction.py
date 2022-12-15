@@ -6,7 +6,7 @@ import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn
 from brainpy.initialize import Initializer, parameter
-from brainpy.types import Array
+from brainpy.types import ArrayType
 from ..synouts import CUBA
 
 __all__ = [
@@ -19,9 +19,9 @@ class GapJunction(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       comp_method: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
       name: str = None,
   ):
     super(GapJunction, self).__init__(pre=pre,

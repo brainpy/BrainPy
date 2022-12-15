@@ -11,7 +11,7 @@ from typing import Union, Callable
 import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators.ode import odeint
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 from brainpy.modes import Mode, BatchingMode, normal
 from .base import Calcium, CalciumChannel, PotassiumChannel
 
@@ -75,12 +75,12 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -95.,
-      n: Union[float, Array, Initializer, Callable] = 2,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      alpha: Union[float, Array, Initializer, Callable] = 48.,
-      beta: Union[float, Array, Initializer, Callable] = 0.09,
-      phi: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -95.,
+      n: Union[float, ArrayType, Initializer, Callable] = 2,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      alpha: Union[float, ArrayType, Initializer, Callable] = 48.,
+      beta: Union[float, ArrayType, Initializer, Callable] = 0.09,
+      phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: Mode = normal,

@@ -9,7 +9,7 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 from brainpy import math as bm
-from brainpy.base.collector import Collector, TensorCollector
+from brainpy.base.collector import Collector, ArrayCollector
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
 from brainpy.running.runner import Runner
@@ -98,7 +98,7 @@ class IntegratorRunner(Runner):
       dyn_vars: Dict[str, bm.Variable] = None,
       jit: Union[bool, Dict[str, bool]] = True,
       numpy_mon_after_run: bool = True,
-      progress_bar: bool = True
+      progress_bar: bool = True,
   ):
     """Initialization of structural runner for integrators.
 
@@ -151,8 +151,8 @@ class IntegratorRunner(Runner):
       inits = dict()
 
     # initialize variables
-    self.variables = TensorCollector({v: bm.Variable(bm.zeros(max_size))
-                                      for v in target.variables})
+    self.variables = ArrayCollector({v: bm.Variable(bm.zeros(max_size))
+                                     for v in target.variables})
     for k in inits.keys():
       self.variables[k][:] = inits[k]
 
@@ -239,6 +239,7 @@ class IntegratorRunner(Runner):
     self.step_func = _loop_func
 
   def _step(self, t):
+
     # arguments
     kwargs = dict()
     kwargs.update(self.variables)
@@ -263,9 +264,10 @@ class IntegratorRunner(Runner):
     # return of function monitors
     returns = dict()
     for key, func in self.fun_monitors.items():
-      returns[key] = func(t, self.dt)
+      returns[key] = func(t + self.dt, self.dt)
     for k in self.monitors.keys():
       returns[k] = self.variables[k].value
+
     return returns
 
   def run(self, duration, start_t=None, eval_time=False):

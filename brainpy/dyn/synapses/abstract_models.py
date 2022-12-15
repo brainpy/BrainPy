@@ -2,6 +2,7 @@
 
 from typing import Union, Dict, Callable, Optional
 
+import brainpylib as bl
 from jax import vmap
 from jax.lax import stop_gradient
 
@@ -10,11 +11,10 @@ from brainpy.connect import TwoEndConnector, All2All, One2One
 from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy.initialize import Initializer, variable_
 from brainpy.integrators import odeint, JointEq
-from brainpy.tools.checking import check_integer, check_float
 from brainpy.modes import Mode, BatchingMode, normal, NormalMode, check_mode
-from brainpy.types import Array
+from brainpy.tools.checking import check_integer, check_float
+from brainpy.types import ArrayType
 from ..synouts import CUBA, MgBlock
-
 
 __all__ = [
   'Delta',
@@ -73,14 +73,14 @@ class Delta(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, Array, Initializer, Callable
+  delay_step: int, ArrayType, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  g_max: float, ndarray, Array, Initializer, Callable
+  g_max: float, ArrayType, Initializer, Callable
     The synaptic strength. Default is 1.
   post_ref_key: str
     Whether the post-synaptic group has refractory period.
@@ -90,12 +90,12 @@ class Delta(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       output: SynOut = CUBA(target_var='V'),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[float, Array, Initializer, Callable] = None,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[float, ArrayType, Initializer, Callable] = None,
       post_ref_key: str = None,
 
       # other parameters
@@ -149,7 +149,14 @@ class Delta(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
+        f = lambda s: bl.event_ops.event_csr_matvec(
+          bm.as_jax(self.g_max),
+          bm.as_jax(self.conn_mask[0]),
+          bm.as_jax(self.conn_mask[1]),
+          bm.as_jax(s),
+          shape=(self.pre.num, self.post.num),
+          transpose=True
+        )
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
@@ -238,16 +245,16 @@ class Exponential(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, Array, Initializer, Callable
+  delay_step: int, ArrayType, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau: float, Array, ndarray
+  tau: float, ArrayType
     The time constant of decay. [ms]
-  g_max: float, ndarray, Array, Initializer, Callable
+  g_max: float, ArrayType, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   name: str
     The name of this synaptic projection.
@@ -267,13 +274,13 @@ class Exponential(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       output: SynOut = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau: Union[float, Array] = 8.0,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau: Union[float, ArrayType] = 8.0,
       method: str = 'exp_auto',
 
       # other parameters
@@ -335,7 +342,14 @@ class Exponential(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.pre2post_event_sum(s, self.conn_mask, self.post.num, self.g_max)
+        f = lambda s: bl.event_ops.event_csr_matvec(
+          bm.as_jax(self.g_max),
+          bm.as_jax(self.conn_mask[0]),
+          bm.as_jax(self.conn_mask[1]),
+          bm.as_jax(s),
+          shape=(self.pre.num, self.post.num),
+          transpose=True
+        )
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
@@ -417,18 +431,18 @@ class DualExponential(TwoEndConn):
       The pre-synaptic neuron group.
     post: NeuGroup
       The post-synaptic neuron group.
-    conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
+    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
     comp_method: str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ndarray, Array, Initializer, Callable
+    delay_step: int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
     tau_decay: float, ArrayArray, ndarray
       The time constant of the synaptic decay phase. [ms]
     tau_rise: float, ArrayArray, ndarray
       The time constant of the synaptic rise phase. [ms]
-    g_max: float, ndarray, Array, Initializer, Callable
+    g_max: float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
     name: str
       The name of this synaptic projection.
@@ -450,14 +464,14 @@ class DualExponential(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       stp: Optional[SynSTP] = None,
       output: SynOut = CUBA(),
       comp_method: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      tau_decay: Union[float, Array] = 10.0,
-      tau_rise: Union[float, Array] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau_decay: Union[float, ArrayType] = 10.0,
+      tau_rise: Union[float, ArrayType] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
 
       # other parameters
@@ -487,7 +501,7 @@ class DualExponential(TwoEndConn):
                        f'But we got {self.tau_decay}')
 
     # connections
-    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
     self.h = variable_(bm.zeros, self.pre.num, mode)
@@ -536,7 +550,14 @@ class DualExponential(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
+          bm.as_jax(self.g_max),
+          bm.as_jax(self.conn_mask[0]),
+          bm.as_jax(self.conn_mask[1]),
+          bm.as_jax(s),
+          shape=(self.pre.num, self.post.num),
+          transpose=True
+        )
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
@@ -602,16 +623,16 @@ class Alpha(DualExponential):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `sparse`.
-  delay_step: int, ndarray, Array, Initializer, Callable
+  delay_step: int, ArrayType, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  tau_decay: float, Array, ndarray
+  tau_decay: float, ArrayType
     The time constant of the synaptic decay phase. [ms]
-  g_max: float, ndarray, Array, Initializer, Callable
+  g_max: float, ArrayType, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   name: str
     The name of this synaptic projection.
@@ -630,13 +651,13 @@ class Alpha(DualExponential):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       output: SynOut = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau_decay: Union[float, Array] = 10.0,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau_decay: Union[float, ArrayType] = 10.0,
       method: str = 'exp_auto',
 
       # other parameters
@@ -751,20 +772,20 @@ class NMDA(TwoEndConn):
     The pre-synaptic neuron group.
   post: NeuGroup
     The post-synaptic neuron group.
-  conn: optional, ndarray, Array, dict of (str, ndarray), TwoEndConnector
+  conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
     The connection type used for model speed optimization. It can be
     `sparse` and `dense`. The default is `dense`.
-  delay_step: int, ndarray, Array, Initializer, Callable
+  delay_step: int, ArrayType, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  g_max: float, ndarray, Array, Initializer, Callable
+  g_max: float, ArrayType, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
-  tau_decay: float, Array, ndarray
+  tau_decay: float, ArrayType
     The time constant of the synaptic decay phase. Default 100 [ms]
-  tau_rise: float, Array, ndarray
+  tau_rise: float, ArrayType
     The time constant of the synaptic rise phase. Default 2 [ms]
-  a: float, Array, ndarray
+  a: float, ArrayType
     Default 0.5 ms^-1.
   name: str
     The name of this synaptic projection.
@@ -791,15 +812,15 @@ class NMDA(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       output: SynOut = MgBlock(E=0., alpha=0.062, beta=3.57, cc_Mg=1.2),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'dense',
-      g_max: Union[float, Array, Initializer, Callable] = 0.15,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
-      tau_decay: Union[float, Array] = 100.,
-      a: Union[float, Array] = 0.5,
-      tau_rise: Union[float, Array] = 2.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 0.15,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau_decay: Union[float, ArrayType] = 100.,
+      a: Union[float, ArrayType] = 0.5,
+      tau_rise: Union[float, ArrayType] = 2.,
       method: str = 'exp_auto',
 
       # other parameters
@@ -829,7 +850,7 @@ class NMDA(TwoEndConn):
     self.stop_spike_gradient = stop_spike_gradient
 
     # connections and weights
-    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
     self.g = variable_(bm.zeros, self.pre.num, mode)
@@ -877,7 +898,14 @@ class NMDA(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.pre2post_sum(s, self.post.num, *self.conn_mask)
+        f = lambda s: bl.event_ops.event_csr_matvec(
+          bm.as_jax(self.g_max),
+          bm.as_jax(self.conn_mask[0]),
+          bm.as_jax(self.conn_mask[1]),
+          bm.as_jax(s),
+          shape=(self.pre.num, self.post.num),
+          transpose=True
+        )
         if isinstance(self.mode, BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
