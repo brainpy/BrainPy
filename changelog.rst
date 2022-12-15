@@ -2,18 +2,21 @@ Release notes (brainpy)
 #######################
 
 
+
+
+.. note::
+
+   All history release notes please see `GitHub releases <https://github.com/brainpy/BrainPy/releases>`_.
+
+
+
+
 brainpy 2.2.x
 *************
 
 BrainPy 2.2.x is a complete re-design of the framework,
 tackling the shortcomings of brainpy 2.1.x generation,
 effectively bringing it to research needs and standards.
-
-
-.. note::
-
-   All history release notes please see `GitHub <https://github.com/brainpy/BrainPy/releases>`_.
-
 
 
 

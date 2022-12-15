@@ -65,13 +65,14 @@ extensions = [
   'sphinx.ext.autosummary',
   'sphinx.ext.intersphinx',
   'sphinx.ext.mathjax',
-  # 'sphinx-mathjax-offline',
   'sphinx.ext.napoleon',
   'sphinx.ext.viewcode',
   'sphinx_autodoc_typehints',
   'myst_nb',
   'matplotlib.sphinxext.plot_directive',
-  'sphinx_thebe'
+  'sphinx_thebe',
+
+  # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -102,9 +103,9 @@ myst_enable_extensions = [
     "dollarmath",
     "amsmath",
     "deflist",
+    "colon_fence",
     # "html_admonition",
     # "html_image",
-    "colon_fence",
     # "smartquotes",
     # "replacements",
     # "linkify",

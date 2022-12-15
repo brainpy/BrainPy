@@ -46,6 +46,20 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
 
 .. toctree::
    :maxdepth: 1
+   :caption: Advanced Tutorials
+
+   tutorial_advanced/variables.ipynb
+   tutorial_advanced/base_and_collector.ipynb
+   tutorial_advanced/compilation.ipynb
+   tutorial_advanced/differentiation.ipynb
+   tutorial_advanced/adavanced_lowdim_analysis.ipynb
+   tutorial_advanced/operator_customization.ipynb
+   tutorial_advanced/interoperation.ipynb
+
+
+
+.. toctree::
+   :maxdepth: 1
    :caption: Toolboxes
 
    tutorial_toolbox/ode_numerical_solvers
@@ -62,23 +76,10 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
 
 .. toctree::
    :maxdepth: 1
-   :caption: Advanced Tutorials
-
-   tutorial_advanced/variables.ipynb
-   tutorial_advanced/base_and_collector.ipynb
-   tutorial_advanced/compilation.ipynb
-   tutorial_advanced/differentiation.ipynb
-   tutorial_advanced/adavanced_lowdim_analysis.ipynb
-   tutorial_advanced/operator_customization.ipynb
-   tutorial_advanced/interoperation.ipynb
-
-
-
-.. toctree::
-   :maxdepth: 1
    :caption: Frequently Asked Questions
 
    tutorial_FAQs/citing_and_publication
+   tutorial_FAQs/uniqueness_of-brainpy-math
 
 
 .. toctree::
