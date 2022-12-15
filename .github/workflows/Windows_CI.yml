@@ -33,6 +33,7 @@ jobs:
         python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.14.tar.gz
         python -m pip install -r requirements-dev.txt
         python -m pip install tqdm brainpylib
+        pip uninstall brainpy -y
         python setup.py install
     - name: Lint with flake8
       run: |

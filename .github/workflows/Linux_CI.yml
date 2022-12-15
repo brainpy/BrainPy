@@ -29,6 +29,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+        pip uninstall brainpy -y
         python setup.py install
     - name: Lint with flake8
       run: |
