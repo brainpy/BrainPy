@@ -69,11 +69,11 @@ class TestTimeDelay(unittest.TestCase):
   def test1(self):
     print()
     delay = bm.TimeDelay(jnp.zeros(3), delay_len=1., dt=0.1, before_t0=lambda t: t)
-    self.assertTrue(bm.allclose(delay(-0.2), bm.ones(3) * 0.2))
+    self.assertTrue(bm.allclose(delay(-0.2), bm.ones(3) * -0.2))
     delay = bm.TimeDelay(jnp.zeros((3, 2)), delay_len=1., dt=0.1, before_t0=lambda t: t)
-    self.assertTrue(bm.allclose(delay(-0.6), bm.zeros((3, 2)) * -0.6))
+    self.assertTrue(bm.allclose(delay(-0.6), bm.ones((3, 2)) * -0.6))
     delay = bm.TimeDelay(jnp.zeros((3, 2, 1)), delay_len=1., dt=0.1, before_t0=lambda t: t)
-    self.assertTrue(bm.allclose(delay(-0.8), jnp.zeros(3, 2, 1) * -0.8))
+    self.assertTrue(bm.allclose(delay(-0.8), jnp.ones((3, 2, 1)) * -0.8))
 
   def test_current_time2(self):
     print()

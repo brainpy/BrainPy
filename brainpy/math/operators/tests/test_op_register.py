@@ -11,12 +11,13 @@ bm.set_platform('cpu')
 
 
 def abs_eval(events, indices, indptr, post_val, values):
-  return post_val
+  return [post_val]
 
 
 def event_sum_op(outs, ins):
   events, indices, indptr, post, values = ins
   v = values[()]
+  outs, = outs
   outs.fill(0)
   for i in range(len(events)):
     if events[i]:
@@ -79,7 +80,8 @@ class ExponentialSyn3(bp.dyn.TwoEndConn):
     # Customized operator
     # ------------------------------------------------------------------------------------------------------------
     post_val = bm.zeros(self.post.num)
-    self.g += event_sum2(self.pre.spike, self.pre2post[0], self.pre2post[1], post_val, self.g_max)
+    r = event_sum2(self.pre.spike, self.pre2post[0], self.pre2post[1], post_val, self.g_max)
+    self.g += r[0]
     # ------------------------------------------------------------------------------------------------------------
     self.post.input += self.g * (self.E - self.post.V)
 
@@ -112,12 +114,13 @@ class EINet(bp.dyn.Network):
 class TestOpRegister(unittest.TestCase):
   def test_op(self):
 
-    fig, gs = bp.visualize.get_figure(1, 3, 4, 5)
+    fig, gs = bp.visualize.get_figure(1, 1, 4, 5)
 
     net = EINet(ExponentialSyn, scale=1., method='euler')
     runner = bp.dyn.DSRunner(
       net,
-      inputs=[(net.E.input, 20.), (net.I.input, 20.)],
+      inputs=[(net.E.input, 20.),
+              (net.I.input, 20.)],
       monitors={'E.spike': net.E.spike},
     )
     t, _ = runner.run(100., eval_time=True)
@@ -128,12 +131,13 @@ class TestOpRegister(unittest.TestCase):
     net3 = EINet(ExponentialSyn3, scale=1., method='euler')
     runner3 = bp.dyn.DSRunner(
       net3,
-      inputs=[(net3.E.input, 20.), (net3.I.input, 20.)],
+      inputs=[(net3.E.input, 20.),
+              (net3.I.input, 20.)],
       monitors={'E.spike': net3.E.spike},
     )
     t, _ = runner3.run(100., eval_time=True)
     print(t)
-    ax = fig.add_subplot(gs[0, 2])
+    ax = fig.add_subplot(gs[0, 1])
     bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
 
     # clear
