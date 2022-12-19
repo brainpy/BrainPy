@@ -94,6 +94,8 @@ def _check_input_array(array):
 class Array(object):
   """Multiple-dimensional array in JAX backend.
   """
+
+  is_brainpy_array = True
   __slots__ = ("_value", "_transform_context")
 
   def __init__(self, value, dtype=None):

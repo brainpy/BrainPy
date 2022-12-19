@@ -4,7 +4,7 @@ __version__ = "2.3.0"
 
 
 # fundamental modules
-from . import errors, tools, check, modes
+from . import check, errors, tools, modes
 
 # "base" module
 from . import base
