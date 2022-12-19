@@ -51,7 +51,7 @@ try:
 
   if brainpylib.__version__ < _BRAINPYLIB_MINIMAL_VERSION:
     raise PackageMissingError(
-      f'brainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
+      f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
       f'Please install it through:\n\n'
       f'>>> pip install brainpylib -U'
     )
@@ -59,7 +59,7 @@ try:
   del brainpylib
 except ModuleNotFoundError:
   raise PackageMissingError(
-    f'brainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
+    f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
     f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
     f'>>> pip install brainpylib'
   )
