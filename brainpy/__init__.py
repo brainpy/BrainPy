@@ -4,7 +4,7 @@ __version__ = "2.3.0"
 
 
 # fundamental modules
-from . import errors, tools, check, modes
+from . import check, errors, tools, modes
 
 # "base" module
 from . import base
@@ -25,7 +25,6 @@ from . import (
   optimizers,  # gradient descent optimizers
   losses,  # loss functions
   measure,  # methods for data analysis
-  datasets,  # methods for generating data
   inputs,  # methods for generating input currents
   algorithms,  # online or offline training algorithms
 )
