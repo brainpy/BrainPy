@@ -11,24 +11,7 @@ __all__ = [
 
 _check = True
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.1.2'
-
-
-def is_checking():
-  """Whether the checking is turn on."""
-  return _check
-
-
-def turn_on():
-  """Turn on the checking."""
-  global _check
-  _check = True
-
-
-def turn_off():
-  """Turn off the checking."""
-  global _check
-  _check = False
+_BRAINPYLIB_MINIMAL_VERSION = '0.1.3'
 
 
 try:
@@ -62,12 +45,13 @@ For more detail installation instructions, please see https://brainpy.readthedoc
 
     ''') from None
 
+
 try:
   import brainpylib
 
   if brainpylib.__version__ < _BRAINPYLIB_MINIMAL_VERSION:
     raise PackageMissingError(
-      f'brainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
+      f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
       f'Please install it through:\n\n'
       f'>>> pip install brainpylib -U'
     )
@@ -75,7 +59,27 @@ try:
   del brainpylib
 except ModuleNotFoundError:
   raise PackageMissingError(
-    f'brainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
+    f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
     f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
     f'>>> pip install brainpylib'
   )
+
+
+def is_checking():
+  """Whether the checking is turn on."""
+  return _check
+
+
+def turn_on():
+  """Turn on the checking."""
+  global _check
+  _check = True
+
+
+def turn_off():
+  """Turn off the checking."""
+  global _check
+  _check = False
+
+
+
