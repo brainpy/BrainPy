@@ -25,7 +25,6 @@ from . import (
   optimizers,  # gradient descent optimizers
   losses,  # loss functions
   measure,  # methods for data analysis
-  datasets,  # methods for generating data
   inputs,  # methods for generating input currents
   algorithms,  # online or offline training algorithms
 )

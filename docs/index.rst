@@ -92,7 +92,6 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
    apis/train.rst
    apis/analysis.rst
    apis/integrators.rst
-   apis/datasets.rst
    apis/algorithms.rst
    apis/auto/inputs.rst
    apis/auto/connect.rst

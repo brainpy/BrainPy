@@ -150,12 +150,12 @@ class BPTrainer(DSTrainer):
   @property
   def train_losses(self):
     warnings.warn('Use .get_hist_metric("fit") instead.', UserWarning)
-    return self._report_train_metrics
+    return self.get_hist_metric()
 
   @property
   def test_losses(self):
     warnings.warn('Use .get_hist_metric("test") instead.', UserWarning)
-    return self._report_test_metrics
+    return self.get_hist_metric(phase='test')
 
   def predict(
       self,
