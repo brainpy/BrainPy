@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Union, Sequence, Any, Dict, Callable
+from typing import Union, Sequence, Any, Dict, Callable, Optional
 
 import jax.numpy as jnp
 from jax import lax
@@ -21,6 +21,7 @@ from brainpy.math.ndarray import (Array, Variable,
 from brainpy.math.numpy_ops import as_device_array
 from ._utils import infer_dyn_vars
 from .base import ObjectTransform
+from brainpy.types import PyTree
 
 __all__ = [
   'make_loop',
@@ -542,7 +543,7 @@ def cond(
 
 def ifelse(
     conditions: Union[bool, Sequence[bool]],
-    branches: Sequence,
+    branches: Sequence[Callable],
     operands: Any = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     show_code: bool = False,
@@ -668,6 +669,7 @@ def for_loop(
     body_fun: Callable,
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    out_vars: Optional[PyTree] = None,
     reverse: bool = False,
     unroll: int = 1,
     auto_infer: bool = True
@@ -724,8 +726,6 @@ def for_loop(
     A Python function to be scanned. This function accepts one argument and returns one output.
     The argument denotes a slice of ``operands`` along its leading axis, and that
     output represents a slice of the return value.
-  dyn_vars: Variable, sequence of Variable, dict
-    The instances of :py:class:`~.Variable`.
   operands: Any
     The value over which to scan along the leading axis,
     where ``operands`` can be an array or any pytree (nested Python
@@ -733,6 +733,16 @@ def for_loop(
     If body function `body_func` receives multiple arguments,
     `operands` should be a tuple/list whose length is equal to the
     number of arguments.
+  dyn_vars: Variable, sequence of Variable, dict
+    The instances of :py:class:`~.Variable`.
+  out_vars: PyTree, Optional
+    The variables to output in each step.
+
+    .. versionadded:: 2.3.1
+       Support to return outputs with the specification of `out_vars`,
+       which means no longer need to accumulate values through the
+       function returns.
+
   reverse: bool
     Optional boolean specifying whether to run the scan iteration
     forward (the default) or in reverse, equivalent to reversing the leading
@@ -762,6 +772,10 @@ def for_loop(
   else:
     raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
                      f'only support dict/list/tuple of {Variable.__name__}')
+  outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
+  for v in outs:
+    if v not in dyn_vars:
+      dyn_vars += (v,)
   for v in dyn_vars:
     if not isinstance(v, Variable):
       raise ValueError(f'brainpy.math.for_loop only support {Variable.__name__} '
@@ -773,6 +787,12 @@ def for_loop(
     if not isinstance(x, (tuple, list)):
       x = (x,)
     results = body_fun(*x)
+    if results is None:
+      if out_vars is not None:
+        results = out_vars
+    else:
+      if out_vars is not None:
+        results = (results, out_vars)
     return [v.value for v in dyn_vars], results
 
   name = get_unique_name('_brainpy_object_oriented_for_loop_')
