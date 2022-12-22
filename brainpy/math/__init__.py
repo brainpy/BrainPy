@@ -47,9 +47,11 @@ from . import random
 
 # operators
 from .operators import *
+from . import surrogate
 
 # JAX transformations for Variable and class objects
 from .object_transform import *
+
 
 # settings
 from . import setting

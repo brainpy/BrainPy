@@ -92,7 +92,7 @@ def _check_input_array(array):
 
 
 class Array(object):
-  """Multiple-dimensional array in JAX backend.
+  """Multiple-dimensional array in BrainPy.
   """
 
   is_brainpy_array = True

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-from jax import custom_gradient, custom_jvp
+
+import warnings
+
+from jax import custom_gradient, custom_jvp, numpy as jnp
 
 from brainpy.math import numpy_ops as bm
 from brainpy.math.ndarray import Array
@@ -15,7 +18,6 @@ __all__ = [
 
   'spike2_with_sigmoid_grad',
   'spike2_with_linear_grad',
-  'step_pwl'
 ]
 
 
@@ -24,8 +26,12 @@ def _consistent_type(target, compare):
 
 
 @custom_gradient
-def spike_with_sigmoid_grad(x: Array, scale: float = None):
+def spike_with_sigmoid_grad(x: Array, scale: float = 100.):
   """Spike function with the sigmoid surrogate gradient.
+
+  .. deprecated:: 2.3.1
+     Please use ``brainpy.math.surrogate.sigmoid_grad()`` instead.
+     Will be removed after version 2.4.0.
 
   Parameters
   ----------
@@ -34,17 +40,19 @@ def spike_with_sigmoid_grad(x: Array, scale: float = None):
   scale: float
     The scaling factor.
   """
-  z = bm.asarray(x >= 0, dtype=dftype())
+  warnings.warn('Use `brainpy.math.surrogate.inv_square_grad()` instead.', UserWarning)
+
+  x = bm.as_jax(x)
+  z = jnp.asarray(x >= 0, dtype=dftype())
 
   def grad(dE_dz):
-    _scale = 100. if scale is None else scale
-    dE_dx = dE_dz / (_scale * bm.abs(x) + 1.0) ** 2
+    dE_dz = bm.as_jax(dE_dz)
+    dE_dx = dE_dz / (scale * jnp.abs(x) + 1.0) ** 2
     if scale is None:
       return (_consistent_type(dE_dx, x),)
     else:
-      dscale = bm.zeros_like(_scale)
-      return (_consistent_type(dE_dx, x),
-              _consistent_type(dscale, scale))
+      dscale = jnp.zeros_like(scale)
+      return (dE_dx, dscale)
 
   return z, grad
 
@@ -52,6 +60,10 @@ def spike_with_sigmoid_grad(x: Array, scale: float = None):
 @custom_gradient
 def spike2_with_sigmoid_grad(x_new: Array, x_old: Array, scale: float = None):
   """Spike function with the sigmoid surrogate gradient.
+
+  .. deprecated:: 2.3.1
+     Please use ``brainpy.math.surrogate.inv_square_grad2()`` instead.
+     Will be removed after version 2.4.0.
 
   Parameters
   ----------
@@ -62,6 +74,8 @@ def spike2_with_sigmoid_grad(x_new: Array, x_old: Array, scale: float = None):
   scale: optional, float
     The scaling factor.
   """
+  warnings.warn('Use `brainpy.math.surrogate.inv_square_grad2()` instead.', UserWarning)
+
   x_new_comp = x_new >= 0
   x_old_comp = x_old < 0
   z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
@@ -86,6 +100,10 @@ def spike2_with_sigmoid_grad(x_new: Array, x_old: Array, scale: float = None):
 def spike_with_linear_grad(x: Array, scale: float = None):
   """Spike function with the relu surrogate gradient.
 
+  .. deprecated:: 2.3.1
+     Please use ``brainpy.math.surrogate.relu_grad()`` instead.
+     Will be removed after version 2.4.0.
+
   Parameters
   ----------
   x: Array
@@ -93,6 +111,9 @@ def spike_with_linear_grad(x: Array, scale: float = None):
   scale: float
     The scaling factor.
   """
+
+  warnings.warn('Use `brainpy.math.surrogate.relu_grad()` instead.', UserWarning)
+
   z = bm.asarray(x >= 0., dtype=dftype())
 
   def grad(dE_dz):
@@ -111,6 +132,10 @@ def spike_with_linear_grad(x: Array, scale: float = None):
 def spike2_with_linear_grad(x_new: Array, x_old: Array, scale: float = 10.):
   """Spike function with the linear surrogate gradient.
 
+  .. deprecated:: 2.3.1
+     Please use ``brainpy.math.surrogate.relu_grad2()`` instead.
+     Will be removed after version 2.4.0.
+
   Parameters
   ----------
   x_new: Array
@@ -120,6 +145,8 @@ def spike2_with_linear_grad(x_new: Array, x_old: Array, scale: float = 10.):
   scale: float
     The scaling factor.
   """
+  warnings.warn('Use `brainpy.math.surrogate.relu_grad2()` instead.', UserWarning)
+
   x_new_comp = x_new >= 0
   x_old_comp = x_old < 0
   z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
@@ -147,7 +174,15 @@ def _gaussian(x, mu, sigma):
 @custom_gradient
 def spike_with_gaussian_grad(x, sigma=None, scale=None):
   """Spike function with the Gaussian surrogate gradient.
+
+  .. deprecated:: 2.3.1
+     Please use ``brainpy.math.surrogate.gaussian_grad()`` instead.
+     Will be removed after version 2.4.0.
+
   """
+
+  warnings.warn('Use `brainpy.math.surrogate.gaussian_grad()` instead.', UserWarning)
+
   z = bm.asarray(x >= 0., dtype=dftype())
 
   def grad(dE_dz):
@@ -168,6 +203,10 @@ def spike_with_gaussian_grad(x, sigma=None, scale=None):
 def spike_with_mg_grad(x, h=None, s=None, sigma=None, scale=None):
   """Spike function with the multi-Gaussian surrogate gradient.
 
+  .. deprecated:: 2.3.1
+     Please use ``brainpy.math.surrogate.multi_sigmoid_grad()`` instead.
+     Will be removed after version 2.4.0.
+
   Parameters
   ----------
   x: ndarray
@@ -181,6 +220,9 @@ def spike_with_mg_grad(x, h=None, s=None, sigma=None, scale=None):
   scale: float
     The gradient scale.
   """
+
+  warnings.warn('Use `brainpy.math.surrogate.multi_sigmoid_grad()` instead.', UserWarning)
+
   z = bm.asarray(x >= 0., dtype=dftype())
 
   def grad(dE_dz):
@@ -204,29 +246,3 @@ def spike_with_mg_grad(x, h=None, s=None, sigma=None, scale=None):
 
   return z, grad
 
-
-@custom_jvp
-def step_pwl(x, threshold, window=0.5, max_spikes_per_dt: int = bm.inf):
-  """
-  Heaviside step function with piece-wise linear derivative to use as spike-generation surrogate
-
-  Args:
-      x (float):          Input value
-      threshold (float):  Firing threshold
-      window (float): Learning window around threshold. Default: 0.5
-      max_spikes_per_dt (int): Maximum number of spikes that may be produced each dt. Default: ``np.inf``, do not clamp spikes
-
-  Returns:
-      float: Number of output events for each input value
-  """
-  spikes = (x >= threshold) * bm.floor(x / threshold)
-  return bm.clip(spikes, 0.0, max_spikes_per_dt)
-
-
-@step_pwl.defjvp
-def step_pwl_jvp(primals, tangents):
-  x, threshold, window, max_spikes_per_dt = primals
-  x_dot, threshold_dot, window_dot, max_spikes_per_dt_dot = tangents
-  primal_out = step_pwl(*primals)
-  tangent_out = (x >= (threshold - window)) * (x_dot / threshold - threshold_dot * x / (threshold ** 2))
-  return primal_out, tangent_out

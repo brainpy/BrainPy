@@ -1,13 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base import FunAsObject
+from typing import Union, Sequence, Dict, Callable
+
+from brainpy.base import FunAsObject, BrainPyObject
+from brainpy.math.ndarray import Variable
 
 __all__ = [
   'to_object',
 ]
 
 
-def to_object(f=None, child_objs=None, dyn_vars=None, name=None):
+def to_object(
+    f: Callable = None,
+    child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    name: str = None
+):
   """Transform a Python function to ``BrainPyObject``.
 
   Parameters
