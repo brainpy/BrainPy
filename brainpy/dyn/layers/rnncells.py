@@ -217,8 +217,8 @@ class GRUCell(RecurrentCell):
     self.activation = bm.activations.get(activation)
 
     # weights
-    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3))
-    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3))
+    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3), allow_none=False)
+    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3), allow_none=False)
     self.b = parameter(self._b_initializer, (self.num_out * 3,))
     if isinstance(self.mode, TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)

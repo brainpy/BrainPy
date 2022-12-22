@@ -239,7 +239,7 @@ def build_inputs(inputs, fun_inputs):
 
 
 class DSRunner(Runner):
-  """The runner for dynamical systems.
+  """The runner for :py:class:`~.DynamicalSystem`.
 
   Parameters
   ----------

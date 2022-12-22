@@ -142,10 +142,14 @@ class Delta(TwoEndConn):
 
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None:
+        syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      if self.stp is not None:
+        syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
@@ -166,7 +170,9 @@ class Delta(TwoEndConn):
         #   if self.trainable: f2 = vmap(f2)
         #   post_vs *= f2(stp_value)
       else:
-        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+        syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+        if self.stp is not None:
+          syn_value = self.stp(syn_value)
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     if self.post_ref_key:
       post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))

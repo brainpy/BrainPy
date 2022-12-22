@@ -2,14 +2,12 @@
 
 import collections
 import gc
-import inspect
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
 
 import jax.numpy as jnp
 import numpy as np
 
-import brainpy.math as bm
-from brainpy import tools
+from brainpy import tools, math as bm
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.base.base import BrainPyObject
 from brainpy.base.collector import Collector
@@ -18,7 +16,6 @@ from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
 from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
-from brainpy.tools.others import to_size, size2num, numba_jit, DotDict
 from brainpy.types import ArrayType, Shape
 
 __all__ = [
@@ -38,8 +35,8 @@ __all__ = [
   'SynConn',
   'TwoEndConn',
   'SynOut', 'NullSynOut',
-  'SynSTP', 'NullSynSTP',
-  'SynLTP', 'NullSynLTP',
+  'SynSTP',
+  'SynLTP',
 
   # slice
   'DSView', 'NeuGroupView',
@@ -76,7 +73,7 @@ class DynamicalSystem(BrainPyObject):
       mode: Optional[Mode] = None,
   ):
     # mode setting
-    if mode is None: mode = normal
+    mode = normal if mode is None else mode
     if not isinstance(mode, Mode):
       raise ValueError(f'Should be instance of {Mode.__name__}, but we got {type(Mode)}: {Mode}')
     self._mode = mode
@@ -99,7 +96,8 @@ class DynamicalSystem(BrainPyObject):
   @mode.setter
   def mode(self, value):
     if not isinstance(value, Mode):
-      raise ValueError(f'Must be instance of {Mode.__name__}, but we got {type(value)}: {value}')
+      raise ValueError(f'Must be instance of {Mode.__name__}, '
+                       f'but we got {type(value)}: {value}')
     self._mode = value
 
   def __repr__(self):
@@ -351,78 +349,88 @@ class Container(DynamicalSystem):
 
   Parameters
   ----------
-  steps : tuple of function, tuple of str, dict of (str, function), optional
-      The step functions.
-  monitors : tuple, list, Monitor, optional
-      The monitor object.
   name : str, optional
-      The object name.
-  show_code : bool
-      Whether show the formatted code.
-  ds_dict : dict of (str, )
-      The instance of DynamicalSystem with the format of "key=dynamic_system".
+    The object name.
+  mode: Mode
+    The mode which controls the model computation.
+  must_be_dynsys_subclass: bool
+    Child classes must be the subclass of :py:class:`DynamicalSystem`.
   """
 
   def __init__(
       self,
-      *ds_tuple,
+      *dynamical_systems_as_tuple,
       name: str = None,
       mode: Mode = normal,
-      **ds_dict
+      must_be_dynsys_subclass: bool = True,
+      **dynamical_systems_as_dict
   ):
     super(Container, self).__init__(name=name, mode=mode)
 
+    if must_be_dynsys_subclass:
+      parent = DynamicalSystem
+      parent_name = DynamicalSystem.__name__
+    else:
+      parent = BrainPyObject
+      parent_name = BrainPyObject.__name__
+
     # add tuple-typed components
-    for module in ds_tuple:
-      if isinstance(module, DynamicalSystem):
+    for module in dynamical_systems_as_tuple:
+      if isinstance(module, parent):
         self.implicit_nodes[module.name] = module
       elif isinstance(module, (list, tuple)):
         for m in module:
-          if not isinstance(m, DynamicalSystem):
-            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+          if not isinstance(m, parent):
+            raise ValueError(f'Should be instance of {parent_name}. '
                              f'But we got {type(m)}')
           self.implicit_nodes[m.name] = module
       elif isinstance(module, dict):
         for k, v in module.items():
-          if not isinstance(v, DynamicalSystem):
-            raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+          if not isinstance(v, parent):
+            raise ValueError(f'Should be instance of {parent_name}. '
                              f'But we got {type(v)}')
           self.implicit_nodes[k] = v
       else:
-        raise ValueError(f'Cannot parse sub-systems. They should be {DynamicalSystem.__name__} '
-                         f'or a list/tuple/dict of  {DynamicalSystem.__name__}.')
+        raise ValueError(f'Cannot parse sub-systems. They should be {parent_name} '
+                         f'or a list/tuple/dict of {parent_name}.')
     # add dict-typed components
-    for k, v in ds_dict.items():
-      if not isinstance(v, DynamicalSystem):
-        raise ValueError(f'Should be instance of {DynamicalSystem.__name__}. '
+    for k, v in dynamical_systems_as_dict.items():
+      if not isinstance(v, parent):
+        raise ValueError(f'Should be instance of {parent_name}. '
                          f'But we got {type(v)}')
       self.implicit_nodes[k] = v
 
   def __repr__(self):
     cls_name = self.__class__.__name__
-    split = ', '
-    children = [f'{key}={str(val)}' for key, val in self.implicit_nodes.items()]
-    return f'{cls_name}({split.join(children)})'
+    indent = ' ' * len(cls_name)
+    child_str = [tools.repr_context(repr(val), indent) for val in self.implicit_nodes.values()]
+    string = ", \n".join(child_str)
+    return f'{cls_name}({string})'
 
   def update(self, tdi, *args, **kwargs):
     """Update function of a container.
 
     In this update function, the update functions in children systems are
     iteratively called.
+
+    Parameters
+    ----------
+    tdi: dict
+      The shared arguments including `t` the time, `dt` the time step, `t` the running index.
     """
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     for node in nodes.values():
       node.update(tdi)
 
   def __getitem__(self, item):
-    """Wrap the slice access (self['']). """
+    """Overwrite the slice access (`self['']`). """
     if item in self.implicit_nodes:
       return self.implicit_nodes[item]
     else:
       raise ValueError(f'Unknown item {item}, we only found {list(self.implicit_nodes.keys())}')
 
   def __getattr__(self, item):
-    """Wrap the dot access ('self.'). """
+    """Overwrite the dot access (`self.`). """
     child_ds = super(Container, self).__getattribute__('implicit_nodes')
     if item in child_ds:
       return child_ds[item]
@@ -430,51 +438,90 @@ class Container(DynamicalSystem):
       return super(Container, self).__getattribute__(item)
 
   def clear_input(self):
+    """Clear inputs in the children classes."""
     for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
       node.clear_input()
 
 
-class Sequential(DynamicalSystem):
+class Sequential(Container):
+  """A sequential `input-output` module.
+
+  Modules will be added to it in the order they are passed in the
+  constructor. Alternatively, an ``dict`` of modules can be
+  passed in. The ``update()`` method of ``Sequential`` accepts any
+  input and forwards it to the first module it contains. It then
+  "chains" outputs to inputs sequentially for each subsequent module,
+  finally returning the output of the last module.
+
+  The value a ``Sequential`` provides over manually calling a sequence
+  of modules is that it allows treating the whole container as a
+  single module, such that performing a transformation on the
+  ``Sequential`` applies to each of the modules it stores (which are
+  each a registered submodule of the ``Sequential``).
+
+  What's the difference between a ``Sequential`` and a
+  :py:class:`Container`? A ``Container`` is exactly what it
+  sounds like--a container to store :py:class:`DynamicalSystem` s!
+  On the other hand, the layers in a ``Sequential`` are connected
+  in a cascading way.
+
+  Examples
+  --------
+
+  >>> import brainpy as bp
+  >>> import brainpy.math as bm
+  >>>
+  >>> # composing ANN models
+  >>> l = bp.Sequential(bp.layers.Dense(100, 10),
+  >>>                   bm.relu,
+  >>>                   bp.layers.Dense(10, 2))
+  >>> l({}, bm.random.random((256, 100)))
+  >>>
+  >>> # Using Sequential with Dict. This is functionally the
+  >>> # same as the above code
+  >>> l = bp.Sequential(l1=bp.layers.Dense(100, 10),
+  >>>                   l2=bm.relu,
+  >>>                   l3=bp.layers.Dense(10, 2))
+  >>> l({}, bm.random.random((256, 100)))
+
+  Parameters
+  ----------
+  name: str
+    The object name.
+  mode: Mode
+    The object computing context/mode. Default is `batching`.
+  no_shared_arg: bool
+    Indicating whether this sequential object receives a ``shared`` argument.
+
+    - If `no_shared_arg=False`, then we call the object as `f(shared, x)`.
+    - If `no_shared_arg=True`, then we call the object as `f(x)`.
+
+    .. warning::
+       If some children nodes needs shared arguments, like :py:class:`Dropout` or
+       :py:class:`LIF` models, set `no_shared_arg=True` will cause errors.
+  """
+
   def __init__(
       self,
-      *modules,
+      *modules_as_tuple,
       name: str = None,
-      mode: Mode = normal,
-      **kw_modules
+      mode: Mode = BatchingMode(),
+      # no_shared_arg: bool = False,
+      **modules_as_dict
   ):
-    super().__init__(name=name, mode=mode)
-    self._modules = tuple(modules) + tuple(kw_modules.values())
 
-    seq_modules = [m for m in modules if isinstance(m, BrainPyObject)]
-    dict_modules = {k: m for k, m in kw_modules.items() if isinstance(m, BrainPyObject)}
+    self._modules = tuple(modules_as_tuple) + tuple(modules_as_dict.values())
+    seq_modules = [m for m in modules_as_tuple if isinstance(m, BrainPyObject)]
+    dict_modules = {k: m for k, m in modules_as_dict.items() if isinstance(m, BrainPyObject)}
 
-    # add tuple-typed components
-    for module in seq_modules:
-      if isinstance(module, BrainPyObject):
-        self.implicit_nodes[module.name] = module
-      elif isinstance(module, (list, tuple)):
-        for m in module:
-          if not isinstance(m, BrainPyObject):
-            raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
-                             f'But we got {type(m)}')
-          self.implicit_nodes[m.name] = module
-      elif isinstance(module, dict):
-        for k, v in module.items():
-          if not isinstance(v, BrainPyObject):
-            raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
-                             f'But we got {type(v)}')
-          self.implicit_nodes[k] = v
-      else:
-        raise ValueError(f'Cannot parse sub-systems. They should be {BrainPyObject.__name__} '
-                         f'or a list/tuple/dict of  {BrainPyObject.__name__}.')
-    # add dict-typed components
-    for k, v in dict_modules.items():
-      if not isinstance(v, BrainPyObject):
-        raise ValueError(f'Should be instance of {BrainPyObject.__name__}. '
-                         f'But we got {type(v)}')
-      self.implicit_nodes[k] = v
+    super().__init__(*seq_modules,
+                     name=name,
+                     mode=mode,
+                     must_be_dynsys_subclass=False,
+                     **dict_modules)
+    # self.no_shared_arg = no_shared_arg
 
-  def __getattr__(self, item):
+  def __getattr__(self, item: str):
     """Wrap the dot access ('self.'). """
     child_ds = super(Sequential, self).__getattribute__('implicit_nodes')
     if item in child_ds:
@@ -482,7 +529,7 @@ class Sequential(DynamicalSystem):
     else:
       return super(Sequential, self).__getattribute__(item)
 
-  def __getitem__(self, key: Union[int, slice]):
+  def __getitem__(self, key: Union[int, slice, str]):
     if isinstance(key, str):
       if key not in self.implicit_nodes:
         raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
@@ -510,7 +557,7 @@ class Sequential(DynamicalSystem):
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  def update(self, sha: dict, x: Any) -> ArrayType:
+  def update(self, sha, x: Any) -> ArrayType:
     """Update function of a sequential model.
 
     Parameters
@@ -525,6 +572,11 @@ class Sequential(DynamicalSystem):
     y: ArrayType
       The output tensor.
     """
+    # if self.no_shared_arg:
+    #   if x is not None:
+    #     raise ValueError('please call the object through `f(x)` when no_shared_arg=True')
+    #   x = sha
+    #   sha = tools.DotDict()
     for m in self._modules:
       if isinstance(m, DynamicalSystem):
         x = m(sha, x)
@@ -907,22 +959,6 @@ class NullSynOut(SynOut):
     return NullSynOut()
 
 
-class NullSynSTP(SynSTP):
-  def clone(self):
-    return NullSynSTP()
-
-  def filter(self, g):
-    return g
-
-
-class NullSynLTP(SynLTP):
-  def clone(self):
-    return NullSynLTP()
-
-  def filter(self, g):
-    return g
-
-
 class TwoEndConn(SynConn):
   """Base class to model synaptic connections.
 
@@ -962,10 +998,10 @@ class TwoEndConn(SynConn):
       post: NeuGroup,
       conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
       output: SynOut = NullSynOut(),
-      stp: SynSTP = NullSynSTP(),
-      ltp: SynLTP = NullSynLTP(),
-      name: str = None,
+      stp: Optional[SynSTP] = None,
+      ltp: Optional[SynLTP] = None,
       mode: Mode = normal,
+      name: str = None,
   ):
     super(TwoEndConn, self).__init__(pre=pre,
                                      post=post,
@@ -983,21 +1019,21 @@ class TwoEndConn(SynConn):
     self.output: SynOut = output
 
     # short-term synaptic plasticity
-    stp = NullSynSTP() if stp is None else stp
-    if stp.isregistered: stp = stp.clone()
-    if not isinstance(stp, SynSTP):
-      raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
-                      f'but we got {type(stp)}')
-    stp.register_master(master=self)
+    if stp is not None:
+      if stp.isregistered: stp = stp.clone()
+      if not isinstance(stp, SynSTP):
+        raise TypeError(f'Short-term plasticity must be instance of {SynSTP.__name__}, '
+                        f'but we got {type(stp)}')
+      stp.register_master(master=self)
     self.stp: SynSTP = stp
 
     # long-term synaptic plasticity
-    ltp = NullSynLTP() if ltp is None else ltp
-    if ltp.isregistered: ltp = ltp.clone()
-    if not isinstance(ltp, SynLTP):
-      raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
-                      f'but we got {type(ltp)}')
-    ltp.register_master(master=self)
+    if ltp is not None:
+      if ltp.isregistered: ltp = ltp.clone()
+      if not isinstance(ltp, SynLTP):
+        raise TypeError(f'Long-term plasticity must be instance of {SynLTP.__name__}, '
+                        f'but we got {type(ltp)}')
+      ltp.register_master(master=self)
     self.ltp: SynLTP = ltp
 
   def _init_weights(
@@ -1196,9 +1232,9 @@ class Channel(DynamicalSystem):
   ):
     super(Channel, self).__init__(name=name, mode=mode)
     # the geometry size
-    self.size = to_size(size)
+    self.size = tools.to_size(size)
     # the number of elements
-    self.num = size2num(self.size)
+    self.num = tools.size2num(self.size)
     # variable shape
     self.keep_size = keep_size
 
@@ -1345,7 +1381,7 @@ class DSView(DynamicalSystem):
     pass
 
 
-@numba_jit
+@tools.numba_jit
 def _slice_to_num(slice_: slice, length: int):
   # start
   start = slice_.start
