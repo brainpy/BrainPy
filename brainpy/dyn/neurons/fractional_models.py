@@ -8,8 +8,7 @@ from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.integrators.fde import CaputoL1Schema
 from brainpy.integrators.fde import GLShortMemory
 from brainpy.integrators.joint_eq import JointEq
-from brainpy.tools.checking import check_float, check_integer
-from brainpy.tools.checking import check_initializer
+from brainpy.check import check_float, check_integer, check_initializer
 from brainpy.types import Shape, ArrayType
 
 __all__ = [

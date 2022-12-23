@@ -6,7 +6,6 @@ from brainpy import math as bm, initialize as init
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
 from brainpy.integrators.sde import sdeint
-from brainpy.modes import Mode, normal
 from brainpy.types import ArrayType, Shape
 
 __all__ = [
@@ -51,7 +50,7 @@ class OUProcess(NeuGroup):
       tau: Union[float, ArrayType, Initializer, Callable] = 10.,
       method: str = 'exp_euler',
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
       name: str = None,
   ):
     super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)

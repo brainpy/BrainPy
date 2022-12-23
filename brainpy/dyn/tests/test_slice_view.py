@@ -27,7 +27,7 @@ class TestSliceView(unittest.TestCase):
     print(lif.V)
 
   def test_lif_train_mode(self):
-    lif = bp.neurons.LIF(10, mode=bp.modes.training)
+    lif = bp.neurons.LIF(10, mode=bm.training_mode)
     lif_tile = lif[5:]
     print(lif_tile.V.shape)
     print(lif_tile.varshape)

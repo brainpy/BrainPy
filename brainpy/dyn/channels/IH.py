@@ -11,7 +11,6 @@ import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import Shape, ArrayType
-from brainpy.modes import Mode, BatchingMode, normal
 from .base import IhChannel, CalciumChannel, Calcium
 
 __all__ = [
@@ -63,7 +62,7 @@ class Ih_HM1992(IhChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(Ih_HM1992, self).__init__(size,
                                     keep_size=keep_size,
@@ -173,7 +172,7 @@ class Ih_De1996(IhChannel, CalciumChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     # IhChannel.__init__(self, size, name=name, keep_size=keep_size)
     CalciumChannel.__init__(self,

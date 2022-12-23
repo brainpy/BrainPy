@@ -13,7 +13,6 @@ from brainpy.initialize import OneInit, Initializer, parameter, variable
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.types import Shape, ArrayType
-from brainpy.modes import Mode, BatchingMode, normal
 from .base import Calcium, CalciumChannel
 
 __all__ = [
@@ -50,7 +49,7 @@ class CalciumFixed(Calcium):
       C: Union[float, ArrayType, Initializer, Callable] = 2.4e-4,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       **channels
   ):
     super(CalciumFixed, self).__init__(size,
@@ -105,7 +104,7 @@ class CalciumDyna(Calcium):
       C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       **channels
   ):
     super(CalciumDyna, self).__init__(size,
@@ -124,7 +123,7 @@ class CalciumDyna(Calcium):
     # variables
     self.C = variable(C_initializer, mode, self.varshape)  # Calcium concentration
     self.E = bm.Variable(self._reversal_potential(self.C),
-                         batch_axis=0 if isinstance(mode, BatchingMode) else None)  # Reversal potential
+                         batch_axis=0 if isinstance(mode, bm.BatchingMode) else None)  # Reversal potential
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -271,7 +270,7 @@ class CalciumDetailed(CalciumDyna):
       C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       **channels
   ):
     super(CalciumDetailed, self).__init__(size,
@@ -315,7 +314,7 @@ class CalciumFirstOrder(CalciumDyna):
       C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       **channels
   ):
     super(CalciumFirstOrder, self).__init__(size,
@@ -382,7 +381,7 @@ class ICa_p2q_ss(CalciumChannel):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 3.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       name: str = None
   ):
     super(ICa_p2q_ss, self).__init__(size,
@@ -476,7 +475,7 @@ class ICa_p2q_markov(CalciumChannel):
       g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(ICa_p2q_markov, self).__init__(size,
                                          keep_size=keep_size,
@@ -578,7 +577,7 @@ class ICaN_IS2008(CalciumChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(ICaN_IS2008, self).__init__(size,
                                       keep_size=keep_size,
@@ -676,7 +675,7 @@ class ICaT_HM1992(ICa_p2q_ss):
       phi_q: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
@@ -774,7 +773,7 @@ class ICaT_HP1992(ICa_p2q_ss):
       phi_q: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
@@ -867,7 +866,7 @@ class ICaHT_HM1992(ICa_p2q_ss):
       V_sh: Union[float, ArrayType, Initializer, Callable] = 25.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(ICaHT_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -974,7 +973,7 @@ class ICaHT_Re1993(ICa_p2q_markov):
       V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     phi_p = T_base_p ** ((T - 23.) / 10.) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 23.) / 10.) if phi_q is None else phi_q
@@ -1061,7 +1060,7 @@ class ICaL_IS2008(ICa_p2q_ss):
       V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(ICaL_IS2008, self).__init__(size,
                                       keep_size=keep_size,

@@ -8,9 +8,7 @@ from brainpy.dyn.neurons.noise_groups import OUProcess
 from brainpy.initialize import Initializer, Uniform, parameter, variable, ZeroInit
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.modes import Mode, normal
-from brainpy.tools.checking import check_float, check_initializer
-from brainpy.tools.errors import check_error_in_jit
+from brainpy.check import check_float, check_initializer, check_error_in_jit
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -91,7 +89,7 @@ class FHN(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
   ):
     super(FHN, self).__init__(size=size,
                               name=name,
@@ -274,7 +272,7 @@ class FeedbackFHN(RateModel):
       dt: float = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
   ):
     super(FeedbackFHN, self).__init__(size=size,
                                       name=name,
@@ -471,7 +469,7 @@ class QIF(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
   ):
     super(QIF, self).__init__(size=size,
                               name=name,
@@ -612,7 +610,7 @@ class StuartLandauOscillator(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
   ):
     super(StuartLandauOscillator, self).__init__(size=size,
                                                  name=name,
@@ -767,7 +765,7 @@ class WilsonCowanModel(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
   ):
     super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size)
 
@@ -923,7 +921,7 @@ class ThresholdLinearModel(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.CompMode = None, 
   ):
     super(ThresholdLinearModel, self).__init__(size,
                                                name=name,
