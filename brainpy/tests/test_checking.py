@@ -3,7 +3,7 @@
 
 import unittest
 
-from brainpy.tools import checking
+from brainpy import check as checking
 
 
 class TestUtils(unittest.TestCase):
