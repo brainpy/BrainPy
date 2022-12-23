@@ -21,6 +21,7 @@ from brainpy.types import ArrayType, Shape
 __all__ = [
   # general class
   'DynamicalSystem',
+  'FuncAsDynSys',
 
   # containers
   'Container', 'Network', 'Sequential', 'System',
@@ -48,11 +49,26 @@ SLICE_VARS = 'slice_vars'
 class DynamicalSystem(BrainPyObject):
   """Base Dynamical System class.
 
+  .. note::
+     In general, every instance of :py:class:`~.DynamicalSystem` implemented in
+     BrainPy only defines the evolving function at each time step :math:`t`.
+
+     Each subclass of :py:class:`~.DynamicalSystem` may have multiple step functions.
+     For instance, all our implemented neuron model define two step functions:
+
+     - ``.update()`` for the logic updating
+     - ``clear_input()`` for clear all accumulated inputs at this time step.
+
+     If users want to define the logic of running models across multiple steps,
+     we recommend users to use :py:func:`~.for_loop`, :py:class:`~.LoopOverTime`,
+     :py:class:`~.DSRunner`, or :py:class:`~.DSTrainer`.
+
+
   Parameters
   ----------
   name : optional, str
     The name of the dynamical system.
-  mode: Mode
+  mode: optional, Mode
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
@@ -342,6 +358,56 @@ class DynamicalSystem(BrainPyObject):
 
   def clear_input(self):
     pass
+
+
+class FuncAsDynSys(DynamicalSystem):
+  """Transform a Python function as a :py:class:`~.DynamicalSystem`
+
+  Parameters
+  ----------
+  f : function
+    The function to wrap.
+  child_objs : optional, BrainPyObject, sequence of BrainPyObject, dict
+    The nodes in the defined function ``f``.
+  dyn_vars : optional, ndarray, sequence of ndarray, dict
+    The dynamically changed variables.
+  name : optional, str
+    The name of the transformed object.
+  mode: Mode
+    The computation mode.
+  """
+
+  def __init__(self,
+               f: Callable,
+               child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
+               dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+               name: str = None,
+               mode: Mode = normal):
+    super().__init__(name=name, mode=mode)
+
+    self._f = f
+    if child_objs is not None:
+      self.register_implicit_nodes(child_objs, node_cls=DynamicalSystem)
+    if dyn_vars is not None:
+      self.register_implicit_vars(dyn_vars)
+
+  def update(self, *args, **kwargs):
+    """Update function of the transformed dynamical system."""
+    return self._f(*args, **kwargs)
+
+  def clear_input(self):
+    """Function for clearing input in the wrapped children dynamical system."""
+    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+      node.clear_input()
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    indent = " " * (len(name) + 1)
+    indent2 = indent + " " * len('nodes=')
+    nodes = [tools.repr_context(str(n), indent2) for n in self.implicit_nodes.values()]
+    node_string = ", \n".join(nodes)
+    return (f'{name}(nodes=[{node_string}],\n' +
+            f'{indent}num_of_vars={len(self.implicit_vars)})')
 
 
 class Container(DynamicalSystem):
