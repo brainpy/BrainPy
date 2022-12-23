@@ -13,7 +13,7 @@ from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
 from brainpy.math.ndarray import Array, Variable
-from brainpy.tools.errors import check_error_in_jit
+from brainpy.check import check_error_in_jit
 from brainpy.errors import UnsupportedError
 from ._utils import wraps
 

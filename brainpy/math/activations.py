@@ -333,16 +333,16 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
 
     >>> import jax.numpy as jnp
     >>> one_hot(jnp.array([0, 1, 2]), 3)
-    DeviceArray([[1., 0., 0.],
-                  [0., 1., 0.],
-                  [0., 0., 1.]], dtype=float32)
+    Array([[1., 0., 0.],
+           [0., 1., 0.],
+           [0., 0., 1.]], dtype=float32)
 
   Indicies outside the range [0, num_classes) will be encoded as zeros::
 
     >>> import jax.numpy as jnp
     >>> one_hot(jnp.array([-1, 3]), 3)
-    DeviceArray([[0., 0., 0.],
-                 [0., 0., 0.]], dtype=float32)
+    Array([[0., 0., 0.],
+           [0., 0., 0.]], dtype=float32)
 
   Args:
     x: A tensor of indices.
@@ -370,7 +370,8 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
   rhs_shape = [1] * x.ndim
   rhs_shape.insert(output_pos_axis, num_classes)
   rhs = jax.lax.broadcast_in_dim(jnp.arange(num_classes, dtype=x.dtype),
-                                 rhs_shape, (output_pos_axis,))
+                                 rhs_shape,
+                                 (output_pos_axis,))
   return jnp.asarray(lhs == rhs, dtype=dtype)
 
 

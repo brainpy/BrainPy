@@ -4,11 +4,11 @@
 
 import warnings
 
-from jax import custom_gradient, custom_jvp, numpy as jnp
+from jax import custom_gradient, numpy as jnp
 
 from brainpy.math import numpy_ops as bm
+from brainpy.math.environment import get_float
 from brainpy.math.ndarray import Array
-from brainpy.math.setting import dftype
 
 __all__ = [
   'spike_with_sigmoid_grad',
@@ -43,7 +43,7 @@ def spike_with_sigmoid_grad(x: Array, scale: float = 100.):
   warnings.warn('Use `brainpy.math.surrogate.inv_square_grad()` instead.', UserWarning)
 
   x = bm.as_jax(x)
-  z = jnp.asarray(x >= 0, dtype=dftype())
+  z = jnp.asarray(x >= 0, dtype=get_float())
 
   def grad(dE_dz):
     dE_dz = bm.as_jax(dE_dz)
@@ -78,12 +78,12 @@ def spike2_with_sigmoid_grad(x_new: Array, x_old: Array, scale: float = None):
 
   x_new_comp = x_new >= 0
   x_old_comp = x_old < 0
-  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
+  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=get_float())
 
   def grad(dE_dz):
     _scale = 100. if scale is None else scale
-    dx_new = (dE_dz / (_scale * bm.abs(x_new) + 1.0) ** 2) * bm.asarray(x_old_comp, dtype=dftype())
-    dx_old = -(dE_dz / (_scale * bm.abs(x_old) + 1.0) ** 2) * bm.asarray(x_new_comp, dtype=dftype())
+    dx_new = (dE_dz / (_scale * bm.abs(x_new) + 1.0) ** 2) * bm.asarray(x_old_comp, dtype=get_float())
+    dx_old = -(dE_dz / (_scale * bm.abs(x_old) + 1.0) ** 2) * bm.asarray(x_new_comp, dtype=get_float())
     if scale is None:
       return (_consistent_type(dx_new, x_new),
               _consistent_type(dx_old, x_old))
@@ -114,7 +114,7 @@ def spike_with_linear_grad(x: Array, scale: float = None):
 
   warnings.warn('Use `brainpy.math.surrogate.relu_grad()` instead.', UserWarning)
 
-  z = bm.asarray(x >= 0., dtype=dftype())
+  z = bm.asarray(x >= 0., dtype=get_float())
 
   def grad(dE_dz):
     _scale = 0.3 if scale is None else scale
@@ -149,12 +149,12 @@ def spike2_with_linear_grad(x_new: Array, x_old: Array, scale: float = 10.):
 
   x_new_comp = x_new >= 0
   x_old_comp = x_old < 0
-  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=dftype())
+  z = bm.asarray(bm.logical_and(x_new_comp, x_old_comp), dtype=get_float())
 
   def grad(dE_dz):
     _scale = 0.3 if scale is None else scale
-    dx_new = (dE_dz * bm.maximum(1 - bm.abs(x_new), 0) * _scale) * bm.asarray(x_old_comp, dtype=dftype())
-    dx_old = -(dE_dz * bm.maximum(1 - bm.abs(x_old), 0) * _scale) * bm.asarray(x_new_comp, dtype=dftype())
+    dx_new = (dE_dz * bm.maximum(1 - bm.abs(x_new), 0) * _scale) * bm.asarray(x_old_comp, dtype=get_float())
+    dx_old = -(dE_dz * bm.maximum(1 - bm.abs(x_old), 0) * _scale) * bm.asarray(x_new_comp, dtype=get_float())
     if scale is None:
       return (_consistent_type(dx_new, x_new),
               _consistent_type(dx_old, x_old))
@@ -183,7 +183,7 @@ def spike_with_gaussian_grad(x, sigma=None, scale=None):
 
   warnings.warn('Use `brainpy.math.surrogate.gaussian_grad()` instead.', UserWarning)
 
-  z = bm.asarray(x >= 0., dtype=dftype())
+  z = bm.asarray(x >= 0., dtype=get_float())
 
   def grad(dE_dz):
     _scale = 0.5 if scale is None else scale
@@ -223,7 +223,7 @@ def spike_with_mg_grad(x, h=None, s=None, sigma=None, scale=None):
 
   warnings.warn('Use `brainpy.math.surrogate.multi_sigmoid_grad()` instead.', UserWarning)
 
-  z = bm.asarray(x >= 0., dtype=dftype())
+  z = bm.asarray(x >= 0., dtype=get_float())
 
   def grad(dE_dz):
     _sigma = 0.5 if sigma is None else sigma

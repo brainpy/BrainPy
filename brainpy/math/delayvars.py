@@ -11,9 +11,8 @@ from brainpy.base.base import BrainPyObject
 from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
 from brainpy.math.ndarray import ndarray, Variable, Array
-from brainpy.math.setting import get_dt, dftype
-from brainpy.tools.checking import check_float, check_integer
-from brainpy.tools.errors import check_error_in_jit
+from brainpy.math.environment import get_dt, get_float
+from brainpy.check import check_float, check_integer, check_error_in_jit
 
 __all__ = [
   'AbstractDelay',
@@ -139,7 +138,7 @@ class TimeDelay(AbstractDelay):
     # time variables
     self.idx = Variable(jnp.asarray([0]))
     check_float(t0, 't0', allow_none=False, allow_int=True, )
-    self.current_time = Variable(jnp.asarray([t0], dtype=dftype()))
+    self.current_time = Variable(jnp.asarray([t0], dtype=get_float()))
 
     # delay data
     batch_axis = None

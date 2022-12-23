@@ -53,6 +53,6 @@ from . import surrogate
 from .object_transform import *
 
 
-# settings
-from . import setting
-from .setting import *
+# environment settings
+from .modes import *
+from .environment import *
