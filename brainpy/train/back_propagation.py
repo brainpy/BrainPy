@@ -16,8 +16,8 @@ import brainpy.optimizers as optim
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import UnsupportedError, NoLongerSupportError
 from brainpy.running import constants as c
-from brainpy.tools.checking import serialize_kwargs
-from brainpy.tools.others import DotDict
+from brainpy.check import serialize_kwargs
+from brainpy.tools import DotDict
 from brainpy.train.base import DSTrainer
 from brainpy.types import ArrayType, Output
 from .utils import msg
@@ -28,22 +28,26 @@ __all__ = [
 ]
 
 
-def _is_jax_array(s):
+def _is_brainpy_array(s):
   return isinstance(s, bm.Array)
 
 
 class BPTrainer(DSTrainer):
   """Trainer implementing back-propagation algorithm for supervised trasks.
 
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
   Parameters
   ----------
-  target: DynamicalSystem, TrainingSystem
+  target: DynamicalSystem
     The target model to train.
   loss_fun: str, callable
     The loss function. If it is a string, it should be the
     function chosen from ``brainpy.losses`` module. Otherwise,
     a callable function which receives argument of `(predicts, targets)`
     should be provided.
+  loss_has_aux: bool
+    To indicate whether the `loss_fun` returns auxiliary data.
   optimizer: optim.Optimizer
     The optimizer used for training.
   numpy_mon_after_run: bool
@@ -57,6 +61,9 @@ class BPTrainer(DSTrainer):
   seed: int
     .. deprecated:: 2.2.4.1
        Control the data shuffling by user self.
+
+  kwargs: Any
+    Other general parameters please see :py:class:`~.DSRunner`.
   """
 
   def __init__(
@@ -201,7 +208,7 @@ class BPTrainer(DSTrainer):
       batch_size: int = None,
   ):
     """
-    Fit the target model according to the given training and testing data.
+    Fit the target model according to the given training data.
 
     Parameters
     ----------
@@ -210,28 +217,37 @@ class BPTrainer(DSTrainer):
       - Callable. This function should return a pair of `(X, Y)` data.
       - Iterable. It should be a pair of `(X, Y)` train set.
         - ``X``: should be a tensor or a dict of tensors with the shape of
-          `(num_sample, num_time, num_feature)`, where `num_sample` is
+          `(num_sample, num_time, ...)`, where `num_sample` is
           the number of samples, `num_time` is the number of the time step,
           and `num_feature` is the number of features.
+
         - ``Y``: Target values. A tensor or a dict of tensors.
           - If the shape of each tensor is `(num_sample, num_feature)`,
             then we will only fit the model with the only last output.
           - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
             then the fitting happens on the whole data series.
+
     test_data: callable, iterable, optional
       Same as ``train_data``.
+
     num_epoch: int
       The number of training epoch. Default 100.
+
     num_report: int
-      The number of step to report the progress. Default 100 training steps.
+      The number of step to report the progress.
+      If `num_report=-1`, it will report the training progress each epoch.
+
     reset_state: bool
       Whether reset the initial states of the target model.
+
     shared_args: dict
       The shared keyword arguments for the target models.
 
     batch_size: int
+
       .. deprecated:: 2.2.4.1
          Please set batch size in your dataset.
+
     """
     if batch_size is not None:
       raise NoLongerSupportError('Please set batch size in your data. '
@@ -383,7 +399,7 @@ class BPTrainer(DSTrainer):
     if isinstance(xs, (bm.Array, jnp.ndarray)):
       return xs.shape[batch_axis]
     else:
-      num_batch_sizes = [leaf.shape[batch_axis] for leaf in tree_flatten(xs, is_leaf=_is_jax_array)[0]]
+      num_batch_sizes = [leaf.shape[batch_axis] for leaf in tree_flatten(xs, is_leaf=_is_brainpy_array)[0]]
       if len(set(num_batch_sizes)) != 1:
         raise ValueError(f'Number of batch size is different across tensors in '
                          f'the provided "xs". We got {set(num_batch_sizes)}.')
@@ -397,9 +413,47 @@ class BPTrainer(DSTrainer):
 
 
 class BPTT(BPTrainer):
-  """
-  The trainer implementing back propagation through time (BPTT)
-  algorithm for recurrent neural networks.
+  """The trainer implementing the back-propagation through time (BPTT)
+  algorithm for training dyamical systems.
+
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
+  Parameters
+  ----------
+  target: DynamicalSystem
+    The target model to train.
+
+  loss_fun: str, callable
+    The loss function.
+
+    - If it is a string, it should be the function chosen from ``brainpy.losses`` module.
+    - Otherwise, a callable function which receives argument of ``(predicts, targets)``
+      should be provided.
+
+    .. note::
+       If ``monitors`` has been set in the trainer, the ``predicts`` contains two
+       parts: the network history prediction outputs, and the monitored values.
+
+       see BrainPy examples for more information.
+  loss_has_aux: bool
+    To indicate whether the loss function returns auxiliary data expect the loss.
+    Moreover, all auxiliary data should be a dict, whose key is used for logging
+    item name and its data is used for the corresponding value.
+    For example,
+
+    .. code-block:: python
+
+       def loss_fun(predicts, targets):
+          return loss, {'acc': acc, 'spike_num': spike_num}
+  optimizer: Optimizer
+    The optimizer used for training. Should be an instance of :py:class:`~.Optimizer`.
+  numpy_mon_after_run: bool
+    Make the monitored results as NumPy arrays.
+  logger: Any
+    A file-like object (stream). Used to output the running results. Default is the current `sys.stdout`.
+  time_major: bool
+    To indicate whether the first axis is the batch size (``time_major=False``) or the
+    time length (``time_major=True``).
   """
 
   def _get_f_loss(self, shared_args=None, jit=True) -> Callable:
@@ -413,7 +467,8 @@ class BPTT(BPTrainer):
 
       def loss_fun(inputs, targets):
         times, indices, inputs, _, _, _, _ = self._format_xs(
-          None, inputs, inputs_are_batching=True, move_axis=True)
+          None, inputs, inputs_are_batching=True, move_axis=True
+        )
         inputs = (times, indices, inputs)
         outputs, mon = self._predict(xs=inputs, shared_args=shared_args)
         outputs = bm.moveaxis(outputs, 0, 1)
@@ -476,6 +531,8 @@ class BPFF(BPTrainer):
   """
   The trainer implementing back propagation algorithm
   for feedforward neural networks.
+
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
 
   """
 
@@ -677,8 +734,8 @@ class OnlineBPTT(BPTT):
           losses = []
           for i in range(times.shape[0]):
             # data at time i
-            x = tree_map(lambda x: x[i], inputs, is_leaf=_is_jax_array)
-            y = tree_map(lambda x: x[i], targets, is_leaf=_is_jax_array)
+            x = tree_map(lambda x: x[i], inputs, is_leaf=_is_brainpy_array)
+            y = tree_map(lambda x: x[i], targets, is_leaf=_is_brainpy_array)
             # step at the i
             loss = train_step(times[i], indices[i], x, y)
             # append output and monitor
@@ -688,7 +745,7 @@ class OnlineBPTT(BPTT):
       def train_fun(inputs, targets):
         times, indices, inputs, num_step, _, duration, _ = self._format_xs(
           None, inputs, inputs_are_batching=True, move_axis=True)
-        targets = tree_map(lambda x: bm.moveaxis(x, 0, 1), targets, is_leaf=_is_jax_array)
+        targets = tree_map(lambda x: bm.moveaxis(x, 0, 1), targets, is_leaf=_is_brainpy_array)
         ls = run_func([times, indices, inputs, targets])
         self.i0 += num_step
         self.t0 += duration

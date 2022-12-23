@@ -7,14 +7,12 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
-import brainpy.math as bm
+from brainpy import math as bm, tools
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.base import BrainPyObject
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
-from brainpy.modes import TrainingMode
-from brainpy.tools.checking import serialize_kwargs
-from brainpy.tools.others.dicts import DotDict
+from brainpy.check import serialize_kwargs
 from brainpy.types import ArrayType, Output
 from .base import DSTrainer
 
@@ -27,24 +25,29 @@ __all__ = [
 class OnlineTrainer(DSTrainer):
   """Online trainer for models with recurrent dynamics.
 
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
   Parameters
   ----------
   target: DynamicalSystem
     The target model to train.
+
   fit_method: OnlineAlgorithm, Callable, dict, str
     The fitting method applied to the target model.
+
     - It can be a string, which specify the shortcut name of the training algorithm.
-      Like, ``fit_method='ridge'`` means using the RLS method.
+      Like, ``fit_method='rls'`` means using the RLS method.
       All supported fitting methods can be obtained through
-      :py:func:`brainpy.nn.runners.get_supported_online_methods`
+      :py:func:`~.get_supported_online_methods`.
     - It can be a dict, whose "name" item specifies the name of the training algorithm,
       and the others parameters specify the initialization parameters of the algorithm.
-      For example, ``fit_method={'name': 'ridge', 'beta': 1e-4}``.
-    - It can be an instance of :py:class:`brainpy.nn.runners.OnlineAlgorithm`.
-      For example, ``fit_meth=bp.nn.runners.RLS(alpha=1e-5)``.
+      For example, ``fit_method={'name': 'rls', 'alpha': 0.1}``.
+    - It can be an instance of :py:class:`brainpy.algorithms.OnlineAlgorithm`.
+      For example, ``fit_meth=bp.algorithms.RLS(alpha=1e-5)``.
     - It can also be a callable function.
-  **kwargs
-    The other general parameters for RNN running initialization.
+
+  kwargs: Any
+    Other general parameters please see :py:class:`~.DSRunner`.
   """
 
   def __init__(
@@ -57,7 +60,7 @@ class OnlineTrainer(DSTrainer):
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
-    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, TrainingMode)])
+    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, bm.TrainingMode)])
     if len(self.train_nodes) == 0:
         raise ValueError('Found no trainable nodes.')
 
@@ -94,10 +97,11 @@ class OnlineTrainer(DSTrainer):
 
   def __repr__(self):
     name = self.__class__.__name__
-    prefix = ' ' * len(name)
-    return (f'{name}(target={self.target}, \n\t'
-            f'{prefix}jit={self.jit}, \n\t'
-            f'{prefix}fit_method={self.fit_method})')
+    indent = ' ' * len(name)
+    indent2 = indent + " " * len("target")
+    return (f'{name}(target={tools.repr_context(str(self.target), indent2)}, \n'
+            f'{indent}jit={self.jit}, \n'
+            f'{indent}fit_method={self.fit_method})')
 
   def predict(
       self,
@@ -232,10 +236,8 @@ class OnlineTrainer(DSTrainer):
     if not isinstance(shared_args, dict):
       raise ValueError(f'"shared_kwargs" must be a dict, but got {type(shared_args)}')
 
-    monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
-
     def _step_func(t, i, x, ys):
-      shared = DotDict(t=t, dt=self.dt, i=i)
+      shared = tools.DotDict(t=t, dt=self.dt, i=i)
 
       # input step
       self.target.clear_input()
@@ -247,7 +249,7 @@ class OnlineTrainer(DSTrainer):
       out = self.target(*args)
 
       # monitor step
-      monitors = monitor_func(shared)
+      monitors = self._monitor_step_func(shared)
       for node in self.train_nodes:
         fit_record = monitors.pop(f'{node.name}-fit_record')
         target = ys[node.name]
@@ -258,31 +260,11 @@ class OnlineTrainer(DSTrainer):
         id_tap(lambda *arg: self._pbar.update(), ())
       return out, monitors
 
-    if self.jit['fit']:
-      dyn_vars = self.target.vars()
-      dyn_vars.update(self.dyn_vars)
-      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-      return lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
+    dyn_vars = self.target.vars()
+    dyn_vars.update(self.dyn_vars)
+    dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+    return lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
 
-    else:
-      def run_func(all_inputs):
-        times, indices, xs, ys = all_inputs
-        outputs = []
-        monitors = {key: [] for key in ((set(self.mon.keys()) - {'ts'}) | set(self.fun_monitors.keys()))}
-        for i in range(times.shape[0]):
-          x = tree_map(lambda x: x[i], xs)
-          y = tree_map(lambda x: x[i], ys)
-          output, mon = _step_func(times[i], indices[i], x, y)
-          outputs.append(output)
-          for key, value in mon.items():
-            monitors[key].append(value)
-        if outputs[0] is None:
-          outputs = None
-        else:
-          outputs = bm.asarray(outputs)
-        for key, value in monitors.items():
-          monitors[key] = bm.asarray(value)
-        return outputs, monitors
     return run_func
 
   def _check_interface(self):
@@ -304,22 +286,21 @@ class OnlineTrainer(DSTrainer):
             f'interface "online_init()" function. '
           )
 
-  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
-    if shared_args.get('fit', False):
-      def func(tdi):
-        res = {k: v.value for k, v in return_without_idx.items()}
-        res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-        res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-        res.update({f'{node.name}-fit_record': node.fit_record for node in self.train_nodes})
-        return res
-    else:
-      def func(tdi):
-        res = {k: v.value for k, v in return_without_idx.items()}
-        res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-        res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-        return res
-
-    return func
+  def _monitor_step_func(self, shared):
+    res = dict()
+    for key, val in self._monitors.items():
+      if callable(val):
+        res[key] = val(shared)
+      else:
+        (variable, idx) = val
+        if idx is None:
+          res[key] = variable.value
+        else:
+          res[key] = variable[bm.asarray(idx)]
+    if shared.get('fit', False):
+      for node in self.train_nodes:
+        res[f'{node.name}-fit_record'] = node.fit_record
+    return res
 
 
 class ForceTrainer(OnlineTrainer):

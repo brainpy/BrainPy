@@ -7,7 +7,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.errors import ConnectorError
-from brainpy.tools.others import numba_seed, numba_jit, numba_range, SUPPORT_NUMBA, format_seed
+from brainpy.tools import numba_seed, numba_jit, numba_range, SUPPORT_NUMBA, format_seed
 from .base import *
 
 __all__ = [

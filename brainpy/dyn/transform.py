@@ -7,8 +7,7 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from brainpy import tools, math as bm
 from brainpy.base.base import BrainPyObject
-from brainpy.modes import BatchingMode
-from brainpy.tools.checking import check_float
+from brainpy.check import check_float
 from brainpy.types import PyTree
 from .base import DynamicalSystem, Sequential
 
@@ -199,7 +198,7 @@ class LoopOverTime(DynSysToBPObj):
                      'of (B, T, ...) or (T, B, ...) with `time_major=True`, '
                      'where B the batch size and T the time length.')
       xs, tree = tree_flatten(duration_or_xs, lambda a: isinstance(a, bm.Array))
-      if isinstance(self.target.mode, BatchingMode):
+      if isinstance(self.target.mode, bm.BatchingMode):
         b_idx, t_idx = (1, 0) if time_major else (0, 1)
 
         try:

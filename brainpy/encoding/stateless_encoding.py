@@ -3,7 +3,7 @@
 from typing import Union
 
 import brainpy.math as bm
-from brainpy.tools import checking
+from brainpy import check
 from brainpy.types import ArrayType
 from .base import Encoder
 
@@ -36,20 +36,20 @@ class PoissonEncoder(Encoder):
                seed: Union[int, ArrayType] = None):
     super().__init__()
 
-    checking.check_float(min_val, 'min_val')
-    checking.check_float(max_val, 'max_val')
+    check.check_float(min_val, 'min_val')
+    check.check_float(max_val, 'max_val')
     self.min_val = min_val
     self.max_val = max_val
     self.rng = bm.random.RandomState(seed)
 
-  def __call__(self, x: ArrayType, num_time: int = None):
+  def __call__(self, x: ArrayType, num_step: int = None):
     """
 
     Parameters
     ----------
     x: ArrayType
       The rate input.
-    num_time: int
+    num_step: int
       Encode rate values as spike trains in the given time length.
 
       - If ``time_len=None``, encode the rate values at the current time step.
@@ -62,8 +62,8 @@ class PoissonEncoder(Encoder):
     out: ArrayType
       The encoded spike train.
     """
-    checking.check_integer(num_time, 'time_len', min_bound=1, allow_none=True)
+    check.check_integer(num_step, 'time_len', min_bound=1, allow_none=True)
     x = (x - self.min_val) / (self.max_val - self.min_val)
-    shape = x.shape if (num_time is None) else ((num_time,) + x.shape)
+    shape = x.shape if (num_step is None) else ((num_step,) + x.shape)
     d = self.rng.rand(*shape).value < x
     return d.astype(x.dtype)

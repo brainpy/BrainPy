@@ -329,7 +329,7 @@ def load_by_pkl(filename, target, verbose=False):
 
 
 def save_as_mat(filename, variables):
-  """Save variables into a HDF5 file.
+  """Save variables into a matlab file.
 
   Parameters
   ----------

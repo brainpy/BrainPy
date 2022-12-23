@@ -11,8 +11,7 @@ from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.base import BrainPyObject
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
-from brainpy.modes import TrainingMode
-from brainpy.tools.checking import serialize_kwargs
+from brainpy.check import serialize_kwargs
 from brainpy.types import ArrayType, Output
 from .base import DSTrainer
 
@@ -25,6 +24,8 @@ __all__ = [
 class OfflineTrainer(DSTrainer):
   """Offline trainer for models with recurrent dynamics.
 
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
   Parameters
   ----------
   target: DynamicalSystem
@@ -34,16 +35,17 @@ class OfflineTrainer(DSTrainer):
     - It can be a string, which specify the shortcut name of the training algorithm.
       Like, ``fit_method='ridge'`` means using the Ridge regression method.
       All supported fitting methods can be obtained through
-      :py:func:`brainpy.nn.runners.get_supported_offline_methods`
+      :py:func:`~get_supported_offline_methods`.
     - It can be a dict, whose "name" item specifies the name of the training algorithm,
       and the others parameters specify the initialization parameters of the algorithm.
-      For example, ``fit_method={'name': 'ridge', 'beta': 1e-4}``.
-    - It can be an instance of :py:class:`brainpy.nn.runners.OfflineAlgorithm`.
-      For example, ``fit_meth=bp.nn.runners.RidgeRegression(beta=1e-5)``.
+      For example, ``fit_method={'name': 'ridge', 'alpha': 0.1}``.
+    - It can be an instance of :py:class:`brainpy.algorithms.OfflineAlgorithm`.
+      For example, ``fit_meth=bp.algorithms.RidgeRegression(alpha=0.1)``.
     - It can also be a callable function, which receives three arguments "targets", "x" and "y".
       For example, ``fit_method=lambda targets, x, y: numpy.linalg.lstsq(x, targets)[0]``.
-  **kwargs
-    The other general parameters for RNN running initialization.
+
+  kwargs: Any
+    Other general parameters please see :py:class:`~.DSRunner`.
   """
 
   def __init__(
@@ -58,7 +60,7 @@ class OfflineTrainer(DSTrainer):
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
-    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, TrainingMode)])
+    self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, bm.TrainingMode)])
     if len(self.train_nodes) == 0:
         raise ValueError('Found no trainable nodes.')
 
@@ -235,22 +237,21 @@ class OfflineTrainer(DSTrainer):
       train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())
     return train_func
 
-  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
-    if shared_args.get('fit', False):
-      def func(tdi):
-        res = {k: v.value for k, v in return_without_idx.items()}
-        res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-        res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-        res.update({f'{node.name}-fit_record': node.fit_record for node in self.train_nodes})
-        return res
-    else:
-      def func(tdi):
-        res = {k: v.value for k, v in return_without_idx.items()}
-        res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-        res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-        return res
-
-    return func
+  def _monitor_step_func(self, shared):
+    res = dict()
+    for key, val in self._monitors.items():
+      if callable(val):
+        res[key] = val(shared)
+      else:
+        (variable, idx) = val
+        if idx is None:
+          res[key] = variable.value
+        else:
+          res[key] = variable[bm.asarray(idx)]
+    if shared.get('fit', False):
+      for node in self.train_nodes:
+        res[f'{node.name}-fit_record'] = node.fit_record
+    return res
 
   def _check_interface(self):
     for node in self.train_nodes:

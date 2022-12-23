@@ -78,25 +78,27 @@ class BrainPyObject(object):
         raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(variable)}')
       self.implicit_vars[key] = variable
 
-  def register_implicit_nodes(self, *nodes, **named_nodes):
+  def register_implicit_nodes(self, *nodes, node_cls: type = None, **named_nodes):
+    if node_cls is None:
+      node_cls = BrainPyObject
     for node in nodes:
-      if isinstance(node, BrainPyObject):
+      if isinstance(node, node_cls):
         self.implicit_nodes[node.name] = node
       elif isinstance(node, (tuple, list)):
         for n in node:
-          if not isinstance(n, BrainPyObject):
-            raise ValueError(f'Must be instance of {BrainPyObject.__name__}, but we got {type(n)}')
+          if not isinstance(n, node_cls):
+            raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(n)}')
           self.implicit_nodes[n.name] = n
       elif isinstance(node, dict):
         for k, n in node.items():
-          if not isinstance(n, BrainPyObject):
-            raise ValueError(f'Must be instance of {BrainPyObject.__name__}, but we got {type(n)}')
+          if not isinstance(n, node_cls):
+            raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(n)}')
           self.implicit_nodes[k] = n
       else:
         raise ValueError(f'Unknown type: {type(node)}')
     for key, node in named_nodes.items():
-      if not isinstance(node, BrainPyObject):
-        raise ValueError(f'Must be instance of {BrainPyObject.__name__}, but we got {type(node)}')
+      if not isinstance(node, node_cls):
+        raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(node)}')
       self.implicit_nodes[key] = node
 
   def vars(self, method='absolute', level=-1, include_self=True):

@@ -17,7 +17,7 @@ from brainpy.base import ArrayCollector
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import build_inputs, check_and_format_inputs
 from brainpy.errors import AnalyzerError, UnsupportedError
-from brainpy.tools.others.dicts import DotDict
+from brainpy.tools import DotDict
 from brainpy.types import ArrayType
 
 __all__ = [

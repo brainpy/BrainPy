@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
-from brainpy.tools.checking import check_dict_data
+from brainpy.check import check_dict_data
 from brainpy.types import ArrayType, Output
 from ..running import constants as c
 
@@ -17,10 +17,25 @@ __all__ = [
 
 
 class DSTrainer(DSRunner):
-  """Structural Trainer for Dynamical Systems."""
+  """Structural Trainer for Dynamical Systems.
+
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
+  Parameters
+  ----------
+  target: DynamicalSystem
+    The training target.
+
+  kwargs: Any
+    Other general parameters in :py:class:`~.DSRunner`.
+
+  """
 
   target: DynamicalSystem
+  '''The training target.'''
+
   train_nodes: Sequence[DynamicalSystem]  # need to be initialized by subclass
+  '''All children nodes in this training target.'''
 
   def __init__(
       self,

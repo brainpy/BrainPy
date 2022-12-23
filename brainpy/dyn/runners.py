@@ -3,7 +3,7 @@
 import time
 from collections.abc import Iterable
 from typing import Dict, Union, Sequence, Callable
-
+from functools import partial
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -11,12 +11,11 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map, tree_flatten
 
-from brainpy import math as bm
+from brainpy import math as bm, tools
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
 from brainpy.running.runner import Runner
-from brainpy.tools.checking import check_float, serialize_kwargs
-from brainpy.tools.others.dicts import DotDict
+from brainpy.check import check_float, serialize_kwargs
 from brainpy.types import ArrayType, Output, Monitor
 
 __all__ = [
@@ -161,6 +160,21 @@ def check_and_format_inputs(host, inputs):
   return formatted_inputs
 
 
+def _f_ops(ops, var, data):
+    if ops == '=':
+      var[:] = data
+    elif ops == '+':
+      var += data
+    elif ops == '-':
+      var -= data
+    elif ops == '*':
+      var *= data
+    elif ops == '/':
+      var /= data
+    else:
+      raise ValueError(f'Unknown input operation: {ops}')
+
+
 def build_inputs(inputs, fun_inputs):
   """Build input function.
 
@@ -205,20 +219,6 @@ def build_inputs(inputs, fun_inputs):
     else:
       fix_inputs[op].append([variable, value])
 
-  def _f_ops(ops, var, data):
-    if ops == '=':
-      var[:] = data
-    elif ops == '+':
-      var += data
-    elif ops == '-':
-      var -= data
-    elif ops == '*':
-      var *= data
-    elif ops == '/':
-      var /= data
-    else:
-      raise ValueError(f'Unknown input operation: {ops}')
-
   def func(tdi):
     if fun_inputs is not None:
       fun_inputs(tdi)
@@ -246,50 +246,80 @@ class DSRunner(Runner):
   target : DynamicalSystem
     The target model to run.
 
-  inputs : list, tuple
-    The inputs for the target DynamicalSystem. It should be the format
-    of `[(target, value, [type, operation])]`, where `target` is the
-    input target, `value` is the input value, `type` is the input type
-    (such as "fix", "iter", "func"), `operation` is the operation for inputs
-    (such as "+", "-", "*", "/", "=").
+  inputs : list, tuple, callable
+    The inputs for the target DynamicalSystem.
 
-    - ``target``: should be a string. Can be specified by the *absolute access* or *relative access*.
-    - ``value``: should be a scalar, vector, matrix, iterable function or objects.
-    - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
-      input `value` can be changed over time. "func" mean the input is obtained through the functional call.
-    - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
-    - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
-      for example ``[(target1, value1), (target2, value2)]``.
+    - It can be a list/tuple with the format
+      of `[(target, value, [type, operation])]`, where `target` is the
+      input target, `value` is the input value, `type` is the input type
+      (such as "fix", "iter", "func"), `operation` is the operation for inputs
+      (such as "+", "-", "*", "/", "=").
 
+      - ``target``: should be a string or :py:class:`~.Variable`. Can be specified by the
+        *absolute access* or *relative access*.
+      - ``value``: should be a scalar, vector, matrix.
+      - ``type``: should be a string. "fix" means the input `value`
+        is a constant. "iter" means the input `value` can be changed
+        over time. "func" mean the input is obtained through the functional call.
+      - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
+      - Also, if you want to specify multiple inputs, just give multiple
+        ``(target, value, [type, operation])``,
+        for example ``[(target1, value1), (target2, value2)]``.
+
+    - It can also be a callable function which receives the shared argument.
+      In this functional input, users can manually specify the inputs for the target variables.
+      This input function should receive one argument ``shared`` which contains the
+      shared arguments like time ``t``, time step ``dt``, and index ``i``.
+
+      .. versionchanged:: 2.3.1
+         ``fun_inputs`` are merged into ``inputs``.
   fun_inputs: callable
     The functional inputs. Manually specify the inputs for the target variables.
-    This input function should receive one argument `shared` which contains the shared arguments like
-    time `t`, time step `dt`, and index `i`.
+    This input function should receive one argument ``shared`` which contains the
+    shared arguments like time ``t``, time step ``dt``, and index ``i``.
 
-  monitors: None, sequence of str, dict, Monitor
+    .. deprecated:: 2.3.1
+       Will be removed since version 2.4.0.
+  monitors: Optional, sequence of str, dict, Monitor
     Variables to monitor.
 
-    - A list of string. Like `monitors=['a', 'b', 'c']`
-    - A list of string with index specification. Like `monitors=[('a', 1), ('b', [1,3,5]), 'c']`
-    - A dict with the explicit monitor target, like: `monitors={'a': model.spike, 'b': model.V}`
-    - A dict with the index specification, like: `monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}`
+    - A list of string. Like ``monitors=['a', 'b', 'c']``.
+    - A list of string with index specification. Like ``monitors=[('a', 1), ('b', [1,3,5]), 'c']``
+    - A dict with the explicit monitor target, like: ``monitors={'a': model.spike, 'b': model.V}``
+    - A dict with the index specification, like: ``monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}``
+    - A dict with the callable function, like ``monitors={'a': lambda tdi: model.spike[:5]}``
 
+    .. versionchanged:: 2.3.1
+       ``fun_monitors`` are merged into ``monitors``.
   fun_monitors: dict
-    Monitoring variables by callable functions. Should be a dict.
-    The `key` should be a string for the later retrieval by `runner.mon[key]`.
-    The `value` should be a callable function which receives two arguments: `t` and `dt`.
+    Monitoring variables by a dict of callable functions.
+    The dict ``key`` should be a string for the later retrieval by ``runner.mon[key]``.
+    The dict ``value`` should be a callable function which receives two arguments: ``t`` and ``dt``.
+    .. code-block::
+       fun_monitors = {'spike': lambda tdi: model.spike[:10],
+                       'V10': lambda tdi: model.V[10]}
 
+    .. deprecated:: 2.3.1
+       Will be removed since version 2.4.0.
   jit: bool, dict
     The JIT settings.
+    Using dict is able to set the jit mode at different phase,
+    for instance, ``jit={'predict': True, 'fit': False}``.
 
   progress_bar: bool
     Use progress bar to report the running progress or not?
 
   dyn_vars: Optional, dict
     The dynamically changed variables. Instance of :py:class:`~.Variable`.
+    These variables together with variable retrieved from the ``target``
+    constitute all dynamical variables in this runner.
 
   numpy_mon_after_run : bool
     When finishing the network running, transform the JAX arrays into numpy ndarray or not?
+
+  time_major: bool
+    To indicate whether the first axis is the batch size (``time_major=False``) or the
+    time length (``time_major=True``).
 
   """
 
@@ -301,22 +331,37 @@ class DSRunner(Runner):
 
       # inputs for target variables
       inputs: Sequence = (),
-      fun_inputs: Callable = None,
 
       # extra info
       dt: float = None,
       t0: Union[float, int] = 0.,
-      **kwargs
+      time_major: bool = True,
+      monitors: Union[Sequence, Dict] = None,
+      jit: Union[bool, Dict[str, bool]] = True,
+      progress_bar: bool = True,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      numpy_mon_after_run: bool = True,
+
+      # deprecated
+      fun_inputs: Callable = None,
+      fun_monitors: Dict[str, Callable] = None,
   ):
     if not isinstance(target, DynamicalSystem):
       raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
                          f'but we got {type(target)}: {target}')
-    super(DSRunner, self).__init__(target=target, **kwargs)
+    super(DSRunner, self).__init__(target=target,
+                                   monitors=monitors,
+                                   fun_monitors=fun_monitors,
+                                   jit=jit,
+                                   progress_bar=progress_bar,
+                                   dyn_vars=dyn_vars,
+                                   numpy_mon_after_run=numpy_mon_after_run)
 
     # t0 and i0
     self._t0 = t0
     self.i0 = 0
     self.t0 = check_float(t0, 't0', allow_none=False, allow_int=True)
+    self.time_major = time_major
 
     # parameters
     dt = bm.get_dt() if dt is None else dt
@@ -324,15 +369,21 @@ class DSRunner(Runner):
       raise RunningError(f'"dt" must be scalar, but got {dt}')
     self.dt = dt
 
-    # Build the monitor function
-    self._mon_info = self.format_monitors()
-
     # Build input function
     self._input_step, _ = build_inputs(check_and_format_inputs(host=target, inputs=inputs),
                                        fun_inputs=fun_inputs)
 
     # run function
     self._f_predict_compiled = dict()
+
+  def __repr__(self):
+    name = self.__class__.__name__
+    indent = " " * len(name) + ' '
+    indent2 = indent + " " * len("target")
+    return (f'{name}(target={tools.repr_context(str(self.target), indent2)}, \n'
+            f'{indent}jit={self.jit},\n'
+            f'{indent}dt={self.dt},\n'
+            f'{indent}time_major={self.time_major})')
 
   def reset_state(self):
     self.i0 = 0
@@ -383,7 +434,8 @@ class DSRunner(Runner):
     """
 
     # shared arguments
-    if shared_args is None: shared_args = dict()
+    if shared_args is None:
+      shared_args = dict()
     shared_args['fit'] = shared_args.get('fit', False)
 
     # times and inputs
@@ -522,16 +574,20 @@ class DSRunner(Runner):
     """
     return self.predict(*args, **kwargs)
 
-  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
-    def func(tdi):
-      res = {k: v.value for k, v in return_without_idx.items()}
-      res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-      res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-      return res
+  def _monitor_step_func(self, tdi):
+    res = dict()
+    for key, val in self._monitors.items():
+      if callable(val):
+        res[key] = val(tdi)
+      else:
+        (variable, idx) = val
+        if idx is None:
+          res[key] = variable.value
+        else:
+          res[key] = variable[bm.asarray(idx)]
+    return res
 
-    return func
-
-  def _format_xs(self, duration, inputs, inputs_are_batching=True, move_axis=True):
+  def _format_xs(self, duration=None, inputs=None, inputs_are_batching=True, move_axis=True):
     if duration is None:
       if inputs is None:
         raise ValueError('"duration" and "inputs" can not both be None.')
@@ -593,63 +649,37 @@ class DSRunner(Runner):
 
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_predict_compiled:
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self.dyn_vars)
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
 
-      monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
+      def run_func(all_inputs):
+        with jax.disable_jit(not self.jit['predict']):
+          return bm.for_loop(partial(self._step_func_predict, shared_args),
+                             all_inputs,
+                             dyn_vars=dyn_vars.unique())
 
-      def _step_func(t, i, x):
-        self.target.clear_input()
-        # input step
-        shared = DotDict(t=t, i=i, dt=self.dt)
-        self._input_step(shared)
-        # dynamics update step
-        shared.update(shared_args)
-        args = (shared,) if x is None else (shared, x)
-        out = self.target(*args)
-        # monitor step
-        mon = monitor_func(shared)
-        # finally
-        if self.progress_bar:
-          id_tap(lambda *arg: self._pbar.update(), ())
-        return out, mon
-
-      if self.jit['predict']:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self.dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        run_func = lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
-
-      else:
-        def run_func(xs):
-          # total data
-          times, indices, xs = xs
-
-          outputs = []
-          monitors = {key: [] for key in (set(self.mon.var_names) | set(self.fun_monitors.keys()))}
-          for i in range(times.shape[0]):
-            # data at time i
-            x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.Array))
-
-            # step at the i
-            output, mon = _step_func(times[i], indices[i], x)
-
-            # append output and monitor
-            outputs.append(output)
-            for key, value in mon.items():
-              monitors[key].append(value)
-
-          # final work
-          if outputs[0] is None:
-            outputs = None
-          else:
-            outputs = bm.asarray(outputs)
-          for key, value in monitors.items():
-            monitors[key] = bm.asarray(value)
-          return outputs, monitors
       self._f_predict_compiled[shared_kwargs_str] = run_func
     return self._f_predict_compiled[shared_kwargs_str]
+
+  def _step_func_predict(self, shared_args, t, i, x):
+    self.target.clear_input()
+    # input step
+    shared = tools.DotDict(t=t, i=i, dt=self.dt)
+    self._input_step(shared)
+    # dynamics update step
+    shared.update(shared_args)
+    args = (shared,) if x is None else (shared, x)
+    out = self.target(*args)
+    # monitor step
+    mon = self._monitor_step_func(shared)
+    # finally
+    if self.progress_bar:
+      id_tap(lambda *arg: self._pbar.update(), ())
+    return out, mon
 
   def __del__(self):
     if hasattr(self, '_f_predict_compiled'):
       for key in tuple(self._f_predict_compiled.keys()):
-        del self._f_predict_compiled[key]
+        self._f_predict_compiled.pop(key)
     super(DSRunner, self).__del__()

@@ -6,7 +6,7 @@ from typing import Union, Callable
 import jax
 
 import brainpy.math as bm
-from brainpy.tools import checking
+from brainpy import check
 from brainpy.types import ArrayType
 from .base import Encoder
 
@@ -47,24 +47,24 @@ class WeightedPhaseEncoder(Encoder):
                weight_fun: Callable = None):
     super().__init__()
 
-    checking.check_integer(num_phase, 'num_phase', min_bound=1)
-    checking.check_float(min_val, 'min_val')
-    checking.check_float(max_val, 'max_val')
-    checking.check_callable(weight_fun, 'weight_fun', allow_none=True)
+    check.check_integer(num_phase, 'num_phase', min_bound=1)
+    check.check_float(min_val, 'min_val')
+    check.check_float(max_val, 'max_val')
+    check.check_callable(weight_fun, 'weight_fun', allow_none=True)
     self.num_phase = num_phase
     self.min_val = min_val
     self.max_val = max_val
     self.weight_fun = (lambda i: 2 ** (-(i % num_phase + 1))) if weight_fun is None else weight_fun
     self.scale = (1 - self.weight_fun(self.num_phase - 1)) / (self.max_val - self.min_val)
 
-  def __call__(self, x: ArrayType, num_time: int):
+  def __call__(self, x: ArrayType, num_step: int):
     """Encoding function.
 
     Parameters
     ----------
     x: ArrayType
       The input rate value.
-    num_time: int
+    num_step: int
       The number of time steps.
 
     Returns
@@ -84,7 +84,7 @@ class WeightedPhaseEncoder(Encoder):
       inputs.value -= w * spike
       return spike
 
-    return bm.for_loop(f, bm.arange(num_time).value, dyn_vars=inputs)
+    return bm.for_loop(f, bm.arange(num_step).value, dyn_vars=inputs)
 
 
 class LatencyEncoder(Encoder):
@@ -120,16 +120,30 @@ class LatencyEncoder(Encoder):
                method: str = 'linear'):
     super().__init__()
 
-    checking.check_integer(num_period, 'num_period', min_bound=1)
-    checking.check_float(min_val, 'min_val')
-    checking.check_float(max_val, 'max_val')
+    check.check_integer(num_period, 'num_period', min_bound=1)
+    check.check_float(min_val, 'min_val')
+    check.check_float(max_val, 'max_val')
     assert method in ['linear', 'log']
     self.num_period = num_period
     self.min_val = min_val
     self.max_val = max_val
     self.method = method
 
-  def __call__(self, x: ArrayType, time_step: Union[int, ArrayType]):
+  def __call__(self, x: ArrayType, i_step: Union[int, ArrayType]):
+    """Encoding function.
+
+    Parameters
+    ----------
+    x: ArrayType
+      The input rate value.
+    i_step: int, ArrayType
+      The indices of the time step.
+
+    Returns
+    -------
+    out: ArrayType
+      The encoded spike train.
+    """
     _temp = self.num_period - 1.
     if self.method == 'log':
       alpha = math.exp(_temp) - 1.
@@ -140,7 +154,8 @@ class LatencyEncoder(Encoder):
     def f(i):
       return bm.as_jax(t_f == (i % self.num_period), dtype=x.dtype)
 
-    if isinstance(time_step, int):
-      return f(time_step)
+    if isinstance(i_step, int):
+      return f(i_step)
     else:
-      return jax.vmap(f, bm.arange(time_step).value)
+      assert isinstance(i_step, (jax.Array, bm.Array))
+      return jax.vmap(f, i_step)

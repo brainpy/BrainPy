@@ -70,10 +70,9 @@ class IntegratorRunner(Runner):
     >>>   lorenz,
     >>>   monitors=['x', 'y', 'z'],
     >>>   inits=[1., 1., 1.], # initialize all variable to 1.
-    >>>   args={'p': 0.1},
     >>>   dt=0.01
     >>> )
-    >>> runner.run(100.)
+    >>> runner.run(100., args={'p': 0.1},)
     >>>
     >>> import matplotlib.pyplot as plt
     >>> fig = plt.figure()

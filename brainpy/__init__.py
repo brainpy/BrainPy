@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.3.0"
+__version__ = "2.3.1"
 
 
 # fundamental modules
-from . import check, errors, tools, modes
+from . import errors, check, tools
 
 # "base" module
 from . import base
-from .base.base import (BrainPyObject, Base)
-from .base.collector import (
+from .base import (
+  # base class
+  Base,
+  BrainPyObject,
+
+  # collector
   Collector,
   ArrayCollector,
-  TensorCollector
+  TensorCollector,
 )
 
 # math foundation
 from . import math
+from . import modes
 
 # toolboxes
 from . import (
@@ -27,21 +32,32 @@ from . import (
   measure,  # methods for data analysis
   inputs,  # methods for generating input currents
   algorithms,  # online or offline training algorithms
+  encoding,  # encoding schema
 )
 
 # numerical integrators
 from . import integrators
-from .integrators import ode
-from .integrators import sde
-from .integrators import fde
-from .integrators.ode import odeint
-from .integrators.sde import sdeint
-from .integrators.fde import fdeint
-from .integrators.joint_eq import JointEq
+from .integrators import (
+  # sub-modules
+  ode,
+  sde,
+  fde,
+
+  # functions
+  odeint,
+  sdeint,
+  fdeint,
+
+  # classes
+  JointEq,
+  IntegratorRunner,
+)
+
 
 # dynamics simulation
 from . import dyn
 from .dyn import (
+  # sub-modules
   channels,  # channel models
   layers,  # ANN layers
   networks,  # network models
@@ -50,8 +66,8 @@ from .dyn import (
   synapses,  # synaptic dynamics
   synouts,  # synaptic output
   synplast,  # synaptic plasticity
-)
-from .dyn.base import (
+
+  # base classes
   DynamicalSystem,
   Container,
   Sequential,
@@ -64,8 +80,14 @@ from .dyn.base import (
   TwoEndConn,
   CondNeuGroup,
   Channel,
+
+  # runner
+  DSRunner,
+
+  # transformations
+  NoSharedArg,
+  LoopOverTime,
 )
-from .dyn.runners import *
 
 # dynamics training
 from . import train
@@ -89,6 +111,9 @@ from .analysis import (
 
 # running
 from . import running
+from .running import (
+  Runner
+)
 
 # "visualization" module, will be removed soon
 from .visualization import visualize

@@ -15,7 +15,6 @@ from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy.integrators import odeint, sdeint
-from brainpy.modes import Mode, TrainingMode, BatchingMode, normal
 from brainpy.types import ArrayType, Shape
 
 __all__ = [
@@ -86,12 +85,13 @@ class DynamicalSystem(BrainPyObject):
   def __init__(
       self,
       name: Optional[str] = None,
-      mode: Optional[Mode] = None,
+      mode: Optional[bm.CompMode] = None,
   ):
     # mode setting
-    mode = normal if mode is None else mode
-    if not isinstance(mode, Mode):
-      raise ValueError(f'Should be instance of {Mode.__name__}, but we got {type(Mode)}: {Mode}')
+    mode = bm.mode if mode is None else mode
+    if not isinstance(mode, bm.CompMode):
+      raise ValueError(f'Should be instance of {bm.CompMode.__name__}, '
+                       f'but we got {type(mode)}: {mode}')
     self._mode = mode
 
     super(DynamicalSystem, self).__init__(name=name)
@@ -105,14 +105,14 @@ class DynamicalSystem(BrainPyObject):
     self.fit_record = dict()
 
   @property
-  def mode(self) -> Mode:
+  def mode(self) -> bm.CompMode:
     """Mode of the model, which is useful to control the multiple behaviors of the model."""
     return self._mode
 
   @mode.setter
   def mode(self, value):
-    if not isinstance(value, Mode):
-      raise ValueError(f'Must be instance of {Mode.__name__}, '
+    if not isinstance(value, bm.CompMode):
+      raise ValueError(f'Must be instance of {bm.CompMode.__name__}, '
                        f'but we got {type(value)}: {value}')
     self._mode = value
 
@@ -382,7 +382,7 @@ class FuncAsDynSys(DynamicalSystem):
                child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
                dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
                name: str = None,
-               mode: Mode = normal):
+               mode: bm.CompMode = None):
     super().__init__(name=name, mode=mode)
 
     self._f = f
@@ -427,7 +427,7 @@ class Container(DynamicalSystem):
       self,
       *dynamical_systems_as_tuple,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       must_be_dynsys_subclass: bool = True,
       **dynamical_systems_as_dict
   ):
@@ -556,23 +556,13 @@ class Sequential(Container):
     The object name.
   mode: Mode
     The object computing context/mode. Default is `batching`.
-  no_shared_arg: bool
-    Indicating whether this sequential object receives a ``shared`` argument.
-
-    - If `no_shared_arg=False`, then we call the object as `f(shared, x)`.
-    - If `no_shared_arg=True`, then we call the object as `f(x)`.
-
-    .. warning::
-       If some children nodes needs shared arguments, like :py:class:`Dropout` or
-       :py:class:`LIF` models, set `no_shared_arg=True` will cause errors.
   """
 
   def __init__(
       self,
       *modules_as_tuple,
       name: str = None,
-      mode: Mode = BatchingMode(),
-      # no_shared_arg: bool = False,
+      mode: bm.CompMode = None,
       **modules_as_dict
   ):
 
@@ -585,7 +575,6 @@ class Sequential(Container):
                      mode=mode,
                      must_be_dynsys_subclass=False,
                      **dict_modules)
-    # self.no_shared_arg = no_shared_arg
 
   def __getattr__(self, item: str):
     """Wrap the dot access ('self.'). """
@@ -673,7 +662,7 @@ class Network(Container):
       self,
       *ds_tuple,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       **ds_dict
   ):
     super(Network, self).__init__(*ds_tuple,
@@ -768,7 +757,7 @@ class NeuGroup(DynamicalSystem):
       size: Shape,
       keep_size: bool = False,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     # size
     if isinstance(size, (list, tuple)):
@@ -849,7 +838,7 @@ class SynConn(DynamicalSystem):
       post: NeuGroup,
       conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(SynConn, self).__init__(name=name, mode=mode)
 
@@ -1066,7 +1055,7 @@ class TwoEndConn(SynConn):
       output: SynOut = NullSynOut(),
       stp: Optional[SynSTP] = None,
       ltp: Optional[SynLTP] = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       name: str = None,
   ):
     super(TwoEndConn, self).__init__(pre=pre,
@@ -1140,13 +1129,13 @@ class TwoEndConn(SynConn):
         raise ValueError(f'Unknown connection type: {comp_method}')
 
     # training weights
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.training_mode):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
   def _syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
-      if isinstance(self.mode, BatchingMode):
+      if isinstance(self.mode, bm.batching_mode):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
         post_vs = bm.sum(syn_value)
@@ -1226,7 +1215,7 @@ class CondNeuGroup(NeuGroup, Container):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
       **channels
   ):
     NeuGroup.__init__(self, size, keep_size=keep_size, mode=mode)
@@ -1294,7 +1283,7 @@ class Channel(DynamicalSystem):
       size: Union[int, Sequence[int]],
       name: str = None,
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.CompMode = None,
   ):
     super(Channel, self).__init__(name=name, mode=mode)
     # the geometry size
@@ -1364,7 +1353,7 @@ class DSView(DynamicalSystem):
       index: Union[slice, Sequence, ArrayType],
       varshape: Tuple[int, ...] = None,
       name: str = None,
-      mode: Mode = None
+      mode: bm.CompMode = None
   ):
     # initialization
     DynamicalSystem.__init__(self, name=name, mode=mode)
@@ -1483,7 +1472,7 @@ class NeuGroupView(DSView, NeuGroup):
       target: NeuGroup,
       index: Union[slice, Sequence, ArrayType],
       name: str = None,
-      mode: Mode = None
+      mode: bm.CompMode = None
   ):
     DSView.__init__(self, target, index)
 
