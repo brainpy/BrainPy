@@ -75,7 +75,8 @@ def print_classification_accuracy(output, target):
   print("Accuracy %.3f" % acc)
 
 
-net = SNN(100, 4, 2)
+with bm.environment(mode=bm.training_mode):
+  net = SNN(100, 4, 2)
 
 num_step = 2000
 num_sample = 256
@@ -89,7 +90,7 @@ rng = bm.random.RandomState(123)
 
 # Before training
 runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
-out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
+out = runner.run(inputs=x_data, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)
@@ -101,7 +102,7 @@ def loss():
   X = bm.random.permutation(x_data, key=key)
   Y = bm.random.permutation(y_data, key=key)
   looper = bp.dyn.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
-  predictions = looper.run(inputs=X, inputs_are_batching=True, reset_state=True)
+  predictions = looper.run(inputs=X, reset_state=True)
   predictions = bm.max(predictions, axis=1)
   return bp.losses.cross_entropy_loss(predictions, Y)
 
@@ -134,7 +135,7 @@ plt.show()
 
 # predict the output according to the input data
 runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
-out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
+out = runner.run(inputs=x_data, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)

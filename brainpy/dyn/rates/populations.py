@@ -89,7 +89,7 @@ class FHN(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(FHN, self).__init__(size=size,
                               name=name,
@@ -272,7 +272,7 @@ class FeedbackFHN(RateModel):
       dt: float = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(FeedbackFHN, self).__init__(size=size,
                                       name=name,
@@ -469,7 +469,7 @@ class QIF(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(QIF, self).__init__(size=size,
                               name=name,
@@ -610,7 +610,7 @@ class StuartLandauOscillator(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(StuartLandauOscillator, self).__init__(size=size,
                                                  name=name,
@@ -765,7 +765,7 @@ class WilsonCowanModel(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size)
 
@@ -921,7 +921,7 @@ class ThresholdLinearModel(RateModel):
       name: str = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(ThresholdLinearModel, self).__init__(size,
                                                name=name,

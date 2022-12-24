@@ -35,20 +35,18 @@ class SNN(bp.dyn.Network):
     self.num_out = num_out
 
     # neuron groups
-    self.i = bp.neurons.InputGroup(num_in, mode=bp.modes.training)
-    self.r = bp.neurons.LIF(num_rec, tau=10, V_reset=0, V_rest=0, V_th=1., mode=bp.modes.training)
-    self.o = bp.neurons.LeakyIntegrator(num_out, tau=5, mode=bp.modes.training)
+    self.i = bp.neurons.InputGroup(num_in)
+    self.r = bp.neurons.LIF(num_rec, tau=10, V_reset=0, V_rest=0, V_th=1.)
+    self.o = bp.neurons.LeakyIntegrator(num_out, tau=5)
 
     # synapse: i->r
     self.i2r = bp.synapses.Exponential(self.i, self.r, bp.conn.All2All(),
                                        output=bp.synouts.CUBA(), tau=10.,
-                                       g_max=bp.init.KaimingNormal(scale=2.),
-                                       mode=bp.modes.training)
+                                       g_max=bp.init.KaimingNormal(scale=2.))
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
                                        output=bp.synouts.CUBA(), tau=10.,
-                                       g_max=bp.init.KaimingNormal(scale=2.),
-                                       mode=bp.modes.training)
+                                       g_max=bp.init.KaimingNormal(scale=2.))
 
   def update(self, shared, spike):
     self.i2r(shared, spike)
@@ -114,13 +112,13 @@ def sparse_data_generator(X, y, batch_size, nb_steps, nb_units, shuffle=True):
   y: The labels
   """
 
-  labels_ = np.array(y, dtype=bm.ditype())
+  labels_ = np.array(y, dtype=bm.int_)
   sample_index = np.arange(len(X))
 
   # compute discrete firing times
   tau_eff = 2. / bm.get_dt()
   unit_numbers = np.arange(nb_units)
-  firing_times = np.array(current2firing_time(X, tau=tau_eff, tmax=nb_steps), dtype=bm.ditype())
+  firing_times = np.array(current2firing_time(X, tau=tau_eff, tmax=nb_steps), dtype=bm.int_)
 
   if shuffle:
     np.random.shuffle(sample_index)
@@ -133,7 +131,7 @@ def sparse_data_generator(X, y, batch_size, nb_steps, nb_units, shuffle=True):
     for bc, idx in enumerate(batch_index):
       c = firing_times[idx] < nb_steps
       times, units = firing_times[idx][c], unit_numbers[c]
-      batch = bc * np.ones(len(times), dtype=bm.ditype())
+      batch = bc * np.ones(len(times), dtype=bm.int_)
       all_batch.append(batch)
       all_times.append(times)
       all_units.append(units)
@@ -176,7 +174,7 @@ def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_st
   accs = []
   runner = bp.dyn.DSRunner(model, progress_bar=False)
   for x_local, y_local in sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False):
-    output = runner.predict(inputs=x_local, inputs_are_batching=True, reset_state=True)
+    output = runner.predict(inputs=x_local, reset_state=True)
     m = bm.max(output, 1)  # max over time
     am = bm.argmax(m, 1)  # argmax over output units
     tmp = bm.mean(y_local == am)  # compare to labels
@@ -190,7 +188,7 @@ def get_mini_batch_results(model, x_data, y_data, batch_size=128, nb_steps=100, 
                            progress_bar=False)
   data = sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False)
   x_local, y_local = next(data)
-  output = runner.predict(inputs=x_local, inputs_are_batching=True, reset_state=True)
+  output = runner.predict(inputs=x_local, reset_state=True)
   return output, runner.mon.get('r.spike')
 
 
@@ -198,17 +196,17 @@ num_input = 28 * 28
 net = SNN(num_in=num_input, num_rec=100, num_out=10)
 
 # load the dataset
-root = r"D:\data\fashion-mnist"
+root = r"D:\data"
 train_dataset = bd.vision.FashionMNIST(root, split='train', download=True)
 test_dataset = bd.vision.FashionMNIST(root, split='test', download=True)
 
 # Standardize data
-x_train = np.array(train_dataset.data, dtype=bm.dftype())
+x_train = np.array(train_dataset.data, dtype=bm.float_)
 x_train = x_train.reshape(x_train.shape[0], -1) / 255
-y_train = np.array(train_dataset.targets, dtype=bm.ditype())
-x_test = np.array(test_dataset.data, dtype=bm.dftype())
+y_train = np.array(train_dataset.targets, dtype=bm.int_)
+x_test = np.array(test_dataset.data, dtype=bm.float_)
 x_test = x_test.reshape(x_test.shape[0], -1) / 255
-y_test = np.array(test_dataset.targets, dtype=bm.ditype())
+y_test = np.array(test_dataset.targets, dtype=bm.int_)
 
 # training
 train_losses = train(net, x_train, y_train, lr=1e-3, nb_epochs=30, batch_size=256, nb_steps=100, nb_inputs=28 * 28)

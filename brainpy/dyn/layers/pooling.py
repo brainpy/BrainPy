@@ -19,7 +19,7 @@ T = TypeVar('T')
 
 
 def _infer_shape(x: ArrayType,
-                 mode: bm.CompMode,
+                 mode: bm.Mode,
                  size: Union[T, Sequence[T]],
                  channel_axis: Optional[int] = None,
                  element: T = 1):
@@ -87,7 +87,7 @@ class Pool(Layer):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(Pool, self).__init__(mode=mode, name=name)
@@ -147,7 +147,7 @@ class MaxPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(MaxPool, self).__init__(init_value=-bm.inf,
@@ -189,7 +189,7 @@ class MinPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(MinPool, self).__init__(init_value=bm.inf,
@@ -232,7 +232,7 @@ class AvgPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(AvgPool, self).__init__(init_value=0.,

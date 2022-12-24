@@ -9,9 +9,12 @@ from typing import Any, Callable, TypeVar, cast
 
 from jax import dtypes, config, numpy as jnp, devices
 from jax.lib import xla_bridge
+
 from brainpy import check
 from brainpy import tools
 from . import modes
+
+bm = None
 
 __all__ = [
   # set jax environments
@@ -27,24 +30,19 @@ __all__ = [
   'disable_gpu_memory_preallocation',
 
   # default data types
-  'bool_',
-  'int_',
-  'float_',
-  'complex_',
   'ditype',
   'dftype',
-  'set_float',
-  'get_float',
-  'set_int',
-  'get_int',
+  'set_float', 'get_float',
+  'set_int', 'get_int',
+  'set_bool', 'get_bool',
+  'set_complex', 'get_complex',
 
   # default numerical integration step
-  'dt',
   'set_dt',
   'get_dt',
 
   # default computation modes
-  'mode',
+  # 'mode',
   'set_mode',
   'get_mode',
 
@@ -56,30 +54,23 @@ __all__ = [
 
 ]
 
+
 # default dtype
 # --------------------------
-
-bool_ = jnp.bool_
-'''Default bool data type.'''
-
-int_ = jnp.int32
-'''Default integer data type.'''
-
-float_ = jnp.float32
-'''Default float data type.'''
-
-complex_ = jnp.complex_
-'''Default complex data type.'''
 
 
 def ditype():
   """Default int type."""
-  return jnp.int64 if config.read('jax_enable_x64') else jnp.int32
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.int_
 
 
 def dftype():
   """Default float type."""
-  return jnp.float64 if config.read('jax_enable_x64') else jnp.float32
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.float_
 
 
 def set_float(dtype: type):
@@ -92,8 +83,9 @@ def set_float(dtype: type):
   """
   if dtype not in [jnp.float16, jnp.float32, jnp.float64, ]:
     raise TypeError
-  global float_
-  float_ = dtype
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['float_'] = dtype
 
 
 def get_float():
@@ -104,7 +96,9 @@ def get_float():
   dftype: type
     The default float data type.
   """
-  return float_
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.float_
 
 
 def set_int(dtype: type):
@@ -118,8 +112,9 @@ def set_int(dtype: type):
   if dtype not in [jnp.int8, jnp.int16, jnp.int32, jnp.int64,
                    jnp.uint8, jnp.uint16, jnp.uint32, jnp.uint64, ]:
     raise TypeError
-  global int_
-  int_ = dtype
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['int_'] = dtype
 
 
 def get_int():
@@ -130,31 +125,82 @@ def get_int():
   dftype: type
     The default int data type.
   """
-  return int_
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.int_
+
+
+def set_bool(dtype: type):
+  """Set global default boolean type.
+
+  Parameters
+  ----------
+  dtype: type
+    The bool type in JAX.
+  """
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['bool_'] = dtype
+
+
+def get_bool():
+  """Get the default boolean data type.
+
+  Returns
+  -------
+  dftype: type
+    The default bool data type.
+  """
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.bool_
+
+
+def set_complex(dtype: type):
+  """Set global default complex type.
+
+  Parameters
+  ----------
+  dtype: type
+    The complex type in JAX.
+  """
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['complex_'] = dtype
+
+
+def get_complex():
+  """Get the default complex data type.
+
+  Returns
+  -------
+  dftype: type
+    The default complex data type.
+  """
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.complex_
 
 
 # numerical precision
 # --------------------------
 
-dt = 0.1
-'''Default time step for numerical integration.'''
-
-
-def set_dt(d):
+def set_dt(dt):
   """Set the numerical integrator precision.
 
   Parameters
   ----------
-  d : float
+  dt : float
       Numerical integration precision.
   """
-  _dt = jnp.asarray(d)
+  _dt = jnp.asarray(dt)
   if not dtypes.issubdtype(_dt.dtype, jnp.floating):
-    raise ValueError(f'"dt" must a float, but we got {d}')
+    raise ValueError(f'"dt" must a float, but we got {dt}')
   if _dt.ndim != 0:
-    raise ValueError(f'"dt" must be a scalar, but we got {d}')
-  global dt
-  dt = d
+    raise ValueError(f'"dt" must be a scalar, but we got {dt}')
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['dt'] = dt
 
 
 def get_dt():
@@ -165,7 +211,9 @@ def get_dt():
   dt : float
       Numerical integration precision.
   """
-  return dt
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.dt
 
 
 def enable_x64(mode=True):
@@ -271,8 +319,6 @@ def form_shared_args(duration: float = None,
   shared: DotDict
     The shared arguments over the given time.
   """
-
-
   dt = get_dt() if dt is None else dt
   check.check_float(dt, 'dt', allow_none=False)
   if duration is None:
@@ -280,41 +326,39 @@ def form_shared_args(duration: float = None,
     duration = dt * num_step
   else:
     check.check_float(duration, 'duration', allow_none=False)
-
   r = tools.DotDict(t=jnp.arange(t0, duration + t0, dt))
   r['dt'] = jnp.ones_like(r['t']) * dt
   r['i'] = jnp.arange(r['t'].shape[0])
   return r
 
 
-mode = modes.NonBatchingMode()
-'''Default computation mode.'''
-
-
-def set_mode(m: modes.CompMode):
+def set_mode(mode: modes.Mode):
   """Set the default computing mode.
 
   Parameters
   ----------
-  m: CompMode
-    The instance of :py:class:`~.CompMode`.
+  mode: Mode
+    The instance of :py:class:`~.Mode`.
   """
-  if not isinstance(m, modes.CompMode):
-    raise TypeError(f'Must be instance of brainpy.math.CompMode. '
-                    f'But we got {type(m)}: {m}')
-  global mode
-  mode = m
+  if not isinstance(mode, modes.Mode):
+    raise TypeError(f'Must be instance of brainpy.math.Mode. '
+                    f'But we got {type(mode)}: {mode}')
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['mode'] = mode
 
 
-def get_mode() -> modes.CompMode:
+def get_mode() -> modes.Mode:
   """Get the default computing mode.
 
   References
   ----------
-  mode: CompMode
+  mode: Mode
     The default computing mode.
   """
-  return mode
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.mode
 
 
 # See https://mypy.readthedocs.io/en/latest/generics.html#declaring-decorators
@@ -396,88 +440,64 @@ class _DecoratorContextManager:
 
 class environment(_DecoratorContextManager):
   r"""Context-manager that sets an environment for brain dynamics modeling.
-
-  Disabling gradient calculation is useful for inference, when you are sure
-  that you will not call :meth:`Tensor.backward()`. It will reduce memory
-  consumption for computations that would otherwise have `requires_grad=True`.
-
-  In this mode, the result of every computation will have
-  `requires_grad=False`, even when the inputs have `requires_grad=True`.
-
-  This context manager is thread local; it will not affect computation
-  in other threads.
-
-  Also functions as a decorator. (Make sure to instantiate with parenthesis.)
-
-  .. note::
-      No-grad is one of several mechanisms that can enable or
-      disable gradients locally see :ref:`locally-disable-grad-doc` for
-      more information on how they compare.
-
-  .. note::
-      This API does not apply to :ref:`forward-mode AD <forward-mode-ad>`.
-      If you want to disable forward AD for a computation, you can unpack
-      your dual tensors.
-
-  Example::
-
-      >>> x = torch.tensor([1.], requires_grad=True)
-      >>> with torch.no_grad():
-      ...   y = x * 2
-      >>> y.requires_grad
-      False
-      >>> @torch.no_grad()
-      ... def doubler(x):
-      ...     return x * 2
-      >>> z = doubler(x)
-      >>> z.requires_grad
-      False
   """
 
   def __init__(
       self,
       dt: float = None,
-      mode: modes.CompMode = None,
+      mode: modes.Mode = None,
+      complex_: type = None,
       float_: type = None,
       int_: type = None,
+      bool_: type = None,
   ) -> None:
     super().__init__()
     self.old_dt = get_dt()
     self.old_mode = get_mode()
-    self.old_float = get_float()
     self.old_int = get_int()
+    self.old_bool = get_bool()
+    self.old_float = get_float()
+    self.old_complex = get_complex()
 
     if dt is not None:
       assert isinstance(dt, float), '"dt" must a float.'
     if mode is not None:
-      assert isinstance(mode, modes.CompMode), f'"mode" must a {modes.CompMode}.'
+      assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
     if float_ is not None:
       assert isinstance(float_, type), '"float_" must a float.'
     if int_ is not None:
       assert isinstance(int_, type), '"int_" must a type.'
+    if bool_ is not None:
+      assert isinstance(bool_, type), '"bool_" must a type.'
+    if complex_ is not None:
+      assert isinstance(complex_, type), '"complex_" must a type.'
     self.dt = dt
-    self.compmode = mode
+    self.mode = mode
+    self.complex_ = complex_
     self.float_ = float_
     self.int_ = int_
+    self.bool_ = bool_
 
   def __enter__(self) -> None:
-    if self.dt is not None:
-      set_dt(self.dt)
-    if self.compmode is not None:
-      set_mode(self.compmode)
-    if self.float_ is not None:
-      set_float(self.float_)
-    if self.int_ is not None:
-      set_int(self.int_)
+    if self.dt is not None: set_dt(self.dt)
+    if self.mode is not None: set_mode(self.mode)
+    if self.float_ is not None: set_float(self.float_)
+    if self.int_ is not None: set_int(self.int_)
+    if self.complex_ is not None: set_complex(self.complex_)
+    if self.bool_ is not None: set_bool(self.bool_)
 
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-    set_dt(self.old_dt)
-    set_mode(self.old_mode)
-    set_int(self.old_int)
-    set_float(self.old_float)
+    if self.dt is not None: set_dt(self.old_dt)
+    if self.mode is not None: set_mode(self.old_mode)
+    if self.int_ is not None: set_int(self.old_int)
+    if self.float_ is not None:  set_float(self.old_float)
+    if self.complex_ is not None:  set_complex(self.old_complex)
+    if self.bool_ is not None:  set_bool(self.old_bool)
 
   def clone(self):
     return self.__class__(dt=self.dt,
-                          mode=self.compmode,
+                          mode=self.mode,
+                          bool_=self.bool_,
+                          complex_=self.complex_,
                           float_=self.float_,
                           int_=self.int_)

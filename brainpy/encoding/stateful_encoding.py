@@ -147,9 +147,9 @@ class LatencyEncoder(Encoder):
     _temp = self.num_period - 1.
     if self.method == 'log':
       alpha = math.exp(_temp) - 1.
-      t_f = bm.round(_temp - bm.log(alpha * x + 1.)).astype(bm.ditype())
+      t_f = bm.round(_temp - bm.log(alpha * x + 1.)).astype(bm.int_)
     else:
-      t_f = bm.round(_temp * (1. - x)).astype(bm.ditype())
+      t_f = bm.round(_temp * (1. - x)).astype(bm.int_)
 
     def f(i):
       return bm.as_jax(t_f == (i % self.num_period), dtype=x.dtype)

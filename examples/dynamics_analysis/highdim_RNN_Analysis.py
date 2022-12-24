@@ -109,7 +109,7 @@ def loss(predictions, targets):
   total_loss = bp.losses.cross_entropy_loss(predictions, targets)
   # Compute performance
   # Only analyze time points when target is not fixation
-  indices = bm.asarray(targets > 0, dtype=bm.dftype())
+  indices = bm.asarray(targets > 0, dtype=bm.float_)
   predictions = predictions.argmax(axis=-1).flatten()
   true_labels = (targets == predictions) * indices
   accuracy = bm.sum(true_labels) / bm.sum(indices)

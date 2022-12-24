@@ -47,7 +47,7 @@ class DelayCoupling(SynConn):
       delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     super(DelayCoupling, self).__init__(name=name,
                                         mode=mode,
@@ -162,7 +162,7 @@ class DiffusiveCoupling(DelayCoupling):
       delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     if not isinstance(coupling_var1, bm.Variable):
       raise ValueError(f'"coupling_var1" must be an instance of brainpy.math.Variable. '
@@ -254,7 +254,7 @@ class AdditiveCoupling(DelayCoupling):
       delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     if not isinstance(coupling_var, bm.Variable):
       raise ValueError(f'"coupling_var" must be an instance of brainpy.math.Variable. '

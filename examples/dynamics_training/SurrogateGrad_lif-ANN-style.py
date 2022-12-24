@@ -28,20 +28,18 @@ class SNN(bp.dyn.Network):
     self.num_out = num_out
 
     # neuron groups
-    self.i = bp.neurons.InputGroup(num_in, mode=bp.modes.training)
-    self.r = bp.neurons.LIF(num_rec, tau=10, V_reset=0, V_rest=0, V_th=1., mode=bp.modes.training)
-    self.o = bp.neurons.LeakyIntegrator(num_out, tau=5, mode=bp.modes.training)
+    self.i = bp.neurons.InputGroup(num_in)
+    self.r = bp.neurons.LIF(num_rec, tau=10, V_reset=0, V_rest=0, V_th=1.)
+    self.o = bp.neurons.LeakyIntegrator(num_out, tau=5)
 
     # synapse: i->r
     self.i2r = bp.synapses.Exponential(self.i, self.r, bp.conn.All2All(), tau=10.,
                                        output=bp.synouts.CUBA(target_var=None),
-                                       g_max=bp.init.KaimingNormal(scale=20.),
-                                       mode=bp.modes.training)
+                                       g_max=bp.init.KaimingNormal(scale=20.))
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(), tau=10.,
                                        output=bp.synouts.CUBA(target_var=None),
-                                       g_max=bp.init.KaimingNormal(scale=20.),
-                                       mode=bp.modes.training)
+                                       g_max=bp.init.KaimingNormal(scale=20.))
 
     # whole model
     self.model = bp.Sequential(self.i, self.i2r, self.r, self.r2o, self.o)
@@ -75,7 +73,8 @@ def print_classification_accuracy(output, target):
   print("Accuracy %.3f" % acc)
 
 
-net = SNN(100, 4, 2)
+with bm.environment(mode=bm.training_mode):
+  net = SNN(100, 4, 2)
 
 num_step = 2000
 num_sample = 256
@@ -83,12 +82,12 @@ freq = 5  # Hz
 mask = bm.random.rand(num_sample, num_step, net.num_in)
 x_data = bm.zeros((num_sample, num_step, net.num_in))
 x_data[mask < freq * bm.get_dt() / 1000.] = 1.0
-y_data = bm.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.dftype())
+y_data = bm.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.float_)
 rng = bm.random.RandomState()
 
 # Before training
 runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
-out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
+out = runner.run(inputs=x_data, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)
@@ -100,7 +99,7 @@ def loss():
   X = bm.random.permutation(x_data, key=key)
   Y = bm.random.permutation(y_data, key=key)
   looper = bp.dyn.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
-  predictions = looper.run(inputs=X, inputs_are_batching=True, reset_state=True)
+  predictions = looper.run(inputs=X, reset_state=True)
   predictions = bm.max(predictions, axis=1)
   return bp.losses.cross_entropy_loss(predictions, Y)
 
@@ -133,7 +132,7 @@ plt.show()
 
 # predict the output according to the input data
 runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
-out = runner.run(inputs=x_data, inputs_are_batching=True, reset_state=True)
+out = runner.run(inputs=x_data, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
 print_classification_accuracy(out, y_data)

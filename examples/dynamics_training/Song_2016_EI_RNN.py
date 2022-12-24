@@ -125,7 +125,7 @@ class RNN(bp.dyn.DynamicalSystem):
     # hidden mask
     mask = np.tile([1] * self.e_size + [-1] * self.i_size, (num_hidden, 1))
     np.fill_diagonal(mask, 0)
-    self.mask = bm.asarray(mask, dtype=bm.dftype())
+    self.mask = bm.asarray(mask, dtype=bm.float_)
 
     # input weight
     self.w_ir = bm.TrainVar(w_ir((num_input, num_hidden)))

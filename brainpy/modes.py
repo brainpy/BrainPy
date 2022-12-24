@@ -17,7 +17,7 @@ __all__ = [
   'check_mode',
 ]
 
-Mode = bm.CompMode
+Mode = bm.Mode
 
 NormalMode = bm.NonBatchingMode
 BatchingMode = bm.BatchingMode

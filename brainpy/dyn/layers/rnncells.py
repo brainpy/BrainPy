@@ -28,7 +28,7 @@ class RecurrentCell(Layer):
       self,
       num_out: int,
       state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None
   ):
@@ -82,7 +82,7 @@ class RNNCell(RecurrentCell):
       Wh_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
       b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None,
   ):
@@ -117,7 +117,7 @@ class RNNCell(RecurrentCell):
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
     # state
-    self.state = variable(bm.zeros, mode, self.num_out)
+    self.state = variable(bm.zeros, self.mode, self.num_out)
     if train_state and isinstance(self.mode, bm.TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
@@ -191,7 +191,7 @@ class GRUCell(RecurrentCell):
       b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None,
   ):
@@ -323,7 +323,7 @@ class LSTMCell(RecurrentCell):
       b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None,
   ):

@@ -46,7 +46,7 @@ class Dense(Layer):
       num_out: int,
       W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Dense, self).__init__(mode=mode, name=name)

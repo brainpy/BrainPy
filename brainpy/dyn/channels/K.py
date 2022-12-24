@@ -75,7 +75,7 @@ class IK_p4_markov(PotassiumChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IK_p4_markov, self).__init__(size,
                                        keep_size=keep_size,
@@ -174,7 +174,7 @@ class IKDR_Ba2002(IK_p4_markov):
       phi: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     phi = T_base ** ((T - 36) / 10) if phi is None else phi
     super(IKDR_Ba2002, self).__init__(size,
@@ -249,7 +249,7 @@ class IK_TM1991(IK_p4_markov):
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -60.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IK_TM1991, self).__init__(size,
                                     keep_size=keep_size,
@@ -320,7 +320,7 @@ class IK_HH1952(IK_p4_markov):
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IK_HH1952, self).__init__(size,
                                     keep_size=keep_size,
@@ -392,7 +392,7 @@ class IKA_p4q_ss(PotassiumChannel):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKA_p4q_ss, self).__init__(size,
                                      keep_size=keep_size,
@@ -508,7 +508,7 @@ class IKA1_HM1992(IKA_p4q_ss):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKA1_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -603,7 +603,7 @@ class IKA2_HM1992(IKA_p4q_ss):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKA2_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -687,7 +687,7 @@ class IKK2_pq_ss(PotassiumChannel):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKK2_pq_ss, self).__init__(size,
                                      keep_size=keep_size,
@@ -799,7 +799,7 @@ class IKK2A_HM1992(IKK2_pq_ss):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKK2A_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -890,7 +890,7 @@ class IKK2B_HM1992(IKK2_pq_ss):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKK2B_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -976,7 +976,7 @@ class IKNI_Ya1989(PotassiumChannel):
       V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(IKNI_Ya1989, self).__init__(size,
                                       keep_size=keep_size,

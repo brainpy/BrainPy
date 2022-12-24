@@ -40,7 +40,8 @@ class RNN(bp.DynamicalSystem):
                     self.rnn(sha, x))
 
 
-model = RNN(1, 100)
+with bm.environment(mode=bm.training_mode):
+  model = RNN(1, 100)
 
 
 # define loss function

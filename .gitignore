@@ -8,10 +8,10 @@ brainpy/base/tests/io_test_tmp*
 development
 
 brainpy/dyn/tests/data
-examples/simulation/data
-examples/simulation/results
-examples/ANN_models/data
-examples/analysis/data
+examples/dynamics_simulation/data
+examples/dynamics_simulation/results
+examples/training_ann_models/data
+examples/dynamics_analysis/data
 extensions/.idea
 extensions/wheelhouse
 extensions/dist
@@ -216,3 +216,4 @@ cython_debug/
 
 /docs/apis/simulation/generated/
 !/brainpy/dyn/tests/data/
+/examples/dynamics_simulation/data/

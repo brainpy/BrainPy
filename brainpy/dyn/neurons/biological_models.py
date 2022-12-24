@@ -211,7 +211,7 @@ class HH(NeuGroup):
       name: str = None,
 
       # training parameter
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(HH, self).__init__(size=size,
@@ -421,7 +421,7 @@ class MorrisLecar(NeuGroup):
       name: str = None,
 
       # training parameter
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(MorrisLecar, self).__init__(size=size,
@@ -679,7 +679,7 @@ class PinskyRinzelModel(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(PinskyRinzelModel, self).__init__(size=size,
@@ -991,7 +991,7 @@ class WangBuzsakiModel(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)

@@ -82,7 +82,7 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     CalciumChannel.__init__(self,
                             size=size,

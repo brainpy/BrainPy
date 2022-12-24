@@ -152,7 +152,7 @@ class AMPA(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(AMPA, self).__init__(pre=pre,
@@ -333,7 +333,7 @@ class GABAa(AMPA):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
 
       # deprecated
@@ -497,7 +497,7 @@ class BioNMDA(TwoEndConn):
       method: str = 'exp_auto',
 
       # other parameters
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None,
       stop_spike_gradient: bool = False,
   ):

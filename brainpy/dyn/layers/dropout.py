@@ -39,7 +39,7 @@ class Dropout(Layer):
       self,
       prob: float,
       seed: int = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(Dropout, self).__init__(mode=mode, name=name)

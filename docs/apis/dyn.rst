@@ -8,8 +8,9 @@
 .. toctree::
     :maxdepth: 1
 
-    auto/dyn/runners
     auto/dyn/base
+    auto/dyn/transform
+    auto/dyn/runners
     auto/dyn/neurons
     auto/dyn/synapses
     auto/dyn/synouts

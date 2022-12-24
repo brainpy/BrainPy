@@ -154,6 +154,7 @@ class Runner(BrainPyObject):
     # dynamical changed variables
     if dyn_vars is None:
       dyn_vars = dict()
+    self._dyn_vars = dyn_vars
     self.register_implicit_vars(dyn_vars)
 
     # numpy mon after run
@@ -219,7 +220,6 @@ class Runner(BrainPyObject):
     if hasattr(self, 'mon'):
       for key in tuple(self.mon.keys()):
         del self.mon[key]
-        self._monitors.pop(key)
     for key in tuple(self.__dict__.keys()):
       del self.__dict__[key]
     gc.collect()

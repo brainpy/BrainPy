@@ -62,7 +62,7 @@ class Ih_HM1992(IhChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(Ih_HM1992, self).__init__(size,
                                     keep_size=keep_size,
@@ -172,7 +172,7 @@ class Ih_De1996(IhChannel, CalciumChannel):
       phi: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     # IhChannel.__init__(self, size, name=name, keep_size=keep_size)
     CalciumChannel.__init__(self,

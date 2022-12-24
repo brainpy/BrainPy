@@ -50,7 +50,7 @@ class OUProcess(NeuGroup):
       tau: Union[float, ArrayType, Initializer, Callable] = 10.,
       method: str = 'exp_euler',
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)

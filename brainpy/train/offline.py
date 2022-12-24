@@ -8,11 +8,11 @@ from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.base import BrainPyObject
+from brainpy.check import serialize_kwargs
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
-from brainpy.check import serialize_kwargs
 from brainpy.types import ArrayType, Output
+from ._utils import format_ys
 from .base import DSTrainer
 
 __all__ = [
@@ -54,7 +54,7 @@ class OfflineTrainer(DSTrainer):
       fit_method: Union[OfflineAlgorithm, Callable, Dict, str] = None,
       **kwargs
   ):
-    self.true_numpy_mon_after_run = kwargs.get('numpy_mon_after_run', True)
+    self._true_numpy_mon_after_run = kwargs.get('numpy_mon_after_run', True)
     kwargs['numpy_mon_after_run'] = False
     super(OfflineTrainer, self).__init__(target=target, **kwargs)
 
@@ -62,7 +62,10 @@ class OfflineTrainer(DSTrainer):
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
     self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, bm.TrainingMode)])
     if len(self.train_nodes) == 0:
-        raise ValueError('Found no trainable nodes.')
+      raise ValueError('Found no trainable nodes.')
+
+    # check the required interface in the trainable nodes
+    self._check_interface()
 
     # training method
     if fit_method is None:
@@ -76,8 +79,6 @@ class OfflineTrainer(DSTrainer):
       raise ValueError(f'"train_method" must be an instance of callable function, '
                        f'but we got {type(fit_method)}.')
     self.fit_method = fit_method
-    # check the required interface in the trainable nodes
-    self._check_interface()
 
     # set the training method
     for node in self.train_nodes:
@@ -86,13 +87,6 @@ class OfflineTrainer(DSTrainer):
     # initialize the fitting method
     for node in self.train_nodes:
       node.offline_init()
-
-    # update dynamical variables
-    if isinstance(self.fit_method, BrainPyObject):
-      self.dyn_vars.update(self.fit_method.vars().unique())
-
-    # training function
-    self._f_train = dict()
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -179,11 +173,8 @@ class OfflineTrainer(DSTrainer):
     # prediction, get all needed data
     outs = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
 
-    # get all input data
-    xs, num_step, num_batch = self._check_xs(xs, move_axis=False)
-
     # check target data
-    ys = self._check_ys(ys, num_batch=num_batch, num_step=num_step, move_axis=False)
+    ys = format_ys(self, ys)
 
     # init progress bar
     if self.progress_bar:
@@ -206,7 +197,7 @@ class OfflineTrainer(DSTrainer):
     for node in self.train_nodes:
       self.mon.pop(f'{node.name}-fit_record')
       node.fit_record.clear()  # clear fit records
-    if self.true_numpy_mon_after_run:
+    if self._true_numpy_mon_after_run:
       for key in self.mon.keys():
         self.mon[key] = np.asarray(self.mon[key])
 
@@ -214,30 +205,27 @@ class OfflineTrainer(DSTrainer):
 
   def _get_f_train(self, shared_args: Dict = None) -> Callable:
     """Get training function."""
-    shared_kwargs_str = serialize_kwargs(shared_args)
-    if shared_kwargs_str not in self._f_train:
-      self._f_train[shared_kwargs_str] = self._get_fit_func(shared_args)
-    return self._f_train[shared_kwargs_str]
-
-  def _get_fit_func(self, shared_args: Dict = None):
     shared_args = dict() if shared_args is None else shared_args
+    shared_kwargs_str = serialize_kwargs(shared_args)
+    if shared_kwargs_str not in self._f_fit_compiled:
 
-    def train_func(monitor_data: Dict[str, ArrayType], target_data: Dict[str, ArrayType]):
-      for node in self.train_nodes:
-        fit_record = monitor_data[f'{node.name}-fit_record']
-        targets = target_data[node.name]
-        node.offline_fit(targets, fit_record)
-        if self.progress_bar:
-          id_tap(lambda *args: self._pbar.update(), ())
+      def train_func(monitor_data: Dict[str, ArrayType], target_data: Dict[str, ArrayType]):
+        for node in self.train_nodes:
+          fit_record = monitor_data[f'{node.name}-fit_record']
+          targets = target_data[node.name]
+          node.offline_fit(targets, fit_record)
+          if self.progress_bar:
+            id_tap(lambda *args: self._pbar.update(), ())
 
-    if self.jit['fit']:
-      dyn_vars = self.target.vars()
-      dyn_vars.update(self.dyn_vars)
-      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-      train_func = bm.jit(train_func, dyn_vars=dyn_vars.unique())
-    return train_func
+      if self.jit['fit']:
+        dyn_vars = self.target.vars().unique()
+        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+        train_func = bm.jit(train_func, dyn_vars=dyn_vars)
 
-  def _monitor_step_func(self, shared):
+      self._f_fit_compiled[shared_kwargs_str] = train_func
+    return self._f_fit_compiled[shared_kwargs_str]
+
+  def _step_func_monitor(self, shared):
     res = dict()
     for key, val in self._monitors.items():
       if callable(val):
@@ -258,32 +246,42 @@ class OfflineTrainer(DSTrainer):
       if hasattr(node.offline_fit, 'not_customized'):
         if node.offline_fit.not_customized:
           raise NoImplementationError(
-            f'The node \n\n{node}\n\n'
-            f'is set to be trainable with {self.__class__.__name__} method. '
-            f'However, it does not implement the required training '
-            f'interface "offline_fit()" function. '
+            f'''
+            The node
+            
+            {node}
+            
+            is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}. 
+            However, it does not implement the required training 
+            interface "offline_fit()" function. 
+            '''
           )
       if hasattr(node.offline_init, 'not_customized'):
         if node.offline_init.not_customized:
           raise NoImplementationError(
-            f'The node \n\n{node}\n\n'
-            f'is set to be trainable with {self.__class__.__name__} method. '
-            f'However, it does not implement the required training '
-            f'interface "offline_init()" function. '
+            f'''
+            The node
+
+            {node}
+
+            is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}. 
+            However, it does not implement the required training 
+            interface "offline_init()" function. 
+            '''
           )
 
 
 class RidgeTrainer(OfflineTrainer):
   """Trainer of ridge regression, also known as regression with Tikhonov regularization.
 
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
   Parameters
   ----------
   target: TrainingSystem, DynamicalSystem
     The target model.
-  beta: float
+  alpha: float
     The regularization coefficient.
-  **kwarg
-    Other common parameters for :py:class:`brainpy.nn.RNNTrainer``.
   """
 
   def __init__(self, target, alpha=1e-7, **kwargs):

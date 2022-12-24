@@ -12,8 +12,7 @@ class ESN(bp.dyn.DynamicalSystem):
                                  Wrec_initializer=bp.init.Normal(scale=0.1),
                                  in_connectivity=0.02,
                                  rec_connectivity=0.02,
-                                 comp_type='dense',
-                                 mode=bp.modes.batching)
+                                 comp_type='dense')
     self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
 
   def update(self, sha, x):
@@ -24,10 +23,9 @@ class NGRC(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
-    self.r = bp.layers.NVAR(num_in, delay=2, order=2, mode=bp.modes.batching)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=2)
     self.o = bp.layers.Dense(self.r.num_out, num_out,
-                             W_initializer=bp.init.Normal(0.1),
-                             mode=bp.modes.training)
+                             W_initializer=bp.init.Normal(0.1))
 
   def update(self, shared_args, x):
     return self.o(shared_args, self.r(shared_args, x))

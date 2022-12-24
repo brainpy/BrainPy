@@ -2,7 +2,7 @@ BrainPy documentation
 =====================
 
 `BrainPy`_ is a highly flexible and extensible framework targeting on the
-high-performance Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
+general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
 
 - **JIT compilation** and **automatic differentiation** for class objects.
 - **Numerical methods** for ordinary differential equations (ODEs),
@@ -92,15 +92,16 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
    apis/train.rst
    apis/analysis.rst
    apis/integrators.rst
-   apis/algorithms.rst
+   apis/auto/algorithms.rst
    apis/auto/inputs.rst
    apis/auto/connect.rst
    apis/auto/initialize.rst
    apis/auto/losses.rst
    apis/auto/optimizers.rst
+   apis/auto/encoding.rst
    apis/auto/measure.rst
    apis/auto/running.rst
-   apis/tools.rst
+   apis/auto/tools.rst
    apis/auto/changelog.rst
 
 

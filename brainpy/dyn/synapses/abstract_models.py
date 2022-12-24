@@ -99,7 +99,7 @@ class Delta(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(Delta, self).__init__(name=name,
@@ -290,7 +290,7 @@ class Exponential(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(Exponential, self).__init__(pre=pre,
@@ -311,7 +311,7 @@ class Exponential(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable_(bm.zeros, self.post.num, mode)
+    self.g = variable_(bm.zeros, self.post.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
@@ -481,7 +481,7 @@ class DualExponential(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(DualExponential, self).__init__(pre=pre,
@@ -667,7 +667,7 @@ class Alpha(DualExponential):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(Alpha, self).__init__(pre=pre,
@@ -830,7 +830,7 @@ class NMDA(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(NMDA, self).__init__(pre=pre,
@@ -950,7 +950,7 @@ class PoissonInput(SynConn):
       freq: Union[int, float],
       weight: Union[int, float],
       seed: Optional[int] = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None
   ):
     from ..neurons.input_groups import InputGroup, OutputGroup

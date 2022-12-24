@@ -257,6 +257,7 @@ class LoopOverTime(DynSysToBPObj):
     # function
     @bm.to_object(child_objs=self.target)
     def f(sha, x):
+      sha['dt'] = dt
       sha.update(shared_arg)
       outs = self.target(sha, x)
       if self.out_vars is not None:

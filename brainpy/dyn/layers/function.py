@@ -30,7 +30,7 @@ class Activation(Layer):
       self,
       activate_fun: Callable,
       name: Optional[str] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       **kwargs,
   ):
     super().__init__(name, mode)
@@ -55,7 +55,7 @@ class Flatten(Layer):
   def __init__(
       self,
       name: Optional[str] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super().__init__(name, mode)
 
@@ -71,7 +71,7 @@ class FunAsLayer(Layer):
       self,
       fun: Callable,
       name: Optional[str] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       **kwargs,
   ):
     super().__init__(name, mode)

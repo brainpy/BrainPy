@@ -2,7 +2,7 @@
 
 
 __all__ = [
-  'CompMode',
+  'Mode',
   'NonBatchingMode',
   'BatchingMode',
   'TrainingMode',
@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class CompMode(object):
+class Mode(object):
   """Base class for computation Mode
   """
 
@@ -20,12 +20,12 @@ class CompMode(object):
     return self.__class__.__name__
 
 
-class NonBatchingMode(CompMode):
+class NonBatchingMode(Mode):
   """Normal non-batching mode."""
   pass
 
 
-class BatchingMode(CompMode):
+class BatchingMode(Mode):
   """Batching mode."""
   pass
 

@@ -68,7 +68,7 @@ class NVAR(Layer):
       order: Union[int, Sequence[int]] = None,
       stride: int = 1,
       constant: bool = False,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)

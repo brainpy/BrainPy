@@ -108,15 +108,17 @@ Y_test = get_subset(data_series,
 class NGRC(bp.dyn.DynamicalSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
-    self.r = bp.layers.NVAR(num_in, delay=2, order=3, mode=bp.modes.batching)
-    self.di = bp.layers.Dense(self.r.num_out, num_in, mode=bp.modes.training)
+    self.r = bp.layers.NVAR(num_in, delay=2, order=3)
+    self.di = bp.layers.Dense(self.r.num_out, num_in, mode=bm.training_mode)
 
   def update(self, sha, x):
     di = self.di(sha, self.r(sha, x))
     return x + di
 
 
-model = NGRC(3)
+with bm.environment(mode=bm.batching_mode):
+  model = NGRC(3)
+
 
 # Training #
 # -------- #

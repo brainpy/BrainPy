@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from functools import partial
 from typing import Dict, Sequence, Union, Callable, Tuple
 
+import jax
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
@@ -9,11 +11,11 @@ from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.base import BrainPyObject
+from brainpy.check import serialize_kwargs
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import NoImplementationError
-from brainpy.check import serialize_kwargs
 from brainpy.types import ArrayType, Output
+from ._utils import format_ys
 from .base import DSTrainer
 
 __all__ = [
@@ -62,7 +64,10 @@ class OnlineTrainer(DSTrainer):
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
     self.train_nodes = tuple([node for node in nodes.values() if isinstance(node.mode, bm.TrainingMode)])
     if len(self.train_nodes) == 0:
-        raise ValueError('Found no trainable nodes.')
+      raise ValueError('Found no trainable nodes.')
+
+    # check the required interface in the trainable nodes
+    self._check_interface()
 
     # training method
     if fit_method is None:
@@ -77,9 +82,6 @@ class OnlineTrainer(DSTrainer):
       raise ValueError(f'"train_method" must be an instance of callable function, '
                        f'but we got {type(fit_method)}.')
 
-    # check the required interface in the trainable nodes
-    self._check_interface()
-
     # set the training method
     for node in self.train_nodes:
       node.online_fit_by = fit_method
@@ -88,12 +90,8 @@ class OnlineTrainer(DSTrainer):
     for node in self.train_nodes:
       node.online_init()
 
-    # update dynamical variables
-    if isinstance(self.fit_method, BrainPyObject):
-      self.dyn_vars.update(self.fit_method.vars().unique())
-
     # training function
-    self._f_train = dict()
+    self._f_fit_compiled = dict()
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -131,10 +129,10 @@ class OnlineTrainer(DSTrainer):
     output: ArrayType
       The running output.
     """
-    outs = super(OnlineTrainer, self).predict(inputs=inputs,
-                                              reset_state=reset_state,
-                                              shared_args=shared_args,
-                                              eval_time=eval_time)
+    outs = super().predict(inputs=inputs,
+                           reset_state=reset_state,
+                           shared_args=shared_args,
+                           eval_time=eval_time)
     for node in self.train_nodes:
       node.fit_record.clear()
     return outs
@@ -159,17 +157,27 @@ class OnlineTrainer(DSTrainer):
                        f"but we got a sequence with length {len(train_data)}")
     xs, ys = train_data
 
-    # format input data
-    times, indices, xs, num_step, num_batch, duration, _ = self._format_xs(
-      None, inputs=xs, inputs_are_batching=True)
-
-    # format target data
-    ys = self._check_ys(ys, num_batch=num_batch, num_step=num_step, move_axis=True)
-
     # reset the model states
     if reset_state:
+      num_batch = self._get_input_batch_size(xs)
       self.target.reset_state(num_batch)
       self.reset_state()
+
+    # format input/target data
+    ys = format_ys(self, ys)
+    num_step = self._get_input_time_step(xs=xs)
+    shared = tools.DotDict(i=bm.arange(num_step, dtype=bm.int_).value)
+    shared['t'] = shared['i'] * self.dt
+    shared['t'] += self.t0
+    shared['i'] += self.i0
+
+    if not self.time_major:
+      xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
+                    xs,
+                    is_leaf=lambda x: isinstance(x, bm.Array))
+      ys = tree_map(lambda y: bm.moveaxis(y, 0, 1),
+                    ys,
+                    is_leaf=lambda y: isinstance(y, bm.Array))
 
     # init monitor
     for key in self.mon.var_names:
@@ -181,25 +189,25 @@ class OnlineTrainer(DSTrainer):
       self._pbar.set_description(f"Train {num_step} steps: ", refresh=True)
 
     # prediction
-    outs, hists = self._fit(xs=(times, indices, xs), ys=ys, shared_args=shared_args)
+    outs, hists = self._fit(tix=(shared['t'], shared['i'], xs), ys=ys, shared_args=shared_args)
 
     # close the progress bar
     if self.progress_bar:
       self._pbar.close()
 
     # post-running for monitors
-    hists['ts'] = times + self.dt
+    hists['ts'] = shared['t'] + self.dt
     if self.numpy_mon_after_run:
       hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
-    self.i0 += times.shape[0]
-    self.t0 += duration
+    self.i0 += shared['t'].shape[0]
+    self.t0 += num_step * self.dt
     return outs
 
   def _fit(
       self,
-      xs: Tuple,
+      tix: Tuple,
       ys: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       shared_args: Dict = None,
   ):
@@ -207,7 +215,7 @@ class OnlineTrainer(DSTrainer):
 
     Parameters
     ----------
-    xs: tuple
+    tix: tuple
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
     ys: ArrayType
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
@@ -220,52 +228,51 @@ class OnlineTrainer(DSTrainer):
       A tuple of pair of (outputs, hists).
     """
     _fit_func = self._get_fit_func(shared_args)
-    hists = _fit_func(xs + (ys,))
-    hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists,
+    hists = _fit_func(tix + (ys,))
+    hists = tree_map(lambda x: bm.moveaxis(x, 0, 1),
+                     hists,
                      is_leaf=lambda x: isinstance(x, bm.Array))
     return hists
 
   def _get_fit_func(self, shared_args: Dict = None):
     if shared_args is None: shared_args = dict()
     shared_kwargs_str = serialize_kwargs(shared_args)
-    if shared_kwargs_str not in self._f_train:
-      self._f_train[shared_kwargs_str] = self._make_fit_func(shared_args)
-    return self._f_train[shared_kwargs_str]
+    if shared_kwargs_str not in self._f_fit_compiled:
+      dyn_vars = self.vars().unique()
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
 
-  def _make_fit_func(self, shared_args: Dict):
-    if not isinstance(shared_args, dict):
-      raise ValueError(f'"shared_kwargs" must be a dict, but got {type(shared_args)}')
+      def run_func(all_inputs):
+        with jax.disable_jit(not self.jit['fit']):
+          return bm.for_loop(partial(self._step_func_fit, shared_args),
+                             all_inputs,
+                             dyn_vars=dyn_vars)
 
-    def _step_func(t, i, x, ys):
-      shared = tools.DotDict(t=t, dt=self.dt, i=i)
+      self._f_fit_compiled[shared_kwargs_str] = run_func
+    return self._f_fit_compiled[shared_kwargs_str]
 
-      # input step
-      self.target.clear_input()
-      self._input_step(shared)
+  def _step_func_fit(self, shared_args, t, i, x, ys):
+    shared = tools.DotDict(t=t, dt=self.dt, i=i)
 
-      # update step
-      shared.update(shared_args)
-      args = (shared,) if x is None else (shared, x)
-      out = self.target(*args)
+    # input step
+    self.target.clear_input()
+    self._step_func_input(shared)
 
-      # monitor step
-      monitors = self._monitor_step_func(shared)
-      for node in self.train_nodes:
-        fit_record = monitors.pop(f'{node.name}-fit_record')
-        target = ys[node.name]
-        node.online_fit(target, fit_record)
+    # update step
+    shared.update(shared_args)
+    args = (shared,) if x is None else (shared, x)
+    out = self.target(*args)
 
-      # finally
-      if self.progress_bar:
-        id_tap(lambda *arg: self._pbar.update(), ())
-      return out, monitors
+    # monitor step
+    monitors = self._step_func_monitor(shared)
+    for node in self.train_nodes:
+      fit_record = monitors.pop(f'{node.name}-fit_record')
+      target = ys[node.name]
+      node.online_fit(target, fit_record)
 
-    dyn_vars = self.target.vars()
-    dyn_vars.update(self.dyn_vars)
-    dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-    return lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
-
-    return run_func
+    # finally
+    if self.progress_bar:
+      id_tap(lambda *arg: self._pbar.update(), ())
+    return out, monitors
 
   def _check_interface(self):
     for node in self.train_nodes:
@@ -286,7 +293,7 @@ class OnlineTrainer(DSTrainer):
             f'interface "online_init()" function. '
           )
 
-  def _monitor_step_func(self, shared):
+  def _step_func_monitor(self, shared):
     res = dict()
     for key, val in self._monitors.items():
       if callable(val):

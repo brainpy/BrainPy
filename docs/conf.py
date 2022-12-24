@@ -48,7 +48,7 @@ for source, dest in changelogs:
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
-copyright = '2022, BrainPy'
+copyright = '2020-2023, BrainPy'
 author = 'BrainPy Team'
 
 # The full version, including alpha/beta/rc tags

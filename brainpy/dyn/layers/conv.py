@@ -93,7 +93,7 @@ class GeneralConv(Layer):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(GeneralConv, self).__init__(name=name, mode=mode)
@@ -221,7 +221,7 @@ class Conv1D(GeneralConv):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv1D, self).__init__(num_spatial_dims=1,
@@ -304,7 +304,7 @@ class Conv2D(GeneralConv):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv2D, self).__init__(num_spatial_dims=2,
@@ -387,7 +387,7 @@ class Conv3D(GeneralConv):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv3D, self).__init__(num_spatial_dims=3,

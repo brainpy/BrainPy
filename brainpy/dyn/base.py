@@ -85,12 +85,12 @@ class DynamicalSystem(BrainPyObject):
   def __init__(
       self,
       name: Optional[str] = None,
-      mode: Optional[bm.CompMode] = None,
+      mode: Optional[bm.Mode] = None,
   ):
     # mode setting
     mode = bm.mode if mode is None else mode
-    if not isinstance(mode, bm.CompMode):
-      raise ValueError(f'Should be instance of {bm.CompMode.__name__}, '
+    if not isinstance(mode, bm.Mode):
+      raise ValueError(f'Should be instance of {bm.Mode.__name__}, '
                        f'but we got {type(mode)}: {mode}')
     self._mode = mode
 
@@ -105,14 +105,14 @@ class DynamicalSystem(BrainPyObject):
     self.fit_record = dict()
 
   @property
-  def mode(self) -> bm.CompMode:
+  def mode(self) -> bm.Mode:
     """Mode of the model, which is useful to control the multiple behaviors of the model."""
     return self._mode
 
   @mode.setter
   def mode(self, value):
-    if not isinstance(value, bm.CompMode):
-      raise ValueError(f'Must be instance of {bm.CompMode.__name__}, '
+    if not isinstance(value, bm.Mode):
+      raise ValueError(f'Must be instance of {bm.Mode.__name__}, '
                        f'but we got {type(value)}: {value}')
     self._mode = value
 
@@ -382,7 +382,7 @@ class FuncAsDynSys(DynamicalSystem):
                child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
                dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
                name: str = None,
-               mode: bm.CompMode = None):
+               mode: bm.Mode = None):
     super().__init__(name=name, mode=mode)
 
     self._f = f
@@ -427,7 +427,7 @@ class Container(DynamicalSystem):
       self,
       *dynamical_systems_as_tuple,
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       must_be_dynsys_subclass: bool = True,
       **dynamical_systems_as_dict
   ):
@@ -562,7 +562,7 @@ class Sequential(Container):
       self,
       *modules_as_tuple,
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       **modules_as_dict
   ):
 
@@ -662,7 +662,7 @@ class Network(Container):
       self,
       *ds_tuple,
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       **ds_dict
   ):
     super(Network, self).__init__(*ds_tuple,
@@ -757,7 +757,7 @@ class NeuGroup(DynamicalSystem):
       size: Shape,
       keep_size: bool = False,
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     # size
     if isinstance(size, (list, tuple)):
@@ -838,7 +838,7 @@ class SynConn(DynamicalSystem):
       post: NeuGroup,
       conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(SynConn, self).__init__(name=name, mode=mode)
 
@@ -1055,7 +1055,7 @@ class TwoEndConn(SynConn):
       output: SynOut = NullSynOut(),
       stp: Optional[SynSTP] = None,
       ltp: Optional[SynLTP] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(TwoEndConn, self).__init__(pre=pre,
@@ -1129,7 +1129,7 @@ class TwoEndConn(SynConn):
         raise ValueError(f'Unknown connection type: {comp_method}')
 
     # training weights
-    if isinstance(self.mode, bm.training_mode):
+    if isinstance(self.mode, bm.TrainingMode):
       weight = bm.TrainVar(weight)
     return weight, conn_mask
 
@@ -1215,7 +1215,7 @@ class CondNeuGroup(NeuGroup, Container):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       **channels
   ):
     NeuGroup.__init__(self, size, keep_size=keep_size, mode=mode)
@@ -1283,7 +1283,7 @@ class Channel(DynamicalSystem):
       size: Union[int, Sequence[int]],
       name: str = None,
       keep_size: bool = False,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
   ):
     super(Channel, self).__init__(name=name, mode=mode)
     # the geometry size
@@ -1353,7 +1353,7 @@ class DSView(DynamicalSystem):
       index: Union[slice, Sequence, ArrayType],
       varshape: Tuple[int, ...] = None,
       name: str = None,
-      mode: bm.CompMode = None
+      mode: bm.Mode = None
   ):
     # initialization
     DynamicalSystem.__init__(self, name=name, mode=mode)
@@ -1472,7 +1472,7 @@ class NeuGroupView(DSView, NeuGroup):
       target: NeuGroup,
       index: Union[slice, Sequence, ArrayType],
       name: str = None,
-      mode: bm.CompMode = None
+      mode: bm.Mode = None
   ):
     DSView.__init__(self, target, index)
 

@@ -56,3 +56,26 @@ from .object_transform import *
 # environment settings
 from .modes import *
 from .environment import *
+from .others import *
+
+mode = NonBatchingMode()
+'''Default computation mode.'''
+
+dt = 0.1
+'''Default time step.'''
+
+import jax.numpy as jnp
+
+bool_ = jnp.bool_
+'''Default bool data type.'''
+
+int_ = jnp.int32
+'''Default integer data type.'''
+
+float_ = jnp.float32
+'''Default float data type.'''
+
+complex_ = jnp.complex64
+'''Default complex data type.'''
+
+del jnp

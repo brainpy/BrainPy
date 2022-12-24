@@ -102,7 +102,7 @@ class Reservoir(Layer):
       noise_rec: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(Reservoir, self).__init__(mode=mode, name=name)

@@ -91,7 +91,7 @@ class Calcium(Ion, Container):
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       **channels
   ):
     Ion.__init__(self, size, keep_size=keep_size, mode=mode)

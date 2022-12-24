@@ -96,7 +96,7 @@ def init_param(
 def variable_(
     data: Union[Callable, ArrayType],
     size: Shape = None,
-    batch_size_or_mode: Optional[Union[int, bool, bm.CompMode]] = None,
+    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
 ):
   """Initialize variables. Same as `variable()`.
@@ -130,7 +130,7 @@ def variable_(
 
 def variable(
     data: Union[Callable, ArrayType],
-    batch_size_or_mode: Optional[Union[int, bool, bm.CompMode]] = None,
+    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     size: Shape = None,
     batch_axis: int = 0,
 ):

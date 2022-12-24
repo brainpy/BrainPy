@@ -45,7 +45,7 @@ class EligSNN(bp.dyn.Network):
 
     # neurons
     self.i = bp.neurons.InputGroup(num_in)
-    self.o = bp.neurons.LeakyIntegrator(num_out, tau=20, mode=bp.modes.training)
+    self.o = bp.neurons.LeakyIntegrator(num_out, tau=20)
 
     n_regular = int(num_rec / 2)
     n_adaptive = num_rec - n_regular
@@ -57,7 +57,7 @@ class EligSNN(bp.dyn.Network):
       tau_a=tau_a, tau=tau_v, beta=beta,
       V_initializer=bp.init.ZeroInit(),
       a_initializer=bp.init.ZeroInit(),
-      mode=bp.modes.training, eprop=eprop
+      eprop=eprop
     )
 
     # synapses
@@ -148,7 +148,7 @@ def loss_fun(predicts, targets):
 
   # Define the accuracy
   y_predict = bm.argmax(bm.mean(output_logits, axis=1), axis=1)
-  accuracy = bm.equal(targets, y_predict).astype(bm.dftype()).mean()
+  accuracy = bm.equal(targets, y_predict).astype(bm.float_).mean()
 
   # loss function
   tiled_targets = bm.tile(bm.expand_dims(targets, 1), (1, t_cue_spacing))

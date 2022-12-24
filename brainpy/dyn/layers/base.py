@@ -9,7 +9,7 @@ __all__ = [
 
 
 class Layer(DynamicalSystem):
-  def __init__(self, name: str = None, mode: bm.CompMode = None):
+  def __init__(self, name: str = None, mode: bm.Mode = None):
     super().__init__(name=name, mode=mode)
 
   def reset_state(self, batch_size=None):

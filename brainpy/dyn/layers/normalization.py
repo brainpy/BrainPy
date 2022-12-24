@@ -62,7 +62,7 @@ class BatchNorm(Layer):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm, self).__init__(name=name, mode=mode)
@@ -147,7 +147,7 @@ class BatchNorm1D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm1D, self).__init__(num_features=num_features,
@@ -199,7 +199,7 @@ class BatchNorm2D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm2D, self).__init__(num_features=num_features,
@@ -251,7 +251,7 @@ class BatchNorm3D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm3D, self).__init__(num_features=num_features,
@@ -335,7 +335,7 @@ class LayerNorm(Layer):
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
       elementwise_affine: bool = True,
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(LayerNorm, self).__init__(name=name, mode=mode)
@@ -421,7 +421,7 @@ class GroupNorm(Layer):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(GroupNorm, self).__init__(name=name, mode=mode)
@@ -483,7 +483,7 @@ class InstanceNorm(GroupNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: bm.CompMode = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(InstanceNorm, self).__init__(num_channels=num_channels,

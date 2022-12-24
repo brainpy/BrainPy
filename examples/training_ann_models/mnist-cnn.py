@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import brainpy_datasets as bd
+
 import brainpy as bp
 import brainpy.math as bm
-import brainpy_datasets as bd
 
 
 class FeedForwardModel(bp.DynamicalSystem):
@@ -26,31 +27,32 @@ class FeedForwardModel(bp.DynamicalSystem):
 
 
 # train dataset
-train_dataset = bd.vision.MNIST(root='./data', split='train', download=True)
-x_train = bm.array(train_dataset.data, dtype=bm.dftype())
-x_train = x_train.reshape(x_train.shape + (1,)) / 255
-y_train = bm.array(train_dataset.targets, dtype=bm.ditype())
+train_dataset = bd.vision.MNIST(root=r'D:/data', split='train', download=True)
+test_dataset = bd.vision.MNIST(root=r'D:/data', split='test', download=True)
+
+num_batch = 128
+
+
+def get_data(dataset):
+  def generator():
+    X = bm.expand_dims(bm.asarray(dataset.data/255, dtype=bm.float_), -1)
+    Y = bm.asarray(dataset.targets, dtype=bm.int_)
+    key = bm.random.DEFAULT.split_key()
+    X = bm.random.permutation(X, key=key)
+    Y = bm.random.permutation(Y, key=key)
+    for i in range(0, X.shape[0], num_batch):
+      yield X[i: i + num_batch], Y[i: i + num_batch]
+  return generator
+
 
 # model
-model = FeedForwardModel()
+with bm.environment(mode=bm.training_mode):
+  model = FeedForwardModel()
 
 # training
 trainer = bp.train.BPFF(model,
                         loss_fun=bp.losses.cross_entropy_loss,
-                        optimizer=bp.optim.Adam(lr=1e-3),
-                        shuffle_data=True)
-trainer.fit([x_train, y_train], num_epoch=2, batch_size=64)
-
-# test dataset
-test_dataset = bd.vision.MNIST(root='./data', split='train', download=True)
-x_test = bm.array(test_dataset.data, dtype=bm.dftype())
-x_test = x_test.reshape(x_test.shape + (1,)) / 255
-y_test = bm.array(test_dataset.targets, dtype=bm.ditype())
-
-# testing
-y_predicts = []
-for i in range(0, x_test.shape[0], 100):
-  y_predicts.append(bm.argmax(trainer.predict(x_test[i: i + 100]), axis=1))
-acc = bm.mean(bm.concatenate(y_predicts) == y_test)  # compare to labels
-print("Test Accuracy %.5f" % acc)
-
+                        optimizer=bp.optim.Adam(lr=1e-3))
+trainer.fit(get_data(train_dataset),
+            get_data(test_dataset),
+            num_epoch=2)

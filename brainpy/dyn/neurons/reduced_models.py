@@ -6,11 +6,11 @@ from typing import Union, Callable, Optional
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
+from brainpy.check import check_initializer, check_callable, check_mode
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import (ZeroInit, OneInit, Initializer,
                                 parameter, variable_, noise as init_noise)
 from brainpy.integrators import sdeint, odeint, JointEq
-from brainpy.check import check_initializer, check_callable, check_mode
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -80,7 +80,7 @@ class LeakyIntegrator(NeuGroup):
 
       # other parameter
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       method: str = 'exp_auto',
   ):
     super(LeakyIntegrator, self).__init__(size=size,
@@ -100,8 +100,8 @@ class LeakyIntegrator(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -196,7 +196,7 @@ class LIF(NeuGroup):
       noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
 
       # training parameter
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       spike_fun: Callable = bm.surrogate.inv_square_grad,
 
       # other parameters
@@ -225,13 +225,13 @@ class LIF(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    sp_type = bm.float_ if isinstance(mode, bm.TrainingMode) else bool  # the gradient of spike is a float
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool  # the gradient of spike is a float
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
     if self.tau_ref is not None:
-      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, mode)
-      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, self.mode)
+      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -412,7 +412,7 @@ class ExpIF(NeuGroup):
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -439,13 +439,13 @@ class ExpIF(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
-    self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
+    self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, self.mode)
     if self.tau_ref is not None:
-      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -586,7 +586,7 @@ class AdExIF(NeuGroup):
       noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: Optional[str] = None
   ):
     super(AdExIF, self).__init__(size=size,
@@ -616,14 +616,14 @@ class AdExIF(NeuGroup):
     self._w_initializer = w_initializer
 
     # variables
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.w = variable_(w_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    sp_type = bm.float_ if isinstance(mode, bm.BatchingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.w = variable_(w_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    sp_type = bm.float_ if isinstance(self.mode, bm.BatchingMode) else bool
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
     if self.tau_ref is not None:
-      self.refractory = variable_(partial(bm.zeros, dtype=bool), self.varshape, mode)
-      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e8, self.varshape, mode)
+      self.refractory = variable_(partial(bm.zeros, dtype=bool), self.varshape, self.mode)
+      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e8, self.varshape, self.mode)
 
     # functions
     if self.noise is None:
@@ -637,9 +637,9 @@ class AdExIF(NeuGroup):
     self.input.value = variable_(bm.zeros, self.varshape, batch_size)
     self.spike.value = variable_(
       lambda s: bm.zeros(s, dtype=(bm.float_
-                                                              if isinstance(self.mode, bm.TrainingMode)
-                                                              else bool)),
-                                 self.varshape, batch_size
+                                   if isinstance(self.mode, bm.TrainingMode)
+                                   else bool)),
+      self.varshape, batch_size
     )
     if self.tau_ref is not None:
       self.refractory.value = variable_(partial(bm.zeros, dtype=bool), self.varshape, batch_size)
@@ -758,7 +758,7 @@ class QuaIF(NeuGroup):
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       method: str = 'exp_auto',
       name: str = None
   ):
@@ -785,13 +785,13 @@ class QuaIF(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
-    self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
+    self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, self.mode)
     if self.tau_ref is not None:
-      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -929,7 +929,7 @@ class AdQuaIF(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(AdQuaIF, self).__init__(size=size,
@@ -957,12 +957,12 @@ class AdQuaIF(NeuGroup):
     self._w_initializer = w_initializer
 
     # variables
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.w = variable_(w_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.w = variable_(w_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
-    self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
+    self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -1112,7 +1112,7 @@ class GIF(NeuGroup):
       name: str = None,
 
       # parameter for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       spike_fun: Callable = bm.spike_with_sigmoid_grad,
   ):
     # initialization
@@ -1151,13 +1151,13 @@ class GIF(NeuGroup):
     self._Vth_initializer = Vth_initializer
 
     # variables
-    self.I1 = variable_(I1_initializer, self.varshape, mode)
-    self.I2 = variable_(I2_initializer, self.varshape, mode)
-    self.V_th = variable_(Vth_initializer, self.varshape, mode)
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.I1 = variable_(I1_initializer, self.varshape, self.mode)
+    self.I2 = variable_(I2_initializer, self.varshape, self.mode)
+    self.V_th = variable_(Vth_initializer, self.varshape, self.mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -1278,7 +1278,7 @@ class ALIFBellec2020(NeuGroup):
       # other parameters
       method: str = 'exp_auto',
       name: str = None,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       eprop: bool = False
   ):
     super(ALIFBellec2020, self).__init__(name=name,
@@ -1306,14 +1306,14 @@ class ALIFBellec2020(NeuGroup):
     self._a_initializer = a_initializer
 
     # variables
-    self.a = variable_(a_initializer, self.varshape, mode)
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.a = variable_(a_initializer, self.varshape, self.mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
     if self.tau_ref is not None:
-      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, mode)
-      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, self.mode)
+      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -1467,7 +1467,7 @@ class Izhikevich(NeuGroup):
       u_initializer: Union[Initializer, Callable, ArrayType] = OneInit(),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       spike_fun: Callable = bm.surrogate.inv_square_grad,
       keep_size: bool = False,
       name: str = None
@@ -1496,14 +1496,14 @@ class Izhikevich(NeuGroup):
     self._u_initializer = u_initializer
 
     # variables
-    self.u = variable_(u_initializer, self.varshape, mode)
-    self.V = variable_(V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.u = variable_(u_initializer, self.varshape, self.mode)
+    self.V = variable_(V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
     if self.tau_ref is not None:
-      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, mode)
-      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+      self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, self.mode)
+      self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # functions
     if self.noise is None:
@@ -1699,7 +1699,7 @@ class HindmarshRose(NeuGroup):
       name: str = None,
 
       # parameters for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       spike_fun: Callable = bm.surrogate.inv_square_grad,
   ):
     # initialization
@@ -1730,12 +1730,12 @@ class HindmarshRose(NeuGroup):
     self._z_initializer = z_initializer
 
     # variables
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.y = variable_(self._y_initializer, self.varshape, mode)
-    self.z = variable_(self._z_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
+    self.y = variable_(self._y_initializer, self.varshape, self.mode)
+    self.z = variable_(self._z_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -1878,7 +1878,7 @@ class FHN(NeuGroup):
       name: str = None,
 
       # parameters for training
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
   ):
     # initialization
     super(FHN, self).__init__(size=size,
@@ -1901,10 +1901,10 @@ class FHN(NeuGroup):
     self._w_initializer = w_initializer
 
     # variables
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.w = variable_(self._w_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
+    self.w = variable_(self._w_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:

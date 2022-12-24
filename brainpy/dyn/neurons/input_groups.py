@@ -32,7 +32,7 @@ class InputGroup(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(InputGroup, self).__init__(name=name,
@@ -63,7 +63,7 @@ class OutputGroup(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(OutputGroup, self).__init__(name=name,
@@ -114,7 +114,7 @@ class SpikeTimeGroup(NeuGroup):
       indices: Union[Sequence, ArrayType],
       need_sort: bool = True,
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(SpikeTimeGroup, self).__init__(size=size,
@@ -132,10 +132,10 @@ class SpikeTimeGroup(NeuGroup):
 
     # data about times and indices
     self.times = bm.asarray(times)
-    self.indices = bm.asarray(indices, dtype=bm.ditype())
+    self.indices = bm.asarray(indices, dtype=bm.int_)
 
     # variables
-    self.i = bm.Variable(bm.zeros(1, dtype=bm.ditype()))
+    self.i = bm.Variable(bm.zeros(1, dtype=bm.int_))
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
     if need_sort:
       sort_idx = bm.argsort(self.times)
@@ -176,7 +176,7 @@ class PoissonGroup(NeuGroup):
       freqs: Union[int, float, jnp.ndarray, bm.Array, Initializer],
       seed: int = None,
       keep_size: bool = False,
-      mode: bm.CompMode = None, 
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(PoissonGroup, self).__init__(size=size,
