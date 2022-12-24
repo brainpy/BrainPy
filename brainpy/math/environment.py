@@ -48,8 +48,8 @@ __all__ = [
 
   # context manage for environment setting
   'environment',
-  'env_batching',
-  'env_training',
+  'batching_env',
+  'training_env',
 
   # others
   'form_shared_args',
@@ -506,7 +506,7 @@ class environment(_DecoratorContextManager):
                           int_=self.int_)
 
 
-class env_training(environment):
+class training_env(environment):
   """Environment with the training mode.
 
   """
@@ -520,7 +520,7 @@ class env_training(environment):
                      mode=modes.TrainingMode())
 
 
-class env_batching(environment):
+class batching_env(environment):
   """Environment with the batching mode.
 
   """

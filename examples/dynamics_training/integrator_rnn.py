@@ -40,7 +40,7 @@ class RNN(bp.DynamicalSystem):
                     self.rnn(sha, x))
 
 
-with bm.env_training():
+with bm.training_env():
   model = RNN(1, 100)
 
 
