@@ -23,8 +23,8 @@ class TestTimeDelay(unittest.TestCase):
                          interp_method='linear_interp')
     print(delay(t0 - 0.1))
     print(delay(t0 - 0.15))
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones(10) * 9.))
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones(10) * 8.5))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.1), jnp.ones(10) * 9.))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.15), jnp.ones(10) * 8.5))
     print()
     print(delay(t0 - 0.23))
     print(delay(t0 - 0.23) - 7.7)
@@ -37,10 +37,10 @@ class TestTimeDelay(unittest.TestCase):
                          dt=0.1,
                          before_t0=before_t0,
                          interp_method='round')
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones(10) * 9))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.1), jnp.ones(10) * 9))
     print(delay(t0 - 0.15))
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones(10) * 8))
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.2), jnp.ones(10) * 8))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.15), jnp.ones(10) * 8))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.2), jnp.ones(10) * 8))
 
     bm.disable_x64()
     bm.clear_buffer_memory()
@@ -50,9 +50,9 @@ class TestTimeDelay(unittest.TestCase):
     before_t0 = jnp.repeat(jnp.arange(10).reshape((-1, 1)), 10, axis=1)
     before_t0 = jnp.repeat(before_t0.reshape((10, 10, 1)), 5, axis=2)
     delay = bm.TimeDelay(jnp.zeros((10, 5)), delay_len=1., t0=t0, dt=0.1, before_t0=before_t0)
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones((10, 5)) * 9))
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones((10, 5)) * 8.5))
-    self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones((10, 5)) * 7.7))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.1), jnp.ones((10, 5)) * 9))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.15), jnp.ones((10, 5)) * 8.5))
+    self.assertTrue(bm.allclose(delay(t0 - 0.23), bm.ones((10, 5)) * 7.7))
     bm.clear_buffer_memory()
 
   def test_dim3(self):
@@ -61,9 +61,9 @@ class TestTimeDelay(unittest.TestCase):
     before_t0 = jnp.repeat(before_t0.reshape((10, 10, 1)), 5, axis=2)
     before_t0 = jnp.repeat(before_t0.reshape((10, 10, 5, 1)), 3, axis=3)
     delay = bm.TimeDelay(jnp.zeros((10, 5, 3)), delay_len=1., t0=t0, dt=0.1, before_t0=before_t0)
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.1), jnp.ones((10, 5, 3)) * 9))
-    self.assertTrue(jnp.array_equal(delay(t0 - 0.15), jnp.ones((10, 5, 3)) * 8.5))
-    self.assertTrue(bm.array_equal(delay(t0 - 0.23), bm.ones((10, 5, 3)) * 7.7))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.1), jnp.ones((10, 5, 3)) * 9))
+    self.assertTrue(jnp.allclose(delay(t0 - 0.15), jnp.ones((10, 5, 3)) * 8.5))
+    self.assertTrue(bm.allclose(delay(t0 - 0.23), bm.ones((10, 5, 3)) * 7.7))
     bm.clear_buffer_memory()
 
   def test1(self):
@@ -97,11 +97,11 @@ class TestLengthDelay(unittest.TestCase):
     for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
       delay = bm.LengthDelay(jnp.zeros(dim), 10, update_method=update_method)
       print(delay(1))
-      self.assertTrue(jnp.array_equal(delay(1), jnp.zeros(dim)))
+      self.assertTrue(jnp.allclose(delay(1), jnp.zeros(dim)))
 
       delay = bm.jit(delay)
       print(delay(1))
-      self.assertTrue(jnp.array_equal(delay(1), jnp.zeros(dim)))
+      self.assertTrue(jnp.allclose(delay(1), jnp.zeros(dim)))
 
   def test2(self):
     dim = 3
@@ -111,15 +111,15 @@ class TestLengthDelay(unittest.TestCase):
                              initial_delay_data=jnp.arange(10, 0, -1).reshape((10, 1)),
                              update_method=update_method)
       print(delay(0))
-      self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
+      self.assertTrue(jnp.allclose(delay(0), jnp.zeros(dim)))
       print(delay(1))
-      self.assertTrue(jnp.array_equal(delay(1), jnp.ones(dim) * 10))
+      self.assertTrue(jnp.allclose(delay(1), jnp.ones(dim) * 10))
 
       delay = bm.jit(delay)
       print(delay(0))
-      self.assertTrue(jnp.array_equal(delay(0), jnp.zeros(dim)))
+      self.assertTrue(jnp.allclose(delay(0), jnp.zeros(dim)))
       print(delay(1))
-      self.assertTrue(jnp.array_equal(delay(1), jnp.ones(dim) * 10))
+      self.assertTrue(jnp.allclose(delay(1), jnp.ones(dim) * 10))
 
   def test3(self):
     dim = 3
@@ -130,13 +130,13 @@ class TestLengthDelay(unittest.TestCase):
                              update_method=update_method)
       print(delay(jnp.asarray([1, 2, 3]),
                   jnp.arange(3)))
-      self.assertTrue(bm.array_equal(delay(jnp.asarray([1, 2, 3]), jnp.arange(3)),
+      self.assertTrue(bm.allclose(delay(jnp.asarray([1, 2, 3]), jnp.arange(3)),
                                      bm.asarray([10., 9., 8.])))
 
       delay = bm.jit(delay)
       print(delay(jnp.asarray([1, 2, 3]),
                   jnp.arange(3)))
-      self.assertTrue(bm.array_equal(delay(jnp.asarray([1, 2, 3]), jnp.arange(3)),
+      self.assertTrue(bm.allclose(delay(jnp.asarray([1, 2, 3]), jnp.arange(3)),
                                      bm.asarray([10., 9., 8.])))
 
 

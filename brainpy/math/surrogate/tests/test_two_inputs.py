@@ -26,7 +26,7 @@ class TestTwoInputsGrad(parameterized.TestCase):
 
     xs = bm.arange(-3, 3, 0.005)
     grads = bm.vector_grad(func)(xs[:-1], xs[1:])
-    self.assertTrue(grads.size == xs.size)
+    self.assertTrue(grads.size == xs.size-1)
 
     if x64:
       bm.disable_x64()
@@ -45,7 +45,7 @@ class TestTwoInputsGrad(parameterized.TestCase):
     xs = bm.arange(-3, 3, 0.005)
     primals, f_vjp = jax.vjp(func, xs[:-1], xs[1:])
     grad2 = f_vjp(jax.numpy.ones(xs.size-1))
-    self.assertTrue(grad2[0].size == xs.size)
+    self.assertTrue(grad2[0].size == xs.size - 1)
 
     if x64:
       bm.disable_x64()

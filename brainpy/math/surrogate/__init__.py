@@ -2,3 +2,4 @@
 
 
 from .one_input import *
+from .two_inputs import *
