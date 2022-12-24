@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.modes import Mode, training
 from .base import Layer
 
 __all__ = [
@@ -40,7 +39,7 @@ class Dropout(Layer):
       self,
       prob: float,
       seed: int = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(Dropout, self).__init__(mode=mode, name=name)

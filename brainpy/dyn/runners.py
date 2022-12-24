@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import time
+import warnings
 from collections.abc import Iterable
-from typing import Dict, Union, Sequence, Callable
+from functools import partial
+from typing import Dict, Union, Sequence, Callable, Tuple, Optional
 
 import jax
 import jax.numpy as jnp
@@ -11,12 +13,11 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map, tree_flatten
 
-from brainpy import math as bm
+from brainpy import math as bm, tools
+from brainpy.check import check_float, serialize_kwargs
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
 from brainpy.running.runner import Runner
-from brainpy.tools.checking import check_float, serialize_kwargs
-from brainpy.tools.others.dicts import DotDict
 from brainpy.types import ArrayType, Output, Monitor
 
 __all__ = [
@@ -158,35 +159,12 @@ def check_and_format_inputs(host, inputs):
     format_inp = (one_input[0], data_value, data_type, data_op)
     formatted_inputs.append(format_inp)
 
-  return formatted_inputs
-
-
-def build_inputs(inputs, fun_inputs):
-  """Build input function.
-
-  Parameters
-  ----------
-  inputs : tuple, list
-    The inputs of the population.
-  fun_inputs: optional, callable
-    The input function customized by users.
-
-  Returns
-  -------
-  func: callable
-    The input function.
-  """
-
   fix_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
   next_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
   func_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
   array_inputs = {'=': [], '+': [], '-': [], '*': [], '/': []}
 
-  if not (fun_inputs is None or callable(fun_inputs)):
-    raise ValueError
-
-  _has_iter_array = False
-  for variable, value, type_, op in inputs:
+  for variable, value, type_, op in formatted_inputs:
     # variable
     if not isinstance(variable, bm.Variable):
       raise RunningError(f'{variable}\n is not a dynamically changed Variable, '
@@ -197,7 +175,6 @@ def build_inputs(inputs, fun_inputs):
     if type_ == 'iter':
       if isinstance(value, (bm.ndarray, np.ndarray, jnp.ndarray)):
         array_inputs[op].append([variable, bm.asarray(value)])
-        _has_iter_array = True
       else:
         next_inputs[op].append([variable, iter(value)])
     elif type_ == 'func':
@@ -205,92 +182,120 @@ def build_inputs(inputs, fun_inputs):
     else:
       fix_inputs[op].append([variable, value])
 
-  def _f_ops(ops, var, data):
-    if ops == '=':
-      var[:] = data
-    elif ops == '+':
-      var += data
-    elif ops == '-':
-      var -= data
-    elif ops == '*':
-      var *= data
-    elif ops == '/':
-      var /= data
-    else:
-      raise ValueError(f'Unknown input operation: {ops}')
+  return {'fixed': fix_inputs,
+          'iterated': next_inputs,
+          'functional': func_inputs,
+          'array': array_inputs}
 
-  def func(tdi):
-    if fun_inputs is not None:
-      fun_inputs(tdi)
-    for ops, values in fix_inputs.items():
-      for var, data in values:
-        _f_ops(ops, var, data)
-    for ops, values in array_inputs.items():
-      for var, data in values:
-        _f_ops(ops, var, data[tdi['i']])
-    for ops, values in func_inputs.items():
-      for var, data in values:
-        _f_ops(ops, var, data(tdi['t'], tdi['dt']))
-    for ops, values in next_inputs.items():
-      for var, data in values:
-        _f_ops(ops, var, next(data))
 
-  return func, _has_iter_array
+def _f_ops(ops, var, data):
+  if ops == '=':
+    var[:] = data
+  elif ops == '+':
+    var += data
+  elif ops == '-':
+    var -= data
+  elif ops == '*':
+    var *= data
+  elif ops == '/':
+    var /= data
+  else:
+    raise ValueError(f'Unknown input operation: {ops}')
 
 
 class DSRunner(Runner):
-  """The runner for dynamical systems.
+  """The runner for :py:class:`~.DynamicalSystem`.
 
   Parameters
   ----------
   target : DynamicalSystem
     The target model to run.
 
-  inputs : list, tuple
-    The inputs for the target DynamicalSystem. It should be the format
-    of `[(target, value, [type, operation])]`, where `target` is the
-    input target, `value` is the input value, `type` is the input type
-    (such as "fix", "iter", "func"), `operation` is the operation for inputs
-    (such as "+", "-", "*", "/", "=").
+  inputs : list, tuple, callable
+    The inputs for variables in the target model.
 
-    - ``target``: should be a string. Can be specified by the *absolute access* or *relative access*.
-    - ``value``: should be a scalar, vector, matrix, iterable function or objects.
-    - ``type``: should be a string. "fix" means the input `value` is a constant. "iter" means the
-      input `value` can be changed over time. "func" mean the input is obtained through the functional call.
-    - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
-    - Also, if you want to specify multiple inputs, just give multiple ``(target, value, [type, operation])``,
-      for example ``[(target1, value1), (target2, value2)]``.
+    .. note::
 
+       This argument can be used to set the inputs to the
+       :py:class:`~.Variable` instances in the ``target``.
+       If you peruse to give time-dependent inputs, please use
+       ``DSRunner.predict()`` or ``DSRunner.run()`` function.
+
+    - It can be a list/tuple with the format
+      of `[(target, value, [type, operation])]`, where `target` is the
+      input target, `value` is the input value, `type` is the input type
+      (such as "fix", "iter", "func"), `operation` is the operation for inputs
+      (such as "+", "-", "*", "/", "=").
+
+      - ``target``: should be a string or :py:class:`~.Variable`. Can be specified by the
+        *absolute access* or *relative access*.
+      - ``value``: should be a scalar, vector, matrix.
+      - ``type``: should be a string. "fix" means the input `value`
+        is a constant. "iter" means the input `value` can be changed
+        over time. "func" mean the input is obtained through the functional call.
+      - ``operation``: should be a string, support `+`, `-`, `*`, `/`, `=`.
+      - Also, if you want to specify multiple inputs, just give multiple
+        ``(target, value, [type, operation])``,
+        for example ``[(target1, value1), (target2, value2)]``.
+
+    - It can also be a callable function which receives the shared argument.
+      In this functional input, users can manually specify the inputs for the target variables.
+      This input function should receive one argument ``shared`` which contains the
+      shared arguments like time ``t``, time step ``dt``, and index ``i``.
+
+      .. versionchanged:: 2.3.1
+         ``fun_inputs`` are merged into ``inputs``.
   fun_inputs: callable
     The functional inputs. Manually specify the inputs for the target variables.
-    This input function should receive one argument `shared` which contains the shared arguments like
-    time `t`, time step `dt`, and index `i`.
+    This input function should receive one argument ``shared`` which contains the
+    shared arguments like time ``t``, time step ``dt``, and index ``i``.
 
-  monitors: None, sequence of str, dict, Monitor
+    .. deprecated:: 2.3.1
+       Will be removed since version 2.4.0.
+  monitors: Optional, sequence of str, dict, Monitor
     Variables to monitor.
 
-    - A list of string. Like `monitors=['a', 'b', 'c']`
-    - A list of string with index specification. Like `monitors=[('a', 1), ('b', [1,3,5]), 'c']`
-    - A dict with the explicit monitor target, like: `monitors={'a': model.spike, 'b': model.V}`
-    - A dict with the index specification, like: `monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}`
+    - A list of string. Like ``monitors=['a', 'b', 'c']``.
+    - A list of string with index specification. Like ``monitors=[('a', 1), ('b', [1,3,5]), 'c']``
+    - A dict with the explicit monitor target, like: ``monitors={'a': model.spike, 'b': model.V}``
+    - A dict with the index specification, like: ``monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}``
+    - A dict with the callable function, like ``monitors={'a': lambda tdi: model.spike[:5]}``
 
+    .. versionchanged:: 2.3.1
+       ``fun_monitors`` are merged into ``monitors``.
   fun_monitors: dict
-    Monitoring variables by callable functions. Should be a dict.
-    The `key` should be a string for the later retrieval by `runner.mon[key]`.
-    The `value` should be a callable function which receives two arguments: `t` and `dt`.
+    Monitoring variables by a dict of callable functions.
+    The dict ``key`` should be a string for the later retrieval by ``runner.mon[key]``.
+    The dict ``value`` should be a callable function which receives two arguments: ``t`` and ``dt``.
+    .. code-block::
+       fun_monitors = {'spike': lambda tdi: model.spike[:10],
+                       'V10': lambda tdi: model.V[10]}
 
+    .. deprecated:: 2.3.1
+       Will be removed since version 2.4.0.
   jit: bool, dict
     The JIT settings.
+    Using dict is able to set the jit mode at different phase,
+    for instance, ``jit={'predict': True, 'fit': False}``.
 
   progress_bar: bool
     Use progress bar to report the running progress or not?
 
   dyn_vars: Optional, dict
     The dynamically changed variables. Instance of :py:class:`~.Variable`.
+    These variables together with variable retrieved from the ``target``
+    constitute all dynamical variables in this runner.
 
   numpy_mon_after_run : bool
     When finishing the network running, transform the JAX arrays into numpy ndarray or not?
 
+  time_major: bool
+    Set the default data dimension arrangement.
+    To indicate whether the first axis is the batch size (``time_major=False``) or the
+    time length (``time_major=True``).
+    In order to be compatible with previous API, default is set to be ``False``.
+
+    .. versionadded:: 2.3.1
   """
 
   target: DynamicalSystem
@@ -301,78 +306,119 @@ class DSRunner(Runner):
 
       # inputs for target variables
       inputs: Sequence = (),
-      fun_inputs: Callable = None,
+      time_major: bool = False,
+
+      # monitors
+      monitors: Union[Sequence, Dict] = None,
+      numpy_mon_after_run: bool = True,
+
+      # jit
+      jit: Union[bool, Dict[str, bool]] = True,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
 
       # extra info
       dt: float = None,
       t0: Union[float, int] = 0.,
-      **kwargs
+      progress_bar: bool = True,
+
+      # deprecated
+      fun_inputs: Callable = None,
+      fun_monitors: Dict[str, Callable] = None,
   ):
     if not isinstance(target, DynamicalSystem):
       raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
                          f'but we got {type(target)}: {target}')
-    super(DSRunner, self).__init__(target=target, **kwargs)
+    super(DSRunner, self).__init__(target=target,
+                                   monitors=monitors,
+                                   fun_monitors=fun_monitors,
+                                   jit=jit,
+                                   progress_bar=progress_bar,
+                                   dyn_vars=dyn_vars,
+                                   numpy_mon_after_run=numpy_mon_after_run)
 
     # t0 and i0
+    check_float(t0, 't0', allow_none=False, allow_int=True)
     self._t0 = t0
-    self.i0 = 0
-    self.t0 = check_float(t0, 't0', allow_none=False, allow_int=True)
+    self.i0 = bm.Variable(bm.asarray([1], dtype=bm.int_))
+    self.t0 = bm.Variable(bm.asarray([t0], dtype=bm.float_))
+    self.time_major = time_major
 
     # parameters
     dt = bm.get_dt() if dt is None else dt
-    if not isinstance(dt, (int, float)):
-      raise RunningError(f'"dt" must be scalar, but got {dt}')
+    if not isinstance(dt, float):
+      raise RunningError(f'"dt" must be float, but got {dt}')
     self.dt = dt
 
-    # Build the monitor function
-    self._mon_info = self.format_monitors()
-
     # Build input function
-    self._input_step, _ = build_inputs(check_and_format_inputs(host=target, inputs=inputs),
-                                       fun_inputs=fun_inputs)
+    if fun_inputs is not None:
+      warnings.warn('`fun_inputs` is deprecated since version 2.3.1. '
+                    'Define `fun_inputs` as `inputs` instead.',
+                    UserWarning)
+    if callable(inputs):
+      self._inputs = inputs
+    else:
+      self._inputs = check_and_format_inputs(host=target, inputs=inputs)
 
     # run function
     self._f_predict_compiled = dict()
 
+  def __repr__(self):
+    name = self.__class__.__name__
+    indent = " " * len(name) + ' '
+    indent2 = indent + " " * len("target")
+    return (f'{name}(target={tools.repr_context(str(self.target), indent2)}, \n'
+            f'{indent}jit={self.jit},\n'
+            f'{indent}dt={self.dt},\n'
+            f'{indent}time_major={self.time_major})')
+
   def reset_state(self):
-    self.i0 = 0
-    self.t0 = check_float(self._t0, 't0', allow_none=False, allow_int=True)
+    """Reset state of the ``DSRunner``."""
+    self.i0[0] = 0
+    self.t0[0] = self._t0
 
   def predict(
       self,
-      duration: Union[float, int] = None,
+      duration: float = None,
       inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]] = None,
-      inputs_are_batching: bool = False,
       reset_state: bool = False,
       shared_args: Dict = None,
-      progress_bar: bool = True,
-      eval_time: bool = False
-  ) -> Output:
+      eval_time: bool = False,
+
+      # deprecated
+      inputs_are_batching: bool = None,
+  ) -> Union[Output, Tuple[float, Output]]:
     """Running a duration with the given target model. See `.predict()` function
     for more details.
 
     This function use the JIT compilation to accelerate the model simulation.
     Moreover, it can automatically monitor the node variables, states, inputs,
-    feedbacks and its output.
+    and its output.
 
     Parameters
     ----------
-    duration: int, float
+    duration: float
       The simulation time length.
+      If you have provided ``inputs``, there is no longer need to provide ``duration``.
     inputs: ArrayType, dict of ArrayType, sequence of ArrayType
-      The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
-      PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
-      Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
-      `(num_time, ...)`.
+      The input data.
+
+      - If the mode of ``target`` is instance of :py:class:`~.BatchingMode`,
+        ``inputs`` must be a PyTree of data with two dimensions:
+        ``(batch, time, ...)`` when ``time_major=False``,
+        or ``(time, batch, ...)`` when ``time_major=True``.
+      - If the mode of ``target`` is instance of :py:class:`~.NonBatchingMode`,
+        the ``inputs`` should be a PyTree of data with one dimension:
+        ``(time, ...)``.
     inputs_are_batching: bool
       Whether the ``inputs`` are batching. If `True`, the batching axis is the
       first dimension.
+
+      .. deprecated:: 2.3.1
+         Will be removed after version 2.4.0.
     reset_state: bool
       Whether reset the model states.
     shared_args: optional, dict
       The shared arguments across different layers.
-    progress_bar: bool
-      Whether report the progress of the simulation using progress bar.
     eval_time: bool
       Whether ro evaluate the running time.
 
@@ -382,54 +428,81 @@ class DSRunner(Runner):
       The model output.
     """
 
-    # shared arguments
-    if shared_args is None: shared_args = dict()
-    shared_args['fit'] = shared_args.get('fit', False)
+    if inputs_are_batching is not None:
+      raise ValueError(
+        f'''
+        `inputs_are_batching` is no longer supported. 
+        The target mode of {self.target.mode} has already indicated the input should be batching.
+        '''
+      )
+    if duration is None:
+      if inputs is None:
+        raise ValueError('Please provide "duration" or "inputs".')
+    else:
+      if inputs is not None:
+        raise ValueError('Please provide "duration" or "inputs".')
 
-    # times and inputs
-    times, indices, xs, num_step, num_batch, duration, description = self._format_xs(
-      duration, inputs, inputs_are_batching
-    )
+    num_step = self._get_input_time_step(duration, inputs)
+    description = f'Predict {num_step} steps: '
 
     # reset the states of the model and the runner
     if reset_state:
-      self.target.reset_state(num_batch)
+      self.target.reset_state(self._get_input_batch_size(inputs))
       self.reset_state()
-    indices += self.i0
-    times += self.t0
+
+    # shared arguments and inputs
+    if shared_args is None:
+      shared_args = dict()
+    shared_args['fit'] = shared_args.get('fit', False)
+    shared = tools.DotDict(i=jnp.arange(num_step, dtype=bm.int_))
+    shared['t'] = shared['i'] * self.dt
+    shared['i'] += self.i0
+    shared['t'] += self.t0
+
+    if isinstance(self.target.mode, bm.BatchingMode) and not self.time_major:
+      inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
+                        inputs,
+                        is_leaf=lambda x: isinstance(x, bm.Array))
 
     # build monitor
     for key in self.mon.var_names:
       self.mon[key] = []  # reshape the monitor items
 
     # init progress bar
-    if self.progress_bar and progress_bar:
+    if self.progress_bar:
       self._pbar = tqdm.auto.tqdm(total=num_step)
       self._pbar.set_description(description, refresh=True)
 
     # running
-    if eval_time: t0 = time.time()
-    outputs, hists = self._predict(xs=(times, indices, xs), shared_args=shared_args)
-    if eval_time: running_time = time.time() - t0
-
-    # format
-    if inputs_are_batching:
-      outputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), outputs, is_leaf=lambda x: isinstance(x, bm.Array))
-      hists = tree_map(lambda x: bm.moveaxis(x, 0, 1), hists, is_leaf=lambda x: isinstance(x, bm.Array))
+    if eval_time:
+      t0 = time.time()
+    outputs, hists = self._predict(xs=(shared['t'], shared['i'], inputs), shared_args=shared_args)
+    if eval_time:
+      running_time = time.time() - t0
 
     # close the progress bar
-    if self.progress_bar and progress_bar:
+    if self.progress_bar:
       self._pbar.close()
 
     # post-running for monitors
-    hists['ts'] = times + self.dt
+    hists['ts'] = shared['t'] + self.dt
     if self.numpy_mon_after_run:
       hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
-    self.i0 += times.shape[0]
-    self.t0 += duration
+    self.i0 += num_step
+    self.t0 += (num_step * self.dt if duration is None else duration)
     return outputs if not eval_time else (running_time, outputs)
+
+  def run(self, *args, **kwargs) -> Union[Output, Tuple[float, Output]]:
+    """Same as :py:func:`~.DSRunner.predict`.
+    """
+    return self.predict(*args, **kwargs)
+
+  def __call__(self, *args, **kwargs) -> Union[Output, Tuple[float, Output]]:
+    """Same as :py:func:`~.DSRunner.predict`.
+    """
+    return self.predict(*args, **kwargs)
 
   def _predict(
       self,
@@ -453,203 +526,122 @@ class DSRunner(Runner):
       A tuple of pair of (outputs, hists).
     """
     _predict_func = self._get_f_predict(shared_args)
-    outputs, hists = _predict_func(xs)
-    return outputs, hists
+    outs_and_mons = _predict_func(xs)
+    if isinstance(self.target.mode, bm.BatchingMode) and not self.time_major:
+      outs_and_mons = tree_map(lambda x: bm.moveaxis(x, 0, 1),
+                               outs_and_mons,
+                               is_leaf=lambda x: isinstance(x, bm.Array))
+    return outs_and_mons
 
-  def run(self, *args, **kwargs) -> Output:
-    """Predict a series of input data with the given target model.
-
-    This function use the JIT compilation to accelerate the model simulation.
-    Moreover, it can automatically monitor the node variables, states, inputs,
-    feedbacks and its output.
-
-    Parameters
-    ----------
-    duration: int, float
-      The simulation time length.
-    inputs: ArrayType, dict of ArrayType, sequence of ArrayType
-      The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
-      PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
-      Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
-      `(num_time, ...)`.
-    inputs_are_batching: bool
-      Whether the ``inputs`` are batching. If `True`, the batching axis is the
-      first dimension.
-    reset_state: bool
-      Whether reset the model states.
-    shared_args: optional, dict
-      The shared arguments across different layers.
-    progress_bar: bool
-      Whether report the progress of the simulation using progress bar.
-    eval_time: bool
-      Whether to evaluate the running time.
-
-    Returns
-    -------
-    output: ArrayType, dict, sequence
-      The model output.
-    """
-    return self.predict(*args, **kwargs)
-
-  def __call__(self, *args, **kwargs) -> Output:
-    """The shortcut for predicting a series of input data.
-
-    Parameters
-    ----------
-    duration: int, float
-      The simulation time length.
-    inputs: ArrayType, dict of ArrayType, sequence of ArrayType
-      The input data. If ``inputs_are_batching=True``, ``inputs`` must be a
-      PyTree of data with two dimensions: `(num_sample, num_time, ...)`.
-      Otherwise, the ``inputs`` should be a PyTree of data with one dimension:
-      `(num_time, ...)`.
-    inputs_are_batching: bool
-      Whether the ``inputs`` are batching. If `True`, the batching axis is the
-      first dimension.
-    reset_state: bool
-      Whether reset the model states.
-    shared_args: optional, dict
-      The shared arguments across different layers.
-    progress_bar: bool
-      Whether report the progress of the simulation using progress bar.
-    eval_time: bool
-      Whether to evaluate the running time.
-
-    Returns
-    -------
-    output: ArrayType, dict, sequence
-      The model output.
-    """
-    return self.predict(*args, **kwargs)
-
-  def _build_monitors(self, return_without_idx, return_with_idx, shared_args: dict):
-    def func(tdi):
-      res = {k: v.value for k, v in return_without_idx.items()}
-      res.update({k: v[idx] for k, (v, idx) in return_with_idx.items()})
-      res.update({k: f(tdi) for k, f in self.fun_monitors.items()})
-      return res
-
-    return func
-
-  def _format_xs(self, duration, inputs, inputs_are_batching=True, move_axis=True):
-    if duration is None:
-      if inputs is None:
-        raise ValueError('"duration" and "inputs" can not both be None.')
-      xs, num_step, num_batch = self._check_xs(inputs,
-                                               move_axis=move_axis,
-                                               inputs_are_batching=inputs_are_batching)
-      indices = jax.device_put(jnp.arange(num_step))
-      times = jax.device_put(indices * self.dt)
-      description = f'Predict {num_step} steps: '
-      duration = num_step * self.dt
-    else:
-      times = jax.device_put(jnp.arange(0, duration, self.dt))
-      num_step = times.shape[0]
-      indices = jax.device_put(jnp.arange(num_step))
-      description = f'Running a duration of {round(float(duration), 3)} ({times.shape[0]} steps)'
-      if inputs is None:
-        xs, num_batch = None, None
+  def _step_func_monitor(self, shared):
+    res = dict()
+    for key, val in self._monitors.items():
+      if callable(val):
+        res[key] = val(shared)
       else:
-        xs, num_step_, num_batch = self._check_xs(inputs,
-                                                  move_axis=move_axis,
-                                                  inputs_are_batching=inputs_are_batching)
-        if num_step != num_step:
-          raise ValueError('The step numbers of "time" and "inputs" '
-                           f'do not match: {num_step_} != {num_step}.')
-    return times, indices, xs, num_step, num_batch, duration, description
+        (variable, idx) = val
+        if idx is None:
+          res[key] = variable.value
+        else:
+          res[key] = variable[bm.asarray(idx)]
+    return res
 
-  def _check_xs(self, xs, move_axis=True, inputs_are_batching=True):
-    leaves, tree = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
-
-    # get information of time step and batch size
-    if inputs_are_batching:
-      num_times, num_batch_sizes = [], []
-      for val in leaves:
-        num_batch_sizes.append(val.shape[0])
-        num_times.append(val.shape[1])
+  def _step_func_input(self, shared):
+    if callable(self._inputs):
+      self._inputs(shared)
     else:
-      num_times = [val.shape[0] for val in leaves]
-    if len(set(num_times)) != 1:
-      raise ValueError(f'Number of time step is different across tensors in '
-                       f'the provided "xs". We got {set(num_times)}.')
-    num_step = num_times[0]
-    if inputs_are_batching:
-      if len(set(num_batch_sizes)) != 1:
-        raise ValueError(f'Number of batch size is different across tensors in '
-                         f'the provided "xs". We got {set(num_batch_sizes)}.')
-      num_batch = num_batch_sizes[0]
-    else:
-      num_batch = None
+      for ops, values in self._inputs['fixed'].items():
+        for var, data in values:
+          _f_ops(ops, var, data)
+      for ops, values in self._inputs['array'].items():
+        for var, data in values:
+          _f_ops(ops, var, data[shared['i']])
+      for ops, values in self._inputs['functional'].items():
+        for var, data in values:
+          _f_ops(ops, var, data(shared))
+      for ops, values in self._inputs['iterated'].items():
+        for var, data in values:
+          _f_ops(ops, var, next(data))
 
-    # change shape to (num_time, num_sample, num_feature)
-    if move_axis and inputs_are_batching:
-      xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
-                    xs,
-                    is_leaf=lambda x: isinstance(x, bm.Array))
-    return xs, num_step, num_batch
+  def _get_input_batch_size(self, xs=None) -> Optional[int]:
+    """Get the batch size in the given input data."""
+    if xs is None:
+      return None
+    if isinstance(self.target.mode, bm.NonBatchingMode):
+      return None
+    leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
+    if self.time_major:
+      num_batch_sizes = [x.shape[1] for x in leaves]
+    else:
+      num_batch_sizes = [x.shape[0] for x in leaves]
+    if len(set(num_batch_sizes)) != 1:
+      raise ValueError(f'Number of batch size is different across arrays in '
+                       f'the provided "xs". We got {set(num_batch_sizes)}.')
+    return num_batch_sizes[0]
+
+  def _get_input_time_step(self, duration=None, xs=None) -> int:
+    """Get the length of time step in the given ``duration`` and ``xs``."""
+    if duration is not None:
+      return int(duration / self.dt)
+    if xs is not None:
+      if isinstance(xs, (bm.Array, jnp.ndarray)):
+        return xs.shape[0] if self.time_major else xs.shape[1]
+      else:
+        leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
+        if self.time_major:
+          num_steps = [val.shape[0] for val in leaves]
+        else:
+          num_steps = [val.shape[1] for val in leaves]
+        if len(set(num_steps)) != 1:
+          raise ValueError(f'Number of time step is different across arrays in '
+                           f'the provided "xs". We got {set(num_steps)}.')
+        return num_steps[0]
+
+    else:
+      raise ValueError
+
+  def _step_func_predict(self, shared_args, t, i, x):
+    # input step
+    shared = tools.DotDict(t=t, i=i, dt=self.dt)
+    shared.update(shared_args)
+    self.target.clear_input()
+    self._step_func_input(shared)
+
+    # dynamics update step
+    args = (shared,) if x is None else (shared, x)
+    out = self.target(*args)
+
+    # monitor step
+    mon = self._step_func_monitor(shared)
+
+    # finally
+    if self.progress_bar:
+      id_tap(lambda *arg: self._pbar.update(), ())
+    return out, mon
 
   def _get_f_predict(self, shared_args: Dict = None):
-    if shared_args is None: shared_args = dict()
+    if shared_args is None:
+      shared_args = dict()
 
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_predict_compiled:
+      dyn_vars = self.vars().unique()
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
 
-      monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
-
-      def _step_func(t, i, x):
-        self.target.clear_input()
-        # input step
-        shared = DotDict(t=t, i=i, dt=self.dt)
-        self._input_step(shared)
-        # dynamics update step
-        shared.update(shared_args)
-        args = (shared,) if x is None else (shared, x)
-        out = self.target(*args)
-        # monitor step
-        mon = monitor_func(shared)
-        # finally
-        if self.progress_bar:
-          id_tap(lambda *arg: self._pbar.update(), ())
-        return out, mon
+      def run_func(all_inputs):
+        with jax.disable_jit(not self.jit['predict']):
+          return bm.for_loop(partial(self._step_func_predict, shared_args),
+                             all_inputs,
+                             dyn_vars=dyn_vars)
 
       if self.jit['predict']:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self.dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        run_func = lambda all_inputs: bm.for_loop(_step_func, all_inputs, dyn_vars=dyn_vars.unique())
-
+        self._f_predict_compiled[shared_kwargs_str] = bm.jit(run_func, dyn_vars=dyn_vars)
       else:
-        def run_func(xs):
-          # total data
-          times, indices, xs = xs
-
-          outputs = []
-          monitors = {key: [] for key in (set(self.mon.var_names) | set(self.fun_monitors.keys()))}
-          for i in range(times.shape[0]):
-            # data at time i
-            x = tree_map(lambda x: x[i], xs, is_leaf=lambda x: isinstance(x, bm.Array))
-
-            # step at the i
-            output, mon = _step_func(times[i], indices[i], x)
-
-            # append output and monitor
-            outputs.append(output)
-            for key, value in mon.items():
-              monitors[key].append(value)
-
-          # final work
-          if outputs[0] is None:
-            outputs = None
-          else:
-            outputs = bm.asarray(outputs)
-          for key, value in monitors.items():
-            monitors[key] = bm.asarray(value)
-          return outputs, monitors
-      self._f_predict_compiled[shared_kwargs_str] = run_func
+        self._f_predict_compiled[shared_kwargs_str] = run_func
     return self._f_predict_compiled[shared_kwargs_str]
 
   def __del__(self):
     if hasattr(self, '_f_predict_compiled'):
       for key in tuple(self._f_predict_compiled.keys()):
-        del self._f_predict_compiled[key]
+        self._f_predict_compiled.pop(key)
     super(DSRunner, self).__del__()

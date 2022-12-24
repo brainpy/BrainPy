@@ -10,8 +10,7 @@ from brainpy.initialize import (XavierNormal,
                                 parameter,
                                 variable,
                                 Initializer)
-from brainpy.modes import Mode, TrainingMode, training
-from brainpy.tools.checking import (check_integer,
+from brainpy.check import (check_integer,
                                     check_initializer)
 from brainpy.types import ArrayType
 from .base import Layer
@@ -29,7 +28,7 @@ class RecurrentCell(Layer):
       self,
       num_out: int,
       state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None
   ):
@@ -83,7 +82,7 @@ class RNNCell(RecurrentCell):
       Wh_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
       b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'relu',
-      mode: Mode = training,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None,
   ):
@@ -112,14 +111,14 @@ class RNNCell(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out))
     self.b = parameter(self._b_initializer, (self.num_out,))
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
     # state
-    self.state = variable(bm.zeros, mode, self.num_out)
-    if train_state and isinstance(self.mode, TrainingMode):
+    self.state = variable(bm.zeros, self.mode, self.num_out)
+    if train_state and isinstance(self.mode, bm.TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
@@ -192,7 +191,7 @@ class GRUCell(RecurrentCell):
       b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
-      mode: Mode = training,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None,
   ):
@@ -217,17 +216,17 @@ class GRUCell(RecurrentCell):
     self.activation = bm.activations.get(activation)
 
     # weights
-    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3))
-    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3))
+    self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3), allow_none=False)
+    self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 3), allow_none=False)
     self.b = parameter(self._b_initializer, (self.num_out * 3,))
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = bm.TrainVar(self.b) if (self.b is not None) else None
 
     # state
-    self.state = variable(bm.zeros, mode, self.num_out)
-    if train_state and isinstance(self.mode, TrainingMode):
+    self.state = variable(bm.zeros, self.mode, self.num_out)
+    if train_state and isinstance(self.mode, bm.TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
@@ -324,7 +323,7 @@ class LSTMCell(RecurrentCell):
       b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       activation: str = 'tanh',
-      mode: Mode = training,
+      mode: bm.Mode = None,
       train_state: bool = False,
       name: str = None,
   ):
@@ -354,14 +353,14 @@ class LSTMCell(RecurrentCell):
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 4))
     self.Wh = parameter(self._Wh_initializer, (self.num_out, self.num_out * 4))
     self.b = parameter(self._b_initializer, (self.num_out * 4,))
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.Wi = bm.TrainVar(self.Wi)
       self.Wh = bm.TrainVar(self.Wh)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
     # state
-    self.state = variable(bm.zeros, mode, self.num_out * 2)
-    if train_state and isinstance(self.mode, TrainingMode):
+    self.state = variable(bm.zeros, self.mode, self.num_out * 2)
+    if train_state and isinstance(self.mode, bm.TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out * 2,), allow_none=False))
       self.state[:] = self.state2train
 

@@ -7,9 +7,9 @@ This module implements leakage channels.
 
 from typing import Union, Callable
 
+import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter
 from brainpy.types import ArrayType, Shape
-from brainpy.modes import Mode, BatchingMode, normal
 
 from .base import LeakyChannel
 
@@ -38,7 +38,7 @@ class IL(LeakyChannel):
       E: Union[int, float, ArrayType, Initializer, Callable] = -70.,
       method: str = None,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IL, self).__init__(size,
                              keep_size=keep_size,
@@ -79,7 +79,7 @@ class IKL(IL):
       E: Union[int, float, ArrayType, Initializer, Callable] = -90.,
       method: str = None,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKL, self).__init__(size=size,
                               keep_size=keep_size,

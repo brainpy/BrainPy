@@ -11,7 +11,6 @@ import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import ArrayType, Shape
-from brainpy.modes import Mode, BatchingMode, normal
 from .base import SodiumChannel
 
 __all__ = [
@@ -61,7 +60,7 @@ class INa_p3q_markov(SodiumChannel):
       phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(INa_p3q_markov, self).__init__(size=size,
                                          keep_size=keep_size,
@@ -74,8 +73,8 @@ class INa_p3q_markov(SodiumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -171,7 +170,7 @@ class INa_Ba2002(INa_p3q_markov):
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -50.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(INa_Ba2002, self).__init__(size,
                                      keep_size=keep_size,
@@ -258,7 +257,7 @@ class INa_TM1991(INa_p3q_markov):
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -63.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(INa_TM1991, self).__init__(size,
                                      keep_size=keep_size,
@@ -345,7 +344,7 @@ class INa_HH1952(INa_p3q_markov):
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(INa_HH1952, self).__init__(size,
                                      keep_size=keep_size,

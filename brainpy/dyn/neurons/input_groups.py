@@ -7,7 +7,6 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer, parameter, variable_
-from brainpy.modes import Mode, BatchingMode, normal
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -33,7 +32,7 @@ class InputGroup(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(InputGroup, self).__init__(name=name,
@@ -64,7 +63,7 @@ class OutputGroup(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(OutputGroup, self).__init__(name=name,
@@ -115,7 +114,7 @@ class SpikeTimeGroup(NeuGroup):
       indices: Union[Sequence, ArrayType],
       need_sort: bool = True,
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(SpikeTimeGroup, self).__init__(size=size,
@@ -133,10 +132,10 @@ class SpikeTimeGroup(NeuGroup):
 
     # data about times and indices
     self.times = bm.asarray(times)
-    self.indices = bm.asarray(indices, dtype=bm.ditype())
+    self.indices = bm.asarray(indices, dtype=bm.int_)
 
     # variables
-    self.i = bm.Variable(bm.zeros(1, dtype=bm.ditype()))
+    self.i = bm.Variable(bm.zeros(1, dtype=bm.int_))
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
     if need_sort:
       sort_idx = bm.argsort(self.times)
@@ -150,7 +149,7 @@ class SpikeTimeGroup(NeuGroup):
 
     def body_fun(t):
       i = self.i[0]
-      if isinstance(self.mode, BatchingMode):
+      if isinstance(self.mode, bm.BatchingMode):
         self.spike[:, self.indices[i]] = True
       else:
         self.spike[self.indices[i]] = True
@@ -177,7 +176,7 @@ class PoissonGroup(NeuGroup):
       freqs: Union[int, float, jnp.ndarray, bm.Array, Initializer],
       seed: int = None,
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(PoissonGroup, self).__init__(size=size,
@@ -191,11 +190,11 @@ class PoissonGroup(NeuGroup):
     self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
     self.rng = bm.random.RandomState(seed)
 
   def update(self, tdi, x=None):
-    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, BatchingMode) else self.varshape
+    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bm.BatchingMode) else self.varshape
     self.spike.update(self.rng.random(shape) <= (self.freqs * tdi['dt'] / 1000.))
 
   def reset(self, batch_size=None):

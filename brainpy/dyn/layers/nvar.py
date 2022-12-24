@@ -7,8 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
-from brainpy.modes import Mode, NormalMode, BatchingMode, batching, check_mode
-from brainpy.tools.checking import (check_integer, check_sequence)
+from brainpy import check
 from .base import Layer
 
 __all__ = [
@@ -69,22 +68,22 @@ class NVAR(Layer):
       order: Union[int, Sequence[int]] = None,
       stride: int = 1,
       constant: bool = False,
-      mode: Mode = batching,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
+    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__.__name__)
 
     # parameters
     order = tuple() if order is None else order
     if not isinstance(order, (tuple, list)):
       order = (order,)
     self.order = tuple(order)
-    check_sequence(order, 'order', allow_none=False)
+    check.check_sequence(order, 'order', allow_none=False)
     for o in order:
-      check_integer(o, 'order', allow_none=False, min_bound=2)
-    check_integer(delay, 'delay', allow_none=False, min_bound=1)
-    check_integer(stride, 'stride', allow_none=False, min_bound=1)
+      check.check_integer(o, 'order', allow_none=False, min_bound=2)
+    check.check_integer(delay, 'delay', allow_none=False, min_bound=1)
+    check.check_integer(stride, 'stride', allow_none=False, min_bound=1)
     assert isinstance(constant, bool), f'Must be an instance of boolean, but got {constant}.'
     self.delay = delay
     self.stride = stride
@@ -94,7 +93,7 @@ class NVAR(Layer):
 
     # delay variables
     self.idx = bm.Variable(jnp.asarray([0]))
-    if isinstance(self.mode, BatchingMode):
+    if isinstance(self.mode, bm.BatchingMode):
       batch_size = 1  # first initialize the state with batch size = 1
       self.store = bm.Variable(jnp.zeros((self.num_delay, batch_size, self.num_in)), batch_axis=1)
     else:
@@ -136,7 +135,7 @@ class NVAR(Layer):
     # 1. Store the current input
     self.store[self.idx[0]] = x
 
-    if isinstance(self.mode, BatchingMode):
+    if isinstance(self.mode, bm.BatchingMode):
       # 2. Linear part:
       # select all previous inputs, including the current, with strides
       linear_parts = jnp.moveaxis(self.store[select_ids], 0, 1)  # (num_batch, num_time, num_feature)

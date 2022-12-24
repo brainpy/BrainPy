@@ -7,7 +7,7 @@ import numpy as np
 from jax.tree_util import tree_map, tree_flatten, tree_unflatten
 
 from brainpy.math.ndarray import Array, Variable
-from .utils import wraps
+from ._utils import wraps
 
 __all__ = [
   # math funcs
@@ -209,11 +209,8 @@ def as_variable(tensor, dtype=None):
   return Variable(asarray(tensor, dtype=dtype))
 
 
-def _remove_jaxarray(obj):
-  if isinstance(obj, Array):
-    return obj.value
-  else:
-    return obj
+def _remove_brainpy_array(obj):
+  return obj.value if isinstance(obj, Array) else obj
 
 
 def clip_by_norm(t, clip_norm, axis=None):
@@ -223,29 +220,29 @@ def clip_by_norm(t, clip_norm, axis=None):
 
 @wraps(jnp.delete)
 def delete(arr, obj, axis=None):
-  arr = _remove_jaxarray(arr)
-  obj = _remove_jaxarray(obj)
+  arr = _remove_brainpy_array(arr)
+  obj = _remove_brainpy_array(obj)
   return Array(jnp.delete(arr, obj, axis=axis))
 
 
 @wraps(jnp.take_along_axis)
 def take_along_axis(a, indices, axis, mode=None):
-  a = _remove_jaxarray(a)
-  if isinstance(indices, Array): indices = indices.value
+  a = _remove_brainpy_array(a)
+  indices = _remove_brainpy_array(indices)
   return Array(jnp.take_along_axis(a, indices, axis, mode))
 
 
 @wraps(jnp.block)
 def block(arrays):
   leaves, tree = tree_flatten(arrays, is_leaf=lambda a: isinstance(a, Array))
-  leaves = [(l.value if isinstance(l, Array) else l) for l in leaves]
+  leaves = [_remove_brainpy_array(l) for l in leaves]
   arrays = tree_unflatten(tree, leaves)
   return Array(jnp.block(arrays))
 
 
 @wraps(jnp.broadcast_arrays)
 def broadcast_arrays(*args):
-  args = [(_remove_jaxarray(a)) for a in args]
+  args = [(_remove_brainpy_array(a)) for a in args]
   return jnp.broadcast_arrays(args)
 
 
@@ -254,14 +251,14 @@ broadcast_shapes = wraps(jnp.broadcast_shapes)(jnp.broadcast_shapes)
 
 @wraps(jnp.broadcast_to)
 def broadcast_to(arr, shape):
-  arr = _remove_jaxarray(arr)
+  arr = _remove_brainpy_array(arr)
   return Array(jnp.broadcast_to(arr, shape))
 
 
 @wraps(jnp.compress)
 def compress(condition, a, axis=None, out=None):
-  condition = _remove_jaxarray(condition)
-  a = _remove_jaxarray(a)
+  condition = _remove_brainpy_array(condition)
+  a = _remove_brainpy_array(a)
   return Array(jnp.compress(condition, a, axis, out))
 
 
@@ -276,7 +273,7 @@ def diag_indices(n, ndim=2):
 
 @wraps(jnp.diag_indices_from)
 def diag_indices_from(arr):
-  arr = _remove_jaxarray(arr)
+  arr = _remove_brainpy_array(arr)
   res = jnp.diag_indices_from(arr)
   if isinstance(res, tuple):
     return tuple(Array(r) for r in res)
@@ -286,25 +283,25 @@ def diag_indices_from(arr):
 
 @wraps(jnp.diagflat)
 def diagflat(v, k=0):
-  v = _remove_jaxarray(v)
+  v = _remove_brainpy_array(v)
   return Array(jnp.diagflat(v, k))
 
 
 @wraps(jnp.diagonal)
 def diagonal(a, offset=0, axis1: int = 0, axis2: int = 1):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.diagonal(a, offset, axis1, axis2))
 
 
 @wraps(jnp.einsum)
 def einsum(*operands, out=None, optimize='optimal', precision=None, _use_xeinsum=False):
-  operands = tuple((_remove_jaxarray(a)) for a in operands)
+  operands = tuple((_remove_brainpy_array(a)) for a in operands)
   return Array(jnp.einsum(*operands, out=out, optimize=optimize, precision=precision, _use_xeinsum=_use_xeinsum))
 
 
 @wraps(jnp.einsum_path)
 def einsum_path(subscripts, *operands, optimize='greedy'):
-  operands = tuple((_remove_jaxarray(a)) for a in operands)
+  operands = tuple((_remove_brainpy_array(a)) for a in operands)
   return jnp.einsum_path(subscripts, *operands, optimize=optimize)
 
 
@@ -315,9 +312,9 @@ def geomspace(start, stop, num=50, endpoint=True, dtype=None, axis: int = 0):
 
 @wraps(jnp.gradient)
 def gradient(f, *varargs, axis=None, edge_order=None):
-  f = _remove_jaxarray(f)
+  f = _remove_brainpy_array(f)
   res = jnp.gradient(f, *varargs, axis=axis, edge_order=edge_order)
-  if isinstance(res, list):
+  if isinstance(res, (list, tuple)):
     return list(Array(r) for r in res)
   else:
     return Array(res)
@@ -325,35 +322,35 @@ def gradient(f, *varargs, axis=None, edge_order=None):
 
 @wraps(jnp.histogram2d)
 def histogram2d(x, y, bins=10, range=None, weights=None, density=None):
-  x = _remove_jaxarray(x)
-  y = _remove_jaxarray(y)
+  x = _remove_brainpy_array(x)
+  y = _remove_brainpy_array(y)
   H, xedges, yedges = jnp.histogram2d(x, y, bins, range, weights, density)
   return Array(H), Array(xedges), Array(yedges)
 
 
 @wraps(jnp.histogram_bin_edges)
 def histogram_bin_edges(a, bins=10, range=None, weights=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.histogram_bin_edges(a, bins, range, weights))
 
 
 @wraps(jnp.histogramdd)
 def histogramdd(sample, bins=10, range=None, weights=None, density=None):
-  sample = _remove_jaxarray(sample)
+  sample = _remove_brainpy_array(sample)
   r = jnp.histogramdd(sample, bins, range, weights, density)
   return Array(r[0]), r[1]
 
 
 @wraps(jnp.i0)
 def i0(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.i0(x))
 
 
 @wraps(jnp.in1d)
 def in1d(ar1, ar2, assume_unique=False, invert=False):
-  ar1 = _remove_jaxarray(ar1)
-  ar2 = _remove_jaxarray(ar2)
+  ar1 = _remove_brainpy_array(ar1)
+  ar2 = _remove_brainpy_array(ar2)
   return Array(jnp.in1d(ar1, ar2, assume_unique, invert))
 
 
@@ -361,7 +358,7 @@ def in1d(ar1, ar2, assume_unique=False, invert=False):
 def indices(dimensions, dtype=None, sparse=False):
   dtype = jnp.int32 if dtype is None else dtype
   res = jnp.indices(dimensions, dtype, sparse)
-  if isinstance(res, tuple):
+  if isinstance(res, (tuple, list)):
     return tuple(Array(r) for r in res)
   else:
     return Array(res)
@@ -369,15 +366,15 @@ def indices(dimensions, dtype=None, sparse=False):
 
 @wraps(jnp.insert)
 def insert(arr, obj, values, axis=None):
-  arr = _remove_jaxarray(arr)
-  values = _remove_jaxarray(values)
+  arr = _remove_brainpy_array(arr)
+  values = _remove_brainpy_array(values)
   return Array(jnp.insert(arr, obj, values, axis))
 
 
 @wraps(jnp.intersect1d)
 def intersect1d(ar1, ar2, assume_unique=False, return_indices=False):
-  ar1 = _remove_jaxarray(ar1)
-  ar2 = _remove_jaxarray(ar2)
+  ar1 = _remove_brainpy_array(ar1)
+  ar2 = _remove_brainpy_array(ar2)
   res = jnp.intersect1d(ar1, ar2, assume_unique, return_indices)
   if return_indices:
     return tuple([Array(r) for r in res])
@@ -387,27 +384,27 @@ def intersect1d(ar1, ar2, assume_unique=False, return_indices=False):
 
 @wraps(jnp.iscomplex)
 def iscomplex(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return jnp.iscomplex(x)
 
 
 @wraps(jnp.isin)
 def isin(element, test_elements, assume_unique=False, invert=False):
-  element = _remove_jaxarray(element)
-  test_elements = _remove_jaxarray(test_elements)
+  element = _remove_brainpy_array(element)
+  test_elements = _remove_brainpy_array(test_elements)
   return Array(jnp.isin(element, test_elements, assume_unique, invert))
 
 
 @wraps(jnp.ix_)
 def ix_(*args):
-  args = [_remove_jaxarray(a) for a in args]
+  args = [_remove_brainpy_array(a) for a in args]
   return jnp.ix_(*args)
 
 
 @wraps(jnp.lexsort)
 def lexsort(keys, axis=-1):
   leaves, tree = tree_flatten(keys, is_leaf=lambda x: isinstance(x, Array))
-  leaves = [_remove_jaxarray(l) for l in leaves]
+  leaves = [_remove_brainpy_array(l) for l in leaves]
   keys = tree_unflatten(tree, leaves)
   return Array(jnp.lexsort(keys, axis))
 
@@ -417,74 +414,73 @@ load = wraps(jnp.load)(jnp.load)
 
 @wraps(np.save)
 def save(file, arr, allow_pickle=True, fix_imports=True):
-  arr = _remove_jaxarray(arr)
+  arr = _remove_brainpy_array(arr)
   np.save(file, arr, allow_pickle, fix_imports)
 
 
 @wraps(np.savez)
 def savez(file, *args, **kwds):
-  args = [_remove_jaxarray(a) for a in args]
-  kwds = {k: _remove_jaxarray(v) for k, v in kwds.items()}
+  args = [_remove_brainpy_array(a) for a in args]
+  kwds = {k: _remove_brainpy_array(v) for k, v in kwds.items()}
   np.savez(file, *args, **kwds)
 
 
 mask_indices = wraps(jnp.mask_indices)(jnp.mask_indices)
 
 
-@wraps(jnp.msort)
 def msort(a):
-  return Array(jnp.msort(_remove_jaxarray(a)))
+  return Array(jnp.sort(_remove_brainpy_array(a), axis=0))
 
 
 @wraps(jnp.nan_to_num)
 def nan_to_num(x, copy=True, nan=0.0, posinf=None, neginf=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.nan_to_num(x, copy, nan=nan, posinf=posinf, neginf=neginf))
 
 
 @wraps(jnp.nanargmax)
 def nanargmax(a, axis=None, out=None, keepdims=None):
-  return Array(jnp.nanargmax(_remove_jaxarray(a), axis=axis, out=out, keepdims=keepdims))
+  return Array(jnp.nanargmax(_remove_brainpy_array(a), axis=axis, out=out, keepdims=keepdims))
 
 
 @wraps(jnp.nanargmin)
 def nanargmin(a, axis=None, out=None, keepdims=None):
-  return Array(jnp.nanargmin(_remove_jaxarray(a), axis=axis, out=out, keepdims=keepdims))
+  return Array(jnp.nanargmin(_remove_brainpy_array(a), axis=axis, out=out, keepdims=keepdims))
 
 
 @wraps(jnp.pad)
 def pad(array, pad_width, mode="constant", **kwargs):
-  array = _remove_jaxarray(array)
-  pad_width = _remove_jaxarray(pad_width)
-  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
+  array = _remove_brainpy_array(array)
+  pad_width = _remove_brainpy_array(pad_width)
+  kwargs = {k: _remove_brainpy_array(v) for k, v in kwargs.items()}
   return Array(jnp.pad(array, pad_width, mode, **kwargs))
 
 
 @wraps(jnp.poly)
 def poly(seq_of_zeros):
-  seq_of_zeros = _remove_jaxarray(seq_of_zeros)
+  seq_of_zeros = _remove_brainpy_array(seq_of_zeros)
   return Array(jnp.poly(seq_of_zeros))
 
 
 @wraps(jnp.polyadd)
 def polyadd(a1, a2):
-  a1 = _remove_jaxarray(a1)
-  a2 = _remove_jaxarray(a2)
+  a1 = _remove_brainpy_array(a1)
+  a2 = _remove_brainpy_array(a2)
   return Array(jnp.polyadd(a1, a2))
 
 
 @wraps(jnp.polyder)
 def polyder(p, m=1):
-  p = _remove_jaxarray(p)
+  p = _remove_brainpy_array(p)
   return Array(jnp.polyder(p, m))
 
 
 @wraps(jnp.polyfit)
 def polyfit(x, y, deg, rcond=None, full=False, w=None, cov=False):
-  x = _remove_jaxarray(x)
-  y = _remove_jaxarray(y)
+  x = _remove_brainpy_array(x)
+  y = _remove_brainpy_array(y)
   res = jnp.polyfit(x, y, deg, rcond=rcond, full=full, w=w, cov=cov)
-  if isinstance(res, tuple):
+  if isinstance(res, (tuple, list)):
     return tuple(Array(r) for r in res)
   else:
     return Array(res)
@@ -492,98 +488,99 @@ def polyfit(x, y, deg, rcond=None, full=False, w=None, cov=False):
 
 @wraps(jnp.polyint)
 def polyint(p, m=1, k=None):
-  p = _remove_jaxarray(p)
+  p = _remove_brainpy_array(p)
   return Array(jnp.polyint(p, m, k))
 
 
 @wraps(jnp.polymul)
 def polymul(a1, a2, **kwargs):
-  a1 = _remove_jaxarray(a1)
-  a2 = _remove_jaxarray(a2)
+  a1 = _remove_brainpy_array(a1)
+  a2 = _remove_brainpy_array(a2)
   return Array(jnp.polymul(a1, a2, **kwargs))
 
 
 @wraps(jnp.polysub)
 def polysub(a1, a2):
-  a1 = _remove_jaxarray(a1)
-  a2 = _remove_jaxarray(a2)
+  a1 = _remove_brainpy_array(a1)
+  a2 = _remove_brainpy_array(a2)
   return Array(jnp.polysub(a1, a2))
 
 
 @wraps(jnp.polyval)
 def polyval(p, x):
-  p = _remove_jaxarray(p)
-  x = _remove_jaxarray(x)
+  p = _remove_brainpy_array(p)
+  x = _remove_brainpy_array(x)
   return Array(jnp.polyval(p, x))
 
 
 @wraps(jnp.resize)
 def resize(a, new_shape):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.resize(a, new_shape))
 
 
 @wraps(jnp.rollaxis)
 def rollaxis(a, axis: int, start=0):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.rollaxis(a, axis, start))
 
 
 @wraps(jnp.roots)
 def roots(p):
-  p = _remove_jaxarray(p)
+  p = _remove_brainpy_array(p)
   return Array(jnp.roots(p))
 
 
 @wraps(jnp.rot90)
 def rot90(m, k=1, axes=(0, 1)):
-  m = _remove_jaxarray(m)
+  m = _remove_brainpy_array(m)
   return Array(jnp.rot90(m, k, axes))
 
 
 @wraps(jnp.setdiff1d)
 def setdiff1d(ar1, ar2, assume_unique=False, **kwargs):
-  return Array(jnp.setdiff1d(_remove_jaxarray(ar1),
-                             _remove_jaxarray(ar2),
-                             assume_unique=assume_unique, **kwargs))
+  return Array(jnp.setdiff1d(_remove_brainpy_array(ar1),
+                             _remove_brainpy_array(ar2),
+                             assume_unique=assume_unique,
+                             **kwargs))
 
 
 @wraps(jnp.setxor1d)
 def setxor1d(ar1, ar2, assume_unique=False):
-  return Array(jnp.setxor1d(_remove_jaxarray(ar1),
-                            _remove_jaxarray(ar2),
+  return Array(jnp.setxor1d(_remove_brainpy_array(ar1),
+                            _remove_brainpy_array(ar2),
                             assume_unique=assume_unique))
 
 
 @wraps(jnp.tensordot)
 def tensordot(a, b, axes=2, **kwargs):
-  a = _remove_jaxarray(a)
-  b = _remove_jaxarray(b)
+  a = _remove_brainpy_array(a)
+  b = _remove_brainpy_array(b)
   return Array(jnp.tensordot(a, b, axes, **kwargs))
 
 
 @wraps(jnp.trim_zeros)
 def trim_zeros(filt, trim='fb'):
-  return Array(jnp.trim_zeros(_remove_jaxarray(filt), trim))
+  return Array(jnp.trim_zeros(_remove_brainpy_array(filt), trim))
 
 
 @wraps(jnp.union1d)
 def union1d(ar1, ar2, **kwargs):
-  ar1 = _remove_jaxarray(ar1)
-  ar2 = _remove_jaxarray(ar2)
+  ar1 = _remove_brainpy_array(ar1)
+  ar2 = _remove_brainpy_array(ar2)
   return Array(jnp.union1d(ar1, ar2, **kwargs))
 
 
 @wraps(jnp.unravel_index)
 def unravel_index(indices, shape):
-  indices = _remove_jaxarray(indices)
-  shape = _remove_jaxarray(shape)
+  indices = _remove_brainpy_array(indices)
+  shape = _remove_brainpy_array(shape)
   return jnp.unravel_index(indices, shape)
 
 
 @wraps(jnp.unwrap)
 def unwrap(p, discont=jnp.pi, axis: int = -1, period: float = 2 * jnp.pi):
-  p = _remove_jaxarray(p)
+  p = _remove_brainpy_array(p)
   return Array(jnp.unwrap(p, discont, axis, period))
 
 
@@ -593,39 +590,39 @@ def unwrap(p, discont=jnp.pi, axis: int = -1, period: float = 2 * jnp.pi):
 # 1. Basics
 @wraps(jnp.isreal)
 def isreal(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return jnp.isreal(x)
 
 
 @wraps(jnp.isscalar)
 def isscalar(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return jnp.isscalar(x)
 
 
 @wraps(jnp.real)
 def real(x):
-  return jnp.real(_remove_jaxarray(x))
+  return jnp.real(_remove_brainpy_array(x))
 
 
 @wraps(jnp.imag)
 def imag(x):
-  return jnp.imag(_remove_jaxarray(x))
+  return jnp.imag(_remove_brainpy_array(x))
 
 
 @wraps(jnp.conj)
 def conj(x):
-  return jnp.conj(_remove_jaxarray(x))
+  return jnp.conj(_remove_brainpy_array(x))
 
 
 @wraps(jnp.conjugate)
 def conjugate(x):
-  return jnp.conjugate(_remove_jaxarray(x))
+  return jnp.conjugate(_remove_brainpy_array(x))
 
 
 @wraps(jnp.ndim)
 def ndim(x):
-  return jnp.ndim(_remove_jaxarray(x))
+  return jnp.ndim(_remove_brainpy_array(x))
 
 
 # 2. Arithmetic operations
@@ -636,313 +633,312 @@ def add(x, y):
 
 @wraps(jnp.reciprocal)
 def reciprocal(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.reciprocal(x))
 
 
 @wraps(jnp.negative)
 def negative(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.negative(x))
 
 
 @wraps(jnp.positive)
 def positive(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.positive(x))
 
 
 @wraps(jnp.multiply)
 def multiply(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.multiply(x1, x2))
 
 
 @wraps(jnp.divide)
 def divide(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.divide(x1, x2))
 
 
 @wraps(jnp.power)
 def power(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.power(x1, x2))
 
 
 @wraps(jnp.subtract)
 def subtract(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.subtract(x1, x2))
 
 
 @wraps(jnp.true_divide)
 def true_divide(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.true_divide(x1, x2))
 
 
 @wraps(jnp.floor_divide)
 def floor_divide(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.floor_divide(x1, x2))
 
 
 @wraps(jnp.float_power)
 def float_power(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.float_power(x1, x2))
 
 
 @wraps(jnp.fmod)
 def fmod(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.fmod(x1, x2))
 
 
 @wraps(jnp.mod)
 def mod(x1, x2):
   if isinstance(x1, Array):  x1 = x1.value
-  x2 = _remove_jaxarray(x2)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.mod(x1, x2))
 
 
 @wraps(jnp.divmod)
 def divmod(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   r = jnp.divmod(x1, x2)
   return Array(r[0]), Array(r[1])
 
 
 @wraps(jnp.remainder)
 def remainder(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.remainder(x1, x2))
 
 
 @wraps(jnp.modf)
 def modf(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.modf(x)
   return Array(r[0]), Array(r[1])
 
 
 @wraps(jnp.abs)
 def abs(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.absolute(x))
 
 
 @wraps(jnp.absolute)
 def absolute(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.absolute(x))
 
 
 # 3. Exponents and logarithms
 @wraps(jnp.exp)
 def exp(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.exp(x))
 
 
 @wraps(jnp.exp2)
 def exp2(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.exp2(x))
 
 
 @wraps(jnp.expm1)
 def expm1(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.expm1(x))
 
 
 @wraps(jnp.log)
 def log(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.log(x))
 
 
 @wraps(jnp.log10)
 def log10(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.log10(x))
 
 
 @wraps(jnp.log1p)
 def log1p(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.log1p(x))
 
 
 @wraps(jnp.log2)
 def log2(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.log2(x))
 
 
 @wraps(jnp.logaddexp)
 def logaddexp(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.logaddexp(x1, x2))
 
 
 @wraps(jnp.logaddexp2)
 def logaddexp2(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.logaddexp2(x1, x2))
 
 
 # 4. Rational routines
 @wraps(jnp.lcm)
 def lcm(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.lcm(x1, x2))
 
 
 @wraps(jnp.gcd)
 def gcd(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.gcd(x1, x2))
 
 
 # 5. trigonometric functions
 @wraps(jnp.arccos)
 def arccos(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.arccos(x))
 
 
 @wraps(jnp.arccosh)
 def arccosh(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.arccosh(x))
 
 
 @wraps(jnp.arcsin)
 def arcsin(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.arcsin(x))
 
 
 @wraps(jnp.arcsinh)
 def arcsinh(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.arcsinh(x))
 
 
 @wraps(jnp.arctan)
 def arctan(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.arctan(x))
 
 
 @wraps(jnp.arctan2)
 def arctan2(x, y):
-  x = _remove_jaxarray(x)
-  y = _remove_jaxarray(y)
+  x = _remove_brainpy_array(x)
+  y = _remove_brainpy_array(y)
   return Array(jnp.arctan2(x, y))
 
 
 @wraps(jnp.arctanh)
 def arctanh(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.arctanh(x))
 
 
 @wraps(jnp.cos)
 def cos(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.cos(x))
 
 
 @wraps(jnp.cosh)
 def cosh(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.cosh(x))
 
 
 @wraps(jnp.sin)
 def sin(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.sin(x))
 
 
 @wraps(jnp.sinc)
 def sinc(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.sinc(x))
 
 
 @wraps(jnp.sinh)
 def sinh(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.sinh(x))
 
 
 @wraps(jnp.tan)
 def tan(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.tan(x))
 
 
 @wraps(jnp.tanh)
 def tanh(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.tanh(x))
 
 
 @wraps(jnp.deg2rad)
 def deg2rad(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.deg2rad(x))
 
 
 @wraps(jnp.rad2deg)
 def rad2deg(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.rad2deg(x))
 
 
 @wraps(jnp.degrees)
 def degrees(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.degrees(x))
 
 
 @wraps(jnp.radians)
 def radians(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.radians(x))
 
 
 @wraps(jnp.hypot)
 def hypot(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.hypot(x1, x2))
 
 
 # 6. Rounding
 @wraps(jnp.round)
 def round(a, decimals=0):
-  if isinstance(a, Array):
-    a = a.value
+  a = _remove_brainpy_array(a)
   return Array(jnp.round(a, decimals=decimals))
 
 
@@ -952,31 +948,31 @@ round_ = round
 
 @wraps(jnp.rint)
 def rint(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.rint(x))
 
 
 @wraps(jnp.floor)
 def floor(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.floor(x))
 
 
 @wraps(jnp.ceil)
 def ceil(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.ceil(x))
 
 
 @wraps(jnp.trunc)
 def trunc(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.trunc(x))
 
 
 @wraps(jnp.fix)
 def fix(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.fix(x))
 
 
@@ -985,7 +981,7 @@ def fix(x):
 
 @wraps(jnp.prod)
 def prod(a, axis=None, dtype=None, keepdims=None, initial=None, where=None, **kwargs):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.prod(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where, **kwargs)
   return r if axis is None else Array(r)
 
@@ -995,39 +991,39 @@ product = prod
 
 @wraps(jnp.sum)
 def sum(a, axis=None, dtype=None, keepdims=None, initial=None, where=None, **kwargs):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.sum(a, axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.diff)
 def diff(a, n=1, axis: int = -1, prepend=None, append=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.diff(a, n=n, axis=axis, prepend=prepend, append=append))
 
 
 @wraps(jnp.median)
 def median(a, axis=None, keepdims=False, **kwargs):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.median(a, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.nancumprod)
 def nancumprod(a, axis=None, dtype=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.nancumprod(a=a, axis=axis, dtype=dtype))
 
 
 @wraps(jnp.nancumsum)
 def nancumsum(a, axis=None, dtype=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.nancumsum(a=a, axis=axis, dtype=dtype))
 
 
 @wraps(jnp.cumprod)
 def cumprod(a, axis=None, dtype=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.cumprod(a=a, axis=axis, dtype=dtype))
 
 
@@ -1036,103 +1032,95 @@ cumproduct = cumprod
 
 @wraps(jnp.cumsum)
 def cumsum(a, axis=None, dtype=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.cumsum(a=a, axis=axis, dtype=dtype))
 
 
 @wraps(jnp.nanprod)
 def nanprod(a, axis=None, dtype=None, keepdims=None, **kwargs):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.nanprod(a=a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.nansum)
 def nansum(a, axis=None, dtype=None, keepdims=None, **kwargs):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.nansum(a=a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.ediff1d)
 def ediff1d(a, to_end=None, to_begin=None):
-  a = _remove_jaxarray(a)
-  if isinstance(to_end, Array): to_end = to_end.value
-  if isinstance(to_begin, Array): to_begin = to_begin.value
+  a = _remove_brainpy_array(a)
+  to_end = _remove_brainpy_array(to_end)
+  to_begin = _remove_brainpy_array(to_begin)
   return Array(jnp.ediff1d(a, to_end=to_end, to_begin=to_begin))
 
 
 @wraps(jnp.cross)
 def cross(a, b, axisa=-1, axisb=-1, axisc=-1, axis=None):
-  a = _remove_jaxarray(a)
-  b = _remove_jaxarray(b)
+  a = _remove_brainpy_array(a)
+  b = _remove_brainpy_array(b)
   return Array(jnp.cross(a, b, axisa=axisa, axisb=axisb, axisc=axisc, axis=axis))
 
 
 @wraps(jnp.trapz)
 def trapz(y, x=None, dx=1.0, axis: int = -1):
-  y = _remove_jaxarray(y)
-  x = _remove_jaxarray(x)
+  y = _remove_brainpy_array(y)
+  x = _remove_brainpy_array(x)
   return jnp.trapz(y, x=x, dx=dx, axis=axis)
 
 
 # 8. floating_functions
 @wraps(jnp.isfinite)
 def isfinite(x):
-  if isinstance(x, Array):
-    return Array(jnp.isfinite(x.value))
-  else:
-    return jnp.isfinite(x)
+  x = _remove_brainpy_array(x)
+  return Array(jnp.isfinite(x))
 
 
 @wraps(jnp.isinf)
 def isinf(x):
-  if isinstance(x, Array):
-    return Array(jnp.isinf(x.value))
-  else:
-    return jnp.isinf(x)
+  x = _remove_brainpy_array(x)
+  return Array(jnp.isinf(x))
 
 
 @wraps(jnp.isnan)
 def isnan(x):
-  if isinstance(x, Array):
-    return Array(jnp.isnan(x.value))
-  else:
-    return jnp.isnan(x)
+  x = _remove_brainpy_array(x)
+  return Array(jnp.isnan(x))
 
 
 @wraps(jnp.signbit)
 def signbit(x):
-  if isinstance(x, Array):
-    return Array(jnp.signbit(x.value))
-  else:
-    return jnp.signbit(x)
+  x = _remove_brainpy_array(x)
+  return Array(jnp.signbit(x))
 
 
 @wraps(jnp.nextafter)
 def nextafter(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.nextafter(x1, x2))
 
 
 @wraps(jnp.copysign)
 def copysign(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.copysign(x1, x2))
 
 
 @wraps(jnp.ldexp)
 def ldexp(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.ldexp(x1, x2))
 
 
 @wraps(jnp.frexp)
 def frexp(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   mantissa, exponent = jnp.frexp(x)
   return Array(mantissa), Array(exponent)
 
@@ -1140,95 +1128,95 @@ def frexp(x):
 # 9. Miscellaneous
 @wraps(jnp.convolve)
 def convolve(a, v, mode='full', **kwargs):
-  a = _remove_jaxarray(a)
-  v = _remove_jaxarray(v)
+  a = _remove_brainpy_array(a)
+  v = _remove_brainpy_array(v)
   return Array(jnp.convolve(a, v, mode, **kwargs))
 
 
 @wraps(jnp.sqrt)
 def sqrt(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.sqrt(x))
 
 
 @wraps(jnp.cbrt)
 def cbrt(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.cbrt(x))
 
 
 @wraps(jnp.square)
 def square(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.square(x))
 
 
 @wraps(jnp.fabs)
 def fabs(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.fabs(x))
 
 
 @wraps(jnp.sign)
 def sign(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.sign(x))
 
 
 @wraps(jnp.heaviside)
 def heaviside(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.heaviside(x1, x2))
 
 
 @wraps(jnp.maximum)
 def maximum(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.maximum(x1, x2))
 
 
 @wraps(jnp.minimum)
 def minimum(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.minimum(x1, x2))
 
 
 @wraps(jnp.fmax)
 def fmax(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.fmax(x1, x2))
 
 
 @wraps(jnp.fmin)
 def fmin(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.fmin(x1, x2))
 
 
 @wraps(jnp.interp)
 def interp(x, xp, fp, left=None, right=None, period=None):
-  x = _remove_jaxarray(x)
-  xp = _remove_jaxarray(xp)
-  fp = _remove_jaxarray(fp)
+  x = _remove_brainpy_array(x)
+  xp = _remove_brainpy_array(xp)
+  fp = _remove_brainpy_array(fp)
   return Array(jnp.interp(x, xp, fp, left=left, right=right, period=period))
 
 
 @wraps(jnp.clip)
 def clip(a, a_min=None, a_max=None):
-  a = _remove_jaxarray(a)
-  a_min = _remove_jaxarray(a_min)
-  a_max = _remove_jaxarray(a_max)
+  a = _remove_brainpy_array(a)
+  a_min = _remove_brainpy_array(a_min)
+  a_max = _remove_brainpy_array(a_max)
   return Array(jnp.clip(a, a_min, a_max))
 
 
 @wraps(jnp.angle)
 def angle(z, deg=False):
-  z = _remove_jaxarray(z)
+  z = _remove_brainpy_array(z)
   a = jnp.angle(z)
   if deg:
     a *= 180 / pi
@@ -1241,48 +1229,48 @@ def angle(z, deg=False):
 
 @wraps(jnp.bitwise_not)
 def bitwise_not(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.bitwise_not(x))
 
 
 @wraps(jnp.invert)
 def invert(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.invert(x))
 
 
 @wraps(jnp.bitwise_and)
 def bitwise_and(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.bitwise_and(x1, x2))
 
 
 @wraps(jnp.bitwise_or)
 def bitwise_or(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.bitwise_or(x1, x2))
 
 
 @wraps(jnp.bitwise_xor)
 def bitwise_xor(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.bitwise_xor(x1, x2))
 
 
 @wraps(jnp.left_shift)
 def left_shift(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.left_shift(x1, x2))
 
 
 @wraps(jnp.right_shift)
 def right_shift(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.right_shift(x1, x2))
 
 
@@ -1292,106 +1280,106 @@ def right_shift(x1, x2):
 # 1. Comparison
 @wraps(jnp.equal)
 def equal(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.equal(x1, x2))
 
 
 @wraps(jnp.not_equal)
 def not_equal(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.not_equal(x1, x2))
 
 
 @wraps(jnp.greater)
 def greater(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.greater(x1, x2))
 
 
 @wraps(jnp.greater_equal)
 def greater_equal(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.greater_equal(x1, x2))
 
 
 @wraps(jnp.less)
 def less(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.less(x1, x2))
 
 
 @wraps(jnp.less_equal)
 def less_equal(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.less_equal(x1, x2))
 
 
 @wraps(jnp.array_equal)
 def array_equal(a, b, equal_nan=False):
-  a = _remove_jaxarray(a)
-  b = _remove_jaxarray(b)
+  a = _remove_brainpy_array(a)
+  b = _remove_brainpy_array(b)
   return jnp.array_equal(a, b, equal_nan=equal_nan)
 
 
 @wraps(jnp.isclose)
 def isclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False):
-  a = _remove_jaxarray(a)
-  b = _remove_jaxarray(b)
+  a = _remove_brainpy_array(a)
+  b = _remove_brainpy_array(b)
   return Array(jnp.isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan))
 
 
 @wraps(jnp.allclose)
 def allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False):
-  a = _remove_jaxarray(a)
-  b = _remove_jaxarray(b)
+  a = _remove_brainpy_array(a)
+  b = _remove_brainpy_array(b)
   return jnp.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
 
 
 # 2. Logical operations
 @wraps(jnp.logical_not)
 def logical_not(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.logical_not(x))
 
 
 @wraps(jnp.logical_and)
 def logical_and(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.logical_and(x1, x2))
 
 
 @wraps(jnp.logical_or)
 def logical_or(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.logical_or(x1, x2))
 
 
 @wraps(jnp.logical_xor)
 def logical_xor(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.logical_xor(x1, x2))
 
 
 # 3. Truth value testing
 @wraps(jnp.all)
 def all(a, axis=None, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.all(a=a, axis=axis, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.any)
 def any(a, axis=None, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.any(a=a, axis=axis, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
@@ -1406,62 +1394,62 @@ sometrue = any
 
 @wraps(jnp.shape)
 def shape(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return jnp.shape(x)
 
 
 @wraps(jnp.size)
 def size(x, axis=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.size(x, axis=axis)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.reshape)
 def reshape(x, newshape, order="C"):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.reshape(x, newshape, order=order))
 
 
 @wraps(jnp.ravel)
 def ravel(x, order="C"):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.ravel(x, order=order))
 
 
 @wraps(jnp.moveaxis)
 def moveaxis(x, source, destination):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.moveaxis(x, source, destination))
 
 
 @wraps(jnp.transpose)
 def transpose(x, axis=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.transpose(x, axes=axis))
 
 
 @wraps(jnp.swapaxes)
 def swapaxes(x, axis1, axis2):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.swapaxes(x, axis1, axis2))
 
 
 @wraps(jnp.concatenate)
 def concatenate(arrays, axis: int = 0):
-  arrays = [_remove_jaxarray(a) for a in arrays]
+  arrays = [_remove_brainpy_array(a) for a in arrays]
   return Array(jnp.concatenate(arrays, axis))
 
 
 @wraps(jnp.stack)
 def stack(arrays, axis: int = 0):
-  arrays = [_remove_jaxarray(a) for a in arrays]
+  arrays = [_remove_brainpy_array(a) for a in arrays]
   return Array(jnp.stack(arrays, axis))
 
 
 @wraps(jnp.vstack)
 def vstack(arrays):
-  arrays = [_remove_jaxarray(a) for a in arrays]
+  arrays = [_remove_brainpy_array(a) for a in arrays]
   return Array(jnp.vstack(arrays))
 
 
@@ -1470,19 +1458,19 @@ row_stack = vstack
 
 @wraps(jnp.hstack)
 def hstack(arrays):
-  arrays = [_remove_jaxarray(a) for a in arrays]
+  arrays = [_remove_brainpy_array(a) for a in arrays]
   return Array(jnp.hstack(arrays))
 
 
 @wraps(jnp.dstack)
 def dstack(arrays):
-  arrays = [_remove_jaxarray(a) for a in arrays]
+  arrays = [_remove_brainpy_array(a) for a in arrays]
   return Array(jnp.dstack(arrays))
 
 
 @wraps(jnp.column_stack)
 def column_stack(arrays):
-  arrays = [_remove_jaxarray(a) for a in arrays]
+  arrays = [_remove_brainpy_array(a) for a in arrays]
   return Array(jnp.column_stack(arrays))
 
 
@@ -1510,20 +1498,20 @@ def vsplit(ary, indices_or_sections):
 
 @wraps(jnp.tile)
 def tile(A, reps):
-  A = _remove_jaxarray(A)
+  A = _remove_brainpy_array(A)
   return Array(jnp.tile(A, reps))
 
 
 @wraps(jnp.repeat)
 def repeat(x, repeats, axis=None, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.repeat(x, repeats=repeats, axis=axis, **kwargs))
 
 
 @wraps(jnp.unique)
 def unique(x, return_index=False, return_inverse=False,
            return_counts=False, axis=None, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   res = jnp.unique(x,
                    return_index=return_index,
                    return_inverse=return_inverse,
@@ -1538,112 +1526,112 @@ def unique(x, return_index=False, return_inverse=False,
 
 @wraps(jnp.append)
 def append(arr, values, axis=None):
-  arr = _remove_jaxarray(arr)
-  values = _remove_jaxarray(values)
+  arr = _remove_brainpy_array(arr)
+  values = _remove_brainpy_array(values)
   return Array(jnp.append(arr, values, axis=axis))
 
 
 @wraps(jnp.flip)
 def flip(x, axis=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.flip(x, axis=axis))
 
 
 @wraps(jnp.fliplr)
 def fliplr(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.fliplr(x))
 
 
 @wraps(jnp.flipud)
 def flipud(x):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.flipud(x))
 
 
 @wraps(jnp.roll)
 def roll(x, shift, axis=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.roll(x, shift, axis=axis))
 
 
 @wraps(jnp.atleast_1d)
 def atleast_1d(*arys):
-  return jnp.atleast_1d(*[_remove_jaxarray(a) for a in arys])
+  return jnp.atleast_1d(*[_remove_brainpy_array(a) for a in arys])
 
 
 @wraps(jnp.atleast_2d)
 def atleast_2d(*arys):
-  return jnp.atleast_2d(*[_remove_jaxarray(a) for a in arys])
+  return jnp.atleast_2d(*[_remove_brainpy_array(a) for a in arys])
 
 
 @wraps(jnp.atleast_3d)
 def atleast_3d(*arys):
-  return jnp.atleast_3d(*[_remove_jaxarray(a) for a in arys])
+  return jnp.atleast_3d(*[_remove_brainpy_array(a) for a in arys])
 
 
 @wraps(jnp.expand_dims)
 def expand_dims(x, axis):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.expand_dims(x, axis=axis))
 
 
 @wraps(jnp.squeeze)
 def squeeze(x, axis=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.squeeze(x, axis=axis))
 
 
 @wraps(jnp.sort)
 def sort(x, axis=-1, kind='quicksort', order=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.sort(x, axis=axis, kind=kind, order=order))
 
 
 @wraps(jnp.argsort)
 def argsort(x, axis=-1, kind='stable', order=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.argsort(x, axis=axis, kind=kind, order=order))
 
 
 @wraps(jnp.argmax)
 def argmax(x, axis=None, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.argmax(x, axis=axis, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.argmin)
 def argmin(x, axis=None, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.argmin(x, axis=axis, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.argwhere)
 def argwhere(x, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.argwhere(x, **kwargs))
 
 
 @wraps(jnp.nonzero)
 def nonzero(x, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   res = jnp.nonzero(x, **kwargs)
   return tuple([Array(r) for r in res]) if isinstance(res, tuple) else Array(res)
 
 
 @wraps(jnp.flatnonzero)
 def flatnonzero(x, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.flatnonzero(x, **kwargs))
 
 
 @wraps(jnp.where)
 def where(condition, x=None, y=None, **kwargs):
-  condition = _remove_jaxarray(condition)
-  x = _remove_jaxarray(x)
-  y = _remove_jaxarray(y)
+  condition = _remove_brainpy_array(condition)
+  x = _remove_brainpy_array(x)
+  y = _remove_brainpy_array(y)
   res = jnp.where(condition, x=x, y=y, **kwargs)
   if isinstance(res, tuple):
     return tuple(Array(r) for r in res)
@@ -1653,34 +1641,34 @@ def where(condition, x=None, y=None, **kwargs):
 
 @wraps(jnp.searchsorted)
 def searchsorted(a, v, side='left', sorter=None):
-  a = _remove_jaxarray(a)
-  v = _remove_jaxarray(v)
+  a = _remove_brainpy_array(a)
+  v = _remove_brainpy_array(v)
   return Array(jnp.searchsorted(a, v, side=side, sorter=sorter))
 
 
 @wraps(jnp.extract)
 def extract(condition, arr):
-  condition = _remove_jaxarray(condition)
-  arr = _remove_jaxarray(arr)
+  condition = _remove_brainpy_array(condition)
+  arr = _remove_brainpy_array(arr)
   return Array(jnp.extract(condition, arr))
 
 
 @wraps(jnp.count_nonzero)
 def count_nonzero(a, axis=None, keepdims=False):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return jnp.count_nonzero(a, axis=axis, keepdims=keepdims)
 
 
 @wraps(jnp.max)
 def max(a, axis=None, out=None, keepdims=None, initial=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.max(a, axis=axis, out=out, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.min)
 def min(a, axis=None, out=None, keepdims=None, initial=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.min(a, axis=axis, out=out, keepdims=keepdims, initial=initial, where=where)
   return r if axis is None else Array(r)
 
@@ -1691,13 +1679,13 @@ amin = min
 
 @wraps(jnp.apply_along_axis)
 def apply_along_axis(func1d, axis: int, arr, *args, **kwargs):
-  arr = _remove_jaxarray(arr)
+  arr = _remove_brainpy_array(arr)
   return jnp.apply_along_axis(func1d, axis, arr, *args, **kwargs)
 
 
 @wraps(jnp.apply_over_axes)
 def apply_over_axes(func, a, axes):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return jnp.apply_over_axes(func, a, axes)
 
 
@@ -1717,23 +1705,23 @@ def array_equiv(a1, a2):
 
 @wraps(jnp.array_repr)
 def array_repr(arr, max_line_width=None, precision=None, suppress_small=None):
-  arr = _remove_jaxarray(arr)
+  arr = _remove_brainpy_array(arr)
   return jnp.array_repr(arr, max_line_width=max_line_width, precision=precision, suppress_small=suppress_small)
 
 
 @wraps(jnp.array_str)
 def array_str(a, max_line_width=None, precision=None, suppress_small=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return jnp.array_str(a, max_line_width=max_line_width, precision=precision, suppress_small=suppress_small)
 
 
 @wraps(jnp.array_split)
 def array_split(ary, indices_or_sections, axis: int = 0):
-  ary = _remove_jaxarray(ary)
+  ary = _remove_brainpy_array(ary)
   if isinstance(indices_or_sections, Array):
     indices_or_sections = indices_or_sections.value
   elif isinstance(indices_or_sections, (tuple, list)):
-    indices_or_sections = [_remove_jaxarray(i) for i in indices_or_sections]
+    indices_or_sections = [_remove_brainpy_array(i) for i in indices_or_sections]
   return tuple([Array(a) for a in jnp.array_split(ary, indices_or_sections, axis)])
 
 
@@ -1761,25 +1749,25 @@ def empty(shape, dtype=None):
 
 @wraps(jnp.zeros_like)
 def zeros_like(a, dtype=None, shape=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 @wraps(jnp.ones_like)
 def ones_like(a, dtype=None, shape=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.ones_like(a, dtype=dtype, shape=shape))
 
 
 @wraps(jnp.empty_like)
 def empty_like(a, dtype=None, shape=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 @wraps(jnp.full_like)
 def full_like(a, fill_value, dtype=None, shape=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.full_like(a, fill_value, dtype=dtype, shape=shape))
 
 
@@ -1795,12 +1783,12 @@ def identity(n, dtype=None):
 
 @wraps(jnp.array)
 def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   try:
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
   except TypeError:
     leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
-    leaves = [_remove_jaxarray(l) for l in leaves]
+    leaves = [_remove_brainpy_array(l) for l in leaves]
     a = tree_unflatten(tree, leaves)
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
   return Array(res)
@@ -1825,12 +1813,12 @@ def asarray(a, dtype=None, order=None):
     ArrayType interpretation of `a`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   try:
     res = jnp.asarray(a=a, dtype=dtype, order=order)
   except TypeError:
     leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
-    leaves = [_remove_jaxarray(l) for l in leaves]
+    leaves = [_remove_brainpy_array(l) for l in leaves]
     arrays = tree_unflatten(tree, leaves)
     res = jnp.asarray(a=arrays, dtype=dtype, order=order)
   return Array(res)
@@ -1838,15 +1826,15 @@ def asarray(a, dtype=None, order=None):
 
 @wraps(jnp.arange)
 def arange(*args, **kwargs):
-  args = [_remove_jaxarray(a) for a in args]
-  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
+  args = [_remove_brainpy_array(a) for a in args]
+  kwargs = {k: _remove_brainpy_array(v) for k, v in kwargs.items()}
   return Array(jnp.arange(*args, **kwargs))
 
 
 @wraps(jnp.linspace)
 def linspace(*args, **kwargs):
-  args = [_remove_jaxarray(a) for a in args]
-  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
+  args = [_remove_brainpy_array(a) for a in args]
+  kwargs = {k: _remove_brainpy_array(v) for k, v in kwargs.items()}
   res = jnp.linspace(*args, **kwargs)
   if isinstance(res, tuple):
     return Array(res[0]), res[1]
@@ -1856,21 +1844,21 @@ def linspace(*args, **kwargs):
 
 @wraps(jnp.logspace)
 def logspace(*args, **kwargs):
-  args = [_remove_jaxarray(a) for a in args]
-  kwargs = {k: _remove_jaxarray(v) for k, v in kwargs.items()}
+  args = [_remove_brainpy_array(a) for a in args]
+  kwargs = {k: _remove_brainpy_array(v) for k, v in kwargs.items()}
   return Array(jnp.logspace(*args, **kwargs))
 
 
 @wraps(jnp.meshgrid)
 def meshgrid(*xi, copy=True, sparse=False, indexing='xy'):
-  xi = [_remove_jaxarray(x) for x in xi]
+  xi = [_remove_brainpy_array(x) for x in xi]
   rr = jnp.meshgrid(*xi, copy=copy, sparse=sparse, indexing=indexing)
   return list(Array(r) for r in rr)
 
 
 @wraps(jnp.diag)
 def diag(a, k=0):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.diag(a, k))
 
 
@@ -1881,19 +1869,19 @@ def tri(N, M=None, k=0, dtype=None):
 
 @wraps(jnp.tril)
 def tril(a, k=0):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.tril(a, k))
 
 
 @wraps(jnp.triu)
 def triu(a, k=0):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.triu(a, k))
 
 
 @wraps(jnp.vander)
 def vander(x, N=None, increasing=False):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.vander(x, N=N, increasing=increasing))
 
 
@@ -1903,7 +1891,7 @@ def fill_diagonal(a, val):
     raise ValueError(f'Must be a ArrayType, but got {type(a)}')
   if a.ndim < 2:
     raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
-  val = _remove_jaxarray(val)
+  val = _remove_brainpy_array(val)
   i, j = jnp.diag_indices(_min(a.shape[-2:]))
   a._value = a.value.at[..., i, j].set(val)
 
@@ -1917,7 +1905,7 @@ triu_indices = jnp.triu_indices
 
 @wraps(jnp.tril_indices_from)
 def tril_indices_from(x, k=0):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   res = jnp.tril_indices_from(x, k=k)
   if isinstance(res, tuple):
     return tuple(Array(r) for r in res)
@@ -1927,7 +1915,7 @@ def tril_indices_from(x, k=0):
 
 @wraps(jnp.triu_indices_from)
 def triu_indices_from(x, k=0):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   res = jnp.triu_indices_from(x, k=k)
   if isinstance(res, tuple):
     return tuple(Array(r) for r in res)
@@ -1937,15 +1925,15 @@ def triu_indices_from(x, k=0):
 
 @wraps(jnp.take)
 def take(x, indices, axis=None, mode=None):
-  x = _remove_jaxarray(x)
-  if isinstance(indices, Array): indices = indices.value
+  x = _remove_brainpy_array(x)
+  indices = _remove_brainpy_array(indices)
   return Array(jnp.take(x, indices=indices, axis=axis, mode=mode))
 
 
 @wraps(jnp.select)
 def select(condlist, choicelist, default=0):
-  condlist = [_remove_jaxarray(c) for c in condlist]
-  choicelist = [_remove_jaxarray(c) for c in choicelist]
+  condlist = [_remove_brainpy_array(c) for c in condlist]
+  choicelist = [_remove_brainpy_array(c) for c in choicelist]
   return Array(jnp.select(condlist, choicelist, default=default))
 
 
@@ -1953,43 +1941,65 @@ def select(condlist, choicelist, default=0):
 # ---------------
 @wraps(jnp.nanmin)
 def nanmin(x, axis=None, keepdims=None, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.nanmin(x, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.nanmax)
 def nanmax(x, axis=None, keepdims=None, **kwargs):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.nanmax(x, axis=axis, keepdims=keepdims, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.ptp)
 def ptp(x, axis=None, keepdims=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   r = jnp.ptp(x, axis=axis, keepdims=keepdims)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.percentile)
-def percentile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
+def percentile(a,
+               q,
+               axis=None,
+               out=None,
+               overwrite_input: bool = False,
+               method: str = "linear",
                keepdims: bool = False,
                interpolation=None):
-  a = _remove_jaxarray(a)
-  q = _remove_jaxarray(q)
-  r = jnp.percentile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
+  a = _remove_brainpy_array(a)
+  q = _remove_brainpy_array(q)
+  r = jnp.percentile(a=a,
+                     q=q,
+                     axis=axis,
+                     out=out,
+                     overwrite_input=overwrite_input,
+                     method=method,
+                     keepdims=keepdims,
                      interpolation=interpolation)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.nanpercentile)
-def nanpercentile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
+def nanpercentile(a,
+                  q,
+                  axis=None,
+                  out=None,
+                  overwrite_input: bool = False,
+                  method: str = "linear",
                   keepdims: bool = False,
                   interpolation=None):
-  a = _remove_jaxarray(a)
-  q = _remove_jaxarray(q)
-  r = jnp.nanpercentile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
+  a = _remove_brainpy_array(a)
+  q = _remove_brainpy_array(q)
+  r = jnp.nanpercentile(a=a,
+                        q=q,
+                        axis=axis,
+                        out=out,
+                        overwrite_input=overwrite_input,
+                        method=method,
+                        keepdims=keepdims,
                         interpolation=interpolation)
   return r if axis is None else Array(r)
 
@@ -1998,8 +2008,8 @@ def nanpercentile(a, q, axis=None, out=None, overwrite_input: bool = False, meth
 def quantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
              keepdims: bool = False,
              interpolation=None):
-  a = _remove_jaxarray(a)
-  q = _remove_jaxarray(q)
+  a = _remove_brainpy_array(a)
+  q = _remove_brainpy_array(q)
   r = jnp.quantile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
                    interpolation=interpolation)
   return r if axis is None else Array(r)
@@ -2009,8 +2019,8 @@ def quantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: s
 def nanquantile(a, q, axis=None, out=None, overwrite_input: bool = False, method: str = "linear",
                 keepdims: bool = False,
                 interpolation=None):
-  a = _remove_jaxarray(a)
-  q = _remove_jaxarray(q)
+  a = _remove_brainpy_array(a)
+  q = _remove_brainpy_array(q)
   r = jnp.nanquantile(a=a, q=q, axis=axis, out=out, overwrite_input=overwrite_input, method=method, keepdims=keepdims,
                       interpolation=interpolation)
   return r if axis is None else Array(r)
@@ -2018,8 +2028,8 @@ def nanquantile(a, q, axis=None, out=None, overwrite_input: bool = False, method
 
 @wraps(jnp.average)
 def average(a, axis=None, weights=None, returned=False):
-  a = _remove_jaxarray(a)
-  weights = _remove_jaxarray(weights)
+  a = _remove_brainpy_array(a)
+  weights = _remove_brainpy_array(weights)
   r = jnp.average(a, axis=axis, weights=weights, returned=returned)
   if axis is None:
     return r
@@ -2031,21 +2041,21 @@ def average(a, axis=None, weights=None, returned=False):
 
 @wraps(jnp.mean)
 def mean(a, axis=None, dtype=None, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.mean(a, axis=axis, dtype=dtype, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.std)
 def std(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.std(a=a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.var)
 def var(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.var(a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
@@ -2057,69 +2067,69 @@ def nanmedian(a, axis=None, keepdims=False):
 
 @wraps(jnp.nanmean)
 def nanmean(a, axis=None, dtype=None, keepdims=None, **kwargs):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.nanmean(a, axis=axis, dtype=dtype, keepdims=keepdims, **kwargs)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.nanstd)
 def nanstd(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.nanstd(a=a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.nanvar)
 def nanvar(a, axis=None, dtype=None, ddof=0, keepdims=None, where=None):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   r = jnp.nanvar(a, axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims, where=where)
   return r if axis is None else Array(r)
 
 
 @wraps(jnp.corrcoef)
 def corrcoef(x, y=None, rowvar=True):
-  x = _remove_jaxarray(x)
-  y = _remove_jaxarray(y)
+  x = _remove_brainpy_array(x)
+  y = _remove_brainpy_array(y)
   return Array(jnp.corrcoef(x, y, rowvar))
 
 
 @wraps(jnp.correlate)
 def correlate(a, v, mode='valid', **kwargs):
-  a = _remove_jaxarray(a)
-  v = _remove_jaxarray(v)
+  a = _remove_brainpy_array(a)
+  v = _remove_brainpy_array(v)
   return Array(jnp.correlate(a, v, mode, **kwargs))
 
 
 @wraps(jnp.cov)
 def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=None):
-  m = _remove_jaxarray(m)
-  y = _remove_jaxarray(y)
-  if isinstance(fweights, Array): fweights = fweights.value
-  if isinstance(aweights, Array): aweights = aweights.value
+  m = _remove_brainpy_array(m)
+  y = _remove_brainpy_array(y)
+  fweights = _remove_brainpy_array(fweights)
+  aweights = _remove_brainpy_array(aweights)
   return Array(jnp.cov(m, y=y, rowvar=rowvar, bias=bias, ddof=ddof,
                        fweights=fweights, aweights=aweights))
 
 
 @wraps(jnp.histogram)
 def histogram(a, bins=10, range=None, weights=None, density=None):
-  a = _remove_jaxarray(a)
-  weights = _remove_jaxarray(weights)
+  a = _remove_brainpy_array(a)
+  weights = _remove_brainpy_array(weights)
   hist, bin_edges = jnp.histogram(a=a, bins=bins, range=range, weights=weights, density=density)
   return Array(hist), Array(bin_edges)
 
 
 @wraps(jnp.bincount)
 def bincount(x, weights=None, minlength=0, length=None, **kwargs):
-  x = _remove_jaxarray(x)
-  weights = _remove_jaxarray(weights)
+  x = _remove_brainpy_array(x)
+  weights = _remove_brainpy_array(weights)
   res = jnp.bincount(x, weights=weights, minlength=minlength, length=length, **kwargs)
   return Array(res)
 
 
 @wraps(jnp.digitize)
 def digitize(x, bins, right=False):
-  x = _remove_jaxarray(x)
-  if isinstance(bins, Array): bins = bins.value
+  x = _remove_brainpy_array(x)
+  bins = _remove_brainpy_array(bins)
   return Array(jnp.digitize(x, bins=bins, right=right))
 
 
@@ -2162,49 +2172,49 @@ inf = jnp.inf
 
 @wraps(jnp.dot)
 def dot(x1, x2, **kwargs):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.dot(x1, x2, **kwargs))
 
 
 @wraps(jnp.vdot)
 def vdot(x1, x2, **kwargs):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.vdot(x1, x2, **kwargs))
 
 
 @wraps(jnp.inner)
 def inner(x1, x2, **kwargs):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.inner(x1, x2, **kwargs))
 
 
 @wraps(jnp.outer)
 def outer(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.outer(x1, x2))
 
 
 @wraps(jnp.kron)
 def kron(x1, x2):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.kron(x1, x2))
 
 
 @wraps(jnp.matmul)
 def matmul(x1, x2, **kwargs):
-  x1 = _remove_jaxarray(x1)
-  x2 = _remove_jaxarray(x2)
+  x1 = _remove_brainpy_array(x1)
+  x2 = _remove_brainpy_array(x2)
   return Array(jnp.matmul(x1, x2, **kwargs))
 
 
 @wraps(jnp.trace)
 def trace(x, offset=0, axis1=0, axis2=1, dtype=None):
-  x = _remove_jaxarray(x)
+  x = _remove_brainpy_array(x)
   return Array(jnp.trace(x, offset=offset, axis1=axis1, axis2=axis2, dtype=dtype))
 
 
@@ -2262,15 +2272,15 @@ def can_cast(from_, to, casting=None):
         True if cast can occur according to the casting rule.
 
   """
-  from_ = _remove_jaxarray(from_)
-  to = _remove_jaxarray(to)
+  from_ = _remove_brainpy_array(from_)
+  to = _remove_brainpy_array(to)
   return jnp.can_cast(from_, to, casting=casting)
 
 
 @wraps(jnp.choose)
 def choose(a, choices, mode='raise'):
-  a = _remove_jaxarray(a)
-  choices = [_remove_jaxarray(c) for c in choices]
+  a = _remove_brainpy_array(a)
+  choices = [_remove_brainpy_array(c) for c in choices]
   return jnp.choose(a, choices, mode=mode)
 
 
@@ -2292,7 +2302,7 @@ def fromfunction(function, shape, dtype=float, **kwargs):
 
 
 def fromiter(iterable, dtype, count=-1, *args, **kwargs):
-  iterable = _remove_jaxarray(iterable)
+  iterable = _remove_brainpy_array(iterable)
   return asarray(np.fromiter(iterable, dtype=dtype, count=count, *args, **kwargs))
 
 
@@ -2304,17 +2314,17 @@ get_printoptions = np.get_printoptions
 
 
 def iscomplexobj(x):
-  return np.iscomplexobj(_remove_jaxarray(x))
+  return np.iscomplexobj(_remove_brainpy_array(x))
 
 
 @wraps(jnp.isneginf)
 def isneginf(x):
-  return Array(jnp.isneginf(_remove_jaxarray(x)))
+  return Array(jnp.isneginf(_remove_brainpy_array(x)))
 
 
 @wraps(jnp.isposinf)
 def isposinf(x):
-  return Array(jnp.isposinf(_remove_jaxarray(x)))
+  return Array(jnp.isposinf(_remove_brainpy_array(x)))
 
 
 def isrealobj(x):
@@ -2326,18 +2336,18 @@ issubsctype = jnp.issubsctype
 
 
 def iterable(x):
-  return np.iterable(_remove_jaxarray(x))
+  return np.iterable(_remove_brainpy_array(x))
 
 
 @wraps(jnp.packbits)
 def packbits(a, axis: Optional[int] = None, bitorder='big'):
-  return Array(jnp.packbits(_remove_jaxarray(a), axis=axis, bitorder=bitorder))
+  return Array(jnp.packbits(_remove_brainpy_array(a), axis=axis, bitorder=bitorder))
 
 
 @wraps(jnp.piecewise)
 def piecewise(x, condlist, funclist, *args, **kw):
   condlist = asarray(condlist, dtype=bool)
-  return Array(jnp.piecewise(_remove_jaxarray(x), condlist.value, funclist, *args, **kw))
+  return Array(jnp.piecewise(_remove_brainpy_array(x), condlist.value, funclist, *args, **kw))
 
 
 printoptions = np.printoptions
@@ -2346,31 +2356,31 @@ set_printoptions = np.set_printoptions
 
 @wraps(jnp.promote_types)
 def promote_types(a, b):
-  a = _remove_jaxarray(a)
-  b = _remove_jaxarray(b)
+  a = _remove_brainpy_array(a)
+  b = _remove_brainpy_array(b)
   return jnp.promote_types(a, b)
 
 
 @wraps(jnp.ravel_multi_index)
 def ravel_multi_index(multi_index, dims, mode='raise', order='C'):
-  multi_index = [_remove_jaxarray(i) for i in multi_index]
+  multi_index = [_remove_brainpy_array(i) for i in multi_index]
   return Array(jnp.ravel_multi_index(multi_index, dims, mode=mode, order=order))
 
 
 @wraps(jnp.result_type)
 def result_type(*args):
-  args = [_remove_jaxarray(a) for a in args]
+  args = [_remove_brainpy_array(a) for a in args]
   return jnp.result_type(*args)
 
 
 @wraps(jnp.sort_complex)
 def sort_complex(a):
-  return Array(jnp.sort_complex(_remove_jaxarray(a)))
+  return Array(jnp.sort_complex(_remove_brainpy_array(a)))
 
 
 @wraps(jnp.unpackbits)
 def unpackbits(a, axis: Optional[int] = None, count=None, bitorder='big'):
-  a = _remove_jaxarray(a)
+  a = _remove_brainpy_array(a)
   return Array(jnp.unpackbits(a, axis, count=count, bitorder=bitorder))
 
 
@@ -2467,8 +2477,8 @@ def place(arr, mask, vals):
 
 @wraps(jnp.polydiv)
 def polydiv(u, v, **kwargs):
-  u = _remove_jaxarray(u)
-  v = _remove_jaxarray(v)
+  u = _remove_brainpy_array(u)
+  v = _remove_brainpy_array(v)
   res = jnp.polydiv(u, v, **kwargs)
   if isinstance(res, tuple):
     return tuple(Array(r) for r in res)

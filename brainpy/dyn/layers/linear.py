@@ -9,8 +9,7 @@ from brainpy import math as bm
 from .base import Layer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.modes import Mode, TrainingMode, training
-from brainpy.tools.checking import check_initializer
+from brainpy.check import check_initializer
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -47,7 +46,7 @@ class Dense(Layer):
       num_out: int,
       W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Dense, self).__init__(mode=mode, name=name)
@@ -71,7 +70,7 @@ class Dense(Layer):
     # parameter initialization
     self.W = parameter(self.weight_initializer, (num_in, self.num_out))
     self.b = parameter(self.bias_initializer, (self.num_out,))
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 

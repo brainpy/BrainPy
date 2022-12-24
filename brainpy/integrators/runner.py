@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 
 import time
+import warnings
 from typing import Union, Dict, Sequence, Callable
+from functools import partial
 
+import jax
+from jax.tree_util import tree_flatten
 import jax.numpy as jnp
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
+from brainpy.base import Collector
 from brainpy import math as bm
-from brainpy.base.collector import Collector, ArrayCollector
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
 from brainpy.running.runner import Runner
-
 
 __all__ = [
   'IntegratorRunner',
@@ -43,10 +46,11 @@ class IntegratorRunner(Runner):
     >>>          monitors=['V', 'w'],  # the variables to monitor
     >>>          inits={'V': bm.random.rand(10),
     >>>                 'w': bm.random.normal(size=10)},  # the initial values
-    >>>          args={'a': 1., 'b': 1.},  # update arguments
-    >>>          dyn_args={'I': bp.inputs.ramp_input(0, 4, 200)},  # each time each current input
     >>> )
-    >>> runner.run(100.)
+    >>> runner.run(100.,
+    >>>            args={'a': 1., 'b': 1.},  # update arguments
+    >>>            dyn_args={'I': bp.inputs.ramp_input(0, 4, 100)},  # each time each current input
+    >>> )
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, plot_ids=[0, 1, 4], show=True)
 
   Example to run an SDE intragetor,
@@ -66,10 +70,9 @@ class IntegratorRunner(Runner):
     >>>   lorenz,
     >>>   monitors=['x', 'y', 'z'],
     >>>   inits=[1., 1., 1.], # initialize all variable to 1.
-    >>>   args={'p': 0.1},
     >>>   dt=0.01
     >>> )
-    >>> runner.run(100.)
+    >>> runner.run(100., args={'p': 0.1},)
     >>>
     >>> import matplotlib.pyplot as plt
     >>> fig = plt.figure()
@@ -88,17 +91,19 @@ class IntegratorRunner(Runner):
 
       # IntegratorRunner specific arguments
       inits: Union[Sequence, Dict] = None,
-      args: Dict = None,
-      dyn_args: Dict[str, Union[bm.ndarray, jnp.ndarray]] = None,
-      dt: Union[float, int] = None,
 
       # regular/common arguments
-      fun_monitors: Dict[str, Callable] = None,
+      dt: Union[float, int] = None,
       monitors: Sequence[str] = None,
       dyn_vars: Dict[str, bm.Variable] = None,
       jit: Union[bool, Dict[str, bool]] = True,
       numpy_mon_after_run: bool = True,
       progress_bar: bool = True,
+
+      # deprecated
+      args: Dict = None,
+      dyn_args: Dict[str, Union[bm.ndarray, jnp.ndarray]] = None,
+      fun_monitors: Dict[str, Callable] = None,
   ):
     """Initialization of structural runner for integrators.
 
@@ -110,6 +115,7 @@ class IntegratorRunner(Runner):
       The variables to monitor.
     fun_monitors: dict
       The monitors with callable functions.
+      .. deprecated:: 2.3.1
     inits: sequence, dict
       The initial value of variables. With this parameter,
       you can easily control the number of variables to simulate.
@@ -121,12 +127,20 @@ class IntegratorRunner(Runner):
       Note that if one of the arguments are heterogeneous (i.e., a tensor),
       it means we should run multiple trials. However, you can set the number
       of the elements in the variables so that each pair of variables can
-      corresponds to one set of arguments.
+      correspond to one set of arguments.
+
+      .. deprecated:: 2.3.1
+         Will be removed after version 2.4.0.
+
     dyn_args: dict
       The dynamically changed arguments. This means this argument can control
       the argument dynamically changed. For example, if you want to inject a
       time varied currents into the HH neuron model, you can pack the currents
       into this ``dyn_args`` argument.
+
+      .. deprecated:: 2.3.1
+         Will be removed after version 2.4.0.
+
     dt: float, int
     dyn_vars: dict
     jit: bool
@@ -137,7 +151,6 @@ class IntegratorRunner(Runner):
     if not isinstance(target, Integrator):
       raise TypeError(f'Target must be instance of {Integrator.__name__}, '
                       f'but we got {type(target)}')
-
     # get maximum size and initial variables
     if inits is not None:
       if isinstance(inits, (list, tuple, bm.Array, jnp.ndarray)):
@@ -151,8 +164,7 @@ class IntegratorRunner(Runner):
       inits = dict()
 
     # initialize variables
-    self.variables = ArrayCollector({v: bm.Variable(bm.zeros(max_size))
-                                     for v in target.variables})
+    self.variables = {v: bm.Variable(bm.zeros(max_size)) for v in target.variables}
     for k in inits.keys():
       self.variables[k][:] = inits[k]
 
@@ -169,6 +181,8 @@ class IntegratorRunner(Runner):
                                            dyn_vars=dyn_vars,
                                            numpy_mon_after_run=numpy_mon_after_run)
 
+    self.register_implicit_vars(self.variables)
+
     # parameters
     dt = bm.get_dt() if dt is None else dt
     if not isinstance(dt, (int, float)):
@@ -181,13 +195,19 @@ class IntegratorRunner(Runner):
                          f'but we got {type(target)}: {target}')
 
     # arguments of the integral function
-    self._static_args = Collector()
     if args is not None:
+      warnings.warn('Set "args" in `IntegratorRunner.run()` function, instead of __init__ function. '
+                    'Will be removed since 2.4.0',
+                    UserWarning)
       assert isinstance(args, dict), (f'"args" must be a dict, but '
                                       f'we got {type(args)}: {args}')
-      self._static_args.update(args)
-    self._dyn_args = Collector()
+      self._static_args = args
+    else:
+      self._static_args = dict()
     if dyn_args is not None:
+      warnings.warn('Set "dyn_args" in `IntegratorRunner.run()` function, instead of __init__ function. '
+                    'Will be removed since 2.4.0',
+                    UserWarning)
       assert isinstance(dyn_args, dict), (f'"dyn_args" must be a dict, but we get '
                                           f'{type(dyn_args)}: {dyn_args}')
       sizes = np.unique([len(v) for v in dyn_args.values()])
@@ -195,59 +215,34 @@ class IntegratorRunner(Runner):
       if num_size != 1:
         raise RunningError(f'All values in "dyn_args" should have the same length. '
                            f'But we got {num_size}: {sizes}')
-      self._dyn_args.update(dyn_args)
+      self._dyn_args = dyn_args
+    else:
+      self._dyn_args = dict()
 
     # monitors
     for k in self.mon.var_names:
-      if k not in self.target.variables and k not in self.fun_monitors:
+      if k not in self.target.variables:
         raise MonitorError(f'Variable "{k}" to monitor is not defined '
                            f'in the integrator {self.target}.')
 
-    # start simulation time
-    self._start_t = None
+    # start simulation time and index
+    self.start_t = bm.Variable(bm.zeros(1))
+    self.idx = bm.Variable(bm.zeros(1, dtype=bm.int_))
 
-    # dynamical changed variables
-    self.dyn_vars.update(self.target.vars().unique())
+  def _run_fun_integration(self, static_args, dyn_args, times, indices):
+    with jax.disable_jit(not self.jit['predict']):
+      dyn_vars = self.vars().unique()
+      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+      return bm.for_loop(partial(self._step_fun_integrator, static_args),
+                         (dyn_args, times, indices),
+                         dyn_vars=dyn_vars)
 
-    # Variables
-    self.dyn_vars.update(self.variables)
-    if len(self._dyn_args) > 0:
-      self.idx = bm.Variable(bm.zeros(1, dtype=jnp.int_))
-      self.dyn_vars['_idx'] = self.idx
-
-    # build the update step
-    if self.jit['predict']:
-      def _loop_func(times):
-        return bm.for_loop(self._step, times, dyn_vars=self.dyn_vars)
-    else:
-      def _loop_func(times):
-        returns = {k: [] for k in self.fun_monitors.keys()}
-        returns.update({k: [] for k in self.monitors.keys()})
-        for i in range(len(times)):
-          _t = times[i]
-          _dt = self.dt
-          # function monitor
-          for k, v in self.fun_monitors.items():
-            returns[k].append(v(_t, _dt))
-          # step call
-          self._step(_t)
-          # variable monitors
-          for k in self.monitors.keys():
-            returns[k].append(bm.as_jax(self.variables[k]))
-        returns = {k: bm.asarray(returns[k]) for k in returns.keys()}
-        return returns
-    self.step_func = _loop_func
-
-  def _step(self, t):
-
+  def _step_fun_integrator(self, static_args, dyn_args, t, i):
     # arguments
-    kwargs = dict()
-    kwargs.update(self.variables)
-    kwargs.update({'t': t, 'dt': self.dt})
-    kwargs.update(self._static_args)
-    if len(self._dyn_args) > 0:
-      kwargs.update({k: v[self.idx.value] for k, v in self._dyn_args.items()})
-      self.idx += 1
+    kwargs = Collector(dt=self.dt, t=t)
+    kwargs.update(static_args)
+    kwargs.update(dyn_args)
+    kwargs.update({k: v.value for k, v in self.variables.items()})
 
     # call integrator function
     update_values = self.target(**kwargs)
@@ -262,15 +257,23 @@ class IntegratorRunner(Runner):
       id_tap(lambda *args: self._pbar.update(), ())
 
     # return of function monitors
+    shared = dict(t=t + self.dt, dt=self.dt, i=i)
     returns = dict()
-    for key, func in self.fun_monitors.items():
-      returns[key] = func(t + self.dt, self.dt)
-    for k in self.monitors.keys():
-      returns[k] = self.variables[k].value
-
+    for k, v in self._monitors.items():
+      if callable(v):
+        returns[k] = bm.as_jax(v(shared))
+      else:
+        returns[k] = self.variables[k].value
     return returns
 
-  def run(self, duration, start_t=None, eval_time=False):
+  def run(
+      self,
+      duration: float,
+      start_t: float = None,
+      eval_time: bool = False,
+      args: Dict = None,
+      dyn_args: Dict = None,
+  ):
     """The running function.
 
     Parameters
@@ -281,19 +284,39 @@ class IntegratorRunner(Runner):
       The start time to simulate.
     eval_time: bool
       Evaluate the running time or not?
+    args: dict
+      The equation arguments to update.
+      .. versionadded:: 2.3.1
+
+    dyn_args: dict
+      The dynamically changed arguments over time. The size of first dimension should be
+      equal to the running ``duration``.
+
+      .. versionadded:: 2.3.1
+
     """
-    if len(self._dyn_args) > 0:
-      self.dyn_vars['_idx'][0] = 0
+    args = dict() if args is None else args
+    dyn_args = dict() if dyn_args is None else dyn_args
+    assert isinstance(args, dict), f'"args" must be a dict, but we got {type(args)}: {args}'
+    assert isinstance(dyn_args, dict), f'"dyn_args" must be a dict, but we got {type(dyn_args)}: {dyn_args}'
+    args.update(self._static_args)
+    dyn_args.update(self._dyn_args)
 
     # time step
     if start_t is None:
-      if self._start_t is None:
-        start_t = 0.
-      else:
-        start_t = float(self._start_t)
-    end_t = float(start_t + duration)
+      start_t = self.start_t[0]
+    end_t = start_t + duration
     # times
     times = bm.arange(start_t, end_t, self.dt).value
+    indices = bm.arange(times.size).value + self.idx
+
+    _dyn_args, _ = tree_flatten(dyn_args)
+    for _d in _dyn_args:
+      if jnp.shape(_d)[0] != times.size:
+        raise ValueError(f'The shape of `dyn_args` does not match the given duration. '
+                         f'{jnp.shape(_d)[0]} != {times.size} (duration={duration}, dt={self.dt}).')
+      del _d
+    del _dyn_args
 
     # running
     if self.progress_bar:
@@ -302,7 +325,7 @@ class IntegratorRunner(Runner):
                                  refresh=True)
     if eval_time:
       t0 = time.time()
-    hists = self.step_func(times)
+    hists = self._run_fun_integration(args, dyn_args, times, indices)
     if eval_time:
       running_time = time.time() - t0
     if self.progress_bar:
@@ -317,6 +340,7 @@ class IntegratorRunner(Runner):
     self.mon.ts = times
     for key in hists.keys():
       self.mon[key] = hists[key]
-    self._start_t = end_t
+    self.start_t[0] = end_t
+    self.idx[0] += times.size
     if eval_time:
       return running_time

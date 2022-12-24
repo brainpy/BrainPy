@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import warnings
 from typing import Union, Callable, Optional
 
 import jax.numpy as jnp
@@ -8,7 +7,6 @@ import numpy as np
 import brainpy.math as bm
 from brainpy.tools.others import to_size
 from brainpy.types import Shape, ArrayType
-from brainpy.modes import Mode, NormalMode, BatchingMode
 from .base import Initializer
 
 __all__ = [
@@ -98,7 +96,7 @@ def init_param(
 def variable_(
     data: Union[Callable, ArrayType],
     size: Shape = None,
-    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
 ):
   """Initialize variables. Same as `variable()`.
@@ -132,7 +130,7 @@ def variable_(
 
 def variable(
     data: Union[Callable, ArrayType],
-    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     size: Shape = None,
     batch_axis: int = 0,
 ):
@@ -166,9 +164,9 @@ def variable(
   if callable(data):
     if size is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
-    if isinstance(batch_size_or_mode, NormalMode):
+    if isinstance(batch_size_or_mode, bm.NonBatchingMode):
       return bm.Variable(data(size))
-    elif isinstance(batch_size_or_mode, BatchingMode):
+    elif isinstance(batch_size_or_mode, bm.BatchingMode):
       new_shape = size[:batch_axis] + (1,) + size[batch_axis:]
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
@@ -183,9 +181,9 @@ def variable(
     if size is not None:
       if bm.shape(data) != size:
         raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {size}')
-    if isinstance(batch_size_or_mode, NormalMode):
+    if isinstance(batch_size_or_mode, bm.NonBatchingMode):
       return bm.Variable(data)
-    elif isinstance(batch_size_or_mode, BatchingMode):
+    elif isinstance(batch_size_or_mode, bm.BatchingMode):
       return bm.Variable(bm.expand_dims(data, axis=batch_axis), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(data)

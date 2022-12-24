@@ -2,16 +2,16 @@
 
 import gc
 import types
+import warnings
 from typing import Callable, Dict, Sequence, Union
 
 import numpy as np
 
 from brainpy import math as bm
 from brainpy.base import BrainPyObject
-from brainpy.base.collector import ArrayCollector
 from brainpy.errors import MonitorError, RunningError
+from brainpy.tools import DotDict
 from brainpy.tools.checking import check_dict_data
-from brainpy.tools.others import DotDict
 from . import constants as C
 
 __all__ = [
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-class Runner(object):
+class Runner(BrainPyObject):
   """Base Runner.
 
   Parameters
@@ -30,23 +30,29 @@ class Runner(object):
   monitors: None, sequence of str, dict, Monitor
     Variables to monitor.
 
-    - A list of string. Like `monitors=['a', 'b', 'c']`
-    - A list of string with index specification. Like `monitors=[('a', 1), ('b', [1,3,5]), 'c']`
-    - A dict with the explicit monitor target, like: `monitors={'a': model.spike, 'b': model.V}`
-    - A dict with the index specification, like: `monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}`
+    - A list of string. Like ``monitors=['a', 'b', 'c']``
+    - A list of string with index specification. Like ``monitors=[('a', 1), ('b', [1,3,5]), 'c']``
+    - A dict with the explicit monitor target, like: ``monitors={'a': model.spike, 'b': model.V}``
+    - A dict with the index specification, like: ``monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}``
+    - A dict with the callable function, like ``monitors={'a': lambda tdi: model.spike[:5]}``
+
+    .. versionchanged:: 2.3.1
+       ``func_monitors`` are merged into ``monitors``.
 
   fun_monitors: dict
-    Monitoring variables by callable functions. Should be a dict.
+    Monitoring variables by a dict of callable functions.
     The `key` should be a string for later retrieval by `runner.mon[key]`.
     The `value` should be a callable function which receives two arguments: `t` and `dt`.
 
+    .. deprecated:: 2.3.1
+       Use ``monitors`` instead.
   jit: bool, dict
     The JIT settings.
 
   progress_bar: bool
     Use progress bar to report the running progress or not?
 
-  dyn_vars: Optional, dict
+  dyn_vars: Optional, Variable, sequence of Variable, dict
     The dynamically changed variables. Instance of :py:class:`~.Variable`.
 
   numpy_mon_after_run : bool
@@ -69,13 +75,15 @@ class Runner(object):
       fun_monitors: Dict[str, Callable] = None,
       jit: Union[bool, Dict[str, bool]] = True,
       progress_bar: bool = True,
-      dyn_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
       numpy_mon_after_run: bool = True
   ):
+    super().__init__()
     # target model, while implement __call__ function
     self.target = target
 
     # jit instruction
+    self._origin_jit = jit
     self.jit = dict()
     if isinstance(jit, bool):
       self.jit = {C.PREDICT_PHASE: jit}
@@ -86,6 +94,7 @@ class Runner(object):
     else:
       raise ValueError(f'Unknown "jit" setting: {jit}')
 
+    # monitor construction
     if monitors is None:
       monitors = dict()
     elif isinstance(monitors, (list, tuple)):
@@ -123,17 +132,19 @@ class Runner(object):
     else:
       raise MonitorError(f'We only supports a format of list/tuple/dict of '
                          f'"vars", while we got {type(monitors)}.')
-    self.monitors = monitors
+    self._monitors: dict = monitors
 
-    # extra monitors
-    if fun_monitors is None:
-      fun_monitors = dict()
-    check_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
-    self.fun_monitors = fun_monitors
+    # deprecated func_monitors
+    if fun_monitors is not None:
+      if isinstance(fun_monitors, dict):
+        warnings.warn("`func_monitors` is deprecated since version 2.3.1. "
+                      "Define `func_monitors` in `monitors`")
+      check_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
+      self._monitors.update(fun_monitors)
 
     # monitor for user access
     self.mon = DotDict()
-    self.mon['var_names'] = tuple(self.monitors.keys()) + tuple(self.fun_monitors.keys())
+    self.mon['var_names'] = tuple(self._monitors.keys())
 
     # progress bar
     assert isinstance(progress_bar, bool), 'Must be a boolean variable.'
@@ -143,24 +154,11 @@ class Runner(object):
     # dynamical changed variables
     if dyn_vars is None:
       dyn_vars = dict()
-    if isinstance(dyn_vars, (list, tuple)):
-      dyn_vars = {f'_v{i}': v for i, v in enumerate(dyn_vars)}
-    if not isinstance(dyn_vars, dict):
-      raise RunningError(f'"dyn_vars" must be a dict, but we got {type(dyn_vars)}')
-    self.dyn_vars = ArrayCollector(dyn_vars)
+    self._dyn_vars = dyn_vars
+    self.register_implicit_vars(dyn_vars)
 
     # numpy mon after run
     self.numpy_mon_after_run = numpy_mon_after_run
-
-  def format_monitors(self):
-    return_with_idx = dict()
-    return_without_idx = dict()
-    for key, (variable, idx) in self.monitors.items():
-      if idx is None:
-        return_without_idx[key] = variable
-      else:
-        return_with_idx[key] = (variable, bm.asarray(idx))
-    return return_without_idx, return_with_idx
 
   def _format_seq_monitors(self, monitors):
     if not isinstance(monitors, (tuple, list)):
@@ -217,9 +215,6 @@ class Runner(object):
               raise MonitorError(f'Cannot find {key} in {master}, please check.')
           monitors[key] = (getattr(master, splits[-1]), index)
     return monitors
-
-  def _build_monitors(self, return_without_idx, return_with_idx, shared_args) -> Callable:
-    raise NotImplementedError
 
   def __del__(self):
     if hasattr(self, 'mon'):

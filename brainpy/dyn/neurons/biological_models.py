@@ -3,13 +3,12 @@
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
+from brainpy import check
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
-from brainpy.modes import Mode, BatchingMode, NormalMode, normal, check_mode
-from brainpy.tools.checking import check_initializer
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -212,14 +211,16 @@ class HH(NeuGroup):
       name: str = None,
 
       # training parameter
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(HH, self).__init__(size=size,
                              keep_size=keep_size,
                              name=name,
                              mode=mode)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
+    check.check_mode(self.mode,
+                     (bm.BatchingMode, bm.NonBatchingMode),
+                     self.__class__.__name__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -233,28 +234,28 @@ class HH(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=4)
 
     # initializers
-    check_initializer(m_initializer, 'm_initializer', allow_none=True)
-    check_initializer(h_initializer, 'h_initializer', allow_none=True)
-    check_initializer(n_initializer, 'n_initializer', allow_none=True)
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.check_initializer(m_initializer, 'm_initializer', allow_none=True)
+    check.check_initializer(h_initializer, 'h_initializer', allow_none=True)
+    check.check_initializer(n_initializer, 'n_initializer', allow_none=True)
+    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._m_initializer = m_initializer
     self._h_initializer = h_initializer
     self._n_initializer = n_initializer
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable_(self._V_initializer, self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
     self.m = (bm.Variable(self.m_inf(self.V.value))
               if m_initializer is None else
-              variable_(self._m_initializer, self.varshape, mode))
+              variable_(self._m_initializer, self.varshape, self.mode))
     self.h = (bm.Variable(self.h_inf(self.V.value))
               if h_initializer is None else
-              variable_(self._h_initializer, self.varshape, mode))
+              variable_(self._h_initializer, self.varshape, self.mode))
     self.n = (bm.Variable(self.n_inf(self.V.value))
               if n_initializer is None else
-              variable_(self._n_initializer, self.varshape, mode))
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+              variable_(self._n_initializer, self.varshape, self.mode))
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -420,14 +421,14 @@ class MorrisLecar(NeuGroup):
       name: str = None,
 
       # training parameter
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(MorrisLecar, self).__init__(size=size,
                                       keep_size=keep_size,
                                       name=name,
                                       mode=mode)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -446,16 +447,16 @@ class MorrisLecar(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(W_initializer, 'W_initializer', allow_none=False)
+    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.check_initializer(W_initializer, 'W_initializer', allow_none=False)
     self._W_initializer = W_initializer
     self._V_initializer = V_initializer
 
     # variables
-    self.W = variable_(self._W_initializer, self.varshape, mode)
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.W = variable_(self._W_initializer, self.varshape, self.mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -678,14 +679,14 @@ class PinskyRinzelModel(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(PinskyRinzelModel, self).__init__(size=size,
                                             keep_size=keep_size,
                                             name=name,
                                             mode=mode)
-    check_mode(self.mode, (NormalMode, BatchingMode), self.__class__)
+    check.check_mode(self.mode, (bm.NonBatchingMode, bm.BatchingMode), self.__class__)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -710,24 +711,24 @@ class PinskyRinzelModel(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=8)
 
     # initializers
-    check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
-    check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
-    check_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
+    check.check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
+    check.check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
+    check.check_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
     self._Vs_initializer = Vs_initializer
     self._Vd_initializer = Vd_initializer
     self._Ca_initializer = Ca_initializer
 
     # variables
-    self.Vs = variable_(self._Vs_initializer, self.varshape, mode)
-    self.Vd = variable_(self._Vd_initializer, self.varshape, mode)
-    self.Ca = variable_(self._Ca_initializer, self.varshape, mode)
-    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.Id = variable_(bm.zeros, self.varshape, mode)  # input to soma
-    self.Is = variable_(bm.zeros, self.varshape, mode)  # input to dendrite
+    self.Vs = variable_(self._Vs_initializer, self.varshape, self.mode)
+    self.Vd = variable_(self._Vd_initializer, self.varshape, self.mode)
+    self.Ca = variable_(self._Ca_initializer, self.varshape, self.mode)
+    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.Id = variable_(bm.zeros, self.varshape, self.mode)  # input to soma
+    self.Is = variable_(bm.zeros, self.varshape, self.mode)  # input to dendrite
     # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
@@ -740,7 +741,7 @@ class PinskyRinzelModel(NeuGroup):
     self.Vd.value = variable_(self._Vd_initializer, self.varshape, batch_size)
     self.Vs.value = variable_(self._Vs_initializer, self.varshape, batch_size)
     self.Ca.value = variable_(self._Ca_initializer, self.varshape, batch_size)
-    batch_axis = 0 if isinstance(self.mode, BatchingMode) else None
+    batch_axis = 0 if isinstance(self.mode, bm.BatchingMode) else None
     self.h.value = bm.Variable(self.inf_h(self.Vs), batch_axis=batch_axis)
     self.n.value = bm.Variable(self.inf_n(self.Vs), batch_axis=batch_axis)
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
@@ -990,11 +991,11 @@ class WangBuzsakiModel(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -1009,19 +1010,19 @@ class WangBuzsakiModel(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # initializers
-    check_initializer(h_initializer, 'h_initializer', allow_none=False)
-    check_initializer(n_initializer, 'n_initializer', allow_none=False)
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.check_initializer(h_initializer, 'h_initializer', allow_none=False)
+    check.check_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._h_initializer = h_initializer
     self._n_initializer = n_initializer
     self._V_initializer = V_initializer
 
     # variables
-    self.h = variable_(self._h_initializer, self.varshape, mode)
-    self.n = variable_(self._n_initializer, self.varshape, mode)
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.h = variable_(self._h_initializer, self.varshape, self.mode)
+    self.n = variable_(self._n_initializer, self.varshape, self.mode)
+    self.V = variable_(self._V_initializer, self.varshape,self. mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape,self. mode)
 
     # integral
     if self.noise is None:

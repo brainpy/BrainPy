@@ -6,12 +6,10 @@ import jax.numpy as jnp
 from jax import vmap
 
 import brainpy.math as bm
-from brainpy.dyn.base import SynConn, SynOut
-from brainpy.dyn.synouts import CUBA
-from brainpy.initialize import Initializer
+from brainpy.dyn.base import SynConn
 from brainpy.dyn.neurons.input_groups import InputGroup, OutputGroup
-from brainpy.modes import Mode, TrainingMode, normal
-from brainpy.tools.checking import check_sequence
+from brainpy.initialize import Initializer
+from brainpy.check import check_sequence
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -49,7 +47,7 @@ class DelayCoupling(SynConn):
       delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(DelayCoupling, self).__init__(name=name,
                                         mode=mode,
@@ -164,7 +162,7 @@ class DiffusiveCoupling(DelayCoupling):
       delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     if not isinstance(coupling_var1, bm.Variable):
       raise ValueError(f'"coupling_var1" must be an instance of brainpy.math.Variable. '
@@ -202,7 +200,7 @@ class DiffusiveCoupling(DelayCoupling):
                    bm.expand_dims(self.coupling_var2, axis=axis - 1))
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'array':
-      if isinstance(self.mode, TrainingMode):
+      if isinstance(self.mode, bm.TrainingMode):
         indices = (slice(None, None, None), bm.arange(self.coupling_var1.size),)
       else:
         indices = (bm.arange(self.coupling_var1.size),)
@@ -256,7 +254,7 @@ class AdditiveCoupling(DelayCoupling):
       delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
       initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     if not isinstance(coupling_var, bm.Variable):
       raise ValueError(f'"coupling_var" must be an instance of brainpy.math.Variable. '
@@ -285,7 +283,7 @@ class AdditiveCoupling(DelayCoupling):
     if self.delay_steps is None:
       additive = self.coupling_var @ self.conn_mat
     elif self.delay_type == 'array':
-      if isinstance(self.mode, TrainingMode):
+      if isinstance(self.mode, bm.TrainingMode):
         indices = (slice(None, None, None), bm.arange(self.coupling_var.size),)
       else:
         indices = (bm.arange(self.coupling_var.size),)

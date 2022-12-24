@@ -15,9 +15,9 @@ from brainpy import optimizers as optim, losses
 from brainpy.analysis import utils, base, constants
 from brainpy.base import ArrayCollector
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.dyn.runners import build_inputs, check_and_format_inputs
+from brainpy.dyn.runners import check_and_format_inputs, _f_ops
 from brainpy.errors import AnalyzerError, UnsupportedError
-from brainpy.tools.others.dicts import DotDict
+from brainpy.tools import DotDict
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -58,54 +58,51 @@ class SlowPointFinder(base.DSAnalyzer):
 
   f_loss: callable
     The loss function.
-    - If ``f_type`` is `"discrete"`, the loss function must receive three arguments, i.e.,
-      ``loss(outputs, targets, axis)``.
-    - If ``f_type`` is `"continuous"`, the loss function must receive two arguments, i.e.,
-      ``loss(outputs, axis)``.
+    - If ``f_type`` is `"discrete"`, the loss function must receive three
+      arguments, i.e., ``loss(outputs, targets, axis)``.
+    - If ``f_type`` is `"continuous"`, the loss function must receive two
+      arguments, i.e., ``loss(outputs, axis)``.
 
     .. versionadded:: 2.2.0
-
   t: float
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The time to evaluate the fixed points. Default is 0.
 
     .. versionadded:: 2.2.0
-
   dt: float
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The numerical integration step, which can be used when .
     The default is given by `brainpy.math.get_dt()`.
 
     .. versionadded:: 2.2.0
-
-  inputs: sequence
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+  inputs: sequence, callable
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     Same as ``inputs`` in :py:class:`~.DSRunner`.
 
     .. versionadded:: 2.2.0
-
   excluded_vars: sequence, dict
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The excluded variables (can be a sequence of  `Variable` instances).
     These variables will not be included for optimization of fixed points.
 
     .. versionadded:: 2.2.0
-
   target_vars: dict
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The target variables (can be a dict of `Variable` instances).
     These variables will be included for optimization of fixed points.
     The candidate points later provided should have same keys as in ``target_vars``.
 
     .. versionadded:: 2.2.0
-
   f_loss_batch : callable, function
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The function to compute the loss.
 
     .. deprecated:: 2.2.0
        Has been removed. Please use ``f_loss`` to set different loss function.
+  fun_inputs: callable
 
+    .. deprecated:: 2.3.1
+       Will be removed since version 2.4.0.
   """
 
   def __init__(
@@ -118,7 +115,6 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # parameters for `f_cell` is DynamicalSystem instance
       inputs: Sequence = None,
-      fun_inputs: Callable = None,
       t: float = None,
       dt: float = None,
       target_vars: Dict[str, bm.Variable] = None,
@@ -126,6 +122,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # deprecated
       f_loss_batch: Callable = None,
+      fun_inputs: Callable = None,
   ):
     super(SlowPointFinder, self).__init__()
 
@@ -174,13 +171,13 @@ class SlowPointFinder(base.DSAnalyzer):
               self.target_vars.pop(key)
 
       # input function
-      if inputs is not None:
-        inputs = check_and_format_inputs(host=self.target, inputs=inputs)
-        _input_step, _has_iter = build_inputs(inputs, fun_inputs)
-        if _has_iter:
-          raise UnsupportedError(f'Do not support iterable inputs when using fixed point finder.')
+      if callable(inputs):
+        self._inputs = inputs
       else:
-        _input_step = None
+        if inputs is None:
+          self._inputs = None
+        else:
+          self._inputs = check_and_format_inputs(host=self.target, inputs=inputs)
 
       # check included variables
       for var in self.target_vars.values():
@@ -192,7 +189,7 @@ class SlowPointFinder(base.DSAnalyzer):
                              f'for your system.')
 
       # update function
-      self.f_cell = self._generate_ds_cell_function(self.target, t, dt, _input_step)
+      self.f_cell = self._generate_ds_cell_function(self.target, t, dt)
 
       # check function type
       if f_type is not None:
@@ -213,6 +210,7 @@ class SlowPointFinder(base.DSAnalyzer):
       if inputs is not None:
         raise UnsupportedError('Do not support "inputs" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
+      self._inputs = inputs
       if t is not None:
         raise UnsupportedError('Do not support "t" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
@@ -640,6 +638,25 @@ class SlowPointFinder(base.DSAnalyzer):
                              'L': L})
     return decompositions
 
+  def _step_func_input(self, shared):
+    if self._inputs is None:
+      return
+    elif callable(self._inputs):
+      self._inputs(shared)
+    else:
+      for ops, values in self._inputs['fixed'].items():
+        for var, data in values:
+          _f_ops(ops, var, data)
+      for ops, values in self._inputs['array'].items():
+        if len(values) > 0:
+          raise UnsupportedError
+      for ops, values in self._inputs['functional'].items():
+        for var, data in values:
+          _f_ops(ops, var, data(shared))
+      for ops, values in self._inputs['iterated'].items():
+        if len(values) > 0:
+          raise UnsupportedError
+
   def _get_f_eval_loss(self, ):
     name = 'f_eval_loss'
     if name not in self._opt_functions:
@@ -714,7 +731,6 @@ class SlowPointFinder(base.DSAnalyzer):
       self, target,
       t: float = None,
       dt: float = None,
-      f_input: Callable = None
   ):
     if dt is None: dt = bm.get_dt()
     if t is None: t = 0.
@@ -733,8 +749,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # add inputs
       target.clear_input()
-      if f_input is not None:
-        f_input(shared)
+      self._step_func_input(shared)
 
       # call update functions
       args = (shared,) + self.args

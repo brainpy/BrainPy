@@ -7,7 +7,6 @@ from typing import Union, Tuple, Optional, Sequence
 from brainpy import math as bm, tools
 from .base import Layer
 from brainpy.initialize import Initializer, XavierNormal, ZeroInit, parameter
-from brainpy.modes import Mode, TrainingMode, training
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -94,7 +93,7 @@ class GeneralConv(Layer):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(GeneralConv, self).__init__(name=name, mode=mode)
@@ -137,7 +136,7 @@ class GeneralConv(Layer):
     bias_shape = (1,) * len(self.kernel_size) + (self.out_channels,)
     self.w = parameter(self.w_init, kernel_shape)
     self.b = parameter(self.b_init, bias_shape)
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
 
@@ -222,7 +221,7 @@ class Conv1D(GeneralConv):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv1D, self).__init__(num_spatial_dims=1,
@@ -305,7 +304,7 @@ class Conv2D(GeneralConv):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv2D, self).__init__(num_spatial_dims=2,
@@ -388,7 +387,7 @@ class Conv3D(GeneralConv):
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv3D, self).__init__(num_spatial_dims=3,

@@ -4,12 +4,12 @@ import importlib
 import inspect
 import os
 
-from brainpy.math import (activations, setting, delayvars, operators)
+from brainpy.math import (activations, delayvars, operators)
 from brainpy.math.object_transform import jit, autograd, controls, parallels, function
 
 block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
 for module in [jit, autograd, controls, activations, parallels, function,
-               setting, delayvars, operators]:
+               delayvars, operators]:
   for k in dir(module):
     if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
       block_list.append(k)
@@ -172,20 +172,6 @@ def _section(header, numpy_mod, brainpy_mod, jax_mod, klass=None, is_jax=False):
   return buf
 
 
-def generate_algorithm_docs(path='apis/auto/algorithms/'):
-  if not os.path.exists(path): os.makedirs(path)
-
-  write_module(module_name='brainpy.algorithms.offline',
-               filename=os.path.join(path, 'offline.rst'),
-               header='Offline Training Algorithms')
-  write_module(module_name='brainpy.algorithms.online',
-               filename=os.path.join(path, 'online.rst'),
-               header='Online Training Algorithms')
-  write_module(module_name='brainpy.algorithms.utils',
-               filename=os.path.join(path, 'utils.rst'),
-               header='Training Algorithm Utilities')
-
-
 def generate_analysis_docs(path='apis/auto/analysis/'):
   if not os.path.exists(path):
     os.makedirs(path)
@@ -260,9 +246,12 @@ def generate_dyn_docs(path='apis/auto/dyn/'):
   write_module(module_name='brainpy.dyn.base',
                filename=os.path.join(path, 'base.rst'),
                header='Base Class')
+  write_module(module_name='brainpy.dyn.transform',
+               filename=os.path.join(path, 'transform.rst'),
+               header='Transform Class')
   write_module(module_name='brainpy.dyn.runners',
                filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
+               header='Runner Class')
 
   # "channels" module
   write_module(module_name='brainpy.dyn.channels.base',
@@ -377,6 +366,15 @@ def generate_inputs_docs(path='apis/auto/'):
                header='``brainpy.inputs`` module')
 
 
+def generate_encoding_docs(path='apis/auto/'):
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  write_module(module_name='brainpy.encoding',
+               filename=os.path.join(path, 'encoding.rst'),
+               header='``brainpy.encoding`` module')
+
+
 def generate_integrators_doc(path='apis/auto/integrators/'):
   if not os.path.exists(path):
     os.makedirs(path)
@@ -486,7 +484,6 @@ def generate_math_docs(path='apis/auto/math/'):
 
   module_and_name = [
     ('pre_syn_post',   '``pre-syn-post`` Transformations',),
-    ('surrogate',      'Surrogate Gradients',),
     ('op_register',    'Operator Registration',),
     ('wrap_jax',       'Other Operators',),
   ]
@@ -509,17 +506,20 @@ def generate_math_docs(path='apis/auto/math/'):
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
 
+  write_module(module_name='brainpy.math.surrogate',
+               filename=os.path.join(path, 'surrogate.rst'),
+               header='Surrogate Gradient Functions')
   write_module(module_name='brainpy.math.activations',
                filename=os.path.join(path, 'activations.rst'),
                header='Activation Functions')
   write_module(module_name='brainpy.math.ndarray',
                filename=os.path.join(path, 'variables.rst'),
                header='Math Variables')
-  write_module(module_name='brainpy.math.setting',
-               filename=os.path.join(path, 'setting.rst'),
-               header='Setting')
+  write_module(module_name='brainpy.math.environment',
+               filename=os.path.join(path, 'environment.rst'),
+               header='Environment Settings')
   write_module(module_name='brainpy.math.delayvars',
-               filename=os.path.join(path, 'delay_vars.rst'),
+               filename=os.path.join(path, 'delayvars.rst'),
                header='Delay Variables')
 
 
@@ -553,10 +553,10 @@ def generate_running_docs(path='apis/auto/'):
     os.makedirs(path)
 
   module_and_name = [
-    ('pathos_multiprocessing', 'Parallel Processing 1'),
-    ('native_multiprocessing', 'Parallel Processing 2'),
-    ('jax_multiprocessing', 'Parallel Processing 3'),
-    ('runner', 'Runners')
+    ('runner', 'Runners'),
+    ('pathos_multiprocessing', 'Parallel Processing with `pathos`'),
+    ('native_multiprocessing', 'Parallel Processing with `multiprocessing`'),
+    ('jax_multiprocessing', 'Parallel Processing with `jax`'),
   ]
   write_submodules(module_name='brainpy.running',
                    filename=os.path.join(path, 'running.rst'),
@@ -569,16 +569,28 @@ def generate_tools_docs(path='apis/auto/tools/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  write_module(module_name='brainpy.tools.checking',
-               filename=os.path.join(path, 'checking.rst'),
-               header='Type Checking')
-  write_module(module_name='brainpy.tools.codes',
-               filename=os.path.join(path, 'codes.rst'),
-               header='Code Tools')
-  write_module(module_name='brainpy.tools.others',
-               filename=os.path.join(path, 'others.rst'),
-               header='Other Tools')
-  write_module(module_name='brainpy.tools.errors',
-               filename=os.path.join(path, 'errors.rst'),
-               header='Error Tools')
+  module_and_name = [
+    ('codes', 'Code Formatting'),
+    ('dicts', 'Dot Dict Structure'),
+    ('others', 'Other Utilities'),
+  ]
+  write_submodules(module_name='brainpy.tools',
+                   filename=os.path.join(path, 'tools.rst'),
+                   header='``brainpy.tools`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
+
+def generate_algorithm_docs(path='apis/auto/algorithms/'):
+  if not os.path.exists(path): os.makedirs(path)
+
+  module_and_name = [
+    ('offline', 'Offline Training Algorithms'),
+    ('online', 'Online Training Algorithms'),
+    ('utils', 'Training Algorithm Utilities'),
+  ]
+  write_submodules(module_name='brainpy.algorithms',
+                   filename=os.path.join(path, 'algorithms.rst'),
+                   header='``brainpy.algorithms`` module',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])

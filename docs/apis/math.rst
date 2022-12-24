@@ -12,7 +12,8 @@
     auto/math/variables
     auto/math/object_transform
     auto/math/operators
-    auto/math/delay_vars
+    auto/math/surrogate
+    auto/math/delayvars
     auto/math/activations
     math/comparison
-    auto/math/setting
+    auto/math/environment
