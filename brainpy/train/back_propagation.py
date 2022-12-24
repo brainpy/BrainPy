@@ -350,14 +350,16 @@ class BPTrainer(DSTrainer):
           res = self._get_f_loss(shared_args)(x, y)
 
           # loss
-          test_epoch_metric['loss'].append(res[0])
           if self.loss_has_aux:
+            test_epoch_metric['loss'].append(res[0])
             if not isinstance(res[1], dict):
               raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
             for k, v in res[1].items():
               if k not in test_epoch_metric:
                 test_epoch_metric[k] = []
               test_epoch_metric[k].append(v)
+          else:
+            test_epoch_metric['loss'].append(res)
 
           # report
           test_i += 1
@@ -542,6 +544,8 @@ class BPFF(BPTrainer):
     return res[1:]
 
   def _step_func_predict(self, shared, x=None):
+    assert not self.time_major, f'There is no time dimension when using the trainer {self.__class__.__name__}.'
+
     # input step
     self.target.clear_input()
     self._step_func_input(shared)
