@@ -87,7 +87,7 @@ class IK_p4_markov(PotassiumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -406,8 +406,8 @@ class IKA_p4q_ss(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -701,8 +701,8 @@ class IKK2_pq_ss(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -992,7 +992,7 @@ class IKNI_Ya1989(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)

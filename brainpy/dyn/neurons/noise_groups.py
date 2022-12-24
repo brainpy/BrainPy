@@ -62,7 +62,7 @@ class OUProcess(NeuGroup):
     self.tau = init.parameter(tau, self.varshape, allow_none=False)
 
     # variables
-    self.x = init.variable_(lambda s: bm.ones(s) * self.mean, self.varshape, mode)
+    self.x = init.variable_(lambda s: bm.ones(s) * self.mean, self.varshape, self.mode)
 
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)

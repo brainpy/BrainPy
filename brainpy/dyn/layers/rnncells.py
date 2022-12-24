@@ -225,7 +225,7 @@ class GRUCell(RecurrentCell):
       self.b = bm.TrainVar(self.b) if (self.b is not None) else None
 
     # state
-    self.state = variable(bm.zeros, mode, self.num_out)
+    self.state = variable(bm.zeros, self.mode, self.num_out)
     if train_state and isinstance(self.mode, bm.TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
@@ -359,7 +359,7 @@ class LSTMCell(RecurrentCell):
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
     # state
-    self.state = variable(bm.zeros, mode, self.num_out * 2)
+    self.state = variable(bm.zeros, self.mode, self.num_out * 2)
     if train_state and isinstance(self.mode, bm.TrainingMode):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out * 2,), allow_none=False))
       self.state[:] = self.state2train

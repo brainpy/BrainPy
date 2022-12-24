@@ -73,8 +73,8 @@ class INa_p3q_markov(SodiumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)

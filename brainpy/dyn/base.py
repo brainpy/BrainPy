@@ -1229,9 +1229,9 @@ class CondNeuGroup(NeuGroup, Container):
     self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # variables
-    self.V = variable(V_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), mode, self.varshape)
+    self.V = variable(V_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), self.mode, self.varshape)
 
     # function
     if self.noise is None:

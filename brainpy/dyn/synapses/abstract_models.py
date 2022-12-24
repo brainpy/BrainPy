@@ -509,8 +509,8 @@ class DualExponential(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.h = variable_(bm.zeros, self.pre.num, mode)
-    self.g = variable_(bm.zeros, self.pre.num, mode)
+    self.h = variable_(bm.zeros, self.pre.num, self.mode)
+    self.g = variable_(bm.zeros, self.pre.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -858,8 +858,8 @@ class NMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable_(bm.zeros, self.pre.num, mode)
-    self.x = variable_(bm.zeros, self.pre.num, mode)
+    self.g = variable_(bm.zeros, self.pre.num, self.mode)
+    self.x = variable_(bm.zeros, self.pre.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral

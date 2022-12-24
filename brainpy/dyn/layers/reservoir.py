@@ -179,7 +179,7 @@ class Reservoir(Layer):
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
     # initialize state
-    self.state = variable(bm.zeros, mode, self.output_shape)
+    self.state = variable(bm.zeros, self.mode, self.output_shape)
 
   def reset_state(self, batch_size=None):
     self.state.value = variable(bm.zeros, batch_size, self.output_shape)

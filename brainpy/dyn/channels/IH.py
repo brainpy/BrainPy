@@ -75,7 +75,7 @@ class Ih_HM1992(IhChannel):
     self.E = parameter(E, self.varshape, allow_none=False)
 
     # variable
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -199,9 +199,9 @@ class Ih_De1996(IhChannel, CalciumChannel):
     self.g_inc = parameter(g_inc, self.varshape, allow_none=False)
 
     # variable
-    self.O = variable(bm.zeros, mode, self.varshape)
-    self.OL = variable(bm.zeros, mode, self.varshape)
-    self.P1 = variable(bm.zeros, mode, self.varshape)
+    self.O = variable(bm.zeros, self.mode, self.varshape)
+    self.OL = variable(bm.zeros, self.mode, self.varshape)
+    self.P1 = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dO, self.dOL, self.dP1), method=method)

@@ -190,7 +190,7 @@ class PoissonGroup(NeuGroup):
     self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
     self.rng = bm.random.RandomState(seed)
 
   def update(self, tdi, x=None):

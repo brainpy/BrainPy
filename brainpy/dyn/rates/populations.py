@@ -3,12 +3,12 @@
 from typing import Union, Callable
 
 from brainpy import check, math as bm
+from brainpy.check import check_float, check_initializer, check_error_in_jit
 from brainpy.dyn.base import NeuGroup
 from brainpy.dyn.neurons.noise_groups import OUProcess
 from brainpy.initialize import Initializer, Uniform, parameter, variable, ZeroInit
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.check import check_float, check_initializer, check_error_in_jit
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -121,10 +121,10 @@ class FHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -306,11 +306,11 @@ class FeedbackFHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -500,10 +500,10 @@ class QIF(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -636,10 +636,10 @@ class StuartLandauOscillator(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -797,10 +797,10 @@ class WilsonCowanModel(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -940,10 +940,10 @@ class ThresholdLinearModel(RateModel):
     self._i_initializer = i_initializer
 
     # variables
-    self.e = variable(e_initializer, mode, self.varshape)  # Firing rate of excitatory population
-    self.i = variable(i_initializer, mode, self.varshape)  # Firing rate of inhibitory population
-    self.Ie = variable(bm.zeros, mode, self.varshape)  # Input of excitaory population
-    self.Ii = variable(bm.zeros, mode, self.varshape)  # Input of inhibitory population
+    self.e = variable(e_initializer, self.mode, self.varshape)  # Firing rate of excitatory population
+    self.i = variable(i_initializer, self.mode, self.varshape)  # Firing rate of inhibitory population
+    self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
+    self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
     if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
       self.rng = bm.random.RandomState(self.seed)
 

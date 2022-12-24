@@ -99,7 +99,7 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)

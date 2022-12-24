@@ -121,9 +121,9 @@ class CalciumDyna(Calcium):
     self._constant = self.R / (2 * self.F) * (273.15 + self.T)
 
     # variables
-    self.C = variable(C_initializer, mode, self.varshape)  # Calcium concentration
+    self.C = variable(C_initializer, self.mode, self.varshape)  # Calcium concentration
     self.E = bm.Variable(self._reversal_potential(self.C),
-                         batch_axis=0 if isinstance(mode, bm.BatchingMode) else None)  # Reversal potential
+                         batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)  # Reversal potential
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -395,8 +395,8 @@ class ICa_p2q_ss(CalciumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -488,8 +488,8 @@ class ICa_p2q_markov(CalciumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -590,7 +590,7 @@ class ICaN_IS2008(CalciumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -884,8 +884,8 @@ class ICaHT_HM1992(ICa_p2q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)

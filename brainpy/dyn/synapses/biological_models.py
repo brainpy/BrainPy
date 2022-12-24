@@ -183,8 +183,8 @@ class AMPA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
+    self.g = variable(bm.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # functions
@@ -535,9 +535,9 @@ class BioNMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.pre.num)
-    self.x = variable(bm.zeros, mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
+    self.g = variable(bm.zeros, self.mode, self.pre.num)
+    self.x = variable(bm.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
