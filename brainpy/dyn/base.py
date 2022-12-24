@@ -1135,7 +1135,7 @@ class TwoEndConn(SynConn):
 
   def _syn2post_with_all2all(self, syn_value, syn_weight):
     if bm.ndim(syn_weight) == 0:
-      if isinstance(self.mode, bm.batching_mode):
+      if isinstance(self.mode, bm.BatchingMode):
         post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
         post_vs = bm.sum(syn_value)
