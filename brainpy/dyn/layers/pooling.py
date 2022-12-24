@@ -6,7 +6,6 @@ import numpy as np
 from jax import lax
 
 import brainpy.math as bm
-from brainpy.modes import Mode, training, BatchingMode
 from brainpy.types import ArrayType
 from .base import Layer
 
@@ -20,7 +19,7 @@ T = TypeVar('T')
 
 
 def _infer_shape(x: ArrayType,
-                 mode: Mode,
+                 mode: bm.Mode,
                  size: Union[T, Sequence[T]],
                  channel_axis: Optional[int] = None,
                  element: T = 1):
@@ -40,7 +39,7 @@ def _infer_shape(x: ArrayType,
     elif len(size) == x.ndim:
       return size
     else:
-      if isinstance(mode, BatchingMode):
+      if isinstance(mode, bm.BatchingMode):
         size = (element,) + size
       if len(size) + 1 == x.ndim:
         if channel_axis is None:
@@ -51,7 +50,7 @@ def _infer_shape(x: ArrayType,
       return size
 
   else:
-    if isinstance(mode, BatchingMode):
+    if isinstance(mode, bm.BatchingMode):
       return (element,) + tuple((size if d != channel_axis else element) for d in range(1, x.ndim))
     else:
       return tuple((size if d != channel_axis else element) for d in range(0, x.ndim))
@@ -88,7 +87,7 @@ class Pool(Layer):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(Pool, self).__init__(mode=mode, name=name)
@@ -148,7 +147,7 @@ class MaxPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(MaxPool, self).__init__(init_value=-bm.inf,
@@ -190,7 +189,7 @@ class MinPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(MinPool, self).__init__(init_value=bm.inf,
@@ -233,7 +232,7 @@ class AvgPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(AvgPool, self).__init__(init_value=0.,

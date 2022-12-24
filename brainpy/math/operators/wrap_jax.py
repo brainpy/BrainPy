@@ -50,6 +50,10 @@ def segment_sum(data: Union[Array, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -62,7 +66,8 @@ def segment_sum(data: Union[Array, jnp.ndarray],
                                 num_segments,
                                 indices_are_sorted,
                                 unique_indices,
-                                bucket_size, mode))
+                                bucket_size,
+                                mode))
 
 
 def segment_prod(data: Union[Array, jnp.ndarray],
@@ -97,6 +102,10 @@ def segment_prod(data: Union[Array, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -109,7 +118,8 @@ def segment_prod(data: Union[Array, jnp.ndarray],
                                  num_segments,
                                  indices_are_sorted,
                                  unique_indices,
-                                 bucket_size, mode))
+                                 bucket_size,
+                                 mode))
 
 
 def segment_max(data: Union[Array, jnp.ndarray],
@@ -144,6 +154,10 @@ def segment_max(data: Union[Array, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -156,7 +170,8 @@ def segment_max(data: Union[Array, jnp.ndarray],
                                 num_segments,
                                 indices_are_sorted,
                                 unique_indices,
-                                bucket_size, mode))
+                                bucket_size,
+                                mode))
 
 
 def segment_min(data: Union[Array, jnp.ndarray],
@@ -191,6 +206,10 @@ def segment_min(data: Union[Array, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------

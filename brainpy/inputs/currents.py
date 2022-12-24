@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm
-from brainpy.tools.checking import check_float, check_integer
+from brainpy.check import check_float, check_integer
 
 __all__ = [
   'section_input',

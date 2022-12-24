@@ -7,7 +7,7 @@ import brainpy.math as bm
 from brainpy.base.base import BrainPyObject
 from brainpy.errors import DiffEqError
 from brainpy.integrators.constants import DT
-from brainpy.tools.checking import check_float, check_dict_data
+from brainpy.check import check_float, check_dict_data
 
 __all__ = [
   'Integrator',

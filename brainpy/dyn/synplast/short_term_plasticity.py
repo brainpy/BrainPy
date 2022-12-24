@@ -5,7 +5,7 @@ from typing import Union
 import brainpy.math as bm
 from brainpy.dyn.base import SynSTP
 from brainpy.integrators import odeint, JointEq
-from brainpy.tools.checking import check_float
+from brainpy.check import check_float
 from brainpy.types import ArrayType
 from brainpy.initialize import variable
 

@@ -2,14 +2,12 @@
 
 from typing import Dict, Sequence, Any, Union
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
-from brainpy.tools.checking import check_dict_data
+from brainpy.errors import BrainPyError
+from brainpy.running import constants as c
 from brainpy.types import ArrayType, Output
-from ..running import constants as c
 
 __all__ = [
   'DSTrainer',
@@ -17,24 +15,53 @@ __all__ = [
 
 
 class DSTrainer(DSRunner):
-  """Structural Trainer for Dynamical Systems."""
+  """Structural Trainer for Dynamical Systems.
+
+  For more parameters, users should refer to :py:class:`~.DSRunner`.
+
+  Parameters
+  ----------
+  target: DynamicalSystem
+    The training target.
+
+  kwargs: Any
+    Other general parameters in :py:class:`~.DSRunner`.
+
+  """
 
   target: DynamicalSystem
+  '''The training target.'''
+
   train_nodes: Sequence[DynamicalSystem]  # need to be initialized by subclass
+  '''All children nodes in this training target.'''
 
   def __init__(
       self,
       target: DynamicalSystem,
       **kwargs
   ):
-    if not isinstance(target, (DynamicalSystem, DynamicalSystem)):
-      raise TypeError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
-                      f'but we got {type(target)}: {target}')
     super(DSTrainer, self).__init__(target=target, **kwargs)
 
+    if not isinstance(self.target.mode, bm.BatchingMode):
+      raise BrainPyError(f'''
+      From version 2.3.1, DSTrainer must receive a 
+      DynamicalSystem instance with the computing mode 
+      of subclass of {bm.batching_mode}. 
+      
+      See https://github.com/brainpy/BrainPy/releases/tag/V2.3.1
+      for the solution of how to fix this.
+      ''')
+
     # jit
-    self.jit[c.PREDICT_PHASE] = self.jit.get(c.PREDICT_PHASE, True)
-    self.jit[c.FIT_PHASE] = self.jit.get(c.FIT_PHASE, True)
+    if isinstance(self._origin_jit, bool):
+      self.jit[c.PREDICT_PHASE] = self._origin_jit
+      self.jit[c.FIT_PHASE] = self._origin_jit
+    else:
+      self.jit[c.PREDICT_PHASE] = self._origin_jit.get(c.PREDICT_PHASE, True)
+      self.jit[c.FIT_PHASE] = self._origin_jit.get(c.FIT_PHASE, True)
+
+    # training function
+    self._f_fit_compiled = dict()
 
   def predict(
       self,
@@ -44,9 +71,6 @@ class DSTrainer(DSRunner):
       eval_time: bool = False
   ) -> Output:
     """Prediction function.
-
-    What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
-    the `inputs_are_batching` is default `True`.
 
     Parameters
     ----------
@@ -64,12 +88,10 @@ class DSTrainer(DSRunner):
     output: ArrayType, sequence of ArrayType, dict of ArrayType
       The running output.
     """
-    return super(DSTrainer, self).predict(duration=None,
-                                          inputs=inputs,
-                                          inputs_are_batching=True,
-                                          reset_state=reset_state,
-                                          shared_args=shared_args,
-                                          eval_time=eval_time)
+    return super().predict(inputs=inputs,
+                           reset_state=reset_state,
+                           shared_args=shared_args,
+                           eval_time=eval_time)
 
   def fit(
       self,
@@ -78,47 +100,3 @@ class DSTrainer(DSRunner):
       shared_args: Dict = None
   ) -> Output:  # need to be implemented by subclass
     raise NotImplementedError('Must implement the fit function. ')
-
-  def _check_ys(self, ys, num_batch, num_step, move_axis=False):
-    if isinstance(ys, (bm.ndarray, jnp.ndarray)):
-      if len(self.train_nodes) == 1:
-        ys = {self.train_nodes[0].name: ys}
-      else:
-        raise ValueError(f'The network\n {self.target} \nhas {len(self.train_nodes)} '
-                         f'training nodes, while we only got one target data.')
-    check_dict_data(ys, key_type=str, val_type=(bm.ndarray, jnp.ndarray))
-
-    # check data path
-    abs_node_names = [node.name for node in self.train_nodes]
-    formatted_ys = {}
-    ys_not_included = {}
-    for k, v in ys.items():
-      if k in abs_node_names:
-        formatted_ys[k] = v
-      else:
-        ys_not_included[k] = v
-    if len(ys_not_included):
-      rel_nodes = self.target.nodes('relative', level=-1, include_self=True).subset(DynamicalSystem).unique()
-      for k, v in ys_not_included.items():
-        if k in rel_nodes:
-          formatted_ys[rel_nodes[k].name] = v
-        else:
-          raise ValueError(f'Unknown target "{k}" for fitting.')
-
-    # check data shape
-    for key, val in formatted_ys.items():
-      if val.ndim < 3:
-        raise ValueError("Targets must be a tensor with shape of "
-                         "(num_sample, num_time, feature_dim, ...), "
-                         f"but we got {val.shape}")
-      if val.shape[0] != num_batch:
-        raise ValueError(f'Batch size of the target {key} does not match '
-                         f'with the input data {val.shape[0]} != {num_batch}')
-      if val.shape[1] != num_step:
-        raise ValueError(f'The time step of the target {key} does not match '
-                         f'with the input data {val.shape[1]} != {num_step})')
-
-    if move_axis:
-      # change shape to (num_time, num_sample, num_feature)
-      formatted_ys = {k: bm.moveaxis(v, 0, 1) for k, v in formatted_ys.items()}
-    return formatted_ys

@@ -112,14 +112,14 @@ class TrajectModel(DynamicalSystem):
 
     # variables
     assert isinstance(initial_vars, dict)
-    initial_vars = {k: bm.Variable(jnp.asarray(bm.as_device_array(v), dtype=bm.dftype()))
+    initial_vars = {k: bm.Variable(jnp.asarray(bm.as_device_array(v), dtype=bm.float_))
                     for k, v in initial_vars.items()}
     self.register_implicit_vars(initial_vars)
 
     # parameters
     pars = dict() if pars is None else pars
     assert isinstance(pars, dict)
-    self.pars = [jnp.asarray(bm.as_device_array(v), dtype=bm.dftype())
+    self.pars = [jnp.asarray(bm.as_device_array(v), dtype=bm.float_)
                  for k, v in pars.items()]
 
     # integrals

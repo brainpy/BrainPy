@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
+
+import brainpy.math as bm
 
 __all__ = [
   'Mode',
@@ -16,30 +17,15 @@ __all__ = [
   'check_mode',
 ]
 
+Mode = bm.Mode
 
-class Mode(object):
-  def __repr__(self):
-    return self.__class__.__name__
+NormalMode = bm.NonBatchingMode
+BatchingMode = bm.BatchingMode
+TrainingMode = bm.TrainingMode
 
-
-class NormalMode(Mode):
-  """Normal non-batching mode."""
-  pass
-
-
-class BatchingMode(Mode):
-  """Batching mode."""
-  pass
-
-
-class TrainingMode(BatchingMode):
-  """Training mode requires data batching."""
-  pass
-
-
-normal = NormalMode()
-batching = BatchingMode()
-training = TrainingMode()
+normal = bm.nonbatching_mode
+batching = bm.batching_mode
+training = bm.training_mode
 
 
 def check_mode(mode, supported_modes, name=''):
@@ -65,5 +51,3 @@ def check_mode(mode, supported_modes, name=''):
   if not np.isin(True, checking):
     raise NotImplementedError(f"{name} does not support {mode}. We only support "
                               f"{', '.join([mode.__name__ for mode in supported_modes])}. ")
-
-

@@ -3,7 +3,7 @@
 from typing import Callable
 from typing import Optional
 
-from brainpy.modes import Mode, BatchingMode, training, batching
+import brainpy.math as bm
 from .base import Layer
 
 __all__ = [
@@ -30,7 +30,7 @@ class Activation(Layer):
       self,
       activate_fun: Callable,
       name: Optional[str] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       **kwargs,
   ):
     super().__init__(name, mode)
@@ -55,12 +55,12 @@ class Flatten(Layer):
   def __init__(
       self,
       name: Optional[str] = None,
-      mode: Mode = batching,
+      mode: bm.Mode = None,
   ):
     super().__init__(name, mode)
 
   def update(self, shr, x):
-    if isinstance(self.mode, BatchingMode):
+    if isinstance(self.mode, bm.BatchingMode):
       return x.reshape((x.shape[0], -1))
     else:
       return x.flatten()
@@ -71,7 +71,7 @@ class FunAsLayer(Layer):
       self,
       fun: Callable,
       name: Optional[str] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       **kwargs,
   ):
     super().__init__(name, mode)
@@ -79,4 +79,4 @@ class FunAsLayer(Layer):
     self.kwargs = kwargs
 
   def update(self, sha, x):
-    return self.fun(x, **self.kwargs)
+    return self._fun(x, **self.kwargs)

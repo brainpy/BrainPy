@@ -6,7 +6,6 @@ from jax import lax, numpy as jnp
 
 import brainpy.math as bm
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
-from brainpy.modes import Mode, TrainingMode, training
 from .base import Layer
 
 __all__ = [
@@ -63,7 +62,7 @@ class BatchNorm(Layer):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm, self).__init__(name=name, mode=mode)
@@ -81,7 +80,7 @@ class BatchNorm(Layer):
     self.running_mean = bm.Variable(bm.zeros(self.num_features))
     self.running_var = bm.Variable(bm.ones(self.num_features))
     if self.affine:
-      assert isinstance(self.mode, TrainingMode)
+      assert isinstance(self.mode, bm.TrainingMode)
       self.bias = bm.TrainVar(parameter(self.bias_init, self.num_features))
       self.scale = bm.TrainVar(parameter(self.scale_init, self.num_features))
 
@@ -148,7 +147,7 @@ class BatchNorm1D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm1D, self).__init__(num_features=num_features,
@@ -200,7 +199,7 @@ class BatchNorm2D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm2D, self).__init__(num_features=num_features,
@@ -252,7 +251,7 @@ class BatchNorm3D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm3D, self).__init__(num_features=num_features,
@@ -336,7 +335,7 @@ class LayerNorm(Layer):
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
       elementwise_affine: bool = True,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(LayerNorm, self).__init__(name=name, mode=mode)
@@ -350,7 +349,7 @@ class LayerNorm(Layer):
     assert all([isinstance(s, int) for s in normalized_shape]), 'Must be a sequence of integer.'
     self.elementwise_affine = elementwise_affine
     if self.elementwise_affine:
-      assert isinstance(self.mode, TrainingMode)
+      assert isinstance(self.mode, bm.TrainingMode)
       self.bias = bm.TrainVar(parameter(self.bias_init, self.normalized_shape))
       self.scale = bm.TrainVar(parameter(self.scale_init, self.normalized_shape))
 
@@ -422,7 +421,7 @@ class GroupNorm(Layer):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(GroupNorm, self).__init__(name=name, mode=mode)
@@ -435,7 +434,7 @@ class GroupNorm(Layer):
     self.bias_init = bias_init
     self.scale_init = scale_init
     if self.affine:
-      assert isinstance(self.mode, TrainingMode)
+      assert isinstance(self.mode, bm.TrainingMode)
       self.bias = bm.TrainVar(parameter(self.bias_init, self.num_channels))
       self.scale = bm.TrainVar(parameter(self.scale_init, self.num_channels))
 
@@ -484,7 +483,7 @@ class InstanceNorm(GroupNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(InstanceNorm, self).__init__(num_channels=num_channels,

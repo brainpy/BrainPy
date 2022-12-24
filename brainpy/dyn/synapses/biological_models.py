@@ -12,7 +12,6 @@ from brainpy.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
 from brainpy.dyn.synouts import COBA, MgBlock
 from brainpy.initialize import Initializer, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.modes import Mode, BatchingMode, TrainingMode, normal
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -153,7 +152,7 @@ class AMPA(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(AMPA, self).__init__(pre=pre,
@@ -184,8 +183,8 @@ class AMPA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
+    self.g = variable(bm.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # functions
@@ -217,7 +216,7 @@ class AMPA(TwoEndConn):
 
     # update synaptic variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
     self.g.value = self.integral(self.g, t, TT, dt)
@@ -239,7 +238,7 @@ class AMPA(TwoEndConn):
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -334,7 +333,7 @@ class GABAa(AMPA):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
 
       # deprecated
@@ -498,7 +497,7 @@ class BioNMDA(TwoEndConn):
       method: str = 'exp_auto',
 
       # other parameters
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None,
       stop_spike_gradient: bool = False,
   ):
@@ -536,9 +535,9 @@ class BioNMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, mode, self.pre.num)
-    self.x = variable(bm.zeros, mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, mode, self.pre.num)
+    self.g = variable(bm.zeros, self.mode, self.pre.num)
+    self.x = variable(bm.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -573,7 +572,7 @@ class BioNMDA(TwoEndConn):
 
     # update synapse variables
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
@@ -595,7 +594,7 @@ class BioNMDA(TwoEndConn):
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)

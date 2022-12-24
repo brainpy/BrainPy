@@ -11,8 +11,7 @@ from brainpy.connect import TwoEndConnector, All2All, One2One
 from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy.initialize import Initializer, variable_
 from brainpy.integrators import odeint, JointEq
-from brainpy.modes import Mode, BatchingMode, normal, NormalMode, check_mode
-from brainpy.tools.checking import check_integer, check_float
+from brainpy.check import check_integer, check_float, check_mode
 from brainpy.types import ArrayType
 from ..synouts import CUBA, MgBlock
 
@@ -100,7 +99,7 @@ class Delta(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(Delta, self).__init__(name=name,
@@ -142,10 +141,14 @@ class Delta(TwoEndConn):
 
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
+      if self.stp is not None:
+        syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
+      if self.stp is not None:
+        syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
@@ -157,7 +160,7 @@ class Delta(TwoEndConn):
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
@@ -166,7 +169,9 @@ class Delta(TwoEndConn):
         #   if self.trainable: f2 = vmap(f2)
         #   post_vs *= f2(stp_value)
       else:
-        syn_value = self.stp(bm.asarray(pre_spike, dtype=bm.dftype()))
+        syn_value = bm.asarray(pre_spike, dtype=bm.float_)
+        if self.stp is not None:
+          syn_value = self.stp(syn_value)
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     if self.post_ref_key:
       post_vs = post_vs * (1. - getattr(self.post, self.post_ref_key))
@@ -285,7 +290,7 @@ class Exponential(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(Exponential, self).__init__(pre=pre,
@@ -306,7 +311,7 @@ class Exponential(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable_(bm.zeros, self.post.num, mode)
+    self.g = variable_(bm.zeros, self.post.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
@@ -333,11 +338,11 @@ class Exponential(TwoEndConn):
 
     # post values
     if isinstance(self.conn, All2All):
-      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
       if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
       if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
@@ -350,12 +355,12 @@ class Exponential(TwoEndConn):
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
       else:
-        syn_value = bm.asarray(pre_spike, dtype=bm.dftype())
+        syn_value = bm.asarray(pre_spike, dtype=bm.float_)
         if self.stp is not None: syn_value = self.stp(syn_value)
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
@@ -476,7 +481,7 @@ class DualExponential(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(DualExponential, self).__init__(pre=pre,
@@ -504,8 +509,8 @@ class DualExponential(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.h = variable_(bm.zeros, self.pre.num, mode)
-    self.g = variable_(bm.zeros, self.pre.num, mode)
+    self.h = variable_(bm.zeros, self.pre.num, self.mode)
+    self.g = variable_(bm.zeros, self.pre.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -558,7 +563,7 @@ class DualExponential(TwoEndConn):
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -662,7 +667,7 @@ class Alpha(DualExponential):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(Alpha, self).__init__(pre=pre,
@@ -825,7 +830,7 @@ class NMDA(TwoEndConn):
 
       # other parameters
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
     super(NMDA, self).__init__(pre=pre,
@@ -853,8 +858,8 @@ class NMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable_(bm.zeros, self.pre.num, mode)
-    self.x = variable_(bm.zeros, self.pre.num, mode)
+    self.g = variable_(bm.zeros, self.pre.num, self.mode)
+    self.x = variable_(bm.zeros, self.pre.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -906,7 +911,7 @@ class NMDA(TwoEndConn):
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -945,7 +950,7 @@ class PoissonInput(SynConn):
       freq: Union[int, float],
       weight: Union[int, float],
       seed: Optional[int] = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None
   ):
     from ..neurons.input_groups import InputGroup, OutputGroup
@@ -960,7 +965,7 @@ class PoissonInput(SynConn):
     check_integer(num_input, 'num_input', min_bound=1)
     check_float(freq, 'freq', min_bound=0., allow_int=True)
     check_float(weight, 'weight', allow_int=True)
-    check_mode(mode, (NormalMode, BatchingMode), name=self.__class__.__name__)
+    check_mode(mode, (bm.NonBatchingMode, bm.BatchingMode), name=self.__class__.__name__)
 
     # parameters
     self.target_var = target_var

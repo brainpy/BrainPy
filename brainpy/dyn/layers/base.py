@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, training
 
 __all__ = [
   'Layer'
@@ -9,7 +9,7 @@ __all__ = [
 
 
 class Layer(DynamicalSystem):
-  def __init__(self, name: str = None, mode: Mode = training):
+  def __init__(self, name: str = None, mode: bm.Mode = None):
     super().__init__(name=name, mode=mode)
 
   def reset_state(self, batch_size=None):

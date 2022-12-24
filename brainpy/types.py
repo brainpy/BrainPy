@@ -7,19 +7,22 @@ import jax.numpy as jnp
 
 
 __all__ = [
-  'ArrayType', 'Parameter',
-
+  'ArrayType', 'Parameter', 'PyTree',
   'Shape',
-
   'Output', 'Monitor'
 ]
 
+
+# data
 Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'Array', 'Variable') # noqa
-ArrayType = TypeVar('Array', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
-Array = ArrayType
+ArrayType = TypeVar('ArrayType', 'Array', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
+Array = ArrayType # noqa
+PyTree = TypeVar('PyTree') # noqa
 
-Shape = TypeVar('Shape', int, Tuple[int, ...])
+# shape
+Shape = TypeVar('Shape', int, Tuple[int, ...]) # noqa
 
-Output = TypeVar('Output')
-Monitor = TypeVar('Monitor')
+# component
+Output = TypeVar('Output') # noqa
+Monitor = TypeVar('Monitor') # noqa
 
