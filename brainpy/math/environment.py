@@ -48,6 +48,8 @@ __all__ = [
 
   # context manage for environment setting
   'environment',
+  'env_batching',
+  'env_training',
 
   # others
   'form_shared_args',
@@ -478,13 +480,14 @@ class environment(_DecoratorContextManager):
     self.int_ = int_
     self.bool_ = bool_
 
-  def __enter__(self) -> None:
+  def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
     if self.mode is not None: set_mode(self.mode)
     if self.float_ is not None: set_float(self.float_)
     if self.int_ is not None: set_int(self.int_)
     if self.complex_ is not None: set_complex(self.complex_)
     if self.bool_ is not None: set_bool(self.bool_)
+    return self
 
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     if self.dt is not None: set_dt(self.old_dt)
@@ -501,3 +504,31 @@ class environment(_DecoratorContextManager):
                           complex_=self.complex_,
                           float_=self.float_,
                           int_=self.int_)
+
+
+class env_training(environment):
+  """Environment with the training mode.
+
+  """
+  def __init__(self,
+               dt: float = None,
+               complex_: type = None,
+               float_: type = None,
+               int_: type = None,
+               bool_: type = None):
+    super().__init__(dt=dt, complex_=complex_, float_=float_, int_=int_, bool_=bool_,
+                     mode=modes.TrainingMode())
+
+
+class env_batching(environment):
+  """Environment with the batching mode.
+
+  """
+  def __init__(self,
+               dt: float = None,
+               complex_: type = None,
+               float_: type = None,
+               int_: type = None,
+               bool_: type = None):
+    super().__init__(dt=dt, complex_=complex_, float_=float_, int_=int_, bool_=bool_,
+                     mode=modes.BatchingMode())
