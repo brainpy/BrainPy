@@ -1,6 +1,6 @@
 
 
-This release continues to add the supports for brain-inspired computation.
+This release continues to add supports for brain-inspired computation.
 
 
 
