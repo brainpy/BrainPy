@@ -14,17 +14,17 @@ __all__ = [
 
 def to_object(
     f: Callable = None,
-    child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
+    child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     name: str = None
-):
+) -> BrainPyObject:
   """Transform a Python function to :py:class:`~.BrainPyObject`.
 
   Parameters
   ----------
   f: function, callable
     The python function.
-  child_objs: BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject
+  child_objs: Callable, BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject
     The children objects used in this Python function.
   dyn_vars: Variable, sequence of Variable, dict of Variable
     The `Variable` instance used in the Python function.
@@ -38,7 +38,10 @@ def to_object(
   """
 
   if f is None:
-    return lambda func: FunAsObject(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+    def wrap(func) -> FunAsObject:
+      return FunAsObject(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+
+    return wrap
 
   else:
     if child_objs is None:
@@ -48,17 +51,17 @@ def to_object(
 
 def to_dynsys(
     f: Callable = None,
-    child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
+    child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     name: str = None
-):
+) -> 'FuncAsDynSys':
   """Transform a Python function to a :py:class:`~.DynamicalSystem`.
 
   Parameters
   ----------
   f: function, callable
     The python function.
-  child_objs: DynamicalSystem, sequence of DynamicalSystem, dict of DynamicalSystem
+  child_objs: Callable, DynamicalSystem, sequence of DynamicalSystem, dict of DynamicalSystem
     The children objects used in this Python function.
   dyn_vars: Variable, sequence of Variable, dict of Variable
     The `Variable` instance used in the Python function.
@@ -83,7 +86,7 @@ def to_dynsys(
 
 def function(
     f: Callable = None,
-    nodes: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
+    nodes: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     name: str = None
 ):
@@ -96,7 +99,7 @@ def function(
   ----------
   f: function, callable
     The python function.
-  nodes: BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject
+  nodes: Callable, BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject
     The children objects used in this Python function.
   dyn_vars: Variable, sequence of Variable, dict of Variable
     The `Variable` instance used in the Python function.

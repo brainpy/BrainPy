@@ -533,7 +533,8 @@ def cond(
       del_context(name)
       for v, d in zip(dyn_vars, old_values): v._value = d
       raise e
-    for v, d in zip(dyn_vars, dyn_values): v._value = d
+    else:
+      for v, d in zip(dyn_vars, dyn_values): v._value = d
   else:
     add_context(name)
     res = lax.cond(pred, true_fun, false_fun, operands)
@@ -815,7 +816,8 @@ def for_loop(
     del_context(name)
     for v, d in zip(dyn_vars, init_vals): v._value = d
     raise e
-  for v, d in zip(dyn_vars, dyn_vals): v._value = d
+  else:
+    for v, d in zip(dyn_vars, dyn_vals): v._value = d
   return out_vals
 
 
@@ -927,5 +929,6 @@ def while_loop(
     del_context(name)
     for v, d in zip(dyn_vars, dyn_init): v._value = d
     raise e
-  for v, d in zip(dyn_vars, dyn_values): v._value = d
+  else:
+    for v, d in zip(dyn_vars, dyn_values): v._value = d
   return out

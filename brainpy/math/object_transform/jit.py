@@ -83,7 +83,8 @@ class JITTransform(ObjectTransform):
         del_context(self.name)
         for key, v in self._dyn_vars.items(): v._value = variable_data[key]
         raise e
-      for key, v in self._dyn_vars.items(): v._value = changes[key]
+      else:
+        for key, v in self._dyn_vars.items(): v._value = changes[key]
       return out
 
   def __repr__(self):

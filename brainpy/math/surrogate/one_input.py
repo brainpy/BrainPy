@@ -137,7 +137,7 @@ def sigmoid(
   def grad(dz):
     sgax = sci.special.expit(x * alpha)
     dx = bm.as_jax(dz) * (1. - sgax) * sgax * alpha
-    return dx, None, None
+    return dx
 
   return z, grad
 
@@ -267,7 +267,7 @@ def piecewise_quadratic(
 
   def grad(dz):
     dx = jnp.where(jnp.abs(x) > 1 / alpha, 0., dz * (-(alpha * x) ** 2 + alpha))
-    return dx, None, None
+    return dx
 
   return z, grad
 
@@ -343,7 +343,7 @@ def piecewise_exp(
 
   def grad(dz):
     dx = (alpha / 2) * jnp.exp(-alpha * jnp.abs(x))
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -414,7 +414,7 @@ def soft_sign(
 
   def grad(dz):
     dx = alpha * 0.5 / (1 + jnp.abs(alpha * x)) ** 2
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -484,7 +484,7 @@ def arctan(
 
   def grad(dz):
     dx = alpha * 0.5 / (1 + (jnp.pi / 2 * alpha * x) ** 2)
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -567,7 +567,7 @@ def nonzero_sign_log(
 
   def grad(dz):
     dx = bm.as_jax(dz) / (1 / alpha + jnp.abs(x))
-    return dx, None, None
+    return dx
 
   return z, grad
 
@@ -647,7 +647,7 @@ def erf(
 
   def grad(dz):
     dx = (alpha / math.sqrt(math.pi)) * jnp.exp(-math.pow(alpha, 2) * x * x)
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -745,7 +745,7 @@ def piecewise_leaky_relu(
 
   def grad(dz):
     dx = jnp.where(jnp.abs(x) > w, c, 1 / w)
-    return dx * bm.as_jax(dz), None, None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -824,7 +824,7 @@ def squarewave_fourier_series(
     for i in range(2, n):
       dx += jnp.cos((2 * i - 1.) * w * x)
     dx *= 4. / t_period
-    return dx * bm.as_jax(dz), None, None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -914,7 +914,7 @@ def s2nn(
   def grad(dz):
     sg = sci.special.expit(alpha * x)
     dx = jnp.where(x < 0., alpha * sg * (1. - sg), beta / (x + 1.))
-    return dx * bm.as_jax(dz), None, None, None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -993,7 +993,7 @@ def q_pseudo_spike(
 
   def grad(dz):
     dx = jnp.power(1 + 2 / (alpha + 1) * jnp.abs(x), -alpha)
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -1072,7 +1072,7 @@ def leaky_relu(
 
   def grad(dz):
     dx = jnp.where(x < 0., alpha, beta)
-    return dx * bm.as_jax(dz), None, None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -1162,7 +1162,7 @@ def log_tailed_relu(
                    jnp.where(x > 0,
                              1.,
                              alpha))
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -1227,7 +1227,7 @@ def relu_grad(
 
   def grad(dz):
     dx = jnp.maximum(alpha * width - jnp.abs(x) * alpha, 0)
-    return dx * bm.as_jax(dz), None, None
+    return dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -1291,7 +1291,7 @@ def gaussian_grad(
 
   def grad(dz):
     dx = jnp.exp(-(x ** 2) / 2 * math.pow(sigma, 2)) / (math.sqrt(2 * bm.pi) * sigma)
-    return alpha * dx * bm.as_jax(dz), None, None
+    return alpha * dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -1367,7 +1367,7 @@ def multi_gaussian_grad(
     g2 = jnp.exp(-(x - sigma) ** 2 / (2 * math.pow(s * sigma, 2))) / (math.sqrt(2 * math.pi) * s * sigma)
     g3 = jnp.exp(-(x + sigma) ** 2 / (2 * math.pow(s * sigma, 2))) / (math.sqrt(2 * math.pi) * s * sigma)
     dx = g1 * (1. + h) - g2 * h - g3 * h
-    return scale * dx * bm.as_jax(dz), None, None, None, None
+    return scale * dx * bm.as_jax(dz)
 
   return z, grad
 
@@ -1424,7 +1424,7 @@ def inv_square_grad(
 
   def grad(dz):
     dx = bm.as_jax(dz) / (alpha * jnp.abs(x) + 1.0) ** 2
-    return dx, None
+    return dx
 
   return z, grad
 
@@ -1486,6 +1486,6 @@ def slayer_grad(
 
   def grad(dz):
     dx = bm.as_jax(dz) * jnp.exp(-alpha * jnp.abs(x))
-    return dx, None
+    return dx
 
   return z, grad

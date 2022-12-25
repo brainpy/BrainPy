@@ -409,7 +409,14 @@ def lexsort(keys, axis=-1):
   return Array(jnp.lexsort(keys, axis))
 
 
-load = wraps(jnp.load)(jnp.load)
+
+def load(file, mmap_mode=None, allow_pickle=False, fix_imports=True,
+         encoding='ASCII'):
+  return np.load(file,
+                 mmap_mode=mmap_mode,
+                 allow_pickle=allow_pickle,
+                 fix_imports=fix_imports,
+                 encoding=encoding)
 
 
 @wraps(np.save)

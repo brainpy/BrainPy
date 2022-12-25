@@ -46,10 +46,8 @@ def del_context(name=None) -> None:
     if name is not None:
       if context != name:
         raise MathError('Transformation context is different!')
-        # warnings.warn(, UserWarning)
   except IndexError:
     raise MathError('No transformation context!')
-    # warnings.warn('No transformation context!', UserWarning)
 
 
 def get_context():
