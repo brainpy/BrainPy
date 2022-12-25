@@ -42,6 +42,7 @@ class Collector(dict):
       raise ValueError(f'Only supports dict/list/tuple, but we got {type(other)}')
     for key, value in kwargs.items():
       self[key] = value
+    return self
 
   def __add__(self, other):
     """Merging two dicts.

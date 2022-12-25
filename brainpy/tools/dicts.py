@@ -94,6 +94,10 @@ class DotDict(dict):
         raise TypeError('Only support string.')
     self.attrs_not_keys += args
 
+  def update(self, *args, **kwargs):
+    super().update(*args, **kwargs)
+    return self
+
 
 register_pytree_node(
   DotDict,
