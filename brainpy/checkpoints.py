@@ -23,13 +23,18 @@ import msgpack
 import numpy as np
 from jax import process_index
 from jax import sharding
-from jax.experimental.gda_serialization.serialization import get_tensorstore_spec
 from jax.experimental.global_device_array import GlobalDeviceArray
 from jax.experimental.multihost_utils import sync_global_devices
 try:
   from jax import monitoring
-except:
+except ModuleNotFoundError:
   monitoring = None
+try:
+  from jax.experimental.gda_serialization.serialization import get_tensorstore_spec
+  from jax.experimental.gda_serialization.serialization import GlobalAsyncCheckpointManager
+except ModuleNotFoundError:
+  get_tensorstore_spec = None
+
 from brainpy import math as bm
 from brainpy.base import Collector
 from brainpy.errors import (AlreadyExistsError,
@@ -1218,7 +1223,7 @@ def multiprocess_save(
   target = to_state_dict(target)
   target, mpa_targets = _split_mp_arrays(target)
   target = msgpack_serialize(target)
-  has_mpa = len(mpa_targets) > 0
+  has_mpa = len(mpa_targets) > 0 and (get_tensorstore_spec is not None)
 
   if not overwrite:
     _check_overwrite_error(ckpt_tmp_path, ckpt_path, base_path, step)  # type: ignore
@@ -1402,8 +1407,9 @@ def load(
       checkpoint_contents = fp.read()
 
   state_dict = msgpack_restore(checkpoint_contents)
-  state_dict = _restore_mpas(state_dict, target, ckpt_path, step, gda_manager,
-                             allow_partial_mpa_restoration)
+  if (get_tensorstore_spec is not None):
+    state_dict = _restore_mpas(state_dict, target, ckpt_path, step, gda_manager,
+                               allow_partial_mpa_restoration)
 
   if target is None:
     restored_checkpoint = state_dict
