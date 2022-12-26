@@ -21,13 +21,15 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import jax
 import msgpack
 import numpy as np
-from jax import monitoring
 from jax import process_index
 from jax import sharding
 from jax.experimental.gda_serialization.serialization import get_tensorstore_spec
 from jax.experimental.global_device_array import GlobalDeviceArray
 from jax.experimental.multihost_utils import sync_global_devices
-
+try:
+  from jax import monitoring
+except:
+  monitoring = None
 from brainpy import math as bm
 from brainpy.base import Collector
 from brainpy.errors import (AlreadyExistsError,
@@ -1137,8 +1139,9 @@ def save(
   else:
     save_main_ckpt_task()
   end_time = time.time()
-  monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
-                                        end_time - start_time)
+  if jax.version.__version_info__ > (0, 3, 25):
+    monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
+                                          end_time - start_time)
   return ckpt_path
 
 
@@ -1246,8 +1249,9 @@ def multiprocess_save(
                keep, overwrite, keep_every_n_steps, start_time, async_manager)
 
   end_time = time.time()
-  monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
-                                        end_time - start_time)
+  if jax.version.__version_info__ > (0, 3, 25):
+    monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
+                                          end_time - start_time)
   return ckpt_path
 
 
@@ -1407,6 +1411,7 @@ def load(
     restored_checkpoint = from_state_dict(target, state_dict)
 
   end_time = time.time()
-  monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
+  if jax.version.__version_info__ > (0, 3, 25):
+    monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
 
   return restored_checkpoint
