@@ -28,13 +28,14 @@ class TestConv(TestCase):
       img = img.at[0, x:x + 10, y:y + 10, k].set(1.0)
       img = img.at[1, x:x + 20, y:y + 20, k].set(3.0)
 
-    net = Convnet()
-    out = net(None, img)
-    print("out shape: ", out.shape)
-    # print("First output channel:")
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(np.array(img)[0, :, :, 0])
-    # plt.show()
+    with bp.math.training_environment():
+      net = Convnet()
+      out = net(None, img)
+      print("out shape: ", out.shape)
+      # print("First output channel:")
+      # plt.figure(figsize=(10, 10))
+      # plt.imshow(np.array(img)[0, :, :, 0])
+      # plt.show()
 
   def test_conv1D(self):
     class Convnet(bp.dyn.DynamicalSystem):
@@ -46,15 +47,16 @@ class TestConv(TestCase):
         x = self.conv(shared, x)
         return x
 
-    model = Convnet()
-    input = bp.math.ones((2, 5, 3))
+    with bp.math.training_environment():
+      model = Convnet()
+      input = bp.math.ones((2, 5, 3))
 
-    out = model(None, input)
-    print("out shape: ", out.shape)
-    # print("First output channel:")
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(np.array(out)[0, :, :])
-    # plt.show()
+      out = model(None, input)
+      print("out shape: ", out.shape)
+      # print("First output channel:")
+      # plt.figure(figsize=(10, 10))
+      # plt.imshow(np.array(out)[0, :, :])
+      # plt.show()
 
   def test_conv2D(self):
     class Convnet(bp.dyn.DynamicalSystem):
@@ -66,16 +68,17 @@ class TestConv(TestCase):
         x = self.conv(shared, x)
         return x
 
-    model = Convnet()
+    with bp.math.training_environment():
+      model = Convnet()
 
-    input = bp.math.ones((2, 5, 5, 3))
+      input = bp.math.ones((2, 5, 5, 3))
 
-    out = model(None, input)
-    print("out shape: ", out.shape)
-    # print("First output channel:")
-    # plt.figure(figsize=(10, 10))
-    # plt.imshow(np.array(out)[0, :, :, 31])
-    # plt.show()
+      out = model(None, input)
+      print("out shape: ", out.shape)
+      # print("First output channel:")
+      # plt.figure(figsize=(10, 10))
+      # plt.imshow(np.array(out)[0, :, :, 31])
+      # plt.show()
 
   def test_conv3D(self):
     class Convnet(bp.dyn.DynamicalSystem):
@@ -87,9 +90,10 @@ class TestConv(TestCase):
         x = self.conv(shared, x)
         return x
 
-    model = Convnet()
+    with bp.math.training_environment():
+      model = Convnet()
 
-    input = bp.math.ones((2, 5, 5, 5, 3))
+      input = bp.math.ones((2, 5, 5, 5, 3))
 
-    out = model(None, input)
-    print("out shape: ", out.shape)
+      out = model(None, input)
+      print("out shape: ", out.shape)

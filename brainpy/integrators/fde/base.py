@@ -8,7 +8,7 @@ import brainpy.math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.utils import get_args
-from brainpy.check import check_integer
+from brainpy.check import is_integer
 
 __all__ = [
   'FDEIntegrator'
@@ -55,7 +55,7 @@ class FDEIntegrator(Integrator):
     arguments = parses[2]  # function arguments
 
     # memory length
-    check_integer(num_memory, 'num_memory', allow_none=False, min_bound=1)
+    is_integer(num_memory, 'num_memory', allow_none=False, min_bound=1)
     self.num_memory = num_memory
 
     # super initialization

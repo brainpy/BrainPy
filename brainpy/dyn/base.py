@@ -257,7 +257,7 @@ class DynamicalSystem(BrainPyObject):
     """
     self.reset_state(batch_size)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size: Optional[int] = None):
     """Reset function which reset the states in the model.
     """
     child_nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
@@ -627,11 +627,6 @@ class Sequential(Container):
     y: ArrayType
       The output tensor.
     """
-    # if self.no_shared_arg:
-    #   if x is not None:
-    #     raise ValueError('please call the object through `f(x)` when no_shared_arg=True')
-    #   x = sha
-    #   sha = tools.DotDict()
     for m in self._modules:
       if isinstance(m, DynamicalSystem):
         x = m(sha, x)

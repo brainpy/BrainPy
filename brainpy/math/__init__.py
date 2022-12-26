@@ -66,17 +66,18 @@ dt = 0.1
 '''Default time step.'''
 
 import jax.numpy as jnp
+from jax import config
 
 bool_ = jnp.bool_
 '''Default bool data type.'''
 
-int_ = jnp.int32
+int_ = jnp.int64 if config.read('jax_enable_x64') else jnp.int32
 '''Default integer data type.'''
 
-float_ = jnp.float32
+float_ = jnp.float64 if config.read('jax_enable_x64') else jnp.float32
 '''Default float data type.'''
 
-complex_ = jnp.complex64
+complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
 '''Default complex data type.'''
 
-del jnp
+del jnp, config

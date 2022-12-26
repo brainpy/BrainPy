@@ -17,6 +17,7 @@ import brainpy.math as bm
 import brainpy_datasets as bd
 
 bm.enable_x64()
+bm.set_environment(bm.batching_mode)
 
 
 def get_subset(data, start, end):
@@ -86,7 +87,6 @@ num_test = int(t_test / dt)
 
 # Datasets #
 # -------- #
-# data_series = bp.datasets.double_scroll_series(t_warmup + t_train + t_test, dt=dt)
 data_series = bd.chaos.DoubleScrollEq(t_warmup + t_train + t_test, dt=dt)
 
 X_warmup = get_subset(data_series, 0, num_warmup - 1)
@@ -105,7 +105,7 @@ Y_test = get_subset(data_series,
 # ----- #
 
 
-class NGRC(bp.dyn.DynamicalSystem):
+class NGRC(bp.DynamicalSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
     self.r = bp.layers.NVAR(num_in, delay=2, order=3)
@@ -116,15 +116,14 @@ class NGRC(bp.dyn.DynamicalSystem):
     return x + di
 
 
-with bm.environment(mode=bm.batching_mode):
-  model = NGRC(3)
+model = NGRC(3)
 
 
 # Training #
 # -------- #
 
 # warm-up
-trainer = bp.train.RidgeTrainer(model, alpha=1e-5, jit=True)
+trainer = bp.RidgeTrainer(model, alpha=1e-5, jit=True)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 

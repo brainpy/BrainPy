@@ -111,12 +111,14 @@ class Pool(Layer):
     strides = _infer_shape(x, self.mode, self.strides, self.channel_axis)
     padding = (self.padding if isinstance(self.padding, str) else
                _infer_shape(x, self.mode, self.padding, self.channel_axis, element=(0, 0)))
-    return lax.reduce_window(bm.as_jax(x),
-                             init_value=self.init_value,
-                             computation=self.computation,
-                             window_dimensions=window_shape,
-                             window_strides=strides,
-                             padding=padding)
+    r = lax.reduce_window(bm.as_jax(x),
+                          init_value=self.init_value,
+                          computation=self.computation,
+                          window_dimensions=window_shape,
+                          window_strides=strides,
+                          padding=padding)
+    return r
+
 
 class MaxPool(Pool):
   """Pools the input by taking the maximum over a window.
@@ -144,7 +146,7 @@ class MaxPool(Pool):
   def __init__(
       self,
       window_shape: Union[int, Sequence[int]],
-      strides: Union[int, Sequence[int]],
+      strides: Union[int, Sequence[int]] = 1,
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
       mode: bm.Mode = None,
@@ -186,7 +188,7 @@ class MinPool(Pool):
   def __init__(
       self,
       window_shape: Union[int, Sequence[int]],
-      strides: Union[int, Sequence[int]],
+      strides: Union[int, Sequence[int]] = 1,
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
       mode: bm.Mode = None,
@@ -229,7 +231,7 @@ class AvgPool(Pool):
   def __init__(
       self,
       window_shape: Union[int, Sequence[int]],
-      strides: Union[int, Sequence[int]],
+      strides: Union[int, Sequence[int]] = 1,
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
       mode: bm.Mode = None,

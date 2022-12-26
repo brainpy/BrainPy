@@ -13,7 +13,7 @@ from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
 from brainpy.math.ndarray import Array, Variable
-from brainpy.check import check_error_in_jit
+from brainpy.check import jit_error_checking
 from brainpy.errors import UnsupportedError
 from ._utils import wraps
 
@@ -747,7 +747,7 @@ class RandomState(Variable):
 
   def bernoulli(self, p, size=None, key=None):
     p = _check_py_seq(_remove_jax_array(p))
-    check_error_in_jit(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
+    jit_error_checking(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.shape(p)
     key = self.split_key() if key is None else _formalize_key(key)
@@ -768,7 +768,7 @@ class RandomState(Variable):
   def binomial(self, n, p, size=None, key=None):
     n = _check_py_seq(n.value if isinstance(n, Array) else n)
     p = _check_py_seq(p.value if isinstance(p, Array) else p)
-    check_error_in_jit(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
+    jit_error_checking(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.broadcast_shapes(jnp.shape(n), jnp.shape(p))
     key = self.split_key() if key is None else _formalize_key(key)
@@ -810,7 +810,7 @@ class RandomState(Variable):
     key = self.split_key() if key is None else _formalize_key(key)
     n = _check_py_seq(_remove_jax_array(n))
     pvals = _check_py_seq(_remove_jax_array(pvals))
-    check_error_in_jit(jnp.sum(pvals[:-1]) > 1., self._check_p2, pvals)
+    jit_error_checking(jnp.sum(pvals[:-1]) > 1., self._check_p2, pvals)
     if isinstance(n, jax.core.Tracer):
       raise ValueError("The total count parameter `n` should not be a jax abstract array.")
     size = _size2shape(size)

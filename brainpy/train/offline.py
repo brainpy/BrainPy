@@ -208,22 +208,20 @@ class OfflineTrainer(DSTrainer):
     shared_args = dict() if shared_args is None else shared_args
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_fit_compiled:
-
-      def train_func(monitor_data: Dict[str, ArrayType], target_data: Dict[str, ArrayType]):
-        for node in self.train_nodes:
-          fit_record = monitor_data[f'{node.name}-fit_record']
-          targets = target_data[node.name]
-          node.offline_fit(targets, fit_record)
-          if self.progress_bar:
-            id_tap(lambda *args: self._pbar.update(), ())
-
-      if self.jit['fit']:
-        dyn_vars = self.target.vars().unique()
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        train_func = bm.jit(train_func, dyn_vars=dyn_vars)
-
-      self._f_fit_compiled[shared_kwargs_str] = train_func
+      self._f_fit_compiled[shared_kwargs_str] = (
+        self._fun_train
+        if self.jit['fit'] else
+        bm.jit(self._fun_train, dyn_vars=self.vars().unique())
+      )
     return self._f_fit_compiled[shared_kwargs_str]
+
+  def _fun_train(self, monitor_data: Dict[str, ArrayType], target_data: Dict[str, ArrayType]):
+    for node in self.train_nodes:
+      fit_record = monitor_data[f'{node.name}-fit_record']
+      targets = target_data[node.name]
+      node.offline_fit(targets, fit_record)
+      if self.progress_bar:
+        id_tap(lambda *args: self._pbar.update(), ())
 
   def _step_func_monitor(self, shared):
     res = dict()

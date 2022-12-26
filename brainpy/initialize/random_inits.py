@@ -21,6 +21,18 @@ __all__ = [
 ]
 
 
+def _format_shape(shape):
+  if len(shape) == 0:
+    raise ValueError('Please provide shape.')
+  if len(shape) == 1:
+    if isinstance(shape, (tuple, list)):
+      return shape[0]
+    else:
+      return shape
+  else:
+    return shape
+
+
 def _compute_fans(shape, in_axis=-2, out_axis=-1):
   receptive_field_size = np.prod(shape) / shape[in_axis] / shape[out_axis]
   fan_in = shape[in_axis] * receptive_field_size
@@ -42,16 +54,15 @@ class Normal(InterLayerInitializer):
     super(Normal, self).__init__()
     self.scale = scale
     self.mean = mean
-    self.seed = tools.format_seed(seed)
-    self.rng = np.random.RandomState(seed)
+    self.rng = bm.random.DEFAULT if seed is None else bm.random.RandomState(seed)
 
-  def __call__(self, shape, dtype=None):
-    shape = [tools.size2num(d) for d in shape]
+  def __call__(self, *shape, dtype=None):
+    shape = _format_shape(shape)
     weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(scale={self.scale}, seed={self.seed})'
+    return f'{self.__class__.__name__}(scale={self.scale}, rng={self.rng})'
 
 
 class Uniform(InterLayerInitializer):
@@ -69,17 +80,16 @@ class Uniform(InterLayerInitializer):
     super(Uniform, self).__init__()
     self.min_val = min_val
     self.max_val = max_val
-    self.seed = tools.format_seed(seed)
-    self.rng = np.random.RandomState(seed=self.seed)
+    self.rng = bm.random.DEFAULT if seed is None else bm.random.RandomState(seed=seed)
 
   def __call__(self, shape, dtype=None):
-    shape = [tools.size2num(d) for d in shape]
+    shape = _format_shape(shape)
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
     return bm.asarray(r, dtype=dtype)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(min_val={self.min_val}, '
-            f'max_val={self.max_val}, seed={self.seed})')
+            f'max_val={self.max_val}, rng={self.rng})')
 
 
 class VarianceScaling(InterLayerInitializer):
@@ -97,11 +107,10 @@ class VarianceScaling(InterLayerInitializer):
     self.in_axis = in_axis
     self.out_axis = out_axis
     self.distribution = distribution
-    self.seed = tools.format_seed(seed)
-    self.rng = np.random.RandomState(seed=self.seed)
+    self.rng = bm.random.DEFAULT if seed is None else bm.random.RandomState(seed)
 
   def __call__(self, shape, dtype=None):
-    shape = [tools.size2num(d) for d in shape]
+    shape = _format_shape(shape)
     fan_in, fan_out = _compute_fans(shape, in_axis=self.in_axis, out_axis=self.out_axis)
     if self.mode == "fan_in":
       denominator = fan_in
@@ -114,8 +123,7 @@ class VarianceScaling(InterLayerInitializer):
     variance = np.array(self.scale / denominator, dtype=dtype)
     if self.distribution == "truncated_normal":
       stddev = bm.array(np.sqrt(variance) / .87962566103423978, dtype)
-      rng = bm.random.RandomState(self.rng.randint(0, int(1e7)))
-      return rng.truncated_normal(-2, 2, shape, dtype) * stddev
+      return self.rng.truncated_normal(-2, 2, shape, dtype) * stddev
     elif self.distribution == "normal":
       res = self.rng.randn(*shape) * np.sqrt(variance)
     elif self.distribution == "uniform":
@@ -128,7 +136,7 @@ class VarianceScaling(InterLayerInitializer):
     name = self.__class__.__name__
     blank = ' ' * len(name)
     return (f'{name}(scale={self.scale}, mode={self.mode}, in_axis={self.in_axis}, \n'
-            f'{blank}out_axis={self.out_axis}, distribution={self.distribution}, seed={self.seed})')
+            f'{blank}out_axis={self.out_axis}, distribution={self.distribution}, rng={self.rng})')
 
 
 class KaimingUniform(VarianceScaling):
@@ -256,11 +264,10 @@ class Orthogonal(InterLayerInitializer):
     super(Orthogonal, self).__init__()
     self.scale = scale
     self.axis = axis
-    self.seed = tools.format_seed(seed)
-    self.rng = np.random.RandomState(seed=self.seed)
+    self.rng = bm.random.DEFAULT if seed is None else bm.random.RandomState(seed)
 
   def __call__(self, shape, dtype=None):
-    shape = [tools.size2num(d) for d in shape]
+    shape = _format_shape(shape)
     n_rows = shape[self.axis]
     n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
@@ -275,7 +282,7 @@ class Orthogonal(InterLayerInitializer):
     return self.scale * bm.asarray(q_mat, dtype=dtype)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, seed={self.seed})'
+    return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, rng={self.rng})'
 
 
 class DeltaOrthogonal(InterLayerInitializer):

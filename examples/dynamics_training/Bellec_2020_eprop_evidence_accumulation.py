@@ -16,6 +16,9 @@ import brainpy.math as bm
 from jax.lax import stop_gradient
 from matplotlib import patches
 
+bm.set_environment(mode=bm.training_mode)
+
+
 bm.set_dt(1.)  # Simulation time step [ms]
 
 # training parameters

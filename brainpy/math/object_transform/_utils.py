@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from typing import Tuple, Dict
 from brainpy.base import BrainPyObject, ArrayCollector
 
-
 __all__ = [
-  'infer_dyn_vars'
+  'infer_dyn_vars',
+  'get_brainpy_object',
 ]
 
 
@@ -17,3 +18,12 @@ def infer_dyn_vars(target):
     dyn_vars = ArrayCollector()
   return dyn_vars
 
+
+def get_brainpy_object(target) -> Dict[str, BrainPyObject]:
+  if isinstance(target, BrainPyObject):
+    return {target.name: target}
+  elif hasattr(target, '__self__') and isinstance(target.__self__, BrainPyObject):
+    target = target.__self__
+    return {target.name: target}
+  else:
+    return dict()

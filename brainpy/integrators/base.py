@@ -7,7 +7,7 @@ import brainpy.math as bm
 from brainpy.base.base import BrainPyObject
 from brainpy.errors import DiffEqError
 from brainpy.integrators.constants import DT
-from brainpy.check import check_float, check_dict_data
+from brainpy.check import is_float, is_dict_data
 
 __all__ = [
   'Integrator',
@@ -41,7 +41,7 @@ class Integrator(AbstractIntegrator):
     super(Integrator, self).__init__(name=name)
 
     self._dt = dt
-    check_float(dt, 'dt', allow_none=False, allow_int=True)
+    is_float(dt, 'dt', allow_none=False, allow_int=True)
     self._variables = list(variables)  # variables
     self._parameters = list(parameters)  # parameters
     self._arguments = list(arguments) + [f'{DT}={self._dt}', ]  # arguments
@@ -51,7 +51,7 @@ class Integrator(AbstractIntegrator):
     # state delays
     self._state_delays = dict()
     if state_delays is not None:
-      check_dict_data(state_delays, key_type=str, val_type=(bm.TimeDelay, bm.LengthDelay))
+      is_dict_data(state_delays, key_type=str, val_type=(bm.TimeDelay, bm.LengthDelay))
       for key, delay in state_delays.items():
         if key not in self.variables:
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')

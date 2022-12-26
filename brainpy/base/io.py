@@ -72,7 +72,7 @@ def _check_target(target):
 
 not_found_msg = ('"{key}" is stored in {filename}. But we does '
                  'not find it is defined as variable in {target}.')
-id_dismatch_msg = ('{key1} and {key2} is the same data in {filename}. '
+id_mismatch_msg = ('{key1} and {key2} is the same data in {filename}. '
                    'But we found they are different in {target}.')
 
 DUPLICATE_KEY = 'duplicate_keys'
@@ -92,7 +92,7 @@ def _load(
   # get variables
   _check_target(target)
   variables = target.vars(method='absolute', level=-1)
-  all_names = list(variables.keys())
+  var_names_in_obj = list(variables.keys())
 
   # read data from file
   for key in load_vars.keys():
@@ -105,22 +105,22 @@ def _load(
     else:
       value = load_vars[key]
     variables[key].value = bm.asarray(value)
-    all_names.remove(key)
+    var_names_in_obj.remove(key)
 
   # check duplicate names
   duplicate_keys = duplicates[0]
   duplicate_targets = duplicates[1]
   for key1, key2 in zip(duplicate_keys, duplicate_targets):
-    if key1 not in all_names:
+    if key1 not in var_names_in_obj:
       raise KeyError(not_found_msg.format(key=key1, target=target.name, filename=filename))
     if id(variables[key1]) != id(variables[key2]):
-      raise ValueError(id_dismatch_msg.format(key1=key1, key2=target, filename=filename, target=target.name))
-    all_names.remove(key1)
+      raise ValueError(id_mismatch_msg.format(key1=key1, key2=target, filename=filename, target=target.name))
+    var_names_in_obj.remove(key1)
 
   # check missing names
-  if len(all_names):
+  if len(var_names_in_obj):
     logger.warning(f'There are variable states missed in {filename}. '
-                   f'The missed variables are: {all_names}.')
+                   f'The missed variables are: {var_names_in_obj}.')
 
 
 def _unique_and_duplicate(collector: dict):

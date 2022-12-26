@@ -7,7 +7,7 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from brainpy import tools, math as bm
 from brainpy.base.base import BrainPyObject
-from brainpy.check import check_float
+from brainpy.check import is_float
 from brainpy.types import PyTree
 from .base import DynamicalSystem, Sequential
 
@@ -175,8 +175,8 @@ class LoopOverTime(DynSysToBPObj):
     out: PyTree
       The accumulated outputs over time.
     """
-    check_float(t0, 't0')
-    check_float(dt, 'dt', allow_none=True)
+    is_float(t0, 't0')
+    is_float(dt, 'dt', allow_none=True)
     dt = bm.get_dt() if dt is None else dt
     if shared_arg is None:
       shared_arg = dict(dt=dt)

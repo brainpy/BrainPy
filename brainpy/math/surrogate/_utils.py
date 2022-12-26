@@ -2,7 +2,7 @@
 
 
 import jax
-from functools import wraps
+from functools import wraps, partial
 from brainpy.math.ndarray import Array
 
 __all__ = [
@@ -33,11 +33,11 @@ def make_return(r, *args):
 def generalized_vjp_custom(*arg_names, **defaults):
   """Generalize a customized gradient function as a general Python function.
   """
+  n_args = len(arg_names)
+  default_keys = tuple(defaults.keys())
   defaults = tuple(defaults.items())
 
   def wrapper(fun):
-
-    grad_fun = jax.custom_gradient(fun)
 
     @wraps(fun)
     def call(*args, **kwargs):
@@ -47,7 +47,7 @@ def generalized_vjp_custom(*arg_names, **defaults):
         if k not in kwargs:
           raise ValueError(f'Must provide {k} for function {fun}')
         args.append(kwargs.pop(k))
-      for k, v in defaults[len(args) - len(arg_names):]:
+      for k, v in defaults[len(args) - n_args:]:
         if k not in kwargs:
           args.append(v)
         else:
@@ -55,7 +55,9 @@ def generalized_vjp_custom(*arg_names, **defaults):
       if len(kwargs):
         raise KeyError(f'Unknown arguments {kwargs} for function {fun}')
       args = [a.value if isinstance(a, Array) else a for a in args]
-      return grad_fun(*args)
+      kwargs = dict(zip(default_keys, args[n_args:]))
+      grad_fun = jax.custom_gradient(partial(fun, **kwargs))
+      return grad_fun(*args[:n_args])
 
     call.__doc__ = fun.__doc__
 
