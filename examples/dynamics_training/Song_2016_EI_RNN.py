@@ -14,7 +14,8 @@
 # %%
 import brainpy as bp
 import brainpy.math as bm
-bp.math.set_platform('cpu')
+bm.set_platform('cpu')
+bm.set_environment(bm.training_mode)
 
 # %%
 import numpy as np

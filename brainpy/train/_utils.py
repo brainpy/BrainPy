@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.check import is_dict_data
-from brainpy.errors import BrainPyError
+from brainpy.dyn import DynamicalSystem
 
 __all__ = [
   'format_ys'
@@ -29,8 +29,6 @@ A simple way to convert your `(x_train, y_train)` data is defining it as a pytho
 '''
 
 
-
-
 def format_ys(cls, ys):
   if isinstance(ys, (bm.Array, jnp.ndarray)):
     if len(cls.train_nodes) == 1:
@@ -50,7 +48,12 @@ def format_ys(cls, ys):
     else:
       ys_not_included[k] = v
   if len(ys_not_included):
-    raise BrainPyError(f'The target data for training "{ys_not_included.keys()}" are not given.')
+    rel_nodes = cls.target.nodes('relative', level=-1, include_self=True).subset(DynamicalSystem).unique()
+    for k, v in ys_not_included.items():
+      if k in rel_nodes:
+        formatted_ys[rel_nodes[k].name] = v
+      else:
+        raise ValueError(f'Unknown target "{k}" for fitting.')
 
   # check data shape
   for key, val in formatted_ys.items():
@@ -59,4 +62,3 @@ def format_ys(cls, ys):
                        "(batch, time, feature, ...) or (time, batch, feature, ...)"
                        f"but we got {val.shape}")
   return formatted_ys
-
