@@ -12,7 +12,7 @@ try:
 except ImportError:
   from jax.core import UnexpectedTracerError
 
-from brainpy import errors, tools
+from brainpy import errors, tools, check
 from brainpy.base.naming import get_unique_name
 from brainpy.base import ArrayCollector
 from brainpy.math.ndarray import (Array, Variable,
@@ -440,7 +440,6 @@ def cond(
     false_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    auto_infer: bool = True
 ):
   """Simple conditional statement (if-else) with instance of :py:class:`~.Variable`.
 
@@ -473,8 +472,6 @@ def cond(
     can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
   dyn_vars: optional, Variable, sequence of Variable, dict
     The dynamically changed variables.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instances used in the target.
 
   Returns
   -------
@@ -484,20 +481,10 @@ def cond(
   # checking
   true_fun = _check_f(true_fun)
   false_fun = _check_f(false_fun)
-  if dyn_vars is None:
-    dyn_vars = (infer_dyn_vars(true_fun) + infer_dyn_vars(false_fun)) if auto_infer else tuple()
-  elif isinstance(dyn_vars, Variable):
-    dyn_vars = (dyn_vars,)
-  elif isinstance(dyn_vars, dict):
-    dyn_vars = tuple(dyn_vars.values())
-  elif isinstance(dyn_vars, (tuple, list)):
-    dyn_vars = tuple(dyn_vars)
-  else:
-    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
-                     f'only support dict/list/tuple of {Variable.__name__}')
-  for v in dyn_vars:
-    if not isinstance(v, Variable):
-      raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  dyn_vars.update(infer_dyn_vars(true_fun))
+  dyn_vars.update(infer_dyn_vars(false_fun))
+  dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
 
   name = get_unique_name('_brainpy_object_oriented_cond_')
 
@@ -548,7 +535,6 @@ def ifelse(
     operands: Any = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     show_code: bool = False,
-    auto_infer: bool = True,
 ):
   """``If-else`` control flows looks like native Pythonic programming.
 
@@ -587,9 +573,6 @@ def ifelse(
     The dynamically changed variables.
   show_code: bool
     Whether show the formatted code.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instances used in the target.
-
 
   Returns
   -------
@@ -610,11 +593,10 @@ def ifelse(
     raise ValueError(f'The numbers of branches and conditions do not match. '
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
-  if dyn_vars is None:
-    dyn_vars = ArrayCollector()
-    if auto_infer:
-      for f in branches:
-        dyn_vars += infer_dyn_vars(f)
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  dyn_vars = ArrayCollector(dyn_vars)
+  for f in branches:
+    dyn_vars += infer_dyn_vars(f)
   if isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
@@ -673,7 +655,6 @@ def for_loop(
     out_vars: Optional[PyTree] = None,
     reverse: bool = False,
     unroll: int = 1,
-    auto_infer: bool = True
 ):
   """``for-loop`` control flow with :py:class:`~.Variable`.
 
@@ -752,35 +733,19 @@ def for_loop(
     Optional positive int specifying, in the underlying operation of the
     scan primitive, how many scan iterations to unroll within a single
     iteration of a loop.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instances used in the target.
-
 
   Returns
   -------
   outs: Any
     The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
   """
-  # check variables
-  if dyn_vars is None:
-    dyn_vars = infer_dyn_vars(body_fun) if auto_infer else tuple()
-  if isinstance(dyn_vars, Variable):
-    dyn_vars = (dyn_vars,)
-  elif isinstance(dyn_vars, dict):
-    dyn_vars = tuple(dyn_vars.values())
-  elif isinstance(dyn_vars, (tuple, list)):
-    dyn_vars = tuple(dyn_vars)
-  else:
-    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
-                     f'only support dict/list/tuple of {Variable.__name__}')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  dyn_vars.update(infer_dyn_vars(body_fun))
+  dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
   outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
   for v in outs:
     if v not in dyn_vars:
       dyn_vars += (v,)
-  for v in dyn_vars:
-    if not isinstance(v, Variable):
-      raise ValueError(f'brainpy.math.for_loop only support {Variable.__name__} '
-                       f'in "dyn_vars", but got {type(v)}')
 
   # functions
   def fun2scan(dyn_vals, x):
@@ -826,7 +791,6 @@ def while_loop(
     cond_fun: Callable,
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    auto_infer: bool = True
 ):
   """``while-loop`` control flow with :py:class:`~.Variable`.
 
@@ -873,14 +837,14 @@ def while_loop(
     The dynamically changed variables.
   operands: Any
     The operands for ``body_fun`` and ``cond_fun`` functions.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instances used in the target.
 
   """
   # iterable variables
-  if dyn_vars is None:
-    dyn_vars = (infer_dyn_vars(body_fun) + infer_dyn_vars(cond_fun)) if auto_infer else tuple()
-  elif isinstance(dyn_vars, Variable):
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  dyn_vars = ArrayCollector(dyn_vars)
+  dyn_vars.update(infer_dyn_vars(body_fun))
+  dyn_vars.update(infer_dyn_vars(cond_fun))
+  if isinstance(dyn_vars, Variable):
     dyn_vars = (dyn_vars,)
   elif isinstance(dyn_vars, dict):
     dyn_vars = tuple(dyn_vars.values())
@@ -889,9 +853,6 @@ def while_loop(
   else:
     raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
                      f'only support dict/list/tuple of {Variable.__name__}')
-  for v in dyn_vars:
-    if not isinstance(v, Variable):
-      raise ValueError(f'Only support {Variable.__name__}, but got {type(v)}')
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
