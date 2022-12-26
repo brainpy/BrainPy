@@ -3,3 +3,4 @@ jax>=0.3.0
 tqdm
 brainpylib
 numba
+msgpack

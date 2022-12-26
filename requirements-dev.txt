@@ -1,14 +1,9 @@
-numpy>=1.15
-tqdm
-numba
+-r requirements.txt
+
 matplotlib>=3.4
-jax>=0.3.0
 jaxlib>=0.3.0
 scipy>=1.1.0
-brainpylib
 h5py
-requests
-pillow
 pathos
 
 # test requirements
