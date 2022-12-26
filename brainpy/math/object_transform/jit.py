@@ -17,7 +17,7 @@ except ImportError:
   from jax.core import UnexpectedTracerError, ConcretizationTypeError
 
 from brainpy import errors, tools, check
-from brainpy.base import BrainPyObject, ArrayCollector
+from brainpy.base import BrainPyObject
 from brainpy.math.ndarray import Variable, add_context, del_context
 from .base import ObjectTransform
 
@@ -27,10 +27,6 @@ __all__ = [
 
 
 class JITTransform(ObjectTransform):
-  pass
-
-
-class JITTransformV1(JITTransform):
   """Object-oriented JIT transformation in BrainPy."""
 
   def __init__(
@@ -80,53 +76,6 @@ class JITTransformV1(JITTransform):
       raise e
     else:
       for key, v in self._all_vars.items(): v._value = changes[key]
-    return out
-
-  def __repr__(self):
-    name = self.__class__.__name__
-    f = tools.repr_object(self.target)
-    f = tools.repr_context(f, " " * (len(name) + 6))
-    format_ref = (f'{name}(target={f}, \n' +
-                  f'{" " * len(name)} num_of_vars={len(self.vars().unique())})')
-    return format_ref
-
-
-class JITTransformV2(JITTransform):
-  """Object-oriented JIT transformation in BrainPy."""
-
-  def __init__(
-      self,
-      target: callable,
-      dyn_vars: Dict[str, Variable],
-      child_objs: Dict[str, BrainPyObject],
-      static_argnames: Optional[Any] = None,
-      device: Optional[Any] = None,
-      name: Optional[str] = None
-  ):
-    super().__init__(name=name)
-
-    self.register_implicit_vars(dyn_vars)
-    self.register_implicit_nodes(child_objs)
-
-    self.target = target
-    self._all_vars = self.vars().unique()
-
-    # transformation
-    self._f = jax.jit(self._transform_function, static_argnames=static_argnames, device=device)
-
-  def _transform_function(self, variable_data: ArrayCollector, *args, **kwargs):
-    tree_ids = {k: id(v.value) for k, v in variable_data.items()}
-    out = self.target(*args, **kwargs)
-    tree_changed = {k: v.value for k, v in variable_data.items()
-                    if id(v.value) != tree_ids[k]}
-    return out, tree_changed
-
-  def __call__(self, *args, **kwargs):
-    add_context(self.name)
-    out, changes = self._f(self._all_vars, *args, **kwargs)
-    del_context(self.name)
-    for key, v in changes.items():
-      self._all_vars[key]._value = changes[key]
     return out
 
   def __repr__(self):
@@ -266,11 +215,11 @@ def jit(
 
     # BrainPyObject object which implements __call__,
     # or bounded method of BrainPyObject object
-    return JITTransformV2(target=func,
-                          dyn_vars=dyn_vars,
-                          child_objs=child_objs,
-                          static_argnames=static_argnames,
-                          device=device)
+    return JITTransform(target=func,
+                        dyn_vars=dyn_vars,
+                        child_objs=child_objs,
+                        static_argnames=static_argnames,
+                        device=device)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '
