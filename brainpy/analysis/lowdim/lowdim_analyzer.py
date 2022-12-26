@@ -60,7 +60,7 @@ class LowDimAnalyzer(DSAnalyzer):
       - set ``resolutions=0.1`` will generalize it to all variables and parameters;
       - set ``resolutions={var1: 0.1, var2: 0.2, par1: 0.1, par2: 0.05}`` will specify
         the particular resolutions to variables and parameters.
-      - Moreover, you can also set ``resolutions={var1: JaxArray([...]), var2: 0.1}``
+      - Moreover, you can also set ``resolutions={var1: Array([...]), var2: 0.1}``
         to specify the search points need to explore for variable `var1`.
         This will be useful to set sense search points at some inflection points.
   lim_scale: float
@@ -357,9 +357,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
     """
     # candidates: xs, a vector with the length of self.resolutions[self.x_var]
     # args: parameters, a list/tuple of vectors
-    candidates = candidates.value if isinstance(candidates, bm.JaxArray) else candidates
+    candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
     selected_ids = np.arange(len(candidates))
-    args = tuple(a.value if isinstance(candidates, bm.JaxArray) else a for a in args)
+    args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
     for a in args: assert len(a) == len(candidates)
     if num_seg is None:
       num_seg = len(self.resolutions[self.x_var])
@@ -555,7 +555,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
         return self.F_fx(*var_and_pars), self.F_fy(*var_and_pars)
 
       def call(*var_and_pars):
-        var_and_pars = tuple((vp.value if isinstance(vp, bm.JaxArray) else vp) for vp in var_and_pars)
+        var_and_pars = tuple((vp.value if isinstance(vp, bm.Array) else vp) for vp in var_and_pars)
         return jnp.array(bm.jit(f_jacobian, device=self.jit_device)(*var_and_pars))
 
       self.analyzed_results[C.F_jacobian] = call
@@ -877,7 +877,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
       # change the position of meshgrid values
-      vps = tuple((v.value if isinstance(v, bm.JaxArray) else v) for v in ((xs, ys) + ps))
+      vps = tuple((v.value if isinstance(v, bm.Array) else v) for v in ((xs, ys) + ps))
       mesh_values = jnp.meshgrid(*vps)
       mesh_values = tuple(jnp.moveaxis(m, 0, 1) for m in mesh_values)
       mesh_values = tuple(m.flatten() for m in mesh_values)
@@ -932,9 +932,9 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       # candidates: xs, a vector with the length of self.resolutions[self.x_var]
       # args: parameters, a list/tuple of vectors
-      candidates = candidates.value if isinstance(candidates, bm.JaxArray) else candidates
+      candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
       selected_ids = np.arange(len(candidates))
-      args = tuple(a.value if isinstance(candidates, bm.JaxArray) else a for a in args)
+      args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
       for a in args: assert len(a) == len(candidates)
 
       if self.convert_type() == C.x_by_y:

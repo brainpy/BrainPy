@@ -1,49 +1,27 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.2.4.0"
+__version__ = "2.3.1"
 
-try:
-  import jaxlib
-
-  del jaxlib
-except ModuleNotFoundError:
-  raise ModuleNotFoundError(
-    '''
-
-BrainPy needs jaxlib, please install jaxlib. 
-
-1. If you are using Windows system, install jaxlib through
-
-   >>> pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
-
-2. If you are using macOS platform, install jaxlib through
-
-   >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_releases.html
-
-3. If you are using Linux platform, install jaxlib through
-
-   >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_releases.html
-
-4. If you are using Linux + CUDA platform, install jaxlib through
-
-   >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-
-Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3.14" and "jaxlib=0.3.14".  
-
-For more detail installation instructions, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
-    
-    ''') from None
 
 # fundamental modules
-from . import errors, tools, check, modes
+from . import errors, check, tools
 
 # "base" module
 from . import base
-from .base.base import Base
-from .base.collector import Collector, TensorCollector
+from .base import (
+  # base class
+  Base,
+  BrainPyObject,
+
+  # collector
+  Collector,
+  ArrayCollector,
+  TensorCollector,
+)
 
 # math foundation
 from . import math
+from . import modes
 
 # toolboxes
 from . import (
@@ -52,24 +30,34 @@ from . import (
   optimizers,  # gradient descent optimizers
   losses,  # loss functions
   measure,  # methods for data analysis
-  datasets,  # methods for generating data
   inputs,  # methods for generating input currents
   algorithms,  # online or offline training algorithms
+  encoding,  # encoding schema
 )
 
 # numerical integrators
 from . import integrators
-from .integrators import ode
-from .integrators import sde
-from .integrators import fde
-from .integrators.ode import odeint
-from .integrators.sde import sdeint
-from .integrators.fde import fdeint
-from .integrators.joint_eq import JointEq
+from .integrators import (
+  # sub-modules
+  ode,
+  sde,
+  fde,
+
+  # functions
+  odeint,
+  sdeint,
+  fdeint,
+
+  # classes
+  JointEq,
+  IntegratorRunner,
+)
+
 
 # dynamics simulation
 from . import dyn
 from .dyn import (
+  # sub-modules
   channels,  # channel models
   layers,  # ANN layers
   networks,  # network models
@@ -78,8 +66,8 @@ from .dyn import (
   synapses,  # synaptic dynamics
   synouts,  # synaptic output
   synplast,  # synaptic plasticity
-)
-from .dyn.base import (
+
+  # base classes
   DynamicalSystem,
   Container,
   Sequential,
@@ -92,8 +80,14 @@ from .dyn.base import (
   TwoEndConn,
   CondNeuGroup,
   Channel,
+
+  # runner
+  DSRunner,
+
+  # transformations
+  NoSharedArg,
+  LoopOverTime,
 )
-from .dyn.runners import *
 
 # dynamics training
 from . import train
@@ -103,7 +97,6 @@ from .train import (
   OfflineTrainer, RidgeTrainer,
   BPFF,
   BPTT,
-  OnlineBPTT,
 )
 
 # automatic dynamics analysis
@@ -118,6 +111,9 @@ from .analysis import (
 
 # running
 from . import running
+from .running import (
+  Runner
+)
 
 # "visualization" module, will be removed soon
 from .visualization import visualize

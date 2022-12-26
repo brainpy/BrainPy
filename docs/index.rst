@@ -2,7 +2,7 @@ BrainPy documentation
 =====================
 
 `BrainPy`_ is a highly flexible and extensible framework targeting on the
-high-performance Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
+general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
 
 - **JIT compilation** and **automatic differentiation** for class objects.
 - **Numerical methods** for ordinary differential equations (ODEs),
@@ -19,23 +19,8 @@ high-performance Brain Dynamics Programming (BDP). Among its key ingredients, Br
 - And more others ......
 
 
-.. _BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
+.. _BrainPy: https://github.com/brainpy/BrainPy
 
-
-Comprehensive examples of BrainPy please see:
-
-- BrainPyExamples: https://brainpy-examples.readthedocs.io/
-
-The code of BrainPy is open-sourced at GitHub:
-
-- BrainPy: https://github.com/PKU-NIP-Lab/BrainPy
-
-
-
-.. note::
-   BrainPy version 2.2.x has been released. See
-   `release note <https://github.com/PKU-NIP-Lab/BrainPy/releases/tag/V2.2.0>`_
-   for details about changes from brainpy 2.1.x.
 
 
 .. toctree::
@@ -61,6 +46,20 @@ The code of BrainPy is open-sourced at GitHub:
 
 .. toctree::
    :maxdepth: 1
+   :caption: Advanced Tutorials
+
+   tutorial_advanced/variables.ipynb
+   tutorial_advanced/base_and_collector.ipynb
+   tutorial_advanced/compilation.ipynb
+   tutorial_advanced/differentiation.ipynb
+   tutorial_advanced/adavanced_lowdim_analysis.ipynb
+   tutorial_advanced/interoperation.ipynb
+   tutorial_advanced/brainpy_ecosystem.ipynb
+
+
+
+.. toctree::
+   :maxdepth: 1
    :caption: Toolboxes
 
    tutorial_toolbox/ode_numerical_solvers
@@ -77,17 +76,10 @@ The code of BrainPy is open-sourced at GitHub:
 
 .. toctree::
    :maxdepth: 1
-   :caption: Advanced Tutorials
+   :caption: Frequently Asked Questions
 
-   tutorial_advanced/variables.ipynb
-   tutorial_advanced/base_and_collector.ipynb
-   tutorial_advanced/compilation.ipynb
-   tutorial_advanced/differentiation.ipynb
-   tutorial_advanced/adavanced_lowdim_analysis.ipynb
-   tutorial_advanced/operator_customization.ipynb
-   tutorial_advanced/interoperation.ipynb
-   tutorial_advanced/compile_brainpylib
-   tutorial_advanced/citing_and_publication
+   tutorial_FAQs/citing_and_publication
+   tutorial_FAQs/uniqueness_of-brainpy-math
 
 
 .. toctree::
@@ -100,17 +92,17 @@ The code of BrainPy is open-sourced at GitHub:
    apis/train.rst
    apis/analysis.rst
    apis/integrators.rst
-   apis/datasets.rst
-   apis/algorithms.rst
+   apis/auto/algorithms.rst
    apis/auto/inputs.rst
    apis/auto/connect.rst
    apis/auto/initialize.rst
    apis/auto/losses.rst
    apis/auto/optimizers.rst
+   apis/auto/encoding.rst
    apis/auto/measure.rst
    apis/auto/running.rst
-   apis/tools.rst
-   apis/auto/changelog-brainpy.rst
+   apis/auto/tools.rst
+   apis/auto/changelog.rst
 
 
 Indices and tables

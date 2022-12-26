@@ -7,7 +7,7 @@ from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuGroup, TwoEndConn
 from brainpy.initialize import Initializer, delay as init_delay
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Array, Parameter
+from brainpy.types import ArrayType
 
 __all__ = [
   'STP'
@@ -76,9 +76,9 @@ class STP(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.STP(neu1, neu2, bp.connect.All2All(), U=0.2, tau_d=150., tau_f=2.)
+    >>> neu1 = bp.neurons.LIF(1)
+    >>> neu2 = bp.neurons.LIF(1)
+    >>> syn1 = bp.synapses.STP(neu1, neu2, bp.connect.All2All(), U=0.2, tau_d=150., tau_f=2.)
     >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 28.)], monitors=['syn.I', 'syn.u', 'syn.x'])
@@ -176,13 +176,13 @@ class STP(TwoEndConn):
       self,
       pre: NeuGroup,
       post: NeuGroup,
-      conn: Union[TwoEndConnector, Array, Dict[str, Array]],
-      U: Union[float, Array] = 0.15,
-      tau_f: Union[float, Array] = 1500.,
-      tau_d: Union[float, Array] = 200.,
-      tau: Union[float, Array] = 8.,
-      A: Union[float, Array] = 1.,
-      delay_step: Union[int, Array, Initializer, Callable] = None,
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
+      U: Union[float, ArrayType] = 0.15,
+      tau_f: Union[float, ArrayType] = 1500.,
+      tau_d: Union[float, ArrayType] = 200.,
+      tau: Union[float, ArrayType] = 8.,
+      A: Union[float, ArrayType] = 1.,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None
   ):

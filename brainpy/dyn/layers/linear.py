@@ -6,20 +6,18 @@ from typing import Optional, Callable, Union, Dict
 import jax.numpy as jnp
 
 from brainpy import math as bm
-from brainpy.dyn.base import DynamicalSystem
+from .base import Layer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.modes import  Mode, TrainingMode, BatchingMode, training, batching
-from brainpy.tools.checking import check_initializer
-from brainpy.types import Array
+from brainpy.check import check_initializer
+from brainpy.types import ArrayType
 
 __all__ = [
   'Dense',
-  'Flatten'
 ]
 
 
-class Dense(DynamicalSystem):
+class Dense(Layer):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -46,9 +44,9 @@ class Dense(DynamicalSystem):
       self,
       num_in: int,
       num_out: int,
-      W_initializer: Union[Initializer, Callable, Array] = XavierNormal(),
-      b_initializer: Optional[Union[Initializer, Callable, Array]] = ZeroInit(),
-      mode: Mode = training,
+      W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
+      b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Dense, self).__init__(mode=mode, name=name)
@@ -72,7 +70,7 @@ class Dense(DynamicalSystem):
     # parameter initialization
     self.W = parameter(self.weight_initializer, (num_in, self.num_out))
     self.b = parameter(self.bias_initializer, (self.num_out,))
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
 
@@ -81,9 +79,6 @@ class Dense(DynamicalSystem):
             f'num_in={self.num_in}, '
             f'num_out={self.num_out}, '
             f'mode={self.mode})')
-
-  def reset_state(self, batch_size=None):
-    pass
 
   def update(self, sha, x):
     res = x @ self.W
@@ -109,8 +104,8 @@ class Dense(DynamicalSystem):
     self.online_fit_by.initialize(feature_in=num_input, feature_out=self.num_out, identifier=self.name)
 
   def online_fit(self,
-                 target: Array,
-                 fit_record: Dict[str, Array]):
+                 target: ArrayType,
+                 fit_record: Dict[str, ArrayType]):
     if not isinstance(target, (bm.ndarray, jnp.ndarray)):
       raise MathError(f'"target" must be a tensor, but got {type(target)}')
     x = fit_record['input']
@@ -151,8 +146,8 @@ class Dense(DynamicalSystem):
     self.offline_fit_by.initialize(feature_in=num_input, feature_out=self.num_out, identifier=self.name)
 
   def offline_fit(self,
-                  target: Array,
-                  fit_record: Dict[str, Array]):
+                  target: ArrayType,
+                  fit_record: Dict[str, ArrayType]):
     """The offline training interface for the Dense node."""
     # data checking
     if not isinstance(target, (bm.ndarray, jnp.ndarray)):
@@ -190,28 +185,3 @@ class Dense(DynamicalSystem):
       self.W.value = Wff
       self.b.value = bias[0]
 
-
-class Flatten(DynamicalSystem):
-  r"""Flattens a contiguous range of dims into 2D or 1D.
-
-  Parameters:
-  ----------
-  name: str, Optional
-    The name of the object
-  mode: Mode
-    Enable training this node or not. (default True)
-  """
-  def __init__(self,
-               name: Optional[str] = None,
-               mode: Optional[Mode] = batching,
-      ):
-    super().__init__(name, mode)
-  
-  def update(self, shr, x):
-    if isinstance(self.mode, BatchingMode):
-      return x.reshape((x.shape[0], -1))
-    else:
-      return x.flatten()
-  
-  def reset_state(self, batch_size=None):
-    pass

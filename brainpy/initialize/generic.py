@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import warnings
 from typing import Union, Callable, Optional
 
 import jax.numpy as jnp
@@ -7,8 +6,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.tools.others import to_size
-from brainpy.types import Shape, Array
-from brainpy.modes import Mode, NormalMode, BatchingMode
+from brainpy.types import Shape, ArrayType
 from .base import Initializer
 
 __all__ = [
@@ -48,7 +46,7 @@ def parameter(
 
   Returns
   -------
-  param: JaxArray, float, int, bool, None
+  param: ArrayType, float, int, bool, None
     The initialized parameter.
 
   See Also
@@ -59,7 +57,7 @@ def parameter(
     if allow_none:
       return None
     else:
-      raise ValueError(f'Expect a parameter with type of float, JaxArray, Initializer, or '
+      raise ValueError(f'Expect a parameter with type of float, ArrayType, Initializer, or '
                        f'Callable function, but we got None. ')
   size = to_size(size)
   if allow_scalar and isinstance(param, (float, int, bool)):
@@ -70,7 +68,7 @@ def parameter(
     param = bm.asarray(param)
   elif isinstance(param, bm.Variable):
     param = param
-  elif isinstance(param, bm.JaxArray):
+  elif isinstance(param, bm.Array):
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
@@ -96,16 +94,16 @@ def init_param(
 
 
 def variable_(
-    data: Union[Callable, Array],
+    data: Union[Callable, ArrayType],
     size: Shape = None,
-    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
 ):
   """Initialize variables. Same as `variable()`.
 
   Parameters
   ----------
-  data: callable, function, Array
+  data: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
   batch_size_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
@@ -131,8 +129,8 @@ def variable_(
 
 
 def variable(
-    data: Union[Callable, Array],
-    batch_size_or_mode: Optional[Union[int, bool, Mode]] = None,
+    data: Union[Callable, ArrayType],
+    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     size: Shape = None,
     batch_axis: int = 0,
 ):
@@ -140,7 +138,7 @@ def variable(
 
   Parameters
   ----------
-  data: callable, function, Array
+  data: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
   batch_size_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
@@ -166,9 +164,9 @@ def variable(
   if callable(data):
     if size is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
-    if isinstance(batch_size_or_mode, NormalMode):
+    if isinstance(batch_size_or_mode, bm.NonBatchingMode):
       return bm.Variable(data(size))
-    elif isinstance(batch_size_or_mode, BatchingMode):
+    elif isinstance(batch_size_or_mode, bm.BatchingMode):
       new_shape = size[:batch_axis] + (1,) + size[batch_axis:]
       return bm.Variable(data(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
@@ -183,9 +181,9 @@ def variable(
     if size is not None:
       if bm.shape(data) != size:
         raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {size}')
-    if isinstance(batch_size_or_mode, NormalMode):
+    if isinstance(batch_size_or_mode, bm.NonBatchingMode):
       return bm.Variable(data)
-    elif isinstance(batch_size_or_mode, BatchingMode):
+    elif isinstance(batch_size_or_mode, bm.BatchingMode):
       return bm.Variable(bm.expand_dims(data, axis=batch_axis), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(data)
@@ -248,11 +246,11 @@ def delay(
 
   Parameters
   ----------
-  delay_step: int, ndarray, JaxArray
+  delay_step: int, ndarray, ArrayType
     The number of delay steps. It can an integer of an array of integers.
-  delay_target: ndarray, JaxArray
+  delay_target: ndarray, ArrayType
     The target variable to delay.
-  delay_data: optional, ndarray, JaxArray
+  delay_data: optional, ndarray, ArrayType
     The initial delay data.
 
   Returns

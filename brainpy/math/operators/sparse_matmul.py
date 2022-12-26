@@ -1,29 +1,66 @@
 # -*- coding: utf-8 -*-
 
+import warnings
 from typing import Union, Dict, Tuple
 
+import brainpylib
 import jax.numpy as jnp
 from jax import ops
 
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.ndarray import Array
 from brainpy.math.numpy_ops import as_jax
-from .utils import _check_brainpylib
-from brainpy.types import Array
-
-try:
-  import brainpylib
-except ModuleNotFoundError:
-  brainpylib = None
+from brainpy.types import ArrayType
 
 __all__ = [
   'sparse_matmul',
   'csr_matvec',
+  'event_csr_matvec',
 ]
+
+
+def event_csr_matvec(values: ArrayType,
+                     indices: ArrayType,
+                     indptr: ArrayType,
+                     events: ArrayType,
+                     shape: Tuple[int, int],
+                     transpose: bool = False):
+  """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.
+
+  Parameters
+  ----------
+  values: ArrayType, float
+    An array of shape ``(nse,)`` or a float.
+  indices: ArrayType
+    An array of shape ``(nse,)``.
+  indptr: ArrayType
+    An array of shape ``(shape[0] + 1,)`` and dtype ``indices.dtype``.
+  events: ArrayType
+    An array of shape ``(shape[0] if transpose else shape[1],)``
+    and dtype ``data.dtype``.
+  shape: tuple of int
+    A length-2 tuple representing the sparse matrix shape.
+  transpose: bool
+    A boolean specifying whether to transpose the sparse matrix
+    before computing. Default is False.
+
+  Returns
+  -------
+  out: ArrayType
+    A tensor with the shape of ``shape[1]`` if `transpose=True`,
+    or ``shape[0]`` if `transpose=False`.
+  """
+  warnings.warn('Please use ``brainpylib.event_ops.event_csr_matvec()`` instead.', UserWarning)
+  events = as_jax(events)
+  indices = as_jax(indices)
+  indptr = as_jax(indptr)
+  values = as_jax(values)
+  return brainpylib.event_csr_matvec(values, indices, indptr, events,
+                                     shape=shape, transpose=transpose)
 
 
 def _matmul_with_left_sparse(
     sparse: Dict,
-    dense: Union[JaxArray, jnp.ndarray]
+    dense: Union[Array, jnp.ndarray]
 ):
   r"""Matrix multiplication with sparse matrix on the left.
 
@@ -35,7 +72,7 @@ def _matmul_with_left_sparse(
   ----------
   sparse: dict
     The sparse matrix with shape of :math:`(N, M)`.
-  dense: JaxArray, jnp.ndarray
+  dense: ArrayType
     The dense matrix with the shape of :math:`(M, K)`.
 
   Returns
@@ -62,7 +99,7 @@ def _matmul_with_left_sparse(
 
 
 def _matmul_with_right_sparse(
-    dense: Union[JaxArray, jnp.ndarray],
+    dense: Union[Array, jnp.ndarray],
     sparse: Dict
 ):
   r"""Matrix multiplication with sparse matrix on the left.
@@ -73,7 +110,7 @@ def _matmul_with_right_sparse(
 
   Parameters
   ----------
-  dense: JaxArray, jnp.ndarray
+  dense: ArrayType
     The dense matrix with the shape of :math:`(N, M)`.
   sparse: dict
     The sparse matrix with shape of :math:`(M, K)`.
@@ -130,10 +167,10 @@ def sparse_matmul(A, B):
   >>> sparse = {'data': values, 'index': (rows, cols), 'shape': (3, 4)}
   >>> B = bm.arange(4)
   >>> bm.sparse_matmul(sparse, B)
-  JaxArray([14,  0,  9], dtype=int32)
+  ArrayType([14,  0,  9], dtype=int32)
   >>> B = bm.random.rand(4, 3)
   >>> bm.sparse_matmul(sparse, B)
-  JaxArray([[3.8331761 , 1.3708692 , 4.510223  ],
+  ArrayType([[3.8331761 , 1.3708692 , 4.510223  ],
             [0.9960836 , 0.37550318, 0.7370341 ],
             [2.3700516 , 0.7574289 , 4.1124535 ]], dtype=float32)
 
@@ -141,10 +178,10 @@ def sparse_matmul(A, B):
 
   >>> A = bm.arange(3)
   >>> bm.sparse_matmul(A, sparse)
-  JaxArray([1, 6, 0, 4], dtype=int32)
+  ArrayType([1, 6, 0, 4], dtype=int32)
   >>> A = bm.random.rand(2, 3)
   >>> bm.sparse_matmul(A, sparse)
-  JaxArray([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
+  ArrayType([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
             [0.9171978 , 1.1214957 , 0.        , 0.90534496]],  dtype=float32)
 
   Parameters
@@ -156,11 +193,11 @@ def sparse_matmul(A, B):
 
   Returns
   -------
-  results: JaxArray, jnp.ndarray
+  results: ArrayType
     The tensor with the shape of :math:`(N, K)`.
   """
   if isinstance(A, dict):
-    if not isinstance(B, (JaxArray, jnp.ndarray)):
+    if not isinstance(B, (Array, jnp.ndarray)):
       raise ValueError('A and B cannot be both sparse. \n'
                        f'A:\n{A}\n'
                        f'B:\n{B}')
@@ -177,7 +214,7 @@ def csr_matvec(values: Array,
                indices: Array,
                indptr: Array,
                vector: Array,
-               shape: Tuple[int, ...],
+               shape: Tuple[int, int],
                transpose: bool = False):
   """Product of CSR sparse matrix and a dense vector.
 
@@ -204,10 +241,10 @@ def csr_matvec(values: Array,
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  _check_brainpylib('pre2post_event_sum')
+  warnings.warn('Please use ``brainpylib.sparse_ops.csr_matvec()`` instead.', UserWarning)
   vector = as_jax(vector)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
   values = as_jax(values)
-  return brainpylib.csr_matvec(values, indices, indptr, vector,
-                               shape=shape, transpose=transpose)
+  return brainpylib.cusparse_csr_matvec(values, indices, indptr, vector,
+                                        shape=shape, transpose=transpose)

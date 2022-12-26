@@ -3,19 +3,18 @@
 from typing import Optional, Union, Callable, Tuple
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variable
-from brainpy.modes import Mode, TrainingMode, batching
-from brainpy.tools.checking import check_float, check_initializer, check_string
+from brainpy.check import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
-from brainpy.types import Array
+from brainpy.types import ArrayType
+from .base import Layer
 
 __all__ = [
   'Reservoir',
 ]
 
 
-class Reservoir(DynamicalSystem):
+class Reservoir(Layer):
   r"""Reservoir node, a pool of leaky-integrator neurons
   with random recurrent connections [1]_.
 
@@ -29,7 +28,7 @@ class Reservoir(DynamicalSystem):
     The initialization method for the feedforward connections.
   Wrec_initializer: Initializer
     The initialization method for the recurrent connections.
-  b_initializer: optional, Array, Initializer
+  b_initializer: optional, ArrayType, Initializer
     The initialization method for the bias.
   leaky_rate: float
     A float between 0 and 1.
@@ -92,9 +91,9 @@ class Reservoir(DynamicalSystem):
       leaky_rate: float = 0.3,
       activation: Union[str, Callable] = 'tanh',
       activation_type: str = 'internal',
-      Win_initializer: Union[Initializer, Callable, Array] = Normal(scale=0.1),
-      Wrec_initializer: Union[Initializer, Callable, Array] = Normal(scale=0.1),
-      b_initializer: Optional[Union[Initializer, Callable, Array]] = ZeroInit(),
+      Win_initializer: Union[Initializer, Callable, ArrayType] = Normal(scale=0.1),
+      Wrec_initializer: Union[Initializer, Callable, ArrayType] = Normal(scale=0.1),
+      b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
       in_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
       comp_type='dense',
@@ -103,7 +102,7 @@ class Reservoir(DynamicalSystem):
       noise_rec: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
-      mode: Mode = batching,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(Reservoir, self).__init__(mode=mode, name=name)
@@ -159,7 +158,7 @@ class Reservoir(DynamicalSystem):
     if self.comp_type == 'sparse' and self.ff_connectivity < 1.:
       self.ff_pres, self.ff_posts = bm.where(bm.logical_not(conn_mat))
       self.Win = self.Win[self.ff_pres, self.ff_posts]
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.Win = bm.TrainVar(self.Win)
 
     # initialize recurrent weights
@@ -175,12 +174,12 @@ class Reservoir(DynamicalSystem):
       self.rec_pres, self.rec_posts = bm.where(bm.logical_not(conn_mat))
       self.Wrec = self.Wrec[self.rec_pres, self.rec_posts]
     self.bias = parameter(self._b_initializer, (self.num_unit,))
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.Wrec = bm.TrainVar(self.Wrec)
       self.bias = None if (self.bias is None) else bm.TrainVar(self.bias)
 
     # initialize state
-    self.state = variable(bm.zeros, mode, self.output_shape)
+    self.state = variable(bm.zeros, self.mode, self.output_shape)
 
   def reset_state(self, batch_size=None):
     self.state.value = variable(bm.zeros, batch_size, self.output_shape)

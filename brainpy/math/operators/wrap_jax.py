@@ -7,7 +7,8 @@ import jax.numpy as jnp
 from jax import lax
 from jax import ops as jops
 
-from brainpy.math.jaxarray import JaxArray
+from brainpy.math.ndarray import Array
+from brainpy.math.numpy_ops import as_jax
 
 __all__ = [
   'segment_sum',
@@ -17,14 +18,14 @@ __all__ = [
 ]
 
 
-def segment_sum(data: Union[JaxArray, jnp.ndarray],
-                segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_sum(data: Union[Array, jnp.ndarray],
+                segment_ids: Union[Array, jnp.ndarray],
                 num_segments: Optional[int] = None,
                 indices_are_sorted: bool = False,
                 unique_indices: bool = False,
                 bucket_size: Optional[int] = None,
-                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_sum`` operator for brainpy `JaxArray` and `Variable`.
+                mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_sum`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -49,6 +50,10 @@ def segment_sum(data: Union[JaxArray, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -56,22 +61,23 @@ def segment_sum(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_sum(data.value if isinstance(data, JaxArray) else data,
-                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size, mode))
+  return Array(jops.segment_sum(as_jax(data),
+                                as_jax(segment_ids),
+                                num_segments,
+                                indices_are_sorted,
+                                unique_indices,
+                                bucket_size,
+                                mode))
 
 
-def segment_prod(data: Union[JaxArray, jnp.ndarray],
-                 segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_prod(data: Union[Array, jnp.ndarray],
+                 segment_ids: Union[Array, jnp.ndarray],
                  num_segments: Optional[int] = None,
                  indices_are_sorted: bool = False,
                  unique_indices: bool = False,
                  bucket_size: Optional[int] = None,
-                 mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_prod`` operator for brainpy `JaxArray` and `Variable`.
+                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_prod`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -96,6 +102,10 @@ def segment_prod(data: Union[JaxArray, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -103,22 +113,23 @@ def segment_prod(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_prod(data.value if isinstance(data, JaxArray) else data,
-                                    segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
-                                    num_segments,
-                                    indices_are_sorted,
-                                    unique_indices,
-                                    bucket_size, mode))
+  return Array(jops.segment_prod(as_jax(data),
+                                 as_jax(segment_ids),
+                                 num_segments,
+                                 indices_are_sorted,
+                                 unique_indices,
+                                 bucket_size,
+                                 mode))
 
 
-def segment_max(data: Union[JaxArray, jnp.ndarray],
-                segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_max(data: Union[Array, jnp.ndarray],
+                segment_ids: Union[Array, jnp.ndarray],
                 num_segments: Optional[int] = None,
                 indices_are_sorted: bool = False,
                 unique_indices: bool = False,
                 bucket_size: Optional[int] = None,
-                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_max`` operator for brainpy `JaxArray` and `Variable`.
+                mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_max`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -143,6 +154,10 @@ def segment_max(data: Union[JaxArray, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -150,22 +165,23 @@ def segment_max(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_max(data.value if isinstance(data, JaxArray) else data,
-                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size, mode))
+  return Array(jops.segment_max(as_jax(data),
+                                as_jax(segment_ids),
+                                num_segments,
+                                indices_are_sorted,
+                                unique_indices,
+                                bucket_size,
+                                mode))
 
 
-def segment_min(data: Union[JaxArray, jnp.ndarray],
-                segment_ids: Union[JaxArray, jnp.ndarray],
+def segment_min(data: Union[Array, jnp.ndarray],
+                segment_ids: Union[Array, jnp.ndarray],
                 num_segments: Optional[int] = None,
                 indices_are_sorted: bool = False,
                 unique_indices: bool = False,
                 bucket_size: Optional[int] = None,
-                mode: Optional[lax.GatherScatterMode] = None) -> JaxArray:
-  """``segment_min`` operator for brainpy `JaxArray` and `Variable`.
+                mode: Optional[lax.GatherScatterMode] = None) -> Array:
+  """``segment_min`` operator for brainpy `Array` and `Variable`.
 
   Parameters
   ----------
@@ -190,6 +206,10 @@ def segment_min(data: Union[JaxArray, jnp.ndarray],
     Size of bucket to group indices into. ``segment_sum`` is
     performed on each bucket separately to improve numerical stability of
     addition. Default ``None`` means no bucketing.
+  mode: lax.GatherScatterMode
+    A :class:`jax.lax.GatherScatterMode` value describing how
+    out-of-bounds indices should be handled. By default, values outside of the
+    range [0, num_segments) are dropped and do not contribute to the sum.
 
   Returns
   -------
@@ -197,9 +217,10 @@ def segment_min(data: Union[JaxArray, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return JaxArray(jops.segment_min(data.value if isinstance(data, JaxArray) else data,
-                                   segment_ids.value if isinstance(segment_ids, JaxArray) else segment_ids,
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size, mode))
+  return Array(jops.segment_min(as_jax(data),
+                                as_jax(segment_ids),
+                                num_segments,
+                                indices_are_sorted,
+                                unique_indices,
+                                bucket_size,
+                                mode))

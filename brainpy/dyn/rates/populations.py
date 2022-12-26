@@ -3,15 +3,13 @@
 from typing import Union, Callable
 
 from brainpy import check, math as bm
+from brainpy.check import check_float, check_initializer, check_error_in_jit
 from brainpy.dyn.base import NeuGroup
 from brainpy.dyn.neurons.noise_groups import OUProcess
 from brainpy.initialize import Initializer, Uniform, parameter, variable, ZeroInit
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
-from brainpy.modes import Mode, normal
-from brainpy.tools.checking import check_float, check_initializer
-from brainpy.tools.errors import check_error_in_jit
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 
 __all__ = [
   'RateModel',
@@ -69,29 +67,29 @@ class FHN(RateModel):
       keep_size: bool = False,
 
       # fhn parameters
-      alpha: Union[float, Array, Initializer, Callable] = 3.0,
-      beta: Union[float, Array, Initializer, Callable] = 4.0,
-      gamma: Union[float, Array, Initializer, Callable] = -1.5,
-      delta: Union[float, Array, Initializer, Callable] = 0.0,
-      epsilon: Union[float, Array, Initializer, Callable] = 0.5,
-      tau: Union[float, Array, Initializer, Callable] = 20.0,
+      alpha: Union[float, ArrayType, Initializer, Callable] = 3.0,
+      beta: Union[float, ArrayType, Initializer, Callable] = 4.0,
+      gamma: Union[float, ArrayType, Initializer, Callable] = -1.5,
+      delta: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      epsilon: Union[float, ArrayType, Initializer, Callable] = 0.5,
+      tau: Union[float, ArrayType, Initializer, Callable] = 20.0,
 
       # noise parameters
-      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
-      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
+      x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(FHN, self).__init__(size=size,
                               name=name,
@@ -123,10 +121,10 @@ class FHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -251,30 +249,30 @@ class FeedbackFHN(RateModel):
       keep_size: bool = False,
 
       # model parameters
-      a: Union[float, Array, Initializer, Callable] = 0.7,
-      b: Union[float, Array, Initializer, Callable] = 0.8,
-      delay: Union[float, Array, Initializer, Callable] = 10.,
-      tau: Union[float, Array, Initializer, Callable] = 12.5,
-      mu: Union[float, Array, Initializer, Callable] = 1.6886,
-      v0: Union[float, Array, Initializer, Callable] = -1,
+      a: Union[float, ArrayType, Initializer, Callable] = 0.7,
+      b: Union[float, ArrayType, Initializer, Callable] = 0.8,
+      delay: Union[float, ArrayType, Initializer, Callable] = 10.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 12.5,
+      mu: Union[float, ArrayType, Initializer, Callable] = 1.6886,
+      v0: Union[float, ArrayType, Initializer, Callable] = -1,
 
       # noise parameters
-      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
-      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
+      x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
       dt: float = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(FeedbackFHN, self).__init__(size=size,
                                       name=name,
@@ -308,11 +306,11 @@ class FeedbackFHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -451,27 +449,27 @@ class QIF(RateModel):
       keep_size: bool = False,
 
       # model parameters
-      tau: Union[float, Array, Initializer, Callable] = 1.,
-      eta: Union[float, Array, Initializer, Callable] = -5.0,
-      delta: Union[float, Array, Initializer, Callable] = 1.0,
-      J: Union[float, Array, Initializer, Callable] = 15.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 1.,
+      eta: Union[float, ArrayType, Initializer, Callable] = -5.0,
+      delta: Union[float, ArrayType, Initializer, Callable] = 1.0,
+      J: Union[float, ArrayType, Initializer, Callable] = 15.,
 
       # noise parameters
-      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
-      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.05),
+      x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
+      y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(QIF, self).__init__(size=size,
                               name=name,
@@ -502,10 +500,10 @@ class QIF(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -594,25 +592,25 @@ class StuartLandauOscillator(RateModel):
       keep_size: bool = False,
 
       # model parameters
-      a: Union[float, Array, Initializer, Callable] = 0.25,
-      w: Union[float, Array, Initializer, Callable] = 0.2,
+      a: Union[float, ArrayType, Initializer, Callable] = 0.25,
+      w: Union[float, ArrayType, Initializer, Callable] = 0.2,
 
       # noise parameters
-      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
 
       # other parameters
-      x_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.5),
-      y_initializer: Union[Initializer, Callable, Array] = Uniform(0, 0.5),
+      x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.5),
+      y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.5),
       method: str = 'exp_auto',
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(StuartLandauOscillator, self).__init__(size=size,
                                                  name=name,
@@ -638,10 +636,10 @@ class StuartLandauOscillator(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -732,42 +730,42 @@ class WilsonCowanModel(RateModel):
       keep_size: bool = False,
 
       # Excitatory parameters
-      E_tau: Union[float, Array, Initializer, Callable] = 1.,  # excitatory time constant
-      E_a: Union[float, Array, Initializer, Callable] = 1.2,  # excitatory gain
-      E_theta: Union[float, Array, Initializer, Callable] = 2.8,  # excitatory firing threshold
+      E_tau: Union[float, ArrayType, Initializer, Callable] = 1.,  # excitatory time constant
+      E_a: Union[float, ArrayType, Initializer, Callable] = 1.2,  # excitatory gain
+      E_theta: Union[float, ArrayType, Initializer, Callable] = 2.8,  # excitatory firing threshold
 
       # Inhibitory parameters
-      I_tau: Union[float, Array, Initializer, Callable] = 1.,  # inhibitory time constant
-      I_a: Union[float, Array, Initializer, Callable] = 1.,  # inhibitory gain
-      I_theta: Union[float, Array, Initializer, Callable] = 4.0,  # inhibitory firing threshold
+      I_tau: Union[float, ArrayType, Initializer, Callable] = 1.,  # inhibitory time constant
+      I_a: Union[float, ArrayType, Initializer, Callable] = 1.,  # inhibitory gain
+      I_theta: Union[float, ArrayType, Initializer, Callable] = 4.0,  # inhibitory firing threshold
 
       # connection parameters
-      wEE: Union[float, Array, Initializer, Callable] = 12.,  # local E-E coupling
-      wIE: Union[float, Array, Initializer, Callable] = 4.,  # local E-I coupling
-      wEI: Union[float, Array, Initializer, Callable] = 13.,  # local I-E coupling
-      wII: Union[float, Array, Initializer, Callable] = 11.,  # local I-I coupling
+      wEE: Union[float, ArrayType, Initializer, Callable] = 12.,  # local E-E coupling
+      wIE: Union[float, ArrayType, Initializer, Callable] = 4.,  # local E-I coupling
+      wEI: Union[float, ArrayType, Initializer, Callable] = 13.,  # local I-E coupling
+      wII: Union[float, ArrayType, Initializer, Callable] = 11.,  # local I-I coupling
 
       # Refractory parameter
-      r: Union[float, Array, Initializer, Callable] = 1.,
+      r: Union[float, ArrayType, Initializer, Callable] = 1.,
 
       # noise parameters
-      x_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      x_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
-      y_ou_mean: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_sigma: Union[float, Array, Initializer, Callable] = 0.0,
-      y_ou_tau: Union[float, Array, Initializer, Callable] = 5.0,
+      x_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      x_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      y_ou_mean: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_sigma: Union[float, ArrayType, Initializer, Callable] = 0.0,
+      y_ou_tau: Union[float, ArrayType, Initializer, Callable] = 5.0,
 
       # state initializer
-      x_initializer: Union[Initializer, Callable, Array] = Uniform(max_val=0.05),
-      y_initializer: Union[Initializer, Callable, Array] = Uniform(max_val=0.05),
+      x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(max_val=0.05),
+      y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(max_val=0.05),
 
       # other parameters
       method: str = 'exp_euler_auto',
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size)
 
@@ -799,10 +797,10 @@ class WilsonCowanModel(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, mode, self.varshape)
-    self.y = variable(y_initializer, mode, self.varshape)
-    self.input = variable(bm.zeros, mode, self.varshape)
-    self.input_y = variable(bm.zeros, mode, self.varshape)
+    self.x = variable(x_initializer, self.mode, self.varshape)
+    self.y = variable(y_initializer, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -910,20 +908,20 @@ class ThresholdLinearModel(RateModel):
   def __init__(
       self,
       size: Shape,
-      tau_e: Union[float, Callable, Initializer, Array] = 2e-2,
-      tau_i: Union[float, Callable, Initializer, Array] = 1e-2,
-      beta_e: Union[float, Callable, Initializer, Array] = .066,
-      beta_i: Union[float, Callable, Initializer, Array] = .351,
-      noise_e: Union[float, Callable, Initializer, Array] = 0.,
-      noise_i: Union[float, Callable, Initializer, Array] = 0.,
-      e_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
-      i_initializer: Union[Array, Callable, Initializer] = ZeroInit(),
+      tau_e: Union[float, Callable, Initializer, ArrayType] = 2e-2,
+      tau_i: Union[float, Callable, Initializer, ArrayType] = 1e-2,
+      beta_e: Union[float, Callable, Initializer, ArrayType] = .066,
+      beta_i: Union[float, Callable, Initializer, ArrayType] = .351,
+      noise_e: Union[float, Callable, Initializer, ArrayType] = 0.,
+      noise_i: Union[float, Callable, Initializer, ArrayType] = 0.,
+      e_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      i_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
       seed: int = None,
       keep_size: bool = False,
       name: str = None,
 
       # parameter for training
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(ThresholdLinearModel, self).__init__(size,
                                                name=name,
@@ -942,10 +940,10 @@ class ThresholdLinearModel(RateModel):
     self._i_initializer = i_initializer
 
     # variables
-    self.e = variable(e_initializer, mode, self.varshape)  # Firing rate of excitatory population
-    self.i = variable(i_initializer, mode, self.varshape)  # Firing rate of inhibitory population
-    self.Ie = variable(bm.zeros, mode, self.varshape)  # Input of excitaory population
-    self.Ii = variable(bm.zeros, mode, self.varshape)  # Input of inhibitory population
+    self.e = variable(e_initializer, self.mode, self.varshape)  # Firing rate of excitatory population
+    self.i = variable(i_initializer, self.mode, self.varshape)  # Firing rate of inhibitory population
+    self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
+    self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
     if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
       self.rng = bm.random.RandomState(self.seed)
 

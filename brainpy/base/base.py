@@ -5,28 +5,29 @@ import os.path
 
 from brainpy import errors
 from brainpy.base import io, naming
-from brainpy.base.collector import Collector, TensorCollector
+from brainpy.base.collector import Collector, ArrayCollector
 
 math = None
 
 __all__ = [
+  'BrainPyObject',
   'Base',
 ]
 
 logger = logging.getLogger('brainpy.base')
 
 
-class Base(object):
-  """The Base class for whole BrainPy ecosystem.
+class BrainPyObject(object):
+  """The BrainPyObject class for whole BrainPy ecosystem.
 
-  The subclass of Base includes:
+  The subclass of BrainPyObject includes:
 
   - ``DynamicalSystem`` in *brainpy.dyn.base.py*
   - ``Integrator`` in *brainpy.integrators.base.py*
-  - ``Function`` in *brainpy.base.function.py*
+  - ``FunAsObject`` in *brainpy.base.function.py*
   - ``Optimizer`` in *brainpy.optimizers.py*
   - ``Scheduler`` in *brainpy.optimizers.py*
-
+  - and others.
   """
 
   _excluded_vars = ()
@@ -39,7 +40,7 @@ class Base(object):
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
-    self.implicit_vars = TensorCollector()
+    self.implicit_vars = ArrayCollector()
 
     # Used to wrap the implicit children nodes
     # which cannot be accessed by self.xxx
@@ -64,7 +65,7 @@ class Base(object):
         for v in variable:
           if not isinstance(v, Variable):
             raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
-          self.implicit_vars[f'var{id(variable)}'] = v
+          self.implicit_vars[f'var{id(v)}'] = v
       elif isinstance(variable, dict):
         for k, v in variable.items():
           if not isinstance(v, Variable):
@@ -77,25 +78,27 @@ class Base(object):
         raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(variable)}')
       self.implicit_vars[key] = variable
 
-  def register_implicit_nodes(self, *nodes, **named_nodes):
+  def register_implicit_nodes(self, *nodes, node_cls: type = None, **named_nodes):
+    if node_cls is None:
+      node_cls = BrainPyObject
     for node in nodes:
-      if isinstance(node, Base):
+      if isinstance(node, node_cls):
         self.implicit_nodes[node.name] = node
       elif isinstance(node, (tuple, list)):
         for n in node:
-          if not isinstance(n, Base):
-            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          if not isinstance(n, node_cls):
+            raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(n)}')
           self.implicit_nodes[n.name] = n
       elif isinstance(node, dict):
         for k, n in node.items():
-          if not isinstance(n, Base):
-            raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(n)}')
+          if not isinstance(n, node_cls):
+            raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(n)}')
           self.implicit_nodes[k] = n
       else:
         raise ValueError(f'Unknown type: {type(node)}')
     for key, node in named_nodes.items():
-      if not isinstance(node, Base):
-        raise ValueError(f'Must be instance of {Base.__name__}, but we got {type(node)}')
+      if not isinstance(node, node_cls):
+        raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(node)}')
       self.implicit_nodes[key] = node
 
   def vars(self, method='absolute', level=-1, include_self=True):
@@ -112,14 +115,14 @@ class Base(object):
 
     Returns
     -------
-    gather : TensorCollector
+    gather : ArrayCollector
       The collection contained (the path, the variable).
     """
     global math
     if math is None: from brainpy import math
 
     nodes = self.nodes(method=method, level=level, include_self=include_self)
-    gather = TensorCollector()
+    gather = ArrayCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
@@ -143,7 +146,7 @@ class Base(object):
 
     Returns
     -------
-    gather : TensorCollector
+    gather : ArrayCollector
       The collection contained (the path, the trainable variable).
     """
     global math
@@ -166,7 +169,7 @@ class Base(object):
     if method == 'absolute':
       nodes = []
       for k, v in self.__dict__.items():
-        if isinstance(v, Base):
+        if isinstance(v, BrainPyObject):
           path = (id(self), id(v))
           if path not in _paths:
             _paths.add(path)
@@ -188,7 +191,7 @@ class Base(object):
     elif method == 'relative':
       nodes = []
       for k, v in self.__dict__.items():
-        if isinstance(v, Base):
+        if isinstance(v, BrainPyObject):
           path = (id(self), id(v))
           if path not in _paths:
             _paths.add(path)
@@ -286,7 +289,7 @@ class Base(object):
     ----------
     filename : str
       The file name which to store the model states.
-    variables: optional, dict, TensorCollector
+    variables: optional, dict, ArrayCollector
       The variables to save. If not provided, all variables retrieved by ``~.vars()`` will be used.
     """
     if variables is None:
@@ -323,3 +326,6 @@ class Base(object):
   # def tpu(self):
   #   global math
   #   if math is None: from brainpy import math
+
+
+Base = BrainPyObject

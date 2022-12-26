@@ -7,6 +7,7 @@ math = None
 
 __all__ = [
   'Collector',
+  'ArrayCollector',
   'TensorCollector',
 ]
 
@@ -14,7 +15,7 @@ __all__ = [
 class Collector(dict):
   """A Collector is a dictionary (name, var) with some additional methods to make manipulation
   of collections of variables easy. A Collector is ordered by insertion order. It is the object
-  returned by Base.vars() and used as input in many Collector instance: optimizers, jit, etc..."""
+  returned by BrainPyObject.vars() and used as input in many Collector instance: optimizers, jit, etc..."""
 
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
@@ -108,7 +109,7 @@ class Collector(dict):
     >>> # get all trainable variables
     >>> some_collector.subset(bp.math.TrainVar)
     >>>
-    >>> # get all JaxArray
+    >>> # get all Variable
     >>> some_collector.subset(bp.math.Variable)
 
     or, it can be used to get a subset of integrators:
@@ -142,7 +143,7 @@ class Collector(dict):
     return gather
 
 
-class TensorCollector(Collector):
+class ArrayCollector(Collector):
   """A ArrayCollector is a dictionary (name, var)
   with some additional methods to make manipulation
   of collections of variables easy. A Collection
@@ -186,3 +187,15 @@ class TensorCollector(Collector):
   def data(self):
     """Get all data in each value."""
     return [x.value for x in self.values()]
+
+  @classmethod
+  def from_other(cls, other: Union[Sequence, Dict]):
+    if isinstance(other, (tuple, list)):
+      return cls({id(o): o for o in other})
+    elif isinstance(other, dict):
+      return cls(other)
+    else:
+      raise TypeError
+
+
+TensorCollector = ArrayCollector

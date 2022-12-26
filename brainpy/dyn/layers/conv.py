@@ -5,10 +5,9 @@ from jax import lax
 from typing import Union, Tuple, Optional, Sequence
 
 from brainpy import math as bm, tools
-from brainpy.dyn.base import DynamicalSystem
+from .base import Layer
 from brainpy.initialize import Initializer, XavierNormal, ZeroInit, parameter
-from brainpy.modes import Mode, TrainingMode, training
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'Conv1D',
@@ -35,7 +34,7 @@ def to_dimension_numbers(num_spatial_dims: int, channels_last: bool, transpose: 
                                   out_spec=image_dn)
 
 
-class GeneralConv(DynamicalSystem):
+class GeneralConv(Layer):
   """Applies a convolution to the inputs.
 
   Parameters
@@ -72,7 +71,7 @@ class GeneralConv(DynamicalSystem):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -93,8 +92,8 @@ class GeneralConv(DynamicalSystem):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
-      mode: Mode = training,
+      mask: Optional[ArrayType] = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(GeneralConv, self).__init__(name=name, mode=mode)
@@ -137,7 +136,7 @@ class GeneralConv(DynamicalSystem):
     bias_shape = (1,) * len(self.kernel_size) + (self.out_channels,)
     self.w = parameter(self.w_init, kernel_shape)
     self.b = parameter(self.b_init, bias_shape)
-    if isinstance(self.mode, TrainingMode):
+    if isinstance(self.mode, bm.TrainingMode):
       self.w = bm.TrainVar(self.w)
       self.b = bm.TrainVar(self.b)
 
@@ -163,9 +162,6 @@ class GeneralConv(DynamicalSystem):
       return y
     else:
       return y + self.b.value
-
-  def reset_state(self, batch_size=None):
-    pass
 
 
 class Conv1D(GeneralConv):
@@ -203,7 +199,7 @@ class Conv1D(GeneralConv):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -224,8 +220,8 @@ class Conv1D(GeneralConv):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
-      mode: Mode = training,
+      mask: Optional[ArrayType] = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv1D, self).__init__(num_spatial_dims=1,
@@ -286,7 +282,7 @@ class Conv2D(GeneralConv):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -307,8 +303,8 @@ class Conv2D(GeneralConv):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
-      mode: Mode = training,
+      mask: Optional[ArrayType] = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv2D, self).__init__(num_spatial_dims=2,
@@ -369,7 +365,7 @@ class Conv3D(GeneralConv):
     The initializer for the convolutional kernel.
   b_init: Initializer
     The initializer for the bias.
-  mask: Array, Optional
+  mask: ArrayType, Optional
     The optional mask of the weights.
   mode: Mode
     The computation mode of the current object. Default it is `training`.
@@ -390,8 +386,8 @@ class Conv3D(GeneralConv):
       groups: int = 1,
       w_init: Initializer = XavierNormal(),
       b_init: Initializer = ZeroInit(),
-      mask: Optional[Array] = None,
-      mode: Mode = training,
+      mask: Optional[ArrayType] = None,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(Conv3D, self).__init__(num_spatial_dims=3,

@@ -10,13 +10,10 @@
     :maxdepth: 1
 
     auto/math/variables
-    auto/math/delay_vars
-    auto/math/jit
+    auto/math/object_transform
     auto/math/operators
-    auto/math/controls
-    auto/math/autograd
+    auto/math/surrogate
+    auto/math/delayvars
     auto/math/activations
-    auto/math/function
     math/comparison
-    auto/math/setting
-    math_compat
+    auto/math/environment

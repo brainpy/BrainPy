@@ -8,7 +8,7 @@ from brainpy.errors import DiffEqError, CodeError
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.constants import DT
-from brainpy.tools.checking import check_dict_data
+from brainpy.check import check_dict_data
 
 __all__ = [
   'ODEIntegrator',
@@ -141,7 +141,7 @@ class ODEIntegrator(Integrator):
       if isinstance(delay, bm.LengthDelay):
         delay.update(dict_vars[key])
       elif isinstance(delay, bm.TimeDelay):
-        delay.update(kwargs['t'] + dt, dict_vars[key])
+        delay.update(dict_vars[key])
       else:
         raise ValueError('Unknown delay variable. We only supports '
                          f'{bm.LengthDelay.__name__} and {bm.TimeDelay.__name__}. '

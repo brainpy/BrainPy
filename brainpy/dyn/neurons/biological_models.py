@@ -3,14 +3,13 @@
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
+from brainpy import check
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode import odeint
 from brainpy.integrators.sde import sdeint
-from brainpy.modes import Mode, BatchingMode, NormalMode, normal, check_mode
-from brainpy.tools.checking import check_initializer
-from brainpy.types import Shape, Array
+from brainpy.types import Shape, ArrayType
 
 __all__ = [
   'HH',
@@ -150,29 +149,29 @@ class HH(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  ENa: float, JaxArray, ndarray, Initializer, callable
+  ENa: float, ArrayType, Initializer, callable
     The reversal potential of sodium. Default is 50 mV.
-  gNa: float, JaxArray, ndarray, Initializer, callable
+  gNa: float, ArrayType, Initializer, callable
     The maximum conductance of sodium channel. Default is 120 msiemens.
-  EK: float, JaxArray, ndarray, Initializer, callable
+  EK: float, ArrayType, Initializer, callable
     The reversal potential of potassium. Default is -77 mV.
-  gK: float, JaxArray, ndarray, Initializer, callable
+  gK: float, ArrayType, Initializer, callable
     The maximum conductance of potassium channel. Default is 36 msiemens.
-  EL: float, JaxArray, ndarray, Initializer, callable
+  EL: float, ArrayType, Initializer, callable
     The reversal potential of learky channel. Default is -54.387 mV.
-  gL: float, JaxArray, ndarray, Initializer, callable
+  gL: float, ArrayType, Initializer, callable
     The conductance of learky channel. Default is 0.03 msiemens.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     The threshold of the membrane spike. Default is 20 mV.
-  C: float, JaxArray, ndarray, Initializer, callable
+  C: float, ArrayType, Initializer, callable
     The membrane capacitance. Default is 1 ufarad.
-  V_initializer: JaxArray, ndarray, Initializer, callable
+  V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  m_initializer: JaxArray, ndarray, Initializer, callable
+  m_initializer: ArrayType, Initializer, callable
     The initializer of m channel.
-  h_initializer: JaxArray, ndarray, Initializer, callable
+  h_initializer: ArrayType, Initializer, callable
     The initializer of h channel.
-  n_initializer: JaxArray, ndarray, Initializer, callable
+  n_initializer: ArrayType, Initializer, callable
     The initializer of n channel.
   method: str
     The numerical integration method.
@@ -195,31 +194,33 @@ class HH(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      ENa: Union[float, Array, Initializer, Callable] = 50.,
-      gNa: Union[float, Array, Initializer, Callable] = 120.,
-      EK: Union[float, Array, Initializer, Callable] = -77.,
-      gK: Union[float, Array, Initializer, Callable] = 36.,
-      EL: Union[float, Array, Initializer, Callable] = -54.387,
-      gL: Union[float, Array, Initializer, Callable] = 0.03,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      C: Union[float, Array, Initializer, Callable] = 1.0,
-      V_initializer: Union[Initializer, Callable, Array] = Uniform(-70, -60.),
-      m_initializer: Optional[Union[Initializer, Callable, Array]] = None,
-      h_initializer: Optional[Union[Initializer, Callable, Array]] = None,
-      n_initializer: Optional[Union[Initializer, Callable, Array]] = None,
-      noise: Union[float, Array, Initializer, Callable] = None,
+      ENa: Union[float, ArrayType, Initializer, Callable] = 50.,
+      gNa: Union[float, ArrayType, Initializer, Callable] = 120.,
+      EK: Union[float, ArrayType, Initializer, Callable] = -77.,
+      gK: Union[float, ArrayType, Initializer, Callable] = 36.,
+      EL: Union[float, ArrayType, Initializer, Callable] = -54.387,
+      gL: Union[float, ArrayType, Initializer, Callable] = 0.03,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      C: Union[float, ArrayType, Initializer, Callable] = 1.0,
+      V_initializer: Union[Initializer, Callable, ArrayType] = Uniform(-70, -60.),
+      m_initializer: Optional[Union[Initializer, Callable, ArrayType]] = None,
+      h_initializer: Optional[Union[Initializer, Callable, ArrayType]] = None,
+      n_initializer: Optional[Union[Initializer, Callable, ArrayType]] = None,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
 
       # training parameter
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(HH, self).__init__(size=size,
                              keep_size=keep_size,
                              name=name,
                              mode=mode)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__.__name__)
+    check.check_mode(self.mode,
+                     (bm.BatchingMode, bm.NonBatchingMode),
+                     self.__class__.__name__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -233,28 +234,28 @@ class HH(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=4)
 
     # initializers
-    check_initializer(m_initializer, 'm_initializer', allow_none=True)
-    check_initializer(h_initializer, 'h_initializer', allow_none=True)
-    check_initializer(n_initializer, 'n_initializer', allow_none=True)
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.check_initializer(m_initializer, 'm_initializer', allow_none=True)
+    check.check_initializer(h_initializer, 'h_initializer', allow_none=True)
+    check.check_initializer(n_initializer, 'n_initializer', allow_none=True)
+    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._m_initializer = m_initializer
     self._h_initializer = h_initializer
     self._n_initializer = n_initializer
     self._V_initializer = V_initializer
 
     # variables
-    self.V = variable_(self._V_initializer, self.varshape, mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
     self.m = (bm.Variable(self.m_inf(self.V.value))
               if m_initializer is None else
-              variable_(self._m_initializer, self.varshape, mode))
+              variable_(self._m_initializer, self.varshape, self.mode))
     self.h = (bm.Variable(self.h_inf(self.V.value))
               if h_initializer is None else
-              variable_(self._h_initializer, self.varshape, mode))
+              variable_(self._h_initializer, self.varshape, self.mode))
     self.n = (bm.Variable(self.n_inf(self.V.value))
               if n_initializer is None else
-              variable_(self._n_initializer, self.varshape, mode))
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
+              variable_(self._n_initializer, self.varshape, self.mode))
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -400,34 +401,34 @@ class MorrisLecar(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      V_Ca: Union[float, Array, Initializer, Callable] = 130.,
-      g_Ca: Union[float, Array, Initializer, Callable] = 4.4,
-      V_K: Union[float, Array, Initializer, Callable] = -84.,
-      g_K: Union[float, Array, Initializer, Callable] = 8.,
-      V_leak: Union[float, Array, Initializer, Callable] = -60.,
-      g_leak: Union[float, Array, Initializer, Callable] = 2.,
-      C: Union[float, Array, Initializer, Callable] = 20.,
-      V1: Union[float, Array, Initializer, Callable] = -1.2,
-      V2: Union[float, Array, Initializer, Callable] = 18.,
-      V3: Union[float, Array, Initializer, Callable] = 2.,
-      V4: Union[float, Array, Initializer, Callable] = 30.,
-      phi: Union[float, Array, Initializer, Callable] = 0.04,
-      V_th: Union[float, Array, Initializer, Callable] = 10.,
-      W_initializer: Union[Callable, Initializer, Array] = OneInit(0.02),
-      V_initializer: Union[Callable, Initializer, Array] = Uniform(-70., -60.),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      V_Ca: Union[float, ArrayType, Initializer, Callable] = 130.,
+      g_Ca: Union[float, ArrayType, Initializer, Callable] = 4.4,
+      V_K: Union[float, ArrayType, Initializer, Callable] = -84.,
+      g_K: Union[float, ArrayType, Initializer, Callable] = 8.,
+      V_leak: Union[float, ArrayType, Initializer, Callable] = -60.,
+      g_leak: Union[float, ArrayType, Initializer, Callable] = 2.,
+      C: Union[float, ArrayType, Initializer, Callable] = 20.,
+      V1: Union[float, ArrayType, Initializer, Callable] = -1.2,
+      V2: Union[float, ArrayType, Initializer, Callable] = 18.,
+      V3: Union[float, ArrayType, Initializer, Callable] = 2.,
+      V4: Union[float, ArrayType, Initializer, Callable] = 30.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 0.04,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 10.,
+      W_initializer: Union[Callable, Initializer, ArrayType] = OneInit(0.02),
+      V_initializer: Union[Callable, Initializer, ArrayType] = Uniform(-70., -60.),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
 
       # training parameter
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(MorrisLecar, self).__init__(size=size,
                                       keep_size=keep_size,
                                       name=name,
                                       mode=mode)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -446,16 +447,16 @@ class MorrisLecar(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(W_initializer, 'W_initializer', allow_none=False)
+    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.check_initializer(W_initializer, 'W_initializer', allow_none=False)
     self._W_initializer = W_initializer
     self._V_initializer = V_initializer
 
     # variables
-    self.W = variable_(self._W_initializer, self.varshape, mode)
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.W = variable_(self._W_initializer, self.varshape, self.mode)
+    self.V = variable_(self._V_initializer, self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -596,41 +597,41 @@ class PinskyRinzelModel(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  gNa: float, JaxArray, ndarray, Initializer, callable
+  gNa: float, ArrayType, Initializer, callable
     The maximum conductance of sodium channel.
-  gK: float, JaxArray, ndarray, Initializer, callable
+  gK: float, ArrayType, Initializer, callable
     The maximum conductance of potassium delayed-rectifier channel.
-  gCa: float, JaxArray, ndarray, Initializer, callable
+  gCa: float, ArrayType, Initializer, callable
     The maximum conductance of calcium channel.
-  gAHP: float, JaxArray, ndarray, Initializer, callable
+  gAHP: float, ArrayType, Initializer, callable
     The maximum conductance of potassium after-hyper-polarization channel.
-  gC: float, JaxArray, ndarray, Initializer, callable
+  gC: float, ArrayType, Initializer, callable
     The maximum conductance of calcium activated potassium channel.
-  gL: float, JaxArray, ndarray, Initializer, callable
+  gL: float, ArrayType, Initializer, callable
     The conductance of leaky channel.
-  ENa: float, JaxArray, ndarray, Initializer, callable
+  ENa: float, ArrayType, Initializer, callable
     The reversal potential of sodium channel.
-  EK: float, JaxArray, ndarray, Initializer, callable
+  EK: float, ArrayType, Initializer, callable
     The reversal potential of potassium delayed-rectifier channel.
-  ECa: float, JaxArray, ndarray, Initializer, callable
+  ECa: float, ArrayType, Initializer, callable
     The reversal potential of calcium channel.
-  EL: float, JaxArray, ndarray, Initializer, callable
+  EL: float, ArrayType, Initializer, callable
     The reversal potential of leaky channel.
-  gc: float, JaxArray, ndarray, Initializer, callable
+  gc: float, ArrayType, Initializer, callable
     The coupling strength between the soma and dendrite.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     The threshold of the membrane spike.
-  Cm: float, JaxArray, ndarray, Initializer, callable
+  Cm: float, ArrayType, Initializer, callable
     The threshold of the membrane spike.
-  A: float, JaxArray, ndarray, Initializer, callable
+  A: float, ArrayType, Initializer, callable
     The total cell membrane area, which is normalized to 1.
-  p: float, JaxArray, ndarray, Initializer, callable
+  p: float, ArrayType, Initializer, callable
     The proportion of cell area taken up by the soma.
-  Vs_initializer: JaxArray, ndarray, Initializer, callable
+  Vs_initializer: ArrayType, Initializer, callable
     The initializer of somatic membrane potential.
-  Vd_initializer: JaxArray, ndarray, Initializer, callable
+  Vd_initializer: ArrayType, Initializer, callable
     The initializer of dendritic membrane potential.
-  Ca_initializer: JaxArray, ndarray, Initializer, callable
+  Ca_initializer: ArrayType, Initializer, callable
     The initializer of Calcium concentration.
   method: str
     The numerical integration method.
@@ -653,39 +654,39 @@ class PinskyRinzelModel(NeuGroup):
       size: Shape,
       keep_size: bool = False,
       # maximum conductance
-      gNa: Union[float, Array, Initializer, Callable] = 30.,
-      gK: Union[float, Array, Initializer, Callable] = 15.,
-      gCa: Union[float, Array, Initializer, Callable] = 10.,
-      gAHP: Union[float, Array, Initializer, Callable] = 0.8,
-      gC: Union[float, Array, Initializer, Callable] = 15.,
-      gL: Union[float, Array, Initializer, Callable] = 0.1,
+      gNa: Union[float, ArrayType, Initializer, Callable] = 30.,
+      gK: Union[float, ArrayType, Initializer, Callable] = 15.,
+      gCa: Union[float, ArrayType, Initializer, Callable] = 10.,
+      gAHP: Union[float, ArrayType, Initializer, Callable] = 0.8,
+      gC: Union[float, ArrayType, Initializer, Callable] = 15.,
+      gL: Union[float, ArrayType, Initializer, Callable] = 0.1,
       # reversal potential
-      ENa: Union[float, Array, Initializer, Callable] = 60.,
-      EK: Union[float, Array, Initializer, Callable] = -75.,
-      ECa: Union[float, Array, Initializer, Callable] = 80.,
-      EL: Union[float, Array, Initializer, Callable] = -60.,
+      ENa: Union[float, ArrayType, Initializer, Callable] = 60.,
+      EK: Union[float, ArrayType, Initializer, Callable] = -75.,
+      ECa: Union[float, ArrayType, Initializer, Callable] = 80.,
+      EL: Union[float, ArrayType, Initializer, Callable] = -60.,
       # other parameters
-      gc: Union[float, Array, Initializer, Callable] = 2.1,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      Cm: Union[float, Array, Initializer, Callable] = 3.0,
-      p: Union[float, Array, Initializer, Callable] = 0.5,
-      A: Union[float, Array, Initializer, Callable] = 1.,
+      gc: Union[float, ArrayType, Initializer, Callable] = 2.1,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      Cm: Union[float, ArrayType, Initializer, Callable] = 3.0,
+      p: Union[float, ArrayType, Initializer, Callable] = 0.5,
+      A: Union[float, ArrayType, Initializer, Callable] = 1.,
       # initializers
-      Vs_initializer: Union[Initializer, Callable, Array] = OneInit(-64.6),
-      Vd_initializer: Union[Initializer, Callable, Array] = OneInit(-64.5),
-      Ca_initializer: Union[Initializer, Callable, Array] = OneInit(0.2),
+      Vs_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-64.6),
+      Vd_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-64.5),
+      Ca_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.2),
       # others
-      noise: Union[float, Array, Initializer, Callable] = None,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(PinskyRinzelModel, self).__init__(size=size,
                                             keep_size=keep_size,
                                             name=name,
                                             mode=mode)
-    check_mode(self.mode, (NormalMode, BatchingMode), self.__class__)
+    check.check_mode(self.mode, (bm.NonBatchingMode, bm.BatchingMode), self.__class__)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -710,24 +711,24 @@ class PinskyRinzelModel(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=8)
 
     # initializers
-    check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
-    check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
-    check_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
+    check.check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
+    check.check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
+    check.check_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
     self._Vs_initializer = Vs_initializer
     self._Vd_initializer = Vd_initializer
     self._Ca_initializer = Ca_initializer
 
     # variables
-    self.Vs = variable_(self._Vs_initializer, self.varshape, mode)
-    self.Vd = variable_(self._Vd_initializer, self.varshape, mode)
-    self.Ca = variable_(self._Ca_initializer, self.varshape, mode)
-    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(mode, BatchingMode) else None)
-    self.Id = variable_(bm.zeros, self.varshape, mode)  # input to soma
-    self.Is = variable_(bm.zeros, self.varshape, mode)  # input to dendrite
+    self.Vs = variable_(self._Vs_initializer, self.varshape, self.mode)
+    self.Vd = variable_(self._Vd_initializer, self.varshape, self.mode)
+    self.Ca = variable_(self._Ca_initializer, self.varshape, self.mode)
+    self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+    self.Id = variable_(bm.zeros, self.varshape, self.mode)  # input to soma
+    self.Is = variable_(bm.zeros, self.varshape, self.mode)  # input to dendrite
     # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
@@ -740,7 +741,7 @@ class PinskyRinzelModel(NeuGroup):
     self.Vd.value = variable_(self._Vd_initializer, self.varshape, batch_size)
     self.Vs.value = variable_(self._Vs_initializer, self.varshape, batch_size)
     self.Ca.value = variable_(self._Ca_initializer, self.varshape, batch_size)
-    batch_axis = 0 if isinstance(self.mode, BatchingMode) else None
+    batch_axis = 0 if isinstance(self.mode, bm.BatchingMode) else None
     self.h.value = bm.Variable(self.inf_h(self.Vs), batch_axis=batch_axis)
     self.n.value = bm.Variable(self.inf_n(self.Vs), batch_axis=batch_axis)
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
@@ -934,29 +935,29 @@ class WangBuzsakiModel(NeuGroup):
   ----------
   size: sequence of int, int
     The size of the neuron group.
-  ENa: float, JaxArray, ndarray, Initializer, callable
+  ENa: float, ArrayType, Initializer, callable
     The reversal potential of sodium. Default is 50 mV.
-  gNa: float, JaxArray, ndarray, Initializer, callable
+  gNa: float, ArrayType, Initializer, callable
     The maximum conductance of sodium channel. Default is 120 msiemens.
-  EK: float, JaxArray, ndarray, Initializer, callable
+  EK: float, ArrayType, Initializer, callable
     The reversal potential of potassium. Default is -77 mV.
-  gK: float, JaxArray, ndarray, Initializer, callable
+  gK: float, ArrayType, Initializer, callable
     The maximum conductance of potassium channel. Default is 36 msiemens.
-  EL: float, JaxArray, ndarray, Initializer, callable
+  EL: float, ArrayType, Initializer, callable
     The reversal potential of learky channel. Default is -54.387 mV.
-  gL: float, JaxArray, ndarray, Initializer, callable
+  gL: float, ArrayType, Initializer, callable
     The conductance of learky channel. Default is 0.03 msiemens.
-  V_th: float, JaxArray, ndarray, Initializer, callable
+  V_th: float, ArrayType, Initializer, callable
     The threshold of the membrane spike. Default is 20 mV.
-  C: float, JaxArray, ndarray, Initializer, callable
+  C: float, ArrayType, Initializer, callable
     The membrane capacitance. Default is 1 ufarad.
-  phi: float, JaxArray, ndarray, Initializer, callable
+  phi: float, ArrayType, Initializer, callable
     The temperature regulator constant.
-  V_initializer: JaxArray, ndarray, Initializer, callable
+  V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  h_initializer: JaxArray, ndarray, Initializer, callable
+  h_initializer: ArrayType, Initializer, callable
     The initializer of h channel.
-  n_initializer: JaxArray, ndarray, Initializer, callable
+  n_initializer: ArrayType, Initializer, callable
     The initializer of n channel.
   method: str
     The numerical integration method.
@@ -975,26 +976,26 @@ class WangBuzsakiModel(NeuGroup):
       self,
       size: Shape,
       keep_size: bool = False,
-      ENa: Union[float, Array, Initializer, Callable] = 55.,
-      gNa: Union[float, Array, Initializer, Callable] = 35.,
-      EK: Union[float, Array, Initializer, Callable] = -90.,
-      gK: Union[float, Array, Initializer, Callable] = 9.,
-      EL: Union[float, Array, Initializer, Callable] = -65,
-      gL: Union[float, Array, Initializer, Callable] = 0.1,
-      V_th: Union[float, Array, Initializer, Callable] = 20.,
-      phi: Union[float, Array, Initializer, Callable] = 5.0,
-      C: Union[float, Array, Initializer, Callable] = 1.0,
-      V_initializer: Union[Initializer, Callable, Array] = OneInit(-65.),
-      h_initializer: Union[Initializer, Callable, Array] = OneInit(0.6),
-      n_initializer: Union[Initializer, Callable, Array] = OneInit(0.32),
-      noise: Union[float, Array, Initializer, Callable] = None,
+      ENa: Union[float, ArrayType, Initializer, Callable] = 55.,
+      gNa: Union[float, ArrayType, Initializer, Callable] = 35.,
+      EK: Union[float, ArrayType, Initializer, Callable] = -90.,
+      gK: Union[float, ArrayType, Initializer, Callable] = 9.,
+      EL: Union[float, ArrayType, Initializer, Callable] = -65,
+      gL: Union[float, ArrayType, Initializer, Callable] = 0.1,
+      V_th: Union[float, ArrayType, Initializer, Callable] = 20.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 5.0,
+      C: Union[float, ArrayType, Initializer, Callable] = 1.0,
+      V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-65.),
+      h_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.6),
+      n_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.32),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check_mode(self.mode, (BatchingMode, NormalMode), self.__class__)
+    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -1009,19 +1010,19 @@ class WangBuzsakiModel(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # initializers
-    check_initializer(h_initializer, 'h_initializer', allow_none=False)
-    check_initializer(n_initializer, 'n_initializer', allow_none=False)
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.check_initializer(h_initializer, 'h_initializer', allow_none=False)
+    check.check_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._h_initializer = h_initializer
     self._n_initializer = n_initializer
     self._V_initializer = V_initializer
 
     # variables
-    self.h = variable_(self._h_initializer, self.varshape, mode)
-    self.n = variable_(self._n_initializer, self.varshape, mode)
-    self.V = variable_(self._V_initializer, self.varshape, mode)
-    self.input = variable_(bm.zeros, self.varshape, mode)
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, mode)
+    self.h = variable_(self._h_initializer, self.varshape, self.mode)
+    self.n = variable_(self._n_initializer, self.varshape, self.mode)
+    self.V = variable_(self._V_initializer, self.varshape,self. mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape,self. mode)
 
     # integral
     if self.noise is None:

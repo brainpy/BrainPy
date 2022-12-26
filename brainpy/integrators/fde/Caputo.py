@@ -14,10 +14,9 @@ from brainpy import check
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.constants import DT
 from brainpy.integrators.utils import check_inits, format_args
-from brainpy.tools.errors import check_error_in_jit
+from brainpy.types import ArrayType
 from .base import FDEIntegrator
-from .generic import register_fde_integrator, get_supported_methods
-from brainpy.types import Array
+from .generic import register_fde_integrator
 
 __all__ = [
   'CaputoEuler',
@@ -115,9 +114,9 @@ class CaputoEuler(FDEIntegrator):
   def __init__(
       self,
       f: Callable,
-      alpha: Union[float, Sequence[float], Array],
+      alpha: Union[float, Sequence[float], ArrayType],
       num_memory: int,
-      inits: Union[Array, Sequence[Array], Dict[str, Array]],
+      inits: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       dt: float = None,
       name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
@@ -164,7 +163,7 @@ class CaputoEuler(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
+      check.check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -308,9 +307,9 @@ class CaputoL1Schema(FDEIntegrator):
   def __init__(
       self,
       f: Callable,
-      alpha: Union[float, Sequence[float], Array],
+      alpha: Union[float, Sequence[float], ArrayType],
       num_memory: int,
-      inits: Union[Array, Sequence[Array], Dict[str, Array]],
+      inits: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       dt: float = None,
       name: str = None,
       state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
@@ -388,7 +387,7 @@ class CaputoL1Schema(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
+      check.check_error_in_jit(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)

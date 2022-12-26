@@ -9,7 +9,7 @@ import numpy as np
 from jax.tree_util import tree_flatten
 
 import brainpy.math as bm
-from brainpy.tools.others import numba_jit
+from brainpy.tools import numba_jit
 
 __all__ = [
   'find_indexes_of_limit_cycle_max',
@@ -49,7 +49,7 @@ def euclidean_distance(points: np.ndarray, num_point=None):
 
   Parameters
   ----------
-  points: jnp.ndarray, bm.JaxArray
+  points: ArrayType
     The points.
 
   Returns
@@ -96,13 +96,13 @@ def euclidean_distance_jax(points: Union[jnp.ndarray, bm.ndarray], num_point=Non
 
   Parameters
   ----------
-  points: jnp.ndarray, bm.JaxArray
+  points: ArrayType
     The points.
   num_point: int
 
   Returns
   -------
-  dist_matrix: JaxArray
+  dist_matrix: ArrayType
     The distance matrix.
   """
   if isinstance(points, dict):

@@ -7,13 +7,12 @@ from jax import vmap
 from jax.lax import cond, stop_gradient
 
 from brainpy import check
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
-from brainpy.math.jaxarray import ndarray, Variable, JaxArray
-from brainpy.math.setting import get_dt
-from brainpy.tools.checking import check_float, check_integer
-from brainpy.tools.errors import check_error_in_jit
+from brainpy.math.ndarray import ndarray, Variable, Array
+from brainpy.math.environment import get_dt, get_float
+from brainpy.check import check_float, check_integer, check_error_in_jit
 
 __all__ = [
   'AbstractDelay',
@@ -22,7 +21,7 @@ __all__ = [
 ]
 
 
-class AbstractDelay(Base):
+class AbstractDelay(BrainPyObject):
   def update(self, *args, **kwargs):
     raise NotImplementedError
 
@@ -72,7 +71,7 @@ class TimeDelay(AbstractDelay):
 
   Parameters
   ----------
-  delay_target: JaxArray, ndarray, Variable
+  delay_target: ArrayType
     The initial delay data.
   t0: float, int
     The zero time.
@@ -120,8 +119,8 @@ class TimeDelay(AbstractDelay):
     super(TimeDelay, self).__init__(name=name)
 
     # shape
-    if not isinstance(delay_target, (jnp.ndarray, JaxArray)):
-      raise ValueError(f'Must be an instance of JaxArray or jax.numpy.ndarray. But we got {type(delay_target)}')
+    if not isinstance(delay_target, (jnp.ndarray, Array)):
+      raise ValueError(f'Must be an instance of Array or jax.numpy.ndarray. But we got {type(delay_target)}')
 
     # delay_len
     self.t0 = t0
@@ -139,13 +138,14 @@ class TimeDelay(AbstractDelay):
     # time variables
     self.idx = Variable(jnp.asarray([0]))
     check_float(t0, 't0', allow_none=False, allow_int=True, )
-    self.current_time = Variable(jnp.asarray([t0]))
+    self.current_time = Variable(jnp.asarray([t0], dtype=get_float()))
 
     # delay data
     batch_axis = None
     if hasattr(delay_target, 'batch_axis') and (delay_target.batch_axis is not None):
       batch_axis = delay_target.batch_axis + 1
-    self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape, dtype=delay_target.dtype),
+    self.data = Variable(jnp.zeros((self.num_delay_step,) + delay_target.shape,
+                                   dtype=delay_target.dtype),
                          batch_axis=batch_axis)
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
@@ -175,13 +175,13 @@ class TimeDelay(AbstractDelay):
 
     Parameters
     ----------
-    delay_target: JaxArray, ndarray, Variable
+    delay_target: ArrayType
       The delay target.
     delay_len: float, int
       The maximum delay length. The unit is the time.
     t0: int, float
       The zero time.
-    before_t0: int, float, ndarray, JaxArray
+    before_t0: int, float, ArrayType
       The data before t0.
     """
     self.delay_len = delay_len
@@ -212,8 +212,12 @@ class TimeDelay(AbstractDelay):
     # check
     if check.is_checking():
       current_time = self.current_time[0]
-      check_error_in_jit(time > current_time + 1e-6, self._check_time1, (time, current_time))
-      check_error_in_jit(time < current_time - self.delay_len - self.dt, self._check_time2, (time, current_time))
+      check_error_in_jit(time > current_time + 1e-6,
+                         self._check_time1,
+                         (time, current_time))
+      check_error_in_jit(time < current_time - self.delay_len - self.dt,
+                         self._check_time2,
+                         (time, current_time))
     if self._before_type == _FUNC_BEFORE:
       res = cond(time < self.t0,
                  self._before_t0,
@@ -251,9 +255,9 @@ class TimeDelay(AbstractDelay):
     idx %= self.num_delay_step
     return self._interp_fun(extra, jnp.asarray([0., self.dt]), self.data[idx])
 
-  def update(self, time, value):
+  def update(self, value):
     self.data[self.idx[0]] = value
-    self.current_time[0] = time
+    self.current_time += self.dt
     self.idx.value = (self.idx + 1) % self.num_delay_step
 
 
@@ -411,7 +415,7 @@ class LengthDelay(AbstractDelay):
 
     Parameters
     ----------
-    delay_len: int, Array
+    delay_len: int, ArrayType
       The delay length used to retrieve the data.
     """
     if check.is_checking():
@@ -436,7 +440,7 @@ class LengthDelay(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[float, int, bool, JaxArray, jnp.DeviceArray]):
+  def update(self, value: Union[float, int, bool, Array, jnp.DeviceArray]):
     """Update delay variable with the new data.
 
     Parameters

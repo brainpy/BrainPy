@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Tuple, Sequence, Optional, Any, TypeVar
+from typing import Union, Tuple, Sequence, Optional, TypeVar
 
 import numpy as np
 from jax import lax
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, training, BatchingMode
-from brainpy.types import Array
+from brainpy.types import ArrayType
+from .base import Layer
 
 __all__ = [
   'MaxPool',
@@ -19,8 +18,8 @@ __all__ = [
 T = TypeVar('T')
 
 
-def _infer_shape(x: Array,
-                 mode: Mode,
+def _infer_shape(x: ArrayType,
+                 mode: bm.Mode,
                  size: Union[T, Sequence[T]],
                  channel_axis: Optional[int] = None,
                  element: T = 1):
@@ -40,7 +39,7 @@ def _infer_shape(x: Array,
     elif len(size) == x.ndim:
       return size
     else:
-      if isinstance(mode, BatchingMode):
+      if isinstance(mode, bm.BatchingMode):
         size = (element,) + size
       if len(size) + 1 == x.ndim:
         if channel_axis is None:
@@ -51,13 +50,13 @@ def _infer_shape(x: Array,
       return size
 
   else:
-    if isinstance(mode, BatchingMode):
+    if isinstance(mode, bm.BatchingMode):
       return (element,) + tuple((size if d != channel_axis else element) for d in range(1, x.ndim))
     else:
       return tuple((size if d != channel_axis else element) for d in range(0, x.ndim))
 
 
-class Pool(DynamicalSystem):
+class Pool(Layer):
   """Pooling functions are implemented using the ReduceWindow XLA op.
 
   Parameters
@@ -88,7 +87,7 @@ class Pool(DynamicalSystem):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(Pool, self).__init__(mode=mode, name=name)
@@ -119,10 +118,6 @@ class Pool(DynamicalSystem):
                              window_strides=strides,
                              padding=padding)
 
-  def reset_state(self, batch_size=None):
-    pass
-
-
 class MaxPool(Pool):
   """Pools the input by taking the maximum over a window.
 
@@ -152,7 +147,7 @@ class MaxPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(MaxPool, self).__init__(init_value=-bm.inf,
@@ -194,7 +189,7 @@ class MinPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(MinPool, self).__init__(init_value=bm.inf,
@@ -237,7 +232,7 @@ class AvgPool(Pool):
       strides: Union[int, Sequence[int]],
       padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: Optional[str] = None,
   ):
     super(AvgPool, self).__init__(init_value=0.,

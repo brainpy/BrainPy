@@ -3,8 +3,6 @@
 matplotlib>=3.4
 jaxlib>=0.3.0
 scipy>=1.1.0
-brainpylib>=0.0.5
-numba
 requests
 pillow
 
@@ -16,4 +14,4 @@ myst-nb
 sphinx_book_theme
 sphinx-autodoc-typehints
 sphinx_thebe
-sphinx-mathjax-offline
+# sphinx-mathjax-offline

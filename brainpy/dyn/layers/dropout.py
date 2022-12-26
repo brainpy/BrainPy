@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
-from brainpy.modes import Mode, training
+from .base import Layer
 
 __all__ = [
   'Dropout'
 ]
 
 
-class Dropout(DynamicalSystem):
+class Dropout(Layer):
   """A layer that stochastically ignores a subset of inputs each training step.
 
   In training, to compensate for the fraction of input values dropped (`rate`),
@@ -40,7 +39,7 @@ class Dropout(DynamicalSystem):
       self,
       prob: float,
       seed: int = None,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(Dropout, self).__init__(mode=mode, name=name)
@@ -54,5 +53,3 @@ class Dropout(DynamicalSystem):
     else:
       return x
 
-  def reset_state(self, batch_size=None):
-    pass

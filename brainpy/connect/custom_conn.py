@@ -22,7 +22,7 @@ class MatConn(TwoEndConnector):
   def __init__(self, conn_mat):
     super(MatConn, self).__init__()
 
-    assert isinstance(conn_mat, (np.ndarray, bm.JaxArray, jnp.ndarray)) and conn_mat.ndim == 2
+    assert isinstance(conn_mat, (np.ndarray, bm.Array, jnp.ndarray)) and conn_mat.ndim == 2
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
 
@@ -45,8 +45,8 @@ class IJConn(TwoEndConnector):
   def __init__(self, i, j):
     super(IJConn, self).__init__()
 
-    assert isinstance(i, (np.ndarray, bm.JaxArray, jnp.ndarray)) and i.ndim == 1
-    assert isinstance(j, (np.ndarray, bm.JaxArray, jnp.ndarray)) and j.ndim == 1
+    assert isinstance(i, (np.ndarray, bm.Array, jnp.ndarray)) and i.ndim == 1
+    assert isinstance(j, (np.ndarray, bm.Array, jnp.ndarray)) and j.ndim == 1
     assert i.size == j.size
 
     # initialize the class via "pre_ids" and "post_ids"
@@ -81,8 +81,8 @@ class CSRConn(TwoEndConnector):
   def __init__(self, indices, inptr):
     super(CSRConn, self).__init__()
 
-    self.indices = bm.asarray(indices).astype(IDX_DTYPE)
-    self.inptr = bm.asarray(inptr).astype(IDX_DTYPE)
+    self.indices = bm.asarray(indices, dtype=IDX_DTYPE)
+    self.inptr = bm.asarray(inptr, dtype=IDX_DTYPE)
     self.pre_num = self.inptr.size - 1
     self.max_post = bm.max(self.indices)
 
@@ -110,3 +110,5 @@ class SparseMatConn(CSRConn):
     self.csr_mat = csr_mat
     super(SparseMatConn, self).__init__(indices=bm.asarray(self.csr_mat.indices, dtype=IDX_DTYPE),
                                         inptr=bm.asarray(self.csr_mat.indptr, dtype=IDX_DTYPE))
+    self.pre_num = csr_mat.shape[0]
+    self.post_num = csr_mat.shape[1]

@@ -55,12 +55,12 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.7',
-  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm'],
-  url='https://github.com/PKU-NIP-Lab/BrainPy',
+  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm', 'brainpylib', 'numba'],
+  url='https://github.com/brainpy/BrainPy',
   project_urls={
-    "Bug Tracker": "https://github.com/PKU-NIP-Lab/BrainPy/issues",
+    "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
     "Documentation": "https://brainpy.readthedocs.io/",
-    "Source Code": "https://github.com/PKU-NIP-Lab/BrainPy",
+    "Source Code": "https://github.com/brainpy/BrainPy",
   },
   keywords=('computational neuroscience, '
             'brain-inspired computation, '
@@ -85,5 +85,5 @@ setup(
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'Topic :: Software Development :: Libraries',
   ],
-  license='GPL-3.0 License',
+  license='GPL-3.0 license',
 )

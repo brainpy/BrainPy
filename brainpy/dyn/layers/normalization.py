@@ -5,9 +5,8 @@ from typing import Union, Optional, Sequence
 from jax import lax, numpy as jnp
 
 import brainpy.math as bm
-from brainpy.dyn.base import DynamicalSystem
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
-from brainpy.modes import Mode, TrainingMode, training
+from .base import Layer
 
 __all__ = [
   'BatchNorm1D',
@@ -28,7 +27,7 @@ def _abs_sq(x):
     return lax.square(x)
 
 
-class BatchNorm(DynamicalSystem):
+class BatchNorm(Layer):
   """Batch Normalization layer.
 
   This layer aims to reduce the internal covariant shift of data. It
@@ -63,7 +62,7 @@ class BatchNorm(DynamicalSystem):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm, self).__init__(name=name, mode=mode)
@@ -81,7 +80,7 @@ class BatchNorm(DynamicalSystem):
     self.running_mean = bm.Variable(bm.zeros(self.num_features))
     self.running_var = bm.Variable(bm.ones(self.num_features))
     if self.affine:
-      assert isinstance(self.mode, TrainingMode)
+      assert isinstance(self.mode, bm.TrainingMode)
       self.bias = bm.TrainVar(parameter(self.bias_init, self.num_features))
       self.scale = bm.TrainVar(parameter(self.scale_init, self.num_features))
 
@@ -114,9 +113,6 @@ class BatchNorm(DynamicalSystem):
     if self.affine:
       y += self.bias
     return y
-
-  def reset_state(self, batch_size=None):
-    pass
 
 
 class BatchNorm1D(BatchNorm):
@@ -151,7 +147,7 @@ class BatchNorm1D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm1D, self).__init__(num_features=num_features,
@@ -203,7 +199,7 @@ class BatchNorm2D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm2D, self).__init__(num_features=num_features,
@@ -255,7 +251,7 @@ class BatchNorm3D(BatchNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(BatchNorm3D, self).__init__(num_features=num_features,
@@ -274,7 +270,7 @@ class BatchNorm3D(BatchNorm):
     assert x.shape[-1] == self.num_features
 
 
-class LayerNorm(DynamicalSystem):
+class LayerNorm(Layer):
   """Layer normalization (https://arxiv.org/abs/1607.06450).
 
   .. math::
@@ -339,7 +335,7 @@ class LayerNorm(DynamicalSystem):
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
       elementwise_affine: bool = True,
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None
   ):
     super(LayerNorm, self).__init__(name=name, mode=mode)
@@ -353,7 +349,7 @@ class LayerNorm(DynamicalSystem):
     assert all([isinstance(s, int) for s in normalized_shape]), 'Must be a sequence of integer.'
     self.elementwise_affine = elementwise_affine
     if self.elementwise_affine:
-      assert isinstance(self.mode, TrainingMode)
+      assert isinstance(self.mode, bm.TrainingMode)
       self.bias = bm.TrainVar(parameter(self.bias_init, self.normalized_shape))
       self.scale = bm.TrainVar(parameter(self.scale_init, self.normalized_shape))
 
@@ -370,11 +366,8 @@ class LayerNorm(DynamicalSystem):
       out = self.scale * out + self.bias
     return out
 
-  def reset_state(self, batch_size=None):
-    pass
 
-
-class GroupNorm(DynamicalSystem):
+class GroupNorm(Layer):
   """Group normalization layer.
 
   .. math::
@@ -428,7 +421,7 @@ class GroupNorm(DynamicalSystem):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(GroupNorm, self).__init__(name=name, mode=mode)
@@ -441,7 +434,7 @@ class GroupNorm(DynamicalSystem):
     self.bias_init = bias_init
     self.scale_init = scale_init
     if self.affine:
-      assert isinstance(self.mode, TrainingMode)
+      assert isinstance(self.mode, bm.TrainingMode)
       self.bias = bm.TrainVar(parameter(self.bias_init, self.num_channels))
       self.scale = bm.TrainVar(parameter(self.scale_init, self.num_channels))
 
@@ -490,7 +483,7 @@ class InstanceNorm(GroupNorm):
       affine: bool = True,
       bias_init: Initializer = ZeroInit(),
       scale_init: Initializer = OneInit(),
-      mode: Mode = training,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(InstanceNorm, self).__init__(num_channels=num_channels,

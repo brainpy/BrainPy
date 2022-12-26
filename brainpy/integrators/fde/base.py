@@ -8,7 +8,7 @@ import brainpy.math as bm
 from brainpy.errors import UnsupportedError
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.utils import get_args
-from brainpy.tools.checking import check_integer
+from brainpy.check import check_integer
 
 __all__ = [
   'FDEIntegrator'
@@ -30,14 +30,14 @@ class FDEIntegrator(Integrator):
     The integrator name.
   """
 
+  alpha: bm.Array
   """The fraction order for each variable."""
-  alpha: bm.JaxArray
 
-  """The numerical integration precision."""
   dt: Union[float, int]
+  """The numerical integration precision."""
 
-  """The fraction derivative function."""
   f: Callable
+  """The fraction derivative function."""
 
   def __init__(
       self,

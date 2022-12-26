@@ -4,7 +4,11 @@ import inspect
 import re
 from types import LambdaType
 
+from brainpy.base.base import BrainPyObject
+
 __all__ = [
+  'repr_object',
+  'repr_context',
   'copy_doc',
   'code_lines_to_func',
 
@@ -20,6 +24,35 @@ __all__ = [
   'get_func_source',
   'change_func_name',
 ]
+
+
+def repr_object(x):
+  if isinstance(x, BrainPyObject):
+    return x.name
+  elif callable(x):
+    signature = inspect.signature(x)
+    args = [f'{k}={v.default}' for k, v in signature.parameters.items()
+            if v.default is not inspect.Parameter.empty]
+    args = ', '.join(args)
+    while not hasattr(x, '__name__'):
+      if not hasattr(x, 'func'):
+        break
+      x = x.func  # Handle functools.partial
+    if not hasattr(x, '__name__') and hasattr(x, '__class__'):
+      return x.__class__.__name__
+    if args:
+      return f'{x.__name__}(*, {args})'
+    return x.__name__
+  else:
+    x = repr(x).split('\n')
+    x = [x[0]] + ['  ' + y for y in x[1:]]
+    return '\n'.join(x)
+
+
+def repr_context(repr_str, indent):
+  splits = repr_str.split('\n')
+  splits = [(s if i == 0 else (indent + s)) for i, s in enumerate(splits)]
+  return '\n'.join(splits)
 
 
 def copy_doc(source_f):

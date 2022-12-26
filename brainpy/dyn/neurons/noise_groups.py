@@ -6,8 +6,7 @@ from brainpy import math as bm, initialize as init
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import Initializer
 from brainpy.integrators.sde import sdeint
-from brainpy.modes import Mode, normal
-from brainpy.types import Array, Shape
+from brainpy.types import ArrayType, Shape
 
 __all__ = [
   'OUProcess',
@@ -46,12 +45,12 @@ class OUProcess(NeuGroup):
   def __init__(
       self,
       size: Shape,
-      mean: Union[float, Array, Initializer, Callable] = 0.,
-      sigma: Union[float, Array, Initializer, Callable] = 1.,
-      tau: Union[float, Array, Initializer, Callable] = 10.,
+      mean: Union[float, ArrayType, Initializer, Callable] = 0.,
+      sigma: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
       method: str = 'exp_euler',
       keep_size: bool = False,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       name: str = None,
   ):
     super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
@@ -63,7 +62,7 @@ class OUProcess(NeuGroup):
     self.tau = init.parameter(tau, self.varshape, allow_none=False)
 
     # variables
-    self.x = init.variable_(lambda s: bm.ones(s) * self.mean, self.varshape, mode)
+    self.x = init.variable_(lambda s: bm.ones(s) * self.mean, self.varshape, self.mode)
 
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)

@@ -1,19 +1,14 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Union, Tuple
 
+import brainpylib
 import jax.numpy as jnp
 from jax import vmap, jit, ops as jops
 
 from brainpy.errors import MathError
 from brainpy.math.numpy_ops import as_jax
-from brainpy.types import Array
-from .utils import _check_brainpylib
-
-try:
-  import brainpylib
-except ModuleNotFoundError:
-  brainpylib = None
+from brainpy.types import ArrayType
 
 __all__ = [
   # pre-to-post
@@ -48,10 +43,10 @@ def _raise_pre_ids_is_none(pre_ids):
                     f'(brainpy.math.ndim(pre_values) != 0).')
 
 
-def pre2post_event_sum(events: Array,
-                       pre2post: Tuple[Array, Array],
+def pre2post_event_sum(events: ArrayType,
+                       pre2post: Tuple[ArrayType, ArrayType],
                        post_num: int,
-                       values: Union[float, Array] = 1.):
+                       values: Union[float, ArrayType] = 1.):
   """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -83,21 +78,21 @@ def pre2post_event_sum(events: Array,
 
   Parameters
   ----------
-  events: Array
+  events: ArrayType
     The events, must be bool.
-  pre2post: tuple of Array, tuple of Array
+  pre2post: tuple of ArrayType, tuple of ArrayType
     A tuple contains the connection information of pre-to-post.
   post_num: int
     The number of post-synaptic group.
-  values: float, Array
+  values: float, ArrayType
     The value to make summation.
 
   Returns
   -------
-  out: JaxArray, jax.numpy.ndarray
+  out: ArrayType
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('event_csr_matvec')
+  warnings.warn('Please use ``brainpylib.event_ops.event_csr_matvec()`` instead.', UserWarning)
   indices, idnptr = pre2post
   events = as_jax(events)
   indices = as_jax(indices)
@@ -108,32 +103,31 @@ def pre2post_event_sum(events: Array,
                                      transpose=True)
 
 
-def pre2post_coo_event_sum(events: Array,
-                           pre_ids: Array,
-                           post_ids: Array,
+def pre2post_coo_event_sum(events: ArrayType,
+                           pre_ids: ArrayType,
+                           post_ids: ArrayType,
                            post_num: int,
-                           values: Union[float, Array] = 1.):
+                           values: Union[float, ArrayType] = 1.):
   """The pre-to-post synaptic computation with event-driven summation.
 
   Parameters
   ----------
-  events: Array
+  events: ArrayType
     The events, must be bool.
-  pre_ids: Array
+  pre_ids: ArrayType
     Pre-synaptic ids.
-  post_ids: Array
+  post_ids: ArrayType
     Post-synaptic ids.
   post_num: int
     The number of post-synaptic group.
-  values: float, Array
+  values: float, ArrayType
     The value to make summation.
 
   Returns
   -------
-  out: JaxArray, jax.numpy.ndarray
+  out: ArrayType
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('pre2post_event_sum')
   events = as_jax(events)
   post_ids = as_jax(post_ids)
   pre_ids = as_jax(pre_ids)
@@ -173,21 +167,20 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
 
   Parameters
   ----------
-  events: JaxArray, jax.numpy.ndarray, Variable
+  events: ArrayType
     The events, must be bool.
-  pre2post: tuple of JaxArray, tuple of jax.numpy.ndarray
+  pre2post: tuple of ArrayType
     A tuple contains the connection information of pre-to-post.
   post_num: int
     The number of post-synaptic group.
-  values: float, JaxArray, jax.numpy.ndarray
+  values: float, ArrayType
     The value to make summation.
 
   Returns
   -------
-  out: JaxArray, jax.numpy.ndarray
+  out: ArrayType
     A tensor with the shape of ``post_num``.
   """
-  _check_brainpylib('pre2post_event_prod')
   indices, idnptr = pre2post
   events = as_jax(events)
   indices = as_jax(indices)
@@ -210,18 +203,18 @@ def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
 
   Parameters
   ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
+  pre_values: float, ArrayType
     The pre-synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The connected post-synaptic neuron ids.
   post_num: int
     Output dimension. The number of post-synaptic neurons.
-  pre_ids: optional, jax.numpy.ndarray, JaxArray
+  pre_ids: optional, ArrayType
     The connected pre-synaptic neuron ids.
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
@@ -248,18 +241,18 @@ def pre2post_prod(pre_values, post_num, post_ids, pre_ids=None):
 
   Parameters
   ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
+  pre_values: float, ArrayType
     The pre-synaptic values.
-  pre_ids: jax.numpy.ndarray, JaxArray
+  pre_ids: ArrayType
     The connected pre-synaptic neuron ids.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The connected post-synaptic neuron ids.
   post_num: int
     Output dimension. The number of post-synaptic neurons.
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
@@ -286,18 +279,18 @@ def pre2post_min(pre_values, post_num, post_ids, pre_ids=None):
 
   Parameters
   ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray
+  pre_values: float, ArrayType
     The pre-synaptic values.
-  pre_ids: jax.numpy.ndarray, JaxArray
+  pre_ids: ArrayType
     The connected pre-synaptic neuron ids.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The connected post-synaptic neuron ids.
   post_num: int
     Output dimension. The number of post-synaptic neurons.
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
@@ -324,18 +317,18 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
 
   Parameters
   ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
+  pre_values: float, ArrayType
     The pre-synaptic values.
-  pre_ids: jax.numpy.ndarray, JaxArray
+  pre_ids: ArrayType
     The connected pre-synaptic neuron ids.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The connected post-synaptic neuron ids.
   post_num: int
     Output dimension. The number of post-synaptic neurons.
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
@@ -353,18 +346,18 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
 
   Parameters
   ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
+  pre_values: float, ArrayType
     The pre-synaptic values.
-  pre_ids: jax.numpy.ndarray, JaxArray
+  pre_ids: ArrayType
     The connected pre-synaptic neuron ids.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The connected post-synaptic neuron ids.
   post_num: int
     Output dimension. The number of post-synaptic neurons.
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The value with the size of post-synaptic neurons.
   """
   out = jnp.zeros(post_num)
@@ -399,14 +392,14 @@ def pre2syn(pre_values, pre_ids):
 
   Parameters
   ----------
-  pre_values: float, jax.numpy.ndarray, JaxArray, Variable
+  pre_values: float, ArrayType
     The pre-synaptic value.
-  pre_ids: jax.numpy.ndarray, JaxArray
+  pre_ids: ArrayType
     The pre-synaptic neuron index.
 
   Returns
   -------
-  syn_val: jax.numpy.ndarray, JaxArray
+  syn_val: ArrayType
     The synaptic value.
   """
   pre_values = as_jax(pre_values)
@@ -437,16 +430,16 @@ def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=False):
 
   Parameters
   ----------
-  syn_values: jax.numpy.ndarray, JaxArray, Variable
+  syn_values: ArrayType
     The synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The post-synaptic neuron ids.
   post_num: int
     The number of the post-synaptic neurons.
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The post-synaptic value.
   """
   post_ids = as_jax(post_ids)
@@ -473,9 +466,9 @@ def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=False)
 
   Parameters
   ----------
-  syn_values: jax.numpy.ndarray, JaxArray, Variable
+  syn_values: ArrayType
     The synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The post-synaptic neuron ids. If ``post_ids`` is generated by
     ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
     Otherwise, this function cannot guarantee indices are sorted.
@@ -486,7 +479,7 @@ def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=False)
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The post-synaptic value.
   """
   post_ids = as_jax(post_ids)
@@ -510,9 +503,9 @@ def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=False):
 
   Parameters
   ----------
-  syn_values: jax.numpy.ndarray, JaxArray, Variable
+  syn_values: ArrayType
     The synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The post-synaptic neuron ids. If ``post_ids`` is generated by
     ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
     Otherwise, this function cannot guarantee indices are sorted.
@@ -523,7 +516,7 @@ def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=False):
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The post-synaptic value.
   """
   post_ids = as_jax(post_ids)
@@ -547,9 +540,9 @@ def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=False):
 
   Parameters
   ----------
-  syn_values: jax.numpy.ndarray, JaxArray, Variable
+  syn_values: ArrayType
     The synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The post-synaptic neuron ids. If ``post_ids`` is generated by
     ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
     Otherwise, this function cannot guarantee indices are sorted.
@@ -560,7 +553,7 @@ def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=False):
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The post-synaptic value.
   """
   post_ids = as_jax(post_ids)
@@ -575,9 +568,9 @@ def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False)
 
   Parameters
   ----------
-  syn_values: jax.numpy.ndarray, JaxArray, Variable
+  syn_values: ArrayType
     The synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The post-synaptic neuron ids. If ``post_ids`` is generated by
     ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
     Otherwise, this function cannot guarantee indices are sorted.
@@ -588,7 +581,7 @@ def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False)
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The post-synaptic value.
   """
   post_ids = as_jax(post_ids)
@@ -605,9 +598,9 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Fal
 
   Parameters
   ----------
-  syn_values: jax.numpy.ndarray, JaxArray, Variable
+  syn_values: ArrayType
     The synaptic values.
-  post_ids: jax.numpy.ndarray, JaxArray
+  post_ids: ArrayType
     The post-synaptic neuron ids. If ``post_ids`` is generated by
     ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
     Otherwise, this function cannot guarantee indices are sorted.
@@ -618,7 +611,7 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Fal
 
   Returns
   -------
-  post_val: jax.numpy.ndarray, JaxArray
+  post_val: ArrayType
     The post-synaptic value.
   """
   post_ids = as_jax(post_ids)

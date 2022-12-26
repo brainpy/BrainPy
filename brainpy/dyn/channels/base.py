@@ -5,7 +5,6 @@ from typing import Union
 import brainpy.math as bm
 from brainpy.dyn.base import Container, CondNeuGroup, Channel, check_master
 from brainpy.types import Shape
-from brainpy.modes import normal, Mode
 
 __all__ = [
   'Ion', 'IonChannel',
@@ -81,10 +80,10 @@ class Calcium(Ion, Container):
   master_type = CondNeuGroup
 
   """Reversal potential."""
-  E: Union[float, bm.Variable, bm.JaxArray]
+  E: Union[float, bm.Variable, bm.Array]
 
   """Calcium concentration."""
-  C: Union[float, bm.Variable, bm.JaxArray]
+  C: Union[float, bm.Variable, bm.Array]
 
   def __init__(
       self,
@@ -92,7 +91,7 @@ class Calcium(Ion, Container):
       keep_size: bool = False,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
       **channels
   ):
     Ion.__init__(self, size, keep_size=keep_size, mode=mode)

@@ -4,17 +4,17 @@
 from typing import Dict, Sequence, Union
 
 import brainpy.math as bm
-from brainpy.base.base import Base
+from brainpy.base.base import BrainPyObject
 from brainpy.errors import DiffEqError
 from brainpy.integrators.constants import DT
-from brainpy.tools.checking import check_float, check_dict_data
+from brainpy.check import check_float, check_dict_data
 
 __all__ = [
   'Integrator',
 ]
 
 
-class AbstractIntegrator(Base):
+class AbstractIntegrator(BrainPyObject):
   """Basic Integrator Class."""
 
   # func_name
@@ -139,7 +139,7 @@ class Integrator(AbstractIntegrator):
       if isinstance(delay, bm.LengthDelay):
         delay.update(dict_vars[key])
       elif isinstance(delay, bm.TimeDelay):
-        delay.update(kwargs['t'] + dt, dict_vars[key])
+        delay.update(dict_vars[key])
       else:
         raise ValueError('Unknown delay variable. We only supports '
                          'brainpy.math.LengthDelay, brainpy.math.TimeDelay. '

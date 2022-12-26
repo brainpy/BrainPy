@@ -13,12 +13,12 @@ from jax.tree_util import tree_flatten, tree_map
 import brainpy.math as bm
 from brainpy import optimizers as optim, losses
 from brainpy.analysis import utils, base, constants
-from brainpy.base import TensorCollector
+from brainpy.base import ArrayCollector
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.dyn.runners import build_inputs, check_and_format_inputs
+from brainpy.dyn.runners import check_and_format_inputs, _f_ops
 from brainpy.errors import AnalyzerError, UnsupportedError
-from brainpy.tools.others.dicts import DotDict
-from brainpy.types import Array
+from brainpy.tools import DotDict
+from brainpy.types import ArrayType
 
 __all__ = [
   'SlowPointFinder',
@@ -58,54 +58,51 @@ class SlowPointFinder(base.DSAnalyzer):
 
   f_loss: callable
     The loss function.
-    - If ``f_type`` is `"discrete"`, the loss function must receive three arguments, i.e.,
-      ``loss(outputs, targets, axis)``.
-    - If ``f_type`` is `"continuous"`, the loss function must receive two arguments, i.e.,
-      ``loss(outputs, axis)``.
+    - If ``f_type`` is `"discrete"`, the loss function must receive three
+      arguments, i.e., ``loss(outputs, targets, axis)``.
+    - If ``f_type`` is `"continuous"`, the loss function must receive two
+      arguments, i.e., ``loss(outputs, axis)``.
 
     .. versionadded:: 2.2.0
-
   t: float
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The time to evaluate the fixed points. Default is 0.
 
     .. versionadded:: 2.2.0
-
   dt: float
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The numerical integration step, which can be used when .
     The default is given by `brainpy.math.get_dt()`.
 
     .. versionadded:: 2.2.0
-
-  inputs: sequence
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+  inputs: sequence, callable
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     Same as ``inputs`` in :py:class:`~.DSRunner`.
 
     .. versionadded:: 2.2.0
-
   excluded_vars: sequence, dict
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The excluded variables (can be a sequence of  `Variable` instances).
     These variables will not be included for optimization of fixed points.
 
     .. versionadded:: 2.2.0
-
   target_vars: dict
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The target variables (can be a dict of `Variable` instances).
     These variables will be included for optimization of fixed points.
     The candidate points later provided should have same keys as in ``target_vars``.
 
     .. versionadded:: 2.2.0
-
   f_loss_batch : callable, function
-    Parameter for `f_cell` is instance of :py:class:`~.DynamicalSystem`.
+    Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
     The function to compute the loss.
 
     .. deprecated:: 2.2.0
        Has been removed. Please use ``f_loss`` to set different loss function.
+  fun_inputs: callable
 
+    .. deprecated:: 2.3.1
+       Will be removed since version 2.4.0.
   """
 
   def __init__(
@@ -118,7 +115,6 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # parameters for `f_cell` is DynamicalSystem instance
       inputs: Sequence = None,
-      fun_inputs: Callable = None,
       t: float = None,
       dt: float = None,
       target_vars: Dict[str, bm.Variable] = None,
@@ -126,6 +122,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # deprecated
       f_loss_batch: Callable = None,
+      fun_inputs: Callable = None,
   ):
     super(SlowPointFinder, self).__init__()
 
@@ -136,11 +133,11 @@ class SlowPointFinder(base.DSAnalyzer):
 
     # update function
     if target_vars is None:
-      self.target_vars = TensorCollector()
+      self.target_vars = ArrayCollector()
     else:
       if not isinstance(target_vars, dict):
         raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
-      self.target_vars = TensorCollector(target_vars)
+      self.target_vars = ArrayCollector(target_vars)
     excluded_vars = () if excluded_vars is None else excluded_vars
     if isinstance(excluded_vars, dict):
       excluded_vars = tuple(excluded_vars.values())
@@ -174,13 +171,13 @@ class SlowPointFinder(base.DSAnalyzer):
               self.target_vars.pop(key)
 
       # input function
-      if inputs is not None:
-        inputs = check_and_format_inputs(host=self.target, inputs=inputs)
-        _input_step, _has_iter = build_inputs(inputs, fun_inputs)
-        if _has_iter:
-          raise UnsupportedError(f'Do not support iterable inputs when using fixed point finder.')
+      if callable(inputs):
+        self._inputs = inputs
       else:
-        _input_step = None
+        if inputs is None:
+          self._inputs = None
+        else:
+          self._inputs = check_and_format_inputs(host=self.target, inputs=inputs)
 
       # check included variables
       for var in self.target_vars.values():
@@ -192,7 +189,7 @@ class SlowPointFinder(base.DSAnalyzer):
                              f'for your system.')
 
       # update function
-      self.f_cell = self._generate_ds_cell_function(self.target, t, dt, _input_step)
+      self.f_cell = self._generate_ds_cell_function(self.target, t, dt)
 
       # check function type
       if f_type is not None:
@@ -213,6 +210,7 @@ class SlowPointFinder(base.DSAnalyzer):
       if inputs is not None:
         raise UnsupportedError('Do not support "inputs" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
+      self._inputs = inputs
       if t is not None:
         raise UnsupportedError('Do not support "t" when "f_cell" is not instance of '
                                f'{DynamicalSystem.__name__}')
@@ -295,7 +293,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def find_fps_with_gd_method(
       self,
-      candidates: Union[Array, Dict[str, Array]],
+      candidates: Union[ArrayType, Dict[str, ArrayType]],
       tolerance: Union[float, Dict[str, float]] = 1e-5,
       num_batch: int = 100,
       num_opt: int = 10000,
@@ -305,7 +303,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    candidates : Array, dict
+    candidates : ArrayType, dict
       The array with the shape of (batch size, state dim) of hidden states
       of RNN to start training for fixed points.
 
@@ -335,14 +333,14 @@ class SlowPointFinder(base.DSAnalyzer):
     # set up optimization
     num_candidate = self._check_candidates(candidates)
     if not (isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)) or isinstance(candidates, dict)):
-      raise ValueError('Candidates must be instance of JaxArray or dict of JaxArray.')
-    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.JaxArray))
+      raise ValueError('Candidates must be instance of ArrayType or dict of ArrayType.')
+    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.Array))
     f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
       return f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
                                   fixed_points,
-                                  is_leaf=lambda x: isinstance(x, bm.JaxArray))).mean()
+                                  is_leaf=lambda x: isinstance(x, bm.Array))).mean()
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
     optimizer.register_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
@@ -355,7 +353,7 @@ class SlowPointFinder(base.DSAnalyzer):
       return loss
 
     def batch_train(start_i, n_batch):
-      return bm.for_loop(train, dyn_vars, bm.arange(start_i, start_i + n_batch))
+      return bm.for_loop(train, bm.arange(start_i, start_i + n_batch), dyn_vars=dyn_vars)
 
     # Run the optimization
     if self.verbose:
@@ -387,10 +385,10 @@ class SlowPointFinder(base.DSAnalyzer):
     self._opt_losses = bm.concatenate(opt_losses)
     self._losses = f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
                                         fixed_points,
-                                        is_leaf=lambda x: isinstance(x, bm.JaxArray)))
+                                        is_leaf=lambda x: isinstance(x, bm.Array)))
     self._fixed_points = tree_map(lambda a: bm.as_device_array(a),
                                   fixed_points,
-                                  is_leaf=lambda x: isinstance(x, bm.JaxArray))
+                                  is_leaf=lambda x: isinstance(x, bm.Array))
     self._selected_ids = jnp.arange(num_candidate)
 
     if isinstance(self.target, DynamicalSystem):
@@ -401,14 +399,14 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def find_fps_with_opt_solver(
       self,
-      candidates: Union[Array, Dict[str, Array]],
+      candidates: Union[ArrayType, Dict[str, ArrayType]],
       opt_solver: str = 'BFGS'
   ):
     """Optimize fixed points with nonlinear optimization solvers.
 
     Parameters
     ----------
-    candidates: Array, dict
+    candidates: ArrayType, dict
       The candidate (initial) fixed points.
     opt_solver: str
       The solver of the optimization.
@@ -428,7 +426,7 @@ class SlowPointFinder(base.DSAnalyzer):
     # optimizing
     res = f_opt(tree_map(lambda a: bm.as_device_array(a),
                          candidates,
-                         is_leaf=lambda a: isinstance(a, bm.JaxArray)))
+                         is_leaf=lambda a: isinstance(a, bm.Array)))
 
     # results
     valid_ids = jnp.where(res.success)[0]
@@ -535,7 +533,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
   def compute_jacobians(
       self,
-      points: Union[Array, Dict[str, Array]],
+      points: Union[ArrayType, Dict[str, ArrayType]],
       stack_dict_var: bool = True,
       plot: bool = False,
       num_col: int = 4,
@@ -546,7 +544,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    points: np.ndarray, bm.JaxArray, jax.ndarray
+    points: np.ndarray, bm.ArrayType, jax.ndarray
       The fixed points with the shape of (num_point, num_dim).
     stack_dict_var: bool
       Stack dictionary variables to calculate Jacobian matrix?
@@ -561,7 +559,7 @@ class SlowPointFinder(base.DSAnalyzer):
     """
     # check data
     info = np.asarray([(l.ndim, l.shape[0])
-                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.JaxArray))[0]])
+                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.Array))[0]])
     ndim = np.unique(info[:, 0])
     if len(ndim) != 1: raise ValueError(f'Get multiple dimension of the evaluated points. {ndim}')
     if ndim[0] == 1:
@@ -606,7 +604,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
     Parameters
     ----------
-    matrices: np.ndarray, bm.JaxArray, jax.ndarray
+    matrices: np.ndarray, bm.ArrayType, jax.ndarray
       A 3D array with the shape of (num_matrices, dim, dim).
     sort_by: str
       The method of sorting.
@@ -639,6 +637,25 @@ class SlowPointFinder(base.DSAnalyzer):
                              'R': eig_vectors[:, indices],
                              'L': L})
     return decompositions
+
+  def _step_func_input(self, shared):
+    if self._inputs is None:
+      return
+    elif callable(self._inputs):
+      self._inputs(shared)
+    else:
+      for ops, values in self._inputs['fixed'].items():
+        for var, data in values:
+          _f_ops(ops, var, data)
+      for ops, values in self._inputs['array'].items():
+        if len(values) > 0:
+          raise UnsupportedError
+      for ops, values in self._inputs['functional'].items():
+        for var, data in values:
+          _f_ops(ops, var, data(shared))
+      for ops, values in self._inputs['iterated'].items():
+        if len(values) > 0:
+          raise UnsupportedError
 
   def _get_f_eval_loss(self, ):
     name = 'f_eval_loss'
@@ -714,7 +731,6 @@ class SlowPointFinder(base.DSAnalyzer):
       self, target,
       t: float = None,
       dt: float = None,
-      f_input: Callable = None
   ):
     if dt is None: dt = bm.get_dt()
     if t is None: t = 0.
@@ -733,8 +749,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # add inputs
       target.clear_input()
-      if f_input is not None:
-        f_input(shared)
+      self._step_func_input(shared)
 
       # call update functions
       args = (shared,) + self.args

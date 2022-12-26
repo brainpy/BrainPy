@@ -10,8 +10,7 @@ from typing import Union, Callable, Optional
 import brainpy.math as bm
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import Shape, Array
-from brainpy.modes import Mode, BatchingMode, normal
+from brainpy.types import Shape, ArrayType
 from .base import PotassiumChannel
 
 __all__ = [
@@ -54,11 +53,11 @@ class IK_p4_markov(PotassiumChannel):
   keep_size: bool
     Whether we use `size` to initialize the variable. Otherwise, variable shape
     will be initialized as `num`.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  phi : float, JaxArray, ndarray, Initializer, Callable
+  phi : float, ArrayType, Initializer, Callable
     The temperature-dependent factor.
   method: str
     The numerical integration method.
@@ -71,12 +70,12 @@ class IK_p4_markov(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      phi: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IK_p4_markov, self).__init__(size,
                                        keep_size=keep_size,
@@ -88,7 +87,7 @@ class IK_p4_markov(PotassiumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -141,15 +140,15 @@ class IKDR_Ba2002(IK_p4_markov):
   keep_size: bool
     Whether we use `size` to initialize the variable. Otherwise, variable shape
     will be initialized as `num`.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  T_base : float, JaxArray, ndarray
+  T_base : float, ArrayType
     The base of temperature factor.
-  T : float, JaxArray, ndarray, Initializer, Callable
+  T : float, ArrayType, Initializer, Callable
     The temperature (Celsius, :math:`^{\circ}C`).
-  V_sh : float, JaxArray, ndarray, Initializer, Callable
+  V_sh : float, ArrayType, Initializer, Callable
     The shift of the membrane potential to spike.
   method: str
     The numerical integration method.
@@ -167,15 +166,15 @@ class IKDR_Ba2002(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      V_sh: Union[float, Array, Initializer, Callable] = -50.,
-      T_base: Union[float, Array] = 3.,
-      T: Union[float, Array] = 36.,
-      phi: Optional[Union[float, Array, Initializer, Callable]] = None,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = -50.,
+      T_base: Union[float, ArrayType] = 3.,
+      T: Union[float, ArrayType] = 36.,
+      phi: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     phi = T_base ** ((T - 36) / 10) if phi is None else phi
     super(IKDR_Ba2002, self).__init__(size,
@@ -221,9 +220,9 @@ class IK_TM1991(IK_p4_markov):
   ----------
   size: int, sequence of int
     The geometry size.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
   method: str
     The numerical integration method.
@@ -244,13 +243,13 @@ class IK_TM1991(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      phi: Union[float, Array, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Array, Initializer, Callable] = -60.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, ArrayType, Initializer, Callable] = -60.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IK_TM1991, self).__init__(size,
                                     keep_size=keep_size,
@@ -291,9 +290,9 @@ class IK_HH1952(IK_p4_markov):
   ----------
   size: int, sequence of int
     The geometry size.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
   method: str
     The numerical integration method.
@@ -315,13 +314,13 @@ class IK_HH1952(IK_p4_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      phi: Union[float, Array, Initializer, Callable] = 1.,
-      V_sh: Union[int, float, Array, Initializer, Callable] = -45.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      phi: Union[float, ArrayType, Initializer, Callable] = 1.,
+      V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IK_HH1952, self).__init__(size,
                                     keep_size=keep_size,
@@ -364,13 +363,13 @@ class IKA_p4q_ss(PotassiumChannel):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -387,13 +386,13 @@ class IKA_p4q_ss(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKA_p4q_ss, self).__init__(size,
                                      keep_size=keep_size,
@@ -407,8 +406,8 @@ class IKA_p4q_ss(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -473,15 +472,15 @@ class IKA1_HM1992(IKA_p4q_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -502,14 +501,14 @@ class IKA1_HM1992(IKA_p4q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 30.,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 30.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKA1_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -568,15 +567,15 @@ class IKA2_HM1992(IKA_p4q_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -597,14 +596,14 @@ class IKA2_HM1992(IKA_p4q_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 20.,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 20.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKA2_HM1992, self).__init__(size,
                                       keep_size=keep_size,
@@ -658,13 +657,13 @@ class IKK2_pq_ss(PotassiumChannel):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -682,13 +681,13 @@ class IKK2_pq_ss(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKK2_pq_ss, self).__init__(size,
                                      keep_size=keep_size,
@@ -702,8 +701,8 @@ class IKK2_pq_ss(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
-    self.q = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -767,15 +766,15 @@ class IKK2A_HM1992(IKK2_pq_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -793,14 +792,14 @@ class IKK2A_HM1992(IKK2_pq_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKK2A_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -858,15 +857,15 @@ class IKK2B_HM1992(IKK2_pq_ss):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  phi_q : optional, float, Array, Callable, Initializer
+  phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
   References
@@ -884,14 +883,14 @@ class IKK2B_HM1992(IKK2_pq_ss):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 10.,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKK2B_HM1992, self).__init__(size,
                                        keep_size=keep_size,
@@ -948,15 +947,15 @@ class IKNI_Ya1989(PotassiumChannel):
     The numerical integration method.
   name: str
     The object name.
-  g_max : float, JaxArray, ndarray, Initializer, Callable
+  g_max : float, ArrayType, Initializer, Callable
     The maximal conductance density (:math:`mS/cm^2`).
-  E : float, JaxArray, ndarray, Initializer, Callable
+  E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
-  V_sh : float, Array, Callable, Initializer
+  V_sh : float, ArrayType, Callable, Initializer
     The membrane potential shift.
-  phi_p : optional, float, Array, Callable, Initializer
+  phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
-  tau_max: float, Array, Callable, Initializer
+  tau_max: float, ArrayType, Callable, Initializer
     The :math:`tau_{\max}` parameter.
 
   References
@@ -969,15 +968,15 @@ class IKNI_Ya1989(PotassiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[float, Array, Initializer, Callable] = -90.,
-      g_max: Union[float, Array, Initializer, Callable] = 0.004,
-      phi_p: Union[float, Array, Initializer, Callable] = 1.,
-      phi_q: Union[float, Array, Initializer, Callable] = 1.,
-      tau_max: Union[float, Array, Initializer, Callable] = 4e3,
-      V_sh: Union[float, Array, Initializer, Callable] = 0.,
+      E: Union[float, ArrayType, Initializer, Callable] = -90.,
+      g_max: Union[float, ArrayType, Initializer, Callable] = 0.004,
+      phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
+      phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
+      tau_max: Union[float, ArrayType, Initializer, Callable] = 4e3,
+      V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
       name: str = None,
-      mode: Mode = normal,
+      mode: bm.Mode = None,
   ):
     super(IKNI_Ya1989, self).__init__(size,
                                       keep_size=keep_size,
@@ -993,7 +992,7 @@ class IKNI_Ya1989(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(bm.zeros, mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)

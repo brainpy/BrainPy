@@ -7,7 +7,7 @@ from jax import vmap, pmap
 from jax.tree_util import tree_unflatten, tree_flatten
 
 import brainpy.math as bm
-from brainpy.types import Array
+from brainpy.types import ArrayType
 
 __all__ = [
   'jax_vectorize_map',
@@ -17,7 +17,7 @@ __all__ = [
 
 def jax_vectorize_map(
     func: callable,
-    arguments: Union[Dict[str, Array], Sequence[Array]],
+    arguments: Union[Dict[str, ArrayType], Sequence[ArrayType]],
     num_parallel: int,
     clear_buffer: bool = False
 ):
@@ -45,7 +45,7 @@ def jax_vectorize_map(
   """
   if not isinstance(arguments, (dict, tuple, list)):
     raise TypeError(f'"arguments" must be sequence or dict, but we got {type(arguments)}')
-  elements, tree = tree_flatten(arguments, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+  elements, tree = tree_flatten(arguments, is_leaf=lambda a: isinstance(a, bm.Array))
   if clear_buffer:
     elements = [np.asarray(ele) for ele in elements]
   num_pars = [len(ele) for ele in elements]
@@ -62,7 +62,7 @@ def jax_vectorize_map(
       r = run_f(**tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
     else:
       r = run_f(*tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
-    res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+    res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.Array))
     if results is None:
       results = tuple([np.asarray(val) if clear_buffer else val] for val in res_values)
     else:
@@ -80,7 +80,7 @@ def jax_vectorize_map(
 
 def jax_parallelize_map(
     func: callable,
-    arguments: Union[Dict[str, Array], Sequence[Array]],
+    arguments: Union[Dict[str, ArrayType], Sequence[ArrayType]],
     num_parallel: int,
     clear_buffer: bool = False
 ):
@@ -108,7 +108,7 @@ def jax_parallelize_map(
   """
   if not isinstance(arguments, (dict, tuple, list)):
     raise TypeError(f'"arguments" must be sequence or dict, but we got {type(arguments)}')
-  elements, tree = tree_flatten(arguments, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+  elements, tree = tree_flatten(arguments, is_leaf=lambda a: isinstance(a, bm.Array))
   if clear_buffer:
     elements = [np.asarray(ele) for ele in elements]
   num_pars = [len(ele) for ele in elements]
@@ -125,7 +125,7 @@ def jax_parallelize_map(
       r = run_f(**tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
     else:
       r = run_f(*tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
-    res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.JaxArray))
+    res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.Array))
     if results is None:
       results = tuple([np.asarray(val) if clear_buffer else val] for val in res_values)
     else:

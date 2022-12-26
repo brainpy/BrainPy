@@ -13,11 +13,11 @@
 
 import os
 import sys
+import shutil
 
 sys.path.insert(0, os.path.abspath('../'))
 
 import brainpy
-
 from docs import auto_generater
 
 auto_generater.generate_base_docs()
@@ -34,26 +34,21 @@ auto_generater.generate_initialize_docs()
 auto_generater.generate_losses_docs()
 auto_generater.generate_optimizers_docs()
 auto_generater.generate_measure_docs()
-auto_generater.generate_datasets_docs()
 auto_generater.generate_tools_docs()
-# auto_generater.generate_nn_docs()
-# auto_generater.generate_compact_docs()
-# auto_generater.generate_math_compact_docs()
 
-
-import shutil
 
 changelogs = [
-  ('../changelog.rst', 'apis/auto/changelog-brainpy.rst'),
+  ('../changelog.rst', 'apis/auto/changelog.rst'),
 ]
 for source, dest in changelogs:
-  if os.path.exists(dest): os.remove(dest)
+  if os.path.exists(dest):
+    os.remove(dest)
   shutil.copyfile(source, dest)
 
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
-copyright = '2022, BrainPy'
+copyright = '2020-2023, BrainPy'
 author = 'BrainPy Team'
 
 # The full version, including alpha/beta/rc tags
@@ -69,13 +64,14 @@ extensions = [
   'sphinx.ext.autosummary',
   'sphinx.ext.intersphinx',
   'sphinx.ext.mathjax',
-  'sphinx-mathjax-offline',
   'sphinx.ext.napoleon',
   'sphinx.ext.viewcode',
   'sphinx_autodoc_typehints',
   'myst_nb',
   'matplotlib.sphinxext.plot_directive',
-  'sphinx_thebe'
+  'sphinx_thebe',
+
+  # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -106,9 +102,9 @@ myst_enable_extensions = [
     "dollarmath",
     "amsmath",
     "deflist",
+    "colon_fence",
     # "html_admonition",
     # "html_image",
-    "colon_fence",
     # "smartquotes",
     # "replacements",
     # "linkify",
@@ -145,4 +141,4 @@ html_theme_options = {
 
 # -- Options for myst ----------------------------------------------
 # Notebook cell execution timeout; defaults to 30.
-execution_timeout = 200
+# execution_timeout = 200
