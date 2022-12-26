@@ -27,12 +27,12 @@ from jax.experimental.global_device_array import GlobalDeviceArray
 from jax.experimental.multihost_utils import sync_global_devices
 try:
   from jax import monitoring
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
   monitoring = None
 try:
   from jax.experimental.gda_serialization.serialization import get_tensorstore_spec
   from jax.experimental.gda_serialization.serialization import GlobalAsyncCheckpointManager
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
   get_tensorstore_spec = None
 
 from brainpy import math as bm

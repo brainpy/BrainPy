@@ -597,18 +597,7 @@ def ifelse(
   dyn_vars = ArrayCollector(dyn_vars)
   for f in branches:
     dyn_vars += infer_dyn_vars(f)
-  if isinstance(dyn_vars, Variable):
-    dyn_vars = (dyn_vars,)
-  elif isinstance(dyn_vars, dict):
-    dyn_vars = tuple(dyn_vars.values())
-  elif isinstance(dyn_vars, (tuple, list)):
-    dyn_vars = tuple(dyn_vars)
-  else:
-    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, only '
-                     f'support dict/list/tuple of brainpy.math.Variable')
-  for v in dyn_vars:
-    if not isinstance(v, Variable):
-      raise ValueError(f'Only support brainpy.math.Variable, but we got {type(v)}')
+  dyn_vars = tuple(dyn_vars.values())
 
   # format new codes
   if len(conditions) == 1:
@@ -745,7 +734,7 @@ def for_loop(
   outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
   for v in outs:
     if v not in dyn_vars:
-      dyn_vars += (v,)
+      dyn_vars.append(v)
 
   # functions
   def fun2scan(dyn_vals, x):
@@ -844,15 +833,7 @@ def while_loop(
   dyn_vars = ArrayCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(body_fun))
   dyn_vars.update(infer_dyn_vars(cond_fun))
-  if isinstance(dyn_vars, Variable):
-    dyn_vars = (dyn_vars,)
-  elif isinstance(dyn_vars, dict):
-    dyn_vars = tuple(dyn_vars.values())
-  elif isinstance(dyn_vars, (tuple, list)):
-    dyn_vars = tuple(dyn_vars)
-  else:
-    raise ValueError(f'"dyn_vars" does not support {type(dyn_vars)}, '
-                     f'only support dict/list/tuple of {Variable.__name__}')
+  dyn_vars = tuple(dyn_vars.values())
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
