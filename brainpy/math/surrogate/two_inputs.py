@@ -30,7 +30,7 @@ def inv_square_grad2(
     dz = bm.as_jax(dz)
     dx_new = (dz / (alpha * jnp.abs(x_new) + 1.0) ** 2) * jnp.asarray(x_old_comp, dtype=x_old.dtype)
     dx_old = -(dz / (alpha * jnp.abs(x_old) + 1.0) ** 2) * jnp.asarray(x_new_comp, dtype=x_new.dtype)
-    return dx_new, dx_old, None
+    return dx_new, dx_old
 
   return z, grad
 
@@ -50,7 +50,7 @@ def relu_grad2(
     dz = bm.as_jax(dz)
     dx_new = (dz * jnp.maximum(width - jnp.abs(x_new), 0) * alpha) * jnp.asarray(x_old_comp, dtype=x_old.dtype)
     dx_old = -(dz * jnp.maximum(width - jnp.abs(x_old), 0) * alpha) * jnp.asarray(x_new_comp, dtype=x_new.dtype)
-    return dx_new, dx_old, None, None
+    return dx_new, dx_old
 
   return z, grad
 
