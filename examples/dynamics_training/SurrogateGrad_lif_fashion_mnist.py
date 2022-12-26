@@ -8,16 +8,16 @@ Reproduce the results of the``spytorch`` tutorial 2 & 3:
 
 """
 
+import brainpy_datasets as bd
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
 
 import brainpy as bp
 import brainpy.math as bm
-import brainpy_datasets as bd
 
 
-class SNN(bp.dyn.Network):
+class SNN(bp.Network):
   """
   This class implements a spiking neural network model with three layers:
 
@@ -172,7 +172,7 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
 def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_steps=100, nb_inputs=28 * 28):
   """ Computes classification accuracy on supplied data in batches. """
   accs = []
-  runner = bp.dyn.DSRunner(model, progress_bar=False)
+  runner = bp.DSRunner(model, progress_bar=False)
   for x_local, y_local in sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False):
     output = runner.predict(inputs=x_local, reset_state=True)
     m = bm.max(output, 1)  # max over time
@@ -183,9 +183,9 @@ def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_st
 
 
 def get_mini_batch_results(model, x_data, y_data, batch_size=128, nb_steps=100, nb_inputs=28 * 28):
-  runner = bp.dyn.DSRunner(model,
-                           monitors={'r.spike': model.r.spike},
-                           progress_bar=False)
+  runner = bp.DSRunner(model,
+                       monitors={'r.spike': model.r.spike},
+                       progress_bar=False)
   data = sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False)
   x_local, y_local = next(data)
   output = runner.predict(inputs=x_local, reset_state=True)

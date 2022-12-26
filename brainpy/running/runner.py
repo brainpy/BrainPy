@@ -7,11 +7,10 @@ from typing import Callable, Dict, Sequence, Union
 
 import numpy as np
 
-from brainpy import math as bm
+from brainpy import math as bm, check
 from brainpy.base import BrainPyObject
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools import DotDict
-from brainpy.tools.checking import check_dict_data
 from . import constants as C
 
 __all__ = [
@@ -139,7 +138,7 @@ class Runner(BrainPyObject):
       if isinstance(fun_monitors, dict):
         warnings.warn("`func_monitors` is deprecated since version 2.3.1. "
                       "Define `func_monitors` in `monitors`")
-      check_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
+      check.is_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
       self._monitors.update(fun_monitors)
 
     # monitor for user access
@@ -152,10 +151,8 @@ class Runner(BrainPyObject):
     self._pbar = None
 
     # dynamical changed variables
-    if dyn_vars is None:
-      dyn_vars = dict()
-    self._dyn_vars = dyn_vars
-    self.register_implicit_vars(dyn_vars)
+    self._dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+    self.register_implicit_vars(self._dyn_vars)
 
     # numpy mon after run
     self.numpy_mon_after_run = numpy_mon_after_run

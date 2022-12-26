@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
-from jax import lax
-from typing import Union, Tuple, Optional, Sequence
+from typing import Union, Tuple, Optional, Sequence, Callable
 
-from brainpy import math as bm, tools
-from .base import Layer
+from jax import lax
+
+from brainpy import math as bm, tools, check
 from brainpy.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
+from .base import Layer
 
 __all__ = [
   'Conv1D',
@@ -16,7 +17,9 @@ __all__ = [
 ]
 
 
-def to_dimension_numbers(num_spatial_dims: int, channels_last: bool, transpose: bool) -> lax.ConvDimensionNumbers:
+def to_dimension_numbers(num_spatial_dims: int,
+                         channels_last: bool,
+                         transpose: bool) -> lax.ConvDimensionNumbers:
   """Create a `lax.ConvDimensionNumbers` for the given inputs."""
   num_dims = num_spatial_dims + 2
   if channels_last:
@@ -35,7 +38,7 @@ def to_dimension_numbers(num_spatial_dims: int, channels_last: bool, transpose: 
 
 
 class GeneralConv(Layer):
-  """Applies a convolution to the inputs.
+  """Apply a convolution to the inputs.
 
   Parameters
   ----------
@@ -67,9 +70,9 @@ class GeneralConv(Layer):
     is also known as 'atrous convolution'.
   groups: int
     If specified, divides the input features into groups. default 1.
-  w_init: Initializer
+  w_initializer: Callable, ArrayType, Initializer
     The initializer for the convolutional kernel.
-  b_init: Initializer
+  b_initializer: Optional, Callable, ArrayType, Initializer
     The initializer for the bias.
   mask: ArrayType, Optional
     The optional mask of the weights.
@@ -90,13 +93,14 @@ class GeneralConv(Layer):
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
-      w_init: Initializer = XavierNormal(),
-      b_init: Initializer = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
       mask: Optional[ArrayType] = None,
       mode: bm.Mode = None,
       name: str = None,
   ):
     super(GeneralConv, self).__init__(name=name, mode=mode)
+    check.is_subclass(self.mode, (bm.TrainingMode, bm.BatchingMode), self.name)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
@@ -106,8 +110,8 @@ class GeneralConv(Layer):
     self.lhs_dilation = tools.replicate(lhs_dilation, num_spatial_dims, 'lhs_dilation')
     self.rhs_dilation = tools.replicate(rhs_dilation, num_spatial_dims, 'rhs_dilation')
     self.groups = groups
-    self.w_init = w_init
-    self.b_init = b_init
+    self.w_initializer = w_initializer
+    self.b_initializer = b_initializer
     self.mask = mask
     self.dimension_numbers = to_dimension_numbers(num_spatial_dims, channels_last=True, transpose=False)
 
@@ -134,11 +138,12 @@ class GeneralConv(Layer):
 
     kernel_shape = tuple(self.kernel_size) + (self.in_channels // self.groups, self.out_channels)
     bias_shape = (1,) * len(self.kernel_size) + (self.out_channels,)
-    self.w = parameter(self.w_init, kernel_shape)
-    self.b = parameter(self.b_init, bias_shape)
+    self.w = parameter(self.w_initializer, kernel_shape, allow_none=False)
+    self.b = parameter(self.b_initializer, bias_shape, allow_none=True)
     if isinstance(self.mode, bm.TrainingMode):
       self.w = bm.TrainVar(self.w)
-      self.b = bm.TrainVar(self.b)
+      if self.b is not None:
+        self.b = bm.TrainVar(self.b)
 
   def _check_input_dim(self, x):
     raise NotImplementedError
@@ -147,9 +152,11 @@ class GeneralConv(Layer):
     self._check_input_dim(x)
     w = self.w.value
     if self.mask is not None:
-      if self.mask.shape != self.w.shape:
+      try:
+        lax.broadcast_shapes(self.w.shape, self.mask.shape)
+      except:
         raise ValueError(f"Mask needs to have the same shape as weights. {self.mask.shape} != {self.w.shape}")
-      w *= self.mask
+      w = w * self.mask
     y = lax.conv_general_dilated(lhs=bm.as_jax(x),
                                  rhs=bm.as_jax(w),
                                  window_strides=self.strides,
@@ -158,10 +165,7 @@ class GeneralConv(Layer):
                                  rhs_dilation=self.rhs_dilation,
                                  feature_group_count=self.groups,
                                  dimension_numbers=self.dimension_numbers)
-    if self.b is None:
-      return y
-    else:
-      return y + self.b.value
+    return y if self.b is None else (y + self.b.value)
 
 
 class Conv1D(GeneralConv):
@@ -195,9 +199,9 @@ class Conv1D(GeneralConv):
     is also known as 'atrous convolution'.
   groups: int
     If specified, divides the input features into groups. default 1.
-  w_init: Initializer
+  w_initializer: Callable, ArrayType, Initializer
     The initializer for the convolutional kernel.
-  b_init: Initializer
+  b_initializer: Callable, ArrayType, Initializer
     The initializer for the bias.
   mask: ArrayType, Optional
     The optional mask of the weights.
@@ -218,11 +222,11 @@ class Conv1D(GeneralConv):
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
-      w_init: Initializer = XavierNormal(),
-      b_init: Initializer = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.Mode = None,
-      name: str = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(Conv1D, self).__init__(num_spatial_dims=1,
                                  in_channels=in_channels,
@@ -233,8 +237,8 @@ class Conv1D(GeneralConv):
                                  lhs_dilation=lhs_dilation,
                                  rhs_dilation=rhs_dilation,
                                  groups=groups,
-                                 w_init=w_init,
-                                 b_init=b_init,
+                                 w_initializer=w_initializer,
+                                 b_initializer=b_initializer,
                                  mask=mask,
                                  mode=mode,
                                  name=name)
@@ -278,9 +282,9 @@ class Conv2D(GeneralConv):
     is also known as 'atrous convolution'.
   groups: int
     If specified, divides the input features into groups. default 1.
-  w_init: Initializer
+  w_initializer: Initializer
     The initializer for the convolutional kernel.
-  b_init: Initializer
+  b_initializer: Initializer
     The initializer for the bias.
   mask: ArrayType, Optional
     The optional mask of the weights.
@@ -301,11 +305,11 @@ class Conv2D(GeneralConv):
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
-      w_init: Initializer = XavierNormal(),
-      b_init: Initializer = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.Mode = None,
-      name: str = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(Conv2D, self).__init__(num_spatial_dims=2,
                                  in_channels=in_channels,
@@ -316,8 +320,8 @@ class Conv2D(GeneralConv):
                                  lhs_dilation=lhs_dilation,
                                  rhs_dilation=rhs_dilation,
                                  groups=groups,
-                                 w_init=w_init,
-                                 b_init=b_init,
+                                 w_initializer=w_initializer,
+                                 b_initializer=b_initializer,
                                  mask=mask,
                                  mode=mode,
                                  name=name)
@@ -361,9 +365,9 @@ class Conv3D(GeneralConv):
     is also known as 'atrous convolution'.
   groups: int
     If specified, divides the input features into groups. default 1.
-  w_init: Initializer
+  w_initializer: Initializer
     The initializer for the convolutional kernel.
-  b_init: Initializer
+  b_initializer: Initializer
     The initializer for the bias.
   mask: ArrayType, Optional
     The optional mask of the weights.
@@ -384,11 +388,11 @@ class Conv3D(GeneralConv):
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
-      w_init: Initializer = XavierNormal(),
-      b_init: Initializer = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
       mask: Optional[ArrayType] = None,
-      mode: bm.Mode = None,
-      name: str = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(Conv3D, self).__init__(num_spatial_dims=3,
                                  in_channels=in_channels,
@@ -399,8 +403,8 @@ class Conv3D(GeneralConv):
                                  lhs_dilation=lhs_dilation,
                                  rhs_dilation=rhs_dilation,
                                  groups=groups,
-                                 w_init=w_init,
-                                 b_init=b_init,
+                                 w_initializer=w_initializer,
+                                 b_initializer=b_initializer,
                                  mask=mask,
                                  mode=mode,
                                  name=name)

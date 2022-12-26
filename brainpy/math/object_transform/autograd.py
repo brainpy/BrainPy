@@ -114,8 +114,9 @@ class GradientTransform(ObjectTransform):
       for v, d in zip(self._grad_vars, old_grad_vs): v._value = d
       for v, d in zip(self._dyn_vars, old_dyn_vs): v._value = d
       raise e
-    for v, d in zip(self._grad_vars, new_grad_vs): v._value = d
-    for v, d in zip(self._dyn_vars, new_dyn_vs): v._value = d
+    else:
+      for v, d in zip(self._grad_vars, new_grad_vs): v._value = d
+      for v, d in zip(self._dyn_vars, new_dyn_vs): v._value = d
 
     # check returned grads
     if len(self._grad_vars) == 0:

@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
-
-
-
 class BrainPyError(Exception):
   """General BrainPy error."""
   pass
@@ -79,6 +75,100 @@ class MathError(BrainPyError):
   pass
 
 
+class MPACheckpointingRequiredError(BrainPyError):
+  """To optimally save and restore a multiprocess array (GDA or jax Array outputted from pjit), use GlobalAsyncCheckpointManager.
+
+  You can create an GlobalAsyncCheckpointManager at top-level and pass it as
+  argument::
+
+    from jax.experimental.gda_serialization import serialization as gdas
+    gda_manager = gdas.GlobalAsyncCheckpointManager()
+    brainpy.checkpoints.save(..., gda_manager=gda_manager)
+  """
+
+  def __init__(self, path, step):
+    super().__init__(
+      f'Checkpoint failed at step: "{step}" and path: "{path}": Target '
+      'contains a multiprocess array should be saved/restored with a '
+      'GlobalAsyncCheckpointManager.')
+
+
+class MPARestoreTargetRequiredError(BrainPyError):
+  """Provide a valid target when restoring a checkpoint with a multiprocess array.
+
+  Multiprocess arrays need a sharding (global meshes and partition specs) to be
+  initialized. Therefore, to restore a checkpoint that contains a multiprocess
+  array, make sure the ``target`` you passed contains valid multiprocess arrays
+  at the corresponding tree structure location. If you cannot provide a full
+  valid ``target``, consider ``allow_partial_mpa_restoration=True``.
+  """
+
+  def __init__(self, path, step, key=None):
+    error_msg = (
+      f'Restore checkpoint failed at step: "{step}" and path: "{path}": '
+      'Checkpoints containing a multiprocess array need to be restored with '
+      'a target with pre-created arrays. If you cannot provide a full valid '
+      'target, consider ``allow_partial_mpa_restoration=True``. ')
+    if key:
+      error_msg += f'This error fired when trying to restore array at {key}.'
+    super().__init__(error_msg)
+
+
+class MPARestoreDataCorruptedError(BrainPyError):
+  """A multiprocess array stored in Google Cloud Storage doesn't contain a "commit_success.txt" file, which should be written at the end of the save.
+
+  Failure of finding it could indicate a corruption of your saved GDA data.
+  """
+
+  def __init__(self, step, path):
+    super().__init__(
+      f'Restore checkpoint failed at step: "{step}" on multiprocess array at '
+      f' "{path}": No "commit_success.txt" found on this "_gda" directory. '
+      'Was its save halted before completion?')
+
+
+class MPARestoreTypeNotMatchError(BrainPyError):
+  """Make sure the multiprocess array type you use matches your configuration in jax.config.jax_array.
+
+  If you turned `jax.config.jax_array` on, you should use
+  `jax.experimental.array.Array` everywhere, instead of using
+  `GlobalDeviceArray`. Otherwise, avoid using jax.experimental.array
+  to restore your checkpoint.
+  """
+
+  def __init__(self, step, gda_path):
+    super().__init__(
+      f'Restore checkpoint failed at step: "{step}" on multiprocess array at '
+      f' "{gda_path}": The array type provided by the target does not match '
+      'the JAX global configuration, namely the jax.config.jax_array.')
+
+
+class AlreadyExistsError(BrainPyError):
+  """Attempting to overwrite a file via copy.
+
+  You can pass ``overwrite=True`` to disable this behavior and overwrite
+  existing files in.
+  """
+
+  def __init__(self, path):
+    super().__init__(f'Trying overwrite an existing file: "{path}".')
+
+
+class InvalidCheckpointError(BrainPyError):
+  """A checkpoint cannot be stored in a directory that already has
+
+  a checkpoint at the current or a later step.
+
+  You can pass ``overwrite=True`` to disable this behavior and
+  overwrite existing checkpoints in the target directory.
+  """
+
+  def __init__(self, path, step):
+    super().__init__(
+      f'Trying to save an outdated checkpoint at step: "{step}" and path: "{path}".'
+    )
+
+
 class JaxTracerError(MathError):
   def __init__(self, variables=None):
     msg = 'There is an unexpected tracer. \n\n' \
@@ -122,9 +212,9 @@ class ConcretizationTypeError(Exception):
 
 _BRAINPYLIB_MINIMAL_VERSION = '0.1.3'
 
-
 try:
   import jaxlib
+
   del jaxlib
 except ModuleNotFoundError:
   raise ModuleNotFoundError(
@@ -154,7 +244,6 @@ For more detail installation instructions, please see https://brainpy.readthedoc
 
     ''') from None
 
-
 try:
   import brainpylib
 
@@ -172,5 +261,3 @@ except ModuleNotFoundError:
     f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
     f'>>> pip install brainpylib'
   )
-
-

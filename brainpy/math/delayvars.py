@@ -12,7 +12,7 @@ from brainpy.errors import UnsupportedError
 from brainpy.math import numpy_ops as bm
 from brainpy.math.ndarray import ndarray, Variable, Array
 from brainpy.math.environment import get_dt, get_float
-from brainpy.check import check_float, check_integer, check_error_in_jit
+from brainpy.check import is_float, is_integer, jit_error_checking
 
 __all__ = [
   'AbstractDelay',
@@ -125,7 +125,7 @@ class TimeDelay(AbstractDelay):
     # delay_len
     self.t0 = t0
     self.dt = get_dt() if dt is None else dt
-    check_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
+    is_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
     self.delay_len = delay_len
     self.num_delay_step = int(jnp.ceil(self.delay_len / self.dt)) + 1
 
@@ -137,7 +137,7 @@ class TimeDelay(AbstractDelay):
 
     # time variables
     self.idx = Variable(jnp.asarray([0]))
-    check_float(t0, 't0', allow_none=False, allow_int=True, )
+    is_float(t0, 't0', allow_none=False, allow_int=True, )
     self.current_time = Variable(jnp.asarray([t0], dtype=get_float()))
 
     # delay data
@@ -212,10 +212,10 @@ class TimeDelay(AbstractDelay):
     # check
     if check.is_checking():
       current_time = self.current_time[0]
-      check_error_in_jit(time > current_time + 1e-6,
+      jit_error_checking(time > current_time + 1e-6,
                          self._check_time1,
                          (time, current_time))
-      check_error_in_jit(time < current_time - self.delay_len - self.dt,
+      jit_error_checking(time < current_time - self.delay_len - self.dt,
                          self._check_time2,
                          (time, current_time))
     if self._before_type == _FUNC_BEFORE:
@@ -364,7 +364,7 @@ class LengthDelay(AbstractDelay):
                        f'or jax.numpy.ndarray. But we got {type(delay_target)}')
 
     # delay_len
-    check_integer(delay_len, 'delay_len', allow_none=True, min_bound=0)
+    is_integer(delay_len, 'delay_len', allow_none=True, min_bound=0)
     if delay_len is None:
       if self.num_delay_step is None:
         raise ValueError('"delay_len" cannot be None.')
@@ -419,7 +419,7 @@ class LengthDelay(AbstractDelay):
       The delay length used to retrieve the data.
     """
     if check.is_checking():
-      check_error_in_jit(bm.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
+      jit_error_checking(bm.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
 
     if self.update_method == ROTATION_UPDATING:
       delay_idx = (self.idx[0] + delay_len) % self.num_delay_step

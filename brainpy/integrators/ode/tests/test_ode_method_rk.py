@@ -27,7 +27,7 @@ def run_integrator(method, show=False):
   if plt is None:
     import matplotlib.pyplot as plt
 
-  f_integral = bm.jit(method(f_lorenz, dt=dt), auto_infer=False)
+  f_integral = bm.jit(method(f_lorenz, dt=dt))
   x = bm.Variable(bm.ones(1))
   y = bm.Variable(bm.ones(1))
   z = bm.Variable(bm.ones(1))
@@ -51,6 +51,7 @@ def run_integrator(method, show=False):
     ax.set_xlabel('y')
     ax.set_xlabel('z')
     plt.show()
+  plt.close()
 
   return mon_x, mon_y, mon_z
 

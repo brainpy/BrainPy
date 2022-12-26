@@ -2,12 +2,16 @@
 
 import logging
 import os.path
+import warnings
+from collections import namedtuple
+from typing import Dict, Any, Tuple
 
 from brainpy import errors
 from brainpy.base import io, naming
 from brainpy.base.collector import Collector, ArrayCollector
 
 math = None
+StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
 
 __all__ = [
   'BrainPyObject',
@@ -57,25 +61,27 @@ class BrainPyObject(object):
     naming.check_name_uniqueness(name=self._name, obj=self)
 
   def register_implicit_vars(self, *variables, **named_variables):
-    from brainpy.math import Variable
+    global math
+    if math is None: from brainpy import math
+
     for variable in variables:
-      if isinstance(variable, Variable):
+      if isinstance(variable, math.Variable):
         self.implicit_vars[f'var{id(variable)}'] = variable
       elif isinstance(variable, (tuple, list)):
         for v in variable:
-          if not isinstance(v, Variable):
-            raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
+          if not isinstance(v, math.Variable):
+            raise ValueError(f'Must be instance of {math.Variable.__name__}, but we got {type(v)}')
           self.implicit_vars[f'var{id(v)}'] = v
       elif isinstance(variable, dict):
         for k, v in variable.items():
-          if not isinstance(v, Variable):
-            raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
+          if not isinstance(v, math.Variable):
+            raise ValueError(f'Must be instance of {math.Variable.__name__}, but we got {type(v)}')
           self.implicit_vars[k] = v
       else:
         raise ValueError(f'Unknown type: {type(variable)}')
     for key, variable in named_variables.items():
-      if not isinstance(variable, Variable):
-        raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(variable)}')
+      if not isinstance(variable, math.Variable):
+        raise ValueError(f'Must be instance of {math.Variable.__name__}, but we got {type(variable)}')
       self.implicit_vars[key] = variable
 
   def register_implicit_nodes(self, *nodes, node_cls: type = None, **named_nodes):
@@ -101,7 +107,11 @@ class BrainPyObject(object):
         raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(node)}')
       self.implicit_nodes[key] = node
 
-  def vars(self, method='absolute', level=-1, include_self=True):
+  def vars(self,
+           method: str = 'absolute',
+           level: int = -1,
+           include_self: bool = True,
+           exclude_types: Tuple[type, ...] = None):
     """Collect all variables in this node and the children nodes.
 
     Parameters
@@ -112,6 +122,8 @@ class BrainPyObject(object):
       The hierarchy level to find variables.
     include_self: bool
       Whether include the variables in the self.
+    exclude_types: tuple of type
+      The type to exclude.
 
     Returns
     -------
@@ -121,12 +133,19 @@ class BrainPyObject(object):
     global math
     if math is None: from brainpy import math
 
+    if exclude_types is None:
+      exclude_types = (math.VariableView, )
     nodes = self.nodes(method=method, level=level, include_self=include_self)
     gather = ArrayCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
+        include = False
         if isinstance(v, math.Variable):
+          include = True
+          if len(exclude_types) and isinstance(v, exclude_types):
+              include = False
+        if include:
           if k not in node._excluded_vars:
             gather[f'{node_path}.{k}' if node_path else k] = v
       gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
@@ -306,6 +325,49 @@ class BrainPyObject(object):
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
+  def state_dict(self):
+    """Returns a dictionary containing a whole state of the module.
+
+    Returns
+    -------
+    out: dict
+      A dictionary containing a whole state of the module.
+    """
+    return self.vars().unique().dict()
+
+  def load_state_dict(self, state_dict: Dict[str, Any], warn: bool = True):
+    """Copy parameters and buffers from :attr:`state_dict` into
+    this module and its descendants.
+
+    Parameters
+    ----------
+    state_dict: dict
+      A dict containing parameters and persistent buffers.
+    warn: bool
+      Warnings when there are missing keys or unexpected keys in the external ``state_dict``.
+
+    Returns
+    -------
+    out: StateLoadResult
+      ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
+
+      * **missing_keys** is a list of str containing the missing keys
+      * **unexpected_keys** is a list of str containing the unexpected keys
+    """
+    variables = self.vars().unique()
+    keys1 = set(state_dict.keys())
+    keys2 = set(variables.keys())
+    unexpected_keys = list(keys1 - keys2)
+    missing_keys = list(keys2 - keys1)
+    for key in keys2.intersection(keys1):
+      variables[key].value = state_dict[key]
+    if warn:
+      if len(unexpected_keys):
+        warnings.warn(f'Unexpected keys in state_dict: {unexpected_keys}', UserWarning)
+      if len(missing_keys):
+        warnings.warn(f'Missing keys in state_dict: {missing_keys}', UserWarning)
+    return StateLoadResult(missing_keys, unexpected_keys)
+
   # def to(self, devices):
   #   global math
   #   if math is None: from brainpy import math
@@ -317,7 +379,6 @@ class BrainPyObject(object):
   #   all_vars = self.vars().unique()
   #   for data in all_vars.values():
   #     data[:] = math.asarray(data.value)
-  #     # TODO
   #
   # def cuda(self):
   #   global math

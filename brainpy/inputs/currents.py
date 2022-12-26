@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm
-from brainpy.check import check_float, check_integer
+from brainpy.check import is_float, is_integer
 
 __all__ = [
   'section_input',
@@ -258,8 +258,8 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
     The noise seed.
   """
   dt = bm.get_dt() if dt is None else dt
-  check_float(dt, 'dt', allow_none=False, min_bound=0.)
-  check_integer(n, 'n', allow_none=False, min_bound=0)
+  is_float(dt, 'dt', allow_none=False, min_bound=0.)
+  is_integer(n, 'n', allow_none=False, min_bound=0)
   rng = bm.random.RandomState(seed)
   t_end = duration if t_end is None else t_end
   i_start = int(t_start / dt)
@@ -300,8 +300,8 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
   """
   dt = bm.get_dt() if dt is None else dt
   dt_sqrt = jnp.sqrt(dt)
-  check_float(dt, 'dt', allow_none=False, min_bound=0.)
-  check_integer(n, 'n', allow_none=False, min_bound=0)
+  is_float(dt, 'dt', allow_none=False, min_bound=0.)
+  is_integer(n, 'n', allow_none=False, min_bound=0)
   rng = bm.random.RandomState(seed)
   x = bm.Variable(jnp.ones(n) * mean)
 
@@ -341,7 +341,7 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
     has a positive DC bias, thus non-negative (True).
   """
   dt = bm.get_dt() if dt is None else dt
-  check_float(dt, 'dt', allow_none=False, min_bound=0.)
+  is_float(dt, 'dt', allow_none=False, min_bound=0.)
   if t_end is None:
     t_end = duration
   times = jnp.arange(0, t_end - t_start, dt)
@@ -403,7 +403,7 @@ def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0.
     has a positive DC bias, thus non-negative (True).
   """
   dt = bm.get_dt() if dt is None else dt
-  check_float(dt, 'dt', allow_none=False, min_bound=0.)
+  is_float(dt, 'dt', allow_none=False, min_bound=0.)
   if t_end is None: t_end = duration
   times = np.arange(0, t_end - t_start, dt)
   sin_inputs = amplitude * _square(2 * np.pi * times * (frequency / 1000.0))

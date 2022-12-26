@@ -8,7 +8,7 @@ from brainpy.errors import DiffEqError, CodeError
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
 from brainpy.integrators.constants import DT
-from brainpy.check import check_dict_data
+from brainpy.check import is_dict_data
 
 __all__ = [
   'ODEIntegrator',
@@ -87,7 +87,7 @@ class ODEIntegrator(Integrator):
     # neutral delays
     self._neutral_delays = dict()
     if neutral_delays is not None:
-      check_dict_data(neutral_delays, key_type=str, val_type=bm.NeuTimeDelay)
+      is_dict_data(neutral_delays, key_type=str, val_type=bm.NeuTimeDelay)
       for key, delay in neutral_delays.items():
         if key not in self.variables:
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')

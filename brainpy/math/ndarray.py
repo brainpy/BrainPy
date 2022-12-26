@@ -46,10 +46,8 @@ def del_context(name=None) -> None:
     if name is not None:
       if context != name:
         raise MathError('Transformation context is different!')
-        # warnings.warn(, UserWarning)
   except IndexError:
     raise MathError('No transformation context!')
-    # warnings.warn('No transformation context!', UserWarning)
 
 
 def get_context():
@@ -959,7 +957,7 @@ class Variable(Array):
 
   Parameters
   ----------
-  value_or_size: Shape, Array
+  value_or_size: Shape, Array, int
     The value or the size of the value.
   dtype:
     The type of the data.
@@ -1036,10 +1034,7 @@ class Variable(Array):
       int_shape = self.shape[:self._batch_axis] + self.shape[self._batch_axis + 1:]
     if ext_shape != int_shape:
       error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
-      if self._batch_axis is None:
-        error += '. Do you forget to set "batch_axis" when initialize this variable?'
-      else:
-        error += f' with batch_axis={self._batch_axis}.'
+      error += f' with batch_axis={self._batch_axis}.'
       raise MathError(error)
     if value.dtype != self.dtype:
       raise MathError(f"The dtype of the original data is {self.dtype}, "

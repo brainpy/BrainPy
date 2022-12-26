@@ -10,8 +10,8 @@ from brainpy.initialize import (XavierNormal,
                                 parameter,
                                 variable,
                                 Initializer)
-from brainpy.check import (check_integer,
-                                    check_initializer)
+from brainpy.check import (is_integer,
+                           is_initializer)
 from brainpy.types import ArrayType
 from .base import Layer
 
@@ -36,9 +36,9 @@ class RecurrentCell(Layer):
 
     # parameters
     self._state_initializer = state_initializer
-    check_initializer(state_initializer, 'state_initializer', allow_none=False)
+    is_initializer(state_initializer, 'state_initializer', allow_none=False)
     self.num_out = num_out
-    check_integer(num_out, 'num_out', min_bound=1, allow_none=False)
+    is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
     self.train_state = train_state
 
 
@@ -94,15 +94,15 @@ class RNNCell(RecurrentCell):
 
     # parameters
     self.num_in = num_in
-    check_integer(num_in, 'num_in', min_bound=1, allow_none=False)
+    is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
     # initializers
     self._Wi_initializer = Wi_initializer
     self._Wh_initializer = Wh_initializer
     self._b_initializer = b_initializer
-    check_initializer(Wi_initializer, 'wi_initializer', allow_none=False)
-    check_initializer(Wh_initializer, 'wh_initializer', allow_none=False)
-    check_initializer(b_initializer, 'b_initializer', allow_none=True)
+    is_initializer(Wi_initializer, 'wi_initializer', allow_none=False)
+    is_initializer(Wh_initializer, 'wh_initializer', allow_none=False)
+    is_initializer(b_initializer, 'b_initializer', allow_none=True)
 
     # activation function
     self.activation = bm.activations.get(activation)
@@ -202,15 +202,15 @@ class GRUCell(RecurrentCell):
                                   name=name)
     # parameters
     self.num_in = num_in
-    check_integer(num_in, 'num_in', min_bound=1, allow_none=False)
+    is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
     # initializers
     self._Wi_initializer = Wi_initializer
     self._Wh_initializer = Wh_initializer
     self._b_initializer = b_initializer
-    check_initializer(Wi_initializer, 'Wi_initializer', allow_none=False)
-    check_initializer(Wh_initializer, 'Wh_initializer', allow_none=False)
-    check_initializer(b_initializer, 'b_initializer', allow_none=True)
+    is_initializer(Wi_initializer, 'Wi_initializer', allow_none=False)
+    is_initializer(Wh_initializer, 'Wh_initializer', allow_none=False)
+    is_initializer(b_initializer, 'b_initializer', allow_none=True)
 
     # activation function
     self.activation = bm.activations.get(activation)
@@ -334,17 +334,17 @@ class LSTMCell(RecurrentCell):
                                    name=name)
     # parameters
     self.num_in = num_in
-    check_integer(num_in, 'num_in', min_bound=1, allow_none=False)
+    is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
     # initializers
     self._state_initializer = state_initializer
     self._Wi_initializer = Wi_initializer
     self._Wh_initializer = Wh_initializer
     self._b_initializer = b_initializer
-    check_initializer(Wi_initializer, 'wi_initializer', allow_none=False)
-    check_initializer(Wh_initializer, 'wh_initializer', allow_none=False)
-    check_initializer(b_initializer, 'b_initializer', allow_none=True)
-    check_initializer(state_initializer, 'state_initializer', allow_none=False)
+    is_initializer(Wi_initializer, 'wi_initializer', allow_none=False)
+    is_initializer(Wh_initializer, 'wh_initializer', allow_none=False)
+    is_initializer(b_initializer, 'b_initializer', allow_none=True)
+    is_initializer(state_initializer, 'state_initializer', allow_none=False)
 
     # activation function
     self.activation = bm.activations.get(activation)
@@ -409,7 +409,7 @@ class VanillaRNN(RNNCell):
   """Vanilla RNN.
 
   .. deprecated:: 2.2.3.4
-     Use `RNNCell` instead. `VanillaRNN` will be removed since version 2.4.0.
+     Use :py:class:`~.RNNCell` instead. :py:class:`~.VanillaRNN` will be removed since version 2.4.0.
 
   """
 
@@ -424,7 +424,7 @@ class GRU(GRUCell):
   """GRU.
 
   .. deprecated:: 2.2.3.4
-     Use `GRUCell` instead. `GRU` will be removed since version 2.4.0.
+     Use :py:class:`~.GRUCell` instead. :py:class:`~.GRU` will be removed since version 2.4.0.
 
   """
 
@@ -439,7 +439,7 @@ class LSTM(LSTMCell):
   """LSTM.
 
   .. deprecated:: 2.2.3.4
-     Use `LSTMCell` instead. `LSTM` will be removed since version 2.4.0.
+     Use :py:class:`~.LSTMCell` instead. :py:class:`~.LSTM` will be removed since version 2.4.0.
 
   """
 

@@ -16,6 +16,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 bm.enable_x64()
+bm.set_environment(bm.batching_mode)
 
 
 def get_subset(data, start, end):
@@ -147,7 +148,7 @@ class NGRC(bp.dyn.DynamicalSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
     self.r = bp.layers.NVAR(num_in, delay=4, order=2, stride=5)
-    self.o = bp.layers.Dense(self.r.num_out, 1)
+    self.o = bp.layers.Dense(self.r.num_out, 1, mode=bm.training_mode)
 
   def update(self, sha, x):
     return self.o(sha, self.r(sha, x))

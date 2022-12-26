@@ -21,12 +21,19 @@ class Mode(object):
 
 
 class NonBatchingMode(Mode):
-  """Normal non-batching mode."""
+  """Normal non-batching mode.
+
+  :py:class:`~.NonBatchingMode` is usually used in models of traditional
+  computational neuroscience.
+  """
   pass
 
 
 class BatchingMode(Mode):
-  """Batching mode."""
+  """Batching mode.
+
+  :py:class:`~.NonBatchingMode` is usually used in models of model trainings.
+  """
   pass
 
 
@@ -36,11 +43,11 @@ class TrainingMode(BatchingMode):
 
 
 nonbatching_mode = NonBatchingMode()
-'''Non-batching computation mode.'''
+'''Default instance of the non-batching computation mode.'''
 
 batching_mode = BatchingMode()
-'''Batching computation mode.'''
+'''Default instance of the batching computation mode.'''
 
 training_mode = TrainingMode()
-'''Training computation mode.'''
+'''Default instance of the training computation mode.'''
 

@@ -3,8 +3,8 @@
 from typing import Optional, Union, Callable, Tuple
 
 import brainpy.math as bm
+from brainpy.check import is_float, is_initializer, is_string
 from brainpy.initialize import Normal, ZeroInit, Initializer, parameter, variable
-from brainpy.check import check_float, check_initializer, check_string
 from brainpy.tools.others import to_size
 from brainpy.types import ArrayType
 from .base import Layer
@@ -96,14 +96,14 @@ class Reservoir(Layer):
       b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
       in_connectivity: float = 0.1,
       rec_connectivity: float = 0.1,
-      comp_type='dense',
+      comp_type: str = 'dense',
       spectral_radius: Optional[float] = None,
       noise_in: float = 0.,
       noise_rec: float = 0.,
       noise_type: str = 'normal',
       seed: Optional[int] = None,
-      mode: bm.Mode = None,
-      name: str = None
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None
   ):
     super(Reservoir, self).__init__(mode=mode, name=name)
 
@@ -116,37 +116,37 @@ class Reservoir(Layer):
     self.num_unit = num_out
     assert num_out > 0, f'Must be a positive integer, but we got {num_out}'
     self.leaky_rate = leaky_rate
-    check_float(leaky_rate, 'leaky_rate', 0., 1.)
+    is_float(leaky_rate, 'leaky_rate', 0., 1.)
     self.activation = bm.activations.get(activation)
     self.activation_type = activation_type
-    check_string(activation_type, 'activation_type', ['internal', 'external'])
+    is_string(activation_type, 'activation_type', ['internal', 'external'])
     self.rng = bm.random.RandomState(seed)
-    check_float(spectral_radius, 'spectral_radius', allow_none=True)
+    is_float(spectral_radius, 'spectral_radius', allow_none=True)
     self.spectral_radius = spectral_radius
 
     # initializations
-    check_initializer(Win_initializer, 'ff_initializer', allow_none=False)
-    check_initializer(Wrec_initializer, 'rec_initializer', allow_none=False)
-    check_initializer(b_initializer, 'bias_initializer', allow_none=True)
+    is_initializer(Win_initializer, 'ff_initializer', allow_none=False)
+    is_initializer(Wrec_initializer, 'rec_initializer', allow_none=False)
+    is_initializer(b_initializer, 'bias_initializer', allow_none=True)
     self._Win_initializer = Win_initializer
     self._Wrec_initializer = Wrec_initializer
     self._b_initializer = b_initializer
 
     # connectivity
-    check_float(in_connectivity, 'ff_connectivity', 0., 1.)
-    check_float(rec_connectivity, 'rec_connectivity', 0., 1.)
+    is_float(in_connectivity, 'ff_connectivity', 0., 1.)
+    is_float(rec_connectivity, 'rec_connectivity', 0., 1.)
     self.ff_connectivity = in_connectivity
     self.rec_connectivity = rec_connectivity
-    check_string(comp_type, 'conn_type', ['dense', 'sparse'])
+    is_string(comp_type, 'conn_type', ['dense', 'sparse'])
     self.comp_type = comp_type
 
     # noises
-    check_float(noise_in, 'noise_ff')
-    check_float(noise_rec, 'noise_rec')
+    is_float(noise_in, 'noise_ff')
+    is_float(noise_rec, 'noise_rec')
     self.noise_ff = noise_in
     self.noise_rec = noise_rec
     self.noise_type = noise_type
-    check_string(noise_type, 'noise_type', ['normal', 'uniform'])
+    is_string(noise_type, 'noise_type', ['normal', 'uniform'])
 
     # initialize feedforward weights
     weight_shape = (input_shape[-1], self.num_unit)

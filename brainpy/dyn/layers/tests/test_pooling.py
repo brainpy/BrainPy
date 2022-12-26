@@ -24,7 +24,7 @@ class TestPool(TestCase):
     print(x)
     print(x.shape)
     shared = {'fit': False}
-    with bm.env_training():
+    with bm.training_environment():
       net = MaxPoolNet()
     y = net(shared, x)
     print("out shape: ", y.shape)
@@ -43,7 +43,7 @@ class TestPool(TestCase):
 
     rng = bm.random.RandomState(123)
     x = rng.rand(10, 20, 20, 4)
-    with bm.env_training():
+    with bm.training_environment():
       net = MaxPoolNet()
     y = net(None, x)
     print("out shape: ", y.shape)
@@ -60,7 +60,7 @@ class TestPool(TestCase):
 
     x = jnp.arange(9).reshape((1, 3, 3, 1)).astype(jnp.float32)
     shared = {'fit': False}
-    with bm.env_training():
+    with bm.training_environment():
       net = MinPoolNet()
     y = net(shared, x)
     print("out shape: ", y.shape)
@@ -82,7 +82,7 @@ class TestPool(TestCase):
 
     x = jnp.full((1, 3, 3, 1), 2.)
     shared = {'fit': False}
-    with bm.env_training():
+    with bm.training_environment():
       net = AvgPoolNet()
     y = net(shared, x)
     print("out shape: ", y.shape)
