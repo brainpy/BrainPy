@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from functools import partial
-from typing import Union, Callable, Dict, Sequence, Any
+from functools import partial, wraps
+from typing import Union, Callable, Dict, Sequence, Any, Optional
 
 import jax
 import numpy as np
@@ -12,13 +12,14 @@ from jax._src.api import (_vjp, _jvp,
                           _check_output_dtype_jacfwd, _check_input_dtype_jacfwd, )
 from jax.api_util import argnums_partial
 from jax.errors import UnexpectedTracerError
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose, tree_structure
+from jax.tree_util import (tree_flatten, tree_unflatten,
+                           tree_map, tree_transpose,
+                           tree_structure)
 from jax.util import safe_map
 
-from brainpy import errors, tools
-from brainpy.base import get_unique_name, ArrayCollector
-from brainpy.math.ndarray import Array, add_context, del_context
-from ._utils import infer_dyn_vars
+from brainpy import errors, tools, check
+from brainpy.base import BrainPyObject
+from brainpy.math.ndarray import Array, Variable, add_context, del_context
 from .base import ObjectTransform
 
 __all__ = [
@@ -29,65 +30,99 @@ __all__ = [
 ]
 
 
-class GradientFunTransform(ObjectTransform):
-  _excluded_vars = ('_origin_fun',)
-
-  def __init__(
-      self,
-      grad_func: Callable,
-      dyn_vars: Any,
-      grad_vars: Any,
-      name: str = None,
-      origin_fun=None
-  ):
-    super().__init__(name=name)
-
-    self._origin_fun = origin_fun
-    self._f = grad_func
-    self.register_implicit_vars(dyn_vars, grad_vars)
-
-  def __call__(self, *args, **kwargs):
-    return self._f(*args, **kwargs)
-
-  def __repr__(self):
-    name = self.__class__.__name__
-    f = tools.repr_object(self._origin_fun)
-    f = tools.repr_context(f, " " * (len(name) + 6))
-    return f'{name}(target={f})'
-
-
 class GradientTransform(ObjectTransform):
-  _excluded_vars = ('_origin_fun',)
+  """Object-oriented Automatic Differentiation Transformation in BrainPy.
+  """
 
   def __init__(
       self,
-      grad_func: Callable,
-      grad_tree,
-      grad_vars,
-      dyn_vars,
-      argnums,
+      target: Callable,
+      transform: Callable,
+
+      # variables and nodes
+      grad_vars: Any,
+      dyn_vars: Dict[str, Variable],
+      child_objs: Dict[str, Variable],
+
+      # gradient setting
+      argnums: Optional[Union[int, Sequence[int]]],
       return_value: bool,
       has_aux: bool,
+      transform_setting: Optional[Dict[str, Any]] = None,
+
+      # other
       name: str = None,
-      origin_fun=None
   ):
     super().__init__(name=name)
 
-    self.register_implicit_vars(dyn_vars, grad_vars)
-    self._grad_func = grad_func
-    self._grad_tree = grad_tree
-    self._grad_vars = grad_vars
-    self._dyn_vars = dyn_vars
-    self._argnums = argnums
-    self._return_value = return_value
-    self._has_aux = has_aux
-    self._origin_fun = origin_fun
+    # gradient variables
+    self._grad_vars, self._grad_tree = tree_flatten(grad_vars, is_leaf=lambda a: isinstance(a, Array))
 
-    self.register_implicit_vars(dyn_vars, grad_vars)
+    # register variables and nodes
+    self.register_implicit_vars(dyn_vars, self._grad_vars)
+    self.register_implicit_nodes(child_objs)
+
+    # parameters
+    if argnums is None and len(self._grad_vars) == 0:
+      argnums = 0
+    if argnums is None:
+      assert len(self._grad_vars) > 0
+      _argnums = 0
+    elif isinstance(argnums, int):
+      _argnums = (0, argnums + 2) if len(self._grad_vars) > 0 else (argnums + 2)
+    else:
+      _argnums = check.is_sequence(argnums, elem_type=int, allow_none=False)
+      _argnums = tuple(a + 2 for a in _argnums)
+      if len(self._grad_vars) > 0:
+        _argnums = (0,) + _argnums
+    self.nonvar_argnums = argnums
+    self.return_value = return_value
+    self.has_aux = has_aux
+
+    # target and transform
+    self.target = target
+    self.transform = transform
+    self._dyn_vars = tuple((self.vars().unique() - self._grad_vars).values())
+
+    # settings
+    transform_setting = dict() if transform_setting is None else transform_setting
+    if self.has_aux:
+      self._call = transform(self._f_grad_with_aux_to_transform,
+                             argnums=_argnums,
+                             has_aux=True,
+                             **transform_setting)
+    else:
+      self._call = transform(self._f_grad_without_aux_to_transform,
+                             argnums=_argnums,
+                             has_aux=True,
+                             **transform_setting)
+
+  def _f_grad_with_aux_to_transform(self, grad_values, dyn_values, *args, **kwargs):
+    for v, d in zip(self._dyn_vars, dyn_values): v._value = d
+    for v, d in zip(self._grad_vars, grad_values): v._value = d
+    # Users should return the auxiliary data like::
+    # >>> # 1. example of return one data
+    # >>> return scalar_loss, data
+    # >>> # 2. example of return multiple data
+    # >>> return scalar_loss, (data1, data2, ...)
+    outputs = self.target(*args, **kwargs)
+    # outputs: [0] is the value for gradient,
+    #          [1] is other values for return
+    output0 = tree_map(lambda a: (a.value if isinstance(a, Array) else a), outputs[0])
+    return output0, (outputs, [v.value for v in self._grad_vars], [v.value for v in self._dyn_vars])
+
+  def _f_grad_without_aux_to_transform(self, grad_values, dyn_values, *args, **kwargs):
+    for v, d in zip(self._dyn_vars, dyn_values): v._value = d
+    for v, d in zip(self._grad_vars, grad_values): v._value = d
+    # Users should return the scalar value like this::
+    # >>> return scalar_loss
+    output = self.target(*args, **kwargs)
+    output0 = tree_map(lambda a: (a.value if isinstance(a, Array) else a), output)
+    return output0, (output, [v.value for v in self._grad_vars], [v.value for v in self._dyn_vars])
 
   def __repr__(self):
     name = self.__class__.__name__
-    f = tools.repr_object(self._origin_fun)
+    f = tools.repr_object(self.target)
     f = tools.repr_context(f, " " * (len(name) + 6))
     format_ref = (f'{name}(target={f}, \n' +
                   f'{" " * len(name)} num_of_grad_vars={len(self._grad_vars)}, \n'
@@ -99,16 +134,16 @@ class GradientTransform(ObjectTransform):
     old_dyn_vs = [v.value for v in self._dyn_vars]
     try:
       add_context(self.name)
-      grads, (outputs, new_grad_vs, new_dyn_vs) = self._grad_func(old_grad_vs,
-                                                                  old_dyn_vs,
-                                                                  *args,
-                                                                  **kwargs)
+      grads, (outputs, new_grad_vs, new_dyn_vs) = self._call(old_grad_vs,
+                                                             old_dyn_vs,
+                                                             *args,
+                                                             **kwargs)
       del_context(self._name)
     except UnexpectedTracerError as e:
       del_context(self._name)
       for v, d in zip(self._grad_vars, old_grad_vs): v._value = d
       for v, d in zip(self._dyn_vars, old_dyn_vs): v._value = d
-      raise errors.JaxTracerError(variables=self._dyn_vars + self._grad_vars) from e
+      raise errors.JaxTracerError() from e
     except Exception as e:
       del_context(self._name)
       for v, d in zip(self._grad_vars, old_grad_vs): v._value = d
@@ -119,174 +154,41 @@ class GradientTransform(ObjectTransform):
       for v, d in zip(self._dyn_vars, new_dyn_vs): v._value = d
 
     # check returned grads
-    if len(self._grad_vars) == 0:
-      grads = grads[1] if isinstance(self._argnums, int) else grads[1:]
-    else:
-      var_grads = self._grad_tree.unflatten(grads[0])
-      if self._argnums is None:
-        grads = var_grads
+    if len(self._grad_vars) > 0:
+      if self.nonvar_argnums is None:
+        grads = self._grad_tree.unflatten(grads)
       else:
-        arg_grads = grads[1] if isinstance(self._argnums, int) else grads[1:]
+        var_grads = self._grad_tree.unflatten(grads[0])
+        arg_grads = grads[1] if isinstance(self.nonvar_argnums, int) else grads[1:]
         grads = (var_grads, arg_grads)
 
     # check returned value
-    if self._return_value:
+    if self.return_value:
       # check aux
-      if self._has_aux:
+      if self.has_aux:
         return grads, outputs[0], outputs[1]
       else:
         return grads, outputs
     else:
       # check aux
-      if self._has_aux:
+      if self.has_aux:
         return grads, outputs[1]
       else:
         return grads
-
-
-def _make_cls_call_func(grad_func, grad_tree, grad_vars, dyn_vars,
-                        argnums, return_value, has_aux):
-  name = get_unique_name('_brainpy_object_oriented_grad_')
-
-  # outputs
-  def call_func(*args, **kwargs):
-    old_grad_vs = [v.value for v in grad_vars]
-    old_dyn_vs = [v.value for v in dyn_vars]
-    try:
-      add_context(name)
-      grads, (outputs, new_grad_vs, new_dyn_vs) = grad_func(old_grad_vs,
-                                                            old_dyn_vs,
-                                                            *args,
-                                                            **kwargs)
-      del_context(name)
-    except UnexpectedTracerError as e:
-      del_context(name)
-      for v, d in zip(grad_vars, old_grad_vs): v._value = d
-      for v, d in zip(dyn_vars, old_dyn_vs): v._value = d
-      raise errors.JaxTracerError(variables=dyn_vars + grad_vars) from e
-    except Exception as e:
-      del_context(name)
-      for v, d in zip(grad_vars, old_grad_vs): v._value = d
-      for v, d in zip(dyn_vars, old_dyn_vs): v._value = d
-      raise e
-    for v, d in zip(grad_vars, new_grad_vs): v._value = d
-    for v, d in zip(dyn_vars, new_dyn_vs): v._value = d
-
-    # check returned grads
-    if len(grad_vars) == 0:
-      grads = grads[1] if isinstance(argnums, int) else grads[1:]
-    else:
-      var_grads = grad_tree.unflatten(grads[0])
-      if argnums is None:
-        grads = var_grads
-      else:
-        arg_grads = grads[1] if isinstance(argnums, int) else grads[1:]
-        grads = (var_grads, arg_grads)
-
-    # check returned value
-    if return_value:
-      # check aux
-      if has_aux:
-        return grads, outputs[0], outputs[1]
-      else:
-        return grads, outputs
-    else:
-      # check aux
-      if has_aux:
-        return grads, outputs[1]
-      else:
-        return grads
-
-  return call_func
-
-
-def _check_vars(variables):
-  if variables is None:
-    vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, Array))
-    return vars, tree
-  if isinstance(variables, dict):
-    variables = dict(variables)
-  elif isinstance(variables, (list, tuple)):
-    variables = tuple(variables)
-  elif isinstance(variables, Array):
-    pass
-  else:
-    raise ValueError
-  vars, tree = tree_flatten(variables, is_leaf=lambda a: isinstance(a, Array))
-  for v in vars:
-    if not isinstance(v, Array):
-      raise ValueError(f'"dyn_vars" and "grad_vars" only supports dict '
-                       f'of Array, but got {type(v)}: {v}')
-  return vars, tree
-
-
-def _grad_checking(func: Callable,
-                   dyn_vars: Union[Dict, Sequence],
-                   grad_vars: Union[Dict, Sequence]):
-  # check function
-  if not callable(func):
-    raise ValueError(f'Must be a callable object. But we got {func}')
-
-  # check "vars", make sure it is an instance of ArrayCollector
-  dyn_vars, _ = _check_vars(dyn_vars)
-  grad_vars, grad_tree = _check_vars(grad_vars)
-
-  # check the duplicate in "dyn_vars" and "grad_vars"
-  dyn_vars = tuple(ArrayCollector.from_other(dyn_vars).unique().values())
-  new_dyn_vars = []
-  _dyn_var_ids = set([id(v) for v in grad_vars])
-  for v in dyn_vars:
-    if id(v) not in _dyn_var_ids:
-      new_dyn_vars.append(v)
-      _dyn_var_ids.add(id(v))
-  return tuple(new_dyn_vars), grad_vars, grad_tree
-
-
-def _cls_grad(func, grad_vars, dyn_vars, argnums, has_aux=False,
-              holomorphic=False, allow_int=False, reduce_axes=()):
-  # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(argnums, (tuple, list))  # tuple/list of int
-
-  # gradient functions
-  if has_aux:
-    @partial(jax.grad, argnums=argnums, has_aux=True, holomorphic=holomorphic,
-             allow_int=allow_int, reduce_axes=reduce_axes)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      # Users should return the auxiliary data like::
-      # >>> # 1. example of return one data
-      # >>> return scalar_loss, data
-      # >>> # 2. example of return multiple data
-      # >>> return scalar_loss, (data1, data2, ...)
-      outputs = func(*args, **kwargs)
-      # outputs: [0] is the value for gradient,
-      #          [1] is other values for return
-      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-  else:
-    @partial(jax.grad,
-             argnums=argnums, has_aux=True, holomorphic=holomorphic,
-             allow_int=allow_int, reduce_axes=reduce_axes)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      # Users should return the scalar value like this::
-      # >>> return scalar_loss
-      output = func(*args, **kwargs)
-      output2 = output.value if isinstance(output, Array) else output
-      return output2, (output, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  return grad_func
 
 
 def grad(
-    func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
-    allow_int=False, reduce_axes=(), has_aux=None, return_value=False,
-    auto_infer=True
-) -> ObjectTransform:
+    func: Callable,
+    grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    argnums: Optional[Union[int, Sequence[int]]] = None,
+    holomorphic: Optional[bool] = False,
+    allow_int: Optional[bool] = False,
+    reduce_axes: Optional[Sequence[str]] = (),
+    has_aux: Optional[bool] = None,
+    return_value: Optional[bool] = False,
+) -> GradientTransform:
   """Automatic gradient computation for functions or class objects.
 
   This gradient function only support scalar return. It creates a function
@@ -369,6 +271,9 @@ def grad(
     (which includes arrays with shape ``()`` but not arrays with shape ``(1,)`` etc.)
   dyn_vars : optional, ArrayType, sequence of ArrayType, dict
     The dynamically changed variables used in ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   argnums : optional, integer or sequence of integers
@@ -394,13 +299,10 @@ def grad(
     is a named batch axis, ``grad(f, reduce_axes=('batch',))`` will create a
     function that computes the total gradient while ``grad(f)`` will create
     one that computes the per-example gradient.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instances used in the target.
-
 
   Returns
   -------
-  func : ObjectTransform
+  func : GradientTransform
     A function with the same arguments as ``fun``, that evaluates the gradient
     of ``fun``. If ``argnums`` is an integer then the gradient has the same
     shape and type as the positional argument indicated by that integer. If
@@ -408,74 +310,20 @@ def grad(
     same shapes and types as the corresponding arguments. If ``has_aux`` is True
     then a pair of (gradient, auxiliary_data) is returned.
   """
+  child_objs = check.is_all_objs(child_objs, out_as='dict')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  if dyn_vars is None:
-    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
-
-  dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
-  # dyn_vars -> ArrayCollector
-  # grad_vars -> ArrayCollector
-  has_aux = False if has_aux is None else has_aux
-
-  # gradient
-  if len(dyn_vars) == 0 and len(grad_vars) == 0:
-    argnums = 0 if argnums is None else argnums
-    if return_value:
-      grad_func = jax.value_and_grad(fun=func,
-                                     argnums=argnums,
-                                     has_aux=has_aux,
-                                     holomorphic=holomorphic,
-                                     allow_int=allow_int,
-                                     reduce_axes=reduce_axes)
-
-      def call_func(*args, **kwargs):
-        result = grad_func(*args, **kwargs)
-        if has_aux:
-          (ans, aux), g = result
-          return g, ans, aux
-        else:
-          ans, g = result
-          return g, ans
-
-      return GradientFunTransform(call_func, dyn_vars=dyn_vars, grad_vars=grad_vars, origin_fun=func)
-
-    else:
-      # has_aux = True: g, aux
-      # has_aux = False: g
-      call_func = jax.grad(fun=func,
+  return GradientTransform(target=func,
+                           transform=jax.grad,
+                           grad_vars=grad_vars,
+                           dyn_vars=dyn_vars,
+                           child_objs=child_objs,
                            argnums=argnums,
-                           has_aux=has_aux,
-                           holomorphic=holomorphic,
-                           allow_int=allow_int,
-                           reduce_axes=reduce_axes)
-      return GradientFunTransform(call_func, dyn_vars=dyn_vars, grad_vars=grad_vars, origin_fun=func)
-
-  else:
-    # argnums
-    _argnums, _ = tree_flatten(argnums)
-    _argnums = tuple(a + 2 for a in _argnums)
-    if argnums is None and len(grad_vars) == 0:
-      raise errors.MathError('We detect no require to compute gradients because '
-                             '"grad_vars" is None and "argnums" is also None. '
-                             'Please provide one of them.')
-    # computation
-    grad_func = _cls_grad(func=func,
-                          grad_vars=grad_vars,
-                          dyn_vars=dyn_vars,
-                          argnums=(0,) + _argnums,
-                          has_aux=has_aux,
-                          holomorphic=holomorphic,
-                          allow_int=allow_int,
-                          reduce_axes=reduce_axes)
-
-    return GradientTransform(grad_func=grad_func,
-                             grad_tree=grad_tree,
-                             grad_vars=grad_vars,
-                             dyn_vars=dyn_vars,
-                             argnums=argnums,
-                             return_value=return_value,
-                             has_aux=has_aux,
-                             origin_fun=func)
+                           return_value=return_value,
+                           has_aux=False if has_aux is None else has_aux,
+                           transform_setting=dict(holomorphic=holomorphic,
+                                                  allow_int=allow_int,
+                                                  reduce_axes=reduce_axes))
 
 
 def _unravel_array_into_pytree(pytree, axis, arr, is_leaf=None):
@@ -501,6 +349,7 @@ _isleaf = lambda x: isinstance(x, Array)
 def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, return_value=False):
   _check_callable(fun)
 
+  @wraps(fun)
   def jacfun(*args, **kwargs):
     f = linear_util.wrap_init(fun, kwargs)
     f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
@@ -520,46 +369,19 @@ def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, r
     else:
       return (jac, aux) if has_aux else jac
 
-  return GradientFunTransform(jacfun, dyn_vars=(), grad_vars=(), origin_fun=fun)
-
-
-def _cls_jacrev(func, grad_vars, dyn_vars, argnums,
-                holomorphic=False, allow_int=False, has_aux=False):
-  # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(argnums, (tuple, list))  # tuple/list of int
-
-  # final functions
-  if has_aux:
-    @partial(_jacrev, argnums=argnums, holomorphic=holomorphic,
-             allow_int=allow_int, has_aux=True)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      # outputs: [0] is the value for gradient,
-      #          [1] is other values for return
-      outputs = func(*args, **kwargs)
-      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  else:
-    @partial(_jacrev, argnums=argnums, holomorphic=holomorphic,
-             allow_int=allow_int, has_aux=True)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      outputs = func(*args, **kwargs)
-      output = outputs.value if isinstance(outputs, Array) else outputs
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  return grad_func
+  return jacfun
 
 
 def jacrev(
-    func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
-    allow_int=False, has_aux=None, return_value=False,
-    auto_infer=True
+    func: Callable,
+    grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    argnums: Optional[Union[int, Sequence[int]]] = None,
+    has_aux: Optional[bool] = None,
+    return_value: bool = False,
+    holomorphic: bool = False,
+    allow_int: bool = False,
 ) -> ObjectTransform:
   """Extending automatic Jacobian (reverse-mode) of ``func`` to classes.
 
@@ -594,65 +416,44 @@ def jacrev(
     The dynamically changed variables used in ``func``.
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
+  child_objs: optional, BrainPyObject, sequence, dict
+
+    .. versionadded:: 2.3.1
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
     first element is considered the output of the mathematical function to be
     differentiated and the second element is auxiliary data. Default False.
   return_value : bool
     Whether return the loss value.
-  argnums: Optional, integer or sequence of integers. Specifies which
+  argnums: Optional, integer or sequence of integers.
+    Specifies which
     positional argument(s) to differentiate with respect to (default ``0``).
-  holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
+  holomorphic: Optional, bool.
+    Indicates whether ``fun`` is promised to be
     holomorphic. Default False.
-  allow_int: Optional, bool. Whether to allow differentiating with
+  allow_int: Optional, bool.
+    Whether to allow differentiating with
     respect to integer valued inputs. The gradient of an integer input will
     have a trivial vector-space dtype (float0). Default False.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instance.
 
   Returns
   -------
-  fun: ObjectTransform
+  fun: GradientTransform
     The transformed object.
   """
-  if dyn_vars is None:
-    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+  child_objs = check.is_all_objs(child_objs, out_as='dict')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
-  has_aux = False if has_aux is None else has_aux
-
-  if (len(dyn_vars) == 0) and (len(grad_vars) == 0):
-    argnums = 0 if argnums is None else argnums
-    return _jacrev(fun=func,
-                   argnums=argnums,
-                   holomorphic=holomorphic,
-                   allow_int=allow_int,
-                   has_aux=has_aux,
-                   return_value=return_value)
-  else:
-    _argnums, _ = tree_flatten(argnums)
-    _argnums = tuple(a + 2 for a in _argnums)
-    if argnums is None and len(grad_vars) == 0:
-      raise errors.MathError('We detect no require to compute gradients because '
-                             '"grad_vars" is None and "argnums" is also None. '
-                             'Please provide one of them.')
-    # computation
-    grad_func = _cls_jacrev(func=func,
-                            grad_vars=grad_vars,
-                            dyn_vars=dyn_vars,
-                            argnums=(0,) + _argnums,
-                            has_aux=has_aux,
-                            holomorphic=holomorphic,
-                            allow_int=allow_int)
-
-    return GradientTransform(grad_func=grad_func,
-                             grad_tree=grad_tree,
-                             grad_vars=grad_vars,
-                             dyn_vars=dyn_vars,
-                             argnums=argnums,
-                             return_value=return_value,
-                             has_aux=has_aux,
-                             origin_fun=func)
+  return GradientTransform(target=func,
+                           transform=_jacrev,
+                           grad_vars=grad_vars,
+                           dyn_vars=dyn_vars,
+                           child_objs=child_objs,
+                           argnums=argnums,
+                           return_value=return_value,
+                           has_aux=False if has_aux is None else has_aux,
+                           transform_setting=dict(holomorphic=holomorphic,
+                                                  allow_int=allow_int))
 
 
 jacobian = jacrev
@@ -664,6 +465,7 @@ def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False
     raise NotImplementedError(f'"has_aux" only supported in jax>=0.2.28, but we detect '
                               f'the current jax version is {jax.__version__}')
 
+  @wraps(fun)
   def jacfun(*args, **kwargs):
     f = linear_util.wrap_init(fun, kwargs)
     f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
@@ -682,44 +484,18 @@ def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False
     else:
       return (jac, aux) if has_aux else jac
 
-  return GradientFunTransform(jacfun, dyn_vars=(), grad_vars=(), origin_fun=fun)
-
-
-def _cls_jacfwd(func, grad_vars, dyn_vars, argnums, holomorphic=False, has_aux=False):
-  # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(argnums, (tuple, list))  # tuple/list of int
-
-  # final functions
-  if has_aux:
-    @partial(_jacfwd,
-             argnums=argnums, holomorphic=holomorphic, has_aux=True)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      # outputs: [0] is the value for gradient,
-      #          [1] is other values for return
-      outputs = func(*args, **kwargs)
-      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  else:
-    @partial(_jacfwd,
-             argnums=argnums, holomorphic=holomorphic, has_aux=True)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      outputs = func(*args, **kwargs)
-      output = outputs.value if isinstance(outputs, Array) else outputs
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  return grad_func
+  return jacfun
 
 
 def jacfwd(
-    func, grad_vars=None, dyn_vars=None, argnums=None, holomorphic=False,
-    has_aux=None, return_value=False, auto_infer=True
+    func: Callable,
+    grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    argnums: Optional[Union[int, Sequence[int]]] = None,
+    has_aux: Optional[bool] = None,
+    return_value: bool = False,
+    holomorphic: bool = False,
 ) -> ObjectTransform:
   """Extending automatic Jacobian (forward-mode) of ``func`` to classes.
 
@@ -753,6 +529,9 @@ def jacfwd(
     The dynamically changed variables used in ``func``.
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
+  child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+
+    .. versionadded:: 2.3.1
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
     first element is considered the output of the mathematical function to be
@@ -763,55 +542,34 @@ def jacfwd(
     positional argument(s) to differentiate with respect to (default ``0``).
   holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
     holomorphic. Default False.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instance.
 
   Returns
   -------
-  obj: ObjectTransform
+  obj: GradientTransform
     The transformed object.
   """
-  if dyn_vars is None:
-    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+  child_objs = check.is_all_objs(child_objs, out_as='dict')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
-  has_aux = False if has_aux is None else has_aux
-
-  if (len(dyn_vars) == 0) and (len(grad_vars) == 0):
-    argnums = 0 if argnums is None else argnums
-    return _jacfwd(fun=func,
-                   argnums=argnums,
-                   holomorphic=holomorphic,
-                   has_aux=has_aux,
-                   return_value=return_value)
-  else:
-    _argnums, _ = tree_flatten(argnums)
-    _argnums = tuple(a + 2 for a in _argnums)
-    if argnums is None and len(grad_vars) == 0:
-      raise errors.MathError('We detect no require to compute gradients because '
-                             '"grad_vars" is None and "argnums" is also None. '
-                             'Please provide one of them.')
-    # computation
-    grad_func = _cls_jacfwd(func=func,
-                            grad_vars=grad_vars,
-                            dyn_vars=dyn_vars,
-                            argnums=(0,) + _argnums,
-                            has_aux=has_aux,
-                            holomorphic=holomorphic)
-
-    return GradientTransform(grad_func=grad_func,
-                             grad_tree=grad_tree,
-                             grad_vars=grad_vars,
-                             dyn_vars=dyn_vars,
-                             argnums=argnums,
-                             return_value=return_value,
-                             has_aux=has_aux,
-                             origin_fun=func)
+  return GradientTransform(target=func,
+                           transform=_jacfwd,
+                           grad_vars=grad_vars,
+                           dyn_vars=dyn_vars,
+                           child_objs=child_objs,
+                           argnums=argnums,
+                           return_value=return_value,
+                           has_aux=False if has_aux is None else has_aux,
+                           transform_setting=dict(holomorphic=holomorphic))
 
 
 def hessian(
-    func, grad_vars=None, dyn_vars=None, argnums=None,
-    holomorphic=False, return_value=False, auto_infer=True
+    func: Callable,
+    grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    argnums: Optional[Union[int, Sequence[int]]] = None,
+    return_value: bool = False,
+    holomorphic=False,
 ) -> ObjectTransform:
   """Hessian of ``func`` as a dense array.
 
@@ -824,6 +582,9 @@ def hessian(
     containers thereof.
   dyn_vars : optional, ArrayCollector, sequence of ArrayType
     The dynamical changed variables.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
   grad_vars : optional, ArrayCollector, sequence of ArrayType
     The variables required to compute their gradients.
   argnums: Optional, integer or sequence of integers
@@ -832,39 +593,33 @@ def hessian(
     Indicates whether ``fun`` is promised to be holomorphic. Default False.
   return_value : bool
     Whether return the hessian values.
-  auto_infer: bool
-    Automatically infer all ``Variable`` instance.
 
   Returns
   -------
   obj: ObjectTransform
     The transformed object.
   """
-  if dyn_vars is None:
-    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+  child_objs = check.is_all_objs(child_objs, out_as='dict')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
-  argnums = 0 if argnums is None else argnums
-
-  if (len(dyn_vars) == 0) and (len(grad_vars) == 0) and (not return_value):
-    f = jax.hessian(func, argnums=argnums, holomorphic=holomorphic)
-    return GradientFunTransform(f, dyn_vars=(), grad_vars=(), origin_fun=func)
-  else:
-    return jacfwd(jacrev(func,
-                         dyn_vars=dyn_vars,
-                         grad_vars=grad_vars,
-                         argnums=argnums,
-                         holomorphic=holomorphic),
-                  dyn_vars=dyn_vars,
-                  grad_vars=grad_vars,
-                  argnums=argnums,
-                  holomorphic=holomorphic,
-                  return_value=return_value)
+  return jacfwd(jacrev(func,
+                       dyn_vars=dyn_vars,
+                       child_objs=child_objs,
+                       grad_vars=grad_vars,
+                       argnums=argnums,
+                       holomorphic=holomorphic),
+                dyn_vars=dyn_vars,
+                child_objs=child_objs,
+                grad_vars=grad_vars,
+                argnums=argnums,
+                holomorphic=holomorphic,
+                return_value=return_value)
 
 
 def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
   _check_callable(func)
 
+  @wraps(func)
   def grad_fun(*args, **kwargs):
     f = linear_util.wrap_init(func, kwargs)
     f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
@@ -882,40 +637,17 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
     else:
       return (grads, y) if return_value else grads
 
-  return GradientFunTransform(grad_fun, (), (), origin_fun=func)
-
-
-def _cls_vector_grad(func, grad_vars, dyn_vars, argnums, has_aux=False):
-  # parameters
-  assert isinstance(dyn_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(grad_vars, (tuple, list))  # tuple/list of Variable
-  assert isinstance(argnums, (tuple, list))  # tuple/list of int
-
-  # final functions
-  if has_aux:
-    @partial(_vector_grad, argnums=argnums, has_aux=True)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      outputs = func(*args, **kwargs)
-      output = outputs[0].value if isinstance(outputs[0], Array) else outputs[0]
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  else:
-    @partial(_vector_grad, argnums=argnums, has_aux=True)
-    def grad_func(grad_values, dyn_values, *args, **kwargs):
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
-      for v, d in zip(grad_vars, grad_values): v._value = d
-      outputs = func(*args, **kwargs)
-      output = outputs.value if isinstance(outputs, Array) else outputs
-      return output, (outputs, [v.value for v in grad_vars], [v.value for v in dyn_vars])
-
-  return grad_func
+  return grad_fun
 
 
 def vector_grad(
-    func, dyn_vars=None, grad_vars=None, argnums=None,
-    return_value=False, has_aux=None, auto_infer=True
+    func: Callable,
+    grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    argnums: Optional[Union[int, Sequence[int]]] = None,
+    return_value: bool = False,
+    has_aux: Optional[bool] = None,
 ) -> ObjectTransform:
   """Take vector-valued gradients for function ``func``.
 
@@ -943,9 +675,13 @@ def vector_grad(
 
   Parameters
   ----------
-  func: Function whose Jacobian is to be computed.
+  func: Callable
+    Function whose gradient is to be computed.
   dyn_vars : optional, ArrayType, sequence of ArrayType, dict
     The dynamically changed variables used in ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
@@ -956,46 +692,20 @@ def vector_grad(
     Whether return the loss value.
   argnums: Optional, integer or sequence of integers. Specifies which
     positional argument(s) to differentiate with respect to (default ``0``).
-  auto_infer: bool
-    Automatically infer all ``Variable`` instance.
 
   Returns
   -------
-  func : ObjectTransform
+  func : GradientTransform
     The vector gradient function.
   """
-  if dyn_vars is None:
-    dyn_vars = infer_dyn_vars(func) if auto_infer else dict()
+  child_objs = check.is_all_objs(child_objs, out_as='dict')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  dyn_vars, grad_vars, grad_tree = _grad_checking(func, dyn_vars, grad_vars)
-  has_aux = False if has_aux is None else has_aux
-
-  if (len(dyn_vars) == 0) and (len(grad_vars) == 0):
-    argnums = 0 if argnums is None else argnums
-    return _vector_grad(func=func,
-                        argnums=argnums,
-                        return_value=return_value,
-                        has_aux=has_aux)
-
-  else:
-    _argnums, _ = tree_flatten(argnums)
-    _argnums = tuple(a + 2 for a in _argnums)
-    if argnums is None and len(grad_vars) == 0:
-      raise errors.MathError('We detect no require to compute gradients because '
-                             '"grad_vars" is None and "argnums" is also None. '
-                             'Please provide one of them.')
-    # computation
-    grad_func = _cls_vector_grad(func=func,
-                                 grad_vars=grad_vars,
-                                 dyn_vars=dyn_vars,
-                                 argnums=(0,) + _argnums,
-                                 has_aux=has_aux)
-
-    return GradientTransform(grad_func=grad_func,
-                             grad_tree=grad_tree,
-                             grad_vars=grad_vars,
-                             dyn_vars=dyn_vars,
-                             argnums=argnums,
-                             return_value=return_value,
-                             has_aux=has_aux,
-                             origin_fun=func)
+  return GradientTransform(target=func,
+                           transform=_vector_grad,
+                           grad_vars=grad_vars,
+                           dyn_vars=dyn_vars,
+                           child_objs=child_objs,
+                           argnums=argnums,
+                           return_value=return_value,
+                           has_aux=False if has_aux is None else has_aux)

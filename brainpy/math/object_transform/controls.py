@@ -36,18 +36,20 @@ __all__ = [
 
 
 class ControlObject(ObjectTransform):
+  """Object-oriented Control Flow Transformation in BrainPy.
+  """
   def __init__(
       self,
       call: Callable,
-      dyn_vars,
+      dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
       repr_fun: Dict,
       name=None
   ):
     super().__init__(name=name)
 
+    self.register_implicit_vars(dyn_vars)
     self._f = call
     self._dyn_vars = dyn_vars
-    self.register_implicit_vars(dyn_vars)
     self._repr_fun = repr_fun
 
   def __call__(self, *args, **kwargs):
@@ -117,10 +119,10 @@ def _get_scan_info(f, dyn_vars, out_vars=None, has_return=False):
 
 
 def make_loop(
-    body_fun,
-    dyn_vars,
-    out_vars=None,
-    has_return=False
+    body_fun: Callable,
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]],
+    out_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]]=None,
+    has_return: bool =False
 ) -> ControlObject:
   """Make a for-loop function, which iterate over inputs.
 
@@ -204,7 +206,8 @@ def make_loop(
       try:
         add_context(name)
         dyn_values, (out_values, results) = lax.scan(
-          f=fun2scan, init=init_values, xs=xs, length=length)
+          f=fun2scan, init=init_values, xs=xs, length=length
+        )
         del_context(name)
       except UnexpectedTracerError as e:
         del_context(name)
@@ -318,7 +321,10 @@ def make_while(
       raise e
     for v, d in zip(dyn_vars, dyn_values): v._value = d
 
-  return ControlObject(call, dyn_vars, repr_fun={'cond_fun': cond_fun, 'body_fun': body_fun})
+  return ControlObject(call=call,
+                       dyn_vars=dyn_vars,
+                       repr_fun={'cond_fun': cond_fun, 'body_fun': body_fun},
+                       name=name)
 
 
 def make_cond(
