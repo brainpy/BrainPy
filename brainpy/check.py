@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional
+from functools import wraps, partial
+from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
-import jax.numpy as jnp
+from jax import numpy as jnp, tree_util as jtu
 import numpy as np
 import numpy as onp
 from jax.experimental.host_callback import id_tap
@@ -17,20 +18,24 @@ __all__ = [
   'turn_on',
   'turn_off',
 
-  'check_shape_consistency',
-  'check_shape_broadcastable',
+  'is_shape_consistency',
+  'is_shape_broadcastable',
   'check_shape_except_batch',
   'check_shape',
-  'check_dict_data',
-  'check_callable',
-  'check_initializer',
-  'check_connector',
-  'check_float',
-  'check_integer',
-  'check_string',
-  'check_sequence',
-  'check_mode',
-  'check_error_in_jit',
+  'is_dict_data',
+  'is_callable',
+  'is_initializer',
+  'is_connector',
+  'is_float',
+  'is_integer',
+  'is_string',
+  'is_sequence',
+  'is_subclass',
+  'is_instance',
+  'is_elem_or_seq_or_dict',
+  'is_all_vars',
+  'is_all_objs',
+  'jit_error_checking',
 
   'serialize_kwargs',
 ]
@@ -55,7 +60,7 @@ def turn_off():
   _check = False
 
 
-def check_shape_consistency(shapes, free_axes=None, return_format_shapes=False):
+def is_shape_consistency(shapes, free_axes=None, return_format_shapes=False):
   assert isinstance(shapes, (tuple, list)), f'Must be a sequence of shape. While we got {shapes}.'
   for shape in shapes:
     assert isinstance(shapes, (tuple, list)), (f'Must be a sequence of shape. While '
@@ -97,7 +102,7 @@ def check_shape_consistency(shapes, free_axes=None, return_format_shapes=False):
     return unique_shape[0], free_shapes
 
 
-def check_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):
+def is_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):
   """Check whether the given shapes are broadcastable.
 
   See https://numpy.org/doc/stable/reference/generated/numpy.broadcast.html
@@ -115,7 +120,7 @@ def check_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):
   """
   max_dim = max([len(shape) for shape in shapes])
   shapes = [[1] * (max_dim - len(s)) + list(s) for s in shapes]
-  return check_shape_consistency(shapes, free_axes, return_format_shapes)
+  return is_shape_consistency(shapes, free_axes, return_format_shapes)
 
 
 def check_shape_except_batch(shape1, shape2, batch_idx=0, mode='raise'):
@@ -179,10 +184,10 @@ def check_shape(all_shapes, free_axes: Union[Sequence[int], int] = -1):
   return free_shape, max_fixed_shapes
 
 
-def check_dict_data(a_dict: Dict,
-                    key_type: Union[Type, Tuple[Type, ...]],
-                    val_type: Union[Type, Tuple[Type, ...]],
-                    name: str = None):
+def is_dict_data(a_dict: Dict,
+                 key_type: Union[Type, Tuple[Type, ...]],
+                 val_type: Union[Type, Tuple[Type, ...]],
+                 name: str = None):
   """Check the dictionary data.
   """
   name = '' if (name is None) else f'"{name}"'
@@ -195,11 +200,12 @@ def check_dict_data(a_dict: Dict,
     if not isinstance(value, val_type):
       raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
                        f'while we got ({type(key)}, {type(value)})')
+  return a_dict
 
 
-def check_callable(fun: Callable,
-                   name: str = None,
-                   allow_none: bool = False):
+def is_callable(fun: Callable,
+                name: str = None,
+                allow_none: bool = False):
   name = '' if name is None else name
   if fun is None:
     if allow_none:
@@ -211,7 +217,7 @@ def check_callable(fun: Callable,
   return fun
 
 
-def check_initializer(
+def is_initializer(
     initializer,
     name: str = None,
     allow_none: bool = False
@@ -244,7 +250,7 @@ def check_initializer(
                      f'tensor or callable function. While we got {type(initializer)}')
 
 
-def check_connector(
+def is_connector(
     connector,
     name: str = None,
     allow_none: bool = False
@@ -252,32 +258,28 @@ def check_connector(
   """Check the connector.
   """
   global bm
-  if bm is None:
-    from brainpy import math
-    bm = math
+  if bm is None: from brainpy import math as bm
   global conn
-  if conn is None:
-    from brainpy import connect
-    conn = connect
+  if conn is None: from brainpy import connect as conn
 
   name = '' if name is None else name
   if connector is None:
     if allow_none:
-      return
+      return None
     else:
       raise ValueError(f'{name} must be an initializer, but we got None.')
   if isinstance(connector, conn.Connector):
-    return
+    return connector
   elif isinstance(connector, (bm.ndarray, jnp.ndarray)):
-    return
+    return connector
   elif callable(connector):
-    return
+    return connector
   else:
     raise ValueError(f'{name} should be an instance of brainpy.conn.Connector, '
                      f'tensor or callable function. While we got {type(connector)}')
 
 
-def check_sequence(
+def is_sequence(
     value: Sequence,
     name: str = None,
     elem_type: Union[type, Sequence[type]] = None,
@@ -296,9 +298,10 @@ def check_sequence(
       if not isinstance(v, elem_type):
         raise ValueError(f'Elements in {name} should be {elem_type}, '
                          f'but we got {type(elem_type)}: {v}')
+  return value
 
 
-def check_float(
+def is_float(
     value: float,
     name: str = None,
     min_bound: float = None,
@@ -344,7 +347,7 @@ def check_float(
   return value
 
 
-def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none=False):
+def is_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none=False):
   """Check integer type.
 
   Parameters
@@ -378,60 +381,189 @@ def check_integer(value: int, name=None, min_bound=None, max_bound=None, allow_n
     if jnp.any(value > max_bound):
       raise ValueError(f"{name} must be an int smaller than {max_bound}, "
                        f"while we got {value}")
+  return value
 
 
-def check_string(value: str, name: str = None, candidates: Sequence[str] = None, allow_none=False):
+def is_string(value: str, name: str = None, candidates: Sequence[str] = None, allow_none=False):
   """Check string type.
   """
   if name is None: name = ''
   if value is None:
     if allow_none:
-      return
+      return None
     else:
       raise ValueError(f'{name} must be a str, but got None')
   if candidates is not None:
     if value not in candidates:
       raise ValueError(f'{name} must be a str in {candidates}, '
                        f'but we got {value}')
+  return value
 
 
 def serialize_kwargs(shared_kwargs: Optional[Dict]):
   """Serialize kwargs."""
   shared_kwargs = dict() if shared_kwargs is None else shared_kwargs
-  check_dict_data(shared_kwargs,
-                  key_type=str,
-                  val_type=(bool, float, int, complex, str),
-                  name='shared_kwargs')
+  is_dict_data(shared_kwargs,
+               key_type=str,
+               val_type=(bool, float, int, complex, str),
+               name='shared_kwargs')
   shared_kwargs = {key: shared_kwargs[key] for key in sorted(shared_kwargs.keys())}
   return str(shared_kwargs)
 
 
-def check_mode(mode, supported_modes, name=''):
-  """Check whether the used mode is in the list of the supported models.
+def is_subclass(
+    instance: Any,
+    supported_types: Union[Type, Sequence[Type]],
+    name: str = ''
+) -> None:
+  r"""Check whether the instance is in the inheritance tree of the supported types.
+
+  This function is used to check whether the given ``instance`` is an instance of
+  parent types in the inheritance hierarchy of the given ``supported_types``.
+
+
+  Here we have the following inheritance hierarchy::
+
+           A
+         /   \
+        B     C
+       / \   / \
+      D   E F   G
+
+  If ``supported_types`` is ``[E, F]``, then
+
+  - the instance of ``D`` or ``G`` will fail to pass the check.
+  - the instance of ``E`` or ``F`` will success to pass the check.
+  - the instance of ``B`` or ``C`` will also success to pass the check.
+  - the instance of ``A`` will success to pass the check too.
 
   Parameters
   ----------
-  mode: Mode
-    The mode used.
-  supported_modes: type, list of type, tuple of type
-    The list of all types to support.
-  name: Any
-    The name.
+  instance: Any
+    The instance in the inheritance hierarchy tree.
+  supported_types: type, list of type, tuple of type
+    All types that are supported.
+  name: str
+    The checking target name.
   """
-  if isinstance(supported_modes, type):
-    supported_modes = (supported_modes,)
-  if not isinstance(supported_modes, (tuple, list)):
-    raise TypeError(f'supported_modes must be a tuple/list of type. But wwe got {type(supported_modes)}')
-  for smode in supported_modes:
+  mode_type = type(instance)
+  if isinstance(supported_types, type):
+    supported_types = (supported_types,)
+  if not isinstance(supported_types, (tuple, list)):
+    raise TypeError(f'supported_types must be a tuple/list of type. But wwe got {type(supported_types)}')
+  for smode in supported_types:
     if not isinstance(smode, type):
-      raise TypeError(f'supported_modes must be a tuple/list of type. But wwe got {smode}')
-  checking = np.asarray([issubclass(smode, type(mode)) for smode in supported_modes])
-  if not np.isin(True, checking):
-    raise NotImplementedError(f"{name} does not support {mode}. We only support "
-                              f"{', '.join([mode.__name__ for mode in supported_modes])}. ")
+      raise TypeError(f'supported_types must be a tuple/list of type. But wwe got {smode}')
+  checking = [issubclass(smode, mode_type) for smode in supported_types]
+  if any(checking):
+    return instance
+  else:
+    raise NotImplementedError(f"{name} does not support {instance}. We only support "
+                              f"{', '.join([mode.__name__ for mode in supported_types])}. ")
+
+def is_instance(
+    instance: Any,
+    supported_types: Union[Type, Sequence[Type]],
+    name: str = ''
+):
+  r"""Check whether the ``instance`` is the instance of the given types.
+
+  This function is used to check whether the given ``instance`` is an instance of
+  the given ``supported_types``.
+
+  Here we have the following inheritance hierarchy::
+
+           A
+         /   \
+        B     C
+       / \   / \
+      D   E F   G
+
+  If ``supported_types`` is ``[B, F]``, then
+
+  - the instance of ``A`` or ``C`` or ``G`` will fail to pass the check.
+  - the instance of ``B`` or ``D`` or ``E`` or ``F`` will success to pass the check.
+
+  Parameters
+  ----------
+  instance: Any
+    The instance in the inheritance hierarchy tree.
+  supported_types: type, list of type, tuple of type
+    All types that are supported.
+  name: str
+    The checking target name.
+  """
+  if isinstance(supported_types, type):
+    supported_types = (supported_types,)
+  if not isinstance(supported_types, (tuple, list)):
+    raise TypeError(f'supported_types must be a tuple/list of type. But wwe got {type(supported_types)}')
+  for smode in supported_types:
+    assert isinstance(smode, type), f'supported_types must be a tuple/list of type. But wwe got {smode}'
+  if not isinstance(instance, supported_types):
+    raise NotImplementedError(f"{name} does not support {instance}. We only support "
+                              f"{', '.join([mode.__name__ for mode in supported_types])}. ")
+  return instance
 
 
-def check_error_in_jit(pred, err_fun, err_arg=None):
+def is_elem_or_seq_or_dict(targets: Any, element_type: type, out_as: str = 'tuple'):
+  assert out_as in ['tuple', 'list', 'dict', None], 'Only support to output as tuple/list/dict/None'
+  assert type(element_type) == type
+  type_name = element_type.__name__
+
+  if targets is None:
+    keys = []
+    vals = []
+  elif isinstance(targets, element_type):
+    keys = [id(targets)]
+    vals = [targets]
+  elif isinstance(targets, (list, tuple)):
+    is_leaf = [isinstance(l, element_type) for l in targets]
+    if not all(is_leaf):
+      raise ValueError(f'Only support {type_name}, sequence of {type_name}, or dict of {type_name}.')
+    keys = [id(v) for v in targets]
+    vals = list(targets)
+  elif isinstance(targets, dict):
+    is_leaf = [isinstance(l, element_type) for l in targets.values()]
+    if not all(is_leaf):
+      raise ValueError(f'Only support {type_name}, sequence of {type_name}, or dict of {type_name}.')
+    keys = list(targets.keys())
+    vals = list(targets.values())
+  else:
+    raise ValueError(f'Only support {type_name}, sequence of {type_name}, or dict of {type_name}.')
+
+  if out_as is None:
+    return targets
+  elif out_as == 'list':
+    return vals
+  elif out_as == 'tuple':
+    return tuple(vals)
+  elif out_as == 'dict':
+    return dict(zip(keys, vals))
+  else:
+    raise KeyError
+
+
+def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
+  global bm
+  if bm is None: from brainpy import math as bm
+  return is_elem_or_seq_or_dict(dyn_vars, bm.Variable, out_as)
+
+
+def is_all_objs(targets: Any, out_as: str = 'tuple'):
+  from brainpy.base import BrainPyObject
+  return is_elem_or_seq_or_dict(targets, BrainPyObject, out_as)
+
+
+def _err_jit_true_branch(err_fun, x):
+  id_tap(err_fun, x)
+  return
+
+
+def _err_jit_false_branch(x):
+  return
+
+
+def jit_error_checking(pred, err_fun, err_arg=None):
   """Check errors in a jit function.
 
   Parameters
@@ -445,8 +577,11 @@ def check_error_in_jit(pred, err_fun, err_arg=None):
   """
   from brainpy.math.remove_vmap import remove_vmap
 
-  def err_f(x):
-    id_tap(lambda arg, transforms: err_fun(arg), x)
-    return
+  @wraps(err_fun)
+  def true_err_fun(arg, transforms):
+    err_fun(arg)
 
-  cond(remove_vmap(pred), err_f, lambda _: None, err_arg)
+  cond(remove_vmap(pred),
+       partial(_err_jit_true_branch, true_err_fun),
+       _err_jit_false_branch,
+       err_arg)

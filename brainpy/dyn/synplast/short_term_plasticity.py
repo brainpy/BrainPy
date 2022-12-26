@@ -5,7 +5,7 @@ from typing import Union
 import brainpy.math as bm
 from brainpy.dyn.base import SynSTP
 from brainpy.integrators import odeint, JointEq
-from brainpy.check import check_float
+from brainpy.check import is_float
 from brainpy.types import ArrayType
 from brainpy.initialize import variable
 
@@ -59,8 +59,8 @@ class STD(SynSTP):
     super(STD, self).__init__(name=name)
 
     # parameters
-    check_float(tau, 'tau', min_bound=0, )
-    check_float(U, 'U', min_bound=0, )
+    is_float(tau, 'tau', min_bound=0, )
+    is_float(U, 'U', min_bound=0, )
     self.tau = tau
     self.U = U
     self.method = method
@@ -141,9 +141,9 @@ class STP(SynSTP):
   ):
     super(STP, self).__init__(name=name)
     # parameters
-    check_float(tau_f, 'tau_f', min_bound=0, )
-    check_float(tau_d, 'tau_d', min_bound=0, )
-    check_float(U, 'U', min_bound=0, )
+    is_float(tau_f, 'tau_f', min_bound=0, )
+    is_float(tau_d, 'tau_d', min_bound=0, )
+    is_float(U, 'U', min_bound=0, )
     self.tau_f = tau_f
     self.tau_d = tau_d
     self.U = U

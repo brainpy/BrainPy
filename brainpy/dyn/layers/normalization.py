@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Optional, Sequence
+from typing import Union, Optional, Sequence, Callable
 
 from jax import lax, numpy as jnp
 
-import brainpy.math as bm
+from brainpy import math as bm, check
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
+from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
@@ -19,7 +20,7 @@ __all__ = [
 ]
 
 
-def _abs_sq(x):
+def _square(x):
   """Computes the elementwise square of the absolute value |x|^2."""
   if jnp.iscomplexobj(x):
     return lax.square(lax.real(x)) + lax.square(lax.imag(x))
@@ -28,7 +29,7 @@ def _abs_sq(x):
 
 
 class BatchNorm(Layer):
-  """Batch Normalization layer.
+  r"""Batch Normalization layer [1]_.
 
   This layer aims to reduce the internal covariant shift of data. It
   normalizes a batch of data by fixing the mean and variance of inputs
@@ -36,21 +37,48 @@ class BatchNorm(Layer):
   is the batch, and the last is the channel. However, users can specify
   the axes to be normalized.
 
+  .. math::
+     y=\frac{x-\mathrm{E}[x]}{\sqrt{\operatorname{Var}[x]+\epsilon}} * \gamma+\beta
+
+  .. note::
+      This :attr:`momentum` argument is different from one used in optimizer
+      classes and the conventional notion of momentum. Mathematically, the
+      update rule for running statistics here is
+      :math:`\hat{x}_\text{new} = \text{momentum} \times \hat{x} + (1-\text{momentum}) \times x_t`,
+      where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
+      new observed value.
+
   Parameters
   ----------
   num_features: int
     ``C`` from an expected input of size ``(..., C)``.
   axis: int, tuple, list
     Axes where the data will be normalized. The feature (channel) axis should be excluded.
+  momentum: float
+    The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
   epsilon: float
     A value added to the denominator for numerical stability. Default: 1e-5
   affine: bool
     A boolean value that when set to ``True``, this module has
     learnable affine parameters. Default: ``True``
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     An initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     An initializer generating the original scaling matrix
+  axis_name: optional, str, sequence of str
+    If not ``None``, it should be a string (or sequence of
+    strings) representing the axis name(s) over which this module is being
+    run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
+    argument means that batch statistics are calculated across all replicas
+    on the named axes.
+  axis_index_groups: optional, sequence
+    Specifies how devices are grouped. Valid
+    only within ``jax.pmap`` collectives.
+
+  References
+  ----------
+  .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
+
   """
 
   def __init__(
@@ -58,31 +86,36 @@ class BatchNorm(Layer):
       num_features: int,
       axis: Union[int, Sequence[int]],
       epsilon: float = 1e-5,
-      momentum: Optional[float] = 0.99,
+      momentum: float = 0.99,
       affine: bool = True,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
+      axis_name: Optional[Union[str, Sequence[str]]] = None,
+      axis_index_groups: Optional[Sequence[Sequence[int]]] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(BatchNorm, self).__init__(name=name, mode=mode)
+    check.is_subclass(self.mode, (bm.BatchingMode, bm.TrainingMode), self.name)
 
     # parameters
     self.num_features = num_features
     self.epsilon = epsilon
     self.momentum = momentum
     self.affine = affine
-    self.bias_init = bias_init
-    self.scale_init = scale_init
+    self.bias_initializer = bias_initializer
+    self.scale_initializer = scale_initializer
     self.axis = (axis,) if jnp.isscalar(axis) else axis
+    self.axis_name = axis_name
+    self.axis_index_groups = axis_index_groups
 
     # variables
     self.running_mean = bm.Variable(bm.zeros(self.num_features))
     self.running_var = bm.Variable(bm.ones(self.num_features))
     if self.affine:
       assert isinstance(self.mode, bm.TrainingMode)
-      self.bias = bm.TrainVar(parameter(self.bias_init, self.num_features))
-      self.scale = bm.TrainVar(parameter(self.scale_init, self.num_features))
+      self.bias = bm.TrainVar(parameter(self.bias_initializer, self.num_features))
+      self.scale = bm.TrainVar(parameter(self.scale_initializer, self.num_features))
 
   def _check_input_dim(self, x):
     raise NotImplementedError
@@ -90,14 +123,18 @@ class BatchNorm(Layer):
   def update(self, sha, x):
     self._check_input_dim(x)
 
+    x = bm.as_jax(x)
+
     if sha['fit']:
-      mean = bm.mean(x, self.axis)
-      mean2 = bm.mean(_abs_sq(x), self.axis)
-      var = jnp.maximum(0., mean2 - _abs_sq(mean))
-      self.running_mean.value = (self.momentum * self.running_mean.value +
-                                 (1 - self.momentum) * mean)
-      self.running_var.value = (self.momentum * self.running_var.value +
-                                (1 - self.momentum) * var)
+        mean = jnp.mean(x, self.axis)
+        mean_of_square = jnp.mean(_square(x), self.axis)
+        if self.axis_name is not None:
+          mean, mean_of_square = jnp.split(lax.pmean(jnp.concatenate([mean, mean_of_square]),
+                                                     axis_name=self.axis_name,
+                                                     axis_index_groups=self.axis_index_groups), 2)
+        var = jnp.maximum(0., mean_of_square - _square(mean))
+        self.running_mean.value = (self.momentum * self.running_mean + (1 - self.momentum) * mean)
+        self.running_var.value = (self.momentum * self.running_var + (1 - self.momentum) * var)
     else:
       mean = self.running_mean.value
       var = self.running_var.value
@@ -116,10 +153,21 @@ class BatchNorm(Layer):
 
 
 class BatchNorm1D(BatchNorm):
-  """1-D batch normalization.
+  r"""1-D batch normalization [1]_.
 
   The data should be of `(b, l, c)`, where `b` is the batch dimension,
   `l` is the layer dimension, and `c` is the channel dimension.
+
+  .. math::
+     y=\frac{x-\mathrm{E}[x]}{\sqrt{\operatorname{Var}[x]+\epsilon}} * \gamma+\beta
+
+  .. note::
+      This :attr:`momentum` argument is different from one used in optimizer
+      classes and the conventional notion of momentum. Mathematically, the
+      update rule for running statistics here is
+      :math:`\hat{x}_\text{new} = \text{momentum} \times \hat{x} + (1-\text{momentum}) \times x_t`,
+      where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
+      new observed value.
 
   Parameters
   ----------
@@ -129,13 +177,29 @@ class BatchNorm1D(BatchNorm):
     axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
     A value added to the denominator for numerical stability. Default: 1e-5
+  momentum: float
+    The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
   affine: bool
     A boolean value that when set to ``True``, this module has
     learnable affine parameters. Default: ``True``
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     an initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     an initializer generating the original scaling matrix
+  axis_name: optional, str, sequence of str
+    If not ``None``, it should be a string (or sequence of
+    strings) representing the axis name(s) over which this module is being
+    run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
+    argument means that batch statistics are calculated across all replicas
+    on the named axes.
+  axis_index_groups: optional, sequence
+    Specifies how devices are grouped. Valid
+    only within ``jax.pmap`` collectives.
+
+  References
+  ----------
+  .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
+
   """
 
   def __init__(
@@ -143,20 +207,24 @@ class BatchNorm1D(BatchNorm):
       num_features: int,
       axis: Union[int, Sequence[int]] = (0, 1),
       epsilon: float = 1e-5,
-      momentum: Optional[float] = 0.99,
+      momentum: float = 0.99,
       affine: bool = True,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
+      axis_name: Optional[Union[str, Sequence[str]]] = None,
+      axis_index_groups: Optional[Sequence[Sequence[int]]] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(BatchNorm1D, self).__init__(num_features=num_features,
                                       axis=axis,
                                       epsilon=epsilon,
                                       momentum=momentum,
                                       affine=affine,
-                                      bias_init=bias_init,
-                                      scale_init=scale_init,
+                                      bias_initializer=bias_initializer,
+                                      scale_initializer=scale_initializer,
+                                      axis_name=axis_name,
+                                      axis_index_groups=axis_index_groups,
                                       mode=mode,
                                       name=name)
 
@@ -167,11 +235,22 @@ class BatchNorm1D(BatchNorm):
 
 
 class BatchNorm2D(BatchNorm):
-  """2-D batch normalization.
+  r"""2-D batch normalization [1]_.
 
   The data should be of `(b, h, w, c)`, where `b` is the batch dimension,
   `h` is the height dimension, `w` is the width dimension, and `c` is the
   channel dimension.
+
+  .. math::
+     y=\frac{x-\mathrm{E}[x]}{\sqrt{\operatorname{Var}[x]+\epsilon}} * \gamma+\beta
+
+  .. note::
+      This :attr:`momentum` argument is different from one used in optimizer
+      classes and the conventional notion of momentum. Mathematically, the
+      update rule for running statistics here is
+      :math:`\hat{x}_\text{new} = \text{momentum} \times \hat{x} + (1-\text{momentum}) \times x_t`,
+      where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
+      new observed value.
 
   Parameters
   ----------
@@ -181,13 +260,29 @@ class BatchNorm2D(BatchNorm):
     axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
+  momentum: float
+    The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
   affine: bool
     A boolean value that when set to ``True``, this module has
     learnable affine parameters. Default: ``True``
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     an initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     an initializer generating the original scaling matrix
+  axis_name: optional, str, sequence of str
+    If not ``None``, it should be a string (or sequence of
+    strings) representing the axis name(s) over which this module is being
+    run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
+    argument means that batch statistics are calculated across all replicas
+    on the named axes.
+  axis_index_groups: optional, sequence
+    Specifies how devices are grouped. Valid
+    only within ``jax.pmap`` collectives.
+
+  References
+  ----------
+  .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
+
   """
 
   def __init__(
@@ -195,20 +290,24 @@ class BatchNorm2D(BatchNorm):
       num_features: int,
       axis: Union[int, Sequence[int]] = (0, 1, 2),
       epsilon: float = 1e-5,
-      momentum: Optional[float] = 0.99,
+      momentum: float = 0.99,
       affine: bool = True,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
+      axis_name: Optional[Union[str, Sequence[str]]] = None,
+      axis_index_groups: Optional[Sequence[Sequence[int]]] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(BatchNorm2D, self).__init__(num_features=num_features,
                                       axis=axis,
                                       epsilon=epsilon,
                                       momentum=momentum,
                                       affine=affine,
-                                      bias_init=bias_init,
-                                      scale_init=scale_init,
+                                      bias_initializer=bias_initializer,
+                                      scale_initializer=scale_initializer,
+                                      axis_name=axis_name,
+                                      axis_index_groups=axis_index_groups,
                                       mode=mode,
                                       name=name)
 
@@ -219,11 +318,22 @@ class BatchNorm2D(BatchNorm):
 
 
 class BatchNorm3D(BatchNorm):
-  """3-D batch normalization.
+  r"""3-D batch normalization [1]_.
 
   The data should be of `(b, h, w, d, c)`, where `b` is the batch dimension,
   `h` is the height dimension, `w` is the width dimension, `d` is the depth
   dimension, and `c` is the channel dimension.
+
+  .. math::
+     y=\frac{x-\mathrm{E}[x]}{\sqrt{\operatorname{Var}[x]+\epsilon}} * \gamma+\beta
+
+  .. note::
+      This :attr:`momentum` argument is different from one used in optimizer
+      classes and the conventional notion of momentum. Mathematically, the
+      update rule for running statistics here is
+      :math:`\hat{x}_\text{new} = \text{momentum} \times \hat{x} + (1-\text{momentum}) \times x_t`,
+      where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
+      new observed value.
 
   Parameters
   ----------
@@ -233,13 +343,29 @@ class BatchNorm3D(BatchNorm):
     axes where the data will be normalized. The feature (channel) axis should be excluded.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
+  momentum: float
+    The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
   affine: bool
     A boolean value that when set to ``True``, this module has
     learnable affine parameters. Default: ``True``
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     an initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     an initializer generating the original scaling matrix
+  axis_name: optional, str, sequence of str
+    If not ``None``, it should be a string (or sequence of
+    strings) representing the axis name(s) over which this module is being
+    run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
+    argument means that batch statistics are calculated across all replicas
+    on the named axes.
+  axis_index_groups: optional, sequence
+    Specifies how devices are grouped. Valid
+    only within ``jax.pmap`` collectives.
+
+  References
+  ----------
+  .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
+
   """
 
   def __init__(
@@ -247,20 +373,24 @@ class BatchNorm3D(BatchNorm):
       num_features: int,
       axis: Union[int, Sequence[int]] = (0, 1, 2, 3),
       epsilon: float = 1e-5,
-      momentum: Optional[float] = 0.99,
+      momentum: float = 0.99,
       affine: bool = True,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
+      axis_name: Optional[Union[str, Sequence[str]]] = None,
+      axis_index_groups: Optional[Sequence[Sequence[int]]] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(BatchNorm3D, self).__init__(num_features=num_features,
                                       axis=axis,
                                       epsilon=epsilon,
                                       momentum=momentum,
                                       affine=affine,
-                                      bias_init=bias_init,
-                                      scale_init=scale_init,
+                                      bias_initializer=bias_initializer,
+                                      scale_initializer=scale_initializer,
+                                      axis_name=axis_name,
+                                      axis_index_groups=axis_index_groups,
                                       mode=mode,
                                       name=name)
 
@@ -271,7 +401,7 @@ class BatchNorm3D(BatchNorm):
 
 
 class LayerNorm(Layer):
-  """Layer normalization (https://arxiv.org/abs/1607.06450).
+  r"""Layer normalization (https://arxiv.org/abs/1607.06450).
 
   .. math::
       y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
@@ -297,9 +427,9 @@ class LayerNorm(Layer):
     normalize over the last dimension which is expected to be of that specific size.
   epsilon: float
     a value added to the denominator for numerical stability. Default: 1e-5
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     an initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     an initializer generating the original scaling matrix
   elementwise_affine: bool
     A boolean value that when set to ``True``, this module
@@ -332,26 +462,26 @@ class LayerNorm(Layer):
       self,
       normalized_shape: Union[int, Sequence[int]],
       epsilon: float = 1e-5,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
       elementwise_affine: bool = True,
-      mode: bm.Mode = None,
-      name: str = None
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None
   ):
     super(LayerNorm, self).__init__(name=name, mode=mode)
 
     self.epsilon = epsilon
-    self.bias_init = bias_init
-    self.scale_init = scale_init
+    self.bias_initializer = bias_initializer
+    self.scale_initializer = scale_initializer
     if isinstance(normalized_shape, int):
-      normalized_shape = (normalized_shape, )
+      normalized_shape = (normalized_shape,)
     self.normalized_shape = tuple(normalized_shape)
     assert all([isinstance(s, int) for s in normalized_shape]), 'Must be a sequence of integer.'
     self.elementwise_affine = elementwise_affine
     if self.elementwise_affine:
       assert isinstance(self.mode, bm.TrainingMode)
-      self.bias = bm.TrainVar(parameter(self.bias_init, self.normalized_shape))
-      self.scale = bm.TrainVar(parameter(self.scale_init, self.normalized_shape))
+      self.bias = bm.TrainVar(parameter(self.bias_initializer, self.normalized_shape))
+      self.scale = bm.TrainVar(parameter(self.scale_initializer, self.normalized_shape))
 
   def update(self, sha, x):
     if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
@@ -368,7 +498,7 @@ class LayerNorm(Layer):
 
 
 class GroupNorm(Layer):
-  """Group normalization layer.
+  r"""Group normalization layer.
 
   .. math::
     y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
@@ -393,9 +523,9 @@ class GroupNorm(Layer):
     A boolean value that when set to ``True``, this module
     has learnable per-channel affine parameters initialized to ones (for weights)
     and zeros (for biases). Default: ``True``.
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     An initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     An initializer generating the original scaling matrix
 
   Examples
@@ -419,10 +549,10 @@ class GroupNorm(Layer):
       num_channels: int,
       epsilon: float = 1e-5,
       affine: bool = True,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(GroupNorm, self).__init__(name=name, mode=mode)
     if num_channels % num_groups != 0:
@@ -431,12 +561,12 @@ class GroupNorm(Layer):
     self.num_channels = num_channels
     self.epsilon = epsilon
     self.affine = affine
-    self.bias_init = bias_init
-    self.scale_init = scale_init
+    self.bias_initializer = bias_initializer
+    self.scale_initializer = scale_initializer
     if self.affine:
       assert isinstance(self.mode, bm.TrainingMode)
-      self.bias = bm.TrainVar(parameter(self.bias_init, self.num_channels))
-      self.scale = bm.TrainVar(parameter(self.scale_init, self.num_channels))
+      self.bias = bm.TrainVar(parameter(self.bias_initializer, self.num_channels))
+      self.scale = bm.TrainVar(parameter(self.scale_initializer, self.num_channels))
 
   def update(self, sha, x):
     assert x.shape[-1] == self.num_channels
@@ -455,7 +585,7 @@ class GroupNorm(Layer):
 
 
 class InstanceNorm(GroupNorm):
-  """Instance normalization layer.
+  r"""Instance normalization layer.
 
   This layer normalizes the data within each feature. It can be regarded as
   a group normalization layer in which `group_size` equals to 1.
@@ -470,9 +600,9 @@ class InstanceNorm(GroupNorm):
     A boolean value that when set to ``True``, this module
     has learnable per-channel affine parameters initialized to ones (for weights)
     and zeros (for biases). Default: ``True``.
-  bias_init: Initializer
+  bias_initializer: Initializer, ArrayType, Callable
     an initializer generating the original translation matrix
-  scale_init: Initializer
+  scale_initializer: Initializer, ArrayType, Callable
     an initializer generating the original scaling matrix
   """
 
@@ -481,16 +611,16 @@ class InstanceNorm(GroupNorm):
       num_channels: int,
       epsilon: float = 1e-5,
       affine: bool = True,
-      bias_init: Initializer = ZeroInit(),
-      scale_init: Initializer = OneInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      bias_initializer: Union[Initializer, ArrayType, Callable] = ZeroInit(),
+      scale_initializer: Union[Initializer, ArrayType, Callable] = OneInit(),
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(InstanceNorm, self).__init__(num_channels=num_channels,
                                        num_groups=num_channels,
                                        epsilon=epsilon,
                                        affine=affine,
-                                       bias_init=bias_init,
-                                       scale_init=scale_init,
+                                       bias_initializer=bias_initializer,
+                                       scale_initializer=scale_initializer,
                                        mode=mode,
                                        name=name)

@@ -8,7 +8,7 @@ from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.integrators.fde import CaputoL1Schema
 from brainpy.integrators.fde import GLShortMemory
 from brainpy.integrators.joint_eq import JointEq
-from brainpy.check import check_float, check_integer, check_initializer
+from brainpy.check import is_float, is_integer, is_initializer
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -99,7 +99,7 @@ class FractionalFHR(FractionalNeuron):
 
     # fractional order
     self.alpha = alpha
-    check_integer(num_memory, 'num_memory', allow_none=False)
+    is_integer(num_memory, 'num_memory', allow_none=False)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -111,9 +111,9 @@ class FractionalFHR(FractionalNeuron):
     self.delta = parameter(delta, self.varshape, allow_none=False)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(w_initializer, 'w_initializer', allow_none=False)
-    check_initializer(y_initializer, 'y_initializer', allow_none=False)
+    is_initializer(V_initializer, 'V_initializer', allow_none=False)
+    is_initializer(w_initializer, 'w_initializer', allow_none=False)
+    is_initializer(y_initializer, 'y_initializer', allow_none=False)
     self._V_initializer = V_initializer
     self._w_initializer = w_initializer
     self._y_initializer = y_initializer
@@ -246,7 +246,7 @@ class FractionalIzhikevich(FractionalNeuron):
 
     # params
     self.alpha = alpha
-    check_float(alpha, 'alpha', min_bound=0., max_bound=1., allow_none=False, allow_int=True)
+    is_float(alpha, 'alpha', min_bound=0., max_bound=1., allow_none=False, allow_int=True)
     self.a = parameter(a, self.varshape, allow_none=False)
     self.b = parameter(b, self.varshape, allow_none=False)
     self.c = parameter(c, self.varshape, allow_none=False)
@@ -259,8 +259,8 @@ class FractionalIzhikevich(FractionalNeuron):
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(u_initializer, 'u_initializer', allow_none=False)
+    is_initializer(V_initializer, 'V_initializer', allow_none=False)
+    is_initializer(u_initializer, 'u_initializer', allow_none=False)
     self._V_initializer = V_initializer
     self._u_initializer = u_initializer
 
@@ -271,7 +271,7 @@ class FractionalIzhikevich(FractionalNeuron):
     self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # functions
-    check_integer(num_memory, 'num_step', allow_none=False)
+    is_integer(num_memory, 'num_step', allow_none=False)
     self.integral = CaputoL1Schema(f=self.derivative,
                                    alpha=alpha,
                                    num_memory=num_memory,

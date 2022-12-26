@@ -14,7 +14,7 @@ from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map, tree_flatten
 
 from brainpy import math as bm, tools
-from brainpy.check import check_float, serialize_kwargs
+from brainpy.check import is_float, serialize_kwargs
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.errors import RunningError
 from brainpy.running.runner import Runner
@@ -337,7 +337,7 @@ class DSRunner(Runner):
                                    numpy_mon_after_run=numpy_mon_after_run)
 
     # t0 and i0
-    check_float(t0, 't0', allow_none=False, allow_int=True)
+    is_float(t0, 't0', allow_none=False, allow_int=True)
     self._t0 = t0
     self.i0 = bm.Variable(bm.asarray([1], dtype=bm.int_))
     self.t0 = bm.Variable(bm.asarray([t0], dtype=bm.float_))

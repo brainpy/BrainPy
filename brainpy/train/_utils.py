@@ -3,7 +3,7 @@
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy.check import check_dict_data
+from brainpy.check import is_dict_data
 from brainpy.errors import BrainPyError
 
 __all__ = [
@@ -38,7 +38,7 @@ def format_ys(cls, ys):
     else:
       raise ValueError(f'The network\n {cls.target} \nhas {len(cls.train_nodes)} '
                        f'training nodes, while we only got one target data.')
-  check_dict_data(ys, key_type=str, val_type=(bm.Array, jnp.ndarray))
+  is_dict_data(ys, key_type=str, val_type=(bm.Array, jnp.ndarray))
 
   # check data path
   abs_node_names = [node.name for node in cls.train_nodes]

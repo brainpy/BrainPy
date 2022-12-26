@@ -218,9 +218,9 @@ class HH(NeuGroup):
                              keep_size=keep_size,
                              name=name,
                              mode=mode)
-    check.check_mode(self.mode,
-                     (bm.BatchingMode, bm.NonBatchingMode),
-                     self.__class__.__name__)
+    check.is_subclass(self.mode,
+                      (bm.BatchingMode, bm.NonBatchingMode),
+                      self.__class__.__name__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -234,10 +234,10 @@ class HH(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=4)
 
     # initializers
-    check.check_initializer(m_initializer, 'm_initializer', allow_none=True)
-    check.check_initializer(h_initializer, 'h_initializer', allow_none=True)
-    check.check_initializer(n_initializer, 'n_initializer', allow_none=True)
-    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.is_initializer(m_initializer, 'm_initializer', allow_none=True)
+    check.is_initializer(h_initializer, 'h_initializer', allow_none=True)
+    check.is_initializer(n_initializer, 'n_initializer', allow_none=True)
+    check.is_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._m_initializer = m_initializer
     self._h_initializer = h_initializer
     self._n_initializer = n_initializer
@@ -428,7 +428,7 @@ class MorrisLecar(NeuGroup):
                                       keep_size=keep_size,
                                       name=name,
                                       mode=mode)
-    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
+    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -447,8 +447,8 @@ class MorrisLecar(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
-    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check.check_initializer(W_initializer, 'W_initializer', allow_none=False)
+    check.is_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.is_initializer(W_initializer, 'W_initializer', allow_none=False)
     self._W_initializer = W_initializer
     self._V_initializer = V_initializer
 
@@ -686,7 +686,7 @@ class PinskyRinzelModel(NeuGroup):
                                             keep_size=keep_size,
                                             name=name,
                                             mode=mode)
-    check.check_mode(self.mode, (bm.NonBatchingMode, bm.BatchingMode), self.__class__)
+    check.is_subclass(self.mode, (bm.NonBatchingMode, bm.BatchingMode), self.__class__)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -711,9 +711,9 @@ class PinskyRinzelModel(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=8)
 
     # initializers
-    check.check_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
-    check.check_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
-    check.check_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
+    check.is_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
+    check.is_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
+    check.is_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
     self._Vs_initializer = Vs_initializer
     self._Vd_initializer = Vd_initializer
     self._Ca_initializer = Ca_initializer
@@ -995,7 +995,7 @@ class WangBuzsakiModel(NeuGroup):
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
+    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -1010,9 +1010,9 @@ class WangBuzsakiModel(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=3)
 
     # initializers
-    check.check_initializer(h_initializer, 'h_initializer', allow_none=False)
-    check.check_initializer(n_initializer, 'n_initializer', allow_none=False)
-    check.check_initializer(V_initializer, 'V_initializer', allow_none=False)
+    check.is_initializer(h_initializer, 'h_initializer', allow_none=False)
+    check.is_initializer(n_initializer, 'n_initializer', allow_none=False)
+    check.is_initializer(V_initializer, 'V_initializer', allow_none=False)
     self._h_initializer = h_initializer
     self._n_initializer = n_initializer
     self._V_initializer = V_initializer

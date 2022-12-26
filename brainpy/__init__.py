@@ -33,6 +33,8 @@ from . import (
   inputs,  # methods for generating input currents
   algorithms,  # online or offline training algorithms
   encoding,  # encoding schema
+  checkpoints,  # checkpoints
+  check,  # error checking
 )
 
 # numerical integrators

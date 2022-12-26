@@ -72,18 +72,18 @@ class NVAR(Layer):
       name: str = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)
-    check.check_mode(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__.__name__)
+    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__.__name__)
 
     # parameters
     order = tuple() if order is None else order
     if not isinstance(order, (tuple, list)):
       order = (order,)
     self.order = tuple(order)
-    check.check_sequence(order, 'order', allow_none=False)
+    check.is_sequence(order, 'order', allow_none=False)
     for o in order:
-      check.check_integer(o, 'order', allow_none=False, min_bound=2)
-    check.check_integer(delay, 'delay', allow_none=False, min_bound=1)
-    check.check_integer(stride, 'stride', allow_none=False, min_bound=1)
+      check.is_integer(o, 'order', allow_none=False, min_bound=2)
+    check.is_integer(delay, 'delay', allow_none=False, min_bound=1)
+    check.is_integer(stride, 'stride', allow_none=False, min_bound=1)
     assert isinstance(constant, bool), f'Must be an instance of boolean, but got {constant}.'
     self.delay = delay
     self.stride = stride

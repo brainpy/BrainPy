@@ -47,10 +47,10 @@ class WeightedPhaseEncoder(Encoder):
                weight_fun: Callable = None):
     super().__init__()
 
-    check.check_integer(num_phase, 'num_phase', min_bound=1)
-    check.check_float(min_val, 'min_val')
-    check.check_float(max_val, 'max_val')
-    check.check_callable(weight_fun, 'weight_fun', allow_none=True)
+    check.is_integer(num_phase, 'num_phase', min_bound=1)
+    check.is_float(min_val, 'min_val')
+    check.is_float(max_val, 'max_val')
+    check.is_callable(weight_fun, 'weight_fun', allow_none=True)
     self.num_phase = num_phase
     self.min_val = min_val
     self.max_val = max_val
@@ -120,9 +120,9 @@ class LatencyEncoder(Encoder):
                method: str = 'linear'):
     super().__init__()
 
-    check.check_integer(num_period, 'num_period', min_bound=1)
-    check.check_float(min_val, 'min_val')
-    check.check_float(max_val, 'max_val')
+    check.is_integer(num_period, 'num_period', min_bound=1)
+    check.is_float(min_val, 'min_val')
+    check.is_float(max_val, 'max_val')
     assert method in ['linear', 'log']
     self.num_period = num_period
     self.min_val = min_val

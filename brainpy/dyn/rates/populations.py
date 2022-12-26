@@ -3,7 +3,7 @@
 from typing import Union, Callable
 
 from brainpy import check, math as bm
-from brainpy.check import check_float, check_initializer, check_error_in_jit
+from brainpy.check import is_float, is_initializer, jit_error_checking
 from brainpy.dyn.base import NeuGroup
 from brainpy.dyn.neurons.noise_groups import OUProcess
 from brainpy.initialize import Initializer, Uniform, parameter, variable, ZeroInit
@@ -115,8 +115,8 @@ class FHN(RateModel):
                               allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
 
     # initializers
-    check_initializer(x_initializer, 'x_initializer')
-    check_initializer(y_initializer, 'y_initializer')
+    is_initializer(x_initializer, 'x_initializer')
+    is_initializer(y_initializer, 'y_initializer')
     self._x_initializer = x_initializer
     self._y_initializer = y_initializer
 
@@ -281,7 +281,7 @@ class FeedbackFHN(RateModel):
 
     # dt
     self.dt = bm.get_dt() if dt is None else dt
-    check_float(self.dt, 'dt', allow_none=False, min_bound=0., allow_int=False)
+    is_float(self.dt, 'dt', allow_none=False, min_bound=0., allow_int=False)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -300,8 +300,8 @@ class FeedbackFHN(RateModel):
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
 
     # initializers
-    check_initializer(x_initializer, 'x_initializer')
-    check_initializer(y_initializer, 'y_initializer')
+    is_initializer(x_initializer, 'x_initializer')
+    is_initializer(y_initializer, 'y_initializer')
     self._x_initializer = x_initializer
     self._y_initializer = y_initializer
 
@@ -358,7 +358,7 @@ class FeedbackFHN(RateModel):
     t = tdi['t']
     dt = tdi['dt']
     if check.is_checking():
-      check_error_in_jit(not bm.isclose(dt, self.dt), self._check_dt, dt)
+      jit_error_checking(not bm.isclose(dt, self.dt), self._check_dt, dt)
 
     if x is not None: self.input += x
     if self.x_ou is not None:
@@ -494,8 +494,8 @@ class QIF(RateModel):
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
 
     # initializers
-    check_initializer(x_initializer, 'x_initializer')
-    check_initializer(y_initializer, 'y_initializer')
+    is_initializer(x_initializer, 'x_initializer')
+    is_initializer(y_initializer, 'y_initializer')
     self._x_initializer = x_initializer
     self._y_initializer = y_initializer
 
@@ -630,8 +630,8 @@ class StuartLandauOscillator(RateModel):
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
 
     # initializers
-    check_initializer(x_initializer, 'x_initializer')
-    check_initializer(y_initializer, 'y_initializer')
+    is_initializer(x_initializer, 'x_initializer')
+    is_initializer(y_initializer, 'y_initializer')
     self._x_initializer = x_initializer
     self._y_initializer = y_initializer
 
@@ -791,8 +791,8 @@ class WilsonCowanModel(RateModel):
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
 
     # initializers
-    check_initializer(x_initializer, 'x_initializer')
-    check_initializer(y_initializer, 'y_initializer')
+    is_initializer(x_initializer, 'x_initializer')
+    is_initializer(y_initializer, 'y_initializer')
     self._x_initializer = x_initializer
     self._y_initializer = y_initializer
 

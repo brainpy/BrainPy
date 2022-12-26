@@ -9,7 +9,7 @@ from brainpy import math as bm
 from .base import Layer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.check import check_initializer
+from brainpy.check import is_initializer
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -64,8 +64,8 @@ class Dense(Layer):
     # weight initializer
     self.weight_initializer = W_initializer
     self.bias_initializer = b_initializer
-    check_initializer(W_initializer, 'weight_initializer')
-    check_initializer(b_initializer, 'bias_initializer', allow_none=True)
+    is_initializer(W_initializer, 'weight_initializer')
+    is_initializer(b_initializer, 'bias_initializer', allow_none=True)
 
     # parameter initialization
     self.W = parameter(self.weight_initializer, (num_in, self.num_out))

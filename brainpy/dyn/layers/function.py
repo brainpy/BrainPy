@@ -4,6 +4,7 @@ from typing import Callable
 from typing import Optional
 
 import brainpy.math as bm
+from brainpy import check
 from .base import Layer
 
 __all__ = [
@@ -58,6 +59,7 @@ class Flatten(Layer):
       mode: bm.Mode = None,
   ):
     super().__init__(name, mode)
+    check.is_subclass(self.mode, (bm.NonBatchingMode, bm.BatchingMode, bm.TrainingMode), self.name)
 
   def update(self, shr, x):
     if isinstance(self.mode, bm.BatchingMode):

@@ -9,7 +9,7 @@ import brainpy.math as bm
 from brainpy.dyn.base import SynConn
 from brainpy.dyn.neurons.input_groups import InputGroup, OutputGroup
 from brainpy.initialize import Initializer
-from brainpy.check import check_sequence
+from brainpy.check import is_sequence
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -63,7 +63,7 @@ class DelayCoupling(SynConn):
     # output variables
     if isinstance(var_to_output, bm.Variable):
       var_to_output = [var_to_output]
-    check_sequence(var_to_output, 'output_var', elem_type=bm.Variable, allow_none=False)
+    is_sequence(var_to_output, 'output_var', elem_type=bm.Variable, allow_none=False)
     self.output_var = var_to_output
 
     # Connection matrix
