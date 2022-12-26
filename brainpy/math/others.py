@@ -39,11 +39,11 @@ def form_shared_args(num_step: Optional[int] = None,
     The shared arguments over the given time.
   """
   dt = get_dt() if dt is None else dt
-  check.check_float(dt, 'dt', allow_none=False)
+  check.is_float(dt, 'dt', allow_none=False)
   if duration is None:
-    check.check_integer(num_step, 'num_step', allow_none=False)
+    check.is_integer(num_step, 'num_step', allow_none=False)
   else:
-    check.check_float(duration, 'duration', allow_none=False)
+    check.is_float(duration, 'duration', allow_none=False)
     num_step = int(duration / dt)
   r = tools.DotDict(i=jnp.arange(num_step, dtype=get_int()))
   r['t'] = r['i'] * dt + t0
