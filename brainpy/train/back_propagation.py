@@ -509,7 +509,8 @@ class BPTT(BPTrainer):
   def _step_func_loss(self, shared_args, inputs, targets):
     num_step = self._get_input_time_step(xs=inputs)
     indices = jnp.arange(num_step, dtype=bm.int_)
-    times = indices * self.dt
+    times = indices * self.dt + self.t0
+    indices = indices + self.i0
     if isinstance(self.target.mode, bm.BatchingMode) and not self.time_major:
       inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), inputs, is_leaf=lambda x: isinstance(x, bm.Array))
     inputs = (times, indices, inputs)

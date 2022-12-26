@@ -46,7 +46,7 @@ def get_data(dataset):
 
 
 # model
-with bm.environment(mode=bm.training_mode):
+with bm.training_environment():
   model = FeedForwardModel()
 
 # training

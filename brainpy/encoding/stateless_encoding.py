@@ -2,6 +2,7 @@
 
 from typing import Union
 
+import jax
 import brainpy.math as bm
 from brainpy import check
 from brainpy.types import ArrayType
@@ -36,8 +37,8 @@ class PoissonEncoder(Encoder):
                seed: Union[int, ArrayType] = None):
     super().__init__()
 
-    check.check_float(min_val, 'min_val')
-    check.check_float(max_val, 'max_val')
+    check.is_float(min_val, 'min_val')
+    check.is_float(max_val, 'max_val')
     self.min_val = min_val
     self.max_val = max_val
     self.rng = bm.random.RandomState(seed)
@@ -62,7 +63,8 @@ class PoissonEncoder(Encoder):
     out: ArrayType
       The encoded spike train.
     """
-    check.check_integer(num_step, 'time_len', min_bound=1, allow_none=True)
+    with jax.ensure_compile_time_eval():
+      check.is_integer(num_step, 'time_len', min_bound=1, allow_none=True)
     x = (x - self.min_val) / (self.max_val - self.min_val)
     shape = x.shape if (num_step is None) else ((num_step,) + x.shape)
     d = self.rng.rand(*shape).value < x

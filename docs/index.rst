@@ -34,6 +34,13 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Core Concepts
+
+   core_concept/brainpy_transform_concept
+   core_concept/brainpy_dynamical_system_concept
+
+.. toctree::
    :maxdepth: 2
    :caption: BDP Tutorials
 

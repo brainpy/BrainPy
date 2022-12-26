@@ -3,6 +3,9 @@
 
 from typing import Dict, Sequence, Union
 
+from jax.tree_util import register_pytree_node
+from jax.util import safe_zip
+
 math = None
 
 __all__ = [
@@ -37,11 +40,12 @@ class Collector(dict):
     elif isinstance(other, (tuple, list)):
       num = len(self)
       for i, value in enumerate(other):
-        self[f'_var{i+num}'] = value
+        self[f'_var{i + num}'] = value
     else:
       raise ValueError(f'Only supports dict/list/tuple, but we got {type(other)}')
     for key, value in kwargs.items():
       self[key] = value
+    return self
 
   def __add__(self, other):
     """Merging two dicts.
@@ -73,8 +77,8 @@ class Collector(dict):
     gather: Collector
       The new collector.
     """
-    if not isinstance(other, dict):
-      raise ValueError(f'Only support dict, but we got {type(other)}.')
+    if not isinstance(other, (dict, tuple, list)):
+      raise ValueError(f'Only support dict/tuple/list, but we got {type(other)}.')
     gather = type(self)(self)
     if isinstance(other, dict):
       for key, val in other.items():
@@ -87,7 +91,21 @@ class Collector(dict):
           raise ValueError(f'Cannot remove {key}, because we do not find it '
                            f'in {self.keys()}.')
     elif isinstance(other, (list, tuple)):
+      id_to_keys = {}
+      for k, v in self.items():
+        id_ = id(v)
+        if id_ not in id_to_keys:
+          id_to_keys[id_] = []
+        id_to_keys[id_].append(k)
+
+      keys_to_remove = []
       for key in other:
+        if isinstance(key, str):
+          keys_to_remove.append(key)
+        else:
+          keys_to_remove.extend(id_to_keys[id(key)])
+
+      for key in set(keys_to_remove):
         if key in gather:
           gather.pop(key)
         else:
@@ -199,3 +217,9 @@ class ArrayCollector(Collector):
 
 
 TensorCollector = ArrayCollector
+
+register_pytree_node(
+  ArrayCollector,
+  lambda x: (x.values(), x.keys()),
+  lambda keys, values: ArrayCollector(safe_zip(keys, values))
+)

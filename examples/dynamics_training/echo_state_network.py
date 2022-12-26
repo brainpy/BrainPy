@@ -3,6 +3,8 @@
 import brainpy as bp
 import brainpy.math as bm
 
+bm.set_environment(bm.batching_mode)
+
 
 class ESN(bp.dyn.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
@@ -13,7 +15,8 @@ class ESN(bp.dyn.DynamicalSystem):
                                  in_connectivity=0.02,
                                  rec_connectivity=0.02,
                                  comp_type='dense')
-    self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal())
+    self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal(),
+                             mode=bm.training_mode)
 
   def update(self, sha, x):
     return self.o(sha, self.r(sha, x))
@@ -25,7 +28,8 @@ class NGRC(bp.dyn.DynamicalSystem):
 
     self.r = bp.layers.NVAR(num_in, delay=2, order=2)
     self.o = bp.layers.Dense(self.r.num_out, num_out,
-                             W_initializer=bp.init.Normal(0.1))
+                             W_initializer=bp.init.Normal(0.1),
+                             mode=bm.training_mode)
 
   def update(self, shared_args, x):
     return self.o(shared_args, self.r(shared_args, x))
@@ -76,8 +80,8 @@ def train_esn_with_force(num_in=100, num_out=30):
   trainer.fit([X, Y])
 
   # prediction
-  runner = bp.dyn.DSRunner(model, monitors=['r.state'], jit=True, inputs=[])
-  outputs = runner.predict(inputs=X, inputs_are_batching=True)
+  runner = bp.dyn.DSRunner(model, monitors=['r.state'])
+  outputs = runner.predict(inputs=X)
   print(runner.mon['r.state'].shape)
   print(bp.losses.mean_absolute_error(outputs, Y))
   print()

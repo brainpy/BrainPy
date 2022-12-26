@@ -6,7 +6,7 @@ from typing import Union, Callable, Optional
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy.check import check_initializer, check_callable, check_mode
+from brainpy.check import is_initializer, is_callable, is_subclass
 from brainpy.dyn.base import NeuGroup
 from brainpy.initialize import (ZeroInit, OneInit, Initializer,
                                 parameter, variable_, noise as init_noise)
@@ -87,7 +87,7 @@ class LeakyIntegrator(NeuGroup):
                                           mode=mode,
                                           keep_size=keep_size,
                                           name=name)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -96,7 +96,7 @@ class LeakyIntegrator(NeuGroup):
     self.noise = init_noise(noise, self.varshape)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
+    is_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
     # variables
@@ -196,7 +196,7 @@ class LIF(NeuGroup):
       noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
 
       # training parameter
-      mode: bm.Mode = None,
+      mode: Optional[bm.Mode] = None,
       spike_fun: Callable = bm.surrogate.inv_square_grad,
 
       # other parameters
@@ -208,7 +208,7 @@ class LIF(NeuGroup):
                               name=name,
                               keep_size=keep_size,
                               mode=mode)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.name)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -218,10 +218,10 @@ class LIF(NeuGroup):
     self.R = parameter(R, self.varshape, allow_none=False)
     self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape)
-    self.spike_fun = check_callable(spike_fun, 'spike_fun')
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
+    is_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
     # variables
@@ -421,7 +421,7 @@ class ExpIF(NeuGroup):
                                 name=name,
                                 mode=mode,
                                 keep_size=keep_size, )
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -435,7 +435,7 @@ class ExpIF(NeuGroup):
     self.noise = init_noise(noise, self.varshape)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
+    is_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
     # variables
@@ -593,7 +593,7 @@ class AdExIF(NeuGroup):
                                  keep_size=keep_size,
                                  name=name,
                                  mode=mode, )
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -610,8 +610,8 @@ class AdExIF(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(w_initializer, 'w_initializer')
+    is_initializer(V_initializer, 'V_initializer')
+    is_initializer(w_initializer, 'w_initializer')
     self._V_initializer = V_initializer
     self._w_initializer = w_initializer
 
@@ -767,7 +767,7 @@ class QuaIF(NeuGroup):
                                 keep_size=keep_size,
                                 name=name,
                                 mode=mode)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -781,7 +781,7 @@ class QuaIF(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=1)
 
     # initializers
-    check_initializer(V_initializer, '_V_initializer', allow_none=False)
+    is_initializer(V_initializer, '_V_initializer', allow_none=False)
     self._V_initializer = V_initializer
 
     # variables
@@ -936,7 +936,7 @@ class AdQuaIF(NeuGroup):
                                   keep_size=keep_size,
                                   name=name,
                                   mode=mode, )
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -951,8 +951,8 @@ class AdQuaIF(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(w_initializer, 'w_initializer', allow_none=False)
+    is_initializer(V_initializer, 'V_initializer', allow_none=False)
+    is_initializer(w_initializer, 'w_initializer', allow_none=False)
     self._V_initializer = V_initializer
     self._w_initializer = w_initializer
 
@@ -1120,7 +1120,7 @@ class GIF(NeuGroup):
                               keep_size=keep_size,
                               name=name,
                               mode=mode)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # params
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -1138,13 +1138,13 @@ class GIF(NeuGroup):
     self.A1 = parameter(A1, self.varshape, allow_none=False)
     self.A2 = parameter(A2, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=4)
-    self.spike_fun = check_callable(spike_fun, 'spike_fun')
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(I1_initializer, 'I1_initializer')
-    check_initializer(I2_initializer, 'I2_initializer')
-    check_initializer(Vth_initializer, 'Vth_initializer')
+    is_initializer(V_initializer, 'V_initializer')
+    is_initializer(I1_initializer, 'I1_initializer')
+    is_initializer(I2_initializer, 'I2_initializer')
+    is_initializer(Vth_initializer, 'Vth_initializer')
     self._V_initializer = V_initializer
     self._I1_initializer = I1_initializer
     self._I2_initializer = I2_initializer
@@ -1285,7 +1285,7 @@ class ALIFBellec2020(NeuGroup):
                                          size=size,
                                          keep_size=keep_size,
                                          mode=mode)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
@@ -1296,12 +1296,12 @@ class ALIFBellec2020(NeuGroup):
     self.tau_a = parameter(tau_a, self.varshape, allow_none=False)
     self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
-    self.spike_fun = check_callable(spike_fun, 'spike_fun')
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
     self.eprop = eprop
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(a_initializer, 'a_initializer')
+    is_initializer(V_initializer, 'V_initializer')
+    is_initializer(a_initializer, 'a_initializer')
     self._V_initializer = V_initializer
     self._a_initializer = a_initializer
 
@@ -1477,7 +1477,7 @@ class Izhikevich(NeuGroup):
                                      keep_size=keep_size,
                                      name=name,
                                      mode=mode)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # params
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -1487,11 +1487,11 @@ class Izhikevich(NeuGroup):
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
-    self.spike_fun = check_callable(spike_fun, 'spike_fun')
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(u_initializer, 'u_initializer', allow_none=False)
+    is_initializer(V_initializer, 'V_initializer', allow_none=False)
+    is_initializer(u_initializer, 'u_initializer', allow_none=False)
     self._V_initializer = V_initializer
     self._u_initializer = u_initializer
 
@@ -1707,7 +1707,7 @@ class HindmarshRose(NeuGroup):
                                         keep_size=keep_size,
                                         name=name,
                                         mode=mode)
-    check_mode(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -1719,12 +1719,12 @@ class HindmarshRose(NeuGroup):
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=3)
-    self.spike_fun = check_callable(spike_fun, 'spike_fun')
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # variables
-    check_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check_initializer(y_initializer, 'y_initializer', allow_none=False)
-    check_initializer(z_initializer, 'z_initializer', allow_none=False)
+    is_initializer(V_initializer, 'V_initializer', allow_none=False)
+    is_initializer(y_initializer, 'y_initializer', allow_none=False)
+    is_initializer(z_initializer, 'z_initializer', allow_none=False)
     self._V_initializer = V_initializer
     self._y_initializer = y_initializer
     self._z_initializer = z_initializer
@@ -1885,7 +1885,7 @@ class FHN(NeuGroup):
                               keep_size=keep_size,
                               name=name,
                               mode=mode)
-    check_mode(self.mode, (bm.NonBatchingMode,), self.__class__)
+    is_subclass(self.mode, (bm.NonBatchingMode,), self.__class__)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -1895,8 +1895,8 @@ class FHN(NeuGroup):
     self.noise = init_noise(noise, self.varshape, num_vars=2)
 
     # initializers
-    check_initializer(V_initializer, 'V_initializer')
-    check_initializer(w_initializer, 'w_initializer')
+    is_initializer(V_initializer, 'V_initializer')
+    is_initializer(w_initializer, 'w_initializer')
     self._V_initializer = V_initializer
     self._w_initializer = w_initializer
 

@@ -11,7 +11,7 @@ from brainpy.connect import TwoEndConnector, All2All, One2One
 from brainpy.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy.initialize import Initializer, variable_
 from brainpy.integrators import odeint, JointEq
-from brainpy.check import check_integer, check_float, check_mode
+from brainpy.check import is_integer, is_float, is_subclass
 from brainpy.types import ArrayType
 from ..synouts import CUBA, MgBlock
 
@@ -962,10 +962,10 @@ class PoissonInput(SynConn):
     if not isinstance(target_var, bm.Variable):
       raise TypeError(f'"target_var" must be an instance of Variable. '
                       f'But we got {type(target_var)}: {target_var}')
-    check_integer(num_input, 'num_input', min_bound=1)
-    check_float(freq, 'freq', min_bound=0., allow_int=True)
-    check_float(weight, 'weight', allow_int=True)
-    check_mode(mode, (bm.NonBatchingMode, bm.BatchingMode), name=self.__class__.__name__)
+    is_integer(num_input, 'num_input', min_bound=1)
+    is_float(freq, 'freq', min_bound=0., allow_int=True)
+    is_float(weight, 'weight', allow_int=True)
+    is_subclass(mode, (bm.NonBatchingMode, bm.BatchingMode), name=self.__class__.__name__)
 
     # parameters
     self.target_var = target_var

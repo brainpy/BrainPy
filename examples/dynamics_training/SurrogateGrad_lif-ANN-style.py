@@ -18,7 +18,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class SNN(bp.dyn.Network):
+class SNN(bp.Network):
   def __init__(self, num_in, num_rec, num_out):
     super(SNN, self).__init__()
 
@@ -86,7 +86,7 @@ y_data = bm.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.float_)
 rng = bm.random.RandomState()
 
 # Before training
-runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
+runner = bp.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
 out = runner.run(inputs=x_data, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
@@ -98,7 +98,7 @@ def loss():
   key = rng.split_key()
   X = bm.random.permutation(x_data, key=key)
   Y = bm.random.permutation(y_data, key=key)
-  looper = bp.dyn.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
+  looper = bp.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
   predictions = looper.run(inputs=X, reset_state=True)
   predictions = bm.max(predictions, axis=1)
   return bp.losses.cross_entropy_loss(predictions, Y)
@@ -131,7 +131,7 @@ plt.ylabel("Training Loss")
 plt.show()
 
 # predict the output according to the input data
-runner = bp.dyn.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
+runner = bp.DSRunner(net, monitors={'r.spike': net.r.spike, 'r.membrane': net.r.V})
 out = runner.run(inputs=x_data, reset_state=True)
 plot_voltage_traces(runner.mon.get('r.membrane'), runner.mon.get('r.spike'))
 plot_voltage_traces(out)
