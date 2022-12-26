@@ -54,7 +54,7 @@ def to_dynsys(
     child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     name: str = None
-) -> 'FuncAsDynSys':
+) -> BrainPyObject:
   """Transform a Python function to a :py:class:`~.DynamicalSystem`.
 
   Parameters
