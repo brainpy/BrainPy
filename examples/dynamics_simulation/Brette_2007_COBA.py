@@ -6,7 +6,7 @@ import brainpy.math as bm
 bp.math.set_platform('cpu')
 
 
-class EINet_V1(bp.dyn.Network):
+class EINet_V1(bp.Network):
   def __init__(self, scale=1.0, method='exp_auto'):
     super(EINet_V1, self).__init__()
 
@@ -41,7 +41,7 @@ class EINet_V1(bp.dyn.Network):
 def run_model_v1():
   net = EINet_V1(scale=1., method='exp_auto')
   # simulation
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     net,
     monitors={'E.spike': net.E.spike},
     inputs=[(net.E.input, 20.), (net.I.input, 20.)]
@@ -52,7 +52,7 @@ def run_model_v1():
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
 
 
-class EINet_V2(bp.dyn.Network):
+class EINet_V2(bp.Network):
   def __init__(self, scale=1.0, method='exp_auto'):
     super(EINet_V2, self).__init__()
 
@@ -85,7 +85,7 @@ class EINet_V2(bp.dyn.Network):
 def run_model_v2():
   net = EINet_V2(scale=1., method='exp_auto')
   # simulation
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     net,
     monitors={'spikes': net.N.spike},
     inputs=[(net.N.input, 20.)]

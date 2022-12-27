@@ -16,8 +16,8 @@ import brainpy as bp
 import brainpy.math as bm
 import brainpy_datasets as bd
 
-bm.enable_x64()
-bm.set_environment(bm.batching_mode)
+
+bm.set_environment(bm.batching_mode, x64=True)
 
 
 def get_subset(data, start, end):

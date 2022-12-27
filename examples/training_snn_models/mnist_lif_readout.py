@@ -72,8 +72,8 @@ def loss_fun(xs, ys):
   out_fr = bm.mean(outs, axis=0)
   ys_onehot = bm.one_hot(ys, 10, dtype=bm.float_)
   l = bp.losses.mean_squared_error(out_fr, ys_onehot)
-  correct_num = bm.sum(out_fr.argmax(1) == ys)
-  return l, correct_num
+  n = bm.sum(out_fr.argmax(1) == ys)
+  return l, n
 
 
 # gradient
@@ -87,9 +87,9 @@ optimizer = bp.optim.Adam(lr=args.lr, train_vars=net.train_vars().unique())
 @bm.jit
 @bm.to_object(child_objs=(grad_fun, optimizer))
 def train(xs, ys):
-  grads, l, correct_num = grad_fun(xs, ys)
+  grads, l, n = grad_fun(xs, ys)
   optimizer.update(grads)
-  return l, correct_num
+  return l, n
 
 
 max_test_acc = 0.
