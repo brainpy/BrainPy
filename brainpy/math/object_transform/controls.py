@@ -21,7 +21,6 @@ from brainpy.math.ndarray import (Array, Variable,
 from brainpy.math.numpy_ops import as_device_array
 from ._utils import infer_dyn_vars
 from .base import ObjectTransform
-from brainpy.types import PyTree
 
 __all__ = [
   'make_loop',
@@ -647,7 +646,7 @@ def for_loop(
     body_fun: Callable,
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    out_vars: Optional[PyTree] = None,
+    out_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     reverse: bool = False,
     unroll: int = 1,
 ):

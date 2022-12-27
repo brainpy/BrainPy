@@ -1304,7 +1304,7 @@ def load(
     gda_manager: Optional[Any] = None,
     allow_partial_mpa_restoration: bool = False,
 ) -> PyTree:
-  """Load last or best  checkpoint from the given checkpoint path.
+  """Load last or best checkpoint from the given checkpoint path.
 
   Sorts the checkpoint files naturally, returning the highest-valued
   file, e.g.:
