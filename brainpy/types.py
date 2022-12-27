@@ -2,9 +2,10 @@
 
 from typing import TypeVar, Tuple
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 
+from brainpy.math.ndarray import Array, Variable, TrainVar
 
 __all__ = [
   'ArrayType', 'Parameter', 'PyTree',
@@ -15,7 +16,7 @@ __all__ = [
 
 # data
 Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'Array', 'Variable') # noqa
-ArrayType = TypeVar('ArrayType', 'Array', 'Variable', 'TrainVar', jnp.ndarray, np.ndarray) # noqa
+ArrayType = TypeVar('ArrayType', Array, Variable, TrainVar, jnp.ndarray, np.ndarray) # noqa
 Array = ArrayType # noqa
 PyTree = TypeVar('PyTree') # noqa
 

@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from typing import Callable, Sequence, Dict, Union
+from typing import Callable, Sequence, Dict, Union, TypeVar
 
 from brainpy.base.base import BrainPyObject
-from brainpy.types import ArrayType
+
+
+Variable = TypeVar('Variable')
+
 
 __all__ = [
   'FunAsObject',
@@ -28,7 +31,7 @@ class FunAsObject(BrainPyObject):
   def __init__(self,
                f: Callable,
                child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[dict, BrainPyObject]] = None,
-               dyn_vars: Union[ArrayType, Sequence[ArrayType], Dict[dict, ArrayType]] = None,
+               dyn_vars: Union[Variable, Sequence[Variable], Dict[dict, Variable]] = None,
                name: str = None):
     super(FunAsObject, self).__init__(name=name)
     self._f = f

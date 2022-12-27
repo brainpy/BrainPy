@@ -4,6 +4,7 @@ import warnings
 from collections import namedtuple
 from functools import partial
 from operator import index
+from typing import Optional, Union
 
 import jax
 import numpy as np
@@ -12,9 +13,9 @@ from jax._src import dtypes
 from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
-from brainpy.math.ndarray import Array, Variable
 from brainpy.check import jit_error_checking
 from brainpy.errors import UnsupportedError
+from brainpy.math.ndarray import Array, Variable
 from ._utils import wraps
 
 __all__ = [
@@ -402,12 +403,14 @@ class RandomState(Variable):
   """RandomState that track the random generator state. """
   __slots__ = ()
 
-  def __init__(self, seed_or_key=None, seed=None):
+  def __init__(self,
+               seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
+               seed: Optional[int] = None):
     """RandomState constructor.
 
     Parameters
     ----------
-    seed_or_key: int, ArrayType, optional
+    seed_or_key: int, Array, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
 
@@ -449,6 +452,9 @@ class RandomState(Variable):
   # ------------------- #
   # seed and random key #
   # ------------------- #
+
+  def clone(self):
+    return type(self)(self.split_key())
 
   def seed(self, seed_or_key=None, seed=None):
     """Sets a new random seed.
