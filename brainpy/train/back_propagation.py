@@ -2,13 +2,12 @@
 
 import sys
 import time
-import warnings
 from collections.abc import Iterable
 from functools import partial
-from typing import Union, Dict, Callable, Sequence, Any
+from typing import Union, Dict, Callable, Sequence, Any, Optional
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 from jax.tree_util import tree_map
 
 import brainpy.losses as losses
@@ -55,7 +54,6 @@ class BPTrainer(DSTrainer):
     Make the monitored results as NumPy arrays.
   logger: Any
     A file-like object (stream); defaults to the current `sys.stdout`.
-
   shuffle_data: bool
     .. deprecated:: 2.2.4.1
        Control the data shuffling by user self.
@@ -171,51 +169,21 @@ class BPTrainer(DSTrainer):
   def test_losses(self):
     return self.get_hist_metric(phase='test')
 
-  def predict(
-      self,
-      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
-      reset_state: bool = True,
-      shared_args: Dict = None,
-      eval_time: bool = False
-  ) -> Output:
-    """Predict a series of input data with the given target model.
-
-    This function use the JIT compilation to accelerate the model simulation.
-    Moreover, it can automatically monitor the node variables, states, inputs,
-    feedbacks and its output, if users want.
-
-    Parameters
-    ----------
-    inputs: ArrayType, sequence, dict
-      The feedforward input data. It must be a 3-dimensional data
-      which has the shape of `(num_sample, num_time, num_feature)`.
-    shared_args: dict
-      Shared keyword arguments for the given target model.
-    reset_state: bool
-      Whether reset the model states. Default True.
-    eval_time: bool
-      Whether evaluate the running time or not. Default False.
-    """
-    return super().predict(inputs=inputs,
-                           reset_state=reset_state,
-                           shared_args=shared_args,
-                           eval_time=eval_time)
-
   def fit(
       self,
       train_data: Union[Callable, Iterable],
-      test_data: Union[Callable, Iterable] = None,
+      test_data: Optional[Union[Callable, Iterable]] = None,
       num_epoch: int = 100,
       num_report: int = -1,
       reset_state: bool = True,
-      shared_args: Dict = None,
+      shared_args: Optional[Dict] = None,
+      fun_after_report: Optional[Callable] = None,
 
       # ------
       # API deprecated
       batch_size: int = None,
   ):
-    """
-    Fit the target model according to the given training data.
+    """Fit the target model according to the given training data.
 
     Parameters
     ----------
@@ -233,23 +201,27 @@ class BPTrainer(DSTrainer):
             then we will only fit the model with the only last output.
           - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
             then the fitting happens on the whole data series.
-
     test_data: callable, iterable, optional
       Same as ``train_data``.
-
     num_epoch: int
       The number of training epoch. Default 100.
-
     num_report: int
       The number of step to report the progress.
       If `num_report=-1`, it will report the training progress each epoch.
-
     reset_state: bool
       Whether reset the initial states of the target model.
-
     shared_args: dict
       The shared keyword arguments for the target models.
+    fun_after_report: optional, Callable
+      The function to call after each report of `fit` phase or `test` phase.
+      The function should receive three arguments:
+      - ``idx`` for the indicator the current the running index. (If ``report=-1``,
+        The running index is the epoch. Otherwise, is the 'fit_idx' for 'fit' phase
+        and 'test_idx' for 'test' phase).
+      - ``metrics``: the metrics defined in the loss function
+      - ``phase``: to indicate the phase of 'fit' or 'test'.
 
+      .. versionadded:: 2.3.1
     batch_size: int
 
       .. deprecated:: 2.2.4.1
@@ -263,6 +235,16 @@ class BPTrainer(DSTrainer):
     if isinstance(train_data, (tuple, list)):
       if len(train_data) == 2:
         raise UnsupportedError(msg)
+
+    if fun_after_report is not None:
+      assert callable(fun_after_report), ('\n'
+                                          'Unknown "fun_after_report", '
+                                          'it should be a callable function receiving '
+                                          'three arguments: idx, metrics, phase')
+
+    if shared_args is None:
+      shared_args = dict()
+    shared_args['fit'] = shared_args.get('fit', False)
 
     true_progress_bar = self.progress_bar
     self.progress_bar = False
@@ -316,6 +298,8 @@ class BPTrainer(DSTrainer):
           print((f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
                  ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
                 file=self.logger)
+          if fun_after_report is not None:
+            fun_after_report(fit_i, aux, 'fit')
           fit_t0 = time.time()
           fit_t = 0
 
@@ -333,6 +317,8 @@ class BPTrainer(DSTrainer):
         print((f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
                ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
               file=self.logger)
+        if fun_after_report is not None:
+          fun_after_report(epoch_idx, aux, 'fit')
       else:
         fit_t = time.time() - fit_t0
 
@@ -377,6 +363,8 @@ class BPTrainer(DSTrainer):
             print((f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
                    ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
                   file=self.logger)
+            if fun_after_report is not None:
+              fun_after_report(test_i, aux, 'test')
             test_t0 = time.time()
             test_t = 0
 
@@ -394,6 +382,8 @@ class BPTrainer(DSTrainer):
           print((f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
                  ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
                 file=self.logger)
+          if fun_after_report is not None:
+            fun_after_report(epoch_idx, aux, 'test')
         else:
           test_t = time.time() - test_t0
 
@@ -609,6 +599,9 @@ class BPFF(BPTrainer):
     output: ArrayType, dict
       The model output.
     """
+    if shared_args is None: shared_args = dict()
+    shared_args['fit'] = shared_args.get('fit', False)
+
     # reset the model states
     if reset_state:
       self.target.reset_state(self._get_input_batch_size(xs=inputs))

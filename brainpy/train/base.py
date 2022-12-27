@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Sequence, Any, Union
+from typing import Dict, Sequence, Any, Union, Optional
 
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
@@ -67,7 +67,7 @@ class DSTrainer(DSRunner):
       self,
       inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       reset_state: bool = False,
-      shared_args: Dict = None,
+      shared_args: Optional[Dict] = None,
       eval_time: bool = False
   ) -> Output:
     """Prediction function.
@@ -88,6 +88,10 @@ class DSTrainer(DSRunner):
     output: ArrayType, sequence of ArrayType, dict of ArrayType
       The running output.
     """
+    if shared_args is None:
+      shared_args = dict()
+    shared_args['fit'] = shared_args.get('fit', False)
+
     return super().predict(inputs=inputs,
                            reset_state=reset_state,
                            shared_args=shared_args,
