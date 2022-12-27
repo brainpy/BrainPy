@@ -9,7 +9,7 @@ import sys
 import warnings
 from typing import Any, Callable, TypeVar, cast
 
-from jax import dtypes, config, numpy as jnp, devices
+from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
 from . import modes
@@ -329,6 +329,7 @@ class _DecoratorContextManager:
 def set_environment(
     mode: modes.Mode = None,
     dt: float = None,
+    x64: bool = None,
     complex_: type = None,
     float_: type = None,
     int_: type = None,
@@ -342,6 +343,8 @@ def set_environment(
     The computing mode.
   dt: float
     The numerical integration precision.
+  x64: bool
+    Enable x64 computation.
   complex_: type
     The complex data type.
   float_
@@ -358,6 +361,10 @@ def set_environment(
   if mode is not None:
     assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
     set_mode(mode)
+
+  if x64 is not None:
+    assert isinstance(x64, bool), f'"x64" must be a bool.'
+    set_x64(x64)
 
   if float_ is not None:
     assert isinstance(float_, type), '"float_" must a float.'
@@ -402,8 +409,9 @@ class environment(_DecoratorContextManager):
 
   def __init__(
       self,
-      dt: float = None,
       mode: modes.Mode = None,
+      dt: float = None,
+      x64: bool = None,
       complex_: type = None,
       float_: type = None,
       int_: type = None,
@@ -412,6 +420,7 @@ class environment(_DecoratorContextManager):
     super().__init__()
     self.old_dt = get_dt()
     self.old_mode = get_mode()
+    self.old_x64 = config.read("jax_enable_x64")
     self.old_int = get_int()
     self.old_bool = get_bool()
     self.old_float = get_float()
@@ -421,6 +430,8 @@ class environment(_DecoratorContextManager):
       assert isinstance(dt, float), '"dt" must a float.'
     if mode is not None:
       assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
+    if x64 is not None:
+      assert isinstance(x64, bool), f'"x64" must be a bool.'
     if float_ is not None:
       assert isinstance(float_, type), '"float_" must a float.'
     if int_ is not None:
@@ -431,6 +442,7 @@ class environment(_DecoratorContextManager):
       assert isinstance(complex_, type), '"complex_" must a type.'
     self.dt = dt
     self.mode = mode
+    self.x64 = x64
     self.complex_ = complex_
     self.float_ = float_
     self.int_ = int_
@@ -439,6 +451,7 @@ class environment(_DecoratorContextManager):
   def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
     if self.mode is not None: set_mode(self.mode)
+    if self.x64 is not None: set_x64(self.x64)
     if self.float_ is not None: set_float(self.float_)
     if self.int_ is not None: set_int(self.int_)
     if self.complex_ is not None: set_complex(self.complex_)
@@ -448,6 +461,7 @@ class environment(_DecoratorContextManager):
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     if self.dt is not None: set_dt(self.old_dt)
     if self.mode is not None: set_mode(self.old_mode)
+    if self.x64 is not None: set_x64(self.old_x64)
     if self.int_ is not None: set_int(self.old_int)
     if self.float_ is not None:  set_float(self.old_float)
     if self.complex_ is not None:  set_complex(self.old_complex)
@@ -456,6 +470,7 @@ class environment(_DecoratorContextManager):
   def clone(self):
     return self.__class__(dt=self.dt,
                           mode=self.mode,
+                          x64=self.x64,
                           bool_=self.bool_,
                           complex_=self.complex_,
                           float_=self.float_,
@@ -468,6 +483,7 @@ class training_environment(environment):
   This is a short-cut context setting for an environment with the training mode.
   It is equivalent to::
 
+    >>> import brainpy.math as bm
     >>> with bm.environment(mode=bm.training_mode):
     >>>   pass
 
@@ -476,11 +492,17 @@ class training_environment(environment):
 
   def __init__(self,
                dt: float = None,
+               x64: bool = None,
                complex_: type = None,
                float_: type = None,
                int_: type = None,
                bool_: type = None):
-    super().__init__(dt=dt, complex_=complex_, float_=float_, int_=int_, bool_=bool_,
+    super().__init__(dt=dt,
+                     x64=x64,
+                     complex_=complex_,
+                     float_=float_,
+                     int_=int_,
+                     bool_=bool_,
                      mode=modes.TrainingMode())
 
 
@@ -490,6 +512,7 @@ class batching_environment(environment):
   This is a short-cut context setting for an environment with the batching mode.
   It is equivalent to::
 
+    >>> import brainpy.math as bm
     >>> with bm.environment(mode=bm.batching_mode):
     >>>   pass
 
@@ -498,11 +521,17 @@ class batching_environment(environment):
 
   def __init__(self,
                dt: float = None,
+               x64: bool = None,
                complex_: type = None,
                float_: type = None,
                int_: type = None,
                bool_: type = None):
-    super().__init__(dt=dt, complex_=complex_, float_=float_, int_=int_, bool_=bool_,
+    super().__init__(dt=dt,
+                     x64=x64,
+                     complex_=complex_,
+                     float_=float_,
+                     int_=int_,
+                     bool_=bool_,
                      mode=modes.BatchingMode())
 
 
@@ -518,6 +547,14 @@ def disable_x64():
   set_int(jnp.int32)
   set_float(jnp.float32)
   set_complex(jnp.complex64)
+
+
+def set_x64(enable: bool):
+  assert isinstance(enable, bool)
+  if enable:
+    enable_x64()
+  else:
+    disable_x64()
 
 
 def set_platform(platform: str):

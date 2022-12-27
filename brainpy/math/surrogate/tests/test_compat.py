@@ -30,16 +30,16 @@ class TestSpike2SigmoidGrad(unittest.TestCase):
     self.f5 = f5
 
   def test_sp_sigmoid_grad2(self):
-    a = bm.ones(10) * 2
-    b = bm.ones(10)
+    a = bm.ones(10).value * 2
+    b = bm.ones(10).value
     grad1, val1 = self.f4(a, b)
     grad2, val2 = self.f5(a, b)
     self.assertTrue(bm.array_equal(grad1, grad2))
     self.assertTrue(bm.array_equal(val1, val2))
 
   def test_sp_sigmoid_grad1(self):
-    a = bm.zeros(10)
-    b = bm.ones(10)
+    a = bm.zeros(10).value
+    b = bm.ones(10).value
     grad1, val1 = self.f4(a, b)
     grad2, val2 = self.f5(a, b)
     print(grad2)
@@ -49,8 +49,8 @@ class TestSpike2SigmoidGrad(unittest.TestCase):
     self.assertTrue(~bm.array_equal(val1, val2))
 
   def test_sp_sigmoid_grad3(self):
-    a = bm.ones(10) * -2
-    b = bm.ones(10)
+    a = bm.ones(10).value * -2
+    b = bm.ones(10).value
     grad1, val1 = self.f4(a, b)
     grad2, val2 = self.f5(a, b)
     self.assertTrue(bm.array_equal(grad1, grad2))
