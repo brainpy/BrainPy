@@ -514,9 +514,6 @@ class RandomState(Variable):
     self._value = keys[0]
     return keys[1:]
 
-  def update(self, value):
-    raise UnsupportedError(f'Do not support change the value of a {self.__class__.__name__}.')
-
   # ---------------- #
   # random functions #
   # ---------------- #

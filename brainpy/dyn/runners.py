@@ -16,7 +16,7 @@ from jax.tree_util import tree_map, tree_flatten
 from brainpy import math as bm, tools
 from brainpy.check import is_float, serialize_kwargs
 from brainpy.dyn.base import DynamicalSystem
-from brainpy.errors import RunningError
+from brainpy.errors import RunningError, NoLongerSupportError
 from brainpy.running.runner import Runner
 from brainpy.types import ArrayType, Output, Monitor
 
@@ -27,6 +27,9 @@ __all__ = [
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
 
+
+def _is_brainpy_array(x):
+  return isinstance(x, bm.Array)
 
 def check_and_format_inputs(host, inputs):
   """Check inputs and get the formatted inputs for the given population.
@@ -305,8 +308,7 @@ class DSRunner(Runner):
       target: DynamicalSystem,
 
       # inputs for target variables
-      inputs: Sequence = (),
-      time_major: bool = False,
+      inputs: Union[Sequence, Callable] = (),
 
       # monitors
       monitors: Union[Sequence, Dict] = None,
@@ -320,6 +322,7 @@ class DSRunner(Runner):
       dt: float = None,
       t0: Union[float, int] = 0.,
       progress_bar: bool = True,
+      time_major: bool = False,
 
       # deprecated
       fun_inputs: Callable = None,
@@ -429,7 +432,7 @@ class DSRunner(Runner):
     """
 
     if inputs_are_batching is not None:
-      raise ValueError(
+      raise NoLongerSupportError(
         f'''
         `inputs_are_batching` is no longer supported. 
         The target mode of {self.target.mode} has already indicated the input should be batching.
@@ -569,7 +572,9 @@ class DSRunner(Runner):
       return None
     if isinstance(self.target.mode, bm.NonBatchingMode):
       return None
-    leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
+    if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
+      return xs.shape[1] if self.time_major else xs.shape[0]
+    leaves, _ = tree_flatten(xs, is_leaf=_is_brainpy_array)
     if self.time_major:
       num_batch_sizes = [x.shape[1] for x in leaves]
     else:
@@ -585,13 +590,19 @@ class DSRunner(Runner):
       return int(duration / self.dt)
     if xs is not None:
       if isinstance(xs, (bm.Array, jnp.ndarray)):
-        return xs.shape[0] if self.time_major else xs.shape[1]
+        if isinstance(self.target.mode, bm.BatchingMode):
+          return xs.shape[0] if self.time_major else xs.shape[1]
+        else:
+          return xs.shape[0]
       else:
         leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
-        if self.time_major:
-          num_steps = [val.shape[0] for val in leaves]
+        if isinstance(self.target.mode, bm.BatchingMode):
+          if self.time_major:
+            num_steps = [x.shape[0] for x in leaves]
+          else:
+            num_steps = [x.shape[1] for x in leaves]
         else:
-          num_steps = [val.shape[1] for val in leaves]
+          num_steps = [x.shape[0] for x in leaves]
         if len(set(num_steps)) != 1:
           raise ValueError(f'Number of time step is different across arrays in '
                            f'the provided "xs". We got {set(num_steps)}.')
@@ -612,6 +623,7 @@ class DSRunner(Runner):
     out = self.target(*args)
 
     # monitor step
+    shared['t'] += self.dt
     mon = self._step_func_monitor(shared)
 
     # finally

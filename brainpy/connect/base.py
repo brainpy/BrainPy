@@ -303,13 +303,13 @@ class TwoEndConnector(Connector):
     if isinstance(conn_data, dict):
       csr = conn_data.get('csr', None)
       mat = conn_data.get('mat', None)
-      coo = conn_data.get('coo', None)
+      coo = conn_data.get('coo', None) or conn_data.get('ij', None)
     elif isinstance(conn_data, tuple):
       if conn_data[0] == 'csr':
         csr = conn_data[1]
       elif conn_data[0] == 'mat':
         mat = conn_data[1]
-      elif conn_data[0] == 'coo':
+      elif conn_data[0] in ['coo', 'ij']:
         coo = conn_data[1]
       else:
         raise ConnectorError(f'Must provide one of "csr", "mat" or "coo". Got "{conn_data[0]}" instead.')

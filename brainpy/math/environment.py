@@ -63,7 +63,7 @@ def ditype():
   .. deprecated:: 2.3.1
      Use `brainpy.math.int_` instead.
   """
-  warnings.warn('Get default integer data type through `ditype()` has been deprecated. \n'
+  warnings.warn('\nGet default integer data type through `ditype()` has been deprecated. \n'
                 'Use `brainpy.math.int_` instead.')
   global bm
   if bm is None: from brainpy import math as bm
@@ -77,7 +77,7 @@ def dftype():
      Use `brainpy.math.float_` instead.
   """
 
-  warnings.warn('Get default floating data type through `dftype()` has been deprecated. \n'
+  warnings.warn('\nGet default floating data type through `dftype()` has been deprecated. \n'
                 'Use `brainpy.math.float_` instead.')
   global bm
   if bm is None: from brainpy import math as bm

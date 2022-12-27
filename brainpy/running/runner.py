@@ -124,9 +124,11 @@ class Runner(BrainPyObject):
           else:
             raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
                                f'But we got {val}')
+        elif callable(val):
+          _monitors[key] = val
         else:
-          raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
-                             f'But we got {val}')
+          raise MonitorError('The value of dict monitor expect a sequence with (variable, index) '
+                             f'or a callable function. But we got {val}')
       monitors = _monitors
     else:
       raise MonitorError(f'We only supports a format of list/tuple/dict of '
@@ -136,7 +138,7 @@ class Runner(BrainPyObject):
     # deprecated func_monitors
     if fun_monitors is not None:
       if isinstance(fun_monitors, dict):
-        warnings.warn("`func_monitors` is deprecated since version 2.3.1. "
+        warnings.warn("`fun_monitors` is deprecated since version 2.3.1. "
                       "Define `func_monitors` in `monitors`")
       check.is_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
       self._monitors.update(fun_monitors)

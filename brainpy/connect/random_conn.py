@@ -1013,7 +1013,7 @@ class ProbDist(TwoEndConnector):
     self._connect_3d = numba_jit(_connect_3d)
     self._connect_4d = numba_jit(_connect_4d)
 
-  def build_conn(self):
+  def build_coo(self):
     if len(self.pre_size) != len(self.post_size):
       raise ValueError('The dimensions of shapes of two objects to establish connections should '
                        f'be the same. But we got dimension {len(self.pre_size)} != {len(self.post_size)}. '
@@ -1046,4 +1046,4 @@ class ProbDist(TwoEndConnector):
       pres, posts = f(pre_pos, pre_size=pre_size, post_size=post_size, n_dim=n_dim)
       connected_pres.extend(pres)
       connected_posts.extend(posts)
-    return 'ij', (np.asarray(connected_pres), np.asarray(connected_posts))
+    return np.asarray(connected_pres), np.asarray(connected_posts)
