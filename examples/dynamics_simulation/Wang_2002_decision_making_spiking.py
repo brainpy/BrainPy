@@ -267,11 +267,11 @@ def batching_run():
     runner = bp.DSRunner(
       net,
       monitors=['A.spike', 'B.spike', 'IA.freq', 'IB.freq'],
-      time_major=False
+      data_first_axis=False
     )
     runner.run(total_period)
 
-  coherence = coherence.to_numpy()
+  coherence = bm.as_numpy(coherence)
   fig, gs = bp.visualize.get_figure(num_row, num_col, 3, 4)
   for i in range(num_row):
     for j in range(num_col):

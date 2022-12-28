@@ -163,7 +163,8 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
     return loss + l2_loss + l1_loss
 
   trainer = bp.train.BPTT(
-    model, loss_fun,
+    model,
+    loss_fun,
     optimizer=bp.optim.Adam(lr=lr),
     monitors={'r.spike': net.r.spike},
   )
