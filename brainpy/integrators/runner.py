@@ -168,8 +168,14 @@ class IntegratorRunner(Runner):
       self.variables[k][:] = inits[k]
 
     # format string monitors
-    monitors = self._format_seq_monitors(monitors)
-    monitors = {k: (self.variables[k], i) for k, i in monitors}
+    if isinstance(monitors, (tuple, list)):
+      monitors = self._format_seq_monitors(monitors)
+      monitors = {k: (self.variables[k], i) for k, i in monitors}
+    elif isinstance(monitors, dict):
+      monitors = self._format_dict_monitors(monitors)
+      monitors = {k: ((self.variables[i], i) if isinstance(i, str) else i) for k, i in monitors.items()}
+    else:
+      raise ValueError
 
     # initialize super class
     super(IntegratorRunner, self).__init__(target=target,
@@ -217,12 +223,6 @@ class IntegratorRunner(Runner):
       self._dyn_args = dyn_args
     else:
       self._dyn_args = dict()
-
-    # monitors
-    for k in self.mon.var_names:
-      if k not in self.target.variables:
-        raise MonitorError(f'Variable "{k}" to monitor is not defined '
-                           f'in the integrator {self.target}.')
 
     # start simulation time and index
     self.start_t = bm.Variable(bm.zeros(1))

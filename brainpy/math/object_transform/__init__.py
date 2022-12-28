@@ -16,6 +16,9 @@ Details please see the following.
 """
 
 from . import (
+  base_object,
+  base_transform,
+  collector,
   autograd,
   controls,
   jit,

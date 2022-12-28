@@ -112,7 +112,8 @@ class BPTrainer(DSTrainer):
       lr = optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
       optimizer = optim.Adam(lr=lr)
     self.optimizer: optim.Optimizer = optimizer
-    self.optimizer.register_vars(self.target.vars(level=-1, include_self=True).subset(bm.TrainVar).unique())
+    if len(self.optimizer.vars_to_train) == 0:
+      self.optimizer.register_vars(self.target.vars(level=-1, include_self=True).subset(bm.TrainVar).unique())
 
     # loss function
     self.loss_has_aux = loss_has_aux
@@ -146,7 +147,7 @@ class BPTrainer(DSTrainer):
             f'{prefix}loss={self._loss_func}, \n\t'
             f'{prefix}optimizer={self.optimizer})')
 
-  def get_hist_metric(self, phase='fit', metric='loss', which='detailed'):
+  def get_hist_metric(self, phase='fit', metric='loss', which='report'):
     """Get history losses."""
     assert phase in [c.FIT_PHASE, c.TEST_PHASE, c.TRAIN_PHASE, c.PREDICT_PHASE]
     assert which in ['report', 'detailed']
@@ -332,7 +333,7 @@ class BPTrainer(DSTrainer):
             self.target.reset_state(self._get_input_batch_size(x))
             self.reset_state()
 
-          # training
+          # testing
           res = self._get_f_loss(shared_args)(x, y)
 
           # loss
@@ -406,7 +407,7 @@ class BPTrainer(DSTrainer):
       if self.jit[c.LOSS_PHASE] and jit:
         dyn_vars = self.target.vars()
         dyn_vars.update(self._dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+        dyn_vars.update(self.vars(level=0))
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
                                                         dyn_vars=dyn_vars.unique())
     return self._f_loss_compiled[shared_args_str]
@@ -437,10 +438,15 @@ class BPTrainer(DSTrainer):
 
     shared_args_str = serialize_kwargs(shared_args)
     if shared_args_str not in self._f_fit_compiled:
-      self._f_fit_compiled[shared_args_str] = partial(self._step_func_train, shared_args)
+      self._f_fit_compiled[shared_args_str] = partial(self._step_func_fit, shared_args)
       if self.jit[c.FIT_PHASE]:
-        dyn_vars = self.vars().unique()
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+        dyn_vars = self.target.vars()
+        dyn_vars.update(self.optimizer.vars())
+        if isinstance(self._loss_func, bm.BrainPyObject):
+          dyn_vars.update(self._loss_func)
+        dyn_vars.update(self._dyn_vars)
+        dyn_vars.update(self.vars(level=0))
+        dyn_vars = dyn_vars.unique()
         self._f_fit_compiled[shared_args_str] = bm.jit(self._f_fit_compiled[shared_args_str],
                                                        dyn_vars=dyn_vars)
     return self._f_fit_compiled[shared_args_str]
@@ -448,7 +454,7 @@ class BPTrainer(DSTrainer):
   def _step_func_loss(self, shared_args, inputs, targets):
     raise NotImplementedError
 
-  def _step_func_train(self, shared_args, inputs, targets):
+  def _step_func_fit(self, shared_args, inputs, targets):
     raise NotImplementedError
 
 
@@ -508,7 +514,7 @@ class BPTT(BPTrainer):
     predicts = (outs, mons) if len(mons) > 0 else outs
     return self._loss_func(predicts, targets)
 
-  def _step_func_train(self, shared_args, inputs, targets):
+  def _step_func_fit(self, shared_args, inputs, targets):
     res = self._get_f_grad(shared_args)(inputs, targets)
     self.optimizer.update(res[0])
     return res[1:]
@@ -529,7 +535,7 @@ class BPFF(BPTrainer):
     loss = self._loss_func(outs, targets)
     return loss
 
-  def _step_func_train(self, shared_args, inputs, targets):
+  def _step_func_fit(self, shared_args, inputs, targets):
     res = self._get_f_grad(shared_args)(inputs, targets)
     self.optimizer.update(res[0])
     return res[1:]

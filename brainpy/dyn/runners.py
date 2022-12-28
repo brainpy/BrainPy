@@ -346,7 +346,7 @@ class DSRunner(Runner):
     self.i0 = bm.Variable(bm.asarray([1], dtype=bm.int_))
     self.t0 = bm.Variable(bm.asarray([t0], dtype=bm.float_))
     if data_first_axis is None:
-      data_first_axis = 'B' if isinstance(self.target, bm.BatchingMode) else 'T'
+      data_first_axis = 'B' if isinstance(self.target.mode, bm.BatchingMode) else 'T'
     assert data_first_axis in ['B', 'T']
     self.data_first_axis = data_first_axis
 
@@ -380,8 +380,8 @@ class DSRunner(Runner):
 
   def reset_state(self):
     """Reset state of the ``DSRunner``."""
-    self.i0[0] = 0
-    self.t0[0] = self._t0
+    self.i0.value = bm.zeros_like(self.i0)
+    self.t0.value = bm.ones_like(self.t0) * self._t0
 
   def predict(
       self,
@@ -635,8 +635,10 @@ class DSRunner(Runner):
 
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_predict_compiled:
-      dyn_vars = self.vars().unique()
-      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
+      dyn_vars = self.target.vars()
+      dyn_vars.update(self._dyn_vars)
+      dyn_vars.update(self.vars(level=0))
+      dyn_vars = dyn_vars.unique()
 
       def run_func(all_inputs):
         with jax.disable_jit(not self.jit['predict']):
