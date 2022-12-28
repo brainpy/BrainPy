@@ -90,6 +90,69 @@ class BrainPyObject(object):
     # which cannot be accessed by self.xxx
     self.implicit_nodes = Collector()
 
+  def __setattr__(self, key, value) -> None:
+    """Overwrite __setattr__ method for non-changeable Variable setting.
+
+    .. versionadded:: 2.3.1
+
+    Parameters
+    ----------
+    key: str
+    value: Any
+    """
+    if key in self.__dict__:
+      val = self.__dict__[key]
+      if isinstance(val, Variable):
+        val.value = value
+        return
+    super().__setattr__(key, value)
+
+  def tree_flatten(self):
+    """
+    .. versionadded:: 2.3.1
+
+    Returns
+    -------
+
+    """
+    dynamic_names = []
+    dynamic_values = []
+    static_names = []
+    static_values = []
+    for k, v in self.__dict__.items():
+      if isinstance(v, (ArrayCollector, BrainPyObject, Variable)):
+        dynamic_names.append(k)
+        dynamic_values.append(v)
+      else:
+        static_values.append(v)
+        static_names.append(k)
+    return tuple(dynamic_values), (tuple(dynamic_names),
+                                   tuple(static_names),
+                                   tuple(static_values))
+
+  @classmethod
+  def tree_unflatten(cls, aux, dynamic_values):
+    """
+
+    .. versionadded:: 2.3.1
+
+    Parameters
+    ----------
+    aux
+    dynamic_values
+
+    Returns
+    -------
+
+    """
+    self = cls.__new__(cls)
+    dynamic_names, static_names, static_values = aux
+    for name, value in zip(dynamic_names, dynamic_values):
+      object.__setattr__(self, name, value)
+    for name, value in zip(static_names, static_values):
+      object.__setattr__(self, name, value)
+    return self
+
   @property
   def name(self):
     """Name of the model."""
