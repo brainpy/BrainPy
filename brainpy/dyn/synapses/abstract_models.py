@@ -973,7 +973,7 @@ class PoissonInput(SynConn):
     self.freq = freq
     self.weight = weight
     self.seed = seed
-    self.rng = bm.random.RandomState(self.seed)
+    self.rng = bm.random.get_rng(seed)
 
   def update(self, tdi):
     p = self.freq * tdi.dt / 1e3

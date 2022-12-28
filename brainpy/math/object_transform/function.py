@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+
 import warnings
 from typing import Union, Sequence, Dict, Callable
 
-from brainpy.base import FunAsObject, BrainPyObject
-from brainpy.math.ndarray import Variable
+from .base_object import FunAsObject, BrainPyObject
+from ..ndarray import Variable
 
 __all__ = [
   'to_object',

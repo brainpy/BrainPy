@@ -191,14 +191,14 @@ class PoissonGroup(NeuGroup):
 
     # variables
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
-    self.rng = bm.random.RandomState(seed)
+    self.rng = bm.random.get_rng(seed)
 
   def update(self, tdi, x=None):
     shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bm.BatchingMode) else self.varshape
     self.spike.update(self.rng.random(shape) <= (self.freqs * tdi['dt'] / 1000.))
 
   def reset(self, batch_size=None):
-    self.rng.seed(self.seed)
+    self.rng.value = bm.random.get_rng(self.seed)
     self.reset_state(batch_size)
 
   def reset_state(self, batch_size=None):

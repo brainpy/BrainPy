@@ -13,7 +13,6 @@ from jax.tree_util import tree_flatten, tree_map
 import brainpy.math as bm
 from brainpy import optimizers as optim, losses
 from brainpy.analysis import utils, base, constants
-from brainpy.base import ArrayCollector
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import check_and_format_inputs, _f_ops
 from brainpy.errors import AnalyzerError, UnsupportedError
@@ -133,11 +132,11 @@ class SlowPointFinder(base.DSAnalyzer):
 
     # update function
     if target_vars is None:
-      self.target_vars = ArrayCollector()
+      self.target_vars = bm.ArrayCollector()
     else:
       if not isinstance(target_vars, dict):
         raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
-      self.target_vars = ArrayCollector(target_vars)
+      self.target_vars = bm.ArrayCollector(target_vars)
     excluded_vars = () if excluded_vars is None else excluded_vars
     if isinstance(excluded_vars, dict):
       excluded_vars = tuple(excluded_vars.values())

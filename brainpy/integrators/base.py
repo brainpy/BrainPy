@@ -4,7 +4,6 @@
 from typing import Dict, Sequence, Union
 
 import brainpy.math as bm
-from brainpy.base.base import BrainPyObject
 from brainpy.errors import DiffEqError
 from brainpy.integrators.constants import DT
 from brainpy.check import is_float, is_dict_data
@@ -14,7 +13,7 @@ __all__ = [
 ]
 
 
-class AbstractIntegrator(BrainPyObject):
+class AbstractIntegrator(bm.BrainPyObject):
   """Basic Integrator Class."""
 
   # func_name

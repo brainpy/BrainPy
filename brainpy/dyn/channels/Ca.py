@@ -639,9 +639,9 @@ class ICaT_HM1992(ICa_p2q_ss):
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
-    The base temperature factor of :math:`p` channel.
+    The brainpy_object temperature factor of :math:`p` channel.
   T_base_q : float, ArrayType
-    The base temperature factor of :math:`q` channel.
+    The brainpy_object temperature factor of :math:`q` channel.
   g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
   V_sh : float, ArrayType, Callable, Initializer
@@ -736,9 +736,9 @@ class ICaT_HP1992(ICa_p2q_ss):
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
-    The base temperature factor of :math:`p` channel.
+    The brainpy_object temperature factor of :math:`p` channel.
   T_base_q : float, ArrayType
-    The base temperature factor of :math:`q` channel.
+    The brainpy_object temperature factor of :math:`q` channel.
   g_max : float, ArrayType, Callable, Initializer
     The maximum conductance.
   V_sh : float, ArrayType, Callable, Initializer
@@ -837,9 +837,9 @@ class ICaHT_HM1992(ICa_p2q_ss):
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
-    The base temperature factor of :math:`p` channel.
+    The brainpy_object temperature factor of :math:`p` channel.
   T_base_q : float, ArrayType
-    The base temperature factor of :math:`q` channel.
+    The brainpy_object temperature factor of :math:`q` channel.
   g_max : float, ArrayType, Initializer, Callable
     The maximum conductance.
   V_sh : float, ArrayType, Initializer, Callable
@@ -941,9 +941,9 @@ class ICaHT_Re1993(ICa_p2q_markov):
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
-    The base temperature factor of :math:`p` channel.
+    The brainpy_object temperature factor of :math:`p` channel.
   T_base_q : float, ArrayType
-    The base temperature factor of :math:`q` channel.
+    The brainpy_object temperature factor of :math:`q` channel.
   phi_p : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`p`.
     If `None`, :math:`\phi_p = \mathrm{T_base_p}^{\frac{T-23}{10}}`.
@@ -1029,9 +1029,9 @@ class ICaL_IS2008(ICa_p2q_ss):
   T : float
     The temperature.
   T_base_p : float
-    The base temperature factor of :math:`p` channel.
+    The brainpy_object temperature factor of :math:`p` channel.
   T_base_q : float
-    The base temperature factor of :math:`q` channel.
+    The brainpy_object temperature factor of :math:`q` channel.
   g_max : float
     The maximum conductance.
   V_sh : float

@@ -9,8 +9,6 @@ import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
-from brainpy.base.base import BrainPyObject
-from brainpy.base.collector import Collector
 from brainpy.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
@@ -45,7 +43,7 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
-class DynamicalSystem(BrainPyObject):
+class DynamicalSystem(bm.BrainPyObject):
   """Base Dynamical System class.
 
   .. note::
@@ -97,7 +95,7 @@ class DynamicalSystem(BrainPyObject):
     super(DynamicalSystem, self).__init__(name=name)
 
     # local delay variables
-    self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
+    self.local_delay_vars: Dict[str, bm.LengthDelay] = bm.Collector()
 
     # fitting parameters
     self.online_fit_by = None
@@ -119,9 +117,11 @@ class DynamicalSystem(BrainPyObject):
   def __repr__(self):
     return f'{self.__class__.__name__}(name={self.name}, mode={self.mode})'
 
-  def __call__(self, *args, **kwargs):
+  def __call__(self, shared: Dict, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
-    return self.update(*args, **kwargs)
+    if 'dt' not in shared:
+      shared['dt'] = bm.dt
+    return self.update(shared, *args, **kwargs)
 
   def register_delay(
       self,
@@ -377,12 +377,14 @@ class FuncAsDynSys(DynamicalSystem):
     The computation mode.
   """
 
-  def __init__(self,
-               f: Callable,
-               child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-               dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
-               name: str = None,
-               mode: bm.Mode = None):
+  def __init__(
+      self,
+      f: Callable,
+      child_objs: Union[bm.BrainPyObject, Sequence[bm.BrainPyObject], Dict[str, bm.BrainPyObject]] = None,
+      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None
+  ):
     super().__init__(name=name, mode=mode)
 
     self._f = f
@@ -437,8 +439,8 @@ class Container(DynamicalSystem):
       parent = DynamicalSystem
       parent_name = DynamicalSystem.__name__
     else:
-      parent = BrainPyObject
-      parent_name = BrainPyObject.__name__
+      parent = bm.BrainPyObject
+      parent_name = bm.BrainPyObject.__name__
 
     # add tuple-typed components
     for module in dynamical_systems_as_tuple:
@@ -567,8 +569,8 @@ class Sequential(Container):
   ):
 
     self._modules = tuple(modules_as_tuple) + tuple(modules_as_dict.values())
-    seq_modules = [m for m in modules_as_tuple if isinstance(m, BrainPyObject)]
-    dict_modules = {k: m for k, m in modules_as_dict.items() if isinstance(m, BrainPyObject)}
+    seq_modules = [m for m in modules_as_tuple if isinstance(m, bm.BrainPyObject)]
+    dict_modules = {k: m for k, m in modules_as_dict.items() if isinstance(m, bm.BrainPyObject)}
 
     super().__init__(*seq_modules,
                      name=name,

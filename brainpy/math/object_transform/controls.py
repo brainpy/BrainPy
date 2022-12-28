@@ -13,14 +13,14 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors, tools, check
-from brainpy.base.naming import get_unique_name
-from brainpy.base import ArrayCollector
-from brainpy.math.ndarray import (Array, Variable,
+from .base_object import get_unique_name
+from .collector import ArrayCollector
+from ..ndarray import (Array, Variable,
                                   add_context,
                                   del_context)
-from brainpy.math.numpy_ops import as_device_array
+from ..numpy_ops import as_jax
 from ._utils import infer_dyn_vars
-from .base import ObjectTransform
+from .base_transform import ObjectTransform
 
 __all__ = [
   'make_loop',
@@ -298,7 +298,7 @@ def make_while(
   def _cond_fun(op):
     dyn_values, static_values = op
     for v, d in zip(dyn_vars, dyn_values): v._value = d
-    return as_device_array(cond_fun(static_values))
+    return as_jax(cond_fun(static_values))
 
   name = get_unique_name('_brainpy_object_oriented_make_while_')
 

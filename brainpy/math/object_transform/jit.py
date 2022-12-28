@@ -17,9 +17,9 @@ except ImportError:
   from jax.core import UnexpectedTracerError, ConcretizationTypeError
 
 from brainpy import errors, tools, check
-from brainpy.base import BrainPyObject
-from brainpy.math.ndarray import Variable, add_context, del_context
-from .base import ObjectTransform
+from .base_transform import ObjectTransform
+from .base_object import BrainPyObject
+from ..ndarray import Variable, add_context, del_context
 
 __all__ = [
   'jit',

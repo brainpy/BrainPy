@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from typing import Callable
-
-
-__all__ = [
-  'wraps'
-]
+import functools
+from .ndarray import Array
+from jax.tree_util import tree_map
 
 
 def wraps(fun: Callable):
@@ -30,3 +28,19 @@ def wraps(fun: Callable):
         setattr(op, attr, value)
     return op
   return wrap
+
+def _as_jax_array(a):
+  return a.value if isinstance(a, Array) else a
+
+def _is_leaf(a):
+  return isinstance(a, Array)
+
+
+def _compatible_with_brainpy_array(fun):
+  @functools.wraps(fun)
+  def new_fun(*args, **kwargs):
+    args = tree_map(_as_jax_array, args, is_leaf=_is_leaf)
+    kwargs = tree_map(_as_jax_array, kwargs, is_leaf=_is_leaf)
+    return fun(*args, **kwargs)
+  return new_fun
+

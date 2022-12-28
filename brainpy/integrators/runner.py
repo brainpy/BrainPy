@@ -12,7 +12,6 @@ import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
-from brainpy.base import Collector
 from brainpy import math as bm
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
@@ -239,7 +238,7 @@ class IntegratorRunner(Runner):
 
   def _step_fun_integrator(self, static_args, dyn_args, t, i):
     # arguments
-    kwargs = Collector(dt=self.dt, t=t)
+    kwargs = bm.Collector(dt=self.dt, t=t)
     kwargs.update(static_args)
     kwargs.update(dyn_args)
     kwargs.update({k: v.value for k, v in self.variables.items()})

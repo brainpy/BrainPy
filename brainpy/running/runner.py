@@ -8,7 +8,6 @@ from typing import Callable, Dict, Sequence, Union
 import numpy as np
 
 from brainpy import math as bm, check
-from brainpy.base import BrainPyObject
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools import DotDict
 from . import constants as C
@@ -18,7 +17,7 @@ __all__ = [
 ]
 
 
-class Runner(BrainPyObject):
+class Runner(bm.BrainPyObject):
   """Base Runner.
 
   Parameters
@@ -64,12 +63,12 @@ class Runner(BrainPyObject):
   jit: Dict[str, bool]
   '''Flag to denote whether to use JIT.'''
 
-  target: BrainPyObject
+  target: bm.BrainPyObject
   '''The target model to run.'''
 
   def __init__(
       self,
-      target: BrainPyObject,
+      target: bm.BrainPyObject,
       monitors: Union[Sequence, Dict] = None,
       fun_monitors: Dict[str, Callable] = None,
       jit: Union[bool, Dict[str, bool]] = True,

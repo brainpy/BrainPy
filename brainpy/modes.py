@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module is deprecated since version 2.3.1.
+Please use ``brainpy.math.*`` instead.
+"""
+
+
 import numpy as np
 
 import brainpy.math as bm
+
 
 __all__ = [
   'Mode',

@@ -260,7 +260,7 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
   dt = bm.get_dt() if dt is None else dt
   is_float(dt, 'dt', allow_none=False, min_bound=0.)
   is_integer(n, 'n', allow_none=False, min_bound=0)
-  rng = bm.random.RandomState(seed)
+  rng = bm.random.get_rng(seed)
   t_end = duration if t_end is None else t_end
   i_start = int(t_start / dt)
   i_end = int(t_end / dt)
@@ -302,7 +302,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
   dt_sqrt = jnp.sqrt(dt)
   is_float(dt, 'dt', allow_none=False, min_bound=0.)
   is_integer(n, 'n', allow_none=False, min_bound=0)
-  rng = bm.random.RandomState(seed)
+  rng = bm.random.get_rng(seed)
   x = bm.Variable(jnp.ones(n) * mean)
 
   def _f(t):

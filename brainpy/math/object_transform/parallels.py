@@ -24,10 +24,9 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors
-from brainpy.base.base import BrainPyObject
-from brainpy.base.collector import ArrayCollector
-from brainpy.math.random import RandomState
-from brainpy.math.ndarray import Array
+from .base_object import BrainPyObject, ArrayCollector
+from ..random import RandomState
+from ..ndarray import Array
 from brainpy.tools.codes import change_func_name
 
 __all__ = [

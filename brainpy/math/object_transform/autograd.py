@@ -18,9 +18,9 @@ from jax.tree_util import (tree_flatten, tree_unflatten,
 from jax.util import safe_map
 
 from brainpy import errors, tools, check
-from brainpy.base import BrainPyObject
-from brainpy.math.ndarray import Array, Variable, add_context, del_context
-from .base import ObjectTransform
+from .base_object import BrainPyObject
+from .base_transform import ObjectTransform
+from ..ndarray import Array, Variable, add_context, del_context
 
 __all__ = [
   'grad',  # gradient of scalar function

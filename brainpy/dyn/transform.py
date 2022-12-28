@@ -6,7 +6,6 @@ import jax.numpy as jnp
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from brainpy import tools, math as bm
-from brainpy.base.base import BrainPyObject
 from brainpy.check import is_float
 from brainpy.types import PyTree
 from .base import DynamicalSystem, Sequential
@@ -17,7 +16,7 @@ __all__ = [
 ]
 
 
-class DynSysToBPObj(BrainPyObject):
+class DynSysToBPObj(bm.BrainPyObject):
   """Transform a :py:class:`DynamicalSystem` to a :py:class:`BrainPyObject`.
 
   Parameters

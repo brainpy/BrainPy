@@ -20,7 +20,7 @@ __all__ = [
   # the connection dtypes
   'set_default_dtype', 'MAT_DTYPE', 'IDX_DTYPE',
 
-  # base class
+  # brainpy_object class
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # methods

@@ -5557,7 +5557,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         dtype.__name__ if dtype else "None"),
         "start_shape": start_shape,
         "stop_shape": stop_shape,
-        "num": num, "endpoint": endpoint, "base": base,
+        "num": num, "endpoint": endpoint, "brainpy_object": base,
         "dtype": dtype}
       for start_shape in [(), (2,), (2, 2)]
       for stop_shape in [(), (2,), (2, 2)]

@@ -2,8 +2,7 @@
 
 import inspect
 
-from brainpy import errors
-from brainpy.base import Collector
+from brainpy import errors, math as bm
 
 __all__ = [
   'JointEq',
@@ -199,7 +198,7 @@ class JointEq(object):
 
   def __call__(self, *args, **kwargs):
     # format arguments
-    params_in = Collector()
+    params_in = bm.Collector()
     for i, arg in enumerate(args):
       if i < len(self.arg_keys):
         params_in[self.arg_keys[i]] = arg

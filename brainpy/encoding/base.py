@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-
-from brainpy.base.base import BrainPyObject
+import brainpy.math as bm
 
 __all__ = [
   'Encoder'
 ]
 
 
-class Encoder(BrainPyObject):
+class Encoder(bm.BrainPyObject):
   """Base class for encoding rate values as spike trains."""
   def __call__(self, *args, **kwargs):
     raise NotImplementedError
