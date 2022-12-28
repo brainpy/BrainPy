@@ -31,6 +31,7 @@ SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
 def _is_brainpy_array(x):
   return isinstance(x, bm.Array)
 
+
 def check_and_format_inputs(host, inputs):
   """Check inputs and get the formatted inputs for the given population.
 
@@ -292,10 +293,10 @@ class DSRunner(Runner):
   numpy_mon_after_run : bool
     When finishing the network running, transform the JAX arrays into numpy ndarray or not?
 
-  time_major: bool
+  data_first_axis: str
     Set the default data dimension arrangement.
-    To indicate whether the first axis is the batch size (``time_major=False``) or the
-    time length (``time_major=True``).
+    To indicate whether the first axis is the batch size (``data_first_axis='B'``) or the
+    time length (``data_first_axis='T'``).
     In order to be compatible with previous API, default is set to be ``False``.
 
     .. versionadded:: 2.3.1
@@ -311,22 +312,22 @@ class DSRunner(Runner):
       inputs: Union[Sequence, Callable] = (),
 
       # monitors
-      monitors: Union[Sequence, Dict] = None,
+      monitors: Optional[Union[Sequence, Dict]] = None,
       numpy_mon_after_run: bool = True,
 
       # jit
       jit: Union[bool, Dict[str, bool]] = True,
-      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+      dyn_vars: Optional[Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
 
       # extra info
-      dt: float = None,
+      dt: Optional[float] = None,
       t0: Union[float, int] = 0.,
       progress_bar: bool = True,
-      time_major: bool = False,
+      data_first_axis: Optional[str] = None,
 
       # deprecated
-      fun_inputs: Callable = None,
-      fun_monitors: Dict[str, Callable] = None,
+      fun_inputs: Optional[Callable] = None,
+      fun_monitors: Optional[Dict[str, Callable]] = None,
   ):
     if not isinstance(target, DynamicalSystem):
       raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
@@ -344,7 +345,10 @@ class DSRunner(Runner):
     self._t0 = t0
     self.i0 = bm.Variable(bm.asarray([1], dtype=bm.int_))
     self.t0 = bm.Variable(bm.asarray([t0], dtype=bm.float_))
-    self.time_major = time_major
+    if data_first_axis is None:
+      data_first_axis = 'B' if isinstance(self.target, bm.BatchingMode) else 'T'
+    assert data_first_axis in ['B', 'T']
+    self.data_first_axis = data_first_axis
 
     # parameters
     dt = bm.get_dt() if dt is None else dt
@@ -372,7 +376,7 @@ class DSRunner(Runner):
     return (f'{name}(target={tools.repr_context(str(self.target), indent2)}, \n'
             f'{indent}jit={self.jit},\n'
             f'{indent}dt={self.dt},\n'
-            f'{indent}time_major={self.time_major})')
+            f'{indent}data_first_axis={self.data_first_axis})')
 
   def reset_state(self):
     """Reset state of the ``DSRunner``."""
@@ -407,8 +411,8 @@ class DSRunner(Runner):
 
       - If the mode of ``target`` is instance of :py:class:`~.BatchingMode`,
         ``inputs`` must be a PyTree of data with two dimensions:
-        ``(batch, time, ...)`` when ``time_major=False``,
-        or ``(time, batch, ...)`` when ``time_major=True``.
+        ``(batch, time, ...)`` when ``data_first_axis='B'``,
+        or ``(time, batch, ...)`` when ``data_first_axis='T'``.
       - If the mode of ``target`` is instance of :py:class:`~.NonBatchingMode`,
         the ``inputs`` should be a PyTree of data with one dimension:
         ``(time, ...)``.
@@ -462,7 +466,7 @@ class DSRunner(Runner):
     shared['i'] += self.i0
     shared['t'] += self.t0
 
-    if isinstance(self.target.mode, bm.BatchingMode) and not self.time_major:
+    if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
       inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                         inputs,
                         is_leaf=lambda x: isinstance(x, bm.Array))
@@ -530,7 +534,7 @@ class DSRunner(Runner):
     """
     _predict_func = self._get_f_predict(shared_args)
     outs_and_mons = _predict_func(xs)
-    if isinstance(self.target.mode, bm.BatchingMode) and not self.time_major:
+    if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
       outs_and_mons = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                                outs_and_mons,
                                is_leaf=lambda x: isinstance(x, bm.Array))
@@ -573,9 +577,9 @@ class DSRunner(Runner):
     if isinstance(self.target.mode, bm.NonBatchingMode):
       return None
     if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
-      return xs.shape[1] if self.time_major else xs.shape[0]
+      return xs.shape[1] if self.data_first_axis == 'T' else xs.shape[0]
     leaves, _ = tree_flatten(xs, is_leaf=_is_brainpy_array)
-    if self.time_major:
+    if self.data_first_axis == 'T':
       num_batch_sizes = [x.shape[1] for x in leaves]
     else:
       num_batch_sizes = [x.shape[0] for x in leaves]
@@ -590,19 +594,13 @@ class DSRunner(Runner):
       return int(duration / self.dt)
     if xs is not None:
       if isinstance(xs, (bm.Array, jnp.ndarray)):
-        if isinstance(self.target.mode, bm.BatchingMode):
-          return xs.shape[0] if self.time_major else xs.shape[1]
-        else:
-          return xs.shape[0]
+        return xs.shape[0] if self.data_first_axis == 'T' else xs.shape[1]
       else:
         leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
-        if isinstance(self.target.mode, bm.BatchingMode):
-          if self.time_major:
-            num_steps = [x.shape[0] for x in leaves]
-          else:
-            num_steps = [x.shape[1] for x in leaves]
-        else:
+        if self.data_first_axis == 'T':
           num_steps = [x.shape[0] for x in leaves]
+        else:
+          num_steps = [x.shape[1] for x in leaves]
         if len(set(num_steps)) != 1:
           raise ValueError(f'Number of time step is different across arrays in '
                            f'the provided "xs". We got {set(num_steps)}.')

@@ -491,9 +491,9 @@ class BPTT(BPTrainer):
     Make the monitored results as NumPy arrays.
   logger: Any
     A file-like object (stream). Used to output the running results. Default is the current `sys.stdout`.
-  time_major: bool
-    To indicate whether the first axis is the batch size (``time_major=False``) or the
-    time length (``time_major=True``).
+  data_first_axis: str
+    To indicate whether the first axis is the batch size (``data_first_axis='B'``) or the
+    time length (``data_first_axis='T'``).
   """
 
   def _step_func_loss(self, shared_args, inputs, targets):
@@ -501,7 +501,7 @@ class BPTT(BPTrainer):
     indices = jnp.arange(num_step, dtype=bm.int_)
     times = indices * self.dt + self.t0
     indices = indices + self.i0
-    if isinstance(self.target.mode, bm.BatchingMode) and not self.time_major:
+    if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
       inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), inputs, is_leaf=lambda x: isinstance(x, bm.Array))
     inputs = (times, indices, inputs)
     outs, mons = self._predict(xs=inputs, shared_args=shared_args)
@@ -535,7 +535,7 @@ class BPFF(BPTrainer):
     return res[1:]
 
   def _step_func_predict(self, shared, x=None):
-    assert not self.time_major, f'There is no time dimension when using the trainer {self.__class__.__name__}.'
+    assert self.data_first_axis == 'B', f'There is no time dimension when using the trainer {self.__class__.__name__}.'
 
     # input step
     self.target.clear_input()
