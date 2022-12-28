@@ -429,8 +429,8 @@ class RandomState(Variable):
                     'seed will be removed since 2.4.0', UserWarning)
 
     if seed_or_key is None:
-      seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
-    if isinstance(seed_or_key, int):
+      key = DEFAULT.split_key()
+    elif isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
     else:
       if len(seed_or_key) != 2 and seed_or_key.dtype != np.uint32:
@@ -442,9 +442,6 @@ class RandomState(Variable):
   def __repr__(self) -> str:
     print_code = repr(self.value)
     i = print_code.index('(')
-
-    # if 'DeviceArray' in print_code:
-    #   print_code = print_code.replace('DeviceArray', '')
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
 
