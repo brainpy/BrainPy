@@ -94,16 +94,16 @@ def init_param(
 
 
 def variable_(
-    data: Union[Callable, ArrayType],
+    init: Union[Callable, ArrayType],
     size: Shape = None,
     batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
 ):
-  """Initialize variables. Same as `variable()`.
+  """Initialize a :math:`~.Variable` from a callable function or a data.
 
   Parameters
   ----------
-  data: callable, function, ArrayType
+  init: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
   batch_size_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
@@ -125,11 +125,11 @@ def variable_(
   variable, parameter, noise, delay
 
   """
-  return variable(data, batch_size_or_mode, size, batch_axis)
+  return variable(init, batch_size_or_mode, size, batch_axis)
 
 
 def variable(
-    data: Union[Callable, ArrayType],
+    init: Union[Callable, ArrayType],
     batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     size: Shape = None,
     batch_axis: int = 0,
@@ -138,7 +138,7 @@ def variable(
 
   Parameters
   ----------
-  data: callable, function, ArrayType
+  init: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
   batch_size_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
@@ -161,34 +161,34 @@ def variable(
 
   """
   size = to_size(size)
-  if callable(data):
+  if callable(init):
     if size is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
     if isinstance(batch_size_or_mode, bm.NonBatchingMode):
-      return bm.Variable(data(size))
+      return bm.Variable(init(size))
     elif isinstance(batch_size_or_mode, bm.BatchingMode):
       new_shape = size[:batch_axis] + (1,) + size[batch_axis:]
-      return bm.Variable(data(new_shape), batch_axis=batch_axis)
+      return bm.Variable(init(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
-      return bm.Variable(data(size))
+      return bm.Variable(init(size))
     elif isinstance(batch_size_or_mode, int):
       new_shape = size[:batch_axis] + (int(batch_size_or_mode),) + size[batch_axis:]
-      return bm.Variable(data(new_shape), batch_axis=batch_axis)
+      return bm.Variable(init(new_shape), batch_axis=batch_axis)
     else:
       raise ValueError('Unknown batch_size_or_mode.')
 
   else:
     if size is not None:
-      if bm.shape(data) != size:
-        raise ValueError(f'The shape of "data" {bm.shape(data)} does not match with "var_shape" {size}')
+      if bm.shape(init) != size:
+        raise ValueError(f'The shape of "data" {bm.shape(init)} does not match with "var_shape" {size}')
     if isinstance(batch_size_or_mode, bm.NonBatchingMode):
-      return bm.Variable(data)
+      return bm.Variable(init)
     elif isinstance(batch_size_or_mode, bm.BatchingMode):
-      return bm.Variable(bm.expand_dims(data, axis=batch_axis), batch_axis=batch_axis)
+      return bm.Variable(bm.expand_dims(init, axis=batch_axis), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
-      return bm.Variable(data)
+      return bm.Variable(init)
     elif isinstance(batch_size_or_mode, int):
-      return bm.Variable(bm.repeat(bm.expand_dims(data, axis=batch_axis),
+      return bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
                                    int(batch_size_or_mode),
                                    axis=batch_axis),
                          batch_axis=batch_axis)

@@ -9,7 +9,6 @@ from jax import ops
 
 from brainpy.math.ndarray import Array
 from brainpy.math.numpy_ops import as_jax
-from brainpy.types import ArrayType
 
 __all__ = [
   'sparse_matmul',
@@ -18,10 +17,10 @@ __all__ = [
 ]
 
 
-def event_csr_matvec(values: ArrayType,
-                     indices: ArrayType,
-                     indptr: ArrayType,
-                     events: ArrayType,
+def event_csr_matvec(values,
+                     indices,
+                     indptr,
+                     events,
                      shape: Tuple[int, int],
                      transpose: bool = False):
   """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.

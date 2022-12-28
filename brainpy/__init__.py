@@ -109,6 +109,8 @@ conn = connect
 init = initialize
 optim = optimizers
 
+from . import experimental
+
 
 # deprecated
 from . import base

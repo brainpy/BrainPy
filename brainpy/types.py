@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from typing import TypeVar, Tuple
+from typing import TypeVar, Tuple, Union, Callable
 
 import jax.numpy as jnp
 import numpy as np
 
 from brainpy.math.ndarray import Array, Variable, TrainVar
+from brainpy import connect as conn
+from brainpy import initialize as init
 
 __all__ = [
   'ArrayType', 'Parameter', 'PyTree',
-  'Shape',
+  'Shape', 'Initializer',
   'Output', 'Monitor'
 ]
 
@@ -26,4 +28,6 @@ Shape = TypeVar('Shape', int, Tuple[int, ...]) # noqa
 # component
 Output = TypeVar('Output') # noqa
 Monitor = TypeVar('Monitor') # noqa
+Connector = Union[conn.Connector, Array, Variable, jnp.ndarray, np.ndarray]
+Initializer = Union[init.Initializer, Callable, Array, Variable, jnp.ndarray, np.ndarray]
 

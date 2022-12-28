@@ -841,9 +841,9 @@ class SynConn(DynamicalSystem):
 
     # pre or post neuron group
     # ------------------------
-    if not isinstance(pre, NeuGroup):
+    if not isinstance(pre, (NeuGroup, DynamicalSystem)):
       raise TypeError('"pre" must be an instance of NeuGroup.')
-    if not isinstance(post, NeuGroup):
+    if not isinstance(post, (NeuGroup, DynamicalSystem)):
       raise TypeError('"post" must be an instance of NeuGroup.')
     self.pre = pre
     self.post = post

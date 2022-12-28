@@ -280,7 +280,7 @@ class Exponential(TwoEndConn):
       pre: NeuGroup,
       post: NeuGroup,
       conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
-      output: SynOut = CUBA(),
+      output: Optional[SynOut] = CUBA(),
       stp: Optional[SynSTP] = None,
       comp_method: str = 'sparse',
       g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
