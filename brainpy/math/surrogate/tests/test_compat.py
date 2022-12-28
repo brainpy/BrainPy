@@ -5,6 +5,7 @@ import unittest
 from functools import partial
 
 import brainpy.math as bm
+bm.random.seed()
 
 
 def test_sp_sigmoid_grad():
