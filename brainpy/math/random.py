@@ -14,14 +14,13 @@ from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
 from brainpy.check import jit_error_checking
-from brainpy.errors import UnsupportedError
 from brainpy.math.ndarray import Array, Variable
 from ._utils import wraps
 
 __all__ = [
   'RandomState', 'Generator',
 
-  'seed', 'default_rng',
+  'seed', 'default_rng', 'get_rng',
 
   'rand', 'randint', 'random_integers', 'randn', 'random',
   'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle', 'beta',
@@ -1131,9 +1130,16 @@ DEFAULT = RandomState(__a)
 del __a
 
 
+def get_rng(seed_or_key=None, clone: bool = True) -> RandomState:
+  if seed_or_key is None:
+    return DEFAULT.clone() if clone else DEFAULT
+  else:
+    return RandomState(seed_or_key)
+
+
 @wraps(np.random.default_rng)
-def default_rng(seed=None):
-  return RandomState(seed)
+def default_rng(seed_or_key=None):
+  return RandomState(seed_or_key)
 
 
 @wraps(np.random.seed)
