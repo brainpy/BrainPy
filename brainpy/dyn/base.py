@@ -119,8 +119,6 @@ class DynamicalSystem(bm.BrainPyObject):
 
   def __call__(self, shared: Dict, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
-    if 'dt' not in shared:
-      shared['dt'] = bm.dt
     return self.update(shared, *args, **kwargs)
 
   def register_delay(
