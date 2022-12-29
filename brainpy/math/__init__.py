@@ -53,9 +53,8 @@ from .operators import *
 from . import surrogate
 from .surrogate.compt import *
 
-# JAX transformations for Variable and class objects
+# Variable and Objects for object-oriented JAX transformations
 from .object_transform import *
-
 
 # environment settings
 from .modes import *

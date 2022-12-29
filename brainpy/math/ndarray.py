@@ -2,11 +2,12 @@
 
 
 import warnings
-from typing import Optional, Tuple
+from typing import Optional, Tuple as TupleType
 
 import numpy as np
 from jax import numpy as jnp
 from jax.tree_util import register_pytree_node
+
 
 from brainpy.errors import MathError
 
@@ -997,7 +998,7 @@ class Variable(Array):
                         f'but the batch axis is set to be {batch_axis}.')
 
   @property
-  def shape_nb(self) -> Tuple[int, ...]:
+  def shape_nb(self) -> TupleType[int, ...]:
     """Shape without batch axis."""
     shape = list(self.value.shape)
     if self.batch_axis is not None:
@@ -1562,7 +1563,6 @@ class BatchVariable(Variable):
   pass
 
 
-
 class VariableView(Variable):
   """A view of a Variable instance.
 
@@ -1742,7 +1742,7 @@ def _jaxarray_unflatten(aux_data, flat_contents):
 
 
 register_pytree_node(Array,
-                     lambda t: ((t.value,), (t._transform_context, )),
+                     lambda t: ((t.value,), (t._transform_context,)),
                      _jaxarray_unflatten)
 
 register_pytree_node(Variable,
@@ -1756,3 +1756,4 @@ register_pytree_node(TrainVar,
 register_pytree_node(Parameter,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: Parameter(*flat_contents))
+
