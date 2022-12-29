@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import logging
 import warnings
 from collections import namedtuple
@@ -426,7 +427,19 @@ class BrainPyObject(object):
     verbose: bool
       Whether report the load progress.
     """
-    raise errors.NoLongerSupportError('Use brainpy.checkpoints.load().')
+    from brainpy.checkpoints import io
+    if not os.path.exists(filename):
+      raise errors.BrainPyError(f'Cannot find the file path: {filename}')
+    elif filename.endswith('.hdf5') or filename.endswith('.h5'):
+      io.load_by_h5(filename, target=self, verbose=verbose)
+    elif filename.endswith('.pkl'):
+      io.load_by_pkl(filename, target=self, verbose=verbose)
+    elif filename.endswith('.npz'):
+      io.load_by_npz(filename, target=self, verbose=verbose)
+    elif filename.endswith('.mat'):
+      io.load_by_mat(filename, target=self, verbose=verbose)
+    else:
+      raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
   def save_states(self, filename, variables=None, **setting):
     """Save the model states.
@@ -438,7 +451,20 @@ class BrainPyObject(object):
     variables: optional, dict, ArrayCollector
       The variables to save. If not provided, all variables retrieved by ``~.vars()`` will be used.
     """
-    raise errors.NoLongerSupportError('Use brainpy.checkpoints.save().')
+    if variables is None:
+      variables = self.vars(method='absolute', level=-1)
+
+    from brainpy.checkpoints import io
+    if filename.endswith('.hdf5') or filename.endswith('.h5'):
+      io.save_as_h5(filename, variables=variables)
+    elif filename.endswith('.pkl') or filename.endswith('.pickle'):
+      io.save_as_pkl(filename, variables=variables)
+    elif filename.endswith('.npz'):
+      io.save_as_npz(filename, variables=variables, **setting)
+    elif filename.endswith('.mat'):
+      io.save_as_mat(filename, variables=variables)
+    else:
+      raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
   # def to(self, devices):
   #   global math

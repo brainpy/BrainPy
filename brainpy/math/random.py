@@ -429,8 +429,9 @@ class RandomState(Variable):
                     'seed will be removed since 2.4.0', UserWarning)
 
     if seed_or_key is None:
-      key = DEFAULT.split_key()
-    elif isinstance(seed_or_key, int):
+      # key = DEFAULT.split_key()
+      seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+    if isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
     else:
       if len(seed_or_key) != 2 and seed_or_key.dtype != np.uint32:
