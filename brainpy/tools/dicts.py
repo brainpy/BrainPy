@@ -97,18 +97,6 @@ class DotDict(dict):
         raise TypeError('Only support string.')
     self.attrs_not_keys += args
 
-  def __setitem__(self, key, value):
-    """Overload bracket assignment to catch potential conflicts during assignment."""
-    if key in self:
-      if id(self[key]) != id(value):
-        raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')
-    dict.__setitem__(self, key, value)
-
-  def replace(self, key, new_value):
-    """Replace the original key with the new value."""
-    self.pop(key)
-    self[key] = new_value
-
   def update(self, *args, **kwargs):
     super().update(*args, **kwargs)
     return self
