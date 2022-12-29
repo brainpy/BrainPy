@@ -19,8 +19,8 @@ __all__ = [
 class MatConn(TwoEndConnector):
   """Connector built from the dense connection matrix."""
 
-  def __init__(self, conn_mat):
-    super(MatConn, self).__init__()
+  def __init__(self, conn_mat, **kwargs):
+    super(MatConn, self).__init__(**kwargs)
 
     assert isinstance(conn_mat, (np.ndarray, bm.Array, jnp.ndarray)) and conn_mat.ndim == 2
     self.pre_num, self.post_num = conn_mat.shape
@@ -42,8 +42,8 @@ class MatConn(TwoEndConnector):
 class IJConn(TwoEndConnector):
   """Connector built from the ``pre_ids`` and ``post_ids`` connections."""
 
-  def __init__(self, i, j):
-    super(IJConn, self).__init__()
+  def __init__(self, i, j, **kwargs):
+    super(IJConn, self).__init__(**kwargs)
 
     assert isinstance(i, (np.ndarray, bm.Array, jnp.ndarray)) and i.ndim == 1
     assert isinstance(j, (np.ndarray, bm.Array, jnp.ndarray)) and j.ndim == 1
@@ -78,8 +78,8 @@ class IJConn(TwoEndConnector):
 class CSRConn(TwoEndConnector):
   """Connector built from the CSR sparse connection matrix."""
 
-  def __init__(self, indices, inptr):
-    super(CSRConn, self).__init__()
+  def __init__(self, indices, inptr, **kwargs):
+    super(CSRConn, self).__init__(**kwargs)
 
     self.indices = bm.asarray(indices, dtype=IDX_DTYPE)
     self.inptr = bm.asarray(inptr, dtype=IDX_DTYPE)
@@ -99,7 +99,7 @@ class CSRConn(TwoEndConnector):
 class SparseMatConn(CSRConn):
   """Connector built from the sparse connection matrix"""
 
-  def __init__(self, csr_mat):
+  def __init__(self, csr_mat, **kwargs):
     try:
       from scipy.sparse import csr_matrix
     except (ModuleNotFoundError, ImportError):
@@ -109,6 +109,7 @@ class SparseMatConn(CSRConn):
     assert isinstance(csr_mat, csr_matrix)
     self.csr_mat = csr_mat
     super(SparseMatConn, self).__init__(indices=bm.asarray(self.csr_mat.indices, dtype=IDX_DTYPE),
-                                        inptr=bm.asarray(self.csr_mat.indptr, dtype=IDX_DTYPE))
+                                        inptr=bm.asarray(self.csr_mat.indptr, dtype=IDX_DTYPE),
+                                        **kwargs)
     self.pre_num = csr_mat.shape[0]
     self.post_num = csr_mat.shape[1]

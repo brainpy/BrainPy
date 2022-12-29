@@ -8,7 +8,6 @@ from jax import vmap, jit, ops as jops
 
 from brainpy.errors import MathError
 from brainpy.math.numpy_ops import as_jax
-from brainpy.types import ArrayType
 
 __all__ = [
   # pre-to-post
@@ -43,10 +42,10 @@ def _raise_pre_ids_is_none(pre_ids):
                     f'(brainpy.math.ndim(pre_values) != 0).')
 
 
-def pre2post_event_sum(events: ArrayType,
-                       pre2post: Tuple[ArrayType, ArrayType],
+def pre2post_event_sum(events,
+                       pre2post,
                        post_num: int,
-                       values: Union[float, ArrayType] = 1.):
+                       values = 1.):
   """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -103,11 +102,11 @@ def pre2post_event_sum(events: ArrayType,
                                      transpose=True)
 
 
-def pre2post_coo_event_sum(events: ArrayType,
-                           pre_ids: ArrayType,
-                           post_ids: ArrayType,
+def pre2post_coo_event_sum(events,
+                           pre_ids,
+                           post_ids,
                            post_num: int,
-                           values: Union[float, ArrayType] = 1.):
+                           values = 1.):
   """The pre-to-post synaptic computation with event-driven summation.
 
   Parameters

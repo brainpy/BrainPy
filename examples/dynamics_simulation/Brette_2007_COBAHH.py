@@ -6,7 +6,7 @@ from brainpy.dyn import channels, synapses, synouts
 bp.math.set_platform('cpu')
 
 
-class HH(bp.dyn.CondNeuGroup):
+class HH(bp.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size, )
     self.INa = channels.INa_TM1991(size, g_max=100., V_sh=-63.)
@@ -14,7 +14,7 @@ class HH(bp.dyn.CondNeuGroup):
     self.IL = channels.IL(size, E=-60., g_max=0.05)
 
 
-class EINet_v1(bp.dyn.Network):
+class EINet_v1(bp.Network):
   def __init__(self, scale=1.):
     super(EINet_v1, self).__init__()
     self.E = HH(int(3200 * scale))
@@ -34,7 +34,7 @@ class EINet_v1(bp.dyn.Network):
                                     output=synouts.COBA(E=-80.))
 
 
-class EINet_v2(bp.dyn.Network):
+class EINet_v2(bp.Network):
   def __init__(self, scale=1.):
     super(EINet_v2, self).__init__()
 
@@ -57,14 +57,14 @@ class EINet_v2(bp.dyn.Network):
 
 def run_ei_v1():
   net = EINet_v1(scale=1)
-  runner = bp.dyn.DSRunner(net, monitors={'E.spike': net.E.spike})
+  runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
   runner.run(100.)
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
 
 
 def run_ei_v2():
   net = EINet_v2(scale=1)
-  runner = bp.dyn.DSRunner(net, monitors={'spikes': net.N.spike})
+  runner = bp.DSRunner(net, monitors={'spikes': net.N.spike})
   runner.run(100.)
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['spikes'], show=True)
 

@@ -25,7 +25,7 @@ num_exc = 3200
 num_inh = 800
 
 
-class IK(bp.dyn.Channel):
+class IK(bp.Channel):
   def __init__(self, size, E=-90., g_max=10., phi=1., V_sh=-50.):
     super(IK, self).__init__(size)
     self.g_max, self.E, self.V_sh, self.phi = g_max, E, V_sh, phi
@@ -45,7 +45,7 @@ class IK(bp.dyn.Channel):
     return self.g_max * self.p ** 4 * (self.E - V)
 
 
-class HH(bp.dyn.CondNeuGroup):
+class HH(bp.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size, V_initializer=bp.init.Uniform(-70, -50.))
     self.IK = IK(size, g_max=30., V_sh=-63.)
@@ -53,7 +53,7 @@ class HH(bp.dyn.CondNeuGroup):
     self.IL = IL(size, E=-60., g_max=0.05)
 
 
-class Network(bp.dyn.Network):
+class Network(bp.Network):
   def __init__(self, num_E, num_I, gEE=0.03, gEI=0.03, gIE=0.335, gII=0.335):
     super(Network, self).__init__()
     self.E, self.I = HH(num_E), HH(num_I)
@@ -79,7 +79,7 @@ class Network(bp.dyn.Network):
                            comp_method=comp_method)
 
 
-class Projection(bp.dyn.DynamicalSystem):
+class Projection(bp.DynamicalSystem):
   def __init__(self, pre, post, delay, conn, gEE=0.03, gEI=0.03, tau=5.):
     super(Projection, self).__init__()
     self.pre = pre
@@ -102,7 +102,7 @@ class Projection(bp.dyn.DynamicalSystem):
     self.E2I.update(tdi)
 
 
-class System(bp.dyn.Network):
+class System(bp.Network):
   def __init__(self, conn, delay, gEE=0.03, gEI=0.03, gIE=0.335, gII=0.335):
     super(System, self).__init__()
 
@@ -130,7 +130,7 @@ def single_run(gc, gEE, gEI, gIE, gII, inputs, duration, seed=123, save_fig=Fals
                    gEE=gEE, gEI=gEI, gIE=gIE, gII=gII)
   f1 = lambda tdi: bm.concatenate([area.E.spike for area in circuit.areas])
   f2 = lambda tdi: bm.concatenate([area.I.spike for area in circuit.areas])
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     circuit,
     fun_monitors={'exc.spike': f1, 'inh.spike': f2},
     inputs=[circuit.areas[0].E.input, inputs, 'iter'],
@@ -176,7 +176,7 @@ def vmap_search(gc=3., I_size=0.2, I_duration=400., e_range=(0.1, 1.1, 0.1), i_r
                      gE=gE, gI=gI)
     f1 = lambda tdi: bm.concatenate([area.E.spike for area in circuit.areas])
     f2 = lambda tdi: bm.concatenate([area.I.spike for area in circuit.areas])
-    runner = bp.dyn.DSRunner(
+    runner = bp.DSRunner(
       circuit,
       fun_monitors={'exc.spike': f1, 'inh.spike': f2},
       inputs=[circuit.areas[0].E.input, I, 'iter'],
@@ -252,7 +252,7 @@ def visualize(seed=20873, gc=1., gEE=0.0060, gEI=0.0060, gIE=.26800, gII=0.26800
   inputs, duration = bp.inputs.section_input([0., 1., 0.],
                                              [400., 100., 300.],
                                              return_length=True)
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     model,
     fun_monitors={
       'exc.spike': lambda tdi: bm.concatenate([area.E.spike for area in model.areas]),
@@ -297,9 +297,9 @@ if __name__ == '__main__':
   inputs, duration = bp.inputs.section_input([0., 1., 0.],
                                              [400., 100., 300.],
                                              return_length=True)
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     model,
-    fun_monitors={
+    monitors={
       'exc.spike': lambda tdi: bm.concatenate([area.E.spike for area in model.areas]),
       'inh.spike': lambda tdi: bm.concatenate([area.I.spike for area in model.areas]),
       'V1.E.V': lambda tdi: model.areas[0].E.V,

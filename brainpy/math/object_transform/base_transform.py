@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base.base import BrainPyObject
+from .base_object import BrainPyObject
 
 __all__ = [
   'ObjectTransform'

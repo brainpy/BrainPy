@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple, Dict
-from brainpy.base import BrainPyObject, ArrayCollector
+from typing import Dict
+from .base_object import BrainPyObject, ArrayCollector
 
 __all__ = [
   'infer_dyn_vars',

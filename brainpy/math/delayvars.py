@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Tuple
+from typing import Union, Callable
 
 import jax.numpy as jnp
 from jax import vmap
 from jax.lax import cond, stop_gradient
 
 from brainpy import check
-from brainpy.base.base import BrainPyObject
-from brainpy.errors import UnsupportedError
-from brainpy.math import numpy_ops as bm
-from brainpy.math.ndarray import ndarray, Variable, Array
-from brainpy.math.environment import get_dt, get_float
 from brainpy.check import is_float, is_integer, jit_error_checking
+from brainpy.errors import UnsupportedError
+from . import numpy_ops as bm
+from .object_transform.base_object import BrainPyObject
+from .environment import get_dt, get_float
+from .ndarray import ndarray, Variable, Array
 
 __all__ = [
   'AbstractDelay',

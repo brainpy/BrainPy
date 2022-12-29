@@ -5,7 +5,7 @@ from typing import Dict, Sequence, Any, Union, Optional
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
-from brainpy.errors import BrainPyError
+from brainpy.errors import NoLongerSupportError
 from brainpy.running import constants as c
 from brainpy.types import ArrayType, Output
 
@@ -43,10 +43,9 @@ class DSTrainer(DSRunner):
     super(DSTrainer, self).__init__(target=target, **kwargs)
 
     if not isinstance(self.target.mode, bm.BatchingMode):
-      raise BrainPyError(f'''
-      From version 2.3.1, DSTrainer must receive a 
-      DynamicalSystem instance with the computing mode 
-      of subclass of {bm.batching_mode}. 
+      raise NoLongerSupportError(f'''
+      From version 2.3.1, DSTrainer must receive a DynamicalSystem instance with 
+      the computing mode of {bm.batching_mode} or {bm.training_mode}. 
       
       See https://github.com/brainpy/BrainPy/releases/tag/V2.3.1
       for the solution of how to fix this.

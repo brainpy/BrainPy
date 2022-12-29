@@ -10,4 +10,3 @@ Model Building
    build_network_models
    customize_neuron_models
    customize_synapse_models
-   customize_dynamical_systems

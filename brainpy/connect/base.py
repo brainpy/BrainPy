@@ -20,7 +20,7 @@ __all__ = [
   # the connection dtypes
   'set_default_dtype', 'MAT_DTYPE', 'IDX_DTYPE',
 
-  # base class
+  # brainpy_object class
   'Connector', 'TwoEndConnector', 'OneEndConnector',
 
   # methods
@@ -133,11 +133,30 @@ class TwoEndConnector(Connector):
 
   """
 
-  def __init__(self, ):
+  def __init__(
+      self,
+      pre: Union[int, Tuple[int, ...]] = None,
+      post: Union[int, Tuple[int, ...]] = None,
+  ):
     self.pre_size = None
     self.post_size = None
     self.pre_num = None
     self.post_num = None
+    if pre is not None:
+      if isinstance(pre, int):
+        pre = (pre,)
+      else:
+        pre = tuple(pre)
+      self.pre_size = pre
+      self.pre_num = tools.size2num(self.pre_size)
+    if post is not None:
+      if isinstance(post, int):
+        post = (post,)
+      else:
+        post = tuple(post)
+      self.post_size = post
+      self.post_num = tools.size2num(self.post_size)
+    
 
   def __repr__(self):
     return self.__class__.__name__
@@ -303,13 +322,13 @@ class TwoEndConnector(Connector):
     if isinstance(conn_data, dict):
       csr = conn_data.get('csr', None)
       mat = conn_data.get('mat', None)
-      coo = conn_data.get('coo', None)
+      coo = conn_data.get('coo', None) or conn_data.get('ij', None)
     elif isinstance(conn_data, tuple):
       if conn_data[0] == 'csr':
         csr = conn_data[1]
       elif conn_data[0] == 'mat':
         mat = conn_data[1]
-      elif conn_data[0] == 'coo':
+      elif conn_data[0] in ['coo', 'ij']:
         coo = conn_data[1]
       else:
         raise ConnectorError(f'Must provide one of "csr", "mat" or "coo". Got "{conn_data[0]}" instead.')
@@ -541,8 +560,8 @@ class TwoEndConnector(Connector):
 class OneEndConnector(TwoEndConnector):
   """Synaptic connector to build synapse connections within a population of neurons."""
 
-  def __init__(self):
-    super(OneEndConnector, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(OneEndConnector, self).__init__(*args, **kwargs)
 
   def __call__(self, pre_size, post_size=None):
     if post_size is None:

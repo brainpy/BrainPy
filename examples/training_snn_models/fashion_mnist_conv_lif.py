@@ -11,6 +11,7 @@ from jax import lax
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy.tools import DotDict
 
 bm.set_environment(mode=bm.training_mode, dt=1.)
 
@@ -82,7 +83,8 @@ class IFNode(bp.DynamicalSystem):
   def update(self, s, x):
     self.V.value += x
     spike = self.spike_fun(self.V - self.v_threshold)
-    s = lax.stop_gradient(spike)
+    # s = lax.stop_gradient(spike)
+    s = spike
     if self.reset_mode == 'hard':
       one = lax.convert_element_type(1., bm.float_)
       self.V.value = self.v_reset * s + (one - s) * self.V
@@ -97,24 +99,24 @@ class ConvIF(bp.DynamicalSystem):
     self.n_time = n_time
 
     self.block1 = bp.Sequential(
-      bp.layers.Conv2D(1, n_channel, kernel_size=3, padding=(1, 1), b_initializer=None),
+      bp.layers.Conv2D(1, n_channel, kernel_size=3, padding=(1, 1), ),
       bp.layers.BatchNorm2D(n_channel, momentum=0.9),
       IFNode((28, 28, n_channel), spike_fun=bm.surrogate.arctan)
     )
     self.block2 = bp.Sequential(
       bp.layers.MaxPool([2, 2], 2, channel_axis=-1),  # 14 * 14
-      bp.layers.Conv2D(n_channel, n_channel, kernel_size=3, padding=(1, 1), b_initializer=None),
+      bp.layers.Conv2D(n_channel, n_channel, kernel_size=3, padding=(1, 1), ),
       bp.layers.BatchNorm2D(n_channel, momentum=0.9),
       IFNode((14, 14, n_channel), spike_fun=bm.surrogate.arctan),
     )
     self.block3 = bp.Sequential(
       bp.layers.MaxPool([2, 2], 2, channel_axis=-1),  # 7 * 7
       bp.layers.Flatten(),
-      bp.layers.Dense(n_channel * 7 * 7, n_channel * 4 * 4, b_initializer=None),
+      bp.layers.Dense(n_channel * 7 * 7, n_channel * 4 * 4,),
       IFNode((4 * 4 * n_channel,), spike_fun=bm.surrogate.arctan),
     )
     self.block4 = bp.Sequential(
-      bp.layers.Dense(n_channel * 4 * 4, 10, b_initializer=None),
+      bp.layers.Dense(n_channel * 4 * 4, 10, ),
       IFNode((10,), spike_fun=bm.surrogate.arctan),
     )
 
@@ -138,8 +140,6 @@ def main():
   parser.add_argument('-data-dir', default='./data', type=str, help='root dir of Fashion-MNIST dataset')
   parser.add_argument('-out-dir', default='./logs', type=str, help='root dir for saving logs and checkpoint')
   parser.add_argument('-lr', default=0.1, type=float, help='learning rate')
-  parser.add_argument('-save-es', default=None,
-                      help='filepath for saving a batch spikes encoded by the first {Conv2d-BatchNorm2d-IFNode}')
   args = parser.parse_args()
   print(args)
 
@@ -163,20 +163,20 @@ def main():
   def inference_fun(X, fit=True):
     net.reset_state(X.shape[0])
     return bm.for_loop(lambda sha: net(sha.update(dt=bm.dt, fit=fit), X),
-                       bp.tools.DotDict(t=bm.arange(args.n_time, dtype=bm.float_),
-                                        i=bm.arange(args.n_time, dtype=bm.int_)),
-                       dyn_vars=net.vars().unique())
+                       DotDict(t=bm.arange(args.n_time, dtype=bm.float_),
+                               i=bm.arange(args.n_time, dtype=bm.int_)),
+                       child_objs=net)
 
   # loss function
   @bm.to_object(child_objs=net)
   def loss_fun(X, Y, fit=True):
-    fr = bm.mean(inference_fun(X, fit), axis=0)
+    fr = bm.max(inference_fun(X, fit), axis=0)
     ys_onehot = bm.one_hot(Y, 10, dtype=bm.float_)
     l = bp.losses.mean_squared_error(fr, ys_onehot)
     n = bm.sum(fr.argmax(1) == Y)
     return l, n
 
-  predict_loss_fun = bm.jit(partial(loss_fun, fit=True), dyn_vars=loss_fun.vars().unique())
+  predict_loss_fun = bm.jit(partial(loss_fun, fit=True), child_objs=loss_fun)
 
   grad_fun = bm.grad(loss_fun, grad_vars=net.train_vars().unique(), has_aux=True, return_value=True)
 
@@ -242,7 +242,7 @@ def main():
         'train_acc': train_acc,
         'test_acc': test_acc,
       }
-      bp.checkpoints.save(out_dir, states, epoch_i)
+      # bp.checkpoints.save(out_dir, states, epoch_i)
 
   # inference
   state_dict = bp.checkpoints.load(out_dir)

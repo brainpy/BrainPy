@@ -37,11 +37,11 @@ if finder.num_fps > 0:
 
 # verify
 for i in range(finder.num_fps):
-  model = bp.dyn.neurons.HH(1)
+  model = bp.neurons.HH(1)
   model.V[:] = finder._fixed_points['V'][i]
   model.m[:] = finder._fixed_points['m'][i]
   model.h[:] = finder._fixed_points['h'][i]
   model.n[:] = finder._fixed_points['n'][i]
-  runner = bp.dyn.DSRunner(model, inputs=(model.input, I), monitors=['V'])
+  runner = bp.DSRunner(model, inputs=(model.input, I), monitors=['V'])
   runner.run(100)
   bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', title=f'FP {i}', show=True)

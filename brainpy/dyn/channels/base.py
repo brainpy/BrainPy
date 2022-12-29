@@ -62,7 +62,7 @@ class IonChannel(Channel):
 
 
 class Calcium(Ion, Container):
-  """The base calcium dynamics.
+  """The brainpy_object calcium dynamics.
 
   Parameters
   ----------

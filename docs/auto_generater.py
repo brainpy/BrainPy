@@ -207,22 +207,6 @@ def generate_train_docs(path='apis/auto/train/'):
                template=False)
 
 
-def generate_base_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('function', 'Function Wrapper'),
-    ('collector', 'Collectors'),
-    ('io', 'Exporting and Loading'),
-    ('naming', 'Naming Tools')]
-  write_submodules(module_name='brainpy.base',
-                   filename=os.path.join(path, 'base.rst'),
-                   header='``brainpy.base`` module',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
-
 
 def generate_connect_docs(path='apis/auto/'):
   if not os.path.exists(path):
@@ -452,35 +436,21 @@ def generate_math_docs(path='apis/auto/math/'):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  buf = []
-  buf += _section(header='Multi-dimensional Array',
-                  numpy_mod='numpy',
-                  brainpy_mod='brainpy.math',
-                  jax_mod='jax.numpy',
-                  klass='ndarray', )
-  buf += _section(header='Array Operations',
-                  numpy_mod='numpy',
-                  brainpy_mod='brainpy.math',
-                  jax_mod='jax.numpy',
-                  is_jax=True)
-  buf += _section(header='Linear Algebra',
-                  numpy_mod='numpy.linalg',
-                  brainpy_mod='brainpy.math.linalg',
-                  jax_mod='jax.numpy.linalg', )
-  buf += _section(header='Discrete Fourier Transform',
-                  numpy_mod='numpy.fft',
-                  brainpy_mod='brainpy.math.fft',
-                  jax_mod='jax.numpy.fft', )
-  buf += _section(header='Random Sampling',
-                  numpy_mod='numpy.random',
-                  brainpy_mod='brainpy.math.random',
-                  jax_mod='jax.random',)
-  codes = '\n'.join(buf)
+  module_and_name = [
+    ('base_object', 'Basic BrainPy Object'),
+    ('collector', 'Basic Variable Collector'),
+    ('base_transform', 'Basic Transformation Object'),
+    ('autograd', 'Automatic Differentiation'),
+    ('controls', 'Control Flows'),
+    ('jit', 'JIT Compilation'),
+    ('function', 'Function to Object'),
+  ]
+  write_submodules(module_name='brainpy.math.object_transform',
+                   filename=os.path.join(path, 'object_transform.rst'),
+                   header='Object-oriented Transformation',
+                   submodule_names=[k[0] for k in module_and_name],
+                   section_names=[k[1] for k in module_and_name])
 
-  if not os.path.exists(path):
-    os.makedirs(path)
-  with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
-    f.write(codes)
 
   module_and_name = [
     ('pre_syn_post',   '``pre-syn-post`` Transformations',),
@@ -490,19 +460,6 @@ def generate_math_docs(path='apis/auto/math/'):
   write_submodules(module_name='brainpy.math.operators',
                    filename=os.path.join(path, 'operators.rst'),
                    header='Brain Dynamics Modeling Operators',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
-
-  module_and_name = [
-    ('autograd', 'Automatic Differentiation'),
-    ('controls', 'Control Flows'),
-    # ('parallels', 'Parallel Compilation'),
-    ('jit', 'JIT Compilation'),
-    ('function', 'Function to Object'),
-  ]
-  write_submodules(module_name='brainpy.math.object_transform',
-                   filename=os.path.join(path, 'object_transform.rst'),
-                   header='Object-oriented Transformation',
                    submodule_names=[k[0] for k in module_and_name],
                    section_names=[k[1] for k in module_and_name])
 
@@ -530,7 +487,6 @@ def generate_measure_docs(path='apis/auto/'):
   write_module(module_name='brainpy.measure',
                filename=os.path.join(path, 'measure.rst'),
                header='``brainpy.measure`` module')
-
 
 
 def generate_optimizers_docs(path='apis/auto/'):

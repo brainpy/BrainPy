@@ -109,7 +109,6 @@ import logging
 
 from functools import wraps
 from brainpy import math as bm, errors
-from brainpy.base.collector import Collector
 from brainpy.integrators import constants as C, utils, joint_eq
 from brainpy.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
@@ -323,7 +322,7 @@ class ExponentialEuler(ODEIntegrator):
     @wraps(self.f)
     def integral_func(*args, **kwargs):
       # format arguments
-      params_in = Collector()
+      params_in = bm.Collector()
       for i, arg in enumerate(args):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)

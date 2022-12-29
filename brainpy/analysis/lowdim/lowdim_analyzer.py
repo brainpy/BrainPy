@@ -12,7 +12,6 @@ import brainpy.math as bm
 from brainpy import errors, tools
 from brainpy.analysis import constants as C, utils
 from brainpy.analysis.base import DSAnalyzer
-from brainpy.base.collector import Collector
 
 pyplot = None
 
@@ -91,7 +90,7 @@ class LowDimAnalyzer(DSAnalyzer):
     if not isinstance(target_vars, dict):
       raise errors.AnalyzerError('"target_vars" must be a dict, with the format of '
                                  '{"var1": (var1_min, var1_max)}.')
-    self.target_vars = Collector(target_vars)
+    self.target_vars = bm.Collector(target_vars)
     self.target_var_names = list(self.target_vars.keys())  # list of target vars
     for key in self.target_vars.keys():
       if key not in self.model.variables:
@@ -110,7 +109,7 @@ class LowDimAnalyzer(DSAnalyzer):
     for key in fixed_vars.keys():
       if key not in self.model.variables:
         raise ValueError(f'{key} is not a dynamical variable in {self.model}.')
-    self.fixed_vars = Collector(fixed_vars)
+    self.fixed_vars = bm.Collector(fixed_vars)
 
     # check duplicate
     for key in self.fixed_vars.keys():
@@ -125,7 +124,7 @@ class LowDimAnalyzer(DSAnalyzer):
     if not isinstance(pars_update, dict):
       raise errors.AnalyzerError('"pars_update" must be a dict with the format '
                                  'of {"par1": val1, "par2": val2}.')
-    pars_update = Collector(pars_update)
+    pars_update = bm.Collector(pars_update)
     for key in pars_update.keys():
       if key not in self.model.parameters:
         raise errors.AnalyzerError(f'"{key}" is not a valid parameter in "{self.model}" model.')
@@ -144,7 +143,7 @@ class LowDimAnalyzer(DSAnalyzer):
         raise errors.AnalyzerError(
           f'The range of parameter {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
 
-    self.target_pars = Collector(target_pars)
+    self.target_pars = bm.Collector(target_pars)
     self.target_par_names = list(self.target_pars.keys())  # list of target_pars
 
     # check duplicate

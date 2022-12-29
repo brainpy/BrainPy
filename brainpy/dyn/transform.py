@@ -6,7 +6,6 @@ import jax.numpy as jnp
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from brainpy import tools, math as bm
-from brainpy.base.base import BrainPyObject
 from brainpy.check import is_float
 from brainpy.types import PyTree
 from .base import DynamicalSystem, Sequential
@@ -17,7 +16,7 @@ __all__ = [
 ]
 
 
-class DynSysToBPObj(BrainPyObject):
+class DynSysToBPObj(bm.BrainPyObject):
   """Transform a :py:class:`DynamicalSystem` to a :py:class:`BrainPyObject`.
 
   Parameters
@@ -72,13 +71,13 @@ class LoopOverTime(DynSysToBPObj):
   >>> over_time.reset_state(n_batch)
   (30, 128, 2)
   >>>
-  >>> hist_l3 = over_time(bm.random.rand(n_time, n_batch, n_in), time_major=True)
+  >>> hist_l3 = over_time(bm.random.rand(n_time, n_batch, n_in), data_first_axis='T')
   >>> print(hist_l3.shape)
   >>>
   >>> # monitor the "l1" layer state
   >>> over_time = bp.LoopOverTime(model, out_vars=model['l1'].state)
   >>> over_time.reset_state(n_batch)
-  >>> hist_l3, hist_l1 = over_time(bm.random.rand(n_time, n_batch, n_in), time_major=True)
+  >>> hist_l3, hist_l1 = over_time(bm.random.rand(n_time, n_batch, n_in), data_first_axis='T')
   >>> print(hist_l3.shape)
   (30, 128, 2)
   >>> print(hist_l1.shape)
@@ -149,7 +148,7 @@ class LoopOverTime(DynSysToBPObj):
       t0: float = 0.,
       dt: Optional[float] = None,
       shared_arg: Optional[Dict] = None,
-      time_major: bool = True
+      data_first_axis: str = 'T'
   ):
     """Forward propagation along the time or inputs.
 
@@ -165,7 +164,7 @@ class LoopOverTime(DynSysToBPObj):
     shared_arg: dict
       The shared arguments across the nodes.
       For instance, `shared_arg={'fit': False}` for the prediction phase.
-    time_major: bool
+    data_first_axis: str
       Denote whether the input data is time major.
       If so, we treat the data as `(time, batch, ...)` when the `target` is in Batching mode.
       Default is True.
@@ -175,6 +174,8 @@ class LoopOverTime(DynSysToBPObj):
     out: PyTree
       The accumulated outputs over time.
     """
+    assert data_first_axis in ['B', 'T']
+
     is_float(t0, 't0')
     is_float(dt, 'dt', allow_none=True)
     dt = bm.get_dt() if dt is None else dt
@@ -195,11 +196,11 @@ class LoopOverTime(DynSysToBPObj):
     else:
       inp_err_msg = ('\n'
                      'Input should be a Array PyTree with the shape '
-                     'of (B, T, ...) or (T, B, ...) with `time_major=True`, '
+                     'of (B, T, ...) or (T, B, ...) with `data_first_axis="T"`, '
                      'where B the batch size and T the time length.')
       xs, tree = tree_flatten(duration_or_xs, lambda a: isinstance(a, bm.Array))
       if isinstance(self.target.mode, bm.BatchingMode):
-        b_idx, t_idx = (1, 0) if time_major else (0, 1)
+        b_idx, t_idx = (1, 0) if data_first_axis == 'T' else (0, 1)
 
         try:
           batch = tuple(set([x.shape[b_idx] for x in xs]))
@@ -225,10 +226,10 @@ class LoopOverTime(DynSysToBPObj):
         if self.no_state:
           xs = [jnp.reshape(x, (length[0] * batch[0],) + x.shape[2:]) for x in xs]
         else:
-          if not time_major:
+          if data_first_axis == 'B':
             xs = [jnp.moveaxis(x, 0, 1) for x in xs]
         xs = tree_unflatten(tree, xs)
-        origin_shape = (length[0], batch[0]) if time_major else (batch[0], length[0])
+        origin_shape = (length[0], batch[0]) if data_first_axis == 'T' else (batch[0], length[0])
 
       else:
 

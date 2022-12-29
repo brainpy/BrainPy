@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.base import BrainPyObject
 from jax import vmap
 import jax.numpy as jnp
 
 __all__ = [
-  # base class
+  # brainpy_object class
   'OnlineAlgorithm',
 
   # online learning algorithms
@@ -21,7 +20,7 @@ __all__ = [
 name2func = dict()
 
 
-class OnlineAlgorithm(BrainPyObject):
+class OnlineAlgorithm(bm.BrainPyObject):
   """Base class for online training algorithm."""
 
   def __init__(self, name=None):

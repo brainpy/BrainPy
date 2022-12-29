@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+
 import brainpy as bp
 import brainpy.math as bm
+
+import matplotlib.pyplot as plt
 
 bm.set_platform('cpu')
 
 
-class EINet(bp.dyn.Network):
+class EINet(bp.Network):
   def __init__(self, num_exc, num_inh, prob, JE, JI):
     # neurons
     pars = dict(V_rest=-52., V_th=-50., V_reset=-60., tau=10., tau_ref=0.)
@@ -37,12 +40,10 @@ JI = -1 / bp.math.sqrt(prob * num_inh)
 
 net = EINet(num_exc, num_inh, prob=prob, JE=JE, JI=JI)
 
-runner = bp.dyn.DSRunner(net,
-                         monitors=['E.spike'],
-                         inputs=[('E.input', Ib), ('I.input', Ib)])
+runner = bp.DSRunner(net,
+                     monitors=['E.spike'],
+                     inputs=[('E.input', Ib), ('I.input', Ib)])
 t = runner.run(1000.)
-
-import matplotlib.pyplot as plt
 
 fig, gs = bp.visualize.get_figure(4, 1, 2, 10)
 

@@ -9,7 +9,7 @@ import brainpy.math as bm
 bm.set_platform('cpu')
 
 
-class CANN1D(bp.dyn.NeuGroup):
+class CANN1D(bp.NeuGroup):
   def __init__(self, num, tau=1., k=8.1, a=0.5, A=10., J0=4.,
                z_min=-bm.pi, z_max=bm.pi, **kwargs):
     super(CANN1D, self).__init__(size=num, **kwargs)

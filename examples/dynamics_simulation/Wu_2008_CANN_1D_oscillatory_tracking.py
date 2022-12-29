@@ -7,7 +7,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class CANN1D(bp.dyn.NeuGroup):
+class CANN1D(bp.NeuGroup):
   def __init__(self, num, tau=1., tau_v=50., k=1., a=0.3, A=0.2, J0=1.,
                z_min=-bm.pi, z_max=bm.pi, m=0.3):
     super(CANN1D, self).__init__(size=num)
@@ -76,10 +76,10 @@ position[num1: num1 + num2] = bm.linspace(0., final_pos, num2)
 position[num1 + num2:] = final_pos
 position = position.reshape((-1, 1))
 Iext = cann.get_stimulus_by_pos(position)
-runner = bp.dyn.DSRunner(cann,
-                         inputs=('input', Iext, 'iter'),
-                         monitors=['u', 'v'],
-                         dyn_vars=cann.vars())
+runner = bp.DSRunner(cann,
+                     inputs=('input', Iext, 'iter'),
+                     monitors=['u', 'v'],
+                     dyn_vars=cann.vars())
 runner(dur1 + dur2 + dur3)
 bp.visualize.animate_1D(
   dynamical_vars=[
