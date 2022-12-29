@@ -41,7 +41,7 @@ class PoissonEncoder(Encoder):
     check.is_float(max_val, 'max_val')
     self.min_val = min_val
     self.max_val = max_val
-    self.rng = bm.random.RandomState(seed)
+    self.rng = bm.random.get_rng(seed)
 
   def __call__(self, x: ArrayType, num_step: int = None):
     """

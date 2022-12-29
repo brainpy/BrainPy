@@ -3,7 +3,7 @@
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
-from jax import numpy as jnp, tree_util as jtu
+from jax import numpy as jnp
 import numpy as np
 import numpy as onp
 from jax.experimental.host_callback import id_tap
@@ -550,8 +550,10 @@ def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
 
 
 def is_all_objs(targets: Any, out_as: str = 'tuple'):
-  from brainpy.base import BrainPyObject
-  return is_elem_or_seq_or_dict(targets, BrainPyObject, out_as)
+  global bm
+  if bm is None:
+    from brainpy import math as bm
+  return is_elem_or_seq_or_dict(targets, bm.BrainPyObject, out_as)
 
 
 def _err_jit_true_branch(err_fun, x):

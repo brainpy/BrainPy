@@ -3,7 +3,7 @@ publishment.md
 .vscode
 io_test_tmp*
 
-brainpy/base/tests/io_test_tmp*
+brainpy/math/brainpy_object/tests/io_test_tmp*
 
 development
 
@@ -217,3 +217,7 @@ cython_debug/
 /docs/apis/simulation/generated/
 !/brainpy/dyn/tests/data/
 /examples/dynamics_simulation/data/
+/examples/training_snn_models/logs/T100_b64_lr0.001/
+/examples/training_snn_models/logs/
+/examples/training_snn_models/data/
+/docs/tutorial_advanced/data/

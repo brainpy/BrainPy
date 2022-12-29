@@ -35,14 +35,15 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
 .. toctree::
    :maxdepth: 1
-   :caption: Core Concepts
+   :caption: BrainPy Core Concepts
 
    core_concept/brainpy_transform_concept
-   core_concept/brainpy_dynamical_system_concept
+   core_concept/brainpy_dynamical_system
+
 
 .. toctree::
    :maxdepth: 2
-   :caption: BDP Tutorials
+   :caption: Brain Dynamics Tutorials
 
    tutorial_math/index
    tutorial_building/index
@@ -55,13 +56,8 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    :maxdepth: 1
    :caption: Advanced Tutorials
 
-   tutorial_advanced/variables.ipynb
-   tutorial_advanced/base_and_collector.ipynb
-   tutorial_advanced/compilation.ipynb
-   tutorial_advanced/differentiation.ipynb
    tutorial_advanced/adavanced_lowdim_analysis.ipynb
    tutorial_advanced/interoperation.ipynb
-   tutorial_advanced/brainpy_ecosystem.ipynb
 
 
 
@@ -87,13 +83,13 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
    tutorial_FAQs/citing_and_publication
    tutorial_FAQs/uniqueness_of-brainpy-math
+   tutorial_FAQs/brainpy_ecosystem.ipynb
 
 
 .. toctree::
    :maxdepth: 1
    :caption: API Documentation
 
-   apis/auto/base.rst
    apis/math.rst
    apis/dyn.rst
    apis/train.rst

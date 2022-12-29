@@ -13,14 +13,14 @@ except ImportError:
   from jax.core import UnexpectedTracerError
 
 from brainpy import errors, tools, check
-from brainpy.base.naming import get_unique_name
-from brainpy.base import ArrayCollector
-from brainpy.math.ndarray import (Array, Variable,
+from .base_object import get_unique_name, BrainPyObject
+from .collector import ArrayCollector
+from ..ndarray import (Array, Variable,
                                   add_context,
                                   del_context)
-from brainpy.math.numpy_ops import as_device_array
+from ..numpy_ops import as_jax
 from ._utils import infer_dyn_vars
-from .base import ObjectTransform
+from .base_transform import ObjectTransform
 
 __all__ = [
   'make_loop',
@@ -298,7 +298,7 @@ def make_while(
   def _cond_fun(op):
     dyn_values, static_values = op
     for v, d in zip(dyn_vars, dyn_values): v._value = d
-    return as_device_array(cond_fun(static_values))
+    return as_jax(cond_fun(static_values))
 
   name = get_unique_name('_brainpy_object_oriented_make_while_')
 
@@ -445,6 +445,7 @@ def cond(
     false_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
   """Simple conditional statement (if-else) with instance of :py:class:`~.Variable`.
 
@@ -477,6 +478,10 @@ def cond(
     can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
   dyn_vars: optional, Variable, sequence of Variable, dict
     The dynamically changed variables.
+  child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    The children objects used in the target function.
+
+    .. versionadded:: 2.3.1
 
   Returns
   -------
@@ -487,8 +492,11 @@ def cond(
   true_fun = _check_f(true_fun)
   false_fun = _check_f(false_fun)
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  dyn_vars = ArrayCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(true_fun))
   dyn_vars.update(infer_dyn_vars(false_fun))
+  for obj in check.is_all_objs(child_objs, out_as='tuple'):
+    dyn_vars.update(obj.vars().unique())
   dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
 
   name = get_unique_name('_brainpy_object_oriented_cond_')
@@ -539,6 +547,7 @@ def ifelse(
     branches: Sequence[Callable],
     operands: Any = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     show_code: bool = False,
 ):
   """``If-else`` control flows looks like native Pythonic programming.
@@ -578,6 +587,10 @@ def ifelse(
     The dynamically changed variables.
   show_code: bool
     Whether show the formatted code.
+  child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    The children objects used in the target function.
+
+    .. versionadded:: 2.3.1
 
   Returns
   -------
@@ -602,7 +615,9 @@ def ifelse(
   dyn_vars = ArrayCollector(dyn_vars)
   for f in branches:
     dyn_vars += infer_dyn_vars(f)
-  dyn_vars = tuple(dyn_vars.values())
+  for obj in check.is_all_objs(child_objs, out_as='tuple'):
+    dyn_vars.update(obj.vars().unique())
+  dyn_vars = tuple(dyn_vars.unique().values())
 
   # format new codes
   if len(conditions) == 1:
@@ -647,6 +662,7 @@ def for_loop(
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     out_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     reverse: bool = False,
     unroll: int = 1,
 ):
@@ -727,6 +743,10 @@ def for_loop(
     Optional positive int specifying, in the underlying operation of the
     scan primitive, how many scan iterations to unroll within a single
     iteration of a loop.
+  child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    The children objects used in the target function.
+
+    .. versionadded:: 2.3.1
 
   Returns
   -------
@@ -734,7 +754,10 @@ def for_loop(
     The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
   """
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  dyn_vars = ArrayCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(body_fun))
+  for obj in check.is_all_objs(child_objs, out_as='tuple'):
+    dyn_vars.update(obj.vars().unique())
   dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
   outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
   for v in outs:
@@ -785,6 +808,7 @@ def while_loop(
     cond_fun: Callable,
     operands: Any,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
   """``while-loop`` control flow with :py:class:`~.Variable`.
 
@@ -831,13 +855,18 @@ def while_loop(
     The dynamically changed variables.
   operands: Any
     The operands for ``body_fun`` and ``cond_fun`` functions.
+  child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    The children objects used in the target function.
 
+    .. versionadded:: 2.3.1
   """
   # iterable variables
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
   dyn_vars = ArrayCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(body_fun))
   dyn_vars.update(infer_dyn_vars(cond_fun))
+  for obj in check.is_all_objs(child_objs, out_as='tuple'):
+    dyn_vars.update(obj.vars().unique())
   dyn_vars = tuple(dyn_vars.values())
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)

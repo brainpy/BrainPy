@@ -45,8 +45,14 @@ class FixedProb(TwoEndConnector):
     Seed the random generator.
   """
 
-  def __init__(self, prob, pre_ratio=1., include_self=True, allow_multi_conn=False, seed=None):
-    super(FixedProb, self).__init__()
+  def __init__(self,
+               prob,
+               pre_ratio=1.,
+               include_self=True,
+               allow_multi_conn=False,
+               seed=None,
+               **kwargs):
+    super(FixedProb, self).__init__(**kwargs)
     assert 0. <= prob <= 1.
     assert 0. <= pre_ratio <= 1.
     self.prob = prob
@@ -139,8 +145,8 @@ class FixedTotalNum(TwoEndConnector):
     The random number seed.
   """
 
-  def __init__(self, num, seed=None):
-    super(FixedTotalNum, self).__init__()
+  def __init__(self, num, seed=None, **kwargs):
+    super(FixedTotalNum, self).__init__(**kwargs)
     if isinstance(num, int):
       assert num >= 0, '"num" must be a non-negative integer.'
     elif isinstance(num, float):
@@ -164,8 +170,13 @@ class FixedTotalNum(TwoEndConnector):
 
 
 class FixedNum(TwoEndConnector):
-  def __init__(self, num, include_self=True, allow_multi_conn=False, seed=None):
-    super(FixedNum, self).__init__()
+  def __init__(self,
+               num,
+               include_self=True,
+               allow_multi_conn=False,
+               seed=None,
+               **kwargs):
+    super(FixedNum, self).__init__(**kwargs)
     if isinstance(num, int):
       assert num >= 0, '"num" must be a non-negative integer.'
     elif isinstance(num, float):
@@ -361,9 +372,10 @@ class GaussianProb(OneEndConnector):
       normalize: bool = True,
       include_self: bool = True,
       periodic_boundary: bool = False,
-      seed: int = None
+      seed: int = None,
+      **kwargs
   ):
-    super(GaussianProb, self).__init__()
+    super(GaussianProb, self).__init__(**kwargs)
     self.sigma = sigma
     self.encoding_values = encoding_values
     self.normalize = normalize
@@ -478,9 +490,10 @@ class SmallWorld(TwoEndConnector):
       prob,
       directed=False,
       include_self=False,
-      seed=None
+      seed=None,
+      **kwargs
   ):
-    super(SmallWorld, self).__init__()
+    super(SmallWorld, self).__init__(**kwargs)
     self.prob = prob
     self.directed = directed
     self.num_neighbor = num_neighbor
@@ -610,8 +623,8 @@ class ScaleFreeBA(TwoEndConnector):
          random networks", Science 286, pp 509-512, 1999.
   """
 
-  def __init__(self, m, directed=False, seed=None):
-    super(ScaleFreeBA, self).__init__()
+  def __init__(self, m, directed=False, seed=None, **kwargs):
+    super(ScaleFreeBA, self).__init__(**kwargs)
     self.m = m
     self.directed = directed
     self.seed = format_seed(seed)
@@ -699,8 +712,8 @@ class ScaleFreeBADual(TwoEndConnector):
   .. [1] N. Moshiri "The dual-Barabasi-Albert model", arXiv:1810.10538.
   """
 
-  def __init__(self, m1, m2, p, directed=False, seed=None):
-    super(ScaleFreeBADual, self).__init__()
+  def __init__(self, m1, m2, p, directed=False, seed=None, **kwargs):
+    super(ScaleFreeBADual, self).__init__(**kwargs)
     self.m1 = m1
     self.m2 = m2
     self.p = p
@@ -812,8 +825,8 @@ class PowerLaw(TwoEndConnector):
          Phys. Rev. E, 65, 026107, 2002.
   """
 
-  def __init__(self, m, p, directed=False, seed=None):
-    super(PowerLaw, self).__init__()
+  def __init__(self, m, p, directed=False, seed=None, **kwargs):
+    super(PowerLaw, self).__init__(**kwargs)
     self.m = m
     self.p = p
     if self.p > 1 or self.p < 0:
@@ -910,8 +923,8 @@ class ProbDist(TwoEndConnector):
 
   """
 
-  def __init__(self, dist=1, prob=1., pre_ratio=1., seed=None, include_self=True):
-    super(ProbDist, self).__init__()
+  def __init__(self, dist=1, prob=1., pre_ratio=1., seed=None, include_self=True, **kwargs):
+    super(ProbDist, self).__init__(**kwargs)
 
     self.prob = prob
     self.pre_ratio = pre_ratio
@@ -1013,7 +1026,7 @@ class ProbDist(TwoEndConnector):
     self._connect_3d = numba_jit(_connect_3d)
     self._connect_4d = numba_jit(_connect_4d)
 
-  def build_conn(self):
+  def build_coo(self):
     if len(self.pre_size) != len(self.post_size):
       raise ValueError('The dimensions of shapes of two objects to establish connections should '
                        f'be the same. But we got dimension {len(self.pre_size)} != {len(self.post_size)}. '
@@ -1046,4 +1059,4 @@ class ProbDist(TwoEndConnector):
       pres, posts = f(pre_pos, pre_size=pre_size, post_size=post_size, n_dim=n_dim)
       connected_pres.extend(pres)
       connected_posts.extend(posts)
-    return 'ij', (np.asarray(connected_pres), np.asarray(connected_posts))
+    return np.asarray(connected_pres), np.asarray(connected_posts)

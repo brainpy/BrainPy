@@ -21,7 +21,7 @@ def bifurcation_analysis():
   pp.show_figure()
 
 
-class Network(bp.dyn.Network):
+class Network(bp.Network):
   def __init__(self, signal_speed=20.):
     super(Network, self).__init__()
 
@@ -52,7 +52,7 @@ class Network(bp.dyn.Network):
 
 def net_simulation():
   net = Network()
-  runner = bp.dyn.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72], jit=True)
+  runner = bp.DSRunner(net, monitors=['fhn.x'], inputs=['fhn.input', 0.72], jit=True)
   runner.run(6e3)
 
   plt.rcParams['image.cmap'] = 'plasma'
@@ -69,7 +69,7 @@ def net_analysis():
   net = Network()
 
   # get candidate points
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     net,
     monitors={'x': net.fhn.x, 'y': net.fhn.y},
     inputs=(net.fhn.input, 0.72),
@@ -93,6 +93,6 @@ def net_analysis():
 
 
 if __name__ == '__main__':
-  # bifurcation_analysis()
+  bifurcation_analysis()
   net_simulation()
-  # net_analysis()
+  net_analysis()

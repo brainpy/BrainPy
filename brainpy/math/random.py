@@ -14,14 +14,13 @@ from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
 from brainpy.check import jit_error_checking
-from brainpy.errors import UnsupportedError
 from brainpy.math.ndarray import Array, Variable
 from ._utils import wraps
 
 __all__ = [
   'RandomState', 'Generator',
 
-  'seed', 'default_rng',
+  'seed', 'default_rng', 'get_rng',
 
   'rand', 'randint', 'random_integers', 'randn', 'random',
   'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle', 'beta',
@@ -430,6 +429,7 @@ class RandomState(Variable):
                     'seed will be removed since 2.4.0', UserWarning)
 
     if seed_or_key is None:
+      # key = DEFAULT.split_key()
       seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
@@ -443,9 +443,6 @@ class RandomState(Variable):
   def __repr__(self) -> str:
     print_code = repr(self.value)
     i = print_code.index('(')
-
-    # if 'DeviceArray' in print_code:
-    #   print_code = print_code.replace('DeviceArray', '')
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
 
@@ -513,9 +510,6 @@ class RandomState(Variable):
     keys = jr.split(self.value, n + 1)
     self._value = keys[0]
     return keys[1:]
-
-  def update(self, value):
-    raise UnsupportedError(f'Do not support change the value of a {self.__class__.__name__}.')
 
   # ---------------- #
   # random functions #
@@ -1134,9 +1128,16 @@ DEFAULT = RandomState(__a)
 del __a
 
 
+def get_rng(seed_or_key=None, clone: bool = True) -> RandomState:
+  if seed_or_key is None:
+    return DEFAULT.clone() if clone else DEFAULT
+  else:
+    return RandomState(seed_or_key)
+
+
 @wraps(np.random.default_rng)
-def default_rng(seed=None):
-  return RandomState(seed)
+def default_rng(seed_or_key=None):
+  return RandomState(seed_or_key)
 
 
 @wraps(np.random.seed)

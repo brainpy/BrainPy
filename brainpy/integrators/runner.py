@@ -12,7 +12,6 @@ import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
-from brainpy.base import Collector
 from brainpy import math as bm
 from brainpy.errors import RunningError, MonitorError
 from brainpy.integrators.base import Integrator
@@ -169,8 +168,14 @@ class IntegratorRunner(Runner):
       self.variables[k][:] = inits[k]
 
     # format string monitors
-    monitors = self._format_seq_monitors(monitors)
-    monitors = {k: (self.variables[k], i) for k, i in monitors}
+    if isinstance(monitors, (tuple, list)):
+      monitors = self._format_seq_monitors(monitors)
+      monitors = {k: (self.variables[k], i) for k, i in monitors}
+    elif isinstance(monitors, dict):
+      monitors = self._format_dict_monitors(monitors)
+      monitors = {k: ((self.variables[i], i) if isinstance(i, str) else i) for k, i in monitors.items()}
+    else:
+      raise ValueError
 
     # initialize super class
     super(IntegratorRunner, self).__init__(target=target,
@@ -219,12 +224,6 @@ class IntegratorRunner(Runner):
     else:
       self._dyn_args = dict()
 
-    # monitors
-    for k in self.mon.var_names:
-      if k not in self.target.variables:
-        raise MonitorError(f'Variable "{k}" to monitor is not defined '
-                           f'in the integrator {self.target}.')
-
     # start simulation time and index
     self.start_t = bm.Variable(bm.zeros(1))
     self.idx = bm.Variable(bm.zeros(1, dtype=bm.int_))
@@ -239,7 +238,7 @@ class IntegratorRunner(Runner):
 
   def _step_fun_integrator(self, static_args, dyn_args, t, i):
     # arguments
-    kwargs = Collector(dt=self.dt, t=t)
+    kwargs = bm.Collector(dt=self.dt, t=t)
     kwargs.update(static_args)
     kwargs.update(dyn_args)
     kwargs.update({k: v.value for k, v in self.variables.items()})

@@ -20,7 +20,6 @@ sys.path.insert(0, os.path.abspath('../'))
 import brainpy
 from docs import auto_generater
 
-auto_generater.generate_base_docs()
 auto_generater.generate_analysis_docs()
 auto_generater.generate_train_docs()
 auto_generater.generate_algorithm_docs()

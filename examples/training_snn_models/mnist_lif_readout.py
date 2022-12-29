@@ -65,15 +65,16 @@ encoder = bp.encoding.PoissonEncoder(min_val=0., max_val=1.)
 
 @bm.to_object(child_objs=(net, encoder))
 def loss_fun(xs, ys):
-  net.reset_state(xs.shape[0])
+  net.reset_state(batch_size=xs.shape[0])
   xs = encoder(xs, num_step=args.T)
-  shared = bm.form_shared_args(num_step=xs.shape[0])
+  # shared arguments for looping over time
+  shared = bm.shared_args_over_time(num_step=args.T)
   outs = bm.for_loop(net, (shared, xs))
   out_fr = bm.mean(outs, axis=0)
   ys_onehot = bm.one_hot(ys, 10, dtype=bm.float_)
   l = bp.losses.mean_squared_error(out_fr, ys_onehot)
-  correct_num = bm.sum(out_fr.argmax(1) == ys)
-  return l, correct_num
+  n = bm.sum(out_fr.argmax(1) == ys)
+  return l, n
 
 
 # gradient
@@ -87,9 +88,9 @@ optimizer = bp.optim.Adam(lr=args.lr, train_vars=net.train_vars().unique())
 @bm.jit
 @bm.to_object(child_objs=(grad_fun, optimizer))
 def train(xs, ys):
-  grads, l, correct_num = grad_fun(xs, ys)
+  grads, l, n = grad_fun(xs, ys)
   optimizer.update(grads)
-  return l, correct_num
+  return l, n
 
 
 max_test_acc = 0.
@@ -140,7 +141,7 @@ for epoch_i in range(args.epochs):
 state_dict = bp.checkpoints.load(out_dir)
 net.load_state_dict(state_dict['net'])
 
-runner = bp.DSRunner(net, time_major=True)
+runner = bp.DSRunner(net, data_first_axis='T')
 correct_num = 0
 for i in range(0, x_test.shape[0], 512):
   X = encoder(x_test[i: i + 512], num_step=args.T)

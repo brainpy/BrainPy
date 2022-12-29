@@ -9,16 +9,16 @@ from brainpy import check, tools
 from .environment import get_dt, get_int
 
 __all__ = [
-  'form_shared_args'
+  'shared_args_over_time'
 ]
 
 
-def form_shared_args(num_step: Optional[int] = None,
-                     duration: Optional[float] = None,
-                     dt: Optional[float] = None,
-                     t0: float = 0.,
-                     include_dt: bool = True):
-  """Form a shared argument for the inference of a :py:class:`~.DynamicalSystem`.
+def shared_args_over_time(num_step: Optional[int] = None,
+                          duration: Optional[float] = None,
+                          dt: Optional[float] = None,
+                          t0: float = 0.,
+                          include_dt: bool = True):
+  """Form a shared argument over time for the inference of a :py:class:`~.DynamicalSystem`.
 
   Parameters
   ----------

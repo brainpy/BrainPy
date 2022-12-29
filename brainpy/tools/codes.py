@@ -4,7 +4,8 @@ import inspect
 import re
 from types import LambdaType
 
-from brainpy.base.base import BrainPyObject
+BrainPyObject = None
+
 
 __all__ = [
   'repr_object',
@@ -27,6 +28,9 @@ __all__ = [
 
 
 def repr_object(x):
+  global BrainPyObject
+  if BrainPyObject is None:
+    from brainpy.math import BrainPyObject
   if isinstance(x, BrainPyObject):
     return x.name
   elif callable(x):

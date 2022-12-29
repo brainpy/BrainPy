@@ -22,7 +22,7 @@ def bifurcation_analysis():
   pp.show_figure()
 
 
-class Network(bp.dyn.Network):
+class Network(bp.Network):
   def __init__(self, noise=0.14):
     super(Network, self).__init__()
 
@@ -45,7 +45,7 @@ class Network(bp.dyn.Network):
 
 def simulation():
   net = Network()
-  runner = bp.dyn.DSRunner(net, monitors=['sl.x'], jit=True)
+  runner = bp.DSRunner(net, monitors=['sl.x'], jit=True)
   runner.run(6e3)
 
   plt.rcParams['image.cmap'] = 'plasma'
@@ -62,11 +62,10 @@ def net_analysis():
   import matplotlib
   matplotlib.use('WebAgg')
   bp.math.enable_x64()
-  from sklearn.decomposition import PCA
 
   # get candidate points
   net = Network()
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     net,
     monitors={'x': net.sl.x, 'y': net.sl.y},
     numpy_mon_after_run=False
@@ -87,7 +86,7 @@ def net_analysis():
                            plot=True)
 
 
-if __name__ == '__main__1':
-  # bifurcation_analysis()
-  # simulation()
+if __name__ == '__main__':
+  bifurcation_analysis()
+  simulation()
   net_analysis()

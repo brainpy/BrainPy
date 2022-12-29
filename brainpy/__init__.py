@@ -6,22 +6,8 @@ __version__ = "2.3.1"
 # fundamental modules
 from . import errors, check, tools
 
-# "base" module
-from . import base
-from .base import (
-  # base class
-  Base,
-  BrainPyObject,
-
-  # collector
-  Collector,
-  ArrayCollector,
-  TensorCollector,
-)
-
 # math foundation
 from . import math
-from . import modes
 
 # toolboxes
 from . import (
@@ -69,7 +55,7 @@ from .dyn import (
   synouts,  # synaptic output
   synplast,  # synaptic plasticity
 
-  # base classes
+  # brainpy_object classes
   DynamicalSystem,
   Container,
   Sequential,
@@ -113,9 +99,7 @@ from .analysis import (
 
 # running
 from . import running
-from .running import (
-  Runner
-)
+from .running import (Runner)
 
 # "visualization" module, will be removed soon
 from .visualization import visualize
@@ -124,3 +108,15 @@ from .visualization import visualize
 conn = connect
 init = initialize
 optim = optimizers
+
+from . import experimental
+
+
+# deprecated
+from . import base
+# use ``brainpy.math.*`` instead
+from brainpy.math.object_transform.base_object import (Base, BrainPyObject,)
+# use ``brainpy.math.*`` instead
+from brainpy.math.object_transform.collector import (Collector, ArrayCollector, TensorCollector,)
+# use ``brainpy.math.*`` instead
+from . import modes

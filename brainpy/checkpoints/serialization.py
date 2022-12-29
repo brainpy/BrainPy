@@ -36,7 +36,6 @@ except (ModuleNotFoundError, ImportError):
   get_tensorstore_spec = None
 
 from brainpy import math as bm
-from brainpy.base import Collector
 from brainpy.errors import (AlreadyExistsError,
                             MPACheckpointingRequiredError,
                             MPARestoreTargetRequiredError,
@@ -264,7 +263,7 @@ def _restore_namedtuple(xs, state_dict: Dict[str, Any]):
 register_serialization_state(bm.Array, _array_dict_state, _restore_array)
 register_serialization_state(dict, _dict_state_dict, _restore_dict)
 register_serialization_state(DotDict, _dict_state_dict, _restore_dict)
-register_serialization_state(Collector, _dict_state_dict, _restore_dict)
+register_serialization_state(bm.Collector, _dict_state_dict, _restore_dict)
 register_serialization_state(list, _list_state_dict, _restore_list)
 register_serialization_state(tuple,
                              _list_state_dict,

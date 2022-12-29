@@ -22,8 +22,8 @@ class One2One(TwoEndConnector):
   The two neuron groups should have the same size.
   """
 
-  def __init__(self):
-    super(One2One, self).__init__()
+  def __init__(self, *args, **kwargs):
+    super(One2One, self).__init__(*args, **kwargs)
 
   def __call__(self, pre_size, post_size):
     super(One2One, self).__call__(pre_size, post_size)
@@ -66,9 +66,9 @@ class All2All(TwoEndConnector):
   will create (num_pre x num_post) synapses.
   """
 
-  def __init__(self, include_self=True):
+  def __init__(self, *args, include_self=True, **kwargs):
     self.include_self = include_self
-    super(All2All, self).__init__()
+    super(All2All, self).__init__(*args, **kwargs)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(include_self={self.include_self})'
@@ -100,8 +100,9 @@ class GridConn(OneEndConnector):
       strides,
       include_self: bool = False,
       periodic_boundary: bool = False,
+      **kwargs
   ):
-    super(GridConn, self).__init__()
+    super(GridConn, self).__init__(**kwargs)
     self.strides = strides
     self.include_self = include_self
     self.periodic_boundary = periodic_boundary
@@ -196,11 +197,13 @@ class GridFour(GridConn):
   def __init__(
       self,
       include_self: bool = False,
-      periodic_boundary: bool = False
+      periodic_boundary: bool = False,
+      **kwargs
   ):
     super(GridFour, self).__init__(strides=np.asarray([-1, 0, 1]),
                                    include_self=include_self,
-                                   periodic_boundary=periodic_boundary)
+                                   periodic_boundary=periodic_boundary,
+                                   **kwargs)
     self.include_self = include_self
     self.periodic_boundary = periodic_boundary
 
@@ -244,11 +247,13 @@ class GridN(GridConn):
       self,
       N: int = 1,
       include_self: bool = False,
-      periodic_boundary: bool = False
+      periodic_boundary: bool = False,
+      **kwargs
   ):
     super(GridN, self).__init__(strides=np.arange(-N, N + 1, 1),
                                 include_self=include_self,
-                                periodic_boundary=periodic_boundary)
+                                periodic_boundary=periodic_boundary,
+                                **kwargs)
     self.N = N
 
   def __repr__(self):
@@ -281,8 +286,11 @@ class GridEight(GridN):
     .. versionadded:: 2.2.3.2
   """
 
-  def __init__(self, include_self=False, periodic_boundary: bool = False):
-    super(GridEight, self).__init__(N=1, include_self=include_self, periodic_boundary=periodic_boundary)
+  def __init__(self, include_self=False, periodic_boundary: bool = False, **kwargs):
+    super(GridEight, self).__init__(N=1,
+                                    include_self=include_self,
+                                    periodic_boundary=periodic_boundary,
+                                    **kwargs)
 
 
 grid_eight = GridEight()

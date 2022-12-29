@@ -16,10 +16,10 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map, tree_transpose
 from jax.util import safe_map
 
 from brainpy import errors, tools
-from brainpy.base import get_unique_name, ArrayCollector
-from brainpy.math.ndarray import Array, add_context, del_context
 from ._utils import infer_dyn_vars
-from .base import ObjectTransform
+from .base_object import get_unique_name, ArrayCollector
+from .base_transform import ObjectTransform
+from ..ndarray import Array, add_context, del_context
 
 __all__ = [
   'grad',  # gradient of scalar function

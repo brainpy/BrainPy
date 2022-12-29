@@ -97,10 +97,11 @@ class RNNNet(bp.DynamicalSystem):
 # Train the recurrent network on the decision-making task
 # ---
 # Instantiate the network and print information
-net = RNNNet(num_input=env.observation_space.shape[0],
-             num_hidden=64,
-             num_output=env.action_space.n,
-             dt=env.dt)
+with bm.training_environment():
+  net = RNNNet(num_input=env.observation_space.shape[0],
+               num_hidden=64,
+               num_output=env.action_space.n,
+               dt=env.dt)
 
 
 def loss(predictions, targets):

@@ -9,8 +9,8 @@ Implementation of the model:
   biology 13.10 (2017): e1005797.
 """
 
-
 from typing import Dict
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -19,7 +19,7 @@ import brainpy.math as bm
 from brainpy.dyn import channels, synapses, synouts, synplast
 
 
-class HTC(bp.dyn.CondNeuGroup):
+class HTC(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-65.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
     IL = channels.IL(size, g_max=gL, E=-70)
@@ -40,7 +40,7 @@ class HTC(bp.dyn.CondNeuGroup):
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ih=Ih, Ca=Ca)
 
 
-class RTC(bp.dyn.CondNeuGroup):
+class RTC(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-65.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
     IL = channels.IL(size, g_max=gL, E=-70)
@@ -61,7 +61,7 @@ class RTC(bp.dyn.CondNeuGroup):
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ih=Ih, Ca=Ca)
 
 
-class IN(bp.dyn.CondNeuGroup):
+class IN(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-70.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
     IL = channels.IL(size, g_max=gL, E=-60)
@@ -80,7 +80,7 @@ class IN(bp.dyn.CondNeuGroup):
                              IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ih=Ih, Ca=Ca)
 
 
-class TRN(bp.dyn.CondNeuGroup):
+class TRN(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-70.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
     IL = channels.IL(size, g_max=gL, E=-60)
@@ -99,7 +99,7 @@ class TRN(bp.dyn.CondNeuGroup):
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ca=Ca)
 
 
-class MgBlock(bp.dyn.SynOut):
+class MgBlock(bp.SynOut):
   def __init__(self, E=0.):
     super(MgBlock, self).__init__()
     self.E = E
@@ -109,7 +109,7 @@ class MgBlock(bp.dyn.SynOut):
     return g * (self.E - V) / (1 + bm.exp(-(V + 25) / 12.5))
 
 
-class Thalamus(bp.dyn.Network):
+class Thalamus(bp.Network):
   def __init__(
       self,
       g_input: Dict[str, float],
@@ -128,10 +128,10 @@ class Thalamus(bp.dyn.Network):
     self.IN = IN(size=(8, 8), gKL=g_KL['IN'], V_initializer=RE_V_init)
 
     # noises
-    self.poisson_HTC = bp.dyn.PoissonGroup(self.HTC.size, freqs=100)
-    self.poisson_RTC = bp.dyn.PoissonGroup(self.RTC.size, freqs=100)
-    self.poisson_IN = bp.dyn.PoissonGroup(self.IN.size, freqs=100)
-    self.poisson_RE = bp.dyn.PoissonGroup(self.RE.size, freqs=100)
+    self.poisson_HTC = bp.neurons.PoissonGroup(self.HTC.size, freqs=100)
+    self.poisson_RTC = bp.neurons.PoissonGroup(self.RTC.size, freqs=100)
+    self.poisson_IN = bp.neurons.PoissonGroup(self.IN.size, freqs=100)
+    self.poisson_RE = bp.neurons.PoissonGroup(self.RE.size, freqs=100)
     self.noise2HTC = synapses.Exponential(self.poisson_HTC, self.HTC, bp.conn.One2One(),
                                           output=synouts.COBA(E=0.), tau=5.,
                                           g_max=g_input['TC'])
@@ -281,16 +281,17 @@ def rhythm_const_input(amp, freq, length, duration, t_start=0., t_end=None, dt=N
 
 
 def try_trn_neuron():
-  trn = TRN(1)
-  I, length = bp.inputs.section_input(values=[0, -0.05, 0],
-                                      durations=[100, 100, 500],
-                                      return_length=True,
-                                      dt=0.01)
-  runner = bp.dyn.DSRunner(trn,
-                           monitors=['V'],
-                           inputs=['input', I, 'iter'],
-                           dt=0.01)
-  runner.run(length)
+  with bm.environment(dt=0.01):
+    trn = TRN(1)
+    inputs = bp.inputs.section_input(values=[0, -0.05, 0], durations=[100, 100, 500])
+
+    @bm.to_dynsys(child_objs=trn)
+    def update(s, inp):
+      trn.input += inp
+      trn.update(s, )
+
+    runner = bp.DSRunner(update, monitors={'V': trn.V})
+    runner.run(inputs=inputs)
 
   bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
 
@@ -311,7 +312,7 @@ def try_network():
   # plt.plot(currents)
   # plt.show()
 
-  runner = bp.dyn.DSRunner(
+  runner = bp.DSRunner(
     net,
     monitors=['HTC.spike', 'RTC.spike', 'RE.spike', 'IN.spike',
               'HTC.V', 'RTC.V', 'RE.V', 'IN.V', ],
@@ -344,4 +345,5 @@ def try_network():
 
 
 if __name__ == '__main__':
+  try_trn_neuron()
   try_network()

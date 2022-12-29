@@ -6,12 +6,12 @@ import inspect
 import os
 import re
 import sys
-import warnings
 from typing import Any, Callable, TypeVar, cast
 
 from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
+from brainpy import errors
 from . import modes
 
 bm = None
@@ -63,8 +63,8 @@ def ditype():
   .. deprecated:: 2.3.1
      Use `brainpy.math.int_` instead.
   """
-  warnings.warn('Get default integer data type through `ditype()` has been deprecated. \n'
-                'Use `brainpy.math.int_` instead.')
+  # raise errors.NoLongerSupportError('\nGet default integer data type through `ditype()` has been deprecated. \n'
+  #                                   'Use `brainpy.math.int_` instead.')
   global bm
   if bm is None: from brainpy import math as bm
   return bm.int_
@@ -77,8 +77,8 @@ def dftype():
      Use `brainpy.math.float_` instead.
   """
 
-  warnings.warn('Get default floating data type through `dftype()` has been deprecated. \n'
-                'Use `brainpy.math.float_` instead.')
+  # raise errors.NoLongerSupportError('\nGet default floating data type through `dftype()` has been deprecated. \n'
+  #                                   'Use `brainpy.math.float_` instead.')
   global bm
   if bm is None: from brainpy import math as bm
   return bm.float_

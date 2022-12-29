@@ -8,7 +8,6 @@ from typing import Callable, Dict, Sequence, Union
 import numpy as np
 
 from brainpy import math as bm, check
-from brainpy.base import BrainPyObject
 from brainpy.errors import MonitorError, RunningError
 from brainpy.tools import DotDict
 from . import constants as C
@@ -18,7 +17,7 @@ __all__ = [
 ]
 
 
-class Runner(BrainPyObject):
+class Runner(bm.BrainPyObject):
   """Base Runner.
 
   Parameters
@@ -64,12 +63,12 @@ class Runner(BrainPyObject):
   jit: Dict[str, bool]
   '''Flag to denote whether to use JIT.'''
 
-  target: BrainPyObject
+  target: bm.BrainPyObject
   '''The target model to run.'''
 
   def __init__(
       self,
-      target: BrainPyObject,
+      target: bm.BrainPyObject,
       monitors: Union[Sequence, Dict] = None,
       fun_monitors: Dict[str, Callable] = None,
       jit: Union[bool, Dict[str, bool]] = True,
@@ -100,34 +99,12 @@ class Runner(BrainPyObject):
       # format string monitors
       monitors = self._format_seq_monitors(monitors)
       # get monitor targets
-      monitors = self._find_monitor_targets(monitors)
+      monitors = self._find_seq_monitor_targets(monitors)
     elif isinstance(monitors, dict):
-      _monitors = dict()
-      for key, val in monitors.items():
-        if not isinstance(key, str):
-          raise MonitorError('Expect the key of the dict "monitors" must be a string. But got '
-                             f'{type(key)}: {key}')
-        if isinstance(val, bm.Variable):
-          val = (val, None)
-        if isinstance(val, (tuple, list)):
-          if not isinstance(val[0], bm.Variable):
-            raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
-                               f'But we got {val}')
-          if len(val) == 1:
-            _monitors[key] = (val[0], None)
-          elif len(val) == 2:
-            if isinstance(val[1], (int, np.integer)):
-              idx = bm.array([val[1]])
-            else:
-              idx = None if val[1] is None else bm.asarray(val[1])
-            _monitors[key] = (val[0], idx)
-          else:
-            raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
-                               f'But we got {val}')
-        else:
-          raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
-                             f'But we got {val}')
-      monitors = _monitors
+      # format string monitors
+      monitors = self._format_dict_monitors(monitors)
+      # get monitor targets
+      monitors = self._find_dict_monitor_targets(monitors)
     else:
       raise MonitorError(f'We only supports a format of list/tuple/dict of '
                          f'"vars", while we got {type(monitors)}.')
@@ -136,7 +113,7 @@ class Runner(BrainPyObject):
     # deprecated func_monitors
     if fun_monitors is not None:
       if isinstance(fun_monitors, dict):
-        warnings.warn("`func_monitors` is deprecated since version 2.3.1. "
+        warnings.warn("`fun_monitors` is deprecated since version 2.3.1. "
                       "Define `func_monitors` in `monitors`")
       check.is_dict_data(fun_monitors, key_type=str, val_type=types.FunctionType)
       self._monitors.update(fun_monitors)
@@ -159,7 +136,7 @@ class Runner(BrainPyObject):
 
   def _format_seq_monitors(self, monitors):
     if not isinstance(monitors, (tuple, list)):
-      raise TypeError(f'Must be a sequence, but we got {type(monitors)}')
+      raise TypeError(f'Must be a tuple/list, but we got {type(monitors)}')
     _monitors = []
     for mon in monitors:
       if isinstance(mon, str):
@@ -182,7 +159,40 @@ class Runner(BrainPyObject):
         raise MonitorError(f'We do not support monitor with {type(mon)}: {mon}')
     return _monitors
 
-  def _find_monitor_targets(self, _monitors):
+  def _format_dict_monitors(self, monitors):
+    if not isinstance(monitors, dict):
+      raise TypeError(f'Must be a dict, but we got {type(monitors)}')
+    _monitors = dict()
+    for key, val in monitors.items():
+      if not isinstance(key, str):
+        raise MonitorError('Expect the key of the dict "monitors" must be a string. But got '
+                           f'{type(key)}: {key}')
+      if isinstance(val, (bm.Variable, str)):
+        val = (val, None)
+
+      if isinstance(val, (tuple, list)):
+        if not isinstance(val[0], (bm.Variable, str)):
+          raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
+                             f'But we got {val}')
+        if len(val) == 1:
+          _monitors[key] = (val[0], None)
+        elif len(val) == 2:
+          if isinstance(val[1], (int, np.integer)):
+            idx = bm.array([val[1]])
+          else:
+            idx = None if val[1] is None else bm.asarray(val[1])
+          _monitors[key] = (val[0], idx)
+        else:
+          raise MonitorError('Expect the format of (variable, index) in the monitor setting. '
+                             f'But we got {val}')
+      elif callable(val):
+        _monitors[key] = val
+      else:
+        raise MonitorError('The value of dict monitor expect a sequence with (variable, index) '
+                           f'or a callable function. But we got {val}')
+    return _monitors
+
+  def _find_seq_monitor_targets(self, _monitors):
     if not isinstance(_monitors, (tuple, list)):
       raise TypeError(f'Must be a sequence, but we got {type(_monitors)}')
     # get monitor targets
@@ -211,6 +221,43 @@ class Runner(BrainPyObject):
             except KeyError:
               raise MonitorError(f'Cannot find {key} in {master}, please check.')
           monitors[key] = (getattr(master, splits[-1]), index)
+    return monitors
+
+  def _find_dict_monitor_targets(self, _monitors):
+    if not isinstance(_monitors, dict):
+      raise TypeError(f'Must be a dict, but we got {type(_monitors)}')
+    # get monitor targets
+    monitors = {}
+    name2node = None
+    for _key, _mon in _monitors.items():
+      if isinstance(_mon, str):
+        if name2node is None:
+          name2node = {node.name: node for node in list(self.target.nodes(level=-1).unique().values())}
+
+        key, index = _mon[0], _mon[1]
+        splits = key.split('.')
+        if len(splits) == 1:
+          if not hasattr(self.target, splits[0]):
+            raise RunningError(f'{self.target} does not has variable {key}.')
+          monitors[key] = (getattr(self.target, splits[-1]), index)
+        else:
+          if not hasattr(self.target, splits[0]):
+            if splits[0] not in name2node:
+              raise MonitorError(f'Cannot find target {key} in monitor of {self.target}, please check.')
+            else:
+              master = name2node[splits[0]]
+              assert len(splits) == 2
+              monitors[key] = (getattr(master, splits[-1]), index)
+          else:
+            master = self.target
+            for s in splits[:-1]:
+              try:
+                master = getattr(master, s)
+              except KeyError:
+                raise MonitorError(f'Cannot find {key} in {master}, please check.')
+            monitors[key] = (getattr(master, splits[-1]), index)
+      else:
+        monitors[_key] = _mon
     return monitors
 
   def __del__(self):
