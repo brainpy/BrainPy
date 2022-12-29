@@ -9,8 +9,8 @@ Implementation of the paper:
 
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.signal import kaiserord, lfilter, firwin, hilbert
 
 import brainpy as bp
@@ -512,11 +512,11 @@ def simulate_single_neuron(duration=4e3):
 
   RS_cell = AdEx(1, V_sp_th=RS_par['Vth'], **RS_par)
   runner = bp.DSRunner(RS_cell, monitors=['V'])
-  runner.run(duration, inputs=input_currents)
+  runner.run(inputs=input_currents)
 
   FS_cell = AdEx(1, V_sp_th=FS_par['Vth'], **FS_par)
   runner2 = bp.DSRunner(FS_cell, monitors=['V'])
-  runner2.run(duration, inputs=input_currents)
+  runner2.run(inputs=input_currents)
 
   fig, gs = bp.visualize.get_figure(3, 1, 3, 10)
   ax = fig.add_subplot(gs[0, 0])
@@ -543,11 +543,11 @@ def simulate_ping_net():
   net = PINGNet(varied_rates, ext_weight=4.)
   runner = bp.DSRunner(
     net,
-    fun_inputs=net.change_freq,
-    fun_monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
-                  'RS.V0': lambda tdi: net.rs_pop.V[0],
-                  'FS.spike': lambda tdi: net.fs_pop.spike,
-                  'RS.spike': lambda tdi: net.rs_pop.spike}
+    inputs=net.change_freq,
+    monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
+              'RS.V0': lambda tdi: net.rs_pop.V[0],
+              'FS.spike': lambda tdi: net.fs_pop.spike,
+              'RS.spike': lambda tdi: net.rs_pop.spike}
   )
   runner.run(duration)
 
@@ -567,11 +567,11 @@ def simulate_ai_net():
   net = PINGNet(varied_rates, ext_weight=5.)
   runner = bp.DSRunner(
     net,
-    fun_inputs=net.change_freq,
-    fun_monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
-                  'RS.V0': lambda tdi: net.rs_pop.V[0],
-                  'FS.spike': lambda tdi: net.fs_pop.spike,
-                  'RS.spike': lambda tdi: net.rs_pop.spike}
+    inputs=net.change_freq,
+    monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
+              'RS.V0': lambda tdi: net.rs_pop.V[0],
+              'FS.spike': lambda tdi: net.fs_pop.spike,
+              'RS.spike': lambda tdi: net.rs_pop.spike}
   )
   runner.run(duration)
 
@@ -590,13 +590,13 @@ def simulate_ing_net():
   net = INGNet(varied_rates, ext_weight=0.9)
   runner = bp.DSRunner(
     net,
-    fun_inputs=net.change_freq,
-    fun_monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
-                  'FS2.V0': lambda tdi: net.fs2_pop.V[0],
-                  'RS.V0': lambda tdi: net.rs_pop.V[0],
-                  'FS.spike': lambda tdi: net.fs_pop.spike,
-                  'FS2.spike': lambda tdi: net.fs2_pop.spike,
-                  'RS.spike': lambda tdi: net.rs_pop.spike}
+    inputs=net.change_freq,
+    monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
+              'FS2.V0': lambda tdi: net.fs2_pop.V[0],
+              'RS.V0': lambda tdi: net.rs_pop.V[0],
+              'FS.spike': lambda tdi: net.fs_pop.spike,
+              'FS2.spike': lambda tdi: net.fs2_pop.spike,
+              'RS.spike': lambda tdi: net.rs_pop.spike}
   )
   runner.run(duration)
 
@@ -618,13 +618,13 @@ def simulate_ching_net():
   net = CHINGNet(varied_rates)
   runner = bp.DSRunner(
     net,
-    fun_inputs=net.change_freq,
-    fun_monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
-                  'CH.V0': lambda tdi: net.ch_pop.V[0],
-                  'RS.V0': lambda tdi: net.rs_pop.V[0],
-                  'FS.spike': lambda tdi: net.fs_pop.spike,
-                  'CH.spike': lambda tdi: net.ch_pop.spike,
-                  'RS.spike': lambda tdi: net.rs_pop.spike}
+    inputs=net.change_freq,
+    monitors={'FS.V0': lambda tdi: net.fs_pop.V[0],
+              'CH.V0': lambda tdi: net.ch_pop.V[0],
+              'RS.V0': lambda tdi: net.rs_pop.V[0],
+              'FS.spike': lambda tdi: net.fs_pop.spike,
+              'CH.spike': lambda tdi: net.ch_pop.spike,
+              'RS.spike': lambda tdi: net.rs_pop.spike}
   )
   runner.run(duration)
 
@@ -640,7 +640,7 @@ def simulate_ching_net():
 
 
 if __name__ == '__main__':
-  simulate_single_neuron()
+  # simulate_single_neuron()
   simulate_ping_net()
   simulate_ai_net()
   simulate_ing_net()

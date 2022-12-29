@@ -120,7 +120,7 @@ class Reservoir(Layer):
     self.activation = bm.activations.get(activation)
     self.activation_type = activation_type
     is_string(activation_type, 'activation_type', ['internal', 'external'])
-    self.rng = bm.random.RandomState(seed)
+    self.rng = bm.random.get_rng(seed)
     is_float(spectral_radius, 'spectral_radius', allow_none=True)
     self.spectral_radius = spectral_radius
 

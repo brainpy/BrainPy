@@ -945,7 +945,7 @@ class ThresholdLinearModel(RateModel):
     self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
     self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
     if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
-      self.rng = bm.random.RandomState(self.seed)
+      self.rng = bm.random.get_rng(seed)
 
   def reset(self, batch_size=None):
     self.rng.seed(self.seed)

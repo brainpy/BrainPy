@@ -3,7 +3,7 @@
 from jax.numpy import linalg
 
 from brainpy.math.ndarray import Array
-from brainpy.math.numpy_ops import _remove_brainpy_array
+from brainpy.math.numpy_ops import _as_jax_array_
 
 __all__ = [
   'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
@@ -13,115 +13,107 @@ __all__ = [
 
 
 def cholesky(a):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.cholesky(a))
+  a = _as_jax_array_(a)
+  return linalg.cholesky(a)
 
 
 def cond(x, p=None):
-  x = _remove_brainpy_array(x)
-  p = _remove_brainpy_array(p)
+  x = _as_jax_array_(x)
+  p = _as_jax_array_(p)
   return linalg.cond(x, p=p)
 
 
 def det(a):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.det(a))
+  a = _as_jax_array_(a)
+  return linalg.det(a)
 
 
 def eig(a):
-  a = _remove_brainpy_array(a)
+  a = _as_jax_array_(a)
   w, v = linalg.eig(a)
-  return Array(w), Array(v)
+  return w, v
 
 
 def eigh(a, UPLO='L'):
-  a = _remove_brainpy_array(a)
+  a = _as_jax_array_(a)
   w, v = linalg.eigh(a, UPLO=UPLO)
-  return Array(w), Array(v)
+  return w, v
 
 
 def eigvals(a):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.eigvals(a))
+  a = _as_jax_array_(a)
+  return linalg.eigvals(a)
 
 
 def eigvalsh(a, UPLO='L'):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.eigvalsh(a, UPLO=UPLO))
+  a = _as_jax_array_(a)
+  return linalg.eigvalsh(a, UPLO=UPLO)
 
 
 def inv(a):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.inv(a))
+  a = _as_jax_array_(a)
+  return linalg.inv(a)
 
 
 def svd(a, full_matrices=True, compute_uv=True):
-  a = _remove_brainpy_array(a)
-  u, s, vh = linalg.svd(a, full_matrices=full_matrices, compute_uv=compute_uv)
-  return Array(u), Array(s), Array(vh)
+  a = _as_jax_array_(a)
+  return linalg.svd(a, full_matrices=full_matrices, compute_uv=compute_uv)
 
 
 def lstsq(a, b, rcond=None):
-  a = _remove_brainpy_array(a)
-  b = _remove_brainpy_array(b)
-  x, resid, rank, s = linalg.lstsq(a, b, rcond=rcond)
-  return Array(x), Array(resid), rank, Array(s)
+  a = _as_jax_array_(a)
+  b = _as_jax_array_(b)
+  return linalg.lstsq(a, b, rcond=rcond)
 
 
 def matrix_power(a, n):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.matrix_power(a, n))
+  a = _as_jax_array_(a)
+  return linalg.matrix_power(a, n)
 
 
 def matrix_rank(M, tol=None):
-  M = _remove_brainpy_array(M)
-  r = linalg.matrix_rank(M, tol=tol)
-  return r if isinstance(r, int) else Array(r)
+  M = _as_jax_array_(M)
+  return linalg.matrix_rank(M, tol=tol)
 
 
 def norm(x, ord=None, axis=None, keepdims=False):
-  x = _remove_brainpy_array(x)
-  r = linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
-  return r if axis is None else Array(r)
+  x = _as_jax_array_(x)
+  return linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
 
 
 def pinv(a, rcond=None):
-  a = _remove_brainpy_array(a)
-  rcond = _remove_brainpy_array(rcond)
-  return Array(linalg.pinv(a, rcond=rcond))
+  a = _as_jax_array_(a)
+  rcond = _as_jax_array_(rcond)
+  return linalg.pinv(a, rcond=rcond)
 
 
 def qr(a, mode="reduced"):
-  a = _remove_brainpy_array(a)
-  r = linalg.qr(a, mode=mode)
-  if isinstance(r, (tuple, list)):
-    return Array(r[0]), Array(r[1])
-  else:
-    return Array(r)
+  a = _as_jax_array_(a)
+  return linalg.qr(a, mode=mode)
 
 
 def solve(a, b):
-  a = _remove_brainpy_array(a)
-  b = _remove_brainpy_array(b)
-  return Array(linalg.solve(a, b))
+  a = _as_jax_array_(a)
+  b = _as_jax_array_(b)
+  return linalg.solve(a, b)
 
 
 def slogdet(a):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.slogdet(a))
+  a = _as_jax_array_(a)
+  return linalg.slogdet(a)
 
 
 def tensorinv(a, ind=2):
-  a = _remove_brainpy_array(a)
-  return Array(linalg.tensorinv(a, ind=ind))
+  a = _as_jax_array_(a)
+  return linalg.tensorinv(a, ind=ind)
 
 
 def tensorsolve(a, b, axes=None):
-  a = _remove_brainpy_array(a)
-  b = _remove_brainpy_array(b)
-  return Array(linalg.tensorsolve(a, b, axes=axes))
+  a = _as_jax_array_(a)
+  b = _as_jax_array_(b)
+  return linalg.tensorsolve(a, b, axes=axes)
 
 
-def multi_dot(arrays):
-  arrays = [_remove_brainpy_array(a) for a in arrays]
-  return Array(linalg.multi_dot(arrays))
+def multi_dot(arrays, *, precision=None):
+  arrays = [_as_jax_array_(a) for a in arrays]
+  return linalg.multi_dot(arrays, precision=precision)

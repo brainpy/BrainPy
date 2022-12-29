@@ -9,8 +9,8 @@ bp.math.enable_x64()
 
 
 def simulation():
-  model = bp.dyn.neurons.HindmarshRose(1)
-  runner = bp.dyn.DSRunner(
+  model = bp.neurons.HindmarshRose(1)
+  runner = bp.DSRunner(
     model,
     monitors=['V', 'y', 'z'],
     inputs=[model.input, 1.5],
@@ -23,7 +23,7 @@ def simulation():
 
 
 def bifurcation_analysis():
-  model = bp.dyn.neurons.HindmarshRose(1)
+  model = bp.neurons.HindmarshRose(1)
   analyzer = bp.analysis.FastSlow2D(
     model,
     fast_vars={'V': [-3, 2], 'y': [-20., 3.]},
@@ -40,7 +40,7 @@ def bifurcation_analysis():
 
 
 def phase_plane_analysis():
-  model = bp.dyn.neurons.HindmarshRose(1)
+  model = bp.neurons.HindmarshRose(1)
   for z in np.arange(0., 2.5, 0.3):
     analyzer = bp.analysis.PhasePlane2D(
       model,

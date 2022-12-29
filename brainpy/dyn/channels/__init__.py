@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+"""
+
+Access through ``brainpy.channels``.
+"""
 
 from . import base, Ca, IH, K, Na, KCa, leaky
 

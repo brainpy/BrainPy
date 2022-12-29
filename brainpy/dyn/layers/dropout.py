@@ -44,7 +44,7 @@ class Dropout(Layer):
   ):
     super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = prob
-    self.rng = bm.random.RandomState(seed)
+    self.rng = bm.random.get_rng(seed)
 
   def update(self, sha, x):
     if sha.get('fit', True):

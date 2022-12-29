@@ -8,13 +8,15 @@ Reproduce the results of the``spytorch`` tutorial 2 & 3:
 
 """
 
-import brainpy_datasets as bd
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 import brainpy as bp
 import brainpy.math as bm
+import brainpy_datasets as bd
+
+bm.set_environment(bm.training_mode)
 
 
 class SNN(bp.Network):
@@ -41,18 +43,19 @@ class SNN(bp.Network):
 
     # synapse: i->r
     self.i2r = bp.synapses.Exponential(self.i, self.r, bp.conn.All2All(),
-                                       output=bp.synouts.CUBA(), tau=10.,
+                                       output=bp.synouts.CUBA(target_var=None), tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=2.))
     # synapse: r->o
     self.r2o = bp.synapses.Exponential(self.r, self.o, bp.conn.All2All(),
-                                       output=bp.synouts.CUBA(), tau=10.,
+                                       output=bp.synouts.CUBA(target_var=None), tau=10.,
                                        g_max=bp.init.KaimingNormal(scale=2.))
 
+    self.model = bp.Sequential(
+      self.i, self.i2r, self.r, self.r2o, self.o
+    )
+
   def update(self, shared, spike):
-    self.i2r(shared, spike)
-    self.r2o(shared)
-    self.r(shared)
-    self.o(shared)
+    self.model(shared, spike)
     return self.o.V.value
 
 
@@ -160,7 +163,8 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
     return loss + l2_loss + l1_loss
 
   trainer = bp.train.BPTT(
-    model, loss_fun,
+    model,
+    loss_fun,
     optimizer=bp.optim.Adam(lr=lr),
     monitors={'r.spike': net.r.spike},
   )

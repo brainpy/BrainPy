@@ -171,7 +171,7 @@ class OnlineTrainer(DSTrainer):
     shared['t'] += self.t0
     shared['i'] += self.i0
 
-    if not self.time_major:
+    if self.data_first_axis == 'B':
       xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                     xs,
                     is_leaf=lambda x: isinstance(x, bm.Array))

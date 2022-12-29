@@ -7,6 +7,7 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
+bm.random.seed()
 
 
 class TestPool(TestCase):

@@ -87,7 +87,7 @@ class LeakyIntegrator(NeuGroup):
                                           mode=mode,
                                           keep_size=keep_size,
                                           name=name)
-    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode), self.__class__)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode))
 
     # parameters
     self.V_rest = parameter(V_rest, self.varshape, allow_none=False)

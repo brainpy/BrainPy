@@ -386,7 +386,7 @@ def _srk2_wrapper():
 
 
 def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter):
-  """The base function to format a SRK method.
+  """The brainpy_object function to format a SRK method.
 
   Parameters
   ----------

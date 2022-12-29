@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Sequence, Any, Union
+from typing import Dict, Sequence, Any, Union, Optional
 
 import brainpy.math as bm
 from brainpy.dyn.base import DynamicalSystem
 from brainpy.dyn.runners import DSRunner
-from brainpy.errors import BrainPyError
+from brainpy.errors import NoLongerSupportError
 from brainpy.running import constants as c
 from brainpy.types import ArrayType, Output
 
@@ -43,10 +43,9 @@ class DSTrainer(DSRunner):
     super(DSTrainer, self).__init__(target=target, **kwargs)
 
     if not isinstance(self.target.mode, bm.BatchingMode):
-      raise BrainPyError(f'''
-      From version 2.3.1, DSTrainer must receive a 
-      DynamicalSystem instance with the computing mode 
-      of subclass of {bm.batching_mode}. 
+      raise NoLongerSupportError(f'''
+      From version 2.3.1, DSTrainer must receive a DynamicalSystem instance with 
+      the computing mode of {bm.batching_mode} or {bm.training_mode}. 
       
       See https://github.com/brainpy/BrainPy/releases/tag/V2.3.1
       for the solution of how to fix this.
@@ -67,7 +66,7 @@ class DSTrainer(DSRunner):
       self,
       inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
       reset_state: bool = False,
-      shared_args: Dict = None,
+      shared_args: Optional[Dict] = None,
       eval_time: bool = False
   ) -> Output:
     """Prediction function.
@@ -88,6 +87,10 @@ class DSTrainer(DSRunner):
     output: ArrayType, sequence of ArrayType, dict of ArrayType
       The running output.
     """
+    if shared_args is None:
+      shared_args = dict()
+    shared_args['fit'] = shared_args.get('fit', False)
+
     return super().predict(inputs=inputs,
                            reset_state=reset_state,
                            shared_args=shared_args,

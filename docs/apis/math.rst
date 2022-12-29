@@ -15,5 +15,4 @@
     auto/math/surrogate
     auto/math/delayvars
     auto/math/activations
-    math/comparison
     auto/math/environment

@@ -12,7 +12,7 @@ import brainpy as bp
 from brainpy.dyn import neurons, synapses, channels
 
 
-class RE(bp.dyn.CondNeuGroup):
+class RE(bp.CondNeuGroup):
   def __init__(self, size):
     super(RE, self).__init__(size, A=1.43e-4)
 
@@ -23,7 +23,7 @@ class RE(bp.dyn.CondNeuGroup):
     self.IT = channels.ICaT_HP1992(size, V_sh=0., phi_q=3., phi_p=3.)
 
 
-class TC(bp.dyn.CondNeuGroup):
+class TC(bp.CondNeuGroup):
   def __init__(self, size):
     super(TC, self).__init__(size, A=2.9e-4)
 

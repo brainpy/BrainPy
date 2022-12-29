@@ -4,6 +4,7 @@ import warnings
 from collections import namedtuple
 from functools import partial
 from operator import index
+from typing import Optional, Union
 
 import jax
 import numpy as np
@@ -12,15 +13,14 @@ from jax._src import dtypes
 from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
-from brainpy.math.ndarray import Array, Variable
 from brainpy.check import jit_error_checking
-from brainpy.errors import UnsupportedError
+from brainpy.math.ndarray import Array, Variable
 from ._utils import wraps
 
 __all__ = [
   'RandomState', 'Generator',
 
-  'seed', 'default_rng',
+  'seed', 'default_rng', 'get_rng',
 
   'rand', 'randint', 'random_integers', 'randn', 'random',
   'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle', 'beta',
@@ -402,12 +402,14 @@ class RandomState(Variable):
   """RandomState that track the random generator state. """
   __slots__ = ()
 
-  def __init__(self, seed_or_key=None, seed=None):
+  def __init__(self,
+               seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
+               seed: Optional[int] = None):
     """RandomState constructor.
 
     Parameters
     ----------
-    seed_or_key: int, ArrayType, optional
+    seed_or_key: int, Array, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
 
@@ -427,6 +429,7 @@ class RandomState(Variable):
                     'seed will be removed since 2.4.0', UserWarning)
 
     if seed_or_key is None:
+      # key = DEFAULT.split_key()
       seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
@@ -440,15 +443,15 @@ class RandomState(Variable):
   def __repr__(self) -> str:
     print_code = repr(self.value)
     i = print_code.index('(')
-
-    # if 'DeviceArray' in print_code:
-    #   print_code = print_code.replace('DeviceArray', '')
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
 
   # ------------------- #
   # seed and random key #
   # ------------------- #
+
+  def clone(self):
+    return type(self)(self.split_key())
 
   def seed(self, seed_or_key=None, seed=None):
     """Sets a new random seed.
@@ -507,9 +510,6 @@ class RandomState(Variable):
     keys = jr.split(self.value, n + 1)
     self._value = keys[0]
     return keys[1:]
-
-  def update(self, value):
-    raise UnsupportedError(f'Do not support change the value of a {self.__class__.__name__}.')
 
   # ---------------- #
   # random functions #
@@ -1128,9 +1128,16 @@ DEFAULT = RandomState(__a)
 del __a
 
 
+def get_rng(seed_or_key=None, clone: bool = True) -> RandomState:
+  if seed_or_key is None:
+    return DEFAULT.clone() if clone else DEFAULT
+  else:
+    return RandomState(seed_or_key)
+
+
 @wraps(np.random.default_rng)
-def default_rng(seed=None):
-  return RandomState(seed)
+def default_rng(seed_or_key=None):
+  return RandomState(seed_or_key)
 
 
 @wraps(np.random.seed)

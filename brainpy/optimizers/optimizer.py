@@ -3,11 +3,9 @@
 from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
-from jax.lax import cond, rsqrt
+from jax.lax import cond
 
 import brainpy.math as bm
-from brainpy.base.base import BrainPyObject
-from brainpy.base.collector import ArrayCollector
 from brainpy.errors import MathError
 from .scheduler import make_schedule, Scheduler
 
@@ -26,7 +24,7 @@ __all__ = [
 ]
 
 
-class Optimizer(BrainPyObject):
+class Optimizer(bm.BrainPyObject):
   """Base Optimizer Class.
 
   Parameters
@@ -38,7 +36,7 @@ class Optimizer(BrainPyObject):
   lr: Scheduler  # learning rate
   '''Learning rate'''
 
-  vars_to_train: ArrayCollector  # variables to train
+  vars_to_train: bm.ArrayCollector  # variables to train
   '''Variables to train.'''
 
   def __init__(
@@ -49,7 +47,7 @@ class Optimizer(BrainPyObject):
   ):
     super(Optimizer, self).__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
-    self.vars_to_train = ArrayCollector()
+    self.vars_to_train = bm.ArrayCollector()
     self.register_vars(train_vars)
 
   def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):

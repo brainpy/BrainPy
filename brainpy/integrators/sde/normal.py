@@ -5,7 +5,6 @@ from typing import Union, Callable, Dict, Sequence
 import jax.numpy as jnp
 
 from brainpy import errors, math as bm
-from brainpy.base import Collector
 from brainpy.integrators import constants, utils, joint_eq
 from brainpy.integrators.sde.base import SDEIntegrator
 from .generic import register_sde_integrator
@@ -574,7 +573,7 @@ class ExponentialEuler(SDEIntegrator):
 
     def integral_func(*args, **kwargs):
       # format arguments
-      params_in = Collector()
+      params_in = bm.Collector()
       for i, arg in enumerate(args):
         params_in[all_vps[i]] = arg
       params_in.update(kwargs)

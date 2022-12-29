@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+
 import warnings
 from typing import Union, Sequence, Dict, Callable
 
-from brainpy.base import FunAsObject, BrainPyObject
-from brainpy.math.ndarray import Variable
+from .base_object import FunAsObject, BrainPyObject
+from ..ndarray import Variable
 
 __all__ = [
   'to_object',
@@ -17,7 +18,7 @@ def to_object(
     child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     name: str = None
-) -> BrainPyObject:
+):
   """Transform a Python function to :py:class:`~.BrainPyObject`.
 
   Parameters
@@ -54,7 +55,7 @@ def to_dynsys(
     child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     name: str = None
-) -> BrainPyObject:
+):
   """Transform a Python function to a :py:class:`~.DynamicalSystem`.
 
   Parameters
@@ -76,8 +77,9 @@ def to_dynsys(
   from brainpy.dyn.base import FuncAsDynSys
 
   if f is None:
-    return lambda func: FuncAsDynSys(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
-
+    def wrap(func) -> FuncAsDynSys:
+      return FuncAsDynSys(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+    return wrap
   else:
     if child_objs is None:
       raise ValueError(f'"child_objs" cannot be None when "f" is provided.')

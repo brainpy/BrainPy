@@ -8,7 +8,7 @@ import brainpy.math as bm
 bm.set_platform('cpu')
 
 
-class CANN1D(bp.dyn.NeuGroup):
+class CANN1D(bp.NeuGroup):
   def __init__(self, num, tau=1., k=8.1, a=0.5, A=10., J0=4.,
                z_min=-bm.pi, z_max=bm.pi, **kwargs):
     super(CANN1D, self).__init__(size=num, **kwargs)
@@ -51,7 +51,9 @@ class CANN1D(bp.dyn.NeuGroup):
   def get_stimulus_by_pos(self, pos):
     return self.A * bm.exp(-0.25 * bm.square(self.dist(self.x - pos) / self.a))
 
-  def update(self, tdi):
+  def update(self, tdi, x=None):
+    if x is not None:
+      self.input[:] = x
     r1 = bm.square(self.u)
     r2 = 1.0 + self.k * bm.sum(r1)
     self.r.value = r1 / r2
@@ -69,11 +71,8 @@ I1 = cann.get_stimulus_by_pos(0.)
 Iext, duration = bp.inputs.section_input(values=[0., I1, 0.],
                                          durations=[1., 8., 8.],
                                          return_length=True)
-runner = bp.dyn.DSRunner(cann,
-                         inputs=['input', Iext, 'iter'],
-                         monitors=['u'],
-                         dyn_vars=cann.vars())
-runner(duration)
+runner = bp.DSRunner(cann, monitors=['u'])
+runner(inputs=Iext)
 bp.visualize.animate_1D(
   dynamical_vars=[{'ys': runner.mon.u, 'xs': cann.x, 'legend': 'u'},
                   {'ys': Iext, 'xs': cann.x, 'legend': 'Iext'}],
@@ -97,11 +96,8 @@ Iext[:num1] = cann.get_stimulus_by_pos(0.5)
 Iext[num1:num1 + num2] = cann.get_stimulus_by_pos(0.)
 Iext[num1:num1 + num2] += 0.1 * cann.A * bm.random.randn(num2, *cann.size)
 
-runner = bp.dyn.DSRunner(cann,
-                         inputs=('input', Iext, 'iter'),
-                         monitors=['u'],
-                         dyn_vars=cann.vars())
-runner(dur1 + dur2 + dur3)
+runner = bp.DSRunner(cann, monitors=['u'])
+runner(inputs=Iext)
 bp.visualize.animate_1D(
   dynamical_vars=[{'ys': runner.mon.u, 'xs': cann.x, 'legend': 'u'},
                   {'ys': Iext, 'xs': cann.x, 'legend': 'Iext'}],
@@ -120,11 +116,8 @@ position[num1: num1 + num2] = bm.linspace(0., 20., num2)
 position[num1 + num2:] = 20.
 position = position.reshape((-1, 1))
 Iext = cann.get_stimulus_by_pos(position)
-runner = bp.dyn.DSRunner(cann,
-                         inputs=('input', Iext, 'iter'),
-                         monitors=['u'],
-                         dyn_vars=cann.vars())
-runner(dur1 + dur2 + dur3)
+runner = bp.DSRunner(cann, monitors=['u'])
+runner(inputs=Iext)
 bp.visualize.animate_1D(
   dynamical_vars=[{'ys': runner.mon.u, 'xs': cann.x, 'legend': 'u'},
                   {'ys': Iext, 'xs': cann.x, 'legend': 'Iext'}],

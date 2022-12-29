@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.base import naming
+import brainpy.math as bm
 
 __all__ = [
   'DT',
@@ -131,15 +131,15 @@ PDE_INT = 'brainpy_itg_of_pde'
 
 def unique_name(type):
   if type == 'ode':
-    return naming.get_unique_name(ODE_INT)
+    return bm.get_unique_name(ODE_INT)
   elif type == 'sde':
-    return naming.get_unique_name(SDE_INT)
+    return bm.get_unique_name(SDE_INT)
   elif type == 'dde':
-    return naming.get_unique_name(DDE_INT)
+    return bm.get_unique_name(DDE_INT)
   elif type == 'fde':
-    return naming.get_unique_name(FDE_INT)
+    return bm.get_unique_name(FDE_INT)
   elif type == 'pde':
-    return naming.get_unique_name(PDE_INT)
+    return bm.get_unique_name(PDE_INT)
   else:
     raise ValueError(f'Unknown differential equation type: {type}')
 

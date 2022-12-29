@@ -145,7 +145,7 @@ class IKDR_Ba2002(IK_p4_markov):
   E : float, ArrayType, Initializer, Callable
     The reversal potential (mV).
   T_base : float, ArrayType
-    The base of temperature factor.
+    The brainpy_object of temperature factor.
   T : float, ArrayType, Initializer, Callable
     The temperature (Celsius, :math:`^{\circ}C`).
   V_sh : float, ArrayType, Initializer, Callable

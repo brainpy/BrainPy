@@ -6,8 +6,8 @@ from typing import Callable
 import brainpylib
 from jax.tree_util import tree_map
 
-from brainpy.base import BrainPyObject
-from brainpy.math.ndarray import Array
+from ..object_transform.base_object import BrainPyObject
+from ..ndarray import Array
 
 __all__ = [
   'XLACustomOp',
