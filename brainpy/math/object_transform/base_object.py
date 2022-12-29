@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import os
 import logging
+import os
 import warnings
 from collections import namedtuple
 from typing import Any, Tuple, Callable, Sequence, Dict, Union
 
+from jax.tree_util import register_pytree_node
+
 from brainpy import errors
 from .collector import Collector, ArrayCollector
-from ..ndarray import Variable, VariableView, TrainVar
+from ..ndarray import (Variable,
+                       VariableView,
+                       TrainVar)
+from ..dynvars import dynamical_types
+
 
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
 
@@ -108,7 +114,7 @@ class BrainPyObject(object):
         return
     super().__setattr__(key, value)
 
-  def tree_flatten(self):
+  def _tree_flatten(self):
     """
     .. versionadded:: 2.3.1
 
@@ -116,12 +122,13 @@ class BrainPyObject(object):
     -------
 
     """
+    dts = (BrainPyObject, ) + tuple(dynamical_types)
     dynamic_names = []
     dynamic_values = []
     static_names = []
     static_values = []
     for k, v in self.__dict__.items():
-      if isinstance(v, (ArrayCollector, BrainPyObject, Variable)):
+      if isinstance(v, dts):
         dynamic_names.append(k)
         dynamic_values.append(v)
       else:
@@ -132,7 +139,7 @@ class BrainPyObject(object):
                                    tuple(static_values))
 
   @classmethod
-  def tree_unflatten(cls, aux, dynamic_values):
+  def _tree_unflatten(cls, aux, dynamic_values):
     """
 
     .. versionadded:: 2.3.1
@@ -488,6 +495,9 @@ class BrainPyObject(object):
 
 
 Base = BrainPyObject
+register_pytree_node(BrainPyObject,
+                     BrainPyObject._tree_flatten,
+                     BrainPyObject._tree_unflatten)
 
 
 class FunAsObject(BrainPyObject):
