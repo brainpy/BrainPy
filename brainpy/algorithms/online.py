@@ -3,6 +3,8 @@
 import brainpy.math as bm
 from jax import vmap
 import jax.numpy as jnp
+from brainpy._src.math.object_transform.base import BrainPyObject
+
 
 __all__ = [
   # brainpy_object class
@@ -20,7 +22,7 @@ __all__ = [
 name2func = dict()
 
 
-class OnlineAlgorithm(bm.BrainPyObject):
+class OnlineAlgorithm(BrainPyObject):
   """Base class for online training algorithm."""
 
   def __init__(self, name=None):
