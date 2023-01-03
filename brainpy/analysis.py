@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.analysis.base import (
-  DSAnalyzer as DSAnalyzer,
-)
-
 from brainpy._src.analysis.lowdim.lowdim_phase_plane import (
   PhasePlane1D as PhasePlane1D,
   PhasePlane2D as PhasePlane2D,

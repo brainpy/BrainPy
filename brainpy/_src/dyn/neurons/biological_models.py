@@ -9,8 +9,8 @@ from brainpy import check
 from brainpy._src.dyn.base import NeuGroup
 from brainpy._src.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode import odeint
-from brainpy._src.integrators.sde import sdeint
+from brainpy._src.integrators.ode.generic import odeint
+from brainpy._src.integrators.sde.generic import sdeint
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -71,7 +71,7 @@ class HH(NeuGroup):
   However, one must be careful because this is an ad-hoc method of visualizing the
   4-dimensional system. This does not prove the existence of the limit cycle.
 
-  .. image:: ../../../../_static/Hodgkin_Huxley_Limit_Cycle.png
+  .. image:: ../../../_static/Hodgkin_Huxley_Limit_Cycle.png
       :align: center
 
   A better projection can be constructed from a careful analysis of the Jacobian of
@@ -98,7 +98,7 @@ class HH(NeuGroup):
   rather there is a sudden "jump" in amplitude. The resulting transition is
   known as a `canard <http://www.scholarpedia.org/article/Canards>`_.
 
-  .. image:: ../../../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
+  .. image:: ../../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
      :align: center
 
   The following image shows the bifurcation diagram of the Hodgkin–Huxley model
@@ -107,7 +107,7 @@ class HH(NeuGroup):
   both born from Hopf bifurcations. The solid red line shows the stable fixed point
   and the black line shows the unstable fixed point.
 
-  .. image:: ../../../../_static/Hodgkin_Huxley_bifurcation.png
+  .. image:: ../../../_static/Hodgkin_Huxley_bifurcation.png
      :align: center
 
   **Model Examples**
@@ -474,7 +474,7 @@ class MorrisLecar(NeuGroup):
     self.spike.value = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def dV(self, V, t, W, I_ext):
-    M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
+    M_inf = (1 / 2) * (1 + jnp.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
     I_K = self.g_K * W * (V - self.V_K)
     I_Leak = self.g_leak * (V - self.V_leak)
@@ -483,7 +483,7 @@ class MorrisLecar(NeuGroup):
 
   def dW(self, W, t, V):
     tau_W = 1 / (self.phi * jnp.cosh((V - self.V3) / (2 * self.V4)))
-    W_inf = (1 / 2) * (1 + bm.tanh((V - self.V3) / self.V4))
+    W_inf = (1 / 2) * (1 + jnp.tanh((V - self.V3) / self.V4))
     dWdt = (W_inf - W) / tau_W
     return dWdt
 
@@ -517,7 +517,7 @@ class PinskyRinzelModel(NeuGroup):
   the 'ping-pong' interplay between somatic and dendritic currents results
   in a complex shape of the burst.
 
-  .. image:: ../../../../_static/Pinsky-Rinzel-model-illustration.png
+  .. image:: ../../../_static/Pinsky-Rinzel-model-illustration.png
       :align: center
 
   Mathematically, the model is given by:

@@ -1,26 +1,14 @@
 # -*- coding: utf-8 -*-
-import random
 
-import pytest
 from unittest import TestCase
-import brainpy as bp
+
 import jax.numpy as jnp
-import numpy as np
-import matplotlib.pyplot as plt
-bp.math.random.seed()
+
+import brainpy as bp
+
 
 class TestConv(TestCase):
   def test_Conv2D_img(self):
-    class Convnet(bp.dyn.DynamicalSystem):
-      def __init__(self):
-        super(Convnet, self).__init__()
-        self.conv = bp.layers.Conv2D(in_channels=4, out_channels=32, kernel_size=(3, 3),
-                                     strides=(1, 1), padding='SAME', groups=1)
-
-      def update(self, shared, x):
-        x = self.conv(shared, x)
-        return x
-
     img = jnp.zeros((2, 200, 198, 4))
     for k in range(4):
       x = 30 + 60 * k
@@ -29,8 +17,9 @@ class TestConv(TestCase):
       img = img.at[1, x:x + 20, y:y + 20, k].set(3.0)
 
     with bp.math.training_environment():
-      net = Convnet()
-      out = net(None, img)
+      net = bp.layers.Conv2d(in_channels=4, out_channels=32, kernel_size=(3, 3),
+                             strides=(1, 1), padding='SAME', groups=1)
+      out = net(img)
       print("out shape: ", out.shape)
       # print("First output channel:")
       # plt.figure(figsize=(10, 10))
@@ -38,20 +27,11 @@ class TestConv(TestCase):
       # plt.show()
 
   def test_conv1D(self):
-    class Convnet(bp.dyn.DynamicalSystem):
-      def __init__(self):
-        super(Convnet, self).__init__()
-        self.conv = bp.layers.Conv1D(in_channels=3, out_channels=32, kernel_size=(3,))
-
-      def update(self, shared, x):
-        x = self.conv(shared, x)
-        return x
-
     with bp.math.training_environment():
-      model = Convnet()
+      model = bp.layers.Conv1d(in_channels=3, out_channels=32, kernel_size=(3,))
       input = bp.math.ones((2, 5, 3))
 
-      out = model(None, input)
+      out = model(input)
       print("out shape: ", out.shape)
       # print("First output channel:")
       # plt.figure(figsize=(10, 10))
@@ -59,21 +39,12 @@ class TestConv(TestCase):
       # plt.show()
 
   def test_conv2D(self):
-    class Convnet(bp.dyn.DynamicalSystem):
-      def __init__(self):
-        super(Convnet, self).__init__()
-        self.conv = bp.layers.Conv2D(in_channels=3, out_channels=32, kernel_size=(3, 3))
-
-      def update(self, shared, x):
-        x = self.conv(shared, x)
-        return x
-
     with bp.math.training_environment():
-      model = Convnet()
+      model = bp.layers.Conv2d(in_channels=3, out_channels=32, kernel_size=(3, 3))
 
       input = bp.math.ones((2, 5, 5, 3))
 
-      out = model(None, input)
+      out = model(input)
       print("out shape: ", out.shape)
       # print("First output channel:")
       # plt.figure(figsize=(10, 10))
@@ -81,19 +52,8 @@ class TestConv(TestCase):
       # plt.show()
 
   def test_conv3D(self):
-    class Convnet(bp.dyn.DynamicalSystem):
-      def __init__(self):
-        super(Convnet, self).__init__()
-        self.conv = bp.layers.Conv3D(in_channels=3, out_channels=32, kernel_size=(3, 3, 3))
-
-      def update(self, shared, x):
-        x = self.conv(shared, x)
-        return x
-
     with bp.math.training_environment():
-      model = Convnet()
-
+      model = bp.layers.Conv3d(in_channels=3, out_channels=32, kernel_size=(3, 3, 3))
       input = bp.math.ones((2, 5, 5, 5, 3))
-
-      out = model(None, input)
+      out = model(input)
       print("out shape: ", out.shape)

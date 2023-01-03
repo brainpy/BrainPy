@@ -12,7 +12,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable
-from brainpy._src.integrators.ode import odeint
+from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType
 from .base import Calcium, CalciumChannel, PotassiumChannel
 

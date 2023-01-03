@@ -2,6 +2,8 @@
 
 from typing import Union, Dict, Callable
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector
 from brainpy._src.dyn.base import NeuGroup, TwoEndConn
@@ -49,9 +51,9 @@ class GapJunction(TwoEndConn):
     if self.comp_method == 'dense':
       # pre -> post
       diff = (self.pre.V.reshape((-1, 1)) - self.post.V) * self.conn_mat * self.weights
-      self.post.input += bm.einsum('ij->j', diff)
+      self.post.input += jnp.einsum('ij->j', diff)
       # post -> pre
-      self.pre.input += bm.einsum('ij->i', -diff)
+      self.pre.input += jnp.einsum('ij->i', -diff)
     else:
       diff = (self.pre.V[self.pre_ids] - self.post.V[self.post_ids]) * self.weights
       self.post.input += bm.syn2post_sum(diff, self.post_ids, self.post.num)

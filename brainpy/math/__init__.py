@@ -4,6 +4,7 @@
 # data structure
 from .ndarray import *
 from .delayvars import *
+from .arrayoperation import *
 
 # functions
 from .activations import *
@@ -49,36 +50,6 @@ del jnp, config
 from . import fft
 from . import linalg
 from . import random
-
-from brainpy._src.math.arraycreation import (
-  empty as empty,
-  empty_like as empty_like,
-  ones as ones,
-  ones_like as ones_like,
-  zeros as zeros,
-  zeros_like as zeros_like,
-  full as full,
-  full_like as full_like,
-  eye as eye,
-  identity as identity,
-  array as array,
-  asarray as asarray,
-  arange as arange,
-  linspace as linspace,
-  logspace as logspace,
-  diag as diag,
-  tri as tri,
-  tril as tril,
-  triu as triu,
-)
-
-from brainpy._src.math.arrayinterporate import (
-  as_device_array as as_device_array,
-  as_jax as as_jax,
-  as_ndarray as as_ndarray,
-  as_numpy as as_numpy,
-  as_variable as as_variable,
-)
 
 from brainpy._src.math.surrogate.compt import (
   spike_with_sigmoid_grad as spike_with_sigmoid_grad,

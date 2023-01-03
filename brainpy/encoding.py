@@ -2,7 +2,7 @@
 
 
 from brainpy._src.encoding.base import (
-  Encoder as Encode,
+  Encoder as Encoder,
 )
 from brainpy._src.encoding.stateful_encoding import (
   LatencyEncoder as LatencyEncoder,

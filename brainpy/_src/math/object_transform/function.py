@@ -23,7 +23,7 @@ class Partial(FunAsObject):
       dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
       **keywords
   ):
-    super().__init__(f=fun, child_objs=child_objs, dyn_vars=dyn_vars)
+    super().__init__(target=fun, child_objs=child_objs, dyn_vars=dyn_vars)
 
     self.fun = fun
     self.args = args
@@ -61,14 +61,14 @@ def to_object(
 
   if f is None:
     def wrap(func) -> FunAsObject:
-      return FunAsObject(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+      return FunAsObject(target=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
 
     return wrap
 
   else:
     if child_objs is None:
       raise ValueError(f'"child_objs" cannot be None when "f" is provided.')
-    return FunAsObject(f=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+    return FunAsObject(target=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
 
 
 def to_dynsys(
@@ -99,13 +99,13 @@ def to_dynsys(
 
   if f is None:
     def wrap(func) -> FuncAsDynSys:
-      return FuncAsDynSys(f=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+      return FuncAsDynSys(target=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
 
     return wrap
   else:
     if child_objs is None:
       raise ValueError(f'"child_objs" cannot be None when "f" is provided.')
-    return FuncAsDynSys(f=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+    return FuncAsDynSys(target=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
 
 
 def function(

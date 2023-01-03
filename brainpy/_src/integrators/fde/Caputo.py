@@ -129,7 +129,7 @@ class CaputoEuler(FDEIntegrator):
                                       state_delays=state_delays)
 
     # fractional order
-    if not bm.all(bm.logical_and(self.alpha < 1, self.alpha > 0)):
+    if not jnp.all(jnp.logical_and(self.alpha < 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
 
@@ -138,16 +138,16 @@ class CaputoEuler(FDEIntegrator):
 
     # coefficients
     from scipy.special import rgamma
-    rgamma_alpha = bm.asarray(rgamma(bm.as_numpy(self.alpha)))
-    ranges = bm.asarray([bm.arange(num_memory + 1) for _ in self.variables]).T
-    coef = rgamma_alpha * bm.diff(bm.power(ranges, self.alpha), axis=0)
-    self.coef = bm.flip(coef, axis=0)
+    rgamma_alpha = jnp.asarray(rgamma(bm.as_numpy(self.alpha)))
+    ranges = jnp.asarray([jnp.arange(num_memory + 1) for _ in self.variables]).T
+    coef = rgamma_alpha * jnp.diff(jnp.power(ranges, self.alpha), axis=0)
+    self.coef = jnp.flip(coef, axis=0)
 
     # variable states
-    self.f_states = {v: bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape))
+    self.f_states = {v: bm.Variable(jnp.zeros((num_memory,) + self.inits[v].shape))
                      for v in self.variables}
     self.register_implicit_vars(self.f_states)
-    self.idx = bm.Variable(bm.asarray([1]))
+    self.idx = bm.Variable(jnp.asarray([1]))
 
     self.set_integral(self._integral_func)
 
@@ -184,7 +184,7 @@ class CaputoEuler(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
+    idx = ((self.num_memory - 1 - self.idx) + jnp.arange(self.num_memory)) % self.num_memory
     for i, key in enumerate(self.variables):
       integral = self.inits[key] + self.coef[idx, i] @ self.f_states[key]
       integrals.append(integral * (dt ** self.alpha[i] / self.alpha[i]))
@@ -274,7 +274,7 @@ class CaputoL1Schema(FDEIntegrator):
   >>> dt = 0.005
   >>> inits = [1., 0., 1.]
   >>> f = bp.fde.CaputoL1Schema(lorenz, alpha=0.99, num_memory=int(duration / dt), inits=inits)
-  >>> runner = bp.integrators.IntegratorRunner(f, monitors=list('xz'), dt=dt, inits=inits)
+  >>> runner = bp.IntegratorRunner(f, monitors=list('xz'), dt=dt, inits=inits)
   >>> runner.run(duration)
   >>>
   >>> import matplotlib.pyplot as plt
@@ -322,11 +322,11 @@ class CaputoL1Schema(FDEIntegrator):
                                          state_delays=state_delays)
 
     # fractional order
-    if not bm.all(bm.logical_and(self.alpha <= 1, self.alpha > 0)):
+    if not jnp.all(jnp.logical_and(self.alpha <= 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
     from scipy.special import gamma
-    self.gamma_alpha = bm.asarray(gamma(bm.as_numpy(2 - self.alpha)))
+    self.gamma_alpha = jnp.asarray(gamma(bm.as_numpy(2 - self.alpha)))
 
     # initial values
     inits = check_inits(inits, self.variables)
@@ -334,43 +334,43 @@ class CaputoL1Schema(FDEIntegrator):
     self.register_implicit_vars(self.inits)
 
     # coefficients
-    ranges = bm.asarray([bm.arange(1, num_memory + 2) for _ in self.variables]).T
-    coef = bm.diff(bm.power(ranges, 1 - self.alpha), axis=0)
-    self.coef = bm.flip(coef, axis=0)
+    ranges = jnp.asarray([jnp.arange(1, num_memory + 2) for _ in self.variables]).T
+    coef = jnp.diff(jnp.power(ranges, 1 - self.alpha), axis=0)
+    self.coef = jnp.flip(coef, axis=0)
 
     # variable states
-    self.diff_states = {v + "_diff": bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape,
+    self.diff_states = {v + "_diff": bm.Variable(jnp.zeros((num_memory,) + self.inits[v].shape,
                                                           dtype=self.inits[v].dtype))
                         for v in self.variables}
     self.register_implicit_vars(self.diff_states)
-    self.idx = bm.Variable(bm.asarray([self.num_memory - 1]))
+    self.idx = bm.Variable(jnp.asarray([self.num_memory - 1]))
 
     # integral function
     self.set_integral(self._integral_func)
 
   def reset(self, inits):
     """Reset function."""
-    self.idx.value = bm.asarray([self.num_memory - 1])
+    self.idx.value = jnp.asarray([self.num_memory - 1])
     inits = check_inits(inits, self.variables)
     for key, value in inits.items():
       self.inits[key].value = value
     for key, val in inits.items():
-      self.diff_states[key + "_diff"].value = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
+      self.diff_states[key + "_diff"].value = jnp.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
 
   def hists(self, var=None, numpy=True):
     """Get the recorded history values."""
     if var is None:
-      hists_ = {k: bm.vstack([self.inits[k], self.diff_states[k + '_diff']])
+      hists_ = {k: jnp.vstack([self.inits[k], self.diff_states[k + '_diff']])
                 for k in self.variables}
-      hists_ = {k: bm.cumsum(v, axis=0) for k, v in hists_.items()}
+      hists_ = {k: jnp.cumsum(v, axis=0) for k, v in hists_.items()}
       if numpy:
         hists_ = {k: v.numpy() for k, v in hists_}
       return hists_
     else:
       assert var in self.variables, (f'"{var}" is not defined in equation '
                                      f'variables: {self.variables}')
-      hists_ = bm.vstack([self.inits[var], self.diff_states[var + '_diff']])
-      hists_ = bm.cumsum(hists_, axis=0)
+      hists_ = jnp.vstack([self.inits[var], self.diff_states[var + '_diff']])
+      hists_ = jnp.cumsum(hists_, axis=0)
       if numpy:
         hists_ = hists_.numpy()
       return hists_
@@ -404,7 +404,7 @@ class CaputoL1Schema(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
+    idx = ((self.num_memory - 1 - self.idx) + jnp.arange(self.num_memory)) % self.num_memory
     for i, key in enumerate(self.variables):
       self.diff_states[key + '_diff'][self.idx[0]] = all_args[key] - self.inits[key]
       self.inits[key].value = all_args[key]

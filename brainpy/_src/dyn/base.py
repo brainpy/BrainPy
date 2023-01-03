@@ -369,7 +369,7 @@ class FuncAsDynSys(DynamicalSystem):
 
   Parameters
   ----------
-  f : function
+  target : Callable
     The function to wrap.
   child_objs : optional, BrainPyObject, sequence of BrainPyObject, dict
     The nodes in the defined function ``f``.
@@ -383,7 +383,7 @@ class FuncAsDynSys(DynamicalSystem):
 
   def __init__(
       self,
-      f: Callable,
+      target: Callable,
       child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
       dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
       name: Optional[str] = None,
@@ -391,7 +391,7 @@ class FuncAsDynSys(DynamicalSystem):
   ):
     super().__init__(name=name, mode=mode)
 
-    self._f = f
+    self.target = target
     if child_objs is not None:
       self.register_implicit_nodes(child_objs, node_cls=DynamicalSystem)
     if dyn_vars is not None:
@@ -399,12 +399,12 @@ class FuncAsDynSys(DynamicalSystem):
 
   def update(self, *args, **kwargs):
     """Update function of the transformed dynamical system."""
-    return self._f(*args, **kwargs)
+    return self.target(*args, **kwargs)
 
   def clear_input(self):
     """Function for clearing input in the wrapped children dynamical system."""
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
-      node.clear_input()
+    if isinstance(self.target, DynamicalSystem):
+      self.target.clear_input()
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -419,17 +419,17 @@ class FuncAsDynSys(DynamicalSystem):
 class DSPartial(FuncAsDynSys):
   def __init__(
       self,
-      fun: Callable,
+      target: Callable,
       *args,
       child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
       dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
       shared: Dict = None,
       **keywords
   ):
-    super().__init__(f=fun, child_objs=child_objs, dyn_vars=dyn_vars)
+    super().__init__(target=target, child_objs=child_objs, dyn_vars=dyn_vars)
 
     check.is_dict_data(shared, all_none=True)
-    self.fun = check.is_callable(fun, )
+    self.target = check.is_callable(target, )
     self.args = tuple(args)
     self.keywords = keywords
     self.shared = dict() if shared is None else shared
@@ -439,7 +439,7 @@ class DSPartial(FuncAsDynSys):
     s = tools.DotDict(s).update(self.shared)
     args = self.args + (s,) + args
     keywords = {**self.keywords, **keywords}
-    return self.fun(*args, **keywords)
+    return self.target(*args, **keywords)
 
 
 class Container(DynamicalSystem):
@@ -1161,11 +1161,11 @@ class TwoEndConn(SynConn):
     return weight, conn_mask
 
   def _syn2post_with_all2all(self, syn_value, syn_weight):
-    if bm.ndim(syn_weight) == 0:
+    if jnp.ndim(syn_weight) == 0:
       if isinstance(self.mode, bm.BatchingMode):
-        post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
+        post_vs = jnp.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
-        post_vs = bm.sum(syn_value)
+        post_vs = jnp.sum(syn_value)
       if not self.conn.include_self:
         post_vs = post_vs - syn_value
       post_vs = syn_weight * post_vs
@@ -1177,7 +1177,7 @@ class TwoEndConn(SynConn):
     return syn_value * syn_weight
 
   def _syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
-    if bm.ndim(syn_weight) == 0:
+    if jnp.ndim(syn_weight) == 0:
       post_vs = (syn_weight * syn_value) @ conn_mat
     else:
       post_vs = syn_value @ (syn_weight * conn_mat)
@@ -1257,8 +1257,8 @@ class CondNeuGroup(NeuGroup, Container):
 
     # variables
     self.V = variable(V_initializer, self.mode, self.varshape)
-    self.input = variable(bm.zeros, self.mode, self.varshape)
-    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), self.mode, self.varshape)
+    self.input = variable(jnp.zeros, self.mode, self.varshape)
+    self.spike = variable(lambda s: jnp.zeros(s, dtype=bool), self.mode, self.varshape)
 
     # function
     if self.noise is None:
@@ -1275,8 +1275,8 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    self.spike.value = variable(lambda s: jnp.zeros(s, dtype=bool), batch_size, self.varshape)
+    self.input.value = variable(jnp.zeros, batch_size, self.varshape)
 
   def update(self, tdi, *args, **kwargs):
     V = self.integral(self.V.value, tdi['t'], tdi['dt'])
@@ -1288,7 +1288,7 @@ class CondNeuGroup(NeuGroup, Container):
     # update variables
     for node in channels.values():
       node.update(tdi, self.V.value)
-    self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
+    self.spike.value = jnp.logical_and(V >= self.V_th, self.V < self.V_th)
     self.V.value = V
 
   def register_implicit_nodes(self, *channels, **named_channels):
@@ -1297,7 +1297,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def clear_input(self):
     """Useful for monitoring inputs. """
-    self.input.value = bm.zeros_like(self.input)
+    self.input.value = jnp.zeros_like(self.input.value)
 
 
 class Channel(DynamicalSystem):
@@ -1369,7 +1369,7 @@ class DSView(DynamicalSystem):
 
   >>> import brainpy as bp
   >>> hh = bp.neurons.HH(10)
-  >>> bp.dyn.DSView(hh, slice(5, 10, None))
+  >>> DSView(hh, slice(5, 10, None))
   >>> # or, simply
   >>> hh[5:]
   """

@@ -70,7 +70,7 @@ def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
          inhibition in a hippocampal interneuronal network model." Journal of
          neuroscience 16.20 (1996): 6402-6413.
   """
-  spikes = bm.as_numpy(spikes) if numpy else bm.as_device_array(spikes)
+  spikes = bm.as_numpy(spikes) if numpy else bm.as_jax(spikes)
   np = onp if numpy else jnp
   dt = bm.get_dt() if dt is None else dt
   bin_size = int(bin / dt)
@@ -172,14 +172,14 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
   .. [3] David Golomb (2007) Neuronal synchrony measures. Scholarpedia, 2(1):1347.
   """
 
-  potentials = bm.as_device_array(potentials)
+  potentials = bm.as_jax(potentials)
   avg = jnp.mean(potentials, axis=1)
   avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
 
   if method == 'loop':
     _var = lambda aa: bm.for_loop(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2,
                                   dyn_vars=(),
-                                  operands=bm.moveaxis(aa, 0, 1).value)
+                                  operands=jnp.moveaxis(aa, 0, 1))
 
   elif method == 'vmap':
     _var = vmap(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2, in_axes=1)

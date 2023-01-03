@@ -114,7 +114,7 @@ class LoopOverTime(DynSysToBPObj):
   no_state: bool
     Denoting whether the `target` has the shared argument or not.
 
-    - For ANN layers which are no_state, like :py:class:`~.Dense` or :py:class:`~.Conv2D`,
+    - For ANN layers which are no_state, like :py:class:`~.Dense` or :py:class:`~.Conv2d`,
       set `no_state=True` is high efficiently. This is because :math:`Y[t]` only relies on
       :math:`X[t]`, and it is not necessary to calculate :math:`Y[t]` step-bt-step.
       For this case, we reshape the input from `shape = [T, N, *]` to `shape = [TN, *]`,

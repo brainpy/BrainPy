@@ -2,6 +2,8 @@
 
 from typing import Union, Callable, Optional
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy._src.dyn.base import SynOut
 from brainpy._src.initialize import parameter, Initializer
@@ -80,7 +82,7 @@ class MgBlock(SynOut):
 
   def filter(self, g):
     V = self.membrane_var.value
-    I = g * (self.E - V) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * V))
+    I = g * (self.E - V) / (1 + self.cc_Mg / self.beta * jnp.exp(-self.alpha * V))
     return super(MgBlock, self).filter(I)
 
   def clone(self):

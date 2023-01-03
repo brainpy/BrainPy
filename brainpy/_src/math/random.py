@@ -18,9 +18,9 @@ from ._utils import wraps
 from .ndarray import Array, Variable
 
 __all__ = [
-  'RandomState', 'Generator',
+  'RandomState', 'Generator', 'DEFAULT',
 
-  'seed', 'default_rng', 'clone_rng',
+  'seed', 'default_rng', 'split_key',
 
   'rand', 'randint', 'random_integers', 'randn', 'random',
   'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle', 'beta',
@@ -761,7 +761,7 @@ class RandomState(Variable):
     key = self.split_key() if key is None else _formalize_key(key)
     samples = jr.normal(key, shape=_size2shape(size))
     samples = _loc_scale(mean, sigma, samples)
-    samples = jnp.exp(samples.value)
+    samples = jnp.exp(samples)
     return samples
 
   def binomial(self, n, p, size=None, key=None):
@@ -947,8 +947,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(mean), jnp.shape(scale))
     size = _size2shape(size)
-    sampled_chi2 = jnp.square(self.randn(*size).value)
-    sampled_uniform = self.uniform(size=size, key=key).value
+    sampled_chi2 = jnp.square(self.randn(*size))
+    sampled_uniform = self.uniform(size=size, key=key)
     # Wikipedia defines an intermediate x with the formula
     #   x = loc + loc ** 2 * y / (2 * conc) - loc / (2 * conc) * sqrt(4 * loc * conc * y + loc ** 2 * y ** 2)
     # where y ~ N(0, 1)**2 (sampled_chi2 above) and conc is the concentration.
@@ -1138,7 +1138,7 @@ def clone_rng(seed_or_key=None, clone: bool = True) -> RandomState:
     return RandomState(seed_or_key)
 
 
-@wraps(np.random.default_rng)
+# @wraps(np.random.default_rng)
 def default_rng(seed_or_key=None, clone=True) -> RandomState:
   if seed_or_key is None:
     return DEFAULT.clone() if clone else DEFAULT
@@ -1146,145 +1146,145 @@ def default_rng(seed_or_key=None, clone=True) -> RandomState:
     return RandomState(seed_or_key)
 
 
-@wraps(np.random.seed)
+# @wraps(np.random.seed)
 def seed(seed=None):
   if seed is None: seed = np.random.randint(0, 100000)
   DEFAULT.seed(seed)
   np.random.seed(seed)
 
 
-@wraps(np.random.rand)
+# @wraps(np.random.rand)
 def rand(*dn, key=None):
   return DEFAULT.rand(*dn, key=key)
 
 
-@wraps(np.random.randint)
+# @wraps(np.random.randint)
 def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
   return DEFAULT.randint(low, high=high, size=size, dtype=dtype, key=key)
 
 
-@wraps(np.random.random_integers)
+# @wraps(np.random.random_integers)
 def random_integers(low, high=None, size=None, key=None):
   return DEFAULT.random_integers(low, high=high, size=size, key=key)
 
 
-@wraps(np.random.randn)
+# @wraps(np.random.randn)
 def randn(*dn, key=None):
   return DEFAULT.randn(*dn, key=key)
 
 
-@wraps(np.random.random)
+# @wraps(np.random.random)
 def random(size=None, key=None):
   return DEFAULT.random(size, key=key)
 
 
-@wraps(np.random.random_sample)
+# @wraps(np.random.random_sample)
 def random_sample(size=None, key=None):
   return DEFAULT.random_sample(size, key=key)
 
 
-@wraps(np.random.ranf)
+# @wraps(np.random.ranf)
 def ranf(size=None, key=None):
   return DEFAULT.ranf(size, key=key)
 
 
-@wraps(np.random.sample)
+# @wraps(np.random.sample)
 def sample(size=None, key=None):
   return DEFAULT.sample(size, key=key)
 
 
-@wraps(np.random.choice)
+# @wraps(np.random.choice)
 def choice(a, size=None, replace=True, p=None, key=None):
   a = _as_jax_array(a)
   return DEFAULT.choice(a=a, size=size, replace=replace, p=p, key=key)
 
 
-@wraps(np.random.permutation)
+# @wraps(np.random.permutation)
 def permutation(x, axis: int = 0, independent: bool = False, key=None):
   return DEFAULT.permutation(x, axis=axis, independent=independent, key=key)
 
 
-@wraps(np.random.shuffle)
+# @wraps(np.random.shuffle)
 def shuffle(x, axis=0, key=None):
   DEFAULT.shuffle(x, axis, key=key)
 
 
-@wraps(np.random.beta)
+# @wraps(np.random.beta)
 def beta(a, b, size=None, key=None):
   return DEFAULT.beta(a, b, size=size, key=key)
 
 
-@wraps(np.random.exponential)
+# @wraps(np.random.exponential)
 def exponential(scale=None, size=None, key=None):
   return DEFAULT.exponential(scale, size, key=key)
 
 
-@wraps(np.random.gamma)
+# @wraps(np.random.gamma)
 def gamma(shape, scale=None, size=None, key=None):
   return DEFAULT.gamma(shape, scale, size=size, key=key)
 
 
-@wraps(np.random.gumbel)
+# @wraps(np.random.gumbel)
 def gumbel(loc=None, scale=None, size=None, key=None):
   return DEFAULT.gumbel(loc, scale, size=size, key=key)
 
 
-@wraps(np.random.laplace)
+# @wraps(np.random.laplace)
 def laplace(loc=None, scale=None, size=None, key=None):
   return DEFAULT.laplace(loc, scale, size, key=key)
 
 
-@wraps(np.random.logistic)
+# @wraps(np.random.logistic)
 def logistic(loc=None, scale=None, size=None, key=None):
   return DEFAULT.logistic(loc, scale, size, key=key)
 
 
-@wraps(np.random.normal)
+# @wraps(np.random.normal)
 def normal(loc=None, scale=None, size=None, key=None):
   return DEFAULT.normal(loc, scale, size, key=key)
 
 
-@wraps(np.random.pareto)
+# @wraps(np.random.pareto)
 def pareto(a, size=None, key=None):
   return DEFAULT.pareto(a, size, key=key)
 
 
-@wraps(np.random.poisson)
+# @wraps(np.random.poisson)
 def poisson(lam=1.0, size=None, key=None):
   return DEFAULT.poisson(lam, size, key=key)
 
 
-@wraps(np.random.standard_cauchy)
+# @wraps(np.random.standard_cauchy)
 def standard_cauchy(size=None, key=None):
   return DEFAULT.standard_cauchy(size, key=key)
 
 
-@wraps(np.random.standard_exponential)
+# @wraps(np.random.standard_exponential)
 def standard_exponential(size=None, key=None):
   return DEFAULT.standard_exponential(size, key=key)
 
 
-@wraps(np.random.standard_gamma)
+# @wraps(np.random.standard_gamma)
 def standard_gamma(shape, size=None, key=None):
   return DEFAULT.standard_gamma(shape, size, key=key)
 
 
-@wraps(np.random.standard_normal)
+# @wraps(np.random.standard_normal)
 def standard_normal(size=None, key=None):
   return DEFAULT.standard_normal(size, key=key)
 
 
-@wraps(np.random.standard_t)
+# @wraps(np.random.standard_t)
 def standard_t(df, size=None, key=None):
   return DEFAULT.standard_t(df, size, key=key)
 
 
-@wraps(np.random.uniform)
+# @wraps(np.random.uniform)
 def uniform(low=0.0, high=1.0, size=None, key=None):
   return DEFAULT.uniform(low, high, size, key=key)
 
 
-@wraps(jr.truncated_normal)
+# @wraps(jr.truncated_normal)
 def truncated_normal(lower, upper, size=None, scale=None, key=None):
   """Sample truncated standard normal random values with given shape and dtype.
 
@@ -1315,7 +1315,7 @@ def truncated_normal(lower, upper, size=None, scale=None, key=None):
   return DEFAULT.truncated_normal(lower, upper, size, scale, key=key)
 
 
-@wraps(jr.bernoulli)
+# @wraps(jr.bernoulli)
 def bernoulli(p=0.5, size=None, key=None):
   """Sample Bernoulli random values with given shape and mean.
 
@@ -1339,112 +1339,112 @@ def bernoulli(p=0.5, size=None, key=None):
   return DEFAULT.bernoulli(p, size, key=key)
 
 
-@wraps(np.random.lognormal)
+# @wraps(np.random.lognormal)
 def lognormal(mean=None, sigma=None, size=None, key=None):
   return DEFAULT.lognormal(mean, sigma, size, key=key)
 
 
-@wraps(np.random.binomial)
+# @wraps(np.random.binomial)
 def binomial(n, p, size=None, key=None):
   return DEFAULT.binomial(n, p, size, key=key)
 
 
-@wraps(np.random.chisquare)
+# @wraps(np.random.chisquare)
 def chisquare(df, size=None, key=None):
   return DEFAULT.chisquare(df, size, key=key)
 
 
-@wraps(np.random.dirichlet)
+# @wraps(np.random.dirichlet)
 def dirichlet(alpha, size=None, key=None):
   return DEFAULT.dirichlet(alpha, size, key=key)
 
 
-@wraps(np.random.geometric)
+# @wraps(np.random.geometric)
 def geometric(p, size=None, key=None):
   return DEFAULT.geometric(p, size, key=key)
 
 
-@wraps(np.random.f)
+# @wraps(np.random.f)
 def f(dfnum, dfden, size=None, key=None):
   return DEFAULT.f(dfnum, dfden, size, key=key)
 
 
-@wraps(np.random.hypergeometric)
+# @wraps(np.random.hypergeometric)
 def hypergeometric(ngood, nbad, nsample, size=None, key=None):
   return DEFAULT.hypergeometric(ngood, nbad, nsample, size, key=key)
 
 
-@wraps(np.random.logseries)
+# @wraps(np.random.logseries)
 def logseries(p, size=None, key=None):
   return DEFAULT.logseries(p, size, key=key)
 
 
-@wraps(np.random.multinomial)
+# @wraps(np.random.multinomial)
 def multinomial(n, pvals, size=None, key=None):
   return DEFAULT.multinomial(n, pvals, size, key=key)
 
 
-@wraps(np.random.multivariate_normal)
+# @wraps(np.random.multivariate_normal)
 def multivariate_normal(mean, cov, size=None, method: str = 'cholesky', key=None):
   return DEFAULT.multivariate_normal(mean, cov, size, method, key=key)
 
 
-@wraps(np.random.negative_binomial)
+# @wraps(np.random.negative_binomial)
 def negative_binomial(n, p, size=None, key=None):
   return DEFAULT.negative_binomial(n, p, size, key=key)
 
 
-@wraps(np.random.noncentral_chisquare)
+# @wraps(np.random.noncentral_chisquare)
 def noncentral_chisquare(df, nonc, size=None, key=None):
   return DEFAULT.noncentral_chisquare(df, nonc, size, key=key)
 
 
-@wraps(np.random.noncentral_f)
+# @wraps(np.random.noncentral_f)
 def noncentral_f(dfnum, dfden, nonc, size=None, key=None):
   return DEFAULT.noncentral_f(dfnum, dfden, nonc, size, key=key)
 
 
-@wraps(np.random.power)
+# @wraps(np.random.power)
 def power(a, size=None, key=None):
   return DEFAULT.power(a, size, key=key)
 
 
-@wraps(np.random.rayleigh)
+# @wraps(np.random.rayleigh)
 def rayleigh(scale=1.0, size=None, key=None):
   return DEFAULT.rayleigh(scale, size, key=key)
 
 
-@wraps(np.random.triangular)
+# @wraps(np.random.triangular)
 def triangular(size=None, key=None):
   return DEFAULT.triangular(size, key=key)
 
 
-@wraps(np.random.vonmises)
+# @wraps(np.random.vonmises)
 def vonmises(mu, kappa, size=None, key=None):
   return DEFAULT.vonmises(mu, kappa, size, key=key)
 
 
-@wraps(np.random.wald)
+# @wraps(np.random.wald)
 def wald(mean, scale, size=None, key=None):
   return DEFAULT.wald(mean, scale, size, key=key)
 
 
-@wraps(np.random.weibull)
+# @wraps(np.random.weibull)
 def weibull(a, size=None, key=None):
   return DEFAULT.weibull(a, size, key=key)
 
 
-@wraps(jr.weibull_min)
+# @wraps(jr.weibull_min)
 def weibull_min(a, scale=None, size=None, key=None):
   return DEFAULT.weibull_min(a, scale, size, key=key)
 
 
-@wraps(np.random.zipf)
+# @wraps(np.random.zipf)
 def zipf(a, size=None, key=None):
   return DEFAULT.zipf(a, size, key=key)
 
 
-@wraps(jr.maxwell)
+# @wraps(jr.maxwell)
 def maxwell(size=None, key=None):
   return DEFAULT.maxwell(size, key=key)
 
@@ -1505,6 +1505,6 @@ def loggamma(a, size=None, key=None):
   return DEFAULT.loggamma(a, size)
 
 
-@wraps(jr.categorical)
+# @wraps(jr.categorical)
 def categorical(logits, axis: int = -1, size=None, key=None):
   return DEFAULT.categorical(logits, axis, size, key=key)

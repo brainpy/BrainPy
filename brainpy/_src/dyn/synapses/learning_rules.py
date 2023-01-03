@@ -2,6 +2,8 @@
 
 from typing import Union, Dict, Callable
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy._src.dyn.base import NeuGroup, TwoEndConn
 from brainpy._src.initialize import Initializer, delay as init_delay
@@ -79,9 +81,9 @@ class STP(TwoEndConn):
     >>> neu1 = bp.neurons.LIF(1)
     >>> neu2 = bp.neurons.LIF(1)
     >>> syn1 = bp.synapses.STP(neu1, neu2, bp.connect.All2All(), U=0.2, tau_d=150., tau_f=2.)
-    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 28.)], monitors=['syn.I', 'syn.u', 'syn.x'])
+    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 28.)], monitors=['syn.I', 'syn.u', 'syn.x'])
     >>> runner.run(150.)
     >>>
     >>>
@@ -108,12 +110,12 @@ class STP(TwoEndConn):
     >>> import brainpy as bp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> neu1 = bp.dyn.LIF(1)
-    >>> neu2 = bp.dyn.LIF(1)
-    >>> syn1 = bp.dyn.STP(neu1, neu2, bp.connect.All2All(), U=0.1, tau_d=10, tau_f=100.)
-    >>> net = bp.dyn.Network(pre=neu1, syn=syn1, post=neu2)
+    >>> neu1 = bp.neurons.LIF(1)
+    >>> neu2 = bp.neurons.LIF(1)
+    >>> syn1 = bp.neurons.STP(neu1, neu2, bp.connect.All2All(), U=0.1, tau_d=10, tau_f=100.)
+    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
-    >>> runner = bp.dyn.DSRunner(net, inputs=[('pre.input', 28.)], monitors=['syn.I', 'syn.u', 'syn.x'])
+    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 28.)], monitors=['syn.I', 'syn.u', 'syn.x'])
     >>> runner.run(150.)
     >>>
     >>>
@@ -201,18 +203,18 @@ class STP(TwoEndConn):
 
     # variables
     self.num = len(self.pre_ids)
-    self.x = bm.Variable(bm.ones(self.num))
-    self.u = bm.Variable(bm.zeros(self.num))
-    self.I = bm.Variable(bm.zeros(self.num))
+    self.x = bm.Variable(jnp.ones(self.num))
+    self.u = bm.Variable(jnp.zeros(self.num))
+    self.I = bm.Variable(jnp.zeros(self.num))
     self.delay_type, self.delay_step, self.delay_I = init_delay(delay_step, self.I)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
 
   def reset(self):
-    self.x.value = bm.zeros(self.num)
-    self.u.value = bm.zeros(self.num)
-    self.I.value = bm.zeros(self.num)
+    self.x.value = jnp.zeros(self.num)
+    self.u.value = jnp.zeros(self.num)
+    self.I.value = jnp.zeros(self.num)
     self.delay_I.reset(self.I)
 
   @property
@@ -227,15 +229,15 @@ class STP(TwoEndConn):
     if self.delay_type == 'homo':
       delayed_I = self.delay_I(self.delay_step)
     elif self.delay_type == 'heter':
-      delayed_I = self.delay_I(self.delay_step, bm.arange(self.pre.num))
+      delayed_I = self.delay_I(self.delay_step, jnp.arange(self.pre.num))
     else:
       delayed_I = self.I
     self.post.input += bm.syn2post(delayed_I, self.post_ids, self.post.num)
     self.I.value, u, x = self.integral(self.I, self.u, self.x, tdi.t, tdi.dt)
     syn_sps = bm.pre2syn(self.pre.spike, self.pre_ids)
-    u = bm.where(syn_sps, u + self.U * (1 - self.u), u)
-    x = bm.where(syn_sps, x - u * self.x, x)
-    self.I.value = bm.where(syn_sps, self.I + self.A * u * self.x, self.I)
+    u = jnp.where(syn_sps, u + self.U * (1 - self.u), u)
+    x = jnp.where(syn_sps, x - u * self.x, x)
+    self.I.value = jnp.where(syn_sps, self.I + self.A * u * self.x, self.I.value)
     self.u.value = u
     self.x.value = x
     if self.delay_type in ['homo', 'heter']:

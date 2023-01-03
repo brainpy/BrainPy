@@ -1,8 +1,7 @@
 import unittest
 
-import jax
-import jax.random as jr
 import jax.numpy as jnp
+import jax.random as jr
 import numpy as np
 import numpy.random as nr
 
@@ -62,7 +61,6 @@ class TestRandom(unittest.TestCase):
   def test_random1(self):
     br.seed()
     a = br.random()
-    self.assertIsInstance(a, bm.Array)
     self.assertTrue(0. <= a < 1)
 
   def test_random2(self):
@@ -297,7 +295,6 @@ class TestRandom(unittest.TestCase):
     b = np.random.binomial(5, 0.5)
     print(a)
     print(b)
-    self.assertIsInstance(a, bm.Array)
     self.assertTupleEqual(a.shape, ())
     self.assertTrue(a.dtype, int)
 
@@ -315,7 +312,6 @@ class TestRandom(unittest.TestCase):
   def test_chisquare1(self):
     br.seed()
     a = bm.random.chisquare(3)
-    self.assertIsInstance(a, bm.Array)
     self.assertTupleEqual(a.shape, ())
     self.assertTrue(a.dtype, float)
 

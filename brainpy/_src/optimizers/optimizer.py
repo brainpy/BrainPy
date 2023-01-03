@@ -67,7 +67,7 @@ class Optimizer(BrainPyObject):
     raise NotImplementedError
 
 
-class ComonOpt(Optimizer):
+class CommonOpt(Optimizer):
   def __init__(
       self,
       lr: Union[float, Scheduler],
@@ -82,7 +82,7 @@ class ComonOpt(Optimizer):
     self.weight_decay = check.is_float(weight_decay, min_bound=0., max_bound=1., allow_none=True)
 
 
-class SGD(ComonOpt):
+class SGD(CommonOpt):
   r"""Stochastic gradient descent optimizer.
 
   SGD performs a parameter update for training examples :math:`x` and label
@@ -129,7 +129,7 @@ class SGD(ComonOpt):
     self.lr.update_call()
 
 
-class Momentum(ComonOpt):
+class Momentum(CommonOpt):
   r"""Momentum optimizer.
 
   Momentum [1]_ is a method that helps accelerate SGD in the relevant direction
@@ -200,7 +200,7 @@ class Momentum(ComonOpt):
     return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
-class MomentumNesterov(ComonOpt):
+class MomentumNesterov(CommonOpt):
   r"""Nesterov accelerated gradient optimizer [2]_.
 
   .. math::
@@ -264,7 +264,7 @@ class MomentumNesterov(ComonOpt):
     return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
-class Adagrad(ComonOpt):
+class Adagrad(CommonOpt):
   r"""Optimizer that implements the Adagrad algorithm.
 
   Adagrad [3]_ is an optimizer with parameter-specific learning rates, which are
@@ -336,7 +336,7 @@ class Adagrad(ComonOpt):
     return f"{self.__class__.__name__}(lr={self.lr}, epsilon={self.epsilon})"
 
 
-class Adadelta(ComonOpt):
+class Adadelta(CommonOpt):
   r"""Optimizer that implements the Adadelta algorithm.
 
   Adadelta [4]_ optimization is a stochastic gradient descent method that is based
@@ -428,7 +428,7 @@ class Adadelta(ComonOpt):
             f"epsilon={self.epsilon}, rho={self.rho})")
 
 
-class RMSProp(ComonOpt):
+class RMSProp(CommonOpt):
   r"""Optimizer that implements the RMSprop algorithm.
 
   RMSprop [5]_ and Adadelta have both been developed independently around the same time
@@ -504,7 +504,7 @@ class RMSProp(ComonOpt):
             f"epsilon={self.epsilon}, rho={self.rho})")
 
 
-class Adam(ComonOpt):
+class Adam(CommonOpt):
   """Optimizer that implements the Adam algorithm.
 
   Adam [6]_ - a stochastic gradient descent method (SGD) that computes
@@ -589,7 +589,7 @@ class Adam(ComonOpt):
     self.lr.update_call()
 
 
-class LARS(ComonOpt):
+class LARS(CommonOpt):
   r"""Layer-wise adaptive rate scaling (LARS) optimizer [1]_.
 
   Layer-wise Adaptive Rate Scaling, or LARS, is a large batch
@@ -669,7 +669,7 @@ class LARS(ComonOpt):
     self.lr.update_call()
 
 
-class Adan(ComonOpt):
+class Adan(CommonOpt):
   r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models [1]_.
 
   .. math::
@@ -808,7 +808,7 @@ class Adan(ComonOpt):
     self.lr.update_call()
 
 
-class AdamW(ComonOpt):
+class AdamW(CommonOpt):
   r"""Adam with weight decay regularization [1]_.
 
   AdamW uses weight decay to regularize learning towards small weights, as
@@ -817,6 +817,7 @@ class AdamW(ComonOpt):
   does not behave as intended for adaptive gradient algorithms such as Adam.
 
   .. math::
+
      \begin{aligned}
         &\rule{110mm}{0.4pt}                                                                 \\
         &\textbf{input}      : \gamma \text{(lr)}, \: \beta_1, \beta_2
@@ -967,7 +968,7 @@ class AdamW(ComonOpt):
     self.lr.update_call()
 
 
-class SM3(ComonOpt):
+class SM3(CommonOpt):
   """SM3 algorithm [1]_.
 
   The 'Square-root of Minima of Sums of Maxima of Squared-gradients Method'

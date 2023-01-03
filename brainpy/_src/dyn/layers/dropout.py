@@ -2,7 +2,8 @@
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
+
+from brainpy import math as bm, check
 from .base import Layer
 
 __all__ = [
@@ -45,7 +46,7 @@ class Dropout(Layer):
       name: str = None
   ):
     super(Dropout, self).__init__(mode=mode, name=name)
-    self.prob = prob
+    self.prob = check.is_float(prob, min_bound=0., max_bound=1.)
     self.rng = bm.random.default_rng(seed)
 
   def update(self, sha, x):

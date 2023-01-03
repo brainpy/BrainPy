@@ -9,7 +9,7 @@ from brainpy._src.dyn.base import NeuGroup
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
 from brainpy._src.initialize import Initializer, Uniform, parameter, variable, ZeroInit
 from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode import odeint
+from brainpy._src.integrators.ode.generic import odeint
 from brainpy.check import is_float, is_initializer, jit_error_checking
 from brainpy.types import Shape, ArrayType
 

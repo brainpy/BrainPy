@@ -13,7 +13,7 @@ import brainpy.math as bm
 from brainpy._src.dyn.base import Channel
 from brainpy._src.initialize import OneInit, Initializer, parameter, variable
 from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode import odeint
+from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType
 from .base import Calcium, CalciumChannel
 

@@ -24,13 +24,6 @@ def wraps(fun: Callable):
     docstr = getattr(fun, "__doc__", None)
     op.__doc__ = docstr
     op.__wrapped__ = fun
-    for attr in ['__name__', '__qualname__']:
-      try:
-        value = getattr(fun, attr)
-      except AttributeError:
-        pass
-      else:
-        setattr(op, attr, value)
     return op
 
   return wrap

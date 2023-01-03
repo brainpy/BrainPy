@@ -64,7 +64,7 @@ def firing_rate(spikes, width, dt=None, numpy=True):
   rate : ndarray
       The population rate in Hz, smoothed with the given window.
   """
-  spikes = bm.as_numpy(spikes) if numpy else bm.as_device_array(spikes)
+  spikes = bm.as_numpy(spikes) if numpy else bm.as_jax(spikes)
   np = onp if numpy else jnp
   dt = bm.get_dt() if (dt is None) else dt
   width1 = int(width / 2 / dt) * 2 + 1

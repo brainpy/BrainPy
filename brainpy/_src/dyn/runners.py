@@ -178,7 +178,7 @@ def check_and_format_inputs(host, inputs):
     # input data
     if type_ == 'iter':
       if isinstance(value, (bm.ndarray, np.ndarray, jnp.ndarray)):
-        array_inputs[op].append([variable, bm.asarray(value)])
+        array_inputs[op].append([variable, jnp.asarray(value)])
       else:
         next_inputs[op].append([variable, iter(value)])
     elif type_ == 'func':
@@ -343,8 +343,8 @@ class DSRunner(Runner):
     # t0 and i0
     is_float(t0, 't0', allow_none=False, allow_int=True)
     self._t0 = t0
-    self.i0 = bm.Variable(bm.asarray([1], dtype=bm.int_))
-    self.t0 = bm.Variable(bm.asarray([t0], dtype=bm.float_))
+    self.i0 = bm.Variable(jnp.asarray(1, dtype=bm.int_))
+    self.t0 = bm.Variable(jnp.asarray(t0, dtype=bm.float_))
     if data_first_axis is None:
       data_first_axis = 'B' if isinstance(self.target.mode, bm.BatchingMode) else 'T'
     assert data_first_axis in ['B', 'T']
@@ -380,8 +380,8 @@ class DSRunner(Runner):
 
   def reset_state(self):
     """Reset state of the ``DSRunner``."""
-    self.i0.value = bm.zeros_like(self.i0)
-    self.t0.value = bm.ones_like(self.t0) * self._t0
+    self.i0.value = jnp.zeros_like(self.i0.value)
+    self.t0.value = jnp.ones_like(self.t0.value) * self._t0
 
   def predict(
       self,
@@ -467,9 +467,7 @@ class DSRunner(Runner):
     shared['t'] += self.t0
 
     if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
-      inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
-                        inputs,
-                        is_leaf=lambda x: isinstance(x, bm.Array))
+      inputs = tree_map(lambda x: jnp.moveaxis(x, 0, 1), inputs)
 
     # build monitor
     for key in self.mon.var_names:
@@ -535,9 +533,8 @@ class DSRunner(Runner):
     _predict_func = self._get_f_predict(shared_args)
     outs_and_mons = _predict_func(xs)
     if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
-      outs_and_mons = tree_map(lambda x: bm.moveaxis(x, 0, 1) if x.ndim >= 2 else x,
-                               outs_and_mons,
-                               is_leaf=lambda x: isinstance(x, bm.Array))
+      outs_and_mons = tree_map(lambda x: jnp.moveaxis(x, 0, 1) if x.ndim >= 2 else x,
+                               outs_and_mons)
     return outs_and_mons
 
   def _step_func_monitor(self, shared):
@@ -550,7 +547,7 @@ class DSRunner(Runner):
         if idx is None:
           res[key] = variable.value
         else:
-          res[key] = variable[bm.asarray(idx)]
+          res[key] = variable[jnp.asarray(idx)]
     return res
 
   def _step_func_input(self, shared):

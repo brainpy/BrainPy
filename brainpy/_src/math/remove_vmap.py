@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.math.numpy_ops import any, all
+
+import jax.numpy as jnp
+from jax.abstract_arrays import ShapedArray
 from jax.core import Primitive
 from jax.interpreters import batching, mlir, xla
-from jax.abstract_arrays import ShapedArray
-import jax.numpy as jnp
-
 
 __all__ = [
   'remove_vmap'
@@ -29,7 +28,7 @@ def _any_without_vmap(x):
 
 
 def _any_without_vmap_imp(x):
-  return any(x)
+  return jnp.any(x)
 
 
 def _any_without_vmap_abs(x):
@@ -58,7 +57,7 @@ def _all_without_vmap(x):
 
 
 def _all_without_vmap_imp(x):
-  return all(x)
+  return jnp.all(x)
 
 
 def _all_without_vmap_abs(x):

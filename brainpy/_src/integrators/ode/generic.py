@@ -6,7 +6,6 @@ from brainpy._src.math.delayvars import AbstractDelay, NeuTimeDelay
 from .base import ODEIntegrator
 
 __all__ = [
-  'odeint',
   'set_default_odeint',
   'get_default_odeint',
   'register_ode_integrator',

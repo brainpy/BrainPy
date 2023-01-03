@@ -80,13 +80,13 @@ class DelayCoupling(SynConn):
       num_delay_step = None
     elif callable(delay_steps):
       delay_steps = delay_steps(required_shape)
-      if delay_steps.dtype not in [bm.int32, bm.int64, bm.uint32, bm.uint64]:
+      if delay_steps.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
       self.delay_steps = delay_steps
       self.delay_type = 'array'
       num_delay_step = self.delay_steps.max()
     elif isinstance(delay_steps, (bm.Array, jnp.ndarray)):
-      if delay_steps.dtype not in [bm.int32, bm.int64, bm.uint32, bm.uint64]:
+      if delay_steps.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
       if delay_steps.ndim == 0:
         self.delay_type = 'int'
@@ -128,12 +128,12 @@ class DiffusiveCoupling(DelayCoupling):
   --------
 
   >>> import brainpy as bp
-  >>> from brainpy.dyn import rates
+  >>> from brainpy import rates
   >>> areas = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
   >>> conn = bp.synapses.DiffusiveCoupling(areas.x, areas.x, areas.input,
   >>>                                      conn_mat=Cmat, delay_steps=Dmat,
   >>>                                      initial_delay_data=bp.init.Uniform(0, 0.05))
-  >>> net = bp.dyn.Network(areas, conn)
+  >>> net = bp.Network(areas, conn)
 
   Parameters
   ----------
@@ -170,12 +170,12 @@ class DiffusiveCoupling(DelayCoupling):
     if not isinstance(coupling_var2, bm.Variable):
       raise ValueError(f'"coupling_var2" must be an instance of brainpy.math.Variable. '
                        f'But we got {type(coupling_var2)}')
-    if bm.ndim(coupling_var1) != 1:
+    if jnp.ndim(coupling_var1) != 1:
       raise ValueError(f'Only support 1d vector of coupling variable. '
-                       f'But we got {bm.ndim(coupling_var1)}')
-    if bm.ndim(coupling_var2) != 1:
+                       f'But we got {jnp.ndim(coupling_var1)}')
+    if jnp.ndim(coupling_var2) != 1:
       raise ValueError(f'Only support 1d vector of coupling variable. '
-                       f'But we got {bm.ndim(coupling_var2)}')
+                       f'But we got {jnp.ndim(coupling_var2)}')
 
     super(DiffusiveCoupling, self).__init__(
       delay_var=coupling_var1,
@@ -196,23 +196,23 @@ class DiffusiveCoupling(DelayCoupling):
     axis = self.coupling_var1.ndim
     delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
     if self.delay_steps is None:
-      diffusive = (bm.expand_dims(self.coupling_var1, axis=axis) -
-                   bm.expand_dims(self.coupling_var2, axis=axis - 1))
+      diffusive = (jnp.expand_dims(self.coupling_var1.value, axis=axis) -
+                   jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'array':
       if isinstance(self.mode, bm.TrainingMode):
-        indices = (slice(None, None, None), bm.arange(self.coupling_var1.size),)
+        indices = (slice(None, None, None), jnp.arange(self.coupling_var1.size),)
       else:
-        indices = (bm.arange(self.coupling_var1.size),)
+        indices = (jnp.arange(self.coupling_var1.size),)
       f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (..., pre.num)
       delays = f(self.delay_steps)  # (..., post.num, pre.num)
-      diffusive = (bm.moveaxis(delays, axis - 1, axis) -
-                   bm.expand_dims(self.coupling_var2, axis=axis - 1))  # (..., pre.num, post.num)
+      diffusive = (jnp.moveaxis(delays.value, axis - 1, axis) -
+                   jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))  # (..., pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'int':
       delayed_data = delay_var(self.delay_steps)  # (..., pre.num)
-      diffusive = (bm.expand_dims(delayed_data, axis=axis) -
-                   bm.expand_dims(self.coupling_var2, axis=axis - 1))  # (..., pre.num, post.num)
+      diffusive = (jnp.expand_dims(delayed_data, axis=axis) -
+                   jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))  # (..., pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     else:
       raise ValueError(f'Unknown delay type {self.delay_type}')
@@ -259,9 +259,9 @@ class AdditiveCoupling(DelayCoupling):
     if not isinstance(coupling_var, bm.Variable):
       raise ValueError(f'"coupling_var" must be an instance of brainpy.math.Variable. '
                        f'But we got {type(coupling_var)}')
-    if bm.ndim(coupling_var) != 1:
+    if jnp.ndim(coupling_var) != 1:
       raise ValueError(f'Only support 1d vector of coupling variable. '
-                       f'But we got {bm.ndim(coupling_var)}')
+                       f'But we got {jnp.ndim(coupling_var)}')
 
     super(AdditiveCoupling, self).__init__(
       delay_var=coupling_var,
@@ -284,12 +284,12 @@ class AdditiveCoupling(DelayCoupling):
       additive = self.coupling_var @ self.conn_mat
     elif self.delay_type == 'array':
       if isinstance(self.mode, bm.TrainingMode):
-        indices = (slice(None, None, None), bm.arange(self.coupling_var.size),)
+        indices = (slice(None, None, None), jnp.arange(self.coupling_var.size),)
       else:
-        indices = (bm.arange(self.coupling_var.size),)
+        indices = (jnp.arange(self.coupling_var.size),)
       f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (.., pre.num,)
       delays = f(self.delay_steps)  # (..., post.num, pre.num)
-      additive = (self.conn_mat * bm.moveaxis(delays, axis - 1, axis)).sum(axis=axis - 1)
+      additive = (self.conn_mat * jnp.moveaxis(delays, axis - 1, axis)).sum(axis=axis - 1)
     elif self.delay_type == 'int':
       delayed_var = delay_var(self.delay_steps)  # (..., pre.num)
       additive = delayed_var @ self.conn_mat

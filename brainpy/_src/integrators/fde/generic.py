@@ -3,7 +3,6 @@
 from .base import FDEIntegrator
 
 __all__ = [
-  'fdeint',
   'set_default_fdeint',
   'get_default_fdeint',
   'register_fde_integrator',

@@ -3,7 +3,7 @@
 from typing import Union, Dict, Callable, Optional
 
 import brainpylib as bl
-from jax import vmap
+from jax import vmap, numpy as jnp
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
@@ -170,29 +170,29 @@ class AMPA(TwoEndConn):
     self.beta = beta
     self.T = T
     self.T_duration = T_duration
-    if bm.size(alpha) != 1:
+    if jnp.size(alpha) != 1:
       raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
-    if bm.size(beta) != 1:
+    if jnp.size(beta) != 1:
       raise ValueError(f'"beta" must be a scalar or a tensor with size of 1. But we got {beta}')
-    if bm.size(T) != 1:
+    if jnp.size(T) != 1:
       raise ValueError(f'"T" must be a scalar or a tensor with size of 1. But we got {T}')
-    if bm.size(T_duration) != 1:
+    if jnp.size(T_duration) != 1:
       raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # connection
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, self.mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
+    self.g = variable(jnp.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # functions
     self.integral = odeint(method=method, f=self.dg)
 
   def reset_state(self, batch_size=None):
-    self.g = variable(bm.zeros, batch_size, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
+    self.g = variable(jnp.zeros, batch_size, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -206,8 +206,8 @@ class AMPA(TwoEndConn):
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -215,7 +215,7 @@ class AMPA(TwoEndConn):
     if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
-    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
+    self.spike_arrival_time.value = jnp.where(pre_spike, t, self.spike_arrival_time.value)
     if isinstance(self.mode, bm.TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
@@ -231,14 +231,12 @@ class AMPA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
-          bm.as_jax(self.g_max),
-          bm.as_jax(self.conn_mask[0]),
-          bm.as_jax(self.conn_mask[1]),
-          bm.as_jax(s),
+          self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
-        if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
+        if isinstance(self.mode, bm.BatchingMode):
+          f = vmap(f)
         post_vs = f(syn_value)
       else:
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -285,13 +283,6 @@ class GABAa(AMPA):
     `sparse` and `dense`. The default is `dense`.
   delay_step: int, ArrayType, Initializer, Callable
     The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-  E: float, ArrayType
-    The reversal potential for the synaptic current. [mV]
-
-    .. deprecated:: 2.1.13
-       `E` is deprecated in AMPA model. Please define `E` with brainpy.dyn.synouts.COBA.
-       This parameter will be removed since 2.2.0
-
   g_max: float, ArrayType, Initializer, Callable
     The synaptic strength (the maximum conductance). Default is 1.
   alpha: float, ArrayType
@@ -335,9 +326,6 @@ class GABAa(AMPA):
       name: str = None,
       mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
-
-      # deprecated
-      E: Union[float, ArrayType] = None,
   ):
     super(GABAa, self).__init__(pre=pre,
                                 post=post,
@@ -516,17 +504,17 @@ class BioNMDA(TwoEndConn):
     self.alpha2 = alpha2
     self.T_0 = T_0
     self.T_dur = T_dur
-    if bm.size(alpha1) != 1:
+    if jnp.size(alpha1) != 1:
       raise ValueError(f'"alpha1" must be a scalar or a tensor with size of 1. But we got {alpha1}')
-    if bm.size(beta1) != 1:
+    if jnp.size(beta1) != 1:
       raise ValueError(f'"beta1" must be a scalar or a tensor with size of 1. But we got {beta1}')
-    if bm.size(alpha2) != 1:
+    if jnp.size(alpha2) != 1:
       raise ValueError(f'"alpha2" must be a scalar or a tensor with size of 1. But we got {alpha2}')
-    if bm.size(beta2) != 1:
+    if jnp.size(beta2) != 1:
       raise ValueError(f'"beta2" must be a scalar or a tensor with size of 1. But we got {beta2}')
-    if bm.size(T_0) != 1:
+    if jnp.size(T_0) != 1:
       raise ValueError(f'"T_0" must be a scalar or a tensor with size of 1. But we got {T_0}')
-    if bm.size(T_dur) != 1:
+    if jnp.size(T_dur) != 1:
       raise ValueError(f'"T_dur" must be a scalar or a tensor with size of 1. But we got {T_dur}')
     self.comp_method = comp_method
     self.stop_spike_gradient = stop_spike_gradient
@@ -535,18 +523,18 @@ class BioNMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(bm.zeros, self.mode, self.pre.num)
-    self.x = variable(bm.zeros, self.mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
+    self.g = variable(jnp.zeros, self.mode, self.pre.num)
+    self.x = variable(jnp.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
 
   def reset_state(self, batch_size=None):
-    self.g = variable(bm.zeros, batch_size, self.pre.num)
-    self.x = variable(bm.zeros, batch_size, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
+    self.g = variable(jnp.zeros, batch_size, self.pre.num)
+    self.x = variable(jnp.zeros, batch_size, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -562,8 +550,8 @@ class BioNMDA(TwoEndConn):
     # pre-synaptic spikes
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -571,7 +559,7 @@ class BioNMDA(TwoEndConn):
     if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
-    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
+    self.spike_arrival_time.value = jnp.where(pre_spike, t, self.spike_arrival_time.value)
     if isinstance(self.mode, bm.TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0
@@ -587,10 +575,7 @@ class BioNMDA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
-          bm.as_jax(self.g_max),
-          bm.as_jax(self.conn_mask[0]),
-          bm.as_jax(self.conn_mask[1]),
-          bm.as_jax(s),
+          self.g_max,self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
         )

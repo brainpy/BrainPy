@@ -76,12 +76,19 @@ class FunAsLayer(Layer):
       fun: Callable,
       name: Optional[str] = None,
       mode: bm.Mode = None,
+      has_shared: bool = False,
       **kwargs,
   ):
     super().__init__(name, mode)
     self._fun = fun
     self.kwargs = kwargs
+    self.has_shared = has_shared
 
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
-    return self._fun(x, **self.kwargs)
+    if self.has_shared:
+      assert len(args) > 1
+      s = args[0]
+      return self._fun(s, x, **self.kwargs)
+    else:
+      return self._fun(x, **self.kwargs)

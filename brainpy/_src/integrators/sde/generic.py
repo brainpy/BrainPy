@@ -6,7 +6,6 @@ import brainpy.math as bm
 from .base import SDEIntegrator
 
 __all__ = [
-  'sdeint',
   'set_default_sdeint',
   'get_default_sdeint',
   'register_sde_integrator',

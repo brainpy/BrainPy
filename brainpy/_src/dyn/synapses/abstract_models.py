@@ -132,8 +132,9 @@ class Delta(TwoEndConn):
     # pre-synaptic spikes
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
-      pre_spike = stop_gradient(bm.as_jax(pre_spike))
+      pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
     self.output.update(tdi)
@@ -153,12 +154,8 @@ class Delta(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bl.event_ops.event_csr_matvec(
-          bm.as_jax(self.g_max),
-          bm.as_jax(self.conn_mask[0]),
-          bm.as_jax(self.conn_mask[1]),
-          bm.as_jax(s),
-          shape=(self.pre.num, self.post.num),
-          transpose=True
+          self.g_max, self.conn_mask[0], self.conn_mask[1], s,
+          shape=(self.pre.num, self.post.num), transpose=True
         )
         if isinstance(self.mode, bm.BatchingMode): f = vmap(f)
         post_vs = f(pre_spike)
@@ -328,8 +325,8 @@ class Exponential(TwoEndConn):
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -348,10 +345,7 @@ class Exponential(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bl.event_ops.event_csr_matvec(
-          bm.as_jax(self.g_max),
-          bm.as_jax(self.conn_mask[0]),
-          bm.as_jax(self.conn_mask[1]),
-          bm.as_jax(s),
+          self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
@@ -534,8 +528,8 @@ class DualExponential(TwoEndConn):
     # pre-synaptic spikes
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -556,10 +550,7 @@ class DualExponential(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
-          bm.as_jax(self.g_max),
-          bm.as_jax(self.conn_mask[0]),
-          bm.as_jax(self.conn_mask[1]),
-          bm.as_jax(s),
+          self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
@@ -882,8 +873,8 @@ class NMDA(TwoEndConn):
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
-      pre_spike = pre_spike.value if isinstance(pre_spike, bm.Array) else pre_spike
       pre_spike = stop_gradient(pre_spike)
 
     # update sub-components
@@ -904,10 +895,7 @@ class NMDA(TwoEndConn):
     else:
       if self.comp_method == 'sparse':
         f = lambda s: bl.event_ops.event_csr_matvec(
-          bm.as_jax(self.g_max),
-          bm.as_jax(self.conn_mask[0]),
-          bm.as_jax(self.conn_mask[1]),
-          bm.as_jax(s),
+          self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
         )
@@ -990,7 +978,7 @@ class PoissonInput(SynConn):
                     lambda _: self.rng.normal(a, b * p, self.target_var.shape),
                     lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
                     None,
-                    dyn_vars=(self.rng, self.target_var))
+                    dyn_vars=self.rng)
     self.target_var += inp * self.weight
 
   def __repr__(self):

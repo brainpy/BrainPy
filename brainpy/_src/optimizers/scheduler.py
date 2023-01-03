@@ -29,18 +29,20 @@ def make_schedule(scalar_or_schedule):
 class Scheduler(BrainPyObject):
   """The learning rate scheduler."""
 
-  def __init__(self, lr: float):
+  def __init__(self, lr: float, last_epoch: int = -1):
     super(Scheduler, self).__init__()
     self.lr = check.is_float(lr, )
+    check.is_integer(last_epoch, allow_none=False, min_bound=-1)
+    self.last_epoch = bm.Variable(jnp.asarray(last_epoch))
 
   def update_epoch(self):
-    pass
+    self.last_epoch += 1
 
   def update_call(self):
     pass
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(lr={self.lr})'
+    return f'{self.__class__.__name__}(lr={self.lr}, last_epoch={self.last_epoch.value})'
 
   def __call__(self, i=None):
     raise NotImplementedError
@@ -49,21 +51,6 @@ class Scheduler(BrainPyObject):
 class Constant(Scheduler):
   def __call__(self, i=None):
     return self.lr
-
-
-class EpochBasedScheduler(Scheduler):
-  def __init__(self, lr: float, last_epoch: int = -1):
-    super(Scheduler, self).__init__()
-
-    self.lr = check.is_float(lr, )
-    check.is_integer(last_epoch, allow_none=False, min_bound=-1)
-    self.last_epoch = bm.Variable(jnp.asarray(last_epoch))
-
-  def update_epoch(self):
-    self.last_epoch += 1
-
-  def __repr__(self):
-    return f'{self.__class__.__name__}(lr={self.lr}, last_epoch={self.last_epoch.value})'
 
 
 class CallBasedScheduler(Scheduler):
@@ -81,7 +68,7 @@ class CallBasedScheduler(Scheduler):
     return f'{self.__class__.__name__}(lr={self.lr}, last_call={self.last_call.value})'
 
 
-class StepLR(EpochBasedScheduler):
+class StepLR(Scheduler):
   """Decays the learning rate of each parameter group by gamma every
   `step_size` epochs.
 
@@ -120,7 +107,7 @@ class StepLR(EpochBasedScheduler):
             f'last_epoch={self.last_epoch})')
 
 
-class MultiStepLR(EpochBasedScheduler):
+class MultiStepLR(Scheduler):
   """Decays the learning rate of each parameter group by gamma once the
   number of epoch reaches one of the milestones. Notice that such decay can
   happen simultaneously with other changes to the learning rate from outside
@@ -164,7 +151,7 @@ class MultiStepLR(EpochBasedScheduler):
             f'last_epoch={self.last_epoch})')
 
 
-class CosineAnnealingLR(EpochBasedScheduler):
+class CosineAnnealingLR(Scheduler):
   r"""Set the learning rate of each parameter group using a cosine annealing
   schedule, where :math:`\eta_{max}` is set to the initial lr and
   :math:`T_{cur}` is the number of epochs since the last restart in SGDR:
@@ -308,7 +295,7 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
     return jnp.floor(i / self.num_call_per_epoch)
 
 
-class ExponentialLR(EpochBasedScheduler):
+class ExponentialLR(Scheduler):
   """Decays the learning rate of each parameter group by gamma every epoch.
   When last_epoch=-1, sets initial lr as lr.
 

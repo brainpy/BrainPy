@@ -8,7 +8,8 @@ from brainpy._src.dyn.base import DynamicalSystem
 from brainpy._src.dyn.runners import DSRunner
 from brainpy._src.integrators.base import Integrator
 from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode import ODEIntegrator, odeint
+from brainpy._src.integrators.ode.base import ODEIntegrator
+from brainpy._src.integrators.ode.generic import odeint
 from brainpy.errors import AnalyzerError, UnsupportedError
 
 __all__ = [

@@ -5,11 +5,10 @@ This file defines the basic classes for BrainPy object-oriented transformations.
 These transformations include JAX's JIT, autograd, vectorization, parallelization, etc.
 """
 
-
 import os
 import warnings
 from collections import namedtuple
-from typing import Any, Tuple, Callable, Sequence, Dict, Union
+from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 
 import jax
 import numpy as np
@@ -22,9 +21,7 @@ from brainpy import errors
 from brainpy._src.math.ndarray import (Array, Variable, VariableView, TrainVar)
 from brainpy._src.tools.naming import (get_unique_name, check_name_uniqueness)
 
-
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
-
 
 __all__ = [
   # objects
@@ -455,25 +452,26 @@ class BrainPyObject(object):
     else:
       raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
-  # def to(self, devices):
-  #   global math
-  #   if math is None: from brainpy import math
-  #
-  # def cpu(self):
-  #   global math
-  #   if math is None: from brainpy import math
-  #
-  #   all_vars = self.vars().unique()
-  #   for data in all_vars.values():
-  #     data[:] = asarray(data.value)
-  #
-  # def cuda(self):
-  #   global math
-  #   if math is None: from brainpy import math
-  #
-  # def tpu(self):
-  #   global math
-  #   if math is None: from brainpy import math
+  def to(self, device: Optional[Any]):
+    """Moves all variables into the given device.
+
+    Args:
+      device: The device.
+    """
+    for var in self.vars().unique().values():
+      var.value = jax.device_put(var.value, device=device)
+
+  def cpu(self):
+    """Move all variable into the CPU device."""
+    self.to(device=jax.devices('cpu')[0])
+
+  def cuda(self):
+    """Move all variables into the GPU device."""
+    self.to(device=jax.devices('gpu')[0])
+
+  def tpu(self):
+    """Move all variables into the TPU device."""
+    self.to(device=jax.devices('tpu')[0])
 
 
 Base = BrainPyObject
@@ -484,7 +482,7 @@ class FunAsObject(BrainPyObject):
 
   Parameters
   ----------
-  f : callable
+  target : callable
     The function to wrap.
   child_objs : optional, BrainPyObject, sequence of BrainPyObject, dict
     The nodes in the defined function ``f``.
@@ -496,20 +494,20 @@ class FunAsObject(BrainPyObject):
 
   def __init__(
       self,
-      f: Callable,
+      target: Callable,
       child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[dict, BrainPyObject]] = None,
       dyn_vars: Union[Variable, Sequence[Variable], Dict[dict, Variable]] = None,
       name: str = None
   ):
     super(FunAsObject, self).__init__(name=name)
-    self._f = f
+    self.target = target
     if child_objs is not None:
       self.register_implicit_nodes(child_objs)
     if dyn_vars is not None:
       self.register_implicit_vars(dyn_vars)
 
   def __call__(self, *args, **kwargs):
-    return self._f(*args, **kwargs)
+    return self.target(*args, **kwargs)
 
   def __repr__(self) -> str:
     from brainpy.tools import repr_context
@@ -530,6 +528,7 @@ class dyn_seq(list):
      The element must be numerical, like ``bool``, ``int``, ``float``,
      ``jax.Array``, ``numpy.ndarray``, ``brainpy.math.Array``.
   """
+
   def append(self, element):
     if not isinstance(element, (bool, int, float, jax.Array, Array, np.ndarray)):
       raise TypeError(f'Each element should be a numerical value.')
@@ -543,26 +542,6 @@ register_pytree_node(dyn_seq,
                      lambda x: (tuple(x), ()),
                      lambda _, values: dyn_seq(values))
 
-#
-# class object_seq(list):
-#   """A list to represent a sequence of :py:class:`~.BrainPyObject`.
-#
-#   .. note::
-#      The element must be :py:class:`~.BrainPyObject`.
-#   """
-#   def append(self, element):
-#     if not isinstance(element, BrainPyObject):
-#       raise TypeError(f'Only support {BrainPyObject.__name__}')
-#
-#   def extend(self, iterable) -> None:
-#     for element in iterable:
-#       self.append(element)
-#
-#
-# register_pytree_node(object_seq,
-#                      lambda x: (tuple(x), ()),
-#                      lambda _, values: object_seq(values))
-
 
 class dyn_dict(dict):
   """A dict to represent a dynamically changed numerical
@@ -573,6 +552,7 @@ class dyn_dict(dict):
      ``bool``, ``int``, ``float``, ``jax.Array``, ``numpy.ndarray``,
      ``brainpy.math.Array``.
   """
+
   def update(self, *args, **kwargs) -> 'dyn_dict':
     super().update(*args, **kwargs)
     return self
@@ -581,22 +561,6 @@ class dyn_dict(dict):
 register_pytree_node(dyn_dict,
                      lambda x: (tuple(x.values()), tuple(x.keys())),
                      lambda keys, values: dyn_dict(safe_zip(keys, values)))
-
-
-# class object_dict(dict):
-#   """A dict to represent a dictionary of :py:class:`~.BrainPyObject`.
-#
-#   .. note::
-#      Each key must be a string, and each value must be :py:class:`~.BrainPyObject`.
-#   """
-#   def update(self, *args, **kwargs) -> 'object_dict':
-#     super().update(*args, **kwargs)
-#     return self
-#
-#
-# register_pytree_node(object_dict,
-#                      lambda x: (tuple(x.values()), tuple(x.keys())),
-#                      lambda keys, values: object_dict(safe_zip(keys, values)))
 
 
 class Collector(dict):
@@ -797,6 +761,7 @@ class ArrayCollector(Collector):
     else:
       raise TypeError
 
+
 TensorCollector = ArrayCollector
 
 register_pytree_node(
@@ -804,6 +769,5 @@ register_pytree_node(
   lambda x: (x.values(), x.keys()),
   lambda keys, values: ArrayCollector(safe_zip(keys, values))
 )
-
 
 dynamical_types = [Variable, dyn_seq, dyn_dict]

@@ -10,9 +10,9 @@ from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
-  'BatchNorm1D',
-  'BatchNorm2D',
-  'BatchNorm3D',
+  'BatchNorm1d',
+  'BatchNorm2d',
+  'BatchNorm3d',
 
   'LayerNorm',
   'GroupNorm',
@@ -152,7 +152,7 @@ class BatchNorm(Layer):
     return y
 
 
-class BatchNorm1D(BatchNorm):
+class BatchNorm1d(BatchNorm):
   r"""1-D batch normalization [1]_.
 
   The data should be of `(b, l, c)`, where `b` is the batch dimension,
@@ -216,7 +216,7 @@ class BatchNorm1D(BatchNorm):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(BatchNorm1D, self).__init__(num_features=num_features,
+    super(BatchNorm1d, self).__init__(num_features=num_features,
                                       axis=axis,
                                       epsilon=epsilon,
                                       momentum=momentum,
@@ -234,7 +234,7 @@ class BatchNorm1D(BatchNorm):
     assert x.shape[-1] == self.num_features
 
 
-class BatchNorm2D(BatchNorm):
+class BatchNorm2d(BatchNorm):
   r"""2-D batch normalization [1]_.
 
   The data should be of `(b, h, w, c)`, where `b` is the batch dimension,
@@ -299,7 +299,7 @@ class BatchNorm2D(BatchNorm):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(BatchNorm2D, self).__init__(num_features=num_features,
+    super(BatchNorm2d, self).__init__(num_features=num_features,
                                       axis=axis,
                                       epsilon=epsilon,
                                       momentum=momentum,
@@ -317,7 +317,7 @@ class BatchNorm2D(BatchNorm):
     assert x.shape[-1] == self.num_features
 
 
-class BatchNorm3D(BatchNorm):
+class BatchNorm3d(BatchNorm):
   r"""3-D batch normalization [1]_.
 
   The data should be of `(b, h, w, d, c)`, where `b` is the batch dimension,
@@ -382,7 +382,7 @@ class BatchNorm3D(BatchNorm):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(BatchNorm3D, self).__init__(num_features=num_features,
+    super(BatchNorm3d, self).__init__(num_features=num_features,
                                       axis=axis,
                                       epsilon=epsilon,
                                       momentum=momentum,

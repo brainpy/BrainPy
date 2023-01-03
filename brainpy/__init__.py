@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.3.1"
+__version__ = "2.3.2"
 
 
 # fundamental supporting modules
@@ -77,7 +77,6 @@ from brainpy._src.dyn.transform import (NoSharedArg as NoSharedArg,  # transform
 from brainpy._src.dyn.runners import (DSRunner as DSRunner)  # runner
 
 
-
 #  Part 4: Training  #
 # ------------------ #
 
@@ -101,7 +100,7 @@ from . import analysis
 # ------------------ #
 
 from . import running
-from ._src.visualization import visualize
+from ._src.visualization import (visualize as visualize)
 from ._src.running.runner import (Runner as Runner)
 
 
@@ -114,6 +113,15 @@ from brainpy._src.math.object_transform.base import (Base as Base,
                                                      ArrayCollector as ArrayCollector,
                                                      Collector as Collector,
                                                      TensorCollector as TensorCollector)
+
+train.__dict__['DSTrainer'] = DSTrainer
+train.__dict__['BPTT'] = BPTT
+train.__dict__['BPFF'] = BPFF
+train.__dict__['OnlineTrainer'] = OnlineTrainer
+train.__dict__['ForceTrainer'] = ForceTrainer
+train.__dict__['OfflineTrainer'] = OfflineTrainer
+train.__dict__['RidgeTrainer'] = RidgeTrainer
+
 
 from . import base
 base.base.__dict__['BrainPyObject'] = BrainPyObject
@@ -195,6 +203,14 @@ integrators.__dict__['JointEq'] = JointEq
 
 
 import brainpy._src.math.arraycompatible as bm
+math.__dict__['full'] = bm.full
+math.__dict__['full_like'] = bm.full_like
+math.__dict__['eye'] = bm.eye
+math.__dict__['identity'] = bm.identity
+math.__dict__['diag'] = bm.diag
+math.__dict__['tri'] = bm.tri
+math.__dict__['tril'] = bm.tril
+math.__dict__['triu'] = bm.triu
 math.__dict__['real'] = bm.real
 math.__dict__['imag'] = bm.imag
 math.__dict__['conj'] = bm.conj
@@ -362,27 +378,9 @@ math.__dict__['max'] = bm.max
 math.__dict__['min'] = bm.min
 math.__dict__['amax'] = bm.amax
 math.__dict__['amin'] = bm.amin
-math.__dict__['empty'] = bm.empty
-math.__dict__['empty_like'] = bm.empty_like
-math.__dict__['ones'] = bm.ones
-math.__dict__['ones_like'] = bm.ones_like
-math.__dict__['zeros'] = bm.zeros
-math.__dict__['zeros_like'] = bm.zeros_like
-math.__dict__['full'] = bm.full
-math.__dict__['full_like'] = bm.full_like
-math.__dict__['eye'] = bm.eye
-math.__dict__['identity'] = bm.identity
-math.__dict__['array'] = bm.array
-math.__dict__['arange'] = bm.arange
-math.__dict__['linspace'] = bm.linspace
-math.__dict__['logspace'] = bm.logspace
-math.__dict__['meshgrid'] = bm.meshgrid
-math.__dict__['diag'] = bm.diag
-math.__dict__['tri'] = bm.tri
-math.__dict__['tril'] = bm.tril
-math.__dict__['triu'] = bm.triu
-math.__dict__['vander'] = bm.vander
 math.__dict__['array_split'] = bm.array_split
+math.__dict__['meshgrid'] = bm.meshgrid
+math.__dict__['vander'] = bm.vander
 math.__dict__['nonzero'] = bm.nonzero
 math.__dict__['where'] = bm.where
 math.__dict__['tril_indices'] = bm.tril_indices
@@ -390,7 +388,6 @@ math.__dict__['tril_indices_from'] = bm.tril_indices_from
 math.__dict__['triu_indices'] = bm.triu_indices
 math.__dict__['triu_indices_from'] = bm.triu_indices_from
 math.__dict__['take'] = bm.take
-math.__dict__['diag'] = bm.diag
 math.__dict__['select'] = bm.select
 math.__dict__['nanmin'] = bm.nanmin
 math.__dict__['nanmax'] = bm.nanmax
@@ -454,6 +451,7 @@ math.__dict__['array_repr'] = bm.array_repr
 math.__dict__['array_str'] = bm.array_str
 math.__dict__['block'] = bm.block
 math.__dict__['broadcast_arrays'] = bm.broadcast_arrays
+math.__dict__['broadcast_shapes'] = bm.broadcast_shapes
 math.__dict__['broadcast_to'] = bm.broadcast_to
 math.__dict__['compress'] = bm.compress
 math.__dict__['cumproduct'] = bm.cumproduct
@@ -536,6 +534,10 @@ math.__dict__['add_docstring'] = bm.add_docstring
 math.__dict__['add_newdoc'] = bm.add_newdoc
 math.__dict__['add_newdoc_ufunc'] = bm.add_newdoc_ufunc
 math.__dict__['array2string'] = bm.array2string
+math.__dict__['asanyarray'] = bm.asanyarray
+math.__dict__['ascontiguousarray'] = bm.ascontiguousarray
+math.__dict__['asfarray'] = bm.asfarray
+math.__dict__['asscalar'] = bm.asscalar
 math.__dict__['common_type'] = bm.common_type
 math.__dict__['disp'] = bm.disp
 math.__dict__['genfromtxt'] = bm.genfromtxt
@@ -553,5 +555,6 @@ math.__dict__['show_config'] = bm.show_config
 math.__dict__['typename'] = bm.typename
 math.__dict__['copyto'] = bm.copyto
 math.__dict__['matrix'] = bm.matrix
+math.__dict__['asmatrix'] = bm.asmatrix
 math.__dict__['mat'] = bm.mat
 del bm

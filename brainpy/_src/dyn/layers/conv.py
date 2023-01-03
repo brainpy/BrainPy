@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from typing import Union, Tuple, Optional, Sequence, Callable
 
 from jax import lax
@@ -11,9 +10,9 @@ from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
-  'Conv1D',
-  'Conv2D',
-  'Conv3D'
+  'Conv1d',
+  'Conv2d',
+  'Conv3d'
 ]
 
 
@@ -52,9 +51,9 @@ class GeneralConv(Layer):
     The shape of the convolutional kernel.
     For 1D convolution, the kernel size can be passed as an integer.
     For all other cases, it must be a sequence of integers.
-  strides: int, sequence of int
+  stride: int, sequence of int
     An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-  padding: str, sequence of int, sequence of tuple
+  padding: str, int, sequence of int, sequence of tuple
     Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
     high)` integer pairs that give the padding to apply before and after each
     spatial dimension.
@@ -88,8 +87,8 @@ class GeneralConv(Layer):
       in_channels: int,
       out_channels: int,
       kernel_size: Union[int, Tuple[int, ...]],
-      strides: Union[int, Tuple[int, ...]] = 1,
-      padding: Union[str, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
@@ -105,7 +104,7 @@ class GeneralConv(Layer):
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
     self.out_channels = out_channels
-    self.strides = tools.replicate(strides, num_spatial_dims, 'strides')
+    self.stride = tools.replicate(stride, num_spatial_dims, 'stride')
     self.kernel_size = tools.replicate(kernel_size, num_spatial_dims, 'kernel_size')
     self.lhs_dilation = tools.replicate(lhs_dilation, num_spatial_dims, 'lhs_dilation')
     self.rhs_dilation = tools.replicate(rhs_dilation, num_spatial_dims, 'rhs_dilation')
@@ -117,6 +116,8 @@ class GeneralConv(Layer):
 
     if isinstance(padding, str):
       assert padding in ['SAME', 'VALID']
+    elif isinstance(padding, int):
+      padding = tuple((padding, padding) for _ in range(num_spatial_dims))
     elif isinstance(padding, (tuple, list)):
       if isinstance(padding[0], int):
         padding = (padding,) * num_spatial_dims
@@ -127,7 +128,7 @@ class GeneralConv(Layer):
           if len(padding) != num_spatial_dims:
             raise ValueError(f"Padding {padding} must be a Tuple[int, int], "
                              f"or sequence of Tuple[int, int] with length 1, "
-                             f"or sequence of Tuple[int, int] length {num_spatial_dims}.")
+                             f"or sequence of Tuple[int, int] with length {num_spatial_dims}.")
           padding = tuple(padding)
     else:
       raise ValueError
@@ -160,7 +161,7 @@ class GeneralConv(Layer):
       w = w * self.mask
     y = lax.conv_general_dilated(lhs=bm.as_jax(x),
                                  rhs=bm.as_jax(w),
-                                 window_strides=self.strides,
+                                 window_strides=self.stride,
                                  padding=self.padding,
                                  lhs_dilation=self.lhs_dilation,
                                  rhs_dilation=self.rhs_dilation,
@@ -169,7 +170,7 @@ class GeneralConv(Layer):
     return y if self.b is None else (y + self.b.value)
 
 
-class Conv1D(GeneralConv):
+class Conv1d(GeneralConv):
   """One-dimensional convolution.
 
   Parameters
@@ -184,7 +185,7 @@ class Conv1D(GeneralConv):
     For all other cases, it must be a sequence of integers.
   strides: int, sequence of int
     An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-  padding: str, sequence of int, sequence of tuple
+  padding: str, int, sequence of int, sequence of tuple
     Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
     high)` integer pairs that give the padding to apply before and after each
     spatial dimension.
@@ -210,7 +211,6 @@ class Conv1D(GeneralConv):
     The computation mode of the current object. Default it is `training`.
   name: str, Optional
     The name of the object.
-
   """
 
   def __init__(
@@ -218,8 +218,9 @@ class Conv1D(GeneralConv):
       in_channels: int,
       out_channels: int,
       kernel_size: Union[int, Tuple[int, ...]],
-      strides: Union[int, Tuple[int, ...]] = 1,
-      padding: Union[str, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      stride: Union[int, Tuple[int, ...]] = None,
+      strides: Union[int, Tuple[int, ...]] = None,   # deprecated
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
@@ -229,11 +230,20 @@ class Conv1D(GeneralConv):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(Conv1D, self).__init__(num_spatial_dims=1,
+    if stride is None:
+      if strides is None:
+        stride = 1
+      else:
+        stride = strides
+    else:
+      if strides is not None:
+        raise ValueError('Cannot provide "stride" and "strides" both.')
+
+    super(Conv1d, self).__init__(num_spatial_dims=1,
                                  in_channels=in_channels,
                                  out_channels=out_channels,
                                  kernel_size=kernel_size,
-                                 strides=strides,
+                                 stride=stride,
                                  padding=padding,
                                  lhs_dilation=lhs_dilation,
                                  rhs_dilation=rhs_dilation,
@@ -252,7 +262,7 @@ class Conv1D(GeneralConv):
                        f"the same size as in_channels={self.in_channels}.")
 
 
-class Conv2D(GeneralConv):
+class Conv2d(GeneralConv):
   """Two-dimensional convolution.
 
   Parameters
@@ -265,9 +275,9 @@ class Conv2D(GeneralConv):
     The shape of the convolutional kernel.
     For 1D convolution, the kernel size can be passed as an integer.
     For all other cases, it must be a sequence of integers.
-  strides: int, sequence of int
+  stride: int, sequence of int
     An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-  padding: str, sequence of int, sequence of tuple
+  padding: str, int, sequence of int, sequence of tuple
     Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
     high)` integer pairs that give the padding to apply before and after each
     spatial dimension.
@@ -301,8 +311,9 @@ class Conv2D(GeneralConv):
       in_channels: int,
       out_channels: int,
       kernel_size: Union[int, Tuple[int, ...]],
-      strides: Union[int, Tuple[int, ...]] = 1,
-      padding: Union[str, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      stride: Union[int, Tuple[int, ...]] = None,
+      strides: Union[int, Tuple[int, ...]] = None,  # deprecated
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
@@ -312,11 +323,20 @@ class Conv2D(GeneralConv):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(Conv2D, self).__init__(num_spatial_dims=2,
+    if stride is None:
+      if strides is None:
+        stride = 1
+      else:
+        stride = strides
+    else:
+      if strides is not None:
+        raise ValueError('Cannot provide "stride" and "strides" both.')
+
+    super(Conv2d, self).__init__(num_spatial_dims=2,
                                  in_channels=in_channels,
                                  out_channels=out_channels,
                                  kernel_size=kernel_size,
-                                 strides=strides,
+                                 stride=stride,
                                  padding=padding,
                                  lhs_dilation=lhs_dilation,
                                  rhs_dilation=rhs_dilation,
@@ -335,7 +355,7 @@ class Conv2D(GeneralConv):
                        f"the same size as in_channels={self.in_channels}.")
 
 
-class Conv3D(GeneralConv):
+class Conv3d(GeneralConv):
   """Three-dimensional convolution.
 
   Parameters
@@ -348,9 +368,9 @@ class Conv3D(GeneralConv):
     The shape of the convolutional kernel.
     For 1D convolution, the kernel size can be passed as an integer.
     For all other cases, it must be a sequence of integers.
-  strides: int, sequence of int
+  stride: int, sequence of int
     An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-  padding: str, sequence of int, sequence of tuple
+  padding: str, int, sequence of int, sequence of tuple
     Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
     high)` integer pairs that give the padding to apply before and after each
     spatial dimension.
@@ -384,8 +404,9 @@ class Conv3D(GeneralConv):
       in_channels: int,
       out_channels: int,
       kernel_size: Union[int, Tuple[int, ...]],
-      strides: Union[int, Tuple[int, ...]] = 1,
-      padding: Union[str, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      stride: Union[int, Tuple[int, ...]] = None,
+      strides: Union[int, Tuple[int, ...]] = None,   # deprecated
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
       groups: int = 1,
@@ -395,11 +416,20 @@ class Conv3D(GeneralConv):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(Conv3D, self).__init__(num_spatial_dims=3,
+    if stride is None:
+      if strides is None:
+        stride = 1
+      else:
+        stride = strides
+    else:
+      if strides is not None:
+        raise ValueError('Cannot provide "stride" and "strides" both.')
+
+    super(Conv3d, self).__init__(num_spatial_dims=3,
                                  in_channels=in_channels,
                                  out_channels=out_channels,
                                  kernel_size=kernel_size,
-                                 strides=strides,
+                                 stride=stride,
                                  padding=padding,
                                  lhs_dilation=lhs_dilation,
                                  rhs_dilation=rhs_dilation,
@@ -416,3 +446,9 @@ class Conv3D(GeneralConv):
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
+
+
+Conv1D = Conv1d
+Conv2D = Conv2d
+Conv3D = Conv3d
+

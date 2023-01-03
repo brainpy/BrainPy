@@ -2,7 +2,8 @@
 
 from typing import Union
 
-import brainpy.math as bm
+import jax.numpy as jnp
+
 from brainpy._src.dyn.base import SynSTP
 from brainpy._src.initialize import variable
 from brainpy._src.integrators import odeint, JointEq
@@ -72,17 +73,17 @@ class STD(SynSTP):
     super(STD, self).register_master(master)
 
     # variables
-    self.x = variable(bm.ones, self.master.mode, self.master.pre.num)
+    self.x = variable(jnp.ones, self.master.mode, self.master.pre.num)
 
   def reset_state(self, batch_size=None):
-    self.x.value = variable(bm.ones, batch_size, self.master.pre.num)
+    self.x.value = variable(jnp.ones, batch_size, self.master.pre.num)
 
   def update(self, tdi, pre_spike):
     x = self.integral(self.x.value, tdi['t'], tdi['dt'])
-    self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
+    self.x.value = jnp.where(pre_spike, x - self.U * self.x, x)
 
   def filter(self, g):
-    if bm.shape(g) != self.x.shape:
+    if jnp.shape(g) != self.x.shape:
       raise ValueError('Shape does not match.')
     return g * self.x
 
@@ -156,12 +157,12 @@ class STP(SynSTP):
     super(STP, self).register_master(master)
 
     # variables
-    self.x = variable(bm.ones, self.master.mode, self.master.pre.num)
-    self.u = variable(lambda s: bm.ones(s) * self.U, self.master.mode, self.master.pre.num)
+    self.x = variable(jnp.ones, self.master.mode, self.master.pre.num)
+    self.u = variable(lambda s: jnp.ones(s) * self.U, self.master.mode, self.master.pre.num)
 
   def reset_state(self, batch_size=None):
-    self.x.value = variable(bm.ones, batch_size, self.master.pre.num)
-    self.u.value = variable(lambda s: bm.ones(s) * self.U, batch_size, self.master.pre.num)
+    self.x.value = variable(jnp.ones, batch_size, self.master.pre.num)
+    self.u.value = variable(lambda s: jnp.ones(s) * self.U, batch_size, self.master.pre.num)
 
   @property
   def derivative(self):
@@ -171,12 +172,12 @@ class STP(SynSTP):
 
   def update(self, tdi, pre_spike):
     u, x = self.integral(self.u.value, self.x.value, tdi['t'], tdi['dt'])
-    u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
-    x = bm.where(pre_spike, x - u * self.x, x)
+    u = jnp.where(pre_spike, u + self.U * (1 - self.u), u)
+    x = jnp.where(pre_spike, x - u * self.x, x)
     self.x.value = x
     self.u.value = u
 
   def filter(self, g):
-    if bm.shape(g) != self.x.shape:
+    if jnp.shape(g) != self.x.shape:
       raise ValueError('Shape does not match.')
     return g * self.x * self.u

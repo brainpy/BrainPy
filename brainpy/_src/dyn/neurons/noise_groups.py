@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from brainpy import math as bm, initialize as init
 from brainpy._src.dyn.base import NeuGroup
 from brainpy._src.initialize import Initializer
-from brainpy._src.integrators.sde import sdeint
+from brainpy._src.integrators.sde.generic import sdeint
 from brainpy.types import ArrayType, Shape
 
 __all__ = [

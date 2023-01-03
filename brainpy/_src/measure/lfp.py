@@ -69,8 +69,8 @@ def unitary_LFP(times, spikes, spike_type='exc',
          neurons." Journal of Neuroscience Methods 344 (2020): 108871.
 
   """
-  times = bm.as_device_array(times)
-  spikes = bm.as_device_array(spikes)
+  times = bm.as_jax(times)
+  spikes = bm.as_jax(spikes)
   if spike_type not in ['exc', 'inh']:
     raise ValueError('"spike_type" should be "exc or ""inh". ')
   if spikes.ndim != 2:
@@ -101,7 +101,7 @@ def unitary_LFP(times, spikes, spike_type='exc',
     amp_e, amp_i = -0.08, 0.3  # exc/inh uLFP amplitude (surface)
   else:
     raise NotImplementedError
-  A = bm.exp(-dist / lambda_) * (amp_e if spike_type == 'exc' else amp_i)
+  A = jnp.exp(-dist / lambda_) * (amp_e if spike_type == 'exc' else amp_i)
 
   # delay
   delay = 10.4 + dist / va  # delay to peak (in ms)
@@ -111,4 +111,4 @@ def unitary_LFP(times, spikes, spike_type='exc',
   tts = times[iis] + delay[ids]
   exc_amp = A[ids]
   tau = (2 * sig_e * sig_e) if spike_type == 'exc' else (2 * sig_i * sig_i)
-  return bm.for_loop(lambda t: bm.sum(exc_amp * bm.exp(-(t - tts) ** 2 / tau)), times)
+  return bm.for_loop(lambda t: jnp.sum(exc_amp * jnp.exp(-(t - tts) ** 2 / tau)), times)
