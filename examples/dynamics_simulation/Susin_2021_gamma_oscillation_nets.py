@@ -411,8 +411,12 @@ def signal_phase_by_Hilbert(signal, signal_time, low_cut, high_cut, sampling_spa
   num_taps, beta = kaiserord(ripple_db, width / Nyquist)
   if num_taps % 2 == 0:
     num_taps = num_taps + 1  # Numtaps must be odd
-  taps = firwin(num_taps, [low_cut / Nyquist, high_cut / Nyquist], window=('kaiser', beta), nyq=1.0,
-                pass_zero=False, scale=True)
+  taps = firwin(num_taps,
+                [low_cut / Nyquist, high_cut / Nyquist],
+                window=('kaiser', beta),
+                nyq=1.0,
+                pass_zero=False,
+                scale=True)
   filtered_signal = lfilter(taps, 1.0, signal)
   delay = 0.5 * (num_taps - 1) / sampling_rate  # To corrected to zero-phase
   delay_index = int(np.floor(delay * sampling_rate))

@@ -8,13 +8,14 @@ Reproduce the results of the``spytorch`` tutorial 2 & 3:
 
 """
 
-import numpy as np
+import brainpy_datasets as bd
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 
 import brainpy as bp
 import brainpy.math as bm
-import brainpy_datasets as bd
 
 bm.set_environment(bm.training_mode)
 
@@ -78,9 +79,9 @@ def plot_voltage_traces(mem, spk=None, dim=(3, 5), spike_height=5):
 
 def print_classification_accuracy(output, target):
   """ Dirty little helper function to compute classification accuracy. """
-  m = bm.max(output, axis=1)  # max over time
-  am = bm.argmax(m, axis=1)  # argmax over output units
-  acc = bm.mean(target == am)  # compare to labels
+  m = jnp.max(output, axis=1)  # max over time
+  am = jnp.argmax(m, axis=1)  # argmax over output units
+  acc = jnp.mean(target == am)  # compare to labels
   print("Accuracy %.3f" % acc)
 
 
@@ -155,14 +156,14 @@ def train(model, x_data, y_data, lr=1e-3, nb_epochs=10, batch_size=128, nb_steps
     # The strength paramters here are merely a guess and
     # there should be ample room for improvement by
     # tuning these paramters.
-    l1_loss = 1e-5 * bm.sum(mon['r.spike'])  # L1 loss on total number of spikes
-    l2_loss = 1e-5 * bm.mean(bm.sum(bm.sum(mon['r.spike'], axis=0), axis=0) ** 2)  # L2 loss on spikes per neuron
+    l1_loss = 1e-5 * jnp.sum(mon['r.spike'])  # L1 loss on total number of spikes
+    l2_loss = 1e-5 * jnp.mean(jnp.sum(jnp.sum(mon['r.spike'], axis=0), axis=0) ** 2)  # L2 loss on spikes per neuron
     # predictions
-    predicts = bm.max(predicts, axis=1)
+    predicts = jnp.max(predicts, axis=1)
     loss = bp.losses.cross_entropy_loss(predicts, targets)
     return loss + l2_loss + l1_loss
 
-  trainer = bp.train.BPTT(
+  trainer = bp.BPTT(
     model,
     loss_fun,
     optimizer=bp.optim.Adam(lr=lr),
@@ -179,11 +180,11 @@ def compute_classification_accuracy(model, x_data, y_data, batch_size=128, nb_st
   runner = bp.DSRunner(model, progress_bar=False)
   for x_local, y_local in sparse_data_generator(x_data, y_data, batch_size, nb_steps, nb_inputs, shuffle=False):
     output = runner.predict(inputs=x_local, reset_state=True)
-    m = bm.max(output, 1)  # max over time
-    am = bm.argmax(m, 1)  # argmax over output units
-    tmp = bm.mean(y_local == am)  # compare to labels
+    m = jnp.max(output, 1)  # max over time
+    am = jnp.argmax(m, 1)  # argmax over output units
+    tmp = jnp.mean(y_local == am)  # compare to labels
     accs.append(tmp)
-  return bm.mean(bm.asarray(accs))
+  return jnp.mean(bm.asarray(accs))
 
 
 def get_mini_batch_results(model, x_data, y_data, batch_size=128, nb_steps=100, nb_inputs=28 * 28):

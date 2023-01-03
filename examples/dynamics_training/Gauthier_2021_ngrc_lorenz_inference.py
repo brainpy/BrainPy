@@ -12,6 +12,7 @@ import brainpy_datasets as bp_data
 import matplotlib.pyplot as plt
 import numpy as np
 
+import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 
@@ -23,7 +24,7 @@ def get_subset(data, start, end):
   res = {'x': data.xs[start: end],
          'y': data.ys[start: end],
          'z': data.zs[start: end]}
-  X = bm.hstack([res['x'], res['y']])
+  X = jnp.hstack([res['x'], res['y']])
   X = X.reshape((1,) + X.shape)
   Y = res['z']
   Y = Y.reshape((1,) + Y.shape)
@@ -144,7 +145,7 @@ X_test, Y_test = get_subset(lorenz_series, 0, num_warmup + num_train + num_test)
 # Model #
 # ----- #
 
-class NGRC(bp.dyn.DynamicalSystem):
+class NGRC(bp.DynamicalSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
     self.r = bp.layers.NVAR(num_in, delay=4, order=2, stride=5)
@@ -159,7 +160,7 @@ model = NGRC(2)
 # Training #
 # -------- #
 
-trainer = bp.train.RidgeTrainer(model, alpha=0.05)
+trainer = bp.RidgeTrainer(model, alpha=0.05)
 
 # warm-up
 outputs = trainer.predict(X_warmup)

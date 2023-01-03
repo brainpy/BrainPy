@@ -7,6 +7,8 @@ import sys
 
 import brainpy_datasets as bd
 
+import jax.numpy as jnp
+
 import brainpy as bp
 import brainpy.math as bm
 
@@ -46,7 +48,7 @@ class SNN(bp.DynamicalSystem):
 
   def update(self, p, x):
     self.layer(p, x)
-    return self.layer[-1].spike
+    return self.layer[-1].spike.value
 
 
 net = SNN(args.tau)
@@ -70,10 +72,10 @@ def loss_fun(xs, ys):
   # shared arguments for looping over time
   shared = bm.shared_args_over_time(num_step=args.T)
   outs = bm.for_loop(net, (shared, xs))
-  out_fr = bm.mean(outs, axis=0)
+  out_fr = jnp.mean(outs, axis=0)
   ys_onehot = bm.one_hot(ys, 10, dtype=bm.float_)
   l = bp.losses.mean_squared_error(out_fr, ys_onehot)
-  n = bm.sum(out_fr.argmax(1) == ys)
+  n = jnp.sum(out_fr.argmax(1) == ys)
   return l, n
 
 
@@ -109,7 +111,8 @@ for epoch_i in range(args.epochs):
     loss.append(l)
     train_acc += correct_num
   train_acc /= x_train.shape[0]
-  train_loss = bm.mean(bm.asarray(loss))
+  train_loss = jnp.mean(jnp.asarray(loss))
+  optimizer.lr.update_epoch()
 
   loss, test_acc = [], 0.
   for i in range(0, x_test.shape[0], args.batch):
@@ -119,7 +122,7 @@ for epoch_i in range(args.epochs):
     loss.append(l)
     test_acc += correct_num
   test_acc /= x_test.shape[0]
-  test_loss = bm.mean(bm.asarray(loss))
+  test_loss = jnp.mean(jnp.asarray(loss))
 
   t = (time.time() - t0) / 60
   print(f'epoch {epoch_i}, used {t:.3f} min, '
@@ -146,7 +149,7 @@ correct_num = 0
 for i in range(0, x_test.shape[0], 512):
   X = encoder(x_test[i: i + 512], num_step=args.T)
   Y = y_test[i: i + 512]
-  out_fr = bm.mean(runner.predict(inputs=X, reset_state=True), axis=0)
-  correct_num += bm.sum(out_fr.argmax(1) == Y)
+  out_fr = jnp.mean(runner.predict(inputs=X, reset_state=True), axis=0)
+  correct_num += jnp.sum(out_fr.argmax(1) == Y)
 
 print('Max test accuracy: ', correct_num / x_test.shape[0])

@@ -12,6 +12,7 @@ The main task is forecasting the double-scroll system.
 import matplotlib.pyplot as plt
 import numpy as np
 
+import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 import brainpy_datasets as bd
@@ -23,7 +24,7 @@ def get_subset(data, start, end):
   res = {'x': data.xs[start: end],
          'y': data.ys[start: end],
          'z': data.zs[start: end]}
-  res = bm.hstack([res['x'], res['y'], res['z']])
+  res = jnp.hstack([res['x'], res['y'], res['z']])
   return res.reshape((1,) + res.shape)
 
 

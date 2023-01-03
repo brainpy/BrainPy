@@ -16,25 +16,24 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.dyn import channels, synapses, synouts, synplast
 
 
 class HTC(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-65.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
-    IL = channels.IL(size, g_max=gL, E=-70)
-    IKL = channels.IKL(size, g_max=gKL)
-    INa = channels.INa_Ba2002(size, V_sh=-30)
-    IDR = channels.IKDR_Ba2002(size, V_sh=-30., phi=0.25)
-    Ih = channels.Ih_HM1992(size, g_max=0.01, E=-43)
+    IL = bp.channels.IL(size, g_max=gL, E=-70)
+    IKL = bp.channels.IKL(size, g_max=gKL)
+    INa = bp.channels.INa_Ba2002(size, V_sh=-30)
+    IDR = bp.channels.IKDR_Ba2002(size, V_sh=-30., phi=0.25)
+    Ih = bp.channels.Ih_HM1992(size, g_max=0.01, E=-43)
 
-    ICaL = channels.ICaL_IS2008(size, g_max=0.5)
-    IAHP = channels.IAHP_De1994(size, g_max=0.3, E=-90.)
-    ICaN = channels.ICaN_IS2008(size, g_max=0.5)
-    ICaT = channels.ICaT_HM1992(size, g_max=2.1)
-    ICaHT = channels.ICaHT_HM1992(size, g_max=3.0)
-    Ca = channels.CalciumDetailed(size, C_rest=5e-5, tau=10., d=0.5, ICaL=ICaL,
-                                  IAHP=IAHP, ICaN=ICaN, ICaT=ICaT, ICaHT=ICaHT)
+    ICaL = bp.channels.ICaL_IS2008(size, g_max=0.5)
+    IAHP = bp.channels.IAHP_De1994(size, g_max=0.3, E=-90.)
+    ICaN = bp.channels.ICaN_IS2008(size, g_max=0.5)
+    ICaT = bp.channels.ICaT_HM1992(size, g_max=2.1)
+    ICaHT = bp.channels.ICaHT_HM1992(size, g_max=3.0)
+    Ca = bp.channels.CalciumDetailed(size, C_rest=5e-5, tau=10., d=0.5, ICaL=ICaL,
+                                     IAHP=IAHP, ICaN=ICaN, ICaT=ICaT, ICaHT=ICaHT)
 
     super(HTC, self).__init__(size, A=2.9e-4, V_initializer=V_initializer, V_th=20.,
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ih=Ih, Ca=Ca)
@@ -43,19 +42,19 @@ class HTC(bp.CondNeuGroup):
 class RTC(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-65.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
-    IL = channels.IL(size, g_max=gL, E=-70)
-    IKL = channels.IKL(size, g_max=gKL)
-    INa = channels.INa_Ba2002(size, V_sh=-40)
-    IDR = channels.IKDR_Ba2002(size, V_sh=-40, phi=0.25)
-    Ih = channels.Ih_HM1992(size, g_max=0.01, E=-43)
+    IL = bp.channels.IL(size, g_max=gL, E=-70)
+    IKL = bp.channels.IKL(size, g_max=gKL)
+    INa = bp.channels.INa_Ba2002(size, V_sh=-40)
+    IDR = bp.channels.IKDR_Ba2002(size, V_sh=-40, phi=0.25)
+    Ih = bp.channels.Ih_HM1992(size, g_max=0.01, E=-43)
 
-    ICaL = channels.ICaL_IS2008(size, g_max=0.3)
-    IAHP = channels.IAHP_De1994(size, g_max=0.1, E=-90.)
-    ICaN = channels.ICaN_IS2008(size, g_max=0.6)
-    ICaT = channels.ICaT_HM1992(size, g_max=2.1)
-    ICaHT = channels.ICaHT_HM1992(size, g_max=0.6)
-    Ca = channels.CalciumDetailed(size, C_rest=5e-5, tau=10., d=0.5, ICaL=ICaL,
-                                  IAHP=IAHP, ICaN=ICaN, ICaT=ICaT, ICaHT=ICaHT)
+    ICaL = bp.channels.ICaL_IS2008(size, g_max=0.3)
+    IAHP = bp.channels.IAHP_De1994(size, g_max=0.1, E=-90.)
+    ICaN = bp.channels.ICaN_IS2008(size, g_max=0.6)
+    ICaT = bp.channels.ICaT_HM1992(size, g_max=2.1)
+    ICaHT = bp.channels.ICaHT_HM1992(size, g_max=0.6)
+    Ca = bp.channels.CalciumDetailed(size, C_rest=5e-5, tau=10., d=0.5, ICaL=ICaL,
+                                     IAHP=IAHP, ICaN=ICaN, ICaT=ICaT, ICaHT=ICaHT)
 
     super(RTC, self).__init__(size, A=2.9e-4, V_initializer=V_initializer, V_th=20.,
                               IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ih=Ih, Ca=Ca)
@@ -64,17 +63,17 @@ class RTC(bp.CondNeuGroup):
 class IN(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-70.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
-    IL = channels.IL(size, g_max=gL, E=-60)
-    IKL = channels.IKL(size, g_max=gKL)
-    INa = channels.INa_Ba2002(size, V_sh=-30)
-    IDR = channels.IKDR_Ba2002(size, V_sh=-30, phi=0.25)
-    Ih = channels.Ih_HM1992(size, g_max=0.05, E=-43)
+    IL = bp.channels.IL(size, g_max=gL, E=-60)
+    IKL = bp.channels.IKL(size, g_max=gKL)
+    INa = bp.channels.INa_Ba2002(size, V_sh=-30)
+    IDR = bp.channels.IKDR_Ba2002(size, V_sh=-30, phi=0.25)
+    Ih = bp.channels.Ih_HM1992(size, g_max=0.05, E=-43)
 
-    IAHP = channels.IAHP_De1994(size, g_max=0.2, E=-90.)
-    ICaN = channels.ICaN_IS2008(size, g_max=0.1)
-    ICaHT = channels.ICaHT_HM1992(size, g_max=2.5)
-    Ca = channels.CalciumDetailed(size, C_rest=5e-5, tau=10., d=0.5,
-                                  IAHP=IAHP, ICaN=ICaN, ICaHT=ICaHT)
+    IAHP = bp.channels.IAHP_De1994(size, g_max=0.2, E=-90.)
+    ICaN = bp.channels.ICaN_IS2008(size, g_max=0.1)
+    ICaHT = bp.channels.ICaHT_HM1992(size, g_max=2.5)
+    Ca = bp.channels.CalciumDetailed(size, C_rest=5e-5, tau=10., d=0.5,
+                                     IAHP=IAHP, ICaN=ICaN, ICaHT=ICaHT)
 
     super(IN, self).__init__(size, A=1.7e-4, V_initializer=V_initializer, V_th=20.,
                              IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ih=Ih, Ca=Ca)
@@ -83,16 +82,16 @@ class IN(bp.CondNeuGroup):
 class TRN(bp.CondNeuGroup):
   def __init__(self, size, gKL=0.01, V_initializer=bp.init.OneInit(-70.), ):
     gL = 0.01 if size == 1 else bp.init.Uniform(0.0075, 0.0125)
-    IL = channels.IL(size, g_max=gL, E=-60)
-    IKL = channels.IKL(size, g_max=gKL)
-    INa = channels.INa_Ba2002(size, V_sh=-40)
-    IDR = channels.IKDR_Ba2002(size, V_sh=-40)
+    IL = bp.channels.IL(size, g_max=gL, E=-60)
+    IKL = bp.channels.IKL(size, g_max=gKL)
+    INa = bp.channels.INa_Ba2002(size, V_sh=-40)
+    IDR = bp.channels.IKDR_Ba2002(size, V_sh=-40)
 
-    IAHP = channels.IAHP_De1994(size, g_max=0.2, E=-90.)
-    ICaN = channels.ICaN_IS2008(size, g_max=0.2)
-    ICaT = channels.ICaT_HP1992(size, g_max=1.3)
-    Ca = channels.CalciumDetailed(size, C_rest=5e-5, tau=100., d=0.5,
-                                  IAHP=IAHP, ICaN=ICaN, ICaT=ICaT)
+    IAHP = bp.channels.IAHP_De1994(size, g_max=0.2, E=-90.)
+    ICaN = bp.channels.ICaN_IS2008(size, g_max=0.2)
+    ICaT = bp.channels.ICaT_HP1992(size, g_max=1.3)
+    Ca = bp.channels.CalciumDetailed(size, C_rest=5e-5, tau=100., d=0.5,
+                                     IAHP=IAHP, ICaN=ICaN, ICaT=ICaT)
 
     super(TRN, self).__init__(size, A=1.43e-4,
                               V_initializer=V_initializer, V_th=20.,
@@ -132,118 +131,118 @@ class Thalamus(bp.Network):
     self.poisson_RTC = bp.neurons.PoissonGroup(self.RTC.size, freqs=100)
     self.poisson_IN = bp.neurons.PoissonGroup(self.IN.size, freqs=100)
     self.poisson_RE = bp.neurons.PoissonGroup(self.RE.size, freqs=100)
-    self.noise2HTC = synapses.Exponential(self.poisson_HTC, self.HTC, bp.conn.One2One(),
-                                          output=synouts.COBA(E=0.), tau=5.,
-                                          g_max=g_input['TC'])
-    self.noise2RTC = synapses.Exponential(self.poisson_RTC, self.RTC, bp.conn.One2One(),
-                                          output=synouts.COBA(E=0.), tau=5.,
-                                          g_max=g_input['TC'])
-    self.noise2IN = synapses.Exponential(self.poisson_IN, self.IN, bp.conn.One2One(),
-                                         output=synouts.COBA(E=0.), tau=5.,
-                                         g_max=g_input['IN'])
-    self.noise2RE = synapses.Exponential(self.poisson_RE, self.RE, bp.conn.One2One(),
-                                         output=synouts.COBA(E=0.), tau=5.,
-                                         g_max=g_input['RE'])
+    self.noise2HTC = bp.synapses.Exponential(self.poisson_HTC, self.HTC, bp.conn.One2One(),
+                                             output=bp.synouts.COBA(E=0.), tau=5.,
+                                             g_max=g_input['TC'])
+    self.noise2RTC = bp.synapses.Exponential(self.poisson_RTC, self.RTC, bp.conn.One2One(),
+                                             output=bp.synouts.COBA(E=0.), tau=5.,
+                                             g_max=g_input['TC'])
+    self.noise2IN = bp.synapses.Exponential(self.poisson_IN, self.IN, bp.conn.One2One(),
+                                            output=bp.synouts.COBA(E=0.), tau=5.,
+                                            g_max=g_input['IN'])
+    self.noise2RE = bp.synapses.Exponential(self.poisson_RE, self.RE, bp.conn.One2One(),
+                                            output=bp.synouts.COBA(E=0.), tau=5.,
+                                            g_max=g_input['RE'])
 
     # HTC cells were connected with gap junctions
-    self.gj_HTC = synapses.GapJunction(self.HTC, self.HTC,
-                                       bp.conn.ProbDist(dist=2., prob=0.3, ),
-                                       comp_method='sparse',
-                                       g_max=1e-2)
+    self.gj_HTC = bp.synapses.GapJunction(self.HTC, self.HTC,
+                                          bp.conn.ProbDist(dist=2., prob=0.3, ),
+                                          comp_method='sparse',
+                                          g_max=1e-2)
 
     # HTC provides feedforward excitation to INs
-    self.HTC2IN_ampa = synapses.AMPA(self.HTC, self.IN, bp.conn.FixedProb(0.3),
-                                     delay_step=int(2 / bm.get_dt()),
-                                     stp=synplast.STD(tau=700, U=0.07),
-                                     alpha=0.94,
-                                     beta=0.18,
-                                     g_max=6e-3)
-    self.HTC2IN_nmda = synapses.AMPA(self.HTC, self.IN, bp.conn.FixedProb(0.3),
-                                     delay_step=int(2 / bm.get_dt()),
-                                     stp=synplast.STD(tau=700, U=0.07),
-                                     output=MgBlock(),
-                                     alpha=1.,
-                                     beta=0.0067,
-                                     g_max=3e-3)
+    self.HTC2IN_ampa = bp.synapses.AMPA(self.HTC, self.IN, bp.conn.FixedProb(0.3),
+                                        delay_step=int(2 / bm.get_dt()),
+                                        stp=bp.synplast.STD(tau=700, U=0.07),
+                                        alpha=0.94,
+                                        beta=0.18,
+                                        g_max=6e-3)
+    self.HTC2IN_nmda = bp.synapses.AMPA(self.HTC, self.IN, bp.conn.FixedProb(0.3),
+                                        delay_step=int(2 / bm.get_dt()),
+                                        stp=bp.synplast.STD(tau=700, U=0.07),
+                                        output=MgBlock(),
+                                        alpha=1.,
+                                        beta=0.0067,
+                                        g_max=3e-3)
 
     # INs delivered feedforward inhibition to RTC cells
-    self.IN2RTC = synapses.GABAa(self.IN, self.RTC, bp.conn.FixedProb(0.3),
-                                 delay_step=int(2 / bm.get_dt()),
-                                 stp=synplast.STD(tau=700, U=0.07),
-                                 output=synouts.COBA(E=-80),
-                                 alpha=10.5,
-                                 beta=0.166,
-                                 g_max=3e-3)
+    self.IN2RTC = bp.synapses.GABAa(self.IN, self.RTC, bp.conn.FixedProb(0.3),
+                                    delay_step=int(2 / bm.get_dt()),
+                                    stp=bp.synplast.STD(tau=700, U=0.07),
+                                    output=bp.synouts.COBA(E=-80),
+                                    alpha=10.5,
+                                    beta=0.166,
+                                    g_max=3e-3)
 
     # 20% RTC cells electrically connected with HTC cells
-    self.gj_RTC2HTC = synapses.GapJunction(self.RTC, self.HTC,
-                                           bp.conn.ProbDist(dist=2., prob=0.3, pre_ratio=0.2),
-                                           comp_method='sparse',
-                                           g_max=1 / 300)
+    self.gj_RTC2HTC = bp.synapses.GapJunction(self.RTC, self.HTC,
+                                              bp.conn.ProbDist(dist=2., prob=0.3, pre_ratio=0.2),
+                                              comp_method='sparse',
+                                              g_max=1 / 300)
 
-    # Both HTC and RTC cells sent glutamatergic synapses to RE neurons, while
+    # Both HTC and RTC cells sent glutamatergic bp.synapses to RE neurons, while
     # receiving GABAergic feedback inhibition from the RE population
-    self.HTC2RE_ampa = synapses.AMPA(self.HTC, self.RE, bp.conn.FixedProb(0.2),
-                                     delay_step=int(2 / bm.get_dt()),
-                                     stp=synplast.STD(tau=700, U=0.07),
-                                     alpha=0.94,
-                                     beta=0.18,
-                                     g_max=4e-3)
-    self.RTC2RE_ampa = synapses.AMPA(self.RTC, self.RE, bp.conn.FixedProb(0.2),
-                                     delay_step=int(2 / bm.get_dt()),
-                                     stp=synplast.STD(tau=700, U=0.07),
-                                     alpha=0.94,
-                                     beta=0.18,
-                                     g_max=4e-3)
-    self.HTC2RE_nmda = synapses.AMPA(self.HTC, self.RE, bp.conn.FixedProb(0.2),
-                                     delay_step=int(2 / bm.get_dt()),
-                                     stp=synplast.STD(tau=700, U=0.07),
-                                     output=MgBlock(),
-                                     alpha=1.,
-                                     beta=0.0067,
-                                     g_max=2e-3)
-    self.RTC2RE_nmda = synapses.AMPA(self.RTC, self.RE, bp.conn.FixedProb(0.2),
-                                     delay_step=int(2 / bm.get_dt()),
-                                     stp=synplast.STD(tau=700, U=0.07),
-                                     output=MgBlock(),
-                                     alpha=1.,
-                                     beta=0.0067,
-                                     g_max=2e-3)
-    self.RE2HTC = synapses.GABAa(self.RE, self.HTC, bp.conn.FixedProb(0.2),
-                                 delay_step=int(2 / bm.get_dt()),
-                                 stp=synplast.STD(tau=700, U=0.07),
-                                 output=synouts.COBA(E=-80),
-                                 alpha=10.5,
-                                 beta=0.166,
-                                 g_max=3e-3)
-    self.RE2RTC = synapses.GABAa(self.RE, self.RTC, bp.conn.FixedProb(0.2),
-                                 delay_step=int(2 / bm.get_dt()),
-                                 stp=synplast.STD(tau=700, U=0.07),
-                                 output=synouts.COBA(E=-80),
-                                 alpha=10.5,
-                                 beta=0.166,
-                                 g_max=3e-3)
+    self.HTC2RE_ampa = bp.synapses.AMPA(self.HTC, self.RE, bp.conn.FixedProb(0.2),
+                                        delay_step=int(2 / bm.get_dt()),
+                                        stp=bp.synplast.STD(tau=700, U=0.07),
+                                        alpha=0.94,
+                                        beta=0.18,
+                                        g_max=4e-3)
+    self.RTC2RE_ampa = bp.synapses.AMPA(self.RTC, self.RE, bp.conn.FixedProb(0.2),
+                                        delay_step=int(2 / bm.get_dt()),
+                                        stp=bp.synplast.STD(tau=700, U=0.07),
+                                        alpha=0.94,
+                                        beta=0.18,
+                                        g_max=4e-3)
+    self.HTC2RE_nmda = bp.synapses.AMPA(self.HTC, self.RE, bp.conn.FixedProb(0.2),
+                                        delay_step=int(2 / bm.get_dt()),
+                                        stp=bp.synplast.STD(tau=700, U=0.07),
+                                        output=MgBlock(),
+                                        alpha=1.,
+                                        beta=0.0067,
+                                        g_max=2e-3)
+    self.RTC2RE_nmda = bp.synapses.AMPA(self.RTC, self.RE, bp.conn.FixedProb(0.2),
+                                        delay_step=int(2 / bm.get_dt()),
+                                        stp=bp.synplast.STD(tau=700, U=0.07),
+                                        output=MgBlock(),
+                                        alpha=1.,
+                                        beta=0.0067,
+                                        g_max=2e-3)
+    self.RE2HTC = bp.synapses.GABAa(self.RE, self.HTC, bp.conn.FixedProb(0.2),
+                                    delay_step=int(2 / bm.get_dt()),
+                                    stp=bp.synplast.STD(tau=700, U=0.07),
+                                    output=bp.synouts.COBA(E=-80),
+                                    alpha=10.5,
+                                    beta=0.166,
+                                    g_max=3e-3)
+    self.RE2RTC = bp.synapses.GABAa(self.RE, self.RTC, bp.conn.FixedProb(0.2),
+                                    delay_step=int(2 / bm.get_dt()),
+                                    stp=bp.synplast.STD(tau=700, U=0.07),
+                                    output=bp.synouts.COBA(E=-80),
+                                    alpha=10.5,
+                                    beta=0.166,
+                                    g_max=3e-3)
 
-    # RE neurons were connected with both gap junctions and GABAergic synapses
-    self.gj_RE = synapses.GapJunction(self.RE, self.RE,
-                                      bp.conn.ProbDist(dist=2., prob=0.3, pre_ratio=0.2),
-                                      comp_method='sparse',
-                                      g_max=1 / 300)
-    self.RE2RE = synapses.GABAa(self.RE, self.RE, bp.conn.FixedProb(0.2),
-                                delay_step=int(2 / bm.get_dt()),
-                                stp=synplast.STD(tau=700, U=0.07),
-                                output=synouts.COBA(E=-70),
-                                alpha=10.5, beta=0.166,
-                                g_max=1e-3)
+    # RE neurons were connected with both gap junctions and GABAergic bp.synapses
+    self.gj_RE = bp.synapses.GapJunction(self.RE, self.RE,
+                                         bp.conn.ProbDist(dist=2., prob=0.3, pre_ratio=0.2),
+                                         comp_method='sparse',
+                                         g_max=1 / 300)
+    self.RE2RE = bp.synapses.GABAa(self.RE, self.RE, bp.conn.FixedProb(0.2),
+                                   delay_step=int(2 / bm.get_dt()),
+                                   stp=bp.synplast.STD(tau=700, U=0.07),
+                                   output=bp.synouts.COBA(E=-70),
+                                   alpha=10.5, beta=0.166,
+                                   g_max=1e-3)
 
-    # 10% RE neurons project GABAergic synapses to local interneurons
-    # probability (0.05) was used for the RE->IN synapses according to experimental data
-    self.RE2IN = synapses.GABAa(self.RE, self.IN, bp.conn.FixedProb(0.05, pre_ratio=0.1),
-                                delay_step=int(2 / bm.get_dt()),
-                                stp=synplast.STD(tau=700, U=0.07),
-                                output=synouts.COBA(E=-80),
-                                alpha=10.5, beta=0.166,
-                                g_max=1e-3, )
+    # 10% RE neurons project GABAergic bp.synapses to local interneurons
+    # probability (0.05) was used for the RE->IN bp.synapses according to experimental data
+    self.RE2IN = bp.synapses.GABAa(self.RE, self.IN, bp.conn.FixedProb(0.05, pre_ratio=0.1),
+                                   delay_step=int(2 / bm.get_dt()),
+                                   stp=bp.synplast.STD(tau=700, U=0.07),
+                                   output=bp.synouts.COBA(E=-80),
+                                   alpha=10.5, beta=0.166,
+                                   g_max=1e-3, )
 
 
 states = {

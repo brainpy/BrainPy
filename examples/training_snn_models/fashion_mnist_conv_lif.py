@@ -8,6 +8,7 @@ from functools import partial
 
 import brainpy_datasets as bd
 from jax import lax
+import jax.numpy as jnp
 
 import brainpy as bp
 import brainpy.math as bm
@@ -25,14 +26,14 @@ class ConvLIF(bp.DynamicalSystem):
                    tau=tau, spike_fun=bm.surrogate.arctan)
 
     self.block1 = bp.Sequential(
-      bp.layers.Conv2D(1, n_channel, kernel_size=3, padding=(1, 1), b_initializer=None),
-      bp.layers.BatchNorm2D(n_channel, momentum=0.9),
+      bp.layers.Conv2d(1, n_channel, kernel_size=3, padding=(1, 1), b_initializer=None),
+      bp.layers.BatchNorm2d(n_channel, momentum=0.9),
       bp.neurons.LIF((28, 28, n_channel), **lif_par)
     )
     self.block2 = bp.Sequential(
       bp.layers.MaxPool([2, 2], 2, channel_axis=-1),  # 14 * 14
-      bp.layers.Conv2D(n_channel, n_channel, kernel_size=3, padding=(1, 1), b_initializer=None),
-      bp.layers.BatchNorm2D(n_channel, momentum=0.9),
+      bp.layers.Conv2d(n_channel, n_channel, kernel_size=3, padding=(1, 1), b_initializer=None),
+      bp.layers.BatchNorm2d(n_channel, momentum=0.9),
       bp.neurons.LIF((14, 14, n_channel), **lif_par),
     )
     self.block3 = bp.Sequential(
@@ -75,10 +76,10 @@ class IFNode(bp.DynamicalSystem):
     self.spike_fun = bp.check.is_callable(spike_fun)
 
     # variables
-    self.V = bm.Variable(bm.zeros((1,) + size, dtype=bm.float_), batch_axis=0)
+    self.V = bm.Variable(jnp.zeros((1,) + size, dtype=bm.float_), batch_axis=0)
 
   def reset_state(self, batch_size):
-    self.V.value = bm.zeros((batch_size,) + self.size, dtype=bm.float_)
+    self.V.value = jnp.zeros((batch_size,) + self.size, dtype=bm.float_)
 
   def update(self, s, x):
     self.V.value += x
@@ -99,14 +100,14 @@ class ConvIF(bp.DynamicalSystem):
     self.n_time = n_time
 
     self.block1 = bp.Sequential(
-      bp.layers.Conv2D(1, n_channel, kernel_size=3, padding=(1, 1), ),
-      bp.layers.BatchNorm2D(n_channel, momentum=0.9),
+      bp.layers.Conv2d(1, n_channel, kernel_size=3, padding=(1, 1), ),
+      bp.layers.BatchNorm2d(n_channel, momentum=0.9),
       IFNode((28, 28, n_channel), spike_fun=bm.surrogate.arctan)
     )
     self.block2 = bp.Sequential(
       bp.layers.MaxPool([2, 2], 2, channel_axis=-1),  # 14 * 14
-      bp.layers.Conv2D(n_channel, n_channel, kernel_size=3, padding=(1, 1), ),
-      bp.layers.BatchNorm2D(n_channel, momentum=0.9),
+      bp.layers.Conv2d(n_channel, n_channel, kernel_size=3, padding=(1, 1), ),
+      bp.layers.BatchNorm2d(n_channel, momentum=0.9),
       IFNode((14, 14, n_channel), spike_fun=bm.surrogate.arctan),
     )
     self.block3 = bp.Sequential(
@@ -163,17 +164,17 @@ def main():
   def inference_fun(X, fit=True):
     net.reset_state(X.shape[0])
     return bm.for_loop(lambda sha: net(sha.update(dt=bm.dt, fit=fit), X),
-                       DotDict(t=bm.arange(args.n_time, dtype=bm.float_),
-                               i=bm.arange(args.n_time, dtype=bm.int_)),
+                       DotDict(t=jnp.arange(args.n_time, dtype=bm.float_),
+                               i=jnp.arange(args.n_time, dtype=bm.int_)),
                        child_objs=net)
 
   # loss function
   @bm.to_object(child_objs=net)
   def loss_fun(X, Y, fit=True):
-    fr = bm.max(inference_fun(X, fit), axis=0)
+    fr = jnp.max(inference_fun(X, fit), axis=0)
     ys_onehot = bm.one_hot(Y, 10, dtype=bm.float_)
     l = bp.losses.mean_squared_error(fr, ys_onehot)
-    n = bm.sum(fr.argmax(1) == Y)
+    n = jnp.sum(fr.argmax(1) == Y)
     return l, n
 
   predict_loss_fun = bm.jit(partial(loss_fun, fit=True), child_objs=loss_fun)
@@ -194,10 +195,10 @@ def main():
   # dataset
   train_set = bd.vision.FashionMNIST(root=args.data_dir, split='train', download=True)
   test_set = bd.vision.FashionMNIST(root=args.data_dir, split='test', download=True)
-  x_train = bm.asarray(train_set.data / 255, dtype=bm.float_).reshape((-1, 28, 28, 1))
-  y_train = bm.asarray(train_set.targets, dtype=bm.int_)
-  x_test = bm.asarray(test_set.data / 255, dtype=bm.float_).reshape((-1, 28, 28, 1))
-  y_test = bm.asarray(test_set.targets, dtype=bm.int_)
+  x_train = jnp.asarray(train_set.data / 255, dtype=bm.float_).reshape((-1, 28, 28, 1))
+  y_train = jnp.asarray(train_set.targets, dtype=bm.int_)
+  x_test = jnp.asarray(test_set.data / 255, dtype=bm.float_).reshape((-1, 28, 28, 1))
+  y_test = jnp.asarray(test_set.targets, dtype=bm.int_)
 
   os.makedirs(out_dir, exist_ok=True)
   with open(os.path.join(out_dir, 'args.txt'), 'w', encoding='utf-8') as args_txt:
@@ -216,7 +217,8 @@ def main():
       loss.append(l)
       train_acc += n
     train_acc /= x_train.shape[0]
-    train_loss = bm.mean(bm.asarray(loss))
+    train_loss = jnp.mean(jnp.asarray(loss))
+    optimizer.lr.update_epoch()
 
     loss, test_acc = [], 0.
     for i in range(0, x_test.shape[0], args.batch):
@@ -226,7 +228,7 @@ def main():
       loss.append(l)
       test_acc += n
     test_acc /= x_test.shape[0]
-    test_loss = bm.mean(bm.asarray(loss))
+    test_loss = jnp.mean(jnp.asarray(loss))
 
     t = (time.time() - start_time) / 60
     print(f'epoch {epoch_i}, used {t:.3f} min, '
