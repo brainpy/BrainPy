@@ -9,41 +9,41 @@ Implementation of the paper:
 
 """
 
+import os
 import sys
 
-import tqdm
-import jax
-import numpy as np
-
 sys.path.append('../../')
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+import tqdm
 import argparse
 import time
 
 import jax.numpy as jnp
 from jax import custom_gradient, custom_vjp
 from jax.lax import stop_gradient
-import brainpy_datasets as bd
+import torch.utils.data
+from torchvision import datasets, transforms
 
 import brainpy as bp
 import brainpy.math as bm
 
-
 # bm.disable_gpu_memory_preallocation()
-
 bm.set_environment(bm.TrainingMode())
 bm.set_platform('gpu')
 
 parser = argparse.ArgumentParser(description='CIFAR10 Training')
-parser.add_argument('-data', default='/mnt/d/data', type=str, help='path to dataset')
-parser.add_argument('-b', '--batch-size', default=16, type=int, metavar='N')
-parser.add_argument('-T', '--timesteps', default=100, type=int, help='Simulation timesteps')
-parser.add_argument('--lr', '--learning-rate', default=0.0025, type=float,
-                    help='initial learning rate', dest='lr')
+parser.add_argument('-data', default='./data', type=str, help='path to dataset')
+parser.add_argument('-b', default=16, type=int, metavar='N')
+parser.add_argument('-T', default=100, type=int, help='Simulation timesteps')
+parser.add_argument('-lr', default=0.0025, type=float, help='initial learning rate')
+parser.add_argument('-resume', action='store_true', help='resume from the checkpoint path')
+parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                    help='number of data loading workers (default: 4)')
 
 
 class LIFNode(bp.DynamicalSystem):
-  def __init__(self, size, tau=100.0, v_threshold=1.0, v_reset=0.0,
-               fire: bool = True):
+  def __init__(self, size, tau=100.0, v_threshold=1.0, v_reset=0.0, fire: bool = True):
     super().__init__()
     bp.check.is_subclass(self.mode, [bp.math.TrainingMode, bp.math.BatchingMode])
 
@@ -213,9 +213,48 @@ def normalize(data):
 def main():
   args = parser.parse_args()
   learning_rate = args.lr
-  batch_size = args.batch_size
-  num_time = args.timesteps
+  batch_size = args.b
+  num_time = args.T
   dataset_root_dir = args.data
+
+  # Load data
+  train_data_loader = torch.utils.data.DataLoader(
+    dataset=datasets.CIFAR10(
+      root=dataset_root_dir,
+      train=True,
+      transform=transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                             std=[0.557, 0.549, 0.5534])
+      ]),
+      download=True
+    ),
+    batch_size=batch_size,
+    shuffle=True,
+    pin_memory=True,
+    drop_last=True,
+    num_workers=args.workers
+  )
+
+  test_data_loader = torch.utils.data.DataLoader(
+    dataset=datasets.CIFAR10(
+      root=dataset_root_dir,
+      train=False,
+      transform=transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                             std=[0.557, 0.549, 0.5534])
+      ]),
+      download=True
+    ),
+    batch_size=batch_size,
+    shuffle=False,
+    pin_memory=True,
+    drop_last=False,
+    num_workers=args.workers
+  )
 
   # Prepare model
   bm.random.seed(1234)
@@ -224,62 +263,66 @@ def main():
   @bm.jit
   @bm.to_object(child_objs=net, dyn_vars=bm.random.DEFAULT)
   def loss_fun(x, y, fit=True):
-    net.reset_state(x.shape[0])
     yy = bm.one_hot(y, 10, dtype=bm.float_)
     # poisson encoding
-    x = jnp.asarray((bm.random.rand(num_time, *x.shape) < jnp.abs(x)) * jnp.sign(x), bm.float_)
+    x = ((bm.random.rand(num_time, *x.shape) < jnp.abs(x)) * jnp.sign(x)).astype(bm.float_)
     # loop over time
+    s = {'fit': fit}
     for i in range(num_time):
-      o = net({'fit': fit}, x[i])
+      o = net(s, x[i])
     for m in net.nodes():
       if isinstance(m, LIFNode) and m.fire:
         m.v_acc += (m.v_acc < 1e-3).astype(bm.float_)
         m.grad_acc.value = ((m.v_acc_l > 1e-3).astype(bm.float_) +
                             jnp.log(1 - 1 / m.tau) * m.v_acc_l / m.v_acc)
     l = bp.losses.mean_squared_error(o / num_time, yy, reduction='sum')
-    n = jnp.sum(jnp.argmax(o, axis=1), y)
+    n = jnp.sum(jnp.argmax(o, axis=1) == y)
     return l, n
 
   inference_fun = bm.jit(bm.Partial(loss_fun.target, fit=False))
+  grad_fun = bm.grad(loss_fun, grad_vars=net.train_vars().unique(), return_value=True, has_aux=True)
   optimizer = bp.optim.SGD(bp.optim.MultiStepLR(learning_rate, milestones=[70, 100, 125], gamma=0.2),
-                           net.train_vars().unique(),
+                           train_vars=net.train_vars().unique(),
                            weight_decay=5e-4)
-  grad_fun = bm.grad(loss_fun, grad_vars=net.train_vars().unique(), return_value=True)
 
   @bm.jit
+  @bm.to_object(child_objs=(optimizer, grad_fun))
   def train_fun(x, y):
     grads, l, n = grad_fun(x, y)
     optimizer.update(grads)
     return l, n
 
-  train_set = bd.vision.CIFAR10(root=dataset_root_dir, split='train', download=True)
-  test_set = bd.vision.CIFAR10(root=dataset_root_dir, split='test', download=True)
-  x_train = jax.device_put(normalize(train_set.data))
-  y_train = jax.device_put(jnp.asarray(train_set.targets, dtype=bm.int_))
-  x_test = jax.device_put(normalize(test_set.data))
-  y_test = jax.device_put(np.asarray(test_set.targets, dtype=bm.int_))
+  last_epoch = -1
+  max_test_acc = 0.
+  if args.resume:
+    states = bp.checkpoints.load('./logs/')
+    net.load_state_dict(states['net'])
+    optimizer.load_state_dict(states['optimizer'])
+    last_epoch = states['epoch_i']
+    max_test_acc = states['max_test_acc']
 
-  for epoch_i in range(200):
-    x_train = bm.random.permutation(x_train, key=123)
-    y_train = bm.random.permutation(y_train, key=123)
-
+  for epoch_i in range(last_epoch + 1, 200):
     start_time = time.time()
-    train_loss = []
-    for i in tqdm.tqdm(range(0, x_train.shape[0], batch_size), desc=f'Train {epoch_i}'):
-      img = x_train[i:i + batch_size]
-      label = y_train[i:i + batch_size]
-      loss = train_fun(img, label)
+    train_loss, train_acc = [], []
+    for img, label in tqdm.tqdm(train_data_loader, desc=f'Train {epoch_i}'):
+      img = jnp.asarray(img).transpose(0, 2, 3, 1)
+      label = jnp.asarray(label)
+      net.reset_state(img.shape[0])
+      loss, acc = train_fun(img, label)
       train_loss.append(loss)
+      train_acc.append(acc)
     train_loss = jnp.asarray(train_loss).mean()
+    train_acc = jnp.asarray(train_acc).mean()
     end_time = time.time()
-    print(f'Epoch {epoch_i}, train time {end_time - start_time} s, train loss {train_loss}')
+    print(f'Epoch {epoch_i}, train time {end_time - start_time} s, train loss {train_loss}, train acc {train_acc}')
     optimizer.lr.update_epoch()
 
     start_time = time.time()
     test_loss, test_acc = [], []
-    for i in tqdm.tqdm(range(0, x_test.shape[0], batch_size), desc=f'Test {epoch_i}'):
-      img = x_test[i:i + batch_size]
-      label = y_test[i:i + batch_size]
+    for img, label in tqdm.tqdm(test_data_loader, desc=f'Test {epoch_i}'):
+      img = jnp.asarray(img).transpose(0, 2, 3, 1)
+      label = jnp.asarray(label)
+      net.reset_state(img.shape[0])
       loss, acc = inference_fun(img, label)
       test_loss.append(loss)
       test_acc.append(acc)
@@ -287,6 +330,16 @@ def main():
     test_acc = jnp.asarray(test_acc).mean()
     end_time = time.time()
     print(f'Epoch {epoch_i}, test time {end_time - start_time} s, test loss {test_loss}, test acc {test_acc}')
+
+    if max_test_acc < test_acc:
+      saves = {
+        'net': net.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'epoch_i': epoch_i,
+        'max_test_acc': max_test_acc,
+      }
+      bp.checkpoints.save('./logs/', saves, step=round(float(test_acc), 5))
+      max_test_acc = test_acc
 
 
 if __name__ == '__main__':

@@ -29,7 +29,7 @@ class Partial(FunAsObject):
     self.args = args
     self.keywords = keywords
 
-  def __call__(self, /, *args, **keywords):
+  def __call__(self, *args, **keywords):
     keywords = {**self.keywords, **keywords}
     return self.fun(*self.args, *args, **keywords)
 

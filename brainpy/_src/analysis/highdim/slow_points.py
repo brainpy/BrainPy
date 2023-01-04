@@ -342,7 +342,7 @@ class SlowPointFinder(base.DSAnalyzer):
                                   is_leaf=lambda x: isinstance(x, bm.Array))).mean()
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
-    optimizer.register_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
+    optimizer.register_train_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
     dyn_vars = optimizer.vars() + (fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
     dyn_vars = dyn_vars.unique()
 

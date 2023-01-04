@@ -663,6 +663,7 @@ def for_loop(
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     reverse: bool = False,
     unroll: int = 1,
+    remat: bool = False,
 ):
   """``for-loop`` control flow with :py:class:`~.Variable`.
 
@@ -763,7 +764,6 @@ def for_loop(
       dyn_vars.append(v)
 
   # functions
-  # @jax.checkpoint
   def fun2scan(carry, x):
     for v, d in zip(dyn_vars, carry): v._value = d
     if not isinstance(x, (tuple, list)):
@@ -776,6 +776,9 @@ def for_loop(
       if out_vars is not None:
         results = (results, out_vars)
     return [v.value for v in dyn_vars], results
+
+  if remat:
+    fun2scan = jax.checkpoint(fun2scan)
 
   name = get_unique_name('_brainpy_object_oriented_for_loop_')
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
@@ -50,9 +50,13 @@ class Optimizer(BrainPyObject):
     super(Optimizer, self).__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
     self.vars_to_train = ArrayCollector()
-    self.register_vars(train_vars)
+    self.register_train_vars(train_vars)
 
   def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+    warnings.warn('Using "register_train_vars()" instead.', UserWarning)
+    self.register_train_vars(train_vars)
+
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     raise NotImplementedError
 
   def check_grads(self, grads):
@@ -78,7 +82,7 @@ class CommonOpt(Optimizer):
     super(Optimizer, self).__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
     self.vars_to_train = ArrayCollector()
-    self.register_vars(train_vars)
+    self.register_train_vars(train_vars)
     self.weight_decay = check.is_float(weight_decay, min_bound=0., max_bound=1., allow_none=True)
 
 
@@ -112,7 +116,7 @@ class SGD(CommonOpt):
                               weight_decay=weight_decay,
                               name=name)
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -174,7 +178,7 @@ class Momentum(CommonOpt):
 
     self.momentum = momentum
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -238,7 +242,7 @@ class MomentumNesterov(CommonOpt):
 
     self.momentum = momentum
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -309,7 +313,7 @@ class Adagrad(CommonOpt):
                                   name=name)
     self.epsilon = epsilon
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -396,7 +400,7 @@ class Adadelta(CommonOpt):
     self.epsilon = epsilon
     self.rho = rho
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -476,7 +480,7 @@ class RMSProp(CommonOpt):
     self.epsilon = epsilon
     self.rho = rho
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -555,7 +559,7 @@ class Adam(CommonOpt):
     return (f"{self.__class__.__name__}(lr={self.lr}, "
             f"beta1={self.beta1}, beta2={self.beta2}, eps={self.eps})")
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -646,7 +650,7 @@ class LARS(CommonOpt):
             f"momentum={self.momentum}, weight_decay={self.weight_decay}, "
             f"tc={self.tc}, eps={self.eps})")
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -751,7 +755,7 @@ class Adan(CommonOpt):
             f"no_prox={self.no_prox}, "
             f"eps={self.eps}")
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -920,7 +924,7 @@ class AdamW(CommonOpt):
             f"eps={self.eps}, "
             f"amsgrad={self.amsgrad})")
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')
@@ -1036,7 +1040,7 @@ class SM3(CommonOpt):
     return (f"{self.__class__.__name__}(lr={self.lr}, "
             f"beta={self.beta}, eps={self.eps}, momentum={self.momentum})")
 
-  def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
+  def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
       raise MathError('"train_vars" must be a dict of Variable.')

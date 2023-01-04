@@ -37,7 +37,10 @@ class JITTransform(ObjectTransform):
       child_objs: Dict[str, BrainPyObject],
       static_argnames: Optional[Any] = None,
       device: Optional[Any] = None,
-      name: Optional[str] = None
+      name: Optional[str] = None,
+      inline: bool = False,
+      keep_unused: bool = False,
+      abstracted_axes: Optional[Any] = None,
   ):
     super().__init__(name=name)
 
@@ -48,7 +51,12 @@ class JITTransform(ObjectTransform):
     self._all_vars = self.vars().unique()
 
     # transformation
-    self._f = jax.jit(self._transform_function, static_argnames=static_argnames, device=device)
+    self._f = jax.jit(self._transform_function,
+                      static_argnames=static_argnames,
+                      device=device,
+                      inline=inline,
+                      keep_unused=keep_unused,
+                      abstracted_axes=abstracted_axes)
 
   def _transform_function(self, variable_data: Dict, *args, **kwargs):
     for key, v in self._all_vars.items():
@@ -94,6 +102,9 @@ def jit(
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     static_argnames: Optional[Union[str, Any]] = None,
     device: Optional[Any] = None,
+    inline: bool = False,
+    keep_unused: bool = False,
+    abstracted_axes: Optional[Any] = None,
 ) -> JITTransform:
   """JIT (Just-In-Time) compilation for class objects.
 
@@ -220,7 +231,10 @@ def jit(
                         dyn_vars=dyn_vars,
                         child_objs=child_objs,
                         static_argnames=static_argnames,
-                        device=device)
+                        device=device,
+                        inline=inline,
+                        keep_unused=keep_unused,
+                        abstracted_axes=abstracted_axes)
 
   else:
     raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '

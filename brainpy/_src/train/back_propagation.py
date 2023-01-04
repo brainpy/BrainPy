@@ -114,7 +114,7 @@ class BPTrainer(DSTrainer):
       optimizer = optim.Adam(lr=lr)
     self.optimizer: optim.Optimizer = optimizer
     if len(self.optimizer.vars_to_train) == 0:
-      self.optimizer.register_vars(self.target.vars(level=-1, include_self=True).subset(bm.TrainVar).unique())
+      self.optimizer.register_train_vars(self.target.vars(level=-1, include_self=True).subset(bm.TrainVar).unique())
 
     # loss function
     self.loss_has_aux = loss_has_aux

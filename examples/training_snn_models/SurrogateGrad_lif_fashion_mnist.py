@@ -144,7 +144,7 @@ def sparse_data_generator(X, y, batch_size, nb_steps, nb_units, shuffle=True):
     all_units = np.concatenate(all_units).flatten()
     x_batch = bm.zeros((batch_size, nb_steps, nb_units))
     x_batch[all_batch, all_times, all_units] = 1.
-    y_batch = bm.asarray(labels_[batch_index])
+    y_batch = jnp.asarray(labels_[batch_index])
     yield x_batch, y_batch
     counter += 1
 
