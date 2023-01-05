@@ -169,6 +169,11 @@ class GeneralConv(Layer):
                                  dimension_numbers=self.dimension_numbers)
     return y if self.b is None else (y + self.b.value)
 
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
+            f'out_channels={self.out_channels}, kernel_size={self.kernel_size}, '
+            f'stride={self.stride}, padding={self.padding}, groups={self.groups})')
+
 
 class Conv1d(GeneralConv):
   """One-dimensional convolution.

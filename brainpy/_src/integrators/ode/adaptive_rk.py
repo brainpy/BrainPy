@@ -53,7 +53,7 @@ More details please check [1]_ [2]_ [3]_.
        Computers in Physics, 6(2), 188-191.
 """
 
-import brainpy._src.math as bm
+import jax.numpy as jnp
 from brainpy import errors
 from brainpy._src.integrators.ode.generic import register_ode_integrator
 from brainpy._src.integrators import constants as C, utils
@@ -172,7 +172,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
       for v in self.variables:
         keywords[f'{v}_te'] = 'the local truncation error'
       self.code_scope['tol'] = tol
-      self.code_scope['math'] = bm
+      self.code_scope['math'] = jnp
     utils.check_kws(self.arg_names, keywords)
 
     # build the integrator

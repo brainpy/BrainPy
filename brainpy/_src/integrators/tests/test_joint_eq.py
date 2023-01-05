@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import brainpy.math as bm
-from brainpy.integrators.joint_eq import _get_args, JointEq
+from brainpy._src.integrators.joint_eq import _get_args, JointEq
 
 from brainpy.errors import DiffEqError
 import unittest

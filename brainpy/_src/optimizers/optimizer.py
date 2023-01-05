@@ -130,7 +130,7 @@ class SGD(CommonOpt):
         p.value -= lr * grads[key]
       else:
         p.value = (1 - self.weight_decay) * p + lr * grads[key]
-    self.lr.update_call()
+    self.lr.step_call()
 
 
 class Momentum(CommonOpt):
@@ -198,7 +198,7 @@ class Momentum(CommonOpt):
         p.value += v.value
       else:
         p.value = (1 - self.weight_decay) * p + v
-    self.lr.update_call()
+    self.lr.step_call()
 
   def __repr__(self):
     return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
@@ -262,7 +262,7 @@ class MomentumNesterov(CommonOpt):
         p.value += v
       else:
         p.value = (1 - self.weight_decay) * p + v
-    self.lr.update_call()
+    self.lr.step_call()
 
   def __repr__(self):
     return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
@@ -334,7 +334,7 @@ class Adagrad(CommonOpt):
         p.value -= update
       else:
         p.value = (1 - self.weight_decay) * p - update
-    self.lr.update_call()
+    self.lr.step_call()
 
   def __repr__(self):
     return f"{self.__class__.__name__}(lr={self.lr}, epsilon={self.epsilon})"
@@ -425,7 +425,7 @@ class Adadelta(CommonOpt):
         p.value -= update
       else:
         p.value = (1 - self.weight_decay) * p - update
-    self.lr.update_call()
+    self.lr.step_call()
 
   def __repr__(self):
     return (f"{self.__class__.__name__}(lr={self.lr}, "
@@ -501,7 +501,7 @@ class RMSProp(CommonOpt):
         p.value -= update
       else:
         p.value = (1 - self.weight_decay) * p - update
-    self.lr.update_call()
+    self.lr.step_call()
 
   def __repr__(self):
     return (f"{self.__class__.__name__}(lr={self.lr}, "
@@ -556,7 +556,7 @@ class Adam(CommonOpt):
     self.eps = eps
 
   def __repr__(self):
-    return (f"{self.__class__.__name__}(lr={self.lr}, "
+    return (f"{self.__class__.__name__}(lr={str(self.lr)}, "
             f"beta1={self.beta1}, beta2={self.beta2}, eps={self.eps})")
 
   def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
@@ -590,7 +590,7 @@ class Adam(CommonOpt):
         p.value -= update
       else:
         p.value = (1 - self.weight_decay) * p - update
-    self.lr.update_call()
+    self.lr.step_call()
 
 
 class LARS(CommonOpt):
@@ -670,7 +670,7 @@ class LARS(CommonOpt):
       local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
       m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
       p.value -= m.value
-    self.lr.update_call()
+    self.lr.step_call()
 
 
 class Adan(CommonOpt):
@@ -809,7 +809,7 @@ class Adan(CommonOpt):
       v_var.value = v
       prev_g_var.value = g
       p_var.value = p
-    self.lr.update_call()
+    self.lr.step_call()
 
 
 class AdamW(CommonOpt):
@@ -969,7 +969,7 @@ class AdamW(CommonOpt):
         denom = jnp.sqrt(v.value) + self.eps
       # Bias correction.
       p.value -= lr * m / denom
-    self.lr.update_call()
+    self.lr.step_call()
 
 
 class SM3(CommonOpt):
@@ -1093,4 +1093,4 @@ class SM3(CommonOpt):
         p -= lr * update
       else:
         p.value = (1 - self.weight_decay) * p - lr * update
-    self.lr.update_call()
+    self.lr.step_call()

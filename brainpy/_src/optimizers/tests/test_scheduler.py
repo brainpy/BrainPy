@@ -25,7 +25,7 @@ class TestMultiStepLR(parameterized.TestCase):
     for i in range(1, 25):
       lr1 = scheduler1(i + last_epoch)
       lr2 = scheduler2()
-      scheduler2.update_epoch()
+      scheduler2.step_epoch()
       print(f'{scheduler2.last_epoch}, {lr1:.4f}, {lr2:.4f}')
       self.assertTrue(lr1 == lr2)
 
@@ -44,7 +44,7 @@ class TestStepLR(parameterized.TestCase):
     for i in range(1, 25):
       lr1 = scheduler1(i + last_epoch)
       lr2 = scheduler2()
-      scheduler2.update_epoch()
+      scheduler2.step_epoch()
       print(f'{scheduler2.last_epoch}, {lr1:.4f}, {lr2:.4f}')
       self.assertTrue(lr1 == lr2)
 
@@ -59,10 +59,11 @@ class TestCosineAnnealingLR(unittest.TestCase):
     for epoch in range(max_epoch):
       for batch in range(iters):
         all_lr1[0].append(epoch + batch / iters)
-        all_lr1[1].append(sch._get_closed_form_lr())
+        all_lr1[1].append(sch())
+        sch.step_epoch()
       all_lr2[0].append(epoch)
-      all_lr2[1].append(sch._get_closed_form_lr())
-      sch.update_epoch()
+      all_lr2[1].append(sch())
+      sch.step_epoch()
     plt.subplot(211)
     plt.plot(jax.numpy.asarray(all_lr1[0]), jax.numpy.asarray(all_lr1[1]))
     plt.subplot(212)
@@ -85,9 +86,9 @@ class TestCosineAnnealingWarmRestarts(unittest.TestCase):
     for epoch in range(max_epoch):
       for batch in range(iters):
         all_lr1.append(sch())
-        sch.update_call()
+        sch.step_call()
       all_lr2.append(sch())
-      sch.update_epoch()
+      sch.step_epoch()
     plt.subplot(211)
     plt.plot(jax.numpy.asarray(all_lr1))
     plt.subplot(212)

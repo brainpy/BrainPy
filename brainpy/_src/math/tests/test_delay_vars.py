@@ -5,7 +5,7 @@ import unittest
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy.math.delayvars import ROTATION_UPDATING, CONCAT_UPDATING
+from brainpy._src.math.delayvars import ROTATION_UPDATING, CONCAT_UPDATING
 
 
 class TestTimeDelay(unittest.TestCase):

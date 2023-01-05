@@ -42,7 +42,7 @@ class TestJaxArray(unittest.TestCase):
 
   def test_operation_with_numpy_array(self):
     rng = bm.random.RandomState(123)
-    add = lambda: rng.rand(10) + np.zeros(1)
+    add = lambda: bm.asarray(rng.rand(10)) + np.zeros(1)
     self.assertTrue(isinstance(add(), bm.Array))
     self.assertTrue(isinstance(bm.jit(add, dyn_vars=rng)(), bm.Array))
 

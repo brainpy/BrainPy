@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import unittest
 
 import brainpy as bp
@@ -10,14 +11,12 @@ class TestNormalInit(unittest.TestCase):
     for size in [(100,), (10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
   def test_normal_init2(self):
     init = bp.init.Normal(scale=0.5)
     for size in [(100,), (10, 20)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
   def test_normal_init3(self):
     init1 = bp.init.Normal(scale=0.5, seed=10)
@@ -26,7 +25,6 @@ class TestNormalInit(unittest.TestCase):
     weights1 = init1(size)
     weights2 = init2(size)
     assert weights1.shape == size
-    assert isinstance(weights1, bp.math.ndarray)
     assert (weights1 == weights2).all()
 
 
@@ -36,14 +34,12 @@ class TestUniformInit(unittest.TestCase):
     for size in [(100,), (10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
   def test_uniform_init2(self):
     init = bp.init.Uniform(min_val=10, max_val=20)
     for size in [(100,), (10, 20)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestVarianceScaling(unittest.TestCase):
@@ -52,22 +48,19 @@ class TestVarianceScaling(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
   def test_var_scaling2(self):
     init = bp.init.VarianceScaling(scale=2, mode='fan_out', distribution='normal')
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
   def test_var_scaling3(self):
-    init = bp.init.VarianceScaling(scale=2/4, mode='fan_avg', in_axis=0, out_axis=1,
+    init = bp.init.VarianceScaling(scale=2 / 4, mode='fan_avg', in_axis=0, out_axis=1,
                                    distribution='uniform')
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestKaimingUniformUnit(unittest.TestCase):
@@ -76,7 +69,6 @@ class TestKaimingUniformUnit(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestKaimingNormalUnit(unittest.TestCase):
@@ -85,7 +77,6 @@ class TestKaimingNormalUnit(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestXavierUniformUnit(unittest.TestCase):
@@ -94,7 +85,6 @@ class TestXavierUniformUnit(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestXavierNormalUnit(unittest.TestCase):
@@ -103,8 +93,7 @@ class TestXavierNormalUnit(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
-      
+
 
 class TestLecunUniformUnit(unittest.TestCase):
   def test_lecun_uniform_init(self):
@@ -112,7 +101,6 @@ class TestLecunUniformUnit(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestLecunNormalUnit(unittest.TestCase):
@@ -121,7 +109,6 @@ class TestLecunNormalUnit(unittest.TestCase):
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestOrthogonalUnit(unittest.TestCase):
@@ -130,14 +117,12 @@ class TestOrthogonalUnit(unittest.TestCase):
     for size in [(20, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
   def test_orthogonal_init2(self):
     init = bp.init.Orthogonal(scale=2., axis=0)
     for size in [(10, 20), (10, 20, 30)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)
 
 
 class TestDeltaOrthogonalUnit(unittest.TestCase):
@@ -146,4 +131,3 @@ class TestDeltaOrthogonalUnit(unittest.TestCase):
     for size in [(20, 20, 20), (10, 20, 30, 40), (50, 40, 30, 20, 20)]:
       weights = init(size)
       assert weights.shape == size
-      assert isinstance(weights, bp.math.ndarray)

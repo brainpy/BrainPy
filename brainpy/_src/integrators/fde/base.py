@@ -71,14 +71,14 @@ class FDEIntegrator(Integrator):
 
     # fractional-order
     if isinstance(alpha, (int, float)):
-      alpha = bm.ones(len(self.variables)) * alpha
+      alpha = jnp.ones(len(self.variables)) * alpha
     elif isinstance(alpha, (jnp.ndarray, bm.ndarray)):
-      alpha = bm.asarray(alpha)
+      alpha = bm.as_jax(alpha)
     elif isinstance(alpha, (list, tuple)):
       for a in alpha:
         assert isinstance(a, (float, int)), (f'Must be a tuple/list of int/float, '
                                              f'but we got {type(a)}: {a}')
-      alpha = bm.asarray(alpha)
+      alpha = bm.as_jax(alpha)
     else:
       raise UnsupportedError(f'Do not support {type(alpha)}, please '
                              f'set fractional-order as number/tuple/list/tensor.')

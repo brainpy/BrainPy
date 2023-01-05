@@ -40,7 +40,6 @@ optimizers = optim
 # numerical integrators
 from brainpy import integrators
 from brainpy.integrators import ode, sde, fde
-from brainpy._src.integrators.base import (Integrator as Integrator)
 from brainpy._src.integrators.joint_eq import (JointEq as JointEq)
 from brainpy._src.integrators.runner import (IntegratorRunner as IntegratorRunner)
 from brainpy._src.integrators.ode.generic import (odeint as odeint)

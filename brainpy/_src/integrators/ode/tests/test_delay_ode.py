@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import jax.numpy as jnp
 from absl.testing import parameterized
 
 import brainpy as bp
@@ -18,12 +19,12 @@ def delay_odeint(duration, eq, args=None, inits=None,
                   neutral_delays=neutral_delays,
                   method=method)
   # define IntegratorRunner
-  runner = bp.integrators.IntegratorRunner(dde,
-                                           args=args,
-                                           monitors=monitors,
-                                           dt=dt,
-                                           inits=inits,
-                                           progress_bar=False)
+  runner = bp.IntegratorRunner(dde,
+                               args=args,
+                               monitors=monitors,
+                               dt=dt,
+                               inits=inits,
+                               progress_bar=False)
   runner.run(duration)
   return runner.mon
 
@@ -44,9 +45,9 @@ def eq2(x, t, xdelay):
   return -xdelay(t - 2)
 
 
-delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: bm.exp(-t) - 1, dt=0.01, interp_method='round')
+delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01, interp_method='round')
 ref3 = delay_odeint(4., eq2, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01)
-delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: bm.exp(-t) - 1, dt=0.01)
+delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01)
 ref4 = delay_odeint(4., eq2, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01)
 
 
@@ -99,8 +100,8 @@ class TestNonConstantHist(parameterized.TestCase):
     for name in get_supported_methods()
   )
   def test1(self, method):
-    delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: bm.exp(-t) - 1, dt=0.01, interp_method='round')
-    delay2 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: bm.exp(-t) - 1, dt=0.01)
+    delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01, interp_method='round')
+    delay2 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01)
     case1 = delay_odeint(4., self.eq, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01, method=method)
     case2 = delay_odeint(4., self.eq, args={'xdelay': delay2}, state_delays={'x': delay2}, dt=0.01, method=method)
 

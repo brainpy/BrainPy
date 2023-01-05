@@ -112,7 +112,7 @@ for epoch_i in range(args.epochs):
     train_acc += correct_num
   train_acc /= x_train.shape[0]
   train_loss = jnp.mean(jnp.asarray(loss))
-  optimizer.lr.update_epoch()
+  optimizer.lr.step_epoch()
 
   loss, test_acc = [], 0.
   for i in range(0, x_test.shape[0], args.batch):

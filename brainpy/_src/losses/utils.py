@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
+import jax
 from jax.tree_util import tree_flatten
 
 import brainpy.math as bm
@@ -25,8 +24,13 @@ def _reduce(outputs, reduction, axis=None):
 
 
 def _multi_return(r):
-  leaves = tree_flatten(r)[0]
-  r = leaves[0]
-  for leaf in leaves[1:]:
-    r += leaf
-  return r
+  if isinstance(r, jax.Array):
+    return r
+  elif isinstance(r, bm.Array):
+    return r.value
+  else:
+    leaves = tree_flatten(r)[0]
+    r = leaves[0]
+    for leaf in leaves[1:]:
+      r += leaf
+    return r

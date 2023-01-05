@@ -10,7 +10,7 @@ import pytest
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.math.object_transform.autograd import _jacfwd
+from brainpy._src.math.object_transform.autograd import _jacfwd
 
 
 class TestPureFuncGrad(unittest.TestCase):

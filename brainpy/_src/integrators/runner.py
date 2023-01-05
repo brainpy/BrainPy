@@ -13,6 +13,7 @@ from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_flatten
 
 from brainpy import math as bm
+from brainpy._src.math.object_transform.base import Collector
 from brainpy._src.running.runner import Runner
 from brainpy.errors import RunningError
 from .base import Integrator
@@ -40,7 +41,7 @@ class IntegratorRunner(Runner):
     >>> dw = lambda w, t, V, a, b: (V + a - b * w) / tau
     >>> integral = bp.odeint(bp.JointEq([dV, dw]), method='exp_auto')
     >>>
-    >>> runner = bp.integrators.IntegratorRunner(
+    >>> runner = bp.IntegratorRunner(
     >>>          integral,  # the simulation target
     >>>          monitors=['V', 'w'],  # the variables to monitor
     >>>          inits={'V': bm.random.rand(10),
@@ -65,7 +66,7 @@ class IntegratorRunner(Runner):
     >>> f = lambda x, y, z, t, p: [sigma * (y - x), x * (rho - z) - y, x * y - beta * z]
     >>> lorenz = bp.sdeint(f, g, method='milstein2')
     >>>
-    >>> runner = bp.integrators.IntegratorRunner(
+    >>> runner = bp.IntegratorRunner(
     >>>   lorenz,
     >>>   monitors=['x', 'y', 'z'],
     >>>   inits=[1., 1., 1.], # initialize all variable to 1.
@@ -238,7 +239,7 @@ class IntegratorRunner(Runner):
 
   def _step_fun_integrator(self, static_args, dyn_args, t, i):
     # arguments
-    kwargs = bm.Collector(dt=self.dt, t=t)
+    kwargs = Collector(dt=self.dt, t=t)
     kwargs.update(static_args)
     kwargs.update(dyn_args)
     kwargs.update({k: v.value for k, v in self.variables.items()})

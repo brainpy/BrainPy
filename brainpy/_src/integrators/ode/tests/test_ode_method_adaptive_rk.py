@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import brainpy.math as bm
-from brainpy.integrators.ode import adaptive_rk
+from brainpy._src.integrators.ode import adaptive_rk
 
 
 sigma = 10

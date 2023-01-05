@@ -33,7 +33,7 @@ class TestJaxArrayJIT(unittest.TestCase):
 
       def __call__(self, *args, **kwargs):
         a = bm.random.uniform(size=2)
-        a[0] += 1.
+        a = a.at[0].set(1.)
         self.b += a
 
     run = bm.jit(SomeProgram())

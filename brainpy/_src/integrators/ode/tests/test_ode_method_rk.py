@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 import brainpy.math as bm
-from brainpy.integrators.ode import explicit_rk
+from brainpy._src.integrators.ode import explicit_rk
 plt = None
 
 sigma = 10

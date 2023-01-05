@@ -5,7 +5,7 @@ import unittest
 
 import brainpy as bp
 import matplotlib.pyplot as plt
-from brainpy.integrators.sde.normal import ExponentialEuler
+from brainpy._src.integrators.sde.normal import ExponentialEuler
 
 block = False
 

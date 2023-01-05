@@ -5,7 +5,8 @@ import math
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy import math as bm, tools
+from brainpy._src import math as bm
+from brainpy import tools
 from .base import InterLayerInitializer
 
 __all__ = [
@@ -113,7 +114,7 @@ class Normal(InterLayerInitializer):
   def __call__(self, *shape, dtype=None):
     shape = _format_shape(shape)
     weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
-    return bm.asarray(weights, dtype=dtype)
+    return jnp.asarray(weights, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, rng={self.rng})'
@@ -139,7 +140,7 @@ class Uniform(InterLayerInitializer):
   def __call__(self, shape, dtype=None):
     shape = _format_shape(shape)
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
-    return bm.asarray(r, dtype=dtype)
+    return jnp.asarray(r, dtype=dtype)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(min_val={self.min_val}, '
@@ -176,17 +177,17 @@ class VarianceScaling(InterLayerInitializer):
       denominator = (fan_in + fan_out) / 2
     else:
       raise ValueError("invalid mode for variance scaling initializer: {}".format(self.mode))
-    variance = jnp.array(self.scale / denominator, dtype=dtype)
+    variance = (self.scale / denominator).astype(dtype)
     if self.distribution == "truncated_normal":
-      stddev = bm.array(jnp.sqrt(variance) / .87962566103423978, dtype)
+      stddev = (jnp.sqrt(variance) / .87962566103423978).astype(dtype)
       return self.rng.truncated_normal(-2, 2, shape, dtype) * stddev
     elif self.distribution == "normal":
-      res = self.rng.randn(*shape) * jnp.sqrt(variance)
+      res = self.rng.randn(*shape) * jnp.sqrt(variance).astype(dtype)
     elif self.distribution == "uniform":
-      res = self.rng.uniform(low=-1, high=1, size=shape) * jnp.sqrt(3 * variance)
+      res = self.rng.uniform(low=-1, high=1, size=shape) * jnp.sqrt(3 * variance).astype(dtype)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
-    return bm.asarray(res, dtype=dtype)
+    return jnp.asarray(res, dtype=dtype)
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -325,7 +326,7 @@ class Orthogonal(InterLayerInitializer):
   def __call__(self, shape, dtype=None):
     shape = _format_shape(shape)
     n_rows = shape[self.axis]
-    n_cols = jnp.prod(shape) // n_rows
+    n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
     norm_dst = self.rng.normal(size=matrix_shape)
     q_mat, r_mat = jnp.linalg.qr(norm_dst)
@@ -333,9 +334,9 @@ class Orthogonal(InterLayerInitializer):
     q_mat *= jnp.sign(jnp.diag(r_mat))
     if n_rows < n_cols:
       q_mat = q_mat.T
-    q_mat = jnp.reshape(q_mat, (n_rows,) + tuple(jnp.delete(shape, self.axis)))
+    q_mat = jnp.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = jnp.moveaxis(q_mat, 0, self.axis)
-    return self.scale * bm.asarray(q_mat, dtype=dtype)
+    return self.scale * jnp.asarray(q_mat, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, rng={self.rng})'
@@ -371,7 +372,7 @@ class DeltaOrthogonal(InterLayerInitializer):
     else:
       k1, k2, k3 = shape[:3]
       W[(k1 - 1) // 2, (k2 - 1) // 2, (k3 - 1) // 2, ...] = ortho_matrix
-    return W
+    return W.value
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis})'

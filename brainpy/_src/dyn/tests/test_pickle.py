@@ -11,10 +11,10 @@ class TestPickle(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestPickle, self).__init__(*args, **kwargs)
 
-    self.pre = bp.dyn.LIF(10)
-    self.post = bp.dyn.LIF(20)
-    self.syn = bp.dyn.TwoEndConn(self.pre, self.post, bp.conn.FixedProb(0.2))
-    self.net = bp.dyn.Network(self.pre, self.post, self.syn)
+    self.pre = bp.neurons.LIF(10)
+    self.post = bp.neurons.LIF(20)
+    self.syn = bp.TwoEndConn(self.pre, self.post, bp.conn.FixedProb(0.2))
+    self.net = bp.Network(self.pre, self.post, self.syn)
 
   def test_net(self):
     self.skipTest('Currently do not support')

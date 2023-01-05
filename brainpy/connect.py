@@ -13,6 +13,13 @@ from brainpy._src.connect.base import (
   coo2csr as coo2csr,
   coo2csc as coo2csc,
   coo2mat as coo2mat,
+
+  CONN_MAT,
+  PRE_IDS, POST_IDS,
+  PRE2POST, POST2PRE,
+  PRE2SYN, POST2SYN,
+  PRE_SLICE, POST_SLICE,
+  COO, CSR, CSC
 )
 
 from brainpy._src.connect.custom_conn import (

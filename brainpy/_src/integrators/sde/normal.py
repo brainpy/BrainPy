@@ -125,7 +125,7 @@ class Euler(SDEIntegrator):
       diffusions = {var: diffusions[i] for i, var in enumerate(self.variables)}
     if self.wiener_type == constants.VECTOR_WIENER:
       for key, val in diffusions.items():
-        if val is not None and bm.ndim(val) == 0:
+        if val is not None and jnp.ndim(val) == 0:
           raise ValueError(f"{constants.VECTOR_WIENER} wiener process needs multiple "
                            f"dimensional diffusion value. But we got a scale value for "
                            f"variable {key}.")
@@ -136,12 +136,12 @@ class Euler(SDEIntegrator):
       for key in self.variables:
         integral = all_args[key] + drifts[key] * dt
         if diffusions[key] is not None:
-          shape = bm.shape(all_args[key])
+          shape = jnp.shape(all_args[key])
           if self.wiener_type == constants.SCALAR_WIENER:
-            integral += diffusions[key] * self.rng.randn(*shape) * bm.sqrt(dt)
+            integral += diffusions[key] * self.rng.randn(*shape) * jnp.sqrt(dt)
           else:
-            shape += bm.shape(diffusions[key])[-1:]
-            integral += bm.sum(diffusions[key] * self.rng.randn(*shape), axis=-1) * bm.sqrt(dt)
+            shape += jnp.shape(diffusions[key])[-1:]
+            integral += jnp.sum(diffusions[key] * self.rng.randn(*shape), axis=-1) * jnp.sqrt(dt)
         integrals.append(integral)
 
     else:
@@ -152,15 +152,15 @@ class Euler(SDEIntegrator):
         if diffusions[key] is None:
           all_args_bar[key] = all_args[key]
         else:
-          shape = bm.shape(all_args[key])
+          shape = jnp.shape(all_args[key])
           if self.wiener_type == constants.VECTOR_WIENER:
-            noise_shape = bm.shape(diffusions[key])
+            noise_shape = jnp.shape(diffusions[key])
             self._check_vector_wiener_dim(noise_shape, shape)
             shape += noise_shape[-1:]
           noise = self.rng.randn(*shape)
-          all_noises[key] = noise * bm.sqrt(dt)
+          all_noises[key] = noise * jnp.sqrt(dt)
           if self.wiener_type == constants.VECTOR_WIENER:
-            y_bar = all_args[key] + bm.sum(diffusions[key] * noise, axis=-1)
+            y_bar = all_args[key] + jnp.sum(diffusions[key] * noise, axis=-1)
           else:
             y_bar = all_args[key] + diffusions[key] * noise
           all_args_bar[key] = y_bar
@@ -340,7 +340,7 @@ class Milstein(SDEIntegrator):
       diffusions = {var: diffusions[i] for i, var in enumerate(self.variables)}
     if self.wiener_type == constants.VECTOR_WIENER:
       for key, val in diffusions.items():
-        if val is not None and bm.ndim(val) == 0:
+        if val is not None and jnp.ndim(val) == 0:
           raise ValueError(f"{constants.VECTOR_WIENER} wiener process needs multiple "
                            f"dimensional diffusion value. But we got a scale value for "
                            f"variable {key}.")
@@ -357,19 +357,19 @@ class Milstein(SDEIntegrator):
     for i, key in enumerate(self.variables):
       integral = all_args[key] + drifts[key] * dt
       if diffusions[key] is not None:
-        shape = bm.shape(all_args[key])
+        shape = jnp.shape(all_args[key])
         if self.wiener_type == constants.VECTOR_WIENER:
-          noise_shape = bm.shape(diffusions[key])
+          noise_shape = jnp.shape(diffusions[key])
           self._check_vector_wiener_dim(noise_shape, shape)
           shape += noise_shape[-1:]
-        noise = self.rng.randn(*shape) * bm.sqrt(dt)
+        noise = self.rng.randn(*shape) * jnp.sqrt(dt)
         if self.wiener_type == constants.VECTOR_WIENER:
-          integral += bm.sum(diffusions[key] * noise, axis=-1)
+          integral += jnp.sum(diffusions[key] * noise, axis=-1)
         else:
           integral += diffusions[key] * noise
         noise_p2 = (noise ** 2 - dt) if self.intg_type == constants.ITO_SDE else noise ** 2
         diffusion = diffusions[key] * all_dg[key] / 2 * noise_p2
-        diffusion = bm.sum(diffusion, axis=-1) if self.wiener_type == constants.VECTOR_WIENER else diffusion
+        diffusion = jnp.sum(diffusion, axis=-1) if self.wiener_type == constants.VECTOR_WIENER else diffusion
         integral += diffusion
       integrals.append(integral)
     return integrals if len(self.variables) > 1 else integrals[0]
@@ -461,7 +461,7 @@ class MilsteinGradFree(SDEIntegrator):
       diffusions = {var: diffusions[i] for i, var in enumerate(self.variables)}
     if self.wiener_type == constants.VECTOR_WIENER:
       for key, val in diffusions.items():
-        if val is not None and bm.ndim(val) == 0:
+        if val is not None and jnp.ndim(val) == 0:
           raise ValueError(f"{constants.VECTOR_WIENER} wiener process needs multiple "
                            f"dimensional diffusion value. But we got a scale value for "
                            f"variable {key}.")
@@ -471,7 +471,7 @@ class MilsteinGradFree(SDEIntegrator):
     for key in self.variables:
       bar = all_args[key] + drifts[key] * dt
       if diffusions[key] is not None:
-        bar += diffusions[key] * bm.sqrt(dt)
+        bar += diffusions[key] * jnp.sqrt(dt)
       y_bars[key] = bar
     diffusion_bars = self.g(**y_bars)
     if len(self.variables) == 1:
@@ -484,20 +484,20 @@ class MilsteinGradFree(SDEIntegrator):
     for i, key in enumerate(self.variables):
       integral = all_args[key] + drifts[key] * dt
       if diffusions[key] is not None:
-        shape = bm.shape(all_args[key])
+        shape = jnp.shape(all_args[key])
         if self.wiener_type == constants.VECTOR_WIENER:
-          noise_shape = bm.shape(diffusions[key])
+          noise_shape = jnp.shape(diffusions[key])
           self._check_vector_wiener_dim(noise_shape, shape)
           shape += noise_shape[-1:]
-        noise = self.rng.randn(*shape) * bm.sqrt(dt)
+        noise = self.rng.randn(*shape) * jnp.sqrt(dt)
         if self.wiener_type == constants.VECTOR_WIENER:
-          integral += bm.sum(diffusions[key] * noise, axis=-1)
+          integral += jnp.sum(diffusions[key] * noise, axis=-1)
         else:
           integral += diffusions[key] * noise
         noise_p2 = (noise ** 2 - dt) if self.intg_type == constants.ITO_SDE else noise ** 2
-        minus = (diffusion_bars[key] - diffusions[key]) / 2 / bm.sqrt(dt)
+        minus = (diffusion_bars[key] - diffusions[key]) / 2 / jnp.sqrt(dt)
         if self.wiener_type == constants.VECTOR_WIENER:
-          integral += minus * bm.sum(noise_p2, axis=-1)
+          integral += minus * jnp.sum(noise_p2, axis=-1)
         else:
           integral += minus * noise_p2
       integrals.append(integral)
@@ -597,16 +597,17 @@ class ExponentialEuler(SDEIntegrator):
           assert len(parses) == 1
           diffusion = diffusions
         # diffusion part
-        shape = bm.shape(params_in[vps[0]])
+        shape = jnp.shape(params_in[vps[0]])
         if diffusion is not None:
+          diffusion = bm.as_jax(diffusion)
           if self.wiener_type == constants.VECTOR_WIENER:
-            noise_shape = bm.shape(diffusion)
+            noise_shape = jnp.shape(diffusion)
             self._check_vector_wiener_dim(noise_shape, shape)
             shape += noise_shape[-1:]
-            diffusion = bm.sum(diffusion * self.rng.randn(*shape), axis=-1)
+            diffusion = jnp.sum(diffusion * self.rng.randn(*shape), axis=-1)
           else:
             diffusion = diffusion * self.rng.randn(*shape)
-          r += diffusion * bm.sqrt(params_in[constants.DT])
+          r += diffusion * jnp.sqrt(params_in[constants.DT])
         # final result
         results.append(r)
       return results if len(self.variables) > 1 else results[0]
@@ -632,7 +633,8 @@ class ExponentialEuler(SDEIntegrator):
         assert len(args) > 0
         dt = kwargs.pop('dt', self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
-        phi = bm.where(linear == 0., bm.ones_like(linear), (bm.exp(dt * linear) - 1) / (dt * linear))
+        linear = bm.as_jax(linear)
+        phi = jnp.where(linear == 0., jnp.ones_like(linear), (jnp.exp(dt * linear) - 1) / (dt * linear))
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]

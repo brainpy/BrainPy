@@ -323,7 +323,7 @@ class BPTrainer(DSTrainer):
           fun_after_report(epoch_idx, aux, 'fit')
       else:
         fit_t = time.time() - fit_t0
-      self.optimizer.lr.update_epoch()
+      self.optimizer.lr.step_epoch()
 
       # testing set
       if test_data is not None:

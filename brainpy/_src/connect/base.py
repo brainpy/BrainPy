@@ -593,31 +593,42 @@ class OneEndConnector(TwoEndConnector):
 
 def mat2csr(dense):
   """convert a dense matrix to (indices, indptr)."""
-  np = onp if isinstance(dense, onp.ndarray) else bm
-  pre_ids, post_ids = np.where(dense > 0)
+  if isinstance(dense, onp.ndarray):
+    pre_ids, post_ids = onp.where(dense > 0)
+  else:
+    pre_ids, post_ids = jnp.where(bm.as_jax(dense) > 0)
   return coo2csr((pre_ids, post_ids), dense.shape[0])
 
 
 def mat2coo(dense):
-  np = onp if isinstance(dense, onp.ndarray) else bm
-  pre_ids, post_ids = np.where(dense > 0)
-  return np.asarray(pre_ids, dtype=IDX_DTYPE), np.asarray(post_ids, dtype=IDX_DTYPE)
+  if isinstance(dense, onp.ndarray):
+    pre_ids, post_ids = onp.where(dense > 0)
+  else:
+    pre_ids, post_ids = jnp.where(bm.as_jax(dense) > 0)
+  return pre_ids.astype(dtype=IDX_DTYPE), post_ids.astype(dtype=IDX_DTYPE)
 
 
 def mat2csc(dense):
-  np = onp if isinstance(dense, onp.ndarray) else bm
-  pre_ids, post_ids = np.where(dense > 0)
+  if isinstance(dense, onp.ndarray):
+    pre_ids, post_ids = onp.where(dense > 0)
+  else:
+    pre_ids, post_ids = jnp.where(bm.as_jax(dense) > 0)
   return coo2csr((post_ids, pre_ids), dense.shape[1])
 
 
 def csr2mat(csr, num_pre, num_post):
   """convert (indices, indptr) to a dense matrix."""
   indices, indptr = csr
-  np = onp if isinstance(indices, onp.ndarray) else bm
-  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
-  pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
-  d[pre_ids, indices] = True
-  return d
+  if isinstance(indices, onp.ndarray):
+    d = onp.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
+    pre_ids = onp.repeat(onp.arange(indptr.size - 1), onp.diff(indptr))
+    d[pre_ids, indices] = True
+    return d
+  else:
+    d = bm.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
+    pre_ids = jnp.repeat(jnp.arange(indptr.size - 1), jnp.diff(indptr))
+    d[pre_ids, indices] = True
+    return d.value
 
 
 def csr2csc(csr, post_num, data=None):
@@ -626,7 +637,7 @@ def csr2csc(csr, post_num, data=None):
 
 
 def csr2coo(csr):
-  np = onp if isinstance(csr[0], onp.ndarray) else bm
+  np = onp if isinstance(csr[0], onp.ndarray) else jnp
   indices, indptr = csr
   pre_ids = np.repeat(np.arange(indptr.size - 1), np.diff(indptr))
   return pre_ids, indices
@@ -635,45 +646,73 @@ def csr2coo(csr):
 def coo2mat(ij, num_pre, num_post):
   """convert (indices, indptr) to a dense matrix."""
   pre_ids, post_ids = ij
-  np = onp if isinstance(pre_ids, onp.ndarray) else bm
-  d = np.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
-  d[pre_ids, post_ids] = True
-  return d
+  if isinstance(pre_ids, onp.ndarray):
+    d = onp.zeros((num_pre, num_post), dtype=MAT_DTYPE)  # num_pre, num_post
+    d[pre_ids, post_ids] = True
+    return d
+  else:
+    d = bm.zeros((num_pre, num_post), dtype=MAT_DTYPE)
+    d[pre_ids, post_ids] = True
+    return d.value
 
 
 def coo2csr(coo, num_pre):
   """convert pre_ids, post_ids to (indices, indptr) when'jax_platform_name' = 'gpu'"""
   pre_ids, post_ids = coo
-  np = onp if isinstance(pre_ids, onp.ndarray) else bm
 
-  sort_ids = np.argsort(pre_ids)
-  post_ids = np.asarray(post_ids)
-  post_ids = post_ids[sort_ids]
-  indices = post_ids
-  unique_pre_ids, pre_count = np.unique(pre_ids, return_counts=True)
-  final_pre_count = np.zeros(num_pre, dtype=jnp.uint32)
-  final_pre_count[unique_pre_ids] = pre_count
+  if isinstance(pre_ids, onp.ndarray):
+    sort_ids = onp.argsort(pre_ids)
+    post_ids = onp.asarray(post_ids)
+    post_ids = post_ids[sort_ids]
+    indices = post_ids
+    unique_pre_ids, pre_count = onp.unique(pre_ids, return_counts=True)
+    final_pre_count = onp.zeros(num_pre, dtype=jnp.uint32)
+    final_pre_count[unique_pre_ids] = pre_count
+  else:
+    sort_ids = onp.argsort(bm.as_jax(pre_ids))
+    post_ids = bm.as_jax(post_ids)
+    post_ids = post_ids[sort_ids]
+    indices = post_ids
+    unique_pre_ids, pre_count = jnp.unique(pre_ids, return_counts=True)
+    final_pre_count = bm.zeros(num_pre, dtype=jnp.uint32)
+    final_pre_count[unique_pre_ids] = pre_count
+    final_pre_count = bm.as_jax(final_pre_count)
   indptr = final_pre_count.cumsum()
-  indptr = np.insert(indptr, 0, 0)
-  return np.asarray(indices, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE)
+  indptr = onp.insert(indptr, 0, 0)
+  return indices.astype(IDX_DTYPE), indptr.astype(IDX_DTYPE)
 
 
 def coo2csc(coo, post_num, data=None):
   """Convert csr to csc."""
   pre_ids, indices = coo
-  np = onp if isinstance(indices, onp.ndarray) else bm
+  if isinstance(indices, onp.ndarray):
+    # to maintain the original order of the elements with the same value
+    sort_ids = onp.argsort(indices)
+    pre_ids_new = onp.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
 
-  # to maintain the original order of the elements with the same value
-  sort_ids = np.argsort(indices)
-  pre_ids_new = np.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
+    unique_post_ids, count = onp.unique(indices, return_counts=True)
+    post_count = onp.zeros(post_num, dtype=IDX_DTYPE)
+    post_count[unique_post_ids] = count
 
-  unique_post_ids, count = np.unique(indices, return_counts=True)
-  post_count = np.zeros(post_num, dtype=IDX_DTYPE)
-  post_count[unique_post_ids] = count
+    indptr_new = post_count.cumsum()
+    indptr_new = onp.insert(indptr_new, 0, 0)
+    indptr_new = onp.asarray(indptr_new, dtype=IDX_DTYPE)
 
-  indptr_new = post_count.cumsum()
-  indptr_new = np.insert(indptr_new, 0, 0)
-  indptr_new = np.asarray(indptr_new, dtype=IDX_DTYPE)
+  else:
+    pre_ids = bm.as_jax(pre_ids)
+    indices = bm.as_jax(indices)
+
+    # to maintain the original order of the elements with the same value
+    sort_ids = jnp.argsort(indices)
+    pre_ids_new = jnp.asarray(pre_ids[sort_ids], dtype=IDX_DTYPE)
+
+    unique_post_ids, count = jnp.unique(indices, return_counts=True)
+    post_count = bm.zeros(post_num, dtype=IDX_DTYPE)
+    post_count[unique_post_ids] = count
+
+    indptr_new = post_count.value.cumsum()
+    indptr_new = jnp.insert(indptr_new, 0, 0)
+    indptr_new = jnp.asarray(indptr_new, dtype=IDX_DTYPE)
 
   if data is None:
     return pre_ids_new, indptr_new

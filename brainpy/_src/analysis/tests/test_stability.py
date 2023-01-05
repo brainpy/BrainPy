@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy.analysis.stability import *
+from brainpy._src.analysis.stability import *
 
 
 def test_d1():

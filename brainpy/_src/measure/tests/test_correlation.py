@@ -54,7 +54,7 @@ class TestCrossCorrelation(unittest.TestCase):
 class TestVoltageFluctuation(unittest.TestCase):
   def test_vf1(self):
     rng = bp.math.random.RandomState(122)
-    voltages = rng.normal(0, 10, size=(1000, 100)).value
+    voltages = rng.normal(0, 10, size=(1000, 100))
     print(bp.measure.voltage_fluctuation(voltages))
 
     bm.enable_x64()

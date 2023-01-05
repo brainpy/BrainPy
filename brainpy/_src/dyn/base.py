@@ -123,9 +123,9 @@ class DynamicalSystem(BrainPyObject):
   def __repr__(self):
     return f'{self.__class__.__name__}(name={self.name}, mode={self.mode})'
 
-  def __call__(self, shared: Dict, *args, **kwargs):
+  def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
-    return self.update(shared, *args, **kwargs)
+    return self.update(*args, **kwargs)
 
   def register_delay(
       self,
@@ -170,14 +170,14 @@ class DynamicalSystem(BrainPyObject):
       raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
                        f'integer, array of integers, callable function, brainpy.init.Initializer.')
     if delay_type == 'heter':
-      if delay_step.dtype not in [bm.int32, bm.int64]:
+      if delay_step.dtype not in [jnp.int32, jnp.int64]:
         raise ValueError('Only support delay steps of int32, int64. If your '
                          'provide delay time length, please divide the "dt" '
                          'then provide us the number of delay steps.')
       if delay_target.shape[0] != delay_step.shape[0]:
         raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
     if delay_type != 'none':
-      max_delay_step = int(bm.max(delay_step))
+      max_delay_step = int(jnp.max(delay_step))
 
     # delay target
     if delay_type != 'none':
@@ -230,7 +230,7 @@ class DynamicalSystem(BrainPyObject):
       return self.global_delay_data[identifier][1].value
 
     if identifier in self.global_delay_data:
-      if bm.ndim(delay_step) == 0:
+      if jnp.ndim(delay_step) == 0:
         return self.global_delay_data[identifier][0](delay_step, *indices)
       else:
         if len(indices) == 0:
@@ -238,7 +238,7 @@ class DynamicalSystem(BrainPyObject):
         return self.global_delay_data[identifier][0](delay_step, *indices)
 
     elif identifier in self.local_delay_vars:
-      if bm.ndim(delay_step) == 0:
+      if jnp.ndim(delay_step) == 0:
         return self.local_delay_vars[identifier](delay_step)
       else:
         if len(indices) == 0:

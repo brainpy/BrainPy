@@ -2,11 +2,13 @@
 
 from typing import Dict, Callable, Union, Sequence
 
-from brainpy._src.math.delayvars import TimeDelay, LengthDelay, AbstractDelay
-from brainpy._src import math as bm
+import jax.numpy as jnp
+
 from brainpy import errors
+from brainpy._src import math as bm
 from brainpy._src.integrators import constants, utils
 from brainpy._src.integrators.base import Integrator
+from brainpy._src.math.delayvars import AbstractDelay
 
 __all__ = [
   'SDEIntegrator',
@@ -78,7 +80,7 @@ class SDEIntegrator(Integrator):
     self.rng = bm.random.default_rng()
 
     # code scope
-    self.code_scope = {constants.F: f, constants.G: g, 'math': bm, 'random': self.rng}
+    self.code_scope = {constants.F: f, constants.G: g, 'math': jnp, 'random': self.rng}
     # code lines
     self.func_name = f_names(f)
     self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']

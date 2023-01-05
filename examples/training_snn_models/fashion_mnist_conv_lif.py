@@ -218,7 +218,7 @@ def main():
       train_acc += n
     train_acc /= x_train.shape[0]
     train_loss = jnp.mean(jnp.asarray(loss))
-    optimizer.lr.update_epoch()
+    optimizer.lr.step_epoch()
 
     loss, test_acc = [], 0.
     for i in range(0, x_test.shape[0], args.batch):
@@ -244,7 +244,7 @@ def main():
         'train_acc': train_acc,
         'test_acc': test_acc,
       }
-      # bp.checkpoints.save(out_dir, states, epoch_i)
+      bp.checkpoints.save(out_dir, states, epoch_i)
 
   # inference
   state_dict = bp.checkpoints.load(out_dir)

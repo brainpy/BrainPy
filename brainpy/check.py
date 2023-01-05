@@ -3,6 +3,7 @@
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
+import jax
 from jax import numpy as jnp
 import numpy as np
 import numpy as onp
@@ -569,6 +570,7 @@ def _err_jit_false_branch(x):
   return
 
 
+@partial(jax.jit, inline=True, static_argnums=(1,))
 def jit_error_checking(pred, err_fun, err_arg=None):
   """Check errors in a jit function.
 
