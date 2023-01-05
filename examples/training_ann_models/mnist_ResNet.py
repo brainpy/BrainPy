@@ -14,25 +14,6 @@ import jax.numpy as jnp
 
 bm.set_environment(mode=bm.training_mode, dt=1.)
 
-class Partial(bm.FunAsObject):
-  def __init__(
-      self,
-      fun,
-      *args,
-      child_objs = None,
-      dyn_vars = None,
-      **keywords
-  ):
-    super().__init__(f=fun, child_objs=child_objs, dyn_vars=dyn_vars)
-
-    self.fun = fun
-    self.args = args
-    self.keywords = keywords
-
-  def __call__(self, /, *args, **keywords):
-    keywords = {**self.keywords, **keywords}
-    return self.fun(*self.args, *args, **keywords)
-
 
 class BasicBlock(bp.DynamicalSystem):
   expansion = 1
@@ -226,7 +207,7 @@ def main():
   y_test = bm.asarray(test_set.targets, dtype=bm.int_)
 
   with bm.training_environment():
-    net = Partial(ResNet18(num_classes=10), is_feat=False, preact=False)
+    net = ResNet18(num_classes=10)
 
   # loss function
   @bm.to_object(child_objs=net)
