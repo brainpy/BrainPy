@@ -30,9 +30,15 @@ __all__ = (
     + controls.__all__
     + jit.__all__
     + function.__all__
+    + base_object.__all__
+    + base_transform.__all__
+    + collector.__all__
 )
 
 from .autograd import *
 from .controls import *
 from .jit import *
 from .function import *
+from .base_object import *
+from .base_transform import *
+from .collector import *
