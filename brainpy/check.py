@@ -3,15 +3,18 @@
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
-from jax import numpy as jnp
+import jax
 import numpy as np
 import numpy as onp
+from jax import numpy as jnp
 from jax.experimental.host_callback import id_tap
 from jax.lax import cond
 
 conn = None
 init = None
-bm = None
+Variable = None
+Array = None
+BrainPyObject = None
 
 __all__ = [
   'is_checking',
@@ -185,19 +188,22 @@ def check_shape(all_shapes, free_axes: Union[Sequence[int], int] = -1):
 
 
 def is_dict_data(a_dict: Dict,
-                 key_type: Union[Type, Tuple[Type, ...]],
-                 val_type: Union[Type, Tuple[Type, ...]],
-                 name: str = None):
+                 key_type: Union[Type, Tuple[Type, ...]] = None,
+                 val_type: Union[Type, Tuple[Type, ...]] = None,
+                 name: str = None,
+                 all_none: bool = True):
   """Check the dictionary data.
   """
+  if all_none and a_dict is None:
+    return None
   name = '' if (name is None) else f'"{name}"'
   if not isinstance(a_dict, dict):
     raise ValueError(f'{name} must be a dict, while we got {type(a_dict)}')
   for key, value in a_dict.items():
-    if not isinstance(key, key_type):
+    if (key_type is not None) and (not isinstance(key, key_type)):
       raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
                        f'while we got ({type(key)}, {type(value)})')
-    if not isinstance(value, val_type):
+    if (val_type is not None) and (not isinstance(value, val_type)):
       raise ValueError(f'{name} must be a dict of ({key_type}, {val_type}), '
                        f'while we got ({type(key)}, {type(value)})')
   return a_dict
@@ -224,10 +230,9 @@ def is_initializer(
 ):
   """Check the initializer.
   """
-  global bm
-  if bm is None:
-    from brainpy import math
-    bm = math
+  global Array
+  if Array is None: from brainpy._src.math.ndarray import Array
+
   global init
   if init is None:
     from brainpy import initialize
@@ -241,7 +246,7 @@ def is_initializer(
       raise ValueError(f'{name} must be an initializer, but we got None.')
   if isinstance(initializer, init.Initializer):
     return initializer
-  elif isinstance(initializer, (bm.ndarray, jnp.ndarray)):
+  elif isinstance(initializer, (Array, jnp.ndarray)):
     return initializer
   elif callable(initializer):
     return initializer
@@ -257,8 +262,9 @@ def is_connector(
 ):
   """Check the connector.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
+  global Array
+  if Array is None:
+    from brainpy._src.math.ndarray import Array
   global conn
   if conn is None: from brainpy import connect as conn
 
@@ -270,7 +276,7 @@ def is_connector(
       raise ValueError(f'{name} must be an initializer, but we got None.')
   if isinstance(connector, conn.Connector):
     return connector
-  elif isinstance(connector, (bm.ndarray, jnp.ndarray)):
+  elif isinstance(connector, (Array, jnp.ndarray)):
     return connector
   elif callable(connector):
     return connector
@@ -461,6 +467,7 @@ def is_subclass(
     raise NotImplementedError(f"{name} does not support {instance}. We only support "
                               f"{', '.join([mode.__name__ for mode in supported_types])}. ")
 
+
 def is_instance(
     instance: Any,
     supported_types: Union[Type, Sequence[Type]],
@@ -544,16 +551,15 @@ def is_elem_or_seq_or_dict(targets: Any, element_type: type, out_as: str = 'tupl
 
 
 def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
-  global bm
-  if bm is None: from brainpy import math as bm
-  return is_elem_or_seq_or_dict(dyn_vars, bm.Variable, out_as)
+  global Variable
+  if Variable is None: from brainpy._src.math.ndarray import Variable
+  return is_elem_or_seq_or_dict(dyn_vars, Variable, out_as)
 
 
 def is_all_objs(targets: Any, out_as: str = 'tuple'):
-  global bm
-  if bm is None:
-    from brainpy import math as bm
-  return is_elem_or_seq_or_dict(targets, bm.BrainPyObject, out_as)
+  global BrainPyObject
+  if BrainPyObject is None: from brainpy._src.math.object_transform.base import BrainPyObject
+  return is_elem_or_seq_or_dict(targets, BrainPyObject, out_as)
 
 
 def _err_jit_true_branch(err_fun, x):
@@ -563,6 +569,19 @@ def _err_jit_true_branch(err_fun, x):
 
 def _err_jit_false_branch(x):
   return
+
+
+def _cond(err_fun, pred, err_arg):
+  from brainpy._src.math.remove_vmap import remove_vmap
+
+  @wraps(err_fun)
+  def true_err_fun(arg, transforms):
+    err_fun(arg)
+
+  cond(remove_vmap(pred),
+       partial(_err_jit_true_branch, true_err_fun),
+       _err_jit_false_branch,
+       err_arg)
 
 
 def jit_error_checking(pred, err_fun, err_arg=None):
@@ -577,13 +596,6 @@ def jit_error_checking(pred, err_fun, err_arg=None):
   err_arg: any
     The arguments which passed into `err_f`.
   """
-  from brainpy.math.remove_vmap import remove_vmap
 
-  @wraps(err_fun)
-  def true_err_fun(arg, transforms):
-    err_fun(arg)
-
-  cond(remove_vmap(pred),
-       partial(_err_jit_true_branch, true_err_fun),
-       _err_jit_false_branch,
-       err_arg)
+  # jax.jit(partial(_cond, err_fun), inline=True)(pred, err_arg)
+  partial(_cond, err_fun)(pred, err_arg)

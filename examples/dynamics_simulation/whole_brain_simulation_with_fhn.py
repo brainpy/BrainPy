@@ -4,6 +4,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 
@@ -32,7 +33,8 @@ class Network(bp.Network):
     hcp = np.load('data/hcp.npz')
     conn_mat = bm.asarray(hcp['Cmat'])
     bm.fill_diagonal(conn_mat, 0)
-    delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.get_dt()).astype(bm.int_)
+    delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.dt).astype(bm.int_)
+    delay_mat = bm.asarray(delay_mat)
     bm.fill_diagonal(delay_mat, 0)
 
     self.fhn = bp.rates.FHN(

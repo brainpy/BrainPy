@@ -10,6 +10,7 @@ Reproduce the results of the``spytorch`` tutorial 1:
 
 import time
 
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec
@@ -67,9 +68,9 @@ def plot_voltage_traces(mem, spk=None, dim=(3, 5), spike_height=5):
 
 def print_classification_accuracy(output, target):
   """ Dirty little helper function to compute classification accuracy. """
-  m = bm.max(output, axis=1)  # max over time
-  am = bm.argmax(m, axis=1)  # argmax over output units
-  acc = bm.mean(target == am)  # compare to labels
+  m = jnp.max(output, axis=1)  # max over time
+  am = jnp.argmax(m, axis=1)  # argmax over output units
+  acc = jnp.mean(target == am)  # compare to labels
   print("Accuracy %.3f" % acc)
 
 
@@ -82,7 +83,7 @@ freq = 5  # Hz
 mask = bm.random.rand(num_sample, num_step, net.num_in)
 x_data = bm.zeros((num_sample, num_step, net.num_in))
 x_data[mask < freq * bm.get_dt() / 1000.] = 1.0
-y_data = bm.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.float_)
+y_data = jnp.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.float_)
 rng = bm.random.RandomState()
 
 # Before training
@@ -100,7 +101,7 @@ def loss():
   Y = bm.random.permutation(y_data, key=key)
   looper = bp.DSRunner(net, numpy_mon_after_run=False, progress_bar=False)
   predictions = looper.run(inputs=X, reset_state=True)
-  predictions = bm.max(predictions, axis=1)
+  predictions = jnp.max(predictions, axis=1)
   return bp.losses.cross_entropy_loss(predictions, Y)
 
 
@@ -121,11 +122,11 @@ train_losses = []
 for i in range(0, 3000, 100):
   t0 = time.time()
   ls = bm.for_loop(train, operands=bm.arange(i, i + 100, 1))
-  print(f'Train {i + 100} epoch, loss = {bm.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
+  print(f'Train {i + 100} epoch, loss = {jnp.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
   train_losses.append(ls)
 
 # visualize the training losses
-plt.plot(bm.as_numpy(bm.concatenate(train_losses)))
+plt.plot(bm.as_numpy(jnp.concatenate(train_losses)))
 plt.xlabel("Epoch")
 plt.ylabel("Training Loss")
 plt.show()
