@@ -14,6 +14,7 @@ from brainpy.types import ArrayType
 
 __all__ = [
   'Dense',
+  'Identity',
 ]
 
 
@@ -185,3 +186,13 @@ class Dense(Layer):
       self.W.value = Wff
       self.b.value = bias[0]
 
+
+class Identity(Layer):
+  r"""A placeholder identity operator that is argument-insensitive.
+  """
+
+  def __init__(self, *args, **kwargs) -> None:
+    super(Identity, self).__init__(*args, **kwargs)
+
+  def update(self, sha, x):
+    return x
