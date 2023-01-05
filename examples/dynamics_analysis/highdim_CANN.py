@@ -122,9 +122,7 @@ def verify_fixed_points_through_simulation(fixed_points, pars=None, num=3):
 
   for i in range(num):
     cann.u[:] = fixed_points['u'][i]
-    runner = bp.dyn.DSRunner(cann,
-                             monitors=['u'],
-                             dyn_vars=cann.vars())
+    runner = bp.DSRunner(cann, monitors=['u'], dyn_vars=cann.vars())
     runner.run(100.)
     plt.plot(runner.mon.ts, runner.mon.u.max(axis=1))
     plt.ylim(0, runner.mon.u.max() + 1)

@@ -20,20 +20,26 @@ sys.path.insert(0, os.path.abspath('../'))
 import brainpy
 from docs import auto_generater
 
+os.makedirs('apis/auto/', exist_ok=True)
 auto_generater.generate_analysis_docs()
-auto_generater.generate_train_docs()
-auto_generater.generate_algorithm_docs()
-auto_generater.generate_math_docs()
-auto_generater.generate_dyn_docs()
-auto_generater.generate_integrators_doc()
-auto_generater.generate_inputs_docs()
-auto_generater.generate_running_docs()
 auto_generater.generate_connect_docs()
+auto_generater.generate_channels_docs()
+auto_generater.generate_encoding_docs()
 auto_generater.generate_initialize_docs()
+auto_generater.generate_inputs_docs()
+auto_generater.generate_layers_docs()
 auto_generater.generate_losses_docs()
-auto_generater.generate_optimizers_docs()
 auto_generater.generate_measure_docs()
-auto_generater.generate_tools_docs()
+auto_generater.generate_neurons_docs()
+auto_generater.generate_optim_docs()
+auto_generater.generate_rates_docs()
+auto_generater.generate_running_docs()
+auto_generater.generate_synapses_docs()
+auto_generater.generate_synouts_docs()
+auto_generater.generate_synplast_docs()
+auto_generater.generate_brainpy_docs()
+auto_generater.generate_integrators_doc()
+auto_generater.generate_math_docs()
 
 
 changelogs = [
@@ -140,4 +146,8 @@ html_theme_options = {
 
 # -- Options for myst ----------------------------------------------
 # Notebook cell execution timeout; defaults to 30.
-# execution_timeout = 200
+execution_timeout = 200
+
+autodoc_default_options = {
+    'exclude-members': '....,default_rng',
+}

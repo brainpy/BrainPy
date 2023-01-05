@@ -12,6 +12,7 @@ The main task is forecasting the Lorenz63 strange attractor.
 import matplotlib.pyplot as plt
 import numpy as np
 
+import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 import brainpy_datasets as bd
@@ -24,7 +25,7 @@ def get_subset(data, start, end):
   res = {'x': data.xs[start: end],
          'y': data.ys[start: end],
          'z': data.zs[start: end]}
-  res = bm.hstack([res['x'], res['y'], res['z']])
+  res = jnp.hstack([res['x'], res['y'], res['z']])
   return res.reshape((1, ) + res.shape)
 
 
@@ -108,7 +109,7 @@ Y_test = get_subset(lorenz_series,
 
 # Model #
 # ----- #
-class NGRC(bp.dyn.DynamicalSystem):
+class NGRC(bp.DynamicalSystem):
   def __init__(self, num_in):
     super(NGRC, self).__init__()
     self.r = bp.layers.NVAR(num_in, delay=2, order=2, constant=True)
@@ -128,7 +129,7 @@ print(model.r.get_feature_names(for_plot=True))
 # -------- #
 
 # warm-up
-trainer = bp.train.RidgeTrainer(model)
+trainer = bp.RidgeTrainer(model)
 outputs = trainer.predict(X_warmup)
 print('Warmup NMS: ', bp.losses.mean_squared_error(outputs, Y_warmup))
 

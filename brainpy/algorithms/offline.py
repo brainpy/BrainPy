@@ -6,6 +6,7 @@ import numpy as np
 from jax.lax import while_loop
 
 import brainpy.math as bm
+from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy.types import ArrayType
 from .utils import (Sigmoid,
                     Regularization, L1Regularization, L1L2Regularization, L2Regularization,
@@ -32,7 +33,7 @@ __all__ = [
 name2func = dict()
 
 
-class OfflineAlgorithm(bm.BrainPyObject):
+class OfflineAlgorithm(BrainPyObject):
   """Base class for offline training algorithm."""
 
   def __init__(self, name=None):
