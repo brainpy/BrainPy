@@ -597,4 +597,5 @@ def jit_error_checking(pred, err_fun, err_arg=None):
     The arguments which passed into `err_f`.
   """
 
-  jax.jit(partial(_cond, err_fun), inline=True)(pred, err_arg)
+  # jax.jit(partial(_cond, err_fun), inline=True)(pred, err_arg)
+  partial(_cond, err_fun)(pred, err_arg)
