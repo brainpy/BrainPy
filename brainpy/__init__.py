@@ -40,6 +40,7 @@ optimizers = optim
 # numerical integrators
 from brainpy import integrators
 from brainpy.integrators import ode, sde, fde
+from brainpy._src.integrators.base import (Integrator as Integrator)
 from brainpy._src.integrators.joint_eq import (JointEq as JointEq)
 from brainpy._src.integrators.runner import (IntegratorRunner as IntegratorRunner)
 from brainpy._src.integrators.ode.generic import (odeint as odeint)
@@ -105,6 +106,17 @@ from ._src.running.runner import (Runner as Runner)
 
 #  Part 7: Deprecations  #
 # ---------------------- #
+
+
+integrators.__dict__['Integrator'] = Integrator
+integrators.__dict__['odeint'] = odeint
+integrators.__dict__['sdeint'] = sdeint
+integrators.__dict__['fdeint'] = fdeint
+integrators.__dict__['IntegratorRunner'] = IntegratorRunner
+integrators.__dict__['JointEq'] = JointEq
+ode.__dict__['odeint'] = odeint
+sde.__dict__['sdeint'] = sdeint
+fde.__dict__['fdeint'] = fdeint
 
 
 # deprecated
@@ -194,11 +206,35 @@ dyn.__dict__['Channel'] = Channel
 dyn.__dict__['NoSharedArg'] = NoSharedArg
 dyn.__dict__['LoopOverTime'] = LoopOverTime
 dyn.__dict__['DSRunner'] = DSRunner
-integrators.__dict__['odeint'] = odeint
-integrators.__dict__['sdeint'] = sdeint
-integrators.__dict__['fdeint'] = fdeint
-integrators.__dict__['IntegratorRunner'] = IntegratorRunner
-integrators.__dict__['JointEq'] = JointEq
+
+dyn.__dict__['HH'] = neurons.HH
+dyn.__dict__['MorrisLecar'] = neurons.MorrisLecar
+dyn.__dict__['PinskyRinzelModel'] = neurons.PinskyRinzelModel
+dyn.__dict__['FractionalFHR'] = neurons.FractionalFHR
+dyn.__dict__['FractionalIzhikevich'] = neurons.FractionalIzhikevich
+dyn.__dict__['LIF'] = neurons.LIF
+dyn.__dict__['ExpIF'] = neurons.ExpIF
+dyn.__dict__['AdExIF'] = neurons.AdExIF
+dyn.__dict__['QuaIF'] = neurons.QuaIF
+dyn.__dict__['AdQuaIF'] = neurons.AdQuaIF
+dyn.__dict__['GIF'] = neurons.GIF
+dyn.__dict__['Izhikevich'] = neurons.Izhikevich
+dyn.__dict__['HindmarshRose'] = neurons.HindmarshRose
+dyn.__dict__['FHN'] = neurons.FHN
+dyn.__dict__['SpikeTimeGroup'] = neurons.SpikeTimeGroup
+dyn.__dict__['PoissonGroup'] = neurons.PoissonGroup
+dyn.__dict__['OUProcess'] = neurons.OUProcess
+
+from brainpy._src.dyn.synapses import compat
+dyn.__dict__['DeltaSynapse'] = compat.DeltaSynapse
+dyn.__dict__['ExpCUBA'] = compat.ExpCUBA
+dyn.__dict__['ExpCOBA'] = compat.ExpCOBA
+dyn.__dict__['DualExpCUBA'] = compat.DualExpCUBA
+dyn.__dict__['DualExpCOBA'] = compat.DualExpCOBA
+dyn.__dict__['AlphaCUBA'] = compat.AlphaCUBA
+dyn.__dict__['AlphaCOBA'] = compat.AlphaCOBA
+dyn.__dict__['NMDA'] = compat.NMDA
+del compat
 
 
 import brainpy._src.math.arraycompatible as bm

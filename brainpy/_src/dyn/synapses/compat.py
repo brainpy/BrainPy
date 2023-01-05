@@ -26,7 +26,7 @@ class DeltaSynapse(Delta):
   """Delta synapse.
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.Delta" instead.
+     Please use "brainpy.synapses.Delta" instead.
 
   """
 
@@ -42,7 +42,7 @@ class DeltaSynapse(Delta):
       post_has_ref: bool = False,
       name: str = None,
   ):
-    warnings.warn('Please use "brainpy.dyn.synapses.Delta" instead.', DeprecationWarning)
+    warnings.warn('Please use "brainpy.synapses.Delta" instead.', DeprecationWarning)
     super(DeltaSynapse, self).__init__(pre=pre,
                                        post=post,
                                        conn=conn,
@@ -58,7 +58,7 @@ class ExpCUBA(Exponential):
   r"""Current-based exponential decay synapse model.
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.Exponential" instead.
+     Please use "brainpy.synapses.Exponential" instead.
 
   """
 
@@ -90,7 +90,7 @@ class ExpCOBA(Exponential):
   """Conductance-based exponential decay synapse model.
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.Exponential" instead.
+     Please use "brainpy.synapses.Exponential" instead.
   """
 
   def __init__(
@@ -127,7 +127,7 @@ class DualExpCUBA(DualExponential):
   r"""Current-based dual exponential synapse model.
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.DualExponential" instead.
+     Please use "brainpy.synapses.DualExponential" instead.
 
   """
 
@@ -162,7 +162,7 @@ class DualExpCOBA(DualExponential):
 
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.DualExponential" instead.
+     Please use "brainpy.synapses.DualExponential" instead.
 
   """
 
@@ -197,7 +197,7 @@ class AlphaCUBA(DualExpCUBA):
   r"""Current-based alpha synapse model.
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.Alpha" instead.
+     Please use "brainpy.synapses.Alpha" instead.
 
   """
 
@@ -229,7 +229,7 @@ class AlphaCOBA(DualExpCOBA):
   """Conductance-based alpha synapse model.
 
   .. deprecated:: 2.1.13
-     Please use "brainpy.dyn.synapses.Alpha" instead.
+     Please use "brainpy.synapses.Alpha" instead.
 
   """
 
