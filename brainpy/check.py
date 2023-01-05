@@ -4,9 +4,9 @@ from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
 import jax
-from jax import numpy as jnp
 import numpy as np
 import numpy as onp
+from jax import numpy as jnp
 from jax.experimental.host_callback import id_tap
 from jax.lax import cond
 
@@ -467,6 +467,7 @@ def is_subclass(
     raise NotImplementedError(f"{name} does not support {instance}. We only support "
                               f"{', '.join([mode.__name__ for mode in supported_types])}. ")
 
+
 def is_instance(
     instance: Any,
     supported_types: Union[Type, Sequence[Type]],
@@ -570,7 +571,19 @@ def _err_jit_false_branch(x):
   return
 
 
-@partial(jax.jit, inline=True, static_argnums=(1,))
+def _cond(err_fun, pred, err_arg):
+  from brainpy._src.math.remove_vmap import remove_vmap
+
+  @wraps(err_fun)
+  def true_err_fun(arg, transforms):
+    err_fun(arg)
+
+  cond(remove_vmap(pred),
+       partial(_err_jit_true_branch, true_err_fun),
+       _err_jit_false_branch,
+       err_arg)
+
+
 def jit_error_checking(pred, err_fun, err_arg=None):
   """Check errors in a jit function.
 
@@ -583,13 +596,5 @@ def jit_error_checking(pred, err_fun, err_arg=None):
   err_arg: any
     The arguments which passed into `err_f`.
   """
-  from brainpy._src.math.remove_vmap import remove_vmap
 
-  @wraps(err_fun)
-  def true_err_fun(arg, transforms):
-    err_fun(arg)
-
-  cond(remove_vmap(pred),
-       partial(_err_jit_true_branch, true_err_fun),
-       _err_jit_false_branch,
-       err_arg)
+  jax.jit(partial(_cond, err_fun), inline=True)(pred, err_arg)
