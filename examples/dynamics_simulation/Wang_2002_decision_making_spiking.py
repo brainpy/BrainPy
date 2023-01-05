@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.dyn import synapses, synouts
 
 
 # bm.set_platform('cpu')
@@ -93,83 +92,83 @@ class DecisionMaking(bp.Network):
     self.noise_I = bp.neurons.PoissonGroup(num_inh, freqs=poisson_freq)
 
     # define external inputs
-    self.IA2A = synapses.Exponential(IA, A, bp.conn.One2One(), g_max=g_ext2E_AMPA,
-                                     output=synouts.COBA(E=0.), **ampa_par)
-    self.IB2B = synapses.Exponential(IB, B, bp.conn.One2One(), g_max=g_ext2E_AMPA,
-                                     output=synouts.COBA(E=0.), **ampa_par)
+    self.IA2A = bp.synapses.Exponential(IA, A, bp.conn.One2One(), g_max=g_ext2E_AMPA,
+                                        output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.IB2B = bp.synapses.Exponential(IB, B, bp.conn.One2One(), g_max=g_ext2E_AMPA,
+                                        output=bp.synouts.COBA(E=0.), **ampa_par)
 
     # define E->E/I conn
 
-    self.N2B_AMPA = synapses.Exponential(N, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.N2A_AMPA = synapses.Exponential(N, A, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.N2N_AMPA = synapses.Exponential(N, N, bp.conn.All2All(), g_max=g_E2E_AMPA,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.N2I_AMPA = synapses.Exponential(N, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.N2B_NMDA = synapses.NMDA(N, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.N2A_NMDA = synapses.NMDA(N, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.N2N_NMDA = synapses.NMDA(N, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.N2I_NMDA = synapses.NMDA(N, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.N2B_AMPA = bp.synapses.Exponential(N, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.N2A_AMPA = bp.synapses.Exponential(N, A, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.N2N_AMPA = bp.synapses.Exponential(N, N, bp.conn.All2All(), g_max=g_E2E_AMPA,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.N2I_AMPA = bp.synapses.Exponential(N, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.N2B_NMDA = bp.synapses.NMDA(N, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.N2A_NMDA = bp.synapses.NMDA(N, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.N2N_NMDA = bp.synapses.NMDA(N, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.N2I_NMDA = bp.synapses.NMDA(N, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
 
-    self.B2B_AMPA = synapses.Exponential(B, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_pos,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.B2A_AMPA = synapses.Exponential(B, A, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.B2N_AMPA = synapses.Exponential(B, N, bp.conn.All2All(), g_max=g_E2E_AMPA,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.B2I_AMPA = synapses.Exponential(B, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.B2B_NMDA = synapses.NMDA(B, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_pos,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.B2A_NMDA = synapses.NMDA(B, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.B2N_NMDA = synapses.NMDA(B, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.B2I_NMDA = synapses.NMDA(B, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.B2B_AMPA = bp.synapses.Exponential(B, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_pos,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.B2A_AMPA = bp.synapses.Exponential(B, A, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.B2N_AMPA = bp.synapses.Exponential(B, N, bp.conn.All2All(), g_max=g_E2E_AMPA,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.B2I_AMPA = bp.synapses.Exponential(B, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.B2B_NMDA = bp.synapses.NMDA(B, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_pos,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.B2A_NMDA = bp.synapses.NMDA(B, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.B2N_NMDA = bp.synapses.NMDA(B, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.B2I_NMDA = bp.synapses.NMDA(B, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
 
-    self.A2B_AMPA = synapses.Exponential(A, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.A2A_AMPA = synapses.Exponential(A, A, bp.conn.All2All(), g_max=g_E2E_AMPA * w_pos,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.A2N_AMPA = synapses.Exponential(A, N, bp.conn.All2All(), g_max=g_E2E_AMPA,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.A2I_AMPA = synapses.Exponential(A, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
-                                         output=synouts.COBA(E=0.), **ampa_par)
-    self.A2B_NMDA = synapses.NMDA(A, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.A2A_NMDA = synapses.NMDA(A, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_pos,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.A2N_NMDA = synapses.NMDA(A, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
-    self.A2I_NMDA = synapses.NMDA(A, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
-                                  output=synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.A2B_AMPA = bp.synapses.Exponential(A, B, bp.conn.All2All(), g_max=g_E2E_AMPA * w_neg,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.A2A_AMPA = bp.synapses.Exponential(A, A, bp.conn.All2All(), g_max=g_E2E_AMPA * w_pos,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.A2N_AMPA = bp.synapses.Exponential(A, N, bp.conn.All2All(), g_max=g_E2E_AMPA,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.A2I_AMPA = bp.synapses.Exponential(A, I, bp.conn.All2All(), g_max=g_E2I_AMPA,
+                                            output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.A2B_NMDA = bp.synapses.NMDA(A, B, bp.conn.All2All(), g_max=g_E2E_NMDA * w_neg,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.A2A_NMDA = bp.synapses.NMDA(A, A, bp.conn.All2All(), g_max=g_E2E_NMDA * w_pos,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.A2N_NMDA = bp.synapses.NMDA(A, N, bp.conn.All2All(), g_max=g_E2E_NMDA,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
+    self.A2I_NMDA = bp.synapses.NMDA(A, I, bp.conn.All2All(), g_max=g_E2I_NMDA,
+                                     output=bp.synouts.MgBlock(E=0., cc_Mg=1.), **nmda_par)
 
     # define I->E/I conn
-    self.I2B = synapses.Exponential(I, B, bp.conn.All2All(), g_max=g_I2E_GABAa,
-                                    output=synouts.COBA(E=-70.), **gaba_par)
-    self.I2A = synapses.Exponential(I, A, bp.conn.All2All(), g_max=g_I2E_GABAa,
-                                    output=synouts.COBA(E=-70.), **gaba_par)
-    self.I2N = synapses.Exponential(I, N, bp.conn.All2All(), g_max=g_I2E_GABAa,
-                                    output=synouts.COBA(E=-70.), **gaba_par)
-    self.I2I = synapses.Exponential(I, I, bp.conn.All2All(), g_max=g_I2I_GABAa,
-                                    output=synouts.COBA(E=-70.), **gaba_par)
+    self.I2B = bp.synapses.Exponential(I, B, bp.conn.All2All(), g_max=g_I2E_GABAa,
+                                       output=bp.synouts.COBA(E=-70.), **gaba_par)
+    self.I2A = bp.synapses.Exponential(I, A, bp.conn.All2All(), g_max=g_I2E_GABAa,
+                                       output=bp.synouts.COBA(E=-70.), **gaba_par)
+    self.I2N = bp.synapses.Exponential(I, N, bp.conn.All2All(), g_max=g_I2E_GABAa,
+                                       output=bp.synouts.COBA(E=-70.), **gaba_par)
+    self.I2I = bp.synapses.Exponential(I, I, bp.conn.All2All(), g_max=g_I2I_GABAa,
+                                       output=bp.synouts.COBA(E=-70.), **gaba_par)
 
     # define external projections
-    self.noise2B = synapses.Exponential(self.noise_B, B, bp.conn.One2One(), g_max=g_ext2E_AMPA,
-                                        output=synouts.COBA(E=0.), **ampa_par)
-    self.noise2A = synapses.Exponential(self.noise_A, A, bp.conn.One2One(), g_max=g_ext2E_AMPA,
-                                        output=synouts.COBA(E=0.), **ampa_par)
-    self.noise2N = synapses.Exponential(self.noise_N, N, bp.conn.One2One(), g_max=g_ext2E_AMPA,
-                                        output=synouts.COBA(E=0.), **ampa_par)
-    self.noise2I = synapses.Exponential(self.noise_I, I, bp.conn.One2One(), g_max=g_ext2I_AMPA,
-                                        output=synouts.COBA(E=0.), **ampa_par)
+    self.noise2B = bp.synapses.Exponential(self.noise_B, B, bp.conn.One2One(), g_max=g_ext2E_AMPA,
+                                           output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.noise2A = bp.synapses.Exponential(self.noise_A, A, bp.conn.One2One(), g_max=g_ext2E_AMPA,
+                                           output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.noise2N = bp.synapses.Exponential(self.noise_N, N, bp.conn.One2One(), g_max=g_ext2E_AMPA,
+                                           output=bp.synouts.COBA(E=0.), **ampa_par)
+    self.noise2I = bp.synapses.Exponential(self.noise_I, I, bp.conn.One2One(), g_max=g_ext2I_AMPA,
+                                           output=bp.synouts.COBA(E=0.), **ampa_par)
 
     # nodes
     self.B = B
@@ -265,9 +264,7 @@ def batching_run():
     net = DecisionMaking(scale=1., coherence=coherence, mu0=20.)
     net.reset_state(batch_size=num_batch)
     runner = bp.DSRunner(
-      net,
-      monitors=['A.spike', 'B.spike', 'IA.freq', 'IB.freq'],
-      data_first_axis=False
+      net, monitors=['A.spike', 'B.spike', 'IA.freq', 'IB.freq'], data_first_axis='B'
     )
     runner.run(total_period)
 
@@ -288,5 +285,5 @@ def batching_run():
 
 
 if __name__ == '__main__':
-  # single_run()
+  single_run()
   batching_run()

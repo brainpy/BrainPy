@@ -90,21 +90,27 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    :maxdepth: 1
    :caption: API Documentation
 
-   apis/math.rst
-   apis/dyn.rst
-   apis/train.rst
-   apis/analysis.rst
-   apis/integrators.rst
-   apis/auto/algorithms.rst
-   apis/auto/inputs.rst
+   apis/auto/brainpy.rst
+   apis/auto/math.rst
+   apis/auto/math_random.rst
+   apis/auto/math_surrogate.rst
+   apis/auto/channels.rst
+   apis/auto/layers.rst
+   apis/auto/neurons.rst
+   apis/auto/rates.rst
+   apis/auto/synapses.rst
+   apis/auto/synouts.rst
+   apis/auto/synplast.rst
+   apis/auto/integrators.rst
+   apis/auto/analysis.rst
    apis/auto/connect.rst
-   apis/auto/initialize.rst
-   apis/auto/losses.rst
-   apis/auto/optimizers.rst
    apis/auto/encoding.rst
+   apis/auto/initialize.rst
+   apis/auto/inputs.rst
+   apis/auto/losses.rst
    apis/auto/measure.rst
+   apis/auto/optim.rst
    apis/auto/running.rst
-   apis/auto/tools.rst
    apis/auto/changelog.rst
 
 
