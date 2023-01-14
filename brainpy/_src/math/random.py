@@ -14,7 +14,7 @@ from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
 from brainpy.check import jit_error_checking
-from ._utils import wraps
+from ._utils import _return
 from .ndarray import Array, Variable
 
 __all__ = [
@@ -517,7 +517,8 @@ class RandomState(Variable):
 
   def rand(self, *dn, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.uniform(key, shape=dn, minval=0., maxval=1.)
+    r = jr.uniform(key, shape=dn, minval=0., maxval=1.)
+    return _return(r)
 
   def randint(self, low, high=None, size=None, dtype=jnp.int_, key=None):
     low = _as_jax_array(low)
@@ -531,9 +532,10 @@ class RandomState(Variable):
       size = lax.broadcast_shapes(jnp.shape(low),
                                   jnp.shape(high))
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.randint(key,
-                      shape=_size2shape(size),
-                      minval=low, maxval=high, dtype=dtype)
+    r = jr.randint(key,
+                   shape=_size2shape(size),
+                   minval=low, maxval=high, dtype=dtype)
+    return _return(r)
 
   def random_integers(self, low, high=None, size=None, key=None):
     low = _as_jax_array(low)
@@ -547,27 +549,33 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(low), jnp.shape(high))
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.randint(key,
-                      shape=_size2shape(size),
-                      minval=low,
-                      maxval=high)
+    r = jr.randint(key,
+                   shape=_size2shape(size),
+                   minval=low,
+                   maxval=high)
+    return _return(r)
 
   def randn(self, *dn, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.normal(key, shape=dn)
+    r = jr.normal(key, shape=dn)
+    return _return(r)
 
   def random(self, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.uniform(key, shape=_size2shape(size), minval=0., maxval=1.)
+    r = jr.uniform(key, shape=_size2shape(size), minval=0., maxval=1.)
+    return _return(r)
 
   def random_sample(self, size=None, key=None):
-    return self.random(size=size, key=key)
+    r = self.random(size=size, key=key)
+    return _return(r)
 
   def ranf(self, size=None, key=None):
-    return self.random(size=size, key=key)
+    r = self.random(size=size, key=key)
+    return _return(r)
 
   def sample(self, size=None, key=None):
-    return self.random(size=size, key=key)
+    r = self.random(size=size, key=key)
+    return _return(r)
 
   def choice(self, a, size=None, replace=True, p=None, key=None):
     a = _as_jax_array(a)
@@ -575,14 +583,15 @@ class RandomState(Variable):
     a = _check_py_seq(a)
     p = _check_py_seq(p)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.choice(key, a=a, shape=_size2shape(size),
-                     replace=replace, p=p)
+    r = jr.choice(key, a=a, shape=_size2shape(size), replace=replace, p=p)
+    return _return(r)
 
   def permutation(self, x, axis: int = 0, independent: bool = False, key=None):
     x = x.value if isinstance(x, Array) else x
     x = _check_py_seq(x)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.permutation(key, x, axis=axis, independent=independent)
+    r = jr.permutation(key, x, axis=axis, independent=independent)
+    return _return(r)
 
   def shuffle(self, x, axis=0, key=None):
     if not isinstance(x, Array):
@@ -599,7 +608,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(a), jnp.shape(b))
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.beta(key, a=a, b=b, shape=_size2shape(size))
+    r = jr.beta(key, a=a, b=b, shape=_size2shape(size))
+    return _return(r)
 
   def exponential(self, scale=None, size=None, key=None):
     scale = _as_jax_array(scale)
@@ -608,10 +618,9 @@ class RandomState(Variable):
       size = jnp.shape(scale)
     key = self.split_key() if key is None else _formalize_key(key)
     r = jr.exponential(key, shape=_size2shape(size))
-    if scale is None:
-      return r
-    else:
-      return r / scale
+    if scale is not None:
+      r = r / scale
+    return _return(r)
 
   def gamma(self, shape, scale=None, size=None, key=None):
     shape = _as_jax_array(shape)
@@ -622,10 +631,9 @@ class RandomState(Variable):
       size = lax.broadcast_shapes(jnp.shape(shape), jnp.shape(scale))
     key = self.split_key() if key is None else _formalize_key(key)
     r = jr.gamma(key, a=shape, shape=_size2shape(size))
-    if scale is None:
-      return r
-    else:
-      return r * scale
+    if scale is not None:
+      r = r * scale
+    return _return(r)
 
   def gumbel(self, loc=None, scale=None, size=None, key=None):
     loc = _as_jax_array(loc)
@@ -635,7 +643,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
     key = self.split_key() if key is None else _formalize_key(key)
-    return _loc_scale(loc, scale, jr.gumbel(key, shape=_size2shape(size)))
+    r = _loc_scale(loc, scale, jr.gumbel(key, shape=_size2shape(size)))
+    return _return(r)
 
   def laplace(self, loc=None, scale=None, size=None, key=None):
     loc = _as_jax_array(loc)
@@ -645,7 +654,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
     key = self.split_key() if key is None else _formalize_key(key)
-    return _loc_scale(loc, scale, jr.laplace(key, shape=_size2shape(size)))
+    r = _loc_scale(loc, scale, jr.laplace(key, shape=_size2shape(size)))
+    return _return(r)
 
   def logistic(self, loc=None, scale=None, size=None, key=None):
     loc = _as_jax_array(loc)
@@ -655,7 +665,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(loc), jnp.shape(scale))
     key = self.split_key() if key is None else _formalize_key(key)
-    return _loc_scale(loc, scale, jr.logistic(key, shape=_size2shape(size)))
+    r = _loc_scale(loc, scale, jr.logistic(key, shape=_size2shape(size)))
+    return _return(r)
 
   def normal(self, loc=None, scale=None, size=None, key=None):
     loc = _as_jax_array(loc)
@@ -665,7 +676,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(scale), jnp.shape(loc))
     key = self.split_key() if key is None else _formalize_key(key)
-    return _loc_scale(loc, scale, jr.normal(key, shape=_size2shape(size)))
+    r = _loc_scale(loc, scale, jr.normal(key, shape=_size2shape(size)))
+    return _return(r)
 
   def pareto(self, a, size=None, key=None):
     a = _as_jax_array(a)
@@ -673,22 +685,26 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(a)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.pareto(key, b=a, shape=_size2shape(size))
+    r = jr.pareto(key, b=a, shape=_size2shape(size))
+    return _return(r)
 
   def poisson(self, lam=1.0, size=None, key=None):
     lam = _check_py_seq(_as_jax_array(lam))
     if size is None:
       size = jnp.shape(lam)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.poisson(key, lam=lam, shape=_size2shape(size))
+    r = jr.poisson(key, lam=lam, shape=_size2shape(size))
+    return _return(r)
 
   def standard_cauchy(self, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.cauchy(key, shape=_size2shape(size))
+    r = jr.cauchy(key, shape=_size2shape(size))
+    return _return(r)
 
   def standard_exponential(self, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.exponential(key, shape=_size2shape(size))
+    r = jr.exponential(key, shape=_size2shape(size))
+    return _return(r)
 
   def standard_gamma(self, shape, size=None, key=None):
     shape = _as_jax_array(shape)
@@ -696,11 +712,13 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(shape)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.gamma(key, a=shape, shape=_size2shape(size))
+    r = jr.gamma(key, a=shape, shape=_size2shape(size))
+    return _return(r)
 
   def standard_normal(self, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.normal(key, shape=_size2shape(size))
+    r = jr.normal(key, shape=_size2shape(size))
+    return _return(r)
 
   def standard_t(self, df, size=None, key=None):
     df = _as_jax_array(df)
@@ -708,7 +726,8 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(size)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.t(key, df=df, shape=_size2shape(size))
+    r = jr.t(key, df=df, shape=_size2shape(size))
+    return _return(r)
 
   def uniform(self, low=0.0, high=1.0, size=None, key=None):
     low = _as_jax_array(low)
@@ -718,7 +737,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(low), jnp.shape(high))
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.uniform(key, shape=_size2shape(size), minval=low, maxval=high)
+    r = jr.uniform(key, shape=_size2shape(size), minval=low, maxval=high)
+    return _return(r)
 
   def truncated_normal(self, lower, upper, size, scale=None, key=None):
     lower = _as_jax_array(lower)
@@ -736,10 +756,9 @@ class RandomState(Variable):
                                 lower=lower,
                                 upper=upper,
                                 shape=_size2shape(size))
-    if scale is None:
-      return rands
-    else:
-      return rands * scale
+    if scale is not None:
+      rands = rands * scale
+    return _return(rands)
 
   def _check_p(self, p):
     raise ValueError(f'Parameter p should be within [0, 1], but we got {p}')
@@ -750,7 +769,8 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(p)
     key = self.split_key() if key is None else _formalize_key(key)
-    return jr.bernoulli(key, p=p, shape=_size2shape(size))
+    r = jr.bernoulli(key, p=p, shape=_size2shape(size))
+    return _return(r)
 
   def lognormal(self, mean=None, sigma=None, size=None, key=None):
     mean = _check_py_seq(_as_jax_array(mean))
@@ -762,7 +782,7 @@ class RandomState(Variable):
     samples = jr.normal(key, shape=_size2shape(size))
     samples = _loc_scale(mean, sigma, samples)
     samples = jnp.exp(samples)
-    return samples
+    return _return(samples)
 
   def binomial(self, n, p, size=None, key=None):
     n = _check_py_seq(n.value if isinstance(n, Array) else n)
@@ -771,7 +791,8 @@ class RandomState(Variable):
     if size is None:
       size = jnp.broadcast_shapes(jnp.shape(n), jnp.shape(p))
     key = self.split_key() if key is None else _formalize_key(key)
-    return _binomial(key, p, n, shape=_size2shape(size))
+    r = _binomial(key, p, n, shape=_size2shape(size))
+    return _return(r)
 
   def chisquare(self, df, size=None, key=None):
     df = _check_py_seq(_as_jax_array(df))
@@ -785,12 +806,13 @@ class RandomState(Variable):
     else:
       dist = jr.normal(key, (df,) + _size2shape(size)) ** 2
       dist = dist.sum(axis=0)
-    return dist
+    return _return(dist)
 
   def dirichlet(self, alpha, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
     alpha = _check_py_seq(_as_jax_array(alpha))
-    return jr.dirichlet(key, alpha=alpha, shape=_size2shape(size))
+    r = jr.dirichlet(key, alpha=alpha, shape=_size2shape(size))
+    return _return(r)
 
   def geometric(self, p, size=None, key=None):
     p = _as_jax_array(p)
@@ -800,7 +822,7 @@ class RandomState(Variable):
     key = self.split_key() if key is None else _formalize_key(key)
     u = jr.uniform(key, size)
     r = jnp.floor(jnp.log1p(-u) / jnp.log1p(-p))
-    return r
+    return _return(r)
 
   def _check_p2(self, p):
     raise ValueError(f'We require `sum(pvals[:-1]) <= 1`. But we got {p}')
@@ -815,7 +837,8 @@ class RandomState(Variable):
     size = _size2shape(size)
     n_max = int(np.max(jax.device_get(n)))
     batch_shape = lax.broadcast_shapes(jnp.shape(pvals)[:-1], jnp.shape(n))
-    return _multinomial(key, pvals, n, n_max, batch_shape + size)
+    r = _multinomial(key, pvals, n, n_max, batch_shape + size)
+    return _return(r)
 
   def multivariate_normal(self, mean, cov, size=None, method: str = 'cholesky', key=None):
     if method not in {'svd', 'eigh', 'cholesky'}:
@@ -848,7 +871,7 @@ class RandomState(Variable):
       factor = jnp.linalg.cholesky(cov)
     normal_samples = jr.normal(key, size + mean.shape[-1:])
     r = mean + jnp.einsum('...ij,...j->...i', factor, normal_samples)
-    return r
+    return _return(r)
 
   def rayleigh(self, scale=1.0, size=None, key=None):
     scale = _check_py_seq(_as_jax_array(scale))
@@ -856,12 +879,14 @@ class RandomState(Variable):
       size = jnp.shape(scale)
     key = self.split_key() if key is None else _formalize_key(key)
     x = jnp.sqrt(-2. * jnp.log(jr.uniform(key, shape=_size2shape(size), minval=0, maxval=1)))
-    return x * scale
+    r = x * scale
+    return _return(r)
 
   def triangular(self, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
     bernoulli_samples = jr.bernoulli(key, p=0.5, shape=_size2shape(size))
-    return 2 * bernoulli_samples - 1
+    r = 2 * bernoulli_samples - 1
+    return _return(r)
 
   def vonmises(self, mu, kappa, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
@@ -873,7 +898,7 @@ class RandomState(Variable):
     samples = _von_mises_centered(key, kappa, size)
     samples = samples + mu
     samples = (samples + jnp.pi) % (2.0 * jnp.pi) - jnp.pi
-    return samples
+    return _return(samples)
 
   def weibull(self, a, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
@@ -886,7 +911,7 @@ class RandomState(Variable):
     size = _size2shape(size)
     random_uniform = jr.uniform(key=key, shape=size, minval=0, maxval=1)
     r = jnp.power(-jnp.log1p(-random_uniform), 1.0 / a)
-    return r
+    return _return(r)
 
   def weibull_min(self, a, scale=None, size=None, key=None):
     """Sample from a Weibull minimum distribution.
@@ -918,13 +943,14 @@ class RandomState(Variable):
     r = jnp.power(-jnp.log1p(-random_uniform), 1.0 / a)
     if scale is not None:
       r /= scale
-    return r
+    return _return(r)
 
   def maxwell(self, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
     shape = core.canonicalize_shape(_size2shape(size)) + (3,)
     norm_rvs = jr.normal(key=key, shape=shape)
-    return jnp.linalg.norm(norm_rvs, axis=-1)
+    r = jnp.linalg.norm(norm_rvs, axis=-1)
+    return _return(r)
 
   def negative_binomial(self, n, p, size=None, key=None):
     n = _check_py_seq(_as_jax_array(n))
@@ -938,7 +964,8 @@ class RandomState(Variable):
     else:
       keys = jr.split(_formalize_key(key), 2)
     rate = self.gamma(shape=n, scale=jnp.exp(-logits), size=size, key=keys[0])
-    return self.poisson(lam=rate, key=keys[1])
+    r = self.poisson(lam=rate, key=keys[1])
+    return _return(r)
 
   def wald(self, mean, scale, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
@@ -978,7 +1005,7 @@ class RandomState(Variable):
     res = jnp.where(sampled_uniform <= mean / (mean + sampled),
                     sampled,
                     jnp.square(mean) / sampled)
-    return res
+    return _return(res)
 
   def t(self, df, size=None, key=None):
     df = _check_py_seq(_as_jax_array(df))
@@ -995,7 +1022,8 @@ class RandomState(Variable):
     two = _const(n, 2)
     half_df = lax.div(df, two)
     g = jr.gamma(keys[1], half_df, size)
-    return n * jnp.sqrt(half_df / g)
+    r = n * jnp.sqrt(half_df / g)
+    return _return(r)
 
   def orthogonal(self, n: int, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
@@ -1005,7 +1033,8 @@ class RandomState(Variable):
     z = jr.normal(key, size + (n, n))
     q, r = jnp.linalg.qr(z)
     d = jnp.diagonal(r, 0, -2, -1)
-    return q * jnp.expand_dims(d / abs(d), -2)
+    r = q * jnp.expand_dims(d / abs(d), -2)
+    return _return(r)
 
   def noncentral_chisquare(self, df, nonc, size=None, key=None):
     df = _check_py_seq(_as_jax_array(df))
@@ -1022,14 +1051,16 @@ class RandomState(Variable):
     cond = jnp.greater(df, 1.0)
     df2 = jnp.where(cond, df - 1.0, df + 2.0 * i)
     chi2 = 2.0 * jr.gamma(keys[2], 0.5 * df2, shape=size)
-    return jnp.where(cond, chi2 + n * n, chi2)
+    r = jnp.where(cond, chi2 + n * n, chi2)
+    return _return(r)
 
   def loggamma(self, a, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
     a = _check_py_seq(_as_jax_array(a))
     if size is None:
       size = jnp.shape(a)
-    return jr.loggamma(key, a, shape=_size2shape(size))
+    r = jr.loggamma(key, a, shape=_size2shape(size))
+    return _return(r)
 
   def categorical(self, logits, axis: int = -1, size=None, key=None):
     key = self.split_key() if key is None else _formalize_key(key)
@@ -1037,23 +1068,26 @@ class RandomState(Variable):
     if size is None:
       size = list(jnp.shape(logits))
       size.pop(axis)
-    return jr.categorical(key, logits, axis=axis, shape=_size2shape(size))
+    r = jr.categorical(key, logits, axis=axis, shape=_size2shape(size))
+    return _return(r)
 
   def zipf(self, a, size=None, key=None):
     a = _check_py_seq(_as_jax_array(a))
     if size is None:
       size = jnp.shape(a)
-    return call(lambda x: np.random.zipf(x, size),
-                a,
-                result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    r = call(lambda x: np.random.zipf(x, size),
+             a,
+             result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    return _return(r)
 
   def power(self, a, size=None, key=None):
     a = _check_py_seq(_as_jax_array(a))
     if size is None:
       size = jnp.shape(a)
     size = _size2shape(size)
-    return call(lambda a: np.random.power(a=a, size=size),
-                a, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    r = call(lambda a: np.random.power(a=a, size=size),
+             a, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    return _return(r)
 
   def f(self, dfnum, dfden, size=None, key=None):
     dfnum = _as_jax_array(dfnum)
@@ -1064,11 +1098,12 @@ class RandomState(Variable):
       size = jnp.broadcast_shapes(jnp.shape(dfnum), jnp.shape(dfden))
     size = _size2shape(size)
     d = {'dfnum': dfnum, 'dfden': dfden}
-    return call(lambda x: np.random.f(dfnum=x['dfnum'],
-                                      dfden=x['dfden'],
-                                      size=size),
-                d,
-                result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    r = call(lambda x: np.random.f(dfnum=x['dfnum'],
+                                   dfden=x['dfden'],
+                                   size=size),
+             d,
+             result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    return _return(r)
 
   def hypergeometric(self, ngood, nbad, nsample, size=None, key=None):
     ngood = _check_py_seq(_as_jax_array(ngood))
@@ -1081,19 +1116,21 @@ class RandomState(Variable):
                                   jnp.shape(nsample))
     size = _size2shape(size)
     d = {'ngood': ngood, 'nbad': nbad, 'nsample': nsample}
-    return call(lambda x: np.random.hypergeometric(ngood=x['ngood'],
-                                                   nbad=x['nbad'],
-                                                   nsample=x['nsample'],
-                                                   size=size),
-                d, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    r = call(lambda x: np.random.hypergeometric(ngood=x['ngood'],
+                                                nbad=x['nbad'],
+                                                nsample=x['nsample'],
+                                                size=size),
+             d, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    return _return(r)
 
   def logseries(self, p, size=None, key=None):
     p = _check_py_seq(_as_jax_array(p))
     if size is None:
       size = jnp.shape(p)
     size = _size2shape(size)
-    return call(lambda p: np.random.logseries(p=p, size=size),
-                p, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    r = call(lambda p: np.random.logseries(p=p, size=size),
+             p, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    return _return(r)
 
   def noncentral_f(self, dfnum, dfden, nonc, size=None, key=None):
     dfnum = _check_py_seq(_as_jax_array(dfnum))
@@ -1105,11 +1142,12 @@ class RandomState(Variable):
                                   jnp.shape(nonc))
     size = _size2shape(size)
     d = {'dfnum': dfnum, 'dfden': dfden, 'nonc': nonc}
-    return call(lambda x: np.random.noncentral_f(dfnum=x['dfnum'],
-                                                 dfden=x['dfden'],
-                                                 nonc=x['nonc'],
-                                                 size=size),
-                d, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    r = call(lambda x: np.random.noncentral_f(dfnum=x['dfnum'],
+                                              dfden=x['dfden'],
+                                              nonc=x['nonc'],
+                                              size=size),
+             d, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    return _return(r)
 
 
 # alias
