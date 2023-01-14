@@ -254,19 +254,19 @@ class OfflineTrainer(DSTrainer):
             interface "offline_fit()" function. 
             '''
           )
-      if hasattr(node.offline_init, 'not_customized'):
-        if node.offline_init.not_customized:
-          raise NoImplementationError(
-            f'''
-            The node
-
-            {node}
-
-            is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}. 
-            However, it does not implement the required training 
-            interface "offline_init()" function. 
-            '''
-          )
+      # if hasattr(node.offline_init, 'not_customized'):
+      #   if node.offline_init.not_customized:
+      #     raise NoImplementationError(
+      #       f'''
+      #       The node
+      #
+      #       {node}
+      #
+      #       is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}.
+      #       However, it does not implement the required training
+      #       interface "offline_init()" function.
+      #       '''
+      #     )
 
 
 class RidgeTrainer(OfflineTrainer):

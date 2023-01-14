@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+import jax
+import jax.numpy as jnp
+from jax import vmap
 
 import brainpy.math as bm
-from jax import vmap
-import jax.numpy as jnp
 from brainpy._src.math.object_transform.base import BrainPyObject
-
 
 __all__ = [
   # brainpy_object class
@@ -28,7 +28,7 @@ class OnlineAlgorithm(BrainPyObject):
   def __init__(self, name=None):
     super(OnlineAlgorithm, self).__init__(name=name)
 
-  def __call__(self, identifier, target, input, output):
+  def __call__(self, *args, **kwargs):
     """The training procedure.
 
     Parameters
@@ -47,12 +47,12 @@ class OnlineAlgorithm(BrainPyObject):
     weight: ArrayType
       The weights after fit.
     """
-    return self.call(identifier, target, input, output)
+    return self.call(*args, **kwargs)
 
-  def initialize(self, identifier, *args, **kwargs):
+  def register_target(self, *args, **kwargs):
     pass
 
-  def call(self, identifier, target, input, output):
+  def call(self, target, input, output, identifier: str=''):
     """The training procedure.
 
     Parameters
@@ -105,21 +105,38 @@ class RLS(OnlineAlgorithm):
     super(RLS, self).__init__(name=name)
     self.alpha = alpha
 
-  def initialize(self, identifier, feature_in, feature_out=None):
+  def register_target(
+      self,
+      feature_in: int,
+      identifier: str = '',
+  ):
     identifier = identifier + self.postfix
-    self.implicit_vars[identifier] = bm.Variable(bm.eye(feature_in) * self.alpha)
+    self.implicit_vars[identifier] = bm.Variable(jnp.eye(feature_in) * self.alpha)
 
-  def call(self, identifier, target, input, output):
+  def call(
+      self,
+      target: jax.Array,
+      input: jax.Array,
+      output: jax.Array,
+      identifier: str = '',
+  ):
     identifier = identifier + self.postfix
     P = self.implicit_vars[identifier]
-    # update the inverse correlation matrix
-    k = bm.dot(P, input.T)  # (num_input, num_batch)
-    hPh = bm.dot(input, k)  # (num_batch, num_batch)
-    c = bm.sum(1.0 / (1.0 + hPh))  # ()
-    P -= c * bm.dot(k, k.T)  # (num_input, num_input)
-    # update weights
+    input = bm.as_jax(input)
+    output = bm.as_jax(output)
+    target = bm.as_jax(target)
+    if input.ndim == 1: input = jnp.expand_dims(input, 0)
+    if target.ndim == 1: target = jnp.expand_dims(target, 0)
+    if output.ndim == 1: output = jnp.expand_dims(output, 0)
+    assert input.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {input.shape}'
+    assert target.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {target.shape}'
+    assert output.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {output.shape}'
+    k = jnp.dot(P.value, input.T)  # (num_input, num_batch)
+    hPh = jnp.dot(input, k)  # (num_batch, num_batch)
+    c = jnp.sum(1.0 / (1.0 + hPh))  # ()
+    P -= c * jnp.dot(k, k.T)  # (num_input, num_input)
     e = output - target  # (num_batch, num_output)
-    dw = -c * bm.dot(k, e)  # (num_input, num_output)
+    dw = -c * jnp.dot(k, e)  # (num_input, num_output)
     return dw
 
 
@@ -148,11 +165,16 @@ class LMS(OnlineAlgorithm):
     super(LMS, self).__init__(name=name)
     self.alpha = alpha
 
-  def call(self, identifier, target, input, output):
-    assert target.shape[0] == input.shape[0] == output.shape[0], 'Batch size should be consistent.'
+  def call(self, target, input, output, identifier: str=''):
+    if input.ndim == 1: input = jnp.expand_dims(input, 0)
+    if target.ndim == 1: target = jnp.expand_dims(target, 0)
+    if output.ndim == 1: output = jnp.expand_dims(output, 0)
+    assert input.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {input.shape}'
+    assert target.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {target.shape}'
+    assert output.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {output.shape}'
     error = bm.as_jax(output - target)
     input = bm.as_jax(input)
-    return -self.alpha * bm.sum(vmap(jnp.outer)(input, error), axis=0)
+    return -self.alpha * jnp.sum(vmap(jnp.outer)(input, error), axis=0)
 
 
 name2func['lms'] = LMS

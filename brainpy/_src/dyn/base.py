@@ -345,10 +345,6 @@ class DynamicalSystem(BrainPyObject):
     raise NoImplementationError('Subclass must implement online_init() function when using OnlineTrainer.')
 
   @tools.not_customized
-  def offline_init(self):
-    raise NoImplementationError('Subclass must implement offline_init() function when using OfflineTrainer.')
-
-  @tools.not_customized
   def online_fit(self,
                  target: ArrayType,
                  fit_record: Dict[str, ArrayType]):
@@ -403,8 +399,8 @@ class FuncAsDynSys(DynamicalSystem):
 
   def clear_input(self):
     """Function for clearing input in the wrapped children dynamical system."""
-    if isinstance(self.target, DynamicalSystem):
-      self.target.clear_input()
+    for child in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
+      child.clear_input()
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -1252,8 +1248,8 @@ class CondNeuGroup(NeuGroup, Container):
     self.C = C
     self.A = A
     self.V_th = V_th
-    self._V_initializer = V_initializer
     self.noise = init_noise(noise, self.varshape, num_vars=3)
+    self._V_initializer = V_initializer
 
     # variables
     self.V = variable(V_initializer, self.mode, self.varshape)
@@ -1277,6 +1273,8 @@ class CondNeuGroup(NeuGroup, Container):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
     self.spike.value = variable(lambda s: jnp.zeros(s, dtype=bool), batch_size, self.varshape)
     self.input.value = variable(jnp.zeros, batch_size, self.varshape)
+    for channel in self.nodes(level=1, include_self=False).subset(Channel).unique().values():
+      channel.reset_state(self.V.value, batch_size=batch_size)
 
   def update(self, tdi, *args, **kwargs):
     V = self.integral(self.V.value, tdi['t'], tdi['dt'])
@@ -1330,7 +1328,7 @@ class Channel(DynamicalSystem):
   def current(self, V):
     raise NotImplementedError('Must be implemented by the subclass.')
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, V, batch_size=None):
     raise NotImplementedError('Must be implemented by the subclass.')
 
 

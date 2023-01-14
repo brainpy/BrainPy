@@ -3,22 +3,27 @@
 import warnings
 
 import numpy as np
+import jax.numpy as jnp
 from jax.lax import while_loop
 
 import brainpy.math as bm
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy.types import ArrayType
 from .utils import (Sigmoid,
-                    Regularization, L1Regularization, L1L2Regularization, L2Regularization,
-                    polynomial_features, normalize)
+                    Regularization,
+                    L1Regularization,
+                    L1L2Regularization,
+                    L2Regularization,
+                    polynomial_features,
+                    normalize)
 
 __all__ = [
   # brainpy_object class for offline training algorithm
   'OfflineAlgorithm',
 
   # training methods
-  'LinearRegression',
-  'RidgeRegression',
+  'LinearRegression', 'linear_regression',
+  'RidgeRegression', 'ridge_regression',
   'LassoRegression',
   'LogisticRegression',
   'PolynomialRegression',
@@ -39,18 +44,16 @@ class OfflineAlgorithm(BrainPyObject):
   def __init__(self, name=None):
     super(OfflineAlgorithm, self).__init__(name=name)
 
-  def __call__(self, identifier, target, input, output):
+  def __call__(self, targets, inputs, outputs=None):
     """The training procedure.
 
     Parameters
     ----------
-    identifier: str
-      The variable name.
-    target: ArrayType
+    targets: ArrayType
       The 2d target data with the shape of `(num_batch, num_output)`.
-    input: ArrayType
+    inputs: ArrayType
       The 2d input data with the shape of `(num_batch, num_input)`.
-    output: ArrayType
+    outputs: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
     Returns
@@ -58,16 +61,13 @@ class OfflineAlgorithm(BrainPyObject):
     weight: ArrayType
       The weights after fit.
     """
-    return self.call(identifier, target, input, output)
+    return self.call(targets, inputs, outputs)
 
-  def call(self, identifier, targets, inputs, outputs) -> ArrayType:
+  def call(self, targets, inputs, outputs=None) -> ArrayType:
     """The training procedure.
 
     Parameters
     ----------
-    identifier: str
-      The identifier.
-
     inputs: ArrayType
       The 3d input data with the shape of `(num_batch, num_time, num_input)`,
       or, the 2d input data with the shape of `(num_time, num_input)`.
@@ -90,15 +90,12 @@ class OfflineAlgorithm(BrainPyObject):
   def __repr__(self):
     return self.__class__.__name__
 
-  def initialize(self, identifier, *args, **kwargs):
-    pass
-
 
 def _check_data_2d_atls(x):
   if x.ndim < 2:
     raise ValueError(f'Data must be a 2d tensor. But we got {x.ndim}d: {x.shape}.')
   if x.ndim != 2:
-    return x.reshape((-1, x.shape[-1]))
+    return bm.flatten(x, end_dim=-2)
   else:
     return x
 
@@ -127,7 +124,7 @@ class RegressionAlgorithm(OfflineAlgorithm):
     self.learning_rate = learning_rate
     self.regularizer = regularizer
 
-  def initialize(self, identifier, *args, **kwargs):
+  def initialize(self, *args, **kwargs):
     pass
 
   def init_weights(self, n_features, n_out):
@@ -137,22 +134,22 @@ class RegressionAlgorithm(OfflineAlgorithm):
 
   def gradient_descent_solve(self, targets, inputs, outputs=None):
     # checking
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
 
     # initialize weights
     w = self.init_weights(inputs.shape[1], targets.shape[1])
 
     def cond_fun(a):
       i, par_old, par_new = a
-      return bm.logical_and(bm.logical_not(bm.allclose(par_old, par_new)),
-                            i < self.max_iter).value
+      return jnp.logical_and(jnp.logical_not(jnp.allclose(par_old, par_new)),
+                             i < self.max_iter).value
 
     def body_fun(a):
       i, _, par_new = a
       # Gradient of regularization loss w.r.t w
       y_pred = inputs.dot(par_new)
-      grad_w = bm.dot(inputs.T, -(targets - y_pred)) + self.regularizer.grad(par_new)
+      grad_w = jnp.dot(inputs.T, -(targets - y_pred)) + self.regularizer.grad(par_new)
       # Update the weights
       par_new2 = par_new - self.learning_rate * grad_w
       return i + 1, par_new, par_new2
@@ -162,7 +159,7 @@ class RegressionAlgorithm(OfflineAlgorithm):
     return r[-1]
 
   def predict(self, W, X):
-    return bm.dot(X, W)
+    return jnp.dot(X, W)
 
 
 class LinearRegression(RegressionAlgorithm):
@@ -189,18 +186,20 @@ class LinearRegression(RegressionAlgorithm):
                                            regularizer=Regularization(0.))
     self.gradient_descent = gradient_descent
 
-  def call(self, identifier, targets, inputs, outputs=None):
+  def call(self, targets, inputs, outputs=None):
     # checking
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
 
     # solving
     if self.gradient_descent:
       return self.gradient_descent_solve(targets, inputs)
     else:
-      weights = bm.linalg.lstsq(inputs, targets)
+      weights = jnp.linalg.lstsq(inputs, targets)
       return weights[0]
 
+
+linear_regression = LinearRegression()
 
 name2func['linear'] = LinearRegression
 name2func['lstsq'] = LinearRegression
@@ -248,10 +247,10 @@ class RidgeRegression(RegressionAlgorithm):
                                           regularizer=L2Regularization(alpha=alpha))
     self.gradient_descent = gradient_descent
 
-  def call(self, identifier, targets, inputs, outputs=None):
+  def call(self, targets, inputs, outputs=None):
     # checking
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
 
     # solving
     if self.gradient_descent:
@@ -259,13 +258,15 @@ class RidgeRegression(RegressionAlgorithm):
     else:
       temp = inputs.T @ inputs
       if self.regularizer.alpha > 0.:
-        temp += self.regularizer.alpha * bm.eye(inputs.shape[-1])
-      weights = bm.linalg.pinv(temp) @ (inputs.T @ targets)
+        temp += self.regularizer.alpha * jnp.eye(inputs.shape[-1])
+      weights = jnp.linalg.pinv(temp) @ (inputs.T @ targets)
       return weights
 
   def __repr__(self):
     return f'{self.__class__.__name__}(beta={self.regularizer.alpha})'
 
+
+ridge_regression = RidgeRegression()
 
 name2func['ridge'] = RidgeRegression
 
@@ -307,17 +308,17 @@ class LassoRegression(RegressionAlgorithm):
     assert gradient_descent
     self.degree = degree
 
-  def call(self, identifier, targets, inputs, outputs=None):
+  def call(self, targets, inputs, outputs=None):
     # checking
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
 
     # solving
     inputs = normalize(polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias))
     return super(LassoRegression, self).gradient_descent_solve(targets, inputs)
 
   def predict(self, W, X):
-    X = _check_data_2d_atls(bm.asarray(X))
+    X = _check_data_2d_atls(bm.as_jax(X))
     X = normalize(polynomial_features(X, degree=self.degree, add_bias=self.add_bias))
     return super(LassoRegression, self).predict(W, X)
 
@@ -355,10 +356,10 @@ class LogisticRegression(RegressionAlgorithm):
     self.gradient_descent = gradient_descent
     self.sigmoid = Sigmoid()
 
-  def call(self, identifier, targets, inputs, outputs=None) -> ArrayType:
+  def call(self, targets, inputs, outputs=None) -> ArrayType:
     # prepare data
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
     if targets.shape[-1] != 1:
       raise ValueError(f'Target must be a scalar, but got multiple variables: {targets.shape}. ')
     targets = targets.flatten()
@@ -368,7 +369,7 @@ class LogisticRegression(RegressionAlgorithm):
 
     def cond_fun(a):
       i, par_old, par_new = a
-      return bm.logical_and(bm.logical_not(bm.allclose(par_old, par_new)),
+      return jnp.logical_and(jnp.logical_not(jnp.allclose(par_old, par_new)),
                             i < self.max_iter).value
 
     def body_fun(a):
@@ -384,12 +385,12 @@ class LogisticRegression(RegressionAlgorithm):
         diag_grad = bm.zeros((gradient.size, gradient.size))
         diag = bm.arange(gradient.size)
         diag_grad[diag, diag] = gradient
-        par_new2 = bm.linalg.pinv(inputs.T.dot(diag_grad).dot(inputs)).dot(inputs.T).dot(
+        par_new2 = jnp.linalg.pinv(inputs.T.dot(diag_grad).dot(inputs)).dot(inputs.T).dot(
           diag_grad.dot(inputs).dot(par_new) + targets - y_pred)
       return i + 1, par_new, par_new2
 
     # Tune parameters for n iterations
-    r = while_loop(cond_fun, body_fun, (0, param+1., param))
+    r = while_loop(cond_fun, body_fun, (0, param + 1., param))
     return r[-1]
 
   def predict(self, W, X):
@@ -418,14 +419,14 @@ class PolynomialRegression(LinearRegression):
     self.degree = degree
     self.add_bias = add_bias
 
-  def call(self, identifier, targets, inputs, outputs=None):
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+  def call(self, targets, inputs, outputs=None):
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
     inputs = polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias)
-    return super(PolynomialRegression, self).call(identifier, targets, inputs)
+    return super(PolynomialRegression, self).call(targets, inputs)
 
   def predict(self, W, X):
-    X = _check_data_2d_atls(bm.asarray(X))
+    X = _check_data_2d_atls(bm.as_jax(X))
     X = polynomial_features(X, degree=self.degree, add_bias=self.add_bias)
     return super(PolynomialRegression, self).predict(W, X)
 
@@ -454,15 +455,15 @@ class PolynomialRidgeRegression(RidgeRegression):
     self.degree = degree
     self.add_bias = add_bias
 
-  def call(self, identifier, targets, inputs, outputs=None):
+  def call(self, targets, inputs, outputs=None):
     # checking
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
     inputs = polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias)
-    return super(PolynomialRidgeRegression, self).call(identifier, targets, inputs)
+    return super(PolynomialRidgeRegression, self).call(targets, inputs)
 
   def predict(self, W, X):
-    X = _check_data_2d_atls(bm.asarray(X))
+    X = _check_data_2d_atls(bm.as_jax(X))
     X = polynomial_features(X, degree=self.degree, add_bias=self.add_bias)
     return super(PolynomialRidgeRegression, self).predict(W, X)
 
@@ -512,16 +513,16 @@ class ElasticNetRegression(RegressionAlgorithm):
     self.gradient_descent = gradient_descent
     assert gradient_descent
 
-  def call(self, identifier, targets, inputs, outputs=None):
+  def call(self, targets, inputs, outputs=None):
     # checking
-    inputs = _check_data_2d_atls(bm.asarray(inputs))
-    targets = _check_data_2d_atls(bm.asarray(targets))
+    inputs = _check_data_2d_atls(bm.as_jax(inputs))
+    targets = _check_data_2d_atls(bm.as_jax(targets))
     # solving
     inputs = normalize(polynomial_features(inputs, degree=self.degree))
     return super(ElasticNetRegression, self).gradient_descent_solve(targets, inputs)
 
   def predict(self, W, X):
-    X = _check_data_2d_atls(bm.asarray(X))
+    X = _check_data_2d_atls(bm.as_jax(X))
     X = normalize(polynomial_features(X, degree=self.degree, add_bias=self.add_bias))
     return super(ElasticNetRegression, self).predict(W, X)
 
