@@ -116,6 +116,9 @@ class SGD(CommonOpt):
                               weight_decay=weight_decay,
                               name=name)
 
+  def __repr__(self):
+    return f'{self.__class__.__name__}(lr={self.lr})'
+
   def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
@@ -129,7 +132,7 @@ class SGD(CommonOpt):
       if self.weight_decay is None:
         p.value -= lr * grads[key]
       else:
-        p.value = (1 - self.weight_decay) * p + lr * grads[key]
+        p.value = (1 - self.weight_decay) * p - lr * grads[key]
     self.lr.step_call()
 
 
@@ -178,6 +181,9 @@ class Momentum(CommonOpt):
 
     self.momentum = momentum
 
+  def __repr__(self):
+    return f'{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})'
+
   def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
@@ -199,9 +205,6 @@ class Momentum(CommonOpt):
       else:
         p.value = (1 - self.weight_decay) * p + v
     self.lr.step_call()
-
-  def __repr__(self):
-    return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
 class MomentumNesterov(CommonOpt):
@@ -242,6 +245,9 @@ class MomentumNesterov(CommonOpt):
 
     self.momentum = momentum
 
+  def __repr__(self):
+    return f'{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})'
+
   def register_train_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
     train_vars = dict() if train_vars is None else train_vars
     if not isinstance(train_vars, dict):
@@ -263,9 +269,6 @@ class MomentumNesterov(CommonOpt):
       else:
         p.value = (1 - self.weight_decay) * p + v
     self.lr.step_call()
-
-  def __repr__(self):
-    return f"{self.__class__.__name__}(lr={self.lr}, momentum={self.momentum})"
 
 
 class Adagrad(CommonOpt):

@@ -142,7 +142,7 @@ class MultiStepLR(Scheduler):
   def __call__(self, i=None):
     i = (self.last_epoch.value + 1) if i is None else i
     p = bm.ifelse([i < m for m in self.milestones],
-                  list(range(1, len(self.milestones) + 1)) + [len(self.milestones) + 1])
+                  list(range(0, len(self.milestones))) + [len(self.milestones)])
     return self.lr * self.gamma ** p
 
   def __repr__(self):
