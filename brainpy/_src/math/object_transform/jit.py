@@ -7,20 +7,15 @@ The JIT compilation tools for JAX backend.
 
 """
 
-from typing import Callable, Union, Optional, Sequence, Dict, Any
+from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 
 import jax
-
-try:
-  from jax.errors import UnexpectedTracerError, ConcretizationTypeError
-except ImportError:
-  from jax.core import UnexpectedTracerError, ConcretizationTypeError
+from jax.errors import UnexpectedTracerError, ConcretizationTypeError
 
 from brainpy import errors, tools, check
 from brainpy._src.math.ndarray import Variable, add_context, del_context
 from .abstract import ObjectTransform
 from .base import BrainPyObject
-from ._utils import infer_dyn_vars
 
 __all__ = [
   'jit',
@@ -35,7 +30,8 @@ class JITTransform(ObjectTransform):
       target: callable,
       dyn_vars: Dict[str, Variable],
       child_objs: Dict[str, BrainPyObject],
-      static_argnames: Optional[Any] = None,
+      static_argnums: Union[int, Iterable[int], None] = None,
+      static_argnames: Union[str, Iterable[str], None] = None,
       device: Optional[Any] = None,
       name: Optional[str] = None,
       inline: bool = False,
@@ -46,12 +42,14 @@ class JITTransform(ObjectTransform):
 
     self.register_implicit_vars(dyn_vars)
     self.register_implicit_nodes(child_objs)
-
+    if hasattr(target, '__self__') and isinstance(getattr(target, '__self__'), BrainPyObject):
+      self.register_implicit_nodes(getattr(target, '__self__'))
     self.target = target
     self._all_vars = self.vars().unique()
 
     # transformation
     self._f = jax.jit(self._transform_function,
+                      static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),
                       static_argnames=static_argnames,
                       device=device,
                       inline=inline,
@@ -100,7 +98,8 @@ def jit(
     func: Callable,
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-    static_argnames: Optional[Union[str, Any]] = None,
+    static_argnums: Union[int, Iterable[int], None] = None,
+    static_argnames: Union[str, Iterable[str], None] = None,
     device: Optional[Any] = None,
     inline: bool = False,
     keep_unused: bool = False,
@@ -230,6 +229,7 @@ def jit(
     return JITTransform(target=func,
                         dyn_vars=dyn_vars,
                         child_objs=child_objs,
+                        static_argnums=static_argnums,
                         static_argnames=static_argnames,
                         device=device,
                         inline=inline,
