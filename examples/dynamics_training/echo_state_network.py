@@ -9,17 +9,20 @@ bm.set_environment(bm.batching_mode)
 class ESN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
-    self.r = bp.layers.Reservoir(num_in, num_hidden,
+    self.r = bp.layers.Reservoir(num_in,
+                                 num_hidden,
                                  Win_initializer=bp.init.Uniform(-0.1, 0.1),
                                  Wrec_initializer=bp.init.Normal(scale=0.1),
                                  in_connectivity=0.02,
                                  rec_connectivity=0.02,
                                  comp_type='dense')
-    self.o = bp.layers.Dense(num_hidden, num_out, W_initializer=bp.init.Normal(),
+    self.o = bp.layers.Dense(num_hidden,
+                             num_out,
+                             W_initializer=bp.init.Normal(),
                              mode=bm.training_mode)
 
-  def update(self, sha, x):
-    return self.o(sha, self.r(sha, x))
+  def update(self, s, x):
+    return self.o(s, self.r(s, x))
 
 
 class NGRC(bp.DynamicalSystem):
@@ -31,8 +34,8 @@ class NGRC(bp.DynamicalSystem):
                              W_initializer=bp.init.Normal(0.1),
                              mode=bm.training_mode)
 
-  def update(self, shared_args, x):
-    return self.o(shared_args, self.r(shared_args, x))
+  def update(self, s, x):
+    return self.o(s, self.r(s, x))
 
 
 def train_esn_with_ridge(num_in=100, num_out=30):

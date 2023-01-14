@@ -70,9 +70,9 @@ def plot_voltage_traces(mem, spk=None, dim=(3, 5), spike_height=5):
 
 def print_classification_accuracy(output, target):
   """ Dirty little helper function to compute classification accuracy. """
-  m = jnp.max(output, axis=1)  # max over time
-  am = jnp.argmax(m, axis=1)  # argmax over output units
-  acc = jnp.mean(target == am)  # compare to labels
+  m = bm.max(output, axis=1)  # max over time
+  am = bm.argmax(m, axis=1)  # argmax over output units
+  acc = bm.mean(target == am)  # compare to labels
   print("Accuracy %.3f" % acc)
 
 
@@ -85,7 +85,7 @@ freq = 5  # Hz
 mask = bm.random.rand(num_sample, num_step, net.num_in)
 x_data = bm.zeros((num_sample, num_step, net.num_in))
 x_data[mask < freq * bm.get_dt() / 1000.] = 1.0
-y_data = jnp.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.float_)
+y_data = bm.asarray(bm.random.rand(num_sample) < 0.5, dtype=bm.float_)
 rng = bm.random.RandomState(123)
 
 
@@ -122,10 +122,11 @@ def train(_):
 # train the network
 net.reset_state(num_sample)
 train_losses = []
-for i in range(0, 3000, 400):
+b = 100
+for i in range(0, 3000, b):
   t0 = time.time()
-  ls = bm.for_loop(train, operands=bm.arange(i, i + 400, 1))
-  print(f'Train {i + 400} epoch, loss = {jnp.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
+  ls = bm.for_loop(train, operands=bm.arange(i, i + b, 1))
+  print(f'Train {i + b} epoch, loss = {jnp.mean(ls):.4f}, used time {time.time() - t0:.4f} s')
   train_losses.append(ls)
 
 # visualize the training losses

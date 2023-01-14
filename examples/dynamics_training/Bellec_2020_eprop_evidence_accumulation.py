@@ -36,7 +36,7 @@ input_f0 = 40. / 1000.  # poisson firing rate of input neurons in khz
 regularization_f0 = reg_rate / 1000.  # mean target network firing frequency
 
 
-class EligSNN(bp.dyn.Network):
+class EligSNN(bp.Network):
   def __init__(self, num_in, num_rec, num_out, eprop=True, tau_a=2e3, tau_v=2e1):
     super(EligSNN, self).__init__()
 
@@ -170,7 +170,7 @@ def loss_fun(predicts, targets):
 
 
 # Training
-trainer = bp.train.BPTT(
+trainer = bp.BPTT(
   net, loss_fun,
   loss_has_aux=True,
   optimizer=bp.optimizers.Adam(lr=0.01),
@@ -182,7 +182,7 @@ trainer.fit(get_data(n_batch, n_in=net.num_in, t_interval=t_cue_spacing, f0=inpu
 
 # visualization
 dataset, _ = next(get_data(20, n_in=net.num_in, t_interval=t_cue_spacing, f0=input_f0)())
-runner = bp.train.DSTrainer(net, monitors={'spike': net.r.spike})
+runner = bp.DSTrainer(net, monitors={'spike': net.r.spike})
 outs = runner.predict(dataset, reset_state=True)
 
 for i in range(10):

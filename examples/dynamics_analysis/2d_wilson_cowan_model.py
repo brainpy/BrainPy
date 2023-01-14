@@ -4,7 +4,7 @@ import brainpy.math as bm
 bp.math.enable_x64()
 
 
-class WilsonCowanModel(bp.dyn.DynamicalSystem):
+class WilsonCowanModel(bp.DynamicalSystem):
   def __init__(self, num, method='exp_auto'):
     super(WilsonCowanModel, self).__init__()
 
@@ -59,7 +59,7 @@ model.e[:] = [-0.2, 1.]
 model.i[:] = [0.0, 1.]
 
 # simulation
-runner = bp.dyn.DSRunner(model, monitors=['e', 'i'])
+runner = bp.DSRunner(model, monitors=['e', 'i'])
 runner.run(100)
 
 fig, gs = bp.visualize.get_figure(2, 1, 3, 8)

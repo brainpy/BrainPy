@@ -81,7 +81,11 @@ class Dense(Layer):
             f'num_out={self.num_out}, '
             f'mode={self.mode})')
 
-  def update(self, sha, x):
+  def update(self, *args):
+    if len(args) == 1:
+      sha, x = dict(), bm.as_jax(args[0])
+    else:
+      sha, x = args[0], bm.as_jax(args[1])
     res = x @ self.W
     if self.b is not None:
       res += self.b
@@ -102,7 +106,7 @@ class Dense(Layer):
       num_input = self.num_in
     else:
       num_input = self.num_in + 1
-    self.online_fit_by.initialize(feature_in=num_input, feature_out=self.num_out, identifier=self.name)
+    self.online_fit_by.register_target(feature_in=num_input, identifier=self.name)
 
   def online_fit(self,
                  target: ArrayType,
@@ -139,13 +143,6 @@ class Dense(Layer):
       self.b += db[0]
       self.W += dW
 
-  def offline_init(self):
-    if self.b is None:
-      num_input = self.num_in + 1
-    else:
-      num_input = self.num_in
-    self.offline_fit_by.initialize(feature_in=num_input, feature_out=self.num_out, identifier=self.name)
-
   def offline_fit(self,
                   target: ArrayType,
                   fit_record: Dict[str, ArrayType]):
@@ -176,7 +173,7 @@ class Dense(Layer):
       xs = jnp.concatenate([jnp.ones(xs.shape[:2] + (1,)), xs], axis=-1)  # (..., 1 + num_ff_input)
 
     # solve weights by offline training methods
-    weights = self.offline_fit_by(self.name, target, xs, ys)
+    weights = self.offline_fit_by(target, xs, ys)
 
     # assign trained weights
     if self.b is None:

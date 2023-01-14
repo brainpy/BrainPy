@@ -17,6 +17,7 @@ import numpy as np
 sys.path.append('../../')
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
+
 import tqdm
 import argparse
 import time
@@ -35,7 +36,7 @@ bm.set_environment(bm.TrainingMode())
 # bm.set_platform('gpu')
 
 parser = argparse.ArgumentParser(description='CIFAR10 Training')
-parser.add_argument('-data', default='./data', type=str, help='path to dataset')
+parser.add_argument('-data', default='D:/data', type=str, help='path to dataset')
 parser.add_argument('-b', default=64, type=int, metavar='N')
 parser.add_argument('-T', default=100, type=int, help='Simulation timesteps')
 parser.add_argument('-lr', default=0.0025, type=float, help='initial learning rate')

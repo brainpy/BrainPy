@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy._src.initialize import Normal, ZeroInit, Initializer, parameter, variable
-from brainpy.check import is_float, is_initializer, is_string
+from brainpy import check
 from brainpy.tools import to_size
 from brainpy.types import ArrayType
 from .base import Layer
@@ -36,8 +36,9 @@ class Reservoir(Layer):
     A float between 0 and 1.
   activation : str, callable, optional
     Reservoir activation function.
+
     - If a str, should be a :py:mod:`brainpy.math.activations` function name.
-    - If a callable, should be an element-wise operator on tensor.
+    - If a callable, should be an element-wise operator.
   activation_type : str
     - If "internal" (default), then leaky integration happens on states transformed
       by the activation function:
@@ -66,9 +67,12 @@ class Reservoir(Layer):
     neurons connected to other reservoir neurons, including themselves.
     Must be in [0, 1], by default 0.1
   comp_type: str
-    The connectivity type, can be "dense" or "sparse".
+    The connectivity type, can be "dense" or "sparse", "jit".
+
+    - ``"dense"`` means the connectivity matrix is a dense matrix.
+    - ``"sparse"`` means the connectivity matrix is a CSR sparse matrix.
   spectral_radius : float, optional
-    Spectral radius of recurrent weight matrix, by default None
+    Spectral radius of recurrent weight matrix, by default None.
   noise_rec : float, optional
     Gain of noise applied to reservoir internal states, by default 0.0
   noise_in : float, optional
@@ -118,37 +122,38 @@ class Reservoir(Layer):
     self.num_unit = num_out
     assert num_out > 0, f'Must be a positive integer, but we got {num_out}'
     self.leaky_rate = leaky_rate
-    is_float(leaky_rate, 'leaky_rate', 0., 1.)
-    self.activation = getattr(bm.activations, activation)
+    check.is_float(leaky_rate, 'leaky_rate', 0., 1.)
+    self.activation = getattr(bm.activations, activation) if isinstance(activation, str) else activation
+    check.is_callable(self.activation, allow_none=False)
     self.activation_type = activation_type
-    is_string(activation_type, 'activation_type', ['internal', 'external'])
+    check.is_string(activation_type, 'activation_type', ['internal', 'external'])
     self.rng = bm.random.default_rng(seed)
-    is_float(spectral_radius, 'spectral_radius', allow_none=True)
+    check.is_float(spectral_radius, 'spectral_radius', allow_none=True)
     self.spectral_radius = spectral_radius
 
     # initializations
-    is_initializer(Win_initializer, 'ff_initializer', allow_none=False)
-    is_initializer(Wrec_initializer, 'rec_initializer', allow_none=False)
-    is_initializer(b_initializer, 'bias_initializer', allow_none=True)
+    check.is_initializer(Win_initializer, 'ff_initializer', allow_none=False)
+    check.is_initializer(Wrec_initializer, 'rec_initializer', allow_none=False)
+    check.is_initializer(b_initializer, 'bias_initializer', allow_none=True)
     self._Win_initializer = Win_initializer
     self._Wrec_initializer = Wrec_initializer
     self._b_initializer = b_initializer
 
     # connectivity
-    is_float(in_connectivity, 'ff_connectivity', 0., 1.)
-    is_float(rec_connectivity, 'rec_connectivity', 0., 1.)
+    check.is_float(in_connectivity, 'ff_connectivity', 0., 1.)
+    check.is_float(rec_connectivity, 'rec_connectivity', 0., 1.)
     self.ff_connectivity = in_connectivity
     self.rec_connectivity = rec_connectivity
-    is_string(comp_type, 'conn_type', ['dense', 'sparse'])
+    check.is_string(comp_type, 'conn_type', ['dense', 'sparse', 'jit'])
     self.comp_type = comp_type
 
     # noises
-    is_float(noise_in, 'noise_ff')
-    is_float(noise_rec, 'noise_rec')
+    check.is_float(noise_in, 'noise_ff')
+    check.is_float(noise_rec, 'noise_rec')
     self.noise_ff = noise_in
     self.noise_rec = noise_rec
     self.noise_type = noise_type
-    is_string(noise_type, 'noise_type', ['normal', 'uniform'])
+    check.is_string(noise_type, 'noise_type', ['normal', 'uniform'])
 
     # initialize feedforward weights
     weight_shape = (input_shape[-1], self.num_unit)
@@ -170,7 +175,7 @@ class Reservoir(Layer):
       conn_mat = self.rng.random(recurrent_shape) > self.rec_connectivity
       self.Wrec[conn_mat] = 0.
     if self.spectral_radius is not None:
-      current_sr = max(abs(jnp.linalg.eig(self.Wrec)[0]))
+      current_sr = max(abs(jnp.linalg.eig(bm.as_jax(self.Wrec))[0]))
       self.Wrec *= self.spectral_radius / current_sr
     if self.comp_type == 'sparse' and self.rec_connectivity < 1.:
       self.rec_pres, self.rec_posts = jnp.where(jnp.logical_not(bm.as_jax(conn_mat)))
@@ -186,11 +191,13 @@ class Reservoir(Layer):
   def reset_state(self, batch_size=None):
     self.state.value = variable(jnp.zeros, batch_size, self.output_shape)
 
-  def update(self, sha, x):
+  def update(self, *args):
     """Feedforward output."""
     # inputs
-    x = jnp.concatenate(x, axis=-1)
-    if self.noise_ff > 0: x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
+    x = args[0] if len(args) == 1 else args[1]
+    x = bm.as_jax(x)
+    if self.noise_ff > 0:
+      x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
     if self.comp_type == 'sparse' and self.ff_connectivity < 1.:
       sparse = {'data': self.Win,
                 'index': (self.ff_pres, self.ff_posts),

@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import brainpy as bp
-from brainpy import dyn
-from brainpy.dyn import channels
 
 
-class HH(dyn.CondNeuGroup):
+class HH(bp.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size)
 
-    self.INa = channels.INa_HH1952(size, )
-    self.IK = channels.IK_HH1952(size, )
-    self.IL = channels.IL(size, E=-54.387, g_max=0.03)
+    self.INa = bp.channels.INa_HH1952(size, )
+    self.IK = bp.channels.IK_HH1952(size, )
+    self.IL = bp.channels.IL(size, E=-54.387, g_max=0.03)
 
 
 hh = HH(1)

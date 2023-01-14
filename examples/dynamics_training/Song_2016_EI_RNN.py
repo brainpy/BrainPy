@@ -71,7 +71,7 @@ print(f'Bacth size = {batch_size}')
 # Here we define a E-I recurrent network, in particular, no self-connections are allowed.
 
 # %%
-class RNN(bp.dyn.DynamicalSystem):
+class RNN(bp.DynamicalSystem):
   r"""E-I RNN.
 
   The RNNs are described by the equations
