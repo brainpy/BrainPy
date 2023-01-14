@@ -7,8 +7,6 @@ This module implements voltage-dependent calcium channels.
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy._src.dyn.base import Channel
 from brainpy._src.initialize import OneInit, Initializer, parameter, variable
@@ -23,7 +21,7 @@ __all__ = [
   'CalciumDetailed',
   'CalciumFirstOrder',
 
-  'ICa_p2q_ss', 'ICa_p2q_markov',
+  '_ICa_p2q_ss', '_ICa_p2q_markov',
 
   'ICaN_IS2008',
 
@@ -141,12 +139,12 @@ class CalciumDyna(Calcium):
 
   def update(self, tdi, V):
     for node in self.nodes(level=1, include_self=False).unique().subset(Channel).values():
-      node.update(tdi, V, self.C, self.E)
+      node.update(tdi, V, self.C.value, self.E.value)
     self.C.value = self.integral(self.C.value, tdi['t'], V, tdi['dt'])
-    self.E.value = self._reversal_potential(self.C)
+    self.E.value = self._reversal_potential(self.C.value)
 
   def _reversal_potential(self, C):
-    return self._constant * jnp.log(self.C0 / C)
+    return self._constant * bm.log(self.C0 / C)
 
 
 class CalciumDetailed(CalciumDyna):
@@ -292,7 +290,7 @@ class CalciumDetailed(CalciumDyna):
 
   def derivative(self, C, t, V):
     ICa = self.current(V, C, self.E)
-    drive = jnp.maximum(- ICa / (2 * self.F * self.d), 0.)
+    drive = bm.maximum(- ICa / (2 * self.F * self.d), 0.)
     return drive + (self.C_rest - C) / self.tau
 
 
@@ -335,14 +333,14 @@ class CalciumFirstOrder(CalciumDyna):
 
   def derivative(self, C, t, V):
     ICa = self.current(V, C, self.E)
-    drive = jnp.maximum(- self.alpha * ICa, 0.)
+    drive = bm.maximum(- self.alpha * ICa, 0.)
     return drive - self.beta * C
 
 
 # -------------------------
 
 
-class ICa_p2q_ss(CalciumChannel):
+class _ICa_p2q_ss(CalciumChannel):
   r"""The calcium current model of :math:`p^2q` current which described with steady-state format.
 
   The dynamics of this generalized calcium current model is given by:
@@ -386,10 +384,10 @@ class ICa_p2q_ss(CalciumChannel):
       mode: bm.Mode = None,
       name: str = None
   ):
-    super(ICa_p2q_ss, self).__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     mode=mode, )
+    super(_ICa_p2q_ss, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      mode=mode, )
 
     # parameters
     self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
@@ -397,8 +395,8 @@ class ICa_p2q_ss(CalciumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
-    self.q = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -435,7 +433,7 @@ class ICa_p2q_ss(CalciumChannel):
     raise NotImplementedError
 
 
-class ICa_p2q_markov(CalciumChannel):
+class _ICa_p2q_markov(CalciumChannel):
   r"""The calcium current model of :math:`p^2q` current which described with first-order Markov chain.
 
   The dynamics of this generalized calcium current model is given by:
@@ -479,10 +477,10 @@ class ICa_p2q_markov(CalciumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(ICa_p2q_markov, self).__init__(size,
-                                         keep_size=keep_size,
-                                         name=name,
-                                         mode=mode)
+    super(_ICa_p2q_markov, self).__init__(size,
+                                          keep_size=keep_size,
+                                          name=name,
+                                          mode=mode)
 
     # parameters
     self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
@@ -490,8 +488,8 @@ class ICa_p2q_markov(CalciumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
-    self.q = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # functions
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -592,18 +590,18 @@ class ICaN_IS2008(CalciumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
 
   def derivative(self, p, t, V):
-    phi_p = 1.0 / (1 + jnp.exp(-(V + 43.) / 5.2))
-    p_inf = 2.7 / (jnp.exp(-(V + 55.) / 15.) + jnp.exp((V + 55.) / 15.)) + 1.6
+    phi_p = 1.0 / (1 + bm.exp(-(V + 43.) / 5.2))
+    p_inf = 2.7 / (bm.exp(-(V + 55.) / 15.) + bm.exp((V + 55.) / 15.)) + 1.6
     return self.phi * (phi_p - p) / p_inf
 
   def update(self, tdi, V, C_Ca, E_Ca):
-    self.p.value = self.integral(self.p, tdi['t'], V, tdi['dt'])
+    self.p.value = self.integral(self.p.value, tdi['t'], V, tdi['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     M = C_Ca / (C_Ca + 0.2)
@@ -611,12 +609,12 @@ class ICaN_IS2008(CalciumChannel):
     return g * (self.E - V)
 
   def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
-    self.p.value = 1.0 / (1 + jnp.exp(-(V + 43.) / 5.2))
+    self.p.value = 1.0 / (1 + bm.exp(-(V + 43.) / 5.2))
     if batch_size is not None:
       assert self.p.shape[0] == batch_size
 
 
-class ICaT_HM1992(ICa_p2q_ss):
+class ICaT_HM1992(_ICa_p2q_ss):
   r"""The low-threshold T-type calcium current model proposed by (Huguenard & McCormick, 1992) [1]_.
 
   The dynamics of the low-threshold T-type calcium current model [1]_ is given by:
@@ -697,22 +695,22 @@ class ICaT_HM1992(ICa_p2q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    return 1. / (1 + jnp.exp(-(V + 59. - self.V_sh) / 6.2))
+    return 1. / (1 + bm.exp(-(V + 59. - self.V_sh) / 6.2))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp(-(V + 132. - self.V_sh) / 16.7) +
-                 jnp.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
+    return 1. / (bm.exp(-(V + 132. - self.V_sh) / 16.7) +
+                 bm.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
 
   def f_q_inf(self, V):
-    return 1. / (1. + jnp.exp((V + 83. - self.V_sh) / 4.0))
+    return 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.0))
 
   def f_q_tau(self, V):
-    return jnp.where(V >= (-80. + self.V_sh),
-                     jnp.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
-                     jnp.exp((V + 467. - self.V_sh) / 66.6))
+    return bm.where(V >= (-80. + self.V_sh),
+                     bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
+                     bm.exp((V + 467. - self.V_sh) / 66.6))
 
 
-class ICaT_HP1992(ICa_p2q_ss):
+class ICaT_HP1992(_ICa_p2q_ss):
   r"""The low-threshold T-type calcium current model for thalamic
   reticular nucleus proposed by (Huguenard & Prince, 1992) [1]_.
 
@@ -795,21 +793,21 @@ class ICaT_HP1992(ICa_p2q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    return 1. / (1. + jnp.exp(-(V + 52. - self.V_sh) / 7.4))
+    return 1. / (1. + bm.exp(-(V + 52. - self.V_sh) / 7.4))
 
   def f_p_tau(self, V):
-    return 3. + 1. / (jnp.exp((V + 27. - self.V_sh) / 10.) +
-                      jnp.exp(-(V + 102. - self.V_sh) / 15.))
+    return 3. + 1. / (bm.exp((V + 27. - self.V_sh) / 10.) +
+                      bm.exp(-(V + 102. - self.V_sh) / 15.))
 
   def f_q_inf(self, V):
-    return 1. / (1. + jnp.exp((V + 80. - self.V_sh) / 5.))
+    return 1. / (1. + bm.exp((V + 80. - self.V_sh) / 5.))
 
   def f_q_tau(self, V):
-    return 85. + 1. / (jnp.exp((V + 48. - self.V_sh) / 4.) +
-                       jnp.exp(-(V + 407. - self.V_sh) / 50.))
+    return 85. + 1. / (bm.exp((V + 48. - self.V_sh) / 4.) +
+                       bm.exp(-(V + 407. - self.V_sh) / 50.))
 
 
-class ICaHT_HM1992(ICa_p2q_ss):
+class ICaHT_HM1992(_ICa_p2q_ss):
   r"""The high-threshold T-type calcium current model proposed by (Huguenard & McCormick, 1992) [1]_.
 
   The high-threshold T-type calcium current model is adopted from [1]_.
@@ -886,29 +884,29 @@ class ICaHT_HM1992(ICa_p2q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
-    self.q = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
   def f_p_inf(self, V):
-    return 1. / (1. + jnp.exp(-(V + 59. - self.V_sh) / 6.2))
+    return 1. / (1. + bm.exp(-(V + 59. - self.V_sh) / 6.2))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp(-(V + 132. - self.V_sh) / 16.7) +
-                 jnp.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
+    return 1. / (bm.exp(-(V + 132. - self.V_sh) / 16.7) +
+                 bm.exp((V + 16.8 - self.V_sh) / 18.2)) + 0.612
 
   def f_q_inf(self, V):
-    return 1. / (1. + jnp.exp((V + 83. - self.V_sh) / 4.))
+    return 1. / (1. + bm.exp((V + 83. - self.V_sh) / 4.))
 
   def f_q_tau(self, V):
-    return jnp.where(V >= (-80. + self.V_sh),
-                     jnp.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
-                     jnp.exp((V + 467. - self.V_sh) / 66.6))
+    return bm.where(V >= (-80. + self.V_sh),
+                     bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
+                     bm.exp((V + 467. - self.V_sh) / 66.6))
 
 
-class ICaHT_Re1993(ICa_p2q_markov):
+class ICaHT_Re1993(_ICa_p2q_markov):
   r"""The high-threshold T-type calcium current model proposed by (Reuveni, et al., 1993) [1]_.
 
   HVA Calcium current was described for neocortical neurons by Sayer et al. (1990).
@@ -994,19 +992,19 @@ class ICaHT_Re1993(ICa_p2q_markov):
 
   def f_p_alpha(self, V):
     temp = -27 - V + self.V_sh
-    return 0.055 * temp / (jnp.exp(temp / 3.8) - 1)
+    return 0.055 * temp / (bm.exp(temp / 3.8) - 1)
 
   def f_p_beta(self, V):
-    return 0.94 * jnp.exp((-75. - V + self.V_sh) / 17.)
+    return 0.94 * bm.exp((-75. - V + self.V_sh) / 17.)
 
   def f_q_alpha(self, V):
-    return 0.000457 * jnp.exp((-13. - V + self.V_sh) / 50.)
+    return 0.000457 * bm.exp((-13. - V + self.V_sh) / 50.)
 
   def f_q_beta(self, V):
-    return 0.0065 / (jnp.exp((-15. - V + self.V_sh) / 28.) + 1.)
+    return 0.0065 / (bm.exp((-15. - V + self.V_sh) / 28.) + 1.)
 
 
-class ICaL_IS2008(ICa_p2q_ss):
+class ICaL_IS2008(_ICa_p2q_ss):
   r"""The L-type calcium channel model proposed by (Inoue & Strowbridge, 2008) [1]_.
 
   The L-type calcium channel model is adopted from (Inoue, et, al., 2008) [1]_.
@@ -1080,15 +1078,15 @@ class ICaL_IS2008(ICa_p2q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    return 1. / (1 + jnp.exp(-(V + 10. - self.V_sh) / 4.))
+    return 1. / (1 + bm.exp(-(V + 10. - self.V_sh) / 4.))
 
   def f_p_tau(self, V):
-    return 0.4 + .7 / (jnp.exp(-(V + 5. - self.V_sh) / 15.) +
-                       jnp.exp((V + 5. - self.V_sh) / 15.))
+    return 0.4 + .7 / (bm.exp(-(V + 5. - self.V_sh) / 15.) +
+                       bm.exp((V + 5. - self.V_sh) / 15.))
 
   def f_q_inf(self, V):
-    return 1. / (1. + jnp.exp((V + 25. - self.V_sh) / 2.))
+    return 1. / (1. + bm.exp((V + 25. - self.V_sh) / 2.))
 
   def f_q_tau(self, V):
-    return 300. + 100. / (jnp.exp((V + 40 - self.V_sh) / 9.5) +
-                          jnp.exp(-(V + 40 - self.V_sh) / 9.5))
+    return 300. + 100. / (bm.exp((V + 40 - self.V_sh) / 9.5) +
+                          bm.exp(-(V + 40 - self.V_sh) / 9.5))

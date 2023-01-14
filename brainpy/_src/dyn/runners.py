@@ -178,7 +178,7 @@ def check_and_format_inputs(host, inputs):
     # input data
     if type_ == 'iter':
       if isinstance(value, (bm.ndarray, np.ndarray, jnp.ndarray)):
-        array_inputs[op].append([variable, jnp.asarray(value)])
+        array_inputs[op].append([variable, bm.as_jax(value)])
       else:
         next_inputs[op].append([variable, iter(value)])
     elif type_ == 'func':
@@ -547,7 +547,7 @@ class DSRunner(Runner):
         if idx is None:
           res[key] = variable.value
         else:
-          res[key] = variable[jnp.asarray(idx)]
+          res[key] = variable[bm.as_jax(idx)]
     return res
 
   def _step_func_input(self, shared):
