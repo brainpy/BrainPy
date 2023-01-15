@@ -5,6 +5,7 @@ import warnings
 import operator
 from typing import Optional, Tuple as TupleType
 
+import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
@@ -91,6 +92,30 @@ def _check_input_array(array):
     return array
 
 
+def _return(a):
+  if _return_bp_array:
+    if isinstance(a, jax.Array):
+      if a.ndim > 1:
+        return Array(a)
+  return a
+
+
+def is_return_bparray():
+  return _return_bp_array
+
+
+_return_bp_array = True
+
+def _as_jax_array_(obj):
+  return obj.value if isinstance(obj, Array) else obj
+
+
+def npfun_returns_bparray(mode: bool):
+  global _return_bp_array
+  assert isinstance(mode, bool)
+  _return_bp_array = mode
+
+
 class Array(object):
   """Multiple-dimensional array in BrainPy.
   """
@@ -160,7 +185,7 @@ class Array(object):
 
   @property
   def real(self):
-    return Array(self.value.real)
+    return _return(self.value.real)
 
   @property
   def size(self):
@@ -168,7 +193,7 @@ class Array(object):
 
   @property
   def T(self):
-    return Array(self.value.T)
+    return _return(self.value.T)
 
   # ----------------------- #
   # Python inherent methods #
@@ -179,8 +204,6 @@ class Array(object):
     name = self.__class__.__name__
     if 'DeviceArray' in print_code:
       replace_name = 'DeviceArray'
-    elif 'Array' in print_code:
-      replace_name = 'Array'
     else:
       replace_name = ''
     if replace_name:
@@ -264,40 +287,40 @@ class Array(object):
     return len(self._value)
 
   def __neg__(self):
-    return Array(self._value.__neg__())
+    return _return(self._value.__neg__())
 
   def __pos__(self):
-    return Array(self._value.__pos__())
+    return _return(self._value.__pos__())
 
   def __abs__(self):
-    return Array(self._value.__abs__())
+    return _return(self._value.__abs__())
 
   def __invert__(self):
-    return Array(self._value.__invert__())
+    return _return(self._value.__invert__())
 
   def __eq__(self, oc):
-    return Array(self._value == _check_input_array(oc))
+    return _return(self._value == _check_input_array(oc))
 
   def __ne__(self, oc):
-    return Array(self._value != _check_input_array(oc))
+    return _return(self._value != _check_input_array(oc))
 
   def __lt__(self, oc):
-    return Array(self._value < _check_input_array(oc))
+    return _return(self._value < _check_input_array(oc))
 
   def __le__(self, oc):
-    return Array(self._value <= _check_input_array(oc))
+    return _return(self._value <= _check_input_array(oc))
 
   def __gt__(self, oc):
-    return Array(self._value > _check_input_array(oc))
+    return _return(self._value > _check_input_array(oc))
 
   def __ge__(self, oc):
-    return Array(self._value >= _check_input_array(oc))
+    return _return(self._value >= _check_input_array(oc))
 
   def __add__(self, oc):
-    return Array(self._value + _check_input_array(oc))
+    return _return(self._value + _check_input_array(oc))
 
   def __radd__(self, oc):
-    return Array(self._value + _check_input_array(oc))
+    return _return(self._value + _check_input_array(oc))
 
   def __iadd__(self, oc):
     # a += b
@@ -307,10 +330,10 @@ class Array(object):
     return self
 
   def __sub__(self, oc):
-    return Array(self._value - _check_input_array(oc))
+    return _return(self._value - _check_input_array(oc))
 
   def __rsub__(self, oc):
-    return Array(_check_input_array(oc) - self._value)
+    return _return(_check_input_array(oc) - self._value)
 
   def __isub__(self, oc):
     # a -= b
@@ -320,10 +343,10 @@ class Array(object):
     return self
 
   def __mul__(self, oc):
-    return Array(self._value * _check_input_array(oc))
+    return _return(self._value * _check_input_array(oc))
 
   def __rmul__(self, oc):
-    return Array(_check_input_array(oc) * self._value)
+    return _return(_check_input_array(oc) * self._value)
 
   def __imul__(self, oc):
     # a *= b
@@ -333,13 +356,13 @@ class Array(object):
     return self
 
   def __rdiv__(self, oc):
-    return Array(_check_input_array(oc) / self._value)
+    return _return(_check_input_array(oc) / self._value)
 
   def __truediv__(self, oc):
-    return Array(self._value / _check_input_array(oc))
+    return _return(self._value / _check_input_array(oc))
 
   def __rtruediv__(self, oc):
-    return Array(_check_input_array(oc) / self._value)
+    return _return(_check_input_array(oc) / self._value)
 
   def __itruediv__(self, oc):
     # a /= b
@@ -349,10 +372,10 @@ class Array(object):
     return self
 
   def __floordiv__(self, oc):
-    return Array(self._value // _check_input_array(oc))
+    return _return(self._value // _check_input_array(oc))
 
   def __rfloordiv__(self, oc):
-    return Array(_check_input_array(oc) // self._value)
+    return _return(_check_input_array(oc) // self._value)
 
   def __ifloordiv__(self, oc):
     # a //= b
@@ -362,16 +385,16 @@ class Array(object):
     return self
 
   def __divmod__(self, oc):
-    return Array(self._value.__divmod__(_check_input_array(oc)))
+    return _return(self._value.__divmod__(_check_input_array(oc)))
 
   def __rdivmod__(self, oc):
-    return Array(self._value.__rdivmod__(_check_input_array(oc)))
+    return _return(self._value.__rdivmod__(_check_input_array(oc)))
 
   def __mod__(self, oc):
-    return Array(self._value % _check_input_array(oc))
+    return _return(self._value % _check_input_array(oc))
 
   def __rmod__(self, oc):
-    return Array(_check_input_array(oc) % self._value)
+    return _return(_check_input_array(oc) % self._value)
 
   def __imod__(self, oc):
     # a %= b
@@ -381,10 +404,10 @@ class Array(object):
     return self
 
   def __pow__(self, oc):
-    return Array(self._value ** _check_input_array(oc))
+    return _return(self._value ** _check_input_array(oc))
 
   def __rpow__(self, oc):
-    return Array(_check_input_array(oc) ** self._value)
+    return _return(_check_input_array(oc) ** self._value)
 
   def __ipow__(self, oc):
     # a **= b
@@ -394,10 +417,10 @@ class Array(object):
     return self
 
   def __matmul__(self, oc):
-    return Array(self._value @ _check_input_array(oc))
+    return _return(self._value @ _check_input_array(oc))
 
   def __rmatmul__(self, oc):
-    return Array(_check_input_array(oc) @ self._value)
+    return _return(_check_input_array(oc) @ self._value)
 
   def __imatmul__(self, oc):
     # a @= b
@@ -407,10 +430,10 @@ class Array(object):
     return self
 
   def __and__(self, oc):
-    return Array(self._value & _check_input_array(oc))
+    return _return(self._value & _check_input_array(oc))
 
   def __rand__(self, oc):
-    return Array(_check_input_array(oc) & self._value)
+    return _return(_check_input_array(oc) & self._value)
 
   def __iand__(self, oc):
     # a &= b
@@ -420,10 +443,10 @@ class Array(object):
     return self
 
   def __or__(self, oc):
-    return Array(self._value | _check_input_array(oc))
+    return _return(self._value | _check_input_array(oc))
 
   def __ror__(self, oc):
-    return Array(_check_input_array(oc) | self._value)
+    return _return(_check_input_array(oc) | self._value)
 
   def __ior__(self, oc):
     # a |= b
@@ -433,10 +456,10 @@ class Array(object):
     return self
 
   def __xor__(self, oc):
-    return Array(self._value ^ _check_input_array(oc))
+    return _return(self._value ^ _check_input_array(oc))
 
   def __rxor__(self, oc):
-    return Array(_check_input_array(oc) ^ self._value)
+    return _return(_check_input_array(oc) ^ self._value)
 
   def __ixor__(self, oc):
     # a ^= b
@@ -446,10 +469,10 @@ class Array(object):
     return self
 
   def __lshift__(self, oc):
-    return Array(self._value << _check_input_array(oc))
+    return _return(self._value << _check_input_array(oc))
 
   def __rlshift__(self, oc):
-    return Array(_check_input_array(oc) << self._value)
+    return _return(_check_input_array(oc) << self._value)
 
   def __ilshift__(self, oc):
     # a <<= b
@@ -459,10 +482,10 @@ class Array(object):
     return self
 
   def __rshift__(self, oc):
-    return Array(self._value >> _check_input_array(oc))
+    return _return(self._value >> _check_input_array(oc))
 
   def __rrshift__(self, oc):
-    return Array(_check_input_array(oc) >> self._value)
+    return _return(_check_input_array(oc) >> self._value)
 
   def __irshift__(self, oc):
     # a >>= b
@@ -472,7 +495,7 @@ class Array(object):
     return self
 
   def __round__(self, ndigits=None):
-    return Array(self._value.__round__(ndigits))
+    return _return(self._value.__round__(ndigits))
 
   # ----------------------- #
   #       JAX methods       #
@@ -502,28 +525,28 @@ class Array(object):
   def all(self, axis=None, keepdims=False):
     """Returns True if all elements evaluate to True."""
     r = self.value.all(axis=axis, keepdims=keepdims)
-    return r if (axis is None or keepdims) else Array(r)
+    return _return(r)
 
   def any(self, axis=None, keepdims=False):
     """Returns True if any of the elements of a evaluate to True."""
     r = self.value.any(axis=axis, keepdims=keepdims)
-    return r if (axis is None or keepdims) else Array(r)
+    return _return(r)
 
   def argmax(self, axis=None):
     """Return indices of the maximum values along the given axis."""
-    return Array(self.value.argmax(axis=axis))
+    return _return(self.value.argmax(axis=axis))
 
   def argmin(self, axis=None):
     """Return indices of the minimum values along the given axis."""
-    return Array(self.value.argmin(axis=axis))
+    return _return(self.value.argmin(axis=axis))
 
   def argpartition(self, kth, axis=-1, kind='introselect', order=None):
     """Returns the indices that would partition this array."""
-    return Array(self.value.argpartition(kth=kth, axis=axis, kind=kind, order=order))
+    return _return(self.value.argpartition(kth=kth, axis=axis, kind=kind, order=order))
 
   def argsort(self, axis=-1, kind=None, order=None):
     """Returns the indices that would sort this array."""
-    return Array(self.value.argsort(axis=axis, kind=kind, order=order))
+    return _return(self.value.argsort(axis=axis, kind=kind, order=order))
 
   def astype(self, dtype):
     """Copy of the array, cast to a specified type.
@@ -533,7 +556,7 @@ class Array(object):
     dtype: str, dtype
       Typecode or data-type to which the array is cast.
     """
-    return Array(self.value.astype(dtype=dtype))
+    return _return(self.value.astype(dtype=dtype))
 
   def byteswap(self, inplace=False):
     """Swap the bytes of the array elements
@@ -542,49 +565,47 @@ class Array(object):
     returning a byteswapped array, optionally swapped in-place.
     Arrays of byte-strings are not swapped. The real and imaginary
     parts of a complex number are swapped individually."""
-    return Array(self.value.byteswap(inplace=inplace))
+    return _return(self.value.byteswap(inplace=inplace))
 
   def choose(self, choices, mode='raise'):
     """Use an index array to construct a new array from a set of choices."""
-    choices = choices.value if isinstance(choices, Array) else choices
-    return Array(self.value.choose(choices=choices, mode=mode))
+    return _return(self.value.choose(choices=_as_jax_array_(choices), mode=mode))
 
   def clip(self, min=None, max=None):
     """Return an array whose values are limited to [min, max]. One of max or min must be given."""
-    return Array(self.value.clip(min=min, max=max))
+    return _return(self.value.clip(min=min, max=max))
 
   def compress(self, condition, axis=None):
     """Return selected slices of this array along given axis."""
-    condition = condition.value if isinstance(condition, Array) else condition
-    return Array(self.value.compress(condition=condition, axis=axis))
+    return _return(self.value.compress(condition=_as_jax_array_(condition), axis=axis))
 
   def conj(self):
     """Complex-conjugate all elements."""
-    return Array(self.value.conj())
+    return _return(self.value.conj())
 
   def conjugate(self):
     """Return the complex conjugate, element-wise."""
-    return Array(self.value.conjugate())
+    return _return(self.value.conjugate())
 
   def copy(self):
     """Return a copy of the array."""
-    return Array(self.value.copy())
+    return _return(self.value.copy())
 
   def cumprod(self, axis=None, dtype=None):
     """Return the cumulative product of the elements along the given axis."""
-    return Array(self.value.cumprod(axis=axis, dtype=dtype))
+    return _return(self.value.cumprod(axis=axis, dtype=dtype))
 
   def cumsum(self, axis=None, dtype=None):
     """Return the cumulative sum of the elements along the given axis."""
-    return Array(self.value.cumsum(axis=axis, dtype=dtype))
+    return _return(self.value.cumsum(axis=axis, dtype=dtype))
 
   def diagonal(self, offset=0, axis1=0, axis2=1):
     """Return specified diagonals."""
-    return Array(self.value.diagonal(offset=offset, axis1=axis1, axis2=axis2))
+    return _return(self.value.diagonal(offset=offset, axis1=axis1, axis2=axis2))
 
   def dot(self, b):
     """Dot product of two arrays."""
-    return Array(self.value.dot(b.value if isinstance(b, Array) else b))
+    return _return(self.value.dot(_as_jax_array_(b)))
 
   def fill(self, value):
     """Fill the array with a scalar value."""
@@ -592,8 +613,8 @@ class Array(object):
       raise MathError(msg)
     self._value = jnp.ones_like(self.value) * value
 
-  def flatten(self, order='C'):
-    return Array(self.value.flatten(order=order))
+  def flatten(self):
+    return _return(self.value.flatten())
 
   def item(self, *args):
     """Copy an element of an array to a standard Python scalar and return it."""
@@ -602,31 +623,31 @@ class Array(object):
   def max(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the maximum along a given axis."""
     res = self.value.max(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else Array(res)
+    return res if (axis is None or keepdims) else _return(res)
 
   def mean(self, axis=None, dtype=None, keepdims=False, *args, **kwargs):
     """Returns the average of the array elements along given axis."""
     res = self.value.mean(axis=axis, dtype=dtype, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else Array(res)
+    return _return(res)
 
   def min(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the minimum along a given axis."""
     res = self.value.min(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else Array(res)
+    return _return(res)
 
   def nonzero(self):
     """Return the indices of the elements that are non-zero."""
-    return tuple(Array(a) for a in self.value.nonzero())
+    return tuple(_return(a) for a in self.value.nonzero())
 
   def prod(self, axis=None, dtype=None, keepdims=False, initial=1, where=True):
     """Return the product of the array elements over the given axis."""
     res = self.value.prod(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-    return res if (axis is None or keepdims) else Array(res)
+    return _return(res)
 
   def ptp(self, axis=None, keepdims=False):
     """Peak to peak (maximum - minimum) value along a given axis."""
     r = self.value.ptp(axis=axis, keepdims=keepdims)
-    return r if (axis is None or keepdims) else Array(r)
+    return _return(r)
 
   def put(self, indices, values):
     """Replaces specified elements of an array with given values.
@@ -642,15 +663,15 @@ class Array(object):
 
   def ravel(self, order=None):
     """Return a flattened array."""
-    return Array(self.value.ravel(order=order))
+    return _return(self.value.ravel(order=order))
 
   def repeat(self, repeats, axis=None):
     """Repeat elements of an array."""
-    return Array(self.value.repeat(repeats=repeats, axis=axis))
+    return _return(self.value.repeat(repeats=repeats, axis=axis))
 
   def reshape(self, *shape, order='C'):
     """Returns an array containing the same data with a new shape."""
-    return Array(self.value.reshape(*shape, order=order))
+    return _return(self.value.reshape(*shape, order=order))
 
   def resize(self, new_shape):
     """Change shape and size of array in-place."""
@@ -658,7 +679,7 @@ class Array(object):
 
   def round(self, decimals=0):
     """Return ``a`` with each element rounded to the given number of decimals."""
-    return Array(self.value.round(decimals=decimals))
+    return _return(self.value.round(decimals=decimals))
 
   def searchsorted(self, v, side='left', sorter=None):
     """Find indices where elements should be inserted to maintain order.
@@ -693,8 +714,7 @@ class Array(object):
     indices : array of ints
         Array of insertion points with the same shape as `v`.
     """
-    v = v.value if isinstance(v, Array) else v
-    return Array(self.value.searchsorted(v=v, side=side, sorter=sorter))
+    return _return(self.value.searchsorted(v=_as_jax_array_(v), side=side, sorter=sorter))
 
   def sort(self, axis=-1, kind='quicksort', order=None):
     """Sort an array in-place.
@@ -722,7 +742,7 @@ class Array(object):
 
   def squeeze(self, axis=None):
     """Remove axes of length one from ``a``."""
-    return Array(self.value.squeeze(axis=axis))
+    return _return(self.value.squeeze(axis=axis))
 
   def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Compute the standard deviation along the specified axis.
@@ -764,16 +784,16 @@ class Array(object):
         otherwise return a reference to the output array.
     """
     r = self.value.std(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
-    return r if (axis is None or keepdims) else Array(r)
+    return _return(r)
 
   def sum(self, axis=None, dtype=None, keepdims=False, initial=0, where=True):
     """Return the sum of the array elements over the given axis."""
     res = self.value.sum(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-    return res if (axis is None or keepdims) else Array(res)
+    return _return(res)
 
   def swapaxes(self, axis1, axis2):
     """Return a view of the array with `axis1` and `axis2` interchanged."""
-    return Array(self.value.swapaxes(axis1, axis2))
+    return _return(self.value.swapaxes(axis1, axis2))
 
   def split(self, indices_or_sections, axis=0):
     """Split an array into multiple sub-arrays as views into ``ary``.
@@ -803,12 +823,11 @@ class Array(object):
     sub-arrays : list of ndarrays
       A list of sub-arrays as views into `ary`.
     """
-    return [Array(a) for a in self.value.split(indices_or_sections, axis=axis)]
+    return [_return(a) for a in self.value.split(indices_or_sections, axis=axis)]
 
   def take(self, indices, axis=None, mode=None):
     """Return an array formed from the elements of a at the given indices."""
-    indices = indices.value if isinstance(indices, Array) else indices
-    return Array(self.value.take(indices=indices, axis=axis, mode=mode))
+    return _return(self.value.take(indices=_as_jax_array_(indices), axis=axis, mode=mode))
 
   def tobytes(self, order='C'):
     """Construct Python bytes containing the raw data bytes in the array.
@@ -816,7 +835,7 @@ class Array(object):
     Constructs Python bytes showing a copy of the raw contents of data memory.
     The bytes object is produced in C-order by default. This behavior is
     controlled by the ``order`` parameter."""
-    return Array(self.value.tobytes(order=order))
+    return _return(self.value.tobytes(order=order))
 
   def tolist(self):
     """Return the array as an ``a.ndim``-levels deep nested list of Python scalars.
@@ -832,7 +851,7 @@ class Array(object):
 
   def trace(self, offset=0, axis1=0, axis2=1, dtype=None):
     """Return the sum along diagonals of the array."""
-    return Array(self.value.trace(offset=offset, axis1=axis1, axis2=axis2, dtype=dtype))
+    return _return(self.value.trace(offset=offset, axis1=axis1, axis2=axis2, dtype=dtype))
 
   def transpose(self, *axes):
     """Returns a view of the array with axes transposed.
@@ -864,7 +883,7 @@ class Array(object):
     out : ndarray
         View of `a`, with axes suitably permuted.
     """
-    return Array(self.value.transpose(*axes))
+    return _return(self.value.transpose(*axes))
 
   def tile(self, reps):
     """Construct an array by repeating A the number of times given by reps.
@@ -895,17 +914,16 @@ class Array(object):
     c : ndarray
         The tiled output array.
     """
-    reps = reps.value if isinstance(reps, Array) else reps
-    return Array(self.value.tile(reps))
+    return _return(self.value.tile(_as_jax_array_(reps)))
 
   def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
     """Returns the variance of the array elements, along given axis."""
     r = self.value.var(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
-    return r if (axis is None or keepdims) else Array(r)
+    return _return(r)
 
   def view(self, dtype=None, *args, **kwargs):
     """New view of array with the same data."""
-    return Array(self.value.view(dtype=dtype, *args, **kwargs))
+    return _return(self.value.view(dtype=dtype, *args, **kwargs))
 
   # ------------------
   # NumPy support
@@ -1615,7 +1633,7 @@ class VariableView(Variable):
   >>> origin
   Variable([1.       , 1.       , 0.5482849, 0.6564884, 0.8446237], dtype=float32)
   >>> view + 10
-  DeviceArray([11., 11.], dtype=float32)
+  Array([11., 11.], dtype=float32)
   >>> view *= 10
   VariableView([10., 10.], dtype=float32)
 
