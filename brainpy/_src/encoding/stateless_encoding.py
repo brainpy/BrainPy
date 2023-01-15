@@ -66,5 +66,5 @@ class PoissonEncoder(Encoder):
     if not (self.min_val is None or self.max_val is None):
       x = (x - self.min_val) / (self.max_val - self.min_val)
     shape = x.shape if (num_step is None) else ((num_step,) + x.shape)
-    d = self.rng.rand(*shape).value < x
+    d = bm.as_jax(self.rng.rand(*shape)) < x
     return d.astype(x.dtype)

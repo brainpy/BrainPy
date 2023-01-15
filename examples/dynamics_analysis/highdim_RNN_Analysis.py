@@ -134,7 +134,7 @@ trainer.fit(data_generation, num_epoch=20, num_report=100)
 # Visualize neural activity for in sample trials
 # ---
 # We will run the network for 100 sample trials, then visual the neural activity trajectories in a PCA space.
-runner = bp.train.DSTrainer(net, monitors={'r': net.h}, progress_bar=False)
+runner = bp.DSTrainer(net, monitors={'r': net.h}, progress_bar=False)
 
 env.reset(no_step=True)
 num_trial = 100

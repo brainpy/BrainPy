@@ -4,10 +4,30 @@ import functools
 from typing import Callable
 
 import jax
-import numpy as np
 from jax.tree_util import tree_map
 
 from .ndarray import Array
+
+__all__ = [
+  'npfun_returns_bparray'
+]
+
+
+def _as_jax_array_(obj):
+  return obj.value if isinstance(obj, Array) else obj
+
+
+def _return(a):
+  return Array(a) if isinstance(a, jax.Array) and a.ndim > 1 else a
+
+
+_return_bp_array = True
+
+
+def npfun_returns_bparray(mode: bool):
+  global _return_bp_array
+  assert isinstance(mode, bool)
+  _return_bp_array = mode
 
 
 def wraps(fun: Callable):
@@ -29,26 +49,18 @@ def wraps(fun: Callable):
   return wrap
 
 
-def _as_jax_array(a):
-  return a.value if isinstance(a, Array) else a
-
-
-def _as_brainpy_array(a):
-  return Array(a) if isinstance(a, (np.ndarray, jax.Array)) else a
-
-
 def _is_leaf(a):
   return isinstance(a, Array)
 
 
-def _compatible_with_brainpy_array(fun: Callable, return_brainpy_array: bool = False):
+def _compatible_with_brainpy_array(fun: Callable):
   @functools.wraps(fun)
   def new_fun(*args, **kwargs):
-    args = tree_map(_as_jax_array, args, is_leaf=_is_leaf)
+    args = tree_map(_as_jax_array_, args, is_leaf=_is_leaf)
     if len(kwargs):
-      kwargs = tree_map(_as_jax_array, kwargs, is_leaf=_is_leaf)
+      kwargs = tree_map(_as_jax_array_, kwargs, is_leaf=_is_leaf)
     r = fun(*args, **kwargs)
-    return tree_map(_as_brainpy_array, r) if return_brainpy_array else r
+    return tree_map(_return, r) if _return_bp_array else r
 
   new_fun.__doc__ = getattr(fun, "__doc__", None)
 

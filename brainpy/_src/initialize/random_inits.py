@@ -114,7 +114,7 @@ class Normal(InterLayerInitializer):
   def __call__(self, *shape, dtype=None):
     shape = _format_shape(shape)
     weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
-    return jnp.asarray(weights, dtype=dtype)
+    return bm.as_jax(weights, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, rng={self.rng})'
@@ -140,7 +140,7 @@ class Uniform(InterLayerInitializer):
   def __call__(self, shape, dtype=None):
     shape = _format_shape(shape)
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
-    return jnp.asarray(r, dtype=dtype)
+    return bm.as_jax(r, dtype=dtype)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(min_val={self.min_val}, '
@@ -180,14 +180,14 @@ class VarianceScaling(InterLayerInitializer):
     variance = (self.scale / denominator).astype(dtype)
     if self.distribution == "truncated_normal":
       stddev = (jnp.sqrt(variance) / .87962566103423978).astype(dtype)
-      return self.rng.truncated_normal(-2, 2, shape, dtype) * stddev
+      res = self.rng.truncated_normal(-2, 2, shape, dtype) * stddev
     elif self.distribution == "normal":
       res = self.rng.randn(*shape) * jnp.sqrt(variance).astype(dtype)
     elif self.distribution == "uniform":
       res = self.rng.uniform(low=-1, high=1, size=shape) * jnp.sqrt(3 * variance).astype(dtype)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
-    return jnp.asarray(res, dtype=dtype)
+    return bm.as_jax(res, dtype=dtype)
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -329,14 +329,14 @@ class Orthogonal(InterLayerInitializer):
     n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
     norm_dst = self.rng.normal(size=matrix_shape)
-    q_mat, r_mat = jnp.linalg.qr(norm_dst)
+    q_mat, r_mat = jnp.linalg.qr(bm.as_jax(norm_dst))
     # Enforce Q is uniformly distributed
     q_mat *= jnp.sign(jnp.diag(r_mat))
     if n_rows < n_cols:
       q_mat = q_mat.T
     q_mat = jnp.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = jnp.moveaxis(q_mat, 0, self.axis)
-    return self.scale * jnp.asarray(q_mat, dtype=dtype)
+    return self.scale * bm.as_jax(q_mat, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, rng={self.rng})'

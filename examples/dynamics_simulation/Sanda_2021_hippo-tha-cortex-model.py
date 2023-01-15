@@ -3,7 +3,7 @@
 import brainpy as bp
 
 
-class HippoThaCortexModel(bp.dyn.Network):
+class HippoThaCortexModel(bp.Network):
   def __init__(self, ):
     super(HippoThaCortexModel, self).__init__()
 

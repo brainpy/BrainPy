@@ -11,9 +11,9 @@ This module implements several loss functions.
 from typing import Tuple
 
 import jax.numpy as jnp
+from jax.lax import scan
 from jax.scipy.special import logsumexp
 from jax.tree_util import tree_map
-from jax.lax import scan
 
 import brainpy.math as bm
 from brainpy.types import ArrayType
@@ -106,7 +106,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     loss = logsumexp(bm.as_jax(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
     return _reduce(outputs=loss, reduction=reduction)
 
-  r = tree_map(_cel, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
+  r = tree_map(_cel, predicts, targets, is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -128,7 +128,7 @@ def cross_entropy_sparse(predicts, targets):
       logits = jnp.take_along_axis(_prd, _tar, -1).squeeze(-1)
     return logsumexp(bm.as_jax(_prd), axis=-1) - logits
 
-  r = tree_map(crs, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
+  r = tree_map(crs, predicts, targets, is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -142,9 +142,14 @@ def cross_entropy_sigmoid(predicts, targets):
   Returns:
       (batch, ...) tensor of the cross-entropies for each entry.
   """
-  r = tree_map(lambda pred, tar: jnp.maximum(pred, 0) - pred * tar + jnp.log(1 + jnp.exp(-jnp.abs(pred))),
-               predicts,
-               targets)
+  r = tree_map(
+    lambda pred, tar: bm.as_jax(
+      bm.maximum(pred, 0) - pred * tar + bm.log(1 + bm.exp(-bm.abs(pred)))
+    ),
+    predicts,
+    targets,
+    is_leaf=_is_leaf
+  )
   return _multi_return(r)
 
 
@@ -201,7 +206,7 @@ def l1_loos(logits, targets, reduction='sum'):
     norm = jnp.linalg.norm(bm.as_jax(diff), ord=1, axis=1, keepdims=False)
     return _reduce(outputs=norm, reduction=reduction)
 
-  r = tree_map(loss, logits, targets, is_leaf=lambda x: isinstance(x, bm.Array))
+  r = tree_map(loss, logits, targets, is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -228,7 +233,9 @@ def l2_loss(predicts, targets):
   ----------
   .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
   """
-  r = tree_map(lambda pred, tar: 0.5 * (pred - tar) ** 2, predicts, targets)
+  r = tree_map(lambda pred, tar: 0.5 * (pred - tar) ** 2,
+               predicts,
+               targets)
   return _multi_return(r)
 
 
@@ -243,7 +250,10 @@ def mean_absolute_error(x, y, axis=None, reduction: str = 'mean'):
   Returns:
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
   """
-  r = tree_map(lambda a, b: _reduce(jnp.abs(a - b), reduction=reduction, axis=axis), x, y)
+  r = tree_map(lambda a, b: _reduce(bm.abs(a - b), reduction=reduction, axis=axis),
+               x,
+               y,
+               is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -260,7 +270,8 @@ def mean_squared_error(predicts, targets, axis=None, reduction: str = 'mean'):
   """
   r = tree_map(lambda a, b: _reduce((a - b) ** 2, reduction, axis=axis),
                predicts,
-               targets)
+               targets,
+               is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -276,7 +287,9 @@ def mean_squared_log_error(predicts, targets, axis=None, reduction: str = 'mean'
       tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
   """
   r = tree_map(lambda a, b: _reduce((jnp.log1p(a) - jnp.log1p(b)) ** 2, reduction, axis=axis),
-               predicts, targets, is_leaf=_is_leaf)
+               predicts,
+               targets,
+               is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -309,12 +322,13 @@ def huber_loss(predicts, targets, delta: float = 1.0):
   def _loss(y_predict, y_target):
     # 0.5 * err^2                  if |err| <= d
     # 0.5 * d^2 + d * (|err| - d)  if |err| > d
-    diff = jnp.abs(y_predict - y_target)
-    return jnp.where(diff > delta,
-                    delta * (diff - .5 * delta),
-                    0.5 * diff ** 2)
+    diff = bm.abs(y_predict - y_target)
+    r = bm.where(diff > delta,
+                 delta * (diff - .5 * delta),
+                 0.5 * diff ** 2)
+    return bm.as_jax(r)
 
-  r = tree_map(_loss, targets, predicts)
+  r = tree_map(_loss, targets, predicts, is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -382,7 +396,7 @@ def sigmoid_binary_cross_entropy(logits, labels):
     log_not_p = bm.log_sigmoid(-pred)
     return -tar * log_p - (1. - tar) * log_not_p
 
-  r = tree_map(loss, logits, labels, is_leaf=lambda x: isinstance(x, bm.Array))
+  r = tree_map(loss, logits, labels, is_leaf=_is_leaf)
   return _multi_return(r)
 
 
@@ -433,7 +447,7 @@ def log_cosh_loss(predicts, targets):
     errors = bm.as_jax(pred - tar)
     return jnp.logaddexp(errors, -errors) - jnp.log(2.0).astype(errors.dtype)
 
-  r = tree_map(loss, predicts, targets, is_leaf=lambda x: isinstance(x, bm.Array))
+  r = tree_map(loss, predicts, targets, is_leaf=_is_leaf)
   return _multi_return(r)
 
 

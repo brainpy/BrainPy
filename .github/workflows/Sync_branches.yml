@@ -9,10 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Merge master -> brainpy-2.2.x
+      - name: Merge master -> brainpy-2.3.x
         uses: devmasx/merge-branch@master
         with:
           type: now
           from_branch: master
-          target_branch: brainpy-2.2.x
+          target_branch: brainpy-2.3.x
           github_token: ${{ github.token }}

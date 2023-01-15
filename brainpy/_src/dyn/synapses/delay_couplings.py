@@ -206,7 +206,7 @@ class DiffusiveCoupling(DelayCoupling):
         indices = (jnp.arange(self.coupling_var1.size),)
       f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (..., pre.num)
       delays = f(self.delay_steps)  # (..., post.num, pre.num)
-      diffusive = (jnp.moveaxis(delays.value, axis - 1, axis) -
+      diffusive = (jnp.moveaxis(bm.as_jax(delays), axis - 1, axis) -
                    jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))  # (..., pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'int':

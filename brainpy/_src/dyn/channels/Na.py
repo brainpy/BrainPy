@@ -16,14 +16,13 @@ from brainpy.types import ArrayType, Shape
 from .base import SodiumChannel
 
 __all__ = [
-  'INa_p3q_markov',
   'INa_Ba2002',
   'INa_TM1991',
   'INa_HH1952',
 ]
 
 
-class INa_p3q_markov(SodiumChannel):
+class _INa_p3q_markov(SodiumChannel):
   r"""The sodium current model of :math:`p^3q` current which described with first-order Markov chain.
 
   The general model can be used to model the dynamics with:
@@ -64,10 +63,10 @@ class INa_p3q_markov(SodiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_p3q_markov, self).__init__(size=size,
-                                         keep_size=keep_size,
-                                         name=name,
-                                         mode=mode)
+    super(_INa_p3q_markov, self).__init__(size=size,
+                                          keep_size=keep_size,
+                                          name=name,
+                                          mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -119,7 +118,7 @@ class INa_p3q_markov(SodiumChannel):
     raise NotImplementedError
 
 
-class INa_Ba2002(INa_p3q_markov):
+class INa_Ba2002(_INa_p3q_markov):
   r"""The sodium current model.
 
   The sodium current model is adopted from (Bazhenov, et, al. 2002) [1]_.
@@ -200,7 +199,7 @@ class INa_Ba2002(INa_p3q_markov):
     return 4. / (1. + jnp.exp(-(V - self.V_sh - 40.) / 5.))
 
 
-class INa_TM1991(INa_p3q_markov):
+class INa_TM1991(_INa_p3q_markov):
   r"""The sodium current model described by (Traub and Miles, 1991) [1]_.
 
   The dynamics of this sodium current model is given by:
@@ -286,7 +285,7 @@ class INa_TM1991(INa_p3q_markov):
     return 4. / (1 + jnp.exp(-(V - self.V_sh - 40) / 5))
 
 
-class INa_HH1952(INa_p3q_markov):
+class INa_HH1952(_INa_p3q_markov):
   r"""The sodium current model described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this sodium current model is given by:

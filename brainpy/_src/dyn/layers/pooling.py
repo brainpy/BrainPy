@@ -82,6 +82,7 @@ class Pool(Layer):
 
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
+    x = bm.as_jax(x)
     window_shape = self._infer_shape(x.ndim, self.kernel_size)
     stride = self._infer_shape(x.ndim, self.stride)
     padding = (self.padding
@@ -258,6 +259,7 @@ class AvgPool(Pool):
 
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
+    x = bm.as_jax(x)
     window_shape = self._infer_shape(x.ndim, self.kernel_size)
     strides = self._infer_shape(x.ndim, self.stride)
     padding = (self.padding if isinstance(self.padding, str) else
@@ -356,6 +358,7 @@ class _MaxPoolNd(Layer):
 
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
+    x = bm.as_jax(x)
     x_dim = self.pool_dim + (0 if self.channel_axis is None else 1)
     if x.ndim < x_dim:
       raise ValueError(f'Excepted input with >= {x_dim} dimensions, but got {x.ndim}.')
@@ -521,6 +524,7 @@ class MaxPool3d(_MaxPoolNd):
 class _AvgPoolNd(_MaxPoolNd):
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
+    x = bm.as_jax(x)
     x_dim = self.pool_dim + (0 if self.channel_axis is None else 1)
     if x.ndim < x_dim:
       raise ValueError(f'Excepted input with >= {x_dim} dimensions, but got {x.ndim}.')
@@ -694,6 +698,7 @@ def _adaptive_pool1d(x, target_size: int, operation: Callable):
   Returns:
     A JAX array of shape `(target_size, )`.
   """
+  x = bm.as_jax(x)
   size = jnp.size(x)
   num_head_arrays = size % target_size
   num_block = size // target_size
@@ -767,6 +772,7 @@ class AdaptivePool(Layer):
       or `(..., dim_1, dim_2)`.
     """
     x = args[0] if len(args) == 1 else args[1]
+    x = bm.as_jax(x)
 
     # channel axis
     channel_axis = self.channel_axis

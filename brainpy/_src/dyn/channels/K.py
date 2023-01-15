@@ -16,16 +16,13 @@ from brainpy.types import Shape, ArrayType
 from .base import PotassiumChannel
 
 __all__ = [
-  'IK_p4_markov',
   'IKDR_Ba2002',
   'IK_TM1991',
   'IK_HH1952',
 
-  'IKA_p4q_ss',
   'IKA1_HM1992',
   'IKA2_HM1992',
 
-  'IKK2_pq_ss',
   'IKK2A_HM1992',
   'IKK2B_HM1992',
 
@@ -33,7 +30,7 @@ __all__ = [
 ]
 
 
-class IK_p4_markov(PotassiumChannel):
+class _IK_p4_markov(PotassiumChannel):
   r"""The delayed rectifier potassium channel of :math:`p^4`
   current which described with first-order Markov chain.
 
@@ -79,10 +76,10 @@ class IK_p4_markov(PotassiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(IK_p4_markov, self).__init__(size,
-                                       keep_size=keep_size,
-                                       name=name,
-                                       mode=mode)
+    super(_IK_p4_markov, self).__init__(size,
+                                        keep_size=keep_size,
+                                        name=name,
+                                        mode=mode)
 
     self.E = parameter(E, self.varshape, allow_none=False)
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
@@ -98,7 +95,7 @@ class IK_p4_markov(PotassiumChannel):
     return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
 
   def update(self, tdi, V):
-    self.p.value = self.integral(self.p, tdi['t'], V, tdi['dt'])
+    self.p.value = self.integral(self.p.value, tdi['t'], V, tdi['dt'])
 
   def current(self, V):
     return self.g_max * self.p ** 4 * (self.E - V)
@@ -117,7 +114,7 @@ class IK_p4_markov(PotassiumChannel):
     raise NotImplementedError
 
 
-class IKDR_Ba2002(IK_p4_markov):
+class IKDR_Ba2002(_IK_p4_markov):
   r"""The delayed rectifier potassium channel current.
 
   The potassium current model is adopted from (Bazhenov, et, al. 2002) [1]_.
@@ -201,7 +198,7 @@ class IKDR_Ba2002(IK_p4_markov):
     return 0.5 * jnp.exp(-(V - self.V_sh - 10.) / 40.)
 
 
-class IK_TM1991(IK_p4_markov):
+class IK_TM1991(_IK_p4_markov):
   r"""The potassium channel described by (Traub and Miles, 1991) [1]_.
 
   The dynamics of this channel is given by:
@@ -271,7 +268,7 @@ class IK_TM1991(IK_p4_markov):
     return 0.5 * jnp.exp((10 - V + self.V_sh) / 40)
 
 
-class IK_HH1952(IK_p4_markov):
+class IK_HH1952(_IK_p4_markov):
   r"""The potassium channel described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this channel is given by:
@@ -342,7 +339,7 @@ class IK_HH1952(IK_p4_markov):
     return 0.125 * jnp.exp(-(V - self.V_sh + 20) / 80)
 
 
-class IKA_p4q_ss(PotassiumChannel):
+class _IKA_p4q_ss(PotassiumChannel):
   r"""The rapidly inactivating Potassium channel of :math:`p^4q`
   current which described with steady-state format.
 
@@ -396,10 +393,10 @@ class IKA_p4q_ss(PotassiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(IKA_p4q_ss, self).__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     mode=mode)
+    super(_IKA_p4q_ss, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -447,7 +444,7 @@ class IKA_p4q_ss(PotassiumChannel):
     raise NotImplementedError
 
 
-class IKA1_HM1992(IKA_p4q_ss):
+class IKA1_HM1992(_IKA_p4q_ss):
   r"""The rapidly inactivating Potassium channel (IA1) model proposed by (Huguenard & McCormick, 1992) [2]_.
 
   This model is developed according to the average behavior of
@@ -542,7 +539,7 @@ class IKA1_HM1992(IKA_p4q_ss):
                     19.)
 
 
-class IKA2_HM1992(IKA_p4q_ss):
+class IKA2_HM1992(_IKA_p4q_ss):
   r"""The rapidly inactivating Potassium channel (IA2) model proposed by (Huguenard & McCormick, 1992) [2]_.
 
   This model is developed according to the average behavior of
@@ -637,7 +634,7 @@ class IKA2_HM1992(IKA_p4q_ss):
                     19.)
 
 
-class IKK2_pq_ss(PotassiumChannel):
+class _IKK2_pq_ss(PotassiumChannel):
   r"""The slowly inactivating Potassium channel of :math:`pq`
   current which described with steady-state format.
 
@@ -691,10 +688,10 @@ class IKK2_pq_ss(PotassiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(IKK2_pq_ss, self).__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     mode=mode)
+    super(_IKK2_pq_ss, self).__init__(size,
+                                      keep_size=keep_size,
+                                      name=name,
+                                      mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -742,7 +739,7 @@ class IKK2_pq_ss(PotassiumChannel):
     raise NotImplementedError
 
 
-class IKK2A_HM1992(IKK2_pq_ss):
+class IKK2A_HM1992(_IKK2_pq_ss):
   r"""The slowly inactivating Potassium channel (IK2a) model proposed by (Huguenard & McCormick, 1992) [2]_.
 
   The dynamics of the model is given as [2]_ [3]_.
@@ -831,7 +828,7 @@ class IKK2A_HM1992(IKK2_pq_ss):
                 jnp.exp(-(V - self.V_sh + 130.) / 7.1))
 
 
-class IKK2B_HM1992(IKK2_pq_ss):
+class IKK2B_HM1992(_IKK2_pq_ss):
   r"""The slowly inactivating Potassium channel (IK2b) model proposed by (Huguenard & McCormick, 1992) [2]_.
 
   The dynamics of the model is given as [2]_ [3]_.

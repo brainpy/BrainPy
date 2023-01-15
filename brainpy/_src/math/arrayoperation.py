@@ -50,10 +50,13 @@ def flatten(input: Union[jax.Array, Array],
     ndim = 1
   if start_dim is None:
     start_dim = 0
+  elif start_dim < 0:
+    start_dim = ndim + start_dim
   if end_dim is None:
-    end_dim = ndim
-  else:
-    end_dim += 1
+    end_dim = ndim - 1
+  elif end_dim < 0:
+    end_dim = ndim + end_dim
+  end_dim += 1
   if start_dim < 0 or start_dim > ndim:
     raise ValueError(f'start_dim {start_dim} is out of size.')
   if end_dim < 0 or end_dim > ndim:
@@ -62,15 +65,18 @@ def flatten(input: Union[jax.Array, Array],
   return jnp.reshape(input, new_shape)
 
 
-def fill_diagonal(a, val):
+def fill_diagonal(a, val, inplace=True):
   if a.ndim < 2:
     raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
+  if not isinstance(a, Array) and inplace:
+    raise ValueError('``fill_diagonal()`` is used in in-place updating, therefore '
+                     'it requires a brainpy Array. If you want to disable '
+                     'inplace updating, use ``fill_diagonal(inplace=False)``.')
   val = val.value if isinstance(val, Array) else val
   i, j = jnp.diag_indices(min(a.shape[-2:]))
   r = as_jax(a).at[..., i, j].set(val)
-  if isinstance(a, Array):
+  if inplace:
     a.value = r
-    return a
   else:
     return r
 

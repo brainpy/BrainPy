@@ -14,7 +14,6 @@ def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
 
 
-
 def as_device_array(tensor, dtype=None):
   """Convert the input to a ``jax.numpy.DeviceArray``.
 

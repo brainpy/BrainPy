@@ -2,6 +2,7 @@
 
 
 import warnings
+import operator
 from typing import Optional, Tuple as TupleType
 
 import numpy as np
@@ -936,6 +937,33 @@ class Array(object):
   def as_variable(self):
     """As an instance of Variable."""
     return Variable(self)
+
+  def __format__(self, specification):
+    return self.value.__format__(specification)
+
+  def __float__(self):
+    return self.value.__float__()
+
+  def __int__(self):
+    return self.value.__int__()
+
+  def __complex__(self):
+    return self.value.__complex__()
+
+  def __hex__(self):
+    assert self.ndim == 0, 'hex only works on scalar values'
+    return hex(self._value)  # type: ignore
+
+  def __oct__(self):
+    assert self.ndim == 0, 'oct only works on scalar values'
+    return oct(self._value)  # type: ignore
+
+  def __index__(self):
+    return operator.index(self._value)
+
+  def __dlpack__(self):
+    from jax.dlpack import to_dlpack  # pylint: disable=g-import-not-at-top
+    return to_dlpack(self.value)
 
 
 JaxArray = Array

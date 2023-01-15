@@ -90,12 +90,15 @@ class TRN(bp.CondNeuGroup):
     IAHP = bp.channels.IAHP_De1994(size, g_max=0.2, E=-90.)
     ICaN = bp.channels.ICaN_IS2008(size, g_max=0.2)
     ICaT = bp.channels.ICaT_HP1992(size, g_max=1.3)
-    Ca = bp.channels.CalciumDetailed(size, C_rest=5e-5, tau=100., d=0.5,
+    Ca = bp.channels.CalciumDetailed(size,
+                                     C_rest=5e-5, tau=100., d=0.5,
                                      IAHP=IAHP, ICaN=ICaN, ICaT=ICaT)
 
-    super(TRN, self).__init__(size, A=1.43e-4,
-                              V_initializer=V_initializer, V_th=20.,
-                              IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ca=Ca)
+    super(TRN, self).__init__(size,
+                              A=1.43e-4, V_th=20.,
+                              V_initializer=V_initializer,
+                              IL=IL, IKL=IKL, INa=INa, IDR=IDR, Ca=Ca
+                              )
 
 
 class MgBlock(bp.SynOut):
@@ -287,12 +290,14 @@ def try_trn_neuron():
     @bm.to_dynsys(child_objs=trn)
     def update(s, inp):
       trn.input += inp
-      trn.update(s, )
+      trn.update(s)
+      return trn.input.value
 
     runner = bp.DSRunner(update, monitors={'V': trn.V})
-    runner.run(inputs=inputs)
+    I = runner.run(inputs=inputs)
 
   bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
+  bp.visualize.line_plot(runner.mon.ts, I, show=True)
 
 
 def try_network():
