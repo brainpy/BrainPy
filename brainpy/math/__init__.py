@@ -1,97 +1,62 @@
 # -*- coding: utf-8 -*-
 
 
-"""
-The ``math`` module for whole BrainPy ecosystem.
-This module provides basic mathematical operations, including:
-
-- numpy-like array operations
-- linear algebra functions
-- random sampling functions
-- discrete fourier transform functions
-- just-in-time compilation for class objects
-- automatic differentiation for class objects
-- dedicated operators for brain dynamics
-- activation functions
-- device switching
-- default type switching
-- and others
-
-Details in the following.
-"""
-
-
-# necessity to wrap the jax.numpy.ndarray:
-# 1. for parameters and variables which want to
-#    modify in the JIT mode, this wrapper is necessary.
-#    Because, directly change the value in the "self.xx"
-#    cannot work.
-# 2. In JAX, ndarray is immutable. This wrapper make
-#    the index update is the same way with the numpy
-#
-
-
 # data structure
-from .jaxarray import *
+from .ndarray import *
 from .delayvars import *
+from .arrayoperation import *
+from .arraycompatible import *
 
 # functions
 from .activations import *
 from . import activations
-from .compat import *
+
+# operators
+from .operators import *
+from . import surrogate
+
+# Variable and Objects for object-oriented JAX transformations
+from .object_base import *
+from .object_transform import *
+
+# environment settings
+from .modes import *
+from .environment import *
+from .others import *
+
+mode = NonBatchingMode()
+'''Default computation mode.'''
+
+dt = 0.1
+'''Default time step.'''
+
+import jax.numpy as jnp
+from jax import config
+
+bool_ = jnp.bool_
+'''Default bool data type.'''
+
+int_ = jnp.int64 if config.read('jax_enable_x64') else jnp.int32
+'''Default integer data type.'''
+
+float_ = jnp.float64 if config.read('jax_enable_x64') else jnp.float32
+'''Default float data type.'''
+
+complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
+'''Default complex data type.'''
+
+del jnp, config
 
 # high-level numpy operations
-from .numpy_ops import *
 from . import fft
 from . import linalg
 from . import random
 
-# operators
-from .operators import *
-
-# JAX transformations extended on Variable and class objects
-from .autograd import *
-from .controls import *
-from .jit import *
-
-# settings
-from . import setting
-from .setting import *
-from .function import *
-
-
-def get_dint():
-  """Get default int type."""
-  return int_
-
-
-def get_dfloat():
-  """Get default float type."""
-  return float_
-
-
-def get_dcomplex():
-  """Get default complex type."""
-  return complex_
-
-
-def set_dint(int_type):
-  """Set default int type."""
-  global int_
-  assert isinstance(int_type, type)
-  int_ = int_type
-
-
-def set_dfloat(float_type):
-  """Set default float type."""
-  global float_
-  assert isinstance(float_type, type)
-  float_ = float_type
-
-
-def set_dcomplex(complex_type):
-  """Set default complex type."""
-  global complex_
-  assert isinstance(complex_type, type)
-  complex_ = complex_type
-
+from brainpy._src.math.surrogate.compt import (
+  spike_with_sigmoid_grad as spike_with_sigmoid_grad,
+  spike_with_linear_grad as spike_with_linear_grad,
+  spike_with_gaussian_grad as spike_with_gaussian_grad,
+  spike_with_mg_grad as spike_with_mg_grad,
+  spike2_with_sigmoid_grad as spike2_with_sigmoid_grad,
+  spike2_with_linear_grad as spike2_with_linear_grad,
+)

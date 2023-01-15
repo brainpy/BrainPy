@@ -1,6 +1,6 @@
 ---
 name: 'Bug Report'
-about: 'Report a bug to help improve the package'
+about: 'Report a bug or unexpected behavior to help us improve the package'
 labels: 'bug'
 ---
 
@@ -12,7 +12,7 @@ Please:
 ```python
 import brainpy.math as bm
 print(bm.asarray([1, 2, 3]))
-# JaxArray([1, 2, 3], dtype=int32)
+# Array([1, 2, 3], dtype=int32)
 ```
 
 - [ ] If applicable, include full error messages/tracebacks.

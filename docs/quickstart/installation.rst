@@ -13,7 +13,7 @@ GNU/Linux, and OSX. It only relies on Python libraries.
 Installation with pip
 ---------------------
 
-You can install ``BrainPy`` from the `pypi <https://pypi.org/project/brain-py/>`_.
+You can install ``BrainPy`` from the `pypi <https://pypi.org/project/brainpy/>`_.
 To do so, use:
 
 .. code-block:: bash
@@ -35,10 +35,11 @@ of BrainPy, you can use:
    pip install --pre brainpy
 
 
+
 Installation from source
 ------------------------
 
-If you decide not to use ``conda`` or ``pip``, you can install ``BrainPy`` from
+If you decide not to use ``pip``, you can install ``BrainPy`` from
 `GitHub <https://github.com/PKU-NIP-Lab/BrainPy>`_,
 or `OpenI <https://git.openi.org.cn/OpenI/BrainPy>`_.
 
@@ -81,60 +82,92 @@ Linux & MacOS
 ^^^^^^^^^^^^^
 
 Currently, JAX supports **Linux** (Ubuntu 16.04 or later) and **macOS** (10.12 or
-later) platforms. The provided binary releases of JAX for Linux and macOS
-systems are available at https://storage.googleapis.com/jax-releases/jax_releases.html .
+later) platforms. The provided binary releases of `jax` and `jaxlib` for Linux and macOS
+systems are available at
 
-To install a CPU-only version of JAX, you can run
+- for CPU: https://storage.googleapis.com/jax-releases/jax_releases.html
+- for GPU: https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+
+If you want to install a CPU-only version of `jax` and `jaxlib`, you can run
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cpu]"
+    pip install --upgrade "jax[cpu]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 If you want to install JAX with both CPU and NVidia GPU support, you must first install
 `CUDA`_ and `CuDNN`_, if they have not already been installed. Next, run
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
-Alternatively, you can download the preferred release ".whl" file for jaxlib, and install it via ``pip``:
+
+Alternatively, you can download the preferred release ".whl" file for jaxlib
+from the above release links, and install it via ``pip``:
 
 .. code-block:: bash
 
-    pip install xxxx.whl
+    pip install xxx-0.3.14-xxx.whl
 
-    pip install jax
+    pip install jax==0.3.14
+
+.. note::
+
+   Note that the versions of `jaxlib` and `jax` should be consistent.
+
+   For example, if you are using `jax==0.3.14`, you would better install `jax==0.3.14`.
 
 
-.. warning::
-    For m1 macOS users, you should run your python environment on ``Apple`` silicon instead of ``intel``
-    silicon since ``rosetta2`` cannot translate ``jaxlib``. One suggestion is uninstall miniconda3 and install
-    miniforge3 for managing your python environment.
 
 Windows
 ^^^^^^^
 
-For **Windows** users, JAX can be installed by the following methods:
-
-- **Method 1**: There are several community supported Windows build for jax, please refer
-  to the github link for more details: https://github.com/cloudhan/jax-windows-builder .
-  Simply speaking, the provided binary releases of JAX for Windows
-  are available at https://whls.blob.core.windows.net/unstable/index.html .
-
-  You can download the preferred release ".whl" file, and install it via ``pip``:
+For **Windows** users, `jax` and `jaxlib` can be installed from the community supports.
+Specifically, you can install `jax` and `jaxlib` through:
 
 .. code-block:: bash
 
-    pip install xxxx.whl
+   pip install "jax[cpu]" -f https://whls.blob.core.windows.net/unstable/index.html
 
-    pip install jax
+If you are using GPU, you can install GPU-versioned wheels through:
 
-- **Method 2**: For Windows 10+ system, you can use `Windows Subsystem for Linux (WSL)`_.
-  The installation guide can be found in `WSL Installation Guide for Windows 10`_.
-  Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
+.. code-block:: bash
+
+   pip install "jax[cuda111]" -f https://whls.blob.core.windows.net/unstable/index.html
+
+Alternatively, you can manually install you favourite version of `jax` and `jaxlib` by
+downloading binary releases of JAX for Windows from https://whls.blob.core.windows.net/unstable/index.html .
+Then install it via ``pip``:
+
+.. code-block:: bash
+
+    pip install xxx-0.3.14-xxx.whl
+
+    pip install jax==0.3.14
+
+WSL
+^^^
+
+Moreover, for Windows 10+ system, we recommend using `Windows Subsystem for Linux (WSL)`_.
+The installation guide can be found in
+`WSL Installation Guide for Windows 10/11 <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_.
+Then, you can install JAX in WSL just like the installation step in Linux/MacOs.
 
 
-- **Method 3**: You can also `build JAX from source`_.
+Dependency 3: brainpylib
+------------------------
+
+Many customized operators in BrainPy are implemented in ``brainpylib``.
+``brainpylib`` can also be installed through `pypi <https://pypi.org/project/brainpylib/>`_.
+
+.. code-block:: bash
+
+   pip install brainpylib
+
+For GPU operators, you should compile ``brainpylib`` from source.
+The details please see
+`Compile GPU operators in brainpylib <https://brainpylib.readthedocs.io/en/latest/quickstart/installation.html>`_.
 
 
 Other Dependency
@@ -153,13 +186,7 @@ packages:
 
     conda install numba
 
-- brainpylib: needed in dedicated operators
 
-.. code-block:: bash
-
-    pip install brainpylib
-    
- 
 - `matplotlib`_: required in some visualization functions, but now it is recommended that users explicitly import matplotlib for visualization
 
 .. code-block:: bash
@@ -170,24 +197,14 @@ packages:
 
     conda install matplotlib
 
-- `NetworkX`_: needed in the visualization of network training
-
-.. code-block:: bash
-
-    pip install networkx
-
-    # or
-
-    conda install networkx
 
 .. _NumPy: https://numpy.org/
 .. _Matplotlib: https://matplotlib.org/
 .. _JAX: https://github.com/google/jax
 .. _Windows Subsystem for Linux (WSL): https://docs.microsoft.com/en-us/windows/wsl/about
-.. _WSL Installation Guide for Windows 10: https://docs.microsoft.com/en-us/windows/wsl/install-win10
 .. _build JAX from source: https://jax.readthedocs.io/en/latest/developer.html
 .. _SymPy: https://github.com/sympy/sympy
 .. _Numba: https://numba.pydata.org/
 .. _CUDA: https://developer.nvidia.com/cuda-downloads
 .. _CuDNN: https://developer.nvidia.com/CUDNN
-.. _NetworkX: https://networkx.org/
+

@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import TypeVar, Tuple
+from brainpy._src.types import (
+  ArrayType as ArrayType,
+  Array as Array,
+  Parameter as Parameter,
+  PyTree as PyTree,
+  Shape as Shape,
+  Initializer as Initializer,
+  Output as Output,
+  Monitor as Monitor,
+)
 
-import jax.numpy as jnp
-
-import brainpy.math as bm
-
-__all__ = [
-  'Tensor',
-  'Parameter',
-  'Shape',
-]
-
-Tensor = TypeVar('Tensor', bm.JaxArray, jnp.ndarray)
-Parameter = TypeVar('Parameter', float, int, jnp.ndarray, bm.JaxArray, bm.Variable)
-Shape = TypeVar('Shape', int, Tuple[int, ...])

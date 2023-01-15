@@ -4,18 +4,7 @@ import importlib
 import inspect
 import os
 
-from brainpy.math import (activations, autograd, controls, function,
-                          jit, operators, parallels, setting, delayvars,
-                          compat)
-
-block_list = ['test', 'register_pytree_node']
-for module in [jit, autograd, function,
-               controls, activations,
-               parallels, setting,
-               delayvars, compat]:
-  for k in dir(module):
-    if (not k.startswith('_')) and (not inspect.ismodule(getattr(module, k))):
-      block_list.append(k)
+block_list = ['test', 'register_pytree_node', 'call', 'namedtuple', 'jit', 'wraps', 'index', 'function']
 
 
 def get_class_funcs(module):
@@ -38,7 +27,7 @@ def get_class_funcs(module):
   return classes, functions, others
 
 
-def write_module(module_name, filename, header=None):
+def _write_module(module_name, filename, header=None, template=False):
   module = importlib.import_module(module_name)
   classes, functions, others = get_class_funcs(module)
 
@@ -46,8 +35,6 @@ def write_module(module_name, filename, header=None):
   # write header
   if header is None:
     header = f'``{module_name}`` module'
-  else:
-    header = header
   fout.write(header + '\n')
   fout.write('=' * len(header) + '\n\n')
   fout.write(f'.. currentmodule:: {module_name} \n')
@@ -55,6 +42,8 @@ def write_module(module_name, filename, header=None):
 
   # write autosummary
   fout.write('.. autosummary::\n')
+  if template:
+    fout.write('   :template: class_template.rst\n')
   fout.write('   :toctree: generated/\n\n')
   for m in functions:
     fout.write(f'   {m}\n')
@@ -66,7 +55,7 @@ def write_module(module_name, filename, header=None):
   fout.close()
 
 
-def write_submodules(module_name, filename, header=None, submodule_names=(), section_names=()):
+def _write_submodules(module_name, filename, header=None, submodule_names=(), section_names=()):
   fout = open(filename, 'w')
   # write header
   if header is None:
@@ -97,6 +86,110 @@ def write_submodules(module_name, filename, header=None, submodule_names=(), sec
       fout.write(f'   {m}\n')
 
     fout.write(f'\n\n')
+
+  fout.close()
+
+
+def _write_subsections(module_name,
+                       filename,
+                       subsections: dict,
+                       header: str = None):
+  fout = open(filename, 'w')
+  header = f'``{module_name}`` module' if header is None else header
+  fout.write(header + '\n')
+  fout.write('=' * len(header) + '\n\n')
+  fout.write(f'.. currentmodule:: {module_name} \n')
+  fout.write(f'.. automodule:: {module_name} \n\n')
+
+  fout.write('.. contents::' + '\n')
+  fout.write('   :local:' + '\n')
+  fout.write('   :depth: 1' + '\n\n')
+
+  for name, values in subsections.items():
+    fout.write(name + '\n')
+    fout.write('-' * len(name) + '\n\n')
+    fout.write('.. autosummary::\n')
+    fout.write('   :toctree: generated/\n\n')
+    for m in values:
+      fout.write(f'   {m}\n')
+    fout.write(f'\n\n')
+
+  fout.close()
+
+
+def _write_subsections_v2(module_path,
+                          out_path,
+                          filename,
+                          subsections: dict,
+                          header: str = None):
+  fout = open(filename, 'w')
+  header = f'``{out_path}`` module' if header is None else header
+  fout.write(header + '\n')
+  fout.write('=' * len(header) + '\n\n')
+  fout.write(f'.. currentmodule:: {out_path} \n')
+  fout.write(f'.. automodule:: {out_path} \n\n')
+
+  fout.write('.. contents::' + '\n')
+  fout.write('   :local:' + '\n')
+  fout.write('   :depth: 1' + '\n\n')
+
+  for name, subheader in subsections.items():
+    module = importlib.import_module(f'{module_path}.{name}')
+    classes, functions, others = get_class_funcs(module)
+
+    fout.write(subheader + '\n')
+    fout.write('-' * len(subheader) + '\n\n')
+    fout.write('.. autosummary::\n')
+    fout.write('   :toctree: generated/\n\n')
+    for m in functions:
+      fout.write(f'   {m}\n')
+    for m in classes:
+      fout.write(f'   {m}\n')
+    for m in others:
+      fout.write(f'   {m}\n')
+    fout.write(f'\n\n')
+
+  fout.close()
+
+
+def _write_subsections_v3(module_path,
+                          out_path,
+                          filename,
+                          subsections: dict,
+                          header: str = None):
+  fout = open(filename, 'w')
+  header = f'``{out_path}`` module' if header is None else header
+  fout.write(header + '\n')
+  fout.write('=' * len(header) + '\n\n')
+  fout.write(f'.. currentmodule:: {out_path} \n')
+  fout.write(f'.. automodule:: {out_path} \n\n')
+
+  fout.write('.. contents::' + '\n')
+  fout.write('   :local:' + '\n')
+  fout.write('   :depth: 2' + '\n\n')
+
+  for section in subsections:
+    fout.write(subsections[section]['header'] + '\n')
+    fout.write('-' * len(subsections[section]['header']) + '\n\n')
+
+    fout.write(f'.. currentmodule:: {out_path}.{section} \n')
+    fout.write(f'.. automodule:: {out_path}.{section} \n\n')
+
+    for name, subheader in subsections[section]['content'].items():
+      module = importlib.import_module(f'{module_path}.{section}.{name}')
+      classes, functions, others = get_class_funcs(module)
+
+      fout.write(subheader + '\n')
+      fout.write('~' * len(subheader) + '\n\n')
+      fout.write('.. autosummary::\n')
+      fout.write('   :toctree: generated/\n\n')
+      for m in functions:
+        fout.write(f'   {m}\n')
+      for m in classes:
+        fout.write(f'   {m}\n')
+      for m in others:
+        fout.write(f'   {m}\n')
+      fout.write(f'\n\n')
 
   fout.close()
 
@@ -175,428 +268,285 @@ def _section(header, numpy_mod, brainpy_mod, jax_mod, klass=None, is_jax=False):
   return buf
 
 
-def generate_analysis_docs(path='apis/auto/analysis/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-  write_module(module_name='brainpy.analysis.lowdim',
-               filename=os.path.join(path, 'lowdim.rst'),
-               header='Low-dimensional Analyzers')
-  write_module(module_name='brainpy.analysis.highdim',
-               filename=os.path.join(path, 'highdim.rst'),
-               header='High-dimensional Analyzers')
-  write_module(module_name='brainpy.analysis.stability',
-               filename=os.path.join(path, 'stability.rst'),
-               header='Stability Analysis')
+def generate_analysis_docs():
+  _write_subsections(
+    module_name='brainpy.analysis',
+    filename='apis/auto/analysis.rst',
+    subsections={
+      'Low-dimensional Analyzers': ['PhasePlane1D',
+                                    'PhasePlane2D',
+                                    'Bifurcation1D',
+                                    'Bifurcation2D',
+                                    'FastSlow1D',
+                                    'FastSlow2D'],
+      'High-dimensional Analyzers': ['SlowPointFinder']
+    }
+  )
 
 
-def generate_base_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('function', 'Function Wrapper'),
-    ('collector', 'Collectors'),
-    ('io', 'Exporting and Loading'),
-    ('naming', 'Naming Tools')]
-  write_submodules(module_name='brainpy.base',
-                   filename=os.path.join(path, 'base.rst'),
-                   header='``brainpy.base`` module',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
+def generate_connect_docs():
+  _write_subsections_v2(
+    'brainpy._src.connect',
+    'brainpy.connect',
+    'apis/auto/connect.rst',
+    subsections={
+      'base': 'Base Connection Classes and Tools',
+      'custom_conn': 'Custom Connections',
+      'random_conn': 'Random Connections',
+      'regular_conn': 'Regular Connections',
+    }
+  )
 
 
-def generate_connect_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  module_and_name = [('base', 'Base Class'),
-                     ('custom_conn', 'Custom Connections'),
-                     ('random_conn', 'Random Connections'),
-                     ('regular_conn', 'Regular Connections'), ]
-  write_submodules(module_name='brainpy.connect',
-                   filename=os.path.join(path, 'connect.rst'),
-                   header='``brainpy.connect`` module',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-
-def generate_datasets_docs(path='apis/auto/datasets/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.datasets.chaotic_systems',
-               filename=os.path.join(path, 'chaotic_systems.rst'),
-               header='Chaotic Systems')
+def generate_channels_docs():
+  _write_subsections_v2(
+    'brainpy._src.dyn.channels',
+    'brainpy.channels',
+    'apis/auto/channels.rst',
+    subsections={
+      'base': 'Basic Channel Classes',
+      'Na': 'Voltage-dependent Sodium Channel Models',
+      'K': 'Voltage-dependent Potassium Channel Models',
+      'Ca': 'Voltage-dependent Calcium Channel Models',
+      'KCa': 'Calcium-dependent Potassium Channel Models',
+      'IH': 'Hyperpolarization-activated Cation Channel Models',
+      'leaky': 'Leakage Channel Models',
+    }
+  )
 
 
-def generate_dyn_docs(path='apis/auto/dyn/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.dyn.base',
-               filename=os.path.join(path, 'base.rst'),
-               header='Base Class')
-
-  module_and_name = [
-    ('base', 'Base Class'),
-    ('Na_channels', 'Sodium Channel Models'),
-    ('K_channels', 'Potassium Channel Models'),
-    ('Ca_channels', 'Calcium Channel Models'),
-    ('Ih_channels', 'Ih Channel Models'),
-    ('leaky_channels', 'Leaky Channel Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.channels',
-                   filename=os.path.join(path, 'channels.rst'),
-                   header='Channel Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [
-    ('biological_models', 'Biological Models'),
-    ('fractional_models', 'Fractional-order Models'),
-    ('reduced_models', 'Reduced Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.neurons',
-                   filename=os.path.join(path, 'neurons.rst'),
-                   header='Neuron Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [
-    ('biological_models', 'Biological Models'),
-    ('abstract_models', 'Abstract Models'),
-    ('learning_rules', 'Learning Rule Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.synapses',
-                   filename=os.path.join(path, 'synapses.rst'),
-                   header='Synapse Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [
-    ('populations', 'Population Models'),
-    ('couplings', 'Coupling Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.rates',
-                   filename=os.path.join(path, 'rates.rst'),
-                   header='Rate Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  module_and_name = [
-    ('noises', 'Noise Models'),
-    ('inputs', 'Input Models'),
-  ]
-  write_submodules(module_name='brainpy.dyn.others',
-                   filename=os.path.join(path, 'others.rst'),
-                   header='Helper Models',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-  write_module(module_name='brainpy.dyn.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
+def generate_encoding_docs():
+  _write_module(module_name='brainpy.encoding',
+                filename='apis/auto/encoding.rst',
+                header='``brainpy.encoding`` module')
 
 
-def generate_initialize_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  module_and_name = [('base', 'Base Class'),
-                     ('regular_inits', 'Regular Initializers'),
-                     ('random_inits', 'Random Initializers'),
-                     ('decay_inits', 'Decay Initializers'), ]
-  write_submodules(module_name='brainpy.initialize',
-                   filename=os.path.join(path, 'initialize.rst'),
-                   header='``brainpy.initialize`` module',
-                   submodule_names=[a[0] for a in module_and_name],
-                   section_names=[a[1] for a in module_and_name])
-
-
-def generate_inputs_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.inputs',
-               filename=os.path.join(path, 'inputs.rst'),
-               header='``brainpy.inputs`` module')
+def generate_initialize_docs():
+  _write_subsections_v2(
+    'brainpy._src.initialize',
+    'brainpy.initialize',
+    'apis/auto/initialize.rst',
+    subsections={
+      'base': 'Basic Initialization Classes',
+      'regular_inits': 'Regular Initializers',
+      'random_inits': 'Random Initializers',
+      'decay_inits': 'Decay Initializers',
+    }
+  )
 
 
-def generate_integrators_doc(path='apis/auto/integrators/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  # ODE
-  write_module(module_name='brainpy.integrators.ode.base',
-               filename=os.path.join(path, 'ode_base.rst'),
-               header='Base Integrator')
-  write_module(module_name='brainpy.integrators.ode.generic',
-               filename=os.path.join(path, 'ode_generic.rst'),
-               header='Generic Functions')
-  write_module(module_name='brainpy.integrators.ode.explicit_rk',
-               filename=os.path.join(path, 'ode_explicit_rk.rst'),
-               header='Explicit Runge-Kutta Methods')
-  write_module(module_name='brainpy.integrators.ode.adaptive_rk',
-               filename=os.path.join(path, 'ode_adaptive_rk.rst'),
-               header='Adaptive Runge-Kutta Methods')
-  write_module(module_name='brainpy.integrators.ode.exponential',
-               filename=os.path.join(path, 'ode_exponential.rst'),
-               header='Exponential Integrators')
-
-  # SDE
-  write_module(module_name='brainpy.integrators.sde.base',
-               filename=os.path.join(path, 'sde_base.rst'),
-               header='Base Integrator')
-  write_module(module_name='brainpy.integrators.sde.generic',
-               filename=os.path.join(path, 'sde_generic.rst'),
-               header='Generic Functions')
-  write_module(module_name='brainpy.integrators.sde.normal',
-               filename=os.path.join(path, 'sde_normal.rst'),
-               header='Normal Methods')
-  write_module(module_name='brainpy.integrators.sde.srk_scalar',
-               filename=os.path.join(path, 'sde_srk_scalar.rst'),
-               header='SRK methods for scalar Wiener process')
-
-  # FDE
-  write_module(module_name='brainpy.integrators.fde.base',
-               filename=os.path.join(path, 'fde_base.rst'),
-               header='Base Integrator')
-  write_module(module_name='brainpy.integrators.fde.generic',
-               filename=os.path.join(path, 'fde_generic.rst'),
-               header='Generic Functions')
-  write_module(module_name='brainpy.integrators.fde.Caputo',
-               filename=os.path.join(path, 'fde_Caputo.rst'),
-               header='Methods for Caputo Fractional Derivative')
-  write_module(module_name='brainpy.integrators.fde.GL',
-               filename=os.path.join(path, 'fde_GL.rst'),
-               header='Methods for Riemann-Liouville Fractional Derivative')
-
-  # Others
-  write_module(module_name='brainpy.integrators.joint_eq',
-               filename=os.path.join(path, 'joint_eq.rst'),
-               header='Joint Equation')
-  write_module(module_name='brainpy.integrators.runner',
-               filename=os.path.join(path, 'runner.rst'),
-               header='Integrator Runner')
+def generate_inputs_docs():
+  _write_module(module_name='brainpy.inputs',
+                filename='apis/auto/inputs.rst',
+                header='``brainpy.inputs`` module')
 
 
-def generate_losses_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.losses',
-               filename=os.path.join(path, 'losses.rst'),
-               header='``brainpy.losses`` module')
-
-
-def generate_math_docs(path='apis/auto/math/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  buf = []
-  buf += _section(header='Multi-dimensional Array',
-                  numpy_mod='numpy',
-                  brainpy_mod='brainpy.math',
-                  jax_mod='jax.numpy',
-                  klass='ndarray', )
-  buf += _section(header='Array Operations',
-                  numpy_mod='numpy',
-                  brainpy_mod='brainpy.math',
-                  jax_mod='jax.numpy',
-                  is_jax=True)
-  buf += _section(header='Linear Algebra',
-                  numpy_mod='numpy.linalg',
-                  brainpy_mod='brainpy.math.linalg',
-                  jax_mod='jax.numpy.linalg', )
-  buf += _section(header='Discrete Fourier Transform',
-                  numpy_mod='numpy.fft',
-                  brainpy_mod='brainpy.math.fft',
-                  jax_mod='jax.numpy.fft', )
-  buf += _section(header='Random Sampling',
-                  numpy_mod='numpy.random',
-                  brainpy_mod='brainpy.math.random',
-                  jax_mod='jax.random',)
-  codes = '\n'.join(buf)
-
-  if not os.path.exists(path):
-    os.makedirs(path)
-  with open(os.path.join(path, 'comparison_table.rst.inc'), 'w') as f:
-    f.write(codes)
-
-  write_module(module_name='brainpy.math.activations',
-               filename=os.path.join(path, 'activations.rst'),
-               header='Activation Functions')
-  write_module(module_name='brainpy.math.autograd',
-               filename=os.path.join(path, 'autograd.rst'),
-               header='Automatic Differentiation')
-  write_module(module_name='brainpy.math.controls',
-               filename=os.path.join(path, 'controls.rst'),
-               header='Control Flows')
-  write_module(module_name='brainpy.math.operators',
-               filename=os.path.join(path, 'operators.rst'),
-               header='Operators')
-  write_module(module_name='brainpy.math.parallels',
-               filename=os.path.join(path, 'parallels.rst'),
-               header='Parallel Compilation')
-  write_module(module_name='brainpy.math.jit',
-               filename=os.path.join(path, 'jit.rst'),
-               header='JIT Compilation')
-  write_module(module_name='brainpy.math.jaxarray',
-               filename=os.path.join(path, 'variables.rst'),
-               header='Math Variables')
-  write_module(module_name='brainpy.math.setting',
-               filename=os.path.join(path, 'setting.rst'),
-               header='Setting')
-  write_module(module_name='brainpy.math.function',
-               filename=os.path.join(path, 'function.rst'),
-               header='Function')
-  write_module(module_name='brainpy.math.delayvars',
-               filename=os.path.join(path, 'delay_vars.rst'),
-               header='Delay Variables')
+def generate_layers_docs():
+  _write_subsections_v2(
+    'brainpy._src.dyn.layers',
+    'brainpy.layers',
+    'apis/auto/layers.rst',
+    subsections={
+      'base': 'Basic ANN Layer Class',
+      'conv': 'Convolutional Layers',
+      'dropout': 'Dropout Layers',
+      'function': 'Function Layers',
+      'linear': 'Dense Connection Layers',
+      'normalization': 'Normalization Layers',
+      'nvar': 'NVAR Layers',
+      'pooling': 'Pooling Layers',
+      'reservoir': 'Reservoir Layers',
+      'rnncells': 'Artificial Recurrent Layers',
+    }
+  )
 
 
-def generate_measure_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
+def generate_losses_docs():
+  _write_subsections_v2(
+    'brainpy._src.losses',
+    'brainpy.losses',
+    'apis/auto/losses.rst',
+    subsections={
+      'comparison': 'Comparison',
+      'regularization': 'Regularization',
+    }
+  )
 
-  write_module(module_name='brainpy.measure',
-               filename=os.path.join(path, 'measure.rst'),
-               header='``brainpy.measure`` module')
+
+def generate_measure_docs():
+  _write_module(module_name='brainpy.measure',
+                filename='apis/auto/measure.rst',
+                header='``brainpy.measure`` module')
 
 
-def generate_nn_docs(path='apis/auto/nn/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
+def generate_neurons_docs():
+  _write_subsections_v2(
+    'brainpy._src.dyn.neurons',
+    'brainpy.neurons',
+    'apis/auto/neurons.rst',
+    subsections={
+      'biological_models': 'Biological Models',
+      'fractional_models': 'Fractional-order Models',
+      'reduced_models': 'Reduced Models',
+      'noise_groups': 'Noise Models',
+      'input_groups': 'Input Models',
+    }
+  )
 
-  write_module(module_name='brainpy.nn.base',
-               filename=os.path.join(path, 'base.rst'),
-               header='Base Classes')
-  write_module(module_name='brainpy.nn.operations',
-               filename=os.path.join(path, 'operations.rst'),
-               header='Node Operations')
-  write_module(module_name='brainpy.nn.graph_flow',
-               filename=os.path.join(path, 'graph_flow.rst'),
-               header='Node Graph Tools')
-  write_module(module_name='brainpy.nn.datatypes',
-               filename=os.path.join(path, 'data_types.rst'),
-               header='Data Types')
+
+def generate_optim_docs():
+  _write_subsections_v2(
+    'brainpy._src.optimizers',
+    'brainpy.optim',
+    'apis/auto/optim.rst',
+    subsections={
+      'optimizer': 'Optimizers',
+      'scheduler': 'Schedulers',
+    }
+  )
+
+
+def generate_rates_docs():
+  _write_module(module_name='brainpy.rates',
+                filename='apis/auto/rates.rst',
+                header='``brainpy.rates`` module')
+
+
+def generate_running_docs():
+  _write_module(module_name='brainpy.running',
+                filename='apis/auto/running.rst',
+                header='``brainpy.running`` module')
+
+
+def generate_synapses_docs():
+  _write_subsections_v2(
+    'brainpy._src.dyn.synapses',
+    'brainpy.synapses',
+    'apis/auto/synapses.rst',
+    subsections={
+      'abstract_models': 'Abstract Models',
+      'biological_models': 'Biological Models',
+      'delay_couplings': 'Coupling Models',
+      'gap_junction': 'Gap Junction Models',
+      'learning_rules': 'Learning Rule Models',
+    }
+  )
+
+
+def generate_synouts_docs():
+  _write_module(module_name='brainpy.synouts',
+                filename='apis/auto/synouts.rst',
+                header='``brainpy.synouts`` module')
+
+
+def generate_synplast_docs():
+  _write_module(module_name='brainpy.synplast',
+                filename='apis/auto/synplast.rst',
+                header='``brainpy.synplast`` module')
+
+
+def generate_brainpy_docs():
+  _write_subsections(
+    module_name='brainpy',
+    filename='apis/auto/brainpy.rst',
+    subsections={
+      'Numerical Differential Integration': ['Integrator',
+                                             'JointEq',
+                                             'IntegratorRunner',
+                                             'odeint',
+                                             'sdeint',
+                                             'fdeint'],
+      'Building Dynamical System': ['DynamicalSystem',
+                                    'Container',
+                                    'Sequential',
+                                    'Network',
+                                    'NeuGroup',
+                                    'SynConn',
+                                    'SynOut',
+                                    'SynSTP',
+                                    'SynLTP',
+                                    'TwoEndConn',
+                                    'CondNeuGroup',
+                                    'Channel',
+                                    ],
+      'Simulating Dynamical System': ['DSRunner'],
+      'Training Dynamical System': ['DSTrainer',
+                                    'BPTT',
+                                    'BPFF',
+                                    'OnlineTrainer',
+                                    'ForceTrainer',
+                                    'OfflineTrainer',
+                                    'RidgeTrainer'],
+      'Dynamical System Helpers': ['DSPartial', 'NoSharedArg', 'LoopOverTime'],
+    }
+  )
+
+
+def generate_integrators_doc():
+  _write_subsections_v3(
+    'brainpy._src.integrators',
+    'brainpy.integrators',
+    'apis/auto/integrators.rst',
+    subsections={
+      'ode': {'header': 'ODE integrators',
+              'content': {'base': 'Base ODE Integrator',
+                          'generic': 'Generic ODE Functions',
+                          'explicit_rk': 'Explicit Runge-Kutta ODE Integrators',
+                          'adaptive_rk': 'Adaptive Runge-Kutta ODE Integrators',
+                          'exponential': 'Exponential ODE Integrators', }},
+      'sde': {'header': 'SDE integrators',
+              'content': {'base': 'Base SDE Integrator',
+                          'generic': 'Generic SDE Functions',
+                          'normal': 'Normal SDE Integrators',
+                          'srk_scalar': 'SRK methods for scalar Wiener process'}},
+      'fde': {'header': 'FDE integrators',
+              'content': {'base': 'Base FDE Integrator',
+                          'generic': 'Generic FDE Functions',
+                          'Caputo': 'Methods for Caputo Fractional Derivative',
+                          'GL': 'Methods for Riemann-Liouville Fractional Derivative'}}
+
+    }
+  )
+
+
+def generate_math_docs():
+  _write_subsections_v2(
+    'brainpy.math',
+    'brainpy.math',
+    'apis/auto/math.rst',
+    subsections={
+      'object_base': 'Basis for Object-oriented Transformations',
+      'object_transform': 'Object-oriented Transformations',
+      'operators': 'Brain Dynamics Dedicated Operators',
+      'activations': 'Activation Functions',
+      'arrayoperation': 'Array Operations',
+      'delayvars': 'Delay Variables',
+      'environment': 'Environment Settings',
+      'modes': 'Computing Modes',
+    }
+  )
+  _write_module(
+    module_name='brainpy.math.random',
+    filename='apis/auto/math_random.rst',
+    # header='Random Number Generations'
+  )
+  _write_module(
+    module_name='brainpy.math.surrogate',
+    filename='apis/auto/math_surrogate.rst',
+    # header='Surrogate Gradient Functions'
+  )
+
+
+def generate_algorithm_docs(path='apis/auto/algorithms/'):
+  if not os.path.exists(path): os.makedirs(path)
 
   module_and_name = [
-    ('rnn_runner', 'Base RNN Runner'),
-    ('rnn_trainer', 'Base RNN Trainer'),
-    ('online_trainer', 'Online RNN Trainer'),
-    ('offline_trainer', 'Offline RNN Trainer'),
-    ('back_propagation', 'Back-propagation Trainer'),
-  ]
-  write_submodules(module_name='brainpy.nn.runners',
-                   filename=os.path.join(path, 'runners.rst'),
-                   header='Runners and Trainers',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
-
-  module_and_name = [
-    ('online', 'Online Training Algorithms'),
     ('offline', 'Offline Training Algorithms'),
+    ('online', 'Online Training Algorithms'),
+    ('utils', 'Training Algorithm Utilities'),
   ]
-  write_submodules(module_name='brainpy.nn.algorithms',
-                   filename=os.path.join(path, 'algorithms.rst'),
-                   header='Training Algorithms',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
-
-  write_module(module_name='brainpy.nn.nodes.base',
-               filename=os.path.join(path, 'nodes_base.rst'),
-               header='Nodes: basic')
-  write_module(module_name='brainpy.nn.nodes.ANN',
-               filename=os.path.join(path, 'nodes_ANN.rst'),
-               header='Nodes: artificial neural network ')
-  write_module(module_name='brainpy.nn.nodes.RC',
-               filename=os.path.join(path, 'nodes_RC.rst'),
-               header='Nodes: reservoir computing')
-
-
-def generate_optimizers_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  module_and_name = [
-    ('optimizer', 'Optimizers'),
-    ('scheduler', 'Schedulers'),
-  ]
-  write_submodules(module_name='brainpy.optimizers',
-                   filename=os.path.join(path, 'optimizers.rst'),
-                   header='``brainpy.optimizers`` module',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
-
-
-def generate_running_docs(path='apis/auto/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  module_and_name = [
-    ('monitor', 'Monitors'),
-    ('parallel', 'Parallel Pool'),
-    ('runner', 'Runners')
-  ]
-  write_submodules(module_name='brainpy.running',
-                   filename=os.path.join(path, 'running.rst'),
-                   header='``brainpy.running`` module',
-                   submodule_names=[k[0] for k in module_and_name],
-                   section_names=[k[1] for k in module_and_name])
-
-
-def generate_tools_docs(path='apis/auto/tools/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.tools.checking',
-               filename=os.path.join(path, 'checking.rst'),
-               header='Type Checking')
-  write_module(module_name='brainpy.tools.codes',
-               filename=os.path.join(path, 'codes.rst'),
-               header='Code Tools')
-  write_module(module_name='brainpy.tools.others',
-               filename=os.path.join(path, 'others.rst'),
-               header='Other Tools')
-  write_module(module_name='brainpy.tools.errors',
-               filename=os.path.join(path, 'errors.rst'),
-               header='Error Tools')
-
-
-def generate_compact_docs(path='apis/auto/compat/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.compat.brainobjects',
-               filename=os.path.join(path, 'brainobjects.rst'),
-               header='Brain Objects')
-  write_module(module_name='brainpy.compat.integrators',
-               filename=os.path.join(path, 'integrators.rst'),
-               header='Integrators')
-  write_module(module_name='brainpy.compat.layers',
-               filename=os.path.join(path, 'layers.rst'),
-               header='Layers')
-  write_module(module_name='brainpy.compat.models',
-               filename=os.path.join(path, 'models.rst'),
-               header='Models')
-  write_module(module_name='brainpy.compat.monitor',
-               filename=os.path.join(path, 'monitor.rst'),
-               header='Monitor')
-  write_module(module_name='brainpy.compat.runners',
-               filename=os.path.join(path, 'runners.rst'),
-               header='Runners')
-
-
-def generate_math_compact_docs(path='apis/auto/math/'):
-  if not os.path.exists(path):
-    os.makedirs(path)
-
-  write_module(module_name='brainpy.math.compat.optimizers',
-               filename=os.path.join(path, 'optimizers.rst'),
-               header='Optimizers')
-
-  write_module(module_name='brainpy.math.compat.losses',
-               filename=os.path.join(path, 'losses.rst'),
-               header='Losses')
+  _write_submodules(module_name='brainpy.algorithms',
+                    filename=os.path.join(path, 'algorithms.rst'),
+                    header='``brainpy.algorithms`` module',
+                    submodule_names=[k[0] for k in module_and_name],
+                    section_names=[k[1] for k in module_and_name])

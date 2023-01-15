@@ -2,16 +2,355 @@ Release notes (brainpy)
 #######################
 
 
-brainpy 2.x (LTS)
-*****************
+
+
+.. note::
+
+   All history release notes please see `GitHub releases <https://github.com/brainpy/BrainPy/releases>`_.
 
 
 
+
+brainpy 2.2.x
+*************
+
+BrainPy 2.2.x is a complete re-design of the framework,
+tackling the shortcomings of brainpy 2.1.x generation,
+effectively bringing it to research needs and standards.
+
+
+
+Version 2.2.1 (2022.09.09)
+==========================
+
+This release fixes bugs found in the codebase and improves the usability and functions of BrainPy.
+
+Bug fixes
+~~~~~~~~~~~~~~
+
+
+#. Fix the bug of operator customization in ``brainpy.math.XLACustomOp`` and ``brainpy.math.register_op``. Now, it supports operator customization by using NumPy and Numba interface. For instance,
+
+.. code-block:: python
+
+   import brainpy.math as bm
+
+   def abs_eval(events, indices, indptr, post_val, values):
+         return post_val
+
+   def con_compute(outs, ins):
+         post_val = outs
+         events, indices, indptr, _, values = ins
+         for i in range(events.size):
+           if events[i]:
+             for j in range(indptr[i], indptr[i + 1]):
+               index = indices[j]
+               old_value = post_val[index]
+               post_val[index] = values + old_value
+
+   event_sum = bm.XLACustomOp(eval_shape=abs_eval, con_compute=con_compute)
+
+
+#. Fix the bug of ``brainpy.tools.DotDict``. Now, it is compatible with the transformations of JAX. For instance,
+
+.. code-block:: python
+
+   import brainpy as bp
+   from jax import vmap
+
+   @vmap
+   def multiple_run(I):
+     hh = bp.neurons.HH(1)
+     runner = bp.dyn.DSRunner(hh, inputs=('input', I), numpy_mon_after_run=False)
+     runner.run(100.)
+     return runner.mon
+
+   mon = multiple_run(bp.math.arange(2, 10, 2))
+
+New features
+~~~~~~~~~~~~~~
+
+
+#. Add numpy operators ``brainpy.math.mat``\ , ``brainpy.math.matrix``\ , ``brainpy.math.asmatrix``.
+#. Improve translation rules of brainpylib operators, improve its running speeds.
+#. Support ``DSView`` of ``DynamicalSystem`` instance. Now, it supports defining models with a slice view of a DS instance. For example,
+
+.. code-block:: python
+
+   import brainpy as bp
+   import brainpy.math as bm
+
+
+   class EINet_V2(bp.dyn.Network):
+     def __init__(self, scale=1.0, method='exp_auto'):
+       super(EINet_V2, self).__init__()
+
+       # network size
+       num_exc = int(3200 * scale)
+       num_inh = int(800 * scale)
+
+       # neurons
+       self.N = bp.neurons.LIF(num_exc + num_inh,
+                               V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                               method=method, V_initializer=bp.initialize.Normal(-55., 2.))
+
+       # synapses
+       we = 0.6 / scale  # excitatory synaptic weight (voltage)
+       wi = 6.7 / scale  # inhibitory synaptic weight
+       self.Esyn = bp.synapses.Exponential(pre=self.N[:num_exc], post=self.N,
+                                           conn=bp.connect.FixedProb(0.02),
+                                           g_max=we, tau=5.,
+                                           output=bp.synouts.COBA(E=0.),
+                                           method=method)
+       self.Isyn = bp.synapses.Exponential(pre=self.N[num_exc:], post=self.N,
+                                           conn=bp.connect.FixedProb(0.02),
+                                           g_max=wi, tau=10.,
+                                           output=bp.synouts.COBA(E=-80.),
+                                           method=method)
+
+   net = EINet_V2(scale=1., method='exp_auto')
+   # simulation
+   runner = bp.dyn.DSRunner(
+       net,
+       monitors={'spikes': net.N.spike},
+       inputs=[(net.N.input, 20.)]
+     )
+   runner.run(100.)
+
+   # visualization
+   bp.visualize.raster_plot(runner.mon.ts, runner.mon['spikes'], show=True)
+
+
+
+
+Version 2.2.0 (2022.08.12)
+==========================
+
+
+
+This release has provided important improvements for BrainPy, including usability, speed, functions, and others.
+
+Backwards Incompatible changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+1. ``brainpy.nn`` module is no longer supported and has been removed since version 2.2.0. Instead, users should use ``brainpy.train`` module for the training of BP algorithms, online learning, or offline learning algorithms, and ``brainpy.algorithms`` module for online / offline training algorithms.
+2. The ``update()`` function for the model definition has been changed:
+
+.. code-block::
+
+   >>> # 2.1.x
+   >>>
+   >>> import brainpy as bp
+   >>>
+   >>> class SomeModel(bp.dyn.DynamicalSystem):
+   >>>      def __init__(self, ):
+   >>>            ......
+   >>>      def update(self, t, dt):
+   >>>           pass
+   >>> # 2.2.x
+   >>>
+   >>> import brainpy as bp
+   >>>
+   >>> class SomeModel(bp.dyn.DynamicalSystem):
+   >>>      def __init__(self, ):
+   >>>            ......
+   >>>      def update(self, tdi):
+   >>>           t, dt = tdi.t, tdi.dt
+   >>>           pass
+
+where ``tdi`` can be defined with other names, like ``sha``\ , to represent the shared argument across modules.
+
+Deprecations
+~~~~~~~~~~~~~~~~~~~~
+
+
+#. ``brainpy.dyn.xxx (neurons)`` and ``brainpy.dyn.xxx (synapse)`` are no longer supported. Please use ``brainpy.neurons``\ , ``brainpy.synapses`` modules.
+#. ``brainpy.running.monitor`` has been removed.
+#. ``brainpy.nn`` module has been removed.
+
+New features
+~~~~~~~~~~~~~~~~~~~~
+
+
+1. ``brainpy.math.Variable`` receives a ``batch_axis`` setting to represent the batch axis of the data.
+
+.. code-block::
+
+   >>> import brainpy.math as bm
+   >>> a = bm.Variable(bm.zeros((1, 4, 5)), batch_axis=0)
+   >>> a.value = bm.zeros((2, 4, 5))  # success
+   >>> a.value = bm.zeros((1, 2, 5))  # failed
+   MathError: The shape of the original data is (2, 4, 5), while we got (1, 2, 5) with batch_axis=0.
+
+
+2. ``brainpy.train`` provides ``brainpy.train.BPTT`` for back-propagation algorithms, ``brainpy.train.Onlinetrainer`` for online training algorithms, ``brainpy.train.OfflineTrainer`` for offline training algorithms.
+3. ``brainpy.Base`` class supports ``_excluded_vars`` setting to ignore variables when retrieving variables by using ``Base.vars()`` method.
+
+.. code-block::
+
+   >>> class OurModel(bp.Base):
+   >>>     _excluded_vars = ('a', 'b')
+   >>>     def __init__(self):
+   >>>         super(OurModel, self).__init__()
+   >>>         self.a = bm.Variable(bm.zeros(10))
+   >>>         self.b = bm.Variable(bm.ones(20))
+   >>>         self.c = bm.Variable(bm.random.random(10))
+   >>>
+   >>> model = OurModel()
+   >>> model.vars().keys()
+   dict_keys(['OurModel0.c'])
+
+
+4. ``brainpy.analysis.SlowPointFinder`` supports directly analyzing an instance of ``brainpy.dyn.DynamicalSystem``.
+
+.. code-block::
+
+   >>> hh = bp.neurons.HH(1)
+   >>> finder = bp.analysis.SlowPointFinder(hh, target_vars={'V': hh.V, 'm': hh.m, 'h': hh.h, 'n': hh.n})
+
+
+5. ``brainpy.datasets`` supports MNIST, FashionMNIST, and other datasets.
+6. Supports defining conductance-based neuron models``.
+
+.. code-block::
+
+   >>> class HH(bp.dyn.CondNeuGroup):
+   >>>   def __init__(self, size):
+   >>>     super(HH, self).__init__(size)
+   >>>
+   >>>     self.INa = channels.INa_HH1952(size, )
+   >>>     self.IK = channels.IK_HH1952(size, )
+   >>>     self.IL = channels.IL(size, E=-54.387, g_max=0.03)
+
+
+7. ``brainpy.layers`` module provides commonly used models for DNN and reservoir computing.
+8. Support composable definition of synaptic models by using ``TwoEndConn``\ , ``SynOut``\ , ``SynSTP`` and ``SynLTP``.
+
+.. code-block::
+
+   >>> bp.synapses.Exponential(self.E, self.E, bp.conn.FixedProb(prob),
+   >>>                      g_max=0.03 / scale, tau=5,
+   >>>                      output=bp.synouts.COBA(E=0.),
+   >>>                      stp=bp.synplast.STD())
+
+
+9. Provide commonly used surrogate gradient function for spiking generation, including
+
+   * ``brainpy.math.spike_with_sigmoid_grad``
+   * ``brainpy.math.spike_with_linear_grad``
+   * ``brainpy.math.spike_with_gaussian_grad``
+   * ``brainpy.math.spike_with_mg_grad``
+
+10. Provide shortcuts for GPU memory management via ``brainpy.math.disable_gpu_memory_preallocation()``\ , and ``brainpy.math.clear_buffer_memory()``.
+
+What's Changed
+~~~~~~~~~~~~~~~~~~~~
+
+
+* fix `#207 <https://github.com/PKU-NIP-Lab/BrainPy/issues/207>`_\ : synapses update first, then neurons, finally delay variables by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#219 <https://github.com/PKU-NIP-Lab/BrainPy/pull/219>`_
+* docs: add logos by `@ztqakita <https://github.com/ztqakita>`_ in `#218 <https://github.com/PKU-NIP-Lab/BrainPy/pull/218>`_
+* Add the biological NMDA model by `@c-xy17 <https://github.com/c-xy17>`_ in `#221 <https://github.com/PKU-NIP-Lab/BrainPy/pull/221>`_
+* docs: fix mathjax problem by `@ztqakita <https://github.com/ztqakita>`_ in `#222 <https://github.com/PKU-NIP-Lab/BrainPy/pull/222>`_
+* Add the parameter R to the LIF model by `@c-xy17 <https://github.com/c-xy17>`_ in `#224 <https://github.com/PKU-NIP-Lab/BrainPy/pull/224>`_
+* new version of brainpy: V2.2.0-rc1 by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#226 <https://github.com/PKU-NIP-Lab/BrainPy/pull/226>`_
+* update training apis by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#227 <https://github.com/PKU-NIP-Lab/BrainPy/pull/227>`_
+* Update quickstart and the analysis module by `@c-xy17 <https://github.com/c-xy17>`_ in `#229 <https://github.com/PKU-NIP-Lab/BrainPy/pull/229>`_
+* Eseential updates for montors, analysis, losses, and examples by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#230 <https://github.com/PKU-NIP-Lab/BrainPy/pull/230>`_
+* add numpy op tests by `@ztqakita <https://github.com/ztqakita>`_ in `#231 <https://github.com/PKU-NIP-Lab/BrainPy/pull/231>`_
+* Integrated simulation, simulaton and analysis by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#232 <https://github.com/PKU-NIP-Lab/BrainPy/pull/232>`_
+* update docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#233 <https://github.com/PKU-NIP-Lab/BrainPy/pull/233>`_
+* unify ``brainpy.layers`` with other modules in ``brainpy.dyn`` by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#234 <https://github.com/PKU-NIP-Lab/BrainPy/pull/234>`_
+* fix bugs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#235 <https://github.com/PKU-NIP-Lab/BrainPy/pull/235>`_
+* update apis, docs, examples and others by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#236 <https://github.com/PKU-NIP-Lab/BrainPy/pull/236>`_
+* fixes by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#237 <https://github.com/PKU-NIP-Lab/BrainPy/pull/237>`_
+* fix: add dtype promotion = standard by `@ztqakita <https://github.com/ztqakita>`_ in `#239 <https://github.com/PKU-NIP-Lab/BrainPy/pull/239>`_
+* updates by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#240 <https://github.com/PKU-NIP-Lab/BrainPy/pull/240>`_
+* update training docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#241 <https://github.com/PKU-NIP-Lab/BrainPy/pull/241>`_
+* change doc path/organization by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#242 <https://github.com/PKU-NIP-Lab/BrainPy/pull/242>`_
+* Update advanced docs by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#243 <https://github.com/PKU-NIP-Lab/BrainPy/pull/243>`_
+* update quickstart docs & enable jit error checking by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#244 <https://github.com/PKU-NIP-Lab/BrainPy/pull/244>`_
+* update apis and examples by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#245 <https://github.com/PKU-NIP-Lab/BrainPy/pull/245>`_
+* update apis and tests by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#246 <https://github.com/PKU-NIP-Lab/BrainPy/pull/246>`_
+* Docs update and bugs fixed by `@ztqakita <https://github.com/ztqakita>`_ in `#247 <https://github.com/PKU-NIP-Lab/BrainPy/pull/247>`_
+* version 2.2.0 by `@chaoming0625 <https://github.com/chaoming0625>`_ in `#248 <https://github.com/PKU-NIP-Lab/BrainPy/pull/248>`_
+* add norm and pooling & fix bugs in operators by `@ztqakita <https://github.com/ztqakita>`_ in `#249 <https://github.com/PKU-NIP-Lab/BrainPy/pull/249>`_
+
+**Full Changelog**: `V2.1.12...V2.2.0 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.12...V2.2.0>`_
+
+
+
+
+brainpy 2.1.x
+*************
+
+
+
+Version 2.1.12 (2022.05.17)
+===========================
+
+
+Highlights
+~~~~~~~~~~
+
+This release is excellent. We have made important improvements.
+
+1. We provide dozens of random sampling in NumPy which are not
+   supportted in JAX, such as ``brainpy.math.random.bernoulli``,
+   ``brainpy.math.random.lognormal``, ``brainpy.math.random.binomial``,
+   ``brainpy.math.random.chisquare``, ``brainpy.math.random.dirichlet``,
+   ``brainpy.math.random.geometric``, ``brainpy.math.random.f``,
+   ``brainpy.math.random.hypergeometric``,
+   ``brainpy.math.random.logseries``,
+   ``brainpy.math.random.multinomial``,
+   ``brainpy.math.random.multivariate_normal``,
+   ``brainpy.math.random.negative_binomial``,
+   ``brainpy.math.random.noncentral_chisquare``,
+   ``brainpy.math.random.noncentral_f``, ``brainpy.math.random.power``,
+   ``brainpy.math.random.rayleigh``, ``brainpy.math.random.triangular``,
+   ``brainpy.math.random.vonmises``, ``brainpy.math.random.wald``,
+   ``brainpy.math.random.weibull``
+2. make efficient checking on numerical values. Instead of direct
+   ``id_tap()`` checking which has large overhead, currently
+   ``brainpy.tools.check_erro_in_jit()`` is highly efficient.
+3. Fix ``JaxArray`` operator errors on ``None``
+4. improve oo-to-function transformation speeds
+5. ``io`` works: ``.save_states()`` and ``.load_states()``
+
+What’s Changed
+~~~~~~~~~~~~~~
+
+-  support dtype setting in array interchange functions by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#209 <https://github.com/PKU-NIP-Lab/BrainPy/pull/209>`__
+-  fix `#144 <https://github.com/PKU-NIP-Lab/BrainPy/issues/144>`__:
+   operations on None raise errors by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#210 <https://github.com/PKU-NIP-Lab/BrainPy/pull/210>`__
+-  add tests and new functions for random sampling by
+   [@c-xy17](https://github.com/c-xy17) in
+   `#213 <https://github.com/PKU-NIP-Lab/BrainPy/pull/213>`__
+-  feat: fix ``io`` for brainpy.Base by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#211 <https://github.com/PKU-NIP-Lab/BrainPy/pull/211>`__
+-  update advanced tutorial documentation by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#212 <https://github.com/PKU-NIP-Lab/BrainPy/pull/212>`__
+-  fix `#149 <https://github.com/PKU-NIP-Lab/BrainPy/issues/149>`__
+   (dozens of random samplings in NumPy) and fix JaxArray op errors by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#216 <https://github.com/PKU-NIP-Lab/BrainPy/pull/216>`__
+-  feat: efficient checking on numerical values by
+   [@chaoming0625](https://github.com/chaoming0625) in
+   `#217 <https://github.com/PKU-NIP-Lab/BrainPy/pull/217>`__
+
+**Full Changelog**:
+`V2.1.11...V2.1.12 <https://github.com/PKU-NIP-Lab/BrainPy/compare/V2.1.11...V2.1.12>`__
 
 
 
 Version 2.1.11 (2022.05.15)
-==========================
+===========================
 
 
 What's Changed
@@ -29,7 +368,7 @@ What's Changed
 
 
 Version 2.1.10 (2022.05.05)
-==========================
+===========================
 
 
 What's Changed
@@ -423,8 +762,8 @@ Documentation
 - Complete tutorials for API documentation
 
 
-brainpy 1.1.x (LTS)
-*******************
+brainpy 1.1.x
+*************
 
 
 If you are using ``brainpy==1.x``, you can find *documentation*, *examples*, and *models* through the following links:
