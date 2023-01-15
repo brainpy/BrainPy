@@ -580,7 +580,7 @@ class AdExIF(NeuGroup):
       b: Union[float, ArrayType, Initializer, Callable] = 1.,
       tau: Union[float, ArrayType, Initializer, Callable] = 10.,
       tau_w: Union[float, ArrayType, Initializer, Callable] = 30.,
-      tau_ref: Optional[Union[float, ArrayType, Initializer, Callable]] = 30.,
+      tau_ref: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
       R: Union[float, ArrayType, Initializer, Callable] = 1.,
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),

@@ -41,9 +41,9 @@ from . import activations
 # high-level numpy operations
 from .arraycreation import *
 from .arrayinterporate import *
-# from .arraycompatible import *
+from .arraycompatible import *
 from .others import *
-from . import random
+from . import random, linalg, fft
 
 # operators
 from .operators import *

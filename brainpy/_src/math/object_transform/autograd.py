@@ -18,9 +18,9 @@ from jax.tree_util import (tree_flatten, tree_unflatten,
 from jax.util import safe_map
 
 from brainpy import errors, tools, check
-from brainpy._src.math.object_transform.base import BrainPyObject
-from brainpy._src.math.object_transform.abstract import ObjectTransform
 from brainpy._src.math.ndarray import Array, Variable, add_context, del_context
+from brainpy._src.math.object_transform.abstract import ObjectTransform
+from brainpy._src.math.object_transform.base import BrainPyObject
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -75,7 +75,7 @@ class GradientTransform(ObjectTransform):
       _argnums = tuple(a + 2 for a in _argnums)
       if len(self._grad_vars) > 0:
         _argnums = (0,) + _argnums
-    self.nonvar_argnums = argnums
+    self._nonvar_argnums = argnums
     self.return_value = return_value
     self.has_aux = has_aux
 
@@ -134,10 +134,12 @@ class GradientTransform(ObjectTransform):
     # old_dyn_vs = [v.value for v in self._dyn_vars]
     try:
       add_context(self.name)
-      grads, (outputs, new_grad_vs, new_dyn_vs) = self._call([v.value for v in self._grad_vars],
-                                                             [v.value for v in self._dyn_vars],
-                                                             *args,
-                                                             **kwargs)
+      grads, (outputs, new_grad_vs, new_dyn_vs) = self._call(
+        [v.value for v in self._grad_vars],
+        [v.value for v in self._dyn_vars],
+        *args,
+        **kwargs
+      )
       del_context(self._name)
     except UnexpectedTracerError as e:
       del_context(self._name)
@@ -155,11 +157,11 @@ class GradientTransform(ObjectTransform):
 
     # check returned grads
     if len(self._grad_vars) > 0:
-      if self.nonvar_argnums is None:
+      if self._nonvar_argnums is None:
         grads = self._grad_tree.unflatten(grads)
       else:
         var_grads = self._grad_tree.unflatten(grads[0])
-        arg_grads = grads[1] if isinstance(self.nonvar_argnums, int) else grads[1:]
+        arg_grads = grads[1] if isinstance(self._nonvar_argnums, int) else grads[1:]
         grads = (var_grads, arg_grads)
 
     # check returned value

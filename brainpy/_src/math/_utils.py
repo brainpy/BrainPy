@@ -4,7 +4,6 @@ import functools
 from typing import Callable
 
 import jax
-import numpy as np
 from jax.tree_util import tree_map
 
 from .ndarray import Array
@@ -18,8 +17,8 @@ def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
 
 
-def _return(x):
-  return Array(x) if _return_bp_array else x
+def _return(a):
+  return Array(a) if isinstance(a, jax.Array) and a.ndim > 1 else a
 
 
 _return_bp_array = True
@@ -50,10 +49,6 @@ def wraps(fun: Callable):
   return wrap
 
 
-def _as_brainpy_array(a):
-  return Array(a) if isinstance(a, (np.ndarray, jax.Array)) else a
-
-
 def _is_leaf(a):
   return isinstance(a, Array)
 
@@ -65,7 +60,7 @@ def _compatible_with_brainpy_array(fun: Callable):
     if len(kwargs):
       kwargs = tree_map(_as_jax_array_, kwargs, is_leaf=_is_leaf)
     r = fun(*args, **kwargs)
-    return tree_map(_as_brainpy_array, r) if _return_bp_array else r
+    return tree_map(_return, r) if _return_bp_array else r
 
   new_fun.__doc__ = getattr(fun, "__doc__", None)
 

@@ -84,10 +84,6 @@ class OfflineTrainer(DSTrainer):
     for node in self.train_nodes:
       node.offline_fit_by = fit_method
 
-    # initialize the fitting method
-    for node in self.train_nodes:
-      node.offline_init()
-
   def __repr__(self):
     name = self.__class__.__name__
     prefix = ' ' * len(name)

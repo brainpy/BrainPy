@@ -329,7 +329,7 @@ class Orthogonal(InterLayerInitializer):
     n_cols = np.prod(shape) // n_rows
     matrix_shape = (n_rows, n_cols) if n_rows > n_cols else (n_cols, n_rows)
     norm_dst = self.rng.normal(size=matrix_shape)
-    q_mat, r_mat = jnp.linalg.qr(norm_dst)
+    q_mat, r_mat = jnp.linalg.qr(bm.as_jax(norm_dst))
     # Enforce Q is uniformly distributed
     q_mat *= jnp.sign(jnp.diag(r_mat))
     if n_rows < n_cols:
