@@ -1044,12 +1044,14 @@ class Variable(Array):
                         f'but the batch axis is set to be {batch_axis}.')
 
   @property
-  def shape_nb(self) -> TupleType[int, ...]:
+  def nobatch_shape(self) -> TupleType[int, ...]:
     """Shape without batch axis."""
-    shape = list(self.value.shape)
     if self.batch_axis is not None:
+      shape = list(self.value.shape)
       shape.pop(self.batch_axis)
-    return tuple(shape)
+      return tuple(shape)
+    else:
+      return self.shape
 
   @property
   def batch_axis(self) -> Optional[int]:
@@ -1400,8 +1402,8 @@ class Variable(Array):
     """Dot product of two arrays."""
     return self.value.dot(b.value if isinstance(b, Array) else b)
 
-  def flatten(self, order='C'):
-    return self.value.flatten(order=order)
+  def flatten(self):
+    return self.value.flatten()
 
   def item(self, *args):
     """Copy an element of an array to a standard Python scalar and return it."""

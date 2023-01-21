@@ -1402,7 +1402,7 @@ class DSView(DynamicalSystem):
           raise UnsupportedError('Should provide varshape when the target does '
                                  f'not define its {SLICE_VARS}')
       all_vars = target.vars(level=1, include_self=True, method='relative')
-      all_vars = {k: v for k, v in all_vars.items() if v.shape_nb == varshape}
+      all_vars = {k: v for k, v in all_vars.items() if v.nobatch_shape == varshape}
     else:
       all_vars = {}
       for var_str in getattr(self.target, SLICE_VARS):
