@@ -17,11 +17,6 @@ from brainpy._src.analysis.highdim.slow_points import (
   SlowPointFinder as SlowPointFinder,
 )
 
-from brainpy._src.analysis.plotstyle import (
-  set_plot_schema as set_plot_schema,
-)
+from brainpy._src.analysis import plotstyle, stability, constants
+C = constants
 
-from brainpy._src.analysis.constants import (
-  CONTINUOUS as CONTINUOUS,
-  DISCRETE as DISCRETE,
-)
