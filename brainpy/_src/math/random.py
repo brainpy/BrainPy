@@ -973,8 +973,8 @@ class RandomState(Variable):
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(mean), jnp.shape(scale))
     size = _size2shape(size)
-    sampled_chi2 = jnp.square(self.randn(*size))
-    sampled_uniform = self.uniform(size=size, key=key)
+    sampled_chi2 = jnp.square(_as_jax_array(self.randn(*size)))
+    sampled_uniform = _as_jax_array(self.uniform(size=size, key=key))
     # Wikipedia defines an intermediate x with the formula
     #   x = loc + loc ** 2 * y / (2 * conc) - loc / (2 * conc) * sqrt(4 * loc * conc * y + loc ** 2 * y ** 2)
     # where y ~ N(0, 1)**2 (sampled_chi2 above) and conc is the concentration.

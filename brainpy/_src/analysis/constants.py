@@ -2,9 +2,6 @@
 
 
 __all__ = [
-  'CONTINUOUS',
-  'DISCRETE',
-
   'F_vmap_fx',
   'F_vmap_fy',
   'F_vmap_brentq_fx',
