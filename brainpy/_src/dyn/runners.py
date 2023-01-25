@@ -361,6 +361,7 @@ class DSRunner(Runner):
       warnings.warn('`fun_inputs` is deprecated since version 2.3.1. '
                     'Define `fun_inputs` as `inputs` instead.',
                     UserWarning)
+    self._fun_inputs = fun_inputs
     if callable(inputs):
       self._inputs = inputs
     else:
@@ -551,6 +552,8 @@ class DSRunner(Runner):
     return res
 
   def _step_func_input(self, shared):
+    if self._fun_inputs is not None:
+      self._fun_inputs(shared)
     if callable(self._inputs):
       self._inputs(shared)
     else:

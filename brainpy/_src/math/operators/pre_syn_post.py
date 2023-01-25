@@ -90,7 +90,6 @@ def pre2post_event_sum(events,
   out: ArrayType
     A tensor with the shape of ``post_num``.
   """
-  warnings.warn('Please use ``brainpylib.event_ops.event_csr_matvec()`` instead.', UserWarning)
   indices, idnptr = pre2post
   events = as_jax(events)
   indices = as_jax(indices)
