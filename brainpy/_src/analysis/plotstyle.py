@@ -4,6 +4,7 @@
 __all__ = [
   'plot_schema',
   'set_plot_schema',
+  'set_markersize',
 ]
 
 from .stability import (CENTER_MANIFOLD, SADDLE_NODE, STABLE_POINT_1D,

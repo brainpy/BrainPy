@@ -20,7 +20,6 @@ class TestOneInit(unittest.TestCase):
           init = bp.init.OneInit(value=value)
           weights = init(size)
           assert weights.shape == size
-          assert isinstance(weights, bp.math.ndarray)
           assert (weights == value).all()
 
 

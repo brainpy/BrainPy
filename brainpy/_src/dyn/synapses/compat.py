@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import warnings
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Optional
 
+import brainpy._src.math as bm
 from brainpy._src.connect import TwoEndConnector
-from brainpy._src.dyn.base import NeuGroup
-from brainpy._src.dyn.synouts import COBA, CUBA
+from brainpy._src.dyn.base import NeuGroup, SynSTP
+from brainpy._src.dyn.synouts import COBA, CUBA, MgBlock
 from brainpy._src.initialize import Initializer
 from brainpy.types import ArrayType
-from .abstract_models import Delta, Exponential, DualExponential, NMDA
+from .abstract_models import Delta, Exponential, DualExponential, NMDA as NewNMDA
 
 __all__ = [
   'DeltaSynapse',
@@ -256,3 +257,44 @@ class AlphaCOBA(DualExpCOBA):
                                     tau_rise=tau_decay,
                                     method=method,
                                     name=name)
+
+
+class NMDA(NewNMDA):
+  def __init__(
+      self,
+      pre: NeuGroup,
+      post: NeuGroup,
+      conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
+      E=0.,
+      alpha=0.062,
+      beta=3.57,
+      cc_Mg=1.2,
+      stp: Optional[SynSTP] = None,
+      comp_method: str = 'dense',
+      g_max: Union[float, ArrayType, Initializer, Callable] = 0.15,
+      delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      tau_decay: Union[float, ArrayType] = 100.,
+      a: Union[float, ArrayType] = 0.5,
+      tau_rise: Union[float, ArrayType] = 2.,
+      method: str = 'exp_auto',
+
+      # other parameters
+      name: str = None,
+      mode: bm.Mode = None,
+      stop_spike_gradient: bool = False,
+  ):
+    super(NMDA, self).__init__(pre=pre,
+                               post=post,
+                               conn=conn,
+                               output=MgBlock(E=E, alpha=alpha, beta=beta, cc_Mg=cc_Mg),
+                               stp=stp,
+                               name=name,
+                               mode=mode,
+                               comp_method=comp_method,
+                               g_max=g_max,
+                               delay_step=delay_step,
+                               tau_decay=tau_decay,
+                               a=a,
+                               tau_rise=tau_rise,
+                               method=method,
+                               stop_spike_gradient=stop_spike_gradient)
