@@ -93,10 +93,8 @@ def _check_input_array(array):
 
 
 def _return(a):
-  if _return_bp_array:
-    if isinstance(a, jax.Array):
-      if a.ndim > 1:
-        return Array(a)
+  if _return_bp_array and isinstance(a, jax.Array) and a.ndim > 1:
+    return Array(a)
   return a
 
 
