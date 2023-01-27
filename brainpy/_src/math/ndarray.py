@@ -194,38 +194,22 @@ class Array(object):
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
-    name = self.__class__.__name__
-    # if 'DeviceArray' in print_code:
-    #   replace_name = 'DeviceArray'
-    # elif 'ShardedDeviceArray' in print_code:
-    #   replace_name = 'ShardedDeviceArray'
-    # elif 'GlobalDeviceArray' in print_code:
-    #   replace_name = 'GlobalDeviceArray'
-    # elif 'Array' in print_code:
-    #   replace_name = 'Array'
-    # else:
-    #   replace_name = ''
-    if False:
-      print_code = print_code.replace(replace_name, name)
+    if ', dtype' in print_code:
+      print_code = print_code.split(', dtype')[0] + ')'
+    prefix = f'{self.__class__.__name__}'
+    prefix2 = f'{self.__class__.__name__}(value='
+    if '\n' in print_code:
       lines = print_code.split("\n")
-      if len(name) > len(replace_name):
-        num_len = len(name) - len(replace_name)
-        for i in range(1, len(lines)):
-          lines[i] = " " * num_len + lines[i]
-      else:
-        num_len = len(replace_name) - len(name)
-        for i in range(1, len(lines)):
-          lines[i] = lines[i][num_len:]
+      blank1 = " " * len(prefix2)
+      lines[0] = prefix2 + lines[0]
+      for i in range(1, len(lines)):
+        lines[i] = blank1 + lines[i]
+      lines[-1] += ","
+      blank2 = " " * (len(prefix) + 1)
+      lines.append(f'{blank2}dtype={self.dtype})')
       print_code = "\n".join(lines)
     else:
-      lines = print_code.split("\n")
-      prefix = name + "("
-      lines[0] = prefix + lines[0]
-      prefix = " " * len(prefix)
-      for i in range(1, len(lines)):
-        lines[i] = prefix + lines[i]
-      lines[-1] = lines[-1] + ")"
-      print_code = "\n".join(lines)
+      print_code = prefix2 + print_code + f', dtype={self.dtype})'
     return print_code
 
   def __format__(self, format_spec: str) -> str:
@@ -1135,6 +1119,19 @@ class VariableView(Variable):
       raise ValueError('Must be instance of Variable.')
     super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis)
     self._value = value
+
+  def __repr__(self) -> str:
+    print_code = repr(self._value)
+    prefix = f'{self.__class__.__name__}'
+    blank = " " * (len(prefix) + 1)
+    lines = print_code.split("\n")
+    lines[0] = prefix + "(" + lines[0]
+    for i in range(1, len(lines)):
+      lines[i] = blank + lines[i]
+    lines[-1] += ","
+    lines.append(blank + f'index={self.index})')
+    print_code = "\n".join(lines)
+    return print_code
 
   @property
   def value(self):
