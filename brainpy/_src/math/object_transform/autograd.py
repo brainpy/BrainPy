@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 from functools import partial, wraps
 from typing import Union, Callable, Dict, Sequence, Any, Optional
 
 import jax
 import numpy as np
-from jax import linear_util, dtypes, vmap, numpy as jnp
-from jax._src.api import (_vjp, _jvp,
-                          _check_callable,
-                          _check_output_dtype_jacrev, _check_input_dtype_jacrev,
-                          _check_output_dtype_jacfwd, _check_input_dtype_jacfwd, )
+from jax import linear_util, dtypes, vmap, numpy as jnp, core
+from jax._src.api import (_vjp, _jvp)
 from jax.api_util import argnums_partial
 from jax.errors import UnexpectedTracerError
+from jax.interpreters import xla
 from jax.tree_util import (tree_flatten, tree_unflatten,
                            tree_map, tree_transpose,
                            tree_structure)
@@ -711,3 +710,110 @@ def vector_grad(
                            argnums=argnums,
                            return_value=return_value,
                            has_aux=False if has_aux is None else has_aux)
+
+
+def _check_callable(fun):
+  # In Python 3.10+, the only thing stopping us from supporting staticmethods
+  # is that we can't take weak references to them, which the C++ JIT requires.
+  if isinstance(fun, staticmethod):
+    raise TypeError(f"staticmethod arguments are not supported, got {fun}")
+  if not callable(fun):
+    raise TypeError(f"Expected a callable value, got {fun}")
+  if _isgeneratorfunction(fun):
+    raise TypeError(f"Expected a function, got a generator function: {fun}")
+
+
+def _isgeneratorfunction(fun):
+  # re-implemented here because of https://bugs.python.org/issue33261
+  while inspect.ismethod(fun):
+    fun = fun.__func__
+  while isinstance(fun, partial):
+    fun = fun.func
+  return inspect.isfunction(fun) and bool(fun.__code__.co_flags & inspect.CO_GENERATOR)
+
+
+def _check_arg(arg):
+  if not (isinstance(arg, core.Tracer) or _valid_jaxtype(arg)):
+    raise TypeError(f"Argument '{arg}' of type {type(arg)} is not a valid JAX type.")
+
+
+def _valid_jaxtype(arg):
+  try:
+    xla.abstractify(arg)  # faster than core.get_aval
+  except TypeError:
+    return core.valid_jaxtype(arg)
+  else:
+    return True
+
+
+def _check_output_dtype_revderiv(name, holomorphic, x):
+  aval = core.get_aval(x)
+  if core.is_opaque_dtype(aval.dtype):
+    raise TypeError(
+      f"{name} with output element type {aval.dtype.name}")
+  if holomorphic:
+    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
+      raise TypeError(f"{name} with holomorphic=True requires outputs with complex dtype, "
+                      f"but got {aval.dtype.name}.")
+  elif dtypes.issubdtype(aval.dtype, np.complexfloating):
+    raise TypeError(f"{name} requires real-valued outputs (output dtype that is "
+                    f"a sub-dtype of np.floating), but got {aval.dtype.name}. "
+                    "For holomorphic differentiation, pass holomorphic=True. "
+                    "For differentiation of non-holomorphic functions involving complex "
+                    "outputs, use jax.vjp directly.")
+  elif not dtypes.issubdtype(aval.dtype, np.floating):
+    raise TypeError(f"{name} requires real-valued outputs (output dtype that is "
+                    f"a sub-dtype of np.floating), but got {aval.dtype.name}. "
+                    "For differentiation of functions with integer outputs, use "
+                    "jax.vjp directly.")
+
+
+def _check_input_dtype_revderiv(name, holomorphic, allow_int, x):
+  _check_arg(x)
+  aval = core.get_aval(x)
+  if core.is_opaque_dtype(aval.dtype):
+    raise TypeError(
+      f"{name} with input element type {aval.dtype.name}")
+  if holomorphic:
+    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
+      raise TypeError(f"{name} with holomorphic=True requires inputs with complex dtype, "
+                      f"but got {aval.dtype.name}.")
+  if (dtypes.issubdtype(aval.dtype, np.integer) or
+      dtypes.issubdtype(aval.dtype, np.bool_)):
+    if not allow_int:
+      raise TypeError(f"{name} requires real- or complex-valued inputs (input dtype "
+                      f"that is a sub-dtype of np.inexact), but got {aval.dtype.name}. "
+                      "If you want to use Boolean- or integer-valued inputs, use vjp "
+                      "or set allow_int to True.")
+  elif not dtypes.issubdtype(aval.dtype, np.inexact):
+    raise TypeError(f"{name} requires numerical-valued inputs (input dtype that is a "
+                    f"sub-dtype of np.bool_ or np.number), but got {aval.dtype.name}.")
+
+
+_check_output_dtype_jacrev = partial(_check_output_dtype_revderiv, "jacrev")
+_check_input_dtype_jacrev = partial(_check_input_dtype_revderiv, "jacrev")
+
+
+def _check_output_dtype_jacfwd(holomorphic, x):
+  aval = core.get_aval(x)
+  if holomorphic:
+    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
+      raise TypeError("jacfwd with holomorphic=True requires outputs with complex dtype, "
+                      f"but got {aval.dtype.name}.")
+
+
+def _check_input_dtype_jacfwd(holomorphic: bool, x: Any) -> None:
+  _check_arg(x)
+  aval = core.get_aval(x)
+  if core.is_opaque_dtype(aval.dtype):
+    raise TypeError(f"jacfwd with input element type {aval.dtype.name}")
+  if holomorphic:
+    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
+      raise TypeError("jacfwd with holomorphic=True requires inputs with complex "
+                      f"dtype, but got {aval.dtype.name}.")
+  elif not dtypes.issubdtype(aval.dtype, np.floating):
+    raise TypeError("jacfwd requires real-valued inputs (input dtype that is "
+                    f"a sub-dtype of np.floating), but got {aval.dtype.name}. "
+                    "For holomorphic differentiation, pass holomorphic=True. "
+                    "For differentiation of non-holomorphic functions involving "
+                    "complex inputs or integer inputs, use jax.jvp directly.")
