@@ -247,7 +247,7 @@ def main():
   def loss_fun(x, y, fit=True):
     yy = bm.one_hot(y, 10, dtype=bm.float_)
     # poisson encoding
-    x = (bm.random.rand(num_time, *x.shape) < jnp.abs(x)).astype(bm.float_) * jnp.sign(x)
+    x = (bm.random.rand(num_time, *x.shape) < bm.abs(x)).astype(bm.float_) * bm.sign(x)
     # loop over time
     s = {'fit': fit}
     for i in range(num_time):

@@ -8,8 +8,6 @@ This module implements calcium-dependent potassium channels.
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators.ode.generic import odeint
@@ -101,13 +99,13 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)
 
   def dp(self, p, t, C_Ca):
-    C2 = self.alpha * jnp.power(bm.as_jax(C_Ca), self.n)
+    C2 = self.alpha * bm.power(bm.as_jax(C_Ca), self.n)
     C3 = C2 + self.beta
     return self.phi * (C2 / C3 - p) * C3
 
@@ -119,10 +117,10 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     return self.g_max * self.p * self.p * (self.E - V)
 
   def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
-    C2 = self.alpha * jnp.power(C_Ca, self.n)
+    C2 = self.alpha * bm.power(C_Ca, self.n)
     C3 = C2 + self.beta
     if batch_size is None:
-      self.p.value = jnp.broadcast_to(C2 / C3, self.varshape)
+      self.p.value = bm.broadcast_to(C2 / C3, self.varshape)
     else:
-      self.p.value = jnp.broadcast_to(C2 / C3, (batch_size,) + self.varshape)
+      self.p.value = bm.broadcast_to(C2 / C3, (batch_size,) + self.varshape)
       assert self.p.shape[0] == batch_size

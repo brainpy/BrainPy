@@ -70,9 +70,9 @@ def section_input(values, durations, dt=None, return_length=False):
     start += length
 
   if return_length:
-    return I_current.value, I_duration
+    return I_current, I_duration
   else:
-    return I_current.value
+    return I_current
 
 
 def constant_input(I_and_duration, dt=None):
@@ -118,7 +118,7 @@ def constant_input(I_and_duration, dt=None):
     length = int(duration / dt)
     I_current[start: start + length] = c_size
     start += length
-  return I_current.value, I_duration
+  return I_current, I_duration
 
 
 def constant_current(*args, **kwargs):
@@ -177,7 +177,7 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
     pp = int(time / dt)
     p_len = int(dur / dt)
     current[pp: pp + p_len] = size
-  return current.value
+  return current
 
 
 def spike_current(*args, **kwargs):
@@ -223,7 +223,7 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   p2 = int(np.ceil(t_end / dt))
   cc = jnp.array(jnp.linspace(c_start, c_end, p2 - p1))
   current[p1: p2] = cc
-  return current.value
+  return current
 
 
 def ramp_current(*args, **kwargs):
@@ -267,7 +267,7 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
   noises = rng.standard_normal((i_end - i_start, n)) * jnp.sqrt(dt)
   currents = bm.zeros((int(duration / dt), n))
   currents[i_start: i_end] = noises
-  return currents.value
+  return currents
 
 
 def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
@@ -316,7 +316,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
   i_end = int(t_end / dt)
   currents = bm.zeros((int(duration / dt), n))
   currents[i_start: i_end] = noises
-  return currents.value
+  return currents
 
 
 def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, bias=False):
@@ -351,7 +351,7 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
   if bias: sin_inputs += amplitude
   currents = bm.zeros(int(duration / dt))
   currents[start_i:end_i] = sin_inputs
-  return currents.value
+  return currents
 
 
 def _square(t, duty=0.5):
@@ -412,4 +412,4 @@ def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0.
   start_i = int(t_start / dt)
   end_i = int(t_end / dt)
   currents[start_i:end_i] = bm.asarray(sin_inputs)
-  return currents.value
+  return currents

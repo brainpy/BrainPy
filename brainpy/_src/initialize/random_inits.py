@@ -114,7 +114,7 @@ class Normal(InterLayerInitializer):
   def __call__(self, *shape, dtype=None):
     shape = _format_shape(shape)
     weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
-    return bm.as_jax(weights, dtype=dtype)
+    return bm.asarray(weights, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, rng={self.rng})'
@@ -140,7 +140,7 @@ class Uniform(InterLayerInitializer):
   def __call__(self, shape, dtype=None):
     shape = _format_shape(shape)
     r = self.rng.uniform(low=self.min_val, high=self.max_val, size=shape)
-    return bm.as_jax(r, dtype=dtype)
+    return bm.asarray(r, dtype=dtype)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(min_val={self.min_val}, '
@@ -187,7 +187,7 @@ class VarianceScaling(InterLayerInitializer):
       res = self.rng.uniform(low=-1, high=1, size=shape) * jnp.sqrt(3 * variance).astype(dtype)
     else:
       raise ValueError("invalid distribution for variance scaling initializer")
-    return bm.as_jax(res, dtype=dtype)
+    return bm.asarray(res, dtype=dtype)
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -336,7 +336,7 @@ class Orthogonal(InterLayerInitializer):
       q_mat = q_mat.T
     q_mat = jnp.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, self.axis)))
     q_mat = jnp.moveaxis(q_mat, 0, self.axis)
-    return self.scale * bm.as_jax(q_mat, dtype=dtype)
+    return self.scale * bm.asarray(q_mat, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, rng={self.rng})'
@@ -372,7 +372,7 @@ class DeltaOrthogonal(InterLayerInitializer):
     else:
       k1, k2, k3 = shape[:3]
       W[(k1 - 1) // 2, (k2 - 1) // 2, (k3 - 1) // 2, ...] = ortho_matrix
-    return W.value
+    return W
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis})'

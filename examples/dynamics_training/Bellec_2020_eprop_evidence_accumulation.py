@@ -16,10 +16,7 @@ import brainpy.math as bm
 from jax.lax import stop_gradient
 from matplotlib import patches
 
-bm.set_environment(mode=bm.training_mode)
-
-
-bm.set_dt(1.)  # Simulation time step [ms]
+bm.set_environment(mode=bm.training_mode, dt=1.)
 
 # training parameters
 n_batch = 128  # batch size
@@ -171,7 +168,8 @@ def loss_fun(predicts, targets):
 
 # Training
 trainer = bp.BPTT(
-  net, loss_fun,
+  net,
+  loss_fun,
   loss_has_aux=True,
   optimizer=bp.optimizers.Adam(lr=0.01),
   monitors={'r.spike': net.r.spike},

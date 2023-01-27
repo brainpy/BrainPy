@@ -3,7 +3,7 @@
 from typing import Union, Dict, Callable, Optional
 
 import brainpylib as bl
-from jax import vmap, numpy as jnp
+from jax import vmap
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
@@ -170,29 +170,29 @@ class AMPA(TwoEndConn):
     self.beta = beta
     self.T = T
     self.T_duration = T_duration
-    if jnp.size(alpha) != 1:
+    if bm.size(alpha) != 1:
       raise ValueError(f'"alpha" must be a scalar or a tensor with size of 1. But we got {alpha}')
-    if jnp.size(beta) != 1:
+    if bm.size(beta) != 1:
       raise ValueError(f'"beta" must be a scalar or a tensor with size of 1. But we got {beta}')
-    if jnp.size(T) != 1:
+    if bm.size(T) != 1:
       raise ValueError(f'"T" must be a scalar or a tensor with size of 1. But we got {T}')
-    if jnp.size(T_duration) != 1:
+    if bm.size(T_duration) != 1:
       raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # connection
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(jnp.zeros, self.mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, self.mode, self.pre.num)
+    self.g = variable(bm.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # functions
     self.integral = odeint(method=method, f=self.dg)
 
   def reset_state(self, batch_size=None):
-    self.g = variable(jnp.zeros, batch_size, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, batch_size, self.pre.num)
+    self.g = variable(bm.zeros, batch_size, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -215,7 +215,7 @@ class AMPA(TwoEndConn):
     if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synaptic variables
-    self.spike_arrival_time.value = jnp.where(pre_spike, t, self.spike_arrival_time.value)
+    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time.value)
     if isinstance(self.mode, bm.TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
@@ -504,17 +504,17 @@ class BioNMDA(TwoEndConn):
     self.alpha2 = alpha2
     self.T_0 = T_0
     self.T_dur = T_dur
-    if jnp.size(alpha1) != 1:
+    if bm.size(alpha1) != 1:
       raise ValueError(f'"alpha1" must be a scalar or a tensor with size of 1. But we got {alpha1}')
-    if jnp.size(beta1) != 1:
+    if bm.size(beta1) != 1:
       raise ValueError(f'"beta1" must be a scalar or a tensor with size of 1. But we got {beta1}')
-    if jnp.size(alpha2) != 1:
+    if bm.size(alpha2) != 1:
       raise ValueError(f'"alpha2" must be a scalar or a tensor with size of 1. But we got {alpha2}')
-    if jnp.size(beta2) != 1:
+    if bm.size(beta2) != 1:
       raise ValueError(f'"beta2" must be a scalar or a tensor with size of 1. But we got {beta2}')
-    if jnp.size(T_0) != 1:
+    if bm.size(T_0) != 1:
       raise ValueError(f'"T_0" must be a scalar or a tensor with size of 1. But we got {T_0}')
-    if jnp.size(T_dur) != 1:
+    if bm.size(T_dur) != 1:
       raise ValueError(f'"T_dur" must be a scalar or a tensor with size of 1. But we got {T_dur}')
     self.comp_method = comp_method
     self.stop_spike_gradient = stop_spike_gradient
@@ -523,18 +523,18 @@ class BioNMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='ij')
 
     # variables
-    self.g = variable(jnp.zeros, self.mode, self.pre.num)
-    self.x = variable(jnp.zeros, self.mode, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, self.mode, self.pre.num)
+    self.g = variable(bm.zeros, self.mode, self.pre.num)
+    self.x = variable(bm.zeros, self.mode, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, self.mode, self.pre.num)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dx]))
 
   def reset_state(self, batch_size=None):
-    self.g = variable(jnp.zeros, batch_size, self.pre.num)
-    self.x = variable(jnp.zeros, batch_size, self.pre.num)
-    self.spike_arrival_time = variable(lambda s: jnp.ones(s) * -1e7, batch_size, self.pre.num)
+    self.g = variable(bm.zeros, batch_size, self.pre.num)
+    self.x = variable(bm.zeros, batch_size, self.pre.num)
+    self.spike_arrival_time = variable(lambda s: bm.ones(s) * -1e7, batch_size, self.pre.num)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -559,7 +559,7 @@ class BioNMDA(TwoEndConn):
     if self.stp is not None: self.stp.update(tdi, pre_spike)
 
     # update synapse variables
-    self.spike_arrival_time.value = jnp.where(pre_spike, t, self.spike_arrival_time.value)
+    self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time.value)
     if isinstance(self.mode, bm.TrainingMode):
       self.spike_arrival_time.value = stop_gradient(self.spike_arrival_time.value)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T_0

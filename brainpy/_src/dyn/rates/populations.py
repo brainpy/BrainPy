@@ -2,8 +2,6 @@
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
-
 from brainpy import check, math as bm
 from brainpy._src.dyn.base import NeuGroup
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
@@ -125,18 +123,18 @@ class FHN(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(jnp.zeros, self.mode, self.varshape)
-    self.input_y = variable(jnp.zeros, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
-    if jnp.any(self.x_ou_mean > 0.) or jnp.any(self.x_ou_sigma > 0.):
+    if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
       self.x_ou = OUProcess(self.varshape,
                             self.x_ou_mean,
                             self.x_ou_sigma,
                             self.x_ou_tau,
                             method=method)
-    if jnp.any(self.y_ou_mean > 0.) or jnp.any(self.y_ou_sigma > 0.):
+    if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
       self.y_ou = OUProcess(self.varshape,
                             self.y_ou_mean,
                             self.y_ou_sigma,
@@ -149,8 +147,8 @@ class FHN(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(jnp.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(jnp.zeros, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -311,18 +309,18 @@ class FeedbackFHN(RateModel):
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
     self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
-    self.input = variable(jnp.zeros, self.mode, self.varshape)
-    self.input_y = variable(jnp.zeros, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
-    if jnp.any(self.x_ou_mean > 0.) or jnp.any(self.x_ou_sigma > 0.):
+    if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
       self.x_ou = OUProcess(self.varshape,
                             self.x_ou_mean,
                             self.x_ou_sigma,
                             self.x_ou_tau,
                             method=method)
-    if jnp.any(self.y_ou_mean > 0.) or jnp.any(self.y_ou_sigma > 0.):
+    if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
       self.y_ou = OUProcess(self.varshape,
                             self.y_ou_mean,
                             self.y_ou_sigma,
@@ -338,8 +336,8 @@ class FeedbackFHN(RateModel):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
     self.x_delay.reset(self.x, self.delay)
-    self.input = variable(jnp.zeros, batch_size, self.varshape)
-    self.input_y = variable(jnp.zeros, batch_size, self.varshape)
+    self.input = variable(bm.zeros, batch_size, self.varshape)
+    self.input_y = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -360,7 +358,7 @@ class FeedbackFHN(RateModel):
     t = tdi['t']
     dt = tdi['dt']
     if check.is_checking():
-      jit_error_checking(not jnp.isclose(dt, self.dt), self._check_dt, dt)
+      jit_error_checking(not bm.isclose(dt, self.dt), self._check_dt, dt)
 
     if x is not None: self.input += x
     if self.x_ou is not None:
@@ -504,18 +502,18 @@ class QIF(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(jnp.zeros, self.mode, self.varshape)
-    self.input_y = variable(jnp.zeros, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
-    if jnp.any(self.x_ou_mean > 0.) or jnp.any(self.x_ou_sigma > 0.):
+    if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
       self.x_ou = OUProcess(self.varshape,
                             self.x_ou_mean,
                             self.x_ou_sigma,
                             self.x_ou_tau,
                             method=method)
-    if jnp.any(self.y_ou_mean > 0.) or jnp.any(self.y_ou_sigma > 0.):
+    if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
       self.y_ou = OUProcess(self.varshape,
                             self.y_ou_mean,
                             self.y_ou_sigma,
@@ -528,19 +526,19 @@ class QIF(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(jnp.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(jnp.zeros, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
       self.y_ou.reset_state(batch_size)
 
   def dy(self, y, t, x, y_ext):
-    return (self.delta / (jnp.pi * self.tau) + 2. * x * y + y_ext) / self.tau
+    return (self.delta / (bm.pi * self.tau) + 2. * x * y + y_ext) / self.tau
 
   def dx(self, x, t, y, x_ext):
     return (x ** 2 + self.eta + x_ext + self.J * y * self.tau -
-            (jnp.pi * y * self.tau) ** 2) / self.tau
+            (bm.pi * y * self.tau) ** 2) / self.tau
 
   def update(self, tdi, x=None):
     t, dt = tdi['t'], tdi['dt']
@@ -640,18 +638,18 @@ class StuartLandauOscillator(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(jnp.zeros, self.mode, self.varshape)
-    self.input_y = variable(jnp.zeros, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
-    if jnp.any(self.x_ou_mean > 0.) or jnp.any(self.x_ou_sigma > 0.):
+    if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
       self.x_ou = OUProcess(self.varshape,
                             self.x_ou_mean,
                             self.x_ou_sigma,
                             self.x_ou_tau,
                             method=method)
-    if jnp.any(self.y_ou_mean > 0.) or jnp.any(self.y_ou_sigma > 0.):
+    if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
       self.y_ou = OUProcess(self.varshape,
                             self.y_ou_mean,
                             self.y_ou_sigma,
@@ -664,8 +662,8 @@ class StuartLandauOscillator(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(jnp.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(jnp.zeros, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -801,18 +799,18 @@ class WilsonCowanModel(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(jnp.zeros, self.mode, self.varshape)
-    self.input_y = variable(jnp.zeros, self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
-    if jnp.any(self.x_ou_mean > 0.) or jnp.any(self.x_ou_sigma > 0.):
+    if bm.any(self.x_ou_mean > 0.) or bm.any(self.x_ou_sigma > 0.):
       self.x_ou = OUProcess(self.varshape,
                             self.x_ou_mean,
                             self.x_ou_sigma,
                             self.x_ou_tau,
                             method=method)
-    if jnp.any(self.y_ou_mean > 0.) or jnp.any(self.y_ou_sigma > 0.):
+    if bm.any(self.y_ou_mean > 0.) or bm.any(self.y_ou_sigma > 0.):
       self.y_ou = OUProcess(self.varshape,
                             self.y_ou_mean,
                             self.y_ou_sigma,
@@ -825,15 +823,15 @@ class WilsonCowanModel(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(jnp.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(jnp.zeros, batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
+    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
       self.y_ou.reset_state(batch_size)
 
   def F(self, x, a, theta):
-    return 1 / (1 + jnp.exp(-a * (x - theta))) - 1 / (1 + jnp.exp(a * theta))
+    return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
 
   def dx(self, x, t, y, x_ext):
     x = self.wEE * x - self.wIE * y + x_ext
@@ -944,9 +942,9 @@ class ThresholdLinearModel(RateModel):
     # variables
     self.e = variable(e_initializer, self.mode, self.varshape)  # Firing rate of excitatory population
     self.i = variable(i_initializer, self.mode, self.varshape)  # Firing rate of inhibitory population
-    self.Ie = variable(jnp.zeros, self.mode, self.varshape)  # Input of excitaory population
-    self.Ii = variable(jnp.zeros, self.mode, self.varshape)  # Input of inhibitory population
-    if jnp.any(self.noise_e != 0) or jnp.any(self.noise_i != 0):
+    self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
+    self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
+    if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
       self.rng = bm.random.default_rng(seed)
 
   def reset(self, batch_size=None):
@@ -956,24 +954,24 @@ class ThresholdLinearModel(RateModel):
   def reset_state(self, batch_size=None):
     self.e.value = variable(self._e_initializer, batch_size, self.varshape)
     self.i.value = variable(self._i_initializer, batch_size, self.varshape)
-    self.Ie.value = variable(jnp.zeros, batch_size, self.varshape)
-    self.Ii.value = variable(jnp.zeros, batch_size, self.varshape)
+    self.Ie.value = variable(bm.zeros, batch_size, self.varshape)
+    self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
 
   def update(self, tdi, x=None):
     t, dt = tdi['t'], tdi['dt']
 
     if x is not None: self.Ie += x
-    de = -self.e + self.beta_e * jnp.maximum(self.Ie, 0.)
-    if jnp.any(self.noise_e != 0.):
+    de = -self.e + self.beta_e * bm.maximum(self.Ie, 0.)
+    if bm.any(self.noise_e != 0.):
       de += self.rng.randn(self.varshape) * self.noise_e
     de = de / self.tau_e
-    self.e.value = jnp.maximum(self.e + de * dt, 0.)
+    self.e.value = bm.maximum(self.e + de * dt, 0.)
 
-    di = -self.i + self.beta_i * jnp.maximum(self.Ii, 0.)
-    if jnp.any(self.noise_i != 0.):
+    di = -self.i + self.beta_i * bm.maximum(self.Ii, 0.)
+    if bm.any(self.noise_i != 0.):
       di += self.rng.randn(self.varshape) * self.noise_i
     di = di / self.tau_i
-    self.i.value = jnp.maximum(self.i + di * dt, 0.)
+    self.i.value = bm.maximum(self.i + di * dt, 0.)
 
   def clear_input(self):
     self.Ie.value = bm.zeros_like(self.Ie)
