@@ -8,7 +8,7 @@ import brainpy.math as bm
 
 class TestDSRunner(unittest.TestCase):
   def test1(self):
-    class ExampleDS(bp.dyn.DynamicalSystem):
+    class ExampleDS(bp.DynamicalSystem):
       def __init__(self):
         super(ExampleDS, self).__init__()
         self.i = bm.Variable(bm.zeros(1))
@@ -17,11 +17,11 @@ class TestDSRunner(unittest.TestCase):
         self.i += 1
 
     ds = ExampleDS()
-    runner = bp.dyn.DSRunner(ds, dt=1., monitors=['i'], progress_bar=False)
+    runner = bp.DSRunner(ds, dt=1., monitors=['i'], progress_bar=False)
     runner.run(100.)
 
   def test_t_and_dt(self):
-    class ExampleDS(bp.dyn.DynamicalSystem):
+    class ExampleDS(bp.DynamicalSystem):
       def __init__(self):
         super(ExampleDS, self).__init__()
         self.i = bm.Variable(bm.zeros(1))
@@ -29,11 +29,11 @@ class TestDSRunner(unittest.TestCase):
       def update(self, tdi):
         self.i += 1 * tdi.dt
 
-    runner = bp.dyn.DSRunner(ExampleDS(), dt=1., monitors=['i'], progress_bar=False)
+    runner = bp.DSRunner(ExampleDS(), dt=1., monitors=['i'], progress_bar=False)
     runner.run(100.)
 
   def test_DSView(self):
-    class EINet(bp.dyn.Network):
+    class EINet(bp.Network):
       def __init__(self, scale=1.0, method='exp_auto'):
         super(EINet, self).__init__()
 

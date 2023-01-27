@@ -1114,7 +1114,7 @@ class VariableView(Variable):
   """
 
   def __init__(self, value: Variable, index):
-    self.index = index
+    self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
     super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis)
@@ -1136,6 +1136,10 @@ class VariableView(Variable):
   @property
   def value(self):
     return self._value[self.index]
+
+  @value.setter
+  def value(self, v):
+    self.update(v)
 
   def update(self, value):
     int_shape = self.shape
