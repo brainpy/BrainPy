@@ -5,7 +5,6 @@ from typing import Union, Dict, Callable, Optional
 import brainpylib as bl
 from jax import vmap
 from jax.lax import stop_gradient
-import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
@@ -142,12 +141,12 @@ class Delta(TwoEndConn):
 
     # synaptic values onto the post
     if isinstance(self.conn, All2All):
-      syn_value = jnp.asarray(pre_spike, dtype=bm.float_)
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
       if self.stp is not None:
         syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = jnp.asarray(pre_spike, dtype=bm.float_)
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
       if self.stp is not None:
         syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
@@ -166,7 +165,7 @@ class Delta(TwoEndConn):
         #   if self.trainable: f2 = vmap(f2)
         #   post_vs *= f2(stp_value)
       else:
-        syn_value = jnp.asarray(pre_spike, dtype=bm.float_)
+        syn_value = bm.asarray(pre_spike, dtype=bm.float_)
         if self.stp is not None:
           syn_value = self.stp(syn_value)
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
@@ -301,21 +300,21 @@ class Exponential(TwoEndConn):
     self.stop_spike_gradient = stop_spike_gradient
     self.comp_method = comp_method
     self.tau = tau
-    if jnp.size(self.tau) != 1:
+    if bm.size(self.tau) != 1:
       raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
     # connections and weights
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable_(jnp.zeros, self.post.num, self.mode)
+    self.g = variable_(bm.zeros, self.post.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
 
   def reset_state(self, batch_size=None):
-    self.g.value = variable_(jnp.zeros, self.post.num, batch_size)
+    self.g.value = variable_(bm.zeros, self.post.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -335,11 +334,11 @@ class Exponential(TwoEndConn):
 
     # post values
     if isinstance(self.conn, All2All):
-      syn_value = jnp.asarray(pre_spike, dtype=bm.float_)
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
       if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
     elif isinstance(self.conn, One2One):
-      syn_value = jnp.asarray(pre_spike, dtype=bm.float_)
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
       if self.stp is not None: syn_value = self.stp(syn_value)
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
@@ -354,7 +353,7 @@ class Exponential(TwoEndConn):
         # if not isinstance(self.stp, _NullSynSTP):
         #   raise NotImplementedError()
       else:
-        syn_value = jnp.asarray(pre_spike, dtype=bm.float_)
+        syn_value = bm.asarray(pre_spike, dtype=bm.float_)
         if self.stp is not None: syn_value = self.stp(syn_value)
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
     # updates
@@ -492,10 +491,10 @@ class DualExponential(TwoEndConn):
     self.comp_method = comp_method
     self.tau_rise = tau_rise
     self.tau_decay = tau_decay
-    if jnp.size(self.tau_rise) != 1:
+    if bm.size(self.tau_rise) != 1:
       raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. '
                        f'But we got {self.tau_rise}')
-    if jnp.size(self.tau_decay) != 1:
+    if bm.size(self.tau_decay) != 1:
       raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. '
                        f'But we got {self.tau_decay}')
 
@@ -503,16 +502,16 @@ class DualExponential(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.h = variable_(jnp.zeros, self.pre.num, self.mode)
-    self.g = variable_(jnp.zeros, self.pre.num, self.mode)
+    self.h = variable_(bm.zeros, self.pre.num, self.mode)
+    self.g = variable_(bm.zeros, self.pre.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
     self.integral = odeint(method=method, f=JointEq([self.dg, self.dh]))
 
   def reset_state(self, batch_size=None):
-    self.h.value = variable_(jnp.zeros, self.pre.num, batch_size)
-    self.g.value = variable_(jnp.zeros, self.pre.num, batch_size)
+    self.h.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 
@@ -836,11 +835,11 @@ class NMDA(TwoEndConn):
     self.tau_decay = tau_decay
     self.tau_rise = tau_rise
     self.a = a
-    if jnp.size(a) != 1:
+    if bm.size(a) != 1:
       raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
-    if jnp.size(tau_decay) != 1:
+    if bm.size(tau_decay) != 1:
       raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. But we got {tau_decay}')
-    if jnp.size(tau_rise) != 1:
+    if bm.size(tau_rise) != 1:
       raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. But we got {tau_rise}')
     self.comp_method = comp_method
     self.stop_spike_gradient = stop_spike_gradient
@@ -849,8 +848,8 @@ class NMDA(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
     # variables
-    self.g = variable_(jnp.zeros, self.pre.num, self.mode)
-    self.x = variable_(jnp.zeros, self.pre.num, self.mode)
+    self.g = variable_(bm.zeros, self.pre.num, self.mode)
+    self.x = variable_(bm.zeros, self.pre.num, self.mode)
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
     # integral
@@ -863,8 +862,8 @@ class NMDA(TwoEndConn):
     return -x / self.tau_rise
 
   def reset_state(self, batch_size=None):
-    self.g.value = variable_(jnp.zeros, self.pre.num, batch_size)
-    self.x.value = variable_(jnp.zeros, self.pre.num, batch_size)
+    self.g.value = variable_(bm.zeros, self.pre.num, batch_size)
+    self.x.value = variable_(bm.zeros, self.pre.num, batch_size)
     self.output.reset_state(batch_size)
     if self.stp is not None: self.stp.reset_state(batch_size)
 

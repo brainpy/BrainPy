@@ -104,6 +104,7 @@ def is_return_bparray():
 
 _return_bp_array = True
 
+
 def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
 
@@ -827,13 +828,13 @@ class Array(object):
     """Return an array formed from the elements of a at the given indices."""
     return _return(self.value.take(indices=_as_jax_array_(indices), axis=axis, mode=mode))
 
-  def tobytes(self, order='C'):
+  def tobytes(self):
     """Construct Python bytes containing the raw data bytes in the array.
 
     Constructs Python bytes showing a copy of the raw contents of data memory.
     The bytes object is produced in C-order by default. This behavior is
     controlled by the ``order`` parameter."""
-    return _return(self.value.tobytes(order=order))
+    return _return(self.value.tobytes())
 
   def tolist(self):
     """Return the array as an ``a.ndim``-levels deep nested list of Python scalars.
@@ -1009,13 +1010,13 @@ class Variable(Array):
   batch_axis: optional, int
     The batch axis.
   """
-  __slots__ = ('_value', '_batch_axis')
+  __slots__ = ('_value', '_batch_axis', 'requires_grad')
 
   def __init__(
       self,
       value_or_size,
-      dtype=None,
-      batch_axis: int = None
+      dtype: type =None,
+      batch_axis: int = None,
   ):
     if isinstance(value_or_size, int):
       value = jnp.zeros(value_or_size, dtype=dtype)
@@ -1181,419 +1182,19 @@ class Variable(Array):
     """Sort an array in-place."""
     self._value = self.value.sort(axis=axis, kind=kind, order=order)
 
-  # ---------- #
-  # operations #
-  # ---------- #
-
-  def __bool__(self) -> bool:
-    return self.value.__bool__()
-
-  def __len__(self) -> int:
-    return len(self.value)
-
-  def __neg__(self):
-    return self.value.__neg__()
-
-  def __pos__(self):
-    return self.value.__pos__()
-
-  def __abs__(self):
-    return self.value.__abs__()
-
-  def __invert__(self):
-    return self.value.__invert__()
-
-  def __eq__(self, oc):
-    return self.value == _check_input_array(oc)
-
-  def __ne__(self, oc):
-    return self.value != _check_input_array(oc)
-
-  def __lt__(self, oc):
-    return self.value < _check_input_array(oc)
-
-  def __le__(self, oc):
-    return self.value <= _check_input_array(oc)
-
-  def __gt__(self, oc):
-    return self.value > _check_input_array(oc)
-
-  def __ge__(self, oc):
-    return self.value >= _check_input_array(oc)
-
-  def __add__(self, oc):
-    return self.value + _check_input_array(oc)
-
-  def __radd__(self, oc):
-    return self.value + _check_input_array(oc)
-
-  def __sub__(self, oc):
-    return self.value - _check_input_array(oc)
-
-  def __rsub__(self, oc):
-    return _check_input_array(oc) - self.value
-
-  def __mul__(self, oc):
-    return self.value * _check_input_array(oc)
-
-  def __rmul__(self, oc):
-    return _check_input_array(oc) * self.value
-
-  def __rdiv__(self, oc):
-    return _check_input_array(oc) / self.value
-
-  def __truediv__(self, oc):
-    return self.value / _check_input_array(oc)
-
-  def __rtruediv__(self, oc):
-    return _check_input_array(oc) / self.value
-
-  def __floordiv__(self, oc):
-    return self.value // _check_input_array(oc)
-
-  def __rfloordiv__(self, oc):
-    return _check_input_array(oc) // self.value
-
-  def __divmod__(self, oc):
-    return self.value.__divmod__(_check_input_array(oc))
-
-  def __rdivmod__(self, oc):
-    return self.value.__rdivmod__(_check_input_array(oc))
-
-  def __mod__(self, oc):
-    return self.value % _check_input_array(oc)
-
-  def __rmod__(self, oc):
-    return _check_input_array(oc) % self.value
-
-  def __pow__(self, oc):
-    return self.value ** _check_input_array(oc)
-
-  def __rpow__(self, oc):
-    return _check_input_array(oc) ** self.value
-
-  def __matmul__(self, oc):
-    return self.value @ _check_input_array(oc)
-
-  def __rmatmul__(self, oc):
-    return _check_input_array(oc) @ self.value
-
-  def __and__(self, oc):
-    return self.value & _check_input_array(oc)
-
-  def __rand__(self, oc):
-    return _check_input_array(oc) & self.value
-
-  def __or__(self, oc):
-    return self.value | _check_input_array(oc)
-
-  def __ror__(self, oc):
-    return _check_input_array(oc) | self.value
-
-  def __xor__(self, oc):
-    return self.value ^ _check_input_array(oc)
-
-  def __rxor__(self, oc):
-    return _check_input_array(oc) ^ self.value
-
-  def __lshift__(self, oc):
-    return self.value << _check_input_array(oc)
-
-  def __rlshift__(self, oc):
-    return _check_input_array(oc) << self.value
-
-  def __rshift__(self, oc):
-    return self.value >> _check_input_array(oc)
-
-  def __rrshift__(self, oc):
-    return _check_input_array(oc) >> self.value
-
-  def __round__(self, ndigits=None):
-    return self.value.__round__(ndigits)
-
-  # ----------------------- #
-  #      NumPy methods      #
-  # ----------------------- #
-
-  def all(self, axis=None, keepdims=False):
-    """Returns True if all elements evaluate to True."""
-    return self.value.all(axis=axis, keepdims=keepdims)
-
-  def any(self, axis=None, keepdims=False):
-    """Returns True if any of the elements of a evaluate to True."""
-    return self.value.any(axis=axis, keepdims=keepdims)
-
-  def argmax(self, axis=None):
-    """Return indices of the maximum values along the given axis."""
-    return self.value.argmax(axis=axis)
-
-  def argmin(self, axis=None):
-    """Return indices of the minimum values along the given axis."""
-    return self.value.argmin(axis=axis)
-
-  def argpartition(self, kth, axis=-1, kind='introselect', order=None):
-    """Returns the indices that would partition this array."""
-    return self.value.argpartition(kth=kth, axis=axis, kind=kind, order=order)
-
-  def argsort(self, axis=-1, kind=None, order=None):
-    """Returns the indices that would sort this array."""
-    return self.value.argsort(axis=axis, kind=kind, order=order)
-
-  def astype(self, dtype):
-    """Copy of the array, cast to a specified type.
-
-    Parameters
-    ----------
-    dtype: str, dtype
-      Typecode or data-type to which the array is cast.
-    """
-    return self.value.astype(dtype=dtype)
-
-  def byteswap(self, inplace=False):
-    """Swap the bytes of the array elements
-
-    Toggle between low-endian and big-endian data representation by
-    returning a byteswapped array, optionally swapped in-place.
-    Arrays of byte-strings are not swapped. The real and imaginary
-    parts of a complex number are swapped individually."""
-    return self.value.byteswap(inplace=inplace)
-
-  def choose(self, choices, mode='raise'):
-    """Use an index array to construct a new array from a set of choices."""
-    choices = choices.value if isinstance(choices, Array) else choices
-    return self.value.choose(choices=choices, mode=mode)
-
-  def clip(self, min=None, max=None):
-    """Return an array whose values are limited to [min, max]. One of max or min must be given."""
-    return self.value.clip(min=min, max=max)
-
-  def compress(self, condition, axis=None):
-    """Return selected slices of this array along given axis."""
-    condition = condition.value if isinstance(condition, Array) else condition
-    return self.value.compress(condition=condition, axis=axis)
-
-  def conj(self):
-    """Complex-conjugate all elements."""
-    return self.value.conj()
-
-  def conjugate(self):
-    """Return the complex conjugate, element-wise."""
-    return self.value.conjugate()
-
-  def copy(self):
-    """Return a copy of the array."""
-    return self.value.copy()
-
-  def cumprod(self, axis=None, dtype=None):
-    """Return the cumulative product of the elements along the given axis."""
-    return self.value.cumprod(axis=axis, dtype=dtype)
-
-  def cumsum(self, axis=None, dtype=None):
-    """Return the cumulative sum of the elements along the given axis."""
-    return self.value.cumsum(axis=axis, dtype=dtype)
-
-  def diagonal(self, offset=0, axis1=0, axis2=1):
-    """Return specified diagonals."""
-    return self.value.diagonal(offset=offset, axis1=axis1, axis2=axis2)
-
-  def dot(self, b):
-    """Dot product of two arrays."""
-    return self.value.dot(b.value if isinstance(b, Array) else b)
-
-  def flatten(self):
-    return self.value.flatten()
-
-  def item(self, *args):
-    """Copy an element of an array to a standard Python scalar and return it."""
-    return self.value.item(*args)
-
-  def max(self, axis=None, keepdims=False, *args, **kwargs):
-    """Return the maximum along a given axis."""
-    return self.value.max(axis=axis, keepdims=keepdims, *args, **kwargs)
-
-  def mean(self, axis=None, dtype=None, keepdims=False, *args, **kwargs):
-    """Returns the average of the array elements along given axis."""
-    return self.value.mean(axis=axis, dtype=dtype, keepdims=keepdims, *args, **kwargs)
-
-  def min(self, axis=None, keepdims=False, *args, **kwargs):
-    """Return the minimum along a given axis."""
-    return self.value.min(axis=axis, keepdims=keepdims, *args, **kwargs)
-
-  def nonzero(self):
-    """Return the indices of the elements that are non-zero."""
-    return self.value.nonzero()
-
-  def prod(self, axis=None, dtype=None, keepdims=False, initial=1, where=True):
-    """Return the product of the array elements over the given axis."""
-    return self.value.prod(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-
-  def ptp(self, axis=None, keepdims=False):
-    """Peak to peak (maximum - minimum) value along a given axis."""
-    return self.value.ptp(axis=axis, keepdims=keepdims)
-
-  def ravel(self, order=None):
-    """Return a flattened array."""
-    return self.value.ravel(order=order)
-
-  def repeat(self, repeats, axis=None):
-    """Repeat elements of an array."""
-    return self.value.repeat(repeats=repeats, axis=axis)
-
-  def reshape(self, *shape, order='C'):
-    """Returns an array containing the same data with a new shape."""
-    return self.value.reshape(*shape, order=order)
-
-  def round(self, decimals=0):
-    """Return ``a`` with each element rounded to the given number of decimals."""
-    return self.value.round(decimals=decimals)
-
-  def searchsorted(self, v, side='left', sorter=None):
-    """Find indices where elements should be inserted to maintain order.
-
-    Find the indices into a sorted array `a` such that, if the
-    corresponding elements in `v` were inserted before the indices, the
-    order of `a` would be preserved.
-
-    Assuming that `a` is sorted:
-
-    ======  ============================
-    `side`  returned index `i` satisfies
-    ======  ============================
-    left    ``a[i-1] < v <= a[i]``
-    right   ``a[i-1] <= v < a[i]``
-    ======  ============================
-
-    Parameters
-    ----------
-    v : array_like
-        Values to insert into `a`.
-    side : {'left', 'right'}, optional
-        If 'left', the index of the first suitable location found is given.
-        If 'right', return the last such index.  If there is no suitable
-        index, return either 0 or N (where N is the length of `a`).
-    sorter : 1-D array_like, optional
-        Optional array of integer indices that sort array a into ascending
-        order. They are typically the result of argsort.
-
-    Returns
-    -------
-    indices : array of ints
-        Array of insertion points with the same shape as `v`.
-    """
-    v = v.value if isinstance(v, Array) else v
-    return self.value.searchsorted(v=v, side=side, sorter=sorter)
-
-  def squeeze(self, axis=None):
-    """Remove axes of length one from ``a``."""
-    return self.value.squeeze(axis=axis)
-
-  def std(self, axis=None, dtype=None, ddof=0, keepdims=False):
-    """Compute the standard deviation along the specified axis.
-
-    Returns the standard deviation, a measure of the spread of a distribution,
-    of the array elements. The standard deviation is computed for the
-    flattened array by default, otherwise over the specified axis.
-
-    Parameters
-    ----------
-    axis : None or int or tuple of ints, optional
-        Axis or axes along which the standard deviation is computed. The
-        default is to compute the standard deviation of the flattened array.
-        If this is a tuple of ints, a standard deviation is performed over
-        multiple axes, instead of a single axis or all the axes as before.
-    dtype : dtype, optional
-        Type to use in computing the standard deviation. For arrays of
-        integer type the default is float64, for arrays of float types it is
-        the same as the array type.
-    ddof : int, optional
-        Means Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.
-        By default `ddof` is zero.
-    keepdims : bool, optional
-        If this is set to True, the axes which are reduced are left
-        in the result as dimensions with size one. With this option,
-        the result will broadcast correctly against the input array.
-
-        If the default value is passed, then `keepdims` will not be
-        passed through to the `std` method of sub-classes of
-        `ndarray`, however any non-default value will be.  If the
-        sub-class' method does not implement `keepdims` any
-        exceptions will be raised.
-
-    Returns
-    -------
-    standard_deviation : ndarray, see dtype parameter above.
-        If `out` is None, return a new array containing the standard deviation,
-        otherwise return a reference to the output array.
-    """
-    return self.value.std(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
-
-  def sum(self, axis=None, dtype=None, keepdims=False, initial=0, where=True):
-    """Return the sum of the array elements over the given axis."""
-    return self.value.sum(axis=axis, dtype=dtype, keepdims=keepdims, initial=initial, where=where)
-
-  def swapaxes(self, axis1, axis2):
-    """Return a view of the array with `axis1` and `axis2` interchanged."""
-    return self.value.swapaxes(axis1, axis2)
-
-  def split(self, indices_or_sections, axis=0):
-    """Split an array into multiple sub-arrays as views into ``ary``.
-    """
-    return self.value.split(indices_or_sections, axis=axis)
-
-  def take(self, indices, axis=None, mode=None):
-    """Return an array formed from the elements of a at the given indices."""
-    indices = indices.value if isinstance(indices, Array) else indices
-    return self.value.take(indices=indices, axis=axis, mode=mode)
-
-  def tobytes(self, order='C'):
-    """Construct Python bytes containing the raw data bytes in the array.
-
-    Constructs Python bytes showing a copy of the raw contents of data memory.
-    The bytes object is produced in C-order by default. This behavior is
-    controlled by the ``order`` parameter."""
-    return self.value.tobytes(order=order)
-
-  def tolist(self):
-    """Return the array as an ``a.ndim``-levels deep nested list of Python scalars.
-
-    Return a copy of the array data as a (nested) Python list.
-    Data items are converted to the nearest compatible builtin Python type, via
-    the `~numpy.ndarray.item` function.
-
-    If ``a.ndim`` is 0, then since the depth of the nested list is 0, it will
-    not be a list at all, but a simple Python scalar.
-    """
-    return self.value.tolist()
-
-  def trace(self, offset=0, axis1=0, axis2=1, dtype=None):
-    """Return the sum along diagonals of the array."""
-    return self.value.trace(offset=offset, axis1=axis1, axis2=axis2, dtype=dtype)
-
-  def transpose(self, *axes):
-    """Returns a view of the array with axes transposed.
-    """
-    return self.value.transpose(*axes)
-
-  def tile(self, reps):
-    return self.value.tile(reps.value if isinstance(reps, Array) else reps)
-
-  def var(self, axis=None, dtype=None, ddof=0, keepdims=False):
-    """Returns the variance of the array elements, along given axis."""
-    return self.value.var(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
-
-  def view(self, dtype=None, *args, **kwargs):
-    """New view of array with the same data."""
-    return self.value.view(dtype=dtype, *args, **kwargs)
-
 
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
   """
   __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self, value_or_size, dtype=None, batch_axis: int = None):
-    super(TrainVar, self).__init__(value_or_size, dtype=dtype, batch_axis=batch_axis)
+  def __init__(self,
+               value_or_size,
+               dtype: type = None,
+               batch_axis: int = None):
+    super(TrainVar, self).__init__(value_or_size,
+                                   dtype=dtype,
+                                   batch_axis=batch_axis)
 
 
 class Parameter(Variable):
@@ -1601,8 +1202,13 @@ class Parameter(Variable):
   """
   __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self, value_or_size, dtype=None, batch_axis: int = None):
-    super(Parameter, self).__init__(value_or_size, dtype=dtype, batch_axis=batch_axis)
+  def __init__(self,
+               value_or_size,
+               dtype: type = None,
+               batch_axis: int = None):
+    super(Parameter, self).__init__(value_or_size,
+                                    dtype=dtype,
+                                    batch_axis=batch_axis)
 
 
 class ParallelVariable(Variable):

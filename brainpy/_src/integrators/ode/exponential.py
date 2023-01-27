@@ -107,8 +107,6 @@ tableau as follows:
 
 import logging
 
-import jax.numpy as jnp
-
 from functools import wraps
 from brainpy import errors
 from brainpy._src import math as bm
@@ -366,9 +364,9 @@ class ExponentialEuler(ODEIntegrator):
         assert len(args) > 0
         dt = kwargs.pop(C.DT, self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
-        phi = jnp.where(linear == 0.,
-                        jnp.ones_like(linear),
-                        (jnp.exp(dt * linear) - 1) / (dt * linear))
+        phi = bm.where(linear == 0.,
+                       bm.ones_like(linear),
+                       (bm.exp(dt * linear) - 1) / (dt * linear))
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]

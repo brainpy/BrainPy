@@ -458,8 +458,11 @@ class BrainPyObject(object):
     Args:
       device: The device.
     """
-    for var in self.vars().unique().values():
-      var.value = jax.device_put(var.value, device=device)
+    for key, var in self.state_dict().items():
+      if isinstance(var, Array):
+        var.value = jax.device_put(var.value, device=device)
+      else:
+        setattr(self, key, jax.device_put(var, device=device))
 
   def cpu(self):
     """Move all variable into the CPU device."""
