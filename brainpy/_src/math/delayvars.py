@@ -12,6 +12,8 @@ from brainpy.errors import UnsupportedError
 from .object_transform.base import BrainPyObject
 from .environment import get_dt, get_float
 from .ndarray import ndarray, Variable, Array
+from .arrayinterporate import as_jax
+from . import arraycompatible as bm
 
 __all__ = [
   'AbstractDelay',
@@ -448,12 +450,12 @@ class LengthDelay(AbstractDelay):
       The value of the latest data, used to update this delay variable.
     """
     if self.update_method == ROTATION_UPDATING:
-      self.idx.value = stop_gradient((self.idx - 1) % self.num_delay_step)
+      self.idx.value = stop_gradient(as_jax((self.idx - 1) % self.num_delay_step))
       self.data[self.idx[0]] = value
 
     elif self.update_method == CONCAT_UPDATING:
       if self.num_delay_step >= 2:
-        self.data.value = jnp.vstack([jnp.broadcast_to(value, self.data.shape[1:]), self.data[1:]])
+        self.data.value = bm.vstack([bm.broadcast_to(value, self.data.shape[1:]), self.data[1:]])
       else:
         self.data[:] = value
 

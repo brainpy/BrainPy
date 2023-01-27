@@ -7,7 +7,6 @@ This module implements hyperpolarization-activated cation channels.
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
@@ -76,7 +75,7 @@ class Ih_HM1992(IhChannel):
     self.E = parameter(E, self.varshape, allow_none=False)
 
     # variable
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -96,10 +95,10 @@ class Ih_HM1992(IhChannel):
     return self.g_max * self.p * (self.E - V)
 
   def f_p_inf(self, V):
-    return 1. / (1. + jnp.exp((V + 75.) / 5.5))
+    return 1. / (1. + bm.exp((V + 75.) / 5.5))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp(-0.086 * V - 14.59) + jnp.exp(0.0701 * V - 1.87))
+    return 1. / (bm.exp(-0.086 * V - 14.59) + bm.exp(0.0701 * V - 1.87))
 
 
 class Ih_De1996(IhChannel, CalciumChannel):
@@ -200,9 +199,9 @@ class Ih_De1996(IhChannel, CalciumChannel):
     self.g_inc = parameter(g_inc, self.varshape, allow_none=False)
 
     # variable
-    self.O = variable(jnp.zeros, self.mode, self.varshape)
-    self.OL = variable(jnp.zeros, self.mode, self.varshape)
-    self.P1 = variable(jnp.zeros, self.mode, self.varshape)
+    self.O = variable(bm.zeros, self.mode, self.varshape)
+    self.OL = variable(bm.zeros, self.mode, self.varshape)
+    self.P1 = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dO, self.dOL, self.dP1), method=method)
@@ -229,7 +228,7 @@ class Ih_De1996(IhChannel, CalciumChannel):
 
   def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
     varshape = self.varshape if (batch_size is None) else ((batch_size,) + self.varshape)
-    self.P1.value = jnp.broadcast_to(self.k1 * C_Ca ** 4 / (self.k1 * C_Ca ** 4 + self.k2), varshape)
+    self.P1.value = bm.broadcast_to(self.k1 * C_Ca ** 4 / (self.k1 * C_Ca ** 4 + self.k2), varshape)
     inf = self.f_inf(V)
     tau = self.f_tau(V)
     alpha = inf / tau
@@ -242,8 +241,8 @@ class Ih_De1996(IhChannel, CalciumChannel):
       assert self.OL.shape[0] == batch_size
 
   def f_inf(self, V):
-    return 1 / (1 + jnp.exp((V + 75 - self.V_sh) / 5.5))
+    return 1 / (1 + bm.exp((V + 75 - self.V_sh) / 5.5))
 
   def f_tau(self, V):
-    return (20. + 1000 / (jnp.exp((V + 71.5 - self.V_sh) / 14.2) +
-                          jnp.exp(-(V + 89 - self.V_sh) / 11.6))) / self.phi
+    return (20. + 1000 / (bm.exp((V + 71.5 - self.V_sh) / 14.2) +
+                          bm.exp(-(V + 89 - self.V_sh) / 11.6))) / self.phi

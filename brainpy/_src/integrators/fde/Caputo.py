@@ -326,7 +326,7 @@ class CaputoL1Schema(FDEIntegrator):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
     from scipy.special import gamma
-    self.gamma_alpha = jnp.asarray(gamma(bm.as_numpy(2 - self.alpha)))
+    self.gamma_alpha = bm.asarray(gamma(bm.as_numpy(2 - self.alpha)))
 
     # initial values
     inits = check_inits(inits, self.variables)
@@ -336,11 +336,11 @@ class CaputoL1Schema(FDEIntegrator):
     # coefficients
     ranges = jnp.asarray([jnp.arange(1, num_memory + 2) for _ in self.variables]).T
     coef = jnp.diff(jnp.power(ranges, 1 - self.alpha), axis=0)
-    self.coef = jnp.flip(coef, axis=0)
+    self.coef = bm.flip(coef, axis=0)
 
     # variable states
     self.diff_states = {v + "_diff": bm.Variable(jnp.zeros((num_memory,) + self.inits[v].shape,
-                                                          dtype=self.inits[v].dtype))
+                                                           dtype=self.inits[v].dtype))
                         for v in self.variables}
     self.register_implicit_vars(self.diff_states)
     self.idx = bm.Variable(jnp.asarray([self.num_memory - 1]))

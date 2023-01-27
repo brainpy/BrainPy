@@ -4,7 +4,6 @@ import unittest
 
 import matplotlib.pyplot as plt
 
-import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 from brainpy._src.integrators.ode.exponential import ExponentialEuler
@@ -15,16 +14,16 @@ block = False
 class TestExpnentialEuler(unittest.TestCase):
   def test_hh_model(self):
     def drivative(V, m, h, n, t, Iext, gNa, ENa, gK, EK, gL, EL, C):
-      alpha = 0.1 * (V + 40) / (1 - jnp.exp(-(V + 40) / 10))
-      beta = 4.0 * jnp.exp(-(V + 65) / 18)
+      alpha = 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
+      beta = 4.0 * bm.exp(-(V + 65) / 18)
       dmdt = alpha * (1 - m) - beta * m
 
-      alpha = 0.07 * jnp.exp(-(V + 65) / 20.)
-      beta = 1 / (1 + jnp.exp(-(V + 35) / 10))
+      alpha = 0.07 * bm.exp(-(V + 65) / 20.)
+      beta = 1 / (1 + bm.exp(-(V + 35) / 10))
       dhdt = alpha * (1 - h) - beta * h
 
-      alpha = 0.01 * (V + 55) / (1 - jnp.exp(-(V + 55) / 10))
-      beta = 0.125 * jnp.exp(-(V + 65) / 80)
+      alpha = 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
+      beta = 0.125 * bm.exp(-(V + 65) / 80)
       dndt = alpha * (1 - n) - beta * n
 
       I_Na = (gNa * m ** 3.0 * h) * (V - ENa)
@@ -39,7 +38,7 @@ class TestExpnentialEuler(unittest.TestCase):
 
   def test1(self):
     def dev(x, t):
-      dx = jnp.power(x, 3)
+      dx = bm.power(x, 3)
       return dx
 
     ExponentialEuler(f=dev, show_code=True, dt=0.01)
@@ -64,29 +63,29 @@ class TestExpEulerAuto(unittest.TestCase):
         self.phi = phi
 
         # variables
-        self.V = bm.Variable(jnp.ones(size) * -65.)
-        self.h = bm.Variable(jnp.ones(size) * 0.6)
-        self.n = bm.Variable(jnp.ones(size) * 0.32)
-        self.spike = bm.Variable(jnp.zeros(size, dtype=bool))
-        self.input = bm.Variable(jnp.zeros(size))
+        self.V = bm.Variable(bm.ones(size) * -65.)
+        self.h = bm.Variable(bm.ones(size) * 0.6)
+        self.n = bm.Variable(bm.ones(size) * 0.32)
+        self.spike = bm.Variable(bm.zeros(size, dtype=bool))
+        self.input = bm.Variable(bm.zeros(size))
 
         self.integral = bp.odeint(bp.JointEq(self.dV, self.dh, self.dn), method=method, show_code=True)
 
       def dh(self, h, t, V):
-        alpha = 0.07 * jnp.exp(-(V + 58) / 20)
-        beta = 1 / (jnp.exp(-0.1 * (V + 28)) + 1)
+        alpha = 0.07 * bm.exp(-(V + 58) / 20)
+        beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
         dhdt = self.phi * (alpha * (1 - h) - beta * h)
         return dhdt
 
       def dn(self, n, t, V):
-        alpha = -0.01 * (V + 34) / (jnp.exp(-0.1 * (V + 34)) - 1)
-        beta = 0.125 * jnp.exp(-(V + 44) / 80)
+        alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+        beta = 0.125 * bm.exp(-(V + 44) / 80)
         dndt = self.phi * (alpha * (1 - n) - beta * n)
         return dndt
 
       def dV(self, V, t, h, n, Iext):
-        m_alpha = -0.1 * (V + 35) / (jnp.exp(-0.1 * (V + 35)) - 1)
-        m_beta = 4 * jnp.exp(-(V + 60) / 18)
+        m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+        m_beta = 4 * bm.exp(-(V + 60) / 18)
         m = m_alpha / (m_alpha + m_beta)
         INa = self.gNa * m ** 3 * h * (V - self.ENa)
         IK = self.gK * n ** 4 * (V - self.EK)
@@ -98,7 +97,7 @@ class TestExpEulerAuto(unittest.TestCase):
       def update(self, tdi):
         t, dt = tdi.t, tdi.dt
         V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt=dt)
-        self.spike.value = jnp.logical_and(self.V < self.V_th, V >= self.V_th)
+        self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
         self.V.value = V
         self.h.value = h
         self.n.value = n

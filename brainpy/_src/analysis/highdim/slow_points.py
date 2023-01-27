@@ -462,7 +462,7 @@ class SlowPointFinder(base.DSAnalyzer):
     else:
       num_fps = self._fixed_points.shape[0]
     ids = self._losses < tolerance
-    keep_ids = bm.as_jax(jnp.where(ids)[0])
+    keep_ids = bm.as_jax(bm.where(ids)[0])
     self._fixed_points = tree_map(lambda a: a[keep_ids], self._fixed_points)
     self._losses = self._losses[keep_ids]
     self._selected_ids = self._selected_ids[keep_ids]

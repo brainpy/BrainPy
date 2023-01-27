@@ -7,8 +7,6 @@ This module implements voltage-dependent potassium channels.
 
 from typing import Union, Callable, Optional
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
@@ -86,7 +84,7 @@ class _IK_p4_markov(PotassiumChannel):
     self.phi = parameter(phi, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.derivative, method=method)
@@ -192,10 +190,10 @@ class IKDR_Ba2002(_IK_p4_markov):
 
   def f_p_alpha(self, V):
     tmp = V - self.V_sh - 15.
-    return 0.032 * tmp / (1. - jnp.exp(-tmp / 5.))
+    return 0.032 * tmp / (1. - bm.exp(-tmp / 5.))
 
   def f_p_beta(self, V):
-    return 0.5 * jnp.exp(-(V - self.V_sh - 10.) / 40.)
+    return 0.5 * bm.exp(-(V - self.V_sh - 10.) / 40.)
 
 
 class IK_TM1991(_IK_p4_markov):
@@ -262,10 +260,10 @@ class IK_TM1991(_IK_p4_markov):
 
   def f_p_alpha(self, V):
     c = 15 - V + self.V_sh
-    return 0.032 * c / (jnp.exp(c / 5) - 1.)
+    return 0.032 * c / (bm.exp(c / 5) - 1.)
 
   def f_p_beta(self, V):
-    return 0.5 * jnp.exp((10 - V + self.V_sh) / 40)
+    return 0.5 * bm.exp((10 - V + self.V_sh) / 40)
 
 
 class IK_HH1952(_IK_p4_markov):
@@ -333,10 +331,10 @@ class IK_HH1952(_IK_p4_markov):
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh + 10
-    return 0.01 * temp / (1 - jnp.exp(-temp / 10))
+    return 0.01 * temp / (1 - bm.exp(-temp / 10))
 
   def f_p_beta(self, V):
-    return 0.125 * jnp.exp(-(V - self.V_sh + 20) / 80)
+    return 0.125 * bm.exp(-(V - self.V_sh + 20) / 80)
 
 
 class _IKA_p4q_ss(PotassiumChannel):
@@ -405,8 +403,8 @@ class _IKA_p4q_ss(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
-    self.q = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -523,19 +521,19 @@ class IKA1_HM1992(_IKA_p4q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    return 1. / (1. + jnp.exp(-(V - self.V_sh + 60.) / 8.5))
+    return 1. / (1. + bm.exp(-(V - self.V_sh + 60.) / 8.5))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp((V - self.V_sh + 35.8) / 19.7) +
-                 jnp.exp(-(V - self.V_sh + 79.7) / 12.7)) + 0.37
+    return 1. / (bm.exp((V - self.V_sh + 35.8) / 19.7) +
+                 bm.exp(-(V - self.V_sh + 79.7) / 12.7)) + 0.37
 
   def f_q_inf(self, V):
-    return 1. / (1. + jnp.exp((V - self.V_sh + 78.) / 6.))
+    return 1. / (1. + bm.exp((V - self.V_sh + 78.) / 6.))
 
   def f_q_tau(self, V):
-    return jnp.where(V < -63 + self.V_sh,
-                    1. / (jnp.exp((V - self.V_sh + 46.) / 5.) +
-                          jnp.exp(-(V - self.V_sh + 238.) / 37.5)),
+    return bm.where(V < -63 + self.V_sh,
+                    1. / (bm.exp((V - self.V_sh + 46.) / 5.) +
+                          bm.exp(-(V - self.V_sh + 238.) / 37.5)),
                     19.)
 
 
@@ -618,19 +616,19 @@ class IKA2_HM1992(_IKA_p4q_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    return 1. / (1. + jnp.exp(-(V - self.V_sh + 36.) / 20.))
+    return 1. / (1. + bm.exp(-(V - self.V_sh + 36.) / 20.))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp((V - self.V_sh + 35.8) / 19.7) +
-                 jnp.exp(-(V - self.V_sh + 79.7) / 12.7)) + 0.37
+    return 1. / (bm.exp((V - self.V_sh + 35.8) / 19.7) +
+                 bm.exp(-(V - self.V_sh + 79.7) / 12.7)) + 0.37
 
   def f_q_inf(self, V):
-    return 1. / (1. + jnp.exp((V - self.V_sh + 78.) / 6.))
+    return 1. / (1. + bm.exp((V - self.V_sh + 78.) / 6.))
 
   def f_q_tau(self, V):
-    return jnp.where(V < -63 + self.V_sh,
-                    1. / (jnp.exp((V - self.V_sh + 46.) / 5.) +
-                          jnp.exp(-(V - self.V_sh + 238.) / 37.5)),
+    return bm.where(V < -63 + self.V_sh,
+                    1. / (bm.exp((V - self.V_sh + 46.) / 5.) +
+                          bm.exp(-(V - self.V_sh + 238.) / 37.5)),
                     19.)
 
 
@@ -700,8 +698,8 @@ class _IKK2_pq_ss(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
-    self.q = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq(self.dp, self.dq), method=method)
@@ -814,18 +812,18 @@ class IKK2A_HM1992(_IKK2_pq_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    raise 1. / (1. + jnp.exp(-(V - self.V_sh + 43.) / 17.))
+    raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp((V - self.V_sh - 81.) / 25.6) +
-                 jnp.exp(-(V - self.V_sh + 132) / 18.)) + 9.9
+    return 1. / (bm.exp((V - self.V_sh - 81.) / 25.6) +
+                 bm.exp(-(V - self.V_sh + 132) / 18.)) + 9.9
 
   def f_q_inf(self, V):
-    raise 1. / (1. + jnp.exp((V - self.V_sh + 58.) / 10.6))
+    raise 1. / (1. + bm.exp((V - self.V_sh + 58.) / 10.6))
 
   def f_q_tau(self, V):
-    raise 1. / (jnp.exp((V - self.V_sh - 1329.) / 200.) +
-                jnp.exp(-(V - self.V_sh + 130.) / 7.1))
+    raise 1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
+                bm.exp(-(V - self.V_sh + 130.) / 7.1))
 
 
 class IKK2B_HM1992(_IKK2_pq_ss):
@@ -905,19 +903,19 @@ class IKK2B_HM1992(_IKK2_pq_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    raise 1. / (1. + jnp.exp(-(V - self.V_sh + 43.) / 17.))
+    raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
 
   def f_p_tau(self, V):
-    return 1. / (jnp.exp((V - self.V_sh - 81.) / 25.6) +
-                 jnp.exp(-(V - self.V_sh + 132) / 18.)) + 9.9
+    return 1. / (bm.exp((V - self.V_sh - 81.) / 25.6) +
+                 bm.exp(-(V - self.V_sh + 132) / 18.)) + 9.9
 
   def f_q_inf(self, V):
-    raise 1. / (1. + jnp.exp((V - self.V_sh + 58.) / 10.6))
+    raise 1. / (1. + bm.exp((V - self.V_sh + 58.) / 10.6))
 
   def f_q_tau(self, V):
-    raise jnp.where(V < -70 + self.V_sh,
-                   1. / (jnp.exp((V - self.V_sh - 1329.) / 200.) +
-                         jnp.exp(-(V - self.V_sh + 130.) / 7.1)),
+    raise bm.where(V < -70 + self.V_sh,
+                   1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
+                         bm.exp(-(V - self.V_sh + 130.) / 7.1)),
                    8.9)
 
 
@@ -991,7 +989,7 @@ class IKNI_Ya1989(PotassiumChannel):
     self.phi_q = parameter(phi_q, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(self.dp, method=method)
@@ -1012,8 +1010,8 @@ class IKNI_Ya1989(PotassiumChannel):
       assert self.p.shape[0] == batch_size
 
   def f_p_inf(self, V):
-    raise 1. / (1. + jnp.exp(-(V - self.V_sh + 35.) / 10.))
+    raise 1. / (1. + bm.exp(-(V - self.V_sh + 35.) / 10.))
 
   def f_p_tau(self, V):
     temp = V - self.V_sh + 35.
-    raise self.tau_max / (3.3 * jnp.exp(temp / 20.) + jnp.exp(-temp / 20.))
+    raise self.tau_max / (3.3 * bm.exp(temp / 20.) + bm.exp(-temp / 20.))

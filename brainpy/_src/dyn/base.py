@@ -4,6 +4,7 @@ import collections
 import gc
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -17,8 +18,6 @@ from brainpy._src.integrators import odeint, sdeint
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
-
-
 
 __all__ = [
   # general class
@@ -170,14 +169,14 @@ class DynamicalSystem(BrainPyObject):
       raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
                        f'integer, array of integers, callable function, brainpy.init.Initializer.')
     if delay_type == 'heter':
-      if delay_step.dtype not in [jnp.int32, jnp.int64]:
+      if delay_step.dtype not in [bm.int32, bm.int64]:
         raise ValueError('Only support delay steps of int32, int64. If your '
                          'provide delay time length, please divide the "dt" '
                          'then provide us the number of delay steps.')
       if delay_target.shape[0] != delay_step.shape[0]:
         raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
     if delay_type != 'none':
-      max_delay_step = int(jnp.max(delay_step))
+      max_delay_step = int(bm.max(delay_step))
 
     # delay target
     if delay_type != 'none':
@@ -207,8 +206,8 @@ class DynamicalSystem(BrainPyObject):
   def get_delay_data(
       self,
       identifier: str,
-      delay_step: Optional[Union[int, bm.Array, jnp.DeviceArray]],
-      *indices: Union[int, slice, bm.Array, jnp.DeviceArray],
+      delay_step: Optional[Union[int, bm.Array, jax.Array]],
+      *indices: Union[int, slice, bm.Array, jax.Array],
   ):
     """Get delay data according to the provided delay steps.
 
@@ -230,19 +229,19 @@ class DynamicalSystem(BrainPyObject):
       return self.global_delay_data[identifier][1].value
 
     if identifier in self.global_delay_data:
-      if jnp.ndim(delay_step) == 0:
+      if bm.ndim(delay_step) == 0:
         return self.global_delay_data[identifier][0](delay_step, *indices)
       else:
         if len(indices) == 0:
-          indices = (jnp.arange(delay_step.size),)
+          indices = (bm.arange(delay_step.size),)
         return self.global_delay_data[identifier][0](delay_step, *indices)
 
     elif identifier in self.local_delay_vars:
-      if jnp.ndim(delay_step) == 0:
+      if bm.ndim(delay_step) == 0:
         return self.local_delay_vars[identifier](delay_step)
       else:
         if len(indices) == 0:
-          indices = (jnp.arange(delay_step.size),)
+          indices = (bm.arange(delay_step.size),)
         return self.local_delay_vars[identifier](delay_step, *indices)
 
     else:
@@ -878,7 +877,7 @@ class SynConn(DynamicalSystem):
     # ------------
     if isinstance(conn, TwoEndConnector):
       self.conn = conn(pre.size, post.size)
-    elif isinstance(conn, (bm.ndarray, np.ndarray, jnp.ndarray)):
+    elif isinstance(conn, (bm.ndarray, np.ndarray, jax.Array)):
       if (pre.num, post.num) != conn.shape:
         raise ValueError(f'"conn" is provided as a matrix, and it is expected '
                          f'to be an array with shape of (pre.num, post.num) = '
@@ -1157,11 +1156,11 @@ class TwoEndConn(SynConn):
     return weight, conn_mask
 
   def _syn2post_with_all2all(self, syn_value, syn_weight):
-    if jnp.ndim(syn_weight) == 0:
+    if bm.ndim(syn_weight) == 0:
       if isinstance(self.mode, bm.BatchingMode):
-        post_vs = jnp.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
+        post_vs = bm.sum(syn_value, keepdims=True, axis=tuple(range(syn_value.ndim))[1:])
       else:
-        post_vs = jnp.sum(syn_value)
+        post_vs = bm.sum(syn_value)
       if not self.conn.include_self:
         post_vs = post_vs - syn_value
       post_vs = syn_weight * post_vs
@@ -1173,7 +1172,7 @@ class TwoEndConn(SynConn):
     return syn_value * syn_weight
 
   def _syn2post_with_dense(self, syn_value, syn_weight, conn_mat):
-    if jnp.ndim(syn_weight) == 0:
+    if bm.ndim(syn_weight) == 0:
       post_vs = (syn_weight * syn_value) @ conn_mat
     else:
       post_vs = syn_value @ (syn_weight * conn_mat)
@@ -1253,8 +1252,8 @@ class CondNeuGroup(NeuGroup, Container):
 
     # variables
     self.V = variable(V_initializer, self.mode, self.varshape)
-    self.input = variable(jnp.zeros, self.mode, self.varshape)
-    self.spike = variable(lambda s: jnp.zeros(s, dtype=bool), self.mode, self.varshape)
+    self.input = variable(bm.zeros, self.mode, self.varshape)
+    self.spike = variable(lambda s: bm.zeros(s, dtype=bool), self.mode, self.varshape)
 
     # function
     if self.noise is None:
@@ -1271,8 +1270,8 @@ class CondNeuGroup(NeuGroup, Container):
 
   def reset_state(self, batch_size=None):
     self.V.value = variable(self._V_initializer, batch_size, self.varshape)
-    self.spike.value = variable(lambda s: jnp.zeros(s, dtype=bool), batch_size, self.varshape)
-    self.input.value = variable(jnp.zeros, batch_size, self.varshape)
+    self.spike.value = variable(lambda s: bm.zeros(s, dtype=bool), batch_size, self.varshape)
+    self.input.value = variable(bm.zeros, batch_size, self.varshape)
     for channel in self.nodes(level=1, include_self=False).subset(Channel).unique().values():
       channel.reset_state(self.V.value, batch_size=batch_size)
 
@@ -1286,7 +1285,7 @@ class CondNeuGroup(NeuGroup, Container):
     # update variables
     for node in channels.values():
       node.update(tdi, self.V.value)
-    self.spike.value = jnp.logical_and(V >= self.V_th, self.V < self.V_th)
+    self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
     self.V.value = V
 
   def register_implicit_nodes(self, *channels, **named_channels):
@@ -1295,7 +1294,7 @@ class CondNeuGroup(NeuGroup, Container):
 
   def clear_input(self):
     """Useful for monitoring inputs. """
-    self.input.value = jnp.zeros_like(self.input.value)
+    self.input.value = bm.zeros_like(self.input.value)
 
 
 class Channel(DynamicalSystem):

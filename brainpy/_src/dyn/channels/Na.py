@@ -7,8 +7,6 @@ This module implements voltage-dependent sodium channels.
 
 from typing import Union, Callable
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
@@ -74,8 +72,8 @@ class _INa_p3q_markov(SodiumChannel):
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
     # variables
-    self.p = variable(jnp.zeros, self.mode, self.varshape)
-    self.q = variable(jnp.zeros, self.mode, self.varshape)
+    self.p = variable(bm.zeros, self.mode, self.varshape)
+    self.q = variable(bm.zeros, self.mode, self.varshape)
 
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
@@ -186,17 +184,17 @@ class INa_Ba2002(_INa_p3q_markov):
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh - 13.
-    return 0.32 * temp / (1. - jnp.exp(-temp / 4.))
+    return 0.32 * temp / (1. - bm.exp(-temp / 4.))
 
   def f_p_beta(self, V):
     temp = V - self.V_sh - 40.
-    return -0.28 * temp / (1. - jnp.exp(temp / 5.))
+    return -0.28 * temp / (1. - bm.exp(temp / 5.))
 
   def f_q_alpha(self, V):
-    return 0.128 * jnp.exp(-(V - self.V_sh - 17.) / 18.)
+    return 0.128 * bm.exp(-(V - self.V_sh - 17.) / 18.)
 
   def f_q_beta(self, V):
-    return 4. / (1. + jnp.exp(-(V - self.V_sh - 40.) / 5.))
+    return 4. / (1. + bm.exp(-(V - self.V_sh - 40.) / 5.))
 
 
 class INa_TM1991(_INa_p3q_markov):
@@ -272,17 +270,17 @@ class INa_TM1991(_INa_p3q_markov):
 
   def f_p_alpha(self, V):
     temp = 13 - V + self.V_sh
-    return 0.32 * temp / (jnp.exp(temp / 4) - 1.)
+    return 0.32 * temp / (bm.exp(temp / 4) - 1.)
 
   def f_p_beta(self, V):
     temp = V - self.V_sh - 40
-    return 0.28 * temp / (jnp.exp(temp / 5) - 1)
+    return 0.28 * temp / (bm.exp(temp / 5) - 1)
 
   def f_q_alpha(self, V):
-    return 0.128 * jnp.exp((17 - V + self.V_sh) / 18)
+    return 0.128 * bm.exp((17 - V + self.V_sh) / 18)
 
   def f_q_beta(self, V):
-    return 4. / (1 + jnp.exp(-(V - self.V_sh - 40) / 5))
+    return 4. / (1 + bm.exp(-(V - self.V_sh - 40) / 5))
 
 
 class INa_HH1952(_INa_p3q_markov):
@@ -359,13 +357,13 @@ class INa_HH1952(_INa_p3q_markov):
 
   def f_p_alpha(self, V):
     temp = V - self.V_sh - 5
-    return 0.1 * temp / (1 - jnp.exp(-temp / 10))
+    return 0.1 * temp / (1 - bm.exp(-temp / 10))
 
   def f_p_beta(self, V):
-    return 4.0 * jnp.exp(-(V - self.V_sh + 20) / 18)
+    return 4.0 * bm.exp(-(V - self.V_sh + 20) / 18)
 
   def f_q_alpha(self, V):
-    return 0.07 * jnp.exp(-(V - self.V_sh + 20) / 20.)
+    return 0.07 * bm.exp(-(V - self.V_sh + 20) / 20.)
 
   def f_q_beta(self, V):
-    return 1 / (1 + jnp.exp(-(V - self.V_sh - 10) / 10))
+    return 1 / (1 + bm.exp(-(V - self.V_sh - 10) / 10))

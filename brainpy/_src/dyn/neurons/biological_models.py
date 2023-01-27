@@ -2,8 +2,6 @@
 
 from typing import Union, Callable, Optional
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy import check
 from brainpy._src.dyn.base import NeuGroup
@@ -124,8 +122,8 @@ class HH(NeuGroup):
   .. plot::
     :include-source: True
 
-    >>> import jax.numpy as jnp
     >>> import brainpy as bp
+    >>> import brainpy.math as bm
     >>> import matplotlib.pyplot as plt
     >>>
     >>> group = bp.neurons.HH(2)
@@ -134,7 +132,7 @@ class HH(NeuGroup):
     >>> I2 = bp.inputs.spike_input(sp_times=[600.,       900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
     >>> I1 += bp.math.random.normal(0, 3, size=I1.shape)
     >>> I2 += bp.math.random.normal(0, 3, size=I2.shape)
-    >>> I = jnp.stack((I1, I2), axis=-1)
+    >>> I = bm.stack((I1, I2), axis=-1)
     >>>
     >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', I, 'iter'))
     >>> runner.run(2000.)
@@ -257,8 +255,8 @@ class HH(NeuGroup):
     self.n = (bm.Variable(self.n_inf(self.V.value))
               if n_initializer is None else
               variable_(self._n_initializer, self.varshape, self.mode))
-    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, self.mode)
-    self.input = variable_(jnp.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -267,20 +265,20 @@ class HH(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   # m channel
-  m_alpha = lambda self, V: 0.1 * (V + 40) / (1 - jnp.exp(-(V + 40) / 10))
-  m_beta = lambda self, V: 4.0 * jnp.exp(-(V + 65) / 18)
+  m_alpha = lambda self, V: 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
+  m_beta = lambda self, V: 4.0 * bm.exp(-(V + 65) / 18)
   m_inf = lambda self, V: self.m_alpha(V) / (self.m_alpha(V) + self.m_beta(V))
   dm = lambda self, m, t, V: self.m_alpha(V) * (1 - m) - self.m_beta(V) * m
 
   # h channel
-  h_alpha = lambda self, V: 0.07 * jnp.exp(-(V + 65) / 20.)
-  h_beta = lambda self, V: 1 / (1 + jnp.exp(-(V + 35) / 10))
+  h_alpha = lambda self, V: 0.07 * bm.exp(-(V + 65) / 20.)
+  h_beta = lambda self, V: 1 / (1 + bm.exp(-(V + 35) / 10))
   h_inf = lambda self, V: self.h_alpha(V) / (self.h_alpha(V) + self.h_beta(V))
   dh = lambda self, h, t, V: self.h_alpha(V) * (1 - h) - self.h_beta(V) * h
 
   # n channel
-  n_alpha = lambda self, V: 0.01 * (V + 55) / (1 - jnp.exp(-(V + 55) / 10))
-  n_beta = lambda self, V: 0.125 * jnp.exp(-(V + 65) / 80)
+  n_alpha = lambda self, V: 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
+  n_beta = lambda self, V: 0.125 * bm.exp(-(V + 65) / 80)
   n_inf = lambda self, V: self.n_alpha(V) / (self.n_alpha(V) + self.n_beta(V))
   dn = lambda self, n, t, V: self.n_alpha(V) * (1 - n) - self.n_beta(V) * n
 
@@ -298,8 +296,8 @@ class HH(NeuGroup):
       self.n.value = self.n_inf(self.V.value)
     else:
       self.n.value = variable_(self._n_initializer, self.varshape, batch_size)
-    self.input.value = variable_(jnp.zeros, self.varshape, batch_size)
-    self.spike.value = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
+    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def dV(self, V, t, m, h, n, I_ext):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
@@ -316,7 +314,7 @@ class HH(NeuGroup):
     t, dt = tdi['t'], tdi['dt']
     if x is not None: self.input += x
     V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt)
-    self.spike.value = jnp.logical_and(self.V < self.V_th, V >= self.V_th)
+    self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.m.value = m
     self.h.value = h
@@ -458,8 +456,8 @@ class MorrisLecar(NeuGroup):
     # variables
     self.W = variable_(self._W_initializer, self.varshape, self.mode)
     self.V = variable_(self._V_initializer, self.varshape, self.mode)
-    self.input = variable_(jnp.zeros, self.varshape, self.mode)
-    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -470,11 +468,11 @@ class MorrisLecar(NeuGroup):
   def reset_state(self, batch_size=None):
     self.W.value = variable_(self._W_initializer, self.varshape, batch_size)
     self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
-    self.input.value = variable_(jnp.zeros, self.varshape, batch_size)
-    self.spike.value = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
+    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def dV(self, V, t, W, I_ext):
-    M_inf = (1 / 2) * (1 + jnp.tanh((V - self.V1) / self.V2))
+    M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
     I_K = self.g_K * W * (V - self.V_K)
     I_Leak = self.g_leak * (V - self.V_leak)
@@ -482,8 +480,8 @@ class MorrisLecar(NeuGroup):
     return dVdt
 
   def dW(self, W, t, V):
-    tau_W = 1 / (self.phi * jnp.cosh((V - self.V3) / (2 * self.V4)))
-    W_inf = (1 / 2) * (1 + jnp.tanh((V - self.V3) / self.V4))
+    tau_W = 1 / (self.phi * bm.cosh((V - self.V3) / (2 * self.V4)))
+    W_inf = (1 / 2) * (1 + bm.tanh((V - self.V3) / self.V4))
     dWdt = (W_inf - W) / tau_W
     return dWdt
 
@@ -495,7 +493,7 @@ class MorrisLecar(NeuGroup):
     t, dt = tdi['t'], tdi['dt']
     if x is not None: self.input += x
     V, self.W.value = self.integral(self.V, self.W, t, self.input, dt)
-    spike = jnp.logical_and(self.V < self.V_th, V >= self.V_th)
+    spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.spike.value = spike
 
@@ -730,8 +728,8 @@ class PinskyRinzelModel(NeuGroup):
     self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
     self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
     self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
-    self.Id = variable_(jnp.zeros, self.varshape, self.mode)  # input to soma
-    self.Is = variable_(jnp.zeros, self.varshape, self.mode)  # input to dendrite
+    self.Id = variable_(bm.zeros, self.varshape, self.mode)  # input to soma
+    self.Is = variable_(bm.zeros, self.varshape, self.mode)  # input to dendrite
     # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
@@ -750,8 +748,8 @@ class PinskyRinzelModel(NeuGroup):
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
     self.c.value = bm.Variable(self.inf_c(self.Vd), batch_axis=batch_axis)
     self.q.value = bm.Variable(self.inf_q(self.Ca), batch_axis=batch_axis)
-    self.Id.value = variable_(jnp.zeros, self.varshape, batch_size)
-    self.Is.value = variable_(jnp.zeros, self.varshape, batch_size)
+    self.Id.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.Is.value = variable_(bm.zeros, self.varshape, batch_size)
     # self.spike[:] = False
 
   def dCa(self, Ca, t, s, Vd):
@@ -785,7 +783,7 @@ class PinskyRinzelModel(NeuGroup):
     I_leak = self.gL * (Vd - self.EL)
     I_Ca = self.gCa * s * s * (Vd - self.ECa)
     I_AHP = self.gAHP * q * (Vd - self.EK)
-    I_C = self.gC * jnp.minimum(Ca / 250., 1.) * (Vd - self.EK)
+    I_C = self.gC * bm.minimum(Ca / 250., 1.) * (Vd - self.EK)
     p = 1 - self.p
     I_gj = self.gc / p * (Vs - Vd)
     dVdt = (- I_leak - I_Ca - I_AHP - I_C + I_gj + self.Id / p) / self.Cm
@@ -821,10 +819,10 @@ class PinskyRinzelModel(NeuGroup):
     self.Is[:] = 0.
 
   def alpha_m(self, Vs):
-    return 0.32 * (13.1 - (Vs + 60.)) / (jnp.exp((13.1 - (Vs + 60.)) / 4.) - 1.)
+    return 0.32 * (13.1 - (Vs + 60.)) / (bm.exp((13.1 - (Vs + 60.)) / 4.) - 1.)
 
   def beta_m(self, Vs):
-    return 0.28 * ((Vs + 60.) - 40.1) / (jnp.exp(((Vs + 60.) - 40.1) / 5.) - 1.)
+    return 0.28 * ((Vs + 60.) - 40.1) / (bm.exp(((Vs + 60.) - 40.1) / 5.) - 1.)
 
   def inf_m(self, Vs):
     alpha = self.alpha_m(Vs)
@@ -832,10 +830,10 @@ class PinskyRinzelModel(NeuGroup):
     return alpha / (alpha + beta)
 
   def alpha_n(self, Vs):
-    return 0.016 * (35.1 - (Vs + 60.)) / (jnp.exp((35.1 - (Vs + 60.)) / 5) - 1)
+    return 0.016 * (35.1 - (Vs + 60.)) / (bm.exp((35.1 - (Vs + 60.)) / 5) - 1)
 
   def beta_n(self, Vs):
-    return 0.25 * jnp.exp(0.5 - 0.025 * (Vs + 60.))
+    return 0.25 * bm.exp(0.5 - 0.025 * (Vs + 60.))
 
   def inf_n(self, Vs):
     alpha = self.alpha_n(Vs)
@@ -843,10 +841,10 @@ class PinskyRinzelModel(NeuGroup):
     return alpha / (alpha + beta)
 
   def alpha_h(self, Vs):
-    return 0.128 * jnp.exp((17. - (Vs + 60.)) / 18.)
+    return 0.128 * bm.exp((17. - (Vs + 60.)) / 18.)
 
   def beta_h(self, Vs):
-    return 4. / (1 + jnp.exp((40. - (Vs + 60.)) / 5))
+    return 4. / (1 + bm.exp((40. - (Vs + 60.)) / 5))
 
   def inf_h(self, Vs):
     alpha = self.alpha_h(Vs)
@@ -854,10 +852,10 @@ class PinskyRinzelModel(NeuGroup):
     return alpha / (alpha + beta)
 
   def alpha_s(self, Vd):
-    return 1.6 / (1 + jnp.exp(-0.072 * ((Vd + 60.) - 65.)))
+    return 1.6 / (1 + bm.exp(-0.072 * ((Vd + 60.) - 65.)))
 
   def beta_s(self, Vd):
-    return 0.02 * ((Vd + 60.) - 51.1) / (jnp.exp(((Vd + 60.) - 51.1) / 5.) - 1.)
+    return 0.02 * ((Vd + 60.) - 51.1) / (bm.exp(((Vd + 60.) - 51.1) / 5.) - 1.)
 
   def inf_s(self, Vd):
     alpha = self.alpha_s(Vd)
@@ -865,13 +863,13 @@ class PinskyRinzelModel(NeuGroup):
     return alpha / (alpha + beta)
 
   def alpha_c(self, Vd):
-    return jnp.where((Vd + 60.) <= 50.,
-                    (jnp.exp(((Vd + 60.) - 10.) / 11.) - jnp.exp(((Vd + 60.) - 6.5) / 27.)) / 18.975,
-                    2. * jnp.exp((6.5 - (Vd + 60.)) / 27.))
+    return bm.where((Vd + 60.) <= 50.,
+                    (bm.exp(((Vd + 60.) - 10.) / 11.) - bm.exp(((Vd + 60.) - 6.5) / 27.)) / 18.975,
+                    2. * bm.exp((6.5 - (Vd + 60.)) / 27.))
 
   def beta_c(self, Vd):
-    alpha_c = (jnp.exp(((Vd + 60.) - 10.) / 11.) - jnp.exp(((Vd + 60.) - 6.5) / 27.)) / 18.975
-    return jnp.where((Vd + 60.) <= 50., 2. * jnp.exp((6.5 - (Vd + 60.)) / 27.) - alpha_c, 0.)
+    alpha_c = (bm.exp(((Vd + 60.) - 10.) / 11.) - bm.exp(((Vd + 60.) - 6.5) / 27.)) / 18.975
+    return bm.where((Vd + 60.) <= 50., 2. * bm.exp((6.5 - (Vd + 60.)) / 27.) - alpha_c, 0.)
 
   def inf_c(self, Vd):
     alpha_c = self.alpha_c(Vd)
@@ -879,7 +877,7 @@ class PinskyRinzelModel(NeuGroup):
     return alpha_c / (alpha_c + beta_c)
 
   def alpha_q(self, Ca):
-    return jnp.minimum(2e-5 * Ca, 1e-2)
+    return bm.minimum(2e-5 * Ca, 1e-2)
 
   def beta_q(self, Ca):
     return 1e-3
@@ -1024,8 +1022,8 @@ class WangBuzsakiModel(NeuGroup):
     self.h = variable_(self._h_initializer, self.varshape, self.mode)
     self.n = variable_(self._n_initializer, self.varshape, self.mode)
     self.V = variable_(self._V_initializer, self.varshape, self.mode)
-    self.input = variable_(jnp.zeros, self.varshape, self.mode)
-    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, self.mode)
+    self.input = variable_(bm.zeros, self.varshape, self.mode)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -1037,23 +1035,23 @@ class WangBuzsakiModel(NeuGroup):
     self.h.value = variable_(self._h_initializer, self.varshape, batch_size)
     self.n.value = variable_(self._n_initializer, self.varshape, batch_size)
     self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
-    self.input.value = variable_(jnp.zeros, self.varshape, batch_size)
-    self.spike.value = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
+    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def m_inf(self, V):
-    alpha = -0.1 * (V + 35) / (jnp.exp(-0.1 * (V + 35)) - 1)
-    beta = 4. * jnp.exp(-(V + 60.) / 18.)
+    alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+    beta = 4. * bm.exp(-(V + 60.) / 18.)
     return alpha / (alpha + beta)
 
   def dh(self, h, t, V):
-    alpha = 0.07 * jnp.exp(-(V + 58) / 20)
-    beta = 1 / (jnp.exp(-0.1 * (V + 28)) + 1)
+    alpha = 0.07 * bm.exp(-(V + 58) / 20)
+    beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
     dhdt = alpha * (1 - h) - beta * h
     return self.phi * dhdt
 
   def dn(self, n, t, V):
-    alpha = -0.01 * (V + 34) / (jnp.exp(-0.1 * (V + 34)) - 1)
-    beta = 0.125 * jnp.exp(-(V + 44) / 80)
+    alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+    beta = 0.125 * bm.exp(-(V + 44) / 80)
     dndt = alpha * (1 - n) - beta * n
     return self.phi * dndt
 
@@ -1072,7 +1070,7 @@ class WangBuzsakiModel(NeuGroup):
     t, dt = tdi['t'], tdi['dt']
     if x is not None: self.input += x
     V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt)
-    self.spike.value = jnp.logical_and(self.V < self.V_th, V >= self.V_th)
+    self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.h.value = h
     self.n.value = n
