@@ -4,7 +4,7 @@ import warnings
 
 from jax import custom_gradient, numpy as jnp
 
-from brainpy._src.math.arraycreation import asarray
+from brainpy._src.math.compat_numpy import asarray
 from brainpy._src.math.arrayinterporate import as_jax
 from brainpy._src.math.environment import get_float
 from brainpy._src.math.ndarray import Array

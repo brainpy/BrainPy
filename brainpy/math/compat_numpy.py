@@ -1,7 +1,18 @@
 # -*- coding: utf-8 -*-
 
-
-from brainpy._src.math.arraycompatible import (
+from brainpy._src.math.compat_numpy import (
+  fill_diagonal as fill_diagonal,
+  empty as empty,
+  empty_like as empty_like,
+  ones as ones,
+  ones_like as ones_like,
+  zeros as zeros,
+  zeros_like as zeros_like,
+  array as array,
+  asarray as asarray,
+  arange as arange,
+  linspace as linspace,
+  logspace as logspace,
   full as full,
   full_like as full_like,
   eye as eye,

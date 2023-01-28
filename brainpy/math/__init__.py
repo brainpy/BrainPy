@@ -4,8 +4,10 @@
 # data structure
 from .ndarray import *
 from .delayvars import *
-from .arrayoperation import *
-from .arraycompatible import *
+from .arrayinterporate import *
+from .compat_numpy import *
+from .compat_tensorflow import *
+from .compat_pytorch import *
 
 # functions
 from .activations import *
