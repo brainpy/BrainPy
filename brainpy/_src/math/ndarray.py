@@ -60,29 +60,6 @@ def get_context():
     return None
 
 
-def check_context(arr_context) -> bool:
-  if arr_context is None:
-    if len(_jax_transformation_context_) > 0:
-      raise MathError(f'Array created outside of the transformation functions '
-                      f'({_jax_transformation_context_[-1]}) cannot be updated. '
-                      f'You should mark it as a brainpy.math.Variable instead.')
-      return True
-    else:
-      return False
-  else:
-    if len(_jax_transformation_context_) > 0:
-      if arr_context != _jax_transformation_context_[-1]:
-        raise MathError(f'Array context "{arr_context}" differs from the JAX '
-                        f'transformation context "{_jax_transformation_context_[-1]}"'
-                        '\n\n'
-                        'Array created in one transformation function '
-                        'cannot be updated another transformation function. '
-                        'You should mark it as a brainpy.math.Variable instead.')
-        return True
-    else:
-      return False
-
-
 def _check_input_array(array):
   if isinstance(array, Array):
     return array.value
@@ -93,7 +70,7 @@ def _check_input_array(array):
 
 
 def _return(a):
-  if _return_bp_array and isinstance(a, jax.Array) and a.ndim > 0:
+  if isinstance(a, jax.Array) and a.ndim > 0:
     return Array(a)
   return a
 
@@ -120,6 +97,7 @@ class Array(object):
   """
 
   is_brainpy_array = True
+  _need_check_context = True
   __slots__ = ("_value", "_transform_context")
 
   def __init__(self, value, dtype=None):
@@ -134,6 +112,24 @@ class Array(object):
     # jit mode
     self._transform_context = get_context()
 
+  def __check_context(self) -> None:
+    # raise error when in-place updating a
+    if self._need_check_context:
+      if self._transform_context is None:
+        if len(_jax_transformation_context_) > 0:
+          raise MathError(f'Array created outside of the transformation functions '
+                          f'({_jax_transformation_context_[-1]}) cannot be updated. '
+                          f'You should mark it as a brainpy.math.Variable instead.')
+      else:
+        if len(_jax_transformation_context_) > 0:
+          if self._transform_context != _jax_transformation_context_[-1]:
+            raise MathError(f'Array context "{self._transform_context}" differs from the JAX '
+                            f'transformation context "{_jax_transformation_context_[-1]}"'
+                            '\n\n'
+                            'Array created in one transformation function '
+                            'cannot be updated another transformation function. '
+                            'You should mark it as a brainpy.math.Variable instead.')
+
   @property
   def value(self):
     return self._value
@@ -145,29 +141,27 @@ class Array(object):
   def update(self, value):
     """Update the value of this Array.
     """
-    if check_context(self._transform_context):
-      raise MathError(msg)
     if isinstance(value, Array):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)
-    elif isinstance(value, jnp.ndarray):
+    elif isinstance(value, jax.Array):
       pass
     else:
       value = jnp.asarray(value)
     # check
-    if value.shape != self._value.shape:
-      raise MathError(f"The shape of the original data is {self._value.shape}, "
+    if value.shape != self.value.shape:
+      raise MathError(f"The shape of the original data is {self.value.shape}, "
                       f"while we got {value.shape}.")
-    if value.dtype != self._value.dtype:
-      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
+    if value.dtype != self.value.dtype:
+      raise MathError(f"The dtype of the original data is {self.value.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value.value if isinstance(value, Array) else value
 
   @property
   def dtype(self):
     """Variable dtype."""
-    return self.value.dtype
+    return self._value.dtype
 
   @property
   def shape(self):
@@ -180,7 +174,7 @@ class Array(object):
 
   @property
   def imag(self):
-    return self.value.image
+    return _return(self.value.image)
 
   @property
   def real(self):
@@ -200,32 +194,22 @@ class Array(object):
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
-    name = self.__class__.__name__
-    if 'DeviceArray' in print_code:
-      replace_name = 'DeviceArray'
-    else:
-      replace_name = ''
-    if replace_name:
-      print_code = print_code.replace(replace_name, name)
+    if ', dtype' in print_code:
+      print_code = print_code.split(', dtype')[0] + ')'
+    prefix = f'{self.__class__.__name__}'
+    prefix2 = f'{self.__class__.__name__}(value='
+    if '\n' in print_code:
       lines = print_code.split("\n")
-      if len(name) > len(replace_name):
-        num_len = len(name) - len(replace_name)
-        for i in range(1, len(lines)):
-          lines[i] = " " * num_len + lines[i]
-      else:
-        num_len = len(replace_name) - len(name)
-        for i in range(1, len(lines)):
-          lines[i] = lines[i][num_len:]
-      print_code = "\n".join(lines)
-    else:
-      lines = print_code.split("\n")
-      prefix = name + "("
-      lines[0] = prefix + lines[0]
-      prefix = " " * len(prefix)
+      blank1 = " " * len(prefix2)
+      lines[0] = prefix2 + lines[0]
       for i in range(1, len(lines)):
-        lines[i] = prefix + lines[i]
-      lines[-1] = lines[-1] + ")"
+        lines[i] = blank1 + lines[i]
+      lines[-1] += ","
+      blank2 = " " * (len(prefix) + 1)
+      lines.append(f'{blank2}dtype={self.dtype})')
       print_code = "\n".join(lines)
+    else:
+      print_code = prefix2 + print_code + f', dtype={self.dtype})'
     return print_code
 
   def __format__(self, format_spec: str) -> str:
@@ -239,7 +223,7 @@ class Array(object):
     - https://github.com/google/jax/issues/7713
     - https://github.com/google/jax/pull/3821
     """
-    for v in self._value:
+    for v in self.value:
       yield v
 
   def __getitem__(self, index):
@@ -252,9 +236,6 @@ class Array(object):
     return self.value[index]
 
   def __setitem__(self, index, value):
-    if check_context(self._transform_context):
-      raise MathError(msg)
-
     # value is Array
     if isinstance(value, Array):
       value = value.value
@@ -273,228 +254,199 @@ class Array(object):
       index = jnp.asarray(index)
 
     # update
-    self._value = self._value.at[index].set(value)
+    self.value = self.value.at[index].set(value)
 
   # ---------- #
   # operations #
   # ---------- #
 
-  def __bool__(self) -> bool:
-    return self._value.__bool__()
-
   def __len__(self) -> int:
-    return len(self._value)
+    return len(self.value)
 
   def __neg__(self):
-    return _return(self._value.__neg__())
+    return _return(self.value.__neg__())
 
   def __pos__(self):
-    return _return(self._value.__pos__())
+    return _return(self.value.__pos__())
 
   def __abs__(self):
-    return _return(self._value.__abs__())
+    return _return(self.value.__abs__())
 
   def __invert__(self):
-    return _return(self._value.__invert__())
+    return _return(self.value.__invert__())
 
   def __eq__(self, oc):
-    return _return(self._value == _check_input_array(oc))
+    return _return(self.value == _check_input_array(oc))
 
   def __ne__(self, oc):
-    return _return(self._value != _check_input_array(oc))
+    return _return(self.value != _check_input_array(oc))
 
   def __lt__(self, oc):
-    return _return(self._value < _check_input_array(oc))
+    return _return(self.value < _check_input_array(oc))
 
   def __le__(self, oc):
-    return _return(self._value <= _check_input_array(oc))
+    return _return(self.value <= _check_input_array(oc))
 
   def __gt__(self, oc):
-    return _return(self._value > _check_input_array(oc))
+    return _return(self.value > _check_input_array(oc))
 
   def __ge__(self, oc):
-    return _return(self._value >= _check_input_array(oc))
+    return _return(self.value >= _check_input_array(oc))
 
   def __add__(self, oc):
-    return _return(self._value + _check_input_array(oc))
+    return _return(self.value + _check_input_array(oc))
 
   def __radd__(self, oc):
-    return _return(self._value + _check_input_array(oc))
+    return _return(self.value + _check_input_array(oc))
 
   def __iadd__(self, oc):
     # a += b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value += _check_input_array(oc)
+    self.value = self.value + _check_input_array(oc)
     return self
 
   def __sub__(self, oc):
-    return _return(self._value - _check_input_array(oc))
+    return _return(self.value - _check_input_array(oc))
 
   def __rsub__(self, oc):
-    return _return(_check_input_array(oc) - self._value)
+    return _return(_check_input_array(oc) - self.value)
 
   def __isub__(self, oc):
     # a -= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value - _check_input_array(oc)
+    self.value = self.value - _check_input_array(oc)
     return self
 
   def __mul__(self, oc):
-    return _return(self._value * _check_input_array(oc))
+    return _return(self.value * _check_input_array(oc))
 
   def __rmul__(self, oc):
-    return _return(_check_input_array(oc) * self._value)
+    return _return(_check_input_array(oc) * self.value)
 
   def __imul__(self, oc):
     # a *= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value * _check_input_array(oc)
+    self.value = self.value * _check_input_array(oc)
     return self
 
   def __rdiv__(self, oc):
-    return _return(_check_input_array(oc) / self._value)
+    return _return(_check_input_array(oc) / self.value)
 
   def __truediv__(self, oc):
-    return _return(self._value / _check_input_array(oc))
+    return _return(self.value / _check_input_array(oc))
 
   def __rtruediv__(self, oc):
-    return _return(_check_input_array(oc) / self._value)
+    return _return(_check_input_array(oc) / self.value)
 
   def __itruediv__(self, oc):
     # a /= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value / _check_input_array(oc)
+    self.value = self.value / _check_input_array(oc)
     return self
 
   def __floordiv__(self, oc):
-    return _return(self._value // _check_input_array(oc))
+    return _return(self.value // _check_input_array(oc))
 
   def __rfloordiv__(self, oc):
-    return _return(_check_input_array(oc) // self._value)
+    return _return(_check_input_array(oc) // self.value)
 
   def __ifloordiv__(self, oc):
     # a //= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value // _check_input_array(oc)
+    self.value = self.value // _check_input_array(oc)
     return self
 
   def __divmod__(self, oc):
-    return _return(self._value.__divmod__(_check_input_array(oc)))
+    return _return(self.value.__divmod__(_check_input_array(oc)))
 
   def __rdivmod__(self, oc):
-    return _return(self._value.__rdivmod__(_check_input_array(oc)))
+    return _return(self.value.__rdivmod__(_check_input_array(oc)))
 
   def __mod__(self, oc):
-    return _return(self._value % _check_input_array(oc))
+    return _return(self.value % _check_input_array(oc))
 
   def __rmod__(self, oc):
-    return _return(_check_input_array(oc) % self._value)
+    return _return(_check_input_array(oc) % self.value)
 
   def __imod__(self, oc):
     # a %= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value % _check_input_array(oc)
+    self.value = self.value % _check_input_array(oc)
     return self
 
   def __pow__(self, oc):
-    return _return(self._value ** _check_input_array(oc))
+    return _return(self.value ** _check_input_array(oc))
 
   def __rpow__(self, oc):
-    return _return(_check_input_array(oc) ** self._value)
+    return _return(_check_input_array(oc) ** self.value)
 
   def __ipow__(self, oc):
     # a **= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value ** _check_input_array(oc)
+    self.value = self.value ** _check_input_array(oc)
     return self
 
   def __matmul__(self, oc):
-    return _return(self._value @ _check_input_array(oc))
+    return _return(self.value @ _check_input_array(oc))
 
   def __rmatmul__(self, oc):
-    return _return(_check_input_array(oc) @ self._value)
+    return _return(_check_input_array(oc) @ self.value)
 
   def __imatmul__(self, oc):
     # a @= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value @ _check_input_array(oc)
+    self.value = self.value @ _check_input_array(oc)
     return self
 
   def __and__(self, oc):
-    return _return(self._value & _check_input_array(oc))
+    return _return(self.value & _check_input_array(oc))
 
   def __rand__(self, oc):
-    return _return(_check_input_array(oc) & self._value)
+    return _return(_check_input_array(oc) & self.value)
 
   def __iand__(self, oc):
     # a &= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value & _check_input_array(oc)
+    self.value = self.value & _check_input_array(oc)
     return self
 
   def __or__(self, oc):
-    return _return(self._value | _check_input_array(oc))
+    return _return(self.value | _check_input_array(oc))
 
   def __ror__(self, oc):
-    return _return(_check_input_array(oc) | self._value)
+    return _return(_check_input_array(oc) | self.value)
 
   def __ior__(self, oc):
     # a |= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value | _check_input_array(oc)
+    self.value = self.value | _check_input_array(oc)
     return self
 
   def __xor__(self, oc):
-    return _return(self._value ^ _check_input_array(oc))
+    return _return(self.value ^ _check_input_array(oc))
 
   def __rxor__(self, oc):
-    return _return(_check_input_array(oc) ^ self._value)
+    return _return(_check_input_array(oc) ^ self.value)
 
   def __ixor__(self, oc):
     # a ^= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value ^ _check_input_array(oc)
+    self.value = self.value ^ _check_input_array(oc)
     return self
 
   def __lshift__(self, oc):
-    return _return(self._value << _check_input_array(oc))
+    return _return(self.value << _check_input_array(oc))
 
   def __rlshift__(self, oc):
-    return _return(_check_input_array(oc) << self._value)
+    return _return(_check_input_array(oc) << self.value)
 
   def __ilshift__(self, oc):
     # a <<= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value << _check_input_array(oc)
+    self.value = self.value << _check_input_array(oc)
     return self
 
   def __rshift__(self, oc):
-    return _return(self._value >> _check_input_array(oc))
+    return _return(self.value >> _check_input_array(oc))
 
   def __rrshift__(self, oc):
-    return _return(_check_input_array(oc) >> self._value)
+    return _return(_check_input_array(oc) >> self.value)
 
   def __irshift__(self, oc):
     # a >>= b
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self._value >> _check_input_array(oc)
+    self.value = self.value >> _check_input_array(oc)
     return self
 
   def __round__(self, ndigits=None):
-    return _return(self._value.__round__(ndigits))
+    return _return(self.value.__round__(ndigits))
 
   # ----------------------- #
   #       JAX methods       #
@@ -608,9 +560,7 @@ class Array(object):
 
   def fill(self, value):
     """Fill the array with a scalar value."""
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = jnp.ones_like(self.value) * value
+    self.value = jnp.ones_like(self.value) * value
 
   def flatten(self):
     return _return(self.value.flatten())
@@ -674,7 +624,7 @@ class Array(object):
 
   def resize(self, new_shape):
     """Change shape and size of array in-place."""
-    self._value = self.value.reshape(new_shape)
+    self.value = self.value.reshape(new_shape)
 
   def round(self, decimals=0):
     """Return ``a`` with each element rounded to the given number of decimals."""
@@ -735,9 +685,7 @@ class Array(object):
         but unspecified fields will still be used, in the order in which
         they come up in the dtype, to break ties.
     """
-    if check_context(self._transform_context):
-      raise MathError(msg)
-    self._value = self.value.sort(axis=axis, kind=kind, order=order)
+    self.value = self.value.sort(axis=axis, kind=kind, order=order)
 
   def squeeze(self, axis=None):
     """Remove axes of length one from ``a``."""
@@ -834,7 +782,7 @@ class Array(object):
     Constructs Python bytes showing a copy of the raw contents of data memory.
     The bytes object is produced in C-order by default. This behavior is
     controlled by the ``order`` parameter."""
-    return _return(self.value.tobytes())
+    return self.value.tobytes()
 
   def tolist(self):
     """Return the array as an ``a.ndim``-levels deep nested list of Python scalars.
@@ -958,6 +906,9 @@ class Array(object):
   def __format__(self, specification):
     return self.value.__format__(specification)
 
+  def __bool__(self) -> bool:
+    return self.value.__bool__()
+
   def __float__(self):
     return self.value.__float__()
 
@@ -969,14 +920,14 @@ class Array(object):
 
   def __hex__(self):
     assert self.ndim == 0, 'hex only works on scalar values'
-    return hex(self._value)  # type: ignore
+    return hex(self.value)  # type: ignore
 
   def __oct__(self):
     assert self.ndim == 0, 'oct only works on scalar values'
-    return oct(self._value)  # type: ignore
+    return oct(self.value)  # type: ignore
 
   def __index__(self):
-    return operator.index(self._value)
+    return operator.index(self.value)
 
   def __dlpack__(self):
     from jax.dlpack import to_dlpack  # pylint: disable=g-import-not-at-top
@@ -1010,12 +961,14 @@ class Variable(Array):
   batch_axis: optional, int
     The batch axis.
   """
-  __slots__ = ('_value', '_batch_axis', 'requires_grad')
+
+  _need_check_context = False
+  __slots__ = ('_value', '_batch_axis')
 
   def __init__(
       self,
       value_or_size,
-      dtype: type =None,
+      dtype: type = None,
       batch_axis: int = None,
   ):
     if isinstance(value_or_size, int):
@@ -1093,95 +1046,6 @@ class Variable(Array):
                       f"while we got {dtype}.")
     self._value = value.value if isinstance(value, Array) else value
 
-  def __setitem__(self, index, value):
-    # value is Array
-    if isinstance(value, Array):
-      value = value.value
-
-    # tuple index
-    if isinstance(index, tuple):
-      index = tuple(_check_input_array(x) for x in index)
-
-    # Array index
-    elif isinstance(index, Array):
-      index = index.value
-
-    # update
-    self._value = self.value.at[index].set(value)
-
-  def __iadd__(self, oc):
-    # a += b
-    self._value = self.value + _check_input_array(oc)
-    return self
-
-  def __isub__(self, oc):
-    # a -= b
-    self._value = self.value - _check_input_array(oc)
-    return self
-
-  def __imul__(self, oc):
-    # a *= b
-    self._value = self.value * _check_input_array(oc)
-    return self
-
-  def __itruediv__(self, oc):
-    # a /= b
-    self._value = self.value / _check_input_array(oc)
-    return self
-
-  def __ifloordiv__(self, oc):
-    # a //= b
-    self._value = self.value // _check_input_array(oc)
-    return self
-
-  def __imod__(self, oc):
-    # a %= b
-    self._value = self.value % _check_input_array(oc)
-    return self
-
-  def __ipow__(self, oc):
-    # a **= b
-    self._value = self.value ** _check_input_array(oc)
-    return self
-
-  def __imatmul__(self, oc):
-    # a @= b
-    self._value = self.value @ _check_input_array(oc)
-    return self
-
-  def __iand__(self, oc):
-    # a &= b
-    self._value = self.value.__and__(_check_input_array(oc))
-    return self
-
-  def __ior__(self, oc):
-    # a |= b
-    self._value = self.value | _check_input_array(oc)
-    return self
-
-  def __ixor__(self, oc):
-    # a ^= b
-    self._value = self.value ^ _check_input_array(oc)
-    return self
-
-  def __ilshift__(self, oc):
-    # a <<= b
-    self._value = self.value << _check_input_array(oc)
-    return self
-
-  def __irshift__(self, oc):
-    # a >>= b
-    self._value = self.value >> _check_input_array(oc)
-    return self
-
-  def fill(self, value):
-    """Fill the array with a scalar value."""
-    self._value = jnp.ones_like(self.value) * value
-
-  def sort(self, axis=-1, kind=None, order=None):
-    """Sort an array in-place."""
-    self._value = self.value.sort(axis=axis, kind=kind, order=order)
-
 
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
@@ -1250,128 +1114,34 @@ class VariableView(Variable):
   """
 
   def __init__(self, value: Variable, index):
-    self.index = index
+    self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
     super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis)
     self._value = value
 
+  def __repr__(self) -> str:
+    print_code = repr(self._value)
+    prefix = f'{self.__class__.__name__}'
+    blank = " " * (len(prefix) + 1)
+    lines = print_code.split("\n")
+    lines[0] = prefix + "(" + lines[0]
+    for i in range(1, len(lines)):
+      lines[i] = blank + lines[i]
+    lines[-1] += ","
+    lines.append(blank + f'index={self.index})')
+    print_code = "\n".join(lines)
+    return print_code
+
   @property
   def value(self):
     return self._value[self.index]
 
-  def __setitem__(self, index, value):
-    # value is Array
-    if isinstance(value, Array):
-      value = value.value
-    elif isinstance(value, np.ndarray):
-      value = jnp.asarray(value)
-
-    # tuple index
-    if isinstance(index, tuple):
-      index = tuple(_check_input_array(x) for x in index)
-
-    # Array index
-    elif isinstance(index, Array):
-      index = index.value
-
-    # update
-    self._value[self.index] = self.value.at[index].set(value)
-
-  def __iadd__(self, oc):
-    # a += b
-    self._value[self.index] = self.value + _check_input_array(oc)
-    return self
-
-  def __isub__(self, oc):
-    # a -= b
-    self._value[self.index] = self.value - _check_input_array(oc)
-    return self
-
-  def __imul__(self, oc):
-    # a *= b
-    self._value[self.index] = self.value * _check_input_array(oc)
-    return self
-
-  def __itruediv__(self, oc):
-    # a /= b
-    self._value[self.index] = self.value / _check_input_array(oc)
-    return self
-
-  def __ifloordiv__(self, oc):
-    # a //= b
-    self._value[self.index] = self.value // _check_input_array(oc)
-    return self
-
-  def __imod__(self, oc):
-    # a %= b
-    self._value[self.index] = self.value % _check_input_array(oc)
-    return self
-
-  def __ipow__(self, oc):
-    # a **= b
-    self._value[self.index] = self.value ** _check_input_array(oc)
-    return self
-
-  def __imatmul__(self, oc):
-    # a @= b
-    self._value[self.index] = self.value @ _check_input_array(oc)
-    return self
-
-  def __iand__(self, oc):
-    # a &= b
-    self._value[self.index] = self.value.__and__(_check_input_array(oc))
-    return self
-
-  def __ior__(self, oc):
-    # a |= b
-    self._value[self.index] = self.value | _check_input_array(oc)
-    return self
-
-  def __ixor__(self, oc):
-    # a ^= b
-    self._value[self.index] = self.value ^ _check_input_array(oc)
-    return self
-
-  def __ilshift__(self, oc):
-    # a <<= b
-    self._value[self.index] = self.value << _check_input_array(oc)
-    return self
-
-  def __irshift__(self, oc):
-    # a >>= b
-    self._value[self.index] = self.value >> _check_input_array(oc)
-    return self
-
-  def fill(self, value):
-    """Fill the array with a scalar value."""
-    self._value[self.index] = jnp.ones_like(self.value) * value
-
-  def sort(self, axis=-1, kind=None, order=None):
-    """Sort an array in-place."""
-    self._value[self.index] = self.value.sort(axis=axis, kind=kind, order=order)
+  @value.setter
+  def value(self, v):
+    self.update(v)
 
   def update(self, value):
-    if self.batch_axis is None:
-      ext_shape = value.shape
-      int_shape = self.shape
-    else:
-      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
-      int_shape = self.shape[:self.batch_axis] + self.shape[self.batch_axis + 1:]
-    if ext_shape != int_shape:
-      error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
-      if self.batch_axis is None:
-        error += '. Do you forget to set "batch_axis" when initialize this variable?'
-      else:
-        error += f' with batch_axis={self.batch_axis}.'
-      raise MathError(error)
-    if value.dtype != self._value.dtype:
-      raise MathError(f"The dtype of the original data is {self._value.dtype}, "
-                      f"while we got {value.dtype}.")
-    self._value[self.index] = value.value if isinstance(value, Array) else value
-
-  @value.setter
-  def value(self, value):
     int_shape = self.shape
     if self.batch_axis is None:
       ext_shape = value.shape
@@ -1379,7 +1149,7 @@ class VariableView(Variable):
       ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
       int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
     if ext_shape != int_shape:
-      error = f"The shape of the original data is {int_shape}, while we got {value.shape}"
+      error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
       if self.batch_axis is None:
         error += '. Do you forget to set "batch_axis" when initialize this variable?'
       else:
@@ -1412,4 +1182,3 @@ register_pytree_node(TrainVar,
 register_pytree_node(Parameter,
                      lambda t: ((t.value,), None),
                      lambda aux_data, flat_contents: Parameter(*flat_contents))
-
