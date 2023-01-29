@@ -1,5 +1,6 @@
 
 from brainpy._src.math.compat_tensorflow import (
+  concat as concat,
   reduce_sum as reduce_sum,
   reduce_max as reduce_max,
   reduce_min as reduce_min,
@@ -18,5 +19,6 @@ from brainpy._src.math.compat_tensorflow import (
   unsorted_segment_max as unsorted_segment_max,
   unsorted_segment_min as unsorted_segment_min,
   unsorted_segment_mean as unsorted_segment_mean,
+  clip_by_value as clip_by_value,
 )
 

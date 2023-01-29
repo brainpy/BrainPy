@@ -2,17 +2,30 @@ import jax.numpy as jnp
 import jax.ops
 
 from .ndarray import _return, _as_jax_array_
-from .compat_numpy import prod, min, sum, all, any, mean, std, var
+from .compat_numpy import (
+  prod, min, sum, all, any, mean, std, var, concatenate, clip
+)
 
 __all__ = [
-  'reduce_sum', 'reduce_max', 'reduce_min', 'reduce_mean', 'reduce_all',
-  'reduce_any', 'reduce_logsumexp', 'reduce_prod', 'reduce_std', 'reduce_variance',
-  'reduce_euclidean_norm',
-  'unsorted_segment_sqrt_n', 'segment_mean', 'unsorted_segment_sum',
-  'unsorted_segment_prod', 'unsorted_segment_max', 'unsorted_segment_min',
-  'unsorted_segment_mean',
+  'concat',
+  'reduce_sum', 'reduce_max', 'reduce_min', 'reduce_mean', 'reduce_all', 'reduce_any',
+  'reduce_logsumexp', 'reduce_prod', 'reduce_std', 'reduce_variance', 'reduce_euclidean_norm',
+  'unsorted_segment_sqrt_n', 'segment_mean', 'unsorted_segment_sum', 'unsorted_segment_prod',
+  'unsorted_segment_max', 'unsorted_segment_min', 'unsorted_segment_mean',
+  'clip_by_value',
 ]
 
+
+reduce_prod = prod
+reduce_sum = sum
+reduce_all = all
+reduce_any = any
+reduce_min = min
+reduce_mean = mean
+reduce_std = std
+reduce_variance = var
+concat = concatenate
+clip_by_value = clip
 
 def reduce_logsumexp(input_tensor, axis=None, keep_dims=False):
   """Computes log(sum(exp(elements across dimensions of a tensor))).
@@ -94,15 +107,6 @@ def reduce_max(input_tensor, axis=None, keep_dims=False):
   """
   return _return(jnp.max(_as_jax_array_(input_tensor), axis=axis, keep_dims=keep_dims))
 
-
-reduce_prod = prod
-reduce_sum = sum
-reduce_all = all
-reduce_any = any
-reduce_min = min
-reduce_mean = mean
-reduce_std = std
-reduce_variance = var
 
 
 

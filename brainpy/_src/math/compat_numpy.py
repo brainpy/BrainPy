@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from typing import (Union, Any, Protocol)
+
 import jax.numpy as jnp
 import numpy as np
-from jax.tree_util import tree_map
 from jax.tree_util import tree_flatten, tree_unflatten
+from jax.tree_util import tree_map
 
 from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .arrayinterporate import *
 from .ndarray import Array
+
+
+class SupportsDType(Protocol):
+  @property
+  def dtype(self) -> np.dtype: ...
+
+
+DTypeLike = Union[Any, str, np.dtype, SupportsDType]
 
 __all__ = [
   'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
@@ -99,9 +109,38 @@ __all__ = [
 
 ]
 
-
 _min = min
 _max = max
+
+# def concatenate(arrays: Union[np.ndarray, Array, Sequence[Array]],
+#                 axis: Optional[int] = None,
+#                 dim: Optional[int] = None,
+#                 dtype: Optional[DTypeLike] = None) -> Array:
+#   """Join a sequence of arrays along an existing axis.
+#
+#
+#     Parameters
+#     ----------
+#     a1, a2, ... : sequence of array_like
+#         The arrays must have the same shape, except in the dimension
+#         corresponding to `axis` (the first, by default).
+#     axis : int, optional
+#         The axis along which the arrays will be joined.  If axis is None,
+#         arrays are flattened before use.  Default is 0.
+#     dtype : str or dtype
+#         If provided, the destination array will have this dtype. Cannot be
+#         provided together with `out`.
+#
+#   Returns
+#   -------
+#   res : ndarray
+#       The concatenated array.
+#   """
+#   axis = one_of(0, axis, dim, ['axis', 'dim'])
+#   r = jnp.concatenate(tree_map(_as_jax_array_, arrays, is_leaf=_is_leaf),
+#                       axis=axis,
+#                       dtype=dtype)
+#   return _return(r)
 
 
 def fill_diagonal(a, val, inplace=True):
@@ -112,12 +151,13 @@ def fill_diagonal(a, val, inplace=True):
                      'it requires a brainpy Array. If you want to disable '
                      'inplace updating, use ``fill_diagonal(inplace=False)``.')
   val = val.value if isinstance(val, Array) else val
-  i, j = jnp.diag_indices(min(a.shape[-2:]))
+  i, j = jnp.diag_indices(_min(a.shape[-2:]))
   r = as_jax(a).at[..., i, j].set(val)
   if inplace:
     a.value = r
   else:
     return r
+
 
 def zeros(shape, dtype=None):
   return Array(jnp.zeros(shape, dtype=dtype))
@@ -190,6 +230,7 @@ def logspace(*args, **kwargs):
   args = [_as_jax_array_(a) for a in args]
   kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
   return Array(jnp.logspace(*args, **kwargs))
+
 
 def asanyarray(a, dtype=None, order=None):
   return asarray(a, dtype=dtype, order=order)
@@ -612,7 +653,7 @@ def common_type(*arrays):
       p = array_precision.get(t, None)
       if p is None:
         raise TypeError("can't get common type for non-numeric array")
-    precision = max(precision, p)
+    precision = _max(precision, p)
   if is_complex:
     return array_type[1][precision]
   else:
