@@ -783,7 +783,6 @@ def for_loop(
   name = get_unique_name('_brainpy_object_oriented_for_loop_')
 
   # functions
-  # init_vals = [v.value for v in dyn_vars]
   try:
     add_context(name)
     dyn_vals, out_vals = lax.scan(f=fun2scan,
@@ -794,11 +793,9 @@ def for_loop(
     del_context(name)
   except UnexpectedTracerError as e:
     del_context(name)
-    # for v, d in zip(dyn_vars, init_vals): v._value = d
     raise errors.JaxTracerError() from e
   except Exception as e:
     del_context(name)
-    # for v, d in zip(dyn_vars, init_vals): v._value = d
     raise e
   else:
     for v, d in zip(dyn_vars, dyn_vals): v._value = d

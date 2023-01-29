@@ -4,12 +4,17 @@
 from typing import Optional
 
 import jax.numpy as jnp
+from jax.tree_util import tree_map
 
 from brainpy import check, tools
 from .environment import get_dt, get_int
+from .ndarray import Array
+from .compat_numpy import fill_diagonal
 
 __all__ = [
   'shared_args_over_time',
+  'remove_diag',
+  'clip_by_norm',
 ]
 
 
@@ -50,3 +55,30 @@ def shared_args_over_time(num_step: Optional[int] = None,
   if include_dt:
     r['dt'] = jnp.ones_like(r['t']) * dt
   return r
+
+
+def remove_diag(arr):
+  """Remove the diagonal of the matrix.
+
+  Parameters
+  ----------
+  arr: ArrayType
+    The matrix with the shape of `(M, N)`.
+
+  Returns
+  -------
+  arr: Array
+    The matrix without diagonal which has the shape of `(M, N-1)`.
+  """
+  if arr.ndim != 2:
+    raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
+  eyes = Array(jnp.ones(arr.shape, dtype=bool))
+  fill_diagonal(eyes, False)
+  return jnp.reshape(arr[eyes.value], (arr.shape[0], arr.shape[1] - 1))
+
+
+def clip_by_norm(t, clip_norm, axis=None):
+  def f(l):
+    return l * clip_norm / jnp.maximum(jnp.sqrt(jnp.sum(l * l, axis=axis, keepdims=True)), clip_norm)
+
+  return tree_map(f, t)
