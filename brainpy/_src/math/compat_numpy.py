@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import (Union, Any, Protocol)
-
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
@@ -11,13 +9,6 @@ from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .arrayinterporate import *
 from .ndarray import Array
 
-
-class SupportsDType(Protocol):
-  @property
-  def dtype(self) -> np.dtype: ...
-
-
-DTypeLike = Union[Any, str, np.dtype, SupportsDType]
 
 __all__ = [
   'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
