@@ -44,15 +44,14 @@ def _compatible_with_brainpy_array(fun: Callable):
       # compatible with PyTorch syntax
       if 'dim' in kwargs:
         kwargs['axis'] = kwargs.pop('dim')
-      # compatible with PyTorch syntax
       if 'keepdim' in kwargs:
-        kwargs['keep_dims'] = kwargs.pop('keepdim')
+        kwargs['keepdims'] = kwargs.pop('keepdim')
       # compatible with TensorFlow syntax
-      if 'keepdims' in kwargs:
-        kwargs['keep_dims'] = kwargs.pop('keepdims')
+      if 'keep_dims' in kwargs:
+        kwargs['keepdims'] = kwargs.pop('keep_dims')
       # compatible with NumPy/PyTorch syntax
       if 'out' in kwargs:
-        out = kwargs.get('out')
+        out = kwargs.pop('out')
         if not isinstance(out, Array):
           raise TypeError(f'"out" must be an instance of brainpy Array. While we got {type(out)}')
       # format
