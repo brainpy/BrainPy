@@ -7,9 +7,7 @@ scipy>=1.1.0
 # document requirements
 pandoc
 Jinja2
-sphinx
+sphinx>=4
 myst-nb
-sphinx_book_theme
-sphinx-autodoc-typehints
-sphinx_thebe
-# sphinx-mathjax-offline
+sphinx-autodoc-typehints~=1.18.0
+sphinx-book-theme>=0.3.3

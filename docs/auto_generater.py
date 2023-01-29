@@ -194,6 +194,44 @@ def _write_subsections_v3(module_path,
   fout.close()
 
 
+def _write_subsections_v4(module_path,
+                          filename,
+                          subsections: dict,
+                          header: str = None):
+  fout = open(filename, 'w')
+  header = f'``{module_path}`` module' if header is None else header
+  fout.write(header + '\n')
+  fout.write('=' * len(header) + '\n\n')
+
+  fout.write('.. contents::' + '\n')
+  fout.write('   :local:' + '\n')
+  fout.write('   :depth: 1' + '\n\n')
+
+  for name, (subheader, out_path) in subsections.items():
+
+    module = importlib.import_module(f'{module_path}.{name}')
+    classes, functions, others = get_class_funcs(module)
+
+    fout.write(subheader + '\n')
+    fout.write('-' * len(subheader) + '\n\n')
+
+    fout.write(f'.. currentmodule:: {out_path} \n')
+    fout.write(f'.. automodule:: {out_path} \n\n')
+
+
+    fout.write('.. autosummary::\n')
+    fout.write('   :toctree: generated/\n\n')
+    for m in functions:
+      fout.write(f'   {m}\n')
+    for m in classes:
+      fout.write(f'   {m}\n')
+    for m in others:
+      fout.write(f'   {m}\n')
+    fout.write(f'\n\n')
+
+  fout.close()
+
+
 def _get_functions(obj):
   return set([n for n in dir(obj)
               if (n not in block_list  # not in blacklist
@@ -510,30 +548,26 @@ def generate_integrators_doc():
 
 
 def generate_math_docs():
-  _write_subsections_v2(
-    'brainpy.math',
+  _write_subsections_v4(
     'brainpy.math',
     'apis/auto/math.rst',
     subsections={
-      'object_base': 'Basis for Object-oriented Transformations',
-      'object_transform': 'Object-oriented Transformations',
-      'operators': 'Brain Dynamics Dedicated Operators',
-      'activations': 'Activation Functions',
-      'arrayoperation': 'Array Operations',
-      'delayvars': 'Delay Variables',
-      'environment': 'Environment Settings',
-      'modes': 'Computing Modes',
+      'object_base': ('Basis for Object-oriented Transformations', 'brainpy.math'),
+      'object_transform': ('Object-oriented Transformations', 'brainpy.math'),
+      'operators': ('Brain Dynamics Dedicated Operators', 'brainpy.math'),
+      'activations': ('Activation Functions', 'brainpy.math'),
+      'delayvars': ('Delay Variables', 'brainpy.math'),
+      'environment': ('Environment Settings', 'brainpy.math'),
+      'modes': ('Computing Modes', 'brainpy.math'),
+      'arrayinterporate': ('Array Interoperability', 'brainpy.math'),
+      # 'compat_numpy': ('Array Operators with NumPy Syntax', 'brainpy.math'),
+      # 'compat_pytorch': ('Array Operators with PyTorch Syntax', 'brainpy.math'),
+      # 'compat_tensorflow': ('Array Operators with TensorFlow Syntax', 'brainpy.math'),
+      'surrogate': ('Surrogate Gradient Functions', 'brainpy.math.surrogate'),
+      'random': ('Random Number Generations', 'brainpy.math.random'),
+      # 'linalg': ('Linear algebra', 'brainpy.math.linalg'),
+      # 'fft': ('Discrete Fourier Transform', 'brainpy.math.fft'),
     }
-  )
-  _write_module(
-    module_name='brainpy.math.random',
-    filename='apis/auto/math_random.rst',
-    # header='Random Number Generations'
-  )
-  _write_module(
-    module_name='brainpy.math.surrogate',
-    filename='apis/auto/math_surrogate.rst',
-    # header='Surrogate Gradient Functions'
   )
 
 
