@@ -5,6 +5,7 @@
 from .ndarray import *
 from .delayvars import *
 from .arrayinterporate import *
+from .datatypes import *
 from .compat_numpy import *
 from .compat_tensorflow import *
 from .compat_pytorch import *

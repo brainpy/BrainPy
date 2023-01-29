@@ -39,6 +39,7 @@ from .activations import *
 from . import activations
 
 # high-level numpy operations
+from .datatypes import *
 from .arrayinterporate import *
 from .compat_numpy import *
 from .compat_tensorflow import *
