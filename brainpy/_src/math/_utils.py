@@ -39,10 +39,29 @@ def _compatible_with_brainpy_array(fun: Callable):
   @functools.wraps(fun)
   def new_fun(*args, **kwargs):
     args = tree_map(_as_jax_array_, args, is_leaf=_is_leaf)
+    out = None
     if len(kwargs):
+      # compatible with PyTorch syntax
+      if 'dim' in kwargs:
+        kwargs['axis'] = kwargs.pop('dim')
+      # compatible with PyTorch syntax
+      if 'keepdim' in kwargs:
+        kwargs['keep_dims'] = kwargs.pop('keepdim')
+      # compatible with TensorFlow syntax
+      if 'keepdims' in kwargs:
+        kwargs['keep_dims'] = kwargs.pop('keepdims')
+      # compatible with NumPy/PyTorch syntax
+      if 'out' in kwargs:
+        out = kwargs.get('out')
+        if not isinstance(out, Array):
+          raise TypeError(f'"out" must be an instance of brainpy Array. While we got {type(out)}')
+      # format
       kwargs = tree_map(_as_jax_array_, kwargs, is_leaf=_is_leaf)
     r = fun(*args, **kwargs)
-    return tree_map(_return, r)
+    if out is None:
+      return tree_map(_return, r)
+    else:
+      out.value = r
 
   new_fun.__doc__ = getattr(fun, "__doc__", None)
 

@@ -3,7 +3,7 @@
 import collections.abc
 import _thread as thread
 import threading
-from typing import Optional, Tuple, Callable, Union, Sequence, TypeVar
+from typing import Optional, Tuple, Callable, Union, Sequence, TypeVar, Any
 
 import numpy as np
 from jax import lax
@@ -11,6 +11,7 @@ from jax.experimental import host_callback
 from tqdm.auto import tqdm
 
 __all__ = [
+  'one_of',
   'replicate',
   'not_customized',
   'to_size',
@@ -18,6 +19,20 @@ __all__ = [
   'timeout',
   'init_progress_bar',
 ]
+
+
+def one_of(default: Any, *choices, names: Sequence[str] =None):
+  names = [f'arg{i}' for i in range(len(choices))] if names is None else names
+  res = default
+  has_chosen = False
+  for c in choices:
+    if c is not None:
+      if has_chosen:
+        raise ValueError(f'Provide one of {names}, but we got {list(zip(choices, names))}')
+      else:
+        has_chosen = True
+        res = c
+  return res
 
 
 T = TypeVar('T')
