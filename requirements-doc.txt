@@ -9,5 +9,6 @@ pandoc
 Jinja2
 sphinx>=4
 myst-nb
+sphinx_thebe
 sphinx-autodoc-typehints~=1.18.0
 sphinx-book-theme>=0.3.3
