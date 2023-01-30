@@ -119,18 +119,9 @@ class BrainPyObject(object):
 
   @classmethod
   def tree_unflatten(cls, aux, dynamic_values):
-    """
+    """Unflatten the data to construct an object of this class.
 
     .. versionadded:: 2.3.1
-
-    Parameters
-    ----------
-    aux
-    dynamic_values
-
-    Returns
-    -------
-
     """
     self = cls.__new__(cls)
     dynamic_names, static_names, static_values = aux
@@ -463,18 +454,19 @@ class BrainPyObject(object):
         var.value = jax.device_put(var.value, device=device)
       else:
         setattr(self, key, jax.device_put(var, device=device))
+    return self
 
   def cpu(self):
     """Move all variable into the CPU device."""
-    self.to(device=jax.devices('cpu')[0])
+    return self.to(device=jax.devices('cpu')[0])
 
   def cuda(self):
     """Move all variables into the GPU device."""
-    self.to(device=jax.devices('gpu')[0])
+    return self.to(device=jax.devices('gpu')[0])
 
   def tpu(self):
     """Move all variables into the TPU device."""
-    self.to(device=jax.devices('tpu')[0])
+    return self.to(device=jax.devices('tpu')[0])
 
 
 Base = BrainPyObject
@@ -694,6 +686,13 @@ class Collector(dict):
     gather = type(self)()
     for key, value in self.items():
       if isinstance(value, var_type):
+        gather[key] = value
+    return gather
+
+  def not_subset(self, var_type):
+    gather = type(self)()
+    for key, value in self.items():
+      if not isinstance(value, var_type):
         gather[key] = value
     return gather
 
