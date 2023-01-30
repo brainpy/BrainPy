@@ -3,7 +3,8 @@ import jax.ops
 
 from .ndarray import _return, _as_jax_array_
 from .compat_numpy import (
-  prod, min, sum, all, any, mean, std, var, concatenate, clip
+  prod, min, sum, all, any, mean, std, var, concatenate, clip,
+  asarray,
 )
 
 __all__ = [
@@ -12,7 +13,7 @@ __all__ = [
   'reduce_logsumexp', 'reduce_prod', 'reduce_std', 'reduce_variance', 'reduce_euclidean_norm',
   'unsorted_segment_sqrt_n', 'segment_mean', 'unsorted_segment_sum', 'unsorted_segment_prod',
   'unsorted_segment_max', 'unsorted_segment_min', 'unsorted_segment_mean',
-  'clip_by_value',
+  'clip_by_value', 'cast',
 ]
 
 reduce_prod = prod
@@ -207,3 +208,33 @@ def unsorted_segment_mean(data, segment_ids, num_segments):
                           num_segments=num_segments,
                           indices_are_sorted=True)
   return _return(jnp.nan_to_num(r / d))
+
+
+def cast(x, dtype):
+  """Casts a tensor to a new type.
+
+  The operation casts `x` (in case of `Tensor`) or `x.values`
+  (in case of `SparseTensor` or `IndexedSlices`) to `dtype`.
+
+  The operation supports data types (for `x` and `dtype`) of
+  `uint8`, `uint16`, `uint32`, `uint64`, `int8`, `int16`, `int32`, `int64`,
+  `float16`, `float32`, `float64`, `complex64`, `complex128`, `bfloat16`.
+  In case of casting from complex types (`complex64`, `complex128`) to real
+  types, only the real part of `x` is returned. In case of casting from real
+  types to complex types (`complex64`, `complex128`), the imaginary part of the
+  returned value is set to `0`. The handling of complex types here matches the
+  behavior of numpy.
+
+  Note casting nan and inf values to integral types has undefined behavior.
+
+  Args:
+    x: A `Array`. It could be `uint8`, `uint16`, `uint32`, `uint64`, `int8`, `int16`, `int32`,
+      `int64`, `float16`, `float32`, `float64`, `complex64`, `complex128`,
+      `bfloat16`.
+    dtype: The destination type. The list of supported dtypes is the same as
+      `x`.
+  Returns:
+    A `Array` with same shape as `x` and same type as `dtype`.
+
+  """
+  return asarray(x, dtype=dtype)
