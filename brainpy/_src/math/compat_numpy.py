@@ -71,9 +71,7 @@ __all__ = [
   'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
 
   # data types
-  'dtype', 'finfo', 'iinfo', 'uint8', 'uint16', 'uint32', 'uint64',
-  'int8', 'int16', 'int32', 'int64', 'float16', 'float32',
-  'float64', 'complex64', 'complex128',
+  'dtype', 'finfo', 'iinfo',
 
   # more
   'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv',
@@ -548,26 +546,10 @@ kron = _compatible_with_brainpy_array(jnp.kron)
 matmul = _compatible_with_brainpy_array(jnp.matmul)
 trace = _compatible_with_brainpy_array(jnp.trace)
 
-# data types
-# ----------
-
 dtype = jnp.dtype
 finfo = jnp.finfo
 iinfo = jnp.iinfo
 
-uint8 = jnp.uint8
-uint16 = jnp.uint16
-uint32 = jnp.uint32
-uint64 = jnp.uint64
-int8 = jnp.int8
-int16 = jnp.int16
-int32 = jnp.int32
-int64 = jnp.int64
-float16 = jnp.float16
-float32 = jnp.float32
-float64 = jnp.float64
-complex64 = jnp.complex64
-complex128 = jnp.complex128
 
 can_cast = _compatible_with_brainpy_array(jnp.can_cast)
 choose = _compatible_with_brainpy_array(jnp.choose)

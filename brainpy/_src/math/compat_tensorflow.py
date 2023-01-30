@@ -15,7 +15,6 @@ __all__ = [
   'clip_by_value',
 ]
 
-
 reduce_prod = prod
 reduce_sum = sum
 reduce_all = all
@@ -27,7 +26,8 @@ reduce_variance = var
 concat = concatenate
 clip_by_value = clip
 
-def reduce_logsumexp(input_tensor, axis=None, keep_dims=False):
+
+def reduce_logsumexp(input_tensor, axis=None, keepdims=False):
   """Computes log(sum(exp(elements across dimensions of a tensor))).
 
   Reduces `input_tensor` along the dimensions given in `axis`.
@@ -48,16 +48,16 @@ def reduce_logsumexp(input_tensor, axis=None, keep_dims=False):
     axis: The dimensions to reduce. If `None` (the default), reduces all
       dimensions. Must be in the range `[-rank(input_tensor),
       rank(input_tensor))`.
-    keep_dims: If true, retains reduced dimensions with length 1.
+    keepdims: If true, retains reduced dimensions with length 1.
 
   Returns:
     The reduced tensor.
   """
-  r = jnp.log(jnp.sum(jnp.exp(_as_jax_array_(input_tensor)), axis=axis, keep_dims=keep_dims))
+  r = jnp.log(jnp.sum(jnp.exp(_as_jax_array_(input_tensor)), axis=axis, keepdims=keepdims))
   return _return(r)
 
 
-def reduce_euclidean_norm(input_tensor, axis=None, keep_dims=False):
+def reduce_euclidean_norm(input_tensor, axis=None, keepdims=False):
   """Computes the Euclidean norm of elements across dimensions of a tensor.
   Reduces `input_tensor` along the dimensions given in `axis`.
 
@@ -73,16 +73,16 @@ def reduce_euclidean_norm(input_tensor, axis=None, keep_dims=False):
     axis: The dimensions to reduce. If `None` (the default), reduces all
       dimensions. Must be in the range `[-rank(input_tensor),
       rank(input_tensor))`.
-    keep_dims: If true, retains reduced dimensions with length 1.
+    keepdims: If true, retains reduced dimensions with length 1.
 
   Returns:
     The reduced tensor, of the same dtype as the input_tensor.
   """
-  r = jnp.linalg.norm(_as_jax_array_(input_tensor), axis=axis, keep_dims=keep_dims)
+  r = jnp.linalg.norm(_as_jax_array_(input_tensor), axis=axis, keepdims=keepdims)
   return _return(r)
 
 
-def reduce_max(input_tensor, axis=None, keep_dims=False):
+def reduce_max(input_tensor, axis=None, keepdims=False):
   """Computes `maximum` of elements across dimensions of a tensor.
   
   This is the reduction operation for the elementwise `maximum` op.
@@ -100,14 +100,12 @@ def reduce_max(input_tensor, axis=None, keep_dims=False):
     axis: The dimensions to reduce. If `None` (the default), reduces all
       dimensions. Must be in the range `[-rank(input_tensor),
       rank(input_tensor))`.
-    keep_dims: If true, retains reduced dimensions with length 1.
+    keepdims: If true, retains reduced dimensions with length 1.
 
   Returns:
     The reduced tensor.
   """
-  return _return(jnp.max(_as_jax_array_(input_tensor), axis=axis, keep_dims=keep_dims))
-
-
+  return _return(jnp.max(_as_jax_array_(input_tensor), axis=axis, keepdims=keepdims))
 
 
 def segment_mean(data, segment_ids):
@@ -145,9 +143,9 @@ def unsorted_segment_prod(data, segment_ids, num_segments):
 
   """
   r = jax.ops.segment_prod(_as_jax_array_(data),
-                          _as_jax_array_(segment_ids),
-                          num_segments=num_segments,
-                          indices_are_sorted=True)
+                           _as_jax_array_(segment_ids),
+                           num_segments=num_segments,
+                           indices_are_sorted=True)
   return _return(r)
 
 
@@ -164,7 +162,6 @@ def unsorted_segment_max(data, segment_ids, num_segments):
   return _return(r)
 
 
-
 def unsorted_segment_min(data, segment_ids, num_segments):
   """Computes the minimum along segments of a tensor.
 
@@ -176,7 +173,6 @@ def unsorted_segment_min(data, segment_ids, num_segments):
                           num_segments=num_segments,
                           indices_are_sorted=True)
   return _return(r)
-
 
 
 def unsorted_segment_sqrt_n(data, segment_ids, num_segments):
@@ -211,5 +207,3 @@ def unsorted_segment_mean(data, segment_ids, num_segments):
                           num_segments=num_segments,
                           indices_are_sorted=True)
   return _return(jnp.nan_to_num(r / d))
-
-

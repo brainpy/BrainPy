@@ -96,14 +96,12 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
   """
-  # weighted loss
-  if weight:
-    raise NotImplementedError
-
   def _cel(_pred, _tar):
     if jnp.ndim(_tar) + 1 == jnp.ndim(_pred):
       _tar = bm.one_hot(_tar, _pred.shape[-1])
     loss = logsumexp(bm.as_jax(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
+    if weight is not None:
+      loss *= weight
     return _reduce(outputs=loss, reduction=reduction)
 
   r = tree_map(_cel, predicts, targets, is_leaf=_is_leaf)
