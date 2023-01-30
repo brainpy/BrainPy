@@ -12,7 +12,10 @@ from .base import Layer
 __all__ = [
   'Conv1d',
   'Conv2d',
-  'Conv3d'
+  'Conv3d',
+  'Conv1D',
+  'Conv2D',
+  'Conv3D',
 ]
 
 

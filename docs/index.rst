@@ -92,8 +92,6 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
    apis/auto/brainpy.rst
    apis/auto/math.rst
-   apis/auto/math_random.rst
-   apis/auto/math_surrogate.rst
    apis/auto/channels.rst
    apis/auto/layers.rst
    apis/auto/neurons.rst

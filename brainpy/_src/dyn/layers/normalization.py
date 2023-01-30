@@ -13,6 +13,9 @@ __all__ = [
   'BatchNorm1d',
   'BatchNorm2d',
   'BatchNorm3d',
+  'BatchNorm1D',
+  'BatchNorm2D',
+  'BatchNorm3D',
 
   'LayerNorm',
   'GroupNorm',
@@ -624,3 +627,6 @@ class InstanceNorm(GroupNorm):
                                        scale_initializer=scale_initializer,
                                        mode=mode,
                                        name=name)
+BatchNorm1D = BatchNorm1d
+BatchNorm2D = BatchNorm2d
+BatchNorm3D = BatchNorm3d
