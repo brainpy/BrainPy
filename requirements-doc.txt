@@ -1,5 +1,7 @@
 -r requirements.txt
 
+numba
+brainpylib
 matplotlib>=3.4
 jaxlib>=0.3.0
 scipy>=1.1.0

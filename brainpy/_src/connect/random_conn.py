@@ -8,7 +8,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy.errors import ConnectorError
 from brainpy.tools import numba_seed, numba_jit, numba_range, format_seed
-from brainpy._src.tools.numba_util import SUPPORT_NUMBA
+from brainpy._src.tools.package import SUPPORT_NUMBA
 from .base import *
 
 __all__ = [

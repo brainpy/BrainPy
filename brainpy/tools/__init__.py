@@ -23,7 +23,7 @@ from brainpy._src.tools.math_util import (
   format_seed as format_seed,
 )
 
-from brainpy._src.tools.numba_util import (
+from brainpy._src.tools.package import (
   numba_jit as numba_jit,
   numba_seed as numba_seed,
   numba_range as numba_range,
