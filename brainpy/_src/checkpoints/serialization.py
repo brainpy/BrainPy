@@ -25,6 +25,7 @@ from jax import process_index
 from jax import sharding
 from jax.experimental.global_device_array import GlobalDeviceArray
 from jax.experimental.multihost_utils import sync_global_devices
+
 try:
   from jax import monitoring
 except (ModuleNotFoundError, ImportError):
@@ -42,15 +43,16 @@ from brainpy.errors import (AlreadyExistsError,
                             MPARestoreTargetRequiredError,
                             MPARestoreDataCorruptedError,
                             MPARestoreTypeNotMatchError,
+                            InvalidCheckpointPath,
                             InvalidCheckpointError)
 from brainpy.tools import DotDict
 from brainpy.types import PyTree
 
 __all__ = [
   # saving
-  'save', 'multiprocess_save',
+  'save', 'multiprocess_save', 'save_pytree', 'load_pytree',
   # loading
-  'load_latest', 'load',
+  '_load_latest_fn', 'load',
   # async
   'AsyncManager',
 ]
@@ -1003,7 +1005,9 @@ def _save_commit(ckpt_tmp_path: str,
   _record_saved_duration(ckpt_start_time)
 
 
-def _check_overwrite_error(ckpt_tmp_path: str, ckpt_path: str, base_path: str,
+def _check_overwrite_error(ckpt_tmp_path: str,
+                           ckpt_path: str,
+                           base_path: str,
                            step: int):
   """Throw error if a ckpt file of this step or higher already exists."""
   dir_path, prefix = os.path.split(base_path)
@@ -1126,7 +1130,8 @@ def save(
     async_manager.wait_previous_save()
 
   ckpt_path, ckpt_tmp_path, base_path = _get_checkpoint_paths(
-    ckpt_dir, step, prefix)
+    ckpt_dir, step, prefix
+  )
 
   if not overwrite:
     _check_overwrite_error(ckpt_tmp_path, ckpt_path, base_path, step)  # type: ignore
@@ -1148,6 +1153,129 @@ def save(
     monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
                                           end_time - start_time)
   return ckpt_path
+
+
+def _save_commit2(filename: str,
+                  overwrite: bool,
+                  ckpt_start_time: float,
+                  has_mpa: bool,
+                  write_commit_success: bool,
+                  async_manager: Optional[AsyncManager] = None) -> None:
+  """Commit changes after saving checkpoints to disk.
+
+  This function does the following, sequentially:
+    1. Make sure all ckpt writing finishes, and rename them from temp path to
+    the final path.
+    2. Remove newer checkpoints (files that ordered larger than this save) if
+    `overwrite=True`.
+    3. Remove old checkpoint files based on `keep` and `keep_every_n_steps`.
+    4. Record program duration saved by this checkpoint.
+  """
+  ckpt_path = os.path.dirname(filename)
+  ckpt_tmp_path = os.path.join(ckpt_path, 'tmp')
+  mpa_ckpt_tmp_path, mpa_ckpt_path = ckpt_tmp_path + MP_ARRAY_POSTFIX, ckpt_path + MP_ARRAY_POSTFIX
+  # Rename the multiprocess array path once serialization and writing finished.
+  if has_mpa:
+    if write_commit_success:
+      commit_success_path = os.path.join(mpa_ckpt_path, COMMIT_SUCCESS_FILE)
+      with open(commit_success_path, 'w', encoding='utf-8') as f:
+        f.write(f'Checkpoint commit was successful to {mpa_ckpt_path}')
+    else:
+      # Commits are a two stage process (renaming the array folder and renaming
+      # the main ckpt file in sequential order). We always try to overwrite
+      # here because the array ckpt might be already renamed in a previously
+      # interrupted commit. NOTE: io.rename does not support overwriting
+      # directories via `rename` so we manually overwrite it.
+      if os.path.exists(mpa_ckpt_path):
+        logging.info('Removing outdated checkpoint at %s', mpa_ckpt_path)
+        shutil.rmtree(mpa_ckpt_path)
+      _rename_fn(mpa_ckpt_tmp_path, mpa_ckpt_path)
+  # Commit the main checkpoint file after arrays (if any) are committed
+  if async_manager:
+    async_manager.wait_previous_save()
+  _rename_fn(ckpt_tmp_path, ckpt_path, overwrite=overwrite)
+  logging.info('Saved checkpoint at %s', ckpt_path)
+
+  # Remove newer and older invalid checkpoints.
+  _record_saved_duration(ckpt_start_time)
+
+
+def _save_main_ckpt_file2(target: bytes,
+                          has_mpa: bool,
+                          filename: str,
+                          overwrite: bool,
+                          ckpt_start_time: float):
+  """Save the main checkpoint file via file system."""
+  with open(filename, 'wb') as fp:
+    fp.write(target)
+  # Postpone the commitment of checkpoint to after MPA writes are done.
+  if not has_mpa:
+    _save_commit2(filename, overwrite, ckpt_start_time, has_mpa=False, write_commit_success=False)
+
+
+def save_pytree(
+    filename: str,
+    target: PyTree,
+    overwrite: bool = False,
+    async_manager: Optional[AsyncManager] = None,
+) -> None:
+  """Save a checkpoint of the model. Suitable for single-host.
+
+  In this method, every JAX process saves the checkpoint on its own. Do not
+  use it if you have multiple processes and you intend for them to save data
+  to a common directory (e.g., a GCloud bucket). To save multi-process
+  checkpoints to a shared storage or to save `GlobalDeviceArray`s, use
+  `multiprocess_save()` instead.
+
+  Pre-emption safe by writing to temporary before a final rename and cleanup
+  of past files. However, if async_manager is used, the final
+  commit will happen inside an async callback, which can be explicitly waited
+  by calling `async_manager.wait_previous_save()`.
+
+  Parameters
+  ----------
+  filename: str
+    str or pathlib-like path to store checkpoint files in.
+  target: Any
+    serializable flax object, usually a flax optimizer.
+  overwrite: bool
+    overwrite existing checkpoint files if a checkpoint at the
+    current or a later step already exits (default: False).
+  async_manager: optional, AsyncManager
+    if defined, the save will run without blocking the main
+    thread. Only works for single host. Note that an ongoing save will still
+    block subsequent saves, to make sure overwrite/keep logic works correctly.
+
+  Returns
+  -------
+  out: str
+    Filename of saved checkpoint.
+  """
+  start_time = time.time()
+  # Make sure all saves are finished before the logic of checking and removing
+  # outdated checkpoints happens.
+  if async_manager:
+    async_manager.wait_previous_save()
+
+  if os.path.splitext(filename)[-1] != '.bp':
+    filename = filename + '.bp'
+  os.makedirs(os.path.dirname(filename), exist_ok=True)
+  if not overwrite and os.path.exists(filename):
+    raise InvalidCheckpointPath(filename)
+  target = to_bytes(target)
+
+  # Save the files via I/O sync or async.
+  def save_main_ckpt_task():
+    return _save_main_ckpt_file2(target, False, filename, overwrite, start_time)
+
+  if async_manager:
+    async_manager.save_async(save_main_ckpt_task)
+  else:
+    save_main_ckpt_task()
+  end_time = time.time()
+  if jax.version.__version_info__ > (0, 3, 25):
+    monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
+                                          end_time - start_time)
 
 
 def multiprocess_save(
@@ -1260,7 +1388,7 @@ def multiprocess_save(
   return ckpt_path
 
 
-def load_latest(
+def _load_latest_fn(
     ckpt_dir: Union[str, os.PathLike],
     prefix: str = 'checkpoint_'
 ) -> Optional[str]:
@@ -1421,3 +1549,67 @@ def load(
     monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
 
   return restored_checkpoint
+
+
+def load_pytree(
+    filename: str,
+    parallel: bool = True,
+) -> PyTree:
+  """Load the checkpoint from the given checkpoint path.
+
+  Parameters
+  ----------
+  filename: str
+    checkpoint file or directory of checkpoints to restore from.
+  parallel: bool
+    whether to load seekable checkpoints in parallel, for speed.
+
+  Returns
+  -------
+  out: Any
+    Restored `target` updated from checkpoint file, or if no step specified and
+    no checkpoint files present, returns the passed-in `target` unchanged.
+    If a file path is specified and is not found, the passed-in `target` will be
+    returned. This is to match the behavior of the case where a directory path
+    is specified but the directory has not yet been created.
+  """
+  start_time = time.time()
+  if not os.path.exists(filename):
+    raise ValueError(f'Checkpoint not found: {filename}')
+  sys.stdout.write(f'Loading checkpoint from {filename}\n')
+  sys.stdout.flush()
+  file_size = os.path.getsize(filename)
+
+  with open(filename, 'rb') as fp:
+    if parallel and fp.seekable():
+      buf_size = 128 << 20  # 128M buffer.
+      num_bufs = file_size / buf_size
+      logging.debug('num_bufs: %d', num_bufs)
+      checkpoint_contents = bytearray(file_size)
+
+      def read_chunk(i):
+        # NOTE: We have to re-open the file to read each chunk, otherwise the
+        # parallelism has no effect. But we could reuse the file pointers
+        # within each thread.
+        with open(filename, 'rb') as f:
+          f.seek(i * buf_size)
+          buf = f.read(buf_size)
+          if buf:
+            checkpoint_contents[i * buf_size:i * buf_size + len(buf)] = buf
+          return len(buf) / buf_size
+
+      pool_size = 32
+      pool = thread.ThreadPoolExecutor(pool_size)
+      results = pool.map(read_chunk, range(int(num_bufs) + 1))
+      pool.shutdown(wait=False)
+      logging.debug(f'results: {list(results)}')
+    else:
+      checkpoint_contents = fp.read()
+
+  state_dict = msgpack_restore(checkpoint_contents)
+
+  end_time = time.time()
+  if jax.version.__version_info__ > (0, 3, 25):
+    monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
+
+  return state_dict
