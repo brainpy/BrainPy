@@ -169,10 +169,14 @@ def to_state_dict(target) -> Dict[str, Any]:
 
   ty_to_state_dict = _STATE_DICT_REGISTRY[ty][0]
   state_dict = ty_to_state_dict(target)
-  assert isinstance(state_dict, dict), 'A state dict must be a Python dict.'
-  for key in state_dict.keys():
-    assert isinstance(key, str), 'A state dict must only have string keys.'
-  return state_dict
+  if isinstance(state_dict, dict):
+    for key in state_dict.keys():
+      assert isinstance(key, str), 'A state dict must only have string keys.'
+    return state_dict
+  elif isinstance(state_dict, jax.Array):
+    return state_dict
+  else:
+    raise TypeError
 
 
 def register_serialization_state(ty,
@@ -602,9 +606,10 @@ def unflatten_dict(xs, sep=None):
 
 
 def _rename_fn(src, dst, overwrite=False):
-  if os.path.exists(dst) and not overwrite:
-    raise AlreadyExistsError(dst)
-  return os.rename(src, dst)
+  if os.path.exists(src):
+    if os.path.exists(dst) and not overwrite:
+      raise AlreadyExistsError(dst)
+    return os.rename(src, dst)
 
 
 def _checkpoint_path(ckpt_dir: str,
@@ -1607,7 +1612,6 @@ def load_pytree(
       checkpoint_contents = fp.read()
 
   state_dict = msgpack_restore(checkpoint_contents)
-
   end_time = time.time()
   if jax.version.__version_info__ > (0, 3, 25):
     monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
