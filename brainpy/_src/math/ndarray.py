@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-
-
+from typing import Union, Optional, NoReturn, Sequence, Any
 import warnings
 import operator
-from typing import Optional, Tuple as TupleType
 
 import jax
 import numpy as np
@@ -932,6 +930,135 @@ class Array(object):
   def __dlpack__(self):
     from jax.dlpack import to_dlpack  # pylint: disable=g-import-not-at-top
     return to_dlpack(self.value)
+
+  # **********************************
+  # For Pytorch compitable
+  # **********************************
+
+  def unsqueeze(self, dim: int) -> 'Array':
+    """
+    Array.unsqueeze(dim) -> Array, or so called Tensor
+    equals
+    Array.expand_dims(dim)
+
+    See :func:`brainpy.math.unsqueeze`
+    """
+    return Array(jnp.expand_dims(self.value, dim))
+
+  def expand_dims(self, axis: Union[int, Sequence[int]]) -> 'Array':
+    """
+    self.expand_dims(axis: int|Sequence[int])
+
+    1. 如果axis类型为int：
+    返回一个在self基础上的第axis维度前插入一个维度Array，
+    axis<0表示倒数第|axis|维度，
+    令n=len(self._value.shape)，则axis的范围为[-(n+1),n]
+
+    2. 如果axis类型为Sequence[int]：
+    则返回依次扩展axis[i]的结果，
+    即self.expand_dims(axis)==self.expand_dims(axis[0]).expand_dims(axis[1])...expand_dims(axis[len(axis)-1])
+
+
+    1. If the type of axis is int:
+
+    Returns an Array of dimensions inserted before the axis dimension based on self,
+
+    The first | axis < 0 indicates the bottom axis | dimensions,
+
+    Set n=len(self._value.shape), then axis has the range [-(n+1),n]
+
+
+    2. If the type of axis is Sequence[int] :
+
+    Returns the result of extending axis[i] in sequence,
+
+    self.expand_dims(axis)==self.expand_dims(axis[0]).expand_dims(axis[1])... expand_dims(axis[len(axis)-1])
+
+    """
+    return Array(jnp.expand_dims(self.value, axis))
+
+  def expand(self, *shape: Union[int, Sequence[int]]) -> 'Array':
+    """
+    Expand an array to a new shape.
+
+    Parameters
+    ----------
+    shape : tuple or int
+        The shape of the desired array. A single integer ``i`` is interpreted
+        as ``(i,)``.
+
+    Returns
+    -------
+    expanded : Array
+        A readonly view on the original array with the given shape. It is
+        typically not contiguous. Furthermore, more than one element of a
+        expanded array may refer to a single memory location.
+    """
+    return Array(jnp.broadcast_to(self._value, shape))
+
+  def expand_as(self, array: Union['Array', jax.Array, np.ndarray]) -> 'Array':
+    """
+    Expand an array to a shape of another array.
+
+    Parameters
+    ----------
+    array : Array
+
+    Returns
+    -------
+    expanded : Array
+        A readonly view on the original array with the given shape of array. It is
+        typically not contiguous. Furthermore, more than one element of a
+        expanded array may refer to a single memory location.
+    """
+    return Array(jnp.broadcast_to(self._value, array._value.shape))
+
+  def squeeze(self, 
+              axis: Optional[Union[int, Sequence]]=None) -> 'Array':
+    return Array(self.squeeze(axis))
+
+  def item(self, *args) -> Any:
+    return self.value.item(*args)
+
+  def pow(self, index: int):
+    return self._value ** index
+
+  def addr(self,
+            vec1: Union['Array', jax.Array, np.ndarray],
+            vec2: Union['Array', jax.Array, np.ndarray],
+            *,
+            beta: float = 1.0,
+            alpha: float = 1.0,
+            out=None) -> Union[None, NoReturn]:
+    if not isinstance(beta, int) and not isinstance(beta, float):
+      raise Exception('Wrong beta param of addr')
+    if not isinstance(alpha, int) and not isinstance(alpha, float):
+      raise Exception('Wrong alpha param of addr')
+    return Array(beta * self.value + alpha * jnp.outer(vec1, vec2))
+
+  def addr_(self, 
+            vec1: Union['Array', jax.Array, np.ndarray],
+            vec2: Union['Array', jax.Array, np.ndarray],
+            *, 
+            beta: float = 1.0,
+            alpha: float = 1.0,
+            out=None) -> Union[None, NoReturn]:
+    if not isinstance(beta, (int,float)):
+      raise Exception('Wrong beta param of addr')
+    if not isinstance(alpha, (int,float)):
+      raise Exception('Wrong alpha param of addr')
+    self.value *= beta
+    self.value += alpha * jnp.outer(vec1, vec2)
+
+  def outer(self, other: Union['Array', jax.Array, np.ndarray]) -> 'Array':
+    return Array(jnp.outer(self.value, other.value))
+
+  def sum(self) -> 'Array':
+    return Array(self.value.sum())
+
+  def abs(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+    # return Array(self.value.__abs__())
+    return Array(abs(self.value))
 
 
 JaxArray = Array
