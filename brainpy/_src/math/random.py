@@ -15,12 +15,15 @@ from jax.tree_util import register_pytree_node
 
 from brainpy.check import jit_error_checking
 from .ndarray import Array, Variable, _return
+from .compat_numpy import shape
+from .environment import get_int
 
 __all__ = [
   'RandomState', 'Generator', 'DEFAULT',
 
   'seed', 'default_rng', 'split_key',
 
+  # numpy compatibility
   'rand', 'randint', 'random_integers', 'randn', 'random',
   'random_sample', 'ranf', 'sample', 'choice', 'permutation', 'shuffle', 'beta',
   'exponential', 'gamma', 'gumbel', 'laplace', 'logistic', 'normal', 'pareto',
@@ -31,6 +34,9 @@ __all__ = [
   'negative_binomial', 'noncentral_chisquare', 'noncentral_f', 'power',
   'rayleigh', 'triangular', 'vonmises', 'wald', 'weibull', 'weibull_min',
   'zipf', 'maxwell', 't', 'orthogonal', 'loggamma', 'categorical',
+
+  # pytorch compatibility
+  'rand_like', 'randint_like', 'randn_like',
 ]
 
 
@@ -424,11 +430,10 @@ class RandomState(Variable):
       if seed_or_key is not None:
         raise ValueError('Please set "seed_or_key" or "seed", not both.')
       seed_or_key = seed
-      warnings.warn('Please use seed_or_key instead. '
+      warnings.warn('Please use `seed_or_key` instead. '
                     'seed will be removed since 2.4.0', UserWarning)
 
     if seed_or_key is None:
-      # key = DEFAULT.split_key()
       seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
@@ -519,7 +524,8 @@ class RandomState(Variable):
     r = jr.uniform(key, shape=dn, minval=0., maxval=1.)
     return _return(r)
 
-  def randint(self, low, high=None, size=None, dtype=jnp.int_, key=None):
+  def randint(self, low, high=None, size=None, dtype=None, key=None):
+    dtype = get_int() if dtype is None else dtype
     low = _as_jax_array(low)
     high = _as_jax_array(high)
     if high is None:
@@ -1148,6 +1154,42 @@ class RandomState(Variable):
              d, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
     return _return(r)
 
+  # PyTorch compatibility #
+  # --------------------- #
+
+  def rand_like(self, input, *, dtype=None, key=None):
+    """Returns a tensor with the same size as input that is filled with random
+    numbers from a uniform distribution on the interval ``[0, 1)``.
+
+    Args:
+      input:  the ``size`` of input will determine size of the output tensor.
+      dtype:  the desired data type of returned Tensor. Default: if ``None``, defaults to the dtype of input.
+      key: the seed or key for the random.
+
+    Returns:
+      The random data.
+    """
+    return self.random(shape(input), key=key).astype(dtype)
+
+  def randn_like(self, input, *, dtype=None, key=None):
+    """Returns a tensor with the same size as ``input`` that is filled with
+    random numbers from a normal distribution with mean 0 and variance 1.
+
+    Args:
+      input:  the ``size`` of input will determine size of the output tensor.
+      dtype:  the desired data type of returned Tensor. Default: if ``None``, defaults to the dtype of input.
+      key: the seed or key for the random.
+
+    Returns:
+      The random data.
+    """
+    return self.randn(*shape(input), key=key).astype(dtype)
+
+  def randint_like(self, input, low=0, high=None, *, dtype=None, key=None):
+    if high is None:
+      high = max(input)
+    return self.randint(low, high=high, size=shape(input), dtype=dtype, key=key)
+
 
 # alias
 Generator = RandomState
@@ -1183,71 +1225,553 @@ def default_rng(seed_or_key=None, clone=True) -> RandomState:
     return RandomState(seed_or_key)
 
 
-# @wraps(np.random.seed)
-def seed(seed=None):
+def seed(seed: int=None):
+  """Sets a new random seed.
+
+  Parameters
+  ----------
+  seed: int, optional
+    The random seed.
+  """
   if seed is None: seed = np.random.randint(0, 100000)
   DEFAULT.seed(seed)
   np.random.seed(seed)
 
 
-# @wraps(np.random.rand)
 def rand(*dn, key=None):
+  r"""Random values in a given shape.
+
+  .. note::
+      This is a convenience function for users porting code from Matlab,
+      and wraps `random_sample`. That function takes a
+      tuple to specify the size of the output, which is consistent with
+      other NumPy functions like `numpy.zeros` and `numpy.ones`.
+
+  Create an array of the given shape and populate it with
+  random samples from a uniform distribution
+  over ``[0, 1)``.
+
+  Parameters
+  ----------
+  d0, d1, ..., dn : int, optional
+      The dimensions of the returned array, must be non-negative.
+      If no argument is given a single Python float is returned.
+
+  Returns
+  -------
+  out : ndarray, shape ``(d0, d1, ..., dn)``
+      Random values.
+
+  See Also
+  --------
+  random
+
+  Examples
+  --------
+  >>> brainpy.math.random.rand(3,2)
+  array([[ 0.14022471,  0.96360618],  #random
+         [ 0.37601032,  0.25528411],  #random
+         [ 0.49313049,  0.94909878]]) #random
+  """
   return DEFAULT.rand(*dn, key=key)
 
 
-# @wraps(np.random.randint)
+
+
 def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
+  r"""Return random integers from `low` (inclusive) to `high` (exclusive).
+
+  Return random integers from the "discrete uniform" distribution of
+  the specified dtype in the "half-open" interval [`low`, `high`). If
+  `high` is None (the default), then results are from [0, `low`).
+
+  Parameters
+  ----------
+  low : int or array-like of ints
+      Lowest (signed) integers to be drawn from the distribution (unless
+      ``high=None``, in which case this parameter is one above the
+      *highest* such integer).
+  high : int or array-like of ints, optional
+      If provided, one above the largest (signed) integer to be drawn
+      from the distribution (see above for behavior if ``high=None``).
+      If array-like, must contain integer values
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  Default is None, in which case a
+      single value is returned.
+  dtype : dtype, optional
+      Desired dtype of the result. Byteorder must be native.
+      The default value is int.
+
+  Returns
+  -------
+  out : int or ndarray of ints
+      `size`-shaped array of random integers from the appropriate
+      distribution, or a single such random int if `size` not provided.
+
+  See Also
+  --------
+  random_integers : similar to `randint`, only for the closed
+      interval [`low`, `high`], and 1 is the lowest value if `high` is
+      omitted.
+  Generator.integers: which should be used for new code.
+
+  Examples
+  --------
+  >>> bm.random.randint(2, size=10)
+  array([1, 0, 0, 0, 1, 1, 0, 0, 1, 0]) # random
+  >>> bm.random.randint(1, size=10)
+  array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+  Generate a 2 x 4 array of ints between 0 and 4, inclusive:
+
+  >>> bm.random.randint(5, size=(2, 4))
+  array([[4, 0, 2, 1], # random
+         [3, 2, 2, 0]])
+
+  Generate a 1 x 3 array with 3 different upper bounds
+
+  >>> bm.random.randint(1, [3, 5, 10])
+  array([2, 2, 9]) # random
+
+  Generate a 1 by 3 array with 3 different lower bounds
+
+  >>> bm.random.randint([1, 5, 7], 10)
+  array([9, 8, 7]) # random
+
+  Generate a 2 by 4 array using broadcasting with dtype of uint8
+
+  >>> bm.random.randint([1, 3, 5, 7], [[10], [20]], dtype=np.uint8)
+  array([[ 8,  6,  9,  7], # random
+         [ 1, 16,  9, 12]], dtype=uint8)
+  """
+
   return DEFAULT.randint(low, high=high, size=size, dtype=dtype, key=key)
 
 
-# @wraps(np.random.random_integers)
+
 def random_integers(low, high=None, size=None, key=None):
+  r"""
+  Random integers of type `np.int_` between `low` and `high`, inclusive.
+
+  Return random integers of type `np.int_` from the "discrete uniform"
+  distribution in the closed interval [`low`, `high`].  If `high` is
+  None (the default), then results are from [1, `low`]. The `np.int_`
+  type translates to the C long integer type and its precision
+  is platform dependent.
+
+  Parameters
+  ----------
+  low : int
+      Lowest (signed) integer to be drawn from the distribution (unless
+      ``high=None``, in which case this parameter is the *highest* such
+      integer).
+  high : int, optional
+      If provided, the largest (signed) integer to be drawn from the
+      distribution (see above for behavior if ``high=None``).
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  Default is None, in which case a
+      single value is returned.
+
+  Returns
+  -------
+  out : int or ndarray of ints
+      `size`-shaped array of random integers from the appropriate
+      distribution, or a single such random int if `size` not provided.
+
+  See Also
+  --------
+  randint : Similar to `random_integers`, only for the half-open
+      interval [`low`, `high`), and 0 is the lowest value if `high` is
+      omitted.
+
+  Notes
+  -----
+  To sample from N evenly spaced floating-point numbers between a and b,
+  use::
+
+    a + (b - a) * (bm.random.random_integers(N) - 1) / (N - 1.)
+
+  Examples
+  --------
+  >>> bm.random.random_integers(5)
+  4 # random
+  >>> type(bm.random.random_integers(5))
+  <class 'numpy.int64'>
+  >>> bm.random.random_integers(5, size=(3,2))
+  array([[5, 4], # random
+         [3, 3],
+         [4, 5]])
+
+  Choose five random numbers from the set of five evenly-spaced
+  numbers between 0 and 2.5, inclusive (*i.e.*, from the set
+  :math:`{0, 5/8, 10/8, 15/8, 20/8}`):
+
+  >>> 2.5 * (bm.random.random_integers(5, size=(5,)) - 1) / 4.
+  array([ 0.625,  1.25 ,  0.625,  0.625,  2.5  ]) # random
+
+  Roll two six sided dice 1000 times and sum the results:
+
+  >>> d1 = bm.random.random_integers(1, 6, 1000)
+  >>> d2 = bm.random.random_integers(1, 6, 1000)
+  >>> dsums = d1 + d2
+
+  Display results as a histogram:
+
+  >>> import matplotlib.pyplot as plt
+  >>> count, bins, ignored = plt.hist(dsums, 11, density=True)
+  >>> plt.show()
+  """
+
   return DEFAULT.random_integers(low, high=high, size=size, key=key)
 
 
-# @wraps(np.random.randn)
+
+
 def randn(*dn, key=None):
+  r"""
+  Return a sample (or samples) from the "standard normal" distribution.
+
+  .. note::
+      This is a convenience function for users porting code from Matlab,
+      and wraps `standard_normal`. That function takes a
+      tuple to specify the size of the output, which is consistent with
+      other NumPy functions like `numpy.zeros` and `numpy.ones`.
+
+  .. note::
+      New code should use the ``standard_normal`` method of a ``default_rng()``
+      instance instead; please see the :ref:`random-quick-start`.
+
+  If positive int_like arguments are provided, `randn` generates an array
+  of shape ``(d0, d1, ..., dn)``, filled
+  with random floats sampled from a univariate "normal" (Gaussian)
+  distribution of mean 0 and variance 1. A single float randomly sampled
+  from the distribution is returned if no argument is provided.
+
+  Parameters
+  ----------
+  d0, d1, ..., dn : int, optional
+      The dimensions of the returned array, must be non-negative.
+      If no argument is given a single Python float is returned.
+
+  Returns
+  -------
+  Z : ndarray or float
+      A ``(d0, d1, ..., dn)``-shaped array of floating-point samples from
+      the standard normal distribution, or a single such float if
+      no parameters were supplied.
+
+  See Also
+  --------
+  standard_normal : Similar, but takes a tuple as its argument.
+  normal : Also accepts mu and sigma arguments.
+  random.Generator.standard_normal: which should be used for new code.
+
+  Notes
+  -----
+  For random samples from :math:`N(\mu, \sigma^2)`, use:
+
+  ``sigma * bm.random.randn(...) + mu``
+
+  Examples
+  --------
+  >>> bm.random.randn()
+  2.1923875335537315  # random
+
+  Two-by-four array of samples from N(3, 6.25):
+
+  >>> 3 + 2.5 * bm.random.randn(2, 4)
+  array([[-4.49401501,  4.00950034, -1.81814867,  7.29718677],   # random
+         [ 0.39924804,  4.68456316,  4.99394529,  4.84057254]])  # random
+  """
+
   return DEFAULT.randn(*dn, key=key)
 
 
-# @wraps(np.random.random)
+
+
 def random(size=None, key=None):
+  """
+  Return random floats in the half-open interval [0.0, 1.0). Alias for
+  `random_sample` to ease forward-porting to the new random API.
+  """
   return DEFAULT.random(size, key=key)
 
 
-# @wraps(np.random.random_sample)
+
 def random_sample(size=None, key=None):
+  r"""
+  Return random floats in the half-open interval [0.0, 1.0).
+
+  Results are from the "continuous uniform" distribution over the
+  stated interval.  To sample :math:`Unif[a, b), b > a` multiply
+  the output of `random_sample` by `(b-a)` and add `a`::
+
+    (b - a) * random_sample() + a
+
+  .. note::
+      New code should use the ``random`` method of a ``default_rng()``
+      instance instead; please see the :ref:`random-quick-start`.
+
+  Parameters
+  ----------
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  Default is None, in which case a
+      single value is returned.
+
+  Returns
+  -------
+  out : float or ndarray of floats
+      Array of random floats of shape `size` (unless ``size=None``, in which
+      case a single float is returned).
+
+  See Also
+  --------
+  Generator.random: which should be used for new code.
+
+  Examples
+  --------
+  >>> brainpy.math.random.random_sample()
+  0.47108547995356098 # random
+  >>> type(brainpy.math.random.random_sample())
+  <class 'float'>
+  >>> brainpy.math.random.random_sample((5,))
+  array([ 0.30220482,  0.86820401,  0.1654503 ,  0.11659149,  0.54323428]) # random
+
+  Three-by-two array of random numbers from [-5, 0):
+
+  >>> 5 * brainpy.math.random.random_sample((3, 2)) - 5
+  array([[-3.99149989, -0.52338984], # random
+         [-2.99091858, -0.79479508],
+         [-1.23204345, -1.75224494]])
+  """
   return DEFAULT.random_sample(size, key=key)
 
 
-# @wraps(np.random.ranf)
 def ranf(size=None, key=None):
+  """
+  This is an alias of `random_sample`. See `random_sample`  for the complete
+      documentation.
+  """
   return DEFAULT.ranf(size, key=key)
 
 
-# @wraps(np.random.sample)
 def sample(size=None, key=None):
+  """
+  This is an alias of `random_sample`. See `random_sample`  for the complete
+      documentation.
+  """
   return DEFAULT.sample(size, key=key)
 
 
-# @wraps(np.random.choice)
 def choice(a, size=None, replace=True, p=None, key=None):
+  r"""
+  Generates a random sample from a given 1-D array
+
+  Parameters
+  ----------
+  a : 1-D array-like or int
+      If an ndarray, a random sample is generated from its elements.
+      If an int, the random sample is generated as if it were ``np.arange(a)``
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  Default is None, in which case a
+      single value is returned.
+  replace : boolean, optional
+      Whether the sample is with or without replacement. Default is True,
+      meaning that a value of ``a`` can be selected multiple times.
+  p : 1-D array-like, optional
+      The probabilities associated with each entry in a.
+      If not given, the sample assumes a uniform distribution over all
+      entries in ``a``.
+
+  Returns
+  -------
+  samples : single item or ndarray
+      The generated random samples
+
+  Raises
+  ------
+  ValueError
+      If a is an int and less than zero, if a or p are not 1-dimensional,
+      if a is an array-like of size 0, if p is not a vector of
+      probabilities, if a and p have different lengths, or if
+      replace=False and the sample size is greater than the population
+      size
+
+  See Also
+  --------
+  randint, shuffle, permutation
+  Generator.choice: which should be used in new code
+
+  Notes
+  -----
+  Setting user-specified probabilities through ``p`` uses a more general but less
+  efficient sampler than the default. The general sampler produces a different sample
+  than the optimized sampler even if each element of ``p`` is 1 / len(a).
+
+  Sampling random rows from a 2-D array is not possible with this function,
+  but is possible with `Generator.choice` through its ``axis`` keyword.
+
+  Examples
+  --------
+  Generate a uniform random sample from np.arange(5) of size 3:
+
+  >>> brainpy.math.random.choice(5, 3)
+  array([0, 3, 4]) # random
+  >>> #This is equivalent to brainpy.math.random.randint(0,5,3)
+
+  Generate a non-uniform random sample from np.arange(5) of size 3:
+
+  >>> brainpy.math.random.choice(5, 3, p=[0.1, 0, 0.3, 0.6, 0])
+  array([3, 3, 0]) # random
+
+  Generate a uniform random sample from np.arange(5) of size 3 without
+  replacement:
+
+  >>> brainpy.math.random.choice(5, 3, replace=False)
+  array([3,1,0]) # random
+  >>> #This is equivalent to brainpy.math.random.permutation(np.arange(5))[:3]
+
+  Generate a non-uniform random sample from np.arange(5) of size
+  3 without replacement:
+
+  >>> brainpy.math.random.choice(5, 3, replace=False, p=[0.1, 0, 0.3, 0.6, 0])
+  array([2, 3, 0]) # random
+
+  Any of the above can be repeated with an arbitrary array-like
+  instead of just integers. For instance:
+
+  >>> aa_milne_arr = ['pooh', 'rabbit', 'piglet', 'Christopher']
+  >>> brainpy.math.random.choice(aa_milne_arr, 5, p=[0.5, 0.1, 0.1, 0.3])
+  array(['pooh', 'pooh', 'pooh', 'Christopher', 'piglet'], # random
+        dtype='<U11')
+  """
   a = _as_jax_array(a)
   return DEFAULT.choice(a=a, size=size, replace=replace, p=p, key=key)
 
 
-# @wraps(np.random.permutation)
 def permutation(x, axis: int = 0, independent: bool = False, key=None):
+  r"""
+  Randomly permute a sequence, or return a permuted range.
+
+  If `x` is a multi-dimensional array, it is only shuffled along its
+  first index.
+
+  Parameters
+  ----------
+  x : int or array_like
+      If `x` is an integer, randomly permute ``np.arange(x)``.
+      If `x` is an array, make a copy and shuffle the elements
+      randomly.
+
+  Returns
+  -------
+  out : ndarray
+      Permuted sequence or array range.
+
+  See Also
+  --------
+  random.Generator.permutation: which should be used for new code.
+
+  Examples
+  --------
+  >>> brainpy.math.random.permutation(10)
+  array([1, 7, 4, 3, 0, 9, 2, 5, 8, 6]) # random
+
+  >>> brainpy.math.random.permutation([1, 4, 9, 12, 15])
+  array([15,  1,  9,  4, 12]) # random
+
+  >>> arr = np.arange(9).reshape((3, 3))
+  >>> brainpy.math.random.permutation(arr)
+  array([[6, 7, 8], # random
+         [0, 1, 2],
+         [3, 4, 5]])
+  """
   return DEFAULT.permutation(x, axis=axis, independent=independent, key=key)
 
 
-# @wraps(np.random.shuffle)
 def shuffle(x, axis=0, key=None):
+  r"""
+  Modify a sequence in-place by shuffling its contents.
+
+  This function only shuffles the array along the first axis of a
+  multi-dimensional array. The order of sub-arrays is changed but
+  their contents remains the same.
+
+  Parameters
+  ----------
+  x : ndarray or MutableSequence
+      The array, list or mutable sequence to be shuffled.
+
+  Returns
+  -------
+  None
+
+  See Also
+  --------
+  random.Generator.shuffle: which should be used for new code.
+
+  Examples
+  --------
+  >>> arr = np.arange(10)
+  >>> brainpy.math.random.shuffle(arr)
+  >>> arr
+  [1 7 5 2 9 4 3 6 0 8] # random
+
+  Multi-dimensional arrays are only shuffled along the first axis:
+
+  >>> arr = np.arange(9).reshape((3, 3))
+  >>> brainpy.math.random.shuffle(arr)
+  >>> arr
+  array([[3, 4, 5], # random
+         [6, 7, 8],
+         [0, 1, 2]])
+  """
   DEFAULT.shuffle(x, axis, key=key)
 
 
-# @wraps(np.random.beta)
 def beta(a, b, size=None, key=None):
+  r"""
+  Draw samples from a Beta distribution.
+
+  The Beta distribution is a special case of the Dirichlet distribution,
+  and is related to the Gamma distribution.  It has the probability
+  distribution function
+
+  .. math:: f(x; a,b) = \frac{1}{B(\alpha, \beta)} x^{\alpha - 1}
+                                                   (1 - x)^{\beta - 1},
+
+  where the normalization, B, is the beta function,
+
+  .. math:: B(\alpha, \beta) = \int_0^1 t^{\alpha - 1}
+                               (1 - t)^{\beta - 1} dt.
+
+  It is often seen in Bayesian inference and order statistics.
+
+  Parameters
+  ----------
+  a : float or array_like of floats
+      Alpha, positive (>0).
+  b : float or array_like of floats
+      Beta, positive (>0).
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  If size is ``None`` (default),
+      a single value is returned if ``a`` and ``b`` are both scalars.
+      Otherwise, ``np.broadcast(a, b).size`` samples are drawn.
+
+  Returns
+  -------
+  out : ndarray or scalar
+      Drawn samples from the parameterized beta distribution.
+
+  See Also
+  --------
+  random.Generator.beta: which should be used for new code.
+  """
   return DEFAULT.beta(a, b, size=size, key=key)
 
 
@@ -1321,7 +1845,6 @@ def uniform(low=0.0, high=1.0, size=None, key=None):
   return DEFAULT.uniform(low, high, size, key=key)
 
 
-# @wraps(jr.truncated_normal)
 def truncated_normal(lower, upper, size=None, scale=None, key=None):
   """Sample truncated standard normal random values with given shape and dtype.
 
@@ -1352,7 +1875,6 @@ def truncated_normal(lower, upper, size=None, scale=None, key=None):
   return DEFAULT.truncated_normal(lower, upper, size, scale, key=key)
 
 
-# @wraps(jr.bernoulli)
 def bernoulli(p=0.5, size=None, key=None):
   """Sample Bernoulli random values with given shape and mean.
 
@@ -1466,23 +1988,226 @@ def wald(mean, scale, size=None, key=None):
   return DEFAULT.wald(mean, scale, size, key=key)
 
 
-# @wraps(np.random.weibull)
 def weibull(a, size=None, key=None):
+  r"""
+  Draw samples from a Weibull distribution.
+    
+  Draw samples from a 1-parameter Weibull distribution with the given
+  shape parameter `a`.
+
+  .. math:: X = (-ln(U))^{1/a}
+
+  Here, U is drawn from the uniform distribution over (0,1].
+
+  The more common 2-parameter Weibull, including a scale parameter
+  :math:`\lambda` is just :math:`X = \lambda(-ln(U))^{1/a}`.
+
+  .. note::
+      New code should use the ``weibull`` method of a ``default_rng()``
+      instance instead; please see the :ref:`random-quick-start`.
+
+  Parameters
+  ----------
+  a : float or array_like of floats
+      Shape parameter of the distribution.  Must be nonnegative.
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  If size is ``None`` (default),
+      a single value is returned if ``a`` is a scalar.  Otherwise,
+      ``np.array(a).size`` samples are drawn.
+
+  Returns
+  -------
+  out : ndarray or scalar
+      Drawn samples from the parameterized Weibull distribution.
+
+  See Also
+  --------
+  scipy.stats.weibull_max
+  scipy.stats.weibull_min
+  scipy.stats.genextreme
+  gumbel
+  random.Generator.weibull: which should be used for new code.
+
+  Notes
+  -----
+  The Weibull (or Type III asymptotic extreme value distribution
+  for smallest values, SEV Type III, or Rosin-Rammler
+  distribution) is one of a class of Generalized Extreme Value
+  (GEV) distributions used in modeling extreme value problems.
+  This class includes the Gumbel and Frechet distributions.
+
+  The probability density for the Weibull distribution is
+
+  .. math:: p(x) = \frac{a}
+                   {\lambda}(\frac{x}{\lambda})^{a-1}e^{-(x/\lambda)^a},
+
+  where :math:`a` is the shape and :math:`\lambda` the scale.
+
+  The function has its peak (the mode) at
+  :math:`\lambda(\frac{a-1}{a})^{1/a}`.
+
+  When ``a = 1``, the Weibull distribution reduces to the exponential
+  distribution.
+
+  References
+  ----------
+  .. [1] Waloddi Weibull, Royal Technical University, Stockholm,
+         1939 "A Statistical Theory Of The Strength Of Materials",
+         Ingeniorsvetenskapsakademiens Handlingar Nr 151, 1939,
+         Generalstabens Litografiska Anstalts Forlag, Stockholm.
+  .. [2] Waloddi Weibull, "A Statistical Distribution Function of
+         Wide Applicability", Journal Of Applied Mechanics ASME Paper
+         1951.
+  .. [3] Wikipedia, "Weibull distribution",
+         https://en.wikipedia.org/wiki/Weibull_distribution
+
+  Examples
+  --------
+  Draw samples from the distribution:
+
+  >>> a = 5. # shape
+  >>> s = brainpy.math.random.weibull(a, 1000)
+
+  Display the histogram of the samples, along with
+  the probability density function:
+
+  >>> import matplotlib.pyplot as plt
+  >>> x = np.arange(1,100.)/50.
+  >>> def weib(x,n,a):
+  ...     return (a / n) * (x / n)**(a - 1) * np.exp(-(x / n)**a)
+
+  >>> count, bins, ignored = plt.hist(brainpy.math.random.weibull(5.,1000))
+  >>> x = np.arange(1,100.)/50.
+  >>> scale = count.max()/weib(x, 1., 5.).max()
+  >>> plt.plot(x, weib(x, 1., 5.)*scale)
+  >>> plt.show()
+
+  """
   return DEFAULT.weibull(a, size, key=key)
 
 
-# @wraps(jr.weibull_min)
 def weibull_min(a, scale=None, size=None, key=None):
+  """Sample from a Weibull distribution.
+
+  The scipy counterpart is `scipy.stats.weibull_min`.
+
+  Args:
+    scale: The scale parameter of the distribution.
+    concentration: The concentration parameter of the distribution.
+    shape: The shape added to the parameters loc and scale broadcastable shape.
+    dtype: The type used for samples.
+    key: a PRNG key or a seed.
+
+  Returns:
+    A jnp.array of samples.
+
+  """
   return DEFAULT.weibull_min(a, scale, size, key=key)
 
 
-# @wraps(np.random.zipf)
 def zipf(a, size=None, key=None):
+  r"""
+  Draw samples from a Zipf distribution.
+
+  Samples are drawn from a Zipf distribution with specified parameter
+  `a` > 1.
+
+  The Zipf distribution (also known as the zeta distribution) is a
+  discrete probability distribution that satisfies Zipf's law: the
+  frequency of an item is inversely proportional to its rank in a
+  frequency table.
+
+  .. note::
+      New code should use the ``zipf`` method of a ``default_rng()``
+      instance instead; please see the :ref:`random-quick-start`.
+
+  Parameters
+  ----------
+  a : float or array_like of floats
+      Distribution parameter. Must be greater than 1.
+  size : int or tuple of ints, optional
+      Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
+      ``m * n * k`` samples are drawn.  If size is ``None`` (default),
+      a single value is returned if ``a`` is a scalar. Otherwise,
+      ``np.array(a).size`` samples are drawn.
+
+  Returns
+  -------
+  out : ndarray or scalar
+      Drawn samples from the parameterized Zipf distribution.
+
+  See Also
+  --------
+  scipy.stats.zipf : probability density function, distribution, or
+      cumulative density function, etc.
+  random.Generator.zipf: which should be used for new code.
+
+  Notes
+  -----
+  The probability density for the Zipf distribution is
+
+  .. math:: p(k) = \frac{k^{-a}}{\zeta(a)},
+
+  for integers :math:`k \geq 1`, where :math:`\zeta` is the Riemann Zeta
+  function.
+
+  It is named for the American linguist George Kingsley Zipf, who noted
+  that the frequency of any word in a sample of a language is inversely
+  proportional to its rank in the frequency table.
+
+  References
+  ----------
+  .. [1] Zipf, G. K., "Selected Studies of the Principle of Relative
+         Frequency in Language," Cambridge, MA: Harvard Univ. Press,
+         1932.
+
+  Examples
+  --------
+  Draw samples from the distribution:
+
+  >>> a = 4.0
+  >>> n = 20000
+  >>> s = brainpy.math.random.zipf(a, n)
+
+  Display the histogram of the samples, along with
+  the expected histogram based on the probability
+  density function:
+
+  >>> import matplotlib.pyplot as plt
+  >>> from scipy.special import zeta  # doctest: +SKIP
+
+  `bincount` provides a fast histogram for small integers.
+
+  >>> count = np.bincount(s)
+  >>> k = np.arange(1, s.max() + 1)
+
+  >>> plt.bar(k, count[1:], alpha=0.5, label='sample count')
+  >>> plt.plot(k, n*(k**-a)/zeta(a), 'k.-', alpha=0.5,
+  ...          label='expected count')   # doctest: +SKIP
+  >>> plt.semilogy()
+  >>> plt.grid(alpha=0.4)
+  >>> plt.legend()
+  >>> plt.title(f'Zipf sample, a={a}, size={n}')
+  >>> plt.show()
+  """
   return DEFAULT.zipf(a, size, key=key)
 
 
-# @wraps(jr.maxwell)
 def maxwell(size=None, key=None):
+  """Sample from a one sided Maxwell distribution.
+
+  The scipy counterpart is `scipy.stats.maxwell`.
+
+  Args:
+    key: a PRNG key.
+    size: The shape of the returned samples.
+    dtype: The type used for samples.
+
+  Returns:
+    A jnp.array of samples, of shape `shape`.
+
+  """
   return DEFAULT.maxwell(size, key=key)
 
 
@@ -1542,6 +2267,84 @@ def loggamma(a, size=None, key=None):
   return DEFAULT.loggamma(a, size)
 
 
-# @wraps(jr.categorical)
 def categorical(logits, axis: int = -1, size=None, key=None):
+  """Sample random values from categorical distributions.
+
+  Args:
+    logits: Unnormalized log probabilities of the categorical distribution(s) to sample from,
+      so that `softmax(logits, axis)` gives the corresponding probabilities.
+    axis: Axis along which logits belong to the same categorical distribution.
+    shape: Optional, a tuple of nonnegative integers representing the result shape.
+      Must be broadcast-compatible with ``np.delete(logits.shape, axis)``.
+      The default (None) produces a result shape equal to ``np.delete(logits.shape, axis)``.
+    key: a PRNG key used as the random key.
+
+  Returns:
+    A random array with int dtype and shape given by ``shape`` if ``shape``
+    is not None, or else ``np.delete(logits.shape, axis)``.
+  """
   return DEFAULT.categorical(logits, axis, size, key=key)
+
+
+
+def rand_like(input, *, dtype=None, key=None):
+  """Similar to ``rand_like`` in torch. 
+  
+  Returns a tensor with the same size as input that is filled with random
+  numbers from a uniform distribution on the interval ``[0, 1)``.
+
+  Args:
+    input:  the ``size`` of input will determine size of the output tensor.
+    dtype:  the desired data type of returned Tensor. Default: if ``None``, defaults to the dtype of input.
+    key: the seed or key for the random.
+
+  Returns:
+    The random data.
+  """
+  return DEFAULT.rand_like(input, dtype=dtype, key=key)
+
+def randn_like(input, *, dtype=None, key=None):
+  """Similar to ``randn_like`` in torch. 
+  
+  Returns a tensor with the same size as ``input`` that is filled with
+  random numbers from a normal distribution with mean 0 and variance 1.
+
+  Args:
+    input:  the ``size`` of input will determine size of the output tensor.
+    dtype:  the desired data type of returned Tensor. Default: if ``None``, defaults to the dtype of input.
+    key: the seed or key for the random.
+
+  Returns:
+    The random data.
+  """
+  return DEFAULT.randn_like(input, dtype=dtype, key=key)
+
+
+def randint_like(input, low=0, high=None, *, dtype=None, key=None):
+  """Similar to ``randint_like`` in torch. 
+  
+  Returns a tensor with the same shape as Tensor ``input`` filled with
+  random integers generated uniformly between ``low`` (inclusive) and ``high`` (exclusive).
+
+  Args:
+    input:  the ``size`` of input will determine size of the output tensor.
+    low: Lowest integer to be drawn from the distribution. Default: 0.
+    high: One above the highest integer to be drawn from the distribution.
+    dtype: the desired data type of returned Tensor. Default: if ``None``, defaults to the dtype of input.
+    key: the seed or key for the random.
+
+  Returns:
+    The random data.
+  """
+  return DEFAULT.randint_like(input=input, low=low, high=high, dtype=dtype, key=key)
+
+
+
+for k in dir(RandomState):
+  t = getattr(RandomState, k)
+  if not k.startswith('__') and callable(t) and (not t.__doc__):
+    r = globals().get(k, None)
+    if r is not None and callable(r):
+      t.__doc__ = r.__doc__
+
+
