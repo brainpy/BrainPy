@@ -4,9 +4,12 @@ from brainpy._src.math.random import (
   DEFAULT as DEFAULT,
   RandomState as RandomState,
   Generator as Generator,
+
   seed as seed,
   split_key as split_key,
   default_rng as default_rng,
+
+  # numpy compatibility
   rand as rand,
   randint as randint,
   random_integers as random_integers,
@@ -61,4 +64,10 @@ from brainpy._src.math.random import (
   orthogonal as orthogonal,
   loggamma as loggamma,
   categorical as categorical,
+
+  # pytorch compatibility
+  rand_like as rand_like,
+  randint_like as randint_like,
+  randn_like as randn_like,
+
 )

@@ -2,11 +2,11 @@
 
 from typing import Union, Dict, Callable, Optional
 
-import brainpylib as bl
 from jax import vmap
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
+from brainpy._src import tools
 from brainpy._src.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
 from brainpy._src.dyn.synouts import COBA, MgBlock
 from brainpy._src.initialize import Initializer, variable
@@ -230,6 +230,7 @@ class AMPA(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
+        bl = tools.import_brainpylib()
         f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
@@ -574,6 +575,7 @@ class BioNMDA(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
+        bl = tools.import_brainpylib()
         f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
           self.g_max,self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import warnings
-from typing import Union, Callable
+from typing import Union, Callable, Sequence, Optional, Tuple
 
 import jax.numpy as jnp
 
@@ -16,35 +16,17 @@ from brainpy.check import (is_integer,
                            is_initializer)
 from brainpy.types import ArrayType
 from .base import Layer
+from .conv import _GeneralConv
 
 __all__ = [
   'RNNCell', 'GRUCell', 'LSTMCell',
-
+  'Conv1dLSTMCell', 'Conv2dLSTMCell', 'Conv3dLSTMCell',
   # deprecated
   'VanillaRNN', 'GRU', 'LSTM',
 ]
 
 
-class RecurrentCell(Layer):
-  def __init__(
-      self,
-      num_out: int,
-      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
-      mode: bm.Mode = None,
-      train_state: bool = False,
-      name: str = None
-  ):
-    super(RecurrentCell, self).__init__(mode=mode, name=name)
-
-    # parameters
-    self._state_initializer = state_initializer
-    is_initializer(state_initializer, 'state_initializer', allow_none=False)
-    self.num_out = num_out
-    is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
-    self.train_state = train_state
-
-
-class RNNCell(RecurrentCell):
+class RNNCell(Layer):
   r"""Basic fully-connected RNN core.
 
   Given :math:`x_t` and the previous hidden state :math:`h_{t-1}` the
@@ -88,11 +70,14 @@ class RNNCell(RecurrentCell):
       train_state: bool = False,
       name: str = None,
   ):
-    super(RNNCell, self).__init__(num_out=num_out,
-                                  state_initializer=state_initializer,
-                                  train_state=train_state,
-                                  mode=mode,
-                                  name=name)
+    super(RNNCell, self).__init__(mode=mode, name=name)
+
+    # parameters
+    self._state_initializer = state_initializer
+    is_initializer(state_initializer, 'state_initializer', allow_none=False)
+    self.num_out = num_out
+    is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
+    self.train_state = train_state
 
     # parameters
     self.num_in = num_in
@@ -139,7 +124,7 @@ class RNNCell(RecurrentCell):
     return self.state.value
 
 
-class GRUCell(RecurrentCell):
+class GRUCell(Layer):
   r"""Gated Recurrent Unit.
 
   The implementation is based on (Chung, et al., 2014) [1]_ with biases.
@@ -197,12 +182,14 @@ class GRUCell(RecurrentCell):
       train_state: bool = False,
       name: str = None,
   ):
-    super(GRUCell, self).__init__(num_out=num_out,
-                                  state_initializer=state_initializer,
-                                  train_state=train_state,
-                                  mode=mode,
-                                  name=name)
+    super(GRUCell, self).__init__(mode=mode, name=name)
+
     # parameters
+    self._state_initializer = state_initializer
+    is_initializer(state_initializer, 'state_initializer', allow_none=False)
+    self.num_out = num_out
+    is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
+    self.train_state = train_state
     self.num_in = num_in
     is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
@@ -259,7 +246,7 @@ class GRUCell(RecurrentCell):
     return self.state.value
 
 
-class LSTMCell(RecurrentCell):
+class LSTMCell(Layer):
   r"""Long short-term memory (LSTM) RNN core.
 
   The implementation is based on (zaremba, et al., 2014) [1]_. Given
@@ -329,12 +316,14 @@ class LSTMCell(RecurrentCell):
       train_state: bool = False,
       name: str = None,
   ):
-    super(LSTMCell, self).__init__(num_out=num_out,
-                                   state_initializer=state_initializer,
-                                   train_state=train_state,
-                                   mode=mode,
-                                   name=name)
+    super(LSTMCell, self).__init__(mode=mode, name=name)
+
     # parameters
+    self._state_initializer = state_initializer
+    is_initializer(state_initializer, 'state_initializer', allow_none=False)
+    self.num_out = num_out
+    is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
+    self.train_state = train_state
     self.num_in = num_in
     is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
@@ -446,23 +435,307 @@ class LSTM(LSTMCell):
   """
 
   def __init__(self, *args, **kwargs):
-    super(LSTM, self).__init__(*args, **kwargs)
     warnings.warn('Use "brainpy.layers.LSTMCell" instead. '
                   '"brainpy.layers.LSTM" is deprecated and will be removed since 2.4.0.',
                   UserWarning)
+    super(LSTM, self).__init__(*args, **kwargs)
 
 
-class ConvNDLSTMCell(Layer):
-  pass
+class _ConvNDLSTMCell(Layer):
+  r"""``num_spatial_dims``-D convolutional LSTM.
+
+  The implementation is based on :cite:`xingjian2015convolutional`.
+  Given :math:`x_t` and the previous state :math:`(h_{t-1}, c_{t-1})`
+  the core computes
+
+  .. math::
+
+     \begin{array}{ll}
+     i_t = \sigma(W_{ii} * x_t + W_{hi} * h_{t-1} + b_i) \\
+     f_t = \sigma(W_{if} * x_t + W_{hf} * h_{t-1} + b_f) \\
+     g_t = \tanh(W_{ig} * x_t + W_{hg} * h_{t-1} + b_g) \\
+     o_t = \sigma(W_{io} * x_t + W_{ho} * h_{t-1} + b_o) \\
+     c_t = f_t c_{t-1} + i_t g_t \\
+     h_t = o_t \tanh(c_t)
+     \end{array}
+
+  where :math:`*` denotes the convolution operator; :math:`i_t`,
+  :math:`f_t`, :math:`o_t` are input, forget and output gate activations,
+  and :math:`g_t` is a vector of cell updates.
+
+  The output is equal to the new hidden state, :math:`h_t`.
+
+  Notes:
+    Forget gate initialization:
+      Following :cite:`jozefowicz2015empirical` we add 1.0 to :math:`b_f`
+      after initialization in order to reduce the scale of forgetting in
+      the beginning of the training.
+  """
+
+  def __init__(
+      self,
+      input_shape: Tuple[int, ...],
+
+      # convolution parameters
+      num_spatial_dims: int,
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Sequence[int]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      lhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      rhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      groups: int = 1,
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+
+      # recurrent parameters
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      train_state: bool = False,
+
+      # others
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
+  ):
+    """Constructs a convolutional LSTM.
+
+    Args:
+      num_spatial_dims: Number of spatial dimensions of the input.
+      input_shape: Shape of the inputs excluding batch size.
+      out_channels: Number of output channels.
+      kernel_size: Sequence of kernel sizes (of length ``num_spatial_dims``),
+        or an int. ``kernel_shape`` will be expanded to define a kernel size in
+        all dimensions.
+      name: Name of the module.
+    """
+    super().__init__(name=name, mode=mode)
+
+    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode)
+
+    # parameters
+    self._state_initializer = state_initializer
+    is_initializer(state_initializer, 'state_initializer', allow_none=False)
+    self.train_state = train_state
+    self.num_spatial_dims = num_spatial_dims
+    self.in_channels = in_channels
+    self.out_channels = out_channels
+    self.input_shape = tuple(input_shape)
+    self.input_to_hidden = _GeneralConv(num_spatial_dims=num_spatial_dims,
+                                        in_channels=in_channels,
+                                        out_channels=out_channels * 4,
+                                        kernel_size=kernel_size,
+                                        stride=stride,
+                                        padding=padding,
+                                        lhs_dilation=lhs_dilation,
+                                        rhs_dilation=rhs_dilation,
+                                        groups=groups,
+                                        w_initializer=w_initializer,
+                                        b_initializer=b_initializer, )
+    self.hidden_to_hidden = _GeneralConv(num_spatial_dims=num_spatial_dims,
+                                         in_channels=out_channels,
+                                         out_channels=out_channels * 4,
+                                         kernel_size=kernel_size,
+                                         stride=stride,
+                                         padding=padding,
+                                         lhs_dilation=lhs_dilation,
+                                         rhs_dilation=rhs_dilation,
+                                         groups=groups,
+                                         w_initializer=w_initializer,
+                                         b_initializer=b_initializer, )
+    self.reset_state()
+
+  def reset_state(self, batch_size: int = 1):
+    shape = self.input_shape + (self.out_channels,)
+    h = parameter(self._state_initializer, (batch_size,) + shape, allow_none=False)
+    c = parameter(self._state_initializer, (batch_size,) + shape, allow_none=False)
+    self.h = bm.Variable(h, batch_axis=0)
+    self.c = bm.Variable(c, batch_axis=0)
+    if self.mode.is_a(bm.TrainingMode) and self.train_state:
+      h_to_train = parameter(self._state_initializer, shape, allow_none=False)
+      c_to_train = parameter(self._state_initializer, shape, allow_none=False)
+      self.h_to_train = bm.TrainVar(h_to_train)
+      self.c_to_train = bm.TrainVar(c_to_train)
+      self.h[:] = self.h_to_train
+      self.c[:] = self.c_to_train
+
+  def update(self, *args):
+    x = args[0] if len(args) == 1 else args[1]
+    gates = self.input_to_hidden(x) + self.hidden_to_hidden(self.h)
+    i, g, f, o = bm.split(gates, indices_or_sections=4, axis=-1)
+    f = bm.sigmoid(f + 1)
+    c = f * self.c + bm.sigmoid(i) * bm.tanh(g)
+    h = bm.sigmoid(o) * bm.tanh(c)
+    self.h.value = h
+    self.c.value = c
+    return h
 
 
-class Conv1DLSTMCell(ConvNDLSTMCell):
-  pass
+class Conv1dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
+  __doc__ = _ConvNDLSTMCell.__doc__.replace("``num_spatial_dims``", "1")
+
+  def __init__(
+      self,
+      input_shape: Tuple[int, ...],
+
+      # convolution parameters
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Sequence[int]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      lhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      rhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      groups: int = 1,
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+
+      # recurrent parameters
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      train_state: bool = False,
+
+      # others
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
+  ):
+    """Constructs a 1-D convolutional LSTM.
+
+    Args:
+      input_shape: Shape of the inputs excluding batch size.
+      out_channels: Number of output channels.
+      kernel_size: Sequence of kernel sizes (of length 1), or an int.
+        ``kernel_shape`` will be expanded to define a kernel size in all
+        dimensions.
+      name: Name of the module.
+    """
+    super().__init__(
+      num_spatial_dims=1,
+      input_shape=input_shape,
+      in_channels=in_channels,
+      out_channels=out_channels,
+      kernel_size=kernel_size,
+      stride=stride,
+      padding=padding,
+      lhs_dilation=lhs_dilation,
+      rhs_dilation=rhs_dilation,
+      groups=groups,
+      w_initializer=w_initializer,
+      b_initializer=b_initializer,
+      state_initializer=state_initializer,
+      train_state=train_state,
+      mode=mode,
+      name=name
+    )
 
 
-class Conv2DLSTMCell(ConvNDLSTMCell):
-  pass
+class Conv2dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
+  __doc__ = _ConvNDLSTMCell.__doc__.replace("``num_spatial_dims``", "2")
+
+  def __init__(
+      self,
+      input_shape: Tuple[int, ...],
+
+      # convolution parameters
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Sequence[int]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      lhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      rhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      groups: int = 1,
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+
+      # recurrent parameters
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      train_state: bool = False,
+
+      # others
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
+  ):
+    """Constructs a 2-D convolutional LSTM.
+
+    Args:
+      input_shape: Shape of the inputs excluding batch size.
+      out_channels: Number of output channels.
+      kernel_size: Sequence of kernel sizes (of length 2), or an int.
+        ``kernel_shape`` will be expanded to define a kernel size in all
+        dimensions.
+      name: Name of the module.
+    """
+    super().__init__(
+      num_spatial_dims=2,
+      input_shape=input_shape,
+      in_channels=in_channels,
+      out_channels=out_channels,
+      kernel_size=kernel_size,
+      stride=stride,
+      padding=padding,
+      lhs_dilation=lhs_dilation,
+      rhs_dilation=rhs_dilation,
+      groups=groups,
+      w_initializer=w_initializer,
+      b_initializer=b_initializer,
+      state_initializer=state_initializer,
+      train_state=train_state,
+      mode=mode,
+      name=name
+    )
 
 
-class Conv3DLSTMCell(ConvNDLSTMCell):
-  pass
+class Conv3dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
+  __doc__ = _ConvNDLSTMCell.__doc__.replace("``num_spatial_dims``", "3")
+
+  def __init__(
+      self,
+      input_shape: Tuple[int, ...],
+
+      # convolution parameters
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Sequence[int]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      lhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      rhs_dilation: Union[int, Tuple[int, ...]] = 1,
+      groups: int = 1,
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+
+      # recurrent parameters
+      state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
+      train_state: bool = False,
+
+      # others
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
+  ):
+    """Constructs a 3-D convolutional LSTM.
+
+    Args:
+      input_shape: Shape of the inputs excluding batch size.
+      out_channels: Number of output channels.
+      kernel_size: Sequence of kernel sizes (of length 3), or an int.
+        ``kernel_shape`` will be expanded to define a kernel size in all
+        dimensions.
+      name: Name of the module.
+    """
+    super().__init__(
+      num_spatial_dims=3,
+      input_shape=input_shape,
+      in_channels=in_channels,
+      out_channels=out_channels,
+      kernel_size=kernel_size,
+      stride=stride,
+      padding=padding,
+      lhs_dilation=lhs_dilation,
+      rhs_dilation=rhs_dilation,
+      groups=groups,
+      w_initializer=w_initializer,
+      b_initializer=b_initializer,
+      state_initializer=state_initializer,
+      train_state=train_state,
+      mode=mode,
+      name=name
+    )

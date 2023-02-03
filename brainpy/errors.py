@@ -169,6 +169,19 @@ class InvalidCheckpointError(BrainPyError):
     )
 
 
+class InvalidCheckpointPath(BrainPyError):
+  """A checkpoint cannot be stored in a directory that already has
+
+  a checkpoint at the current or a later step.
+
+  You can pass ``overwrite=True`` to disable this behavior and
+  overwrite existing checkpoints in the target directory.
+  """
+
+  def __init__(self, path):
+    super().__init__(f'Invalid checkpoint at "{path}".')
+
+
 class JaxTracerError(MathError):
   def __init__(self, variables=None):
     msg = 'There is an unexpected tracer. \n\n' \

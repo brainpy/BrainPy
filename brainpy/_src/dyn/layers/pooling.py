@@ -294,7 +294,7 @@ class _MaxPoolNd(Layer):
       computation,
       pool_dim: int,
       kernel_size: Union[int, Sequence[int]],
-      stride: Union[int, Sequence[int]] = 1,
+      stride: Union[int, Sequence[int]] = None,
       padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = -1,
       mode: bm.Mode = None,
@@ -318,6 +318,8 @@ class _MaxPoolNd(Layer):
     self.kernel_size = kernel_size
 
     # stride
+    if stride is None:
+      stride = kernel_size
     if isinstance(stride, int):
       stride = (stride,) * pool_dim
     elif isinstance(stride, Sequence):
@@ -418,7 +420,7 @@ class MaxPool1d(_MaxPoolNd):
   def __init__(
       self,
       kernel_size: Union[int, Sequence[int]],
-      stride: Union[int, Sequence[int]] = 1,
+      stride: Union[int, Sequence[int]] = None,
       padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = -1,
       mode: bm.Mode = None,
@@ -462,7 +464,7 @@ class MaxPool2d(_MaxPoolNd):
   def __init__(
       self,
       kernel_size: Union[int, Sequence[int]],
-      stride: Union[int, Sequence[int]] = 1,
+      stride: Union[int, Sequence[int]] = None,
       padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = -1,
       mode: bm.Mode = None,
@@ -505,7 +507,7 @@ class MaxPool3d(_MaxPoolNd):
   def __init__(
       self,
       kernel_size: Union[int, Sequence[int]],
-      stride: Union[int, Sequence[int]] = 1,
+      stride: Union[int, Sequence[int]] = None,
       padding: Union[str, int, Tuple[int], Sequence[Tuple[int, int]]] = "VALID",
       channel_axis: Optional[int] = -1,
       mode: bm.Mode = None,

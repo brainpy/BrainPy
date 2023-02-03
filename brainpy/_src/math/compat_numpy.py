@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
@@ -278,7 +278,34 @@ load = _compatible_with_brainpy_array(jnp.load)
 save = _compatible_with_brainpy_array(jnp.save)
 savez = _compatible_with_brainpy_array(jnp.savez)
 mask_indices = _compatible_with_brainpy_array(jnp.mask_indices)
-msort = _compatible_with_brainpy_array(jnp.msort)
+
+
+def msort(a):
+  """
+  Return a copy of an array sorted along the first axis.
+
+  Parameters
+  ----------
+  a : array_like
+      Array to be sorted.
+
+  Returns
+  -------
+  sorted_array : ndarray
+      Array of the same type and shape as `a`.
+
+  See Also
+  --------
+  sort
+
+  Notes
+  -----
+  ``brainpy.math.msort(a)`` is equivalent to  ``brainpy.math.sort(a, axis=0)``.
+
+  """
+  return sort(a, axis=0)
+
+
 nan_to_num = _compatible_with_brainpy_array(jnp.nan_to_num)
 nanargmax = _compatible_with_brainpy_array(jnp.nanargmax)
 nanargmin = _compatible_with_brainpy_array(jnp.nanargmin)
@@ -433,11 +460,89 @@ any = _compatible_with_brainpy_array(jnp.any)
 alltrue = all
 sometrue = any
 
-# array manipulation
-# ------------------
 
-shape = _compatible_with_brainpy_array(jnp.shape)
-size = _compatible_with_brainpy_array(jnp.size)
+
+def shape(a):
+  """
+  Return the shape of an array.
+
+  Parameters
+  ----------
+  a : array_like
+      Input array.
+
+  Returns
+  -------
+  shape : tuple of ints
+      The elements of the shape tuple give the lengths of the
+      corresponding array dimensions.
+
+  See Also
+  --------
+  len : ``len(a)`` is equivalent to ``np.shape(a)[0]`` for N-D arrays with
+        ``N>=1``.
+  ndarray.shape : Equivalent array method.
+
+  Examples
+  --------
+  >>> brainpy.math.shape(brainpy.math.eye(3))
+  (3, 3)
+  >>> brainpy.math.shape([[1, 3]])
+  (1, 2)
+  >>> brainpy.math.shape([0])
+  (1,)
+  >>> brainpy.math.shape(0)
+  ()
+
+  """
+  if isinstance(a, (Array, jax.Array, np.ndarray)):
+    return a.shape
+  else:
+    return np.shape(a)
+
+
+def size(a, axis=None):
+  """
+  Return the number of elements along a given axis.
+
+  Parameters
+  ----------
+  a : array_like
+      Input data.
+  axis : int, optional
+      Axis along which the elements are counted.  By default, give
+      the total number of elements.
+
+  Returns
+  -------
+  element_count : int
+      Number of elements along the specified axis.
+
+  See Also
+  --------
+  shape : dimensions of array
+  Array.shape : dimensions of array
+  Array.size : number of elements in array
+
+  Examples
+  --------
+  >>> a = brainpy.math.array([[1,2,3], [4,5,6]])
+  >>> brainpy.math.size(a)
+  6
+  >>> brainpy.math.size(a, 1)
+  3
+  >>> brainpy.math.size(a, 0)
+  2
+  """
+  if isinstance(a, (Array, jax.Array, np.ndarray)):
+    if axis is None:
+      return a.size
+    else:
+      return a.shape[axis]
+  else:
+    return np.size(a, axis=axis)
+
+
 reshape = _compatible_with_brainpy_array(jnp.reshape)
 ravel = _compatible_with_brainpy_array(jnp.ravel)
 moveaxis = _compatible_with_brainpy_array(jnp.moveaxis)

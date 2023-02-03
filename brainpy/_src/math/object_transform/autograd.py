@@ -178,8 +178,34 @@ class GradientTransform(ObjectTransform):
         return grads
 
 
+def _make_grad(func: Callable,
+               grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+               dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+               child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+               argnums: Optional[Union[int, Sequence[int]]] = None,
+               holomorphic: Optional[bool] = False,
+               allow_int: Optional[bool] = False,
+               reduce_axes: Optional[Sequence[str]] = (),
+               has_aux: Optional[bool] = None,
+               return_value: Optional[bool] = False, ):
+  child_objs = check.is_all_objs(child_objs, out_as='dict')
+  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+
+  return GradientTransform(target=func,
+                           transform=jax.grad,
+                           grad_vars=grad_vars,
+                           dyn_vars=dyn_vars,
+                           child_objs=child_objs,
+                           argnums=argnums,
+                           return_value=return_value,
+                           has_aux=False if has_aux is None else has_aux,
+                           transform_setting=dict(holomorphic=holomorphic,
+                                                  allow_int=allow_int,
+                                                  reduce_axes=reduce_axes))
+
+
 def grad(
-    func: Callable,
+    func: Callable = None,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
@@ -311,20 +337,28 @@ def grad(
     same shapes and types as the corresponding arguments. If ``has_aux`` is True
     then a pair of (gradient, auxiliary_data) is returned.
   """
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-
-  return GradientTransform(target=func,
-                           transform=jax.grad,
-                           grad_vars=grad_vars,
-                           dyn_vars=dyn_vars,
-                           child_objs=child_objs,
-                           argnums=argnums,
-                           return_value=return_value,
-                           has_aux=False if has_aux is None else has_aux,
-                           transform_setting=dict(holomorphic=holomorphic,
-                                                  allow_int=allow_int,
-                                                  reduce_axes=reduce_axes))
+  if func is None:
+    return lambda f: _make_grad(f,
+                                grad_vars=grad_vars,
+                                dyn_vars=dyn_vars,
+                                child_objs=child_objs,
+                                argnums=argnums,
+                                holomorphic=holomorphic,
+                                allow_int=allow_int,
+                                reduce_axes=reduce_axes,
+                                has_aux=has_aux,
+                                return_value=return_value)
+  else:
+    return _make_grad(func=func,
+                      grad_vars=grad_vars,
+                      dyn_vars=dyn_vars,
+                      child_objs=child_objs,
+                      argnums=argnums,
+                      holomorphic=holomorphic,
+                      allow_int=allow_int,
+                      reduce_axes=reduce_axes,
+                      has_aux=has_aux,
+                      return_value=return_value)
 
 
 def _unravel_array_into_pytree(pytree, axis, arr, is_leaf=None):

@@ -2,8 +2,6 @@
 
 from typing import Union, Dict, Callable
 
-import jax.numpy as jnp
-
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector
 from brainpy._src.dyn.base import NeuGroup, TwoEndConn

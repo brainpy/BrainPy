@@ -10,12 +10,9 @@ from brainpy.types import ArrayType
 from .base import Layer
 
 __all__ = [
-  'Conv1d',
-  'Conv2d',
-  'Conv3d',
-  'Conv1D',
-  'Conv2D',
-  'Conv3D',
+  'Conv1d', 'Conv2d', 'Conv3d',
+  'Conv1D', 'Conv2D', 'Conv3D',
+  'ConvTranspose1d', 'ConvTranspose2d', 'ConvTranspose3d',
 ]
 
 
@@ -39,7 +36,7 @@ def to_dimension_numbers(num_spatial_dims: int,
                                   out_spec=image_dn)
 
 
-class GeneralConv(Layer):
+class _GeneralConv(Layer):
   """Apply a convolution to the inputs.
 
   Parameters
@@ -101,7 +98,7 @@ class GeneralConv(Layer):
       mode: bm.Mode = None,
       name: str = None,
   ):
-    super(GeneralConv, self).__init__(name=name, mode=mode)
+    super(_GeneralConv, self).__init__(name=name, mode=mode)
     check.is_subclass(self.mode, (bm.TrainingMode, bm.BatchingMode), self.name)
 
     self.num_spatial_dims = num_spatial_dims
@@ -150,7 +147,11 @@ class GeneralConv(Layer):
         self.b = bm.TrainVar(self.b)
 
   def _check_input_dim(self, x):
-    raise NotImplementedError
+    if x.ndim != self.num_spatial_dims + 2:
+      raise ValueError(f"expected {self.num_spatial_dims + 2}D input (got {x.ndim}D input)")
+    if self.in_channels != x.shape[-1]:
+      raise ValueError(f"input channels={x.shape[-1]} needs to have "
+                       f"the same size as in_channels={self.in_channels}.")
 
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
@@ -178,7 +179,7 @@ class GeneralConv(Layer):
             f'stride={self.stride}, padding={self.padding}, groups={self.groups})')
 
 
-class Conv1d(GeneralConv):
+class Conv1d(_GeneralConv):
   """One-dimensional convolution.
 
   Parameters
@@ -227,7 +228,7 @@ class Conv1d(GeneralConv):
       out_channels: int,
       kernel_size: Union[int, Tuple[int, ...]],
       stride: Union[int, Tuple[int, ...]] = None,
-      strides: Union[int, Tuple[int, ...]] = None,   # deprecated
+      strides: Union[int, Tuple[int, ...]] = None,  # deprecated
       padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
@@ -270,7 +271,7 @@ class Conv1d(GeneralConv):
                        f"the same size as in_channels={self.in_channels}.")
 
 
-class Conv2d(GeneralConv):
+class Conv2d(_GeneralConv):
   """Two-dimensional convolution.
 
   Parameters
@@ -363,7 +364,7 @@ class Conv2d(GeneralConv):
                        f"the same size as in_channels={self.in_channels}.")
 
 
-class Conv3d(GeneralConv):
+class Conv3d(_GeneralConv):
   """Three-dimensional convolution.
 
   Parameters
@@ -413,7 +414,7 @@ class Conv3d(GeneralConv):
       out_channels: int,
       kernel_size: Union[int, Tuple[int, ...]],
       stride: Union[int, Tuple[int, ...]] = None,
-      strides: Union[int, Tuple[int, ...]] = None,   # deprecated
+      strides: Union[int, Tuple[int, ...]] = None,  # deprecated
       padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
       lhs_dilation: Union[int, Tuple[int, ...]] = 1,
       rhs_dilation: Union[int, Tuple[int, ...]] = 1,
@@ -460,3 +461,277 @@ Conv1D = Conv1d
 Conv2D = Conv2d
 Conv3D = Conv3d
 
+
+class _GeneralConvTranspose(Layer):
+  def __init__(
+      self,
+      num_spatial_dims: int,
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Tuple[int, ...]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(in_axis=-1, out_axis=-2),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+      mask: Optional[ArrayType] = None,
+      precision: Optional[lax.Precision] = None,
+      mode: bm.Mode = None,
+      name: str = None,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode)
+
+    self.num_spatial_dims = num_spatial_dims
+    self.in_channels = in_channels
+    self.out_channels = out_channels
+    self.stride = tools.replicate(stride, num_spatial_dims, 'stride')
+    self.kernel_size = tools.replicate(kernel_size, num_spatial_dims, 'kernel_size')
+    self.w_initializer = w_initializer
+    self.b_initializer = b_initializer
+    self.precision = precision
+    self.mask = mask
+    self.dimension_numbers = to_dimension_numbers(num_spatial_dims, channels_last=True, transpose=False)
+
+    if isinstance(padding, str):
+      assert padding in ['SAME', 'VALID']
+    elif isinstance(padding, int):
+      padding = tuple((padding, padding) for _ in range(num_spatial_dims))
+    elif isinstance(padding, (tuple, list)):
+      if isinstance(padding[0], int):
+        padding = (padding,) * num_spatial_dims
+      elif isinstance(padding[0], (tuple, list)):
+        if len(padding) == 1:
+          padding = tuple(padding) * num_spatial_dims
+        else:
+          if len(padding) != num_spatial_dims:
+            raise ValueError(f"Padding {padding} must be a Tuple[int, int], "
+                             f"or sequence of Tuple[int, int] with length 1, "
+                             f"or sequence of Tuple[int, int] with length {num_spatial_dims}.")
+          padding = tuple(padding)
+    else:
+      raise ValueError
+    self.padding = padding
+
+    kernel_shape = tuple(self.kernel_size) + (self.in_channels, self.out_channels)
+    bias_shape = (1,) * len(self.kernel_size) + (self.out_channels,)
+    self.w = parameter(self.w_initializer, kernel_shape, allow_none=False)
+    self.b = parameter(self.b_initializer, bias_shape, allow_none=True)
+    if isinstance(self.mode, bm.TrainingMode):
+      self.w = bm.TrainVar(self.w)
+      if self.b is not None:
+        self.b = bm.TrainVar(self.b)
+
+  def _check_input_dim(self, x):
+    raise NotImplementedError
+
+  def update(self, *args):
+    x = args[0] if len(args) == 1 else args[1]
+    self._check_input_dim(x)
+
+    w = self.w.value
+    if self.mask is not None:
+      try:
+        lax.broadcast_shapes(self.w.shape, self.mask.shape)
+      except:
+        raise ValueError(f"Mask needs to have the same shape as weights. {self.mask.shape} != {self.w.shape}")
+      w = w * self.mask
+    y = lax.conv_transpose(lhs=bm.as_jax(x),
+                           rhs=bm.as_jax(w),
+                           strides=self.stride,
+                           padding=self.padding,
+                           precision=self.precision,
+                           rhs_dilation=None,
+                           dimension_numbers=self.dimension_numbers)
+    return y if self.b is None else (y + self.b.value)
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
+            f'out_channels={self.out_channels}, kernel_size={self.kernel_size}, '
+            f'stride={self.stride}, padding={self.padding})')
+
+
+class ConvTranspose1d(_GeneralConvTranspose):
+  """One dimensional transposed convolution (aka. deconvolution)."""
+
+  def __init__(
+      self,
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Tuple[int, ...]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(in_axis=-1, out_axis=-2),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+      mask: Optional[ArrayType] = None,
+      precision: Optional[lax.Precision] = None,
+      mode: bm.Mode = None,
+      name: str = None,
+  ):
+    """Initializes the module.
+
+    Args:
+      output_channels: Number of output channels.
+      kernel_shape: The shape of the kernel. Either an integer or a sequence of
+        length 1.
+      stride: Optional stride for the kernel. Either an integer or a sequence of
+        length 1. Defaults to 1.
+      output_shape: Output shape of the spatial dimensions of a transpose
+        convolution. Can be either an integer or an iterable of integers. If a
+        `None` value is given, a default shape is automatically calculated.
+      padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
+        Defaults to ``SAME``. See:
+        https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
+      with_bias: Whether to add a bias. By default, true.
+      w_init: Optional weight initialization. By default, truncated normal.
+      b_init: Optional bias initialization. By default, zeros.
+      data_format: The data format of the input. Either ``NWC`` or ``NCW``. By
+        default, ``NWC``.
+      mask: Optional mask of the weights.
+      name: The name of the module.
+    """
+    super().__init__(
+      num_spatial_dims=1,
+      in_channels=in_channels,
+      out_channels=out_channels,
+      kernel_size=kernel_size,
+      stride=stride,
+      padding=padding,
+      w_initializer=w_initializer,
+      b_initializer=b_initializer,
+      precision=precision,
+      mode=mode,
+      mask=mask,
+      name=name
+    )
+
+  def _check_input_dim(self, x):
+    if x.ndim != 3:
+      raise ValueError(f"expected 3D input (got {x.ndim}D input)")
+    if self.in_channels != x.shape[-1]:
+      raise ValueError(f"input channels={x.shape[-1]} needs to have "
+                       f"the same size as in_channels={self.in_channels}.")
+
+
+class ConvTranspose2d(_GeneralConvTranspose):
+  """Two dimensional transposed convolution (aka. deconvolution)."""
+
+  def __init__(
+      self,
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Tuple[int, ...]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(in_axis=-1, out_axis=-2),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+      mask: Optional[ArrayType] = None,
+      precision: Optional[lax.Precision] = None,
+      mode: bm.Mode = None,
+      name: str = None,
+  ):
+    """Initializes the module.
+
+    Args:
+      output_channels: Number of output channels.
+      kernel_shape: The shape of the kernel. Either an integer or a sequence of
+        length 2.
+      stride: Optional stride for the kernel. Either an integer or a sequence of
+        length 2. Defaults to 1.
+      output_shape: Output shape of the spatial dimensions of a transpose
+        convolution. Can be either an integer or an iterable of integers. If a
+        `None` value is given, a default shape is automatically calculated.
+      padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
+        Defaults to ``SAME``. See:
+        https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
+      with_bias: Whether to add a bias. By default, true.
+      w_init: Optional weight initialization. By default, truncated normal.
+      b_init: Optional bias initialization. By default, zeros.
+      data_format: The data format of the input. Either ``NHWC`` or ``NCHW``. By
+        default, ``NHWC``.
+      mask: Optional mask of the weights.
+      name: The name of the module.
+    """
+    super().__init__(
+      num_spatial_dims=2,
+      in_channels=in_channels,
+      out_channels=out_channels,
+      kernel_size=kernel_size,
+      stride=stride,
+      padding=padding,
+      w_initializer=w_initializer,
+      b_initializer=b_initializer,
+      precision=precision,
+      mode=mode,
+      mask=mask,
+      name=name
+    )
+
+  def _check_input_dim(self, x):
+    if x.ndim != 4:
+      raise ValueError(f"expected 4D input (got {x.ndim}D input)")
+    if self.in_channels != x.shape[-1]:
+      raise ValueError(f"input channels={x.shape[-1]} needs to have "
+                       f"the same size as in_channels={self.in_channels}.")
+
+
+class ConvTranspose3d(_GeneralConvTranspose):
+  """Three dimensional transposed convolution (aka. deconvolution)."""
+
+  def __init__(
+      self,
+      in_channels: int,
+      out_channels: int,
+      kernel_size: Union[int, Tuple[int, ...]],
+      stride: Union[int, Tuple[int, ...]] = 1,
+      padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
+      w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(in_axis=-1, out_axis=-2),
+      b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
+      mask: Optional[ArrayType] = None,
+      precision: Optional[lax.Precision] = None,
+      mode: bm.Mode = None,
+      name: str = None,
+  ):
+    """Initializes the module.
+
+    Args:
+      output_channels: Number of output channels.
+      kernel_shape: The shape of the kernel. Either an integer or a sequence of
+        length 3.
+      stride: Optional stride for the kernel. Either an integer or a sequence of
+        length 3. Defaults to 1.
+      output_shape: Output shape of the spatial dimensions of a transpose
+        convolution. Can be either an integer or an iterable of integers. If a
+        `None` value is given, a default shape is automatically calculated.
+      padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
+        Defaults to ``SAME``. See:
+        https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
+      with_bias: Whether to add a bias. By default, true.
+      w_init: Optional weight initialization. By default, truncated normal.
+      b_init: Optional bias initialization. By default, zeros.
+      data_format: The data format of the input. Either ``NDHWC`` or ``NCDHW``.
+        By default, ``NDHWC``.
+      mask: Optional mask of the weights.
+      name: The name of the module.
+    """
+    super().__init__(
+      num_spatial_dims=1,
+      in_channels=in_channels,
+      out_channels=out_channels,
+      kernel_size=kernel_size,
+      stride=stride,
+      padding=padding,
+      w_initializer=w_initializer,
+      b_initializer=b_initializer,
+      precision=precision,
+      mode=mode,
+      mask=mask,
+      name=name
+    )
+
+  def _check_input_dim(self, x):
+    if x.ndim != 5:
+      raise ValueError(f"expected 5D input (got {x.ndim}D input)")
+    if self.in_channels != x.shape[-1]:
+      raise ValueError(f"input channels={x.shape[-1]} needs to have "
+                       f"the same size as in_channels={self.in_channels}.")

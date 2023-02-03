@@ -3,10 +3,10 @@
 import warnings
 from typing import Union, Dict, Tuple
 
-import brainpylib
 import jax.numpy as jnp
 from jax import ops
 
+from brainpy._src import tools
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.arrayinterporate import as_jax
 
@@ -53,8 +53,10 @@ def event_csr_matvec(values,
   indices = as_jax(indices)
   indptr = as_jax(indptr)
   values = as_jax(values)
-  return brainpylib.event_csr_matvec(values, indices, indptr, events,
-                                     shape=shape, transpose=transpose)
+  bl = tools.import_brainpylib()
+  return bl.event_ops.event_csr_matvec(values, indices, indptr, events,
+                                       shape=shape,
+                                       transpose=transpose)
 
 
 def _matmul_with_left_sparse(
@@ -245,5 +247,7 @@ def csr_matvec(values: Array,
   indices = as_jax(indices)
   indptr = as_jax(indptr)
   values = as_jax(values)
-  return brainpylib.cusparse_csr_matvec(values, indices, indptr, vector,
-                                        shape=shape, transpose=transpose)
+  bl = tools.import_brainpylib()
+  return bl.sparse_ops.cusparse_csr_matvec(values, indices, indptr, vector,
+                                           shape=shape,
+                                           transpose=transpose)
