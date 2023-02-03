@@ -52,7 +52,7 @@ __all__ = [
   # saving
   'save', 'multiprocess_save', 'save_pytree', 'load_pytree',
   # loading
-  '_load_latest_fn', 'load',
+  'load',
   # async
   'AsyncManager',
 ]
@@ -1501,7 +1501,7 @@ def load(
       if os.path.exists(os.path.join(ckpt_dir, ORBAX_CKPT_FILENAME)):
         ckpt_path = ckpt_dir
       else:
-        ckpt_path = load_latest(ckpt_dir, prefix)  # type: ignore
+        ckpt_path = _load_latest_fn(ckpt_dir, prefix)  # type: ignore
         if not ckpt_path:
           warnings.warn(f'Found no checkpoint files in {ckpt_dir} with prefix {prefix}',
                         UserWarning)
