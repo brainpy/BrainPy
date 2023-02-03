@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Union, Optional, NoReturn, Sequence, Any
+from typing import Union, Optional, NoReturn, Sequence, Any, Tuple as TupleType
 import warnings
 import operator
 
@@ -9,6 +9,7 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node
 
+import brainpy.math
 from brainpy.errors import MathError
 
 __all__ = [
@@ -1029,20 +1030,22 @@ class Array(object):
             *,
             beta: float = 1.0,
             alpha: float = 1.0,
-            out=None) -> Union[None, NoReturn]:
+            out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union[None, NoReturn]:
     if not isinstance(beta, int) and not isinstance(beta, float):
       raise Exception('Wrong beta param of addr')
     if not isinstance(alpha, int) and not isinstance(alpha, float):
       raise Exception('Wrong alpha param of addr')
-    return Array(beta * self.value + alpha * jnp.outer(vec1, vec2))
+    addr_value = beta * self.value + alpha * jnp.outer(vec1, vec2)
+    if isinstance(out, (Array, jax.Array, np.ndarray)):
+      out.value = beta * self.value + alpha * jnp.outer(vec1, vec2)
+    return Array(addr_value)
 
   def addr_(self, 
             vec1: Union['Array', jax.Array, np.ndarray],
             vec2: Union['Array', jax.Array, np.ndarray],
             *, 
             beta: float = 1.0,
-            alpha: float = 1.0,
-            out=None) -> Union[None, NoReturn]:
+            alpha: float = 1.0) -> Union[None, NoReturn]:
     if not isinstance(beta, (int,float)):
       raise Exception('Wrong beta param of addr')
     if not isinstance(alpha, (int,float)):
@@ -1050,7 +1053,9 @@ class Array(object):
     self.value *= beta
     self.value += alpha * jnp.outer(vec1, vec2)
 
-  def outer(self, other: Union['Array', jax.Array, np.ndarray]) -> 'Array':
+  def outer(self, other: Union['Array', jax.Array, np.ndarray]) -> Union[NoReturn, None]:
+    if other is None:
+      raise Exception('Array can not make outer product with None')
     return Array(jnp.outer(self.value, other.value))
 
   def sum(self) -> 'Array':
@@ -1058,7 +1063,210 @@ class Array(object):
 
   def abs(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
     # return Array(self.value.__abs__())
-    return Array(abs(self.value))
+    abs_value = brainpy.math.abs(self.value, out=out)
+    if isinstance(out, (Array, jax.Array, np.ndarray)):
+      out.value = abs_value
+    return Array(abs_value)
+
+  def abs_(self) -> 'Array':
+    """
+    in-place version of Array.abs()
+    """
+    return brainpy.math.abs(self, out=self)
+
+  def absolute(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+    """
+    alias of Array.abs
+    """
+    return self.abs(out=out)
+
+  def absolute_(self) -> 'Array':
+    """
+    alias of Array.abs_()
+    """
+    return self.abs_()
+
+  def sin(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.sin(self.value, out=out.value))
+
+  def sin_(self) -> 'Array':
+    return Array(brainpy.math.sin(self.value, out=self.value))
+
+  def cos_(self) -> 'Array':
+    return Array(brainpy.math.cos(self.value, out=self.value))
+
+  def cos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.cos(self.value, out=out.value))
+
+  def tan_(self) -> 'Array':
+    return Array(brainpy.math.tan(self.value, out=self.value))
+  
+  def tan(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.tan(self.value, out=out.value))
+
+  def sinh_(self) -> 'Array':
+    return Array(brainpy.math.sinh(self.value, out=self.value))
+
+  def sinh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.sinh(self.value, out=out.value))
+
+  def cosh_(self) -> 'Array':
+    return Array(brainpy.math.cosh(self.value, out=self.value))
+
+  def cosh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.cosh(self.value, out=out.value))
+  
+  def tanh_(self) -> 'Array':
+    return Array(brainpy.math.tanh(self.value, out=self.value))
+
+  def tanh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.tanh(self.value, out=out.value))
+  
+  def arcsin_(self) -> 'Array':
+    return Array(brainpy.math.arcsin(self.value, out=self.value))
+
+  def arcsin(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.arcsin(self.value, out=out.value))
+  
+  def arccos_(self) -> 'Array':
+    return Array(brainpy.math.arccos(self.value, out=self.value))
+
+  def arccos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.arccos(self.value, out=out.value))
+  
+  def arctan_(self) -> 'Array':
+    return Array(brainpy.math.arctan(self.value, out=self.value))
+
+  def arctan(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
+    # return Array(self.value.__abs__())
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.arctan(self.value, out=out.value))
+
+  def all(self,
+          dim:  int,
+          keepdim: bool,
+          *,
+          out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
+    """
+    test if all element cast to true
+    """
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.all(self.value, dim, keepdim, out=out))
+
+  def any(self,
+          dim:  int,
+          keepdim: bool,
+          *,
+          out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
+    """
+    test if any element cast to true
+    """
+    return Array(brainpy.math.any(self.value, dim, keepdim, out=out))
+
+  def clamp(self,
+            min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+            *,
+            out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+    """
+    return the value between min_value and max_value,
+    if min_value is None, then no lower bound,
+    if max_value is None, then no upper bound.
+    """
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.clip(self.value, min_value, max_value, out=out))
+
+  def clamp_(self,
+            min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+    """
+    return the value between min_value and max_value,
+    if min_value is None, then no lower bound,
+    if max_value is None, then no upper bound.
+    """
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return brainpy.math.clip(self.value, min_value, max_value, out=self.value)
+
+  def clip_(self,
+             min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+             max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+    """
+    alias for clamp_
+    """
+    return Array(brainpy.math.clip(self.value, min_value, max_value, out=self.value))
+
+  def clip(self,
+            min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+            *,
+            out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+    """
+    alias for clamp
+    """
+    if not isinstance(out, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param out')
+    return Array(brainpy.math.clip(self.value, min_value, max_value, out=out))
+
+  def clone(self) -> 'Array':
+    return Array(brainpy.math.copy(self.value))
+
+  def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> 'Array':
+    if not isinstance(src, (Array, jax.Array, np.ndarray)):
+      raise Exception('Unexcepted param src')
+    brainpy.math.copyto(self.value, src)
+    return self
+
+  def conj(self) -> 'Array':
+    return Array(brainpy.math.conj(self.value))
+
+  def cov_with(self,
+          y: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+          rowvar: bool = True,
+          bias: bool = False,
+          ddof: Optional[int] = None,
+          fweights: Union['Array', jax.Array, np.ndarray] = None,
+          aweights: Union['Array', jax.Array, np.ndarray] = None) -> 'Array':
+    return Array(brainpy.math.cov(self.value, y, rowvar, bias, fweights, aweights))
+
+  def cov(self,
+          *,
+          correction: int = 1,
+          fweights: Union['Array', jax.Array, np.ndarray] = None,
+          aweights: Union['Array', jax.Array, np.ndarray] = None) -> Union['Array', NoReturn]:
+    try:
+      x = [e[0] for e in self.value]
+      y = [e[1] for e in self.value]
+      return Array(brainpy.math.cov(x, y, ddof=correction, fweights=fweights, aweights=aweights))
+    except Exception as e:
+      raise Exception(F'Wrong format, need to be [[x1,y1],[x2,y2],[x3,y3]]')
 
 
 JaxArray = Array
