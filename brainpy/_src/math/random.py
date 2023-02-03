@@ -2339,12 +2339,11 @@ def randint_like(input, low=0, high=None, *, dtype=None, key=None):
   return DEFAULT.randint_like(input=input, low=low, high=high, dtype=dtype, key=key)
 
 
-
-for k in dir(RandomState):
-  t = getattr(RandomState, k)
-  if not k.startswith('__') and callable(t) and (not t.__doc__):
-    r = globals().get(k, None)
-    if r is not None and callable(r):
-      t.__doc__ = r.__doc__
+for __k in dir(RandomState):
+  __t = getattr(RandomState, __k)
+  if not __k.startswith('__') and callable(__t) and (not __t.__doc__):
+    __r = globals().get(__k, None)
+    if __r is not None and callable(__r):
+      __t.__doc__ = __r.__doc__
 
 
