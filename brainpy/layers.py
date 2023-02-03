@@ -12,6 +12,9 @@ from brainpy._src.dyn.layers.conv import (
   Conv1D as Conv1D,
   Conv2D as Conv2D,
   Conv3D as Conv3D,
+  ConvTranspose1d as ConvTranspose1d,
+  ConvTranspose2d as ConvTranspose2d,
+  ConvTranspose3d as ConvTranspose3d,
 )
 
 
@@ -76,6 +79,10 @@ from brainpy._src.dyn.layers.rnncells import (
   RNNCell as RNNCell,
   GRUCell as GRUCell,
   LSTMCell as LSTMCell,
+  Conv1dLSTMCell as Conv1dLSTMCell,
+  Conv2dLSTMCell as Conv2dLSTMCell,
+  Conv3dLSTMCell as Conv3dLSTMCell,
+
   VanillaRNN as VanillaRNN,
   GRU as GRU,
   LSTM as LSTM,
