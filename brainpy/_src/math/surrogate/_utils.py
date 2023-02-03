@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import itertools, inspect
-from typing import Tuple, Dict, Callable, Sequence
+import inspect
+import itertools
+from functools import partial
+from typing import Dict, Callable, Sequence
 
 import jax
+
 from brainpy import check
-from functools import wraps, partial
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import UnsupportedError
-
 
 __all__ = [
   'get_default',

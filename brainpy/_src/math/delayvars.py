@@ -13,7 +13,7 @@ from .object_transform.base import BrainPyObject
 from .environment import get_dt, get_float
 from .ndarray import ndarray, Variable, Array
 from .arrayinterporate import as_jax
-from . import arraycompatible as bm
+from . import compat_numpy as bm
 
 __all__ = [
   'AbstractDelay',

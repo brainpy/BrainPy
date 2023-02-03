@@ -1,6 +1,4 @@
 numpy>=1.15
 jax>=0.3.0
 tqdm
-brainpylib
-numba
 msgpack

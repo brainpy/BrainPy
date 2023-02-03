@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import warnings
 
-import brainpylib
+
 import jax.numpy as jnp
 from jax import vmap, jit, ops as jops
 
 from brainpy.errors import MathError
+from brainpy._src import tools
 from brainpy._src.math.arrayinterporate import as_jax
 
 __all__ = [
@@ -44,7 +44,7 @@ def _raise_pre_ids_is_none(pre_ids):
 def pre2post_event_sum(events,
                        pre2post,
                        post_num: int,
-                       values = 1.):
+                       values=1.):
   """The pre-to-post event-driven synaptic summation with `CSR` synapse structure.
 
   When ``values`` is a scalar, this function is equivalent to
@@ -95,16 +95,17 @@ def pre2post_event_sum(events,
   indices = as_jax(indices)
   idnptr = as_jax(idnptr)
   values = as_jax(values)
-  return brainpylib.event_csr_matvec(values, indices, idnptr, events,
-                                     shape=(events.shape[0], post_num),
-                                     transpose=True)
+  bl = tools.import_brainpylib()
+  return bl.event_ops.event_csr_matvec(values, indices, idnptr, events,
+                                       shape=(events.shape[0], post_num),
+                                       transpose=True)
 
 
 def pre2post_coo_event_sum(events,
                            pre_ids,
                            post_ids,
                            post_num: int,
-                           values = 1.):
+                           values=1.):
   """The pre-to-post synaptic computation with event-driven summation.
 
   Parameters
@@ -129,7 +130,8 @@ def pre2post_coo_event_sum(events,
   post_ids = as_jax(post_ids)
   pre_ids = as_jax(pre_ids)
   values = as_jax(values)
-  return brainpylib.coo_event_sum(events, pre_ids, post_ids, post_num, values)
+  bl = tools.import_brainpylib()
+  return bl.compat.coo_event_sum(events, pre_ids, post_ids, post_num, values)
 
 
 def pre2post_event_prod(events, pre2post, post_num, values=1.):
@@ -183,7 +185,8 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   indices = as_jax(indices)
   idnptr = as_jax(idnptr)
   values = as_jax(values)
-  return brainpylib.csr_event_prod(events, (indices, idnptr), post_num, values)
+  bl = tools.import_brainpylib()
+  return bl.compat.csr_event_prod(events, (indices, idnptr), post_num, values)
 
 
 def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):

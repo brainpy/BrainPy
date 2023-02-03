@@ -1,7 +1,7 @@
 import abc
 
 from jax import core
-from .arraycompatible import arange, array, concatenate, expand_dims, linspace, meshgrid, stack, transpose
+from .compat_numpy import arange, array, concatenate, expand_dims, linspace, meshgrid, stack, transpose
 import numpy as np
 
 __all__ = ["c_", "index_exp", "mgrid", "ogrid", "r_", "s_"]

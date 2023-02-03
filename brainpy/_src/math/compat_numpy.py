@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
-
+import jax
 import jax.numpy as jnp
 import numpy as np
+from jax.tree_util import tree_flatten, tree_unflatten
 from jax.tree_util import tree_map
 
-from ._utils import _compatible_with_brainpy_array
-from .arraycreation import *
+from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .arrayinterporate import *
 from .ndarray import Array
 
+
 __all__ = [
   'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
+  'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
+  'array', 'asarray', 'arange', 'linspace', 'logspace', 'fill_diagonal',
 
   # math funcs
   'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
@@ -68,9 +71,7 @@ __all__ = [
   'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
 
   # data types
-  'dtype', 'finfo', 'iinfo', 'uint8', 'uint16', 'uint32', 'uint64',
-  'int8', 'int16', 'int32', 'int64', 'float16', 'float32',
-  'float64', 'complex64', 'complex128',
+  'dtype', 'finfo', 'iinfo',
 
   # more
   'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv',
@@ -99,6 +100,125 @@ __all__ = [
 
 _min = min
 _max = max
+
+# def concatenate(arrays: Union[np.ndarray, Array, Sequence[Array]],
+#                 axis: Optional[int] = None,
+#                 dim: Optional[int] = None,
+#                 dtype: Optional[DTypeLike] = None) -> Array:
+#   """Join a sequence of arrays along an existing axis.
+#
+#
+#     Parameters
+#     ----------
+#     a1, a2, ... : sequence of array_like
+#         The arrays must have the same shape, except in the dimension
+#         corresponding to `axis` (the first, by default).
+#     axis : int, optional
+#         The axis along which the arrays will be joined.  If axis is None,
+#         arrays are flattened before use.  Default is 0.
+#     dtype : str or dtype
+#         If provided, the destination array will have this dtype. Cannot be
+#         provided together with `out`.
+#
+#   Returns
+#   -------
+#   res : ndarray
+#       The concatenated array.
+#   """
+#   axis = one_of(0, axis, dim, ['axis', 'dim'])
+#   r = jnp.concatenate(tree_map(_as_jax_array_, arrays, is_leaf=_is_leaf),
+#                       axis=axis,
+#                       dtype=dtype)
+#   return _return(r)
+
+
+def fill_diagonal(a, val, inplace=True):
+  if a.ndim < 2:
+    raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
+  if not isinstance(a, Array) and inplace:
+    raise ValueError('``fill_diagonal()`` is used in in-place updating, therefore '
+                     'it requires a brainpy Array. If you want to disable '
+                     'inplace updating, use ``fill_diagonal(inplace=False)``.')
+  val = val.value if isinstance(val, Array) else val
+  i, j = jnp.diag_indices(_min(a.shape[-2:]))
+  r = as_jax(a).at[..., i, j].set(val)
+  if inplace:
+    a.value = r
+  else:
+    return r
+
+
+def zeros(shape, dtype=None):
+  return Array(jnp.zeros(shape, dtype=dtype))
+
+
+def ones(shape, dtype=None):
+  return Array(jnp.ones(shape, dtype=dtype))
+
+
+def empty(shape, dtype=None):
+  return Array(jnp.zeros(shape, dtype=dtype))
+
+
+def zeros_like(a, dtype=None, shape=None):
+  a = _as_jax_array_(a)
+  return Array(jnp.zeros_like(a, dtype=dtype, shape=shape))
+
+
+def ones_like(a, dtype=None, shape=None):
+  a = _as_jax_array_(a)
+  return Array(jnp.ones_like(a, dtype=dtype, shape=shape))
+
+
+def empty_like(a, dtype=None, shape=None):
+  a = _as_jax_array_(a)
+  return Array(jnp.zeros_like(a, dtype=dtype, shape=shape))
+
+
+def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
+  a = _as_jax_array_(a)
+  try:
+    res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+  except TypeError:
+    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
+    leaves = [_as_jax_array_(l) for l in leaves]
+    a = tree_unflatten(tree, leaves)
+    res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+  return Array(res)
+
+
+def asarray(a, dtype=None, order=None):
+  a = _as_jax_array_(a)
+  try:
+    res = jnp.asarray(a=a, dtype=dtype, order=order)
+  except TypeError:
+    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
+    leaves = [_as_jax_array_(l) for l in leaves]
+    arrays = tree_unflatten(tree, leaves)
+    res = jnp.asarray(a=arrays, dtype=dtype, order=order)
+  return Array(res)
+
+
+def arange(*args, **kwargs):
+  args = [_as_jax_array_(a) for a in args]
+  kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
+  return Array(jnp.arange(*args, **kwargs))
+
+
+def linspace(*args, **kwargs):
+  args = [_as_jax_array_(a) for a in args]
+  kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
+  res = jnp.linspace(*args, **kwargs)
+  if isinstance(res, tuple):
+    return Array(res[0]), res[1]
+  else:
+    return Array(res)
+
+
+def logspace(*args, **kwargs):
+  args = [_as_jax_array_(a) for a in args]
+  kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
+  return Array(jnp.logspace(*args, **kwargs))
 
 
 def asanyarray(a, dtype=None, order=None):
@@ -158,7 +278,34 @@ load = _compatible_with_brainpy_array(jnp.load)
 save = _compatible_with_brainpy_array(jnp.save)
 savez = _compatible_with_brainpy_array(jnp.savez)
 mask_indices = _compatible_with_brainpy_array(jnp.mask_indices)
-msort = _compatible_with_brainpy_array(jnp.msort)
+
+
+def msort(a):
+  """
+  Return a copy of an array sorted along the first axis.
+
+  Parameters
+  ----------
+  a : array_like
+      Array to be sorted.
+
+  Returns
+  -------
+  sorted_array : ndarray
+      Array of the same type and shape as `a`.
+
+  See Also
+  --------
+  sort
+
+  Notes
+  -----
+  ``brainpy.math.msort(a)`` is equivalent to  ``brainpy.math.sort(a, axis=0)``.
+
+  """
+  return sort(a, axis=0)
+
+
 nan_to_num = _compatible_with_brainpy_array(jnp.nan_to_num)
 nanargmax = _compatible_with_brainpy_array(jnp.nanargmax)
 nanargmin = _compatible_with_brainpy_array(jnp.nanargmin)
@@ -249,7 +396,9 @@ ceil = _compatible_with_brainpy_array(jnp.ceil)
 trunc = _compatible_with_brainpy_array(jnp.trunc)
 fix = _compatible_with_brainpy_array(jnp.fix)
 prod = _compatible_with_brainpy_array(jnp.prod)
+
 sum = _compatible_with_brainpy_array(jnp.sum)
+
 diff = _compatible_with_brainpy_array(jnp.diff)
 median = _compatible_with_brainpy_array(jnp.median)
 nancumprod = _compatible_with_brainpy_array(jnp.nancumprod)
@@ -305,15 +454,95 @@ logical_and = _compatible_with_brainpy_array(jnp.logical_and)
 logical_or = _compatible_with_brainpy_array(jnp.logical_or)
 logical_xor = _compatible_with_brainpy_array(jnp.logical_xor)
 all = _compatible_with_brainpy_array(jnp.all)
+
 any = _compatible_with_brainpy_array(jnp.any)
+
 alltrue = all
 sometrue = any
 
-# array manipulation
-# ------------------
 
-shape = _compatible_with_brainpy_array(jnp.shape)
-size = _compatible_with_brainpy_array(jnp.size)
+
+def shape(a):
+  """
+  Return the shape of an array.
+
+  Parameters
+  ----------
+  a : array_like
+      Input array.
+
+  Returns
+  -------
+  shape : tuple of ints
+      The elements of the shape tuple give the lengths of the
+      corresponding array dimensions.
+
+  See Also
+  --------
+  len : ``len(a)`` is equivalent to ``np.shape(a)[0]`` for N-D arrays with
+        ``N>=1``.
+  ndarray.shape : Equivalent array method.
+
+  Examples
+  --------
+  >>> brainpy.math.shape(brainpy.math.eye(3))
+  (3, 3)
+  >>> brainpy.math.shape([[1, 3]])
+  (1, 2)
+  >>> brainpy.math.shape([0])
+  (1,)
+  >>> brainpy.math.shape(0)
+  ()
+
+  """
+  if isinstance(a, (Array, jax.Array, np.ndarray)):
+    return a.shape
+  else:
+    return np.shape(a)
+
+
+def size(a, axis=None):
+  """
+  Return the number of elements along a given axis.
+
+  Parameters
+  ----------
+  a : array_like
+      Input data.
+  axis : int, optional
+      Axis along which the elements are counted.  By default, give
+      the total number of elements.
+
+  Returns
+  -------
+  element_count : int
+      Number of elements along the specified axis.
+
+  See Also
+  --------
+  shape : dimensions of array
+  Array.shape : dimensions of array
+  Array.size : number of elements in array
+
+  Examples
+  --------
+  >>> a = brainpy.math.array([[1,2,3], [4,5,6]])
+  >>> brainpy.math.size(a)
+  6
+  >>> brainpy.math.size(a, 1)
+  3
+  >>> brainpy.math.size(a, 0)
+  2
+  """
+  if isinstance(a, (Array, jax.Array, np.ndarray)):
+    if axis is None:
+      return a.size
+    else:
+      return a.shape[axis]
+  else:
+    return np.size(a, axis=axis)
+
+
 reshape = _compatible_with_brainpy_array(jnp.reshape)
 ravel = _compatible_with_brainpy_array(jnp.ravel)
 moveaxis = _compatible_with_brainpy_array(jnp.moveaxis)
@@ -356,7 +585,9 @@ searchsorted = _compatible_with_brainpy_array(jnp.searchsorted)
 extract = _compatible_with_brainpy_array(jnp.extract)
 count_nonzero = _compatible_with_brainpy_array(jnp.count_nonzero)
 max = _compatible_with_brainpy_array(jnp.max)
+
 min = _compatible_with_brainpy_array(jnp.min)
+
 amax = max
 amin = min
 apply_along_axis = _compatible_with_brainpy_array(jnp.apply_along_axis)
@@ -420,26 +651,10 @@ kron = _compatible_with_brainpy_array(jnp.kron)
 matmul = _compatible_with_brainpy_array(jnp.matmul)
 trace = _compatible_with_brainpy_array(jnp.trace)
 
-# data types
-# ----------
-
 dtype = jnp.dtype
 finfo = jnp.finfo
 iinfo = jnp.iinfo
 
-uint8 = jnp.uint8
-uint16 = jnp.uint16
-uint32 = jnp.uint32
-uint64 = jnp.uint64
-int8 = jnp.int8
-int16 = jnp.int16
-int32 = jnp.int32
-int64 = jnp.int64
-float16 = jnp.float16
-float32 = jnp.float32
-float64 = jnp.float64
-complex64 = jnp.complex64
-complex128 = jnp.complex128
 
 can_cast = _compatible_with_brainpy_array(jnp.can_cast)
 choose = _compatible_with_brainpy_array(jnp.choose)
@@ -516,7 +731,7 @@ def common_type(*arrays):
       p = array_precision.get(t, None)
       if p is None:
         raise TypeError("can't get common type for non-numeric array")
-    precision = max(precision, p)
+    precision = _max(precision, p)
   if is_complex:
     return array_type[1][precision]
   else:

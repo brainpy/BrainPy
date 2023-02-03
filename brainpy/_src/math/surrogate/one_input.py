@@ -7,8 +7,6 @@ from typing import Union
 import jax
 import jax.numpy as jnp
 import jax.scipy as sci
-from jax.core import Primitive
-from jax.interpreters import ad, batching, mlir
 
 from brainpy._src.math.arrayinterporate import as_jax
 from brainpy._src.math.ndarray import Array

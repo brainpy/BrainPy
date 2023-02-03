@@ -9,10 +9,14 @@ from brainpy._src.dyn.layers.conv import (
   Conv1d as Conv1d,
   Conv2d as Conv2d,
   Conv3d as Conv3d,
+  Conv1D as Conv1D,
+  Conv2D as Conv2D,
+  Conv3D as Conv3D,
+  ConvTranspose1d as ConvTranspose1d,
+  ConvTranspose2d as ConvTranspose2d,
+  ConvTranspose3d as ConvTranspose3d,
 )
-Conv1D = Conv1d
-Conv2D = Conv2d
-Conv3D = Conv3d
+
 
 from brainpy._src.dyn.layers.dropout import (
   Dropout as Dropout,
@@ -26,20 +30,21 @@ from brainpy._src.dyn.layers.function import (
 
 from brainpy._src.dyn.layers.linear import (
   Dense as Dense,
+  Linear as Linear,
+  Identity as Identity,
 )
 
 from brainpy._src.dyn.layers.normalization import (
   BatchNorm1d as BatchNorm1d,
   BatchNorm2d as BatchNorm2d,
   BatchNorm3d as BatchNorm3d,
+  BatchNorm1D as BatchNorm1D,
+  BatchNorm2D as BatchNorm2D,
+  BatchNorm3D as BatchNorm3D,
   LayerNorm as LayerNorm,
   GroupNorm as GroupNorm,
   InstanceNorm as InstanceNorm,
 )
-BatchNorm1D = BatchNorm1d
-BatchNorm2D = BatchNorm2d
-BatchNorm3D = BatchNorm3d
-
 
 from brainpy._src.dyn.layers.nvar import (
   NVAR as NVAR,
@@ -74,6 +79,10 @@ from brainpy._src.dyn.layers.rnncells import (
   RNNCell as RNNCell,
   GRUCell as GRUCell,
   LSTMCell as LSTMCell,
+  Conv1dLSTMCell as Conv1dLSTMCell,
+  Conv2dLSTMCell as Conv2dLSTMCell,
+  Conv3dLSTMCell as Conv3dLSTMCell,
+
   VanillaRNN as VanillaRNN,
   GRU as GRU,
   LSTM as LSTM,

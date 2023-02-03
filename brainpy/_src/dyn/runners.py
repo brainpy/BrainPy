@@ -448,7 +448,9 @@ class DSRunner(Runner):
         raise ValueError('Please provide "duration" or "inputs".')
     else:
       if inputs is not None:
-        raise ValueError('Please provide "duration" or "inputs".')
+        warnings.warn('"inputs" has already has the time information. '
+                      'Therefore there no longer need to provide "duration".',
+                      UserWarning)
 
     num_step = self._get_input_time_step(duration, inputs)
     description = f'Predict {num_step} steps: '

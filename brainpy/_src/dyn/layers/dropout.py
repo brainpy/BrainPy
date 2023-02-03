@@ -52,7 +52,7 @@ class Dropout(Layer):
   def update(self, sha, x):
     if sha.get('fit', True):
       keep_mask = self.rng.bernoulli(self.prob, x.shape)
-      return jnp.where(bm.as_jax(keep_mask), x / self.prob, 0.)
+      return bm.where(bm.as_jax(keep_mask), x / self.prob, 0.)
     else:
       return x
 
