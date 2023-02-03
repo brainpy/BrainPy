@@ -75,21 +75,8 @@ def _return(a):
   return a
 
 
-def is_return_bparray():
-  return _return_bp_array
-
-
-_return_bp_array = True
-
-
 def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
-
-
-def npfun_returns_bparray(mode: bool):
-  global _return_bp_array
-  assert isinstance(mode, bool)
-  _return_bp_array = mode
 
 
 class Array(object):
@@ -507,7 +494,10 @@ class Array(object):
     dtype: str, dtype
       Typecode or data-type to which the array is cast.
     """
-    return _return(self.value.astype(dtype=dtype))
+    if dtype is None:
+      return _return(self.value)
+    else:
+      return _return(self.value.astype(dtype))
 
   def byteswap(self, inplace=False):
     """Swap the bytes of the array elements
@@ -572,7 +562,7 @@ class Array(object):
   def max(self, axis=None, keepdims=False, *args, **kwargs):
     """Return the maximum along a given axis."""
     res = self.value.max(axis=axis, keepdims=keepdims, *args, **kwargs)
-    return res if (axis is None or keepdims) else _return(res)
+    return _return(res)
 
   def mean(self, axis=None, dtype=None, keepdims=False, *args, **kwargs):
     """Returns the average of the array elements along given axis."""
@@ -878,7 +868,7 @@ class Array(object):
 
   def numpy(self, dtype=None):
     """Convert to numpy.ndarray."""
-    warnings.warn('Deprecated since 2.1.12. Please use ".to_numpy()" instead.', DeprecationWarning)
+    # warnings.warn('Deprecated since 2.1.12. Please use ".to_numpy()" instead.', DeprecationWarning)
     return np.asarray(self.value, dtype=dtype)
 
   def to_numpy(self, dtype=None):
