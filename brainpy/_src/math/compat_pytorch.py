@@ -6,13 +6,14 @@ import numpy as np
 
 from .ndarray import Array, _as_jax_array_
 from .compat_numpy import (
-  concatenate,
+  concatenate, shape
 )
 
 __all__ = [
   'Tensor',
   'flatten',
   'cat',
+
 ]
 
 
@@ -65,7 +66,6 @@ def flatten(input: Union[jax.Array, Array],
     raise ValueError(f'end_dim {end_dim} is out of size.')
   new_shape = shape[:start_dim] + (np.prod(shape[start_dim: end_dim], dtype=int), ) + shape[end_dim:]
   return jnp.reshape(input, new_shape)
-
 
 
 

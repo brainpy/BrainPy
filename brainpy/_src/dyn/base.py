@@ -639,7 +639,7 @@ class Sequential(Container):
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  def update(self, s, x) -> ArrayType:
+  def update(self, *args) -> ArrayType:
     """Update function of a sequential model.
 
     Parameters
@@ -654,6 +654,7 @@ class Sequential(Container):
     y: ArrayType
       The output tensor.
     """
+    s, x = (dict(), args[0]) if len(args) == 1 else (args[0], args[1])
     for m in self._modules:
       if isinstance(m, DynamicalSystem):
         x = m(s, x)

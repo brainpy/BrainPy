@@ -9,20 +9,16 @@ Implementation of the paper:
 
 """
 
-import os
 import sys
 
 import numpy as np
 
 sys.path.append('../../')
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-
 
 import tqdm
 import argparse
 import time
 
-import jax.numpy as jnp
 from jax import custom_gradient, custom_vjp
 from jax.lax import stop_gradient
 import torch.utils.data
@@ -36,7 +32,7 @@ bm.set_environment(bm.TrainingMode())
 # bm.set_platform('gpu')
 
 parser = argparse.ArgumentParser(description='CIFAR10 Training')
-parser.add_argument('-data', default='D:/data', type=str, help='path to dataset')
+parser.add_argument('-data', default='/mnt/d/data', type=str, help='path to dataset')
 parser.add_argument('-b', default=64, type=int, metavar='N')
 parser.add_argument('-T', default=100, type=int, help='Simulation timesteps')
 parser.add_argument('-lr', default=0.0025, type=float, help='initial learning rate')
@@ -61,33 +57,33 @@ class LIFNode(bp.DynamicalSystem):
     self.relu_grad.defvjp(self.f_fwd, self.f_bwd)
 
   def reset_state(self, batch_size=None):
-    self.v = bp.init.variable_(jnp.zeros, self.size, batch_size)
+    self.v = bp.init.variable_(bm.zeros, self.size, batch_size)
     self.v[:] = self.v_reset
     # Accumulated voltage (Assuming NO fire for this neuron)
-    self.v_acc = bp.init.variable_(jnp.zeros, self.size, batch_size)
+    self.v_acc = bp.init.variable_(bm.zeros, self.size, batch_size)
     # Accumulated voltage with leaky (Assuming NO fire for this neuron)
-    self.v_acc_l = bp.init.variable_(jnp.zeros, self.size, batch_size)
+    self.v_acc_l = bp.init.variable_(bm.zeros, self.size, batch_size)
     if self.fire:
       # accumulated gradient
-      self.grad_acc = bp.init.variable_(jnp.zeros, self.size, batch_size)
+      self.grad_acc = bp.init.variable_(bm.zeros, self.size, batch_size)
 
   def f(self, x):
-    return jnp.asarray(x > 0.0, bm.float_)
+    return bm.asarray(x > 0.0, bm.float_).value
 
   def f_fwd(self, x):
-    return jnp.asarray(x > 0.0, bm.float_), (x <= 0.0,)
+    return bm.asarray(x > 0.0, bm.float_).value, (bm.as_jax(x <= 0.0),)
 
   def f_bwd(self, res, g):
-    g = jnp.where(res[0], 0., g)
+    g = bm.where(res[0], 0., g).value
     return (self.grad_acc.value * g,)
 
   def update(self, s, dv):
     self.v += dv
     if self.fire:
-      spike = self.relu_grad(self.v.value - self.v_threshold)
+      spike = self.relu_grad(bm.as_jax(self.v.value - self.v_threshold))
       # s = stop_gradient(spike)
       # self.v.value = s * self.v_reset + (1 - s) * self.v
-      self.v.value = jnp.where(self.v > self.v_threshold, self.v_reset, self.v.value)
+      self.v.value = bm.where(self.v > self.v_threshold, self.v_reset, self.v.value)
       self.v_acc += spike
       self.v_acc_l.value = self.v - ((self.v - self.v_reset) / self.tau) + spike
     self.v -= stop_gradient((self.v - self.v_reset) / self.tau)
@@ -109,18 +105,19 @@ class IFNode(bp.DynamicalSystem):
     self.relu_grad = custom_gradient(self.relu)
 
   def reset_state(self, batch_size=None):
-    self.v = bp.init.variable_(jnp.zeros, self.size, batch_size)
+    self.v = bp.init.variable_(bm.zeros, self.size, batch_size)
     self.v[:] = self.v_reset
 
   def relu(self, x):
     def grad(dz):
-      return jnp.where(x <= 0.0, 0., dz)
-    return jnp.asarray(x > 0.0, bm.float_), grad
+      return bm.where(x <= 0.0, 0., dz).value
+
+    return bm.asarray(x > 0.0, bm.float_).value, grad
 
   def update(self, s, dv):
     self.v += dv
-    spike = self.relu_grad(self.v - self.v_threshold)
-    self.v.value = jnp.where(self.v > self.v_threshold, self.v_reset, self.v.value)
+    spike = self.relu_grad(bm.as_jax(self.v - self.v_threshold))
+    self.v.value = bm.where(self.v > self.v_threshold, self.v_reset, self.v.value)
     return spike
 
 
@@ -256,9 +253,9 @@ def main():
       if isinstance(m, LIFNode) and m.fire:
         m.v_acc += (m.v_acc < 1e-3).astype(bm.float_)
         m.grad_acc.value = ((m.v_acc_l > 1e-3).astype(bm.float_) +
-                            jnp.log(1 - 1 / m.tau) * m.v_acc_l / m.v_acc)
+                            bm.log(1 - 1 / m.tau) * m.v_acc_l / m.v_acc)
     l = bp.losses.mean_squared_error(o / num_time, yy, reduction='sum')
-    n = jnp.sum(jnp.argmax(o, axis=1) == y)
+    n = bm.sum(bm.argmax(o, axis=1) == y)
     return l, n
 
   inference_fun = bm.jit(bm.Partial(loss_fun.target, fit=False))
@@ -291,24 +288,24 @@ def main():
     train_loss, train_acc = [], 0
     pbar = tqdm.tqdm(total=num_train_samples)
     for img, label in train_data_loader:
-      img = jnp.asarray(img).transpose(0, 2, 3, 1)
-      label = jnp.asarray(label)
+      img = bm.asarray(img).transpose(0, 2, 3, 1)
+      label = bm.asarray(label)
       net.reset_state(img.shape[0])
       loss, acc = train_fun(img, label)
       train_loss.append(loss)
       train_acc += acc
-      pbar.set_description(f'Train {epoch_i}, loss {loss:.5f}, acc {acc/img.shape[0]:.5f}')
+      pbar.set_description(f'Train {epoch_i}, loss {loss:.5f}, acc {acc / img.shape[0]:.5f}')
       pbar.update()
     pbar.close()
-    train_loss = jnp.asarray(train_loss).mean()
+    train_loss = bm.asarray(train_loss).mean()
     train_acc /= num_train_samples
     optimizer.lr.step_epoch()
 
     test_loss, test_acc = [], 0
     pbar = tqdm.tqdm(total=num_test_samples)
     for img, label in test_data_loader:
-      img = jnp.asarray(img).transpose(0, 2, 3, 1)
-      label = jnp.asarray(label)
+      img = bm.asarray(img).transpose(0, 2, 3, 1)
+      label = bm.asarray(label)
       net.reset_state(img.shape[0])
       loss, acc = inference_fun(img, label)
       test_loss.append(loss)
@@ -316,7 +313,7 @@ def main():
       pbar.set_description(f'Test {epoch_i}, loss {loss:.5f}, acc {acc / img.shape[0]:.5f}')
       pbar.update()
     pbar.close()
-    test_loss = jnp.asarray(test_loss).mean()
+    test_loss = bm.asarray(test_loss).mean()
     test_acc /= num_test_samples
     end_time = time.time()
     print(f'Epoch {epoch_i}, time {end_time - start_time} s, train loss {train_loss:.5f}, '

@@ -94,8 +94,38 @@ class JITTransform(ObjectTransform):
     return format_ref
 
 
+def _jit(func: Callable = None,
+         dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+         child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+         static_argnums: Union[int, Iterable[int], None] = None,
+         static_argnames: Union[str, Iterable[str], None] = None,
+         device: Optional[Any] = None,
+         inline: bool = False,
+         keep_unused: bool = False,
+         abstracted_axes: Optional[Any] = None, ) -> JITTransform:
+  if callable(func):
+    dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+    child_objs = check.is_all_objs(child_objs, out_as='dict')
+
+    # BrainPyObject object which implements __call__,
+    # or bounded method of BrainPyObject object
+    return JITTransform(target=func,
+                        dyn_vars=dyn_vars,
+                        child_objs=child_objs,
+                        static_argnums=static_argnums,
+                        static_argnames=static_argnames,
+                        device=device,
+                        inline=inline,
+                        keep_unused=keep_unused,
+                        abstracted_axes=abstracted_axes)
+
+  else:
+    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '
+                              f'function, but we got {type(func)}.')
+
+
 def jit(
-    func: Callable,
+    func: Callable = None,
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     static_argnums: Union[int, Iterable[int], None] = None,
@@ -217,25 +247,26 @@ def jit(
 
   Returns
   -------
-  func : JITTransform
+  func : callable
     A callable jitted function, set up for just-in-time compilation.
   """
-  if callable(func):
-    dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-    child_objs = check.is_all_objs(child_objs, out_as='dict')
-
-    # BrainPyObject object which implements __call__,
-    # or bounded method of BrainPyObject object
-    return JITTransform(target=func,
-                        dyn_vars=dyn_vars,
-                        child_objs=child_objs,
-                        static_argnums=static_argnums,
-                        static_argnames=static_argnames,
-                        device=device,
-                        inline=inline,
-                        keep_unused=keep_unused,
-                        abstracted_axes=abstracted_axes)
-
+  if func is None:
+    return lambda f: _jit(func=f,
+                          dyn_vars=dyn_vars,
+                          child_objs=child_objs,
+                          static_argnums=static_argnums,
+                          static_argnames=static_argnames,
+                          device=device,
+                          inline=inline,
+                          keep_unused=keep_unused,
+                          abstracted_axes=abstracted_axes)
   else:
-    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '
-                              f'function, but we got {type(func)}.')
+    return _jit(func=func,
+                dyn_vars=dyn_vars,
+                child_objs=child_objs,
+                static_argnums=static_argnums,
+                static_argnames=static_argnames,
+                device=device,
+                inline=inline,
+                keep_unused=keep_unused,
+                abstracted_axes=abstracted_axes)
