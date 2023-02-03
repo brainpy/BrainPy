@@ -572,7 +572,7 @@ def generate_math_docs():
 
 
 def generate_algorithm_docs(path='apis/auto/algorithms/'):
-  if not os.path.exists(path): os.makedirs(path)
+  os.makedirs(path, exist_ok=True)
 
   module_and_name = [
     ('offline', 'Offline Training Algorithms'),
