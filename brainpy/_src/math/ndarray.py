@@ -1055,8 +1055,8 @@ class Array(object):
   def outer(self, other: Union['Array', jax.Array, np.ndarray]) -> Union[NoReturn, None]:
     # if other is None:
     #   raise Exception('Array can not make outer product with None')
-    if not isinstance(out, Array):
-      out = Array(out)
+    if not isinstance(other, Array):
+      other = Array(out)
     return Array(jnp.outer(self.value, other.value))
 
   def sum(self) -> 'Array':
