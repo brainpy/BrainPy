@@ -1158,8 +1158,8 @@ class Array(object):
     return Array(brainpy.math.arctan(self.value, out=out.value))
 
   def all(self,
-          dim:  int,
-          keepdim: bool,
+          axis: Optional[int] = None,
+          keepdim: Optional[bool] = None,
           *,
           out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
     """
@@ -1167,7 +1167,7 @@ class Array(object):
     """
     if not isinstance(out, (Array, jax.Array, np.ndarray)):
       raise Exception('Unexcepted param out')
-    return Array(brainpy.math.all(self.value, dim, keepdim, out=out))
+    return Array(brainpy.math.all(self.value, axis, keepdim, out=out))
 
   def any(self,
           dim:  int,
@@ -1201,8 +1201,6 @@ class Array(object):
     if min_value is None, then no lower bound,
     if max_value is None, then no upper bound.
     """
-    if not isinstance(out, (Array, jax.Array, np.ndarray)):
-      raise Exception('Unexcepted param out')
     return brainpy.math.clip(self.value, min_value, max_value, out=self.value)
 
   def clip_(self,
