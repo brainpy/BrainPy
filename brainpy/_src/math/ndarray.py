@@ -1002,7 +1002,9 @@ class Array(object):
         typically not contiguous. Furthermore, more than one element of a
         expanded array may refer to a single memory location.
     """
-    return Array(jnp.broadcast_to(self._value, array._value.shape))
+    if not isinstance(array, Array):
+      array = Array(array)
+    return Array(jnp.broadcast_to(self.value, array.value.shape))
 
   def squeeze(self, 
               axis: Optional[Union[int, Sequence]]=None) -> 'Array':
