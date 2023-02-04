@@ -1239,7 +1239,7 @@ class Array(object):
     return Array(brainpy.math.copy(self.value))
 
   def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> 'Array':
-    if out is not None:
+    if src is not None:
       if not isinstance(src, (Array, jax.Array, np.ndarray)):
         raise Exception('Unexcepted param src')
     brainpy.math.copyto(self.value, src)
@@ -1267,7 +1267,7 @@ class Array(object):
       y = [e[1] for e in self.value]
       return Array(brainpy.math.cov(x, y, ddof=correction, fweights=fweights, aweights=aweights))
     except Exception as e:
-      raise Exception(F'Wrong format, need to be [[x1,y1],[x2,y2],[x3,y3]]')
+      raise Exception('Wrong format, need to be [[x1,y1],[x2,y2],[x3,y3]]')
 
 
 JaxArray = Array
