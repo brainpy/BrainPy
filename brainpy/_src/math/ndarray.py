@@ -1056,7 +1056,7 @@ class Array(object):
     # if other is None:
     #   raise Exception('Array can not make outer product with None')
     if not isinstance(other, Array):
-      other = Array(out)
+      other = Array(other)
     return Array(jnp.outer(self.value, other.value))
 
   def sum(self) -> 'Array':
