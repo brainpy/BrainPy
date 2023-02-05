@@ -1010,8 +1010,8 @@ class Array(object):
               axis: Optional[Union[int, Sequence]]=None) -> 'Array':
     return Array(self.squeeze(axis))
 
-  def item(self, *args) -> Any:
-    return self.value.item(*args)
+  # def item(self, *args) -> Any:
+  #   return self.value.item(*args)
 
   def pow(self, index: int):
     return self._value ** index
@@ -1033,7 +1033,7 @@ class Array(object):
       vec2 = Array(vec2)
     if not isinstance(out, Array):
       out = Array(out)
-    return brainpy.math.outer(vec1, vec2, out=out)
+    return _return(brainpy.math.outer(vec1, vec2, out=out))
 
 
   def addr_(self, 
@@ -1059,10 +1059,10 @@ class Array(object):
     #   raise Exception('Array can not make outer product with None')
     if not isinstance(other, Array):
       other = Array(other)
-    return Array(jnp.outer(self.value, other.value))
+    return _return(jnp.outer(self.value, other.value))
 
   def sum(self) -> 'Array':
-    return Array(self.value.sum())
+    return _return(self.value.sum())
 
   def abs(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
     # return Array(self.value.__abs__())
@@ -1075,7 +1075,7 @@ class Array(object):
       abs_value = brainpy.math.abs(self.value)
     # if isinstance(out, (Array, jax.Array, np.ndarray)):
     #   out.value = abs_value
-    return Array(abs_value)
+    return _return(abs_value)
 
   def abs_(self) -> 'Array':
     """
@@ -1240,40 +1240,40 @@ class Array(object):
       value = brainpy.math.arctan(self.value)
     return Array(value)
 
-  def all(self,
-          axis: Optional[int] = None,
-          keepdim: bool = False,
-          *,
-          out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
-    """
-    test if all element cast to true
-    """
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = value = brainpy.math.all(self.value, axis, keepdim)
-    if out is not None:
-      if not isinstance(out, Array):
-        warnings.showwarning("out is not a brainpy Array")
-        out = Array(out)
-      out.update(value)
-    return Array(value)
+  # def all(self,
+  #         axis: Optional[int] = None,
+  #         keepdim: bool = False,
+  #         *,
+  #         out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
+  #   """
+  #   test if all element cast to true
+  #   """
+  #   # if out is not None:
+  #   #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
+  #   #     raise Exception('Unexcepted param out')
+  #   value = value = brainpy.math.all(self.value, axis, keepdim)
+  #   if out is not None:
+  #     if not isinstance(out, Array):
+  #       warnings.showwarning("out is not a brainpy Array")
+  #       out = Array(out)
+  #     out.update(value)
+  #   return Array(value)
 
-  def any(self,
-          dim:  int,
-          keepdim: bool,
-          *,
-          out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
-    """
-    test if any element cast to true
-    """
-    value = value = brainpy.math.any(self.value)
-    if out is not None:
-      if not isinstance(out, Array):
-        warnings.showwarning("out is not a brainpy Array")
-        out = Array(out)
-      out.update(value)
-    return Array(value)
+  # def any(self,
+  #         dim:  int,
+  #         keepdim: bool,
+  #         *,
+  #         out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
+  #   """
+  #   test if any element cast to true
+  #   """
+  #   value = value = brainpy.math.any(self.value)
+  #   if out is not None:
+  #     if not isinstance(out, Array):
+  #       warnings.showwarning("out is not a brainpy Array")
+  #       out = Array(out)
+  #     out.update(value)
+  #   return Array(value)
 
   def clamp(self,
             min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
@@ -1288,14 +1288,17 @@ class Array(object):
     # if out is not None:
     #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
     #     raise Exception('Unexcepted param out')
-    value = None
-    if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.clip(self.value, min_value, max_value, out=out)
-    else:
-      value = brainpy.math.clip(self.value, min_value, max_value)
-    return Array(value)
+
+    # value = None
+    # if out is not None:
+    #   if not isinstance(out, Array):
+    #     out = Array(out)
+    #   value = brainpy.math.clip(self.value, min_value, max_value, out=out)
+    # else:
+    #   value = brainpy.math.clip(self.value, min_value, max_value)
+    # return Array(value)
+
+    return _return(self.value.clip(min_value, max_value))
 
   def clamp_(self,
             min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
@@ -1348,8 +1351,8 @@ class Array(object):
       raise Exception("copy from None???")
     return self
 
-  def conj(self) -> 'Array':
-    return Array(brainpy.math.conj(self.value))
+  # def conj(self) -> 'Array':
+  #   return Array(brainpy.math.conj(self.value))
 
   def cov_with(self,
           y: Optional[Union['Array', jax.Array, np.ndarray]] = None,
