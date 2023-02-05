@@ -1272,9 +1272,9 @@ class Array(object):
     if out is not None:
       if not isinstance(out, Array):
         out = Array(out)
-      value = brainpy.math.any(self.value, axis, keepdim, out=out)
+      value = brainpy.math.any(self.value, out=out)
     else:
-      value = brainpy.math.any(self.value, axis, keepdim)
+      value = brainpy.math.any(self.value)
     return Array(value)
 
   def clamp(self,
