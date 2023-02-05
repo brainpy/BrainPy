@@ -1251,13 +1251,12 @@ class Array(object):
     # if out is not None:
     #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
     #     raise Exception('Unexcepted param out')
-    value = None
+    value = value = brainpy.math.all(self.value, axis, keepdim)
     if out is not None:
       if not isinstance(out, Array):
+        warnings.showwarning("out is not a brainpy Array")
         out = Array(out)
-      value = brainpy.math.all(self.value, axis, keepdim, out=out)
-    else:
-      value = brainpy.math.all(self.value, axis, keepdim)
+      out.update(value)
     return Array(value)
 
   def any(self,
@@ -1268,13 +1267,12 @@ class Array(object):
     """
     test if any element cast to true
     """
-    value = None
+    value = value = brainpy.math.any(self.value)
     if out is not None:
       if not isinstance(out, Array):
+        warnings.showwarning("out is not a brainpy Array")
         out = Array(out)
-      value = brainpy.math.any(self.value, out=out)
-    else:
-      value = brainpy.math.any(self.value)
+      out.update(value)
     return Array(value)
 
   def clamp(self,
