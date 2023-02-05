@@ -101,36 +101,6 @@ __all__ = [
 _min = min
 _max = max
 
-# def concatenate(arrays: Union[np.ndarray, Array, Sequence[Array]],
-#                 axis: Optional[int] = None,
-#                 dim: Optional[int] = None,
-#                 dtype: Optional[DTypeLike] = None) -> Array:
-#   """Join a sequence of arrays along an existing axis.
-#
-#
-#     Parameters
-#     ----------
-#     a1, a2, ... : sequence of array_like
-#         The arrays must have the same shape, except in the dimension
-#         corresponding to `axis` (the first, by default).
-#     axis : int, optional
-#         The axis along which the arrays will be joined.  If axis is None,
-#         arrays are flattened before use.  Default is 0.
-#     dtype : str or dtype
-#         If provided, the destination array will have this dtype. Cannot be
-#         provided together with `out`.
-#
-#   Returns
-#   -------
-#   res : ndarray
-#       The concatenated array.
-#   """
-#   axis = one_of(0, axis, dim, ['axis', 'dim'])
-#   r = jnp.concatenate(tree_map(_as_jax_array_, arrays, is_leaf=_is_leaf),
-#                       axis=axis,
-#                       dtype=dtype)
-#   return _return(r)
-
 
 def fill_diagonal(a, val, inplace=True):
   if a.ndim < 2:
@@ -454,7 +424,6 @@ logical_and = _compatible_with_brainpy_array(jnp.logical_and)
 logical_or = _compatible_with_brainpy_array(jnp.logical_or)
 logical_xor = _compatible_with_brainpy_array(jnp.logical_xor)
 all = _compatible_with_brainpy_array(jnp.all)
-
 any = _compatible_with_brainpy_array(jnp.any)
 
 alltrue = all
