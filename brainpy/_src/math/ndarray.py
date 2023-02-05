@@ -1066,11 +1066,15 @@ class Array(object):
 
   def abs(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
     # return Array(self.value.__abs__())
-    abs_value = brainpy.math.abs(self.value, out=out)
+    abs_value = None
+    if out is not None:
+      if not isinstance(out, Array):
+        out = Array(out)
+      abs_value = brainpy.math.abs(self.value, out=out)
+    else:
+      abs_value = brainpy.math.abs(self.value)
     # if isinstance(out, (Array, jax.Array, np.ndarray)):
     #   out.value = abs_value
-    if not isinstance(out, Array):
-      out = Array(out)
     return Array(abs_value)
 
   def abs_(self) -> 'Array':
@@ -1098,24 +1102,34 @@ class Array(object):
     # if out is not None:
     #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
     #     raise Exception('Unexcepted param out')
-    if not isinstance(out, Array):
-      out = Array(out)
-    return Array(brainpy.math.sin(self.value, out=out.value))
+    value = None
+    if out is not None:
+      if not isinstance(out, Array):
+        out = Array(out)
+      value = brainpy.math.sin(self.value, out=out)
+    else:
+      value = brainpy.math.sin(self.value)
+    return Array(value)
 
   def sin_(self) -> 'Array':
-    return Array(brainpy.math.sin(self.value, out=self.value))
+    return Array(brainpy.math.sin(self.value, out=self))
 
   def cos_(self) -> 'Array':
-    return Array(brainpy.math.cos(self.value, out=self.value))
+    return Array(brainpy.math.cos(self.value, out=self))
 
   def cos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
     # return Array(self.value.__abs__())
     # if out is not None:
     #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
     #     raise Exception('Unexcepted param out')
-    if not isinstance(out, Array):
-      out = Array(out)
-    return Array(brainpy.math.cos(self.value, out=out.value))
+    value = None
+    if out is not None:
+      if not isinstance(out, Array):
+        out = Array(out)
+      value = brainpy.math.cos(self.value, out=out.value)
+    else:
+      value = brainpy.math.cos(self.value)
+    return Array(value)
 
   def tan_(self) -> 'Array':
     return Array(brainpy.math.tan(self.value, out=self.value))
@@ -1125,9 +1139,14 @@ class Array(object):
     # if out is not None:
     #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
     #     raise Exception('Unexcepted param out')
-    if not isinstance(out, Array):
-      out = Array(out)
-    return Array(brainpy.math.tan(self.value, out=out.value))
+    value = None
+    if out is not None:
+      if not isinstance(out, Array):
+        out = Array(out)
+      value = brainpy.math.tan(self.value, out=out.value)
+    else:
+      value = brainpy.math.tan(self.value)
+    return Array(value)
 
   def sinh_(self) -> 'Array':
     return Array(brainpy.math.sinh(self.value, out=self.value))
@@ -1137,9 +1156,14 @@ class Array(object):
     # if out is not None:
     #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
     #     raise Exception('Unexcepted param out')
-    if not isinstance(out, Array):
-      out = Array(out)
-    return Array(brainpy.math.sinh(self.value, out=out.value))
+    value = None
+    if out is not None:
+      if not isinstance(out, Array):
+        out = Array(out)
+      value = brainpy.math.sinh(self.value, out=out.value)
+    else:
+      value = brainpy.math.sinh(self.value)
+    return Array(value)
 
   def cosh_(self) -> 'Array':
     return Array(brainpy.math.cosh(self.value, out=self.value))
@@ -1282,9 +1306,13 @@ class Array(object):
     return Array(brainpy.math.copy(self.value))
 
   def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> 'Array':
-    if not isinstance(src, Array):
-      src = Array(src)
-    brainpy.math.copyto(self.value, src)
+    value = None
+    if src is not None:
+      if not isinstance(src, Array):
+        src = Array(src)
+      value = brainpy.math.copyto(self.value, src)
+    else:
+      raise Exception("copy from None???")
     return self
 
   def conj(self) -> 'Array':
