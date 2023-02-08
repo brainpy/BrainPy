@@ -77,6 +77,12 @@ def _return(a):
 def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
 
+BmArray = "Array"
+OptionalBmArray = Optional[BmArray]
+
+def _bmarray_or_except(obj):
+  if not isinstance(obj, Array):
+    raise TypeError(F"Argument should be BrainPy Array, but got {type(obj)}")
 
 class Array(object):
   """Multiple-dimensional array in BrainPy.
@@ -926,7 +932,7 @@ class Array(object):
   # For Pytorch compitable
   # **********************************
 
-  def unsqueeze(self, dim: int) -> 'Array':
+  def unsqueeze(self, dim: int) -> BmArray:
     """
     Array.unsqueeze(dim) -> Array, or so called Tensor
     equals
@@ -934,9 +940,9 @@ class Array(object):
 
     See :func:`brainpy.math.unsqueeze`
     """
-    return Array(jnp.expand_dims(self.value, dim))
+    return _return(jnp.expand_dims(self.value, dim))
 
-  def expand_dims(self, axis: Union[int, Sequence[int]]) -> 'Array':
+  def expand_dims(self, axis: Union[int, Sequence[int]]) -> BmArray:
     """
     self.expand_dims(axis: int|Sequence[int])
 
@@ -966,9 +972,9 @@ class Array(object):
     self.expand_dims(axis)==self.expand_dims(axis[0]).expand_dims(axis[1])... expand_dims(axis[len(axis)-1])
 
     """
-    return Array(jnp.expand_dims(self.value, axis))
+    return _return(jnp.expand_dims(self.value, axis))
 
-  def expand(self, *shape: Union[int, Sequence[int]]) -> 'Array':
+  def expand(self, *shape: Union[int, Sequence[int]]) -> BmArray:
     """
     Expand an array to a new shape.
 
@@ -985,9 +991,9 @@ class Array(object):
         typically not contiguous. Furthermore, more than one element of a
         expanded array may refer to a single memory location.
     """
-    return Array(jnp.broadcast_to(self._value, shape))
+    return _return(jnp.broadcast_to(self._value, shape))
 
-  def expand_as(self, array: Union['Array', jax.Array, np.ndarray]) -> 'Array':
+  def expand_as(self, array: BmArray) -> BmArray:
     """
     Expand an array to a shape of another array.
 
@@ -1002,378 +1008,466 @@ class Array(object):
         typically not contiguous. Furthermore, more than one element of a
         expanded array may refer to a single memory location.
     """
-    if not isinstance(array, Array):
-      array = Array(array)
-    return Array(jnp.broadcast_to(self.value, array.value.shape))
-
-  def squeeze(self, 
-              axis: Optional[Union[int, Sequence]]=None) -> 'Array':
-    return Array(self.squeeze(axis))
-
-  # def item(self, *args) -> Any:
-  #   return self.value.item(*args)
+    _bmarray_or_except(array)
+    return _return(jnp.broadcast_to(self.value, array.value.shape))
 
   def pow(self, index: int):
-    return self._value ** index
+    return _return(self.value.__pow__(index))
 
   def addr(self,
-            vec1: Union['Array', jax.Array, np.ndarray],
-            vec2: Union['Array', jax.Array, np.ndarray],
+           vec1: BmArray,
+           vec2: BmArray,
+           *,
+           beta: float = 1.0,
+           alpha: float = 1.0,
+           out: OptionalBmArray = None) -> BmArray:
+    if not isinstance(beta, int) and not isinstance(beta, float):
+      raise TypeError(F'Wrong beta param of addr, need num(int or float) but got {type(beta)}')
+    if not isinstance(alpha, int) and not isinstance(alpha, float):
+      raise TypeError(F'Wrong alpha param of addr, need num(int or float) but got {type(alpha)}')
+    _bmarray_or_except(vec1)
+    _bmarray_or_except(vec2)
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = beta * self.value + jnp.outer(vec1, vec2)
+    return _return(beta * self.value + jnp.outer(vec1, vec2))
+
+  def addr_(self,
+            vec1: BmArray,
+            vec2: BmArray,
             *,
             beta: float = 1.0,
-            alpha: float = 1.0,
-            out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union[None, NoReturn]:
+            alpha: float = 1.0) -> None:
     if not isinstance(beta, int) and not isinstance(beta, float):
-      raise Exception('Wrong beta param of addr')
+      raise TypeError(F'Wrong beta param of addr, need num(int or float) but got {type(beta)}')
     if not isinstance(alpha, int) and not isinstance(alpha, float):
-      raise Exception('Wrong alpha param of addr')
-    if not isinstance(vec1, Array):
-      vec1 = Array(vec1)
-    if not isinstance(vec2, Array):
-      vec2 = Array(vec2)
-    if not isinstance(out, Array):
-      out = Array(out)
-    return _return(brainpy.math.outer(vec1, vec2, out=out))
+      raise TypeError(F'Wrong alpha param of addr, need num(int or float) but got {type(alpha)}')
+    self.value = beta * self.value + jnp.outer(vec1, vec2)
 
-
-  def addr_(self, 
-            vec1: Union['Array', jax.Array, np.ndarray],
-            vec2: Union['Array', jax.Array, np.ndarray],
-            *, 
-            beta: float = 1.0,
-            alpha: float = 1.0) -> Union['Array', NoReturn]:
-    if not isinstance(beta, (int,float)):
-      raise Exception('Wrong beta param of addr')
-    if not isinstance(alpha, (int,float)):
-      raise Exception('Wrong alpha param of addr')
-    if not isinstance(vec1, Array):
-      vec1 = Array(vec1)
-    if not isinstance(vec2, Array):
-      vec2 = Array(vec2)
-    # self.value *= beta
-    # self.value += alpha * jnp.outer(vec1, vec2)
-    return brainpy.math.outer(vec1, vec2, out=self)
-
-  def outer(self, other: Union['Array', jax.Array, np.ndarray]) -> Union[NoReturn, None]:
-    # if other is None:
-    #   raise Exception('Array can not make outer product with None')
-    if not isinstance(other, Array):
-      other = Array(other)
+  def outer(self, other: BmArray) -> Union[NoReturn, None]:
+    _bmarray_or_except(other)
     return _return(jnp.outer(self.value, other.value))
 
-  def sum(self) -> 'Array':
+  def sum(self) -> BmArray:
     return _return(self.value.sum())
 
-  def abs(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
-    # return Array(self.value.__abs__())
-    abs_value = None
+  def abs(self, *, out: OptionalBmArray = None) -> BmArray:
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      abs_value = brainpy.math.abs(self.value, out=out)
-    else:
-      abs_value = brainpy.math.abs(self.value)
-    # if isinstance(out, (Array, jax.Array, np.ndarray)):
-    #   out.value = abs_value
-    return _return(abs_value)
+      _bmarray_or_except(out)
+      out.value = jnp.abs(self.value)
+    return _return(jnp.abs(self.value))
 
-  def abs_(self) -> 'Array':
+  def abs_(self) -> BmArray:
     """
     in-place version of Array.abs()
     """
-    return brainpy.math.abs(self, out=self)
+    self.value = jnp.abs(self.value)
 
-  def absolute(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+  def absolute(self, *, out: OptionalBmArray = None) -> BmArray:
     """
     alias of Array.abs
     """
-    if not isinstance(out, Array):
-      out = Array(out)
-    return self.abs(out=out)
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = jnp.abs(self.value)
+    return _return(jnp.abs(self.value))
 
-  def absolute_(self) -> 'Array':
+  def absolute_(self) -> BmArray:
     """
     alias of Array.abs_()
     """
     return self.abs_()
 
-  def sin(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+  def sin(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    sin(self,out=None),
+    return the sin value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.sin(self.value, out=out)
-    else:
-      value = brainpy.math.sin(self.value)
-    return Array(value)
+      _bmarray_or_except(out)
+      out.value = jnp.sin(self.value)
+    return _return(jnp.sin(self.value))
 
-  def sin_(self) -> 'Array':
-    return Array(brainpy.math.sin(self.value, out=self))
+  def sin_(self) -> None:
+    '''
+    `sin_(self)`,
+    no return!
+    in-place version of `sin`
 
-  def cos_(self) -> 'Array':
-    return Array(brainpy.math.cos(self.value, out=self))
+    out is the sin value of self,
+    and save the result to self
+    '''
+    self.value = jnp.sin(self.value)
 
-  def cos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+  def sinh(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    sinh(self,out=None),
+    return the sinh value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.cos(self.value, out=out.value)
-    else:
-      value = brainpy.math.cos(self.value)
-    return Array(value)
+      _bmarray_or_except(out)
+      out.value = jnp.sinh(self.value)
+    return _return(jnp.sinh(self.value))
 
-  def tan_(self) -> 'Array':
-    return Array(brainpy.math.tan(self.value, out=self.value))
-  
-  def tan(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+  def sinh_(self) -> None:
+    '''
+    `sinh_(self)`,
+    no return!
+    in-place version of `sinh`
+
+    out is the sinh value of self,
+    and save the result to self
+    '''
+    self.value = jnp.sinh(self.value)
+
+  def arcsin(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    arcsin(self,out=None),
+    return the arcsin value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.tan(self.value, out=out.value)
-    else:
-      value = brainpy.math.tan(self.value)
-    return Array(value)
+      _bmarray_or_except(out)
+      out.value = jnp.arcsin(self.value)
+    return _return(jnp.arcsin(self.value))
 
-  def sinh_(self) -> 'Array':
-    return Array(brainpy.math.sinh(self.value, out=self.value))
+  def arcsin_(self) -> None:
+    '''
+    `arcsin_(self)`,
+    no return!
+    in-place version of `arcsin`
 
-  def sinh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+    out is the arcsin value of self,
+    and save the result to self
+    '''
+    self.value = jnp.arcsin(self.value)
+
+  def arcsinh(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    arcsinh(self,out=None),
+    return the arcsinh value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.sinh(self.value, out=out.value)
-    else:
-      value = brainpy.math.sinh(self.value)
-    return Array(value)
+      _bmarray_or_except(out)
+      out.value = jnp.arcsinh(self.value)
+    return _return(jnp.arcsinh(self.value))
 
-  def cosh_(self) -> 'Array':
-    return Array(brainpy.math.cosh(self.value, out=self.value))
+  def arcsinh_(self) -> None:
+    '''
+    `arcsinh_(self)`,
+    no return!
+    in-place version of `arcsinh`
 
-  def cosh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    if not isinstance(out, Array):
-      out = Array(out)
-    return Array(brainpy.math.cosh(self.value, out=out.value))
-  
-  def tanh_(self) -> 'Array':
-    return Array(brainpy.math.tanh(self.value, out=self.value))
+    out is the arcsinh value of self,
+    and save the result to self
+    '''
+    self.value = jnp.arcsinh(self.value)
 
-  def tanh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+  def cos(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    cos(self,out=None),
+    return the cos value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.tanh(self.value, out=out.value)
-    else:
-      value = brainpy.math.tanh(self.value)
-    return Array(value)
-  
-  def arcsin_(self) -> 'Array':
-    return Array(brainpy.math.arcsin(self.value, out=self.value))
+      _bmarray_or_except(out)
+      out.value = jnp.cos(self.value)
+    return _return(jnp.cos(self.value))
 
-  def arcsin(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    if not isinstance(out, Array):
-      out = Array(out)
-    return Array(brainpy.math.arcsin(self.value, out=out.value))
-  
-  def arccos_(self) -> 'Array':
-    return Array(brainpy.math.arccos(self.value, out=self.value))
+  def cos_(self) -> None:
+    '''
+    `cos_(self)`,
+    no return!
+    in-place version of `cos`
 
-  def arccos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+    out is the cos value of self,
+    and save the result to self
+    '''
+    self.value = jnp.cos(self.value)
+
+  def cosh(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    cosh(self,out=None),
+    return the cosh value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.arccos(self.value, out=out.value)
-    else:
-      value = brainpy.math.arccos(self.value)
-    return Array(value)
-  
-  def arctan_(self) -> 'Array':
-    return Array(brainpy.math.arctan(self.value, out=self.value))
+      _bmarray_or_except(out)
+      out.value = jnp.cosh(self.value)
+    return _return(jnp.cosh(self.value))
 
-  def arctan(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Union['Array', NoReturn]:
-    # return Array(self.value.__abs__())
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
+  def cosh_(self) -> None:
+    '''
+    `cosh_(self)`,
+    no return!
+    in-place version of `cosh`
+
+    out is the cosh value of self,
+    and save the result to self
+    '''
+    self.value = jnp.cosh(self.value)
+
+  def arccos(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    arccos(self,out=None),
+    return the arccos value of self,
+    and save the result to out if out is not None
+    '''
     if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.arctan(self.value, out=out.value)
-    else:
-      value = brainpy.math.arctan(self.value)
-    return Array(value)
+      _bmarray_or_except(out)
+      out.value = jnp.arccos(self.value)
+    return _return(jnp.arccos(self.value))
 
-  # def all(self,
-  #         axis: Optional[int] = None,
-  #         keepdim: bool = False,
-  #         *,
-  #         out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
-  #   """
-  #   test if all element cast to true
-  #   """
-  #   # if out is not None:
-  #   #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-  #   #     raise Exception('Unexcepted param out')
-  #   value = value = brainpy.math.all(self.value, axis, keepdim)
-  #   if out is not None:
-  #     if not isinstance(out, Array):
-  #       warnings.showwarning("out is not a brainpy Array")
-  #       out = Array(out)
-  #     out.update(value)
-  #   return Array(value)
+  def arccos_(self) -> None:
+    '''
+    `arccos_(self)`,
+    no return!
+    in-place version of `arccos`
 
-  # def any(self,
-  #         dim:  int,
-  #         keepdim: bool,
-  #         *,
-  #         out: Optional[Union['Array', jax.Array, np.ndarray]] = None):
-  #   """
-  #   test if any element cast to true
-  #   """
-  #   value = value = brainpy.math.any(self.value)
-  #   if out is not None:
-  #     if not isinstance(out, Array):
-  #       warnings.showwarning("out is not a brainpy Array")
-  #       out = Array(out)
-  #     out.update(value)
-  #   return Array(value)
+    out is the arccos value of self,
+    and save the result to self
+    '''
+    self.value = jnp.arccos(self.value)
+
+  def arccosh(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    arccosh(self,out=None),
+    return the arccosh value of self,
+    and save the result to out if out is not None
+    '''
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = jnp.arccosh(self.value)
+    return _return(jnp.arccosh(self.value))
+
+  def arccosh_(self) -> None:
+    '''
+    `arccosh_(self)`,
+    no return!
+    in-place version of `arccosh`
+
+    out is the arccosh value of self,
+    and save the result to self
+    '''
+    self.value = jnp.arccosh(self.value)
+
+  def tan(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    tan(self,out=None),
+    return the tan value of self,
+    and save the result to out if out is not None
+    '''
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = jnp.tan(self.value)
+    return _return(jnp.tan(self.value))
+
+  def tan_(self) -> None:
+    '''
+    `tan_(self)`,
+    no return!
+    in-place version of `tan`
+
+    out is the tan value of self,
+    and save the result to self
+    '''
+    self.value = jnp.tan(self.value)
+
+  def tanh(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    tanh(self,out=None),
+    return the tanh value of self,
+    and save the result to out if out is not None
+    '''
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = jnp.tanh(self.value)
+    return _return(jnp.tanh(self.value))
+
+  def tanh_(self) -> None:
+    '''
+    `tanh_(self)`,
+    no return!
+    in-place version of `tanh`
+
+    out is the tanh value of self,
+    and save the result to self
+    '''
+    self.value = jnp.tanh(self.value)
+
+  def arctan(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    arctan(self,out=None),
+    return the arctan value of self,
+    and save the result to out if out is not None
+    '''
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = jnp.arctan(self.value)
+    return _return(jnp.arctan(self.value))
+
+  def arctan_(self) -> None:
+    '''
+    `arctan_(self)`,
+    no return!
+    in-place version of `arctan`
+
+    out is the arctan value of self,
+    and save the result to self
+    '''
+    self.value = jnp.arctan(self.value)
+
+  def arctanh(self, *, out: OptionalBmArray = None) -> BmArray:
+    '''
+    arctanh(self,out=None),
+    return the arctanh value of self,
+    and save the result to out if out is not None
+    '''
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = jnp.arctanh(self.value)
+    return _return(jnp.arctanh(self.value))
+
+  def arctanh_(self) -> None:
+    '''
+    `arctanh_(self)`,
+    no return!
+    in-place version of `arctanh`
+
+    out is the arctanh value of self,
+    and save the result to self
+    '''
+    self.value = jnp.arctanh(self.value)
 
   def clamp(self,
-            min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
+            min_value: OptionalBmArray = None,
+            max_value: OptionalBmArray = None,
             *,
-            out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+            out: OptionalBmArray = None) -> BmArray:
     """
     return the value between min_value and max_value,
     if min_value is None, then no lower bound,
     if max_value is None, then no upper bound.
     """
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-
-    # value = None
-    # if out is not None:
-    #   if not isinstance(out, Array):
-    #     out = Array(out)
-    #   value = brainpy.math.clip(self.value, min_value, max_value, out=out)
-    # else:
-    #   value = brainpy.math.clip(self.value, min_value, max_value)
-    # return Array(value)
-
+    if out is not None:
+      _bmarray_or_except(out)
+      out.value = self.value.clip(min_value, max_value)
     return _return(self.value.clip(min_value, max_value))
 
   def clamp_(self,
-            min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+             min_value: OptionalBmArray = None,
+             max_value: OptionalBmArray = None) -> BmArray:
     """
     return the value between min_value and max_value,
     if min_value is None, then no lower bound,
     if max_value is None, then no upper bound.
     """
-    return brainpy.math.clip(self.value, min_value, max_value, out=self)
+    self.value = jnp.clip(self.value, min_value, max_value)
 
   def clip_(self,
-             min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-             max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+            min_value: OptionalBmArray = None,
+            max_value: OptionalBmArray = None) -> BmArray:
     """
     alias for clamp_
     """
-    return Array(brainpy.math.clip(self.value, min_value, max_value, out=self))
+    self.value = self.clip(min_value, max_value)
 
-  def clip(self,
-            min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-            *,
-            out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> 'Array':
+  def clone(self) -> BmArray:
     """
-    alias for clamp
+    A copy of current Array
+    same as Array.copy
     """
-    # if out is not None:
-    #   if not isinstance(out, (Array, jax.Array, np.ndarray)):
-    #     raise Exception('Unexcepted param out')
-    value = None
-    if out is not None:
-      if not isinstance(out, Array):
-        out = Array(out)
-      value = brainpy.math.clip(self.value, out=out)
-    else:
-      value = brainpy.math.clip(self.value)
-    return Array(value)
+    return _return(jnp.copy(self.value))
 
-  def clone(self) -> 'Array':
-    return Array(brainpy.math.copy(self.value))
+  def copy_(self, src: BmArray) -> None:
+    _bmarray_or_except(src)
+    self.value = jnp.copyto(self.value, src)
 
-  def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> 'Array':
-    value = None
-    if src is not None:
-      if not isinstance(src, Array):
-        src = Array(src)
-      value = brainpy.math.copyto(self.value, src)
-    else:
-      raise Exception("copy from None???")
-    return self
-
-  # def conj(self) -> 'Array':
-  #   return Array(brainpy.math.conj(self.value))
+  def copy_from(self, src: BmArray) -> None:
+    _bmarray_or_except(src)
+    self.value = jnp.copyto(self.value, src)
 
   def cov_with(self,
-          y: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-          rowvar: bool = True,
-          bias: bool = False,
-          ddof: Optional[int] = None,
-          fweights: Union['Array', jax.Array, np.ndarray] = None,
-          aweights: Union['Array', jax.Array, np.ndarray] = None) -> 'Array':
-    return Array(brainpy.math.cov(self.value, y, rowvar, bias, fweights, aweights))
+               y: BmArray,
+               rowvar: bool = True,
+               bias: bool = False,
+               ddof: Optional[int] = None,
+               fweights: OptionalBmArray = None,
+               aweights: OptionalBmArray = None) -> BmArray:
+    """
+
+    Parameters:
+
+      `y` (Array) – A 2D matrix containing multiple variables and observations,
+      or a Scalar or 1D vector representing a single variable.
+      Must be Array, ortherwise raise TypeError
+
+    Keyword Arguments:
+
+      `ddof` (int, optional) – difference between the sample size and sample degrees of freedom.
+      Defaults to Bessel’s correction, correction = 1 which returns the unbiased estimate,
+      even if both fweights and aweights are specified. correction = 0 will return the simple average.
+      Defaults to 1.
+
+      `fweights` (tensor, optional) – A Scalar or 1D tensor of observation vector frequencies representing the number of times each observation should be repeated.
+      Its numel must equal the number of columns of input. Must have integral dtype. Ignored if None. Defaults to ``None`.
+
+      `aweights` (tensor, optional) – A Scalar or 1D array of observation vector weights.
+      These relative weights are typically large for observations considered “important” and smaller for observations considered less “important”.
+      Its numel must equal the number of columns of input. Must have floating point dtype. Ignored if None. Defaults to ``None`.
+
+    """
+
+    if y is None:
+      raise TypeError("cov with None is invalid")
+    _bmarray_or_except(y)
+    if fweights is not None:
+      _bmarray_or_except(fweights)
+    if aweights is not None:
+      _bmarray_or_except(aweights)
+    return _return(jnp.cov(self.value, y.value, rowvar, bias, fweights, aweights))
 
   def cov(self,
           *,
-          correction: int = 1,
-          fweights: Union['Array', jax.Array, np.ndarray] = None,
-          aweights: Union['Array', jax.Array, np.ndarray] = None) -> Union['Array', NoReturn]:
+          ddof: int = 1,
+          fweights: OptionalBmArray = None,
+          aweights: OptionalBmArray = None) -> BmArray:
+    """
+
+    Parameters:
+
+      `y` (Array) – A 2D matrix containing multiple variables and observations,
+      or a Scalar or 1D vector representing a single variable.
+      Must be Array, ortherwise raise TypeError
+
+    Keyword Arguments:
+
+      `ddof` (int, optional) – difference between the sample size and sample degrees of freedom.
+      Defaults to Bessel’s correction, correction = 1 which returns the unbiased estimate,
+      even if both fweights and aweights are specified. correction = 0 will return the simple average.
+      Defaults to 1.
+
+      `fweights` (tensor, optional) – A Scalar or 1D tensor of observation vector frequencies representing the number of times each observation should be repeated.
+      Its numel must equal the number of columns of input. Must have integral dtype. Ignored if None. Defaults to ``None`.
+
+      `aweights` (tensor, optional) – A Scalar or 1D array of observation vector weights.
+      These relative weights are typically large for observations considered “important” and smaller for observations considered less “important”.
+      Its numel must equal the number of columns of input. Must have floating point dtype. Ignored if None. Defaults to ``None`.
+
+    """
+    if fweights is not None:
+      _bmarray_or_except(fweights)
+    if aweights is not None:
+      _bmarray_or_except(aweights)
     try:
       x = [e[0] for e in self.value]
       y = [e[1] for e in self.value]
-      return Array(brainpy.math.cov(x, y, ddof=correction, fweights=fweights, aweights=aweights))
+      return _return(jnp.cov(x, y, ddof=ddof, fweights=fweights, aweights=aweights))
     except Exception as e:
-      raise Exception('Wrong format, need to be [[x1,y1],[x2,y2],[x3,y3]]')
+      raise ValueError('Wrong format, need to be [[x1,y1],[x2,y2],[x3,y3]]')
 
 
   # ------------------
