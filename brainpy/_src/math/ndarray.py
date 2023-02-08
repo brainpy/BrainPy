@@ -924,6 +924,29 @@ class Array(object):
     return to_dlpack(self.value)
 
 
+  # ------------------
+  # Torch support
+  # ------------------
+
+  def expand(self, *sizes) -> jax.Array:
+    l_ori = len(self.shape)
+    l_tar = len(sizes)
+    base = l_tar - l_ori
+    sizes_list = list(sizes)
+    if base < 0:
+      raise ValueError(f'the number of sizes provided ({len(sizes)}) must be greater or equal to the number of '
+                       f'dimensions in the tensor ({len(self.shape)})')
+    for i, v in enumerate(sizes[:base]):
+      if v < 0:
+        raise ValueError(f'The expanded size of the tensor ({v}) isn\'t allowed in a leading, non-existing dimension {i + 1}')
+    for i, v in enumerate(self.shape):
+      sizes_list[base + i] = v if sizes_list[base + i] == -1 else sizes_list[base + i]
+      if v != 1 and sizes_list[base + i] != v:
+          raise ValueError(f'The expanded size of the tensor ({sizes_list[base + i]}) must match the existing size ({v}) at non-singleton '
+                           f'dimension {i}.  Target sizes: {sizes}.  Tensor sizes: {self.shape}')
+    return jnp.broadcast_to(self.value, sizes_list)
+
+
 JaxArray = Array
 ndarray = Array
 
