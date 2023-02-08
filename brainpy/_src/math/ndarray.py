@@ -1380,7 +1380,7 @@ class Array(object):
   # Torch support
   # ------------------
 
-  def expand(self, *sizes) -> jax.Array:
+  def expand(self, *sizes) -> 'Array':
     l_ori = len(self.shape)
     l_tar = len(sizes)
     base = l_tar - l_ori
@@ -1396,7 +1396,7 @@ class Array(object):
       if v != 1 and sizes_list[base + i] != v:
           raise ValueError(f'The expanded size of the tensor ({sizes_list[base + i]}) must match the existing size ({v}) at non-singleton '
                            f'dimension {i}.  Target sizes: {sizes}.  Tensor sizes: {self.shape}')
-    return jnp.broadcast_to(self.value, sizes_list)
+    return Array(jax.broadcast_to(self.value, sizes_list))
 
 
 JaxArray = Array

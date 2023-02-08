@@ -68,7 +68,7 @@ def flatten(input: Union[jax.Array, Array],
   return jnp.reshape(input, new_shape)
 
 
-def unsqueeze(input: Union[jax.Array, Array], dim: int) -> jax.Array:
+def unsqueeze(input: Union[jax.Array, Array], dim: int) -> Array:
     """Returns a new tensor with a dimension of size one inserted at the specified position.
   The returned tensor shares the same underlying data with this tensor.
   A dim value within the range [-input.dim() - 1, input.dim() + 1) can be used.
@@ -85,4 +85,4 @@ def unsqueeze(input: Union[jax.Array, Array], dim: int) -> jax.Array:
   out: Array
   """
     input = _as_jax_array_(input)
-    return jnp.expand_dims(input, dim)
+    return Array(jnp.expand_dims(input, dim))
