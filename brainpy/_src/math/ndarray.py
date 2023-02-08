@@ -1042,6 +1042,8 @@ class Array(object):
       raise TypeError(F'Wrong beta param of addr, need num(int or float) but got {type(beta)}')
     if not isinstance(alpha, int) and not isinstance(alpha, float):
       raise TypeError(F'Wrong alpha param of addr, need num(int or float) but got {type(alpha)}')
+    _bmarray_or_except(vec1)
+    _bmarray_or_except(vec2)
     self.value = beta * self.value + jnp.outer(vec1, vec2)
 
   def outer(self, other: BmArray) -> Union[NoReturn, None]:
