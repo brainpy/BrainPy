@@ -27,3 +27,21 @@ class TestFlatten(unittest.TestCase):
     arr = compat_pytorch.flatten(arr)
     self.assertTrue(arr.ndim == 1)
 
+
+class TestUnsqueeze(unittest.TestCase):
+  def test1(self):
+    rng = bm.random.default_rng(999)
+    arr = rng.rand(3, 4, 5)
+    a = compat_pytorch.unsqueeze(arr, 0)
+    self.assertTrue(a.shape == (1, 3, 4, 5))
+    a = compat_pytorch.unsqueeze(arr, -3)
+    self.assertTrue(a.shape == (3, 1, 4, 5))
+
+class TestExpand(unittest.TestCase):
+  def test1(self):
+    rng = bm.random.default_rng(121)
+    arr = rng.rand(1, 4, 5)
+    a = compat_pytorch.Tensor(arr)
+    a = a.expand(1, 6, 4, -1)
+    self.assertTrue(a.shape == (1, 6, 4, 5))
+
