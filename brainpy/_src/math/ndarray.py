@@ -1057,7 +1057,7 @@ class Array(object):
       out.value = jnp.abs(self.value)
     return _return(jnp.abs(self.value))
 
-  def abs_(self) -> BmArray:
+  def abs_(self) -> None:
     """
     in-place version of Array.abs()
     """
@@ -1072,11 +1072,11 @@ class Array(object):
       out.value = jnp.abs(self.value)
     return _return(jnp.abs(self.value))
 
-  def absolute_(self) -> BmArray:
+  def absolute_(self) -> None:
     """
     alias of Array.abs_()
     """
-    return self.abs_()
+    self.value = jnp.abs(self.value)
 
   def sin(self, *, out: OptionalBmArray = None) -> BmArray:
     '''
