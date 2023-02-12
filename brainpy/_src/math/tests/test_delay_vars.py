@@ -5,7 +5,7 @@ import unittest
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy._src.math.delayvars import ROTATION_UPDATING, CONCAT_UPDATING
+from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 
 
 class TestTimeDelay(unittest.TestCase):
@@ -94,7 +94,7 @@ class TestTimeDelay(unittest.TestCase):
 class TestLengthDelay(unittest.TestCase):
   def test1(self):
     dim = 3
-    for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
+    for update_method in [ROTATE_UPDATE, CONCAT_UPDATE]:
       delay = bm.LengthDelay(jnp.zeros(dim), 10, update_method=update_method)
       print(delay(1))
       self.assertTrue(jnp.allclose(delay(1), jnp.zeros(dim)))
@@ -105,7 +105,7 @@ class TestLengthDelay(unittest.TestCase):
 
   def test2(self):
     dim = 3
-    for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
+    for update_method in [ROTATE_UPDATE, CONCAT_UPDATE]:
       delay = bm.LengthDelay(jnp.zeros(dim), 10,
                              # initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
                              initial_delay_data=jnp.arange(10, 0, -1).reshape((10, 1)),
@@ -123,7 +123,7 @@ class TestLengthDelay(unittest.TestCase):
 
   def test3(self):
     dim = 3
-    for update_method in [ROTATION_UPDATING, CONCAT_UPDATING]:
+    for update_method in [ROTATE_UPDATE, CONCAT_UPDATE]:
       delay = bm.LengthDelay(jnp.zeros(dim), 10,
                              # initial_delay_data=jnp.arange(1, 11).reshape((10, 1)),
                              initial_delay_data=jnp.arange(10, 0, -1).reshape((10, 1)),
