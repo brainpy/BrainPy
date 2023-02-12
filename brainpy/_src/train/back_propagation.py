@@ -5,17 +5,17 @@ import time
 from collections.abc import Iterable
 from functools import partial
 from typing import Union, Dict, Callable, Sequence, Any, Optional
+from tqdm import tqdm
 
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map
 
-import brainpy.math as bm
-import brainpy._src.optimizers as optim
-from brainpy._src.math.object_transform.base import BrainPyObject
 import brainpy.losses as losses
-from brainpy import tools
+import brainpy.math as bm
+from brainpy import tools, optim
 from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.running import constants as c
 from brainpy.check import serialize_kwargs
 from brainpy.errors import UnsupportedError, NoLongerSupportError
@@ -49,6 +49,8 @@ class BPTrainer(DSTrainer):
     should be provided.
   loss_has_aux: bool
     To indicate whether the `loss_fun` returns auxiliary data.
+  loss_auto_run: bool
+    pass
   optimizer: optim.Optimizer
     The optimizer used for training.
   numpy_mon_after_run: bool
@@ -72,7 +74,8 @@ class BPTrainer(DSTrainer):
       loss_fun: Union[str, Callable],  # loss function
       optimizer: optim.Optimizer = None,  # optimizer
       loss_has_aux: bool = False,  # loss auxiliary
-      logger: Any = sys.stdout,
+      loss_auto_run: bool = True,  # loss auxiliary
+      logger: Optional[Any] = None,
 
       # -------------
       # API deprecated
@@ -126,6 +129,7 @@ class BPTrainer(DSTrainer):
       raise UnsupportedError(f'Do not support {type(loss_fun)} to specify the loss function. '
                              f'We only support str and callable function.')
     self._loss_func = loss_fun
+    self.loss_auto_run = loss_auto_run
 
     # loss data
     self._report_train_metrics = dict()
@@ -264,8 +268,10 @@ class BPTrainer(DSTrainer):
       # training set
       fit_t0 = time.time()
       fit_epoch_metric = dict(loss=[])
-      for x, y in (train_data() if callable(train_data) else train_data):
+      _training_data = train_data() if callable(train_data) else train_data
+      bar = tqdm(total=len(_training_data) if hasattr(_training_data, '__len__') else None)
 
+      for x, y in _training_data:
         # reset state
         if reset_state:
           self.target.reset_state(self._get_input_batch_size(x))
@@ -283,6 +289,7 @@ class BPTrainer(DSTrainer):
             if k not in fit_epoch_metric:
               fit_epoch_metric[k] = []
             fit_epoch_metric[k].append(v)
+        bar.update(1)
 
         # report
         fit_i += 1
@@ -297,9 +304,11 @@ class BPTrainer(DSTrainer):
             report_train_metric[k].append(aux[k])
             detailed_train_metric[k].extend(v)
             v.clear()
-          print((f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
-                 ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
-                file=self.logger)
+          _report = (f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
+                     ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
+          bar.set_description(_report, refresh=True)
+          if self.logger is not None:
+            self.logger.write(_report + '\n')
           if fun_after_report is not None:
             fun_after_report(fit_i, aux, 'fit')
           fit_t0 = time.time()
@@ -316,20 +325,25 @@ class BPTrainer(DSTrainer):
           report_train_metric[k].append(aux[k])
           detailed_train_metric[k].extend(v)
           v.clear()
-        print((f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
-               ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
-              file=self.logger)
+        _report = (f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
+                   ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
+        bar.set_description(_report, refresh=True)
+        if self.logger is not None:
+          self.logger.write(_report + '\n')
         if fun_after_report is not None:
           fun_after_report(epoch_idx, aux, 'fit')
       else:
         fit_t = time.time() - fit_t0
       self.optimizer.lr.step_epoch()
+      bar.close()
 
       # testing set
       if test_data is not None:
         test_t0 = time.time()
         test_epoch_metric = dict(loss=[])
-        for x, y in (test_data() if callable(test_data) else test_data):
+        _testing_data = test_data() if callable(test_data) else test_data
+        bar = tqdm(total=len(_testing_data) if hasattr(_testing_data, '__len__') else None)
+        for x, y in _testing_data:
           # reset state
           if reset_state:
             self.target.reset_state(self._get_input_batch_size(x))
@@ -350,6 +364,8 @@ class BPTrainer(DSTrainer):
           else:
             test_epoch_metric['loss'].append(res)
 
+          bar.update(1)
+
           # report
           test_i += 1
           if num_report > 0 and test_i % num_report == 0:
@@ -363,9 +379,11 @@ class BPTrainer(DSTrainer):
               report_test_metric[k].append(aux[k])
               detailed_test_metric[k].extend(v)
               v.clear()
-            print((f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
-                   ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
-                  file=self.logger)
+            _report = (f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
+                       ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
+            bar.set_description(_report, refresh=True)
+            if self.logger is not None:
+              self.logger.write(_report + '\n')
             if fun_after_report is not None:
               fun_after_report(test_i, aux, 'test')
             test_t0 = time.time()
@@ -382,13 +400,17 @@ class BPTrainer(DSTrainer):
             report_test_metric[k].append(aux[k])
             detailed_test_metric[k].extend(v)
             v.clear()
-          print((f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
-                 ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()]))),
-                file=self.logger)
+          _report = (f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
+                     ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
+          bar.set_description(_report, refresh=True)
+          if self.logger is not None:
+            self.logger.write(_report + '\n')
           if fun_after_report is not None:
             fun_after_report(epoch_idx, aux, 'test')
         else:
           test_t = time.time() - test_t0
+
+        bar.close()
 
     # finally
     self._report_train_metrics = {k: np.asarray(v) for k, v in report_train_metric.items()}
@@ -492,7 +514,7 @@ class BPTT(BPTrainer):
     .. code-block:: python
 
        def loss_fun(predicts, targets):
-          return loss, {'acc': acc, 'spike_num': spike_num}
+           return loss, {'acc': acc, 'spike_num': spike_num}
   optimizer: Optimizer
     The optimizer used for training. Should be an instance of :py:class:`~.Optimizer`.
   numpy_mon_after_run: bool
@@ -544,6 +566,7 @@ class BPFF(BPTrainer):
 
   def _step_func_predict(self, shared, x=None):
     assert self.data_first_axis == 'B', f'There is no time dimension when using the trainer {self.__class__.__name__}.'
+    bm.share.save_shargs(**shared)
 
     # input step
     self.target.clear_input()
@@ -555,6 +578,7 @@ class BPFF(BPTrainer):
 
     # monitor step
     mon = self._step_func_monitor(shared)
+    bm.share.remove_shargs(shared)
     return out, mon
 
   def _get_f_predict(self, shared_args: Dict = None, jit: bool = True):
@@ -630,7 +654,7 @@ class BPFF(BPTrainer):
     return (t1 - t0, outs) if eval_time else outs
 
 
-class OnlineBPTT(BPTT):
+class _OnlineBPTT(BPTT):
   def _step_func_loss(self, shared_args, t, i, input_, target_):
     outputs, mon = self._get_f_predict_one_step(shared_args)(t, i, input_)
     predicts = (outputs, mon) if len(mon) > 0 else outputs
