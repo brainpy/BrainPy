@@ -2,28 +2,28 @@
 
 import collections
 import gc
-from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
+import warnings
+from typing import Union, Dict, Callable, Sequence, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy import tools, check
+from brainpy import tools
 from brainpy._src import math as bm
-from brainpy._src.math.ndarray import Variable, VariableView
-from brainpy._src.math.object_transform.base import BrainPyObject, Collector
 from brainpy._src.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy._src.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy._src.integrators import odeint, sdeint
-from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
+from brainpy._src.math.ndarray import Variable, VariableView
+from brainpy._src.math.object_transform.base import BrainPyObject, Collector
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 
 __all__ = [
   # general class
   'DynamicalSystem',
+  'Module',
   'FuncAsDynSys',
-  'DSPartial',
 
   # containers
   'Container', 'Network', 'Sequential', 'System',
@@ -48,6 +48,46 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
+def not_pass_shargs(func: Callable):
+  """Label the update function as the one without passing shared arguments.
+
+  The original update function explicitly requires shared arguments at the first place::
+
+    class TheModel(DynamicalSystem):
+        def update(self, s, x):
+            # s is the shared arguments, like `t`, `dt`, etc.
+            pass
+
+  So, each time we call the model we should provide shared arguments into the model::
+
+    TheModel()(shared, inputs)
+
+  When we label the update function as ``do_not_pass_sha_args``, this time there is no
+  need to call the dynamical system with shared arguments::
+
+    class NewModel(DynamicalSystem):
+       @no_shared
+       def update(self, x):
+         pass
+
+    NewModel()(inputs)
+
+  .. versionadded:: 2.3.5
+
+  Parameters
+  ----------
+  func: Callable
+    The function in the :py:class:`~.DynamicalSystem`.
+
+  Returns
+  -------
+  func: Callable
+    The wrapped function for the class.
+  """
+  func._new_style = True
+  return func
+
+
 class DynamicalSystem(BrainPyObject):
   """Base Dynamical System class.
 
@@ -65,7 +105,6 @@ class DynamicalSystem(BrainPyObject):
      we recommend users to use :py:func:`~.for_loop`, :py:class:`~.LoopOverTime`,
      :py:class:`~.DSRunner`, or :py:class:`~.DSTrainer`.
 
-
   Parameters
   ----------
   name : optional, str
@@ -73,12 +112,6 @@ class DynamicalSystem(BrainPyObject):
   mode: optional, Mode
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
-
-  online_fit_by: Optional[OnlineAlgorithm]
-  '''Online fitting method.'''
-
-  offline_fit_by: Optional[OfflineAlgorithm]
-  '''Offline fitting method.'''
 
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], Variable]] = dict()
   '''Global delay data, which stores the delay variables and corresponding delay targets. 
@@ -97,15 +130,11 @@ class DynamicalSystem(BrainPyObject):
                        f'but we got {type(mode)}: {mode}')
     self._mode = mode
 
-    super(DynamicalSystem, self).__init__(name=name)
-
     # local delay variables
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
-    # fitting parameters
-    self.online_fit_by = None
-    self.offline_fit_by = None
-    self.fit_record = dict()
+    # super initialization
+    super(DynamicalSystem, self).__init__(name=name)
 
   @property
   def mode(self) -> bm.Mode:
@@ -124,7 +153,21 @@ class DynamicalSystem(BrainPyObject):
 
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
-    return self.update(*args, **kwargs)
+    if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
+      if len(args) and isinstance(args[0], dict):
+        bm.share.save_shargs(**args[0])
+        return self.update(*args[1:], **kwargs)
+      else:
+        return self.update(*args, **kwargs)
+    else:
+      if len(args) and isinstance(args[0], dict):
+        return self.update(*args, **kwargs)
+      else:
+        # If first argument is not shared argument,
+        # we should get the shared arguments from the global context.
+        # However, users should set and update shared arguments
+        # in the global context when using this mode.
+        return self.update(bm.share.get_shargs(), *args, **kwargs)
 
   def register_delay(
       self,
@@ -339,24 +382,11 @@ class DynamicalSystem(BrainPyObject):
       del self.__dict__[key]
     gc.collect()
 
-  @tools.not_customized
-  def online_init(self):
-    raise NoImplementationError('Subclass must implement online_init() function when using OnlineTrainer.')
-
-  @tools.not_customized
-  def online_fit(self,
-                 target: ArrayType,
-                 fit_record: Dict[str, ArrayType]):
-    raise NoImplementationError('Subclass must implement online_fit() function when using OnlineTrainer.')
-
-  @tools.not_customized
-  def offline_fit(self,
-                  target: ArrayType,
-                  fit_record: Dict[str, ArrayType]):
-    raise NoImplementationError('Subclass must implement offline_fit() function when using OfflineTrainer.')
-
   def clear_input(self):
     pass
+
+
+Module = DynamicalSystem
 
 
 class FuncAsDynSys(DynamicalSystem):
@@ -410,31 +440,6 @@ class FuncAsDynSys(DynamicalSystem):
     return (f'{name}(nodes=[{node_string}],\n' +
             f'{indent}num_of_vars={len(self.implicit_vars)})')
 
-
-class DSPartial(FuncAsDynSys):
-  def __init__(
-      self,
-      target: Callable,
-      *args,
-      child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-      dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-      shared: Dict = None,
-      **keywords
-  ):
-    super().__init__(target=target, child_objs=child_objs, dyn_vars=dyn_vars)
-
-    check.is_dict_data(shared, all_none=True)
-    self.target = check.is_callable(target, )
-    self.args = tuple(args)
-    self.keywords = keywords
-    self.shared = dict() if shared is None else shared
-
-  def __call__(self, s, *args, **keywords):
-    assert isinstance(s, dict)
-    s = tools.DotDict(s).update(self.shared)
-    args = self.args + (s,) + args
-    keywords = {**self.keywords, **keywords}
-    return self.target(*args, **keywords)
 
 
 class Container(DynamicalSystem):
@@ -639,7 +644,7 @@ class Sequential(Container):
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  def update(self, *args) -> ArrayType:
+  def update(self, s, x) -> ArrayType:
     """Update function of a sequential model.
 
     Parameters
@@ -654,7 +659,6 @@ class Sequential(Container):
     y: ArrayType
       The output tensor.
     """
-    s, x = (dict(), args[0]) if len(args) == 1 else (args[0], args[1])
     for m in self._modules:
       if isinstance(m, DynamicalSystem):
         x = m(s, x)
@@ -818,7 +822,7 @@ class NeuGroup(DynamicalSystem):
     else:
       return (batch_size,) + self.varshape
 
-  def update(self, tdi, x=None):
+  def update(self, *args):
     """The function to specify the updating rule.
 
     Parameters
