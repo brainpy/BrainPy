@@ -538,10 +538,7 @@ class DelayVariable(AbstractDelay):
     if initial_delay_data is not None:
       assert isinstance(initial_delay_data, (int, float, bool, Array, jax.Array, Callable))
     self._initial_delay_data = initial_delay_data
-    if self.length > 0:
-      self._init_data(length)
-    else:
-      self.data = None
+    self._init_data(length)
 
     # time variables
     if self.update_method == ROTATE_UPDATE:
@@ -644,14 +641,9 @@ class DelayVariable(AbstractDelay):
         return self.retrieve(delay_step, *indices)
 
   @property
-  def delay_shape(self):
-    """The data shape of this delay variable."""
-    return self.data.shape
-
-  @property
   def delay_target_shape(self):
     """The data shape of the delay target."""
-    return self.data.shape[1:]
+    return self.target.shape
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -699,25 +691,23 @@ class DelayVariable(AbstractDelay):
   def update(self):
     """Update delay variable with the new data.
     """
-    if self.data is not None:
-      # update the delay data at the rotation index
-      if self.update_method == ROTATE_UPDATE:
-        self.idx.value = stop_gradient(as_jax((self.idx - 1) % self.length))
-        self.data[self.idx.value] = self.target.value
+    # update the delay data at the rotation index
+    if self.update_method == ROTATE_UPDATE:
+      self.idx.value = stop_gradient(as_jax((self.idx - 1) % self.length))
+      self.data[self.idx.value] = self.target.value
 
-      # update the delay data at the first position
-      elif self.update_method == CONCAT_UPDATE:
-        if self.length >= 2:
-          self.data.value = bm.vstack([self.target.value, self.data[1:]])
-        else:
-          self.data[0] = self.target.value
+    # update the delay data at the first position
+    elif self.update_method == CONCAT_UPDATE:
+      if self.length >= 2:
+        self.data.value = bm.vstack([self.target.value, self.data[1:]])
+      else:
+        self.data[0] = self.target.value
 
   def reset(self):
     """Reset the delay data.
     """
     # initialize delay data
-    if self.data is not None:
-      self._init_data(self.length)
+    self._init_data(self.length)
 
     # time variables
     if self.update_method == ROTATE_UPDATE:

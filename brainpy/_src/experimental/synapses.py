@@ -7,10 +7,10 @@ import brainpy.math as bm
 from brainpy import check
 from brainpy._src import tools
 from brainpy._src.connect import TwoEndConnector, All2All, One2One, MatConn, IJConn
-from brainpy._src.dyn.base import NeuGroup, DynamicalSystem, not_pass_shargs
+from brainpy._src.dyn.base import DynamicalSystem, not_pass_shargs
 from brainpy._src.initialize import Initializer, variable_, parameter
 from brainpy._src.integrators import odeint
-from brainpy.types import ArrayType, Shape
+from brainpy.types import ArrayType
 from .synout import SynOut
 from .synstp import SynSTP
 
@@ -18,8 +18,7 @@ from .synstp import SynSTP
 class Synapse(DynamicalSystem):
   def __init__(
       self,
-      pre: Union[NeuGroup, Shape],
-      post: Union[NeuGroup, Shape],
+      conn: TwoEndConnector,
       out: Optional[SynOut] = None,
       stp: Optional[SynSTP] = None,
       name: str = None,
@@ -28,14 +27,12 @@ class Synapse(DynamicalSystem):
     super().__init__(name=name, mode=mode)
 
     # parameters
-    if isinstance(pre, NeuGroup):
-      pre = pre.size
-    if isinstance(post, NeuGroup):
-      post = post.size
-    self.pre_size = tools.to_size(pre)
-    self.post_size = tools.to_size(post)
-    self.pre_num = tools.size2num(self.pre_size)
-    self.post_num = tools.size2num(self.post_size)
+    assert isinstance(conn, TwoEndConnector)
+    self.conn = self._init_conn(conn)
+    self.pre_size = conn.pre_size
+    self.post_size = conn.post_size
+    self.pre_num = conn.pre_num
+    self.post_num = conn.post_num
     assert out is None or isinstance(out, SynOut)
     assert stp is None or isinstance(stp, SynSTP)
     self.out = out
@@ -43,7 +40,7 @@ class Synapse(DynamicalSystem):
 
   def _init_conn(self, conn):
     if isinstance(conn, TwoEndConnector):
-      conn = conn(self.pre_size, self.post_size)
+      pass
     elif isinstance(conn, (bm.ndarray, np.ndarray, jax.Array)):
       if (self.pre_num, self.post_num) != conn.shape:
         raise ValueError(f'"conn" is provided as a matrix, and it is expected '
@@ -64,7 +61,6 @@ class Synapse(DynamicalSystem):
 
   def _init_weights(
       self,
-      conn: Optional[TwoEndConnector],
       weight: Union[float, ArrayType, Initializer, Callable],
       comp_method: str,
       data_if_sparse: str = 'csr'
@@ -73,30 +69,28 @@ class Synapse(DynamicalSystem):
       raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
     if data_if_sparse not in ['csr', 'ij', 'coo']:
       raise ValueError(f'"sparse_data" must be in "csr" and "ij", but we got {data_if_sparse}')
-    if conn is None:
-      raise ValueError(f'Must provide "conn" when initialize the model {self.name}')
 
     # connections and weights
-    if isinstance(conn, One2One):
+    if isinstance(self.conn, One2One):
       weight = parameter(weight, (self.pre_num,), allow_none=False)
       conn_mask = None
 
-    elif isinstance(conn, All2All):
+    elif isinstance(self.conn, All2All):
       weight = parameter(weight, (self.pre_num, self.post_num), allow_none=False)
       conn_mask = None
 
     else:
       if comp_method == 'sparse':
         if data_if_sparse == 'csr':
-          conn_mask = conn.require('pre2post')
+          conn_mask = self.conn.require('pre2post')
         elif data_if_sparse in ['ij', 'coo']:
-          conn_mask = conn.require('post_ids', 'pre_ids')
+          conn_mask = self.conn.require('post_ids', 'pre_ids')
         else:
           ValueError(f'Unknown sparse data type: {data_if_sparse}')
         weight = parameter(weight, conn_mask[0].shape, allow_none=False)
       elif comp_method == 'dense':
         weight = parameter(weight, (self.pre_num, self.post_num), allow_none=False)
-        conn_mask = conn.require('conn_mat')
+        conn_mask = self.conn.require('conn_mat')
       else:
         raise ValueError(f'Unknown connection type: {comp_method}')
 
@@ -160,10 +154,6 @@ class Exponential(Synapse):
 
   Parameters
   ----------
-  pre: NeuGroup
-    The pre-synaptic neuron group.
-  post: NeuGroup
-    The post-synaptic neuron group.
   conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
@@ -189,8 +179,6 @@ class Exponential(Synapse):
 
   def __init__(
       self,
-      pre: Union[NeuGroup, Shape],
-      post: Union[NeuGroup, Shape],
       conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
       out: Optional[SynOut] = None,
       stp: Optional[SynSTP] = None,
@@ -201,8 +189,7 @@ class Exponential(Synapse):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(Exponential, self).__init__(pre=pre,
-                                      post=post,
+    super(Exponential, self).__init__(conn=conn,
                                       out=out,
                                       stp=stp,
                                       name=name,
@@ -211,10 +198,9 @@ class Exponential(Synapse):
     # parameters
     self.comp_method = comp_method
     self.tau = check.is_float(tau, allow_int=True)
-    self.conn = self._init_conn(conn)
 
     # connections and weights
-    self.g_max, self.conn_mask = self._init_weights(self.conn, g_max, comp_method, data_if_sparse='csr')
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, data_if_sparse='csr')
 
     # function
     self.integral = odeint(lambda g, t: -g / self.tau, method=method)
