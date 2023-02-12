@@ -19,6 +19,10 @@ from brainpy._src.math.compat_tensorflow import (
   unsorted_segment_max as unsorted_segment_max,
   unsorted_segment_min as unsorted_segment_min,
   unsorted_segment_mean as unsorted_segment_mean,
+  segment_sum as segment_sum,
+  segment_prod as segment_prod,
+  segment_max as segment_max,
+  segment_min as segment_min,
   clip_by_value as clip_by_value,
   cast as cast,
 )

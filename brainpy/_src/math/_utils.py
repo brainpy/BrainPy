@@ -45,11 +45,13 @@ def _compatible_with_brainpy_array(
     else:
       out.value = r
 
-  new_fun.__doc__ = (f'Similar to ``jax.numpy.{module}{fun.__name__}`` function, '
-                     f'and compatible with brainpy Array. \n\n'
-                     f'Note that this function is also compatible with:\n\n'
-                     f'1. NumPy or PyTorch syntax when receiving ``out`` argument.\n'
-                     f'2. PyTorch syntax when receiving ``keepdim`` or ``dim`` argument.\n'
-                     f'3. TensorFlow syntax when receiving ``keep_dims`` argument.')
+  new_fun.__doc__ = (
+    f'Similar to ``jax.numpy.{module + fun.__name__}`` function, '
+    f'while it is compatible with brainpy Array/Variable. \n\n'
+    f'Note that this function is also compatible with:\n\n'
+    f'1. NumPy or PyTorch syntax when receiving ``out`` argument.\n'
+    f'2. PyTorch syntax when receiving ``keepdim`` or ``dim`` argument.\n'
+    f'3. TensorFlow syntax when receiving ``keep_dims`` argument.'
+  )
 
   return new_fun
