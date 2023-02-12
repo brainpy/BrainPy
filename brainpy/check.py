@@ -191,10 +191,10 @@ def is_dict_data(a_dict: Dict,
                  key_type: Union[Type, Tuple[Type, ...]] = None,
                  val_type: Union[Type, Tuple[Type, ...]] = None,
                  name: str = None,
-                 all_none: bool = True):
+                 allow_none: bool = True):
   """Check the dictionary data.
   """
-  if all_none and a_dict is None:
+  if allow_none and a_dict is None:
     return None
   name = '' if (name is None) else f'"{name}"'
   if not isinstance(a_dict, dict):

@@ -6,7 +6,7 @@ from typing import Union, Callable, Optional
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup
+from brainpy._src.dyn.base import NeuGroup, not_pass_shargs
 from brainpy._src.initialize import (ZeroInit, OneInit, Initializer,
                                      parameter, variable_, noise as init_noise)
 from brainpy._src.integrators import sdeint, odeint, JointEq
@@ -99,25 +99,25 @@ class LeakyIntegrator(NeuGroup):
     is_initializer(V_initializer, 'V_initializer')
     self._V_initializer = V_initializer
 
-    # variables
-    self.V = variable_(self._V_initializer, self.varshape, self.mode)
-    self.input = variable_(bm.zeros, self.varshape, self.mode)
-
     # integral
     if self.noise is None:
       self.integral = odeint(method=method, f=self.derivative)
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
+    # variables
+    self.reset_state(self.mode)
+
   def derivative(self, V, t, I_ext):
     return (-V + self.V_rest + self.R * I_ext) / self.tau
 
   def reset_state(self, batch_size=None):
-    self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
-    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.V = variable_(self._V_initializer, self.varshape, batch_size)
+    self.input = variable_(bm.zeros, self.varshape, batch_size)
 
   def update(self, tdi, x=None):
-    if x is not None: self.input += x
+    if x is not None:
+      self.input += x
     self.V.value = self.integral(self.V.value, tdi.t, self.input.value, tdi.dt)
 
   def clear_input(self):

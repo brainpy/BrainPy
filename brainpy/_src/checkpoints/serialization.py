@@ -1264,7 +1264,8 @@ def save_pytree(
 
   if os.path.splitext(filename)[-1] != '.bp':
     filename = filename + '.bp'
-  os.makedirs(os.path.dirname(filename), exist_ok=True)
+  if os.path.dirname(filename):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
   if not overwrite and os.path.exists(filename):
     raise InvalidCheckpointPath(filename)
   target = to_bytes(target)

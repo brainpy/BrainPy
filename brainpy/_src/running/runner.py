@@ -64,9 +64,6 @@ class Runner(BrainPyObject):
   jit: Dict[str, bool]
   '''Flag to denote whether to use JIT.'''
 
-  target: BrainPyObject
-  '''The target model to run.'''
-
   def __init__(
       self,
       target: BrainPyObject,

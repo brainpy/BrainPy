@@ -64,7 +64,7 @@ def parameter(
   if allow_scalar and isinstance(param, (float, int, bool)):
     return param
   if callable(param):
-    param = bm.asarray(param(size))
+    param = param(size)
   elif isinstance(param, (np.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
   elif isinstance(param, bm.Variable):

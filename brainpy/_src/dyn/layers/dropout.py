@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import jax.numpy as jnp
-
 
 from brainpy import math as bm, check
 from .base import Layer
+from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'Dropout'
@@ -49,8 +48,8 @@ class Dropout(Layer):
     self.prob = check.is_float(prob, min_bound=0., max_bound=1.)
     self.rng = bm.random.default_rng(seed)
 
-  def update(self, sha, x):
-    if sha.get('fit', True):
+  def update(self, s, x):
+    if s['fit']:
       keep_mask = self.rng.bernoulli(self.prob, x.shape)
       return bm.where(bm.as_jax(keep_mask), x / self.prob, 0.)
     else:
