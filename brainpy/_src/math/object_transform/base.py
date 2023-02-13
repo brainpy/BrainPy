@@ -351,7 +351,20 @@ class BrainPyObject(object):
       check_name_uniqueness(name=name, obj=self)
       return name
 
-  def state_dict(self):
+  def __state_dict__(self) -> dict:
+    return self.vars(include_self=True, level=0).unique()
+
+  def __load_state_dict__(self, state_dict: dict) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
+    variables = self.vars(include_self=True, level=0).unique()
+    keys1 = set(state_dict.keys())
+    keys2 = set(variables.keys())
+    for key in keys2.intersection(keys1):
+      variables[key].value = state_dict[key]
+    unexpected_keys = list(keys1 - keys2)
+    missing_keys = list(keys2 - keys1)
+    return unexpected_keys, missing_keys
+
+  def state_dict(self) -> dict:
     """Returns a dictionary containing a whole state of the module.
 
     Returns
@@ -359,9 +372,10 @@ class BrainPyObject(object):
     out: dict
       A dictionary containing a whole state of the module.
     """
-    return self.vars().unique().dict()
+    nodes = self.nodes()  # retrieve all nodes
+    return {key: node.__state_dict__() for key, node in nodes.items()}
 
-  def load_state_dict(self, state_dict: Dict[str, Any], warn: bool = True):
+  def load_state_dict(self, state_dict: Dict[str, Any], warn: bool = True, compatible='v2'):
     """Copy parameters and buffers from :attr:`state_dict` into
     this module and its descendants.
 
@@ -380,13 +394,24 @@ class BrainPyObject(object):
       * **missing_keys** is a list of str containing the missing keys
       * **unexpected_keys** is a list of str containing the unexpected keys
     """
-    variables = self.vars().unique()
-    keys1 = set(state_dict.keys())
-    keys2 = set(variables.keys())
-    unexpected_keys = list(keys1 - keys2)
-    missing_keys = list(keys2 - keys1)
-    for key in keys2.intersection(keys1):
-      variables[key].value = state_dict[key]
+    if compatible == 'v1':
+      variables = self.vars().unique()
+      keys1 = set(state_dict.keys())
+      keys2 = set(variables.keys())
+      unexpected_keys = list(keys1 - keys2)
+      missing_keys = list(keys2 - keys1)
+      for key in keys2.intersection(keys1):
+        variables[key].value = state_dict[key]
+    elif compatible == 'v2':
+      nodes = self.nodes()
+      missing_keys = []
+      unexpected_keys = []
+      for name, node in nodes.items():
+        missing, unexpected = node.__load_state_dict__(state_dict[name])
+        missing_keys.extend([f'{name}.{key}' for key in missing])
+        unexpected_keys.extend([f'{name}.{key}' for key in unexpected])
+    else:
+      raise ValueError(f'Unknown compatible version: {compatible}')
     if warn:
       if len(unexpected_keys):
         warnings.warn(f'Unexpected keys in state_dict: {unexpected_keys}', UserWarning)

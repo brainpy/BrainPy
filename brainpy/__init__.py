@@ -35,7 +35,7 @@ from . import algorithms  # online or offline training algorithms
 # convenient alias
 conn = connect
 init = initialize
-optimizers = optim
+globals()['optimizers'] = optim
 
 # numerical integrators
 from brainpy import integrators
@@ -58,8 +58,11 @@ from brainpy import (channels,  # channel models
                      synapses,  # synaptic dynamics
                      synouts,  # synaptic output
                      synplast,  # synaptic plasticity
+                     experimental,  # experimental model
                      )
+from brainpy._src.dyn.base import not_pass_shargs
 from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
+                                   Module as Module,
                                    Container as Container,
                                    Sequential as Sequential,
                                    Network as Network,
@@ -71,7 +74,6 @@ from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
                                    TwoEndConn as TwoEndConn,
                                    CondNeuGroup as CondNeuGroup,
                                    Channel as Channel)
-from brainpy._src.dyn.base import (DSPartial as DSPartial)
 from brainpy._src.dyn.transform import (NoSharedArg as NoSharedArg,  # transformations
                                         LoopOverTime as LoopOverTime,)
 from brainpy._src.dyn.runners import (DSRunner as DSRunner)  # runner

@@ -10,6 +10,7 @@ from brainpy import check
 from brainpy.tools import to_size
 from brainpy.types import ArrayType
 from .base import Layer
+from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'Reservoir',
@@ -191,10 +192,10 @@ class Reservoir(Layer):
   def reset_state(self, batch_size=None):
     self.state.value = variable(jnp.zeros, batch_size, self.output_shape)
 
-  def update(self, *args):
+  @not_pass_shargs
+  def update(self, x):
     """Feedforward output."""
     # inputs
-    x = args[0] if len(args) == 1 else args[1]
     x = bm.as_jax(x)
     if self.noise_ff > 0:
       x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)

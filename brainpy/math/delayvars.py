@@ -5,4 +5,6 @@ from brainpy._src.math.delayvars import (
   LengthDelay as LengthDelay,
   NeuTimeDelay as NeuTimeDelay,
   NeuLenDelay as NeuLenDelay,
+  ROTATE_UPDATE as ROTATE_UPDATE,
+  CONCAT_UPDATE as CONCAT_UPDATE,
 )

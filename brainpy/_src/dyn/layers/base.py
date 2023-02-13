@@ -4,7 +4,7 @@
 from typing import Optional
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dyn.base import DynamicalSystem, not_pass_shargs
 
 __all__ = [
   'Layer'

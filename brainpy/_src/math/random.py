@@ -745,7 +745,7 @@ class RandomState(Variable):
     r = jr.uniform(key, shape=_size2shape(size), minval=low, maxval=high)
     return _return(r)
 
-  def truncated_normal(self, lower, upper, size, scale=None, key=None):
+  def truncated_normal(self, lower, upper, size=None, scale=None, key=None):
     lower = _as_jax_array(lower)
     lower = _check_py_seq(lower)
     upper = _as_jax_array(upper)

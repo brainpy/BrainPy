@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from typing import Union, Optional, NoReturn, Sequence, Any, Tuple as TupleType
 import warnings
 import operator
@@ -857,9 +858,155 @@ class Array(object):
     r = self.value.var(axis=axis, dtype=dtype, ddof=ddof, keepdims=keepdims)
     return _return(r)
 
-  def view(self, dtype=None, *args, **kwargs):
-    """New view of array with the same data."""
-    return _return(self.value.view(dtype=dtype, *args, **kwargs))
+  def view(self, *args, dtype=None):
+    r"""New view of array with the same data.
+
+    This function is compatible with pytorch syntax.
+
+    Returns a new tensor with the same data as the :attr:`self` tensor but of a
+    different :attr:`shape`.
+
+    The returned tensor shares the same data and must have the same number
+    of elements, but may have a different size. For a tensor to be viewed, the new
+    view size must be compatible with its original size and stride, i.e., each new
+    view dimension must either be a subspace of an original dimension, or only span
+    across original dimensions :math:`d, d+1, \dots, d+k` that satisfy the following
+    contiguity-like condition that :math:`\forall i = d, \dots, d+k-1`,
+
+    .. math::
+
+      \text{stride}[i] = \text{stride}[i+1] \times \text{size}[i+1]
+
+    Otherwise, it will not be possible to view :attr:`self` tensor as :attr:`shape`
+    without copying it (e.g., via :meth:`contiguous`). When it is unclear whether a
+    :meth:`view` can be performed, it is advisable to use :meth:`reshape`, which
+    returns a view if the shapes are compatible, and copies (equivalent to calling
+    :meth:`contiguous`) otherwise.
+
+    Args:
+        shape (int...): the desired size
+
+    Example::
+
+        >>> x = brainpy.math.randn(4, 4)
+        >>> x.size
+       [4, 4]
+        >>> y = x.view(16)
+        >>> y.size
+        [16]
+        >>> z = x.view(-1, 8)  # the size -1 is inferred from other dimensions
+        >>> z.size
+        [2, 8]
+
+        >>> a = brainpy.math.randn(1, 2, 3, 4)
+        >>> a.size
+        [1, 2, 3, 4]
+        >>> b = a.transpose(1, 2)  # Swaps 2nd and 3rd dimension
+        >>> b.size
+        [1, 3, 2, 4]
+        >>> c = a.view(1, 3, 2, 4)  # Does not change tensor layout in memory
+        >>> c.size
+        [1, 3, 2, 4]
+        >>> brainpy.math.equal(b, c)
+        False
+
+
+    .. method:: view(dtype) -> Tensor
+       :noindex:
+
+    Returns a new tensor with the same data as the :attr:`self` tensor but of a
+    different :attr:`dtype`.
+
+    If the element size of :attr:`dtype` is different than that of ``self.dtype``,
+    then the size of the last dimension of the output will be scaled
+    proportionally.  For instance, if :attr:`dtype` element size is twice that of
+    ``self.dtype``, then each pair of elements in the last dimension of
+    :attr:`self` will be combined, and the size of the last dimension of the output
+    will be half that of :attr:`self`. If :attr:`dtype` element size is half that
+    of ``self.dtype``, then each element in the last dimension of :attr:`self` will
+    be split in two, and the size of the last dimension of the output will be
+    double that of :attr:`self`. For this to be possible, the following conditions
+    must be true:
+
+        * ``self.dim()`` must be greater than 0.
+        * ``self.stride(-1)`` must be 1.
+
+    Additionally, if the element size of :attr:`dtype` is greater than that of
+    ``self.dtype``, the following conditions must be true as well:
+
+        * ``self.size(-1)`` must be divisible by the ratio between the element
+          sizes of the dtypes.
+        * ``self.storage_offset()`` must be divisible by the ratio between the
+          element sizes of the dtypes.
+        * The strides of all dimensions, except the last dimension, must be
+          divisible by the ratio between the element sizes of the dtypes.
+
+    If any of the above conditions are not met, an error is thrown.
+
+
+    Args:
+        dtype (:class:`dtype`): the desired dtype
+
+    Example::
+
+        >>> x = brainpy.math.randn(4, 4)
+        >>> x
+        Array([[ 0.9482, -0.0310,  1.4999, -0.5316],
+                [-0.1520,  0.7472,  0.5617, -0.8649],
+                [-2.4724, -0.0334, -0.2976, -0.8499],
+                [-0.2109,  1.9913, -0.9607, -0.6123]])
+        >>> x.dtype
+        brainpy.math.float32
+
+        >>> y = x.view(brainpy.math.int32)
+        >>> y
+        tensor([[ 1064483442, -1124191867,  1069546515, -1089989247],
+                [-1105482831,  1061112040,  1057999968, -1084397505],
+                [-1071760287, -1123489973, -1097310419, -1084649136],
+                [-1101533110,  1073668768, -1082790149, -1088634448]],
+            dtype=brainpy.math.int32)
+        >>> y[0, 0] = 1000000000
+        >>> x
+        tensor([[ 0.0047, -0.0310,  1.4999, -0.5316],
+                [-0.1520,  0.7472,  0.5617, -0.8649],
+                [-2.4724, -0.0334, -0.2976, -0.8499],
+                [-0.2109,  1.9913, -0.9607, -0.6123]])
+
+        >>> x.view(brainpy.math.cfloat)
+        tensor([[ 0.0047-0.0310j,  1.4999-0.5316j],
+                [-0.1520+0.7472j,  0.5617-0.8649j],
+                [-2.4724-0.0334j, -0.2976-0.8499j],
+                [-0.2109+1.9913j, -0.9607-0.6123j]])
+        >>> x.view(brainpy.math.cfloat).size
+        [4, 2]
+
+        >>> x.view(brainpy.math.uint8)
+        tensor([[  0, 202, 154,  59, 182, 243, 253, 188, 185, 252, 191,  63, 240,  22,
+                   8, 191],
+                [227, 165,  27, 190, 128,  72,  63,  63, 146, 203,  15,  63,  22, 106,
+                  93, 191],
+                [205,  59,  30, 192, 112, 206,   8, 189,   7,  95, 152, 190,  12, 147,
+                  89, 191],
+                [ 43, 246,  87, 190, 235, 226, 254,  63, 111, 240, 117, 191, 177, 191,
+                  28, 191]], dtype=brainpy.math.uint8)
+        >>> x.view(brainpy.math.uint8).size
+        [4, 16]
+
+    """
+    if len(args) == 0:
+      if dtype is None:
+        raise ValueError('Provide dtype or shape.')
+      else:
+        return _return(self.value.view(dtype))
+    else:
+      if isinstance(args[0], int): # shape
+        if dtype is not None:
+          raise ValueError('Provide one of dtype or shape. Not both.')
+        return _return(self.value.reshape(*args))
+      else: # dtype
+        assert not isinstance(args[0], int)
+        assert dtype is None
+        return _return(self.value.view(args[0]))
 
   # ------------------
   # NumPy support

@@ -6,6 +6,7 @@ from typing import Optional
 import brainpy.math as bm
 from brainpy import check
 from .base import Layer
+from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'Activation',
@@ -26,6 +27,7 @@ class Activation(Layer):
   mode: Mode
     Enable training this node or not. (default True).
   """
+  update_style = 'x'
 
   def __init__(
       self,
@@ -38,9 +40,9 @@ class Activation(Layer):
     self.activate_fun = activate_fun
     self.kwargs = kwargs
 
-  def update(self, *args):
-    x = args[0] if len(args) == 1 else args[1]
-    return self.activate_fun(x, **self.kwargs)
+  @not_pass_shargs
+  def update(self, *args, **kwargs):
+    return self.activate_fun(*args, **kwargs, **self.kwargs)
 
 
 class Flatten(Layer):
@@ -62,8 +64,8 @@ class Flatten(Layer):
     super().__init__(name, mode)
     check.is_subclass(self.mode, (bm.NonBatchingMode, bm.BatchingMode, bm.TrainingMode), self.name)
 
-  def update(self, *args):
-    x = args[0] if len(args) == 1 else args[1]
+  @not_pass_shargs
+  def update(self, x):
     if isinstance(self.mode, bm.BatchingMode):
       return x.reshape((x.shape[0], -1))
     else:
@@ -76,19 +78,12 @@ class FunAsLayer(Layer):
       fun: Callable,
       name: Optional[str] = None,
       mode: bm.Mode = None,
-      has_shared: bool = False,
       **kwargs,
   ):
     super().__init__(name, mode)
     self._fun = fun
     self.kwargs = kwargs
-    self.has_shared = has_shared
 
-  def update(self, *args):
-    x = args[0] if len(args) == 1 else args[1]
-    if self.has_shared:
-      assert len(args) > 1
-      s = args[0]
-      return self._fun(s, x, **self.kwargs)
-    else:
-      return self._fun(x, **self.kwargs)
+  @not_pass_shargs
+  def update(self, *args, **kwargs):
+    return self._fun(*args, **kwargs, **self.kwargs)

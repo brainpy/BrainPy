@@ -6,11 +6,12 @@ from typing import Optional, Callable, Union, Dict
 import jax.numpy as jnp
 
 from brainpy import math as bm
-from .base import Layer
+from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
+from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.check import is_initializer
 from brainpy.types import ArrayType
+from .base import Layer
 
 __all__ = [
   'Dense',
@@ -41,6 +42,12 @@ class Dense(Layer):
   mode: Mode
     Enable training this node or not. (default True)
   """
+
+  online_fit_by: Optional[OnlineAlgorithm]
+  '''Online fitting method.'''
+
+  offline_fit_by: Optional[OfflineAlgorithm]
+  '''Offline fitting method.'''
 
   def __init__(
       self,
@@ -75,6 +82,11 @@ class Dense(Layer):
     if isinstance(self.mode, bm.TrainingMode):
       self.W = bm.TrainVar(self.W)
       self.b = None if (self.b is None) else bm.TrainVar(self.b)
+
+    # fitting parameters
+    self.online_fit_by = None
+    self.offline_fit_by = None
+    self.fit_record = dict()
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(name={self.name}, '

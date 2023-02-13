@@ -34,7 +34,7 @@ class TestPool(parameterized.TestCase):
     x = self.rng.rand(10, 20, 20, 4)
     with bm.training_environment():
       net = bp.layers.MaxPool((2, 2), (2, 2), channel_axis=-1)
-    y = net(None, x)
+    y = net(x)
     print("out shape: ", y.shape)
 
   def test_minpool(self):

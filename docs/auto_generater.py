@@ -560,19 +560,23 @@ def generate_math_docs():
       'environment': ('Environment Settings', 'brainpy.math'),
       'modes': ('Computing Modes', 'brainpy.math'),
       'arrayinterporate': ('Array Interoperability', 'brainpy.math'),
-      # 'compat_numpy': ('Array Operators with NumPy Syntax', 'brainpy.math'),
-      # 'compat_pytorch': ('Array Operators with PyTorch Syntax', 'brainpy.math'),
-      # 'compat_tensorflow': ('Array Operators with TensorFlow Syntax', 'brainpy.math'),
-      'surrogate': ('Surrogate Gradient Functions', 'brainpy.math.surrogate'),
-      'random': ('Random Number Generations', 'brainpy.math.random'),
-      # 'linalg': ('Linear algebra', 'brainpy.math.linalg'),
-      # 'fft': ('Discrete Fourier Transform', 'brainpy.math.fft'),
+      'compat_numpy': ('Array Operators with NumPy Syntax', 'brainpy.math'),
+      'compat_pytorch': ('Array Operators with PyTorch Syntax', 'brainpy.math'),
+      'compat_tensorflow': ('Array Operators with TensorFlow Syntax', 'brainpy.math'),
+      'surrogate': ('``brainpy.math.surrogate`` module: Surrogate Gradient Functions',
+                    'brainpy.math.surrogate'),
+      'random': ('``brainpy.math.random`` module: Random Number Generations',
+                 'brainpy.math.random'),
+      'linalg': ('``brainpy.math.linalg`` module: Linear algebra',
+                 'brainpy.math.linalg'),
+      'fft': ('``brainpy.math.fft`` module: Discrete Fourier Transform',
+              'brainpy.math.fft'),
     }
   )
 
 
 def generate_algorithm_docs(path='apis/auto/algorithms/'):
-  if not os.path.exists(path): os.makedirs(path)
+  os.makedirs(path, exist_ok=True)
 
   module_and_name = [
     ('offline', 'Offline Training Algorithms'),

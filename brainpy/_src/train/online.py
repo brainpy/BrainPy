@@ -276,16 +276,14 @@ class OnlineTrainer(DSTrainer):
 
   def _check_interface(self):
     for node in self.train_nodes:
-      if hasattr(node.online_fit, 'not_customized'):
-        if node.online_fit.not_customized:
+      if not hasattr(node, 'online_fit'):
           raise NoImplementationError(
             f'The node \n\n{node}\n\n'
             f'is set to be trainable with {self.__class__.__name__} method. '
             f'However, it does not implement the required training '
             f'interface "online_fit()" function. '
           )
-      if hasattr(node.online_init, 'not_customized'):
-        if node.online_init.not_customized:
+      if not hasattr(node, 'online_init'):
           raise NoImplementationError(
             f'The node \n\n{node}\n\n'
             f'is set to be trainable with {self.__class__.__name__} method. '

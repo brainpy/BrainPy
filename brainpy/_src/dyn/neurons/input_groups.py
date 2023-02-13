@@ -5,7 +5,7 @@ from typing import Union, Sequence
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup
+from brainpy._src.dyn.base import NeuGroup, not_pass_shargs
 from brainpy._src.initialize import Initializer, parameter, variable_
 from brainpy.types import Shape, ArrayType
 
@@ -41,7 +41,8 @@ class InputGroup(NeuGroup):
                                      mode=mode)
     self.spike = None
 
-  def update(self, tdi, x=None):
+  @not_pass_shargs
+  def update(self, x):
     return x
 
   def reset_state(self, batch_size=None):
@@ -72,8 +73,9 @@ class OutputGroup(NeuGroup):
                                       mode=mode)
     self.spike = None
 
-  def update(self, tdi, x=None):
-    pass
+  @not_pass_shargs
+  def update(self, x):
+    return x
 
   def reset_state(self, batch_size=None):
     pass

@@ -237,8 +237,7 @@ class OfflineTrainer(DSTrainer):
 
   def _check_interface(self):
     for node in self.train_nodes:
-      if hasattr(node.offline_fit, 'not_customized'):
-        if node.offline_fit.not_customized:
+      if not hasattr(node, 'offline_fit'):
           raise NoImplementationError(
             f'''
             The node

@@ -615,6 +615,7 @@ class DSRunner(Runner):
     # input step
     shared = tools.DotDict(t=t, i=i, dt=self.dt)
     shared.update(shared_args)
+    bm.share.save_shargs(**shared)
     self.target.clear_input()
     self._step_func_input(shared)
 
@@ -629,6 +630,7 @@ class DSRunner(Runner):
     # finally
     if self.progress_bar:
       id_tap(lambda *arg: self._pbar.update(), ())
+    bm.share.remove_shargs()
     return out, mon
 
   def _get_f_predict(self, shared_args: Dict = None):

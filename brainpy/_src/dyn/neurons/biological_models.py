@@ -4,7 +4,7 @@ from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.dyn.base import NeuGroup
+from brainpy._src.dyn.base import NeuGroup, not_pass_shargs
 from brainpy._src.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
@@ -129,7 +129,7 @@ class HH(NeuGroup):
     >>> group = bp.neurons.HH(2)
     >>>
     >>> I1 = bp.inputs.spike_input(sp_times=[500., 550., 1000, 1030, 1060, 1100, 1200], sp_lens=5, sp_sizes=5., duration=2000, )
-    >>> I2 = bp.inputs.spike_input(sp_times=[600.,       900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
+    >>> I2 = bp.inputs.spike_input(sp_times=[600., 900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
     >>> I1 += bp.math.random.normal(0, 3, size=I1.shape)
     >>> I2 += bp.math.random.normal(0, 3, size=I2.shape)
     >>> I = bm.stack((I1, I2), axis=-1)
@@ -244,25 +244,14 @@ class HH(NeuGroup):
     self._n_initializer = n_initializer
     self._V_initializer = V_initializer
 
-    # variables
-    self.V = variable_(self._V_initializer, self.varshape, self.mode)
-    self.m = (bm.Variable(self.m_inf(self.V.value))
-              if m_initializer is None else
-              variable_(self._m_initializer, self.varshape, self.mode))
-    self.h = (bm.Variable(self.h_inf(self.V.value))
-              if h_initializer is None else
-              variable_(self._h_initializer, self.varshape, self.mode))
-    self.n = (bm.Variable(self.n_inf(self.V.value))
-              if n_initializer is None else
-              variable_(self._n_initializer, self.varshape, self.mode))
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
-    self.input = variable_(bm.zeros, self.varshape, self.mode)
-
     # integral
     if self.noise is None:
       self.integral = odeint(method=method, f=self.derivative)
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
+
+    # model
+    self.reset_state(self.mode)
 
   # m channel
   m_alpha = lambda self, V: 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
@@ -283,37 +272,38 @@ class HH(NeuGroup):
   dn = lambda self, n, t, V: self.n_alpha(V) * (1 - n) - self.n_beta(V) * n
 
   def reset_state(self, batch_size=None):
-    self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
+    self.V = variable_(self._V_initializer, self.varshape, batch_size)
     if self._m_initializer is None:
-      self.m.value = self.m_inf(self.V.value)
+      self.m = self.m_inf(self.V.value)
     else:
-      self.m.value = variable_(self._m_initializer, self.varshape, batch_size)
+      self.m = variable_(self._m_initializer, self.varshape, batch_size)
     if self._h_initializer is None:
-      self.h.value = self.h_inf(self.V.value)
+      self.h = self.h_inf(self.V.value)
     else:
-      self.h.value = variable_(self._h_initializer, self.varshape, batch_size)
+      self.h = variable_(self._h_initializer, self.varshape, batch_size)
     if self._n_initializer is None:
-      self.n.value = self.n_inf(self.V.value)
+      self.n = self.n_inf(self.V.value)
     else:
-      self.n.value = variable_(self._n_initializer, self.varshape, batch_size)
-    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
-    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
+      self.n = variable_(self._n_initializer, self.varshape, batch_size)
+    self.input = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  def dV(self, V, t, m, h, n, I_ext):
+  def dV(self, V, t, m, h, n):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
     I_K = (self.gK * n ** 4.0) * (V - self.EK)
     I_leak = self.gL * (V - self.EL)
-    dVdt = (- I_Na - I_K - I_leak + I_ext) / self.C
+    dVdt = (- I_Na - I_K - I_leak + self.input) / self.C
     return dVdt
 
   @property
   def derivative(self):
     return JointEq(self.dV, self.dm, self.dh, self.dn)
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+  @not_pass_shargs
+  def update(self, x=None):
+    s = bm.share.get_shargs()
     if x is not None: self.input += x
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, self.input, dt)
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, s['t'], s['dt'])
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.m.value = m
@@ -454,10 +444,7 @@ class MorrisLecar(NeuGroup):
     self._V_initializer = V_initializer
 
     # variables
-    self.W = variable_(self._W_initializer, self.varshape, self.mode)
-    self.V = variable_(self._V_initializer, self.varshape, self.mode)
-    self.input = variable_(bm.zeros, self.varshape, self.mode)
-    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
+    self.reset_state(self.mode)
 
     # integral
     if self.noise is None:
@@ -466,10 +453,10 @@ class MorrisLecar(NeuGroup):
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
   def reset_state(self, batch_size=None):
-    self.W.value = variable_(self._W_initializer, self.varshape, batch_size)
-    self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
-    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
-    self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
+    self.W = variable_(self._W_initializer, self.varshape, batch_size)
+    self.V = variable_(self._V_initializer, self.varshape, batch_size)
+    self.input = variable_(bm.zeros, self.varshape, batch_size)
+    self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))

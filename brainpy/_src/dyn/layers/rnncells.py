@@ -17,6 +17,8 @@ from brainpy.check import (is_integer,
 from brainpy.types import ArrayType
 from .base import Layer
 from .conv import _GeneralConv
+from brainpy._src.dyn.base import not_pass_shargs
+
 
 __all__ = [
   'RNNCell', 'GRUCell', 'LSTMCell',
@@ -115,7 +117,8 @@ class RNNCell(Layer):
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
 
-  def update(self, sha, x):
+  @not_pass_shargs
+  def update(self, x):
     h = x @ self.Wi
     h += self.state.value @ self.Wh
     if self.b is not None:
@@ -225,7 +228,8 @@ class GRUCell(Layer):
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
 
-  def update(self, sha, x):
+  @not_pass_shargs
+  def update(self, x):
     gates_x = jnp.matmul(x, bm.as_jax(self.Wi))
     zr_x, a_x = jnp.split(gates_x, indices_or_sections=[2 * self.num_out], axis=-1)
     w_h_z, w_h_a = jnp.split(bm.as_jax(self.Wh), indices_or_sections=[2 * self.num_out], axis=-1)
@@ -361,6 +365,7 @@ class LSTMCell(Layer):
       self.state2train.value = parameter(self._state_initializer, self.num_out * 2, allow_none=False)
       self.state[:] = self.state2train
 
+  @not_pass_shargs
   def update(self, sha, x):
     h, c = jnp.split(self.state.value, 2, axis=-1)
     gated = x @ self.Wi
@@ -558,6 +563,7 @@ class _ConvNDLSTMCell(Layer):
       self.h[:] = self.h_to_train
       self.c[:] = self.c_to_train
 
+  @not_pass_shargs
   def update(self, *args):
     x = args[0] if len(args) == 1 else args[1]
     gates = self.input_to_hidden(x) + self.hidden_to_hidden(self.h)

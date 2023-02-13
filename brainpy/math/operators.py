@@ -28,10 +28,3 @@ from brainpy._src.math.operators.sparse_matmul import (
   csr_matvec as csr_matvec,
   event_csr_matvec as event_csr_matvec,
 )
-
-from brainpy._src.math.operators.wrap_jax import (
-  segment_sum as segment_sum,
-  segment_prod as segment_prod,
-  segment_max as segment_max,
-  segment_min as segment_min,
-)

@@ -61,6 +61,9 @@ class DotDict(dict):
     self.__dict__ = self
     self.var_names = ()
 
+  def copy(self) -> 'DotDict':
+    return type(self)(super().copy())
+
   def keys(self):
     """Retrieve all keys in the dict, excluding ignored keys."""
     keys = []

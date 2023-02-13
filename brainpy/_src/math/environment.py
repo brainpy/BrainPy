@@ -6,16 +6,22 @@ import inspect
 import os
 import re
 import sys
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast, Dict, Union, Optional
 
+import jax
+import numpy as np
 from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
+from brainpy._src.tools.dicts import DotDict
 from . import modes
+# from .delayvars import LengthDelay, ROTATE_UPDATE
+from .ndarray import Variable, Array
 
 bm = None
 
 __all__ = [
+  'share',
 
   # default data types
   'set_float', 'get_float',
@@ -50,6 +56,75 @@ __all__ = [
   'dftype',
 
 ]
+
+
+def _key_of_var(var: Variable):
+  if not isinstance(var, Variable):
+    raise TypeError(f'Delay target should be instance of Variable. But got {type(var)}')
+  return f'var{id(var)}'
+
+
+def _as_jax_array(arr):
+  return arr.value if isinstance(arr, Array) else arr
+
+
+class Context:
+  """Context for brainpy computation."""
+
+  def __init__(self):
+    """Initialize function."""
+
+    '''Shared data across all nodes at current time step.
+    '''
+    self._arguments = DotDict()
+
+  def get(self, key):
+    """Get the shared data by the ``key``.
+
+    Args:
+      key (str): the key to indicate the data.
+    """
+    if key in self._arguments:
+      return self._arguments[key]
+    else:
+      raise KeyError(f'Cannot found shared data of {key}.')
+
+  # shared arguments #
+  # ---------------- #
+
+  def save_shargs(self, **shared) -> None:
+    """Save shared arguments in the global context."""
+    self._arguments.update(shared)
+
+  def get_shargs(self) -> DotDict:
+    """Get all shared arguments in the global context."""
+    r = self._arguments.copy()
+    return r
+
+  def remove_shargs(self, *args) -> None:
+    """Clear all shared arguments in the global context."""
+    if len(args) > 0:
+      for a in args:
+        self._arguments.pop(a)
+    else:
+      self._arguments.clear()
+
+  # other #
+  # ----- #
+
+  def clear(self) -> None:
+    """Clear all shared data in this computation context."""
+    self.remove_shargs()
+
+
+share = Context()
+'''Global context manager to manage ``share`` data across all modules.'''
+
+
+def change_share_context(context: Context):
+  global share
+  assert isinstance(context, Context), f'Must be instance of {Context.__name__}'
+  share = context
 
 
 # default dtype

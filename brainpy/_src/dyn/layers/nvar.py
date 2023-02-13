@@ -9,6 +9,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy import check
 from .base import Layer
+from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'NVAR'
@@ -129,7 +130,8 @@ class NVAR(Layer):
     else:
       self.store.value = jnp.zeros((self.num_delay, batch_size, self.num_in))
 
-  def update(self, sha, x):
+  @not_pass_shargs
+  def update(self, x):
     all_parts = []
     select_ids = (self.idx[0] - jnp.arange(0, self.num_delay, self.stride)) % self.num_delay
     # 1. Store the current input
