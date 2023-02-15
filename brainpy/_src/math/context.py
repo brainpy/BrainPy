@@ -64,24 +64,24 @@ class _ShareContext(BrainPyObject):
     """Save shared arguments in the global context."""
     assert isinstance(identifier, str)
 
-    if identifier in self._identifiers:
-      raise ValueError(f'{identifier} has been used. Please assign another name.')
     if isinstance(data, DelayVariable):
+      if identifier in self._identifiers:
+        raise ValueError(f'{identifier} has been used. Please assign another name.')
       self._delays[identifier] = data
-    elif isinstance(data, DelayEntry):
-      if isinstance(data.target, DelayVariable):
-        delay_key = f'delay{id(data)}'
-        self.save(delay_key, data.target)
-        delay = data.target
-      elif isinstance(data.target, str):
-        if data.target not in self._delays:
-          raise ValueError(f'Delay target {data.target} has not been registered.')
-        delay = self._delays[data.target]
-        delay_key = data.target
-      else:
-        raise ValueError(f'Unknown delay target. {type(data.target)}')
-      delay.register_entry(identifier, delay_time=data.time, delay_step=data.step)
-      self._delay_entries[identifier] = delay_key
+    # elif isinstance(data, DelayEntry):
+    #   if isinstance(data.target, DelayVariable):
+    #     delay_key = f'delay{id(data)}'
+    #     self.save(delay_key, data.target)
+    #     delay = data.target
+    #   elif isinstance(data.target, str):
+    #     if data.target not in self._delays:
+    #       raise ValueError(f'Delay target {data.target} has not been registered.')
+    #     delay = self._delays[data.target]
+    #     delay_key = data.target
+    #   else:
+    #     raise ValueError(f'Unknown delay target. {type(data.target)}')
+    #   delay.register_entry(identifier, delay_time=data.time, delay_step=data.step)
+    #   self._delay_entries[identifier] = delay_key
     else:
       self._arguments[identifier] = data
     self._identifiers.add(identifier)

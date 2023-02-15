@@ -134,7 +134,7 @@ class DynamicalSystem(BrainPyObject):
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
     # super initialization
-    super(DynamicalSystem, self).__init__(name=name)
+    BrainPyObject.__init__(self, name=name)
 
   @property
   def mode(self) -> bm.Mode:
@@ -155,7 +155,8 @@ class DynamicalSystem(BrainPyObject):
     """The shortcut to call ``update`` methods."""
     if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
       if len(args) and isinstance(args[0], dict):
-        bm.share.save(**args[0])
+        for k, v in args[0].items():
+          bm.share.save(k, v)
         return self.update(*args[1:], **kwargs)
       else:
         return self.update(*args, **kwargs)

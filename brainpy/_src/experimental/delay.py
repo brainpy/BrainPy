@@ -21,10 +21,11 @@ class Delay(DynamicalSystem, DelayVariable):
       length: int = 0,
       before_t0: Union[float, int, bool, bm.Array, jax.Array, Callable] = None,
       entries: Optional[Dict] = None,
-      method: str = None,
+      method: str = ROTATE_UPDATE,
       mode: bm.Mode = None,
       name: str = None,
   ):
+    DynamicalSystem.__init__(self, mode=mode)
     if method is None:
       if self.mode.is_a(bm.NonBatchingMode):
         method = ROTATE_UPDATE
@@ -32,7 +33,6 @@ class Delay(DynamicalSystem, DelayVariable):
         method = CONCAT_UPDATE
       else:
         method = ROTATE_UPDATE
-    DynamicalSystem.__init__(self, mode=mode)
     DelayVariable.__init__(self,
                            target=target,
                            length=length,

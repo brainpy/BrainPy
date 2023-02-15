@@ -519,7 +519,7 @@ class DelayVariable(AbstractDelay):
       name: str = None,
       method: str = ROTATE_UPDATE,
   ):
-    super().__init__(name=name)
+    BrainPyObject.__init__(self, name=name)
     assert method in [ROTATE_UPDATE, CONCAT_UPDATE]
     self.method = method
 

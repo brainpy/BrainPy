@@ -566,7 +566,8 @@ class BPFF(BPTrainer):
 
   def _step_func_predict(self, shared, x=None):
     assert self.data_first_axis == 'B', f'There is no time dimension when using the trainer {self.__class__.__name__}.'
-    bm.share.save(**shared)
+    for k, v in shared.items():
+      bm.share.save(k, v)
 
     # input step
     self.target.clear_input()
