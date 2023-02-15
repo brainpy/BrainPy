@@ -8,11 +8,12 @@ import numpy as np
 from jax import vmap
 from jax.lax import cond, stop_gradient
 
-from brainpy import check, math as bm
+from brainpy import check
 from brainpy.check import is_float, is_integer, jit_error_checking
 from brainpy.errors import UnsupportedError
 from .arrayinterporate import as_jax
-from .environment import get_dt, get_int
+from .compat_numpy import vstack, broadcast_to
+from .environment import get_dt, get_float, get_int
 from .ndarray import ndarray, Variable, Array
 from .object_transform.base import BrainPyObject
 
@@ -132,7 +133,7 @@ class TimeDelay(AbstractDelay):
 
     # delay_len
     self.t0 = t0
-    self.dt = bm.get_dt() if dt is None else dt
+    self.dt = get_dt() if dt is None else dt
     is_float(delay_len, 'delay_len', allow_none=False, allow_int=True, min_bound=0.)
     self.delay_len = delay_len
     self.num_delay_step = int(jnp.ceil(self.delay_len / self.dt)) + 1
@@ -146,7 +147,7 @@ class TimeDelay(AbstractDelay):
     # time variables
     self.idx = Variable(jnp.asarray([0]))
     is_float(t0, 't0', allow_none=False, allow_int=True, )
-    self.current_time = Variable(jnp.asarray([t0], dtype=bm.get_float()))
+    self.current_time = Variable(jnp.asarray([t0], dtype=get_float()))
 
     # delay data
     batch_axis = None
@@ -462,7 +463,7 @@ class LengthDelay(AbstractDelay):
 
     elif self.update_method == CONCAT_UPDATE:
       if self.num_delay_step >= 2:
-        self.data.value = bm.vstack([bm.broadcast_to(value, self.data.shape[1:]), self.data[1:]])
+        self.data.value = vstack([broadcast_to(value, self.data.shape[1:]), self.data[1:]])
       else:
         self.data[:] = value
 
@@ -505,15 +506,15 @@ class DelayVariable(AbstractDelay):
 
     """
 
-  data: Optional[bm.Variable]
-  idx: Optional[bm.Variable]
+  data: Optional[Variable]
+  idx: Optional[Variable]
   length: int
 
   def __init__(
       self,
-      target: bm.Variable,
+      target: Variable,
       length: int = 0,
-      before_t0: Union[float, int, bool, bm.Array, jax.Array, Callable] = None,
+      before_t0: Union[float, int, bool, Array, jax.Array, Callable] = None,
       entries: Optional[Dict] = None,
       name: str = None,
       method: str = ROTATE_UPDATE,
@@ -524,7 +525,7 @@ class DelayVariable(AbstractDelay):
 
     # target
     self.target = target
-    if not isinstance(target, bm.Variable):
+    if not isinstance(target, Variable):
       raise ValueError(f'Must be an instance of brainpy.math.Variable. But we got {type(target)}')
 
     # delay length
@@ -532,7 +533,7 @@ class DelayVariable(AbstractDelay):
 
     # delay data
     if before_t0 is not None:
-      assert isinstance(before_t0, (int, float, bool, bm.Array, jax.Array, Callable))
+      assert isinstance(before_t0, (int, float, bool, Array, jax.Array, Callable))
     self._before_t0 = before_t0
     if length > 0:
       self._init_data(length)
@@ -541,7 +542,7 @@ class DelayVariable(AbstractDelay):
 
     # time variables
     if self.method == ROTATE_UPDATE:
-      self.idx = bm.Variable(stop_gradient(jnp.asarray(0, dtype=jnp.int32)))
+      self.idx = Variable(stop_gradient(jnp.asarray(0, dtype=jnp.int32)))
 
     # other info
     self._access_to_step = dict()
@@ -551,8 +552,8 @@ class DelayVariable(AbstractDelay):
   def register_entry(
       self,
       entry: str,
-      delay_time: Optional[Union[float, bm.Array, Callable]] = None,
-      delay_step: Optional[Union[int, bm.Array, Callable]] = None,
+      delay_time: Optional[Union[float, Array, Callable]] = None,
+      delay_step: Optional[Union[int, Array, Callable]] = None,
   ) -> 'DelayVariable':
     """Register an entry to access the data.
 
@@ -571,24 +572,24 @@ class DelayVariable(AbstractDelay):
       if delay_step is not None:
         raise ValueError('Provide either "delay_time" or "delay_step". Both you have given both.')
       if callable(delay_time):
-        delay_time = bm.as_jax(delay_time(self.delay_target_shape))
-        delay_step = jnp.asarray(delay_time / bm.get_dt(), dtype=bm.get_int())
+        delay_time = as_jax(delay_time(self.delay_target_shape))
+        delay_step = jnp.asarray(delay_time / get_dt(), dtype=get_int())
       elif isinstance(delay_time, float):
-        delay_step = int(delay_time / bm.get_dt())
+        delay_step = int(delay_time / get_dt())
       else:
-        delay_step = jnp.asarray(bm.as_jax(delay_time) / bm.get_dt(), dtype=bm.get_int())
+        delay_step = jnp.asarray(as_jax(delay_time) / get_dt(), dtype=get_int())
 
     # delay steps
     if delay_step is None:
       delay_type = 'none'
     elif isinstance(delay_step, int):
       delay_type = 'homo'
-    elif isinstance(delay_step, (bm.Array, jax.Array, np.ndarray)):
+    elif isinstance(delay_step, (Array, jax.Array, np.ndarray)):
       if delay_step.size == 1 and delay_step.ndim == 0:
         delay_type = 'homo'
       else:
         delay_type = 'heter'
-        delay_step = bm.Array(delay_step)
+        delay_step = Array(delay_step)
     elif callable(delay_step):
       delay_step = delay_step(self.delay_target_shape)
       delay_type = 'heter'
@@ -617,7 +618,7 @@ class DelayVariable(AbstractDelay):
     self._access_to_step[entry] = delay_step
     return self
 
-  def at(self, entry: str, *indices) -> bm.Array:
+  def at(self, entry: str, *indices) -> Array:
     """Get the data at the given entry.
 
     Args:
@@ -692,7 +693,7 @@ class DelayVariable(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, latest_value: Optional[Union[bm.Array, jax.Array]] = None) -> None:
+  def update(self, latest_value: Optional[Union[Array, jax.Array]] = None) -> None:
     """Update delay variable with the new data.
     """
     if self.data is not None:
@@ -702,13 +703,13 @@ class DelayVariable(AbstractDelay):
 
       # update the delay data at the rotation index
       if self.method == ROTATE_UPDATE:
-        self.idx.value = stop_gradient(bm.as_jax((self.idx - 1) % (self.length + 1)))
+        self.idx.value = stop_gradient(as_jax((self.idx - 1) % (self.length + 1)))
         self.data[self.idx.value] = latest_value
 
       # update the delay data at the first position
       elif self.method == CONCAT_UPDATE:
         if self.length >= 2:
-          self.data.value = bm.vstack([latest_value, self.data[1:]])
+          self.data.value = vstack([latest_value, self.data[1:]])
         else:
           self.data[0] = latest_value
 
@@ -735,11 +736,11 @@ class DelayVariable(AbstractDelay):
       batch_axis = None
     else:
       batch_axis = self.target.batch_axis + 1
-    self.data = bm.Variable(jnp.zeros((length + 1,) + self.target.shape, dtype=self.target.dtype),
+    self.data = Variable(jnp.zeros((length + 1,) + self.target.shape, dtype=self.target.dtype),
                             batch_axis=batch_axis)
     # update delay data
     self.data[0] = self.target.value
-    if isinstance(self._before_t0, (bm.Array, jax.Array, float, int, bool)):
+    if isinstance(self._before_t0, (Array, jax.Array, float, int, bool)):
       self.data[1:] = self._before_t0
     elif callable(self._before_t0):
       self.data[1:] = self._before_t0((length,) + self.target.shape, dtype=self.target.dtype)
