@@ -52,8 +52,6 @@ class LIF(NeuGroup):
     Refractory period length.(ms)
   V_initializer: ArrayType, Initializer, callable
     The initializer of membrane potential.
-  noise: ArrayType, Initializer, callable
-    The noise added onto the membrane potential
   method: str
     The numerical integration method.
   name: str
@@ -125,7 +123,7 @@ class LIF(NeuGroup):
 
   @not_pass_shargs
   def update(self, current):
-    t = bm.share.get('t')
+    t = bm.share.load('t')
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, current, bm.dt)

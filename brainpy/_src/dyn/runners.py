@@ -615,7 +615,7 @@ class DSRunner(Runner):
     # input step
     shared = tools.DotDict(t=t, i=i, dt=self.dt)
     shared.update(shared_args)
-    bm.share.save_shargs(**shared)
+    bm.share.save(**shared)
     self.target.clear_input()
     self._step_func_input(shared)
 

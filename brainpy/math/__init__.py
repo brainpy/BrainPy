@@ -26,6 +26,7 @@ from .object_transform import *
 from .modes import *
 from .environment import *
 from .others import *
+from .context import share
 
 mode = NonBatchingMode()
 '''Default computation mode.'''

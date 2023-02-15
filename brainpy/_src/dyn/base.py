@@ -155,7 +155,7 @@ class DynamicalSystem(BrainPyObject):
     """The shortcut to call ``update`` methods."""
     if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
       if len(args) and isinstance(args[0], dict):
-        bm.share.save_shargs(**args[0])
+        bm.share.save(**args[0])
         return self.update(*args[1:], **kwargs)
       else:
         return self.update(*args, **kwargs)

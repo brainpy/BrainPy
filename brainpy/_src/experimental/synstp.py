@@ -86,7 +86,7 @@ class STD(SynSTP):
 
   @not_pass_shargs
   def update(self, pre_spike):
-    x = self.integral(self.x.value, bm.share.get('t'), bm.share.get('dt'))
+    x = self.integral(self.x.value, bm.share.load('t'), bm.share.load('dt'))
     self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
     return self.x.value
 
@@ -169,7 +169,7 @@ class STP(SynSTP):
 
   @not_pass_shargs
   def update(self, pre_spike):
-    u, x = self.integral(self.u.value, self.x.value, bm.share.get('t'), bm.get_dt())
+    u, x = self.integral(self.u.value, self.x.value, bm.share.load('t'), bm.get_dt())
     u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
     x = bm.where(pre_spike, x - u * self.x, x)
     self.x.value = x

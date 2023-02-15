@@ -57,4 +57,5 @@ from .object_transform import *
 # environment settings
 from .modes import *
 from .environment import *
+from .context import share
 
