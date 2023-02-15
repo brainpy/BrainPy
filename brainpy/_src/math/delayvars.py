@@ -553,7 +553,7 @@ class DelayVariable(AbstractDelay):
       entry: str,
       delay_time: Optional[Union[float, bm.Array, Callable]] = None,
       delay_step: Optional[Union[int, bm.Array, Callable]] = None,
-  ) -> 'Delay':
+  ) -> 'DelayVariable':
     """Register an entry to access the data.
 
     Args:
