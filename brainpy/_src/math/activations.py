@@ -45,7 +45,6 @@ __all__ = [
   'swish',
   'selu',
   'identity',
-  'tanh',
 ]
 
 
@@ -64,10 +63,6 @@ def get(activation):
   else:
     raise ValueError(f'Unknown activation function {activation}. ')
   return global_vars[activation]
-
-
-def tanh(x):
-  return jnp.tanh((x.value if isinstance(x, Array) else x))
 
 
 def identity(x):

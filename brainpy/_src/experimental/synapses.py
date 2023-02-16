@@ -255,7 +255,7 @@ class Exponential(Synapse):
         post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
     # updates
-    self.g.value = self.integral(self.g.value, bm.share.get('t'), bm.dt) + post_vs
+    self.g.value = self.integral(self.g.value, bm.share.load('t'), bm.dt) + post_vs
 
     # outputs
     if self.out is not None:

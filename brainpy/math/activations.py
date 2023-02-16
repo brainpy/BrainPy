@@ -24,5 +24,4 @@ from brainpy._src.math.activations import (
   swish as swish,
   selu as selu,
   identity as identity,
-  tanh as tanh,
 )

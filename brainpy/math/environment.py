@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from brainpy._src.math.environment import (
-  share as share,
   set_float as set_float,
   get_float as get_float,
   set_int as set_int,
