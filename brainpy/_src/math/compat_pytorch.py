@@ -128,7 +128,7 @@ arccosh = acosh
 def add(input: Union[jax.Array, Array, jnp.number],
         other: Union[jax.Array, Array, jnp.number],
         *, alpha: Optional[jnp.number] = 1,
-        out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Array:
+        out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   other = _as_jax_array_(other)
   other = jnp.multiply(alpha, other)
@@ -143,7 +143,7 @@ def addcdiv(input: Union[jax.Array, Array, jnp.number],
             tensor1: Union[jax.Array, Array, jnp.number],
             tensor2: Union[jax.Array, Array, jnp.number],
             *, value: jnp.number = 1,
-            out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Array:
+            out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   tensor1 = _as_jax_array_(tensor1)
   tensor2 = _as_jax_array_(tensor2)
   other = jnp.divide(tensor1, tensor2)
@@ -153,14 +153,14 @@ def addcmul(input:  Union[jax.Array, Array, jnp.number],
             tensor1: Union[jax.Array, Array, jnp.number],
             tensor2: Union[jax.Array, Array, jnp.number],
             *, value: jnp.number = 1,
-            out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Array:
+            out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   tensor1 = _as_jax_array_(tensor1)
   tensor2 = _as_jax_array_(tensor2)
   other = jnp.multiply(tensor1, tensor2)
   return add(input, other, alpha=value, out=out)
 
 def angle(input: Union[jax.Array, Array, jnp.number],
-          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Array:
+          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   r = jnp.angle(input)
   if out is None:
