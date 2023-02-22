@@ -7,6 +7,7 @@ import jax.numpy as jnp
 import unittest
 import brainpy.math as bm
 from brainpy._src.math import compat_pytorch
+import brainpy._src.math.compat_pytorch as torch
 
 from absl .testing import parameterized
 
@@ -45,3 +46,33 @@ class TestExpand(unittest.TestCase):
     a = a.expand(1, 6, 4, -1)
     self.assertTrue(a.shape == (1, 6, 4, 5))
 
+class TestMathOperators(unittest.TestCase):
+  def test_abs(self):
+    arr = compat_pytorch.Tensor([-1, -2, 3])
+    a = compat_pytorch.abs(arr)
+    res = compat_pytorch.Tensor([1, 2, 3])
+    b = compat_pytorch.absolute(arr)
+    self.assertTrue(bm.array_equal(a, res))
+    self.assertTrue(bm.array_equal(b, res))
+
+  def test_add(self):
+    a = compat_pytorch.Tensor([0.0202,  1.0985,  1.3506, -0.6056])
+    a = compat_pytorch.add(a, 20)
+    res = compat_pytorch.Tensor([20.0202,  21.0985,  21.3506,  19.3944])
+    self.assertTrue(bm.array_equal(a, res))
+    b = compat_pytorch.Tensor([-0.9732, -0.3497,  0.6245,  0.4022])
+    c = compat_pytorch.Tensor([[0.3743], [-1.7724], [-0.5811], [-0.8017]])
+    b = compat_pytorch.add(b, c, alpha=10)
+    self.assertTrue(b.shape == (4, 4))
+    print("b:", b)
+
+  def test_addcdiv(self):
+    rng = bm.random.default_rng(999)
+    t = rng.rand(1, 3)
+    t1 = rng.randn(3, 1)
+    rng = bm.random.default_rng(199)
+    t2 = rng.randn(1, 3)
+    res = torch.addcdiv(t, t1, t2, value=0.1)
+    print("t + t1/t2 * value:", res)
+    res = torch.addcmul(t, t1, t2, value=0.1)
+    print("t + t1*t2 * value:", res)

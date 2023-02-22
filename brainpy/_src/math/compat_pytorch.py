@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from .ndarray import Array, _as_jax_array_
+from .ndarray import Array, _as_jax_array_, _return, _check_out
 from .compat_numpy import (
   concatenate, shape
 )
@@ -86,3 +86,145 @@ def unsqueeze(input: Union[jax.Array, Array], dim: int) -> Array:
   """
     input = _as_jax_array_(input)
     return Array(jnp.expand_dims(input, dim))
+
+
+# Math operations
+def abs(input: Union[jax.Array, Array],
+        *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.abs(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+absolute = abs
+
+def acos(input: Union[jax.Array, Array],
+         *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arccos(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arccos = acos
+
+def acosh(input: Union[jax.Array, Array],
+          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arccosh(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arccosh = acosh
+
+def add(input: Union[jax.Array, Array, jnp.number],
+        other: Union[jax.Array, Array, jnp.number],
+        *, alpha: Optional[jnp.number] = 1,
+        out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  other = _as_jax_array_(other)
+  other = jnp.multiply(alpha, other)
+  r = jnp.add(input, other)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+def addcdiv(input: Union[jax.Array, Array, jnp.number],
+            tensor1: Union[jax.Array, Array, jnp.number],
+            tensor2: Union[jax.Array, Array, jnp.number],
+            *, value: jnp.number = 1,
+            out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  tensor1 = _as_jax_array_(tensor1)
+  tensor2 = _as_jax_array_(tensor2)
+  other = jnp.divide(tensor1, tensor2)
+  return add(input, other, alpha=value, out=out)
+
+def addcmul(input:  Union[jax.Array, Array, jnp.number],
+            tensor1: Union[jax.Array, Array, jnp.number],
+            tensor2: Union[jax.Array, Array, jnp.number],
+            *, value: jnp.number = 1,
+            out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  tensor1 = _as_jax_array_(tensor1)
+  tensor2 = _as_jax_array_(tensor2)
+  other = jnp.multiply(tensor1, tensor2)
+  return add(input, other, alpha=value, out=out)
+
+def angle(input: Union[jax.Array, Array, jnp.number],
+          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.angle(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+def asin(input: Union[jax.Array, Array],
+          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arcsin(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arcsin = asin
+
+def asinh(input: Union[jax.Array, Array],
+          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arcsinh(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arcsinh = asinh
+
+def atan(input: Union[jax.Array, Array],
+          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arctan(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arctan = atan
+
+def atanh(input: Union[jax.Array, Array],
+          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arctanh(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arctanh = atanh
+
+def atan2(input: Union[jax.Array, Array],
+          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
+  input = _as_jax_array_(input)
+  r = jnp.arctan2(input)
+  if out is None:
+    return _return(r)
+  else:
+    _check_out(out)
+    out.value = r
+
+arctan2 = atan2
