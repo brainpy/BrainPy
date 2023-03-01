@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from functools import partial
-
 import matplotlib.pyplot as plt
 
-import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 
@@ -13,8 +10,7 @@ num_step = int(1.0 / dt)
 num_batch = 128
 
 
-@partial(bm.jit, static_argnames=['batch_size'])
-@bm.to_object(dyn_vars=bm.random.DEFAULT)
+@bm.jit(static_argnames=['batch_size'], dyn_vars=bm.random.DEFAULT)
 def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
   # Create the white noise input
   sample = bm.random.normal(size=(batch_size, 1, 1))
@@ -22,7 +18,7 @@ def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
   samples = bm.random.normal(size=(batch_size, num_step, 1))
   noise_t = scale / dt ** 0.5 * samples
   inputs = bias + noise_t
-  targets = jnp.cumsum(inputs, axis=1)
+  targets = bm.cumsum(inputs, axis=1)
   return inputs, targets
 
 
@@ -74,3 +70,4 @@ plt.plot(bm.as_numpy(y[0]).flatten(), label='Ground Truth')
 plt.plot(bm.as_numpy(predicts[0]).flatten(), label='Prediction')
 plt.legend()
 plt.show()
+

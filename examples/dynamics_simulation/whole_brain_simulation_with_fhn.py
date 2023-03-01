@@ -4,7 +4,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import jax.numpy as jnp
 import brainpy as bp
 import brainpy.math as bm
 
@@ -95,6 +94,6 @@ def net_analysis():
 
 
 if __name__ == '__main__':
-  bifurcation_analysis()
-  net_simulation()
+  # bifurcation_analysis()
+  # net_simulation()
   net_analysis()
