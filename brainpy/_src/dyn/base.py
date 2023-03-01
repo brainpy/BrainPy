@@ -484,7 +484,7 @@ class Container(DynamicalSystem):
     """
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     for node in nodes.values():
-      node.update(tdi)
+      node(tdi)
 
   def __getitem__(self, item):
     """Overwrite the slice access (`self['']`). """
@@ -665,6 +665,7 @@ class Network(Container):
                                   mode=mode,
                                   **ds_dict)
 
+  @not_pass_sha
   def update(self, *args, **kwargs):
     """Step function of a network.
 
@@ -680,19 +681,18 @@ class Network(Container):
     other_nodes = nodes - neuron_groups - synapse_groups - ds_views
 
     # shared arguments
-    shared = args[0]
 
     # update synapse nodes
     for node in synapse_groups.values():
-      node.update(shared)
+      node()
 
     # update neuron nodes
     for node in neuron_groups.values():
-      node.update(shared)
+      node()
 
     # update other types of nodes
     for node in other_nodes.values():
-      node.update(shared)
+      node()
 
     # update delays
     self.update_local_delays(nodes)

@@ -9,7 +9,7 @@ from .datatypes import *
 from .compat_numpy import *
 from .compat_tensorflow import *
 from .compat_pytorch import *
-share = None
+
 # functions
 from .activations import *
 from . import activations
