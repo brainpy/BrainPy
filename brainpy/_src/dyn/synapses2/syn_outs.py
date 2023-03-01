@@ -2,7 +2,7 @@
 
 from typing import Union
 
-from brainpy.math import Variable
+from brainpy.math import Variable, exp
 from brainpy.types import ArrayType
 from brainpy._src.dyn.synapses2.base import SynOut
 
@@ -123,6 +123,6 @@ class MgBlock(SynOut):
     self.beta = beta
 
   def update(self, g):
-    I = g * (self.E - self.post_potential) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * self.post_potential))
+    I = g * (self.E - self.post_potential) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * self.post_potential))
     return I
 
