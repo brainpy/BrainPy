@@ -4,7 +4,7 @@ from typing import Union
 
 from brainpy.math import Variable, exp
 from brainpy.types import ArrayType
-from brainpy._src.dyn.synapses2.base import SynOut
+from brainpy._src.dyn.synapses_v2.base import SynOut
 
 
 __all__ = [
