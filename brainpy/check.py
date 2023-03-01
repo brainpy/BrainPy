@@ -3,7 +3,6 @@
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
-import jax
 import numpy as np
 import numpy as onp
 from jax import numpy as jnp
@@ -44,6 +43,7 @@ __all__ = [
 ]
 
 _check = True
+_name_check = True
 
 
 def is_checking():
@@ -62,6 +62,8 @@ def turn_off():
   global _check
   _check = False
 
+
+# def turn_off_name_check
 
 def is_shape_consistency(shapes, free_axes=None, return_format_shapes=False):
   assert isinstance(shapes, (tuple, list)), f'Must be a sequence of shape. While we got {shapes}.'

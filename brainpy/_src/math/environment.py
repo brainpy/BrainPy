@@ -485,7 +485,6 @@ class training_environment(environment):
     >>> with bm.environment(mode=bm.training_mode):
     >>>   pass
 
-
   """
 
   def __init__(self,

@@ -4,6 +4,7 @@ from typing import Union, Optional, Sequence, Callable
 
 from jax import lax, numpy as jnp
 
+from brainpy._src.dyn.context import share
 from brainpy import math as bm, check
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.types import ArrayType
@@ -123,12 +124,12 @@ class BatchNorm(Layer):
   def _check_input_dim(self, x):
     raise NotImplementedError
 
-  def update(self, sha, x):
+  def update(self, x):
     self._check_input_dim(x)
 
     x = bm.as_jax(x)
 
-    if sha['fit']:
+    if share.load('fit'):
         mean = jnp.mean(x, self.axis)
         mean_of_square = jnp.mean(_square(x), self.axis)
         if self.axis_name is not None:
@@ -486,7 +487,7 @@ class LayerNorm(Layer):
       self.bias = bm.TrainVar(parameter(self.bias_initializer, self.normalized_shape))
       self.scale = bm.TrainVar(parameter(self.scale_initializer, self.normalized_shape))
 
-  def update(self, sha, x):
+  def update(self,x):
     if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
       raise ValueError(f'Expect the input shape should be (..., {", ".join(self.normalized_shape)}), '
                        f'but we got {x.shape}')
@@ -571,7 +572,7 @@ class GroupNorm(Layer):
       self.bias = bm.TrainVar(parameter(self.bias_initializer, self.num_channels))
       self.scale = bm.TrainVar(parameter(self.scale_initializer, self.num_channels))
 
-  def update(self, sha, x):
+  def update(self, x):
     assert x.shape[-1] == self.num_channels
     origin_shape, origin_dim = x.shape, x.ndim
     group_shape = (-1,) + x.shape[1:-1] + (self.num_groups, self.num_channels // self.num_groups)

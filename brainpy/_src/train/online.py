@@ -252,14 +252,16 @@ class OnlineTrainer(DSTrainer):
 
   def _step_func_fit(self, shared_args, t, i, x, ys):
     shared = tools.DotDict(t=t, dt=self.dt, i=i)
+    shared.update(shared_args)
+    for k, v in shared.items():
+      bm.share.save(k, v)
 
     # input step
     self.target.clear_input()
     self._step_func_input(shared)
 
     # update step
-    shared.update(shared_args)
-    args = (shared,) if x is None else (shared, x)
+    args = () if x is None else (x, )
     out = self.target(*args)
 
     # monitor step

@@ -225,10 +225,10 @@ class Bifurcation2D(Num2DAnalyzer):
 
     if self._can_convert_to_one_eq():
       if self.convert_type() == C.x_by_y:
-        X = self.resolutions[self.y_var].value
+        X = bm.as_jax(self.resolutions[self.y_var])
       else:
-        X = self.resolutions[self.x_var].value
-      pars = tuple(self.resolutions[p].value for p in self.target_par_names)
+        X = bm.as_jax(self.resolutions[self.x_var])
+      pars = tuple(bm.as_jax(self.resolutions[p]) for p in self.target_par_names)
       mesh_values = jnp.meshgrid(*((X,) + pars))
       mesh_values = tuple(jnp.moveaxis(v, 0, 1).flatten() for v in mesh_values)
       candidates = mesh_values[0]

@@ -9,7 +9,7 @@ from .datatypes import *
 from .compat_numpy import *
 from .compat_tensorflow import *
 from .compat_pytorch import *
-
+share = None
 # functions
 from .activations import *
 from . import activations
@@ -26,7 +26,6 @@ from .object_transform import *
 from .modes import *
 from .environment import *
 from .others import *
-from .context import share
 
 mode = NonBatchingMode()
 '''Default computation mode.'''

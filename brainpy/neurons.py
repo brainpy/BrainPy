@@ -36,5 +36,5 @@ from brainpy._src.dyn.neurons.reduced_models import (
   Izhikevich as Izhikevich,
   HindmarshRose as HindmarshRose,
   FHN as FHN,
+  LIF_SFA_Bellec2020,
 )
-

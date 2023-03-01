@@ -64,11 +64,11 @@ class BrainPyObject(object):
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
-    self.implicit_vars = ArrayCollector()
+    self.implicit_vars: dyn_dict = dyn_dict()
 
     # Used to wrap the implicit children nodes
     # which cannot be accessed by self.xxx
-    self.implicit_nodes = Collector()
+    self.implicit_nodes: dyn_dict = dyn_dict()
 
   def __setattr__(self, key: str, value: Any) -> None:
     """Overwrite `__setattr__` method for change Variable values.
@@ -262,17 +262,15 @@ class BrainPyObject(object):
       nodes = []
       for k, v in self.__dict__.items():
         if isinstance(v, BrainPyObject):
-          path = (id(self), id(v))
-          if path not in _paths:
-            _paths.add(path)
-            gather[v.name] = v
-            nodes.append(v)
-      for node in self.implicit_nodes.values():
-        path = (id(self), id(node))
-        if path not in _paths:
-          _paths.add(path)
-          gather[node.name] = node
-          nodes.append(node)
+          _add_node2(self, v, _paths, gather, nodes)
+        elif isinstance(v, dyn_seq):
+          for v2 in v:
+            if isinstance(v2, BrainPyObject):
+              _add_node2(self, v2, _paths, gather, nodes)
+        elif isinstance(v, dyn_dict):
+          for v2 in v.values():
+            if isinstance(v2, BrainPyObject):
+              _add_node2(self, v2, _paths, gather, nodes)
       for v in nodes:
         gather.update(v._find_nodes(method=method,
                                     level=level,
@@ -284,17 +282,15 @@ class BrainPyObject(object):
       nodes = []
       for k, v in self.__dict__.items():
         if isinstance(v, BrainPyObject):
-          path = (id(self), id(v))
-          if path not in _paths:
-            _paths.add(path)
-            gather[k] = v
-            nodes.append((k, v))
-      for key, node in self.implicit_nodes.items():
-        path = (id(self), id(node))
-        if path not in _paths:
-          _paths.add(path)
-          gather[key] = node
-          nodes.append((key, node))
+          _add_node1(self, k, v, _paths, gather, nodes)
+        elif isinstance(v, dyn_seq):
+          for i, v2 in enumerate(v):
+            if isinstance(v, BrainPyObject):
+              _add_node1(self, k + '-' + str(i), v2, _paths, gather, nodes)
+        elif isinstance(v, dyn_dict):
+          for k2, v2 in v.items():
+            if isinstance(v2, BrainPyObject):
+              _add_node1(self, k + '.' + k2, v2, _paths, gather, nodes)
       for k1, v1 in nodes:
         for k2, v2 in v1._find_nodes(method=method,
                                      _paths=_paths,
@@ -351,10 +347,10 @@ class BrainPyObject(object):
       check_name_uniqueness(name=name, obj=self)
       return name
 
-  def __state_dict__(self) -> dict:
-    return self.vars(include_self=True, level=0).unique()
+  def __save_state__(self) -> dict:
+    return self.vars(include_self=True, level=0).unique().dict()
 
-  def __load_state_dict__(self, state_dict: dict) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
+  def __load_state__(self, state_dict: dict) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
     variables = self.vars(include_self=True, level=0).unique()
     keys1 = set(state_dict.keys())
     keys2 = set(variables.keys())
@@ -373,7 +369,7 @@ class BrainPyObject(object):
       A dictionary containing a whole state of the module.
     """
     nodes = self.nodes()  # retrieve all nodes
-    return {key: node.__state_dict__() for key, node in nodes.items()}
+    return {key: node.__save_state__() for key, node in nodes.items()}
 
   def load_state_dict(self, state_dict: Dict[str, Any], warn: bool = True, compatible='v2'):
     """Copy parameters and buffers from :attr:`state_dict` into
@@ -407,7 +403,7 @@ class BrainPyObject(object):
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        missing, unexpected = node.__load_state_dict__(state_dict[name])
+        missing, unexpected = node.__load_state__(state_dict[name])
         missing_keys.extend([f'{name}.{key}' for key in missing])
         unexpected_keys.extend([f'{name}.{key}' for key in unexpected])
     else:
@@ -492,6 +488,22 @@ class BrainPyObject(object):
   def tpu(self):
     """Move all variables into the TPU device."""
     return self.to(device=jax.devices('tpu')[0])
+
+
+def _add_node2(self, v, _paths, gather, nodes):
+  path = (id(self), id(v))
+  if path not in _paths:
+    _paths.add(path)
+    gather[v.name] = v
+    nodes.append(v)
+
+
+def _add_node1(self, k, v, _paths, gather, nodes):
+  path = (id(self), id(v))
+  if path not in _paths:
+    _paths.add(path)
+    gather[k] = v
+    nodes.append((k, v))
 
 
 Base = BrainPyObject

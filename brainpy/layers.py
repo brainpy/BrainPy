@@ -75,15 +75,3 @@ from brainpy._src.dyn.layers.reservoir import (
   Reservoir as Reservoir,
 )
 
-from brainpy._src.dyn.layers.rnncells import (
-  RNNCell as RNNCell,
-  GRUCell as GRUCell,
-  LSTMCell as LSTMCell,
-  Conv1dLSTMCell as Conv1dLSTMCell,
-  Conv2dLSTMCell as Conv2dLSTMCell,
-  Conv3dLSTMCell as Conv3dLSTMCell,
-
-  VanillaRNN as VanillaRNN,
-  GRU as GRU,
-  LSTM as LSTM,
-)
