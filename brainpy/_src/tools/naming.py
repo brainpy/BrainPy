@@ -2,6 +2,7 @@
 
 import warnings
 from brainpy import errors
+from brainpy import check
 
 
 __all__ = [

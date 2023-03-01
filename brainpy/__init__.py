@@ -58,11 +58,11 @@ from brainpy import (channels,  # channel models
                      synapses,  # synaptic dynamics
                      synouts,  # synaptic output
                      synplast,  # synaptic plasticity
-                     experimental,  # experimental model
+                     syn,
                      )
-from brainpy._src.dyn.base import not_pass_shargs
-from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
-                                   Module as Module,
+from brainpy._src.dyn.base import not_pass_sha
+from brainpy._src.dyn.base import (DynamicalSystem,
+                                   DynamicalSystemNS,
                                    Container as Container,
                                    Sequential as Sequential,
                                    Network as Network,
@@ -77,6 +77,8 @@ from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
 from brainpy._src.dyn.transform import (NoSharedArg as NoSharedArg,  # transformations
                                         LoopOverTime as LoopOverTime,)
 from brainpy._src.dyn.runners import (DSRunner as DSRunner)  # runner
+from brainpy._src.dyn.context import share
+from brainpy._src.dyn.delay import Delay
 
 
 #  Part 4: Training  #
@@ -240,3 +242,7 @@ dyn.__dict__['AlphaCOBA'] = compat.AlphaCOBA
 dyn.__dict__['NMDA'] = compat.NMDA
 del compat
 
+
+from brainpy._src import checking
+tools.__dict__['checking'] = checking
+del checking

@@ -3,9 +3,9 @@
 from typing import Union, Sequence
 
 import jax.numpy as jnp
-
+from brainpy._src.dyn.context import share
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup, not_pass_shargs
+from brainpy._src.dyn.base import NeuGroup, not_pass_sha
 from brainpy._src.initialize import Initializer, parameter, variable_
 from brainpy.types import Shape, ArrayType
 
@@ -41,7 +41,7 @@ class InputGroup(NeuGroup):
                                      mode=mode)
     self.spike = None
 
-  @not_pass_shargs
+  @not_pass_sha
   def update(self, x):
     return x
 
@@ -73,7 +73,7 @@ class OutputGroup(NeuGroup):
                                       mode=mode)
     self.spike = None
 
-  @not_pass_shargs
+  @not_pass_sha
   def update(self, x):
     return x
 
@@ -135,22 +135,21 @@ class SpikeTimeGroup(NeuGroup):
     # data about times and indices
     self.times = jnp.asarray(times)
     self.indices = jnp.asarray(indices, dtype=bm.int_)
-
-    # variables
-    self.i = bm.Variable(jnp.zeros(1, dtype=bm.int_))
-    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, mode)
     if need_sort:
       sort_idx = jnp.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
       self.times.value = self.times[sort_idx]
 
+    # variables
+    self.reset_state(self.mode)
+
     # functions
     def cond_fun(t):
-      i = self.i[0]
+      i = self.i.value
       return jnp.logical_and(i < self.num_times, t >= self.times[i])
 
     def body_fun(t):
-      i = self.i[0]
+      i = self.i.value
       if isinstance(self.mode, bm.BatchingMode):
         self.spike[:, self.indices[i]] = True
       else:
@@ -160,12 +159,14 @@ class SpikeTimeGroup(NeuGroup):
     self._run = bm.make_while(cond_fun, body_fun, dyn_vars=self.vars())
 
   def reset_state(self, batch_size=None):
-    self.i[0] = 1
-    self.spike.value = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
+    self.i = bm.Variable(bm.asarray(0))
+    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  def update(self, tdi, x=None):
-    self.spike[:] = False
-    self._run(tdi['t'])
+  @not_pass_sha
+  def update(self):
+    self.spike.value = bm.zeros_like(self.spike)
+    self._run(share.load('t'))
+    return self.spike.value
 
 
 class PoissonGroup(NeuGroup):
@@ -192,16 +193,18 @@ class PoissonGroup(NeuGroup):
     self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, self.mode)
     self.rng = bm.random.default_rng(seed)
+    self.reset_state(self.mode)
 
-  def update(self, tdi, x=None):
-    shape = (self.spike.shape[:1] + self.varshape) if isinstance(self.mode, bm.BatchingMode) else self.varshape
-    self.spike.update(self.rng.random(shape) <= (self.freqs * tdi['dt'] / 1000.))
+  @not_pass_sha
+  def update(self, x=None):
+    spikes = self.rng.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
+    self.spike.value = spikes
+    return spikes
 
   def reset(self, batch_size=None):
     self.rng.value = bm.random.default_rng(self.seed)
     self.reset_state(batch_size)
 
   def reset_state(self, batch_size=None):
-    self.spike.value = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
+    self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)

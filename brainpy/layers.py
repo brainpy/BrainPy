@@ -82,8 +82,5 @@ from brainpy._src.dyn.layers.rnncells import (
   Conv1dLSTMCell as Conv1dLSTMCell,
   Conv2dLSTMCell as Conv2dLSTMCell,
   Conv3dLSTMCell as Conv3dLSTMCell,
-
-  VanillaRNN as VanillaRNN,
-  GRU as GRU,
-  LSTM as LSTM,
 )
+

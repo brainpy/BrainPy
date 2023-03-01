@@ -290,9 +290,9 @@ class PhasePlane2D(Num2DAnalyzer):
 
     if self._can_convert_to_one_eq():
       if self.convert_type() == C.x_by_y:
-        candidates = self.resolutions[self.y_var].value
+        candidates = bm.as_jax(self.resolutions[self.y_var])
       else:
-        candidates = self.resolutions[self.x_var].value
+        candidates = bm.as_jax(self.resolutions[self.x_var])
     else:
       if select_candidates == 'fx-nullcline':
         candidates = [self.analyzed_results[key][0] for key in self.analyzed_results.keys()

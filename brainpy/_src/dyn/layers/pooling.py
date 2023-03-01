@@ -8,7 +8,6 @@ import numpy as np
 
 from brainpy import math as bm, check
 from .base import Layer
-from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'MaxPool',
@@ -81,7 +80,6 @@ class Pool(Layer):
         f'padding should be sequence of Tuple[int, int]. {padding}'
       assert all([len(x) == 2 for x in padding]), f"each entry in padding {padding} must be length 2"
 
-  @not_pass_shargs
   def update(self, x):
     x = bm.as_jax(x)
     window_shape = self._infer_shape(x.ndim, self.kernel_size)
@@ -258,7 +256,6 @@ class AvgPool(Pool):
                                   mode=mode,
                                   name=name)
 
-  @not_pass_shargs
   def update(self, x):
     x = bm.as_jax(x)
     window_shape = self._infer_shape(x.ndim, self.kernel_size)
@@ -359,7 +356,6 @@ class _MaxPoolNd(Layer):
     # channel_axis
     self.channel_axis = check.is_integer(channel_axis, allow_none=True)
 
-  @not_pass_shargs
   def update(self, x):
     x = bm.as_jax(x)
     x_dim = self.pool_dim + (0 if self.channel_axis is None else 1)
@@ -525,7 +521,6 @@ class MaxPool3d(_MaxPoolNd):
 
 
 class _AvgPoolNd(_MaxPoolNd):
-  @not_pass_shargs
   def update(self, x):
     x = bm.as_jax(x)
     x_dim = self.pool_dim + (0 if self.channel_axis is None else 1)
@@ -763,7 +758,6 @@ class AdaptivePool(Layer):
       raise ValueError("`target_size` must either be an int or tuple of length "
                        f"{num_spatial_dims} containing ints.")
 
-  @not_pass_shargs
   def update(self, x):
     """Input-output mapping.
 

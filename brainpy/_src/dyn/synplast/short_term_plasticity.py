@@ -4,11 +4,14 @@ from typing import Union
 
 import jax.numpy as jnp
 
+from brainpy._src.dyn.context import share
+from brainpy import math as bm, tools
 from brainpy._src.dyn.base import SynSTP
 from brainpy._src.initialize import variable
+from brainpy._src.initialize import variable_, OneInit, parameter
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_float
-from brainpy.types import ArrayType
+from brainpy.types import ArrayType, Shape
 
 __all__ = [
   'STD',
@@ -181,3 +184,4 @@ class STP(SynSTP):
     if jnp.shape(g) != self.x.shape:
       raise ValueError('Shape does not match.')
     return g * self.x * self.u
+

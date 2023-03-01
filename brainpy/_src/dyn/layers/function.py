@@ -6,7 +6,6 @@ from typing import Optional
 import brainpy.math as bm
 from brainpy import check
 from .base import Layer
-from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'Activation',
@@ -40,7 +39,6 @@ class Activation(Layer):
     self.activate_fun = activate_fun
     self.kwargs = kwargs
 
-  @not_pass_shargs
   def update(self, *args, **kwargs):
     return self.activate_fun(*args, **kwargs, **self.kwargs)
 
@@ -64,7 +62,6 @@ class Flatten(Layer):
     super().__init__(name, mode)
     check.is_subclass(self.mode, (bm.NonBatchingMode, bm.BatchingMode, bm.TrainingMode), self.name)
 
-  @not_pass_shargs
   def update(self, x):
     if isinstance(self.mode, bm.BatchingMode):
       return x.reshape((x.shape[0], -1))
@@ -84,6 +81,5 @@ class FunAsLayer(Layer):
     self._fun = fun
     self.kwargs = kwargs
 
-  @not_pass_shargs
   def update(self, *args, **kwargs):
     return self._fun(*args, **kwargs, **self.kwargs)

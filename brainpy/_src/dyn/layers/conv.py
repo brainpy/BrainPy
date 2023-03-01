@@ -5,7 +5,7 @@ from typing import Union, Tuple, Optional, Sequence, Callable
 from jax import lax
 
 from brainpy import math as bm, tools, check
-from brainpy._src.dyn.base import not_pass_shargs
+from brainpy._src.dyn.base import not_pass_sha
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
 from .base import Layer
@@ -154,7 +154,7 @@ class _GeneralConv(Layer):
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
 
-  @not_pass_shargs
+  @not_pass_sha
   def update(self, x):
     self._check_input_dim(x)
     w = self.w.value
@@ -526,7 +526,7 @@ class _GeneralConvTranspose(Layer):
   def _check_input_dim(self, x):
     raise NotImplementedError
 
-  @not_pass_shargs
+  @not_pass_sha
   def update(self, x):
     self._check_input_dim(x)
 

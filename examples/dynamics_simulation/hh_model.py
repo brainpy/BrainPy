@@ -16,7 +16,7 @@ hh = HH(1)
 I, length = bp.inputs.section_input(values=[0, 5, 0],
                                     durations=[100, 500, 100],
                                     return_length=True)
-runner = bp.dyn.DSRunner(
+runner = bp.DSRunner(
   hh,
   monitors=['V', 'INa.p', 'INa.q', 'IK.p'],
   inputs=[hh.input, I, 'iter'],

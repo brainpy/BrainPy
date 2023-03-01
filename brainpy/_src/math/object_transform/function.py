@@ -9,7 +9,6 @@ from .base import FunAsObject, BrainPyObject
 __all__ = [
   'Partial',
   'to_object',
-  'to_dynsys',
   'function',
 ]
 
@@ -69,43 +68,6 @@ def to_object(
     if child_objs is None:
       raise ValueError(f'"child_objs" cannot be None when "f" is provided.')
     return FunAsObject(target=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
-
-
-def to_dynsys(
-    f: Callable = None,
-    child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    name: str = None
-):
-  """Transform a Python function to a :py:class:`~.DynamicalSystem`.
-
-  Parameters
-  ----------
-  f: function, callable
-    The python function.
-  child_objs: Callable, DynamicalSystem, sequence of DynamicalSystem, dict of DynamicalSystem
-    The children objects used in this Python function.
-  dyn_vars: Variable, sequence of Variable, dict of Variable
-    The `Variable` instance used in the Python function.
-  name: str
-    The name of the created ``BrainPyObject``.
-
-  Returns
-  -------
-  func: FunAsDynSys
-    The instance of ``DynamicalSystem``.
-  """
-  from brainpy._src.dyn.base import FuncAsDynSys
-
-  if f is None:
-    def wrap(func) -> FuncAsDynSys:
-      return FuncAsDynSys(target=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
-
-    return wrap
-  else:
-    if child_objs is None:
-      raise ValueError(f'"child_objs" cannot be None when "f" is provided.')
-    return FuncAsDynSys(target=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
 
 
 def function(

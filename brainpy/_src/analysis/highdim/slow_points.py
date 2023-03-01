@@ -752,7 +752,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       # call update functions
       args = (shared,) + self.args
-      target.update(*args)
+      target(*args)
 
       # get new states
       new_h = {k: (v.value if (v.batch_axis is None) else jnp.squeeze(v.value, axis=v.batch_axis))

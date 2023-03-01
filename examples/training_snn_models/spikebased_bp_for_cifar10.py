@@ -33,7 +33,7 @@ bm.set_environment(bm.TrainingMode())
 
 parser = argparse.ArgumentParser(description='CIFAR10 Training')
 parser.add_argument('-data', default='/mnt/d/data', type=str, help='path to dataset')
-parser.add_argument('-b', default=64, type=int, metavar='N')
+parser.add_argument('-b', default=16, type=int, metavar='N')
 parser.add_argument('-T', default=100, type=int, help='Simulation timesteps')
 parser.add_argument('-lr', default=0.0025, type=float, help='initial learning rate')
 parser.add_argument('-resume', action='store_true', help='resume from the checkpoint path')
@@ -41,7 +41,7 @@ parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 
 
-class LIFNode(bp.DynamicalSystem):
+class LIFNode(bp.DynamicalSystemNS):
   def __init__(self, size, tau=100.0, v_threshold=1.0, v_reset=0.0, fire: bool = True):
     super().__init__()
     bp.check.is_subclass(self.mode, [bp.math.TrainingMode, bp.math.BatchingMode])
@@ -77,7 +77,7 @@ class LIFNode(bp.DynamicalSystem):
     g = bm.where(res[0], 0., g).value
     return (self.grad_acc.value * g,)
 
-  def update(self, s, dv):
+  def update(self, dv):
     self.v += dv
     if self.fire:
       spike = self.relu_grad(bm.as_jax(self.v.value - self.v_threshold))
@@ -93,7 +93,7 @@ class LIFNode(bp.DynamicalSystem):
       return self.v.value
 
 
-class IFNode(bp.DynamicalSystem):
+class IFNode(bp.DynamicalSystemNS):
   def __init__(self, size, v_threshold=0.75, v_reset=0.0):
     super().__init__()
     bp.check.is_subclass(self.mode, [bm.TrainingMode, bm.BatchingMode])
@@ -114,14 +114,14 @@ class IFNode(bp.DynamicalSystem):
 
     return bm.asarray(x > 0.0, bm.float_).value, grad
 
-  def update(self, s, dv):
+  def update(self, dv):
     self.v += dv
     spike = self.relu_grad(bm.as_jax(self.v - self.v_threshold))
     self.v.value = bm.where(self.v > self.v_threshold, self.v_reset, self.v.value)
     return spike
 
 
-class ResNet11(bp.DynamicalSystem):
+class ResNet11(bp.DynamicalSystemNS):
   def __init__(self):
     super().__init__()
 
@@ -178,14 +178,14 @@ class ResNet11(bp.DynamicalSystem):
   def linear_init(self, shape):
     return bm.random.normal(0., np.sqrt(1.0 / shape[0]), shape)
 
-  def update(self, s, x):
-    x = self.if1(s, self.avgpool1(s, self.lif11(s, self.cnn11(s, x))))
-    x = self.lif2(s, self.cnn22(s, self.lif21(s, self.cnn21(s, x))) + self.shortcut1(s, x))
-    x = self.lif3(s, self.cnn32(s, self.lif31(s, self.cnn31(s, x))) + self.shortcut2(s, x))
-    x = self.lif4(s, self.cnn42(s, self.lif41(s, self.cnn41(s, x))) + self.shortcut3(s, x))
-    x = self.lif5(s, self.cnn52(s, self.lif51(s, self.cnn51(s, x))) + self.shortcut4(s, x))
+  def update(self, x):
+    x = self.if1(self.avgpool1(self.lif11(self.cnn11(x))))
+    x = self.lif2(self.cnn22(self.lif21(self.cnn21(x))) + self.shortcut1(x))
+    x = self.lif3(self.cnn32(self.lif31(self.cnn31(x))) + self.shortcut2(x))
+    x = self.lif4(self.cnn42(self.lif41(self.cnn41(x))) + self.shortcut3(x))
+    x = self.lif5(self.cnn52(self.lif51(self.cnn51(x))) + self.shortcut4(x))
     x = x.reshape(x.shape[0], -1)
-    x = self.lif_out(s, self.fc1(s, self.lif6(s, self.fc0(s, x))))
+    x = self.lif_out(self.fc1(self.lif6(self.fc0(x))))
     return x
 
 
@@ -239,16 +239,14 @@ def main():
   bm.random.seed(1234)
   net = ResNet11()
 
-  @bm.jit
-  @bm.to_object(child_objs=net, dyn_vars=bm.random.DEFAULT)
+  @bm.jit(child_objs=net, dyn_vars=bm.random.DEFAULT)
   def loss_fun(x, y, fit=True):
+    bp.share.save(fit=fit)
     yy = bm.one_hot(y, 10, dtype=bm.float_)
     # poisson encoding
     x = (bm.random.rand(num_time, *x.shape) < bm.abs(x)).astype(bm.float_) * bm.sign(x)
     # loop over time
-    s = {'fit': fit}
-    for i in range(num_time):
-      o = net(s, x[i])
+    o = bm.for_loop(net, x, jit=False)[-1]
     for m in net.nodes().unique():
       if isinstance(m, LIFNode) and m.fire:
         m.v_acc += (m.v_acc < 1e-3).astype(bm.float_)
@@ -264,8 +262,7 @@ def main():
                            train_vars=net.train_vars().unique(),
                            weight_decay=5e-4)
 
-  @bm.jit
-  @bm.to_object(child_objs=(optimizer, grad_fun))
+  @bm.jit(child_objs=(optimizer, grad_fun))
   def train_fun(x, y):
     grads, l, n = grad_fun(x, y)
     optimizer.update(grads)

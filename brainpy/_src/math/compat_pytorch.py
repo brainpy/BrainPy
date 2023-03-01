@@ -13,7 +13,24 @@ __all__ = [
   'Tensor',
   'flatten',
   'cat',
-
+  'abs',
+  'absolute',
+  'acos',
+  'arccos',
+  'acosh',
+  'arccosh',
+  'add',
+  'addcdiv',
+  'addcmul',
+  'angle',
+  'asin',
+  'arcsin',
+  'asinh',
+  'arcsin',
+  'atan',
+  'arctan',
+  'atan2',
+  'atanh',
 ]
 
 
