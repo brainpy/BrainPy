@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import time
 from collections.abc import Iterable
 from functools import partial
-from typing import Union, Dict, Callable, Sequence, Any, Optional
-from tqdm import tqdm
+from typing import Union, Dict, Callable, Sequence, Optional
 
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map
+from tqdm import tqdm
 
 import brainpy.losses as losses
 import brainpy.math as bm
 from brainpy import tools, optim
 from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dyn.context import share
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.running import constants as c
 from brainpy.check import serialize_kwargs
@@ -75,7 +75,6 @@ class BPTrainer(DSTrainer):
       optimizer: optim.Optimizer = None,  # optimizer
       loss_has_aux: bool = False,  # loss auxiliary
       loss_auto_run: bool = True,  # loss auxiliary
-      logger: Optional[Any] = None,
 
       # -------------
       # API deprecated
@@ -140,9 +139,6 @@ class BPTrainer(DSTrainer):
     # functions
     self._f_loss_compiled = dict()
     self._f_grad_compiled = dict()
-
-    # others
-    self.logger = logger
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -269,7 +265,10 @@ class BPTrainer(DSTrainer):
       fit_t0 = time.time()
       fit_epoch_metric = dict(loss=[])
       _training_data = train_data() if callable(train_data) else train_data
-      bar = tqdm(total=len(_training_data) if hasattr(_training_data, '__len__') else None)
+      if hasattr(_training_data, '__len__'):
+        bar = tqdm(total=len(_training_data))
+      else:
+        bar = None
 
       for x, y in _training_data:
         # reset state
@@ -289,7 +288,8 @@ class BPTrainer(DSTrainer):
             if k not in fit_epoch_metric:
               fit_epoch_metric[k] = []
             fit_epoch_metric[k].append(v)
-        bar.update(1)
+        if bar is not None:
+          bar.update(1)
 
         # report
         fit_i += 1
@@ -306,9 +306,10 @@ class BPTrainer(DSTrainer):
             v.clear()
           _report = (f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
                      ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
-          bar.set_description(_report, refresh=True)
-          if self.logger is not None:
-            self.logger.write(_report + '\n')
+          if bar is not None:
+            bar.set_description(_report, refresh=True)
+          else:
+            print(_report)
           if fun_after_report is not None:
             fun_after_report(fit_i, aux, 'fit')
           fit_t0 = time.time()
@@ -327,22 +328,26 @@ class BPTrainer(DSTrainer):
           v.clear()
         _report = (f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
                    ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
-        bar.set_description(_report, refresh=True)
-        if self.logger is not None:
-          self.logger.write(_report + '\n')
+        if bar is not None:
+          bar.set_description(_report, refresh=True)
+        else:
+          print(_report)
         if fun_after_report is not None:
           fun_after_report(epoch_idx, aux, 'fit')
       else:
         fit_t = time.time() - fit_t0
       self.optimizer.lr.step_epoch()
-      bar.close()
+      if bar is not None: bar.close()
 
       # testing set
       if test_data is not None:
         test_t0 = time.time()
         test_epoch_metric = dict(loss=[])
         _testing_data = test_data() if callable(test_data) else test_data
-        bar = tqdm(total=len(_testing_data) if hasattr(_testing_data, '__len__') else None)
+        if hasattr(_testing_data, '__len__'):
+          bar = tqdm(total=len(_testing_data))
+        else:
+          bar = None
         for x, y in _testing_data:
           # reset state
           if reset_state:
@@ -364,7 +369,7 @@ class BPTrainer(DSTrainer):
           else:
             test_epoch_metric['loss'].append(res)
 
-          bar.update(1)
+          if bar is not None: bar.update(1)
 
           # report
           test_i += 1
@@ -381,9 +386,10 @@ class BPTrainer(DSTrainer):
               v.clear()
             _report = (f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
                        ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
-            bar.set_description(_report, refresh=True)
-            if self.logger is not None:
-              self.logger.write(_report + '\n')
+            if bar is not None:
+              bar.set_description(_report, refresh=True)
+            else:
+              print(_report)
             if fun_after_report is not None:
               fun_after_report(test_i, aux, 'test')
             test_t0 = time.time()
@@ -402,15 +408,16 @@ class BPTrainer(DSTrainer):
             v.clear()
           _report = (f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
                      ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
-          bar.set_description(_report, refresh=True)
-          if self.logger is not None:
-            self.logger.write(_report + '\n')
+          if bar is not None:
+            bar.set_description(_report, refresh=True)
+          else:
+            print(_report)
           if fun_after_report is not None:
             fun_after_report(epoch_idx, aux, 'test')
         else:
           test_t = time.time() - test_t0
 
-        bar.close()
+        if bar is not None: bar.close()
 
     # finally
     self._report_train_metrics = {k: np.asarray(v) for k, v in report_train_metric.items()}
@@ -566,19 +573,20 @@ class BPFF(BPTrainer):
 
   def _step_func_predict(self, shared, x=None):
     assert self.data_first_axis == 'B', f'There is no time dimension when using the trainer {self.__class__.__name__}.'
-    bm.share.save_shargs(**shared)
+    for k, v in shared.items():
+      share.save(k, v)
 
     # input step
     self.target.clear_input()
     self._step_func_input(shared)
 
     # dynamics update step
-    args = (shared,) if x is None else (shared, x)
+    args = () if x is None else (x, )
     out = self.target(*args)
 
     # monitor step
     mon = self._step_func_monitor(shared)
-    bm.share.remove_shargs(shared)
+    share.clear_shargs()
     return out, mon
 
   def _get_f_predict(self, shared_args: Dict = None, jit: bool = True):
@@ -654,108 +662,3 @@ class BPFF(BPTrainer):
     return (t1 - t0, outs) if eval_time else outs
 
 
-class _OnlineBPTT(BPTT):
-  def _step_func_loss(self, shared_args, t, i, input_, target_):
-    outputs, mon = self._get_f_predict_one_step(shared_args)(t, i, input_)
-    predicts = (outputs, mon) if len(mon) > 0 else outputs
-    return self._loss_func(predicts, target_)
-
-  def _get_f_loss(self, shared_args=None, jit=True) -> Callable:
-    """Get loss function."""
-    if shared_args is None: shared_args = dict()
-
-    shared_args2 = {k: v for k, v in shared_args.items()}
-    shared_args2['_local_jit_'] = jit
-    shared_args_str = serialize_kwargs(shared_args2)
-    if shared_args_str not in self._f_loss_compiled:
-
-      self._f_loss_compiled[shared_args_str] = partial(self._step_func_loss, shared_args)
-      if self.jit[c.LOSS_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self.dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
-                                                        dyn_vars=dyn_vars)
-    return self._f_loss_compiled[shared_args_str]
-
-  def _get_f_train(self, shared_args=None) -> Callable:
-    """Get training function."""
-    if shared_args is None: shared_args = dict()
-    if not isinstance(shared_args, dict):
-      raise ValueError(f'Only supports dict for "shared_args". '
-                       f'But got {type(shared_args)}: {shared_args}')
-    shared_args_str = serialize_kwargs(shared_args)
-    if shared_args_str not in self._f_fit_compiled:
-
-      def train_step(*x):
-        # t, i, input_, target_ = x
-        res = self._get_f_grad(shared_args)(*x)
-        self.optimizer.update(res[0])
-        return res[1:]
-
-      if self.jit[c.FIT_PHASE]:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self.dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        run_func = lambda all_inputs: bm.for_loop(train_step, all_inputs, dyn_vars=dyn_vars.unique())
-
-      else:
-        def run_func(xs):
-          times, indices, inputs, targets = xs
-          losses = []
-          for i in range(times.shape[0]):
-            # data at time i
-            x = tree_map(lambda x: x[i], inputs, is_leaf=_is_brainpy_array)
-            y = tree_map(lambda x: x[i], targets, is_leaf=_is_brainpy_array)
-            # step at the i
-            loss = train_step(times[i], indices[i], x, y)
-            # append output and monitor
-            losses.append(loss)
-          return bm.asarray(losses)
-
-      def train_fun(inputs, targets):
-        times, indices, inputs, num_step, _, duration, _ = self._format_xs(
-          None, inputs, inputs_are_batching=True, move_axis=True)
-        targets = tree_map(lambda x: bm.moveaxis(x, 0, 1), targets, is_leaf=_is_brainpy_array)
-        ls = run_func([times, indices, inputs, targets])
-        self.i0 += num_step
-        self.t0 += duration
-        return ls
-
-      self._f_fit_compiled[shared_args_str] = train_fun
-    return self._f_fit_compiled[shared_args_str]
-
-  def _get_f_predict_one_step(self, shared_args: Dict = None, jit: bool = False):
-    if shared_args is None: shared_args = tools.DotDict()
-    if not isinstance(shared_args, dict):
-      raise ValueError(f'"shared_args" must be a dict, '
-                       f'but got {type(shared_args)}')
-
-    shared_args2 = {k: v for k, v in shared_args.items()}
-    shared_args2['_local_jit_'] = jit
-    shared_args2['_one_step_'] = True
-    shared_args_str = serialize_kwargs(shared_args)
-    if shared_args_str not in self._f_predict_compiled:
-
-      monitor_func = self._build_monitors(self._mon_info[0], self._mon_info[1], shared_args)
-
-      def run_func(t, i, x):
-        shared = tools.DotDict(t=t, i=i, dt=self.dt)
-        shared.update(shared_args)
-        self.target.clear_input()
-        outs = self.target(shared, x)
-        hist = monitor_func(shared)
-        return outs, hist
-
-      if self.jit[c.FIT_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self.dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        self._f_predict_compiled[shared_args_str] = bm.jit(run_func, dyn_vars=dyn_vars.unique())
-      else:
-        self._f_predict_compiled[shared_args_str] = run_func
-    return self._f_predict_compiled[shared_args_str]
-
-
-class OTTT(BPTrainer):
-  pass

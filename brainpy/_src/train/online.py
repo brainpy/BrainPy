@@ -11,6 +11,7 @@ from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
 from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dyn.context import share
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError
@@ -252,14 +253,15 @@ class OnlineTrainer(DSTrainer):
 
   def _step_func_fit(self, shared_args, t, i, x, ys):
     shared = tools.DotDict(t=t, dt=self.dt, i=i)
+    shared.update(shared_args)
+    share.save(**shared)
 
     # input step
     self.target.clear_input()
     self._step_func_input(shared)
 
     # update step
-    shared.update(shared_args)
-    args = (shared,) if x is None else (shared, x)
+    args = () if x is None else (x, )
     out = self.target(*args)
 
     # monitor step

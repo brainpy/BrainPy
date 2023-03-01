@@ -10,7 +10,6 @@ from brainpy import check
 from brainpy.tools import to_size
 from brainpy.types import ArrayType
 from .base import Layer
-from brainpy._src.dyn.base import not_pass_shargs
 
 __all__ = [
   'Reservoir',
@@ -124,7 +123,7 @@ class Reservoir(Layer):
     assert num_out > 0, f'Must be a positive integer, but we got {num_out}'
     self.leaky_rate = leaky_rate
     check.is_float(leaky_rate, 'leaky_rate', 0., 1.)
-    self.activation = getattr(bm.activations, activation) if isinstance(activation, str) else activation
+    self.activation = getattr(bm, activation) if isinstance(activation, str) else activation
     check.is_callable(self.activation, allow_none=False)
     self.activation_type = activation_type
     check.is_string(activation_type, 'activation_type', ['internal', 'external'])
@@ -192,7 +191,6 @@ class Reservoir(Layer):
   def reset_state(self, batch_size=None):
     self.state.value = variable(jnp.zeros, batch_size, self.output_shape)
 
-  @not_pass_shargs
   def update(self, x):
     """Feedforward output."""
     # inputs

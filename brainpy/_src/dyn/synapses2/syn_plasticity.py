@@ -4,8 +4,9 @@ from typing import Union
 
 import jax.numpy as jnp
 
+from brainpy._src.dyn.context import share
 from brainpy import math as bm, tools
-from brainpy._src.dyn.base import DynamicalSystem, not_pass_shargs
+from brainpy._src.dyn.synapses2.base import SynSTP
 from brainpy._src.initialize import variable_, OneInit, parameter
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType, Shape
@@ -14,14 +15,6 @@ __all__ = [
   'STD',
   'STP',
 ]
-
-
-class SynSTP(DynamicalSystem):
-  """Base class for synaptic short-term plasticity."""
-
-  @not_pass_shargs
-  def update(self, pre_spike, post_g):
-    raise NotImplementedError
 
 
 class STD(SynSTP):
@@ -66,7 +59,7 @@ class STD(SynSTP):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(STD, self).__init__(name=name)
+    super().__init__(name=name)
 
     # parameters
     self.pre_size = tools.to_size(pre_size)
@@ -84,9 +77,8 @@ class STD(SynSTP):
   def reset_state(self, batch_size=None):
     self.x = variable_(jnp.ones, self.num, batch_size)
 
-  @not_pass_shargs
   def update(self, pre_spike):
-    x = self.integral(self.x.value, bm.share.get('t'), bm.share.get('dt'))
+    x = self.integral(self.x.value, share.load('t'), share.load('dt'))
     self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
     return self.x.value
 
@@ -144,7 +136,7 @@ class STP(SynSTP):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(STP, self).__init__(name=name)
+    super().__init__(name=name)
 
     # parameters
     self.pre_size = tools.to_size(pre_size)
@@ -167,12 +159,10 @@ class STP(SynSTP):
   du = lambda self, u, t: self.U - u / self.tau_f
   dx = lambda self, x, t: (1 - x) / self.tau_d
 
-  @not_pass_shargs
   def update(self, pre_spike):
-    u, x = self.integral(self.u.value, self.x.value, bm.share.get('t'), bm.get_dt())
+    u, x = self.integral(self.u.value, self.x.value, share.load('t'), bm.get_dt())
     u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
     x = bm.where(pre_spike, x - u * self.x, x)
     self.x.value = x
     self.u.value = u
     return self.x.value * self.u.value
-

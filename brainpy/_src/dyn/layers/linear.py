@@ -6,6 +6,7 @@ from typing import Optional, Callable, Union, Dict
 import jax.numpy as jnp
 
 from brainpy import math as bm
+from brainpy._src.dyn.context import share
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.check import is_initializer
 from brainpy.errors import MathError
@@ -94,22 +95,19 @@ class Dense(Layer):
             f'num_out={self.num_out}, '
             f'mode={self.mode})')
 
-  def update(self, *args):
-    if len(args) == 1:
-      sha, x = dict(), bm.as_jax(args[0])
-    else:
-      sha, x = args[0], bm.as_jax(args[1])
+  def update(self, x):
+    x = bm.as_jax(x)
     res = x @ self.W
     if self.b is not None:
       res += self.b
 
     # online fitting data
-    if sha.get('fit', False) and self.online_fit_by is not None:
+    if share.load('fit', False) and self.online_fit_by is not None:
       self.fit_record['input'] = x
       self.fit_record['output'] = res
 
     # offline fitting data
-    if sha.get('fit', False) and self.offline_fit_by is not None:
+    if share.load('fit', False) and self.offline_fit_by is not None:
       self.fit_record['input'] = x
       self.fit_record['output'] = res
     return res
@@ -207,5 +205,5 @@ class Identity(Layer):
   def __init__(self, *args, **kwargs) -> None:
     super(Identity, self).__init__(*args, **kwargs)
 
-  def update(self, *args):
-    return args[0] if len(args) == 1 else args[1]
+  def update(self, x):
+    return x

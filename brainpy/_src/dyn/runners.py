@@ -15,6 +15,7 @@ from jax.tree_util import tree_map, tree_flatten
 
 from brainpy import math as bm, tools
 from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dyn.context import share
 from brainpy._src.running.runner import Runner
 from brainpy.check import is_float, serialize_kwargs
 from brainpy.errors import RunningError, NoLongerSupportError
@@ -451,6 +452,7 @@ class DSRunner(Runner):
         warnings.warn('"inputs" has already has the time information. '
                       'Therefore there no longer need to provide "duration".',
                       UserWarning)
+        duration = None
 
     num_step = self._get_input_time_step(duration, inputs)
     description = f'Predict {num_step} steps: '
@@ -615,12 +617,12 @@ class DSRunner(Runner):
     # input step
     shared = tools.DotDict(t=t, i=i, dt=self.dt)
     shared.update(shared_args)
-    bm.share.save_shargs(**shared)
+    share.save(**shared)
     self.target.clear_input()
     self._step_func_input(shared)
 
     # dynamics update step
-    args = (shared,) if x is None else (shared, x)
+    args = () if x is None else (x,)
     out = self.target(*args)
 
     # monitor step
@@ -630,7 +632,7 @@ class DSRunner(Runner):
     # finally
     if self.progress_bar:
       id_tap(lambda *arg: self._pbar.update(), ())
-    bm.share.remove_shargs()
+    share.clear_shargs()
     return out, mon
 
   def _get_f_predict(self, shared_args: Dict = None):

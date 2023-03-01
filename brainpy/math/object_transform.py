@@ -24,7 +24,6 @@ from brainpy._src.math.object_transform.controls import (
 
 from brainpy._src.math.object_transform.function import (
   to_object as to_object,
-  to_dynsys as to_dynsys,
   function as function,
 )
 

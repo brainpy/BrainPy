@@ -19,11 +19,13 @@ from brainpy._src.math.object_transform.base import BrainPyObject, Collector
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 
+share = None
+
+
 __all__ = [
   # general class
   'DynamicalSystem',
-  'Module',
-  'FuncAsDynSys',
+  'DynamicalSystemNS',
 
   # containers
   'Container', 'Network', 'Sequential', 'System',
@@ -48,7 +50,7 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
-def not_pass_shargs(func: Callable):
+def not_pass_sha(func: Callable):
   """Label the update function as the one without passing shared arguments.
 
   The original update function explicitly requires shared arguments at the first place::
@@ -113,6 +115,8 @@ class DynamicalSystem(BrainPyObject):
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
+  pass_shared: bool = True
+
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], Variable]] = dict()
   '''Global delay data, which stores the delay variables and corresponding delay targets. 
   This variable is useful when the same target variable is used in multiple mappings, 
@@ -134,7 +138,7 @@ class DynamicalSystem(BrainPyObject):
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
 
     # super initialization
-    super(DynamicalSystem, self).__init__(name=name)
+    BrainPyObject.__init__(self, name=name)
 
   @property
   def mode(self) -> bm.Mode:
@@ -153,21 +157,32 @@ class DynamicalSystem(BrainPyObject):
 
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
-    if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
-      if len(args) and isinstance(args[0], dict):
-        bm.share.save_shargs(**args[0])
+    global share
+    if share is None:
+      from brainpy._src.dyn.context import share
+
+    if self.pass_shared:
+      if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
+        if len(args) and isinstance(args[0], dict):
+          share.save(**args[0])
+          return self.update(*args[1:], **kwargs)
+        else:
+          return self.update(*args, **kwargs)
+      else:
+        if len(args) and isinstance(args[0], dict):
+          return self.update(*args, **kwargs)
+        else:
+          # If first argument is not shared argument,
+          # we should get the shared arguments from the global context.
+          # However, users should set and update shared arguments
+          # in the global context when using this mode.
+          return self.update(share.get_shargs(), *args, **kwargs)
+    else:
+      if len(args) and isinstance(args[0], dict):  # it may be shared arguments
+        share.save(**args[0])
         return self.update(*args[1:], **kwargs)
       else:
         return self.update(*args, **kwargs)
-    else:
-      if len(args) and isinstance(args[0], dict):
-        return self.update(*args, **kwargs)
-      else:
-        # If first argument is not shared argument,
-        # we should get the shared arguments from the global context.
-        # However, users should set and update shared arguments
-        # in the global context when using this mode.
-        return self.update(bm.share.get_shargs(), *args, **kwargs)
 
   def register_delay(
       self,
@@ -298,18 +313,18 @@ class DynamicalSystem(BrainPyObject):
     """
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
-  def reset(self, batch_size=None):
+  def reset(self, *args, **kwargs):
     """Reset function which reset the whole variables in the model.
     """
-    self.reset_state(batch_size)
+    self.reset_state(*args, **kwargs)
 
-  def reset_state(self, batch_size: Optional[int] = None):
+  def reset_state(self, *args, **kwargs):
     """Reset function which reset the states in the model.
     """
     child_nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     if len(child_nodes) > 0:
       for node in child_nodes.values():
-        node.reset_state(batch_size=batch_size)
+        node.reset_state(*args, **kwargs)
       self.reset_local_delays(child_nodes)
     else:
       raise NotImplementedError('Must implement "reset_state" function by subclass self. '
@@ -386,59 +401,10 @@ class DynamicalSystem(BrainPyObject):
     pass
 
 
-Module = DynamicalSystem
+class DynamicalSystemNS(DynamicalSystem):
+  """Dynamical system without the need of shared parameters passing into ``update()`` function."""
 
-
-class FuncAsDynSys(DynamicalSystem):
-  """Transform a Python function as a :py:class:`~.DynamicalSystem`
-
-  Parameters
-  ----------
-  target : Callable
-    The function to wrap.
-  child_objs : optional, BrainPyObject, sequence of BrainPyObject, dict
-    The nodes in the defined function ``f``.
-  dyn_vars : optional, ndarray, sequence of ndarray, dict
-    The dynamically changed variables.
-  name : optional, str
-    The name of the transformed object.
-  mode: Mode
-    The computation mode.
-  """
-
-  def __init__(
-      self,
-      target: Callable,
-      child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-      dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-      name: Optional[str] = None,
-      mode: Optional[bm.Mode] = None
-  ):
-    super().__init__(name=name, mode=mode)
-
-    self.target = target
-    if child_objs is not None:
-      self.register_implicit_nodes(child_objs, node_cls=DynamicalSystem)
-    if dyn_vars is not None:
-      self.register_implicit_vars(dyn_vars)
-
-  def update(self, *args, **kwargs):
-    """Update function of the transformed dynamical system."""
-    return self.target(*args, **kwargs)
-
-  def clear_input(self):
-    """Function for clearing input in the wrapped children dynamical system."""
-    for child in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
-      child.clear_input()
-
-  def __repr__(self):
-    name = self.__class__.__name__
-    indent = " " * (len(name) + 1)
-    indent2 = indent + " " * len('nodes=')
-    nodes = [tools.repr_context(str(n), indent2) for n in self.implicit_nodes.values()]
-    node_string = ", \n".join(nodes)
-    return (f'{name}(nodes=[{node_string}],\n' +
-            f'{indent}num_of_vars={len(self.implicit_vars)})')
+  pass_shared = False
 
 
 
@@ -518,7 +484,7 @@ class Container(DynamicalSystem):
     """
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     for node in nodes.values():
-      node.update(tdi)
+      node(tdi)
 
   def __getitem__(self, item):
     """Overwrite the slice access (`self['']`). """
@@ -660,7 +626,9 @@ class Sequential(Container):
       The output tensor.
     """
     for m in self._modules:
-      if isinstance(m, DynamicalSystem):
+      if isinstance(m, DynamicalSystemNS):
+        x = m(x)
+      elif isinstance(m, DynamicalSystem):
         x = m(s, x)
       else:
         x = m(x)
@@ -697,6 +665,7 @@ class Network(Container):
                                   mode=mode,
                                   **ds_dict)
 
+  @not_pass_sha
   def update(self, *args, **kwargs):
     """Step function of a network.
 
@@ -712,19 +681,18 @@ class Network(Container):
     other_nodes = nodes - neuron_groups - synapse_groups - ds_views
 
     # shared arguments
-    shared = args[0]
 
     # update synapse nodes
     for node in synapse_groups.values():
-      node.update(shared)
+      node()
 
     # update neuron nodes
     for node in neuron_groups.values():
-      node.update(shared)
+      node()
 
     # update other types of nodes
     for node in other_nodes.values():
-      node.update(shared)
+      node()
 
     # update delays
     self.update_local_delays(nodes)
@@ -776,6 +744,8 @@ class NeuGroup(DynamicalSystem):
 
     .. versionadded:: 2.1.13
   mode: Mode
+    The computing mode.
+
     .. versionadded:: 2.2.0
   """
 
@@ -824,13 +794,6 @@ class NeuGroup(DynamicalSystem):
 
   def update(self, *args):
     """The function to specify the updating rule.
-
-    Parameters
-    ----------
-    tdi : DotDict
-      The shared arguments, especially time `t`, step `dt`, and iteration `i`.
-    x: Any
-      The input for a neuron group.
     """
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
                               f'implement "update" function.')
@@ -936,7 +899,7 @@ class SynConn(DynamicalSystem):
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
 
-class SynComponent(DynamicalSystem):
+class _SynComponent(DynamicalSystem):
   """Base class for modeling synaptic components,
   including synaptic output, synaptic short-term plasticity,
   synaptic long-term plasticity, and others. """
@@ -945,7 +908,7 @@ class SynComponent(DynamicalSystem):
   master: SynConn
 
   def __init__(self, *args, **kwargs):
-    super(SynComponent, self).__init__(*args, **kwargs)
+    super(_SynComponent, self).__init__(*args, **kwargs)
 
     self._registered = False
 
@@ -979,7 +942,7 @@ class SynComponent(DynamicalSystem):
   def __call__(self, *args, **kwargs):
     return self.filter(*args, **kwargs)
 
-  def clone(self) -> 'SynComponent':
+  def clone(self) -> '_SynComponent':
     """The function useful to clone a new object when it has been used."""
     raise NotImplementedError
 
@@ -987,7 +950,7 @@ class SynComponent(DynamicalSystem):
     raise NotImplementedError
 
 
-class SynOut(SynComponent):
+class SynOut(_SynComponent):
   """Base class for synaptic current output."""
 
   def __init__(
@@ -1022,14 +985,14 @@ class SynOut(SynComponent):
     pass
 
 
-class SynSTP(SynComponent):
+class SynSTP(_SynComponent):
   """Base class for synaptic short-term plasticity."""
 
   def update(self, tdi, pre_spike):
     pass
 
 
-class SynLTP(SynComponent):
+class SynLTP(_SynComponent):
   """Base class for synaptic long-term plasticity."""
 
   def update(self, tdi, pre_spike):

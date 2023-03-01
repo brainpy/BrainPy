@@ -10,7 +10,8 @@ from jax.tree_util import tree_flatten, tree_unflatten
 from jax.errors import UnexpectedTracerError
 
 from brainpy import errors, tools, check
-from brainpy._src.math.ndarray import (Array, Variable,
+from brainpy._src.math.ndarray import (Array,
+                                       Variable,
                                        add_context,
                                        del_context)
 from brainpy._src.math.arrayinterporate import as_jax
@@ -664,6 +665,7 @@ def for_loop(
     reverse: bool = False,
     unroll: int = 1,
     remat: bool = False,
+    jit: bool = True,
 ):
   """``for-loop`` control flow with :py:class:`~.Variable`.
 
@@ -759,9 +761,6 @@ def for_loop(
     dyn_vars.update(obj.vars().unique())
   dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
   outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
-  for v in outs:
-    if v not in dyn_vars:
-      dyn_vars.append(v)
 
   # functions
   def fun2scan(carry, x):
@@ -785,11 +784,12 @@ def for_loop(
   # functions
   try:
     add_context(name)
-    dyn_vals, out_vals = lax.scan(f=fun2scan,
-                                  init=[v.value for v in dyn_vars],
-                                  xs=operands,
-                                  reverse=reverse,
-                                  unroll=unroll)
+    with jax.disable_jit(not jit):
+      dyn_vals, out_vals = lax.scan(f=fun2scan,
+                                    init=[v.value for v in dyn_vars],
+                                    xs=operands,
+                                    reverse=reverse,
+                                    unroll=unroll)
     del_context(name)
   except UnexpectedTracerError as e:
     del_context(name)

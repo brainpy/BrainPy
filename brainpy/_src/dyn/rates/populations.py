@@ -164,13 +164,12 @@ class FHN(RateModel):
     t, dt = tdi['t'], tdi['dt']
 
     # input
-    if x is not None: self.input += x
+    if x is not None:
+      self.input += x
     if self.x_ou is not None:
-      self.input += self.x_ou.x
-      self.x_ou.update(tdi)
+      self.input += self.x_ou()
     if self.y_ou is not None:
-      self.input_y += self.y_ou.x
-      self.y_ou.update(tdi)
+      self.input_y += self.y_ou()
 
     # integral
     x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
@@ -362,11 +361,9 @@ class FeedbackFHN(RateModel):
 
     if x is not None: self.input += x
     if self.x_ou is not None:
-      self.input += self.x_ou.x
-      self.x_ou.update(tdi)
+      self.input += self.x_ou()
     if self.y_ou is not None:
-      self.input_y += self.y_ou.x
-      self.y_ou.update(tdi)
+      self.input_y += self.y_ou()
 
     x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
@@ -545,11 +542,9 @@ class QIF(RateModel):
 
     if x is not None: self.input += x
     if self.x_ou is not None:
-      self.input += self.x_ou.x
-      self.x_ou.update(tdi)
+      self.input += self.x_ou()
     if self.y_ou is not None:
-      self.input_y += self.y_ou.x
-      self.y_ou.update(tdi)
+      self.input_y += self.y_ou()
 
     x, y = self.integral(self.x, self.y, t=t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
@@ -680,11 +675,9 @@ class StuartLandauOscillator(RateModel):
 
     if x is not None: self.input += x
     if self.x_ou is not None:
-      self.input += self.x_ou.x
-      self.x_ou.update(tdi)
+      self.input += self.x_ou()
     if self.y_ou is not None:
-      self.input_y += self.y_ou.x
-      self.y_ou.update(tdi)
+      self.input_y += self.y_ou()
 
     x, y = self.integral(self.x,
                          self.y,
@@ -845,11 +838,9 @@ class WilsonCowanModel(RateModel):
     t, dt = tdi['t'], tdi['dt']
     if x is not None: self.input += x
     if self.x_ou is not None:
-      self.input += self.x_ou.x
-      self.x_ou.update(tdi)
+      self.input += self.x_ou()
     if self.y_ou is not None:
-      self.input_y += self.y_ou.x
-      self.y_ou.update(tdi)
+      self.input_y += self.y_ou()
     x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
     self.x.value = x
     self.y.value = y

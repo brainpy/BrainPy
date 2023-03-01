@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import functools
 from typing import Union, Optional, Dict, Sequence
 
 import jax.numpy as jnp
@@ -7,9 +7,10 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy import tools, math as bm
-from brainpy.check import is_float
+from brainpy._src.dyn.context import share
+from brainpy.check import is_float, is_integer
 from brainpy.types import PyTree
-from .base import DynamicalSystem, Sequential
+from .base import DynamicalSystem, Sequential, DynamicalSystemNS
 
 __all__ = [
   'LoopOverTime',
@@ -41,7 +42,7 @@ class DynSysToBPObj(BrainPyObject):
     return f"{name}({tools.repr_context(str(self.target), ' ' * len(name))})"
 
 
-class LoopOverTime(DynSysToBPObj):
+class LoopOverTime(DynamicalSystemNS):
   """Transform a single step :py:class:`~.DynamicalSystem`
   into a multiple-step forward propagation :py:class:`~.BrainPyObject`.
 
@@ -68,17 +69,17 @@ class LoopOverTime(DynSysToBPObj):
   >>> model = bp.Sequential(l1=bp.layers.RNNCell(n_in, 20),
   >>>                       l2=bm.relu,
   >>>                       l3=bp.layers.RNNCell(20, 2))
-  >>> over_time = bp.LoopOverTime(model)
+  >>> over_time = bp.LoopOverTime(model, data_first_axis='T')
   >>> over_time.reset_state(n_batch)
   (30, 128, 2)
   >>>
-  >>> hist_l3 = over_time(bm.random.rand(n_time, n_batch, n_in), data_first_axis='T')
+  >>> hist_l3 = over_time(bm.random.rand(n_time, n_batch, n_in))
   >>> print(hist_l3.shape)
   >>>
   >>> # monitor the "l1" layer state
-  >>> over_time = bp.LoopOverTime(model, out_vars=model['l1'].state)
+  >>> over_time = bp.LoopOverTime(model, out_vars=model['l1'].state, data_first_axis='T')
   >>> over_time.reset_state(n_batch)
-  >>> hist_l3, hist_l1 = over_time(bm.random.rand(n_time, n_batch, n_in), data_first_axis='T')
+  >>> hist_l3, hist_l1 = over_time(bm.random.rand(n_time, n_batch, n_in))
   >>> print(hist_l3.shape)
   (30, 128, 2)
   >>> print(hist_l1.shape)
@@ -123,6 +124,19 @@ class LoopOverTime(DynSysToBPObj):
 
   out_vars: PyTree
     The variables to monitor over the time loop.
+  t0: float, optional
+    The start time to run the system. If None, ``t`` will be no longer generated in the loop.
+  i0: int, optional
+    The start index to run the system. If None, ``i`` will be no longer generated in the loop.
+  dt: float
+    The time step.
+  shared_arg: dict
+    The shared arguments across the nodes.
+    For instance, `shared_arg={'fit': False}` for the prediction phase.
+  data_first_axis: str
+    Denote whether the input data is time major.
+    If so, we treat the data as `(time, batch, ...)` when the `target` is in Batching mode.
+    Default is True.
   name: str
     The transformed object name.
   """
@@ -132,9 +146,38 @@ class LoopOverTime(DynSysToBPObj):
       target: DynamicalSystem,
       out_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
       no_state: bool = False,
-      name: str = None
+      t0: Optional[float] = 0.,
+      i0: Optional[int] = 0,
+      dt: Optional[float] = None,
+      shared_arg: Optional[Dict] = None,
+      data_first_axis: str = 'T',
+      name: str = None,
+      jit: bool = True,
+      remat: bool = False,
   ):
-    super().__init__(target=target, name=name)
+    super().__init__(name=name)
+    assert data_first_axis in ['B', 'T']
+    is_integer(i0, 'i0', allow_none=True)
+    is_float(t0, 't0', allow_none=True)
+    is_float(dt, 'dt', allow_none=True)
+    dt = share.dt if dt is None else dt
+    if shared_arg is None:
+      shared_arg = dict(dt=dt)
+    else:
+      assert isinstance(shared_arg, dict)
+      shared_arg['dt'] = dt
+    self.dt = dt
+    self.t0 = t0
+    self.i0 = i0
+
+    self.jit = jit
+    self.remat = remat
+    self.shared_arg = shared_arg
+    self.data_first_axis = data_first_axis
+    self.target = target
+    if not isinstance(target, DynamicalSystem):
+      raise TypeError(f'Must be instance of {DynamicalSystem.__name__}, '
+                      f'but we got {type(target)}')
     self.no_state = no_state
     self.out_vars = out_vars
     if out_vars is not None:
@@ -146,10 +189,6 @@ class LoopOverTime(DynSysToBPObj):
   def __call__(
       self,
       duration_or_xs: Union[float, PyTree],
-      t0: float = 0.,
-      dt: Optional[float] = None,
-      shared_arg: Optional[Dict] = None,
-      data_first_axis: str = 'T'
   ):
     """Forward propagation along the time or inputs.
 
@@ -158,38 +197,19 @@ class LoopOverTime(DynSysToBPObj):
     duration_or_xs: float, PyTree
       If `float`, it indicates a running duration.
       If a PyTree, it is the given inputs.
-    t0: float
-      The start time to run the system.
-    dt: float
-      The time step.
-    shared_arg: dict
-      The shared arguments across the nodes.
-      For instance, `shared_arg={'fit': False}` for the prediction phase.
-    data_first_axis: str
-      Denote whether the input data is time major.
-      If so, we treat the data as `(time, batch, ...)` when the `target` is in Batching mode.
-      Default is True.
 
     Returns
     -------
     out: PyTree
       The accumulated outputs over time.
     """
-    assert data_first_axis in ['B', 'T']
-
-    is_float(t0, 't0')
-    is_float(dt, 'dt', allow_none=True)
-    dt = bm.get_dt() if dt is None else dt
-    if shared_arg is None:
-      shared_arg = dict(dt=dt)
-    else:
-      assert isinstance(shared_arg, dict)
-      shared_arg['dt'] = dt
-
     # inputs
     if isinstance(duration_or_xs, float):
-      shared = tools.DotDict(t=jnp.arange(t0, duration_or_xs, dt))
-      shared['i'] = jnp.arange(0, shared['t'].shape[0])
+      shared = tools.DotDict()
+      if self.t0 is not None:
+        shared['t'] = jnp.arange(self.t0, duration_or_xs, self.dt)
+      if self.i0 is not None:
+        shared['i'] = jnp.arange(0, shared['t'].shape[0])
       xs = None
       if self.no_state:
         raise ValueError('Under the `no_state=True` setting, input cannot be a duration.')
@@ -200,8 +220,8 @@ class LoopOverTime(DynSysToBPObj):
                      'of (B, T, ...) or (T, B, ...) with `data_first_axis="T"`, '
                      'where B the batch size and T the time length.')
       xs, tree = tree_flatten(duration_or_xs, lambda a: isinstance(a, bm.Array))
-      if isinstance(self.target.mode, bm.BatchingMode):
-        b_idx, t_idx = (1, 0) if data_first_axis == 'T' else (0, 1)
+      if self.target.mode.is_child_of(bm.BatchingMode):
+        b_idx, t_idx = (1, 0) if self.data_first_axis == 'T' else (0, 1)
 
         try:
           batch = tuple(set([x.shape[b_idx] for x in xs]))
@@ -225,12 +245,12 @@ class LoopOverTime(DynSysToBPObj):
                            f'but we got {tree_unflatten(tree, length)}.')
 
         if self.no_state:
-          xs = [jnp.reshape(x, (length[0] * batch[0],) + x.shape[2:]) for x in xs]
+          xs = [bm.reshape(x, (length[0] * batch[0],) + x.shape[2:]) for x in xs]
         else:
-          if data_first_axis == 'B':
+          if self.data_first_axis == 'B':
             xs = [jnp.moveaxis(x, 0, 1) for x in xs]
         xs = tree_unflatten(tree, xs)
-        origin_shape = (length[0], batch[0]) if data_first_axis == 'T' else (batch[0], length[0])
+        origin_shape = (length[0], batch[0]) if self.data_first_axis == 'T' else (batch[0], length[0])
 
       else:
 
@@ -247,35 +267,33 @@ class LoopOverTime(DynSysToBPObj):
 
       # computation
       if self.no_state:
-        outputs = self.target(tools.DotDict(shared_arg), xs)
+        share.save(**self.shared_arg)
+        outputs = self._run(self.shared_arg, dict(), xs)
         return tree_map(lambda a: jnp.reshape(a, origin_shape + a.shape[1:]), outputs)
 
       else:
-        shared = tools.DotDict(t=jnp.arange(t0, dt * length[0], dt),
-                               i=jnp.arange(0, length[0]))
+        shared = tools.DotDict()
+        shared['t'] = jnp.arange(self.t0, self.dt * length[0], self.dt)
+        shared['i'] = jnp.arange(0, length[0])
 
     assert not self.no_state
-
-    # function
-    @bm.to_object(child_objs=self.target)
-    def f(sha, x):
-      sha['dt'] = dt
-      sha.update(shared_arg)
-      outs = self.target(sha, x)
-      if self.out_vars is not None:
-        outs = (outs, tree_map(bm.as_jax, self.out_vars))
-      self.target.clear_input()
-      return outs
-
-    return bm.for_loop(f, (shared, xs))
-
-  def reset(self, batch_size=None):
-    """Reset function which reset the whole variables in the model.
-    """
-    self.target.reset(batch_size)
+    return bm.for_loop(functools.partial(self._run, self.shared_arg),
+                       (shared, xs),
+                       child_objs=(self.target, share),
+                       jit=self.jit,
+                       remat=self.remat)
 
   def reset_state(self, batch_size=None):
     self.target.reset_state(batch_size)
+
+  def _run(self, static_sh, dyn_sh, x):
+    share.save(**static_sh)
+    share.save(**dyn_sh)
+    outs = self.target(x)
+    if self.out_vars is not None:
+      outs = (outs, tree_map(bm.as_jax, self.out_vars))
+    self.target.clear_input()
+    return outs
 
 
 class NoSharedArg(DynSysToBPObj):

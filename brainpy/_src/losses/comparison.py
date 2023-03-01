@@ -97,7 +97,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     in the case of K-dimensional loss.
   """
   def _cel(_pred, _tar):
-    if jnp.ndim(_tar) + 1 == jnp.ndim(_pred):
+    if bm.ndim(_tar) + 1 == bm.ndim(_pred):
       _tar = bm.one_hot(_tar, _pred.shape[-1])
     loss = logsumexp(bm.as_jax(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
     if weight is not None:

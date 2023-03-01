@@ -1,55 +1,53 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Optional, Tuple, Sequence, Dict
+from typing import Union, Callable, Optional, Dict
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.lax import stop_gradient
 
-from brainpy import check, math as bm
-from brainpy._src.math.object_transform.base import Collector
-from brainpy._src.dyn.base import DynamicalSystem, not_pass_shargs
+from brainpy import check
+from brainpy import math as bm
+from brainpy._src.dyn.base import DynamicalSystemNS
+from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 from brainpy.check import is_integer, jit_error_checking
 
-ROTATE_UPDATE = 'rotation'
-CONCAT_UPDATE = 'concat'
 
-
-class Delay(DynamicalSystem):
+class Delay(DynamicalSystemNS):
   """Delay variable which has a fixed delay length.
 
-  The data in this delay variable is arranged as::
+    The data in this delay variable is arranged as::
 
-       delay = 0             [ data
-       delay = 1               data
-       delay = 2               data
-       ...                     ....
-       ...                     ....
-       delay = length-1        data
-       delay = length          data ]
+         delay = 0             [ data
+         delay = 1               data
+         delay = 2               data
+         ...                     ....
+         ...                     ....
+         delay = length-1        data
+         delay = length          data ]
 
-  Parameters
-  ----------
-  target: Variable
-    The initial delay data.
-  length: int
-    The delay data length.
-  initial_delay_data: Any
-    The delay data. It can be a Python number, like float, int, boolean values.
-    It can also be arrays. Or a callable function or instance of ``Connector``.
-    Note that ``initial_delay_data`` should be arranged as the following way::
+    Parameters
+    ----------
+    target: Variable
+      The initial delay data.
+    length: int
+      The delay data length.
+    before_t0: Any
+      The delay data. It can be a Python number, like float, int, boolean values.
+      It can also be arrays. Or a callable function or instance of ``Connector``.
+      Note that ``initial_delay_data`` should be arranged as the following way::
 
-       delay = 1             [ data
-       delay = 2               data
-       ...                     ....
-       ...                     ....
-       delay = length-1        data
-       delay = length          data ]
-  method: str
-    The method used for updating delay.
+         delay = 1             [ data
+         delay = 2               data
+         ...                     ....
+         ...                     ....
+         delay = length-1        data
+         delay = length          data ]
+    method: str
+      The method used for updating delay.
 
-  """
+    """
 
   data: Optional[bm.Variable]
   idx: Optional[bm.Variable]
@@ -59,20 +57,20 @@ class Delay(DynamicalSystem):
       self,
       target: bm.Variable,
       length: int = 0,
-      initial_delay_data: Union[float, int, bool, bm.Array, jax.Array, Callable] = None,
+      before_t0: Union[float, int, bool, bm.Array, jax.Array, Callable] = None,
       entries: Optional[Dict] = None,
-      mode: bm.Mode = None,
       name: str = None,
-      method: str = None,
+      method: str = ROTATE_UPDATE,
   ):
-    super().__init__(mode=mode, name=name)
 
-    # delay updating method
+    super().__init__(name=name)
     if method is None:
       if self.mode.is_a(bm.NonBatchingMode):
         method = ROTATE_UPDATE
-      else:
+      elif self.mode.is_parent_of(bm.TrainingMode):
         method = CONCAT_UPDATE
+      else:
+        method = ROTATE_UPDATE
     assert method in [ROTATE_UPDATE, CONCAT_UPDATE]
     self.method = method
 
@@ -85,9 +83,9 @@ class Delay(DynamicalSystem):
     self.length = is_integer(length, allow_none=False, min_bound=0)
 
     # delay data
-    if initial_delay_data is not None:
-      assert isinstance(initial_delay_data, (int, float, bool, bm.Array, jax.Array, Callable))
-    self._initial_delay_data = initial_delay_data
+    if before_t0 is not None:
+      assert isinstance(before_t0, (int, float, bool, bm.Array, jax.Array, Callable))
+    self._before_t0 = before_t0
     if length > 0:
       self._init_data(length)
     else:
@@ -171,7 +169,7 @@ class Delay(DynamicalSystem):
     self._access_to_step[entry] = delay_step
     return self
 
-  def at_entry(self, entry: str, *indices) -> bm.Array:
+  def at(self, entry: str, *indices) -> bm.Array:
     """Get the data at the given entry.
 
     Args:
@@ -246,7 +244,6 @@ class Delay(DynamicalSystem):
     # the delay data
     return self.data[indices]
 
-  @not_pass_shargs
   def update(self, latest_value: Optional[Union[bm.Array, jax.Array]] = None) -> None:
     """Update delay variable with the new data.
     """
@@ -294,7 +291,7 @@ class Delay(DynamicalSystem):
                             batch_axis=batch_axis)
     # update delay data
     self.data[0] = self.target.value
-    if isinstance(self._initial_delay_data, (bm.Array, jax.Array, float, int, bool)):
-      self.data[1:] = self._initial_delay_data
-    elif callable(self._initial_delay_data):
-      self.data[1:] = self._initial_delay_data((length,) + self.target.shape, dtype=self.target.dtype)
+    if isinstance(self._before_t0, (bm.Array, jax.Array, float, int, bool)):
+      self.data[1:] = self._before_t0
+    elif callable(self._before_t0):
+      self.data[1:] = self._before_t0((length,) + self.target.shape, dtype=self.target.dtype)

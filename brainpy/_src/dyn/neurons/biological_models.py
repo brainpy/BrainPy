@@ -4,7 +4,8 @@ from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.dyn.base import NeuGroup, not_pass_shargs
+from brainpy._src.dyn.context import share
+from brainpy._src.dyn.base import NeuGroup, not_pass_sha
 from brainpy._src.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
@@ -274,15 +275,15 @@ class HH(NeuGroup):
   def reset_state(self, batch_size=None):
     self.V = variable_(self._V_initializer, self.varshape, batch_size)
     if self._m_initializer is None:
-      self.m = self.m_inf(self.V.value)
+      self.m = bm.Variable(self.m_inf(self.V.value), batch_axis=self.V.batch_axis)
     else:
       self.m = variable_(self._m_initializer, self.varshape, batch_size)
     if self._h_initializer is None:
-      self.h = self.h_inf(self.V.value)
+      self.h = bm.Variable(self.h_inf(self.V.value), batch_axis=self.V.batch_axis)
     else:
       self.h = variable_(self._h_initializer, self.varshape, batch_size)
     if self._n_initializer is None:
-      self.n = self.n_inf(self.V.value)
+      self.n = bm.Variable(self.n_inf(self.V.value), batch_axis=self.V.batch_axis)
     else:
       self.n = variable_(self._n_initializer, self.varshape, batch_size)
     self.input = variable_(bm.zeros, self.varshape, batch_size)
@@ -299,9 +300,9 @@ class HH(NeuGroup):
   def derivative(self):
     return JointEq(self.dV, self.dm, self.dh, self.dn)
 
-  @not_pass_shargs
+  @not_pass_sha
   def update(self, x=None):
-    s = bm.share.get_shargs()
+    s = share.get_shargs()
     if x is not None: self.input += x
     V, m, h, n = self.integral(self.V, self.m, self.h, self.n, s['t'], s['dt'])
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)

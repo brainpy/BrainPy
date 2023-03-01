@@ -37,7 +37,6 @@ except (ModuleNotFoundError, ImportError):
   get_tensorstore_spec = None
 
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.object_transform.base import Collector
 from brainpy.errors import (AlreadyExistsError,
                             MPACheckpointingRequiredError,
                             MPARestoreTargetRequiredError,
@@ -45,7 +44,6 @@ from brainpy.errors import (AlreadyExistsError,
                             MPARestoreTypeNotMatchError,
                             InvalidCheckpointPath,
                             InvalidCheckpointError)
-from brainpy.tools import DotDict
 from brainpy.types import PyTree
 
 __all__ = [
@@ -154,17 +152,27 @@ def from_state_dict(target, state: Dict[str, Any], name: str = '.'):
     A copy of the object with the restored state.
   """
   ty = _NamedTuple if _is_namedtuple(target) else type(target)
-  if ty not in _STATE_DICT_REGISTRY:
+  for t in _STATE_DICT_REGISTRY.keys():
+    if issubclass(ty, t):
+      ty = t
+      break
+  else:
     return state
   ty_from_state_dict = _STATE_DICT_REGISTRY[ty][1]
   with _record_path(name):
     return ty_from_state_dict(target, state)
 
 
+
 def to_state_dict(target) -> Dict[str, Any]:
   """Returns a dictionary with the state of the given target."""
   ty = _NamedTuple if _is_namedtuple(target) else type(target)
-  if ty not in _STATE_DICT_REGISTRY:
+
+  for t in _STATE_DICT_REGISTRY.keys():
+    if issubclass(ty, t):
+      ty = t
+      break
+  else:
     return target
 
   ty_to_state_dict = _STATE_DICT_REGISTRY[ty][0]
@@ -269,8 +277,9 @@ def _restore_namedtuple(xs, state_dict: Dict[str, Any]):
 
 register_serialization_state(Array, _array_dict_state, _restore_array)
 register_serialization_state(dict, _dict_state_dict, _restore_dict)
-register_serialization_state(DotDict, _dict_state_dict, _restore_dict)
-register_serialization_state(Collector, _dict_state_dict, _restore_dict)
+# register_serialization_state(DotDict, _dict_state_dict, _restore_dict)
+# register_serialization_state(Collector, _dict_state_dict, _restore_dict)
+# register_serialization_state(ArrayCollector, _dict_state_dict, _restore_dict)
 register_serialization_state(list, _list_state_dict, _restore_list)
 register_serialization_state(tuple,
                              _list_state_dict,
@@ -1221,8 +1230,9 @@ def _save_main_ckpt_file2(target: bytes,
 def save_pytree(
     filename: str,
     target: PyTree,
-    overwrite: bool = False,
+    overwrite: bool = True,
     async_manager: Optional[AsyncManager] = None,
+    verbose: bool = True,
 ) -> None:
   """Save a checkpoint of the model. Suitable for single-host.
 
@@ -1250,12 +1260,16 @@ def save_pytree(
     if defined, the save will run without blocking the main
     thread. Only works for single host. Note that an ongoing save will still
     block subsequent saves, to make sure overwrite/keep logic works correctly.
+  verbose: bool
+    Whether output the print information.
 
   Returns
   -------
   out: str
     Filename of saved checkpoint.
   """
+  if verbose:
+    print(f'Saving checkpoint into {filename}')
   start_time = time.time()
   # Make sure all saves are finished before the logic of checking and removing
   # outdated checkpoints happens.
@@ -1282,6 +1296,7 @@ def save_pytree(
   if jax.version.__version_info__ > (0, 3, 25):
     monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
                                           end_time - start_time)
+
 
 
 def multiprocess_save(

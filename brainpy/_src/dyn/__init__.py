@@ -8,7 +8,6 @@ from . import (
   channels, neurons, rates,  # neuron related
   synapses, synouts, synplast,  # synapse related
   networks,
-  layers,  # ANN related
   runners,
   transform,
 )
