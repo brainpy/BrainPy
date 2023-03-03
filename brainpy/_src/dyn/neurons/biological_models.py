@@ -5,7 +5,7 @@ from typing import Union, Callable, Optional
 import brainpy.math as bm
 from brainpy import check
 from brainpy._src.dyn.context import share
-from brainpy._src.dyn.base import NeuGroup, not_pass_sha
+from brainpy._src.dyn.base import NeuGroupNS as NeuGroup, not_pass_shared
 from brainpy._src.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
@@ -300,7 +300,7 @@ class HH(NeuGroup):
   def derivative(self):
     return JointEq(self.dV, self.dm, self.dh, self.dn)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     s = share.get_shargs()
     if x is not None: self.input += x

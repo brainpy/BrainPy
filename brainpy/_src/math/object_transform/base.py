@@ -36,6 +36,14 @@ __all__ = [
 ]
 
 
+_register_pytree = False
+
+
+def register_object_as_pytree(mode: bool):
+  global _register_pytree
+  _register_pytree = mode
+
+
 class BrainPyObject(object):
   """The BrainPyObject class for whole BrainPy ecosystem.
 
@@ -53,9 +61,11 @@ class BrainPyObject(object):
 
   def __init__(self, name=None):
     super().__init__()
-    cls = self.__class__
-    if cls not in _registry:
-      register_pytree_node_class(cls)
+
+    if _register_pytree:
+      cls = self.__class__
+      if cls not in _registry:
+        register_pytree_node_class(cls)
 
     # check whether the object has a unique name.
     self._name = None

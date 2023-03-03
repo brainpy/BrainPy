@@ -41,7 +41,6 @@ class EINet(bp.DynamicalSystemNS):
     self.delayE = bp.Delay(self.E.spike, entries={'E': delay})
     self.delayI = bp.Delay(self.I.spike, entries={'I': delay})
 
-  @bp.not_pass_sha
   def update(self):
     e_spike = self.delayE.at('E')
     i_spike = self.delayI.at('I')
@@ -92,7 +91,6 @@ class EINetv2(bp.DynamicalSystemNS):
     bp.share.save('E-spike', bp.Delay(self.E.spike, entries={'E': delay}))
     bp.share.save('I-spike', bp.Delay(self.I.spike, entries={'I': delay}))
 
-  @bp.not_pass_sha
   def update(self):
     e_spike = bp.share.load('E-spike').at('E')
     i_spike = bp.share.load('I-spike').at('I')

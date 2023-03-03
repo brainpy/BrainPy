@@ -3,7 +3,7 @@
 from typing import Union, Callable
 
 from brainpy import check, math as bm
-from brainpy._src.dyn.base import NeuGroup
+from brainpy._src.dyn.base import NeuGroupNS as NeuGroup
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
 from brainpy._src.initialize import Initializer, Uniform, parameter, variable, ZeroInit
 from brainpy._src.integrators.joint_eq import JointEq

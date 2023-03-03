@@ -5,7 +5,7 @@ from typing import Union, Sequence
 import jax.numpy as jnp
 from brainpy._src.dyn.context import share
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup, not_pass_sha
+from brainpy._src.dyn.base import NeuGroupNS as NeuGroup, not_pass_shared
 from brainpy._src.initialize import Initializer, parameter, variable_
 from brainpy.types import Shape, ArrayType
 
@@ -41,7 +41,7 @@ class InputGroup(NeuGroup):
                                      mode=mode)
     self.spike = None
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x):
     return x
 
@@ -73,7 +73,7 @@ class OutputGroup(NeuGroup):
                                       mode=mode)
     self.spike = None
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x):
     return x
 
@@ -162,7 +162,7 @@ class SpikeTimeGroup(NeuGroup):
     self.i = bm.Variable(bm.asarray(0))
     self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self):
     self.spike.value = bm.zeros_like(self.spike)
     self._run(share.load('t'))
@@ -196,7 +196,7 @@ class PoissonGroup(NeuGroup):
     self.rng = bm.random.default_rng(seed)
     self.reset_state(self.mode)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     spikes = self.rng.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
     self.spike.value = spikes

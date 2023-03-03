@@ -4,7 +4,7 @@ from typing import Union, Sequence, Callable
 
 import jax.numpy as jnp
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup
+from brainpy._src.dyn.base import NeuGroupNS as NeuGroup
 from brainpy._src.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy._src.integrators.fde import CaputoL1Schema
 from brainpy._src.integrators.fde import GLShortMemory
