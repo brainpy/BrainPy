@@ -4,8 +4,8 @@ from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy import check
+from brainpy._src.dyn.base import NeuGroupNS
 from brainpy._src.dyn.context import share
-from brainpy._src.dyn.base import NeuGroupNS as NeuGroup, not_pass_shared
 from brainpy._src.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-class HH(NeuGroup):
+class HH(NeuGroupNS):
   r"""Hodgkin–Huxley neuron model.
 
   **Model Descriptions**
@@ -211,6 +211,7 @@ class HH(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+      input_var: bool = True,
 
       # training parameter
       mode: bm.Mode = None,
@@ -234,6 +235,7 @@ class HH(NeuGroup):
     self.C = parameter(C, self.varshape, allow_none=False)
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=4)
+    self.input_var = input_var
 
     # initializers
     check.is_initializer(m_initializer, 'm_initializer', allow_none=True)
@@ -286,36 +288,44 @@ class HH(NeuGroup):
       self.n = bm.Variable(self.n_inf(self.V.value), batch_axis=self.V.batch_axis)
     else:
       self.n = variable_(self._n_initializer, self.varshape, batch_size)
-    self.input = variable_(bm.zeros, self.varshape, batch_size)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  def dV(self, V, t, m, h, n):
+  def dV(self, V, t, m, h, n, I):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
     I_K = (self.gK * n ** 4.0) * (V - self.EK)
     I_leak = self.gL * (V - self.EL)
-    dVdt = (- I_Na - I_K - I_leak + self.input) / self.C
+    dVdt = (- I_Na - I_K - I_leak + I) / self.C
     return dVdt
 
   @property
   def derivative(self):
     return JointEq(self.dV, self.dm, self.dh, self.dn)
 
-  @not_pass_shared
   def update(self, x=None):
-    s = share.get_shargs()
-    if x is not None: self.input += x
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, s['t'], s['dt'])
+    t = share.load('t')
+    dt = share.load('dt')
+    if self.input_var:
+      if x is not None:
+        self.input += x
+      x = self.input.value
+    else:
+      x = 0. if x is None else x
+    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, x, dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.m.value = m
     self.h.value = h
     self.n.value = n
+    return self.spike.value
 
   def clear_input(self):
-    self.input[:] = 0.
+    if self.input_var:
+      self.input[:] = 0.
 
 
-class MorrisLecar(NeuGroup):
+class MorrisLecar(NeuGroupNS):
   r"""The Morris-Lecar neuron model.
 
   **Model Descriptions**
@@ -411,6 +421,7 @@ class MorrisLecar(NeuGroup):
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
       name: str = None,
+      input_var: bool = True,
 
       # training parameter
       mode: bm.Mode = None,
@@ -437,12 +448,11 @@ class MorrisLecar(NeuGroup):
     self.phi = parameter(phi, self.varshape, allow_none=False)
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
+    self.input_var = input_var
 
     # initializers
-    check.is_initializer(V_initializer, 'V_initializer', allow_none=False)
-    check.is_initializer(W_initializer, 'W_initializer', allow_none=False)
-    self._W_initializer = W_initializer
-    self._V_initializer = V_initializer
+    self._W_initializer = check.is_initializer(V_initializer, allow_none=False)
+    self._V_initializer = check.is_initializer(W_initializer, allow_none=False)
 
     # variables
     self.reset_state(self.mode)
@@ -456,8 +466,9 @@ class MorrisLecar(NeuGroup):
   def reset_state(self, batch_size=None):
     self.W = variable_(self._W_initializer, self.varshape, batch_size)
     self.V = variable_(self._V_initializer, self.varshape, batch_size)
-    self.input = variable_(bm.zeros, self.varshape, batch_size)
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
 
   def dV(self, V, t, W, I_ext):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
@@ -477,19 +488,28 @@ class MorrisLecar(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dW])
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
-    if x is not None: self.input += x
-    V, self.W.value = self.integral(self.V, self.W, t, self.input, dt)
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    if self.input_var:
+      if x is not None:
+        self.input += x
+      x = self.input.value
+    else:
+      x = 0. if x is None else x
+    V, W = self.integral(self.V, self.W, t, x, dt)
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
+    self.W.value = W
     self.spike.value = spike
+    return spike
 
   def clear_input(self):
-    self.input[:] = 0.
+    if self.input_var:
+      self.input[:] = 0.
 
 
-class PinskyRinzelModel(NeuGroup):
+class PinskyRinzelModel(NeuGroupNS):
   r"""The Pinsky and Rinsel (1994) model.
 
   The Pinsky and Rinsel (1994) model [7]_ is a 2-compartment (soma and dendrite),
@@ -736,8 +756,9 @@ class PinskyRinzelModel(NeuGroup):
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
     self.c.value = bm.Variable(self.inf_c(self.Vd), batch_axis=batch_axis)
     self.q.value = bm.Variable(self.inf_q(self.Ca), batch_axis=batch_axis)
-    self.Id.value = variable_(bm.zeros, self.varshape, batch_size)
-    self.Is.value = variable_(bm.zeros, self.varshape, batch_size)
+    if self.input_var:
+      self.Id.value = variable_(bm.zeros, self.varshape, batch_size)
+      self.Is.value = variable_(bm.zeros, self.varshape, batch_size)
     # self.spike[:] = False
 
   def dCa(self, Ca, t, s, Vd):
@@ -876,7 +897,7 @@ class PinskyRinzelModel(NeuGroup):
     return alpha / (alpha + beta)
 
 
-class WangBuzsakiModel(NeuGroup):
+class WangBuzsakiModel(NeuGroupNS):
   r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model.
 
   Each model is described by a single compartment and obeys the current balance equation:
@@ -979,12 +1000,13 @@ class WangBuzsakiModel(NeuGroup):
       n_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.32),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
+      input_var: bool = True,
       name: str = None,
       mode: bm.Mode = None,
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__)
+    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode))
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -997,6 +1019,7 @@ class WangBuzsakiModel(NeuGroup):
     self.phi = parameter(phi, self.varshape, allow_none=False)
     self.V_th = parameter(V_th, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=3)
+    self.input_var = input_var
 
     # initializers
     check.is_initializer(h_initializer, 'h_initializer', allow_none=False)
@@ -1010,8 +1033,9 @@ class WangBuzsakiModel(NeuGroup):
     self.h = variable_(self._h_initializer, self.varshape, self.mode)
     self.n = variable_(self._n_initializer, self.varshape, self.mode)
     self.V = variable_(self._V_initializer, self.varshape, self.mode)
-    self.input = variable_(bm.zeros, self.varshape, self.mode)
     self.spike = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, self.mode)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, self.mode)
 
     # integral
     if self.noise is None:
@@ -1023,8 +1047,9 @@ class WangBuzsakiModel(NeuGroup):
     self.h.value = variable_(self._h_initializer, self.varshape, batch_size)
     self.n.value = variable_(self._n_initializer, self.varshape, batch_size)
     self.V.value = variable_(self._V_initializer, self.varshape, batch_size)
-    self.input.value = variable_(bm.zeros, self.varshape, batch_size)
     self.spike.value = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
+    if self.input_var:
+      self.input.value = variable_(bm.zeros, self.varshape, batch_size)
 
   def m_inf(self, V):
     alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
@@ -1052,16 +1077,24 @@ class WangBuzsakiModel(NeuGroup):
 
   @property
   def derivative(self):
-    return JointEq([self.dV, self.dh, self.dn])
+    return JointEq(self.dV, self.dh, self.dn)
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
-    if x is not None: self.input += x
-    V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt)
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    if self.input_var:
+      if x is not None:
+        self.input += x
+      x = self.input.value
+    else:
+      x = 0. if x is None else x
+    V, h, n = self.integral(self.V, self.h, self.n, t, x, dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.h.value = h
     self.n.value = n
+    return self.spike.value
 
   def clear_input(self):
-    self.input[:] = 0.
+    if self.input_var:
+      self.input[:] = 0.

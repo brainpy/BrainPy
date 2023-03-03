@@ -77,7 +77,6 @@ class OUProcess(NeuGroup):
   def dg(self, x, t):
     return self.sigma
 
-  @not_pass_shared
   def update(self):
     t = share.load('t')
     dt = share.load('dt')

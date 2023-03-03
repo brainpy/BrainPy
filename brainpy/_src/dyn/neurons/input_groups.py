@@ -5,7 +5,7 @@ from typing import Union, Sequence
 import jax.numpy as jnp
 from brainpy._src.dyn.context import share
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroupNS as NeuGroup, not_pass_shared
+from brainpy._src.dyn.base import NeuGroupNS, not_pass_shared
 from brainpy._src.initialize import Initializer, parameter, variable_
 from brainpy.types import Shape, ArrayType
 
@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-class InputGroup(NeuGroup):
+class InputGroup(NeuGroupNS):
   """Input neuron group for place holder.
 
   Parameters
@@ -41,7 +41,6 @@ class InputGroup(NeuGroup):
                                      mode=mode)
     self.spike = None
 
-  @not_pass_shared
   def update(self, x):
     return x
 
@@ -49,7 +48,7 @@ class InputGroup(NeuGroup):
     pass
 
 
-class OutputGroup(NeuGroup):
+class OutputGroup(NeuGroupNS):
   """Output neuron group for place holder.
 
   Parameters
@@ -73,7 +72,6 @@ class OutputGroup(NeuGroup):
                                       mode=mode)
     self.spike = None
 
-  @not_pass_shared
   def update(self, x):
     return x
 
@@ -81,7 +79,7 @@ class OutputGroup(NeuGroup):
     pass
 
 
-class SpikeTimeGroup(NeuGroup):
+class SpikeTimeGroup(NeuGroupNS):
   """The input neuron group characterized by spikes emitting at given times.
 
   >>> # Get 2 neurons, firing spikes at 10 ms and 20 ms.
@@ -162,14 +160,13 @@ class SpikeTimeGroup(NeuGroup):
     self.i = bm.Variable(bm.asarray(0))
     self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  @not_pass_shared
   def update(self):
     self.spike.value = bm.zeros_like(self.spike)
     self._run(share.load('t'))
     return self.spike.value
 
 
-class PoissonGroup(NeuGroup):
+class PoissonGroup(NeuGroupNS):
   """Poisson Neuron Group.
   """
 
@@ -196,8 +193,7 @@ class PoissonGroup(NeuGroup):
     self.rng = bm.random.default_rng(seed)
     self.reset_state(self.mode)
 
-  @not_pass_shared
-  def update(self, x=None):
+  def update(self):
     spikes = self.rng.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
     self.spike.value = spikes
     return spikes
@@ -208,3 +204,4 @@ class PoissonGroup(NeuGroup):
 
   def reset_state(self, batch_size=None):
     self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
+
