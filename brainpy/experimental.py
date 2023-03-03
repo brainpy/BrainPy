@@ -12,6 +12,6 @@ from brainpy._src.dyn.synapses_v2.syn_outs import (
   CUBA as CUBA,
   COBA as COBA,
 )
-from brainpy._src.dyn.synapses_v2.abstract_models import (
+from brainpy._src.dyn.synapses_v2.abstract_synapses import (
   Exponential as Exponential,
 )

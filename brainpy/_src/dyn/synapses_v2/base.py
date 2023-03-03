@@ -119,7 +119,7 @@ class SynConn(DynamicalSystemNS):
 
 
 class SynOut(DynamicalSystemNS):
-  def update(self, post_g):
+  def update(self, post_g, post_v):
     raise NotImplementedError
 
   def reset_state(self, batch_size: Optional[int] = None):

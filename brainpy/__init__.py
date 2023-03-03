@@ -58,7 +58,7 @@ from brainpy import (channels,  # channel models
                      synapses,  # synaptic dynamics
                      synouts,  # synaptic output
                      synplast,  # synaptic plasticity
-                     syn,
+                     experimental,
                      )
 from brainpy._src.dyn.base import not_pass_shared
 from brainpy._src.dyn.base import (DynamicalSystem,

@@ -107,7 +107,7 @@ class Exponential(SynConn):
     if self.stp is not None:
       self.stp.reset_state(batch_size)
 
-  def update(self, pre_spike):
+  def update(self, pre_spike, post_v=None):
     if self.stp is not None:
       syn_value = self.stp(pre_spike) * pre_spike
     else:
@@ -150,6 +150,6 @@ class Exponential(SynConn):
 
     # outputs
     if self.out is not None:
-      return self.out(self.g.value)
+      return self.out(self.g.value, post_v)
     else:
       return self.g.value

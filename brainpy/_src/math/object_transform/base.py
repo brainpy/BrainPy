@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 
-_register_pytree = False
+_register_pytree = True
 
 
 def register_object_as_pytree(mode: bool):

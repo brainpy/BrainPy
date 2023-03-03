@@ -107,7 +107,6 @@ class StepLR(Scheduler):
             f'last_epoch={self.last_epoch})')
 
 
-@jax.tree_util.register_pytree_node_class
 class MultiStepLR(Scheduler):
   """Decays the learning rate of each parameter group by gamma once the
   number of epoch reaches one of the milestones. Notice that such decay can
