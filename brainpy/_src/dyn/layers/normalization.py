@@ -135,7 +135,8 @@ class BatchNorm(Layer):
         if self.axis_name is not None:
           mean, mean_of_square = jnp.split(lax.pmean(jnp.concatenate([mean, mean_of_square]),
                                                      axis_name=self.axis_name,
-                                                     axis_index_groups=self.axis_index_groups), 2)
+                                                     axis_index_groups=self.axis_index_groups),
+                                           2)
         var = jnp.maximum(0., mean_of_square - _square(mean))
         self.running_mean.value = (self.momentum * self.running_mean + (1 - self.momentum) * mean)
         self.running_var.value = (self.momentum * self.running_var + (1 - self.momentum) * var)

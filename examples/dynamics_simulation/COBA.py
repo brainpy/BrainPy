@@ -1,5 +1,4 @@
 import brainpy as bp
-import brainpy.connect as C
 
 
 class EINet(bp.DynamicalSystemNS):
@@ -22,31 +21,30 @@ class EINet(bp.DynamicalSystemNS):
     # synapses
     we = 0.6 / scale  # excitatory synaptic weight (voltage)
     wi = 6.7 / scale  # inhibitory synaptic weight
-    self.E2E = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.E.size, post=self.E.size),
-      g_max=we, tau=5., out=bp.syn.COBA(self.E.V, E=0.)
+    self.E2E = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.E.size, post=self.E.size),
+      g_max=we, tau=5., out=bp.experimental.COBA(E=0.)
     )
-    self.E2I = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.E.size, post=self.I.size, ),
-      g_max=we, tau=5., out=bp.syn.COBA(self.I.V, E=0.)
+    self.E2I = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.E.size, post=self.I.size, ),
+      g_max=we, tau=5., out=bp.experimental.COBA(E=0.)
     )
-    self.I2E = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.I.size, post=self.E.size),
-      g_max=wi, tau=10., out=bp.syn.COBA(self.E.V, E=-80.)
+    self.I2E = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.I.size, post=self.E.size),
+      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.)
     )
-    self.I2I = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.I.size, post=self.I.size),
-      g_max=wi, tau=10., out=bp.syn.COBA(self.I.V, E=-80.)
+    self.I2I = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.I.size, post=self.I.size),
+      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.)
     )
     self.delayE = bp.Delay(self.E.spike, entries={'E': delay})
     self.delayI = bp.Delay(self.I.spike, entries={'I': delay})
 
-  @bp.not_pass_sha
   def update(self):
     e_spike = self.delayE.at('E')
     i_spike = self.delayI.at('I')
-    e_inp = self.E2E(e_spike) + self.I2E(i_spike) + self.bg_exc
-    i_inp = self.I2I(i_spike) + self.E2I(e_spike) + self.bg_inh
+    e_inp = self.E2E(e_spike, self.E.V) + self.I2E(i_spike, self.E.V) + self.bg_exc
+    i_inp = self.I2I(i_spike, self.I.V) + self.E2I(e_spike, self.I.V) + self.bg_inh
     self.delayE(self.E(e_inp))
     self.delayI(self.I(i_inp))
 
@@ -71,33 +69,30 @@ class EINetv2(bp.DynamicalSystemNS):
     # synapses
     we = 0.6 / scale  # excitatory synaptic weight (voltage)
     wi = 6.7 / scale  # inhibitory synaptic weight
-    self.E2E = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.E.size, post=self.E.size),
-      g_max=we, tau=5., out=bp.syn.COBA(self.E.V, E=0.)
+    self.E2E = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.E.size, post=self.E.size),
+      g_max=we, tau=5., out=bp.experimental.COBA(E=0.)
     )
-    self.E2I = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.E.size, post=self.I.size, ),
-      g_max=we, tau=5., out=bp.syn.COBA(self.I.V, E=0.)
+    self.E2I = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.E.size, post=self.I.size, ),
+      g_max=we, tau=5., out=bp.experimental.COBA(E=0.)
     )
-    self.I2E = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.I.size, post=self.E.size),
-      g_max=wi, tau=10., out=bp.syn.COBA(self.E.V, E=-80.)
+    self.I2E = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.I.size, post=self.E.size),
+      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.)
     )
-    self.I2I = bp.syn.Exponential(
-      C.FixedProb(0.02, pre=self.I.size, post=self.I.size),
-      g_max=wi, tau=10., out=bp.syn.COBA(self.I.V, E=-80.)
+    self.I2I = bp.experimental.Exponential(
+      bp.conn.FixedProb(0.02, pre=self.I.size, post=self.I.size),
+      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.)
     )
-    bp.share.save('t', 2.)
-    bp.share.save('dt', 0.1)
     bp.share.save('E-spike', bp.Delay(self.E.spike, entries={'E': delay}))
     bp.share.save('I-spike', bp.Delay(self.I.spike, entries={'I': delay}))
 
-  @bp.not_pass_sha
   def update(self):
     e_spike = bp.share.load('E-spike').at('E')
     i_spike = bp.share.load('I-spike').at('I')
-    e_inp = self.E2E(e_spike) + self.I2E(i_spike) + self.bg_exc
-    i_inp = self.I2I(i_spike) + self.E2I(e_spike) + self.bg_inh
+    e_inp = self.E2E(e_spike, self.E.V) + self.I2E(i_spike, self.E.V) + self.bg_exc
+    i_inp = self.I2I(i_spike, self.I.V) + self.E2I(e_spike, self.I.V) + self.bg_inh
     self.E(e_inp)
     self.I(i_inp)
 

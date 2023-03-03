@@ -9,7 +9,7 @@ import numpy as np
 import brainpy.math as bm
 from brainpy import check
 from .base import Layer
-from brainpy._src.dyn.base import not_pass_sha
+from brainpy._src.dyn.base import not_pass_shared
 
 __all__ = [
   'NVAR'

@@ -167,8 +167,8 @@ class LoopOverTime(DynamicalSystemNS):
       assert isinstance(shared_arg, dict)
       shared_arg['dt'] = dt
     self.dt = dt
-    self.t0 = t0
-    self.i0 = i0
+    self.t0 = None if t0 is None else bm.Variable(bm.as_jax(t0))
+    self.i0 = None if i0 is None else bm.Variable(bm.as_jax(i0))
 
     self.jit = jit
     self.remat = remat
@@ -207,9 +207,9 @@ class LoopOverTime(DynamicalSystemNS):
     if isinstance(duration_or_xs, float):
       shared = tools.DotDict()
       if self.t0 is not None:
-        shared['t'] = jnp.arange(self.t0, duration_or_xs, self.dt)
+        shared['t'] = jnp.arange(self.t0.value, duration_or_xs, self.dt)
       if self.i0 is not None:
-        shared['i'] = jnp.arange(0, shared['t'].shape[0])
+        shared['i'] = jnp.arange(self.i0.value, shared['t'].shape[0])
       xs = None
       if self.no_state:
         raise ValueError('Under the `no_state=True` setting, input cannot be a duration.')
@@ -269,26 +269,35 @@ class LoopOverTime(DynamicalSystemNS):
       if self.no_state:
         share.save(**self.shared_arg)
         outputs = self._run(self.shared_arg, dict(), xs)
-        return tree_map(lambda a: jnp.reshape(a, origin_shape + a.shape[1:]), outputs)
+        results = tree_map(lambda a: jnp.reshape(a, origin_shape + a.shape[1:]), outputs)
+        if self.i0 is not None:
+          self.i0 += length[0]
+        if self.t0 is not None:
+          self.t0 += length[0] * self.dt
+        return results
 
       else:
         shared = tools.DotDict()
-        shared['t'] = jnp.arange(self.t0, self.dt * length[0], self.dt)
-        shared['i'] = jnp.arange(0, length[0])
+        shared['t'] = jnp.arange(self.t0.value, self.dt * length[0], self.dt)
+        shared['i'] = jnp.arange(self.i0.value, length[0])
 
     assert not self.no_state
-    return bm.for_loop(functools.partial(self._run, self.shared_arg),
-                       (shared, xs),
-                       child_objs=(self.target, share),
-                       jit=self.jit,
-                       remat=self.remat)
+    results = bm.for_loop(functools.partial(self._run, self.shared_arg),
+                          (shared, xs),
+                          child_objs=(self.target, share),
+                          jit=self.jit,
+                          remat=self.remat)
+    if self.i0 is not None:
+      self.i0 += length[0]
+    if self.t0 is not None:
+      self.t0 += length[0] * self.dt
+    return results
 
   def reset_state(self, batch_size=None):
     self.target.reset_state(batch_size)
 
   def _run(self, static_sh, dyn_sh, x):
-    share.save(**static_sh)
-    share.save(**dyn_sh)
+    share.save(**static_sh, **dyn_sh)
     outs = self.target(x)
     if self.out_vars is not None:
       outs = (outs, tree_map(bm.as_jax, self.out_vars))

@@ -349,6 +349,7 @@ class SlowPointFinder(base.DSAnalyzer):
     def train(idx):
       gradients, loss = grad_f()
       optimizer.update(gradients if isinstance(gradients, dict) else {'a': gradients})
+      optimizer.lr.step_epoch()
       return loss
 
     def batch_train(start_i, n_batch):

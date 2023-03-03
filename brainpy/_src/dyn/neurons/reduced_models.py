@@ -6,7 +6,7 @@ from typing import Union, Callable, Optional
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup, not_pass_sha
+from brainpy._src.dyn.base import NeuGroupNS as NeuGroup, not_pass_shared
 from brainpy._src.dyn.context import share
 from brainpy._src.initialize import (ZeroInit,
                                      OneInit,
@@ -122,7 +122,7 @@ class LeakyIntegrator(NeuGroup):
     if self.input_var:
       self.input = variable_(bm.zeros, self.varshape, batch_size)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -266,7 +266,7 @@ class LIF(NeuGroup):
       if self.ref_var:
         self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -491,7 +491,7 @@ class ExpIF(NeuGroup):
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I_ext) / self.tau
     return dvdt
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -678,7 +678,7 @@ class AdExIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -837,7 +837,7 @@ class QuaIF(NeuGroup):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I_ext) / self.tau
     return dVdt
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1018,7 +1018,7 @@ class AdQuaIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1220,7 +1220,7 @@ class GIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dI1, self.dI2, self.dVth, self.dV])
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1371,7 +1371,7 @@ class ALIFBellec2020(NeuGroup):
       self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, batch_size)
       self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1565,7 +1565,7 @@ class Izhikevich(NeuGroup):
     dudt = self.a * (self.b * V - u)
     return dudt
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1805,7 +1805,7 @@ class HindmarshRose(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dy, self.dz])
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1978,7 +1978,7 @@ class FHN(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -2096,7 +2096,7 @@ class LIF_SFA_Bellec2020(NeuGroup):
     if self.tau_ref is not None:
       self.t_last_spike = variable_(OneInit(-1e7), self.varshape, batch_size)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')

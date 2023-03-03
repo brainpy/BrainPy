@@ -2,14 +2,14 @@
 
 from typing import Union
 
-from brainpy.math import Variable, exp
-from brainpy.types import ArrayType
 from brainpy._src.dyn.synapses_v2.base import SynOut
-
+from brainpy.math import exp
+from brainpy.types import ArrayType
 
 __all__ = [
   'COBA',
   'CUBA',
+  'MgBlock',
 ]
 
 
@@ -34,17 +34,12 @@ class COBA(SynOut):
   CUBA
   """
 
-  def __init__(self,
-               post_potential: Variable,
-               E: Union[float, ArrayType] = 0.,
-               name: str = None, ):
+  def __init__(self, E: Union[float, ArrayType] = 0., name: str = None, ):
     super().__init__(name=name)
     self.E = E
-    self.post_potential = post_potential
 
-  def update(self, g):
-    I = g * (self.E - self.post_potential)
-    return I
+  def update(self, post_g, post_v):
+    return post_g * (self.E - post_v)
 
 
 class CUBA(SynOut):
@@ -70,7 +65,7 @@ class CUBA(SynOut):
   def __init__(self, name: str = None, ):
     super().__init__(name=name)
 
-  def update(self, g):
+  def update(self, g, post_V):
     return g
 
 
@@ -107,7 +102,6 @@ class MgBlock(SynOut):
 
   def __init__(
       self,
-      post_potential: Variable,
       E: Union[float, ArrayType] = 0.,
       cc_Mg: Union[float, ArrayType] = 1.2,
       alpha: Union[float, ArrayType] = 0.062,
@@ -115,14 +109,12 @@ class MgBlock(SynOut):
       name: str = None,
   ):
     super().__init__(name=name)
-    assert isinstance(post_potential, Variable)
-    self.post_potential = post_potential
     self.E = E
     self.cc_Mg = cc_Mg
     self.alpha = alpha
     self.beta = beta
 
-  def update(self, g):
-    I = g * (self.E - self.post_potential) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * self.post_potential))
+  def update(self, post_g, post_v):
+    I = post_g * (self.E - post_v) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * post_v))
     return I
 

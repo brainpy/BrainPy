@@ -50,7 +50,7 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
-def not_pass_sha(func: Callable):
+def not_pass_shared(func: Callable):
   """Label the update function as the one without passing shared arguments.
 
   The original update function explicitly requires shared arguments at the first place::
@@ -610,7 +610,8 @@ class Sequential(Container):
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  def update(self, s, x) -> ArrayType:
+  @not_pass_shared
+  def update(self, x) -> ArrayType:
     """Update function of a sequential model.
 
     Parameters
@@ -626,12 +627,7 @@ class Sequential(Container):
       The output tensor.
     """
     for m in self._modules:
-      if isinstance(m, DynamicalSystemNS):
-        x = m(x)
-      elif isinstance(m, DynamicalSystem):
-        x = m(s, x)
-      else:
-        x = m(x)
+      x = m(x)
     return x
 
 
@@ -665,7 +661,7 @@ class Network(Container):
                                   mode=mode,
                                   **ds_dict)
 
-  @not_pass_sha
+  @not_pass_shared
   def update(self, *args, **kwargs):
     """Step function of a network.
 
@@ -805,6 +801,11 @@ class NeuGroup(DynamicalSystem):
 
   def __getitem__(self, item):
     return NeuGroupView(target=self, index=item)
+
+
+class NeuGroupNS(NeuGroup):
+  """Base class for neuron group without shared arguments passed."""
+  pass_shared = False
 
 
 class SynConn(DynamicalSystem):
