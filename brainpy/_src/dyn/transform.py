@@ -14,7 +14,6 @@ from .base import DynamicalSystem, Sequential, DynamicalSystemNS
 
 __all__ = [
   'LoopOverTime',
-  'NoSharedArg',
 ]
 
 
@@ -207,12 +206,13 @@ class LoopOverTime(DynamicalSystemNS):
     if isinstance(duration_or_xs, float):
       shared = tools.DotDict()
       if self.t0 is not None:
-        shared['t'] = jnp.arange(self.t0.value, duration_or_xs, self.dt)
+        shared['t'] = jnp.arange(0, duration_or_xs, self.dt) + self.t0.value
       if self.i0 is not None:
-        shared['i'] = jnp.arange(self.i0.value, shared['t'].shape[0])
+        shared['i'] = jnp.arange(0, shared['t'].shape[0]) + self.i0.value
       xs = None
       if self.no_state:
         raise ValueError('Under the `no_state=True` setting, input cannot be a duration.')
+      length = shared['t'].shape
 
     else:
       inp_err_msg = ('\n'
@@ -278,8 +278,8 @@ class LoopOverTime(DynamicalSystemNS):
 
       else:
         shared = tools.DotDict()
-        shared['t'] = jnp.arange(self.t0.value, self.dt * length[0], self.dt)
-        shared['i'] = jnp.arange(self.i0.value, length[0])
+        shared['t'] = jnp.arange(0, self.dt * length[0], self.dt) + self.t0.value
+        shared['i'] = jnp.arange(0, length[0]) + self.i0.value
 
     assert not self.no_state
     results = bm.for_loop(functools.partial(self._run, self.shared_arg),
@@ -295,6 +295,10 @@ class LoopOverTime(DynamicalSystemNS):
 
   def reset_state(self, batch_size=None):
     self.target.reset_state(batch_size)
+    if self.i0 is not None:
+      self.i0.value = jnp.asarray(0)
+    if self.t0 is not None:
+      self.t0.value = jnp.asarray(0.)
 
   def _run(self, static_sh, dyn_sh, x):
     share.save(**static_sh, **dyn_sh)
@@ -304,50 +308,3 @@ class LoopOverTime(DynamicalSystemNS):
     self.target.clear_input()
     return outs
 
-
-class NoSharedArg(DynSysToBPObj):
-  """Transform an instance of :py:class:`~.DynamicalSystem` into a callable
-  :py:class:`~.BrainPyObject` :math:`y=f(x)`.
-
-  .. note::
-
-     This object transforms a :py:class:`~.DynamicalSystem` into a :py:class:`~.BrainPyObject`.
-
-     If some children nodes need shared arguments, like :py:class:`~.Dropout` or
-     :py:class:`~.LIF` models, using ``NoSharedArg`` will cause errors.
-
-  Examples
-  --------
-
-  >>> import brainpy as bp
-  >>> import brainpy.math as bm
-  >>> l = bp.Sequential(bp.layers.Dense(100, 10),
-  >>>                   bm.relu,
-  >>>                   bp.layers.Dense(10, 2))
-  >>> l = bp.NoSharedArg(l)
-  >>> l(bm.random.random(256, 100))
-
-  Parameters
-  ----------
-  target: DynamicalSystem
-    The target to transform.
-  name: str
-    The transformed object name.
-  """
-
-  def __init__(self, target: DynamicalSystem, name: str = None):
-    super().__init__(target=target, name=name)
-    if isinstance(target, Sequential) and target.no_shared_arg:
-      raise ValueError(f'It is a {Sequential.__name__} object with `no_shared_arg=True`, '
-                       f'which has already able to be called with `f(x)`. ')
-
-  def __call__(self, *args, **kwargs):
-    return self.target(tools.DotDict(), *args, **kwargs)
-
-  def reset(self, batch_size=None):
-    """Reset function which reset the whole variables in the model.
-    """
-    self.target.reset(batch_size)
-
-  def reset_state(self, batch_size=None):
-    self.target.reset_state(batch_size)

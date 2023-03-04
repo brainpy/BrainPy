@@ -324,7 +324,7 @@ class _DecoratorContextManager:
     return self.__class__()
 
 
-def set_environment(
+def set(
     mode: modes.Mode = None,
     dt: float = None,
     x64: bool = None,
@@ -379,6 +379,9 @@ def set_environment(
   if complex_ is not None:
     assert isinstance(complex_, type), '"complex_" must a type.'
     set_complex(complex_)
+
+
+set_environment = set
 
 
 class environment(_DecoratorContextManager):

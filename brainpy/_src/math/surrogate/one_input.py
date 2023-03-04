@@ -34,6 +34,14 @@ __all__ = [
 ]
 
 
+class Sigmoid:
+  def __init__(self, alpha=4., orgin=False):
+    self.alpha = alpha
+    self.orgin = orgin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return sigmoid(x, alpha=self.alpha, origin=self.origin)
+
 
 @vjp_custom(['x'], dict(alpha=4., origin=False), dict(origin=[True, False]))
 def sigmoid(
@@ -103,6 +111,15 @@ def sigmoid(
     return dx, None
 
   return z, grad
+
+
+class PiecewiseQuadratic:
+  def __init__(self, alpha=1., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return piecewise_quadratic(x, alpha=self.alpha, origin=self.origin)
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
@@ -195,6 +212,15 @@ def piecewise_quadratic(
   return z, grad
 
 
+class PiecewiseExp:
+  def __init__(self, alpha=1., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return piecewise_exp(x, alpha=self.alpha, origin=self.origin)
+
+
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
 def piecewise_exp(
     x: Union[jax.Array, Array],
@@ -271,6 +297,15 @@ def piecewise_exp(
   return z, grad
 
 
+class SoftSign:
+  def __init__(self, alpha=1., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return soft_sign(x, alpha=self.alpha, origin=self.origin)
+
+
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
 def soft_sign(
     x: Union[jax.Array, Array],
@@ -342,6 +377,15 @@ def soft_sign(
   return z, grad
 
 
+class Arctan:
+  def __init__(self, alpha=1., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return arctan(x, alpha=self.alpha, origin=self.origin)
+
+
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
 def arctan(
     x: Union[jax.Array, Array],
@@ -410,6 +454,15 @@ def arctan(
     return dx * as_jax(dz), None
 
   return z, grad
+
+
+class NonzeroSignLog:
+  def __init__(self, alpha=1., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return nonzero_sign_log(x, alpha=self.alpha, origin=self.origin)
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), statics={'origin': [True, False]})
@@ -495,6 +548,15 @@ def nonzero_sign_log(
   return z, grad
 
 
+class ERF:
+  def __init__(self, alpha=1., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return erf(x, alpha=self.alpha, origin=self.origin)
+
+
 @vjp_custom(['x'], dict(alpha=1., origin=False), statics={'origin': [True, False]})
 def erf(
     x: Union[jax.Array, Array],
@@ -569,10 +631,20 @@ def erf(
     z = jnp.asarray(x >= 0, dtype=x.dtype)
 
   def grad(dz):
-    dx = (alpha / math.sqrt(math.pi)) * jnp.exp(-math.pow(alpha, 2) * x * x)
+    dx = (alpha / jnp.sqrt(jnp.pi)) * jnp.exp(-jnp.power(alpha, 2) * x * x)
     return dx * as_jax(dz), None
 
   return z, grad
+
+
+class PiecewiseLeakyRelu:
+  def __init__(self, c=0.01, w=1., origin=False):
+    self.c = c
+    self.w = w
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return piecewise_leaky_relu(x, c=self.c, w=self.w, origin=self.origin)
 
 
 @vjp_custom(['x'], dict(c=0.01, w=1., origin=False), statics={'origin': [True, False]})
@@ -673,6 +745,16 @@ def piecewise_leaky_relu(
   return z, grad
 
 
+class SquarewaveFourierSeries:
+  def __init__(self, n=2, t_period=8., origin=False):
+    self.n = n
+    self.t_period = t_period
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return squarewave_fourier_series(x, self.n, self.t_period, self.origin)
+
+
 @vjp_custom(['x'], dict(n=2, t_period=8., origin=False), statics={'origin': [True, False]})
 def squarewave_fourier_series(
     x: Union[jax.Array, Array],
@@ -732,13 +814,13 @@ def squarewave_fourier_series(
     The spiking state.
 
   """
-  w = math.pi * 2. / t_period
+  w = jnp.pi * 2. / t_period
   if origin:
     ret = jnp.sin(w * x)
     for i in range(2, n):
       c = (2 * i - 1.)
       ret += jnp.sin(c * w * x) / c
-    z = 0.5 + 2. / math.pi * ret
+    z = 0.5 + 2. / jnp.pi * ret
   else:
     z = jnp.asarray(x >= 0, dtype=x.dtype)
 
@@ -750,6 +832,17 @@ def squarewave_fourier_series(
     return dx * as_jax(dz), None, None
 
   return z, grad
+
+
+class S2NN:
+  def __init__(self, alpha=4., beta=1., epsilon=1e-8, origin=False):
+    self.alpha = alpha
+    self.beta = beta
+    self.epsilon = epsilon
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array], ):
+    return s2nn(x, self.alpha, self.beta, self.epsilon, self.origin)
 
 
 @vjp_custom(['x'],
@@ -844,6 +937,15 @@ def s2nn(
   return z, grad
 
 
+class QPseudoSpike:
+  def __init__(self, alpha=2., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return q_pseudo_spike(x, self.alpha, self.origin)
+
+
 @vjp_custom(['x'],
             dict(alpha=2., origin=False),
             statics={'origin': [True, False]})
@@ -925,6 +1027,16 @@ def q_pseudo_spike(
   return z, grad
 
 
+class LeakyRelu:
+  def __init__(self, alpha=0.1, beta=1., origin=False):
+    self.alpha = alpha
+    self.beta = beta
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return leaky_relu(x, self.alpha, self.beta, self.origin)
+
+
 @vjp_custom(['x'],
             dict(alpha=0.1, beta=1., origin=False),
             statics={'origin': [True, False]})
@@ -1004,6 +1116,15 @@ def leaky_relu(
     return dx * as_jax(dz), None, None
 
   return z, grad
+
+
+class LogTailedRelu:
+  def __init__(self, alpha=0., origin=False):
+    self.alpha = alpha
+    self.origin = origin
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return log_tailed_relu(x, self.alpha, self.origin)
 
 
 @vjp_custom(['x'],
@@ -1098,6 +1219,15 @@ def log_tailed_relu(
   return z, grad
 
 
+class ReluGrad:
+  def __init__(self, alpha=0.3, width=1.):
+    self.alpha = alpha
+    self.width = width
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return relu_grad(x, self.alpha, self.width)
+
+
 @vjp_custom(['x'], dict(alpha=0.3, width=1.))
 def relu_grad(
     x: Union[jax.Array, Array],
@@ -1163,6 +1293,15 @@ def relu_grad(
   return z, grad
 
 
+class GaussianGrad:
+  def __init__(self, sigma=0.5, alpha=0.5):
+    self.sigma = sigma
+    self.alpha = alpha
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return gaussian_grad(x, self.sigma, self.alpha)
+
+
 @vjp_custom(['x'], dict(sigma=0.5, alpha=0.5))
 def gaussian_grad(
     x: Union[jax.Array, Array],
@@ -1221,10 +1360,21 @@ def gaussian_grad(
   z = jnp.asarray(x >= 0, dtype=x.dtype)
 
   def grad(dz):
-    dx = jnp.exp(-(x ** 2) / 2 * math.pow(sigma, 2)) / (math.sqrt(2 * math.pi) * sigma)
+    dx = jnp.exp(-(x ** 2) / 2 * jnp.power(sigma, 2)) / (jnp.sqrt(2 * jnp.pi) * sigma)
     return alpha * dx * as_jax(dz), None, None
 
   return z, grad
+
+
+class MultiGaussianGrad:
+  def __init__(self, h=0.15, s=6.0, sigma=0.5, scale=0.5):
+    self.h = h
+    self.s = s
+    self.sigma = sigma
+    self.scale = scale
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return multi_gaussian_grad(x, self.h, self.s, self.sigma, self.scale)
 
 
 @vjp_custom(['x'], dict(h=0.15, s=6.0, sigma=0.5, scale=0.5))
@@ -1294,13 +1444,21 @@ def multi_gaussian_grad(
   z = jnp.asarray(x >= 0, dtype=x.dtype)
 
   def grad(dz):
-    g1 = jnp.exp(-x ** 2 / (2 * math.pow(sigma, 2))) / (math.sqrt(2 * math.pi) * sigma)
-    g2 = jnp.exp(-(x - sigma) ** 2 / (2 * math.pow(s * sigma, 2))) / (math.sqrt(2 * math.pi) * s * sigma)
-    g3 = jnp.exp(-(x + sigma) ** 2 / (2 * math.pow(s * sigma, 2))) / (math.sqrt(2 * math.pi) * s * sigma)
+    g1 = jnp.exp(-x ** 2 / (2 * jnp.power(sigma, 2))) / (jnp.sqrt(2 * jnp.pi) * sigma)
+    g2 = jnp.exp(-(x - sigma) ** 2 / (2 * jnp.power(s * sigma, 2))) / (jnp.sqrt(2 * jnp.pi) * s * sigma)
+    g3 = jnp.exp(-(x + sigma) ** 2 / (2 * jnp.power(s * sigma, 2))) / (jnp.sqrt(2 * jnp.pi) * s * sigma)
     dx = g1 * (1. + h) - g2 * h - g3 * h
     return scale * dx * as_jax(dz), None, None, None, None
 
   return z, grad
+
+
+class InvSquareGrad:
+  def __init__(self, alpha=100.):
+    self.alpha = alpha
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return inv_square_grad(x, self.alpha)
 
 
 @vjp_custom(['x'], dict(alpha=100.))
@@ -1358,6 +1516,14 @@ def inv_square_grad(
     return dx, None
 
   return z, grad
+
+
+class SlayerGrad:
+  def __init__(self, alpha=1.):
+    self.alpha = alpha
+
+  def __call__(self, x: Union[jax.Array, Array]):
+    return slayer_grad(x, self.alpha)
 
 
 @vjp_custom(['x'], dict(alpha=1.))
