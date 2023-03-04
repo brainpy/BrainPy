@@ -16,6 +16,7 @@ from brainpy._src.math.environment import (
   environment as environment,
   batching_environment as batching_environment,
   training_environment as training_environment,
+  set as set,
   set_environment as set_environment,
   enable_x64 as enable_x64,
   disable_x64 as disable_x64,
