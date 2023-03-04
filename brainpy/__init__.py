@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.3.5"
+__version__ = "2.3.6"
 
 
 # fundamental supporting modules
@@ -75,8 +75,7 @@ from brainpy._src.dyn.base import (DynamicalSystem,
                                    TwoEndConn as TwoEndConn,
                                    CondNeuGroup as CondNeuGroup,
                                    Channel as Channel)
-from brainpy._src.dyn.transform import (NoSharedArg as NoSharedArg,  # transformations
-                                        LoopOverTime as LoopOverTime,)
+from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
 from brainpy._src.dyn.runners import (DSRunner as DSRunner)  # runner
 from brainpy._src.dyn.context import share, Delay
 
@@ -207,7 +206,6 @@ dyn.__dict__['SynLTP'] = SynLTP
 dyn.__dict__['TwoEndConn'] = TwoEndConn
 dyn.__dict__['CondNeuGroup'] = CondNeuGroup
 dyn.__dict__['Channel'] = Channel
-dyn.__dict__['NoSharedArg'] = NoSharedArg
 dyn.__dict__['LoopOverTime'] = LoopOverTime
 dyn.__dict__['DSRunner'] = DSRunner
 
