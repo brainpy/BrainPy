@@ -3,7 +3,7 @@
 from typing import Union, Callable
 
 from brainpy import math as bm
-from brainpy import share
+from brainpy._src.dyn.context import share
 from brainpy._src.dyn.base import NeuGroupNS
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
 from brainpy._src.initialize import (Initializer,
