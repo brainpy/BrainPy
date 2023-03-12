@@ -278,8 +278,10 @@ class LoopOverTime(DynamicalSystemNS):
 
       else:
         shared = tools.DotDict()
-        shared['t'] = jnp.arange(0, self.dt * length[0], self.dt) + self.t0.value
-        shared['i'] = jnp.arange(0, length[0]) + self.i0.value
+        if  self.t0 is not None:
+          shared['t'] = jnp.arange(0, self.dt * length[0], self.dt) + self.t0.value
+        if self.i0 is not None:
+          shared['i'] = jnp.arange(0, length[0]) + self.i0.value
 
     assert not self.no_state
     results = bm.for_loop(functools.partial(self._run, self.shared_arg),
