@@ -25,6 +25,8 @@ from brainpy._src.dyn.neurons.noise_groups import (
 )
 
 from brainpy._src.dyn.neurons.reduced_models import (
+  Leaky as Leaky,
+  Integrator as Integrator,
   LeakyIntegrator as LeakyIntegrator,
   LIF as LIF,
   ExpIF as ExpIF,

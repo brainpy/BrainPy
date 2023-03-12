@@ -6,7 +6,12 @@ import brainpy.math as bm
 from brainpy import check
 from brainpy._src.dyn.base import NeuGroupNS
 from brainpy._src.dyn.context import share
-from brainpy._src.initialize import OneInit, Uniform, Initializer, parameter, noise as init_noise, variable_
+from brainpy._src.initialize import (OneInit,
+                                     Uniform,
+                                     Initializer,
+                                     parameter,
+                                     noise as init_noise,
+                                     variable_)
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.integrators.sde.generic import sdeint

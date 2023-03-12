@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 from brainpy._src.dyn.context import share
 from brainpy import math as bm, tools
-from brainpy._src.dyn.synapses_v2.base import SynSTP
+from brainpy._src.dyn.synapses_v2.base import SynSTPNS
 from brainpy._src.initialize import variable_, OneInit, parameter
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType, Shape
@@ -17,7 +17,7 @@ __all__ = [
 ]
 
 
-class STD(SynSTP):
+class STD(SynSTPNS):
   r"""Synaptic output with short-term depression.
 
   This model filters the synaptic current by the following equation:
@@ -83,7 +83,7 @@ class STD(SynSTP):
     return self.x.value
 
 
-class STP(SynSTP):
+class STP(SynSTPNS):
   r"""Synaptic output with short-term plasticity.
 
   This model filters the synaptic currents according to two variables: :math:`u` and :math:`x`.

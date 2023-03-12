@@ -597,7 +597,7 @@ class DSRunner(Runner):
     if duration is not None:
       return int(duration / self.dt)
     if xs is not None:
-      if isinstance(xs, (bm.Array, jnp.ndarray)):
+      if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
         return xs.shape[0] if self.data_first_axis == 'T' else xs.shape[1]
       else:
         leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))

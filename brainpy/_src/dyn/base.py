@@ -400,6 +400,20 @@ class DynamicalSystem(BrainPyObject):
   def clear_input(self):
     pass
 
+  def __rrshift__(self, other):
+    """Support using right shift operator to call modules.
+
+    Examples
+    --------
+
+    >>> import brainpy as bp
+    >>> x = bp.math.random.rand((10, 10))
+    >>> l = bp.layers.Activation('tanh')
+    >>> y = x >> l
+
+    """
+    return self.__call__(other)
+
 
 class DynamicalSystemNS(DynamicalSystem):
   """Dynamical system without the need of shared parameters passing into ``update()`` function."""

@@ -2,7 +2,7 @@
 
 from typing import Union
 
-from brainpy._src.dyn.synapses_v2.base import SynOut
+from brainpy._src.dyn.synapses_v2.base import SynOutNS
 from brainpy.math import exp
 from brainpy.types import ArrayType
 
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-class COBA(SynOut):
+class COBA(SynOutNS):
   r"""Conductance-based synaptic output.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -42,7 +42,7 @@ class COBA(SynOut):
     return post_g * (self.E - post_v)
 
 
-class CUBA(SynOut):
+class CUBA(SynOutNS):
   r"""Current-based synaptic output.
 
   Given the conductance, this model outputs the post-synaptic current with a identity function:
@@ -69,7 +69,7 @@ class CUBA(SynOut):
     return g
 
 
-class MgBlock(SynOut):
+class MgBlock(SynOutNS):
   r"""Synaptic output based on Magnesium blocking.
 
   Given the synaptic conductance, the model output the post-synaptic current with

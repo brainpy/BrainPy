@@ -130,16 +130,18 @@ class BatchNorm(Layer):
     x = bm.as_jax(x)
 
     if share.load('fit'):
-        mean = jnp.mean(x, self.axis)
-        mean_of_square = jnp.mean(_square(x), self.axis)
-        if self.axis_name is not None:
-          mean, mean_of_square = jnp.split(lax.pmean(jnp.concatenate([mean, mean_of_square]),
-                                                     axis_name=self.axis_name,
-                                                     axis_index_groups=self.axis_index_groups),
-                                           2)
-        var = jnp.maximum(0., mean_of_square - _square(mean))
-        self.running_mean.value = (self.momentum * self.running_mean + (1 - self.momentum) * mean)
-        self.running_var.value = (self.momentum * self.running_var + (1 - self.momentum) * var)
+      mean = jnp.mean(x, self.axis)
+      mean_of_square = jnp.mean(_square(x), self.axis)
+      if self.axis_name is not None:
+        mean, mean_of_square = jnp.split(
+          lax.pmean(jnp.concatenate([mean, mean_of_square]),
+                    axis_name=self.axis_name,
+                    axis_index_groups=self.axis_index_groups),
+          2
+        )
+      var = jnp.maximum(0., mean_of_square - _square(mean))
+      self.running_mean.value = (self.momentum * self.running_mean + (1 - self.momentum) * mean)
+      self.running_var.value = (self.momentum * self.running_var + (1 - self.momentum) * var)
     else:
       mean = self.running_mean.value
       var = self.running_var.value
@@ -488,7 +490,7 @@ class LayerNorm(Layer):
       self.bias = bm.TrainVar(parameter(self.bias_initializer, self.normalized_shape))
       self.scale = bm.TrainVar(parameter(self.scale_initializer, self.normalized_shape))
 
-  def update(self,x):
+  def update(self, x):
     if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
       raise ValueError(f'Expect the input shape should be (..., {", ".join(self.normalized_shape)}), '
                        f'but we got {x.shape}')
@@ -629,6 +631,8 @@ class InstanceNorm(GroupNorm):
                                        scale_initializer=scale_initializer,
                                        mode=mode,
                                        name=name)
+
+
 BatchNorm1D = BatchNorm1d
 BatchNorm2D = BatchNorm2d
 BatchNorm3D = BatchNorm3d

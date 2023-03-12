@@ -2,13 +2,19 @@
 
 from typing import Union, Callable
 
-from brainpy import check, math as bm
-from brainpy._src.dyn.base import NeuGroupNS as NeuGroup
+from brainpy import math as bm
+from brainpy._src.dyn.context import share
+from brainpy._src.dyn.base import NeuGroupNS
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
-from brainpy._src.initialize import Initializer, Uniform, parameter, variable, ZeroInit
+from brainpy._src.initialize import (Initializer,
+                                     Uniform,
+                                     parameter,
+                                     variable,
+                                     variable_,
+                                     ZeroInit)
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
-from brainpy.check import is_float, is_initializer, jit_error_checking
+from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
@@ -22,7 +28,7 @@ __all__ = [
 ]
 
 
-class RateModel(NeuGroup):
+class RateModel(NeuGroupNS):
   pass
 
 
@@ -90,6 +96,7 @@ class FHN(RateModel):
 
       # parameter for training
       mode: bm.Mode = None,
+      input_var: bool = True,
   ):
     super(FHN, self).__init__(size=size,
                               name=name,
@@ -113,6 +120,7 @@ class FHN(RateModel):
                               allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
     self.y_ou_tau = parameter(y_ou_tau, self.varshape,
                               allow_none=False)  # ms, timescale of the Ornstein-Uhlenbeck noise process
+    self.input_var = input_var
 
     # initializers
     is_initializer(x_initializer, 'x_initializer')
@@ -121,10 +129,11 @@ class FHN(RateModel):
     self._y_initializer = y_initializer
 
     # variables
-    self.x = variable(x_initializer, self.mode, self.varshape)
-    self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(bm.zeros, self.mode, self.varshape)
-    self.input_y = variable(bm.zeros, self.mode, self.varshape)
+    self.x = variable_(self._x_initializer, self.varshape, self.mode)
+    self.y = variable_(self._y_initializer, self.varshape, self.mode)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, self.mode)
+      self.input_y = variable_(bm.zeros, self.varshape, self.mode)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -142,13 +151,14 @@ class FHN(RateModel):
                             method=method)
 
     # integral functions
-    self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
+    self.integral = odeint(f=JointEq(self.dx, self.dy), method=method)
 
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
+    if self.input_var:
+      self.input.value = variable(bm.zeros, batch_size, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -160,25 +170,38 @@ class FHN(RateModel):
   def dy(self, y, t, x, y_ext=0.):
     return (x - self.delta - self.epsilon * y) / self.tau + y_ext
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+  def update(self, x1=None, x2=None):
+    t = share.load('t')
+    dt = share.load('dt')
 
     # input
-    if x is not None:
-      self.input += x
-    if self.x_ou is not None:
-      self.input += self.x_ou()
-    if self.y_ou is not None:
-      self.input_y += self.y_ou()
+    if self.input_var:
+      if x1 is not None:
+        self.input += x1
+      if self.x_ou is not None:
+        self.input += self.x_ou()
+      if x2 is not None:
+        self.input_y += x2
+      if self.y_ou is not None:
+        self.input_y += self.y_ou()
+      input_x = self.input.value
+      input_y = self.input_y.value
+    else:
+      input_x = x1 if (x1 is not None) else 0.
+      if self.x_ou is not None: input_x += self.x_ou()
+      input_y = x2 if (x2 is not None) else 0.
+      if self.y_ou is not None: input_y += self.y_ou()
 
     # integral
-    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
+    x, y = self.integral(self.x.value, self.y.value, t, x_ext=input_x, y_ext=input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+    return x
 
   def clear_input(self):
-    self.input.value = bm.zeros_like(self.input)
-    self.input_y.value = bm.zeros_like(self.input_y)
+    if self.input_var:
+      self.input.value = bm.zeros_like(self.input)
+      self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class FeedbackFHN(RateModel):
@@ -268,19 +291,15 @@ class FeedbackFHN(RateModel):
       y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
-      dt: float = None,
 
       # parameter for training
       mode: bm.Mode = None,
+      input_var: bool = True,
   ):
     super(FeedbackFHN, self).__init__(size=size,
                                       name=name,
                                       keep_size=keep_size,
                                       mode=mode)
-
-    # dt
-    self.dt = bm.get_dt() if dt is None else dt
-    is_float(self.dt, 'dt', allow_none=False, min_bound=0., allow_int=False)
 
     # parameters
     self.a = parameter(a, self.varshape, allow_none=False)
@@ -297,6 +316,7 @@ class FeedbackFHN(RateModel):
     self.y_ou_sigma = parameter(y_ou_sigma, self.varshape, allow_none=False)
     self.x_ou_tau = parameter(x_ou_tau, self.varshape, allow_none=False)
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
+    self.input_var = input_var
 
     # initializers
     is_initializer(x_initializer, 'x_initializer')
@@ -307,9 +327,10 @@ class FeedbackFHN(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.x_delay = bm.TimeDelay(self.x, self.delay, dt=self.dt, interp_method='round')
-    self.input = variable(bm.zeros, self.mode, self.varshape)
-    self.input_y = variable(bm.zeros, self.mode, self.varshape)
+    self.x_delay = bm.TimeDelay(self.x, self.delay, dt=bm.dt, interp_method='round')
+    if self.input_var:
+      self.input = variable(bm.zeros, self.mode, self.varshape)
+      self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -335,8 +356,9 @@ class FeedbackFHN(RateModel):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
     self.x_delay.reset(self.x, self.delay)
-    self.input = variable(bm.zeros, batch_size, self.varshape)
-    self.input_y = variable(bm.zeros, batch_size, self.varshape)
+    if self.input_var:
+      self.input = variable(bm.zeros, batch_size, self.varshape)
+      self.input_y = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -348,30 +370,37 @@ class FeedbackFHN(RateModel):
   def dy(self, y, t, x, y_ext):
     return (x + self.a - self.b * y + y_ext) / self.tau
 
-  def _check_dt(self, dt):
-    raise ValueError(f'The "dt" {dt} used in model running is '
-                     f'not consistent with the "dt" {self.dt} '
-                     f'used in model definition.')
+  def update(self, x1=None, x2=None):
+    t = share.load('t')
+    dt = share.load('dt')
 
-  def update(self, tdi, x=None):
-    t = tdi['t']
-    dt = tdi['dt']
-    if check.is_checking():
-      jit_error_checking(not bm.isclose(dt, self.dt), self._check_dt, dt)
+    # input
+    if self.input_var:
+      if x1 is not None:
+        self.input += x1
+      if self.x_ou is not None:
+        self.input += self.x_ou()
+      if x2 is not None:
+        self.input_y += x2
+      if self.y_ou is not None:
+        self.input_y += self.y_ou()
+      input_x = self.input.value
+      input_y = self.input_y.value
+    else:
+      input_x = x1 if (x1 is not None) else 0.
+      if self.x_ou is not None: input_x += self.x_ou()
+      input_y = x2 if (x2 is not None) else 0.
+      if self.y_ou is not None: input_y += self.y_ou()
 
-    if x is not None: self.input += x
-    if self.x_ou is not None:
-      self.input += self.x_ou()
-    if self.y_ou is not None:
-      self.input_y += self.y_ou()
-
-    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
+    x, y = self.integral(self.x.value, self.y.value, t, x_ext=input_x, y_ext=input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+    return x
 
   def clear_input(self):
-    self.input.value = bm.zeros_like(self.input)
-    self.input_y.value = bm.zeros_like(self.input_y)
+    if self.input_var:
+      self.input.value = bm.zeros_like(self.input)
+      self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class QIF(RateModel):
@@ -464,6 +493,7 @@ class QIF(RateModel):
       y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
       method: str = 'exp_auto',
       name: str = None,
+      input_var: bool = True,
 
       # parameter for training
       mode: bm.Mode = None,
@@ -489,6 +519,7 @@ class QIF(RateModel):
     self.y_ou_sigma = parameter(y_ou_sigma, self.varshape, allow_none=False)
     self.x_ou_tau = parameter(x_ou_tau, self.varshape, allow_none=False)
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
+    self.input_var = input_var
 
     # initializers
     is_initializer(x_initializer, 'x_initializer')
@@ -499,8 +530,9 @@ class QIF(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(bm.zeros, self.mode, self.varshape)
-    self.input_y = variable(bm.zeros, self.mode, self.varshape)
+    if self.input_var:
+      self.input = variable(bm.zeros, self.mode, self.varshape)
+      self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -523,8 +555,9 @@ class QIF(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
+    if self.input_var:
+      self.input.value = variable(bm.zeros, batch_size, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -537,22 +570,37 @@ class QIF(RateModel):
     return (x ** 2 + self.eta + x_ext + self.J * y * self.tau -
             (bm.pi * y * self.tau) ** 2) / self.tau
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+  def update(self, x1=None, x2=None):
+    t = share.load('t')
+    dt = share.load('dt')
 
-    if x is not None: self.input += x
-    if self.x_ou is not None:
-      self.input += self.x_ou()
-    if self.y_ou is not None:
-      self.input_y += self.y_ou()
+    # input
+    if self.input_var:
+      if x1 is not None:
+        self.input += x1
+      if self.x_ou is not None:
+        self.input += self.x_ou()
+      if x2 is not None:
+        self.input_y += x2
+      if self.y_ou is not None:
+        self.input_y += self.y_ou()
+      input_x = self.input.value
+      input_y = self.input_y.value
+    else:
+      input_x = x1 if (x1 is not None) else 0.
+      if self.x_ou is not None: input_x += self.x_ou()
+      input_y = x2 if (x2 is not None) else 0.
+      if self.y_ou is not None: input_y += self.y_ou()
 
-    x, y = self.integral(self.x, self.y, t=t, x_ext=self.input, y_ext=self.input_y, dt=dt)
+    x, y = self.integral(self.x, self.y, t=t, x_ext=input_x, y_ext=input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+    return x
 
   def clear_input(self):
-    self.input.value = bm.zeros_like(self.input)
-    self.input_y.value = bm.zeros_like(self.input_y)
+    if self.input_var:
+      self.input.value = bm.zeros_like(self.input)
+      self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class StuartLandauOscillator(RateModel):
@@ -606,6 +654,7 @@ class StuartLandauOscillator(RateModel):
 
       # parameter for training
       mode: bm.Mode = None,
+      input_var: bool = True,
   ):
     super(StuartLandauOscillator, self).__init__(size=size,
                                                  name=name,
@@ -623,6 +672,7 @@ class StuartLandauOscillator(RateModel):
     self.y_ou_sigma = parameter(y_ou_sigma, self.varshape, allow_none=False)
     self.x_ou_tau = parameter(x_ou_tau, self.varshape, allow_none=False)
     self.y_ou_tau = parameter(y_ou_tau, self.varshape, allow_none=False)
+    self.input_var = input_var
 
     # initializers
     is_initializer(x_initializer, 'x_initializer')
@@ -633,8 +683,9 @@ class StuartLandauOscillator(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(bm.zeros, self.mode, self.varshape)
-    self.input_y = variable(bm.zeros, self.mode, self.varshape)
+    if input_var:
+      self.input = variable(bm.zeros, self.mode, self.varshape)
+      self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -657,8 +708,9 @@ class StuartLandauOscillator(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
+    if self.input_var:
+      self.input.value = variable(bm.zeros, batch_size, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -670,29 +722,44 @@ class StuartLandauOscillator(RateModel):
   def dy(self, y, t, x, y_ext, a, w):
     return (a - x * x - y * y) * y - w * y + y_ext
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+  def update(self, x1=None, x2=None):
+    t = share.load('t')
+    dt = share.load('dt')
 
-    if x is not None: self.input += x
-    if self.x_ou is not None:
-      self.input += self.x_ou()
-    if self.y_ou is not None:
-      self.input_y += self.y_ou()
+    # input
+    if self.input_var:
+      if x1 is not None:
+        self.input += x1
+      if self.x_ou is not None:
+        self.input += self.x_ou()
+      if x2 is not None:
+        self.input_y += x2
+      if self.y_ou is not None:
+        self.input_y += self.y_ou()
+      input_x = self.input.value
+      input_y = self.input_y.value
+    else:
+      input_x = x1 if (x1 is not None) else 0.
+      if self.x_ou is not None: input_x += self.x_ou()
+      input_y = x2 if (x2 is not None) else 0.
+      if self.y_ou is not None: input_y += self.y_ou()
 
     x, y = self.integral(self.x,
                          self.y,
                          t=t,
-                         x_ext=self.input,
-                         y_ext=self.input_y,
+                         x_ext=input_x,
+                         y_ext=input_y,
                          a=self.a,
                          w=self.w,
                          dt=dt)
     self.x.value = x
     self.y.value = y
+    return x
 
   def clear_input(self):
-    self.input.value = bm.zeros_like(self.input)
-    self.input_y.value = bm.zeros_like(self.input_y)
+    if self.input_var:
+      self.input.value = bm.zeros_like(self.input)
+      self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class WilsonCowanModel(RateModel):
@@ -759,8 +826,9 @@ class WilsonCowanModel(RateModel):
 
       # parameter for training
       mode: bm.Mode = None,
+      input_var: bool = True,
   ):
-    super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size)
+    super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
 
     # model parameters
     self.E_a = parameter(E_a, self.varshape, allow_none=False)
@@ -774,6 +842,7 @@ class WilsonCowanModel(RateModel):
     self.wEI = parameter(wEI, self.varshape, allow_none=False)
     self.wII = parameter(wII, self.varshape, allow_none=False)
     self.r = parameter(r, self.varshape, allow_none=False)
+    self.input_var = input_var
 
     # noise parameters
     self.x_ou_mean = parameter(x_ou_mean, self.varshape, allow_none=False)
@@ -792,8 +861,9 @@ class WilsonCowanModel(RateModel):
     # variables
     self.x = variable(x_initializer, self.mode, self.varshape)
     self.y = variable(y_initializer, self.mode, self.varshape)
-    self.input = variable(bm.zeros, self.mode, self.varshape)
-    self.input_y = variable(bm.zeros, self.mode, self.varshape)
+    if self.input_var:
+      self.input = variable(bm.zeros, self.mode, self.varshape)
+      self.input_y = variable(bm.zeros, self.mode, self.varshape)
 
     # noise variables
     self.x_ou = self.y_ou = None
@@ -816,8 +886,9 @@ class WilsonCowanModel(RateModel):
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
     self.y.value = variable(self._y_initializer, batch_size, self.varshape)
-    self.input.value = variable(bm.zeros, batch_size, self.varshape)
-    self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
+    if self.input_var:
+      self.input.value = variable(bm.zeros, batch_size, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
     if self.x_ou is not None:
       self.x_ou.reset_state(batch_size)
     if self.y_ou is not None:
@@ -834,20 +905,37 @@ class WilsonCowanModel(RateModel):
     x = self.wEI * x - self.wII * y + y_ext
     return (-y + (1 - self.r * y) * self.F(x, self.I_a, self.I_theta)) / self.I_tau
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
-    if x is not None: self.input += x
-    if self.x_ou is not None:
-      self.input += self.x_ou()
-    if self.y_ou is not None:
-      self.input_y += self.y_ou()
-    x, y = self.integral(self.x, self.y, t, x_ext=self.input, y_ext=self.input_y, dt=dt)
+  def update(self, x1=None, x2=None):
+    t = share.load('t')
+    dt = share.load('dt')
+
+    # input
+    if self.input_var:
+      if x1 is not None:
+        self.input += x1
+      if self.x_ou is not None:
+        self.input += self.x_ou()
+      if x2 is not None:
+        self.input_y += x2
+      if self.y_ou is not None:
+        self.input_y += self.y_ou()
+      input_x = self.input.value
+      input_y = self.input_y.value
+    else:
+      input_x = x1 if (x1 is not None) else 0.
+      if self.x_ou is not None: input_x += self.x_ou()
+      input_y = x2 if (x2 is not None) else 0.
+      if self.y_ou is not None: input_y += self.y_ou()
+
+    x, y = self.integral(self.x, self.y, t, x_ext=input_x, y_ext=input_y, dt=dt)
     self.x.value = x
     self.y.value = y
+    return x
 
   def clear_input(self):
-    self.input.value = bm.zeros_like(self.input)
-    self.input_y.value = bm.zeros_like(self.input_y)
+    if self.input_var:
+      self.input.value = bm.zeros_like(self.input)
+      self.input_y.value = bm.zeros_like(self.input_y)
 
 
 class JansenRitModel(RateModel):
@@ -913,6 +1001,7 @@ class ThresholdLinearModel(RateModel):
 
       # parameter for training
       mode: bm.Mode = None,
+      input_var: bool = True,
   ):
     super(ThresholdLinearModel, self).__init__(size,
                                                name=name,
@@ -929,12 +1018,14 @@ class ThresholdLinearModel(RateModel):
     self.noise_i = parameter(noise_i, self.varshape, False)
     self._e_initializer = e_initializer
     self._i_initializer = i_initializer
+    self.input_var = input_var
 
     # variables
     self.e = variable(e_initializer, self.mode, self.varshape)  # Firing rate of excitatory population
     self.i = variable(i_initializer, self.mode, self.varshape)  # Firing rate of inhibitory population
-    self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
-    self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
+    if self.input_var:
+       self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
+       self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
     if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
       self.rng = bm.random.default_rng(seed)
 
@@ -945,25 +1036,40 @@ class ThresholdLinearModel(RateModel):
   def reset_state(self, batch_size=None):
     self.e.value = variable(self._e_initializer, batch_size, self.varshape)
     self.i.value = variable(self._i_initializer, batch_size, self.varshape)
-    self.Ie.value = variable(bm.zeros, batch_size, self.varshape)
-    self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
+    if self.input_var:
+      self.Ie.value = variable(bm.zeros, batch_size, self.varshape)
+      self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
 
-  def update(self, tdi, x=None):
-    t, dt = tdi['t'], tdi['dt']
+  def update(self, x1=None, x2=None):
+    t = share.load('t')
+    dt = share.load('dt')
 
-    if x is not None: self.Ie += x
-    de = -self.e + self.beta_e * bm.maximum(self.Ie, 0.)
+    # input
+    if self.input_var:
+      if x1 is not None:
+        self.Ie += x1
+      if x2 is not None:
+        self.Ii += x2
+      input_e = self.Ie.value
+      input_i = self.Ii.value
+    else:
+      input_e = x1 if (x1 is not None) else 0.
+      input_i = x2 if (x2 is not None) else 0.
+
+    de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
     if bm.any(self.noise_e != 0.):
       de += self.rng.randn(self.varshape) * self.noise_e
     de = de / self.tau_e
     self.e.value = bm.maximum(self.e + de * dt, 0.)
 
-    di = -self.i + self.beta_i * bm.maximum(self.Ii, 0.)
+    di = -self.i + self.beta_i * bm.maximum(input_i, 0.)
     if bm.any(self.noise_i != 0.):
       di += self.rng.randn(self.varshape) * self.noise_i
     di = di / self.tau_i
     self.i.value = bm.maximum(self.i + di * dt, 0.)
+    return self.e.value
 
   def clear_input(self):
-    self.Ie.value = bm.zeros_like(self.Ie)
-    self.Ii.value = bm.zeros_like(self.Ii)
+    if self.input_var:
+      self.Ie.value = bm.zeros_like(self.Ie)
+      self.Ii.value = bm.zeros_like(self.Ii)

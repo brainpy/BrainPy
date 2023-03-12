@@ -10,12 +10,12 @@ from brainpy._src.initialize import Initializer, parameter
 from brainpy.types import ArrayType
 
 
-class SynConn(DynamicalSystemNS):
+class SynConnNS(DynamicalSystemNS):
   def __init__(
       self,
       conn: TwoEndConnector,
-      out: Optional['SynOut'] = None,
-      stp: Optional['SynSTP'] = None,
+      out: Optional['SynOutNS'] = None,
+      stp: Optional['SynSTPNS'] = None,
       name: str = None,
       mode: bm.Mode = None,
   ):
@@ -28,8 +28,8 @@ class SynConn(DynamicalSystemNS):
     self.post_size = conn.post_size
     self.pre_num = conn.pre_num
     self.post_num = conn.post_num
-    assert out is None or isinstance(out, SynOut)
-    assert stp is None or isinstance(stp, SynSTP)
+    assert out is None or isinstance(out, SynOutNS)
+    assert stp is None or isinstance(stp, SynSTPNS)
     self.out = out
     self.stp = stp
 
@@ -118,7 +118,7 @@ class SynConn(DynamicalSystemNS):
     return post_vs
 
 
-class SynOut(DynamicalSystemNS):
+class SynOutNS(DynamicalSystemNS):
   def update(self, post_g, post_v):
     raise NotImplementedError
 
@@ -126,7 +126,7 @@ class SynOut(DynamicalSystemNS):
     pass
 
 
-class SynSTP(DynamicalSystemNS):
+class SynSTPNS(DynamicalSystemNS):
   """Base class for synaptic short-term plasticity."""
 
   def update(self, pre_spike):

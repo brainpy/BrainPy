@@ -25,3 +25,4 @@ from brainpy._src.math.activations import (
   selu as selu,
   identity as identity,
 )
+from .compat_numpy import tanh
