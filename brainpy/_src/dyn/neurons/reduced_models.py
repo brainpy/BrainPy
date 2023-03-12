@@ -6,7 +6,7 @@ from typing import Union, Callable, Optional
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroupNS as NeuGroup, not_pass_shared
+from brainpy._src.dyn.base import NeuGroupNS
 from brainpy._src.dyn.context import share
 from brainpy._src.initialize import (ZeroInit,
                                      OneInit,
@@ -33,16 +33,84 @@ __all__ = [
 ]
 
 
-class LeakyIntegrator(NeuGroup):
+class Leaky(NeuGroupNS):
   r"""Leaky Integrator Model.
   
   **Model Descriptions**
   
-  This class implements a leaky integrator model, in which its dynamics is
+  This class implements a leaky model, in which its dynamics is
   given by:
   
   .. math::
   
+     x(t + \Delta t) = \exp{-1/\tau \Delta t} x(t) + I
+
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  tau: float, ArrayType, Initializer, callable
+    Membrane time constant.
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      name: str = None,
+      mode: bm.Mode = None,
+      method: str = 'exp_auto',
+  ):
+    super().__init__(size=size,
+                     mode=mode,
+                     keep_size=keep_size,
+                     name=name)
+    assert self.mode.is_parent_of(bm.TrainingMode, bm.NonBatchingMode)
+
+    # parameters
+    self.tau = parameter(tau, self.varshape, allow_none=False)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    self.reset_state(self.mode)
+
+  def derivative(self, x, t):
+    return -x / self.tau
+
+  def reset_state(self, batch_size=None):
+    self.x = variable_(bm.zeros, self.varshape, batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    r = self.integral(self.x.value, t, dt)
+    if x is not None:
+      r += x
+    self.x.value = r
+    return r
+
+  def clear_input(self):
+    if self.input_var:
+      self.input[:] = 0.
+
+
+class LeakyIntegrator(NeuGroupNS):
+  r"""Leaky Integrator Model.
+
+  **Model Descriptions**
+
+  This class implements a leaky integrator model, in which its dynamics is
+  given by:
+
+  .. math::
+
      \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + RI(t)
 
   where :math:`V` is the membrane potential, :math:`V_{rest}` is the resting
@@ -122,7 +190,6 @@ class LeakyIntegrator(NeuGroup):
     if self.input_var:
       self.input = variable_(bm.zeros, self.varshape, batch_size)
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -140,7 +207,95 @@ class LeakyIntegrator(NeuGroup):
       self.input[:] = 0.
 
 
-class LIF(NeuGroup):
+class Integrator(NeuGroupNS):
+  r"""Integrator Model.
+
+  This class implements an integrator model, in which its dynamics is
+  given by:
+
+  .. math::
+
+     \tau \frac{dx}{dt} = - x(t) + I(t)
+
+  where :math:`x` is the integrator value, and :math:`\tau` is the time constant.
+
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  tau: float, ArrayType, Initializer, callable
+    Membrane time constant.
+  x_initializer: ArrayType, Initializer, callable
+    The initializer of :math:`x`.
+  noise: ArrayType, Initializer, callable
+    The noise added onto the membrane potential
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      x_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      input_var: bool = False,
+      name: str = None,
+      mode: bm.Mode = None,
+      method: str = 'exp_auto',
+  ):
+    super().__init__(size=size,
+                     mode=mode,
+                     keep_size=keep_size,
+                     name=name)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode))
+
+    # parameters
+    self.tau = parameter(tau, self.varshape, allow_none=False)
+    self.noise = init_noise(noise, self.varshape)
+    self.input_var = input_var
+
+    # initializers
+    self._x_initializer = is_initializer(x_initializer)
+
+    # integral
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
+
+    # variables
+    self.reset_state(self.mode)
+
+  def derivative(self, V, t, I_ext):
+    return (-V + I_ext) / self.tau
+
+  def reset_state(self, batch_size=None):
+    self.x = variable_(self._x_initializer, self.varshape, batch_size)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    if self.input_var:
+      if x is not None:
+        self.input += x
+      x = self.input.value
+    else:
+      x = 0. if x is None else x
+    self.x.value = self.integral(self.x.value, t, I_ext=x, dt=dt)
+    return self.x.value
+
+  def clear_input(self):
+    if self.input_var:
+      self.input[:] = 0.
+
+
+class LIF(NeuGroupNS):
   r"""Leaky integrate-and-fire neuron model.
 
   **Model Descriptions**
@@ -266,7 +421,6 @@ class LIF(NeuGroup):
       if self.ref_var:
         self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -325,7 +479,7 @@ class LIF(NeuGroup):
       self.input[:] = 0.
 
 
-class ExpIF(NeuGroup):
+class ExpIF(NeuGroupNS):
   r"""Exponential integrate-and-fire neuron model.
 
   **Model Descriptions**
@@ -491,7 +645,6 @@ class ExpIF(NeuGroup):
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I_ext) / self.tau
     return dvdt
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -522,7 +675,7 @@ class ExpIF(NeuGroup):
       self.input[:] = 0.
 
 
-class AdExIF(NeuGroup):
+class AdExIF(NeuGroupNS):
   r"""Adaptive exponential integrate-and-fire neuron model.
 
   **Model Descriptions**
@@ -678,7 +831,6 @@ class AdExIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -706,7 +858,7 @@ class AdExIF(NeuGroup):
       self.input[:] = 0.
 
 
-class QuaIF(NeuGroup):
+class QuaIF(NeuGroupNS):
   r"""Quadratic Integrate-and-Fire neuron model.
 
   **Model Descriptions**
@@ -837,7 +989,6 @@ class QuaIF(NeuGroup):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I_ext) / self.tau
     return dVdt
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -867,7 +1018,7 @@ class QuaIF(NeuGroup):
       self.input[:] = 0.
 
 
-class AdQuaIF(NeuGroup):
+class AdQuaIF(NeuGroupNS):
   r"""Adaptive quadratic integrate-and-fire neuron model.
 
   **Model Descriptions**
@@ -1018,7 +1169,6 @@ class AdQuaIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1040,7 +1190,7 @@ class AdQuaIF(NeuGroup):
       self.input[:] = 0.
 
 
-class GIF(NeuGroup):
+class GIF(NeuGroupNS):
   r"""Generalized Integrate-and-Fire model.
 
   **Model Descriptions**
@@ -1220,7 +1370,6 @@ class GIF(NeuGroup):
   def derivative(self):
     return JointEq([self.dI1, self.dI2, self.dVth, self.dV])
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1258,7 +1407,7 @@ class GIF(NeuGroup):
       self.input[:] = 0.
 
 
-class ALIFBellec2020(NeuGroup):
+class ALIFBellec2020(NeuGroupNS):
   r"""Leaky Integrate-and-Fire model with SFA [1]_.
 
   This model is similar to the GLIF2 model in the Technical White Paper
@@ -1371,7 +1520,6 @@ class ALIFBellec2020(NeuGroup):
       self.t_last_spike = variable_(lambda s: bm.ones(s) * -1e7, self.varshape, batch_size)
       self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1423,7 +1571,7 @@ class ALIFBellec2020(NeuGroup):
       self.input[:] = 0.
 
 
-class Izhikevich(NeuGroup):
+class Izhikevich(NeuGroupNS):
   r"""The Izhikevich neuron model.
 
   **Model Descriptions**
@@ -1565,7 +1713,6 @@ class Izhikevich(NeuGroup):
     dudt = self.a * (self.b * V - u)
     return dudt
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1623,7 +1770,7 @@ class Izhikevich(NeuGroup):
       self.input[:] = 0.
 
 
-class HindmarshRose(NeuGroup):
+class HindmarshRose(NeuGroupNS):
   r"""Hindmarsh-Rose neuron model.
 
   **Model Descriptions**
@@ -1805,7 +1952,6 @@ class HindmarshRose(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dy, self.dz])
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1830,7 +1976,7 @@ class HindmarshRose(NeuGroup):
       self.input[:] = 0.
 
 
-class FHN(NeuGroup):
+class FHN(NeuGroupNS):
   r"""FitzHugh-Nagumo neuron model.
 
   **Model Descriptions**
@@ -1978,7 +2124,6 @@ class FHN(NeuGroup):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
@@ -1999,7 +2144,7 @@ class FHN(NeuGroup):
       self.input[:] = 0.
 
 
-class LIF_SFA_Bellec2020(NeuGroup):
+class LIF_SFA_Bellec2020(NeuGroupNS):
   r"""Leaky Integrate-and-Fire model with SFA [1]_.
 
   This model is similar to the GLIF2 model in the Technical White Paper
@@ -2096,7 +2241,6 @@ class LIF_SFA_Bellec2020(NeuGroup):
     if self.tau_ref is not None:
       self.t_last_spike = variable_(OneInit(-1e7), self.varshape, batch_size)
 
-  @not_pass_shared
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
