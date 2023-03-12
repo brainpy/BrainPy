@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.3.6"
+__version__ = "2.3.7"
 
 
 # fundamental supporting modules
@@ -61,13 +61,11 @@ from brainpy import (channels,  # channel models
                      experimental,
                      )
 from brainpy._src.dyn.base import not_pass_shared
-from brainpy._src.dyn.base import (DynamicalSystem,
-                                   DynamicalSystemNS,
+from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
                                    Container as Container,
                                    Sequential as Sequential,
                                    Network as Network,
                                    NeuGroup as NeuGroup,
-                                   NeuGroupNS as NeuGroupNS,
                                    SynConn as SynConn,
                                    SynOut as SynOut,
                                    SynSTP as SynSTP,
@@ -75,6 +73,11 @@ from brainpy._src.dyn.base import (DynamicalSystem,
                                    TwoEndConn as TwoEndConn,
                                    CondNeuGroup as CondNeuGroup,
                                    Channel as Channel)
+from brainpy._src.dyn.base import (DynamicalSystemNS as DynamicalSystemNS,
+                                   NeuGroupNS as NeuGroupNS)
+from brainpy._src.dyn.synapses_v2.base import (SynOutNS as SynOutNS,
+                                               SynSTPNS as SynSTPNS,
+                                               SynConnNS as SynConnNS, )
 from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
 from brainpy._src.dyn.runners import (DSRunner as DSRunner)  # runner
 from brainpy._src.dyn.context import share, Delay
