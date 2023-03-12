@@ -32,7 +32,7 @@ def repr_object(x):
   if BrainPyObject is None:
     from brainpy.math import BrainPyObject
   if isinstance(x, BrainPyObject):
-    return x.name
+    return repr(x)
   elif callable(x):
     signature = inspect.signature(x)
     args = [f'{k}={v.default}' for k, v in signature.parameters.items()
