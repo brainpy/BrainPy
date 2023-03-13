@@ -16,7 +16,7 @@ from brainpy._src.math.ndarray import (Array,
                                        del_context)
 from brainpy._src.math.arrayinterporate import as_jax
 from brainpy._src.tools.naming import get_unique_name
-from .base import BrainPyObject, ArrayCollector
+from .base import BrainPyObject, DynVarCollector
 from ._utils import infer_dyn_vars
 from .abstract import ObjectTransform
 
@@ -491,12 +491,12 @@ def cond(
   true_fun = _check_f(true_fun)
   false_fun = _check_f(false_fun)
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = ArrayCollector(dyn_vars)
+  dyn_vars = DynVarCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(true_fun))
   dyn_vars.update(infer_dyn_vars(false_fun))
   for obj in check.is_all_objs(child_objs, out_as='tuple'):
     dyn_vars.update(obj.vars().unique())
-  dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
+  dyn_vars = list(DynVarCollector(dyn_vars).unique().values())
 
   name = get_unique_name('_brainpy_object_oriented_cond_')
 
@@ -611,7 +611,7 @@ def ifelse(
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = ArrayCollector(dyn_vars)
+  dyn_vars = DynVarCollector(dyn_vars)
   for f in branches:
     dyn_vars += infer_dyn_vars(f)
   for obj in check.is_all_objs(child_objs, out_as='tuple'):
@@ -755,11 +755,11 @@ def for_loop(
     The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
   """
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = ArrayCollector(dyn_vars)
+  dyn_vars = DynVarCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(body_fun))
   for obj in check.is_all_objs(child_objs, out_as='tuple'):
     dyn_vars.update(obj.vars().unique())
-  dyn_vars = list(ArrayCollector(dyn_vars).unique().values())
+  dyn_vars = list(DynVarCollector(dyn_vars).unique().values())
   outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
 
   # functions
@@ -861,7 +861,7 @@ def while_loop(
   """
   # iterable variables
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = ArrayCollector(dyn_vars)
+  dyn_vars = DynVarCollector(dyn_vars)
   dyn_vars.update(infer_dyn_vars(body_fun))
   dyn_vars.update(infer_dyn_vars(cond_fun))
   for obj in check.is_all_objs(child_objs, out_as='tuple'):

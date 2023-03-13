@@ -8,7 +8,7 @@ import numpy as np
 
 from brainpy import errors
 import brainpy.math as bm
-from brainpy._src.math.object_transform.base import BrainPyObject, ArrayCollector
+from brainpy._src.math.object_transform.base import BrainPyObject, DynVarCollector
 
 
 logger = logging.getLogger('brainpy.brainpy_object.io')
@@ -120,7 +120,7 @@ def _load(
 
 
 def _unique_and_duplicate(collector: dict):
-  gather = ArrayCollector()
+  gather = DynVarCollector()
   id2name = dict()
   duplicates = ([], [])
   for k, v in collector.items():
