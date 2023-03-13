@@ -10,15 +10,16 @@ from typing import Union, Callable, Optional, Dict
 import jax
 import jax.numpy as jnp
 import numpy as np
+from jax.lax import stop_gradient
+
 from brainpy import check
 from brainpy import math as bm
 from brainpy._src.dyn.base import DynamicalSystemNS
 from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 from brainpy._src.math.environment import get_dt
-from brainpy._src.math.object_transform.base import dyn_dict
+from brainpy._src.math.object_transform.base import NodeDict
 from brainpy._src.tools.dicts import DotDict
 from brainpy.check import is_integer, jit_error_checking
-from jax.lax import stop_gradient
 
 __all__ = [
   'Delay',
@@ -310,7 +311,7 @@ class _ShareContext(DynamicalSystemNS):
     # -------------
 
     self._arguments = DotDict()
-    self._delays: Dict[str, Delay] = dyn_dict()
+    self._delays = NodeDict()
 
   @property
   def dt(self):

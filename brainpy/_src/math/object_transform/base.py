@@ -5,6 +5,7 @@ This file defines the basic classes for BrainPy object-oriented transformations.
 These transformations include JAX's JIT, autograd, vectorization, parallelization, etc.
 """
 
+import numbers
 import os
 import warnings
 from collections import namedtuple
@@ -28,13 +29,9 @@ __all__ = [
   'BrainPyObject', 'Base', 'FunAsObject',
 
   # dynamical containers
-  'dyn_seq',
-  'dyn_dict',
-  'Collector',
-  'ArrayCollector',
-  'TensorCollector',
+  'NodeList', 'NodeDict', 'ListVar', 'DictVar',
+  'Collector', 'DynVarCollector', 'TensorCollector', 'ArrayCollector',
 ]
-
 
 _register_pytree = True
 
@@ -74,11 +71,11 @@ class BrainPyObject(object):
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
-    self.implicit_vars: dyn_dict = dyn_dict()
+    self.implicit_vars: DynVarCollector = DynVarCollector()
 
     # Used to wrap the implicit children nodes
     # which cannot be accessed by self.xxx
-    self.implicit_nodes: dyn_dict = dyn_dict()
+    self.implicit_nodes: Collector = Collector()
 
   def __setattr__(self, key: str, value: Any) -> None:
     """Overwrite `__setattr__` method for change Variable values.
@@ -111,21 +108,18 @@ class BrainPyObject(object):
     res: tuple
       A tuple of dynamical values and static values.
     """
-    dts = (BrainPyObject,) + tuple(dynamical_types)
     dynamic_names = []
     dynamic_values = []
     static_names = []
     static_values = []
     for k, v in self.__dict__.items():
-      if isinstance(v, dts):
+      if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, ListVar, DictVar)):
         dynamic_names.append(k)
         dynamic_values.append(v)
       else:
         static_values.append(v)
         static_names.append(k)
-    return tuple(dynamic_values), (tuple(dynamic_names),
-                                   tuple(static_names),
-                                   tuple(static_values))
+    return tuple(dynamic_values), (tuple(dynamic_names), tuple(static_names), tuple(static_values))
 
   @classmethod
   def tree_unflatten(cls, aux, dynamic_values):
@@ -151,30 +145,34 @@ class BrainPyObject(object):
     self._name = self.unique_name(name=name)
     check_name_uniqueness(name=self._name, obj=self)
 
-  def register_implicit_vars(self, *variables, **named_variables):
+  def register_implicit_vars(self, *variables, var_cls: type = None, **named_variables):
+    if var_cls is None:
+      var_cls = (Variable, ListVar, DictVar)
+
     for variable in variables:
-      if isinstance(variable, Variable):
+      if isinstance(variable, var_cls):
         self.implicit_vars[f'var{id(variable)}'] = variable
       elif isinstance(variable, (tuple, list)):
         for v in variable:
-          if not isinstance(v, Variable):
-            raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
+          if not isinstance(v, var_cls):
+            raise ValueError(f'Must be instance of {var_cls}, but we got {type(v)}')
           self.implicit_vars[f'var{id(v)}'] = v
       elif isinstance(variable, dict):
         for k, v in variable.items():
-          if not isinstance(v, Variable):
-            raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(v)}')
+          if not isinstance(v, var_cls):
+            raise ValueError(f'Must be instance of {var_cls}, but we got {type(v)}')
           self.implicit_vars[k] = v
       else:
         raise ValueError(f'Unknown type: {type(variable)}')
     for key, variable in named_variables.items():
-      if not isinstance(variable, Variable):
-        raise ValueError(f'Must be instance of {Variable.__name__}, but we got {type(variable)}')
+      if not isinstance(variable, var_cls):
+        raise ValueError(f'Must be instance of {var_cls}, but we got {type(variable)}')
       self.implicit_vars[key] = variable
 
   def register_implicit_nodes(self, *nodes, node_cls: type = None, **named_nodes):
     if node_cls is None:
-      node_cls = BrainPyObject
+      node_cls = (BrainPyObject, NodeList, NodeDict)
+
     for node in nodes:
       if isinstance(node, node_cls):
         self.implicit_nodes[node.name] = node
@@ -215,24 +213,25 @@ class BrainPyObject(object):
 
     Returns
     -------
-    gather : ArrayCollector
+    gather : DynVarCollector
       The collection contained (the path, the variable).
     """
     if exclude_types is None:
       exclude_types = (VariableView,)
     nodes = self.nodes(method=method, level=level, include_self=include_self)
-    gather = ArrayCollector()
+    gather = DynVarCollector()
     for node_path, node in nodes.items():
       for k in dir(node):
         v = getattr(node, k)
         include = False
-        if isinstance(v, Variable):
+        if isinstance(v, (Variable, ListVar, DictVar)):
           include = True
-          if len(exclude_types) and isinstance(v, exclude_types):
+          if isinstance(v, exclude_types):
             include = False
-        if include:
-          if k not in node._excluded_vars:
-            gather[f'{node_path}.{k}' if node_path else k] = v
+        if include and (k not in node._excluded_vars):
+          gather[f'{node_path}.{k}' if node_path else k] = v
+
+      # implicit vars
       gather.update({f'{node_path}.{k}': v for k, v in node.implicit_vars.items()})
     return gather
 
@@ -250,7 +249,7 @@ class BrainPyObject(object):
 
     Returns
     -------
-    gather : ArrayCollector
+    gather : DynVarCollector
       The collection contained (the path, the trainable variable).
     """
     return self.vars(method=method, level=level, include_self=include_self).subset(TrainVar)
@@ -273,14 +272,19 @@ class BrainPyObject(object):
       for k, v in self.__dict__.items():
         if isinstance(v, BrainPyObject):
           _add_node2(self, v, _paths, gather, nodes)
-        elif isinstance(v, dyn_seq):
+        elif isinstance(v, NodeList):
           for v2 in v:
-            if isinstance(v2, BrainPyObject):
-              _add_node2(self, v2, _paths, gather, nodes)
-        elif isinstance(v, dyn_dict):
+            _add_node2(self, v2, _paths, gather, nodes)
+        elif isinstance(v, NodeDict):
           for v2 in v.values():
             if isinstance(v2, BrainPyObject):
               _add_node2(self, v2, _paths, gather, nodes)
+
+      # implicit nodes
+      for node in self.implicit_nodes.values():
+        _add_node2(self, node, _paths, gather, nodes)
+
+      # finding nodes recursively
       for v in nodes:
         gather.update(v._find_nodes(method=method,
                                     level=level,
@@ -293,21 +297,27 @@ class BrainPyObject(object):
       for k, v in self.__dict__.items():
         if isinstance(v, BrainPyObject):
           _add_node1(self, k, v, _paths, gather, nodes)
-        elif isinstance(v, dyn_seq):
+        elif isinstance(v, NodeList):
           for i, v2 in enumerate(v):
-            if isinstance(v, BrainPyObject):
-              _add_node1(self, k + '-' + str(i), v2, _paths, gather, nodes)
-        elif isinstance(v, dyn_dict):
+            _add_node1(self, k + '-' + str(i), v2, _paths, gather, nodes)
+        elif isinstance(v, NodeDict) and k != 'implicit_nodes':
           for k2, v2 in v.items():
             if isinstance(v2, BrainPyObject):
               _add_node1(self, k + '.' + k2, v2, _paths, gather, nodes)
+
+      # implicit nodes
+      for key, node in self.implicit_nodes.items():
+        _add_node1(self, key, node, _paths, gather, nodes)
+
+      # finding nodes recursively
       for k1, v1 in nodes:
         for k2, v2 in v1._find_nodes(method=method,
                                      _paths=_paths,
                                      _lid=_lid + 1,
                                      level=level,
                                      include_self=include_self).items():
-          if k2: gather[f'{k1}.{k2}'] = v2
+          if k2:
+            gather[f'{k1}.{k2}'] = v2
 
     else:
       raise ValueError(f'No support for the method of "{method}".')
@@ -381,7 +391,10 @@ class BrainPyObject(object):
     nodes = self.nodes()  # retrieve all nodes
     return {key: node.__save_state__() for key, node in nodes.items()}
 
-  def load_state_dict(self, state_dict: Dict[str, Any], warn: bool = True, compatible='v2'):
+  def load_state_dict(self,
+                      state_dict: Dict[str, Any],
+                      warn: bool = True,
+                      compatible: str = 'v2'):
     """Copy parameters and buffers from :attr:`state_dict` into
     this module and its descendants.
 
@@ -562,47 +575,233 @@ class FunAsObject(BrainPyObject):
             " " * (len(name) + 1) + f'num_of_vars={len(self.implicit_vars)})')
 
 
-class dyn_seq(list):
+def _check_elem(elem):
+  if not isinstance(elem, (numbers.Number, jax.Array, Array, np.ndarray, BrainPyObject)):
+    raise TypeError(f'Element should be a numerical value or a BrainPyObject.')
+  return elem
+
+
+def _check_num_elem(elem):
+  if not isinstance(elem, (numbers.Number, jax.Array, Array, np.ndarray)):
+    raise TypeError(f'Element should be a numerical value.')
+  return elem
+
+
+def _check_obj_elem(elem):
+  if not isinstance(elem, BrainPyObject):
+    raise TypeError(f'Element should be a {BrainPyObject.__class__.__name__}.')
+  return elem
+
+
+class _dyn_seq(object):
+  __slots__ = ('_value',)
+
+  _value: list
+  _supported_types = ()
+
+  def __init__(self, value):
+    self._value = list(value)
+
+  @property
+  def value(self):
+    return self._value
+
+  @value.setter
+  def value(self, value):
+    if len(value) != self.value:
+      raise ValueError
+    self._value = list(value)
+
+  def _check_elem_type(self, elem):
+    if not isinstance(elem, self._supported_types):
+      raise TypeError(f'Element should be {self._supported_types}, but got {type(elem)}.')
+    return elem
+
+  def append(self, element) -> '_dyn_seq':
+    self._value.append(self._check_elem_type(element))
+    return self
+
+  def extend(self, iterable) -> '_dyn_seq':
+    for element in iterable:
+      self.append(element)
+    return self
+
+  def insert(self, index, obj) -> '_dyn_seq':
+    self._value.insert(index, self._check_elem_type(obj))
+    return self
+
+  def pop(self, index=-1):
+    return self._value.pop(index)
+
+  def reverse(self):
+    return type(self)(self._value.reverse())
+
+  def __setitem__(self, key, value) -> '_dyn_seq':
+    self._value.__setitem__(key, self._check_elem_type(value))
+    return self
+
+  def __getitem__(self, item):
+    return self._value[item]
+
+  def __len__(self):
+    return len(self._value)
+
+  def __iter__(self):
+    for v in self._value:
+      yield v
+
+  def __add__(self, other):
+    return type(self)(self.value + (other.value if isinstance(other, _dyn_seq) else other))
+
+  def __delitem__(self, item):
+    del self._value[item]
+
+  def __repr__(self):
+    return repr(self._value)
+
+
+class ListVar(_dyn_seq):
+  """A sequence variable, whose contents can be changed during JIT compilation.
+
+  It is a variable, which is similar to :py:class:`~.Variable`.
+
+  .. note::
+     The element must be a numerical number, like ``bool``, ``int``, ``float``,
+     ``jax.Array``, ``numpy.ndarray``, :py:class:`~.Array`.
+  """
+
+  _supported_types = (numbers.Number, jax.Array, Array, np.ndarray)
+
+
+register_pytree_node(ListVar, lambda x: (tuple(x.value), ()), lambda _, values: ListVar(values))
+
+
+class NodeList(_dyn_seq):
   """A list to represent a dynamically changed numerical
   sequence in which its element can be changed during JIT compilation.
 
   .. note::
-     The element must be numerical, like ``bool``, ``int``, ``float``,
-     ``jax.Array``, ``numpy.ndarray``, ``brainpy.math.Array``.
+     The element must be a brainpy object, like :py:class:`~.BrainPyObject`.
   """
 
-  def append(self, element):
-    if not isinstance(element, (bool, int, float, jax.Array, Array, np.ndarray)):
-      raise TypeError(f'Each element should be a numerical value.')
-
-  def extend(self, iterable) -> None:
-    for element in iterable:
-      self.append(element)
+  _supported_types = BrainPyObject
 
 
-register_pytree_node(dyn_seq,
-                     lambda x: (tuple(x), ()),
-                     lambda _, values: dyn_seq(values))
+register_pytree_node(NodeList, lambda x: (tuple(x.value), ()), lambda _, values: NodeList(values))
 
 
-class dyn_dict(dict):
-  """A dict to represent a dynamically changed numerical
-  dictionary in which its element can be changed during JIT compilation.
+class _dyn_dict(object):
+  __slots__ = ('_value',)
 
-  .. note::
-     Each key must be a string, and each value must be numerical, including
-     ``bool``, ``int``, ``float``, ``jax.Array``, ``numpy.ndarray``,
-     ``brainpy.math.Array``.
-  """
+  _value: dict
+  _supported_types = ()
 
-  def update(self, *args, **kwargs) -> 'dyn_dict':
-    super().update(*args, **kwargs)
+  def __init__(self, *args, **kwargs):
+    self._value = dict(*args, **kwargs)
+
+  @property
+  def value(self):
+    return self._value
+
+  @value.setter
+  def value(self, value):
+    if len(value) != self.value:
+      raise ValueError
+    self._value = dict(value)
+
+  def _check_elem_type(self, elem):
+    if not isinstance(elem, self._supported_types):
+      raise TypeError(f'Element should be {self._supported_types}, but got {type(elem)}.')
+    return elem
+
+  def update(self, *args, **kwargs) -> '_dyn_dict':
+    for arg in args:
+      if isinstance(arg, dict):
+        for k, v in arg.items():
+          self._value[k] = v
+      elif isinstance(arg, tuple):
+        assert len(arg) == 2
+        self._value[arg[0]] = args[1]
+    for k, v in kwargs.items():
+      self._value[k] = v
     return self
 
+  def __setitem__(self, key, value) -> '_dyn_dict':
+    self._value[key] = self._check_elem_type(value)
+    return self
 
-register_pytree_node(dyn_dict,
+  def __getitem__(self, item):
+    return self._value[item]
+
+  def __delitem__(self, item):
+    del self._value[item]
+
+  def __len__(self):
+    return len(self._value)
+
+  def __iter__(self):
+    for k in self._value:
+      yield k
+
+  def keys(self):
+    return self._value.keys()
+
+  def values(self):
+    return self._value.values()
+
+  def items(self):
+    return self._value.items()
+
+  def clear(self):
+    return self._value.clear()
+
+  def copy(self):
+    return type(self)(self._value.copy())
+
+  def get(self, *args, **kwargs):
+    return self._value.get(*args, **kwargs)
+
+  def has_key(self, key):
+    return (key in self._value)
+
+  def pop(self, *args, **kwargs):
+    return self._value.pop(*args, **kwargs)
+
+  def __repr__(self):
+    return repr(self._value)
+
+
+class DictVar(_dyn_dict):
+  """A dict variable, in which its element can be changed during JIT compilation.
+
+  It is a variable, which is similar to :py:class:`~.Variable`.
+
+  .. note::
+     The element must be a numerical number, like ``bool``, ``int``, ``float``,
+     ``jax.Array``, ``numpy.ndarray``, :py:class:`~.Array`.
+  """
+
+  _supported_types = (numbers.Number, jax.Array, Array, np.ndarray)
+
+
+register_pytree_node(DictVar,
                      lambda x: (tuple(x.values()), tuple(x.keys())),
-                     lambda keys, values: dyn_dict(safe_zip(keys, values)))
+                     lambda keys, values: DictVar(safe_zip(keys, values)))
+
+
+class NodeDict(_dyn_dict):
+  """An object to represent a dict of node in which its element can be changed during JIT compilation.
+
+  .. note::
+     The element must be a brainpy object, like :py:class:`~.BrainPyObject`.
+  """
+
+  _supported_types = BrainPyObject
+
+
+register_pytree_node(NodeDict,
+                     lambda x: (tuple(x.values()), tuple(x.keys())),
+                     lambda keys, values: NodeDict(safe_zip(keys, values)))
 
 
 class Collector(dict):
@@ -758,36 +957,15 @@ class Collector(dict):
     return gather
 
 
-class ArrayCollector(Collector):
-  """A ArrayCollector is a dictionary (name, var)
-  with some additional methods to make manipulation
-  of collections of variables easy. A Collection
-  is ordered by insertion order. It is the object
-  returned by DynamicalSystem.vars() and used as input
-  in many DynamicalSystem instance: optimizers, Jit, etc..."""
-
+class DynVarCollector(Collector):
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
 
-    assert isinstance(value, Array)
+    assert isinstance(value, (Variable, NodeList, NodeDict, ListVar, DictVar)), type(value)
     if key in self:
       if id(self[key]) != id(value):
         raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')
     dict.__setitem__(self, key, value)
-
-  def assign(self, inputs):
-    """Assign data to all values.
-
-    Parameters
-    ----------
-    inputs : dict
-      The data for each value in this collector.
-    """
-    if len(self) != len(inputs):
-      raise ValueError(f'The target has {len(inputs)} data, while we got '
-                       f'an input value with the length of {len(inputs)}.')
-    for key, v in self.items():
-      v.value = inputs[key]
 
   def dict(self):
     """Get a dict with the key and the value data.
@@ -801,22 +979,12 @@ class ArrayCollector(Collector):
     """Get all data in each value."""
     return [x.value for x in self.values()]
 
-  @classmethod
-  def from_other(cls, other: Union[Sequence, Dict]):
-    if isinstance(other, (tuple, list)):
-      return cls({id(o): o for o in other})
-    elif isinstance(other, dict):
-      return cls(other)
-    else:
-      raise TypeError
 
-
-TensorCollector = ArrayCollector
+ArrayCollector = DynVarCollector
+TensorCollector = DynVarCollector
 
 register_pytree_node(
-  ArrayCollector,
+  DynVarCollector,
   lambda x: (x.values(), x.keys()),
-  lambda keys, values: ArrayCollector(safe_zip(keys, values))
+  lambda keys, values: DynVarCollector(safe_zip(keys, values))
 )
-
-dynamical_types = [Variable, dyn_seq, dyn_dict]

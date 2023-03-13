@@ -11,7 +11,8 @@ from jax.lax import cond
 
 conn = None
 init = None
-Variable = None
+var_obs = None
+
 Array = None
 BrainPyObject = None
 
@@ -514,31 +515,31 @@ def is_instance(
   return instance
 
 
-def is_elem_or_seq_or_dict(targets: Any, element_type: type, out_as: str = 'tuple'):
+def is_elem_or_seq_or_dict(targets: Any,
+                           elem_type: Union[type, Tuple[type, ...]],
+                           out_as: str = 'tuple'):
   assert out_as in ['tuple', 'list', 'dict', None], 'Only support to output as tuple/list/dict/None'
-  assert type(element_type) == type
-  type_name = element_type.__name__
 
   if targets is None:
     keys = []
     vals = []
-  elif isinstance(targets, element_type):
+  elif isinstance(targets, elem_type):
     keys = [id(targets)]
     vals = [targets]
   elif isinstance(targets, (list, tuple)):
-    is_leaf = [isinstance(l, element_type) for l in targets]
+    is_leaf = [isinstance(l, elem_type) for l in targets]
     if not all(is_leaf):
-      raise ValueError(f'Only support {type_name}, sequence of {type_name}, or dict of {type_name}.')
+      raise ValueError(f'Only support {elem_type}, sequence of {elem_type}, or dict of {elem_type}.')
     keys = [id(v) for v in targets]
     vals = list(targets)
   elif isinstance(targets, dict):
-    is_leaf = [isinstance(l, element_type) for l in targets.values()]
+    is_leaf = [isinstance(l, elem_type) for l in targets.values()]
     if not all(is_leaf):
-      raise ValueError(f'Only support {type_name}, sequence of {type_name}, or dict of {type_name}.')
+      raise ValueError(f'Only support {elem_type}, sequence of {elem_type}, or dict of {elem_type}.')
     keys = list(targets.keys())
     vals = list(targets.values())
   else:
-    raise ValueError(f'Only support {type_name}, sequence of {type_name}, or dict of {type_name}.')
+    raise ValueError(f'Only support {elem_type}, sequence of {elem_type}, or dict of {elem_type}.')
 
   if out_as is None:
     return targets
@@ -553,14 +554,18 @@ def is_elem_or_seq_or_dict(targets: Any, element_type: type, out_as: str = 'tupl
 
 
 def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
-  global Variable
-  if Variable is None: from brainpy._src.math.ndarray import Variable
-  return is_elem_or_seq_or_dict(dyn_vars, Variable, out_as)
+  global var_obs
+  if var_obs is None:
+    from brainpy.math import Variable, ListVar, DictVar
+    var_obs = (ListVar, DictVar, Variable)
+
+  return is_elem_or_seq_or_dict(dyn_vars, var_obs, out_as)
 
 
 def is_all_objs(targets: Any, out_as: str = 'tuple'):
   global BrainPyObject
-  if BrainPyObject is None: from brainpy._src.math.object_transform.base import BrainPyObject
+  if BrainPyObject is None:
+    from brainpy._src.math.object_transform.base import BrainPyObject
   return is_elem_or_seq_or_dict(targets, BrainPyObject, out_as)
 
 
