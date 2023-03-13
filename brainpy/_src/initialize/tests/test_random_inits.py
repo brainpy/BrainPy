@@ -6,6 +6,10 @@ import brainpy as bp
 
 
 class TestNormalInit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_normal_init1(self):
     init = bp.init.Normal()
     for size in [(100,), (10, 20), (10, 20, 30)]:
@@ -29,6 +33,10 @@ class TestNormalInit(unittest.TestCase):
 
 
 class TestUniformInit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_uniform_init1(self):
     init = bp.init.Normal()
     for size in [(100,), (10, 20), (10, 20, 30)]:
@@ -43,6 +51,10 @@ class TestUniformInit(unittest.TestCase):
 
 
 class TestVarianceScaling(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_var_scaling1(self):
     init = bp.init.VarianceScaling(scale=1., mode='fan_in', distribution='truncated_normal')
     for size in [(10, 20), (10, 20, 30)]:
@@ -64,6 +76,10 @@ class TestVarianceScaling(unittest.TestCase):
 
 
 class TestKaimingUniformUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_kaiming_uniform_init(self):
     init = bp.init.KaimingUniform()
     for size in [(10, 20), (10, 20, 30)]:
@@ -72,6 +88,10 @@ class TestKaimingUniformUnit(unittest.TestCase):
 
 
 class TestKaimingNormalUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_kaiming_normal_init(self):
     init = bp.init.KaimingNormal()
     for size in [(10, 20), (10, 20, 30)]:
@@ -80,6 +100,10 @@ class TestKaimingNormalUnit(unittest.TestCase):
 
 
 class TestXavierUniformUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_xavier_uniform_init(self):
     init = bp.init.XavierUniform()
     for size in [(10, 20), (10, 20, 30)]:
@@ -88,6 +112,10 @@ class TestXavierUniformUnit(unittest.TestCase):
 
 
 class TestXavierNormalUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_xavier_normal_init(self):
     init = bp.init.XavierNormal()
     for size in [(10, 20), (10, 20, 30)]:
@@ -96,6 +124,10 @@ class TestXavierNormalUnit(unittest.TestCase):
 
 
 class TestLecunUniformUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_lecun_uniform_init(self):
     init = bp.init.LecunUniform()
     for size in [(10, 20), (10, 20, 30)]:
@@ -104,6 +136,10 @@ class TestLecunUniformUnit(unittest.TestCase):
 
 
 class TestLecunNormalUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_lecun_normal_init(self):
     init = bp.init.LecunNormal()
     for size in [(10, 20), (10, 20, 30)]:
@@ -112,6 +148,10 @@ class TestLecunNormalUnit(unittest.TestCase):
 
 
 class TestOrthogonalUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_orthogonal_init1(self):
     init = bp.init.Orthogonal()
     for size in [(20, 20), (10, 20, 30)]:
@@ -126,6 +166,10 @@ class TestOrthogonalUnit(unittest.TestCase):
 
 
 class TestDeltaOrthogonalUnit(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    bp.math.random.seed()
+
   def test_delta_orthogonal_init1(self):
     init = bp.init.DeltaOrthogonal()
     for size in [(20, 20, 20), (10, 20, 30, 40), (50, 40, 30, 20, 20)]:
