@@ -99,7 +99,7 @@ def test_subset_integrator():
   syn.g_max = 0.1 / neu.num
   net = bp.Network(neu, syn)
 
-  ints = net.nodes(level=-1).subset(bp.integrators.Integrator)
+  ints = net.nodes(level=-1).subset(bp.Integrator)
   print()
   print(ints)
 

@@ -2,31 +2,33 @@
 
 import unittest
 
+import jax.tree_util
+
 import brainpy as bp
 import brainpy.math as bm
 
 
 class TestCollectionFunction(unittest.TestCase):
   def test_f_nodes(self):
-    class C(bp.dyn.DynamicalSystem):
+    class C(bp.DynamicalSystem):
       def __init__(self):
         super(C, self).__init__()
 
-    class B(bp.dyn.DynamicalSystem):
+    class B(bp.DynamicalSystem):
       def __init__(self):
         super(B, self).__init__()
 
         self.child1 = C()
         self.child2 = C()
 
-    class A(bp.dyn.DynamicalSystem):
+    class A(bp.DynamicalSystem):
       def __init__(self):
         super(A, self).__init__()
 
         self.child1 = B()
         self.child2 = B()
 
-    net = bp.dyn.Network(a1=A(), a2=A())
+    net = bp.Network(a1=A(), a2=A())
     print(net.nodes(level=2))
     self.assertTrue(len(net.nodes(level=0)) == 1)
     self.assertTrue(len(net.nodes(level=0, include_self=False)) == 0)
@@ -38,14 +40,14 @@ class TestCollectionFunction(unittest.TestCase):
     self.assertTrue(len(net.nodes(level=3, include_self=False)) == (2 + 4 + 8))
 
   def test_f_vars(self):
-    class C(bp.dyn.DynamicalSystem):
+    class C(bp.DynamicalSystem):
       def __init__(self):
         super(C, self).__init__()
 
         self.var1 = bm.Variable(bm.zeros(1))
         self.var2 = bm.Variable(bm.zeros(1))
 
-    class B(bp.dyn.DynamicalSystem):
+    class B(bp.DynamicalSystem):
       def __init__(self):
         super(B, self).__init__()
 
@@ -55,7 +57,7 @@ class TestCollectionFunction(unittest.TestCase):
         self.var1 = bm.Variable(bm.zeros(1))
         self.var2 = bm.Variable(bm.zeros(1))
 
-    class A(bp.dyn.DynamicalSystem):
+    class A(bp.DynamicalSystem):
       def __init__(self):
         super(A, self).__init__()
 
@@ -65,7 +67,7 @@ class TestCollectionFunction(unittest.TestCase):
         self.var1 = bm.Variable(bm.zeros(1))
         self.var2 = bm.Variable(bm.zeros(1))
 
-    net = bp.dyn.Network(a1=A(), a2=A())
+    net = bp.Network(a1=A(), a2=A())
     print(net.vars(level=2))
     self.assertTrue(len(net.vars(level=0)) == 0)
     self.assertTrue(len(net.vars(level=0, include_self=False)) == 0)
@@ -76,6 +78,118 @@ class TestCollectionFunction(unittest.TestCase):
     self.assertTrue(len(net.vars(level=3)) == (2 + 4 + 8) * 2)
     self.assertTrue(len(net.vars(level=3, include_self=False)) == (2 + 4 + 8) * 2)
 
+
+class Test_retrival(unittest.TestCase):
+  def test_node_seq_1(self):
+    class Object(bp.DynamicalSystemNS):
+      def __init__(self):
+        super().__init__()
+
+        self.l1 = bp.layers.Dense(5, 10)
+        self.ls = bm.NodeList([bp.layers.Dense(10, 4),
+                               bp.layers.Activation(bm.tanh),
+                               bp.layers.Dropout(0.1),
+                               bp.layers.Dense(4, 5),
+                               bp.layers.Activation(bm.relu)])
+
+      def update(self, x):
+        x = self.l1(x)
+        for l in self.ls:
+          x = l(x)
+        return x
+
+    with bm.environment(mode=bm.NonBatchingMode()):
+      obj = Object()
+      self.assertTrue(len(obj.vars()) == 1)
+      self.assertTrue(len(obj.nodes()) == 7)
+      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 1)
+
+      print(obj.nodes().keys())
+      print("obj.nodes(method='relative'): ",
+            obj.nodes(method='relative').keys())
+      # print(jax.tree_util.tree_structure(obj))
+
+    with bm.environment(mode=bm.TrainingMode()):
+      obj = Object()
+      self.assertTrue(len(obj.vars()) == 7)
+      self.assertTrue(len(obj.nodes()) == 7)
+      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 7)
+
+      print(obj.nodes().keys())
+      print("obj.nodes(method='relative'): ",
+            obj.nodes(method='relative').keys())
+      # print(jax.tree_util.tree_structure(obj))
+
+  def test_node_dict_1(self):
+    class Object(bp.DynamicalSystemNS):
+      def __init__(self):
+        super().__init__()
+
+        self.l1 = bp.layers.Dense(5, 10)
+        self.ls = bm.NodeDict(
+          {
+            'l1': bp.layers.Dense(10, 4),
+            'l2': bp.layers.Activation(bm.tanh),
+            'l3': bp.layers.Dropout(0.1),
+            'l4': bp.layers.Dense(4, 5),
+            'l5': bp.layers.Activation(bm.relu)
+          }
+        )
+
+      def update(self, x):
+        x = self.l1(x)
+        for l in self.ls:
+          x = l(x)
+        return x
+
+    with bm.environment(mode=bm.NonBatchingMode()):
+      obj = Object()
+      self.assertTrue(len(obj.vars()) == 1)
+      self.assertTrue(len(obj.nodes()) == 7)
+      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 1)
+
+      print(obj.nodes().keys())
+      print("obj.nodes(method='relative'): ",
+            obj.nodes(method='relative').keys())
+      # print(jax.tree_util.tree_structure(obj))
+
+    with bm.environment(mode=bm.TrainingMode()):
+      obj = Object()
+      self.assertTrue(len(obj.vars()) == 7)
+      self.assertTrue(len(obj.nodes()) == 7)
+      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 7)
+
+      print(obj.nodes().keys())
+      print("obj.nodes(method='relative'): ",
+            obj.nodes(method='relative').keys())
+      # print(jax.tree_util.tree_structure(obj))
+
+  def test_num_seq_1(self):
+    class Object(bp.DynamicalSystemNS):
+      def __init__(self):
+        super().__init__()
+        self.vs = bm.ListVar([1., 2., bm.ones(10)])
+
+      def update(self):
+        self.vs[0] += 10.
+        self.vs[1] += 10.
+        self.vs[2] += 10.
+
+    obj = Object()
+    self.assertTrue(len(obj.vars()) == 1)
+    self.assertTrue(len(obj.nodes()) == 1)
+    self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 3)
+
+    @jax.jit
+    def func(ob):
+      ob()
+      return ob
+
+    obj = func(obj)
+    print(obj.vs)
+    self.assertTrue(obj.vs[0] == 11.)
+    self.assertTrue(obj.vs[1] == 12.)
+    self.assertTrue(bm.allclose(obj.vs[2], bm.ones(10) * 11.))
 
 
 
