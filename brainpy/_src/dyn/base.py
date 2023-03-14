@@ -21,7 +21,6 @@ from brainpy.types import ArrayType, Shape
 
 share = None
 
-
 __all__ = [
   # general class
   'DynamicalSystem',
@@ -421,7 +420,6 @@ class DynamicalSystemNS(DynamicalSystem):
   pass_shared = False
 
 
-
 class Container(DynamicalSystem):
   """Container object which is designed to add other instances of DynamicalSystem.
 
@@ -461,7 +459,7 @@ class Container(DynamicalSystem):
           if not isinstance(m, parent):
             raise ValueError(f'Should be instance of {parent_name}. '
                              f'But we got {type(m)}')
-          self.implicit_nodes[m.name] = module
+          self.implicit_nodes[m.name] = m
       elif isinstance(module, dict):
         for k, v in module.items():
           if not isinstance(v, parent):
@@ -521,7 +519,7 @@ class Container(DynamicalSystem):
       node.clear_input()
 
 
-class Sequential(Container):
+class Sequential(DynamicalSystemNS):
   """A sequential `input-output` module.
 
   Modules will be added to it in the order they are passed in the
@@ -567,7 +565,7 @@ class Sequential(Container):
   name: str
     The object name.
   mode: Mode
-    The object computing context/mode. Default is `batching`.
+    The object computing context/mode. Default is ``None``.
   """
 
   def __init__(
@@ -577,70 +575,65 @@ class Sequential(Container):
       mode: bm.Mode = None,
       **modules_as_dict
   ):
+    super().__init__(name=name, mode=mode)
+    self._dyn_modules = bm.NodeDict()
+    self._static_modules = dict()
+    i = 0
+    for m in modules_as_tuple + tuple(modules_as_dict.values()):
+      key = self.__format_key(i)
+      if isinstance(m, bm.BrainPyObject):
+        self._dyn_modules[key] = m
+      else:
+        self._static_modules[key] = m
+      i += 1
+    self._num = i
 
-    self._modules = bm.dyn_seq(modules_as_tuple) + bm.dyn_seq(modules_as_dict.values())
-    seq_modules = [m for m in modules_as_tuple if isinstance(m, bm.BrainPyObject)]
-    dict_modules = {k: m for k, m in modules_as_dict.items() if isinstance(m, bm.BrainPyObject)}
+  def __format_key(self, i):
+    return f'l-{i}'
 
-    super().__init__(*seq_modules,
-                     name=name,
-                     mode=mode,
-                     must_be_dynsys_subclass=False,
-                     **dict_modules)
-
-  def __getattr__(self, item: str):
-    """Wrap the dot access ('self.'). """
-    child_ds = super(Sequential, self).__getattribute__('implicit_nodes')
-    if item in child_ds:
-      return child_ds[item]
-    else:
-      return super(Sequential, self).__getattribute__(item)
+  def __all_nodes(self):
+    nodes = []
+    for i in range(self._num):
+      key = self.__format_key(i)
+      if key not in self._dyn_modules:
+        nodes.append(self._static_modules[key])
+      else:
+        nodes.append(self._dyn_modules[key])
+    return nodes
 
   def __getitem__(self, key: Union[int, slice, str]):
     if isinstance(key, str):
-      if key not in self.implicit_nodes:
+      if key in self._dyn_modules:
+        return self._dyn_modules[key]
+      elif key in self._static_modules:
+        return self._static_modules[key]
+      else:
         raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
-      return self.implicit_nodes[key]
     elif isinstance(key, slice):
-      keys = tuple(self.implicit_nodes.keys())[key]
-      components = tuple(self.implicit_nodes.values())[key]
-      return Sequential(dict(zip(keys, components)))
+      return Sequential(*(self.__all_nodes()[key]))
     elif isinstance(key, int):
-      return tuple(self.implicit_nodes.values())[key]
+      key = self.__format_key(key)
+      return self._static_modules[key] if (key not in self._dyn_modules) else self._dyn_modules[key]
     elif isinstance(key, (tuple, list)):
-      all_keys = tuple(self.implicit_nodes.keys())
-      all_vals = tuple(self.implicit_nodes.values())
-      keys, vals = [], []
+      nodes = []
       for i in key:
         if isinstance(i, int):
-          raise KeyError(f'We excepted a tuple/list of int, but we got {type(i)}')
-        keys.append(all_keys[i])
-        vals.append(all_vals[i])
-      return Sequential(dict(zip(keys, vals)))
+          i = self.__format_key(i)
+        assert isinstance(i, str)
+        nodes.append(self._static_modules[i] if (i not in self._dyn_modules) else self._dyn_modules[i])
+      return Sequential(*nodes)
     else:
       raise KeyError(f'Unknown type of key: {type(key)}')
 
   def __repr__(self):
-    entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(self._modules))
+    nodes = self.__all_nodes()
+    entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(nodes))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
-  @not_pass_shared
-  def update(self, x) -> ArrayType:
+  def update(self, x):
     """Update function of a sequential model.
-
-    Parameters
-    ----------
-    s: dict
-      The shared arguments (ShA) across multiple layers.
-    x: Any
-      The input information.
-
-    Returns
-    -------
-    y: ArrayType
-      The output tensor.
     """
-    for m in self._modules:
+    for m in self.__all_nodes():
       x = m(x)
     return x
 
@@ -670,10 +663,7 @@ class Network(Container):
       mode: bm.Mode = None,
       **ds_dict
   ):
-    super(Network, self).__init__(*ds_tuple,
-                                  name=name,
-                                  mode=mode,
-                                  **ds_dict)
+    super(Network, self).__init__(*ds_tuple, name=name, mode=mode, **ds_dict)
 
   @not_pass_shared
   def update(self, *args, **kwargs):
