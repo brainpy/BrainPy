@@ -105,7 +105,7 @@ from . import analysis
 #  Part 6: Others    #
 # ------------------ #
 
-from . import running
+from . import running, testing
 from ._src.visualization import (visualize as visualize)
 from ._src.running.runner import (Runner as Runner)
 
