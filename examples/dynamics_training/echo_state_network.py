@@ -6,7 +6,7 @@ import brainpy.math as bm
 bm.set_environment(bm.batching_mode)
 
 
-class ESN(bp.DynamicalSystem):
+class ESN(bp.DynamicalSystemNS):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
     self.r = bp.layers.Reservoir(num_in,
@@ -21,11 +21,11 @@ class ESN(bp.DynamicalSystem):
                              W_initializer=bp.init.Normal(),
                              mode=bm.training_mode)
 
-  def update(self, s, x):
-    return self.o(s, self.r(s, x))
+  def update(self, x):
+    return x >> self.r >> self.o
 
 
-class NGRC(bp.DynamicalSystem):
+class NGRC(bp.DynamicalSystemNS):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
@@ -34,15 +34,15 @@ class NGRC(bp.DynamicalSystem):
                              W_initializer=bp.init.Normal(0.1),
                              mode=bm.training_mode)
 
-  def update(self, s, x):
-    return self.o(s, self.r(s, x))
+  def update(self, x):
+    return x >> self.r >> self.o
 
 
 def train_esn_with_ridge(num_in=100, num_out=30):
   model = ESN(num_in, 2000, num_out)
 
   # input-output
-  print(model(dict(), bm.ones((1, num_in))))
+  print(model(bm.ones((1, num_in))))
 
   X = bm.random.random((1, 200, num_in))
   Y = bm.random.random((1, 200, num_out))
@@ -73,7 +73,7 @@ def train_esn_with_force(num_in=100, num_out=30):
   model = ESN(num_in, 2000, num_out)
 
   # input-output
-  print(model(dict(), bm.ones((1, num_in))))
+  print(model(bm.ones((1, num_in))))
 
   X = bm.random.random((1, 200, num_in))
   Y = bm.random.random((1, 200, num_out))
