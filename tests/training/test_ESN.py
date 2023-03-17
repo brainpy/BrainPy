@@ -73,6 +73,8 @@ class TestESN(unittest.TestCase):
     print(bp.losses.mean_absolute_error(outputs, Y))
 
   def test_train_esn_with_force(self, num_in=100, num_out=30):
+    bm.random.seed()
+
     with bm.batching_environment():
       model = ESN(num_in, 2000, num_out)
 
@@ -97,6 +99,8 @@ class TestESN(unittest.TestCase):
     print(bp.losses.mean_absolute_error(outputs, Y))
 
   def test_ngrc(self, num_in=10, num_out=30):
+    bm.random.seed()
+
     with bm.batching_environment():
       model = NGRC(num_in, num_out)
 
@@ -111,6 +115,8 @@ class TestESN(unittest.TestCase):
     print(bp.losses.mean_absolute_error(outputs, Y))
 
   def test_ngrc_bacth(self, num_in=10, num_out=30):
+    bm.random.seed()
+
     with bm.batching_environment():
       model = NGRC(num_in, num_out)
     batch_size = 10

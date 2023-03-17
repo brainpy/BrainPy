@@ -90,8 +90,9 @@ class HHv2(bp.NeuGroupNS):
     return dV_grad
 
 
-class TestHH(unittest.TestCase):
+class TestHH(bp.testing.UniTestCase):
   def test1(self):
+    bm.random.seed()
     hh = HH(1)
     I, length = bp.inputs.section_input(values=[0, 5, 0], durations=[10, 100, 10], return_length=True)
     runner = bp.DSRunner(
@@ -102,9 +103,9 @@ class TestHH(unittest.TestCase):
 
     if show:
       bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
-    bp.math.clear_buffer_memory()
 
   def test2(self):
+    bm.random.seed()
     with bp.math.environment(dt=0.1):
       hh = HH(1)
       looper = bp.LoopOverTime(hh, out_vars=(hh.V, hh.m, hh.n, hh.h))
@@ -123,6 +124,4 @@ class TestHH(unittest.TestCase):
         bp.visualize.line_plot(ts, grads, legend='grad')
         fig.add_subplot(gs[3, 0])
         bp.visualize.line_plot(ts, bm.exp(grads * bm.dt), show=True)
-
-      bm.clear_buffer_memory()
 
