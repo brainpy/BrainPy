@@ -647,10 +647,10 @@ class DSRunner(Runner):
       dyn_vars = dyn_vars.unique()
 
       def run_func(all_inputs):
-        with jax.disable_jit(not self.jit['predict']):
-          return bm.for_loop(partial(self._step_func_predict, shared_args),
-                             all_inputs,
-                             dyn_vars=dyn_vars)
+        return bm.for_loop(partial(self._step_func_predict, shared_args),
+                           all_inputs,
+                           dyn_vars=dyn_vars,
+                           jit=self.jit['predict'])
 
       if self.jit['predict']:
         self._f_predict_compiled[shared_kwargs_str] = bm.jit(run_func, dyn_vars=dyn_vars)

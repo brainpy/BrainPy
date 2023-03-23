@@ -230,12 +230,11 @@ class IntegratorRunner(Runner):
     self.idx = bm.Variable(bm.zeros(1, dtype=bm.int_))
 
   def _run_fun_integration(self, static_args, dyn_args, times, indices):
-    with jax.disable_jit(not self.jit['predict']):
-      dyn_vars = self.vars().unique()
-      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-      return bm.for_loop(partial(self._step_fun_integrator, static_args),
-                         (dyn_args, times, indices),
-                         dyn_vars=dyn_vars)
+    dyn_vars = self.vars().unique()
+    return bm.for_loop(partial(self._step_fun_integrator, static_args),
+                       (dyn_args, times, indices),
+                       dyn_vars=dyn_vars,
+                       jit=self.jit['predict'])
 
   def _step_fun_integrator(self, static_args, dyn_args, t, i):
     # arguments
