@@ -25,7 +25,7 @@ class Network(bp.Network):
     )
 
 
-class TestSL(bp.testing.UniTestCase):
+class TestSL(bp.testing.UnitTestCase):
   def test1(self):
     net = Network()
     runner = bp.DSRunner(net, monitors=['sl.x'])

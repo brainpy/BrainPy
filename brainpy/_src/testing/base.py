@@ -7,7 +7,7 @@ except ImportError:
   pass
 
 
-class UniTestCase(unittest.TestCase):
+class UnitTestCase(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     bm.random.seed()

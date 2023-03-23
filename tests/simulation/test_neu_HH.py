@@ -90,7 +90,7 @@ class HHv2(bp.NeuGroupNS):
     return dV_grad
 
 
-class TestHH(bp.testing.UniTestCase):
+class TestHH(bp.testing.UnitTestCase):
   def test1(self):
     bm.random.seed()
     hh = HH(1)
@@ -107,7 +107,7 @@ class TestHH(bp.testing.UniTestCase):
   def test2(self):
     bm.random.seed()
     with bp.math.environment(dt=0.1):
-      hh = HH(1)
+      hh = bp.neurons.HH(1)
       looper = bp.LoopOverTime(hh, out_vars=(hh.V, hh.m, hh.n, hh.h))
       grads, (vs, ms, ns, hs) = looper(bm.ones(1000) * 5)
 

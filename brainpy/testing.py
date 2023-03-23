@@ -1,1 +1,1 @@
-from brainpy._src.testing.base import UniTestCase
+from brainpy._src.testing.base import UnitTestCase
