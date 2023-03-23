@@ -25,7 +25,7 @@ class Network(bp.Network):
     )
 
 
-class TestSL(unittest.TestCase):
+class TestSL(bp.testing.UniTestCase):
   def test1(self):
     net = Network()
     runner = bp.DSRunner(net, monitors=['sl.x'])
@@ -40,5 +40,4 @@ class TestSL(unittest.TestCase):
       axs[1].plot(runner.mon['ts'], runner.mon['sl.x'][:, ::5], alpha=0.8)
       plt.tight_layout()
       plt.show()
-
 
