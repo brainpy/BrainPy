@@ -338,7 +338,7 @@ class GaussianProb(OneEndConnector):
 
       p(i, j)=\exp(-\frac{\sum_{k=1}^n |v_k^i - v_k^j|^2 }{2\sigma^2})
 
-  where :math:`v_k^i` is the $i$-th neuron's encoded value at dimension $k$.
+  where :math:`v_k^i` is the :math:`i`-th neuron's encoded value at dimension :math:`k`.
 
   Parameters
   ----------
@@ -351,10 +351,10 @@ class GaussianProb(OneEndConnector):
       information, i.e., :math:`(i, j, k, ...)`, where :math:`i, j, k` is
       the index in the high-dimensional space.
     - If `values` is a single tuple/list of int/float, neurons at each dimension
-      will encode the same range of values. For example, `values=(0, np.pi)`,
-      neurons at each dimension will encode a continuous value space `[0, np.pi]`.
+      will encode the same range of values. For example, ``values=(0, np.pi)``,
+      neurons at each dimension will encode a continuous value space ``[0, np.pi]``.
     - If `values` is a tuple/list of list/tuple, it means the value space will be
-      different for each dimension. For example, `values=((-np.pi, np.pi), (10, 20), (0, 2 * np.pi))`.
+      different for each dimension. For example, ``values=((-np.pi, np.pi), (10, 20), (0, 2 * np.pi))``.
 
   periodic_boundary : bool
     Whether the neuron encode the value space with the periodic boundary.

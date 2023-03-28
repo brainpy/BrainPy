@@ -60,7 +60,6 @@ from brainpy import (channels,  # channel models
                      synplast,  # synaptic plasticity
                      experimental,
                      )
-from brainpy._src.dyn.base import not_pass_shared
 from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
                                    Container as Container,
                                    Sequential as Sequential,
@@ -73,14 +72,19 @@ from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
                                    TwoEndConn as TwoEndConn,
                                    CondNeuGroup as CondNeuGroup,
                                    Channel as Channel)
+from brainpy._src.dyn.delay import Delay
+# shared parameters
+from brainpy._src.dyn.context import share
+from brainpy._src.dyn.base import not_pass_shared
+# running
+from brainpy._src.dyn.runners import (DSRunner as DSRunner)
+from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
+# DynamicalSystem base classes
 from brainpy._src.dyn.base import (DynamicalSystemNS as DynamicalSystemNS,
                                    NeuGroupNS as NeuGroupNS)
 from brainpy._src.dyn.synapses_v2.base import (SynOutNS as SynOutNS,
                                                SynSTPNS as SynSTPNS,
                                                SynConnNS as SynConnNS, )
-from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
-from brainpy._src.dyn.runners import (DSRunner as DSRunner)  # runner
-from brainpy._src.dyn.context import share, Delay
 
 
 #  Part 4: Training  #
