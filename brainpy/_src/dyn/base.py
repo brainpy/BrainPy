@@ -115,7 +115,6 @@ class DynamicalSystem(BrainPyObject):
   """
 
   _pass_shared_args: bool = True
-  # pass_shared : bool = False
 
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], Variable]] = dict()
   '''Global delay data, which stores the delay variables and corresponding delay targets. 

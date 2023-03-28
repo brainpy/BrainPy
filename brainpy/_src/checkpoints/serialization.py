@@ -22,8 +22,6 @@ import jax
 import msgpack
 import numpy as np
 from jax import process_index
-from jax import sharding
-from jax.experimental.global_device_array import GlobalDeviceArray
 from jax.experimental.multihost_utils import sync_global_devices
 
 try:
@@ -41,7 +39,6 @@ from brainpy.errors import (AlreadyExistsError,
                             MPACheckpointingRequiredError,
                             MPARestoreTargetRequiredError,
                             MPARestoreDataCorruptedError,
-                            MPARestoreTypeNotMatchError,
                             InvalidCheckpointPath,
                             InvalidCheckpointError)
 from brainpy.types import PyTree
@@ -94,7 +91,7 @@ ORBAX_CKPT_FILENAME = 'checkpoint'
 MAX_CHUNK_SIZE = 2 ** 30
 
 # containing jax.Array attribute.
-MultiprocessArrayType = Union[GlobalDeviceArray, Any]
+MultiprocessArrayType = Any
 
 _STATE_DICT_REGISTRY: Dict[Any, Any] = {}
 
@@ -161,7 +158,6 @@ def from_state_dict(target, state: Dict[str, Any], name: str = '.'):
   ty_from_state_dict = _STATE_DICT_REGISTRY[ty][1]
   with _record_path(name):
     return ty_from_state_dict(target, state)
-
 
 
 def to_state_dict(target) -> Dict[str, Any]:
@@ -684,9 +680,7 @@ class AsyncManager(object):
 
 def _use_multiprocess_serialization(value: Any) -> bool:
   """Use GlobalAsyncCheckpointManager to save the array if it's only partially available on this host."""
-  if isinstance(value, GlobalDeviceArray):
-    return True
-  if jax.config.jax_array and isinstance(value, jax.Array):
+  if isinstance(value, jax.Array):
     return not value.is_fully_addressable
   return False
 
@@ -799,13 +793,7 @@ def _restore_mpas(state_dict,
     # Check if the given target array types are valid.
     shardings = []
     for _, arr, path in target_mpas:
-      # Use GDA with jax.config.jax_array turned off, or jax.experimental.array
-      # with jax.config.jax_array turned on.
-      if isinstance(arr, GlobalDeviceArray) and jax.config.jax_array:
-        raise MPARestoreTypeNotMatchError(step, path)
-      if isinstance(arr, GlobalDeviceArray):
-        shardings.append(sharding.NamedSharding(arr.mesh, arr.mesh_axes))
-      elif jax.config.jax_array and isinstance(arr, jax.Array):
+      if isinstance(arr, jax.Array):
         shardings.append(arr.sharding)
 
     # Restore the arrays.
@@ -1296,7 +1284,6 @@ def save_pytree(
   if jax.version.__version_info__ > (0, 3, 25):
     monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
                                           end_time - start_time)
-
 
 
 def multiprocess_save(
