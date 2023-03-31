@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math as bm, tools
-from .base import InterLayerInitializer
+from .base import _InterLayerInitializer
 
 __all__ = [
   'ZeroInit',
@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-class ZeroInit(InterLayerInitializer):
+class ZeroInit(_InterLayerInitializer):
   """Zero initializer.
 
   Initialize the weights with zeros.
@@ -25,7 +25,7 @@ class ZeroInit(InterLayerInitializer):
     return self.__class__.__name__
 
 
-class Constant(InterLayerInitializer):
+class Constant(_InterLayerInitializer):
   """Constant initializer.
 
   Initialize the weights with the given values.
@@ -54,7 +54,7 @@ class OneInit(Constant):
   pass
 
 
-class Identity(InterLayerInitializer):
+class Identity(_InterLayerInitializer):
   """Returns the identity matrix.
 
   This initializer was proposed in (Le, et al., 2015) [1]_.

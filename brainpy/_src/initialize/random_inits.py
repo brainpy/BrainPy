@@ -7,7 +7,7 @@ import numpy as np
 
 from brainpy._src import math as bm
 from brainpy import tools
-from .base import InterLayerInitializer
+from .base import _InterLayerInitializer
 
 __all__ = [
   'Normal',
@@ -95,7 +95,7 @@ def _compute_fans(shape, in_axis=-2, out_axis=-1):
   return fan_in, fan_out
 
 
-class Normal(InterLayerInitializer):
+class Normal(_InterLayerInitializer):
   """Initialize weights with normal distribution.
 
   Parameters
@@ -111,8 +111,7 @@ class Normal(InterLayerInitializer):
     self.mean = mean
     self.rng = bm.random.default_rng(seed, clone=False)
 
-  def __call__(self, *shape, dtype=None):
-    shape = _format_shape(shape)
+  def __call__(self, shape, dtype=None):
     weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
 
@@ -120,7 +119,7 @@ class Normal(InterLayerInitializer):
     return f'{self.__class__.__name__}(scale={self.scale}, rng={self.rng})'
 
 
-class Uniform(InterLayerInitializer):
+class Uniform(_InterLayerInitializer):
   """Initialize weights with uniform distribution.
 
   Parameters
@@ -147,7 +146,7 @@ class Uniform(InterLayerInitializer):
             f'max_val={self.max_val}, rng={self.rng})')
 
 
-class VarianceScaling(InterLayerInitializer):
+class VarianceScaling(_InterLayerInitializer):
   def __init__(
       self,
       scale: float,
@@ -304,7 +303,7 @@ class LecunNormal(VarianceScaling):
                                       seed=seed)
 
 
-class Orthogonal(InterLayerInitializer):
+class Orthogonal(_InterLayerInitializer):
   """
   Construct an initializer for uniformly distributed orthogonal matrices.
 
@@ -342,7 +341,7 @@ class Orthogonal(InterLayerInitializer):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis}, rng={self.rng})'
 
 
-class DeltaOrthogonal(InterLayerInitializer):
+class DeltaOrthogonal(_InterLayerInitializer):
   """
   Construct an initializer for delta orthogonal kernels; see arXiv:1806.05393.
 
@@ -376,3 +375,5 @@ class DeltaOrthogonal(InterLayerInitializer):
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis})'
+
+

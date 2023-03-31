@@ -8,8 +8,6 @@ You can access them through ``brainpy.init.XXX``.
 
 from brainpy._src.initialize.base import (
   Initializer as Initializer,
-  InterLayerInitializer as InterLayerInitializer,
-  IntraLayerInitializer as IntraLayerInitializer,
 )
 
 from brainpy._src.initialize.decay_inits import (
@@ -48,3 +46,8 @@ from brainpy._src.initialize.generic import (
   noise as noise,
   delay as delay,
 )
+
+from brainpy._src.initialize.others import (
+  Clip as Clip,
+)
+

@@ -4,7 +4,7 @@ import numpy as np
 
 from brainpy import math as bm
 from brainpy.tools import to_size, size2num
-from .base import IntraLayerInitializer
+from .base import _IntraLayerInitializer
 
 
 __all__ = [
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-class GaussianDecay(IntraLayerInitializer):
+class GaussianDecay(_IntraLayerInitializer):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,
   where the weights decay with gaussian function.
 
@@ -143,7 +143,7 @@ class GaussianDecay(IntraLayerInitializer):
             f'normalize={self.normalize})')
 
 
-class DOGDecay(IntraLayerInitializer):
+class DOGDecay(_IntraLayerInitializer):
   r"""Builds a Difference-Of-Gaussian (dog) connectivity pattern within a population of neurons.
 
   Mathematically, for the given pair of neurons :math:`(i, j)`, the weight between them is computed as
