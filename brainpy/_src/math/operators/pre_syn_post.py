@@ -7,6 +7,7 @@ from jax import vmap, jit, ops as jops
 from brainpy.errors import MathError
 from brainpy._src import tools
 from brainpy._src.math.arrayinterporate import as_jax
+from brainpy._src.math.operators import event_ops, sparse_ops, compat
 
 __all__ = [
   # pre-to-post
@@ -95,9 +96,9 @@ def pre2post_event_sum(events,
   indices = as_jax(indices)
   idnptr = as_jax(idnptr)
   values = as_jax(values)
-  return bm.event_ops.event_csr_matvec(values, indices, idnptr, events,
-                                       shape=(events.shape[0], post_num),
-                                       transpose=True)
+  return event_ops.event_csr_matvec(values, indices, idnptr, events,
+                                    shape=(events.shape[0], post_num),
+                                    transpose=True)
 
 
 def pre2post_coo_event_sum(events,
@@ -129,8 +130,7 @@ def pre2post_coo_event_sum(events,
   post_ids = as_jax(post_ids)
   pre_ids = as_jax(pre_ids)
   values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.compat.coo_event_sum(events, pre_ids, post_ids, post_num, values)
+  return compat.coo_event_sum(events, pre_ids, post_ids, post_num, values)
 
 
 def pre2post_event_prod(events, pre2post, post_num, values=1.):
@@ -184,8 +184,7 @@ def pre2post_event_prod(events, pre2post, post_num, values=1.):
   indices = as_jax(indices)
   idnptr = as_jax(idnptr)
   values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.compat.csr_event_prod(events, (indices, idnptr), post_num, values)
+  return compat.csr_event_prod(events, (indices, idnptr), post_num, values)
 
 
 def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):

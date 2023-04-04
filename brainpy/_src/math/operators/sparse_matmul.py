@@ -9,12 +9,14 @@ from jax import ops
 from brainpy._src import tools
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.arrayinterporate import as_jax
+from brainpy._src.math.operators import event_ops, sparse_ops
 
 __all__ = [
   'sparse_matmul',
   'csr_matvec',
   'event_csr_matvec',
 ]
+
 
 
 def event_csr_matvec(values,
@@ -48,13 +50,12 @@ def event_csr_matvec(values,
     A tensor with the shape of ``shape[1]`` if `transpose=True`,
     or ``shape[0]`` if `transpose=False`.
   """
-  warnings.warn('Please use ``brainpylib.event_ops.event_csr_matvec()`` instead.', UserWarning)
+  warnings.warn('Please use ``brainpy.math.event_ops.event_csr_matvec()`` instead.', UserWarning)
   events = as_jax(events)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
   values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.event_ops.event_csr_matvec(values, indices, indptr, events,
+  return event_ops.event_csr_matvec(values, indices, indptr, events,
                                        shape=shape,
                                        transpose=transpose)
 
@@ -242,12 +243,11 @@ def csr_matvec(values: Array,
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  warnings.warn('Please use ``brainpylib.sparse_ops.csr_matvec()`` instead.', UserWarning)
+  warnings.warn('Please use ``brainpy.math.sparse_ops.csr_matvec()`` instead.', UserWarning)
   vector = as_jax(vector)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
   values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.sparse_ops.cusparse_csr_matvec(values, indices, indptr, vector,
-                                           shape=shape,
-                                           transpose=transpose)
+  return sparse_ops.cusparse_csr_matvec(values, indices, indptr, vector,
+                                        shape=shape,
+                                        transpose=transpose)

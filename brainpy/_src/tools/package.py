@@ -8,14 +8,9 @@ try:
 except (ImportError, ModuleNotFoundError):
   njit = numba = None
 
-try:
-  import brainpylib
-except (ImportError, ModuleNotFoundError):
-  brainpylib = None
 
 __all__ = [
   'import_numba',
-  'import_brainpylib',
   'numba_jit',
   'numba_seed',
   'numba_range',
@@ -28,15 +23,6 @@ def import_numba():
     raise ModuleNotFoundError('Numba is needed. Please install numba through:\n\n'
                               '> pip install numba')
   return numba
-
-
-def import_brainpylib():
-  if brainpylib is None:
-    raise ModuleNotFoundError('brainpylib is needed. Please install brainpylib from source:\n'
-                              'https://brainpylib.readthedocs.io/en/latest/quickstart/installation.html \n\n'
-                              'or \n'
-                              '> pip install brainpylib\n\n')
-  return brainpylib
 
 
 SUPPORT_NUMBA = njit is not None

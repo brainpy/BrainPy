@@ -32,3 +32,4 @@ from brainpy._src.math.operators.sparse_matmul import (
 import brainpy._src.math.operators.event_ops as event_ops
 import brainpy._src.math.operators.sparse_ops as sparse_ops
 import brainpy._src.math.operators.jitconn_ops as jitconn_ops
+import brainpy._src.math.operators.compat as compat

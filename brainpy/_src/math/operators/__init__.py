@@ -17,9 +17,11 @@ from . import (
     sparse_ops,
     jitconn_ops,
     op_registers,
+    compat,
 )
 
 from .event_ops import *
 from .sparse_ops import *
 from .jitconn_ops import *
 from .op_registers import *
+from .compat import *

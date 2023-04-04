@@ -63,7 +63,7 @@ install(TARGETS cpu_ops DESTINATION brainpy)
 #    gpu_ops
 #    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_gpu.cc.cu
 #    ${CMAKE_CURRENT_LIST_DIR}/lib/gpu_ops.cc)
-#  install(TARGETS gpu_ops DESTINATION brainpylib)
+#  install(TARGETS gpu_ops DESTINATION brainpy)
 #else()
 #   message(STATUS "Building without CUDA")
 #   # CPU op library
@@ -73,5 +73,5 @@ install(TARGETS cpu_ops DESTINATION brainpy)
 #    ${CMAKE_CURRENT_LIST_DIR}/lib/event_sum_cpu.cc
 #    ${CMAKE_CURRENT_LIST_DIR}/lib/atomic_sum_cpu.cc
 #    )
-#  install(TARGETS cpu_ops DESTINATION brainpylib)
+#  install(TARGETS cpu_ops DESTINATION brainpy)
 # endif()

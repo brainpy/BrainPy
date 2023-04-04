@@ -7,7 +7,7 @@ from jax.tree_util import tree_map
 
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.operators import numba_approach
+from . import numba_approach
 
 __all__ = [
   'XLACustomOp',
