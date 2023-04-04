@@ -10,12 +10,12 @@ from jax.core import ShapedArray, Primitive
 from jax.interpreters import xla, ad
 from jax.lib import xla_client
 
-from brainpylib._src.errors import GPUOperatorNotFound
-from brainpylib._src.op_register import (register_general_batching)
-from brainpylib._src.tools import transform_brainpy_array
+from brainpy._src.math.operators.errors import GPUOperatorNotFound
+from brainpy._src.math.operators.op_registers import (register_general_batching)
+from brainpy._src.math.operators.tools import transform_brainpy_array
 
 try:
-  from brainpylib import gpu_ops
+  from brainpy import gpu_ops
 except ImportError:
   gpu_ops = None
 

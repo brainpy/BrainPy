@@ -12,10 +12,10 @@ from jax.interpreters import ad, mlir, xla
 from jax.lib import xla_client
 from jaxlib import gpu_sparse
 
-from brainpylib._src.op_register import (compile_cpu_signature_with_numba,
-                                         register_general_batching)
-from brainpylib._src.sparse_ops.utils import csr_to_coo
-from brainpylib._src.tools import transform_brainpy_array
+from brainpy._src.math.operators.op_registers import (compile_cpu_signature_with_numba,
+                                                      register_general_batching)
+from brainpy._src.math.operators.sparse_ops.utils import csr_to_coo
+from brainpy._src.math.operators.tools import transform_brainpy_array
 
 __all__ = [
   'cusparse_csr_matvec',

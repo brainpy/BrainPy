@@ -8,8 +8,8 @@ import numpy as np
 from jax import core, numpy as jnp, dtypes
 from jax.interpreters import mlir, ad
 from jaxlib import gpu_sparse
-from brainpylib._src.tools import transform_brainpy_array
-from brainpylib._src.op_register import register_general_batching
+from brainpy._src.math.operators.tools import transform_brainpy_array
+from brainpy._src.math.operators.op_registers import register_general_batching
 
 __all__ = [
   'coo_to_csr',
