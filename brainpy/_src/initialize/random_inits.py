@@ -112,11 +112,57 @@ class Normal(_InterLayerInitializer):
     self.rng = bm.random.default_rng(seed, clone=False)
 
   def __call__(self, shape, dtype=None):
+    shape = _format_shape(shape)
     weights = self.rng.normal(size=shape, loc=self.mean, scale=self.scale)
     return bm.asarray(weights, dtype=dtype)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, rng={self.rng})'
+
+
+class Gamma(_InterLayerInitializer):
+  """Initialize weights with Gamma distribution.
+
+  Parameters
+  ----------
+  shape: float, Array
+    Shape parameter.
+  scale: float, Array
+    The gain of the derivation of the Gamma distribution.
+
+  """
+  def __init__(self, shape, scale=None, seed=None):
+    self.shape = shape
+    self.scale = scale
+    self.rng = bm.random.default_rng(seed, clone=False)
+
+  def __call__(self, shape, dtype=None):
+    weights = self.rng.gamma(self.shape, scale=self.scale, size=shape)
+    return bm.asarray(weights, dtype=dtype)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(shape={self.shape}, scale={self.scale})'
+
+
+class Exponential(_InterLayerInitializer):
+  """Initialize weights with Gamma distribution.
+
+  Parameters
+  ----------
+  scale: float, Array
+    The gain of the derivation of the Exponential distribution.
+
+  """
+  def __init__(self, scale=None, seed=None):
+    self.scale = scale
+    self.rng = bm.random.default_rng(seed, clone=False)
+
+  def __call__(self, shape, dtype=None):
+    weights = self.rng.exponential(scale=self.scale, size=shape)
+    return bm.asarray(weights, dtype=dtype)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(scale={self.scale})'
 
 
 class Uniform(_InterLayerInitializer):

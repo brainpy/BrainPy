@@ -28,6 +28,8 @@ from brainpy._src.initialize.random_inits import (
   LecunNormal as LecunNormal,
   Orthogonal as Orthogonal,
   DeltaOrthogonal as DeltaOrthogonal,
+  Gamma,
+  Exponential,
 )
 
 
