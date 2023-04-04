@@ -160,7 +160,7 @@ class FractionalFHR(FractionalNeuron):
   def derivative(self):
     return JointEq([self.dV, self.dw, self.dy])
 
-  def update(self, tdi, x=None):
+  def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     if self.input_var:
@@ -288,7 +288,7 @@ class FractionalIzhikevich(FractionalNeuron):
       self.input = bm.Variable(jnp.zeros(self.varshape))
 
     # functions
-    is_integer(num_memory, 'num_step', allow_none=False)
+    is_integer(num_memory, 'num_memory', allow_none=False)
     self.integral = CaputoL1Schema(f=self.derivative,
                                    alpha=alpha,
                                    num_memory=num_memory,
