@@ -145,7 +145,7 @@ train.__dict__['OfflineTrainer'] = OfflineTrainer
 train.__dict__['RidgeTrainer'] = RidgeTrainer
 
 
-from . import base
+from ._src import base
 base.base.__dict__['BrainPyObject'] = BrainPyObject
 base.base.__dict__['Base'] = Base
 base.collector.__dict__['Collector'] = Collector

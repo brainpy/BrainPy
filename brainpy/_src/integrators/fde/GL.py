@@ -6,7 +6,7 @@ This module provides numerical solvers for Grünwald–Letnikov derivative FDEs.
 
 from typing import Dict, Union, Callable, Any
 
-import jax.numpy as jnp
+import jax
 
 import brainpy.math as bm
 from brainpy._src.integrators.constants import DT
@@ -81,12 +81,12 @@ class GLShortMemory(FDEIntegrator):
   >>>
   >>> integral = bp.fde.GLShortMemory(lorenz,
   >>>                                 alpha=0.96,
-  >>>                                 num_step=500,
+  >>>                                 num_memory=500,
   >>>                                 inits=[1., 0., 1.])
-  >>> runner = bp.integrators.IntegratorRunner(integral,
-  >>>                                          monitors=list('xyz'),
-  >>>                                          inits=[1., 0., 1.],
-  >>>                                          dt=0.005)
+  >>> runner = bp.IntegratorRunner(integral,
+  >>>                              monitors=list('xyz'),
+  >>>                              inits=[1., 0., 1.],
+  >>>                              dt=0.005)
   >>> runner.run(100.)
   >>>
   >>> import matplotlib.pyplot as plt
@@ -142,7 +142,7 @@ class GLShortMemory(FDEIntegrator):
                                         state_delays=state_delays)
 
     # fractional order
-    if not jnp.all(jnp.logical_and(self.alpha <= 1, self.alpha > 0)):
+    if not bm.all(bm.logical_and(self.alpha <= 1, self.alpha > 0)):
       raise UnsupportedError(f'Only support the fractional order in (0, 1), '
                              f'but we got {self.alpha}.')
 
@@ -150,34 +150,33 @@ class GLShortMemory(FDEIntegrator):
     inits = check_inits(inits, self.variables)
 
     # delays
-    self.delays = {}
+    self.delays = bm.DictVar()
     for key, val in inits.items():
-      delay = bm.Variable(jnp.zeros((self.num_memory,) + val.shape, dtype=val.dtype))
+      delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
       delay[0] = val
       self.delays[key+'_delay'] = delay
-    self._idx = bm.Variable(jnp.asarray([1]))
-    self.register_implicit_vars(self.delays)
+    self._idx = bm.Variable(bm.asarray([1]))
 
     # binomial coefficients
-    bc = (1 - (1 + self.alpha.reshape((-1, 1))) / jnp.arange(1, num_memory + 1))
-    bc = jnp.cumprod(jnp.vstack([jnp.ones_like(self.alpha), bc.T]), axis=0)
-    self._binomial_coef = jnp.flip(bc[1:], axis=0)
+    bc = (1 - (1 + self.alpha.reshape((-1, 1))) / bm.arange(1, num_memory + 1))
+    bc = bm.cumprod(bm.vstack([bm.ones_like(self.alpha), bc.T]), axis=0)
+    self._binomial_coef = bm.flip(bc[1:], axis=0)
 
     # integral function
     self.set_integral(self._integral_func)
 
   def reset(self, inits):
     """Reset function of the delay variables."""
-    self._idx.value = jnp.asarray([1])
+    self._idx.value = bm.asarray([1])
     inits = check_inits(inits, self.variables)
     for key, val in inits.items():
-      delay = jnp.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
+      delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
       delay[0] = val
       self.delays[key].value = delay
 
   @property
   def binomial_coef(self):
-    return bm.as_numpy(jnp.flip(self._binomial_coef, axis=0))
+    return bm.as_numpy(bm.flip(self._binomial_coef, axis=0))
 
   def _integral_func(self, *args, **kwargs):
     # format arguments
@@ -187,7 +186,7 @@ class GLShortMemory(FDEIntegrator):
     # derivative values
     devs = self.f(**all_args)
     if len(self.variables) == 1:
-      if not isinstance(devs, (bm.ndarray, jnp.ndarray)):
+      if not isinstance(devs, (bm.Array, jax.Array)):
         raise ValueError('Derivative values must be a tensor when there '
                          'is only one variable in the equation.')
       devs = {self.variables[0]: devs}
@@ -199,7 +198,7 @@ class GLShortMemory(FDEIntegrator):
 
     # integral results
     integrals = []
-    idx = (self._idx + jnp.arange(self.num_memory)) % self.num_memory
+    idx = (self._idx + bm.arange(self.num_memory)) % self.num_memory
     for i, var in enumerate(self.variables):
       delay_var = var + '_delay'
       summation = self._binomial_coef[:, i] @ self.delays[delay_var][idx]
