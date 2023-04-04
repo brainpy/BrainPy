@@ -4,18 +4,22 @@
 Operators for brain dynamics modeling.
 """
 
-from . import (
-  op_register,
-  pre_syn_post,
-  sparse_matmul,
-)
-
-__all__ = (
-    op_register.__all__
-    + pre_syn_post.__all__
-    + sparse_matmul.__all__
-)
+from .check import *
+from .errors import *
+from .tools import *
+from .register_custom_calls import *
 
 from .sparse_matmul import *
-from .op_register import *
 from .pre_syn_post import *
+
+from . import (
+    event_ops,
+    sparse_ops,
+    jitconn_ops,
+    op_registers,
+)
+
+from .event_ops import *
+from .sparse_ops import *
+from .jitconn_ops import *
+from .op_registers import *

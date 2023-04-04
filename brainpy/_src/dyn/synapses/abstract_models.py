@@ -153,8 +153,7 @@ class Delta(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        bl = tools.import_brainpylib()
-        f = lambda s: bl.event_ops.event_csr_matvec(
+        f = lambda s: bm.event_ops.event_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num), transpose=True
         )
@@ -345,8 +344,7 @@ class Exponential(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        bl = tools.import_brainpylib()
-        f = lambda s: bl.event_ops.event_csr_matvec(
+        f = lambda s: bm.event_ops.event_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
@@ -551,8 +549,7 @@ class DualExponential(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        bl = tools.import_brainpylib()
-        f = lambda s: bl.sparse_ops.cusparse_csr_matvec(
+        f = lambda s: bm.sparse_ops.cusparse_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
@@ -897,8 +894,7 @@ class NMDA(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        bl = tools.import_brainpylib()
-        f = lambda s: bl.event_ops.event_csr_matvec(
+        f = lambda s: bm.event_ops.event_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True

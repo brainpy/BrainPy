@@ -5,8 +5,9 @@ jaxlib>=0.3.0
 scipy>=1.1.0
 h5py
 pathos
-numba
-brainpylib
+jax>=0.3.0
+pybind11>=2.6
+numpy
 
 # test requirements
 pytest

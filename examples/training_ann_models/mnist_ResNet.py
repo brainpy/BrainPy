@@ -14,6 +14,8 @@ import jax.numpy as jnp
 
 bm.set_environment(mode=bm.training_mode, dt=1.)
 
+weight_init = bp.init.KaimingNormal(mode='fan_out', in_axis=0, out_axis=-1)
+
 
 class BasicBlock(bp.DynamicalSystem):
   expansion = 1
@@ -22,10 +24,10 @@ class BasicBlock(bp.DynamicalSystem):
     super(BasicBlock, self).__init__()
     self.is_last = is_last
     self.conv1 = bp.layers.Conv2D(in_planes, planes, kernel_size=(3, 3), strides=stride, padding=(1, 1),
-                                  w_initializer=bp.init.KaimingNormal(mode='fan_out'))
+                                  w_initializer=weight_init)
     self.bn1 = bp.layers.BatchNorm2D(planes)
     self.conv2 = bp.layers.Conv2D(planes, planes, kernel_size=(3, 3), strides=(1, 1), padding=(1, 1),
-                                  w_initializer=bp.init.KaimingNormal(mode='fan_out'))
+                                  w_initializer=weight_init)
     self.bn2 = bp.layers.BatchNorm2D(planes)
 
     # self.shortcut = bp.layers.Identity()
@@ -33,7 +35,7 @@ class BasicBlock(bp.DynamicalSystem):
     if stride != 1 or in_planes != self.expansion * planes:
       self.shortcut = bp.Sequential(
         bp.layers.Conv2D(in_planes, self.expansion * planes, kernel_size=1, strides=stride,
-                         w_initializer=bp.init.KaimingNormal(mode='fan_out')),
+                         w_initializer=weight_init),
         bp.layers.BatchNorm2D(self.expansion * planes)
       )
 
@@ -56,13 +58,13 @@ class Bottleneck(bp.DynamicalSystem):
     super(Bottleneck, self).__init__()
     self.is_last = is_last
     self.conv1 = bp.layers.Conv2D(in_planes, planes, kernel_size=(1, 1),
-                                  w_initializer=bp.init.KaimingNormal(mode='fan_out'))
+                                  w_initializer=weight_init)
     self.bn1 = bp.layers.BatchNorm2D(planes)
     self.conv2 = bp.layers.Conv2D(planes, planes, kernel_size=(3, 3), strides=stride, padding=(1, 1),
-                                  w_initializer=bp.init.KaimingNormal(mode='fan_out'))
+                                  w_initializer=weight_init)
     self.bn2 = bp.layers.BatchNorm2D(planes)
     self.conv3 = bp.layers.Conv2D(planes, self.expansion * planes, kernel_size=(1, 1),
-                                  w_initializer=bp.init.KaimingNormal(mode='fan_out'))
+                                  w_initializer=weight_init)
     self.bn3 = bp.layers.BatchNorm2D(self.expansion * planes)
 
     # self.shortcut = bp.layers.Identity()
@@ -70,7 +72,7 @@ class Bottleneck(bp.DynamicalSystem):
     if stride != 1 or in_planes != self.expansion * planes:
       self.shortcut = bp.Sequential(
         bp.layers.Conv2D(in_planes, self.expansion * planes, kernel_size=1, strides=stride,
-                         w_initializer=bp.init.KaimingNormal(mode='fan_out')),
+                         w_initializer=weight_init),
         bp.layers.BatchNorm2D(self.expansion * planes)
       )
 
@@ -93,13 +95,13 @@ class ResNet(bp.DynamicalSystem):
     self.in_planes = 64
 
     self.conv1 = bp.layers.Conv2D(3, 64, kernel_size=(3, 3), strides=(1, 1), padding=(1, 1),
-                                  w_initializer=bp.init.KaimingNormal(mode='fan_out'))
+                                  w_initializer=weight_init)
     self.bn1 = bp.layers.BatchNorm2D(64)
     self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
     self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
     self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
     self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-    # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+    self.avgpool = bp.layers.AdaptiveAvgPool2d((1, 1))
     self.linear = bp.layers.Dense(512 * block.expansion, num_classes)
 
     # Zero-initialize the last BN in each residual branch,

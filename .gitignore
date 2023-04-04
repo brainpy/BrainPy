@@ -5,6 +5,8 @@ io_test_tmp*
 
 brainpy/math/brainpy_object/tests/io_test_tmp*
 
+lib/
+
 development
 
 brainpy/dyn/tests/data

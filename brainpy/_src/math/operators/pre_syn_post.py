@@ -95,8 +95,7 @@ def pre2post_event_sum(events,
   indices = as_jax(indices)
   idnptr = as_jax(idnptr)
   values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.event_ops.event_csr_matvec(values, indices, idnptr, events,
+  return bm.event_ops.event_csr_matvec(values, indices, idnptr, events,
                                        shape=(events.shape[0], post_num),
                                        transpose=True)
 

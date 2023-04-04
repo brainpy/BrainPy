@@ -7,7 +7,7 @@ from jax.tree_util import tree_map
 
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.math.ndarray import Array
-from brainpy._src.tools.package import import_brainpylib
+from brainpy._src.math.operators import numba_approach
 
 __all__ = [
   'XLACustomOp',
@@ -80,8 +80,7 @@ class XLACustomOp(BrainPyObject):
       gpu_func = None
 
     # register OP
-    brainpylib = import_brainpylib()
-    self.op = brainpylib.register_op_with_numba(
+    self.op = numba_approach.register_op_with_numba(
       self.name,
       cpu_func=cpu_func,
       gpu_func_translation=gpu_func,
