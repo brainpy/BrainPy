@@ -125,7 +125,8 @@ class Delta(TwoEndConn):
 
   def reset_state(self, batch_size=None):
     self.output.reset_state(batch_size)
-    if self.stp is not None: self.stp.reset_state(batch_size)
+    if self.stp is not None:
+      self.stp.reset_state(batch_size)
 
   def update(self, tdi, pre_spike=None):
     # pre-synaptic spikes
