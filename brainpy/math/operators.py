@@ -26,10 +26,33 @@ from brainpy._src.math.operators.pre_syn_post import (
 from brainpy._src.math.operators.sparse_matmul import (
   sparse_matmul as sparse_matmul,
   csr_matvec as csr_matvec,
-  event_csr_matvec as event_csr_matvec,
 )
 
-import brainpy._src.math.operators.event_ops as event_ops
-import brainpy._src.math.operators.sparse_ops as sparse_ops
-import brainpy._src.math.operators.jitconn_ops as jitconn_ops
-import brainpy._src.math.operators.compat as compat
+from brainpy._src.math.operators.event_ops import (
+  event_csr_matvec as event_csr_matvec,
+  event_info as event_info,
+)
+from brainpy._src.math.operators.sparse_ops import (
+  csr_matvec as csr_matvec,
+  cusparse_csr_matvec as cusparse_csr_matvec,
+  cusparse_coo_matvec as cusparse_coo_matvec,
+)
+
+from brainpy._src.math.operators.jitconn_ops import (
+  matvec_prob_conn_homo_weight as matvec_prob_conn_homo_weight,
+  matvec_prob_conn_uniform_weight as matvec_prob_conn_uniform_weight,
+  matvec_prob_conn_normal_weight as matvec_prob_conn_normal_weight,
+  event_matvec_prob_conn_homo_weight as event_matvec_prob_conn_homo_weight,
+  event_matvec_prob_conn_uniform_weight as event_matvec_prob_conn_uniform_weight,
+  event_matvec_prob_conn_normal_weight as event_matvec_prob_conn_normal_weight,
+  matmat_prob_conn_uniform_weight as matmat_prob_conn_uniform_weight,
+  matmat_prob_conn_normal_weight as matmat_prob_conn_normal_weight
+)
+
+from brainpy._src.math.operators.compat import (
+  coo_atomic_sum as coo_atomic_sum,
+  coo_atomic_prod as coo_atomic_prod,
+  csr_event_sum as csr_event_sum,
+  coo_event_sum as coo_event_sum,
+  csr_event_prod as csr_event_prod,
+)

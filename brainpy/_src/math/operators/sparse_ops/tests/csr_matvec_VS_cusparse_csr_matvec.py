@@ -4,7 +4,6 @@ import time
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy._src.math import cusparse_csr_matvec, csr_matvec
 
 
 def compare(platform='cpu'):
@@ -91,20 +90,20 @@ def compare(platform='cpu'):
     data = rng.random(indices.shape).value
     vector = rng.random(shape[1]).value
 
-    r1 = cusparse_csr_matvec(data, indices, indptr, vector, shape=shape)
+    r1 = bm.cusparse_csr_matvec(data, indices, indptr, vector, shape=shape)
     r1.block_until_ready()
-    r2 = csr_matvec(data, indices, indptr, vector, shape=shape)
+    r2 = bm.csr_matvec(data, indices, indptr, vector, shape=shape)
     r2.block_until_ready()
 
     t0 = time.time()
     for _ in range(100):
-      r1 = cusparse_csr_matvec(data, indices, indptr, vector, shape=shape)
+      r1 = bm.cusparse_csr_matvec(data, indices, indptr, vector, shape=shape)
       r1.block_until_ready()
     print(f'cuSPARSE {time.time() - t0} s')
 
     t0 = time.time()
     for _ in range(100):
-      r1 = csr_matvec(data, indices, indptr, vector, shape=shape)
+      r1 = bm.csr_matvec(data, indices, indptr, vector, shape=shape)
       r1.block_until_ready()
     print(f'brainpylib {time.time() - t0} s')
     print()

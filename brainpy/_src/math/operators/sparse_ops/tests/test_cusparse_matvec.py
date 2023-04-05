@@ -9,7 +9,7 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from brainpy._src.math import cusparse_csr_matvec, csr_to_dense, csr_to_coo
+from brainpy._src.math import csr_to_dense, csr_to_coo
 
 
 class Test_cusparse_csr_matvec(unittest.TestCase):
@@ -31,8 +31,8 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
 
     vector = rng.random(shape[0] if transpose else shape[1])
     vector = bm.as_jax(vector)
-    r1 = cusparse_csr_matvec(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
-    r2 = cusparse_csr_matvec(heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    r1 = bm.cusparse_csr_matvec(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    r2 = bm.cusparse_csr_matvec(heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
     dense = csr_to_dense(heter_data, indices, indptr, shape=shape)
@@ -55,7 +55,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     homo_data = bm.ones(10).value * v
     dense_data = jax.vmap(lambda a: csr_to_dense(a, indices, indptr, shape=shape))(heter_data)
 
-    f1 = partial(cusparse_csr_matvec, indices=indices, indptr=indptr, vector=vector,
+    f1 = partial(bm.cusparse_csr_matvec, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
     f2 = lambda a: (a.T @ vector) if transpose else (a @ vector)
 
@@ -82,7 +82,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     vector = rng.random(shape[0] if transpose else shape[1])
     vector = bm.as_jax(vector)
 
-    csr_f1 = jax.grad(lambda a: cusparse_csr_matvec(a, indices, indptr, vector,
+    csr_f1 = jax.grad(lambda a: bm.cusparse_csr_matvec(a, indices, indptr, vector,
                                                     shape=shape, transpose=transpose).sum(),
                       argnums=0)
     dense_f1 = jax.grad(lambda a: ((vector @ (dense * a)).sum()
@@ -94,7 +94,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     r2 = dense_f1(homo_data)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    csr_f2 = jax.grad(lambda v: cusparse_csr_matvec(homo_data, indices, indptr, v,
+    csr_f2 = jax.grad(lambda v: bm.cusparse_csr_matvec(homo_data, indices, indptr, v,
                                                     shape=shape, transpose=transpose).sum(),
                       argnums=0)
     dense_data = dense * homo_data
@@ -105,7 +105,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     r4 = dense_f2(vector)
     self.assertTrue(jnp.allclose(r3, r4))
 
-    csr_f3 = jax.grad(lambda a, v: cusparse_csr_matvec(a, indices, indptr, v,
+    csr_f3 = jax.grad(lambda a, v: bm.cusparse_csr_matvec(a, indices, indptr, v,
                                                        shape=shape, transpose=transpose).sum(),
                       argnums=(0, 1))
     dense_f3 = jax.grad(lambda a, v: ((v @ (dense * a)).sum()
@@ -168,7 +168,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
 
     vector = rng.random(shape[0] if transpose else shape[1])
     vector = bm.as_jax(vector)
-    r1 = cusparse_csr_matvec(heter_data, indices, indptr, vector,
+    r1 = bm.cusparse_csr_matvec(heter_data, indices, indptr, vector,
                              shape=shape, transpose=transpose)
     dense = csr_to_dense(heter_data, indices, indptr, shape=shape)
     r2 = (vector @ dense) if transpose else (dense @ vector)
@@ -191,7 +191,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     dense_data = jax.vmap(lambda a: csr_to_dense(a, indices, indptr,
                                                  shape=shape))(heter_data)
 
-    f1 = partial(cusparse_csr_matvec, indices=indices, indptr=indptr, vector=vector,
+    f1 = partial(bm.cusparse_csr_matvec, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
     f2 = lambda a: (a.T @ vector) if transpose else (a @ vector)
 
@@ -214,7 +214,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     vector = rng.random(shape[0] if transpose else shape[1])
     vector = bm.as_jax(vector)
 
-    csr_f1 = jax.grad(lambda a: cusparse_csr_matvec(a, indices, indptr, vector,
+    csr_f1 = jax.grad(lambda a: bm.cusparse_csr_matvec(a, indices, indptr, vector,
                                                     shape=shape,
                                                     transpose=transpose).sum(),
                       argnums=0)
@@ -227,7 +227,7 @@ class Test_cusparse_csr_matvec(unittest.TestCase):
     r2 = r2[rows, cols]
     self.assertTrue(jnp.allclose(r1, r2))
 
-    csr_f2 = jax.grad(lambda v: cusparse_csr_matvec(heter_data, indices, indptr, v,
+    csr_f2 = jax.grad(lambda v: bm.cusparse_csr_matvec(heter_data, indices, indptr, v,
                                                     shape=shape,
                                                     transpose=transpose).sum(),
                       argnums=0)

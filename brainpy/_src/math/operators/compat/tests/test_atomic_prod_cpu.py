@@ -7,10 +7,9 @@ import jax.numpy as jnp
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy._src.math import coo_atomic_prod
+import pytest
 
 bp.math.set_platform('cpu')
-
 
 class TestAtomicProd(unittest.TestCase):
   def test_heter_values1(self):
@@ -20,7 +19,7 @@ class TestAtomicProd(unittest.TestCase):
     pre_ids = jnp.arange(size, dtype=jnp.uint32)
     sps = bp.math.asarray(bp.math.random.randint(0, 2, size),
                           dtype=bp.math.float_)
-    a = coo_atomic_prod(sps.value, post_ids, size, pre_ids)
+    a = bm.coo_atomic_prod(sps.value, post_ids, size, pre_ids)
     print(a)
     self.assertTrue(jnp.array_equal(a, sps.value))
 
@@ -28,7 +27,7 @@ class TestAtomicProd(unittest.TestCase):
     size = 200
     value = 2.
     post_ids = jnp.arange(size, dtype=jnp.uint32)
-    a = coo_atomic_prod(value, post_ids, size)
+    a = bm.coo_atomic_prod(value, post_ids, size)
     print(a)
     self.assertTrue(jnp.all(a == value))
 
@@ -38,7 +37,7 @@ class TestAtomicProd(unittest.TestCase):
     conn = bp.conn.FixedProb(prob=1, seed=123)
     conn(pre_size=size, post_size=size)
     post_ids = conn.require('post_ids')
-    a = coo_atomic_prod(value, bm.as_jax(post_ids), size)
+    a = bm.coo_atomic_prod(value, bm.as_jax(post_ids), size)
     print(a)
 
   def test_heter_fixedpro(self):
@@ -47,5 +46,5 @@ class TestAtomicProd(unittest.TestCase):
     conn = bp.conn.FixedProb(prob=1, seed=123)
     conn(pre_size=size, post_size=size)
     pre_ids, post_ids = conn.require('pre_ids', 'post_ids')
-    a = coo_atomic_prod(value, bm.as_jax(post_ids), size, bm.as_jax(pre_ids))
+    a = bm.coo_atomic_prod(value, bm.as_jax(post_ids), size, bm.as_jax(pre_ids))
     print(a)

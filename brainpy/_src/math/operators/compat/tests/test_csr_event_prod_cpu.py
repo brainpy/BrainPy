@@ -2,13 +2,10 @@
 
 import unittest
 
-from brainpy._src.math.operators.compat import csr_event_prod
-
 import brainpy as bp
 import brainpy.math as bm
 
 bm.set_platform('cpu')
-
 
 class TestEventProd(unittest.TestCase):
   def test_homo_values(self):
@@ -21,7 +18,7 @@ class TestEventProd(unittest.TestCase):
     sps = bp.math.as_jax(bm.random.random(size)) < 0.5
     # print(sps)
     value = 1.0233
-    a = csr_event_prod(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
+    a = bm.csr_event_prod(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
     print(a)
 
   def test_heter_value(self):
@@ -35,6 +32,6 @@ class TestEventProd(unittest.TestCase):
     sps = bp.math.as_jax(bm.random.random(size)) < 0.5
     values = bp.math.as_jax(bm.random.rand(post_ids.size))
     # values = bm.ones(post_ids.size)
-    a = csr_event_prod(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values)
+    a = bm.csr_event_prod(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values)
     print(a)
 

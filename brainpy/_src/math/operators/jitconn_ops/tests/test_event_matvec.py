@@ -5,8 +5,6 @@ import jax
 import jax.numpy as jnp
 from absl.testing import parameterized
 
-from brainpy._src.math.operators import jitconn_ops
-
 shapes = [(100, 200),
           (10, 1000),
           (2, 1000),
@@ -60,7 +58,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    r1 = jitconn_ops.event_matvec_prob_conn_homo_weight(events,
+    r1 = bm.event_matvec_prob_conn_homo_weight(events,
                                                         homo_data,
                                                         conn_prob=prob,
                                                         shape=shape,
@@ -68,7 +66,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                         outdim_parallel=outdim_parallel,
                                                         transpose=transpose)
 
-    r2 = jitconn_ops.event_matvec_prob_conn_homo_weight(events,
+    r2 = bm.event_matvec_prob_conn_homo_weight(events,
                                                         homo_data,
                                                         conn_prob=prob,
                                                         shape=shape,
@@ -77,7 +75,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                         transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = jitconn_ops.event_matvec_prob_conn_homo_weight(events,
+    r3 = bm.event_matvec_prob_conn_homo_weight(events,
                                                         homo_data,
                                                         conn_prob=prob,
                                                         shape=(shape[1], shape[0]),
@@ -137,7 +135,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     weights = bm.as_jax(rng.random(10))
 
     f1 = jax.vmap(
-      lambda event, data: jitconn_ops.event_matvec_prob_conn_homo_weight(
+      lambda event, data: bm.event_matvec_prob_conn_homo_weight(
         event, data, conn_prob=prob, shape=shape, seed=seed,
         transpose=transpose, outdim_parallel=outdim_parallel
       )
@@ -179,7 +177,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda event, data: jitconn_ops.event_matvec_prob_conn_homo_weight(
+      lambda event, data: bm.event_matvec_prob_conn_homo_weight(
         event, data, conn_prob=prob, shape=shape, seed=seed,
         outdim_parallel=outdim_parallel, transpose=transpose
       ).sum(),
@@ -188,7 +186,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r1 = f1(events, 1.)
 
     f2 = jax.grad(
-      lambda event, data: jitconn_ops.event_matvec_prob_conn_homo_weight(
+      lambda event, data: bm.event_matvec_prob_conn_homo_weight(
         event, data, conn_prob=prob, shape=shape, seed=seed,
         transpose=transpose, outdim_parallel=outdim_parallel
       ).sum(),
@@ -197,7 +195,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r2 = f2(events, 1.)
 
     f3 = jax.grad(
-      lambda event, data: jitconn_ops.event_matvec_prob_conn_homo_weight(
+      lambda event, data: bm.event_matvec_prob_conn_homo_weight(
         event, data, conn_prob=prob, shape=shape, seed=seed,
         outdim_parallel=outdim_parallel, transpose=transpose
       ).sum(),
@@ -257,7 +255,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    r1 = jitconn_ops.event_matvec_prob_conn_uniform_weight(events,
+    r1 = bm.event_matvec_prob_conn_uniform_weight(events,
                                                            w_low=w_low,
                                                            w_high=w_high,
                                                            conn_prob=prob,
@@ -266,7 +264,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                            outdim_parallel=outdim_parallel,
                                                            transpose=transpose)
 
-    r2 = jitconn_ops.event_matvec_prob_conn_uniform_weight(events,
+    r2 = bm.event_matvec_prob_conn_uniform_weight(events,
                                                            w_low=w_low,
                                                            w_high=w_high,
                                                            conn_prob=prob,
@@ -276,7 +274,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                            transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = jitconn_ops.event_matvec_prob_conn_uniform_weight(events,
+    r3 = bm.event_matvec_prob_conn_uniform_weight(events,
                                                            w_low=w_low,
                                                            w_high=w_high,
                                                            conn_prob=prob,
@@ -325,7 +323,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
       events = events.astype(float)
 
     f1 = jax.vmap(
-      lambda e: jitconn_ops.event_matvec_prob_conn_uniform_weight(e,
+      lambda e: bm.event_matvec_prob_conn_uniform_weight(e,
                                                                   w_low=0.,
                                                                   w_high=1.,
                                                                   conn_prob=prob,
@@ -373,7 +371,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e: jitconn_ops.event_matvec_prob_conn_uniform_weight(
+      lambda e: bm.event_matvec_prob_conn_uniform_weight(
         e,
         w_low=0.,
         w_high=1.,
@@ -430,7 +428,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    r1 = jitconn_ops.event_matvec_prob_conn_normal_weight(events,
+    r1 = bm.event_matvec_prob_conn_normal_weight(events,
                                                           w_mu=w_mu,
                                                           w_sigma=w_sigma,
                                                           conn_prob=prob,
@@ -439,7 +437,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                           outdim_parallel=outdim_parallel,
                                                           transpose=transpose)
 
-    r2 = jitconn_ops.event_matvec_prob_conn_normal_weight(events,
+    r2 = bm.event_matvec_prob_conn_normal_weight(events,
                                                           w_mu=w_mu,
                                                           w_sigma=w_sigma,
                                                           conn_prob=prob,
@@ -449,7 +447,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                           transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = jitconn_ops.event_matvec_prob_conn_normal_weight(events,
+    r3 = bm.event_matvec_prob_conn_normal_weight(events,
                                                           w_mu=w_mu,
                                                           w_sigma=w_sigma,
                                                           conn_prob=prob,
@@ -500,7 +498,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    f1 = jax.vmap(lambda e: jitconn_ops.event_matvec_prob_conn_normal_weight(e,
+    f1 = jax.vmap(lambda e: bm.event_matvec_prob_conn_normal_weight(e,
                                                                              w_mu=0.,
                                                                              w_sigma=1.,
                                                                              conn_prob=prob,
@@ -547,7 +545,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e: jitconn_ops.event_matvec_prob_conn_normal_weight(
+      lambda e: bm.event_matvec_prob_conn_normal_weight(
         e,
         w_mu=0.,
         w_sigma=1.,

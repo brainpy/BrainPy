@@ -4,8 +4,6 @@ import brainpy.math as bm
 import jax.numpy as jnp
 from jax import jit, vmap
 
-from brainpy._src.math import jitconn_ops
-
 
 def compare_jitconn_imp(platform='gpu'):
   bm.set_platform(platform)
@@ -29,11 +27,11 @@ def compare_jitconn_imp(platform='gpu'):
       for prob in [0.01]:
         print(f'm = {m}, shape = {shape}, prob = {prob}')
         f1 = jit(
-          vmap(lambda a: jitconn_ops.matvec_prob_conn_normal_weight(
+          vmap(lambda a: bm.matvec_prob_conn_normal_weight(
             a, w_mu=0., w_sigma=0.01, conn_prob=prob, shape=shape, seed=seed, transpose=True
           ))
         )
-        f2 = jit(lambda e: jitconn_ops.matmat_prob_conn_normal_weight(
+        f2 = jit(lambda e: bm.matmat_prob_conn_normal_weight(
           e, w_mu=0., w_sigma=0.01, conn_prob=prob, shape=shape, seed=seed, version='v2'
         ))
 

@@ -4,9 +4,8 @@ import brainpy as bp
 import brainpy.math as bm
 from jax import jit
 
-from brainpy._src.math import event_csr_matvec
-from brainpy._src.math.operators import jitconn_ops
-from brainpy._src.math.operators.jitconn_ops.event_matvec import event_matvec_prob_conn_homo_weight
+from brainpy.math import event_csr_matvec
+from brainpy.math import event_matvec_prob_conn_homo_weight
 
 
 def compare_sparse_ops(platform='cpu'):
@@ -176,7 +175,7 @@ def compare_sparse_ops(platform='cpu'):
         print(f'shape = {shape}, prob = {prob}, transpose = {transpose}')
         f_sparse = jit(lambda e: event_csr_matvec(weight, indices, indptr, e,
                                                              shape=shape, transpose=transpose))
-        f_jitconn = jit(lambda e: jitconn_ops.event_matvec_prob_conn_homo_weight(
+        f_jitconn = jit(lambda e: event_matvec_prob_conn_homo_weight(
           e, weight, conn_prob=prob, shape=shape, seed=seed, transpose=transpose))
 
         rng = bm.random.RandomState()
@@ -220,7 +219,7 @@ def compare_jitconn_imp(platform='gpu'):
         print(f'shape = {shape}, prob = {prob}, transpose = {transpose}')
         f1 = jit(lambda e: event_matvec_prob_conn_homo_weight(
           e, weight, conn_prob=prob, shape=shape, seed=seed, transpose=transpose))
-        f2 = jit(lambda e: jitconn_ops.event_matvec_prob_conn_homo_weight(
+        f2 = jit(lambda e: event_matvec_prob_conn_homo_weight(
           e, weight, conn_prob=prob, shape=shape, seed=seed, transpose=transpose))
 
         rng = bm.random.RandomState()

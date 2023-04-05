@@ -39,8 +39,8 @@ jobs:
           flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          cd examples
-          pytest ../brainpy/
+          cd brainpy
+          pytest _src/
 
   test_linux_py37:
     runs-on: ubuntu-latest
@@ -72,8 +72,8 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        cd examples
-        pytest ../brainpy/
+        cd brainpy
+        pytest _src/
         
   test_macos:
     runs-on: macos-latest
@@ -103,8 +103,8 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        cd examples
-        pytest ../brainpy/
+        cd brainpy
+        pytest _src/
 
   test_macos_py37:
     runs-on: macos-latest
@@ -136,8 +136,8 @@ jobs:
           flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          cd examples
-          pytest ../brainpy/
+          cd brainpy
+          pytest _src/
           
 
   test_windows:
@@ -172,8 +172,8 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        cd examples
-        pytest ../brainpy/
+        cd brainpy
+        pytest _src/
 
   test_windows_py37:
     runs-on: windows-latest
@@ -196,7 +196,7 @@ jobs:
         python -m pip install "jaxlib==0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
         python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.25.tar.gz
         python -m pip install -r requirements-dev.txt
-        python -m pip install tqdm brainpylib
+        python -m pip install tqdm
         pip uninstall brainpy -y
         python setup.py install
     - name: Lint with flake8
@@ -207,5 +207,4 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        cd examples
-        pytest ../brainpy/
+        pytest brainpy/

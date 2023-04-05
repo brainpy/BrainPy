@@ -6,7 +6,7 @@ import unittest
 import brainpy.math as bm
 from jax import vmap
 
-from brainpy._src.math import event_info
+from brainpy.math import event_info
 
 
 class Test_event_info(unittest.TestCase):

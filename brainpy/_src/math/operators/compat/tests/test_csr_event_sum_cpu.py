@@ -7,10 +7,7 @@ import brainpy.math as bm
 import jax.numpy as jnp
 from jax import vmap
 
-from brainpy._src.math.operators.compat import csr_event_sum
-
 bm.set_platform('cpu')
-
 
 class TestEventSum(unittest.TestCase):
   def test_homo_values(self):
@@ -23,7 +20,7 @@ class TestEventSum(unittest.TestCase):
     sps = bm.as_jax(bm.random.random(size)) < 0.5
     # print(sps)
     value = 3.0233
-    a = csr_event_sum(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
+    a = bm.csr_event_sum(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
     print(a)
 
   def test_homo_values_batching(self):
@@ -35,12 +32,12 @@ class TestEventSum(unittest.TestCase):
     post_ids, indptr = conn.require('pre2post')
     sps = bm.as_jax(bm.random.random((10, size))) < 0.5
     value = 3.0233
-    f = vmap(csr_event_sum, in_axes=(0, None, None, None))
+    f = vmap(bm.csr_event_sum, in_axes=(0, None, None, None))
     a1 = f(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value)
 
     print(a1)
 
-    f = vmap(lambda events: csr_event_sum(events, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value))
+    f = vmap(lambda events: bm.csr_event_sum(events, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, value))
     a2 = f(sps)
 
     print(a2)
@@ -57,7 +54,7 @@ class TestEventSum(unittest.TestCase):
     sps = bm.as_jax(bm.random.random(size)) < 0.5
     values = bm.as_jax(bm.random.rand(post_ids.size))
     # values = bm.ones(post_ids.size)
-    a = csr_event_sum(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values)
+    a = bm.csr_event_sum(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values)
     print(a)
 
   def test_heter_values_batching(self):
@@ -69,10 +66,10 @@ class TestEventSum(unittest.TestCase):
     post_ids, indptr = conn.require('pre2post')
     sps = bm.as_jax(bm.random.random((10, size))) < 0.5
     values = bm.as_jax(bm.random.rand(post_ids.size))
-    f = vmap(csr_event_sum, in_axes=(0, None, None, None))
+    f = vmap(bm.csr_event_sum, in_axes=(0, None, None, None))
     a1 = f(sps, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values)
 
-    f = vmap(lambda events: csr_event_sum(events, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values))
+    f = vmap(lambda events: bm.csr_event_sum(events, (bp.math.as_jax(post_ids), bp.math.as_jax(indptr)), size, values))
     a2 = f(sps)
 
     print(a1, a2)
