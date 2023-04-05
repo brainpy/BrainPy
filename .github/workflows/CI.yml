@@ -39,7 +39,8 @@ jobs:
           flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          pytest brainpy/
+          cd examples
+          pytest ../brainpy/
 
   test_linux_py37:
     runs-on: ubuntu-latest
@@ -71,7 +72,8 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest brainpy/
+        cd examples
+        pytest ../brainpy/
         
   test_macos:
     runs-on: macos-latest
@@ -101,7 +103,8 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest brainpy/
+        cd examples
+        pytest ../brainpy/
 
   test_macos_py37:
     runs-on: macos-latest
@@ -133,7 +136,8 @@ jobs:
           flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          pytest brainpy/
+          cd examples
+          pytest ../brainpy/
           
 
   test_windows:
@@ -168,7 +172,8 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest brainpy/
+        cd examples
+        pytest ../brainpy/
 
   test_windows_py37:
     runs-on: windows-latest
@@ -202,4 +207,5 @@ jobs:
         flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest brainpy/
+        cd examples
+        pytest ../brainpy/
