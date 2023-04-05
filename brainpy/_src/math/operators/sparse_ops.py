@@ -60,7 +60,12 @@ def cusparse_csr_matvec(
     the matrix vector product.
   """
   bl = tools.import_brainpylib()
-  return bl.cusparse_csr_matvec(data, indices, indptr, vector, shape=shape, transpose=transpose)
+  return bl.sparse_ops.cusparse_csr_matvec(data,
+                                           indices,
+                                           indptr,
+                                           vector,
+                                           shape=shape,
+                                           transpose=transpose)
 
 
 def cusparse_coo_matvec(
@@ -107,14 +112,14 @@ def cusparse_coo_matvec(
     the matrix vector product.
   """
   bl = tools.import_brainpylib()
-  return bl.cusparse_coo_matvec(data,
-                                row,
-                                col,
-                                vector,
-                                shape=shape,
-                                rows_sorted=rows_sorted,
-                                cols_sorted=cols_sorted,
-                                transpose=transpose)
+  return bl.sparse_ops.cusparse_coo_matvec(data,
+                                           row,
+                                           col,
+                                           vector,
+                                           shape=shape,
+                                           rows_sorted=rows_sorted,
+                                           cols_sorted=cols_sorted,
+                                           transpose=transpose)
 
 
 def csr_matvec(
@@ -144,9 +149,6 @@ def csr_matvec(
     and dtype ``data.dtype``.
   shape: tuple of int
     A length-2 tuple representing the matrix shape.
-  transpose: bool
-    A boolean specifying whether to transpose the sparse matrix
-    before computing.
   method: str
     The computing method used in GPU backend. Currently, we support
     `scalar`, `vector` and `adaptive`.
@@ -158,7 +160,7 @@ def csr_matvec(
     the matrix vector product.
   """
   bl = tools.import_brainpylib()
-  return bl.csr_matvec(data, indices, indptr, vector, shape=shape)
+  return bl.sparse_ops.csr_matvec(data, indices, indptr, vector, shape=shape, method=method)
 
 
 def _matmul_with_left_sparse(

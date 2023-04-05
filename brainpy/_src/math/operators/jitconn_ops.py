@@ -262,13 +262,13 @@ def matmat_prob_conn_normal_weight(
     The output of :math:`y = M @ v`.
   """
   bl = tools.import_brainpylib()
-  return bl.matmat_prob_normal_p(matrix,
-                                 w_mu=w_mu,
-                                 w_sigma=w_sigma,
-                                 conn_prob=conn_prob,
-                                 shape=shape,
-                                 seed=seed,
-                                 version=version)
+  return bl.jitconn_ops.matmat_prob_conn_normal_weight(matrix,
+                                                       w_mu=w_mu,
+                                                       w_sigma=w_sigma,
+                                                       conn_prob=conn_prob,
+                                                       shape=shape,
+                                                       seed=seed,
+                                                       version=version)
 
 
 def matvec_prob_conn_homo_weight(
