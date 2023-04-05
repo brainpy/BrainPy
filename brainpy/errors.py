@@ -223,7 +223,6 @@ class ConcretizationTypeError(Exception):
     )
 
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.1.3'
 
 try:
   import jaxlib
@@ -256,21 +255,3 @@ Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3
 For more detail installation instructions, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
 
     ''') from None
-
-try:
-  import brainpylib
-
-  if brainpylib.__version__ < _BRAINPYLIB_MINIMAL_VERSION:
-    raise PackageMissingError(
-      f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
-      f'Please install it through:\n\n'
-      f'>>> pip install brainpylib -U'
-    )
-
-  del brainpylib
-except ModuleNotFoundError:
-  raise PackageMissingError(
-    f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
-    f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
-    f'>>> pip install brainpylib'
-  )
