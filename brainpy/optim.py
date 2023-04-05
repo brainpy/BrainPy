@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 
+
+# optimizers #
+# ---------- #
+
+
 from brainpy._src.optimizers.optimizer import (
   Optimizer as Optimizer,
+)
+from brainpy._src.optimizers.optimizer import (
   SGD as SGD,
   Momentum as Momentum,
   MomentumNesterov as MomentumNesterov,
@@ -14,9 +21,16 @@ from brainpy._src.optimizers.optimizer import (
   AdamW as AdamW,
 )
 
+
+# schedulers #
+# ---------- #
+
+
 from brainpy._src.optimizers.scheduler import (
   make_schedule as make_schedule,
   Scheduler as Scheduler,
+)
+from brainpy._src.optimizers.scheduler import (
   Constant as Constant,
   ExponentialDecay as ExponentialDecay,
   InverseTimeDecay as InverseTimeDecay,

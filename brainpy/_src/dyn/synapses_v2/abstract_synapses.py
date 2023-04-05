@@ -121,7 +121,7 @@ class Exponential(SynConnNS):
     else:
       if self.comp_method == 'sparse':
         if self.stp is None:
-          f = lambda s: bm.event_ops.event_csr_matvec(self.g_max,
+          f = lambda s: bm.event_csr_matvec(self.g_max,
                                                       self.conn_mask[0],
                                                       self.conn_mask[1],
                                                       s,
@@ -130,7 +130,7 @@ class Exponential(SynConnNS):
           if isinstance(self.mode, bm.BatchingMode):
             f = vmap(f)
         else:
-          f = lambda s: bm.sparse_ops.cusparse_csr_matvec(self.g_max,
+          f = lambda s: bm.cusparse_csr_matvec(self.g_max,
                                                           self.conn_mask[0],
                                                           self.conn_mask[1],
                                                           s,
@@ -276,7 +276,7 @@ class DualExponential(SynConnNS):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.sparse_ops.cusparse_csr_matvec(
+        f = lambda s: bm.cusparse_csr_matvec(
           self.g_max,
           self.conn_mask[0],
           self.conn_mask[1],

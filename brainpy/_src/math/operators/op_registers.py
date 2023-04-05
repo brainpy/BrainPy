@@ -7,10 +7,11 @@ from jax.tree_util import tree_map
 
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.math.ndarray import Array
-from . import numba_approach
+from brainpy._src import tools
 
 __all__ = [
   'XLACustomOp',
+  'compile_cpu_signature_with_numba',
 ]
 
 
@@ -80,7 +81,8 @@ class XLACustomOp(BrainPyObject):
       gpu_func = None
 
     # register OP
-    self.op = numba_approach.register_op_with_numba(
+    bl = tools.import_brainpylib()
+    self.op = bl.register_op_with_numba(
       self.name,
       cpu_func=cpu_func,
       gpu_func_translation=gpu_func,
@@ -98,4 +100,21 @@ class XLACustomOp(BrainPyObject):
                       kwargs, is_leaf=lambda a: isinstance(a, Array))
     res = self.op.bind(*args, **kwargs)
     return res
+
+
+def compile_cpu_signature_with_numba(
+    c,
+    func,
+    abs_eval_fn,
+    multiple_results,
+    inputs: tuple,
+    description: dict = None,
+):
+  bl = tools.import_brainpylib()
+  return bl.compile_cpu_signature_with_numba(c,
+                                             func,
+                                             abs_eval_fn,
+                                             multiple_results,
+                                             inputs,
+                                             description)
 
