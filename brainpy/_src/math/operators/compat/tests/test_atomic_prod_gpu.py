@@ -13,7 +13,6 @@ from brainpy._src.math.operators.compat import coo_atomic_prod
 if jax.default_backend() != 'gpu':
     pytest.skip("No gpu available.", allow_module_level=True)
 
-
 class TestAtomicProd(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestAtomicProd, self).__init__(*args, **kwargs)

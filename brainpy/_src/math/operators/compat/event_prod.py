@@ -110,7 +110,7 @@ def _event_prod_translation(c, events, indices, indptr, values, *, post_num, pla
     if gpu_ops is None:
       raise GPUOperatorNotFound(csr_event_prod_p1.name)
     v_type = b'_csr_event_prod_homo' if values_dim[0] == 1 else b'_csr_event_prod_heter'
-    opaque = gpu_ops.build_csr_event_prod_descriptor(pre_size, post_num)
+    opaque = gpu_ops.build_csr_event_sum_descriptor(pre_size, post_num)
     return x_ops.CustomCallWithLayout(
       c, platform.encode() + v_type + f_type + i_type,
       operands=(events,

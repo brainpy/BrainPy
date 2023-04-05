@@ -4,10 +4,10 @@
 import unittest
 
 import jax.numpy as jnp
-from brainpy._src.math.operators.compat import coo_atomic_prod
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy._src.math import coo_atomic_prod
 
 bp.math.set_platform('cpu')
 

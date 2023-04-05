@@ -13,7 +13,6 @@ from brainpy._src.math.operators.compat import coo_atomic_sum
 if jax.default_backend() != 'gpu':
   pytest.skip("No gpu available.", allow_module_level=True)
 
-
 class TestAtomicSum(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super(TestAtomicSum, self).__init__(*args, **kwargs)
