@@ -8,6 +8,7 @@ pathos
 jax>=0.3.0
 pybind11>=2.6
 numpy
+brainpylib
 
 # test requirements
 pytest
