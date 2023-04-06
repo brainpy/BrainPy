@@ -26,7 +26,7 @@ class Mode(object):
   def is_a(self, mode: type):
     assert isinstance(mode, type)
     return self.__class__ == mode
-  
+
   def is_parent_of(self, *modes):
     cls = self.__class__
     for smode in modes:
@@ -58,7 +58,12 @@ class BatchingMode(Mode):
 
   :py:class:`~.NonBatchingMode` is usually used in models of model trainings.
   """
-  pass
+
+  def __init__(self, batch_size: int = 1):
+    self.batch_size = batch_size
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(batch_size={self.batch_size})'
 
 
 class TrainingMode(BatchingMode):
@@ -74,4 +79,3 @@ batching_mode = BatchingMode()
 
 training_mode = TrainingMode()
 '''Default instance of the training computation mode.'''
-
