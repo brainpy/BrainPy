@@ -490,20 +490,23 @@ class training_environment(environment):
 
   """
 
-  def __init__(self,
-               dt: float = None,
-               x64: bool = None,
-               complex_: type = None,
-               float_: type = None,
-               int_: type = None,
-               bool_: type = None):
+  def __init__(
+      self,
+      dt: float = None,
+      x64: bool = None,
+      complex_: type = None,
+      float_: type = None,
+      int_: type = None,
+      bool_: type = None,
+      batch_size: int = 1,
+  ):
     super().__init__(dt=dt,
                      x64=x64,
                      complex_=complex_,
                      float_=float_,
                      int_=int_,
                      bool_=bool_,
-                     mode=modes.TrainingMode())
+                     mode=modes.TrainingMode(batch_size))
 
 
 class batching_environment(environment):
@@ -519,20 +522,23 @@ class batching_environment(environment):
 
   """
 
-  def __init__(self,
-               dt: float = None,
-               x64: bool = None,
-               complex_: type = None,
-               float_: type = None,
-               int_: type = None,
-               bool_: type = None):
+  def __init__(
+      self,
+      dt: float = None,
+      x64: bool = None,
+      complex_: type = None,
+      float_: type = None,
+      int_: type = None,
+      bool_: type = None,
+      batch_size: int = 1,
+  ):
     super().__init__(dt=dt,
                      x64=x64,
                      complex_=complex_,
                      float_=float_,
                      int_=int_,
                      bool_=bool_,
-                     mode=modes.BatchingMode())
+                     mode=modes.BatchingMode(batch_size))
 
 
 def enable_x64():

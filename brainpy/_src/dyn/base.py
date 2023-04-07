@@ -767,7 +767,7 @@ class SynConn(DynamicalSystem):
       if not hasattr(self.post, attr):
         raise ValueError(f'{self} need "pre" neuron group has attribute "{attr}".')
 
-  def update(self, tdi, pre_spike=None):
+  def update(self, *args, **kwargs):
     """The function to specify the updating rule.
 
     Assume any dynamical system depends on the shared variables (`sha`),
@@ -1022,6 +1022,11 @@ class TwoEndConn(SynConn):
     else:
       post_vs = syn_value @ (syn_weight * conn_mat)
     return post_vs
+
+
+class TwoEndConnNS(TwoEndConn):
+  """Two-end connection without passing shared arguments."""
+  _pass_shared_args = False
 
 
 class CondNeuGroup(NeuGroup, Container):
