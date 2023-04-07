@@ -81,7 +81,9 @@ from brainpy._src.dyn.runners import (DSRunner as DSRunner)
 from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
 # DynamicalSystem base classes
 from brainpy._src.dyn.base import (DynamicalSystemNS as DynamicalSystemNS,
-                                   NeuGroupNS as NeuGroupNS)
+                                   NeuGroupNS as NeuGroupNS,
+                                   TwoEndConnNS as TwoEndConnNS,
+                                   )
 from brainpy._src.dyn.synapses_v2.base import (SynOutNS as SynOutNS,
                                                SynSTPNS as SynSTPNS,
                                                SynConnNS as SynConnNS, )

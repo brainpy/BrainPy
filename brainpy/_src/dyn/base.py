@@ -1024,6 +1024,11 @@ class TwoEndConn(SynConn):
     return post_vs
 
 
+class TwoEndConnNS(TwoEndConn):
+  """Two-end connection without passing shared arguments."""
+  _pass_shared_args = False
+
+
 class CondNeuGroup(NeuGroup, Container):
   r"""Base class to model conductance-based neuron group.
 
