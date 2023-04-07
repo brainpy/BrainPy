@@ -17,8 +17,8 @@ from brainpy import math as bm, tools
 from brainpy._src.dyn.base import DynamicalSystem
 from brainpy._src.dyn.context import share
 from brainpy._src.running.runner import Runner
-from brainpy.check import is_float, serialize_kwargs
-from brainpy.errors import RunningError, NoLongerSupportError
+from brainpy.check import serialize_kwargs
+from brainpy.errors import RunningError
 from brainpy.types import ArrayType, Output, Monitor
 
 __all__ = [
@@ -319,6 +319,7 @@ class DSRunner(Runner):
       # jit
       jit: Union[bool, Dict[str, bool]] = True,
       dyn_vars: Optional[Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
+      memory_efficient: bool = False,
 
       # extra info
       dt: Optional[float] = None,
@@ -342,10 +343,9 @@ class DSRunner(Runner):
                                    numpy_mon_after_run=numpy_mon_after_run)
 
     # t0 and i0
-    is_float(t0, 't0', allow_none=False, allow_int=True)
+    self.i0 = 0
     self._t0 = t0
-    self.i0 = bm.Variable(jnp.asarray(1, dtype=bm.int_))
-    self.t0 = bm.Variable(jnp.asarray(t0, dtype=bm.float_))
+    self.t0 = t0
     if data_first_axis is None:
       data_first_axis = 'B' if isinstance(self.target.mode, bm.BatchingMode) else 'T'
     assert data_first_axis in ['B', 'T']
@@ -371,6 +371,11 @@ class DSRunner(Runner):
     # run function
     self._f_predict_compiled = dict()
 
+    # monitors
+    self._memory_efficient = memory_efficient
+    if memory_efficient and not numpy_mon_after_run:
+      raise ValueError('When setting "gpu_memory_efficient=True", "numpy_mon_after_run" can not be False.')
+
   def __repr__(self):
     name = self.__class__.__name__
     indent = " " * len(name) + ' '
@@ -382,8 +387,8 @@ class DSRunner(Runner):
 
   def reset_state(self):
     """Reset state of the ``DSRunner``."""
-    self.i0.value = jnp.zeros_like(self.i0.value)
-    self.t0.value = jnp.ones_like(self.t0.value) * self._t0
+    self.i0 = 0
+    self.t0 = self._t0
 
   def predict(
       self,
@@ -438,11 +443,12 @@ class DSRunner(Runner):
     """
 
     if inputs_are_batching is not None:
-      raise NoLongerSupportError(
+      raise warnings.warn(
         f'''
         `inputs_are_batching` is no longer supported. 
         The target mode of {self.target.mode} has already indicated the input should be batching.
-        '''
+        ''',
+        UserWarning
       )
     if duration is None:
       if inputs is None:
@@ -466,7 +472,7 @@ class DSRunner(Runner):
     if shared_args is None:
       shared_args = dict()
     shared_args['fit'] = shared_args.get('fit', False)
-    shared = tools.DotDict(i=jnp.arange(num_step, dtype=bm.int_))
+    shared = tools.DotDict(i=np.arange(num_step, dtype=bm.int_))
     shared['t'] = shared['i'] * self.dt
     shared['i'] += self.i0
     shared['t'] += self.t0
@@ -486,7 +492,8 @@ class DSRunner(Runner):
     # running
     if eval_time:
       t0 = time.time()
-    outputs, hists = self._predict(xs=(shared['t'], shared['i'], inputs), shared_args=shared_args)
+    with jax.disable_jit(not self.jit['predict']):
+      outputs, hists = self._predict(xs=(shared['t'], shared['i'], inputs), shared_args=shared_args)
     if eval_time:
       running_time = time.time() - t0
 
@@ -495,11 +502,16 @@ class DSRunner(Runner):
       self._pbar.close()
 
     # post-running for monitors
-    hists['ts'] = shared['t'] + self.dt
-    if self.numpy_mon_after_run:
-      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
-    for key in hists.keys():
-      self.mon[key] = hists[key]
+    if self._memory_efficient:
+      self.mon['ts'] = shared['t'] + self.dt
+      for key in self.mon.var_names:
+        self.mon[key] = np.asarray(self.mon[key])
+    else:
+      hists['ts'] = shared['t'] + self.dt
+      if self.numpy_mon_after_run:
+        hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
+      for key in hists.keys():
+        self.mon[key] = hists[key]
     self.i0 += num_step
     self.t0 += (num_step * self.dt if duration is None else duration)
     return outputs if not eval_time else (running_time, outputs)
@@ -609,9 +621,12 @@ class DSRunner(Runner):
           raise ValueError(f'Number of time step is different across arrays in '
                            f'the provided "xs". We got {set(num_steps)}.')
         return num_steps[0]
-
     else:
       raise ValueError
+
+  def _step_mon_on_cpu(self, args, transforms):
+    for key, val in args.items():
+      self.mon[key].append(val)
 
   def _step_func_predict(self, shared_args, t, i, x):
     # input step
@@ -633,7 +648,12 @@ class DSRunner(Runner):
     if self.progress_bar:
       id_tap(lambda *arg: self._pbar.update(), ())
     share.clear_shargs()
-    return out, mon
+
+    if self._memory_efficient:
+      id_tap(self._step_mon_on_cpu, mon)
+      return out, None
+    else:
+      return out, mon
 
   def _get_f_predict(self, shared_args: Dict = None):
     if shared_args is None:
@@ -646,16 +666,30 @@ class DSRunner(Runner):
       dyn_vars.update(self.vars(level=0))
       dyn_vars = dyn_vars.unique()
 
-      def run_func(all_inputs):
-        return bm.for_loop(partial(self._step_func_predict, shared_args),
-                           all_inputs,
-                           dyn_vars=dyn_vars,
-                           jit=self.jit['predict'])
+      if self._memory_efficient:
+        _jit_step = bm.jit(partial(self._step_func_predict, shared_args), dyn_vars=dyn_vars)
 
-      if self.jit['predict']:
-        self._f_predict_compiled[shared_kwargs_str] = bm.jit(run_func, dyn_vars=dyn_vars)
+        def run_func(all_inputs):
+          outs = None
+          times, indices, xs = all_inputs
+          for i in range(times.shape[0]):
+            out, _ = _jit_step(times[i], indices[i], tree_map(lambda a: a[i], xs))
+            if outs is None:
+              outs = tree_map(lambda a: [], out)
+            outs = tree_map(lambda a, o: o.append(a), out, outs)
+          outs = tree_map(lambda a: bm.as_jax(a), outs)
+          return outs, None
+
       else:
-        self._f_predict_compiled[shared_kwargs_str] = run_func
+        @bm.jit(dyn_vars=dyn_vars)
+        def run_func(all_inputs):
+          return bm.for_loop(partial(self._step_func_predict, shared_args),
+                             all_inputs,
+                             dyn_vars=dyn_vars,
+                             jit=self.jit['predict'])
+
+      self._f_predict_compiled[shared_kwargs_str] = run_func
+
     return self._f_predict_compiled[shared_kwargs_str]
 
   def __del__(self):

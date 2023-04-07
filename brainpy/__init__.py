@@ -113,7 +113,6 @@ from . import analysis
 
 from . import running, testing
 from ._src.visualization import (visualize as visualize)
-from ._src.running.runner import (Runner as Runner)
 
 
 #  Part 7: Deprecations  #
