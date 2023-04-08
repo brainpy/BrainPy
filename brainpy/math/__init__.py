@@ -4,7 +4,7 @@
 # data structure
 from .ndarray import *
 from .delayvars import *
-from .arrayinterporate import *
+from .interoperability import *
 from .datatypes import *
 from .compat_numpy import *
 from .compat_tensorflow import *
@@ -15,7 +15,11 @@ from .activations import *
 from . import activations
 
 # operators
-from .operators import *
+from .event_ops import *
+from .jitconn_ops import *
+from .pre_syn_post import *
+from .sparse_ops import *
+from .op_register import *
 from . import surrogate
 
 # Variable and Objects for object-oriented JAX transformations

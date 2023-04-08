@@ -324,66 +324,6 @@ class _DecoratorContextManager:
     return self.__class__()
 
 
-def set(
-    mode: modes.Mode = None,
-    dt: float = None,
-    x64: bool = None,
-    complex_: type = None,
-    float_: type = None,
-    int_: type = None,
-    bool_: type = None,
-):
-  """Set the default computation environment.
-
-  Parameters
-  ----------
-  mode: Mode
-    The computing mode.
-  dt: float
-    The numerical integration precision.
-  x64: bool
-    Enable x64 computation.
-  complex_: type
-    The complex data type.
-  float_
-    The floating data type.
-  int_
-    The integer data type.
-  bool_
-    The bool data type.
-  """
-  if dt is not None:
-    assert isinstance(dt, float), '"dt" must a float.'
-    set_dt(dt)
-
-  if mode is not None:
-    assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
-    set_mode(mode)
-
-  if x64 is not None:
-    assert isinstance(x64, bool), f'"x64" must be a bool.'
-    set_x64(x64)
-
-  if float_ is not None:
-    assert isinstance(float_, type), '"float_" must a float.'
-    set_float(float_)
-
-  if int_ is not None:
-    assert isinstance(int_, type), '"int_" must a type.'
-    set_int(int_)
-
-  if bool_ is not None:
-    assert isinstance(bool_, type), '"bool_" must a type.'
-    set_bool(bool_)
-
-  if complex_ is not None:
-    assert isinstance(complex_, type), '"complex_" must a type.'
-    set_complex(complex_)
-
-
-set_environment = set
-
-
 class environment(_DecoratorContextManager):
   r"""Context-manager that sets a computing environment for brain dynamics computation.
 
@@ -539,6 +479,66 @@ class batching_environment(environment):
                      int_=int_,
                      bool_=bool_,
                      mode=modes.BatchingMode(batch_size))
+
+
+def set(
+    mode: modes.Mode = None,
+    dt: float = None,
+    x64: bool = None,
+    complex_: type = None,
+    float_: type = None,
+    int_: type = None,
+    bool_: type = None,
+):
+  """Set the default computation environment.
+
+  Parameters
+  ----------
+  mode: Mode
+    The computing mode.
+  dt: float
+    The numerical integration precision.
+  x64: bool
+    Enable x64 computation.
+  complex_: type
+    The complex data type.
+  float_
+    The floating data type.
+  int_
+    The integer data type.
+  bool_
+    The bool data type.
+  """
+  if dt is not None:
+    assert isinstance(dt, float), '"dt" must a float.'
+    set_dt(dt)
+
+  if mode is not None:
+    assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
+    set_mode(mode)
+
+  if x64 is not None:
+    assert isinstance(x64, bool), f'"x64" must be a bool.'
+    set_x64(x64)
+
+  if float_ is not None:
+    assert isinstance(float_, type), '"float_" must a float.'
+    set_float(float_)
+
+  if int_ is not None:
+    assert isinstance(int_, type), '"int_" must a type.'
+    set_int(int_)
+
+  if bool_ is not None:
+    assert isinstance(bool_, type), '"bool_" must a type.'
+    set_bool(bool_)
+
+  if complex_ is not None:
+    assert isinstance(complex_, type), '"complex_" must a type.'
+    set_complex(complex_)
+
+
+set_environment = set
 
 
 def enable_x64():
