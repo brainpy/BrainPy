@@ -90,7 +90,7 @@ class Array(object):
 
   is_brainpy_array = True
   _need_check_context = True
-  __slots__ = ("_value", "_transform_context")
+  __slots__ = ("_value", )
 
   def __init__(self, value, dtype=None):
     # array value
@@ -101,26 +101,6 @@ class Array(object):
     if dtype is not None:
       value = jnp.asarray(value, dtype=dtype)
     self._value = value
-    # jit mode
-    self._transform_context = get_context()
-
-  def __check_context(self) -> None:
-    # raise error when in-place updating a
-    if self._need_check_context:
-      if self._transform_context is None:
-        if len(_jax_transformation_context_) > 0:
-          raise MathError(f'Array created outside of the transformation functions '
-                          f'({_jax_transformation_context_[-1]}) cannot be updated. '
-                          f'You should mark it as a brainpy.math.Variable instead.')
-      else:
-        if len(_jax_transformation_context_) > 0:
-          if self._transform_context != _jax_transformation_context_[-1]:
-            raise MathError(f'Array context "{self._transform_context}" differs from the JAX '
-                            f'transformation context "{_jax_transformation_context_[-1]}"'
-                            '\n\n'
-                            'Array created in one transformation function '
-                            'cannot be updated another transformation function. '
-                            'You should mark it as a brainpy.math.Variable instead.')
 
   @property
   def value(self):
@@ -1455,7 +1435,7 @@ class Variable(Array):
   """
 
   _need_check_context = False
-  __slots__ = ('_value', '_batch_axis')
+  __slots__ = ('_value', '_batch_axis', '_env')
 
   def __init__(
       self,
@@ -1486,6 +1466,8 @@ class Variable(Array):
       if batch_axis >= self.ndim:
         raise MathError(f'This variables has {self.ndim} dimension, '
                         f'but the batch axis is set to be {batch_axis}.')
+
+    self._env = True
 
   @property
   def nobatch_shape(self) -> TupleType[int, ...]:
