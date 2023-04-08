@@ -1655,12 +1655,11 @@ class VariableView(Variable):
 
 def _jaxarray_unflatten(aux_data, flat_contents):
   r = Array(*flat_contents)
-  r._transform_context = aux_data[0]
   return r
 
 
 register_pytree_node(Array,
-                     lambda t: ((t.value,), (t._transform_context,)),
+                     lambda t: ((t.value,), None),
                      _jaxarray_unflatten)
 
 register_pytree_node(Variable,
