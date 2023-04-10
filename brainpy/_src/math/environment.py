@@ -163,8 +163,6 @@ class environment(_DecoratorContextManager):
   ) -> None:
     super().__init__()
 
-    self.vars = _VarList([])
-
     if dt is not None:
       assert isinstance(dt, float), '"dt" must a float.'
       self.old_dt = get_dt()
@@ -200,9 +198,6 @@ class environment(_DecoratorContextManager):
     self.float_ = float_
     self.int_ = int_
     self.bool_ = bool_
-
-  def record_var(self, var: Any):
-    self.vars.append(var)
 
   def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
