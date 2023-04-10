@@ -14,7 +14,7 @@ from brainpy._src import math as bm
 from brainpy._src.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy._src.initialize import Initializer, parameter, variable, Uniform, noise as init_noise
 from brainpy._src.integrators import odeint, sdeint
-from brainpy._src.math.ndarray import Variable, VariableView
+from brainpy._src.math.object_transform.variables import Variable, VariableView
 from brainpy._src.math.object_transform.base import BrainPyObject, Collector
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape

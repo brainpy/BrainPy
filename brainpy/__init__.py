@@ -132,10 +132,9 @@ fde.__dict__['fdeint'] = fdeint
 
 # deprecated
 from brainpy._src.math.object_transform.base import (Base as Base,
-                                                     DynVarCollector,
+                                                     ArrayCollector,
                                                      Collector as Collector, )
-globals()['ArrayCollector'] = DynVarCollector
-globals()['TensorCollector'] = DynVarCollector
+globals()['TensorCollector'] = ArrayCollector
 
 train.__dict__['DSTrainer'] = DSTrainer
 train.__dict__['BPTT'] = BPTT
@@ -150,8 +149,8 @@ from ._src import base
 base.base.__dict__['BrainPyObject'] = BrainPyObject
 base.base.__dict__['Base'] = Base
 base.collector.__dict__['Collector'] = Collector
-base.collector.__dict__['ArrayCollector'] = DynVarCollector
-base.collector.__dict__['TensorCollector'] = DynVarCollector
+base.collector.__dict__['ArrayCollector'] = ArrayCollector
+base.collector.__dict__['TensorCollector'] = ArrayCollector
 base.function.__dict__['FunAsObject'] = math.FunAsObject
 base.function.__dict__['Function'] = math.FunAsObject
 base.io.__dict__['save_as_h5'] = checkpoints.io.save_as_h5
@@ -166,8 +165,8 @@ base.naming.__dict__['clear_name_cache'] = math.clear_name_cache
 base.__dict__['BrainPyObject'] = BrainPyObject
 base.__dict__['Base'] = Base
 base.__dict__['Collector'] = Collector
-base.__dict__['ArrayCollector'] = DynVarCollector
-base.__dict__['TensorCollector'] = DynVarCollector
+base.__dict__['ArrayCollector'] = ArrayCollector
+base.__dict__['TensorCollector'] = ArrayCollector
 base.__dict__['FunAsObject'] = math.FunAsObject
 base.__dict__['Function'] = math.FunAsObject
 base.__dict__['save_as_h5'] = checkpoints.io.save_as_h5

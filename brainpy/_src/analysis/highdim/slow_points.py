@@ -132,11 +132,11 @@ class SlowPointFinder(base.DSAnalyzer):
 
     # update function
     if target_vars is None:
-      self.target_vars = bm.DynVarCollector()
+      self.target_vars = bm.ArrayCollector()
     else:
       if not isinstance(target_vars, dict):
         raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
-      self.target_vars = bm.DynVarCollector(target_vars)
+      self.target_vars = bm.ArrayCollector(target_vars)
     excluded_vars = () if excluded_vars is None else excluded_vars
     if isinstance(excluded_vars, dict):
       excluded_vars = tuple(excluded_vars.values())

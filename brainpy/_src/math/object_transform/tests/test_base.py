@@ -179,7 +179,7 @@ class TestVarList(bp.testing.UnitTestCase):
         self.vs[2] += 10.
 
     obj = Object()
-    self.assertTrue(len(obj.vars()) == 1)
+    self.assertTrue(len(obj.vars()) == 3)
     self.assertTrue(len(obj.nodes()) == 1)
 
     @bm.jit
@@ -208,7 +208,8 @@ class TestVarDict(bp.testing.UnitTestCase):
         self.vs['c'] += 10.
 
     obj = Object()
-    self.assertTrue(len(obj.vars()) == 1)
+    print(obj.vars())
+    self.assertTrue(len(obj.vars()) == 3)
     self.assertTrue(len(obj.nodes()) == 1)
 
     @bm.jit

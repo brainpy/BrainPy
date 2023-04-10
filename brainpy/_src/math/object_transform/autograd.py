@@ -16,9 +16,9 @@ from jax.tree_util import (tree_flatten, tree_unflatten,
 from jax.util import safe_map
 
 from brainpy import tools, check
-from brainpy._src.math.ndarray import Array, Variable
-from brainpy._src.math.object_transform._abstract import ObjectTransform
-from brainpy._src.math.object_transform.base import BrainPyObject
+from brainpy._src.math.ndarray import Array
+from brainpy._src.math.object_transform.variables import Variable
+from brainpy._src.math.object_transform.base import BrainPyObject, ObjectTransform
 from brainpy._src.math.object_transform._tools import (dynvar_deprecation,
                                                        node_deprecation,
                                                        evaluate_dyn_vars)

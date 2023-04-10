@@ -13,11 +13,10 @@ from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 import jax
 
 from brainpy import tools, check
-from brainpy._src.math.ndarray import Variable, VariableStack
 from brainpy._src.math.object_transform.naming import get_stack_cache, cache_stack
-from ._abstract import ObjectTransform
 from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, abstract
-from .base import BrainPyObject
+from .base import BrainPyObject, ObjectTransform
+from .variables import Variable, VariableStack
 
 __all__ = [
   'jit',

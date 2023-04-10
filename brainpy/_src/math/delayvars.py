@@ -13,9 +13,10 @@ from brainpy.check import is_float, is_integer, jit_error_checking
 from brainpy.errors import UnsupportedError
 from .interoperability import as_jax
 from .compat_numpy import vstack, broadcast_to
-from .environment import get_dt, get_float, get_int
-from .ndarray import ndarray, Variable, Array
+from .environment import get_dt, get_float
+from .ndarray import ndarray, Array
 from .object_transform.base import BrainPyObject
+from .object_transform.variables import Variable
 
 __all__ = [
   'AbstractDelay',

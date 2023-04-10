@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.math.ndarray import Variable
+from brainpy._src.math.object_transform import Variable
 from brainpy._src.math.environment import get_float
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.dyn.base import DynamicalSystem

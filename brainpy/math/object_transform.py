@@ -9,7 +9,7 @@ from brainpy._src.math.object_transform.autograd import (
   hessian as hessian,
 )
 
-from brainpy._src.math.object_transform._abstract import (
+from brainpy._src.math.object_transform.base import (
   ObjectTransform as ObjectTransform
 )
 

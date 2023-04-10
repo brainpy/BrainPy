@@ -11,17 +11,17 @@ from jax.tree_util import tree_flatten, tree_unflatten
 
 from brainpy import errors, tools, check
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import (Array, Variable, VariableStack)
+from brainpy._src.math.ndarray import (Array, )
 from brainpy._src.math.object_transform._tools import (evaluate_dyn_vars,
                                                        dynvar_deprecation,
                                                        node_deprecation,
                                                        abstract)
+from brainpy._src.math.object_transform.variables import (Variable, VariableStack)
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        get_stack_cache,
                                                        cache_stack)
-from ._abstract import ObjectTransform
 from ._utils import infer_dyn_vars
-from .base import BrainPyObject, DynVarCollector
+from .base import BrainPyObject, ArrayCollector, ObjectTransform
 
 __all__ = [
   'make_loop',
@@ -491,7 +491,7 @@ def cond(
     dynvar_deprecation(dyn_vars)
     node_deprecation(child_objs)
     dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-    dyn_vars = DynVarCollector(dyn_vars)
+    dyn_vars = ArrayCollector(dyn_vars)
     dyn_vars.update(infer_dyn_vars(true_fun))
     dyn_vars.update(infer_dyn_vars(false_fun))
     for obj in check.is_all_objs(child_objs, out_as='tuple'):
@@ -590,7 +590,7 @@ def ifelse(
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = DynVarCollector(dyn_vars)
+  dyn_vars = ArrayCollector(dyn_vars)
   for f in branches:
     dyn_vars += infer_dyn_vars(f)
   for obj in check.is_all_objs(child_objs, out_as='tuple'):

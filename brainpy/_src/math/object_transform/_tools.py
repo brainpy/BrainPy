@@ -1,6 +1,6 @@
 import warnings
 import jax
-from brainpy._src.math.ndarray import VariableStack
+from brainpy._src.math.object_transform.variables import VariableStack
 from brainpy._src.math.object_transform.naming import (cache_stack,
                                                        get_stack_cache)
 
