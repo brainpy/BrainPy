@@ -37,7 +37,7 @@ class TestJIT(bp.testing.UnitTestCase):
         self.b += a
         return self.b
 
-      @bm.cls_jit_inline
+      @bm.cls_jit(inline=True)
       def update(self, x):
         self.b += x
 
