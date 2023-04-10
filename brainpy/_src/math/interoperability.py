@@ -3,7 +3,8 @@
 import jax.numpy as jnp
 import numpy as np
 
-from .ndarray import Array, Variable
+from .ndarray import Array
+
 
 __all__ = [
   'as_device_array', 'as_jax', 'as_ndarray', 'as_numpy', 'as_variable',
@@ -90,4 +91,5 @@ def as_variable(tensor, dtype=None):
     Array interpretation of `tensor`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
+  from .object_transform.variables import Variable
   return Variable(tensor, dtype=dtype)

@@ -4,7 +4,7 @@
 import jax.numpy as jnp
 from jax import vmap, jit, ops as jops
 
-from brainpy._src.math.arrayinterporate import as_jax
+from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.operators import event_ops
 from brainpy.errors import MathError
 from brainpy._src import tools

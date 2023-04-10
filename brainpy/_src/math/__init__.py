@@ -40,7 +40,7 @@ from . import activations
 
 # high-level numpy operations
 from .datatypes import *
-from .arrayinterporate import *
+from .interoperability import *
 from .compat_numpy import *
 from .compat_tensorflow import *
 from .others import *

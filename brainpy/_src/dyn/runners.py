@@ -301,6 +301,13 @@ class DSRunner(Runner):
     In order to be compatible with previous API, default is set to be ``False``.
 
     .. versionadded:: 2.3.1
+
+  memory_efficient: bool
+    Whether using the memory-efficient way to just-in-time compile the given target.
+    Default is False.
+
+    .. versionadded:: 2.3.8
+
   """
 
   target: DynamicalSystem
@@ -697,3 +704,4 @@ class DSRunner(Runner):
       for key in tuple(self._f_predict_compiled.keys()):
         self._f_predict_compiled.pop(key)
     super(DSRunner, self).__del__()
+

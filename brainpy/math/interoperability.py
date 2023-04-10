@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.math.arrayinterporate import (
+from brainpy._src.math.interoperability import (
   as_device_array as as_device_array,
   as_jax as as_jax,
   as_ndarray as as_ndarray,

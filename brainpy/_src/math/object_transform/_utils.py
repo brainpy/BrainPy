@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict
-from .base import BrainPyObject, DynVarCollector
+from .base import BrainPyObject, ArrayCollector
 
 __all__ = [
   'infer_dyn_vars',
@@ -15,7 +15,7 @@ def infer_dyn_vars(target):
   elif hasattr(target, '__self__') and isinstance(target.__self__, BrainPyObject):
     dyn_vars = target.__self__.vars().unique()
   else:
-    dyn_vars = DynVarCollector()
+    dyn_vars = ArrayCollector()
   return dyn_vars
 
 

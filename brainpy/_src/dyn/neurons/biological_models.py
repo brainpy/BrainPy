@@ -317,7 +317,7 @@ class HH(NeuGroupNS):
       x = self.input.value
     else:
       x = 0. if x is None else x
-    V, m, h, n = self.integral(self.V, self.m, self.h, self.n, t, x, dt)
+    V, m, h, n = self.integral(self.V.value, self.m.value, self.h.value, self.n.value, t, x, dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.m.value = m

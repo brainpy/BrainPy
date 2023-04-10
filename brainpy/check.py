@@ -556,8 +556,8 @@ def is_elem_or_seq_or_dict(targets: Any,
 def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
   global var_obs
   if var_obs is None:
-    from brainpy.math import Variable, ListVar, DictVar
-    var_obs = (ListVar, DictVar, Variable)
+    from brainpy.math import Variable, VarList, VarDict
+    var_obs = (VarList, VarDict, Variable)
 
   return is_elem_or_seq_or_dict(dyn_vars, var_obs, out_as)
 

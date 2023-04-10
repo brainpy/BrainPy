@@ -3,14 +3,10 @@
 
 import brainpy as bp
 import brainpy.math as bm
-import unittest
 
 
-class TestJaxArrayJIT(unittest.TestCase):
-
+class TestJIT(bp.testing.UnitTestCase):
   def test_jaxarray_inside_jit1(self):
-    bp.math.random.seed()
-
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
@@ -21,6 +17,35 @@ class TestJaxArrayJIT(unittest.TestCase):
         a = bm.random.uniform(size=2)
         a = a.at[0].set(1.)
         self.b += a
+        return self.b
 
-    run = bm.jit(SomeProgram())
-    run()
+    program = SomeProgram()
+    b_out = bm.jit(program)()
+    self.assertTrue(bm.array_equal(b_out, program.b))
+
+  def test_class_jit1(self):
+    class SomeProgram(bp.BrainPyObject):
+      def __init__(self):
+        super(SomeProgram, self).__init__()
+        self.a = bm.zeros(2)
+        self.b = bm.Variable(bm.ones(2))
+
+      @bm.cls_jit
+      def __call__(self):
+        a = bm.random.uniform(size=2)
+        a = a.at[0].set(1.)
+        self.b += a
+        return self.b
+
+      @bm.cls_jit(inline=True)
+      def update(self, x):
+        self.b += x
+
+    program = SomeProgram()
+    new_b = program()
+    self.assertTrue(bm.allclose(new_b, program.b))
+    program.update(1.)
+    self.assertTrue(bm.allclose(new_b + 1., program.b))
+
+
+

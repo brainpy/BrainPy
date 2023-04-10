@@ -6,19 +6,22 @@ from typing import Union, Sequence, Any, Dict, Callable, Optional
 import jax
 import jax.numpy as jnp
 from jax import lax
-from jax.tree_util import tree_flatten, tree_unflatten
 from jax.errors import UnexpectedTracerError
+from jax.tree_util import tree_flatten, tree_unflatten
 
 from brainpy import errors, tools, check
-from brainpy._src.math.ndarray import (Array,
-                                       Variable,
-                                       add_context,
-                                       del_context)
-from brainpy._src.math.arrayinterporate import as_jax
-from brainpy._src.tools.naming import get_unique_name
-from .base import BrainPyObject, DynVarCollector
+from brainpy._src.math.interoperability import as_jax
+from brainpy._src.math.ndarray import (Array, )
+from brainpy._src.math.object_transform._tools import (evaluate_dyn_vars,
+                                                       dynvar_deprecation,
+                                                       node_deprecation,
+                                                       abstract)
+from brainpy._src.math.object_transform.variables import (Variable, VariableStack)
+from brainpy._src.math.object_transform.naming import (get_unique_name,
+                                                       get_stack_cache,
+                                                       cache_stack)
 from ._utils import infer_dyn_vars
-from .abstract import ObjectTransform
+from .base import BrainPyObject, ArrayCollector, ObjectTransform
 
 __all__ = [
   'make_loop',
@@ -195,20 +198,15 @@ def make_loop(
                                             out_vars=out_vars,
                                             has_return=has_return)
 
-  name = get_unique_name('_brainpy_object_oriented_make_loop_')
-
   # functions
   if has_return:
     def call(xs=None, length=None):
       init_values = [v.value for v in dyn_vars]
       try:
-        add_context(name)
         dyn_values, (out_values, results) = lax.scan(
           f=fun2scan, init=init_values, xs=xs, length=length
         )
-        del_context(name)
       except UnexpectedTracerError as e:
-        del_context(name)
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       for v, d in zip(dyn_vars, dyn_values): v._value = d
@@ -218,15 +216,11 @@ def make_loop(
     def call(xs):
       init_values = [v.value for v in dyn_vars]
       try:
-        add_context(name)
         dyn_values, out_values = lax.scan(f=fun2scan, init=init_values, xs=xs)
-        del_context(name)
       except UnexpectedTracerError as e:
-        del_context(name)
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       except Exception as e:
-        del_context(name)
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise e
       for v, d in zip(dyn_vars, dyn_values): v._value = d
@@ -304,17 +298,13 @@ def make_while(
   def call(x=None):
     dyn_init = [v.value for v in dyn_vars]
     try:
-      add_context(name)
       dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
                                      body_fun=_body_fun,
                                      init_val=(dyn_init, x))
-      del_context(name)
     except UnexpectedTracerError as e:
-      del_context(name)
       for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
     except Exception as e:
-      del_context(name)
       for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise e
     for v, d in zip(dyn_vars, dyn_values): v._value = d
@@ -403,15 +393,11 @@ def make_cond(
     def call(pred, x=None):
       old_values = [v.value for v in dyn_vars]
       try:
-        add_context(name)
         dyn_values, res = lax.cond(pred, _true_fun, _false_fun, (old_values, x))
-        del_context(name)
       except UnexpectedTracerError as e:
-        del_context(name)
         for v, d in zip(dyn_vars, old_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
       except Exception as e:
-        del_context(name)
         for v, d in zip(dyn_vars, old_values): v._value = d
         raise e
       for v, d in zip(dyn_vars, dyn_values): v._value = d
@@ -419,9 +405,7 @@ def make_cond(
 
   else:
     def call(pred, x=None):
-      add_context(name)
       res = lax.cond(pred, true_fun, false_fun, x)
-      del_context(name)
       return res
 
   return ControlObject(call, dyn_vars, repr_fun={'true_fun': true_fun, 'false_fun': false_fun})
@@ -443,6 +427,8 @@ def cond(
     true_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
     false_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
     operands: Any,
+
+    # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
@@ -487,57 +473,50 @@ def cond(
   res: Any
     The conditional results.
   """
-  # checking
+
+  # functions
   true_fun = _check_f(true_fun)
   false_fun = _check_f(false_fun)
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = DynVarCollector(dyn_vars)
-  dyn_vars.update(infer_dyn_vars(true_fun))
-  dyn_vars.update(infer_dyn_vars(false_fun))
-  for obj in check.is_all_objs(child_objs, out_as='tuple'):
-    dyn_vars.update(obj.vars().unique())
-  dyn_vars = list(DynVarCollector(dyn_vars).unique().values())
 
-  name = get_unique_name('_brainpy_object_oriented_cond_')
+  # operands
+  if not isinstance(operands, (tuple, list)):
+    operands = (operands,)
 
-  # calling the model
-  if len(dyn_vars) > 0:
-    def _true_fun(op):
-      dyn_vals, static_vals = op
-      for v, d in zip(dyn_vars, dyn_vals): v._value = d
-      res = true_fun(static_vals)
-      dyn_vals = [v.value for v in dyn_vars]
-      return dyn_vals, res
+  # dyn vars
+  if dyn_vars is None:
+    dyn_vars = evaluate_dyn_vars(true_fun, *operands)
+    dyn_vars += evaluate_dyn_vars(false_fun, *operands)
 
-    def _false_fun(op):
-      dyn_vals, static_vals = op
-      for v, d in zip(dyn_vars, dyn_vals): v._value = d
-      res = false_fun(static_vals)
-      dyn_vals = [v.value for v in dyn_vars]
-      return dyn_vals, res
-
-    old_values = [v.value for v in dyn_vars]
-    try:
-      add_context(name)
-      dyn_values, res = lax.cond(pred=pred,
-                                 true_fun=_true_fun,
-                                 false_fun=_false_fun,
-                                 operand=(old_values, operands))
-      del_context(name)
-    except UnexpectedTracerError as e:
-      del_context(name)
-      for v, d in zip(dyn_vars, old_values): v._value = d
-      raise errors.JaxTracerError(variables=dyn_vars) from e
-    except Exception as e:
-      del_context(name)
-      for v, d in zip(dyn_vars, old_values): v._value = d
-      raise e
-    else:
-      for v, d in zip(dyn_vars, dyn_values): v._value = d
   else:
-    add_context(name)
-    res = lax.cond(pred, true_fun, false_fun, operands)
-    del_context(name)
+    dynvar_deprecation(dyn_vars)
+    node_deprecation(child_objs)
+    dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+    dyn_vars = ArrayCollector(dyn_vars)
+    dyn_vars.update(infer_dyn_vars(true_fun))
+    dyn_vars.update(infer_dyn_vars(false_fun))
+    for obj in check.is_all_objs(child_objs, out_as='tuple'):
+      dyn_vars.update(obj.vars().unique())
+
+  # TODO: cache mechanism?
+  if len(dyn_vars) > 0:
+    def _true_fun(dyn_vals, *static_vals):
+      for k, v in dyn_vars.items():
+        v._value = dyn_vals[k]
+      r = true_fun(*static_vals)
+      return {k: v.value for k, v in dyn_vars.items()}, r
+
+    def _false_fun(dyn_vals, *static_vals):
+      for k, v in dyn_vars.items():
+        v._value = dyn_vals[k]
+      r = false_fun(*static_vals)
+      return {k: v.value for k, v in dyn_vars.items()}, r
+
+    old_values = {k: v.value for k, v in dyn_vars.items()}
+    dyn_values, res = lax.cond(pred, _true_fun, _false_fun, old_values, *operands)
+    for k, v in dyn_vars.items():
+      v._value = dyn_values[k]
+  else:
+    res = lax.cond(pred, true_fun, false_fun, *operands)
   return res
 
 
@@ -611,7 +590,7 @@ def ifelse(
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = DynVarCollector(dyn_vars)
+  dyn_vars = ArrayCollector(dyn_vars)
   for f in branches:
     dyn_vars += infer_dyn_vars(f)
   for obj in check.is_all_objs(child_objs, out_as='tuple'):
@@ -649,23 +628,26 @@ def ifelse(
     if show_code: print(codes)
     exec(compile(codes.strip(), '', 'exec'), code_scope)
     f = code_scope['f']
-    name = get_unique_name('_brainpy_object_oriented_ifelse_')
-    add_context(name)
     r = f(operands)
-    del_context(name)
     return r
+
+
+def _loop_abstractify(x):
+  x = abstract(x)
+  return jax.core.mapped_aval(x.shape[0], 0, x)
 
 
 def for_loop(
     body_fun: Callable,
     operands: Any,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    out_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     reverse: bool = False,
     unroll: int = 1,
     remat: bool = False,
     jit: bool = True,
+
+    # deprecated
+    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
   """``for-loop`` control flow with :py:class:`~.Variable`.
 
@@ -686,7 +668,7 @@ def for_loop(
   >>>    a.value += x
   >>>    b.value *= x
   >>>    return a.value
-  >>> a_hist = bm.for_loop(body, dyn_vars=[a, b], operands=bm.arange(1, 5))
+  >>> a_hist = bm.for_loop(body, operands=bm.arange(1, 5))
   >>> a_hist
   DeviceArray([[ 1.],
                [ 3.],
@@ -702,9 +684,7 @@ def for_loop(
   >>>   a.value += x
   >>>   b.value *= y
   >>>   return a.value
-  >>> a_hist = bm.for_loop(body,
-  >>>                      dyn_vars=[a, b],
-  >>>                      operands=(bm.arange(1, 5), bm.arange(2, 6)))
+  >>> a_hist = bm.for_loop(body, operands=(bm.arange(1, 5), bm.arange(2, 6)))
   >>> a_hist
   [[11.]
    [13.]
@@ -726,16 +706,10 @@ def for_loop(
     If body function `body_func` receives multiple arguments,
     `operands` should be a tuple/list whose length is equal to the
     number of arguments.
-  dyn_vars: Variable, sequence of Variable, dict
-    The instances of :py:class:`~.Variable`.
-  out_vars: PyTree, Optional
-    The variables to output in each step.
-
-    .. versionadded:: 2.3.1
-       Support to return outputs with the specification of `out_vars`,
-       which means no longer need to accumulate values through the
-       function returns.
-
+  remat: bool
+    Make ``fun`` recompute internal linearization points when differentiated.
+  jit: bool
+    Whether to just-in-time compile the function.
   reverse: bool
     Optional boolean specifying whether to run the scan iteration
     forward (the default) or in reverse, equivalent to reversing the leading
@@ -744,61 +718,61 @@ def for_loop(
     Optional positive int specifying, in the underlying operation of the
     scan primitive, how many scan iterations to unroll within a single
     iteration of a loop.
+
+  dyn_vars: Variable, sequence of Variable, dict
+    The instances of :py:class:`~.Variable`.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
   child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
     The children objects used in the target function.
 
     .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
   outs: Any
     The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
   """
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = DynVarCollector(dyn_vars)
-  dyn_vars.update(infer_dyn_vars(body_fun))
-  for obj in check.is_all_objs(child_objs, out_as='tuple'):
-    dyn_vars.update(obj.vars().unique())
-  dyn_vars = list(DynVarCollector(dyn_vars).unique().values())
-  outs, _ = tree_flatten(out_vars, lambda s: isinstance(s, Variable))
+
+  dynvar_deprecation(dyn_vars)
+  node_deprecation(child_objs)
+
+  if not isinstance(operands, (list, tuple)):
+    operands = (operands,)
+
+  # TODO: better cache mechanism?
+  dyn_vars = get_stack_cache(body_fun)
+  if dyn_vars is None:
+    with jax.ensure_compile_time_eval():
+      op_vals = jax.tree_util.tree_map(_loop_abstractify, operands)
+      with VariableStack() as dyn_vars:
+        _ = jax.eval_shape(body_fun, *op_vals)
+      cache_stack(body_fun, dyn_vars)  # cache
 
   # functions
   def fun2scan(carry, x):
-    for v, d in zip(dyn_vars, carry): v._value = d
-    if not isinstance(x, (tuple, list)):
-      x = (x,)
+    for k in dyn_vars.keys():
+      dyn_vars[k]._value = carry[k]
     results = body_fun(*x)
-    if results is None:
-      if out_vars is not None:
-        results = out_vars
-    else:
-      if out_vars is not None:
-        results = (results, out_vars)
-    return [v.value for v in dyn_vars], results
+    return dyn_vars.dict_data(), results
 
-  if remat:
-    fun2scan = jax.checkpoint(fun2scan)
+  if remat: fun2scan = jax.checkpoint(fun2scan)
 
-  name = get_unique_name('_brainpy_object_oriented_for_loop_')
-
-  # functions
-  try:
-    add_context(name)
-    with jax.disable_jit(not jit):
-      dyn_vals, out_vals = lax.scan(f=fun2scan,
-                                    init=[v.value for v in dyn_vars],
-                                    xs=operands,
-                                    reverse=reverse,
-                                    unroll=unroll)
-    del_context(name)
-  except UnexpectedTracerError as e:
-    del_context(name)
-    raise errors.JaxTracerError() from e
-  except Exception as e:
-    del_context(name)
-    raise e
-  else:
-    for v, d in zip(dyn_vars, dyn_vals): v._value = d
+  # TODO: cache mechanism?
+  with jax.disable_jit(not jit):
+    dyn_vals, out_vals = lax.scan(f=fun2scan,
+                                  init=dyn_vars.dict_data(),
+                                  xs=operands,
+                                  reverse=reverse,
+                                  unroll=unroll)
+  for key in dyn_vars.keys():
+    dyn_vars[key]._value = dyn_vals[key]
   return out_vals
 
 
@@ -806,6 +780,8 @@ def while_loop(
     body_fun: Callable,
     cond_fun: Callable,
     operands: Any,
+
+    # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
@@ -837,7 +813,7 @@ def while_loop(
   >>>    b.value *= y
   >>>    return x + b[0], y + 1.
   >>>
-  >>> res = bm.while_loop(body, cond, dyn_vars=[a, b], operands=(1., 1.))
+  >>> res = bm.while_loop(body, cond, operands=(1., 1.))
   >>> res
   (10.0, 4.0)
 
@@ -850,60 +826,56 @@ def while_loop(
   cond_fun: callable
     A function which define the stop condition. It receives one argument for ``operands``,
     with one boolean value return.
-  dyn_vars: Variable, sequence of Variable, dict
-    The dynamically changed variables.
   operands: Any
     The operands for ``body_fun`` and ``cond_fun`` functions.
+  dyn_vars: Variable, sequence of Variable, dict
+    The dynamically changed variables.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
   child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
     The children objects used in the target function.
 
     .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
+
+
   """
-  # iterable variables
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = DynVarCollector(dyn_vars)
-  dyn_vars.update(infer_dyn_vars(body_fun))
-  dyn_vars.update(infer_dyn_vars(cond_fun))
-  for obj in check.is_all_objs(child_objs, out_as='tuple'):
-    dyn_vars.update(obj.vars().unique())
-  dyn_vars = tuple(dyn_vars.values())
+  dynvar_deprecation(dyn_vars)
+  node_deprecation(child_objs)
+
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
+  dyn_vars = evaluate_dyn_vars(body_fun, *operands)
+  dyn_vars += evaluate_dyn_vars(cond_fun, *operands)
+
   def _body_fun(op):
-    dyn_vals, static_vals = op
-    for v, d in zip(dyn_vars, dyn_vals): v._value = d
-    if not isinstance(static_vals, (tuple, list)):
-      static_vals = (static_vals,)
-    new_vals = body_fun(*static_vals)
+    dyn_vals, old_vals = op
+    for k, v in dyn_vars.items():
+      v._value = dyn_vals[k]
+    new_vals = body_fun(*old_vals)
     if new_vals is None:
       new_vals = tuple()
     if not isinstance(new_vals, tuple):
       new_vals = (new_vals,)
-    return [v.value for v in dyn_vars], new_vals
+    return dyn_vars.dict_data(), new_vals
 
   def _cond_fun(op):
-    dyn_vals, static_vals = op
-    for v, d in zip(dyn_vars, dyn_vals): v._value = d
-    r = cond_fun(*static_vals)
+    dyn_vals, old_vals = op
+    for k, v in dyn_vars.items():
+      v._value = dyn_vals[k]
+    r = cond_fun(*old_vals)
     return r if isinstance(r, Array) else r
 
-  name = get_unique_name('_brainpy_object_oriented_while_loop_')
-  dyn_init = [v.value for v in dyn_vars]
-  try:
-    add_context(name)
-    dyn_values, out = lax.while_loop(cond_fun=_cond_fun,
-                                     body_fun=_body_fun,
-                                     init_val=(dyn_init, operands))
-    del_context(name)
-  except UnexpectedTracerError as e:
-    del_context(name)
-    for v, d in zip(dyn_vars, dyn_init): v._value = d
-    raise errors.JaxTracerError(variables=dyn_vars) from e
-  except Exception as e:
-    del_context(name)
-    for v, d in zip(dyn_vars, dyn_init): v._value = d
-    raise e
-  else:
-    for v, d in zip(dyn_vars, dyn_values): v._value = d
+  # TODO: cache mechanism?
+  dyn_values, out = lax.while_loop(cond_fun=_cond_fun,
+                                   body_fun=_body_fun,
+                                   init_val=(dyn_vars.dict_data(), operands))
+  for k, v in dyn_vars.items():
+    v._value = dyn_values[k]
   return out

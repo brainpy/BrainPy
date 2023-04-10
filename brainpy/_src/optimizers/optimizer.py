@@ -8,7 +8,7 @@ from jax.lax import cond
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.math.object_transform.base import BrainPyObject, DynVarCollector
+from brainpy._src.math.object_transform.base import BrainPyObject, ArrayCollector
 from brainpy.errors import MathError
 from .scheduler import make_schedule, Scheduler
 
@@ -39,7 +39,7 @@ class Optimizer(BrainPyObject):
   lr: Scheduler  # learning rate
   '''Learning rate'''
 
-  vars_to_train: DynVarCollector  # variables to train
+  vars_to_train: ArrayCollector  # variables to train
   '''Variables to train.'''
 
   def __init__(
@@ -50,7 +50,7 @@ class Optimizer(BrainPyObject):
   ):
     super(Optimizer, self).__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
-    self.vars_to_train = DynVarCollector()
+    self.vars_to_train = ArrayCollector()
     self.register_train_vars(train_vars)
 
   def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
@@ -82,7 +82,7 @@ class CommonOpt(Optimizer):
   ):
     super(Optimizer, self).__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
-    self.vars_to_train = DynVarCollector()
+    self.vars_to_train = ArrayCollector()
     self.register_train_vars(train_vars)
     self.weight_decay = check.is_float(weight_decay, min_bound=0., max_bound=1., allow_none=True)
 

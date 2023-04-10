@@ -15,27 +15,15 @@ The ``brainpy_object`` module for whole BrainPy ecosystem.
 Details please see the following.
 """
 
-from . import (
-  base,
-  abstract,
-  autograd,
-  controls,
-  jit,
-  function,
-)
+from .base import *
 
-__all__ = (
-    autograd.__all__
-    + controls.__all__
-    + jit.__all__
-    + function.__all__
-    + base.__all__
-    + abstract.__all__
-)
+from .variables import *
+from .collectors import *
 
 from .autograd import *
 from .controls import *
 from .jit import *
 from .function import *
-from .base import *
-from .abstract import *
+from .naming import *
+
+
