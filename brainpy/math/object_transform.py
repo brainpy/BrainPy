@@ -31,6 +31,5 @@ from brainpy._src.math.object_transform.function import (
 from brainpy._src.math.object_transform.jit import (
   jit as jit,
   cls_jit,
-  cls_jit_inline,
 )
 

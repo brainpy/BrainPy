@@ -184,7 +184,7 @@ class Array(object):
   @property
   def dtype(self):
     """Variable dtype."""
-    return self._value.dtype
+    return _get_dtype(self._value)
 
   @property
   def shape(self):
@@ -1511,8 +1511,8 @@ class Variable(Array):
     # assign batch axis
     self._batch_axis = batch_axis
     if batch_axis is not None:
-      if batch_axis >= self.ndim:
-        raise MathError(f'This variables has {self.ndim} dimension, '
+      if batch_axis >= np.ndim(self._value):
+        raise MathError(f'This variables has {np.ndim(self._value)} dimension, '
                         f'but the batch axis is set to be {batch_axis}.')
 
     # ready to trace the variable
@@ -1554,23 +1554,21 @@ class Variable(Array):
 
   @value.setter
   def value(self, v):
-    if self._batch_axis is None:
-      ext_shape = jnp.shape(v)
-      int_shape = self.shape
-    else:
+    _value = self.value
+    ext_shape = jnp.shape(v)
+    int_shape = jnp.shape(_value)
+    if self._batch_axis is not None:
       ext_shape = v.shape[:self._batch_axis] + v.shape[self._batch_axis + 1:]
-      int_shape = self.shape[:self._batch_axis] + self.shape[self._batch_axis + 1:]
+      int_shape = int_shape[:self._batch_axis] + int_shape[self._batch_axis + 1:]
     if ext_shape != int_shape:
-      error = f"The shape of the original data is {self.shape}, while we got {v.shape}"
+      error = f"The shape of the original data is {int_shape}, while we got {ext_shape}"
       error += f' with batch_axis={self._batch_axis}.'
       raise MathError(error)
-    if hasattr(v, 'dtype'):
-      dtype = v.dtype
-    else:
-      dtype = canonicalize_dtype(type(v))
-    if dtype != self.dtype:
-      raise MathError(f"The dtype of the original data is {self.dtype}, "
-                      f"while we got {dtype}.")
+    ext_dtype = _get_dtype(v)
+    int_dtype = self.dtype
+    if ext_dtype != int_dtype:
+      raise MathError(f"The dtype of the original data is {int_dtype}, "
+                      f"while we got {ext_dtype}.")
     self._append_to_stack()
     self._value = v.value if isinstance(v, Array) else v
 
@@ -1578,6 +1576,14 @@ class Variable(Array):
     if self._ready_to_trace:
       for stack in var_stack_list:
         stack.add(self)
+
+
+def _get_dtype(v):
+  if hasattr(v, 'dtype'):
+    dtype = v.dtype
+  else:
+    dtype = canonicalize_dtype(type(v))
+  return dtype
 
 
 class TrainVar(Variable):

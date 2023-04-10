@@ -79,7 +79,7 @@ class TestCollectionFunction(unittest.TestCase):
     self.assertTrue(len(net.vars(level=3, include_self=False)) == (2 + 4 + 8) * 2)
 
 
-class Test_retrival(unittest.TestCase):
+class TestNodeList(bp.testing.UnitTestCase):
   def test_NodeList_1(self):
     class Object(bp.DynamicalSystemNS):
       def __init__(self):
@@ -102,7 +102,6 @@ class Test_retrival(unittest.TestCase):
       obj = Object()
       self.assertTrue(len(obj.vars()) == 1)
       self.assertTrue(len(obj.nodes()) == 7)
-      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 1)
 
       print(obj.nodes().keys())
       print("obj.nodes(method='relative'): ",
@@ -113,13 +112,14 @@ class Test_retrival(unittest.TestCase):
       obj = Object()
       self.assertTrue(len(obj.vars()) == 7)
       self.assertTrue(len(obj.nodes()) == 7)
-      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 7)
 
       print(obj.nodes().keys())
       print("obj.nodes(method='relative'): ",
             obj.nodes(method='relative').keys())
       # print(jax.tree_util.tree_structure(obj))
 
+
+class TestNodeDict(bp.testing.UnitTestCase):
   def test_NodeDict_1(self):
     class Object(bp.DynamicalSystemNS):
       def __init__(self):
@@ -157,18 +157,21 @@ class Test_retrival(unittest.TestCase):
       obj = Object()
       self.assertTrue(len(obj.vars()) == 7)
       self.assertTrue(len(obj.nodes()) == 7)
-      self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 7)
 
       print(obj.nodes().keys())
       print("obj.nodes(method='relative'): ",
             obj.nodes(method='relative').keys())
       # print(jax.tree_util.tree_structure(obj))
 
+
+class TestVarList(bp.testing.UnitTestCase):
   def test_ListVar_1(self):
     class Object(bp.DynamicalSystemNS):
       def __init__(self):
         super().__init__()
-        self.vs = bm.ListVar([1., 2., bm.ones(10)])
+        self.vs = bm.VarList([bm.Variable(1.),
+                              bm.Variable(2.),
+                              bm.Variable(bm.ones(10))])
 
       def update(self):
         self.vs[0] += 10.
@@ -178,34 +181,26 @@ class Test_retrival(unittest.TestCase):
     obj = Object()
     self.assertTrue(len(obj.vars()) == 1)
     self.assertTrue(len(obj.nodes()) == 1)
-    self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 3)
 
-    @jax.jit
-    def f1(ob):
-      ob()
-      return ob
-
-    obj = f1(obj)
-    print(obj.vs)
-    self.assertTrue(obj.vs[0] == 11.)
-    self.assertTrue(obj.vs[1] == 12.)
-    self.assertTrue(bm.allclose(obj.vs[2], bm.ones(10) * 11.))
-
-    @bm.jit(child_objs=obj)
+    @bm.jit
     def f2():
       obj()
 
     f2()
     print(obj.vs)
-    self.assertTrue(obj.vs[0] == 21.)
-    self.assertTrue(obj.vs[1] == 22.)
-    self.assertTrue(bm.allclose(obj.vs[2], bm.ones(10) * 21.))
+    self.assertTrue(obj.vs[0] == 11.)
+    self.assertTrue(obj.vs[1] == 12.)
+    self.assertTrue(bm.allclose(obj.vs[2], bm.ones(10) * 11.))
 
+
+class TestVarDict(bp.testing.UnitTestCase):
   def test_DictVar_1(self):
     class Object(bp.DynamicalSystemNS):
       def __init__(self):
         super().__init__()
-        self.vs = bm.DictVar({'a': 1., 'b': 2., 'c': bm.ones(10)})
+        self.vs = bm.VarDict({'a': bm.Variable(1.),
+                              'b': bm.Variable(2.),
+                              'c': bm.Variable(bm.ones(10))})
 
       def update(self):
         self.vs['a'] += 10.
@@ -215,45 +210,14 @@ class Test_retrival(unittest.TestCase):
     obj = Object()
     self.assertTrue(len(obj.vars()) == 1)
     self.assertTrue(len(obj.nodes()) == 1)
-    self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 3)
 
-    @jax.jit
-    def f1(ob):
-      ob()
-      return ob
+    @bm.jit
+    def f1():
+      obj()
 
-    obj = f1(obj)
+    f1()
     print(obj.vs)
     self.assertTrue(obj.vs['a'] == 11.)
     self.assertTrue(obj.vs['b'] == 12.)
     self.assertTrue(bm.allclose(obj.vs['c'], bm.ones(10) * 11.))
-
-    @bm.jit(child_objs=obj)
-    def f2():
-      obj()
-
-    f2()
-    print(obj.vs)
-    self.assertTrue(obj.vs['a'] == 21.)
-    self.assertTrue(obj.vs['b'] == 22.)
-    self.assertTrue(bm.allclose(obj.vs['c'], bm.ones(10) * 21.))
-
-
-class TestListVar(unittest.TestCase):
-  def test_grad(self):
-    # TODO
-    pass
-
-  def test_vector_grad(self):
-    # TODO
-    pass
-
-  def test_forloop(self):
-    # TODO
-    pass
-
-  def test_ifelse(self):
-    # TODO
-    pass
-
 

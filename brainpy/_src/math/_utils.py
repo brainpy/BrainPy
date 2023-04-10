@@ -17,7 +17,8 @@ def _is_leaf(a):
 
 
 def _compatible_with_brainpy_array(
-    fun: Callable, module: str = ''
+    fun: Callable,
+    module: str = ''
 ):
   func_to_wrap = fun.__np_wrapped__ if hasattr(fun, '__np_wrapped__') else fun
 

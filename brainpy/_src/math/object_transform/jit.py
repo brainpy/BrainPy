@@ -16,7 +16,7 @@ from brainpy import tools, check
 from brainpy._src.math.ndarray import Variable, VariableStack
 from brainpy._src.math.object_transform.naming import get_stack_cache, cache_stack
 from ._abstract import ObjectTransform
-from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars
+from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, abstract
 from .base import BrainPyObject
 
 __all__ = [
@@ -29,14 +29,16 @@ class JITTransform(ObjectTransform):
 
   def __init__(
       self,
-      target: callable,
+      fun: Callable,
       static_argnums: Union[int, Iterable[int], None] = None,
       static_argnames: Union[str, Iterable[str], None] = None,
+      donate_argnums: Union[int, Iterable[int]] = (),
       device: Optional[Any] = None,
       inline: bool = False,
       keep_unused: bool = False,
       abstracted_axes: Optional[Any] = None,
       name: Optional[str] = None,
+      backend: Optional[str] = None,
 
       # deprecated
       dyn_vars: Dict[str, Variable] = None,
@@ -51,13 +53,15 @@ class JITTransform(ObjectTransform):
       self.register_implicit_nodes(child_objs)
 
     # target
-    if hasattr(target, '__self__') and isinstance(getattr(target, '__self__'), BrainPyObject):
-      self.register_implicit_nodes(getattr(target, '__self__'))
-    self.target = target
+    if hasattr(fun, '__self__') and isinstance(getattr(fun, '__self__'), BrainPyObject):
+      self.register_implicit_nodes(getattr(fun, '__self__'))
+    self.fun = fun
 
     # parameters
+    self._backend = backend
     self._static_argnums = static_argnums
     self._static_argnames = static_argnames
+    self._donate_argnums = donate_argnums
     self._device = device
     self._inline = inline
     self._keep_unused = keep_unused
@@ -70,21 +74,23 @@ class JITTransform(ObjectTransform):
   def _transform_function(self, variable_data: Dict, *args, **kwargs):
     for key, v in self._dyn_vars.items():
       v._value = variable_data[key]
-    out = self.target(*args, **kwargs)
+    out = self.fun(*args, **kwargs)
     changes = self._dyn_vars.dict_data()
     return out, changes
 
   def __call__(self, *args, **kwargs):
     if self._transform is None:
-      self._dyn_vars = evaluate_dyn_vars(self.target, *args, **kwargs)
+      self._dyn_vars = evaluate_dyn_vars(self.fun, *args, **kwargs)
       self._transform = jax.jit(
         self._transform_function,
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),
         static_argnames=self._static_argnames,
+        donate_argnums=self._donate_argnums,
         device=self._device,
         inline=self._inline,
         keep_unused=self._keep_unused,
-        abstracted_axes=self._abstracted_axes
+        abstracted_axes=self._abstracted_axes,
+        backend=self._backend,
       )
     out, changes = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
     for key, v in self._dyn_vars.items():
@@ -93,95 +99,87 @@ class JITTransform(ObjectTransform):
 
   def __repr__(self):
     name = self.__class__.__name__
-    f = tools.repr_object(self.target)
+    f = tools.repr_object(self.fun)
     f = tools.repr_context(f, " " * (len(name) + 6))
     format_ref = (f'{name}(target={f}, \n' +
                   f'{" " * len(name)} num_of_vars={len(self.vars().unique())})')
     return format_ref
 
 
+_jit_par = '''
+  func : BrainPyObject, function, callable
+    The instance of Base or a function.
+  static_argnums: optional, int, sequence of int
+    An optional int or collection of ints that specify which
+    positional arguments to treat as static (compile-time constant).
+    Operations that only depend on static arguments will be constant-folded in
+    Python (during tracing), and so the corresponding argument values can be
+    any Python object.
+  static_argnames : optional, str, list, tuple, dict
+    An optional string or collection of strings specifying which named arguments to treat
+    as static (compile-time constant). See the comment on ``static_argnums`` for details.
+    If not provided but ``static_argnums`` is set, the default is based on calling
+    ``inspect.signature(fun)`` to find corresponding named arguments.
+  donate_argnums: int, sequence of int
+    Specify which positional argument buffers are "donated" to
+    the computation. It is safe to donate argument buffers if you no longer
+    need them once the computation has finished. In some cases XLA can make
+    use of donated buffers to reduce the amount of memory needed to perform a
+    computation, for example recycling one of your input buffers to store a
+    result. You should not reuse buffers that you donate to a computation, JAX
+    will raise an error if you try to. By default, no argument buffers are
+    donated. Note that donate_argnums only work for positional arguments, and keyword
+    arguments will not be donated.
+  device: optional, Any
+    This is an experimental feature and the API is likely to change.
+    Optional, the Device the jitted function will run on. (Available devices
+    can be retrieved via :py:func:`jax.devices`.) The default is inherited
+    from XLA's DeviceAssignment logic and is usually to use
+    ``jax.devices()[0]``.
+  keep_unused: bool
+    If `False` (the default), arguments that JAX determines to be
+    unused by `fun` *may* be dropped from resulting compiled XLA executables.
+    Such arguments will not be transferred to the device nor provided to the
+    underlying executable. If `True`, unused arguments will not be pruned.
+  backend: optional, str
+    This is an experimental feature and the API is likely to change.
+    Optional, a string representing the XLA backend: ``'cpu'``, ``'gpu'``, or
+    ``'tpu'``.
+  inline: bool
+    Specify whether this function should be inlined into enclosing
+    jaxprs (rather than being represented as an application of the xla_call
+    primitive with its own subjaxpr). Default False.
+'''
+
+
+
 def jit(
     func: Callable = None,
+
+    # original jax.jit parameters
     static_argnums: Union[int, Iterable[int], None] = None,
     static_argnames: Union[str, Iterable[str], None] = None,
+    donate_argnums: Union[int, Sequence[int]] = (),
     device: Optional[Any] = None,
     inline: bool = False,
     keep_unused: bool = False,
+    backend: Optional[str] = None,
     abstracted_axes: Optional[Any] = None,
 
     # deprecated
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> JITTransform:
-  """JIT (Just-In-Time) compilation for class objects.
+  """JIT (Just-In-Time) compilation for BrainPy computation.
 
-  This function has the same ability to Just-In-Time compile a pure function,
+  This function has the same ability to just-in-time compile a pure function,
   but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
-  :py:class:`brainpy.Base` object, or a bounded method for a
-  :py:class:`brainpy.Base` object.
-
-  .. note::
-    There are several notes when using JIT compilation.
-
-    1. Avoid using scalar in a Variable, TrainVar, etc.
-
-    For example,
-
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>>
-    >>> class Test(bp.BrainPyObject):
-    >>>   def __init__(self):
-    >>>     super(Test, self).__init__()
-    >>>     self.a = bm.Variable(1.)  # Avoid! DO NOT USE!
-    >>>   def __call__(self, *args, **kwargs):
-    >>>     self.a += 1.
-
-    The above usage is deprecated, because it may cause several errors.
-    Instead, we recommend you define the scalar value variable as:
-
-    >>> class Test(bp.BrainPyObject):
-    >>>   def __init__(self):
-    >>>     super(Test, self).__init__()
-    >>>     self.a = bm.Variable(bm.array([1.]))  # use array to wrap a scalar is recommended
-    >>>   def __call__(self, *args, **kwargs):
-    >>>     self.a += 1.
-
-    Here, a ndarray is recommended to used to update the variable ``a``.
-
-    2. ``jit`` compilation in ``brainpy.math`` does not support `static_argnums`.
-       Instead, users should use `static_argnames`, and call the jitted function with
-       keywords like ``jitted_func(arg1=var1, arg2=var2)``. For example,
-
-    >>> def f(a, b, c=1.):
-    >>>   if c > 0.: return a + b
-    >>>   else: return a * b
-    >>>
-    >>> # ERROR! https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html#python-control-flow-jit
-    >>> bm.jit(f)(1, 2, 0)
-    jax._src.errors.ConcretizationTypeError: Abstract tracer value encountered where
-    concrete value is expected: Traced<ShapedArray(bool[], weak_type=True)
-    >>> # this is right
-    >>> bm.jit(f, static_argnames='c')(1, 2, 0)
-    DeviceArray(2, dtype=int32, weak_type=True)
+  :py:class:`brainpy.BrainPyObject` object.
 
   Examples
   --------
 
-  You can JIT a :py:class:`brainpy.DynamicalSystem`
-
-  >>> import brainpy as bp
-  >>>
-  >>> class LIF(bp.NeuGroup):
-  >>>   pass
-  >>> lif = bp.math.jit(LIF(10))
-
-  You can JIT a :py:class:`brainpy.Base` object with ``__call__()`` implementation.
-
-  >>> mlp = bp.layers.Linear(100, 200)
-  >>> jit_mlp = bp.math.jit(mlp)
-
-  You can also JIT a bounded method of a :py:class:`brainpy.Base` object.
+  You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.  
 
   >>> class Hello(bp.BrainPyObject):
   >>>   def __init__(self):
@@ -189,7 +187,7 @@ def jit(
   >>>     self.a = bp.math.Variable(bp.math.array(10.))
   >>>     self.b = bp.math.Variable(bp.math.array(2.))
   >>>   def transform(self):
-  >>>     return self.a ** self.b
+  >>>     self.a *= self.b
   >>>
   >>> test = Hello()
   >>> bp.math.jit(test.transform)
@@ -203,19 +201,7 @@ def jit(
 
   Parameters
   ----------
-  func : Base, function, callable
-    The instance of Base or a function.
-  static_argnames : optional, str, list, tuple, dict
-    An optional string or collection of strings specifying which named arguments to treat
-    as static (compile-time constant). See the comment on ``static_argnums`` for details.
-    If not provided but ``static_argnums`` is set, the default is based on calling
-    ``inspect.signature(fun)`` to find corresponding named arguments.
-  device: optional, Any
-    This is an experimental feature and the API is likely to change.
-    Optional, the Device the jitted function will run on. (Available devices
-    can be retrieved via :py:func:`jax.devices`.) The default is inherited
-    from XLA's DeviceAssignment logic and is usually to use
-    ``jax.devices()[0]``.
+  {jit_par}
   dyn_vars : optional, dict, sequence of Variable, Variable
     These variables will be changed in the function, or needed in the computation.
 
@@ -233,9 +219,9 @@ def jit(
 
   Returns
   -------
-  func : callable
+  func : JITTransform
     A callable jitted function, set up for just-in-time compilation.
-  """
+  """.format(jit_par=_jit_par.strip())
 
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
@@ -245,24 +231,28 @@ def jit(
     child_objs = check.is_all_objs(child_objs, out_as='dict')
 
   if func is None:
-    return lambda f: JITTransform(target=f,
+    return lambda f: JITTransform(fun=f,
                                   dyn_vars=dyn_vars,
                                   child_objs=child_objs,
                                   static_argnums=static_argnums,
                                   static_argnames=static_argnames,
+                                  donate_argnums=donate_argnums,
                                   device=device,
                                   inline=inline,
                                   keep_unused=keep_unused,
+                                  backend=backend,
                                   abstracted_axes=abstracted_axes)
   else:
-    return JITTransform(target=func,
+    return JITTransform(fun=func,
                         dyn_vars=dyn_vars,
                         child_objs=child_objs,
                         static_argnums=static_argnums,
                         static_argnames=static_argnames,
+                        donate_argnums=donate_argnums,
                         device=device,
                         inline=inline,
                         keep_unused=keep_unused,
+                        backend=backend,
                         abstracted_axes=abstracted_axes)
 
 
@@ -275,6 +265,40 @@ def cls_jit(
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
 ) -> Callable:
+  """Just-in-time compile a function and then the jitted function as a bound method for a class. 
+  
+  Examples
+  --------
+  
+  This transformation can be put on any class function. For example,
+  
+  >>> import brainpy.math as bm
+  >>> 
+  >>> class SomeProgram(bp.BrainPyObject):
+  >>>   def __init__(self):
+  >>>      super(SomeProgram, self).__init__()
+  >>>      self.a = bm.zeros(2)
+  >>>      self.b = bm.Variable(bm.ones(2))
+  >>> 
+  >>>   @bm.cls_jit(inline=True)
+  >>>   def __call__(self, *args, **kwargs):
+  >>>      a = bm.random.uniform(size=2)
+  >>>      a = a.at[0].set(1.)
+  >>>      self.b += a
+  >>>      return self.b
+  >>> 
+  >>> program = SomeProgram()
+  >>> program()
+  
+  Parameters
+  ----------
+  {jit_pars}
+
+  Returns
+  -------
+  func : JITTransform
+    A callable jitted function, set up for just-in-time compilation.
+  """.format(jit_pars=_jit_par)
   if func is None:
     return lambda f: _make_jit_fun(fun=f,
                                    static_argnums=static_argnums,
@@ -308,7 +332,7 @@ def _make_jit_fun(
     cache = get_stack_cache(fun2)  # TODO: better cache mechanism
     if cache is None:
       with jax.ensure_compile_time_eval():
-        args_, kwargs_ = jax.tree_util.tree_map(jax.api_util.shaped_abstractify, (args, kwargs))
+        args_, kwargs_ = jax.tree_util.tree_map(abstract, (args, kwargs))
         with VariableStack() as stack:
           _ = jax.eval_shape(fun2, *args_, **kwargs_)
         del args_, kwargs_
@@ -342,20 +366,3 @@ def _make_transform(fun, stack):
     return out, changes
 
   return _transform_function
-
-
-def cls_jit_inline(
-    func: Callable = None,
-    static_argnums: Union[int, Iterable[int], None] = None,
-    static_argnames: Union[str, Iterable[str], None] = None,
-    device: Optional[Any] = None,
-    keep_unused: bool = False,
-    abstracted_axes: Optional[Any] = None,
-) -> Callable:
-  return cls_jit(func=func,
-                 static_argnums=static_argnums,
-                 static_argnames=static_argnames,
-                 inline=True,
-                 device=device,
-                 keep_unused=keep_unused,
-                 abstracted_axes=abstracted_axes)

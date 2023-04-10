@@ -13,9 +13,7 @@ from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 
 import jax
 import numpy as np
-from jax._src.tree_util import _registry
 from jax.tree_util import register_pytree_node
-from jax.tree_util import register_pytree_node_class
 from jax.util import safe_zip
 
 from brainpy import errors
@@ -30,7 +28,7 @@ __all__ = [
   'BrainPyObject', 'Base', 'FunAsObject',
 
   # dynamical containers
-  'NodeList', 'NodeDict', 'ListVar', 'DictVar',
+  'NodeList', 'NodeDict', 'VarList', 'VarDict',
   'Collector', 'DynVarCollector', 'TensorCollector', 'ArrayCollector',
 ]
 
@@ -114,7 +112,7 @@ class BrainPyObject(object):
     static_names = []
     static_values = []
     for k, v in self.__dict__.items():
-      if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, ListVar, DictVar)):
+      if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, VarList, VarDict)):
         dynamic_names.append(k)
         dynamic_values.append(v)
       else:
@@ -148,7 +146,7 @@ class BrainPyObject(object):
 
   def register_implicit_vars(self, *variables, var_cls: type = None, **named_variables):
     if var_cls is None:
-      var_cls = (Variable, ListVar, DictVar)
+      var_cls = (Variable, VarList, VarDict)
 
     for variable in variables:
       if isinstance(variable, var_cls):
@@ -225,7 +223,7 @@ class BrainPyObject(object):
       for k in dir(node):
         v = getattr(node, k)
         include = False
-        if isinstance(v, (Variable, ListVar, DictVar)):
+        if isinstance(v, (Variable, VarList, VarDict)):
           include = True
           if isinstance(v, exclude_types):
             include = False
@@ -594,32 +592,17 @@ def _check_obj_elem(elem):
   return elem
 
 
-class _dyn_seq(object):
-  __slots__ = ('_value',)
+class _dyn_seq(list):
+  _supported_types = None
 
-  _value: list
-  _supported_types = ()
-
-  def __init__(self, value):
-    self._value = list(value)
-
-  @property
-  def value(self):
-    return self._value
-
-  @value.setter
-  def value(self, value):
-    if len(value) != self.value:
-      raise ValueError
-    self._value = list(value)
-
-  def _check_elem_type(self, elem):
-    if not isinstance(elem, self._supported_types):
-      raise TypeError(f'Element should be {self._supported_types}, but got {type(elem)}.')
-    return elem
+  def __init__(self, seq=()):
+    super().__init__()
+    self.extend(seq)
 
   def append(self, element) -> '_dyn_seq':
-    self._value.append(self._check_elem_type(element))
+    if not isinstance(element, self._supported_types):
+      raise TypeError(f'element must be an instance of {self._supported_types.__name__}.')
+    super().append(element)
     return self
 
   def extend(self, iterable) -> '_dyn_seq':
@@ -627,182 +610,64 @@ class _dyn_seq(object):
       self.append(element)
     return self
 
-  def insert(self, index, obj) -> '_dyn_seq':
-    self._value.insert(index, self._check_elem_type(obj))
-    return self
 
-  def pop(self, index=-1):
-    return self._value.pop(index)
-
-  def reverse(self):
-    return type(self)(self._value.reverse())
-
-  def __setitem__(self, key, value) -> '_dyn_seq':
-    self._value.__setitem__(key, self._check_elem_type(value))
-    return self
-
-  def __getitem__(self, item):
-    return self._value[item]
-
-  def __len__(self):
-    return len(self._value)
-
-  def __iter__(self):
-    for v in self._value:
-      yield v
-
-  def __add__(self, other):
-    return type(self)(self.value + (other.value if isinstance(other, _dyn_seq) else other))
-
-  def __delitem__(self, item):
-    del self._value[item]
-
-  def __repr__(self):
-    return repr(self._value)
-
-
-class ListVar(_dyn_seq):
-  """A sequence variable, whose contents can be changed during JIT compilation.
-
-  It is a variable, which is similar to :py:class:`~.Variable`.
-
-  .. note::
-     The element must be a numerical number, like ``bool``, ``int``, ``float``,
-     ``jax.Array``, ``numpy.ndarray``, :py:class:`~.Array`.
+class VarList(_dyn_seq):
+  """A sequence of :py:class:`~.Variable`, which is compatible with
+  :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
   """
-
-  _supported_types = (numbers.Number, jax.Array, Array, np.ndarray)
-
-
-register_pytree_node(ListVar, lambda x: (tuple(x.value), ()), lambda _, values: ListVar(values))
+  _supported_types = Variable
 
 
 class NodeList(_dyn_seq):
-  """A list to represent a dynamically changed numerical
-  sequence in which its element can be changed during JIT compilation.
-
-  .. note::
-     The element must be a brainpy object, like :py:class:`~.BrainPyObject`.
+  """A sequence of :py:class:`~.BrainPyObject`, which is compatible
+  with :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
   """
-
   _supported_types = BrainPyObject
 
 
-register_pytree_node(NodeList, lambda x: (tuple(x.value), ()), lambda _, values: NodeList(values))
+class _dyn_dict(dict):
+  _supported_types = None
 
-
-class _dyn_dict(object):
-  __slots__ = ('_value',)
-
-  _value: dict
-  _supported_types = ()
-
-  def __init__(self, *args, **kwargs):
-    self._value = dict(*args, **kwargs)
-
-  @property
-  def value(self):
-    return self._value
-
-  @value.setter
-  def value(self, value):
-    if len(value) != self.value:
-      raise ValueError
-    self._value = dict(value)
-
-  def _check_elem_type(self, elem):
+  def _check_elem(self, elem):
     if not isinstance(elem, self._supported_types):
       raise TypeError(f'Element should be {self._supported_types}, but got {type(elem)}.')
     return elem
+
+  def __init__(self, *args, **kwargs):
+    super().__init__()
+    self.update(*args, **kwargs)
 
   def update(self, *args, **kwargs) -> '_dyn_dict':
     for arg in args:
       if isinstance(arg, dict):
         for k, v in arg.items():
-          self._value[k] = v
+          self[k] = v
       elif isinstance(arg, tuple):
         assert len(arg) == 2
-        self._value[arg[0]] = args[1]
+        self[arg[0]] = args[1]
     for k, v in kwargs.items():
-      self._value[k] = v
+      self[k] = v
     return self
 
   def __setitem__(self, key, value) -> '_dyn_dict':
-    self._value[key] = self._check_elem_type(value)
+    super().__setitem__(key, self._check_elem(value))
     return self
 
-  def __getitem__(self, item):
-    return self._value[item]
 
-  def __delitem__(self, item):
-    del self._value[item]
-
-  def __len__(self):
-    return len(self._value)
-
-  def __iter__(self):
-    for k in self._value:
-      yield k
-
-  def keys(self):
-    return self._value.keys()
-
-  def values(self):
-    return self._value.values()
-
-  def items(self):
-    return self._value.items()
-
-  def clear(self):
-    return self._value.clear()
-
-  def copy(self):
-    return type(self)(self._value.copy())
-
-  def get(self, *args, **kwargs):
-    return self._value.get(*args, **kwargs)
-
-  def has_key(self, key):
-    return (key in self._value)
-
-  def pop(self, *args, **kwargs):
-    return self._value.pop(*args, **kwargs)
-
-  def __repr__(self):
-    return repr(self._value)
-
-
-class DictVar(_dyn_dict):
-  """A dict variable, in which its element can be changed during JIT compilation.
-
-  It is a variable, which is similar to :py:class:`~.Variable`.
-
-  .. note::
-     The element must be a numerical number, like ``bool``, ``int``, ``float``,
-     ``jax.Array``, ``numpy.ndarray``, :py:class:`~.Array`.
+class VarDict(_dyn_dict):
+  """A dictionary of :py:class:`~.Variable`, which is compatible with
+  :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
   """
 
-  _supported_types = (numbers.Number, jax.Array, Array, np.ndarray)
-
-
-register_pytree_node(DictVar,
-                     lambda x: (tuple(x.values()), tuple(x.keys())),
-                     lambda keys, values: DictVar(safe_zip(keys, values)))
+  _supported_types = Variable
 
 
 class NodeDict(_dyn_dict):
-  """An object to represent a dict of node in which its element can be changed during JIT compilation.
-
-  .. note::
-     The element must be a brainpy object, like :py:class:`~.BrainPyObject`.
+  """A dictionary of :py:class:`~.BrainPyObject`, which is compatible with
+  :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
   """
 
   _supported_types = BrainPyObject
-
-
-register_pytree_node(NodeDict,
-                     lambda x: (tuple(x.values()), tuple(x.keys())),
-                     lambda keys, values: NodeDict(safe_zip(keys, values)))
 
 
 class Collector(dict):
@@ -962,7 +827,7 @@ class DynVarCollector(Collector):
   def __setitem__(self, key, value):
     """Overload bracket assignment to catch potential conflicts during assignment."""
 
-    assert isinstance(value, (Variable, NodeList, NodeDict, ListVar, DictVar)), type(value)
+    assert isinstance(value, (Variable, NodeList, NodeDict, VarList, VarDict)), type(value)
     if key in self:
       if id(self[key]) != id(value):
         raise ValueError(f'Name "{key}" conflicts: same name for {value} and {self[key]}.')

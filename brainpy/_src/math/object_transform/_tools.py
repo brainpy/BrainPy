@@ -23,8 +23,11 @@ def node_deprecation(child_objs=None):
                   UserWarning)
 
 
-def abstractify(args: tuple, kwargs: dict):
-  return jax.tree_util.tree_map(jax.api_util.shaped_abstractify, (args, kwargs))
+def abstract(x):
+  if callable(x):
+    return x
+  else:
+    return jax.api_util.shaped_abstractify(x)
 
 
 def evaluate_dyn_vars(f, *args, **kwargs):
@@ -32,7 +35,7 @@ def evaluate_dyn_vars(f, *args, **kwargs):
   stack = get_stack_cache(f)
   if stack is None:
     with jax.ensure_compile_time_eval():
-      args, kwargs = abstractify(args, kwargs)
+      args, kwargs = jax.tree_util.tree_map(abstract, (args, kwargs))
       with VariableStack() as stack:
         _ = jax.eval_shape(f, *args, **kwargs)
       cache_stack(f, stack)  # cache

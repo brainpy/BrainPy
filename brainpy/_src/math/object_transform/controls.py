@@ -14,7 +14,8 @@ from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import (Array, Variable, VariableStack)
 from brainpy._src.math.object_transform._tools import (evaluate_dyn_vars,
                                                        dynvar_deprecation,
-                                                       node_deprecation)
+                                                       node_deprecation,
+                                                       abstract)
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        get_stack_cache,
                                                        cache_stack)
@@ -505,8 +506,8 @@ def cond(
       return {k: v.value for k, v in dyn_vars.items()}, r
 
     def _false_fun(dyn_vals, *static_vals):
-      for v, d in zip(dyn_vars, dyn_vals):
-        v._value = d
+      for k, v in dyn_vars.items():
+        v._value = dyn_vals[k]
       r = false_fun(*static_vals)
       return {k: v.value for k, v in dyn_vars.items()}, r
 
@@ -632,7 +633,7 @@ def ifelse(
 
 
 def _loop_abstractify(x):
-  x = jax.api_util.shaped_abstractify(x)
+  x = abstract(x)
   return jax.core.mapped_aval(x.shape[0], 0, x)
 
 

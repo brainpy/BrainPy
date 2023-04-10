@@ -4,8 +4,8 @@ from brainpy._src.math.object_transform.base import (BrainPyObject as BrainPyObj
                                                      FunAsObject as FunAsObject)
 from brainpy._src.math.object_transform.base import (NodeList,
                                                      NodeDict,
-                                                     ListVar,
-                                                     DictVar, )
+                                                     VarList,
+                                                     VarDict, )
 from brainpy._src.math.ndarray import (Variable as Variable,
                                        Parameter as Parameter,
                                        TrainVar as TrainVar)
