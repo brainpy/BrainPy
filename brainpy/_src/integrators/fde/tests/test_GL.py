@@ -24,7 +24,7 @@ class TestGLShortMemory(unittest.TestCase):
                                     alpha=0.99,
                                     num_memory=500,
                                     inits=[1., 0., 1.])
-    runner = bp.integrators.IntegratorRunner(integral,
+    runner = bp.IntegratorRunner(integral,
                                              monitors=list('xyz'),
                                              inits=[1., 0., 1.],
                                              dt=0.005)

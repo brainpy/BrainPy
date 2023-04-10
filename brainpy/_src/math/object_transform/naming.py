@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import warnings
-from brainpy import errors
-from brainpy import check
 
+from brainpy import errors
 
 __all__ = [
-  'check_name_uniqueness', 'get_unique_name', 'clear_name_cache',
+  'clear_name_cache',
 ]
 
 
@@ -49,4 +48,22 @@ def clear_name_cache(ignore_warn=False):
   if not ignore_warn:
     warnings.warn(f'All named models and their ids are cleared.', UserWarning)
 
+
+_fun2stack = dict()
+
+
+def cache_stack(func, stack):
+  _fun2stack[func] = stack
+
+
+def clear_stack_cache():
+  for k in tuple(_fun2stack.keys()):
+    del _fun2stack[k]
+
+
+def get_stack_cache(func):
+  if func in _fun2stack:
+    return _fun2stack[func]
+  else:
+    return None
 

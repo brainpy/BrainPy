@@ -14,7 +14,8 @@ from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node
 
 from brainpy.check import jit_error_checking
-from .ndarray import Array, Variable, _return
+from .ndarray import Array, _return
+from .object_transform import Variable
 from .compat_numpy import shape
 from .environment import get_int
 

@@ -6,12 +6,12 @@ from typing import Callable, Union, Dict, Sequence, Tuple
 
 import jax.numpy as jnp
 import numpy as np
-from jax import vmap
+import jax
 from jax.scipy.optimize import minimize
 from jax.tree_util import tree_flatten, tree_map
 
 import brainpy._src.math as bm
-from brainpy import optimizers as optim, losses
+from brainpy import optim, losses
 from brainpy._src.analysis import utils, base, constants
 from brainpy._src.dyn.base import DynamicalSystem
 from brainpy._src.dyn.runners import check_and_format_inputs, _f_ops
@@ -132,11 +132,11 @@ class SlowPointFinder(base.DSAnalyzer):
 
     # update function
     if target_vars is None:
-      self.target_vars = bm.DynVarCollector()
+      self.target_vars = bm.ArrayCollector()
     else:
       if not isinstance(target_vars, dict):
         raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
-      self.target_vars = bm.DynVarCollector(target_vars)
+      self.target_vars = bm.ArrayCollector(target_vars)
     excluded_vars = () if excluded_vars is None else excluded_vars
     if isinstance(excluded_vars, dict):
       excluded_vars = tuple(excluded_vars.values())
@@ -337,7 +337,7 @@ class SlowPointFinder(base.DSAnalyzer):
     f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
-      return f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
+      return f_eval_loss(tree_map(lambda a: bm.as_jax(a),
                                   fixed_points,
                                   is_leaf=lambda x: isinstance(x, bm.Array))).mean()
 
@@ -383,10 +383,10 @@ class SlowPointFinder(base.DSAnalyzer):
                 f'is below tolerance {tolerance:0.10f}.')
 
     self._opt_losses = jnp.concatenate(opt_losses)
-    self._losses = f_eval_loss(tree_map(lambda a: bm.as_device_array(a),
+    self._losses = f_eval_loss(tree_map(lambda a: bm.as_jax(a),
                                         fixed_points,
                                         is_leaf=lambda x: isinstance(x, bm.Array)))
-    self._fixed_points = tree_map(lambda a: bm.as_device_array(a),
+    self._fixed_points = tree_map(lambda a: bm.as_jax(a),
                                   fixed_points,
                                   is_leaf=lambda x: isinstance(x, bm.Array))
     self._selected_ids = jnp.arange(num_candidate)
@@ -424,9 +424,7 @@ class SlowPointFinder(base.DSAnalyzer):
       print(f"Optimizing with {opt_solver} to find fixed points:")
 
     # optimizing
-    res = f_opt(tree_map(lambda a: bm.as_device_array(a),
-                         candidates,
-                         is_leaf=lambda a: isinstance(a, bm.Array)))
+    res = f_opt(tree_map(lambda a: bm.as_jax(a), candidates, is_leaf=lambda a: isinstance(a, bm.Array)))
 
     # results
     valid_ids = jnp.where(res.success)[0]
@@ -666,12 +664,12 @@ class SlowPointFinder(base.DSAnalyzer):
   def _generate_f_eval_loss(self):
     # evaluate losses of a batch of inputs
     if self.f_type == constants.DISCRETE:
-      f_eval_loss = lambda h: self.f_loss(h, vmap(self.f_cell)(h), axis=1)
+      f_eval_loss = lambda h: self.f_loss(h, jax.vmap(self.f_cell)(h), axis=1)
     else:
-      f_eval_loss = lambda h: self.f_loss(vmap(self.f_cell)(h), axis=1)
+      f_eval_loss = lambda h: self.f_loss(jax.vmap(self.f_cell)(h), axis=1)
 
     if isinstance(self.target, DynamicalSystem):
-      @bm.jit
+      @jax.jit
       def loss_func(h):
         r = f_eval_loss(h)
         for k, v in self.excluded_vars.items():
@@ -682,7 +680,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       return loss_func
     else:
-      return bm.jit(f_eval_loss)
+      return jax.jit(f_eval_loss)
 
   def _get_f_for_opt_solver(self, candidates, opt_method):
     # loss function
@@ -697,17 +695,17 @@ class SlowPointFinder(base.DSAnalyzer):
 
         def f_loss(h):
           h = {key: h[indices[i]: indices[i + 1]] for i, key in enumerate(keys)}
-          return bm.as_device_array(self.f_loss(h, self.f_cell(h)))
+          return bm.as_jax(self.f_loss(h, self.f_cell(h)))
       else:
         def f_loss(h):
-          return bm.as_device_array(self.f_loss(h, self.f_cell(h)))
+          return bm.as_jax(self.f_loss(h, self.f_cell(h)))
     else:
       # overall loss function for fixed points optimization
       def f_loss(h):
         return self.f_loss(self.f_cell(h))
 
-    @bm.jit
-    @vmap
+    @jax.jit
+    @jax.vmap
     def f_opt(x0):
       for k, v in self.target_vars.items():
         v.value = x0[k] if (v.batch_axis is None) else jnp.expand_dims(x0[k], axis=v.batch_axis)
@@ -785,7 +783,7 @@ class SlowPointFinder(base.DSAnalyzer):
     else:
       jacob = self.f_cell
 
-    f_jac = bm.jit(vmap(bm.jacobian(jacob)))
+    f_jac = jax.jit(jax.vmap(bm.jacobian(jacob)))
 
     if isinstance(self.target, DynamicalSystem):
       def jacobian_func(x):

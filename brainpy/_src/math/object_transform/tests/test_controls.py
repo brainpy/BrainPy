@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import brainpy as bp
-import brainpy.math as bm
+from functools import partial
+
 from absl.testing import parameterized
 from jax._src import test_util as jtu
-from functools import partial
+
+import brainpy as bp
+import brainpy.math as bm
 
 
 class TestLoop(jtu.JaxTestCase):
@@ -98,11 +100,11 @@ class TestLoop(jtu.JaxTestCase):
       return b
 
     if jit_f:
-      f = bm.jit(f, dyn_vars=c)
-    scan = partial(bm.for_loop, unroll=unroll, dyn_vars=c)
+      f = bm.jit(f)
+    scan = partial(bm.for_loop, f, unroll=unroll, )
     if jit_scan:
-      scan = bm.jit(scan, static_argnames=('body_fun',), dyn_vars=c)
-    ans = scan(body_fun=f, operands=all_a)
+      scan = bm.jit(scan)
+    ans = scan(operands=all_a)
     print(ans)
     print(c)
 
@@ -179,3 +181,21 @@ class TestIfElse(unittest.TestCase):
       return vmap(f)(bm.random.randint(-20, 20, 200))
 
     self.assertTrue(f2().size == 200)
+
+
+class TestWhile(bp.testing.UnitTestCase):
+  def test1(self):
+    a = bm.Variable(bm.zeros(1))
+    b = bm.Variable(bm.ones(1))
+
+    def cond(x, y):
+      return x < 6.
+
+    def body(x, y):
+      a.value += x
+      b.value *= y
+      return x + b[0], y + 1.
+
+    res = bm.while_loop(body, cond, operands=(1., 1.))
+    print()
+    print(res)

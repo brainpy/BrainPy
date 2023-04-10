@@ -31,7 +31,7 @@ def event_sum_op(outs, ins):
 event_sum2 = bm.XLACustomOp(name='event_sum2', cpu_func=event_sum_op, eval_shape=abs_eval)
 
 
-class ExponentialSyn(bp.dyn.TwoEndConn):
+class ExponentialSyn(bp.TwoEndConn):
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
                method='exp_auto'):
     super(ExponentialSyn, self).__init__(pre=pre, post=post, conn=conn)
@@ -57,7 +57,7 @@ class ExponentialSyn(bp.dyn.TwoEndConn):
     self.post.input += self.g * (self.E - self.post.V)
 
 
-class ExponentialSyn3(bp.dyn.TwoEndConn):
+class ExponentialSyn3(bp.TwoEndConn):
   def __init__(self, pre, post, conn, g_max=1., delay=0., tau=8.0, E=0.,
                method='exp_auto'):
     super(ExponentialSyn3, self).__init__(pre=pre, post=post, conn=conn)
@@ -88,7 +88,7 @@ class ExponentialSyn3(bp.dyn.TwoEndConn):
     self.post.input += self.g * (self.E - self.post.V)
 
 
-class EINet(bp.dyn.Network):
+class EINet(bp.Network):
   def __init__(self, syn_class, scale=1.0, method='exp_auto', ):
     super(EINet, self).__init__()
 
@@ -113,13 +113,12 @@ class EINet(bp.dyn.Network):
     self.I2I = syn_class(self.I, self.I, bp.conn.FixedProb(0.02), E=-80., g_max=wi, tau=10., method=method)
 
 
-class TestOpRegister(unittest.TestCase):
+class TestOpRegister(bp.testing.UnitTestCase):
   def test_op(self):
-
     fig, gs = bp.visualize.get_figure(1, 2, 4, 5)
 
     net = EINet(ExponentialSyn, scale=1., method='euler')
-    runner = bp.dyn.DSRunner(
+    runner = bp.DSRunner(
       net,
       inputs=[(net.E.input, 20.),
               (net.I.input, 20.)],
@@ -131,7 +130,7 @@ class TestOpRegister(unittest.TestCase):
     bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], ax=ax)
 
     net3 = EINet(ExponentialSyn3, scale=1., method='euler')
-    runner3 = bp.dyn.DSRunner(
+    runner3 = bp.DSRunner(
       net3,
       inputs=[(net3.E.input, 20.),
               (net3.I.input, 20.)],

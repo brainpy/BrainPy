@@ -132,10 +132,9 @@ fde.__dict__['fdeint'] = fdeint
 
 # deprecated
 from brainpy._src.math.object_transform.base import (Base as Base,
-                                                     DynVarCollector,
+                                                     ArrayCollector,
                                                      Collector as Collector, )
-globals()['ArrayCollector'] = DynVarCollector
-globals()['TensorCollector'] = DynVarCollector
+globals()['TensorCollector'] = ArrayCollector
 
 train.__dict__['DSTrainer'] = DSTrainer
 train.__dict__['BPTT'] = BPTT
@@ -150,8 +149,8 @@ from ._src import base
 base.base.__dict__['BrainPyObject'] = BrainPyObject
 base.base.__dict__['Base'] = Base
 base.collector.__dict__['Collector'] = Collector
-base.collector.__dict__['ArrayCollector'] = DynVarCollector
-base.collector.__dict__['TensorCollector'] = DynVarCollector
+base.collector.__dict__['ArrayCollector'] = ArrayCollector
+base.collector.__dict__['TensorCollector'] = ArrayCollector
 base.function.__dict__['FunAsObject'] = math.FunAsObject
 base.function.__dict__['Function'] = math.FunAsObject
 base.io.__dict__['save_as_h5'] = checkpoints.io.save_as_h5
@@ -162,14 +161,12 @@ base.io.__dict__['load_by_h5'] = checkpoints.io.load_by_h5
 base.io.__dict__['load_by_npz'] = checkpoints.io.load_by_npz
 base.io.__dict__['load_by_pkl'] = checkpoints.io.load_by_pkl
 base.io.__dict__['load_by_mat'] = checkpoints.io.load_by_mat
-base.naming.__dict__['check_name_uniqueness'] = tools.check_name_uniqueness
-base.naming.__dict__['clear_name_cache'] = tools.clear_name_cache
-base.naming.__dict__['get_unique_name'] = tools.get_unique_name
+base.naming.__dict__['clear_name_cache'] = math.clear_name_cache
 base.__dict__['BrainPyObject'] = BrainPyObject
 base.__dict__['Base'] = Base
 base.__dict__['Collector'] = Collector
-base.__dict__['ArrayCollector'] = DynVarCollector
-base.__dict__['TensorCollector'] = DynVarCollector
+base.__dict__['ArrayCollector'] = ArrayCollector
+base.__dict__['TensorCollector'] = ArrayCollector
 base.__dict__['FunAsObject'] = math.FunAsObject
 base.__dict__['Function'] = math.FunAsObject
 base.__dict__['save_as_h5'] = checkpoints.io.save_as_h5
@@ -180,9 +177,7 @@ base.__dict__['load_by_h5'] = checkpoints.io.load_by_h5
 base.__dict__['load_by_npz'] = checkpoints.io.load_by_npz
 base.__dict__['load_by_pkl'] = checkpoints.io.load_by_pkl
 base.__dict__['load_by_mat'] = checkpoints.io.load_by_mat
-base.__dict__['check_name_uniqueness'] = tools.check_name_uniqueness
-base.__dict__['clear_name_cache'] = tools.clear_name_cache
-base.__dict__['get_unique_name'] = tools.get_unique_name
+base.__dict__['clear_name_cache'] = math.clear_name_cache
 
 
 from . import modes
@@ -252,4 +247,5 @@ del compat
 
 from brainpy._src import checking
 tools.__dict__['checking'] = checking
+tools.__dict__['clear_name_cache'] = math.clear_name_cache
 del checking

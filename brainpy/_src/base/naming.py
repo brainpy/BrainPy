@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.tools import naming
+from brainpy._src.math.object_transform import naming
 
 __all__ = [
   'check_name_uniqueness',

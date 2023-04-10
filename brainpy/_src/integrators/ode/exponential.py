@@ -114,7 +114,6 @@ from brainpy._src.integrators import constants as C, utils, joint_eq
 from brainpy._src.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
 
-logger = logging.getLogger('brainpy.integrators.ode.exponential')
 
 __all__ = [
   'ExponentialEuler',
