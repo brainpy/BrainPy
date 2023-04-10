@@ -179,3 +179,21 @@ class TestIfElse(unittest.TestCase):
       return vmap(f)(bm.random.randint(-20, 20, 200))
 
     self.assertTrue(f2().size == 200)
+
+
+class TestWhile(bp.testing.UnitTestCase):
+  def test1(self):
+    a = bm.Variable(bm.zeros(1))
+    b = bm.Variable(bm.ones(1))
+
+    def cond(x, y):
+      return x < 6.
+
+    def body(x, y):
+      a.value += x
+      b.value *= y
+      return x + b[0], y + 1.
+
+    res = bm.while_loop(body, cond, operands=(1., 1.))
+    print()
+    print(res)

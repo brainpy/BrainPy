@@ -7,14 +7,16 @@ The JIT compilation tools for JAX backend.
 
 """
 
+from functools import partial, wraps
 from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 
 import jax
-from jax.errors import UnexpectedTracerError, ConcretizationTypeError
 
-from brainpy import errors, tools, check
-from brainpy._src.math.ndarray import Variable, add_context, del_context
-from .abstract import ObjectTransform
+from brainpy import tools, check
+from brainpy._src.math.ndarray import Variable, VariableStack
+from brainpy._src.math.object_transform.naming import get_stack_cache, cache_stack
+from ._abstract import ObjectTransform
+from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars
 from .base import BrainPyObject
 
 __all__ = [
@@ -28,61 +30,65 @@ class JITTransform(ObjectTransform):
   def __init__(
       self,
       target: callable,
-      dyn_vars: Dict[str, Variable],
-      child_objs: Dict[str, BrainPyObject],
       static_argnums: Union[int, Iterable[int], None] = None,
       static_argnames: Union[str, Iterable[str], None] = None,
       device: Optional[Any] = None,
-      name: Optional[str] = None,
       inline: bool = False,
       keep_unused: bool = False,
       abstracted_axes: Optional[Any] = None,
+      name: Optional[str] = None,
+
+      # deprecated
+      dyn_vars: Dict[str, Variable] = None,
+      child_objs: Dict[str, BrainPyObject] = None,
   ):
     super().__init__(name=name)
 
-    self.register_implicit_vars(dyn_vars)
-    self.register_implicit_nodes(child_objs)
+    # variables and nodes
+    if dyn_vars is not None:
+      self.register_implicit_vars(dyn_vars)
+    if child_objs is not None:
+      self.register_implicit_nodes(child_objs)
+
+    # target
     if hasattr(target, '__self__') and isinstance(getattr(target, '__self__'), BrainPyObject):
       self.register_implicit_nodes(getattr(target, '__self__'))
     self.target = target
-    self._all_vars = self.vars().unique()
 
-    # transformation
-    self._f = jax.jit(self._transform_function,
-                      static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),
-                      static_argnames=static_argnames,
-                      device=device,
-                      inline=inline,
-                      keep_unused=keep_unused,
-                      abstracted_axes=abstracted_axes)
+    # parameters
+    self._static_argnums = static_argnums
+    self._static_argnames = static_argnames
+    self._device = device
+    self._inline = inline
+    self._keep_unused = keep_unused
+    self._abstracted_axes = abstracted_axes
+
+    # transformation function
+    self._transform = None
+    self._dyn_vars = None
 
   def _transform_function(self, variable_data: Dict, *args, **kwargs):
-    for key, v in self._all_vars.items():
+    for key, v in self._dyn_vars.items():
       v._value = variable_data[key]
     out = self.target(*args, **kwargs)
-    changes = self._all_vars.dict()
+    changes = self._dyn_vars.dict_data()
     return out, changes
 
   def __call__(self, *args, **kwargs):
-    # variable_data = self._all_vars.dict()
-    try:
-      add_context(self.name)
-      out, changes = self._f(self._all_vars.dict(), *args, **kwargs)
-      del_context(self.name)
-    except UnexpectedTracerError as e:
-      del_context(self.name)
-      # for key, v in self._all_vars.items(): v._value = variable_data[key]
-      raise errors.JaxTracerError(variables=self._all_vars) from e
-    except ConcretizationTypeError as e:
-      del_context(self.name)
-      # for key, v in self._all_vars.items(): v._value = variable_data[key]
-      raise errors.ConcretizationTypeError() from e
-    except Exception as e:
-      del_context(self.name)
-      # for key, v in self._all_vars.items(): v._value = variable_data[key]
-      raise e
-    else:
-      for key, v in self._all_vars.items(): v._value = changes[key]
+    if self._transform is None:
+      self._dyn_vars = evaluate_dyn_vars(self.target, *args, **kwargs)
+      self._transform = jax.jit(
+        self._transform_function,
+        static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),
+        static_argnames=self._static_argnames,
+        device=self._device,
+        inline=self._inline,
+        keep_unused=self._keep_unused,
+        abstracted_axes=self._abstracted_axes
+      )
+    out, changes = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
+    for key, v in self._dyn_vars.items():
+      v._value = changes[key]
     return out
 
   def __repr__(self):
@@ -94,46 +100,18 @@ class JITTransform(ObjectTransform):
     return format_ref
 
 
-def _jit(func: Callable = None,
-         dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-         child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-         static_argnums: Union[int, Iterable[int], None] = None,
-         static_argnames: Union[str, Iterable[str], None] = None,
-         device: Optional[Any] = None,
-         inline: bool = False,
-         keep_unused: bool = False,
-         abstracted_axes: Optional[Any] = None, ) -> JITTransform:
-  if callable(func):
-    dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-    child_objs = check.is_all_objs(child_objs, out_as='dict')
-
-    # BrainPyObject object which implements __call__,
-    # or bounded method of BrainPyObject object
-    return JITTransform(target=func,
-                        dyn_vars=dyn_vars,
-                        child_objs=child_objs,
-                        static_argnums=static_argnums,
-                        static_argnames=static_argnames,
-                        device=device,
-                        inline=inline,
-                        keep_unused=keep_unused,
-                        abstracted_axes=abstracted_axes)
-
-  else:
-    raise errors.BrainPyError(f'Only support instance of {BrainPyObject.__name__}, or a callable '
-                              f'function, but we got {type(func)}.')
-
-
 def jit(
     func: Callable = None,
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     static_argnums: Union[int, Iterable[int], None] = None,
     static_argnames: Union[str, Iterable[str], None] = None,
     device: Optional[Any] = None,
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
+
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> JITTransform:
   """JIT (Just-In-Time) compilation for class objects.
 
@@ -200,7 +178,7 @@ def jit(
 
   You can JIT a :py:class:`brainpy.Base` object with ``__call__()`` implementation.
 
-  >>> mlp = bp.layers.GRU(100, 200)
+  >>> mlp = bp.layers.Linear(100, 200)
   >>> jit_mlp = bp.math.jit(mlp)
 
   You can also JIT a bounded method of a :py:class:`brainpy.Base` object.
@@ -227,12 +205,6 @@ def jit(
   ----------
   func : Base, function, callable
     The instance of Base or a function.
-  dyn_vars : optional, dict, sequence of Variable, Variable
-    These variables will be changed in the function, or needed in the computation.
-  child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
-    The children objects used in the target function.
-
-    .. versionadded:: 2.3.1
   static_argnames : optional, str, list, tuple, dict
     An optional string or collection of strings specifying which named arguments to treat
     as static (compile-time constant). See the comment on ``static_argnums`` for details.
@@ -244,29 +216,146 @@ def jit(
     can be retrieved via :py:func:`jax.devices`.) The default is inherited
     from XLA's DeviceAssignment logic and is usually to use
     ``jax.devices()[0]``.
+  dyn_vars : optional, dict, sequence of Variable, Variable
+    These variables will be changed in the function, or needed in the computation.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
+  child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    The children objects used in the target function.
+
+    .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
   func : callable
     A callable jitted function, set up for just-in-time compilation.
   """
+
+  dynvar_deprecation(dyn_vars)
+  node_deprecation(child_objs)
+  if dyn_vars is not None:
+    dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
+  if child_objs is not None:
+    child_objs = check.is_all_objs(child_objs, out_as='dict')
+
   if func is None:
-    return lambda f: _jit(func=f,
-                          dyn_vars=dyn_vars,
-                          child_objs=child_objs,
-                          static_argnums=static_argnums,
-                          static_argnames=static_argnames,
-                          device=device,
-                          inline=inline,
-                          keep_unused=keep_unused,
-                          abstracted_axes=abstracted_axes)
+    return lambda f: JITTransform(target=f,
+                                  dyn_vars=dyn_vars,
+                                  child_objs=child_objs,
+                                  static_argnums=static_argnums,
+                                  static_argnames=static_argnames,
+                                  device=device,
+                                  inline=inline,
+                                  keep_unused=keep_unused,
+                                  abstracted_axes=abstracted_axes)
   else:
-    return _jit(func=func,
-                dyn_vars=dyn_vars,
-                child_objs=child_objs,
-                static_argnums=static_argnums,
-                static_argnames=static_argnames,
-                device=device,
-                inline=inline,
-                keep_unused=keep_unused,
-                abstracted_axes=abstracted_axes)
+    return JITTransform(target=func,
+                        dyn_vars=dyn_vars,
+                        child_objs=child_objs,
+                        static_argnums=static_argnums,
+                        static_argnames=static_argnames,
+                        device=device,
+                        inline=inline,
+                        keep_unused=keep_unused,
+                        abstracted_axes=abstracted_axes)
+
+
+def cls_jit(
+    func: Callable = None,
+    static_argnums: Union[int, Iterable[int], None] = None,
+    static_argnames: Union[str, Iterable[str], None] = None,
+    device: Optional[Any] = None,
+    inline: bool = False,
+    keep_unused: bool = False,
+    abstracted_axes: Optional[Any] = None,
+) -> Callable:
+  if func is None:
+    return lambda f: _make_jit_fun(fun=f,
+                                   static_argnums=static_argnums,
+                                   static_argnames=static_argnames,
+                                   device=device,
+                                   inline=inline,
+                                   keep_unused=keep_unused,
+                                   abstracted_axes=abstracted_axes)
+  else:
+    return _make_jit_fun(fun=func,
+                         static_argnums=static_argnums,
+                         static_argnames=static_argnames,
+                         device=device,
+                         inline=inline,
+                         keep_unused=keep_unused,
+                         abstracted_axes=abstracted_axes)
+
+
+def _make_jit_fun(
+    fun: Callable,
+    static_argnums: Union[int, Iterable[int], None] = None,
+    static_argnames: Union[str, Iterable[str], None] = None,
+    device: Optional[Any] = None,
+    inline: bool = False,
+    keep_unused: bool = False,
+    abstracted_axes: Optional[Any] = None,
+):
+  @wraps(fun)
+  def call_fun(self, *args, **kwargs):
+    fun2 = partial(fun, self)
+    cache = get_stack_cache(fun2)  # TODO: better cache mechanism
+    if cache is None:
+      with jax.ensure_compile_time_eval():
+        args_, kwargs_ = jax.tree_util.tree_map(jax.api_util.shaped_abstractify, (args, kwargs))
+        with VariableStack() as stack:
+          _ = jax.eval_shape(fun2, *args_, **kwargs_)
+        del args_, kwargs_
+      _transform = jax.jit(
+        _make_transform(fun2, stack),
+        static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),
+        static_argnames=static_argnames,
+        device=device,
+        inline=inline,
+        keep_unused=keep_unused,
+        abstracted_axes=abstracted_axes
+      )
+      cache_stack(fun2, (stack, _transform))  # cache
+    else:
+      stack, _transform = cache
+    del cache
+    out, changes = _transform(stack.dict_data(), *args, **kwargs)
+    for key, v in stack.items():
+      v._value = changes[key]
+    return out
+
+  return call_fun
+
+
+def _make_transform(fun, stack):
+  def _transform_function(variable_data: dict, *args, **kwargs):
+    for key, v in stack.items():
+      v._value = variable_data[key]
+    out = fun(*args, **kwargs)
+    changes = stack.dict_data()
+    return out, changes
+
+  return _transform_function
+
+
+def cls_jit_inline(
+    func: Callable = None,
+    static_argnums: Union[int, Iterable[int], None] = None,
+    static_argnames: Union[str, Iterable[str], None] = None,
+    device: Optional[Any] = None,
+    keep_unused: bool = False,
+    abstracted_axes: Optional[Any] = None,
+) -> Callable:
+  return cls_jit(func=func,
+                 static_argnums=static_argnums,
+                 static_argnames=static_argnames,
+                 inline=True,
+                 device=device,
+                 keep_unused=keep_unused,
+                 abstracted_axes=abstracted_axes)

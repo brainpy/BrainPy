@@ -8,7 +8,7 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as sci
 
-from brainpy._src.math.arrayinterporate import as_jax
+from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from ._utils import vjp_custom
 

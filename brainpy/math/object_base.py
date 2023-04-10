@@ -12,3 +12,9 @@ from brainpy._src.math.ndarray import (Variable as Variable,
 from brainpy._src.math.object_transform.function import (
   Partial as Partial,
 )
+
+from brainpy._src.math.object_transform.naming import (
+  clear_name_cache,
+)
+
+

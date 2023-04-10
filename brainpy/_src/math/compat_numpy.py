@@ -6,7 +6,7 @@ from jax.tree_util import tree_flatten, tree_unflatten
 from jax.tree_util import tree_map
 
 from ._utils import _compatible_with_brainpy_array, _as_jax_array_
-from .arrayinterporate import *
+from .interoperability import *
 from .ndarray import Array
 
 

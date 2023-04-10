@@ -20,7 +20,8 @@ from jax.util import safe_zip
 
 from brainpy import errors
 from brainpy._src.math.ndarray import (Array, Variable, VariableView, TrainVar)
-from brainpy._src.tools.naming import (get_unique_name, check_name_uniqueness)
+from brainpy._src.math.object_transform.naming import (get_unique_name,
+                                                       check_name_uniqueness)
 
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
 
@@ -59,10 +60,10 @@ class BrainPyObject(object):
   def __init__(self, name=None):
     super().__init__()
 
-    if _register_pytree:
-      cls = self.__class__
-      if cls not in _registry:
-        register_pytree_node_class(cls)
+    # if _register_pytree:
+    #   cls = self.__class__
+    #   if cls not in _registry:
+    #     register_pytree_node_class(cls)
 
     # check whether the object has a unique name.
     self._name = None
@@ -565,7 +566,7 @@ class FunAsObject(BrainPyObject):
     return self.target(*args, **kwargs)
 
   def __repr__(self) -> str:
-    from brainpy.tools import repr_context
+    from brainpy._src.tools import repr_context
     name = self.__class__.__name__
     indent = " " * (len(name) + 1)
     indent2 = indent + " " * len('nodes=')

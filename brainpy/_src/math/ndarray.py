@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Optional, NoReturn, Sequence, Any, Tuple as TupleType
-import warnings
 import operator
+from typing import Union, Optional, Sequence, Any, Tuple as TupleType, List
 
 import jax
 import numpy as np
@@ -32,32 +31,85 @@ __all__ = [
 
 _all_slice = slice(None, None, None)
 
-msg = ('ArrayType created outside of the jit function '
-       'cannot be updated in JIT mode. You should '
-       'mark it as brainpy.math.Variable instead.')
 
-_jax_transformation_context_ = []
+class VariableStack(dict):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._values = dict()
+
+  def add(self, var: 'Variable'):
+    assert isinstance(var, Variable)
+    id_ = id(var)
+    if id_ not in self:
+      self[id_] = var
+      self._values[id_] = var._value
+
+  def recollect_values(self):
+    """Collect the value of each variable once again."""
+    for id_, var in self.items():
+      self._values[id_] = var._value
+
+  def reassign_values(self):
+    """Assign the old value for each variable."""
+    for id_, var in self.items():
+      if id_ in self._values:
+        var._value = self._values[id_]
+
+  def instance_of(self, cls: type) -> 'VariableStack':
+    new_dict = type(self)()
+    for id_, elem in self.items():
+      if isinstance(elem, cls):
+        new_dict[id_] = elem
+    return new_dict
+
+  def not_instance_of(self, cls: type) -> 'VariableStack':
+    new_dict = type(self)()
+    for id_, elem in self.items():
+      if not isinstance(elem, cls):
+        new_dict[id_] = elem
+    return new_dict
+
+  def dict_data(self) -> dict:
+    new_dict = dict()
+    for id_, elem in tuple(self.items()):
+      new_dict[id_] = elem.value if isinstance(elem, Array) else elem
+    return new_dict
+
+  def list_data(self) -> list:
+    new_list = list()
+    for elem in tuple(self.values()):
+      new_list.append(elem.value if isinstance(elem, Array) else elem)
+    return new_list
+
+  def remove_var_by_id(self, *ids, error_when_absent=False):
+    for id_ in ids:
+      if error_when_absent:
+        self.pop(id_)
+      else:
+        self.pop(id_, None)
+
+  def __enter__(self) -> 'VariableStack':
+    self.recollect_values()  # recollect the original value of each variable
+    var_stack_list.append(self)
+    return self
+
+  def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    var_stack_list.pop()
+    self.reassign_values()  # reassign the original value for each variable
+    self._values.clear()
+
+  def __add__(self, other: dict):
+    new_dict = VariableStack(self)
+    new_dict.update(other)
+    new_dict._values.update(self._values)
+    if isinstance(other, VariableStack):
+      new_dict._values.update(other._values)
+    return new_dict
 
 
-def add_context(name) -> None:
-  _jax_transformation_context_.append(name)
 
 
-def del_context(name=None) -> None:
-  try:
-    context = _jax_transformation_context_.pop(-1)
-    if name is not None:
-      if context != name:
-        raise MathError('Transformation context is different!')
-  except IndexError:
-    raise MathError('No transformation context!')
-
-
-def get_context():
-  if len(_jax_transformation_context_) > 0:
-    return _jax_transformation_context_[-1]
-  else:
-    return None
+var_stack_list: List[VariableStack] = []
 
 
 def _check_input_array(array):
@@ -89,8 +141,7 @@ class Array(object):
   """
 
   is_brainpy_array = True
-  _need_check_context = True
-  __slots__ = ("_value", )
+  __slots__ = ("_value",)
 
   def __init__(self, value, dtype=None):
     # array value
@@ -108,11 +159,6 @@ class Array(object):
 
   @value.setter
   def value(self, value):
-    self.update(value)
-
-  def update(self, value):
-    """Update the value of this Array.
-    """
     if isinstance(value, Array):
       value = value.value
     elif isinstance(value, np.ndarray):
@@ -129,6 +175,11 @@ class Array(object):
       raise MathError(f"The dtype of the original data is {self.value.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value.value if isinstance(value, Array) else value
+
+  def update(self, value):
+    """Update the value of this Array.
+    """
+    self.value = value
 
   @property
   def dtype(self):
@@ -1126,11 +1177,8 @@ class Array(object):
       array = Array(array)
     return Array(jnp.broadcast_to(self.value, array.value.shape))
 
-  # def item(self, *args) -> Any:
-  #   return self.value.item(*args)
-
   def pow(self, index: int):
-    return _return(self._value ** index)
+    return _return(self.value ** index)
 
   def addr(
       self,
@@ -1434,14 +1482,14 @@ class Variable(Array):
     The batch axis.
   """
 
-  _need_check_context = False
-  __slots__ = ('_value', '_batch_axis', '_env')
+  __slots__ = ('_value', '_batch_axis', '_ready_to_trace')
 
   def __init__(
       self,
       value_or_size,
       dtype: type = None,
       batch_axis: int = None,
+      _ready_to_trace: bool = True
   ):
     if isinstance(value_or_size, int):
       value = jnp.zeros(value_or_size, dtype=dtype)
@@ -1467,7 +1515,8 @@ class Variable(Array):
         raise MathError(f'This variables has {self.ndim} dimension, '
                         f'but the batch axis is set to be {batch_axis}.')
 
-    self._env = True
+    # ready to trace the variable
+    self._ready_to_trace = _ready_to_trace
 
   @property
   def nobatch_shape(self) -> TupleType[int, ...]:
@@ -1498,63 +1547,75 @@ class Variable(Array):
   def batch_size(self, val):
     raise ValueError(f'Cannot set "batch_size" manually.')
 
-  def update(self, value):
-    """Update the value of this Array.
-    """
+  @property
+  def value(self):
+    self._append_to_stack()
+    return self._value
+
+  @value.setter
+  def value(self, v):
     if self._batch_axis is None:
-      ext_shape = jnp.shape(value)
+      ext_shape = jnp.shape(v)
       int_shape = self.shape
     else:
-      ext_shape = value.shape[:self._batch_axis] + value.shape[self._batch_axis + 1:]
+      ext_shape = v.shape[:self._batch_axis] + v.shape[self._batch_axis + 1:]
       int_shape = self.shape[:self._batch_axis] + self.shape[self._batch_axis + 1:]
     if ext_shape != int_shape:
-      error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
+      error = f"The shape of the original data is {self.shape}, while we got {v.shape}"
       error += f' with batch_axis={self._batch_axis}.'
       raise MathError(error)
-    if hasattr(value, 'dtype'):
-      dtype = value.dtype
+    if hasattr(v, 'dtype'):
+      dtype = v.dtype
     else:
-      dtype = canonicalize_dtype(type(value))
+      dtype = canonicalize_dtype(type(v))
     if dtype != self.dtype:
       raise MathError(f"The dtype of the original data is {self.dtype}, "
                       f"while we got {dtype}.")
-    self._value = value.value if isinstance(value, Array) else value
+    self._append_to_stack()
+    self._value = v.value if isinstance(v, Array) else v
+
+  def _append_to_stack(self):
+    if self._ready_to_trace:
+      for stack in var_stack_list:
+        stack.add(self)
 
 
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
   """
-  __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self,
-               value_or_size,
-               dtype: type = None,
-               batch_axis: int = None):
-    super(TrainVar, self).__init__(value_or_size,
-                                   dtype=dtype,
-                                   batch_axis=batch_axis)
+  def __init__(
+      self,
+      value_or_size,
+      dtype: type = None,
+      batch_axis: int = None,
+      _ready_to_trace: bool = True
+  ):
+    super(TrainVar, self).__init__(
+      value_or_size,
+      dtype=dtype,
+      batch_axis=batch_axis,
+      _ready_to_trace=_ready_to_trace
+    )
 
 
 class Parameter(Variable):
   """The pointer to specify the parameter.
   """
-  __slots__ = ('_value', '_batch_axis')
 
-  def __init__(self,
-               value_or_size,
-               dtype: type = None,
-               batch_axis: int = None):
-    super(Parameter, self).__init__(value_or_size,
-                                    dtype=dtype,
-                                    batch_axis=batch_axis)
-
-
-class ParallelVariable(Variable):
-  pass
-
-
-class BatchVariable(Variable):
-  pass
+  def __init__(
+      self,
+      value_or_size,
+      dtype: type = None,
+      batch_axis: int = None,
+      _ready_to_trace: bool = True
+  ):
+    super(Parameter, self).__init__(
+      value_or_size,
+      dtype=dtype,
+      batch_axis=batch_axis,
+      _ready_to_trace=_ready_to_trace
+    )
 
 
 class VariableView(Variable):
@@ -1586,12 +1647,17 @@ class VariableView(Variable):
 
   Moreover, it's worthy to note that ``VariableView`` is not a PyTree.
   """
+  _need_record = False
 
-  def __init__(self, value: Variable, index):
+  def __init__(
+      self,
+      value: Variable,
+      index,
+  ):
     self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
-    super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis)
+    super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis, _ready_to_trace=False)
     self._value = value
 
   def __repr__(self) -> str:
@@ -1613,45 +1679,45 @@ class VariableView(Variable):
 
   @value.setter
   def value(self, v):
-    self.update(v)
-
-  def update(self, value):
     int_shape = self.shape
     if self.batch_axis is None:
-      ext_shape = value.shape
+      ext_shape = v.shape
     else:
-      ext_shape = value.shape[:self.batch_axis] + value.shape[self.batch_axis + 1:]
+      ext_shape = v.shape[:self.batch_axis] + v.shape[self.batch_axis + 1:]
       int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
     if ext_shape != int_shape:
-      error = f"The shape of the original data is {self.shape}, while we got {value.shape}"
+      error = f"The shape of the original data is {self.shape}, while we got {v.shape}"
       if self.batch_axis is None:
         error += '. Do you forget to set "batch_axis" when initialize this variable?'
       else:
         error += f' with batch_axis={self.batch_axis}.'
       raise MathError(error)
-    if value.dtype != self._value.dtype:
+    if v.dtype != self._value.dtype:
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "
-                      f"while we got {value.dtype}.")
-    self._value[self.index] = value.value if isinstance(value, Array) else value
+                      f"while we got {v.dtype}.")
+    self._value[self.index] = v.value if isinstance(v, Array) else v
 
 
-def _jaxarray_unflatten(aux_data, flat_contents):
-  r = Array(*flat_contents)
-  return r
+register_pytree_node(
+  Array,
+  lambda t: ((t.value,), None),
+  lambda aux_data, flat_contents: Array(*flat_contents)
+)
 
+register_pytree_node(
+  Variable,
+  lambda t: ((t.value,), None),
+  lambda aux_data, flat_contents: Variable(*flat_contents, _ready_to_trace=False)
+)
 
-register_pytree_node(Array,
-                     lambda t: ((t.value,), None),
-                     _jaxarray_unflatten)
+register_pytree_node(
+  TrainVar,
+  lambda t: ((t.value,), None),
+  lambda aux_data, flat_contents: TrainVar(*flat_contents, _ready_to_trace=False)
+)
 
-register_pytree_node(Variable,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: Variable(*flat_contents))
-
-register_pytree_node(TrainVar,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: TrainVar(*flat_contents))
-
-register_pytree_node(Parameter,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: Parameter(*flat_contents))
+register_pytree_node(
+  Parameter,
+  lambda t: ((t.value,), None),
+  lambda aux_data, flat_contents: Parameter(*flat_contents, _ready_to_trace=False)
+)

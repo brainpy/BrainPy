@@ -11,7 +11,7 @@ from jax.lax import cond, stop_gradient
 from brainpy import check
 from brainpy.check import is_float, is_integer, jit_error_checking
 from brainpy.errors import UnsupportedError
-from .arrayinterporate import as_jax
+from .interoperability import as_jax
 from .compat_numpy import vstack, broadcast_to
 from .environment import get_dt, get_float, get_int
 from .ndarray import ndarray, Variable, Array

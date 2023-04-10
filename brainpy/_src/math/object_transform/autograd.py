@@ -9,17 +9,19 @@ import numpy as np
 from jax import linear_util, dtypes, vmap, numpy as jnp, core
 from jax._src.api import (_vjp, _jvp)
 from jax.api_util import argnums_partial
-from jax.errors import UnexpectedTracerError
 from jax.interpreters import xla
 from jax.tree_util import (tree_flatten, tree_unflatten,
                            tree_map, tree_transpose,
                            tree_structure)
 from jax.util import safe_map
 
-from brainpy import errors, tools, check
-from brainpy._src.math.ndarray import Array, Variable, add_context, del_context
-from brainpy._src.math.object_transform.abstract import ObjectTransform
+from brainpy import tools, check
+from brainpy._src.math.ndarray import Array, Variable
+from brainpy._src.math.object_transform._abstract import ObjectTransform
 from brainpy._src.math.object_transform.base import BrainPyObject
+from brainpy._src.math.object_transform._tools import (dynvar_deprecation,
+                                                       node_deprecation,
+                                                       evaluate_dyn_vars)
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -75,30 +77,28 @@ class GradientTransform(ObjectTransform):
       if len(self._grad_vars) > 0:
         _argnums = (0,) + _argnums
     self._nonvar_argnums = argnums
-    self.return_value = return_value
-    self.has_aux = has_aux
+    self._argnums = _argnums
+    self._return_value = return_value
+    self._has_aux = has_aux
 
-    # target and transform
+    # target
     self.target = target
-    self.transform = transform
-    self._dyn_vars = tuple((self.vars().unique() - self._grad_vars).values())
 
-    # settings
-    transform_setting = dict() if transform_setting is None else transform_setting
-    if self.has_aux:
-      self._call = transform(self._f_grad_with_aux_to_transform,
-                             argnums=_argnums,
-                             has_aux=True,
-                             **transform_setting)
-    else:
-      self._call = transform(self._f_grad_without_aux_to_transform,
-                             argnums=_argnums,
-                             has_aux=True,
-                             **transform_setting)
+    # transform
+    self._grad_transform = transform
+    self._dyn_vars = None
+    self._transform = None
+    self._grad_setting = dict() if transform_setting is None else transform_setting
 
-  def _f_grad_with_aux_to_transform(self, grad_values, dyn_values, *args, **kwargs):
-    for v, d in zip(self._dyn_vars, dyn_values): v._value = d
-    for v, d in zip(self._grad_vars, grad_values): v._value = d
+  def _f_grad_with_aux_to_transform(self,
+                                    grad_values: tuple,
+                                    dyn_values: dict,
+                                    *args,
+                                    **kwargs):
+    for k in self._dyn_vars.keys():
+      self._dyn_vars[k]._value = dyn_values[k]
+    for v, d in zip(self._grad_vars, grad_values):
+      v._value = d
     # Users should return the auxiliary data like::
     # >>> # 1. example of return one data
     # >>> return scalar_loss, data
@@ -108,16 +108,22 @@ class GradientTransform(ObjectTransform):
     # outputs: [0] is the value for gradient,
     #          [1] is other values for return
     output0 = tree_map(lambda a: (a.value if isinstance(a, Array) else a), outputs[0])
-    return output0, (outputs, [v.value for v in self._grad_vars], [v.value for v in self._dyn_vars])
+    return output0, (outputs, [v.value for v in self._grad_vars], self._dyn_vars.dict_data())
 
-  def _f_grad_without_aux_to_transform(self, grad_values, dyn_values, *args, **kwargs):
-    for v, d in zip(self._dyn_vars, dyn_values): v._value = d
-    for v, d in zip(self._grad_vars, grad_values): v._value = d
+  def _f_grad_without_aux_to_transform(self,
+                                       grad_values: tuple,
+                                       dyn_values: dict,
+                                       *args,
+                                       **kwargs):
+    for k in self._dyn_vars.keys():
+      self._dyn_vars[k]._value = dyn_values[k]
+    for v, d in zip(self._grad_vars, grad_values):
+      v._value = d
     # Users should return the scalar value like this::
     # >>> return scalar_loss
     output = self.target(*args, **kwargs)
     output0 = tree_map(lambda a: (a.value if isinstance(a, Array) else a), output)
-    return output0, (output, [v.value for v in self._grad_vars], [v.value for v in self._dyn_vars])
+    return output0, (output, [v.value for v in self._grad_vars], self._dyn_vars.dict_data())
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -129,30 +135,34 @@ class GradientTransform(ObjectTransform):
     return format_ref
 
   def __call__(self, *args, **kwargs):
-    # old_grad_vs = [v.value for v in self._grad_vars]
-    # old_dyn_vs = [v.value for v in self._dyn_vars]
-    try:
-      add_context(self.name)
-      grads, (outputs, new_grad_vs, new_dyn_vs) = self._call(
-        [v.value for v in self._grad_vars],
-        [v.value for v in self._dyn_vars],
-        *args,
-        **kwargs
-      )
-      del_context(self._name)
-    except UnexpectedTracerError as e:
-      del_context(self._name)
-      # for v, d in zip(self._grad_vars, old_grad_vs): v._value = d
-      # for v, d in zip(self._dyn_vars, old_dyn_vs): v._value = d
-      raise errors.JaxTracerError() from e
-    except Exception as e:
-      del_context(self._name)
-      # for v, d in zip(self._grad_vars, old_grad_vs): v._value = d
-      # for v, d in zip(self._dyn_vars, old_dyn_vs): v._value = d
-      raise e
-    else:
-      for v, d in zip(self._grad_vars, new_grad_vs): v._value = d
-      for v, d in zip(self._dyn_vars, new_dyn_vs): v._value = d
+    if self._transform is None:
+      self._dyn_vars = evaluate_dyn_vars(self.target, *args, **kwargs)
+      self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+      if self._has_aux:
+        self._transform = self._grad_transform(
+          self._f_grad_with_aux_to_transform,
+          argnums=self._argnums,
+          has_aux=True,
+          **self._grad_setting
+        )
+      else:
+        self._transform = self._grad_transform(
+          self._f_grad_without_aux_to_transform,
+          argnums=self._argnums,
+          has_aux=True,
+          **self._grad_setting
+        )
+
+    grads, (outputs, new_grad_vs, new_dyn_vs) = self._transform(
+      [v.value for v in self._grad_vars],  # gradient variables
+      self._dyn_vars.dict_data(),  # dynamical variables
+      *args,
+      **kwargs
+    )
+    for v, d in zip(self._grad_vars, new_grad_vs):
+      v._value = d
+    for k in self._dyn_vars.keys():
+      self._dyn_vars[k]._value = new_dyn_vs[k]
 
     # check returned grads
     if len(self._grad_vars) > 0:
@@ -164,30 +174,33 @@ class GradientTransform(ObjectTransform):
         grads = (var_grads, arg_grads)
 
     # check returned value
-    if self.return_value:
+    if self._return_value:
       # check aux
-      if self.has_aux:
+      if self._has_aux:
         return grads, outputs[0], outputs[1]
       else:
         return grads, outputs
     else:
       # check aux
-      if self.has_aux:
+      if self._has_aux:
         return grads, outputs[1]
       else:
         return grads
 
 
-def _make_grad(func: Callable,
-               grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-               dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-               child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-               argnums: Optional[Union[int, Sequence[int]]] = None,
-               holomorphic: Optional[bool] = False,
-               allow_int: Optional[bool] = False,
-               reduce_axes: Optional[Sequence[str]] = (),
-               has_aux: Optional[bool] = None,
-               return_value: Optional[bool] = False, ):
+def _make_grad(
+    func: Callable,
+    grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    argnums: Optional[Union[int, Sequence[int]]] = None,
+    holomorphic: Optional[bool] = False,
+    allow_int: Optional[bool] = False,
+    reduce_axes: Optional[Sequence[str]] = (),
+    has_aux: Optional[bool] = None,
+    return_value: Optional[bool] = False,
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+):
   child_objs = check.is_all_objs(child_objs, out_as='dict')
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
@@ -207,14 +220,16 @@ def _make_grad(func: Callable,
 def grad(
     func: Callable = None,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     holomorphic: Optional[bool] = False,
     allow_int: Optional[bool] = False,
     reduce_axes: Optional[Sequence[str]] = (),
     has_aux: Optional[bool] = None,
     return_value: Optional[bool] = False,
+
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> GradientTransform:
   """Automatic gradient computation for functions or class objects.
 
@@ -296,11 +311,6 @@ def grad(
     Argument arrays in the positions specified by ``argnums`` must be of
     inexact (i.e., floating-point or complex) type. It should return a scalar
     (which includes arrays with shape ``()`` but not arrays with shape ``(1,)`` etc.)
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   argnums : optional, integer or sequence of integers
@@ -326,6 +336,19 @@ def grad(
     is a named batch axis, ``grad(f, reduce_axes=('batch',))`` will create a
     function that computes the total gradient while ``grad(f)`` will create
     one that computes the per-example gradient.
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
+    The dynamically changed variables used in ``func``.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
@@ -337,6 +360,9 @@ def grad(
     same shapes and types as the corresponding arguments. If ``has_aux`` is True
     then a pair of (gradient, auxiliary_data) is returned.
   """
+  dynvar_deprecation(dyn_vars)
+  node_deprecation(child_objs)
+
   if func is None:
     return lambda f: _make_grad(f,
                                 grad_vars=grad_vars,
@@ -410,13 +436,15 @@ def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, r
 def jacrev(
     func: Callable,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     has_aux: Optional[bool] = None,
     return_value: bool = False,
     holomorphic: bool = False,
     allow_int: bool = False,
+
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Extending automatic Jacobian (reverse-mode) of ``func`` to classes.
 
@@ -447,13 +475,8 @@ def jacrev(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
-  child_objs: optional, BrainPyObject, sequence, dict
-
-    .. versionadded:: 2.3.1
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
     first element is considered the output of the mathematical function to be
@@ -470,6 +493,19 @@ def jacrev(
     Whether to allow differentiating with
     respect to integer valued inputs. The gradient of an integer input will
     have a trivial vector-space dtype (float0). Default False.
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
+    The dynamically changed variables used in ``func``.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
@@ -525,12 +561,14 @@ def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False
 def jacfwd(
     func: Callable,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     has_aux: Optional[bool] = None,
     return_value: bool = False,
     holomorphic: bool = False,
+
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Extending automatic Jacobian (forward-mode) of ``func`` to classes.
 
@@ -560,13 +598,8 @@ def jacfwd(
   Parameters
   ----------
   func: Function whose Jacobian is to be computed.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
-  child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-
-    .. versionadded:: 2.3.1
   has_aux: optional, bool
     Indicates whether ``fun`` returns a pair where the
     first element is considered the output of the mathematical function to be
@@ -577,6 +610,19 @@ def jacfwd(
     positional argument(s) to differentiate with respect to (default ``0``).
   holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
     holomorphic. Default False.
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
+    The dynamically changed variables used in ``func``.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
@@ -600,11 +646,13 @@ def jacfwd(
 def hessian(
     func: Callable,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     return_value: bool = False,
     holomorphic=False,
+
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Hessian of ``func`` as a dense array.
 
@@ -615,11 +663,6 @@ def hessian(
     specified by ``argnums`` should be arrays, scalars, or standard Python
     containers thereof. It should return arrays, scalars, or standard Python
     containers thereof.
-  dyn_vars : optional, ArrayCollector, sequence of ArrayType
-    The dynamical changed variables.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
   grad_vars : optional, ArrayCollector, sequence of ArrayType
     The variables required to compute their gradients.
   argnums: Optional, integer or sequence of integers
@@ -628,6 +671,19 @@ def hessian(
     Indicates whether ``fun`` is promised to be holomorphic. Default False.
   return_value : bool
     Whether return the hessian values.
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
+    The dynamically changed variables used in ``func``.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
@@ -678,11 +734,13 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
 def vector_grad(
     func: Callable,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     return_value: bool = False,
     has_aux: Optional[bool] = None,
+
+    # deprecated
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Take vector-valued gradients for function ``func``.
 
@@ -712,11 +770,6 @@ def vector_grad(
   ----------
   func: Callable
     Function whose gradient is to be computed.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
   grad_vars : optional, ArrayType, sequence of ArrayType, dict
     The variables in ``func`` to take their gradients.
   has_aux: optional, bool
@@ -727,6 +780,19 @@ def vector_grad(
     Whether return the loss value.
   argnums: Optional, integer or sequence of integers. Specifies which
     positional argument(s) to differentiate with respect to (default ``0``).
+  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
+    The dynamically changed variables used in ``func``.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
+  child_objs: optional, BrainPyObject, sequnce, dict
+
+    .. versionadded:: 2.3.1
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``child_objs``. This function is capable of automatically
+       collecting the children objects used in the target ``func``.
 
   Returns
   -------
