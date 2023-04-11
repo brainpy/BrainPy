@@ -207,7 +207,7 @@ class OfflineTrainer(DSTrainer):
       self._f_fit_compiled[shared_kwargs_str] = (
         self._fun_train
         if self.jit['fit'] else
-        bm.jit(self._fun_train, dyn_vars=self.vars().unique())
+        bm.jit(self._fun_train)
       )
     return self._f_fit_compiled[shared_kwargs_str]
 

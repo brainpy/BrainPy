@@ -156,7 +156,7 @@ class Variable(Array):
                         f'but the batch axis is set to be {batch_axis}.')
 
     # ready to trace the variable
-    self._ready_to_trace = _ready_to_trace
+    self._ready_to_trace = _ready_to_trace and len(var_stack_list) == 0
 
   @property
   def nobatch_shape(self) -> TupleType[int, ...]:

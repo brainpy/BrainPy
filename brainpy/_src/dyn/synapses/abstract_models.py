@@ -977,8 +977,7 @@ class PoissonInput(SynConn):
       inp = bm.cond((a > 5) * (b > 5),
                     lambda _: self.rng.normal(a, b * p, self.target_var.shape),
                     lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
-                    None,
-                    dyn_vars=self.rng)
+                    None)
     self.target_var += inp * self.weight
 
   def __repr__(self):

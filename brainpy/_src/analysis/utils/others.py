@@ -2,9 +2,9 @@
 
 from typing import Union, Dict
 
+import jax
 import jax.numpy as jnp
 import numpy as np
-from jax import vmap
 from jax.tree_util import tree_map
 
 import brainpy.math as bm
@@ -80,7 +80,7 @@ def get_sign(f, xs, ys):
 
 def get_sign2(f, *xyz, args=()):
   in_axes = tuple(range(len(xyz))) + tuple([None] * len(args))
-  f = bm.jit(vmap(f_without_jaxarray_return(f), in_axes=in_axes))
+  f = jax.jit(jax.vmap(f_without_jaxarray_return(f), in_axes=in_axes))
   xyz = tuple((v.value if isinstance(v, bm.Array) else v) for v in xyz)
   XYZ = jnp.meshgrid(*xyz)
   XYZ = tuple(jnp.moveaxis(v, 1, 0).flatten() for v in XYZ)

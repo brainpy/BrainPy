@@ -36,9 +36,7 @@ class SDEIntegrator(Integrator):
       intg_type: str = None,
       wiener_type: str = None,
       state_delays: Dict[str, AbstractDelay] = None,
-      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
   ):
-    self.dyn_vars = dyn_vars
     dt = bm.get_dt() if dt is None else dt
     parses = utils.get_args(f)
     variables = parses[0]  # variable names, (before 't')

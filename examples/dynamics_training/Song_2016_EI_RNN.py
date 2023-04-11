@@ -107,14 +107,13 @@ opt = bp.optim.Adam(lr=0.001, train_vars=net.train_vars().unique())
 
 # gradient function
 grad_f = bm.grad(net.loss,
-                 child_objs=net,
                  grad_vars=net.train_vars().unique(),
                  return_value=True,
                  has_aux=True)
 
 
 # training function
-@bm.jit(child_objs=(net, opt))
+@bm.jit
 def train(xs, ys):
   grads, loss, acc = grad_f(xs, ys)
   opt.update(grads)

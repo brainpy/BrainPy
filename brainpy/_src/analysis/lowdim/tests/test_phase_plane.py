@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import jax.numpy as jnp
 
 
-block = False
+show = False
 
 
 class TestPhasePlane(unittest.TestCase):
@@ -27,7 +27,8 @@ class TestPhasePlane(unittest.TestCase):
     plt.ion()
     analyzer.plot_vector_field()
     analyzer.plot_fixed_point()
-    plt.show(block=block)
+    if show:
+      plt.show()
     plt.close()
     bp.math.disable_x64()
 
@@ -74,6 +75,7 @@ class TestPhasePlane(unittest.TestCase):
     analyzer.plot_vector_field()
     analyzer.plot_nullcline(coords=dict(s2='s2-s1'))
     analyzer.plot_fixed_point()
-    plt.show(block=block)
+    if show:
+      plt.show()
     plt.close()
     bp.math.disable_x64()

@@ -78,14 +78,14 @@ class EchoStateNet(bp.DynamicalSystem):
     self.w_ro += dw
 
   def simulate(self, xs):
-    return bm.for_loop(self.update, dyn_vars=self.vars(), operands=xs)
+    return bm.for_loop(self.update, operands=xs)
 
   def train(self, xs, targets):
     def _f(x, target):
       r, o = self.update(x)
       self.rls(target)
       return r, o
-    return bm.for_loop(_f, dyn_vars=self.vars(), operands=[xs, targets])
+    return bm.for_loop(_f, operands=[xs, targets])
 
 
 # %%

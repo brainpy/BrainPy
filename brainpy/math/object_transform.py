@@ -22,7 +22,7 @@ from brainpy._src.math.object_transform.controls import (
 
 from brainpy._src.math.object_transform.jit import (
   jit as jit,
-  cls_jit,
+  cls_jit as cls_jit,
 )
 
 

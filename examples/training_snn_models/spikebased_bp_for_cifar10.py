@@ -239,7 +239,7 @@ def main():
   bm.random.seed(1234)
   net = ResNet11()
 
-  @bm.jit(child_objs=net, dyn_vars=bm.random.DEFAULT)
+  @bm.jit
   def loss_fun(x, y, fit=True):
     bp.share.save(fit=fit)
     yy = bm.one_hot(y, 10, dtype=bm.float_)
@@ -262,7 +262,7 @@ def main():
                            train_vars=net.train_vars().unique(),
                            weight_decay=5e-4)
 
-  @bm.jit(child_objs=(optimizer, grad_fun))
+  @bm.jit
   def train_fun(x, y):
     grads, l, n = grad_fun(x, y)
     optimizer.update(grads)

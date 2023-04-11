@@ -100,17 +100,18 @@ class TestObjectFuncGrad(unittest.TestCase):
     bm.random.seed(0)
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.vars())
+    f_grad = bm.grad(t, grad_vars={'a': t.a, 'b': t.b, 'c': t.c})
     grads = f_grad()
-    for g in grads.values(): assert (g == 1.).all()
+    for g in grads.values():
+      assert (g == 1.).all()
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b], dyn_vars=t.vars())
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b])
     grads = f_grad()
     for g in grads: assert (g == 1.).all()
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a, dyn_vars=t.vars())
+    f_grad = bm.grad(t, grad_vars=t.a)
     grads = f_grad()
     assert (grads == 1.).all()
 
@@ -127,14 +128,14 @@ class TestObjectFuncGrad(unittest.TestCase):
 
     bm.random.seed(0)
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b], dyn_vars=t.vars(), has_aux=True)
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b],  has_aux=True)
     grads, aux = f_grad()
     for g in grads: assert (g == 1.).all()
     assert aux[0] == bm.sin(100)
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a, dyn_vars=t.vars(), has_aux=True)
+    f_grad = bm.grad(t, grad_vars=t.a,  has_aux=True)
     grads, aux = f_grad()
     assert (grads == 1.).all()
     assert aux[0] == bm.sin(100)
@@ -153,13 +154,13 @@ class TestObjectFuncGrad(unittest.TestCase):
 
     bm.random.seed(0)
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b], dyn_vars=t.vars(), return_value=True)
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b],  return_value=True)
     grads, returns = f_grad()
     for g in grads: assert (g == 1.).all()
     assert returns == t()
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a, dyn_vars=t.vars(), return_value=True)
+    f_grad = bm.grad(t, grad_vars=t.a,  return_value=True)
     grads, returns = f_grad()
     assert (grads == 1.).all()
     assert returns == t()
@@ -177,7 +178,7 @@ class TestObjectFuncGrad(unittest.TestCase):
 
     bm.random.seed(0)
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b], dyn_vars=t.vars(),
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b], 
                      has_aux=True, return_value=True)
     grads, returns, aux = f_grad()
     for g in grads: assert (g == 1.).all()
@@ -186,7 +187,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a, dyn_vars=t.vars(),
+    f_grad = bm.grad(t, grad_vars=t.a, 
                      has_aux=True, return_value=True)
     grads, returns, aux = f_grad()
     assert (grads == 1.).all()
@@ -221,12 +222,12 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert (arg_grads[0] == 2.).all()
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=0)
+    f_grad = bm.grad(t,  argnums=0)
     arg_grads = f_grad(bm.random.random(10))
     assert (arg_grads == 2.).all()
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=[0])
+    f_grad = bm.grad(t,  argnums=[0])
     arg_grads = f_grad(bm.random.random(10))
     assert (arg_grads[0] == 2.).all()
 
@@ -260,14 +261,14 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=0, has_aux=True)
+    f_grad = bm.grad(t,  argnums=0, has_aux=True)
     arg_grads, aux = f_grad(bm.random.random(10))
     assert (arg_grads == 2.).all()
     assert aux[0] == bm.sin(100)
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=[0], has_aux=True)
+    f_grad = bm.grad(t,  argnums=[0], has_aux=True)
     arg_grads, aux = f_grad(bm.random.random(10))
     assert (arg_grads[0] == 2.).all()
     assert aux[0] == bm.sin(100)
@@ -304,14 +305,14 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=0, return_value=True)
+    f_grad = bm.grad(t,  argnums=0, return_value=True)
     d = bm.random.random(10)
     arg_grads, loss = f_grad(d)
     assert (arg_grads == 2.).all()
     assert loss == t(d)
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=[0], return_value=True)
+    f_grad = bm.grad(t,  argnums=[0], return_value=True)
     d = bm.random.random(10)
     arg_grads, loss = f_grad(d)
     assert (arg_grads[0] == 2.).all()
@@ -351,7 +352,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)[0]
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=0, has_aux=True, return_value=True)
+    f_grad = bm.grad(t,  argnums=0, has_aux=True, return_value=True)
     d = bm.random.random(10)
     arg_grads, loss, aux = f_grad(d)
     assert (arg_grads == 2.).all()
@@ -360,7 +361,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)[0]
 
     t = Test()
-    f_grad = bm.grad(t, dyn_vars=t.vars(), argnums=[0], has_aux=True, return_value=True)
+    f_grad = bm.grad(t,  argnums=[0], has_aux=True, return_value=True)
     d = bm.random.random(10)
     arg_grads, loss, aux = f_grad(d)
     assert (arg_grads[0] == 2.).all()
@@ -383,12 +384,12 @@ class TestPureFuncJacobian(unittest.TestCase):
     f2 = lambda x: x ** 3
 
     self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
-    self.assertEqual(bm.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
-    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(4.), _jacfwd(f2)(4.))
+    self.assertEqual(jax.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
+    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(4.), _jacfwd(f2)(4.))
 
     self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(bm.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(jax.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
 
     def f(x):
       jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
@@ -397,12 +398,12 @@ class TestPureFuncJacobian(unittest.TestCase):
     f2 = lambda x: x ** 3 * bm.sin(x)
 
     self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
-    self.assertEqual(bm.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
-    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(4.), _jacfwd(f2)(4.))
+    self.assertEqual(jax.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
+    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(4.), _jacfwd(f2)(4.))
 
     self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(bm.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(bm.jit(_jacfwd(bm.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(jax.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
 
   def test_jacrev1(self):
     def f1(x, y):

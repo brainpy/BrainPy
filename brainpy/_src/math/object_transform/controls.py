@@ -440,11 +440,11 @@ def cond(
   >>> def true_f(_):  a.value += 1
   >>> def false_f(_): b.value -= 1
   >>>
-  >>> bm.cond(True, true_f, false_f, dyn_vars=[a, b])
+  >>> bm.cond(True, true_f, false_f)
   >>> a, b
   Variable([1., 1.], dtype=float32), Variable([1., 1.], dtype=float32)
   >>>
-  >>> bm.cond(False, true_f, false_f, dyn_vars=[a, b])
+  >>> bm.cond(False, true_f, false_f)
   >>> a, b
   Variable([1., 1.], dtype=float32), Variable([0., 0.], dtype=float32)
 
@@ -595,14 +595,10 @@ def ifelse(
 
   # format new codes
   if len(conditions) == 1:
-    if len(dyn_vars) > 0:
-      return cond(conditions[0],
-                  branches[0],
-                  branches[1],
-                  operands,
-                  dyn_vars)
-    else:
-      return lax.cond(conditions[0], branches[0], branches[1], operands)
+    return cond(conditions[0],
+                branches[0],
+                branches[1],
+                operands)
   else:
     code_scope = {'conditions': conditions, 'branches': branches}
     codes = ['def f(operands):',

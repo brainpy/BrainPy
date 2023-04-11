@@ -10,7 +10,7 @@ num_step = int(1.0 / dt)
 num_batch = 128
 
 
-@bm.jit(static_argnames=['batch_size'], dyn_vars=bm.random.DEFAULT)
+@bm.jit(static_argnames=['batch_size'])
 def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
   # Create the white noise input
   sample = bm.random.normal(size=(batch_size, 1, 1))

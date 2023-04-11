@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 
+import jax
 import brainpy.math as bm
 from brainpy._src.integrators.ode import explicit_rk
 plt = None
@@ -27,7 +28,7 @@ def run_integrator(method, show=False):
   if plt is None:
     import matplotlib.pyplot as plt
 
-  f_integral = bm.jit(method(f_lorenz, dt=dt))
+  f_integral = jax.jit(method(f_lorenz, dt=dt))
   x = bm.Variable(bm.ones(1))
   y = bm.Variable(bm.ones(1))
   z = bm.Variable(bm.ones(1))
