@@ -483,19 +483,15 @@ def cond(
     operands = (operands,)
 
   # dyn vars
-  if dyn_vars is None:
-    dyn_vars = evaluate_dyn_vars(true_fun, *operands)
-    dyn_vars += evaluate_dyn_vars(false_fun, *operands)
+  dynvar_deprecation(dyn_vars)
+  node_deprecation(child_objs)
+
+  if jax.config.jax_disable_jit:
+    dyn_vars = VariableStack()
 
   else:
-    dynvar_deprecation(dyn_vars)
-    node_deprecation(child_objs)
-    dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-    dyn_vars = ArrayCollector(dyn_vars)
-    dyn_vars.update(infer_dyn_vars(true_fun))
-    dyn_vars.update(infer_dyn_vars(false_fun))
-    for obj in check.is_all_objs(child_objs, out_as='tuple'):
-      dyn_vars.update(obj.vars().unique())
+    dyn_vars = evaluate_dyn_vars(true_fun, *operands)
+    dyn_vars += evaluate_dyn_vars(false_fun, *operands)
 
   # TODO: cache mechanism?
   if len(dyn_vars) > 0:
@@ -746,14 +742,19 @@ def for_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
-  # TODO: better cache mechanism?
   dyn_vars = get_stack_cache(body_fun)
-  if dyn_vars is None:
-    with jax.ensure_compile_time_eval():
-      op_vals = jax.tree_util.tree_map(_loop_abstractify, operands)
-      with VariableStack() as dyn_vars:
-        _ = jax.eval_shape(body_fun, *op_vals)
-      cache_stack(body_fun, dyn_vars)  # cache
+  if not jit:
+    if dyn_vars is None:
+      dyn_vars = VariableStack()
+
+  else:
+    # TODO: better cache mechanism?
+    if dyn_vars is None:
+      with jax.ensure_compile_time_eval():
+        op_vals = jax.tree_util.tree_map(_loop_abstractify, operands)
+        with VariableStack() as dyn_vars:
+          _ = jax.eval_shape(body_fun, *op_vals)
+        cache_stack(body_fun, dyn_vars)  # cache
 
   # functions
   def fun2scan(carry, x):
@@ -762,7 +763,8 @@ def for_loop(
     results = body_fun(*x)
     return dyn_vars.dict_data(), results
 
-  if remat: fun2scan = jax.checkpoint(fun2scan)
+  if remat:
+    fun2scan = jax.checkpoint(fun2scan)
 
   # TODO: cache mechanism?
   with jax.disable_jit(not jit):
@@ -851,8 +853,12 @@ def while_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
-  dyn_vars = evaluate_dyn_vars(body_fun, *operands)
-  dyn_vars += evaluate_dyn_vars(cond_fun, *operands)
+  if jax.config.jax_disable_jit:
+    dyn_vars = VariableStack()
+
+  else:
+    dyn_vars = evaluate_dyn_vars(body_fun, *operands)
+    dyn_vars += evaluate_dyn_vars(cond_fun, *operands)
 
   def _body_fun(op):
     dyn_vals, old_vals = op

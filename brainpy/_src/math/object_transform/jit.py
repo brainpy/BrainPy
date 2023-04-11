@@ -78,6 +78,9 @@ class JITTransform(ObjectTransform):
     return out, changes
 
   def __call__(self, *args, **kwargs):
+    if jax.config.jax_disable_jit:
+      return self.fun(*args, **kwargs)
+
     if self._transform is None:
       self._dyn_vars = evaluate_dyn_vars(self.fun, *args, **kwargs)
       self._transform = jax.jit(
@@ -334,6 +337,8 @@ def _make_jit_fun(
   @wraps(fun)
   def call_fun(self, *args, **kwargs):
     fun2 = partial(fun, self)
+    if jax.config.jax_disable_jit:
+      return fun2(*args, **kwargs)
     cache = get_stack_cache(fun2)  # TODO: better cache mechanism
     if cache is None:
       with jax.ensure_compile_time_eval():

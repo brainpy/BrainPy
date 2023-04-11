@@ -3,6 +3,7 @@
 import unittest
 from functools import partial
 
+import jax
 from absl.testing import parameterized
 from jax._src import test_util as jtu
 
@@ -199,3 +200,28 @@ class TestWhile(bp.testing.UnitTestCase):
     res = bm.while_loop(body, cond, operands=(1., 1.))
     print()
     print(res)
+
+  def test2(self):
+    a = bm.Variable(bm.zeros(1))
+    b = bm.Variable(bm.ones(1))
+
+    def cond(x, y):
+      return x < 6.
+
+    def body(x, y):
+      a.value += x
+      b.value *= y
+      return x + b[0], y + 1.
+
+    res = bm.while_loop(body, cond, operands=(1., 1.))
+    print()
+    print(res)
+
+    with jax.disable_jit():
+      a = bm.Variable(bm.zeros(1))
+      b = bm.Variable(bm.ones(1))
+
+      res2 = bm.while_loop(body, cond, operands=(1., 1.))
+      self.assertTrue(bm.array_equal(res2[0], res[0]))
+      self.assertTrue(bm.array_equal(res2[1], res[1]))
+
