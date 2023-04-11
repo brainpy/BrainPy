@@ -436,9 +436,6 @@ class BPTrainer(DSTrainer):
     if shared_args_str not in self._f_loss_compiled:
       self._f_loss_compiled[shared_args_str] = partial(self._step_func_loss, shared_args)
       if self.jit[c.LOSS_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self._dyn_vars)
-        dyn_vars.update(self.vars(level=0))
         self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str])
     return self._f_loss_compiled[shared_args_str]
 
@@ -449,10 +446,8 @@ class BPTrainer(DSTrainer):
       _f_loss_internal = self._get_f_loss(shared_args, jit=False)
       dyn_vars = self.target.vars()
       dyn_vars.update(self._dyn_vars)
-      dyn_vars = dyn_vars.unique()
-      tran_vars = dyn_vars.subset(bm.TrainVar)
+      tran_vars = dyn_vars.subset(bm.TrainVar).unique()
       grad_f = bm.grad(_f_loss_internal,
-                       dyn_vars=dyn_vars,
                        grad_vars=tran_vars,
                        return_value=True,
                        has_aux=self.loss_has_aux)
@@ -600,9 +595,6 @@ class BPFF(BPTrainer):
 
       self._f_predict_compiled[shared_args_str] = partial(self._step_func_predict, shared_args)
       if self.jit[c.PREDICT_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self._dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
         self._f_predict_compiled[shared_args_str] = bm.jit(self._f_predict_compiled[shared_args_str])
     return self._f_predict_compiled[shared_args_str]
 

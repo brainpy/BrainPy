@@ -13,14 +13,38 @@ from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 import jax
 
 from brainpy import tools, check
-from .naming import get_stack_cache, cache_stack
-from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, abstract
+from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, _partial_fun
 from .base import BrainPyObject, ObjectTransform
+from .naming import get_stack_cache, cache_stack
 from .variables import Variable, VariableStack
 
 __all__ = [
   'jit',
 ]
+
+
+def _seq_of_int(static_argnums):
+  if static_argnums is None:
+    static_argnums = ()
+  elif isinstance(static_argnums, int):
+    static_argnums = (static_argnums,)
+  elif isinstance(static_argnums, (tuple, list)):
+    pass
+  else:
+    raise TypeError('static_argnums must be None, int, or sequence of int.')
+  return static_argnums
+
+
+def _seq_of_str(static_argnames):
+  if static_argnames is None:
+    static_argnames = ()
+  elif isinstance(static_argnames, str):
+    static_argnames = (static_argnames,)
+  elif isinstance(static_argnames, (tuple, list)):
+    pass
+  else:
+    raise TypeError('static_argnums must be None, str, or sequence of str.')
+  return static_argnames
 
 
 class JITTransform(ObjectTransform):
@@ -58,8 +82,8 @@ class JITTransform(ObjectTransform):
 
     # parameters
     self._backend = backend
-    self._static_argnums = () if static_argnums is None else static_argnums
-    self._static_argnames = () if static_argnames is None else static_argnames
+    self._static_argnums = _seq_of_int(static_argnums)
+    self._static_argnames = _seq_of_str(static_argnames)
     self._donate_argnums = donate_argnums
     self._device = device
     self._inline = inline
@@ -186,6 +210,7 @@ def jit(
 
   You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.  
 
+  >>> import brainpy as bp
   >>> class Hello(bp.BrainPyObject):
   >>>   def __init__(self):
   >>>     super(Hello, self).__init__()
@@ -273,15 +298,16 @@ def cls_jit(
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
 ) -> Callable:
-  """Just-in-time compile a function and then the jitted function as a bound method for a class. 
+  """Just-in-time compile a function and then the jitted function as the bound method for a class.
   
   Examples
   --------
   
   This transformation can be put on any class function. For example,
   
+  >>> import brainpy as bp
   >>> import brainpy.math as bm
-  >>> 
+  >>>
   >>> class SomeProgram(bp.BrainPyObject):
   >>>   def __init__(self):
   >>>      super(SomeProgram, self).__init__()
@@ -293,8 +319,7 @@ def cls_jit(
   >>>      a = bm.random.uniform(size=2)
   >>>      a = a.at[0].set(1.)
   >>>      self.b += a
-  >>>      return self.b
-  >>> 
+  >>>
   >>> program = SomeProgram()
   >>> program()
   
@@ -337,17 +362,25 @@ def _make_jit_fun(
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
 ):
+  static_argnums = _seq_of_int(static_argnums)
+  static_argnames = _seq_of_int(static_argnames)
+
   @wraps(fun)
   def call_fun(self, *args, **kwargs):
     fun2 = partial(fun, self)
     if jax.config.jax_disable_jit:
       return fun2(*args, **kwargs)
-    cache = get_stack_cache(fun2)  # TODO: better cache mechanism
+
+    hash_v = hash(fun) + hash(self)
+    cache = get_stack_cache(hash_v)  # TODO: better cache mechanism
     if cache is None:
       with jax.ensure_compile_time_eval():
-        args_, kwargs_ = jax.tree_util.tree_map(abstract, (args, kwargs))
+        if len(static_argnums) or len(static_argnames):
+          fun3, args_, kwargs_ = _partial_fun(fun2, args, kwargs, static_argnums, static_argnames)
+        else:
+          args_, kwargs_, fun3 = args, kwargs, fun2
         with VariableStack() as stack:
-          _ = jax.eval_shape(fun2, *args_, **kwargs_)
+          _ = jax.eval_shape(fun3, *args_, **kwargs_)
         del args_, kwargs_
       _transform = jax.jit(
         _make_transform(fun2, stack),
@@ -358,7 +391,8 @@ def _make_jit_fun(
         keep_unused=keep_unused,
         abstracted_axes=abstracted_axes
       )
-      cache_stack(fun2, (stack, _transform))  # cache
+      cache_stack(hash_v, (stack, _transform))  # cache "variable stack" and "transform function"
+
     else:
       stack, _transform = cache
     del cache
@@ -371,6 +405,8 @@ def _make_jit_fun(
 
 
 def _make_transform(fun, stack):
+
+  @wraps(fun)
   def _transform_function(variable_data: dict, *args, **kwargs):
     for key, v in stack.items():
       v._value = variable_data[key]

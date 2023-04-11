@@ -1,8 +1,52 @@
 import warnings
+from functools import wraps
+from typing import Sequence
+
 import jax
-from brainpy._src.math.object_transform.variables import VariableStack
+
 from brainpy._src.math.object_transform.naming import (cache_stack,
                                                        get_stack_cache)
+from brainpy._src.math.object_transform.variables import VariableStack
+
+
+class Empty(object):
+  pass
+
+
+empty = Empty()
+
+
+def _partial_fun(fun, args, kwargs,
+                 static_argnums: Sequence[int] = (),
+                 static_argnames: Sequence[str] = ()):
+  static_args, dyn_args = [], []
+  for i, arg in enumerate(args):
+    if i in static_argnums:
+      static_args.append(arg)
+    else:
+      static_args.append(empty)
+      dyn_args.append(arg)
+  static_kwargs, dyn_kwargs = {}, {}
+  for k, arg in kwargs.items():
+    if k in static_argnames:
+      static_kwargs[k] = arg
+    else:
+      dyn_kwargs[k] = arg
+  del args, kwargs, static_argnums, static_argnames
+
+  @wraps(fun)
+  def new_fun(*dyn_args, **dyn_kwargs):
+    args = []
+    i = 0
+    for arg in static_args:
+      if arg == empty:
+        args.append(dyn_args[i])
+        i += 1
+      else:
+        args.append(arg)
+    return fun(*args, **static_kwargs, **dyn_kwargs)
+
+  return new_fun, dyn_args, dyn_kwargs
 
 
 def dynvar_deprecation(dyn_vars=None):
@@ -30,17 +74,20 @@ def abstract(x):
     return jax.api_util.shaped_abstractify(x)
 
 
-def evaluate_dyn_vars(f, *args, static_argnums=None, static_argnames=None, **kwargs):
+def evaluate_dyn_vars(f,
+                      *args,
+                      static_argnums: Sequence[int] = (),
+                      static_argnames: Sequence[str] = (),
+                      **kwargs):
   # TODO: better way for cache mechanism
+  if len(static_argnums) or len(static_argnames):
+    f, args, kwargs = _partial_fun(f, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
   stack = get_stack_cache(f)
   if stack is None:
     with jax.ensure_compile_time_eval():
-      args, kwargs = jax.tree_util.tree_map(abstract, (args, kwargs))
       with VariableStack() as stack:
-        _ = jax.eval_shape(f, *args, **kwargs)
+        _ = jax.eval_shape(f, *args, *kwargs)
       cache_stack(f, stack)  # cache
       del args, kwargs
   return stack
-
-
 

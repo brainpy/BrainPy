@@ -42,6 +42,28 @@ class TestJIT(bp.testing.UnitTestCase):
       self.assertTrue(bm.array_equal(b_out, program.b))
       print(b_out)
 
+  def test_jit_with_static(self):
+    a = bm.Variable(bm.ones(2))
+
+    @bm.jit(static_argnums=1)
+    def f(b, c):
+      a.value *= b
+      a.value /= c
+
+    f(1., 2.)
+    self.assertTrue(bm.allclose(a.value, 0.5))
+
+    @bm.jit(static_argnames=['c'])
+    def f2(b, c):
+      a.value *= b
+      a.value /= c
+
+    f2(2., c=1.)
+    self.assertTrue(bm.allclose(a.value, 1.))
+
+
+class TestClsJIT(bp.testing.UnitTestCase):
+
   def test_class_jit1(self):
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
@@ -92,5 +114,30 @@ class TestJIT(bp.testing.UnitTestCase):
       program.update(1.)
       self.assertTrue(bm.allclose(new_b + 1., program.b))
 
+  def test_cls_jit_with_static(self):
+    class MyObj:
+      def __init__(self):
+        self.a = bm.Variable(bm.ones(2))
 
+      @bm.cls_jit(static_argnums=1)
+      def f(self, b, c):
+        self.a.value *= b
+        self.a.value /= c
+
+    obj = MyObj()
+    obj.f(1., 2.)
+    self.assertTrue(bm.allclose(obj.a.value, 0.5))
+
+    class MyObj2:
+      def __init__(self):
+        self.a = bm.Variable(bm.ones(2))
+
+      @bm.cls_jit(static_argnames=['c'])
+      def f(self, b, c):
+        self.a.value *= b
+        self.a.value /= c
+
+    obj = MyObj2()
+    obj.f(1., c=2.)
+    self.assertTrue(bm.allclose(obj.a.value, 0.5))
 
