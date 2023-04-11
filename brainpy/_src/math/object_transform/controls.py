@@ -12,14 +12,14 @@ from jax.tree_util import tree_flatten, tree_unflatten
 from brainpy import errors, tools, check
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import (Array, )
-from brainpy._src.math.object_transform._tools import (evaluate_dyn_vars,
-                                                       dynvar_deprecation,
-                                                       node_deprecation,
-                                                       abstract)
-from brainpy._src.math.object_transform.variables import (Variable, VariableStack)
-from brainpy._src.math.object_transform.naming import (get_unique_name,
-                                                       get_stack_cache,
-                                                       cache_stack)
+from ._tools import (evaluate_dyn_vars,
+                     dynvar_deprecation,
+                     node_deprecation,
+                     abstract)
+from .variables import (Variable, VariableStack)
+from .naming import (get_unique_name,
+                     get_stack_cache,
+                     cache_stack)
 from ._utils import infer_dyn_vars
 from .base import BrainPyObject, ArrayCollector, ObjectTransform
 

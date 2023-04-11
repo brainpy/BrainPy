@@ -17,11 +17,11 @@ from jax.util import safe_map
 
 from brainpy import tools, check
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.object_transform.variables import Variable
-from brainpy._src.math.object_transform.base import BrainPyObject, ObjectTransform
-from brainpy._src.math.object_transform._tools import (dynvar_deprecation,
-                                                       node_deprecation,
-                                                       evaluate_dyn_vars)
+from .variables import Variable
+from .base import BrainPyObject, ObjectTransform
+from ._tools import (dynvar_deprecation,
+                     node_deprecation,
+                     evaluate_dyn_vars)
 
 __all__ = [
   'grad',  # gradient of scalar function

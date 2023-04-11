@@ -13,7 +13,7 @@ from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 import jax
 
 from brainpy import tools, check
-from brainpy._src.math.object_transform.naming import get_stack_cache, cache_stack
+from .naming import get_stack_cache, cache_stack
 from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, abstract
 from .base import BrainPyObject, ObjectTransform
 from .variables import Variable, VariableStack
@@ -151,7 +151,6 @@ _jit_par = '''
 '''
 
 
-
 def jit(
     func: Callable = None,
 
@@ -169,7 +168,8 @@ def jit(
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> JITTransform:
-  """JIT (Just-In-Time) compilation for BrainPy computation.
+  """
+  JIT (Just-In-Time) compilation for BrainPy computation.
 
   This function has the same ability to just-in-time compile a pure function,
   but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
@@ -220,7 +220,7 @@ def jit(
   -------
   func : JITTransform
     A callable jitted function, set up for just-in-time compilation.
-  """.format(jit_par=_jit_par.strip())
+  """
 
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
@@ -253,6 +253,9 @@ def jit(
                         keep_unused=keep_unused,
                         backend=backend,
                         abstracted_axes=abstracted_axes)
+
+
+jit.__doc__ = jit.__doc__.format(jit_par=_jit_par.strip())
 
 
 def cls_jit(
@@ -297,7 +300,7 @@ def cls_jit(
   -------
   func : JITTransform
     A callable jitted function, set up for just-in-time compilation.
-  """.format(jit_pars=_jit_par)
+  """
   if func is None:
     return lambda f: _make_jit_fun(fun=f,
                                    static_argnums=static_argnums,
@@ -314,6 +317,9 @@ def cls_jit(
                          inline=inline,
                          keep_unused=keep_unused,
                          abstracted_axes=abstracted_axes)
+
+
+cls_jit.__doc__ = cls_jit.__doc__.format(jit_pars=_jit_par)
 
 
 def _make_jit_fun(
