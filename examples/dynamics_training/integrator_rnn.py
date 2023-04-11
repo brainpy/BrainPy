@@ -10,7 +10,7 @@ num_step = int(1.0 / dt)
 num_batch = 128
 
 
-@bm.jit(static_argnames=['batch_size'], dyn_vars=bm.random.DEFAULT)
+@bm.jit(static_argnames=['batch_size'])  # TODO
 def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
   # Create the white noise input
   sample = bm.random.normal(size=(batch_size, 1, 1))
@@ -24,7 +24,7 @@ def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
 
 def train_data():
   for _ in range(100):
-    yield build_inputs_and_targets(batch_size=num_batch)
+    yield build_inputs_and_targets(0.25, 0.01, num_batch)
 
 
 class RNN(bp.DynamicalSystem):

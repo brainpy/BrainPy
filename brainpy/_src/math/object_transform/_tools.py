@@ -30,7 +30,7 @@ def abstract(x):
     return jax.api_util.shaped_abstractify(x)
 
 
-def evaluate_dyn_vars(f, *args, **kwargs):
+def evaluate_dyn_vars(f, *args, static_argnums=None, static_argnames=None, **kwargs):
   # TODO: better way for cache mechanism
   stack = get_stack_cache(f)
   if stack is None:
@@ -39,6 +39,7 @@ def evaluate_dyn_vars(f, *args, **kwargs):
       with VariableStack() as stack:
         _ = jax.eval_shape(f, *args, **kwargs)
       cache_stack(f, stack)  # cache
+      del args, kwargs
   return stack
 
 

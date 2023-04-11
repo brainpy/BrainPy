@@ -58,8 +58,8 @@ class JITTransform(ObjectTransform):
 
     # parameters
     self._backend = backend
-    self._static_argnums = static_argnums
-    self._static_argnames = static_argnames
+    self._static_argnums = () if static_argnums is None else static_argnums
+    self._static_argnames = () if static_argnames is None else static_argnames
     self._donate_argnums = donate_argnums
     self._device = device
     self._inline = inline
@@ -82,7 +82,10 @@ class JITTransform(ObjectTransform):
       return self.fun(*args, **kwargs)
 
     if self._transform is None:
-      self._dyn_vars = evaluate_dyn_vars(self.fun, *args, **kwargs)
+      self._dyn_vars = evaluate_dyn_vars(self.fun, *args,
+                                         static_argnums=self._static_argnums,
+                                         static_argnames=self._static_argnames,
+                                         **kwargs)
       self._transform = jax.jit(
         self._transform_function,
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),

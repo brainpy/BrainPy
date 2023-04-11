@@ -160,7 +160,7 @@ class PhasePlane2D(Num2DAnalyzer):
   @property
   def F_vmap_brentq_fy(self):
     if C.F_vmap_brentq_fy not in self.analyzed_results:
-      f_opt = bm.jit(vmap(utils.jax_brentq(self.F_fy)))
+      f_opt = jax.jit(vmap(utils.jax_brentq(self.F_fy)))
       self.analyzed_results[C.F_vmap_brentq_fy] = f_opt
     return self.analyzed_results[C.F_vmap_brentq_fy]
 

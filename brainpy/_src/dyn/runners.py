@@ -674,7 +674,7 @@ class DSRunner(Runner):
       dyn_vars = dyn_vars.unique()
 
       if self._memory_efficient:
-        _jit_step = bm.jit(partial(self._step_func_predict, shared_args), dyn_vars=dyn_vars)
+        _jit_step = bm.jit(partial(self._step_func_predict, shared_args))
 
         def run_func(all_inputs):
           outs = None
@@ -688,11 +688,10 @@ class DSRunner(Runner):
           return outs, None
 
       else:
-        @bm.jit(dyn_vars=dyn_vars)
+        @bm.jit
         def run_func(all_inputs):
           return bm.for_loop(partial(self._step_func_predict, shared_args),
                              all_inputs,
-                             dyn_vars=dyn_vars,
                              jit=self.jit['predict'])
 
       self._f_predict_compiled[shared_kwargs_str] = run_func

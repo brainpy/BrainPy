@@ -343,8 +343,6 @@ class SlowPointFinder(base.DSAnalyzer):
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
     optimizer.register_train_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
-    dyn_vars = optimizer.vars() + (fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
-    dyn_vars = dyn_vars.unique()
 
     def train(idx):
       gradients, loss = grad_f()
@@ -353,7 +351,7 @@ class SlowPointFinder(base.DSAnalyzer):
       return loss
 
     def batch_train(start_i, n_batch):
-      return bm.for_loop(train, bm.arange(start_i, start_i + n_batch), dyn_vars=dyn_vars)
+      return bm.for_loop(train, bm.arange(start_i, start_i + n_batch))
 
     # Run the optimization
     if self.verbose:

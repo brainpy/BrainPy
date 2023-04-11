@@ -439,8 +439,7 @@ class BPTrainer(DSTrainer):
         dyn_vars = self.target.vars()
         dyn_vars.update(self._dyn_vars)
         dyn_vars.update(self.vars(level=0))
-        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
-                                                        dyn_vars=dyn_vars.unique())
+        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str])
     return self._f_loss_compiled[shared_args_str]
 
   def _get_f_grad(self, shared_args=None) -> Callable:
@@ -478,8 +477,7 @@ class BPTrainer(DSTrainer):
         dyn_vars.update(self._dyn_vars)
         dyn_vars.update(self.vars(level=0))
         dyn_vars = dyn_vars.unique()
-        self._f_fit_compiled[shared_args_str] = bm.jit(self._f_fit_compiled[shared_args_str],
-                                                       dyn_vars=dyn_vars)
+        self._f_fit_compiled[shared_args_str] = bm.jit(self._f_fit_compiled[shared_args_str])
     return self._f_fit_compiled[shared_args_str]
 
   def _step_func_loss(self, shared_args, inputs, targets):
@@ -605,8 +603,7 @@ class BPFF(BPTrainer):
         dyn_vars = self.target.vars()
         dyn_vars.update(self._dyn_vars)
         dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        self._f_predict_compiled[shared_args_str] = bm.jit(self._f_predict_compiled[shared_args_str],
-                                                           dyn_vars=dyn_vars.unique())
+        self._f_predict_compiled[shared_args_str] = bm.jit(self._f_predict_compiled[shared_args_str])
     return self._f_predict_compiled[shared_args_str]
 
   def predict(

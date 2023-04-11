@@ -46,8 +46,7 @@ def offline_train(num_hidden=2000, num_in=28, num_out=10):
   )
 
   preds = bm.for_loop(lambda x: jnp.argmax(esn({}, x), axis=-1),
-                      x_train,
-                      child_objs=esn)
+                      x_train)
   accuracy = jnp.mean(preds == jnp.repeat(traindata.targets, x_train.shape[1]))
   print(accuracy)
 
@@ -73,7 +72,7 @@ def force_online_train(num_hidden=2000, num_in=28, num_out=10, train_stage='fina
   rls = bp.algorithms.RLS()
   rls.register_target(num_hidden)
 
-  @bm.jit(child_objs=(reservoir, readout, rls))
+  @bm.jit
   def train_step(xs, y):
     reservoir.reset_state(xs.shape[0])
     if train_stage == 'final_step':
@@ -91,7 +90,7 @@ def force_online_train(num_hidden=2000, num_in=28, num_out=10, train_stage='fina
     else:
       raise ValueError
 
-  @bm.jit(child_objs=(reservoir, readout))
+  @bm.jit
   def predict(xs):
     reservoir.reset_state(xs.shape[0])
     for x in xs.transpose(1, 0, 2):
