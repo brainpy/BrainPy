@@ -100,9 +100,10 @@ class TestObjectFuncGrad(unittest.TestCase):
     bm.random.seed(0)
 
     t = Test()
-    f_grad = bm.grad(t)
+    f_grad = bm.grad(t, grad_vars={'a': t.a, 'b': t.b, 'c': t.c})
     grads = f_grad()
-    for g in grads.values(): assert (g == 1.).all()
+    for g in grads.values():
+      assert (g == 1.).all()
 
     t = Test()
     f_grad = bm.grad(t, grad_vars=[t.a, t.b])

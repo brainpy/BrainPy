@@ -106,7 +106,8 @@ class JITTransform(ObjectTransform):
       return self.fun(*args, **kwargs)
 
     if self._transform is None:
-      self._dyn_vars = evaluate_dyn_vars(self.fun, *args,
+      self._dyn_vars = evaluate_dyn_vars(self.fun,
+                                         *args,
                                          static_argnums=self._static_argnums,
                                          static_argnames=self._static_argnames,
                                          **kwargs)

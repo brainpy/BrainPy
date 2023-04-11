@@ -11,7 +11,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 
-class TestLoop(jtu.JaxTestCase):
+class TestLoop(parameterized.TestCase):
   def test_make_loop(self):
     def make_node(v1, v2):
       def update(x):

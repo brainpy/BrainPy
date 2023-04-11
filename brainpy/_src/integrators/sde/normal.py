@@ -292,7 +292,7 @@ class Milstein(SDEIntegrator):
         if not allow_raise:
           raise e
       if need_grad:
-        res[0] = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars)
+        res[0] = bm.vector_grad(f, argnums=0)
       return [tuple(res)], state
 
   def step(self, *args, **kwargs):

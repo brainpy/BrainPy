@@ -16,7 +16,9 @@ class Empty(object):
 empty = Empty()
 
 
-def _partial_fun(fun, args, kwargs,
+def _partial_fun(fun,
+                 args: tuple,
+                 kwargs: dict,
                  static_argnums: Sequence[int] = (),
                  static_argnames: Sequence[str] = ()):
   static_args, dyn_args = [], []
@@ -35,16 +37,16 @@ def _partial_fun(fun, args, kwargs,
   del args, kwargs, static_argnums, static_argnames
 
   @wraps(fun)
-  def new_fun(*dyn_args, **dyn_kwargs):
+  def new_fun(*dynargs, **dynkwargs):
     args = []
     i = 0
     for arg in static_args:
       if arg == empty:
-        args.append(dyn_args[i])
+        args.append(dynargs[i])
         i += 1
       else:
         args.append(arg)
-    return fun(*args, **static_kwargs, **dyn_kwargs)
+    return fun(*args, **static_kwargs, **dynkwargs)
 
   return new_fun, dyn_args, dyn_kwargs
 
@@ -80,14 +82,16 @@ def evaluate_dyn_vars(f,
                       static_argnames: Sequence[str] = (),
                       **kwargs):
   # TODO: better way for cache mechanism
-  if len(static_argnums) or len(static_argnames):
-    f, args, kwargs = _partial_fun(f, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
   stack = get_stack_cache(f)
   if stack is None:
+    if len(static_argnums) or len(static_argnames):
+      f2, args, kwargs = _partial_fun(f, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
+    else:
+      f2, args, kwargs = f, args, kwargs
     with jax.ensure_compile_time_eval():
       with VariableStack() as stack:
-        _ = jax.eval_shape(f, *args, *kwargs)
+        _ = jax.eval_shape(f2, *args, **kwargs)
       cache_stack(f, stack)  # cache
-      del args, kwargs
+      del args, kwargs, f2
   return stack
 
