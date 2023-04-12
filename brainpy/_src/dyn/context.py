@@ -65,6 +65,14 @@ class _ShareContext(DynamicalSystemNS):
     for identifier, data in kwargs.items():
       self._arguments[identifier] = data
 
+  def __setitem__(self, key, value):
+    """Enable setting the shared item by ``bp.share[key] = value``."""
+    self.save(key, value)
+
+  def __getitem__(self, item):
+    """Enable loading the shared parameter by ``bp.share[key]``."""
+    return self.load(item)
+
   def get_shargs(self) -> DotDict:
     """Get all shared arguments in the global context."""
     return self._arguments.copy()
