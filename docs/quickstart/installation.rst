@@ -7,7 +7,7 @@ Installation
 
 
 ``BrainPy`` is designed to run cross platforms, including Windows,
-GNU/Linux, and OSX. It only relies on Python libraries.
+Linux, and MacOS. It only relies on Python libraries.
 
 
 Installation with pip
@@ -20,7 +20,7 @@ To do so, use:
 
     pip install brainpy
 
-To update the BrainPy version, you can use
+To update the latest BrainPy, you can use
 
 .. code-block:: bash
 
@@ -165,37 +165,11 @@ Many customized operators in BrainPy are implemented in ``brainpylib``.
 
    pip install brainpylib
 
-For GPU operators, you should compile ``brainpylib`` from source.
-The details please see
-`Compile GPU operators in brainpylib <https://brainpylib.readthedocs.io/en/latest/quickstart/installation.html>`_.
+For windows, Linux and MacOS users, ``brainpylib`` supports CPU operators.
 
+For CUDA users, ``brainpylib`` only support GPU on Linux platform. You can install GPU version ``brainpylib``
+on Linux through ``pip install brainpylib`` too.
 
-Other Dependency
-----------------
-
-In order to get full supports of BrainPy, we recommend you install the following
-packages:
-
-- `Numba`_: needed in some NumPy-based computations
-
-.. code-block:: bash
-
-    pip install numba
-
-    # or
-
-    conda install numba
-
-
-- `matplotlib`_: required in some visualization functions, but now it is recommended that users explicitly import matplotlib for visualization
-
-.. code-block:: bash
-
-    pip install matplotlib
-
-    # or
-
-    conda install matplotlib
 
 
 .. _NumPy: https://numpy.org/
