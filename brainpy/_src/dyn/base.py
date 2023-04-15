@@ -1475,16 +1475,10 @@ class Sequential(DynamicalSystemNS):
     elif isinstance(key, slice):
       return Sequential(*(self.__all_nodes()[key]))
     elif isinstance(key, int):
-      key = self.__format_key(key)
-      return self._static_modules[key] if (key not in self._dyn_modules) else self._dyn_modules[key]
+      return self.__all_nodes()[key]
     elif isinstance(key, (tuple, list)):
-      nodes = []
-      for i in key:
-        if isinstance(i, int):
-          i = self.__format_key(i)
-        assert isinstance(i, str)
-        nodes.append(self._static_modules[i] if (i not in self._dyn_modules) else self._dyn_modules[i])
-      return Sequential(*nodes)
+      _all_nodes = self.__all_nodes()
+      return Sequential(*[_all_nodes[k] for k in key])
     else:
       raise KeyError(f'Unknown type of key: {type(key)}')
 
