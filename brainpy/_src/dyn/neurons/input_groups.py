@@ -131,10 +131,10 @@ class SpikeTimeGroup(NeuGroupNS):
     self.num_times = len(times)
 
     # data about times and indices
-    self.times = jnp.asarray(times)
-    self.indices = jnp.asarray(indices, dtype=bm.int_)
+    self.times = bm.asarray(times)
+    self.indices = bm.asarray(indices, dtype=bm.int_)
     if need_sort:
-      sort_idx = jnp.argsort(self.times)
+      sort_idx = bm.argsort(self.times)
       self.indices.value = self.indices[sort_idx]
       self.times.value = self.times[sort_idx]
 
@@ -144,7 +144,7 @@ class SpikeTimeGroup(NeuGroupNS):
     # functions
     def cond_fun(t):
       i = self.i.value
-      return jnp.logical_and(i < self.num_times, t >= self.times[i])
+      return bm.logical_and(i < self.num_times, t >= self.times[i])
 
     def body_fun(t):
       i = self.i.value
