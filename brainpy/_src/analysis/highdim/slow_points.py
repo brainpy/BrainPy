@@ -234,6 +234,8 @@ class SlowPointFinder(base.DSAnalyzer):
     if f_loss_batch is not None:
       raise UnsupportedError('"f_loss_batch" is no longer supported, please '
                              'use "f_loss" instead.')
+    if fun_inputs is not None:
+      raise UnsupportedError('"fun_inputs" is no longer supported.')
     if f_loss is None:
       f_loss = losses.mean_squared_error if f_type == constants.DISCRETE else losses.mean_square
     self.f_loss = f_loss

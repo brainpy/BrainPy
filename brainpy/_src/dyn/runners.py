@@ -640,7 +640,6 @@ class DSRunner(Runner):
     shared = tools.DotDict(t=t, i=i, dt=self.dt)
     shared.update(shared_args)
     share.save(**shared)
-    self.target.clear_input()
     self._step_func_input(shared)
 
     # dynamics update step
@@ -655,6 +654,7 @@ class DSRunner(Runner):
     if self.progress_bar:
       id_tap(lambda *arg: self._pbar.update(), ())
     share.clear_shargs()
+    self.target.clear_input()
 
     if self._memory_efficient:
       id_tap(self._step_mon_on_cpu, mon)
