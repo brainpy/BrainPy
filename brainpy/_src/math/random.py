@@ -79,11 +79,45 @@ def _as_jax_array(a):
   return a.value if isinstance(a, Array) else a
 
 
+def _is_python_scalar(x):
+  if hasattr(x, 'aval'):
+    return x.aval.weak_type
+  elif np.ndim(x) == 0:
+    return True
+  elif isinstance(x, (bool, int, float, complex)):
+    return True
+  else:
+    return False
+
+
+python_scalar_dtypes = {
+  bool: np.dtype('bool'),
+  int: np.dtype('int64'),
+  float: np.dtype('float64'),
+  complex: np.dtype('complex128'),
+}
+
+
+def _dtype(x, *, canonicalize: bool = False):
+  """Return the dtype object for a value or type, optionally canonicalized based on X64 mode."""
+  if x is None:
+    raise ValueError(f"Invalid argument to dtype: {x}.")
+  elif isinstance(x, type) and x in python_scalar_dtypes:
+    dt = python_scalar_dtypes[x]
+  elif type(x) in python_scalar_dtypes:
+    dt = python_scalar_dtypes[type(x)]
+  elif jax.core.is_opaque_dtype(getattr(x, 'dtype', None)):
+    dt = x.dtype
+  else:
+    dt = np.result_type(x)
+  return dtypes.canonicalize_dtype(dt) if canonicalize else dt
+
+
 def _const(example, val):
-  if dtypes.is_python_scalar(example):
+  if _is_python_scalar(example):
     dtype = dtypes.canonicalize_dtype(type(example))
     val = dtypes.scalar_type_of(example)(val)
-    return val if dtype == dtypes.dtype(val, canonicalize=True) else np.array(val, dtype)
+    return val if dtype == _dtype(val, canonicalize=True) else np.array(val, dtype)
   else:
     dtype = dtypes.canonicalize_dtype(example.dtype)
   return np.array(val, dtype)

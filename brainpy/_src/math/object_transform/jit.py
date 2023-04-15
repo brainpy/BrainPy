@@ -376,7 +376,7 @@ def _make_jit_fun(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
-    **kwargs
+    **jit_kwargs
 ):
   static_argnums = _seq_of_int(static_argnums)
   static_argnames = _seq_of_int(static_argnames)
@@ -406,7 +406,7 @@ def _make_jit_fun(
         inline=inline,
         keep_unused=keep_unused,
         abstracted_axes=abstracted_axes,
-        **kwargs
+        **jit_kwargs
       )
       cache_stack(hash_v, (stack, _transform))  # cache "variable stack" and "transform function"
 
