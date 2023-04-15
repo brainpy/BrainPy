@@ -4,7 +4,7 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
-from jax.tree_util import register_pytree_node
+from jax.tree_util import register_pytree_node_class
 
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import MathError
@@ -98,6 +98,7 @@ class VariableStack(dict):
 var_stack_list: List[VariableStack] = []
 
 
+@register_pytree_node_class
 class Variable(Array):
   """The pointer to specify the dynamical variable.
 
@@ -217,6 +218,10 @@ class Variable(Array):
       for stack in var_stack_list:
         stack.add(self)
 
+  @classmethod
+  def tree_unflatten(cls, aux_data, flat_contents):
+    return cls(*flat_contents, _ready_to_trace=False)
+
 
 def _get_dtype(v):
   if hasattr(v, 'dtype'):
@@ -230,6 +235,7 @@ def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
 
 
+@register_pytree_node_class
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
   """
@@ -249,6 +255,7 @@ class TrainVar(Variable):
     )
 
 
+@register_pytree_node_class
 class Parameter(Variable):
   """The pointer to specify the parameter.
   """
@@ -346,25 +353,6 @@ class VariableView(Variable):
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "
                       f"while we got {v.dtype}.")
     self._value[self.index] = v.value if isinstance(v, Array) else v
-
-
-register_pytree_node(
-  Variable,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: Variable(*flat_contents, _ready_to_trace=False)
-)
-
-register_pytree_node(
-  TrainVar,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: TrainVar(*flat_contents, _ready_to_trace=False)
-)
-
-register_pytree_node(
-  Parameter,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: Parameter(*flat_contents, _ready_to_trace=False)
-)
 
 
 class VarList(list):

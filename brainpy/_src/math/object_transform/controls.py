@@ -9,19 +9,18 @@ from jax import lax
 from jax.errors import UnexpectedTracerError
 from jax.tree_util import tree_flatten, tree_unflatten
 
-from brainpy import errors, tools, check
+from brainpy import errors, tools
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import (Array, )
 from ._tools import (evaluate_dyn_vars,
                      dynvar_deprecation,
                      node_deprecation,
                      abstract)
-from .variables import (Variable, VariableStack)
+from .base import BrainPyObject, ObjectTransform
 from .naming import (get_unique_name,
                      get_stack_cache,
                      cache_stack)
-from ._utils import infer_dyn_vars
-from .base import BrainPyObject, ArrayCollector, ObjectTransform
+from .variables import (Variable, VariableStack)
 
 __all__ = [
   'make_loop',
@@ -520,9 +519,11 @@ def ifelse(
     conditions: Union[bool, Sequence[bool]],
     branches: Sequence[Any],
     operands: Any = None,
+    show_code: bool = False,
+
+    # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-    show_code: bool = False,
 ):
   """``If-else`` control flows looks like native Pythonic programming.
 
@@ -585,13 +586,9 @@ def ifelse(
     raise ValueError(f'The numbers of branches and conditions do not match. '
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-  dyn_vars = ArrayCollector(dyn_vars)
-  for f in branches:
-    dyn_vars += infer_dyn_vars(f)
-  for obj in check.is_all_objs(child_objs, out_as='tuple'):
-    dyn_vars.update(obj.vars().unique())
-  dyn_vars = tuple(dyn_vars.unique().values())
+
+  dynvar_deprecation(dyn_vars)
+  node_deprecation(child_objs)
 
   # format new codes
   if len(conditions) == 1:
@@ -604,18 +601,10 @@ def ifelse(
     codes = ['def f(operands):',
              f'  f0 = branches[{len(conditions)}]']
     num_cond = len(conditions) - 1
-    if len(dyn_vars) > 0:
-      code_scope['_cond'] = cond
-      code_scope['dyn_vars'] = dyn_vars
-      for i in range(len(conditions) - 1):
-        codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], '
-                     f'branches[{num_cond - i}], f{i}, r, dyn_vars)')
-      codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands, dyn_vars)')
-    else:
-      code_scope['_cond'] = lax.cond
-      for i in range(len(conditions) - 1):
-        codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], branches[{num_cond - i}], f{i}, r)')
-      codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands)')
+    code_scope['_cond'] = cond
+    for i in range(len(conditions) - 1):
+      codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], branches[{num_cond - i}], f{i}, r)')
+    codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands)')
     codes = '\n'.join(codes)
     if show_code: print(codes)
     exec(compile(codes.strip(), '', 'exec'), code_scope)
@@ -751,6 +740,7 @@ def for_loop(
         with VariableStack() as dyn_vars:
           _ = jax.eval_shape(body_fun, *op_vals)
         cache_stack(body_fun, dyn_vars)  # cache
+        del op_vals
 
   # functions
   def fun2scan(carry, x):

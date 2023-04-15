@@ -456,8 +456,8 @@ class MorrisLecar(NeuGroupNS):
     self.input_var = input_var
 
     # initializers
-    self._W_initializer = check.is_initializer(V_initializer, allow_none=False)
-    self._V_initializer = check.is_initializer(W_initializer, allow_none=False)
+    self._W_initializer = check.is_initializer(W_initializer, allow_none=False)
+    self._V_initializer = check.is_initializer(V_initializer, allow_none=False)
 
     # variables
     self.reset_state(self.mode)
@@ -491,7 +491,7 @@ class MorrisLecar(NeuGroupNS):
 
   @property
   def derivative(self):
-    return JointEq([self.dV, self.dW])
+    return JointEq(self.dV, self.dW)
 
   def update(self, x=None):
     t = share.load('t')

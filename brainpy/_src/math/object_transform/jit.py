@@ -66,6 +66,9 @@ class JITTransform(ObjectTransform):
       # deprecated
       dyn_vars: Dict[str, Variable] = None,
       child_objs: Dict[str, BrainPyObject] = None,
+
+      # others
+      **kwargs
   ):
     super().__init__(name=name)
 
@@ -89,6 +92,7 @@ class JITTransform(ObjectTransform):
     self._inline = inline
     self._keep_unused = keep_unused
     self._abstracted_axes = abstracted_axes
+    self._kwargs = kwargs
 
     # transformation function
     self._transform = None
@@ -121,6 +125,7 @@ class JITTransform(ObjectTransform):
         keep_unused=self._keep_unused,
         abstracted_axes=self._abstracted_axes,
         backend=self._backend,
+        **self._kwargs
       )
     out, changes = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
     for key, v in self._dyn_vars.items():
@@ -195,9 +200,13 @@ def jit(
     backend: Optional[str] = None,
     abstracted_axes: Optional[Any] = None,
 
+
     # deprecated
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+
+    # others
+    **kwargs,
 ) -> JITTransform:
   """
   JIT (Just-In-Time) compilation for BrainPy computation.
@@ -272,7 +281,8 @@ def jit(
                                   inline=inline,
                                   keep_unused=keep_unused,
                                   backend=backend,
-                                  abstracted_axes=abstracted_axes)
+                                  abstracted_axes=abstracted_axes,
+                                  **kwargs)
   else:
     return JITTransform(fun=func,
                         dyn_vars=dyn_vars,
@@ -284,7 +294,8 @@ def jit(
                         inline=inline,
                         keep_unused=keep_unused,
                         backend=backend,
-                        abstracted_axes=abstracted_axes)
+                        abstracted_axes=abstracted_axes,
+                        **kwargs)
 
 
 jit.__doc__ = jit.__doc__.format(jit_par=_jit_par.strip())
@@ -298,6 +309,7 @@ def cls_jit(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
+    **kwargs
 ) -> Callable:
   """Just-in-time compile a function and then the jitted function as the bound method for a class.
   
@@ -340,7 +352,8 @@ def cls_jit(
                                    device=device,
                                    inline=inline,
                                    keep_unused=keep_unused,
-                                   abstracted_axes=abstracted_axes)
+                                   abstracted_axes=abstracted_axes,
+                                   **kwargs)
   else:
     return _make_jit_fun(fun=func,
                          static_argnums=static_argnums,
@@ -348,7 +361,8 @@ def cls_jit(
                          device=device,
                          inline=inline,
                          keep_unused=keep_unused,
-                         abstracted_axes=abstracted_axes)
+                         abstracted_axes=abstracted_axes,
+                         **kwargs)
 
 
 cls_jit.__doc__ = cls_jit.__doc__.format(jit_pars=_jit_par)
@@ -362,6 +376,7 @@ def _make_jit_fun(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
+    **jit_kwargs
 ):
   static_argnums = _seq_of_int(static_argnums)
   static_argnames = _seq_of_int(static_argnames)
@@ -390,7 +405,8 @@ def _make_jit_fun(
         device=device,
         inline=inline,
         keep_unused=keep_unused,
-        abstracted_axes=abstracted_axes
+        abstracted_axes=abstracted_axes,
+        **jit_kwargs
       )
       cache_stack(hash_v, (stack, _transform))  # cache "variable stack" and "transform function"
 

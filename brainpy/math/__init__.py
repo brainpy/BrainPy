@@ -64,6 +64,4 @@ from brainpy._src.math.surrogate.compt import (
   spike_with_linear_grad as spike_with_linear_grad,
   spike_with_gaussian_grad as spike_with_gaussian_grad,
   spike_with_mg_grad as spike_with_mg_grad,
-  spike2_with_sigmoid_grad as spike2_with_sigmoid_grad,
-  spike2_with_linear_grad as spike2_with_linear_grad,
 )

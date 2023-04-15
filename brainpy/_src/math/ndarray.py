@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import operator
-from typing import Union, Optional, Sequence, Any, Tuple as TupleType, List
+from typing import Union, Optional, Sequence
 
 import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
-from jax.tree_util import register_pytree_node
+from jax.tree_util import register_pytree_node_class
 
 import brainpy.math
 from brainpy.errors import MathError
@@ -60,6 +60,7 @@ def _get_dtype(v):
   return dtype
 
 
+@register_pytree_node_class
 class Array(object):
   """Multiple-dimensional array in BrainPy.
   """
@@ -170,8 +171,8 @@ class Array(object):
     - https://github.com/google/jax/issues/7713
     - https://github.com/google/jax/pull/3821
     """
-    for v in self.value:
-      yield v
+    for i in range(self.value.shape[0]):
+      yield self.value[i]
 
   def __getitem__(self, index):
     if isinstance(index, slice) and (index == _all_slice):
@@ -1378,12 +1379,13 @@ class Array(object):
           f'dimension {i}.  Target sizes: {sizes}.  Tensor sizes: {self.shape}')
     return Array(jnp.broadcast_to(self.value, sizes_list))
 
+  def tree_flatten(self):
+    return (self._value,), None
+
+  @classmethod
+  def tree_unflatten(cls, aux_data, flat_contents):
+    return cls(*flat_contents)
+
 
 JaxArray = Array
 ndarray = Array
-
-register_pytree_node(
-  Array,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: Array(*flat_contents)
-)
