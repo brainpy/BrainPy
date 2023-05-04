@@ -3,6 +3,9 @@
 
 import unittest
 
+import jax
+
+import brainpy as bp
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
@@ -45,6 +48,23 @@ class TestJaxArray(unittest.TestCase):
     add = lambda: bm.asarray(rng.rand(10)) + np.zeros(1)
     self.assertTrue(isinstance(add(), bm.Array))
     self.assertTrue(isinstance(bm.jit(add, dyn_vars=rng)(), bm.Array))
+
+
+class TestTracerError(bp.testing.UnitTestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+
+    self.a = bm.zeros((10, 2))
+    self.f = jax.jit(self._f)
+
+  def _f(self, b):
+    self.a[:] = bm.zeros_like(self.a)
+    return b + 1.
+
+  def test_tracing(self):
+    print(self.f(1.))
+    with self.assertRaises(RuntimeError):
+      print(self.f(bm.ones(10)))
 
 
 class TestVariable(unittest.TestCase):
@@ -90,4 +110,3 @@ class TestVariableView(unittest.TestCase):
     )
 
     self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
-
