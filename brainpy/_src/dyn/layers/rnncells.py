@@ -6,6 +6,7 @@ from typing import Union, Callable, Sequence, Optional, Tuple
 import jax.numpy as jnp
 
 import brainpy.math as bm
+from brainpy.math import activations
 from .base import Layer
 from brainpy.check import (is_integer,
                            is_initializer)
@@ -92,7 +93,7 @@ class RNNCell(Layer):
     is_initializer(b_initializer, 'b_initializer', allow_none=True)
 
     # activation function
-    self.activation = getattr(bm.activations, activation)
+    self.activation = getattr(activations, activation)
 
     # weights
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out))
@@ -202,7 +203,7 @@ class GRUCell(Layer):
     is_initializer(b_initializer, 'b_initializer', allow_none=True)
 
     # activation function
-    self.activation = getattr(bm.activations, activation)
+    self.activation = getattr(activations, activation)
 
     # weights
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 3), allow_none=False)
@@ -338,7 +339,7 @@ class LSTMCell(Layer):
     is_initializer(state_initializer, 'state_initializer', allow_none=False)
 
     # activation function
-    self.activation = getattr(bm.activations, activation)
+    self.activation = getattr(activations, activation)
 
     # weights
     self.Wi = parameter(self._Wi_initializer, (num_in, self.num_out * 4))

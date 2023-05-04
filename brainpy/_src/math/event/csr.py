@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from typing import Union, Tuple
 
 import jax.numpy as jnp
@@ -8,11 +7,11 @@ import jax.numpy as jnp
 from brainpy._src import tools
 
 __all__ = [
-  'event_csr_matvec', 'event_info'
+  'csrmv',
 ]
 
 
-def event_csr_matvec(
+def csrmv(
     data: Union[float, jnp.ndarray],
     indices: jnp.ndarray,
     indptr: jnp.ndarray,
@@ -52,24 +51,4 @@ def event_csr_matvec(
   bl = tools.import_brainpylib()
   # computing
   return bl.event_ops.event_csr_matvec(data, indices, indptr, events, shape=shape, transpose=transpose)
-
-
-def event_info(events: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
-  """Collect event information, including event indices, and event number.
-
-  This function supports JAX transformations, including `jit()`,
-  `vmap()` and `pmap()`.
-
-  Parameters
-  ----------
-  events: jnp.ndarray
-    The events.
-
-  Returns
-  -------
-  res: tuple
-    A tuple with two elements, denoting the event indices and the event number.
-  """
-  bl = tools.import_brainpylib()
-  return bl.event_ops.event_info(events)
 

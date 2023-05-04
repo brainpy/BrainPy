@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.0"
+__version__ = "2.4.1"
 
 
 # fundamental supporting modules
@@ -111,13 +111,35 @@ from . import analysis
 #  Part 6: Others    #
 # ------------------ #
 
-from . import running, testing
+from . import running, testing, interop
 from ._src.visualization import (visualize as visualize)
 
 
 #  Part 7: Deprecations  #
 # ---------------------- #
 
+
+math.__dict__['event_matvec_prob_conn_homo_weight'] = math.jitconn.event_mv_prob_homo
+math.__dict__['event_matvec_prob_conn_uniform_weight'] = math.jitconn.event_mv_prob_uniform
+math.__dict__['event_matvec_prob_conn_normal_weight'] = math.jitconn.event_mv_prob_normal
+
+math.__dict__['matvec_prob_conn_homo_weight'] = math.jitconn.mv_prob_homo
+math.__dict__['matvec_prob_conn_uniform_weight'] = math.jitconn.mv_prob_uniform
+math.__dict__['matvec_prob_conn_normal_weight'] = math.jitconn.mv_prob_normal
+
+math.__dict__['matmat_prob_conn_homo_weight'] = math.jitconn.mm_prob_homo
+math.__dict__['matmat_prob_conn_uniform_weight'] = math.jitconn.mm_prob_uniform
+math.__dict__['matmat_prob_conn_normal_weight'] = math.jitconn.mm_prob_normal
+
+math.__dict__['csr_matvec'] = math.sparse.csrmv
+math.__dict__['cusparse_csr_matvec'] = math.sparse.csrmv
+math.__dict__['cusparse_coo_matvec'] = math.sparse.coomv
+math.__dict__['coo_to_csr'] = math.sparse.coo_to_csr
+math.__dict__['csr_to_coo'] = math.sparse.csr_to_coo
+math.__dict__['csr_to_dense'] = math.sparse.csr_to_dense
+
+math.__dict__['event_csr_matvec'] = math.event.csrmv
+math.__dict__['event_info'] = math.event.info
 
 integrators.__dict__['Integrator'] = Integrator
 integrators.__dict__['odeint'] = odeint

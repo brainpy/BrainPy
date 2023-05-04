@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from jax import vmap, jit, ops as jops
 
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.operators import event_ops
+from brainpy._src.math import event
 from brainpy.errors import MathError
 from brainpy._src import tools
 
@@ -19,8 +19,8 @@ __all__ = [
 
   # pre-to-post event operator
   'pre2post_event_sum',
+  'pre2post_csr_event_sum',
   'pre2post_coo_event_sum',
-  'pre2post_event_prod',
 
   # pre-to-syn
   'pre2syn',
@@ -96,9 +96,12 @@ def pre2post_event_sum(events,
   indices = as_jax(indices)
   idnptr = as_jax(idnptr)
   values = as_jax(values)
-  return event_ops.event_csr_matvec(values, indices, idnptr, events,
-                                    shape=(events.shape[0], post_num),
-                                    transpose=True)
+  return event.csrmv(values, indices, idnptr, events,
+                     shape=(events.shape[0], post_num),
+                     transpose=True)
+
+
+pre2post_csr_event_sum = pre2post_event_sum
 
 
 def pre2post_coo_event_sum(events,
@@ -132,61 +135,6 @@ def pre2post_coo_event_sum(events,
   values = as_jax(values)
   bl = tools.import_brainpylib()
   return bl.compat.coo_event_sum(events, pre_ids, post_ids, post_num, values)
-
-
-def pre2post_event_prod(events, pre2post, post_num, values=1.):
-  """The pre-to-post synaptic computation with event-driven production.
-
-  When ``values`` is a scalar, this function is equivalent to
-
-  .. highlight:: python
-  .. code-block:: python
-
-    post_val = np.ones(post_num)
-    post_ids, idnptr = pre2post
-    for i in range(pre_num):
-      if events[i]:
-        for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] *= values
-
-  When ``values`` is a vector (with the length of ``len(post_ids)``),
-  this function is equivalent to
-
-  .. highlight:: python
-  .. code-block:: python
-
-    post_val = np.ones(post_num)
-
-    post_ids, idnptr = pre2post
-    for i in range(pre_num):
-      if events[i]:
-        for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] *= values[j]
-
-
-  Parameters
-  ----------
-  events: ArrayType
-    The events, must be bool.
-  pre2post: tuple of ArrayType
-    A tuple contains the connection information of pre-to-post.
-  post_num: int
-    The number of post-synaptic group.
-  values: float, ArrayType
-    The value to make summation.
-
-  Returns
-  -------
-  out: ArrayType
-    A tensor with the shape of ``post_num``.
-  """
-  indices, idnptr = pre2post
-  events = as_jax(events)
-  indices = as_jax(indices)
-  idnptr = as_jax(idnptr)
-  values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.compat.csr_event_prod(events, (indices, idnptr), post_num, values)
 
 
 def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
