@@ -80,7 +80,7 @@ class TestVariable(unittest.TestCase):
     )
 
 
-class TestVariableView(unittest.TestCase):
+class TestVariableView(bp.testing.UnitTestCase):
   def test_update(self):
     origin = bm.Variable(bm.zeros(10))
     view = bm.VariableView(origin, slice(0, 5, None))
