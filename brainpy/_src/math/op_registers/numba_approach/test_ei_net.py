@@ -73,10 +73,10 @@ class EINet(bp.Network):
     super(EINet, self).__init__(E2E, E2I, I2E, I2I, E=E, I=I)
 
 
-def test1():
-  net2 = EINet(scale=10.)
-  runner2 = bp.dyn.DSRunner(net2, inputs=[('E.input', 20.), ('I.input', 20.)])
-  r = runner2.predict(100., eval_time=True)
-  print(r)
+# def test1():
+#   net2 = EINet(scale=0.1)
+#   runner2 = bp.DSRunner(net2, inputs=[('E.input', 20.), ('I.input', 20.)])
+#   r = runner2.predict(100., eval_time=True)
+#   print(r)
 
 

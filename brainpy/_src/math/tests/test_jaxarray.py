@@ -100,6 +100,7 @@ class TestVariableView(bp.testing.UnitTestCase):
       bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
     )
 
+    bm.random.seed()
     bm.random.shuffle(view)
     print(view)
     print(origin)
