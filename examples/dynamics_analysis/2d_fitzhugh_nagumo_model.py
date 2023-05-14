@@ -7,7 +7,7 @@ import brainpy.math as bm
 bp.math.enable_x64()
 
 
-class FitzHughNagumoModel(bp.dyn.DynamicalSystem):
+class FitzHughNagumoModel(bp.DynamicalSystem):
   def __init__(self, method='exp_auto'):
     super(FitzHughNagumoModel, self).__init__()
 
@@ -43,7 +43,7 @@ class FitzHughNagumoModel(bp.dyn.DynamicalSystem):
 model = FitzHughNagumoModel()
 
 # simulation
-runner = bp.dyn.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
+runner = bp.DSRunner(model, monitors=['V', 'w'], inputs=['Iext', 0.])
 runner.run(100.)
 
 bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V')
@@ -69,7 +69,7 @@ bif = bp.analysis.Bifurcation2D(
   model=model,
   target_vars={'V': [-3., 3.], 'w': [-1, 3.]},
   target_pars={'Iext': [-1., 2.]},
-  resolutions=0.01
+  resolutions={'Iext': 0.01}
 )
 bif.plot_bifurcation(num_par_segments=2)
 bif.plot_limit_cycle_by_sim()

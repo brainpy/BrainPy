@@ -78,14 +78,14 @@ class EchoStateNet(bp.DynamicalSystem):
     self.w_ro += dw
 
   def simulate(self, xs):
-    return bm.for_loop(self.update, dyn_vars=self.vars(), operands=xs)
+    return bm.for_loop(self.update, operands=xs)
 
   def train(self, xs, targets):
     def _f(x, target):
       r, o = self.update(x)
       self.rls(target)
       return r, o
-    return bm.for_loop(_f, dyn_vars=self.vars(), operands=[xs, targets])
+    return bm.for_loop(_f, operands=[xs, targets])
 
 
 # %%
@@ -132,18 +132,18 @@ def plot_params(net):
 
   plt.figure(figsize=(16, 10))
   plt.subplot(221)
-  plt.imshow((net.w_rr + net.w_ro @ net.w_or).numpy(), interpolation=None)
+  plt.imshow(bm.as_numpy(net.w_rr + net.w_ro @ net.w_or), interpolation=None)
   plt.colorbar()
   plt.title('Effective matrix - W_rr + W_ro * W_or')
 
   plt.subplot(222)
-  plt.imshow(net.w_ro.numpy(), interpolation=None)
+  plt.imshow(bm.as_numpy(net.w_ro), interpolation=None)
   plt.colorbar()
   plt.title('Readout weights - W_ro')
 
   x_circ = np.linspace(-1, 1, 1000)
   y_circ = np.sqrt(1 - x_circ ** 2)
-  evals, _ = np.linalg.eig(net.w_rr.numpy())
+  evals, _ = np.linalg.eig(bm.as_numpy(net.w_rr))
   plt.subplot(223)
   plt.plot(np.real(evals), np.imag(evals), 'o')
   plt.plot(x_circ, y_circ, 'k')
@@ -151,7 +151,7 @@ def plot_params(net):
   plt.axis('equal')
   plt.title('Eigenvalues of W_rr')
 
-  evals, _ = np.linalg.eig((net.w_rr + net.w_ro @ net.w_or).numpy())
+  evals, _ = np.linalg.eig(bm.as_numpy((net.w_rr + net.w_ro @ net.w_or)))
   plt.subplot(224)
   plt.plot(np.real(evals), np.imag(evals), 'o', color='orange')
   plt.plot(x_circ, y_circ, 'k')

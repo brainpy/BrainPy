@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from functools import partial
-
 import matplotlib.pyplot as plt
 
 import brainpy as bp
@@ -12,8 +10,7 @@ num_step = int(1.0 / dt)
 num_batch = 128
 
 
-@partial(bm.jit, static_argnames=['batch_size'])
-@bm.to_object(dyn_vars=bm.random.DEFAULT)
+@bm.jit(static_argnames=['batch_size'])
 def build_inputs_and_targets(mean=0.025, scale=0.01, batch_size=10):
   # Create the white noise input
   sample = bm.random.normal(size=(batch_size, 1, 1))
@@ -30,15 +27,14 @@ def train_data():
     yield build_inputs_and_targets(batch_size=num_batch)
 
 
-class RNN(bp.DynamicalSystem):
+class RNN(bp.DynamicalSystemNS):
   def __init__(self, num_in, num_hidden):
     super(RNN, self).__init__()
     self.rnn = bp.layers.RNNCell(num_in, num_hidden, train_state=True)
     self.out = bp.layers.Dense(num_hidden, 1)
 
-  def update(self, sha, x):
-    return self.out(sha,
-                    self.rnn(sha, x))
+  def update(self, x):
+    return x >> self.rnn >> self.out
 
 
 with bm.training_environment():
@@ -57,7 +53,7 @@ lr = bp.optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
 opt = bp.optim.Adam(lr=lr, eps=1e-1)
 
 # create a trainer
-trainer = bp.train.BPTT(model, loss_fun=loss, optimizer=opt)
+trainer = bp.BPTT(model, loss_fun=loss, optimizer=opt)
 trainer.fit(train_data,
             num_epoch=30,
             num_report=200)
@@ -74,3 +70,4 @@ plt.plot(bm.as_numpy(y[0]).flatten(), label='Ground Truth')
 plt.plot(bm.as_numpy(predicts[0]).flatten(), label='Prediction')
 plt.legend()
 plt.show()
+

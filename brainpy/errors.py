@@ -169,6 +169,19 @@ class InvalidCheckpointError(BrainPyError):
     )
 
 
+class InvalidCheckpointPath(BrainPyError):
+  """A checkpoint cannot be stored in a directory that already has
+
+  a checkpoint at the current or a later step.
+
+  You can pass ``overwrite=True`` to disable this behavior and
+  overwrite existing checkpoints in the target directory.
+  """
+
+  def __init__(self, path):
+    super().__init__(f'Invalid checkpoint at "{path}".')
+
+
 class JaxTracerError(MathError):
   def __init__(self, variables=None):
     msg = 'There is an unexpected tracer. \n\n' \
@@ -210,7 +223,6 @@ class ConcretizationTypeError(Exception):
     )
 
 
-_BRAINPYLIB_MINIMAL_VERSION = '0.1.3'
 
 try:
   import jaxlib
@@ -244,20 +256,13 @@ For more detail installation instructions, please see https://brainpy.readthedoc
 
     ''') from None
 
-try:
-  import brainpylib
 
-  if brainpylib.__version__ < _BRAINPYLIB_MINIMAL_VERSION:
-    raise PackageMissingError(
-      f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
-      f'Please install it through:\n\n'
-      f'>>> pip install brainpylib -U'
-    )
+class GPUOperatorNotFound(Exception):
+  def __init__(self, name):
+    super(GPUOperatorNotFound, self).__init__(f'''
+GPU operator for "{name}" does not found. 
 
-  del brainpylib
-except ModuleNotFoundError:
-  raise PackageMissingError(
-    f'\nbrainpy need "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}". \n'
-    f'Please install "brainpylib>={_BRAINPYLIB_MINIMAL_VERSION}" through:\n\n'
-    f'>>> pip install brainpylib'
-  )
+Please install brainpylib GPU operators with linux + CUDA environment.
+    ''')
+
+

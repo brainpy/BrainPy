@@ -13,32 +13,7 @@ bp.math.set_platform('cpu')
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-
-# In this tutorial, we will use supervised learning to train a recurrent
-# neural network on a simple perceptual decision making task, and analyze
-# the trained network using dynamical system analysis.
-
-# Defining a cognitive task
-# ----
-# We will import the task from the neurogym library.
-# Please install neurogym:
-# https://github.com/neurogym/neurogym
-
-import neurogym as ngym
-
-# Environment
-task = 'PerceptualDecisionMaking-v0'
-kwargs = {'dt': 100}
-seq_len = 100
-
-# Make supervised dataset
-dataset = ngym.Dataset(task,
-                       env_kwargs=kwargs,
-                       batch_size=16,
-                       seq_len=seq_len)
-
-# A sample environment from dataset
-env = dataset.env
+import brainpy_datasets as bd
 
 
 # Define a vanilla continuous-time recurrent network
@@ -94,14 +69,17 @@ class RNNNet(bp.DynamicalSystem):
     return self.readout(self.h.value)
 
 
+ds = bd.cognitive.RatePerceptualDecisionMaking(dt=100., num_trial=16 * 200)
+loader = bd.cognitive.TaskLoader(ds, max_seq_len=100, batch_size=16, data_first_axis='B')
+
 # Train the recurrent network on the decision-making task
 # ---
 # Instantiate the network and print information
 with bm.training_environment():
-  net = RNNNet(num_input=env.observation_space.shape[0],
+  net = RNNNet(num_input=ds.num_inputs,
                num_hidden=64,
-               num_output=env.action_space.n,
-               dt=env.dt)
+               num_output=ds.num_outputs,
+               dt=ds.dt)
 
 
 def loss(predictions, targets):
@@ -117,38 +95,29 @@ def loss(predictions, targets):
   return total_loss, {'accuracy': accuracy}
 
 
-def data_generation():
-  for _ in range(100):
-    inputs, labels = dataset()
-    inputs = bm.asarray(np.moveaxis(inputs, 0, 1))
-    labels = bm.asarray(np.moveaxis(labels, 0, 1))
-    yield inputs, labels
-
-
-trainer = bp.train.BPTT(net,
-                        loss_fun=loss,
-                        loss_has_aux=True,
-                        optimizer=bp.optim.Adam(lr=1e-3))
-trainer.fit(data_generation, num_epoch=20, num_report=100)
+trainer = bp.BPTT(net,
+                  loss_fun=loss,
+                  loss_has_aux=True,
+                  optimizer=bp.optim.Adam(lr=1e-3))
+trainer.fit(loader, num_epoch=20)
 
 # Visualize neural activity for in sample trials
 # ---
 # We will run the network for 100 sample trials, then visual the neural activity trajectories in a PCA space.
-runner = bp.train.DSTrainer(net, monitors={'r': net.h}, progress_bar=False)
+runner = bp.DSTrainer(net, monitors={'r': net.h}, progress_bar=False)
 
-env.reset(no_step=True)
 num_trial = 100
-activity_dict = {}
-trial_infos = {}
+activity_dict = []
+groundtruths = []
 for i in range(num_trial):
-  env.new_trial()
-  inputs = bm.asarray(env.ob[np.newaxis])
+  ob, re = ds[i][:2]
+  groundtruths.append(re[-1] - 1)
+  inputs = bm.asarray(ob[np.newaxis])
   _ = runner.predict(inputs)
-  activity_dict[i] = runner.mon['r'][0]
-  trial_infos[i] = env.trial
+  activity_dict.append(runner.mon['r'][0])
 
 # Concatenate activity for PCA
-activity = np.concatenate(list(activity_dict[i] for i in range(num_trial)), axis=0)
+activity = np.concatenate(activity_dict, axis=0)
 print('Shape of the neural activity: (Time points, Neurons): ', activity.shape)
 
 pca = PCA(n_components=2)
@@ -159,7 +128,7 @@ plt.rcdefaults()
 fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(12, 5))
 for i in range(num_trial):
   activity_pc = pca.transform(activity_dict[i])
-  color = 'red' if trial_infos[i]['ground_truth'] == 0 else 'blue'
+  color = 'red' if groundtruths[i] == 0 else 'blue'
   _ = ax1.plot(activity_pc[:, 0], activity_pc[:, 1], 'o-', color=color)
   if i < 5:
     _ = ax2.plot(activity_pc[:, 0], activity_pc[:, 1], 'o-', color=color)
@@ -193,8 +162,7 @@ finder.keep_unique(tolerance=0.005)
 plt.figure(figsize=(10, 5))
 for i in range(10):
   activity_pc = pca.transform(activity_dict[i])
-  trial = trial_infos[i]
-  color = 'red' if trial['ground_truth'] == 0 else 'blue'
+  color = 'red' if groundtruths[i] == 0 else 'blue'
   plt.plot(activity_pc[:, 0], activity_pc[:, 1], 'o-', color=color, alpha=0.1)
 # Fixed points are shown in cross
 fixedpoints_pc = pca.transform(finder.fixed_points['h'])
