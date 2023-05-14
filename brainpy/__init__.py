@@ -55,35 +55,36 @@ from brainpy import (channels,  # channel models
                      layers,  # ANN layers
                      neurons,  # neuron groups
                      rates,  # rate models
-                     synapses,  # synaptic dynamics
-                     synouts,  # synaptic output
-                     synplast,  # synaptic plasticity
                      experimental,
                      )
-from brainpy._src.dyn.base import (DynamicalSystem as DynamicalSystem,
-                                   Container as Container,
-                                   Sequential as Sequential,
-                                   Network as Network,
-                                   NeuGroup as NeuGroup,
-                                   SynConn as SynConn,
-                                   SynOut as SynOut,
-                                   SynSTP as SynSTP,
-                                   SynLTP as SynLTP,
-                                   TwoEndConn as TwoEndConn,
-                                   CondNeuGroup as CondNeuGroup,
-                                   Channel as Channel)
-from brainpy._src.dyn.delay import Delay
+from brainpy.synapses import (synapses,  # synaptic dynamics
+                              synouts,  # synaptic output
+                              synplast,)  # synaptic plasticity
+
+from brainpy._src.dynsys import (DynamicalSystem as DynamicalSystem,
+                                 Container as Container,
+                                 Sequential as Sequential,
+                                 Network as Network,
+                                 NeuGroup as NeuGroup,
+                                 SynConn as SynConn,
+                                 SynOut as SynOut,
+                                 SynSTP as SynSTP,
+                                 SynLTP as SynLTP,
+                                 TwoEndConn as TwoEndConn,
+                                 CondNeuGroup as CondNeuGroup,
+                                 Channel as Channel)
+from brainpy._src.delay import Delay
 # shared parameters
-from brainpy._src.dyn.context import share
-from brainpy._src.dyn.base import not_pass_shared
+from brainpy._src.context import share
+from brainpy._src.dynsys import not_pass_shared
 # running
 from brainpy._src.dyn.runners import (DSRunner as DSRunner)
 from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
 # DynamicalSystem base classes
-from brainpy._src.dyn.base import (DynamicalSystemNS as DynamicalSystemNS,
-                                   NeuGroupNS as NeuGroupNS,
-                                   TwoEndConnNS as TwoEndConnNS,
-                                   )
+from brainpy._src.dynsys import (DynamicalSystemNS as DynamicalSystemNS,
+                                 NeuGroupNS as NeuGroupNS,
+                                 TwoEndConnNS as TwoEndConnNS,
+                                 )
 from brainpy._src.dyn.synapses_v2.base import (SynOutNS as SynOutNS,
                                                SynSTPNS as SynSTPNS,
                                                SynConnNS as SynConnNS, )
@@ -92,7 +93,6 @@ from brainpy._src.dyn.synapses_v2.base import (SynOutNS as SynOutNS,
 #  Part 4: Training  #
 # ------------------ #
 
-from . import train
 from ._src.train.base import (DSTrainer as DSTrainer)
 from ._src.train.back_propagation import (BPTT as BPTT,
                                           BPFF as BPFF,)
@@ -102,17 +102,12 @@ from ._src.train.offline import (OfflineTrainer as OfflineTrainer,
                                  RidgeTrainer as RidgeTrainer,)
 
 
-#  Part 5: Analysis  #
-# ------------------ #
-
-from . import analysis
-
-
 #  Part 6: Others    #
 # ------------------ #
 
-from . import running, testing, interop
+from . import running, testing, analysis
 from ._src.visualization import (visualize as visualize)
+from ._src import base, modes, train, dyn
 
 
 #  Part 7: Deprecations  #
@@ -167,7 +162,6 @@ train.__dict__['OfflineTrainer'] = OfflineTrainer
 train.__dict__['RidgeTrainer'] = RidgeTrainer
 
 
-from ._src import base
 base.base.__dict__['BrainPyObject'] = BrainPyObject
 base.base.__dict__['Base'] = Base
 base.collector.__dict__['Collector'] = Collector
@@ -201,8 +195,6 @@ base.__dict__['load_by_pkl'] = checkpoints.io.load_by_pkl
 base.__dict__['load_by_mat'] = checkpoints.io.load_by_mat
 base.__dict__['clear_name_cache'] = math.clear_name_cache
 
-
-from . import modes
 modes.__dict__['Mode'] = math.Mode
 modes.__dict__['NormalMode'] = math.NonBatchingMode
 modes.__dict__['BatchingMode'] = math.BatchingMode
@@ -213,7 +205,6 @@ modes.__dict__['training'] = math.training_mode
 modes.__dict__['check_mode'] = check.is_subclass
 
 
-from brainpy import dyn
 dyn.__dict__['channels'] = channels
 dyn.__dict__['neurons'] = neurons
 dyn.__dict__['rates'] = rates

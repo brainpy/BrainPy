@@ -5,7 +5,7 @@ from typing import Union, Callable, Optional
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import SynOut
+from brainpy._src.dynsys import SynOut
 from brainpy._src.initialize import parameter, Initializer
 from brainpy.types import ArrayType
 

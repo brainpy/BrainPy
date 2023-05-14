@@ -7,7 +7,7 @@ This context defines all shared data used in all modules in a computation.
 from typing import Any
 from typing import Union
 
-from brainpy._src.dyn.base import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystemNS
 from brainpy._src.math.environment import get_dt
 from brainpy._src.tools.dicts import DotDict
 
@@ -51,7 +51,8 @@ class _ShareContext(DynamicalSystemNS):
     if key in self._arguments:
       return self._arguments[key]
     if value is None:
-      raise KeyError(f'Cannot found shared data of {key}.')
+      raise KeyError(f'Cannot found shared data of {key}. '
+                     f'Please define it with "brainpy.share.save()". ')
     else:
       return value
 

@@ -6,8 +6,8 @@ from typing import Union, Callable, Optional
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroupNS
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import NeuGroupNS
+from brainpy._src.context import share
 from brainpy._src.initialize import (ZeroInit,
                                      OneInit,
                                      Initializer,
@@ -95,6 +95,90 @@ class Leaky(NeuGroupNS):
       r += x
     self.x.value = r
     return r
+
+
+class Integrator(NeuGroupNS):
+  r"""Integrator Model.
+
+  This class implements an integrator model, in which its dynamics is
+  given by:
+
+  .. math::
+
+     \tau \frac{dx}{dt} = - x(t) + I(t)
+
+  where :math:`x` is the integrator value, and :math:`\tau` is the time constant.
+
+  Parameters
+  ----------
+  size: sequence of int, int
+    The size of the neuron group.
+  tau: float, ArrayType, Initializer, callable
+    Membrane time constant.
+  x_initializer: ArrayType, Initializer, callable
+    The initializer of :math:`x`.
+  noise: ArrayType, Initializer, callable
+    The noise added onto the membrane potential
+  method: str
+    The numerical integration method.
+  name: str
+    The group name.
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
+      x_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      input_var: bool = False,
+      name: str = None,
+      mode: bm.Mode = None,
+      method: str = 'exp_auto',
+  ):
+    super().__init__(size=size,
+                     mode=mode,
+                     keep_size=keep_size,
+                     name=name)
+    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode))
+
+    # parameters
+    self.tau = parameter(tau, self.varshape, allow_none=False)
+    self.noise = init_noise(noise, self.varshape)
+    self.input_var = input_var
+
+    # initializers
+    self._x_initializer = is_initializer(x_initializer)
+
+    # integral
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
+
+    # variables
+    self.reset_state(self.mode)
+
+  def derivative(self, V, t, I_ext):
+    return (-V + I_ext) / self.tau
+
+  def reset_state(self, batch_size=None):
+    self.x = variable_(self._x_initializer, self.varshape, batch_size)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    if self.input_var:
+      if x is not None:
+        self.input += x
+      x = self.input.value
+    else:
+      x = 0. if x is None else x
+    self.x.value = self.integral(self.x.value, t, I_ext=x, dt=dt)
+    return self.x.value
 
   def clear_input(self):
     if self.input_var:
@@ -201,94 +285,6 @@ class LeakyIntegrator(NeuGroupNS):
       x = 0. if x is None else x
     self.V.value = self.integral(self.V.value, t, x, dt)
     return self.V.value
-
-  def clear_input(self):
-    if self.input_var:
-      self.input[:] = 0.
-
-
-class Integrator(NeuGroupNS):
-  r"""Integrator Model.
-
-  This class implements an integrator model, in which its dynamics is
-  given by:
-
-  .. math::
-
-     \tau \frac{dx}{dt} = - x(t) + I(t)
-
-  where :math:`x` is the integrator value, and :math:`\tau` is the time constant.
-
-  Parameters
-  ----------
-  size: sequence of int, int
-    The size of the neuron group.
-  tau: float, ArrayType, Initializer, callable
-    Membrane time constant.
-  x_initializer: ArrayType, Initializer, callable
-    The initializer of :math:`x`.
-  noise: ArrayType, Initializer, callable
-    The noise added onto the membrane potential
-  method: str
-    The numerical integration method.
-  name: str
-    The group name.
-  """
-
-  def __init__(
-      self,
-      size: Shape,
-      keep_size: bool = False,
-      tau: Union[float, ArrayType, Initializer, Callable] = 10.,
-      x_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
-      noise: Union[float, ArrayType, Initializer, Callable] = None,
-      input_var: bool = False,
-      name: str = None,
-      mode: bm.Mode = None,
-      method: str = 'exp_auto',
-  ):
-    super().__init__(size=size,
-                     mode=mode,
-                     keep_size=keep_size,
-                     name=name)
-    is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode))
-
-    # parameters
-    self.tau = parameter(tau, self.varshape, allow_none=False)
-    self.noise = init_noise(noise, self.varshape)
-    self.input_var = input_var
-
-    # initializers
-    self._x_initializer = is_initializer(x_initializer)
-
-    # integral
-    if self.noise is None:
-      self.integral = odeint(method=method, f=self.derivative)
-    else:
-      self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
-
-    # variables
-    self.reset_state(self.mode)
-
-  def derivative(self, V, t, I_ext):
-    return (-V + I_ext) / self.tau
-
-  def reset_state(self, batch_size=None):
-    self.x = variable_(self._x_initializer, self.varshape, batch_size)
-    if self.input_var:
-      self.input = variable_(bm.zeros, self.varshape, batch_size)
-
-  def update(self, x=None):
-    t = share.load('t')
-    dt = share.load('dt')
-    if self.input_var:
-      if x is not None:
-        self.input += x
-      x = self.input.value
-    else:
-      x = 0. if x is None else x
-    self.x.value = self.integral(self.x.value, t, I_ext=x, dt=dt)
-    return self.x.value
 
   def clear_input(self):
     if self.input_var:
@@ -407,8 +403,8 @@ class LIF(NeuGroupNS):
     else:
       self.integral = sdeint(method=method, f=self.derivative, g=self.noise)
 
-  def derivative(self, V, t, I_ext):
-    return (-V + self.V_rest + self.R * I_ext) / self.tau
+  def derivative(self, V, t, I):
+    return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None):
     self.V = variable_(self._V_initializer, self.varshape, batch_size)
@@ -1151,11 +1147,10 @@ class AdQuaIF(NeuGroupNS):
   def reset_state(self, batch_size=None):
     self.V = variable_(self._V_initializer, self.varshape, batch_size)
     self.w = variable_(self._w_initializer, self.varshape, batch_size)
-    if self.input_var:
-      self.input = variable_(bm.zeros, self.varshape, batch_size)
     sp_type = bm.float_ if isinstance(self.mode, bm.TrainingMode) else bool
     self.spike = variable_(lambda s: bm.zeros(s, dtype=sp_type), self.varshape, batch_size)
-    self.refractory = variable_(lambda s: bm.zeros(s, dtype=bool), self.varshape, batch_size)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
 
   def dV(self, V, t, w, I_ext):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I_ext) / self.tau
@@ -1368,7 +1363,7 @@ class GIF(NeuGroupNS):
 
   @property
   def derivative(self):
-    return JointEq([self.dI1, self.dI2, self.dVth, self.dV])
+    return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
 
   def update(self, x=None):
     t = share.load('t')

@@ -3,9 +3,9 @@
 from typing import Union, Sequence
 
 import jax.numpy as jnp
-from brainpy._src.dyn.context import share
+from brainpy._src.context import share
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroupNS
+from brainpy._src.dynsys import NeuGroupNS
 from brainpy._src.initialize import Initializer, parameter, variable_
 from brainpy.types import Shape, ArrayType
 

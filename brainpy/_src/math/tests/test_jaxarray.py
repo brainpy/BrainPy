@@ -14,7 +14,7 @@ import brainpy.math as bm
 from brainpy.math import Variable
 
 
-class TestJaxArray(unittest.TestCase):
+class TestJaxArray(bp.testing.UnitTestCase):
   def test_tree(self):
     structured = {'a': Variable(jnp.zeros(1)),
                   'b': (Variable(jnp.ones(2)),
@@ -67,7 +67,7 @@ class TestTracerError(bp.testing.UnitTestCase):
       print(self.f(bm.ones(10)))
 
 
-class TestVariable(unittest.TestCase):
+class TestVariable(bp.testing.UnitTestCase):
   def test_variable_init(self):
     self.assertTrue(
       bm.array_equal(bm.Variable(bm.zeros(10)),

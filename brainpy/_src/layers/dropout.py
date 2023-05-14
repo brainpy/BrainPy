@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.dyn.context import share
+from brainpy._src.context import share
 from brainpy import math as bm, check
 from .base import Layer
 

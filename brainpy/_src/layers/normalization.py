@@ -4,7 +4,7 @@ from typing import Union, Optional, Sequence, Callable
 
 from jax import lax, numpy as jnp
 
-from brainpy._src.dyn.context import share
+from brainpy._src.context import share
 from brainpy import math as bm, check
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.types import ArrayType

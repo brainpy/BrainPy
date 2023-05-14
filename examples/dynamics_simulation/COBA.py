@@ -1,4 +1,8 @@
 import brainpy as bp
+import brainpy.math as bm
+from jax import pmap
+
+bm.set_host_device_count(20)
 
 
 class EINet(bp.DynamicalSystemNS):
@@ -98,12 +102,23 @@ class EINetv2(bp.DynamicalSystemNS):
 
 
 # simulation
-net = EINet(delay=0., scale=2.)
-# net = EINetv2(delay=0., scale=2.)
-runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
-r = runner.run(100., eval_time=True)
-print(r)
-bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+
+@pmap
+def f2(I):
+  net = EINet(delay=0., scale=5., e_input=I, i_input=I)
+  # net = EINetv2(delay=0., scale=2.)
+  runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike}, numpy_mon_after_run=False)
+  runner.run(10000.)
+  return runner.mon
+  # print(r)
+  # bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+
+
+print(f2(bm.ones(20) * 20.))
+
+
+
+
 
 
 

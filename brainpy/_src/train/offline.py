@@ -7,7 +7,7 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dynsys import DynamicalSystem
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError

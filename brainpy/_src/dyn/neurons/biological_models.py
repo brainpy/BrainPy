@@ -4,8 +4,8 @@ from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.dyn.base import NeuGroupNS
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import NeuGroupNS
+from brainpy._src.context import share
 from brainpy._src.initialize import (OneInit,
                                      Uniform,
                                      Initializer,
@@ -226,9 +226,7 @@ class HH(NeuGroupNS):
                              keep_size=keep_size,
                              name=name,
                              mode=mode)
-    check.is_subclass(self.mode,
-                      (bm.BatchingMode, bm.NonBatchingMode),
-                      self.__class__.__name__)
+    assert self.mode.is_one_of(bm.BatchingMode, bm.NonBatchingMode)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)
@@ -436,7 +434,7 @@ class MorrisLecar(NeuGroupNS):
                                       keep_size=keep_size,
                                       name=name,
                                       mode=mode)
-    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode))
+    assert self.mode.is_one_of(bm.BatchingMode, bm.NonBatchingMode)
 
     # params
     self.V_Ca = parameter(V_Ca, self.varshape, allow_none=False)
@@ -700,7 +698,7 @@ class PinskyRinzelModel(NeuGroupNS):
                                             keep_size=keep_size,
                                             name=name,
                                             mode=mode)
-    check.is_subclass(self.mode, (bm.NonBatchingMode, bm.BatchingMode))
+    assert self.mode.is_one_of(bm.BatchingMode, bm.NonBatchingMode)
 
     # conductance parameters
     self.gAHP = parameter(gAHP, self.varshape, allow_none=False)
@@ -743,7 +741,6 @@ class PinskyRinzelModel(NeuGroupNS):
     self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
     self.Id = variable_(bm.zeros, self.varshape, self.mode)  # input to soma
     self.Is = variable_(bm.zeros, self.varshape, self.mode)  # input to dendrite
-    # self.spike = bm.Variable(bm.zeros(self.varshape, dtype=bool))
 
     # integral
     if self.noise is None:
@@ -761,10 +758,8 @@ class PinskyRinzelModel(NeuGroupNS):
     self.s.value = bm.Variable(self.inf_s(self.Vd), batch_axis=batch_axis)
     self.c.value = bm.Variable(self.inf_c(self.Vd), batch_axis=batch_axis)
     self.q.value = bm.Variable(self.inf_q(self.Ca), batch_axis=batch_axis)
-    if self.input_var:
-      self.Id.value = variable_(bm.zeros, self.varshape, batch_size)
-      self.Is.value = variable_(bm.zeros, self.varshape, batch_size)
-    # self.spike[:] = False
+    self.Id.value = variable_(bm.zeros, self.varshape, batch_size)
+    self.Is.value = variable_(bm.zeros, self.varshape, batch_size)
 
   def dCa(self, Ca, t, s, Vd):
     ICa = self.gCa * s * s * (Vd - self.ECa)
@@ -1011,7 +1006,7 @@ class WangBuzsakiModel(NeuGroupNS):
   ):
     # initialization
     super(WangBuzsakiModel, self).__init__(size=size, keep_size=keep_size, name=name, mode=mode)
-    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode))
+    assert self.mode.is_one_of(bm.BatchingMode, bm.NonBatchingMode)
 
     # parameters
     self.ENa = parameter(ENa, self.varshape, allow_none=False)

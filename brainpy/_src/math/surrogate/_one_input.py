@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import math
 from typing import Union
 
 import jax
@@ -35,9 +34,9 @@ __all__ = [
 
 
 class Sigmoid:
-  def __init__(self, alpha=4., orgin=False):
+  def __init__(self, alpha=4., origin=False):
     self.alpha = alpha
-    self.orgin = orgin
+    self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return sigmoid(x, alpha=self.alpha, origin=self.origin)

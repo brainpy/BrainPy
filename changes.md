@@ -1,5 +1,8 @@
 
-This release provides supports for automatic object-oriented (OO) transformations. 
+
+This branch of releases (``brainpy==2.4.x``) are going to support the large-scale modeling of brain dynamics. 
+
+As the start, the first release provides supports for automatic object-oriented (OO) transformations. 
 
 
 ## What's new?

@@ -6,8 +6,7 @@ from jax import vmap
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src import tools
-from brainpy._src.dyn.base import NeuGroup, TwoEndConn, SynSTP, SynOut
+from brainpy._src.dynsys import NeuGroup, TwoEndConn, SynSTP, SynOut
 from brainpy._src.dyn.synouts import COBA, MgBlock
 from brainpy._src.initialize import Initializer, variable
 from brainpy._src.integrators import odeint, JointEq
@@ -38,7 +37,7 @@ class AMPA(TwoEndConn):
   is affected by the concentration of neurotransmitters. We denote the concentration
   of neurotransmitters as :math:`[T]` and get the following Markov process.
 
-  .. image:: ../../../../_static/synapse_markov.png
+  .. image:: ../../../_static/synapse_markov.png
       :align: center
 
   We obtained the following formula when describing the process by a differential equation.
@@ -363,8 +362,8 @@ class BioNMDA(TwoEndConn):
 
   .. math::
 
-      g_{\infty}(V,[{Mg}^{2+}]_{o}) = (1+{e}^{-\a V}
-      \frac{[{Mg}^{2+}]_{o}} {\b})^{-1}
+      g_{\infty}(V,[{Mg}^{2+}]_{o}) = (1+{e}^{-a V}
+      \frac{[{Mg}^{2+}]_{o}} {b})^{-1}
 
   Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration,
   usually 1 mM. Thus, the channel acts as a

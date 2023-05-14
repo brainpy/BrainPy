@@ -1,4 +1,4 @@
-from brainpy._src.dyn.base import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystemNS
 
 
 class Layer(DynamicalSystemNS):

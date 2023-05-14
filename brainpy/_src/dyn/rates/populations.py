@@ -3,8 +3,8 @@
 from typing import Union, Callable
 
 from brainpy import math as bm
-from brainpy._src.dyn.context import share
-from brainpy._src.dyn.base import NeuGroupNS
+from brainpy._src.context import share
+from brainpy._src.dynsys import NeuGroupNS
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
 from brainpy._src.initialize import (Initializer,
                                      Uniform,
@@ -425,7 +425,7 @@ class QIF(RateModel):
   This mean-field model is an exact representation of the macroscopic
   firing rate and membrane potential dynamics of a spiking neural network
   consisting of QIF neurons with Lorentzian distributed background
-  excitabilities. While the mean-field derivation is mathematically
+  excitability. While the mean-field derivation is mathematically
   only valid for all-to-all coupled populations of infinite size, it
   has been shown that there is a close correspondence between the
   mean-field model and neural populations with sparse coupling and

@@ -4,7 +4,7 @@ from typing import Union, Dict, Callable
 
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector
-from brainpy._src.dyn.base import NeuGroup, TwoEndConn
+from brainpy._src.dynsys import NeuGroup, TwoEndConn
 from brainpy._src.initialize import Initializer, parameter
 from brainpy.types import ArrayType
 

@@ -2,8 +2,8 @@
 from typing import Union, Optional
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import DynamicalSystemNS
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystemNS
+from brainpy._src.context import share
 from brainpy.check import is_float, is_integer
 
 

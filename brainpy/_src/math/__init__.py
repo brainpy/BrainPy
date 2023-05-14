@@ -49,7 +49,7 @@ from . import random, linalg, fft
 # operators
 from .op_registers import *
 from .pre_syn_post import *
-from .surrogate.compt import *
+from .surrogate._compt import *
 from . import surrogate, event, sparse, jitconn
 
 # Variable and Objects for object-oriented JAX transformations

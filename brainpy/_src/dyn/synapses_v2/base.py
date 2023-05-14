@@ -5,7 +5,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One, MatConn, IJConn
-from brainpy._src.dyn.base import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystemNS
 from brainpy._src.initialize import Initializer, parameter
 from brainpy.types import ArrayType
 

@@ -2,7 +2,6 @@
 
 import collections
 import gc
-import warnings
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple
 
 import jax
@@ -158,7 +157,7 @@ class DynamicalSystem(BrainPyObject):
     """The shortcut to call ``update`` methods."""
     global share
     if share is None:
-      from brainpy._src.dyn.context import share
+      from brainpy._src.context import share
 
     if self._pass_shared_args:
       if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
@@ -407,7 +406,7 @@ class DynamicalSystem(BrainPyObject):
 
     >>> import brainpy as bp
     >>> x = bp.math.random.rand((10, 10))
-    >>> l = bp.layers.Activation('tanh')
+    >>> l = bp.layers.Activation(bm.tanh)
     >>> y = x >> l
 
     """

@@ -58,7 +58,7 @@ complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
 del jnp, config
 
 
-from brainpy._src.math.surrogate.compt import (
+from brainpy._src.math.surrogate._compt import (
   spike_with_sigmoid_grad as spike_with_sigmoid_grad,
   spike_with_linear_grad as spike_with_linear_grad,
   spike_with_gaussian_grad as spike_with_gaussian_grad,

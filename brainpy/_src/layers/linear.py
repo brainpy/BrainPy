@@ -6,7 +6,7 @@ from typing import Optional, Callable, Union, Dict
 import jax.numpy as jnp
 
 from brainpy import math as bm
-from brainpy._src.dyn.context import share
+from brainpy._src.context import share
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.check import is_initializer
 from brainpy.errors import MathError

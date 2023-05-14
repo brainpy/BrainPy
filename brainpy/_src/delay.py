@@ -11,10 +11,10 @@ from jax.lax import stop_gradient
 
 from brainpy import check
 from brainpy import math as bm
-from brainpy._src.dyn.base import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystemNS
 from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 from brainpy.check import is_integer, jit_error_checking
-from .context import share
+from brainpy._src.context import share
 
 __all__ = [
   'Delay',
@@ -86,7 +86,8 @@ class Delay(DynamicalSystemNS):
     self.latest = latest
 
     # delay length
-    self.length = is_integer(length, allow_none=False, min_bound=0)
+    assert isinstance(length, int)
+    self.length = length
 
     # delay data
     if before_t0 is not None:
