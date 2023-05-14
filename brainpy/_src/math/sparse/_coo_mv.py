@@ -61,15 +61,7 @@ def coomv(
     An array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  bl = tools.import_brainpylib()
-  return bl.sparse_ops.cusparse_coo_matvec(data,
-                                           row,
-                                           col,
-                                           vector,
-                                           shape=shape,
-                                           rows_sorted=rows_sorted,
-                                           cols_sorted=cols_sorted,
-                                           transpose=transpose)
+  pass
 
 
 
