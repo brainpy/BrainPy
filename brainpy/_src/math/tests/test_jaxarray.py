@@ -2,7 +2,6 @@
 
 
 import unittest
-
 import jax
 
 import brainpy as bp
@@ -14,7 +13,7 @@ import brainpy.math as bm
 from brainpy.math import Variable
 
 
-class TestJaxArray(bp.testing.UnitTestCase):
+class TestJaxArray(unittest.TestCase):
   def test_tree(self):
     structured = {'a': Variable(jnp.zeros(1)),
                   'b': (Variable(jnp.ones(2)),
@@ -50,7 +49,7 @@ class TestJaxArray(bp.testing.UnitTestCase):
     self.assertTrue(isinstance(bm.jit(add)(), bm.Array))
 
 
-class TestTracerError(bp.testing.UnitTestCase):
+class TestTracerError(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
@@ -67,7 +66,7 @@ class TestTracerError(bp.testing.UnitTestCase):
       print(self.f(bm.ones(10)))
 
 
-class TestVariable(bp.testing.UnitTestCase):
+class TestVariable(unittest.TestCase):
   def test_variable_init(self):
     self.assertTrue(
       bm.array_equal(bm.Variable(bm.zeros(10)),
@@ -80,7 +79,7 @@ class TestVariable(bp.testing.UnitTestCase):
     )
 
 
-class TestVariableView(bp.testing.UnitTestCase):
+class TestVariableView(unittest.TestCase):
   def test_update(self):
     bm.random.seed()
 
@@ -102,14 +101,13 @@ class TestVariableView(bp.testing.UnitTestCase):
       bm.array_equal(origin, bm.concatenate([bm.arange(10, 15), bm.zeros(5)]))
     )
 
-    if jax.__version__ > '0.4.1':
-      bm.random.shuffle(view)
-      print(view)
-      print(origin)
+    bm.random.shuffle(view)
+    print(view)
+    print(origin)
 
-      view.sort()
-      self.assertTrue(
-        bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
-      )
+    view.sort()
+    self.assertTrue(
+      bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
+    )
 
-      self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
+    self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))

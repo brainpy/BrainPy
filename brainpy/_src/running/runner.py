@@ -264,4 +264,4 @@ class Runner(BrainPyObject):
         del self.mon[key]
     for key in tuple(self.__dict__.keys()):
       del self.__dict__[key]
-    gc.collect()
+    # gc.collect()

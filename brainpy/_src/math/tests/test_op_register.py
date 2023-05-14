@@ -113,11 +113,8 @@ class EINet(bp.Network):
     self.I2I = syn_class(self.I, self.I, bp.conn.FixedProb(0.02), E=-80., g_max=wi, tau=10., method=method)
 
 
-class TestOpRegister(bp.testing.UnitTestCase):
+class TestOpRegister(unittest.TestCase):
   def test_op(self):
-    if jax.__version__ <= '0.4.1':
-     self.skipTest('jax<= 0.4.1 has bug.')
-
     bm.random.seed(123)
     fig, gs = bp.visualize.get_figure(1, 2, 4, 5)
 

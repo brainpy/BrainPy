@@ -11,7 +11,7 @@ except ImportError:
 class UnitTestCase(unittest.TestCase):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
-    bm.random.seed()
+    bm.random.seed(np.random.randint(0, 100000))
     self.rng = bm.random.RandomState(np.random.randint(0, 100000))
 
   def __del__(self):
