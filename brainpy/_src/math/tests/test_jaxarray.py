@@ -47,7 +47,7 @@ class TestJaxArray(bp.testing.UnitTestCase):
     rng = bm.random.RandomState(123)
     add = lambda: bm.asarray(rng.rand(10)) + np.zeros(1)
     self.assertTrue(isinstance(add(), bm.Array))
-    self.assertTrue(isinstance(bm.jit(add, dyn_vars=rng)(), bm.Array))
+    self.assertTrue(isinstance(bm.jit(add)(), bm.Array))
 
 
 class TestTracerError(bp.testing.UnitTestCase):
@@ -82,6 +82,8 @@ class TestVariable(bp.testing.UnitTestCase):
 
 class TestVariableView(bp.testing.UnitTestCase):
   def test_update(self):
+    bm.random.seed()
+
     origin = bm.Variable(bm.zeros(10))
     view = bm.VariableView(origin, slice(0, 5, None))
 
@@ -97,17 +99,17 @@ class TestVariableView(bp.testing.UnitTestCase):
 
     view += 10
     self.assertTrue(
-      bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
+      bm.array_equal(origin, bm.concatenate([bm.arange(10, 15), bm.zeros(5)]))
     )
 
-    bm.random.seed()
-    bm.random.shuffle(view)
-    print(view)
-    print(origin)
+    if jax.__version__ > '0.4.1':
+      bm.random.shuffle(view)
+      print(view)
+      print(origin)
 
-    view.sort()
-    self.assertTrue(
-      bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
-    )
+      view.sort()
+      self.assertTrue(
+        bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
+      )
 
-    self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
+      self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
