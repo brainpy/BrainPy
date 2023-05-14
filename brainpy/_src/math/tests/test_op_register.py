@@ -2,6 +2,7 @@
 
 import unittest
 
+import jax
 import matplotlib.pyplot as plt
 
 import brainpy as bp
@@ -100,9 +101,8 @@ class EINet(bp.Network):
     pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.)
     self.E = bp.neurons.LIF(num_exc, **pars, method=method)
     self.I = bp.neurons.LIF(num_inh, **pars, method=method)
-    rng = bm.random.RandomState()
-    self.E.V[:] = rng.randn(num_exc) * 2 - 55.
-    self.I.V[:] = rng.randn(num_inh) * 2 - 55.
+    self.E.V[:] = bm.random.randn(num_exc) * 2 - 55.
+    self.I.V[:] = bm.random.randn(num_inh) * 2 - 55.
 
     # synapses
     we = 0.6 / scale  # excitatory synaptic weight (voltage)
@@ -113,15 +113,15 @@ class EINet(bp.Network):
     self.I2I = syn_class(self.I, self.I, bp.conn.FixedProb(0.02), E=-80., g_max=wi, tau=10., method=method)
 
 
-class TestOpRegister(bp.testing.UnitTestCase):
+class TestOpRegister(unittest.TestCase):
   def test_op(self):
+    bm.random.seed(123)
     fig, gs = bp.visualize.get_figure(1, 2, 4, 5)
 
     net = EINet(ExponentialSyn, scale=1., method='euler')
     runner = bp.DSRunner(
       net,
-      inputs=[(net.E.input, 20.),
-              (net.I.input, 20.)],
+      inputs=[(net.E.input, 20.), (net.I.input, 20.)],
       monitors={'E.spike': net.E.spike},
     )
     t, _ = runner.run(100., eval_time=True)
@@ -132,8 +132,7 @@ class TestOpRegister(bp.testing.UnitTestCase):
     net3 = EINet(ExponentialSyn3, scale=1., method='euler')
     runner3 = bp.DSRunner(
       net3,
-      inputs=[(net3.E.input, 20.),
-              (net3.I.input, 20.)],
+      inputs=[(net3.E.input, 20.), (net3.I.input, 20.)],
       monitors={'E.spike': net3.E.spike},
     )
     t, _ = runner3.run(100., eval_time=True)
@@ -142,5 +141,5 @@ class TestOpRegister(bp.testing.UnitTestCase):
     bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
 
     # clear
-    bm.clear_buffer_memory()
     plt.close()
+    bm.clear_buffer_memory()
