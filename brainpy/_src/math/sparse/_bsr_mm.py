@@ -15,7 +15,7 @@ from jaxlib import gpu_sparse
 
 from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,
                                          register_general_batching)
-from brainpy._src.math.sparse.utils import csr_to_coo
+from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy._src.math.interoperability import as_jax
 from brainpy.errors import GPUOperatorNotFound
 
