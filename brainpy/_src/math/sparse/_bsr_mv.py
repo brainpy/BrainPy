@@ -25,40 +25,51 @@ __all__ = [
   'cusparse_bcsr_matvec'
 ]
 
-@numba.njit(fastmath=True, parallel=True, nogil=True)
-def _cusparse_bcsr_matvec_bsr_matvec_numba_imp(outs, ins):
-  data, indices, indptr, vector,  blocksize , shape, nnzb, transpose = ins
-  blocksize = blocksize[()]
-  outs.fill(0)
-
-  for i in range(shape[0]):
-      tmp= np.zeros(blocksize, dtype=data.dtype)
-    
-      for j in range(indptr[i], indptr[i + 1]): 
-            start = indices[j] * blocksize
-            end = start + blocksize
-            tmp += data[start: end] @ vector[start: end] 
-      outs[i * blocksize: (i + 1) * blocksize] = tmp
-
-
+#结果好像不对
 # @numba.njit(fastmath=True, parallel=True, nogil=True)
 # def _cusparse_bcsr_matvec_bsr_matvec_numba_imp(outs, ins):
-#   data, indices, indptr, vector,  blocksize , shape,nnzb,transpose = ins
+#   data, indices, indptr, vector,  blocksize , shape, nnzb, transpose = ins
 #   blocksize = blocksize[()]
 #   outs.fill(0)
 
-#   cnt=0
-#   for i in range(0,shape[0]):
-#       outs.fill(0.0)
-#       tmp=[0.0]*blocksize
-#       for j in range(indptr[i], indptr[i + 1]):
-#         for p in range(0,blocksize):
-#           for q in range(0,blocksize):
-#             tmp[p] += vector[indices[j]*blocksize+q]*data[j*blocksize+p][q]
-#       for j in range(0,blocksize):
-#         outs[cnt] = tmp[j]
-#         cnt+=1
+#   for i in range(shape[0]):
+#       tmp= np.zeros(blocksize, dtype=data.dtype)
+    
+#       for j in range(indptr[i], indptr[i + 1]): 
+#             start = indices[j] * blocksize
+#             end = start + blocksize
+#             tmp += data[start: end] @ vector[start: end] 
+#       outs[i * blocksize: (i + 1) * blocksize] = tmp
 
+
+@numba.njit(fastmath=True, parallel=True, nogil=True)
+def _cusparse_bcsr_matvec_numba_imp(outs, ins):
+  data, indices, indptr, vector,  blocksize , shape,nnzb,transpose = ins
+  blocksize = blocksize[()]
+  outs.fill(0)
+
+  cnt=0
+  for i in range(0,shape[0]):
+      outs.fill(0.0)
+      tmp=[0.0]*blocksize
+      for j in range(indptr[i], indptr[i + 1]):
+        for p in range(0,blocksize):
+          for q in range(0,blocksize):
+            tmp[p] += vector[indices[j]*blocksize+q]*data[j*blocksize+p][q]
+      for j in range(0,blocksize):
+        outs[cnt] = tmp[j]
+        cnt+=1
+
+
+@numba.njit(fastmath=True, parallel=True, nogil=True)
+def _bcsr_vec_cross_numba_imp(outs, ins):
+  ct, data, rows, cols, vector,  blocksize , shape,nnzb,transpose = ins
+  blocksize = blocksize[()]
+  outs.fill(0)
+  for i in range(0,nnzb):
+      for p in range(0,blocksize):
+        for q in range(0,blocksize):
+          outs[p+i*blocksize*blocksize][q] = ct[rows[i]*blocksize+p]*vector[cols[i]*blocksize+q]
 
 
 def _cusprase_bcsr_matvec_values( values, indices, indptr, vector, *,blocksize ,nnzb, shape, transpose):
@@ -94,20 +105,57 @@ def cusparse_bcsr_matvec(
     raise TypeError('The types of data and vector should be the same. '
                     f'But we got {data.dtype} != {vector.dtype}.')
   # assert data.ndim == indices.ndim == indptr.ndim == vector.ndim == 1
-
   return cusparse_bcsr_matvec_vector_p.bind(data, indices, indptr, vector,blocksize = blocksize, shape=shape,nnzb=nnzb,transpose=transpose)
+
+
+
+def bcsr_vec_cross_matvec(
+    ct: jnp.ndarray,
+    data: Union[float, jnp.ndarray],
+    indices: jnp.ndarray,
+    indptr: jnp.ndarray,
+    vector: jnp.ndarray,
+    *,
+    blocksize: int,
+    nnzb: int,
+    shape: Tuple[int, int],
+    method: str = 'vector',
+    transpose: bool = False
+) -> jnp.ndarray:
+
+  data = as_jax(data)
+  ct = as_jax(ct)
+  indices = as_jax(indices)
+  indptr = as_jax(indptr)
+  vector = as_jax(vector)
+  if method not in ['scalar', 'vector', 'adaptive']:
+    raise ValueError('Only support methods: scalar, vector, and adaptive. '
+                     f'But we got {method}.')
+
+  data = jnp.atleast_1d(data)
+  if not isinstance(data, jnp.ndarray):
+    raise TypeError(f'data must a ndarray. But we got {type(data)}')
+  if data.dtype not in [jnp.float32, jnp.float64]:
+    raise TypeError(f'Only support float32 and float64. But we got {data.dtype}.')
+  if data.dtype != vector.dtype:
+    raise TypeError('The types of data and vector should be the same. '
+                    f'But we got {data.dtype} != {vector.dtype}.')
+  # assert data.ndim == indices.ndim == indptr.ndim == vector.ndim == 1
+  return bcsr_vec_cross_p.bind(ct,data, indices, indptr, vector,blocksize = blocksize, shape=shape,nnzb=nnzb,transpose=transpose)
+
+
+
 
 
 def _cusparse_bcsr_matvec_vector_cpu_translation(c, data, indices, indptr, vector, *, blocksize , shape, nnzb, transpose):
   inputs = (data, indices, indptr, vector)
-  print(c.get_shape(data))
   description = dict(blocksize=blocksize,shape=shape,nnzb=nnzb, transpose=transpose,)
   if transpose:
     skip=1
   else:
     name, inputs, in_layouts, out_layouts = compile_cpu_signature_with_numba(
       c,
-      _cusparse_bcsr_matvec_bsr_matvec_numba_imp,
+      _cusparse_bcsr_matvec_numba_imp,
       abs_eval_fn=_cusparse_bcsr_matvec_abstract,
       multiple_results=False,
       inputs=inputs,
@@ -118,6 +166,53 @@ def _cusparse_bcsr_matvec_vector_cpu_translation(c, data, indices, indptr, vecto
     operands=inputs,
     operand_shapes_with_layout=in_layouts,
     shape_with_layout=out_layouts,
+  )
+
+def _bcsr_vec_cross_cpu_translation(c,ct, data, indices, indptr, vector, *,blocksize , shape,nnzb):
+  inputs = (ct, data, indices, indptr, vector)
+  description = dict(blocksize=blocksize,shape=shape,nnzb=nnzb)
+
+  name, inputs, in_layouts, out_layouts = compile_cpu_signature_with_numba(
+    c,
+    _bcsr_vec_cross_numba_imp,
+    abs_eval_fn=bcsr_vec_cross_abstract,
+    multiple_results=False,
+    inputs=inputs,
+    description=description
+  )
+  return xla_client.ops.CustomCallWithLayout(
+    c, name,
+    operands=inputs,
+    operand_shapes_with_layout=in_layouts,
+    shape_with_layout=out_layouts,
+  )
+
+def _bcsr_vec_cross_gpu_translation(c,ct, data, indices, indptr, vector, *,blocksize , shape,nnzb):
+  if gpu_ops is None:
+    raise GPUOperatorNotFound(cusparse_bcsr_matvec_vector_p.name)
+  
+  data_shape = c.get_shape(data)
+  if data_shape.element_type() == np.float32:
+    type_name = b'float' 
+  elif data_shape.element_type() == np.double: 
+    type_name = b'double'
+  else:
+    raise ValueError('data_type not support(except float/double)')
+   # 有可能不是这个
+
+  opaque = gpu_ops.build_bcsrcusparsespmv_descriptor(shape[0],shape[1],blocksize,nnzb)
+  return xla_client.ops.CustomCallWithLayout(
+    c,
+    b'gpu_bcsr_vec_cross_' + type_name,
+    operands=(ct, data, indices, indptr, vector),
+    operand_shapes_with_layout=(c.get_shape(ct),
+                                c.get_shape(data),
+                                c.get_shape(indices),
+                                c.get_shape(indptr),
+                                c.get_shape(vector),
+                                ),
+    shape_with_layout=xla_client.Shape.array_shape(data_shape.element_type(), (c.get_shape(data)), (0,)),
+    opaque=opaque,
   )
 
 def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vector, *,blocksize , shape,nnzb):
@@ -147,6 +242,7 @@ def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vecto
     opaque=opaque,
   )
 
+
 # def _bcsr_matvec_abstract(*args, **kwargs):
 #   data = args[0]
 #   assert len(kwargs) == 1
@@ -169,16 +265,19 @@ def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vecto
 def _cusparse_bcsr_matvec_abstract(data, indices, indptr, vector,*,blocksize, shape,nnzb,transpose=False):
   return ShapedArray(dtype=data.dtype, shape=(shape[0]*blocksize,))
 
+def bcsr_vec_cross_abstract(ct, data, indices, indptr, vector,*,blocksize, shape,nnzb,transpose=False):
+  return ShapedArray(dtype=data.dtype, shape=(data.shape[0],data.shape[1]))
+
 def _cusparse_bcsr_matvec_jvp_values(data_dot, data, indices, indptr, vector, *,blocksize, shape,nnzb, transpose):
   return cusparse_bcsr_matvec(data_dot, indices, indptr, vector,blocksize=blocksize,nnzb=nnzb, shape=shape, transpose=transpose)
 
 
 
-def _cusparse_bcsr_transpose(ct, data, indices, indptr, vector, *, blocksize, shape, transpose):
+def _cusparse_bcsr_transpose(ct, data, indices, indptr, vector, *, blocksize, shape,nnzb,transpose):
   if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
     raise ValueError("Cannot transpose with respect to sparse indices.")
   if ad.is_undefined_primal(vector):
-    ct_events = cusparse_bcsr_matvec(data, indices, indptr, ct, shape=shape, transpose=not transpose)
+    ct_events = cusparse_bcsr_matvec(data, indices, indptr, ct,blocksize=blocksize,nnzb=nnzb, shape=shape, transpose=not transpose)
     return data, indices, indptr, (ad.Zero(vector) if type(ct) is ad.Zero else ct_events)
   else:
     if type(ct) is ad.Zero:
@@ -187,17 +286,7 @@ def _cusparse_bcsr_transpose(ct, data, indices, indptr, vector, *, blocksize, sh
       row, col = csr_to_coo(indices, indptr)
       cnt=0
       ct_values=[]
-      for i in row:
-        for j in col:
-          for p in range(0,blocksize):
-            cntq=0
-            for q in range(0,blocksize):
-              if transpose:
-                ct_values[cnt][cntq] =  vector[i*blocksize+p]*ct[j*blocksize+q]
-              else:
-                ct_values[cnt][cntq] =  vector[j*blocksize+q]*ct[i*blocksize+p]
-              cntq+=1
-            cnt+=1
+      bcsr_vec_cross_matvec(ct,data,row,col,vector,blocksize=blocksize,nnzb=nnzb,shape=shape,transpose=transpose)
     return ct_values, indices, indptr, vector
   
 cusparse_bcsr_matvec_vector_p = Primitive('cusparse_block_spmv')
@@ -209,3 +298,10 @@ ad.defjvp(cusparse_bcsr_matvec_vector_p, _cusparse_bcsr_matvec_jvp_values)
 ad.primitive_transposes[cusparse_bcsr_matvec_vector_p] = _cusparse_bcsr_transpose
 register_general_batching(cusparse_bcsr_matvec_vector_p)
 # batching.primitive_batchers[event_csr_matvec_p] = _event_csr_matvec_batching_rule
+
+
+bcsr_vec_cross_p = Primitive('block_vec_cross')
+bcsr_vec_cross_p.def_abstract_eval(bcsr_vec_cross_abstract)
+bcsr_vec_cross_p.def_impl(partial(xla.apply_primitive, bcsr_vec_cross_p))
+xla.backend_specific_translations['gpu'][bcsr_vec_cross_p] = _bcsr_vec_cross_gpu_translation
+xla.backend_specific_translations['cpu'][bcsr_vec_cross_p] = _bcsr_vec_cross_cpu_translation
