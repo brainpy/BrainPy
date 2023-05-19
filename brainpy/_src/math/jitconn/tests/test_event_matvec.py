@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import brainpy.math as bm
 import jax
 import jax.numpy as jnp
 from absl.testing import parameterized
+
+import brainpy.math as bm
+
+import brainpylib as bl
+import pytest
+
+if bl.__version__ < '0.1.9':
+  pytest.skip('Need brainpylib>=0.1.9', allow_module_level=True)
+
 
 shapes = [(100, 200),
           (10, 1000),
@@ -185,26 +193,12 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     )
     r1 = f1(events, 1.)
 
-    f2 = jax.grad(
-      lambda event, data: bm.jitconn.event_mv_prob_homo(
-        event, data, conn_prob=prob, shape=shape, seed=seed,
-        transpose=transpose, outdim_parallel=outdim_parallel
-      ).sum(),
-      argnums=1
-    )
-    r2 = f2(events, 1.)
+    r2 = f1(events, 2.)
 
-    f3 = jax.grad(
-      lambda event, data: bm.jitconn.event_mv_prob_homo(
-        event, data, conn_prob=prob, shape=shape, seed=seed,
-        outdim_parallel=outdim_parallel, transpose=transpose
-      ).sum(),
-      argnums=(0, 1)
-    )
-    r3 = f3(events, 1.)
+    r3 = f1(events, 3.)
 
-    self.assertTrue(jnp.allclose(r1, r3[0]))
-    self.assertTrue(jnp.allclose(r2, r3[1]))
+    self.assertTrue(jnp.allclose(r1 * 3., r3))
+    self.assertTrue(jnp.allclose(r1 * 2., r2))
     if x64:
       bm.disable_x64()
     bm.clear_buffer_memory()
@@ -371,10 +365,10 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e: bm.jitconn.event_mv_prob_uniform(
+      lambda e, w_high: bm.jitconn.event_mv_prob_uniform(
         e,
         w_low=0.,
-        w_high=1.,
+        w_high=w_high,
         conn_prob=prob,
         shape=shape,
         seed=seed,
@@ -382,7 +376,9 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
         transpose=transpose).sum()
     )
 
-    r1 = f1(events)
+    r1 = f1(events, 1.)
+    r2 = f1(events, 2.)
+    self.assertTrue(bm.allclose(r1 * 2., r2))
     # print(r1)
     if x64:
       bm.disable_x64()
@@ -545,18 +541,19 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e: bm.jitconn.event_mv_prob_normal(
+      lambda e, w_sigma: bm.jitconn.event_mv_prob_normal(
         e,
         w_mu=0.,
-        w_sigma=1.,
+        w_sigma=w_sigma,
         conn_prob=prob,
         shape=shape,
         seed=seed,
         outdim_parallel=outdim_parallel,
         transpose=transpose).sum()
     )
-    r1 = f1(events)
-    # print(r1)
+    r1 = f1(events, 1.)
+    r2 = f1(events, 2.)
+    self.assertTrue(bm.allclose(r1 * 2, r2))
     if x64:
       bm.disable_x64()
     bm.clear_buffer_memory()

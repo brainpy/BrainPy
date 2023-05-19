@@ -6,7 +6,14 @@ import unittest
 import brainpy.math as bm
 from jax import vmap
 
-from brainpylib import event_info
+
+
+import brainpylib as bl
+import pytest
+
+if bl.__version__ < '0.1.9':
+  pytest.skip('Need brainpylib>=0.1.9', allow_module_level=True)
+
 
 
 class Test_event_info(unittest.TestCase):
@@ -21,7 +28,7 @@ class Test_event_info(unittest.TestCase):
 
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random(length)) < 0.1
-    event_ids, event_num = event_info(events)
+    event_ids, event_num = bm.event.info(events)
     self.assertTrue(jnp.allclose(jnp.sum(events, keepdims=True), event_num))
 
     bm.clear_buffer_memory()
@@ -31,7 +38,7 @@ class Test_event_info(unittest.TestCase):
 
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, length))) < 0.1
-    event_ids, event_num = vmap(event_info)(events)
+    event_ids, event_num = vmap(bm.event.info)(events)
     self.assertTrue(jnp.allclose(jnp.sum(events, axis=-1), event_num))
 
     bm.clear_buffer_memory()
@@ -41,7 +48,7 @@ class Test_event_info(unittest.TestCase):
 
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, length))) < 0.1
-    event_ids, event_num = vmap(vmap(event_info))(events)
+    event_ids, event_num = vmap(vmap(bm.event.info))(events)
     self.assertTrue(jnp.allclose(jnp.sum(events, axis=-1), event_num))
 
     bm.clear_buffer_memory()

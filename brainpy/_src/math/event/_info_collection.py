@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple
+from typing import Tuple, Union
 
+import jax
 import numba
 from jax import dtypes, numpy as jnp
 from jax.core import ShapedArray
@@ -11,6 +12,7 @@ from jax.lib import xla_client
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_registers import register_op_with_numba
 from brainpy.errors import GPUOperatorNotFound
+from brainpy._src.math.ndarray import Array
 
 try:
   from brainpylib import gpu_ops
@@ -22,7 +24,7 @@ __all__ = [
 ]
 
 
-def info(events: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+def info(events: Union[Array, jax.Array]) -> Tuple[jax.Array, jax.Array]:
   """Collect event information, including event indices, and event number.
 
   This function supports JAX transformations, including `jit()`,
@@ -30,7 +32,7 @@ def info(events: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
 
   Parameters
   ----------
-  events: jnp.ndarray
+  events: jax.Array
     The events.
 
   Returns
@@ -39,8 +41,6 @@ def info(events: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
     A tuple with two elements, denoting the event indices and the event number.
   """
   events = as_jax(events)
-  # if events.dtype != jnp.bool_:
-  #   raise TypeError('Only support bool.')
   if events.ndim != 1:
     raise TypeError('Only support 1D boolean vector.')
   return event_info_p.bind(events)

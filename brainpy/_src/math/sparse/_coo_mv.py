@@ -6,17 +6,18 @@ from functools import partial
 from typing import Union, Tuple
 
 import numpy as np
-from brainpylib._src.op_register import (register_general_batching)
 from jax import core, numpy as jnp, dtypes, default_backend
 from jax.interpreters import ad, mlir
 from jaxlib import gpu_sparse
 
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
+from brainpy._src.math.op_registers import register_general_batching
 
 __all__ = [
   'coomv',
 ]
+
 
 def coomv(
     data: Union[float, jnp.ndarray, Array],
@@ -27,7 +28,8 @@ def coomv(
     shape: Tuple[int, int],
     rows_sorted: bool = False,
     cols_sorted: bool = False,
-    transpose: bool = False
+    transpose: bool = False,
+    method: str = 'cusparse'
 ):
   """Product of COO sparse matrix and a dense vector using cuSPARSE algorithm.
 
@@ -54,6 +56,8 @@ def coomv(
   transpose: bool
     A boolean specifying whether to transpose the sparse matrix
     before computing.
+  method: str
+    The method used to compute the matrix-vector multiplication.
 
   Returns
   -------
@@ -61,101 +65,38 @@ def coomv(
     An array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  pass
 
-
-
-def cusparse_coo_matvec(
-    data: Union[float, jnp.ndarray],
-    row: jnp.ndarray,
-    col: jnp.ndarray,
-    vector: jnp.ndarray,
-    *,
-    shape: Tuple[int, int],
-    rows_sorted: bool = False,
-    cols_sorted: bool = False,
-    transpose: bool = False
-):
-  """Product of COO sparse matrix and a dense vector using cuSPARSE algorithm.
-
-  This function supports JAX transformations, including `jit()`, `grad()`,
-  `vmap()` and `pmap()`.
-
-  Parameters
-  ----------
-  data: ndarray, float
-    An array of shape ``(nse,)``.
-  row: ndarray
-    An array of shape ``(nse,)``.
-  col: ndarray
-    An array of shape ``(nse,)`` and dtype ``row.dtype``.
-  vector: ndarray
-    An array of shape ``(shape[0] if transpose else shape[1],)`` and
-    dtype ``data.dtype``.
-  shape: tuple of int
-    The shape of the sparse matrix.
-  rows_sorted: bool
-    Row index are sorted.
-  cols_sorted: bool
-    Column index are sorted.
-  transpose: bool
-    A boolean specifying whether to transpose the sparse matrix
-    before computing.
-
-  Returns
-  -------
-  y: ndarray
-    An array of shape ``(shape[1] if transpose else shape[0],)`` representing
-    the matrix vector product.
-  """
-  data = as_jax(data)
+  data = jnp.atleast_1d(as_jax(data))
   row = as_jax(row)
   col = as_jax(col)
   vector = as_jax(vector)
-  # checking
-  data = jnp.atleast_1d(data)
-  if len(shape) != 2:
-    raise ValueError(f'shape should be a tuple of int denoting (n_row, n_col). Got {shape}.')
-  if not (vector.ndim == data.ndim == row.ndim == col.ndim == 1):
-    raise ValueError('Data dimension mismatch. All must be 1D array.')
-  if data.shape[0] not in [1, row.shape[0]]:
-    raise ValueError('The size of values should be 1 or be consistent with indices.'
-                     f'But we got {data.shape} != {row.shape}, {data.shape} != 1.')
-  if row.shape != col.shape:
-    raise ValueError(f'The size of row and col mismatch. {row.shape} != {col.shape}.')
-  # TODO: Change subtype of integer into int32 & uint32
-  if not jnp.issubdtype(row.dtype, jnp.integer):
-    raise ValueError('row should be a 1D vector with integer type.')
-  if not jnp.issubdtype(col.dtype, jnp.integer):
-    raise ValueError('col should be a 1D vector with integer type.')
-  if default_backend() != 'cpu':
-    if data.shape[0] == 1:
-      data = jnp.ones(row.shape, dtype=data.dtype) * data
-    if row.dtype in [jnp.uint32, jnp.uint64]:
-      row = jnp.asarray(row, dtype=dtypes.canonicalize_dtype(jnp.int64))
-    if col.dtype in [jnp.uint32, jnp.uint64]:
-      col = jnp.asarray(col, dtype=dtypes.canonicalize_dtype(jnp.int64))
-  if data.dtype != vector.dtype:
-    raise ValueError(f'Types of data and vector mismatch. Got {data.dtype} != {vector.dtype}.')
-  if vector.shape[0] != (shape[0] if transpose else shape[1]):
-    raise ValueError(f'shape {shape} does not match the given vector {vector.shape}.')
 
-  # computing
-  return cusparse_coo_matvec_p.bind(data,
-                                    row,
-                                    col,
-                                    vector,
-                                    shape=shape,
-                                    rows_sorted=rows_sorted,
-                                    cols_sorted=cols_sorted,
-                                    transpose=transpose)
+  if method == 'cusparse':
+    if default_backend() != 'cpu':
+      if data.shape[0] == 1:
+        data = jnp.ones(row.shape, dtype=data.dtype) * data
+      if row.dtype in [jnp.uint32, jnp.uint64]:
+        row = jnp.asarray(row, dtype=dtypes.canonicalize_dtype(jnp.int64))
+      if col.dtype in [jnp.uint32, jnp.uint64]:
+        col = jnp.asarray(col, dtype=dtypes.canonicalize_dtype(jnp.int64))
+    return _coomv_cusparse_p.bind(data,
+                                  row,
+                                  col,
+                                  vector,
+                                  shape=shape,
+                                  rows_sorted=rows_sorted,
+                                  cols_sorted=cols_sorted,
+                                  transpose=transpose)
+
+  else:
+    raise ValueError
 
 
 # --------------------------------------------------------------------
 # cusparse_coo_matvec
 
 
-def _coo_matvec_impl(data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
+def _coomv_impl(data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
   v = jnp.asarray(v)
   if transpose:
     row, col = col, row
@@ -164,7 +105,7 @@ def _coo_matvec_impl(data, row, col, v, *, shape, rows_sorted, cols_sorted, tran
   return jnp.zeros(out_shape, dv.dtype).at[row].add(dv)
 
 
-def _coo_matvec_abstract_eval(data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
+def _coomv_abstract_eval(data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
   assert data.shape == row.shape == col.shape
   assert data.dtype == v.dtype
   assert row.dtype == col.dtype
@@ -175,11 +116,11 @@ def _coo_matvec_abstract_eval(data, row, col, v, *, shape, rows_sorted, cols_sor
   return core.ShapedArray((out_shape,), data.dtype)
 
 
-_coo_matvec_lowering = mlir.lower_fun(_coo_matvec_impl, multiple_results=False)
+_coo_matvec_lowering = mlir.lower_fun(_coomv_impl, multiple_results=False)
 
 
-def _coo_matvec_gpu_lowering(coo_matvec_mhlo, ctx, data, row, col, v, *,
-                             shape, rows_sorted, cols_sorted, transpose):
+def _coomv_gpu_lowering(coo_matvec_mhlo, ctx, data, row, col, v, *,
+                        shape, rows_sorted, cols_sorted, transpose):
   data_aval, row_aval, _, x_aval = ctx.avals_in
   dtype = data_aval.dtype
   if dtype not in [np.float32, np.float64, np.complex64, np.complex128]:
@@ -215,46 +156,45 @@ def _coo_matvec_gpu_lowering(coo_matvec_mhlo, ctx, data, row, col, v, *,
                           x_dtype=x_aval.dtype)]
 
 
-def _coo_matvec_jvp_mat(data_dot, data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
-  return cusparse_coo_matvec(data_dot, row, col, v,
-                             shape=shape,
-                             rows_sorted=rows_sorted,
-                             cols_sorted=cols_sorted,
-                             transpose=transpose)
+def _coomv_jvp_mat(data_dot, data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
+  return _coomv_cusparse_p.bind(data_dot, row, col, v,
+                                shape=shape,
+                                rows_sorted=rows_sorted,
+                                cols_sorted=cols_sorted,
+                                transpose=transpose)
 
 
-def _coo_matvec_jvp_vec(v_dot, data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
-  return cusparse_coo_matvec(data, row, col, v_dot,
-                             shape=shape,
-                             rows_sorted=rows_sorted,
-                             cols_sorted=cols_sorted,
-                             transpose=transpose)
+def _coomv_jvp_vec(v_dot, data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
+  return _coomv_cusparse_p.bind(data, row, col, v_dot,
+                                shape=shape,
+                                rows_sorted=rows_sorted,
+                                cols_sorted=cols_sorted,
+                                transpose=transpose)
 
 
-def _coo_matvec_transpose(ct, data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
+def _coomv_transpose(ct, data, row, col, v, *, shape, rows_sorted, cols_sorted, transpose):
   assert not ad.is_undefined_primal(row)
   assert not ad.is_undefined_primal(col)
 
   if ad.is_undefined_primal(v):
-    return data, row, col, cusparse_coo_matvec(data, row, col, ct,
-                                               shape=shape,
-                                               rows_sorted=rows_sorted,
-                                               cols_sorted=cols_sorted,
-                                               transpose=not transpose)
+    return data, row, col, _coomv_cusparse_p.bind(data, row, col, ct,
+                                                  shape=shape,
+                                                  rows_sorted=rows_sorted,
+                                                  cols_sorted=cols_sorted,
+                                                  transpose=not transpose)
   else:
     return ct[row] * v[col], row, col, v
 
 
-cusparse_coo_matvec_p = core.Primitive('cusparse_coo_matvec')
-cusparse_coo_matvec_p.def_abstract_eval(_coo_matvec_abstract_eval)
-cusparse_coo_matvec_p.def_impl(_coo_matvec_impl)
-ad.defjvp(cusparse_coo_matvec_p, _coo_matvec_jvp_mat, None, None, _coo_matvec_jvp_vec)
-ad.primitive_transposes[cusparse_coo_matvec_p] = _coo_matvec_transpose
-mlir.register_lowering(cusparse_coo_matvec_p, _coo_matvec_lowering)
-register_general_batching(cusparse_coo_matvec_p)
-if gpu_sparse.cuda_is_supported:
-  mlir.register_lowering(
-    cusparse_coo_matvec_p,
-    partial(_coo_matvec_gpu_lowering, gpu_sparse.cuda_coo_matvec),
-    platform='cuda'
-  )
+_coomv_cusparse_p = core.Primitive('cusparse_coo_matvec')
+_coomv_cusparse_p.def_abstract_eval(_coomv_abstract_eval)
+_coomv_cusparse_p.def_impl(_coomv_impl)
+ad.defjvp(_coomv_cusparse_p, _coomv_jvp_mat, None, None, _coomv_jvp_vec)
+ad.primitive_transposes[_coomv_cusparse_p] = _coomv_transpose
+mlir.register_lowering(_coomv_cusparse_p, _coo_matvec_lowering)
+mlir.register_lowering(_coomv_cusparse_p,
+                       partial(_coomv_gpu_lowering, gpu_sparse.cuda_coo_matvec),
+                       platform='cuda')
+register_general_batching(_coomv_cusparse_p)
+
+
