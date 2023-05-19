@@ -898,12 +898,12 @@ class WilsonCowanModel(RateModel):
     return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
 
   def dx(self, x, t, y, x_ext):
-    x = self.wEE * x - self.wIE * y + x_ext
-    return (-x + (1 - self.r * x) * self.F(x, self.E_a, self.E_theta)) / self.E_tau
+    xx = self.wEE * x - self.wIE * y + x_ext
+    return (-x + (1 - self.r * x) * self.F(xx, self.E_a, self.E_theta)) / self.E_tau
 
   def dy(self, y, t, x, y_ext):
-    x = self.wEI * x - self.wII * y + y_ext
-    return (-y + (1 - self.r * y) * self.F(x, self.I_a, self.I_theta)) / self.I_tau
+    xx = self.wEI * x - self.wII * y + y_ext
+    return (-y + (1 - self.r * y) * self.F(xx, self.I_a, self.I_theta)) / self.I_tau
 
   def update(self, x1=None, x2=None):
     t = share.load('t')
