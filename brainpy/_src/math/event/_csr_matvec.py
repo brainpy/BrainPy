@@ -15,8 +15,8 @@ from jax.lib import xla_client
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,
                                             register_general_batching)
-from brainpy._src.math.sparse._csr_mv import cusparse_csr_matvec
-from brainpy._src.math.sparse.utils import csr_to_coo
+from brainpy._src.math.sparse._csr_mv import csrmv as normal_csrmv
+from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy.errors import GPUOperatorNotFound
 
 try:
@@ -236,7 +236,7 @@ def _batch_event_csr_matvec_jvp_values(values_dot, values, indices, indptr, even
 
 
 def _batch_csr_matvec(values, indices, indptr, vectors, *, shape, transpose):
-  f = jax.vmap(partial(cusparse_csr_matvec, shape=shape, transpose=transpose),
+  f = jax.vmap(partial(normal_csrmv, shape=shape, transpose=transpose),
                in_axes=(0 if values.shape[0] > 1 else None,
                         0 if indices.shape[0] > 1 else None,
                         0 if indptr.shape[0] > 1 else None,
@@ -392,7 +392,14 @@ def _event_csr_matvec_gpu_translation(c, data, indices, indptr, vector, *, shape
 
   data_shape = c.get_shape(data)
   vec_shape = c.get_shape(vector)
-  type_name = b'_float' if data_shape.element_type() == jnp.float32 else b'_double'
+
+  if data_shape.element_type() == jnp.float32:
+    type_name = b'_float'
+  elif data_shape.element_type() == jnp.float64:
+    type_name = b'_double'
+  else:
+    raise ValueError
+
   data_name = b'_homo' if data_shape.dimensions() == (1,) else b'_heter'
   if vec_shape.element_type() == jnp.bool_:
     vec_type = b'_bool'
@@ -441,14 +448,14 @@ def _event_csr_matvec_jvp_values(values_dot, values, indices, indptr, events, *,
 
 
 def _event_csr_matvec_jvp_events(events_dot, values, indices, indptr, events, *, shape, transpose):
-  return cusparse_csr_matvec(values, indices, indptr, events_dot, shape=shape, transpose=transpose)
+  return normal_csrmv(values, indices, indptr, events_dot, shape=shape, transpose=transpose)
 
 
 def _event_csr_matvec_transpose(ct, values, indices, indptr, events, *, shape, transpose):
   if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
     raise ValueError("Cannot transpose with respect to sparse indices.")
   if ad.is_undefined_primal(events):
-    ct_events = cusparse_csr_matvec(ct, indices, indptr, values, shape=shape, transpose=not transpose)
+    ct_events = normal_csrmv(values, indices, indptr, ct, shape=shape, transpose=not transpose)
     return values, indices, indptr, (ad.Zero(events) if type(ct) is ad.Zero else ct_events)
   else:
     if type(ct) is ad.Zero:

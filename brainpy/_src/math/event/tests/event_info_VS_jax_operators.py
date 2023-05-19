@@ -1,14 +1,12 @@
 from time import time
 
-import brainpy.math as bm
 from jax import jit, vmap, numpy as jnp
 
-from brainpylib import event_info
+import brainpy.math as bm
 
 
 def compare_argsort_and_sum(platform='cpu'):
   """
-
   CPU
   ---
 
@@ -51,7 +49,7 @@ def compare_argsort_and_sum(platform='cpu'):
   bm.set_platform(platform)
 
   rng = bm.random.RandomState(123)
-  bp_event_info = jit(vmap(event_info))
+  bp_event_info = jit(vmap(bm.event.info))
   jax_event_info = jit(vmap(lambda events: (jnp.argsort(events), jnp.sum(events))))
 
   if platform == 'cpu':
@@ -139,7 +137,7 @@ def compare_argsort(platform='cpu'):
   bm.set_platform(platform)
 
   rng = bm.random.RandomState(123)
-  bp_event_info = jit(vmap(event_info))
+  bp_event_info = jit(vmap(bm.event.info))
   jax_event_info = jit(vmap(lambda events: jnp.argsort(events)))
 
   if platform == 'cpu':
@@ -226,7 +224,7 @@ def compare_where(platform='cpu'):
   bm.set_platform(platform)
 
   rng = bm.random.RandomState(123)
-  bp_event_info = jit(vmap(event_info))
+  bp_event_info = jit(vmap(bm.event.info))
   jax_event_info = jit(vmap(lambda events: jnp.where(events, size=events.shape[0])))
 
   if platform == 'cpu':

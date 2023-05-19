@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
+
 import jax
 import pytest
 
-import matmat_testcase
+import test_csrmv
 
 if jax.default_backend() != 'gpu':
   pytest.skip("No gpu available.", allow_module_level=True)
 
 
-class Test_matmat_prob_conn_GPU(matmat_testcase.Test_matmat_prob_conn):
+class Test_event_csr_matvec_GPU(test_csrmv.Test_event_csr_matvec):
   def __init__(self, *args, **kwargs):
-    super(Test_matmat_prob_conn_GPU, self).__init__(*args, **kwargs, platform='gpu')
-
+    super().__init__(*args, **kwargs, platform='gpu')

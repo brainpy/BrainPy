@@ -122,10 +122,6 @@ math.__dict__['matvec_prob_conn_homo_weight'] = math.jitconn.mv_prob_homo
 math.__dict__['matvec_prob_conn_uniform_weight'] = math.jitconn.mv_prob_uniform
 math.__dict__['matvec_prob_conn_normal_weight'] = math.jitconn.mv_prob_normal
 
-math.__dict__['matmat_prob_conn_homo_weight'] = math.jitconn.mm_prob_homo
-math.__dict__['matmat_prob_conn_uniform_weight'] = math.jitconn.mm_prob_uniform
-math.__dict__['matmat_prob_conn_normal_weight'] = math.jitconn.mm_prob_normal
-
 math.__dict__['csr_matvec'] = math.sparse.csrmv
 math.__dict__['cusparse_csr_matvec'] = math.sparse.csrmv
 math.__dict__['cusparse_coo_matvec'] = math.sparse.coomv
