@@ -45,8 +45,7 @@ def offline_train(num_hidden=2000, num_in=28, num_out=10):
                     mode=bm.training_mode)
   )
 
-  preds = bm.for_loop(lambda x: jnp.argmax(esn({}, x), axis=-1),
-                      x_train)
+  preds = bm.for_loop(lambda x: jnp.argmax(esn(x), axis=-1), x_train)
   accuracy = jnp.mean(preds == jnp.repeat(traindata.targets, x_train.shape[1]))
   print(accuracy)
 

@@ -3,15 +3,14 @@
 from functools import partial
 from typing import Dict, Sequence, Union, Callable, Tuple
 
-import jax
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.context import share
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError

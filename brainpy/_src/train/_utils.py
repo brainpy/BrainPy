@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.check import is_dict_data
-from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dynsys import DynamicalSystem
 
 __all__ = [
   'format_ys'

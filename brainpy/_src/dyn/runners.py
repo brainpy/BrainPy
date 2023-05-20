@@ -14,8 +14,8 @@ from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map, tree_flatten
 
 from brainpy import math as bm, tools
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.context import share
 from brainpy._src.running.runner import Runner
 from brainpy.check import serialize_kwargs
 from brainpy.errors import RunningError

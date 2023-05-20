@@ -78,12 +78,23 @@ class Array(object):
       value = jnp.asarray(value, dtype=dtype)
     self._value = value
 
+  def _check_tracer(self):
+    self_value = self.value
+    if hasattr(self_value, '_trace'):
+      if len(self_value._trace.main.jaxpr_stack) == 0:
+        raise RuntimeError('This Array is modified during the transformation. '
+                           'BrainPy only supports transformations for Variable. '
+                           'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
+    return self_value
+
   @property
   def value(self):
     return self._value
 
   @value.setter
   def value(self, value):
+    self_value = self._check_tracer()
+
     if isinstance(value, Array):
       value = value.value
     elif isinstance(value, np.ndarray):
@@ -93,11 +104,11 @@ class Array(object):
     else:
       value = jnp.asarray(value)
     # check
-    if value.shape != self.value.shape:
-      raise MathError(f"The shape of the original data is {self.value.shape}, "
+    if value.shape != self_value.shape:
+      raise MathError(f"The shape of the original data is {self_value.shape}, "
                       f"while we got {value.shape}.")
-    if value.dtype != self.value.dtype:
-      raise MathError(f"The dtype of the original data is {self.value.dtype}, "
+    if value.dtype != self_value.dtype:
+      raise MathError(f"The dtype of the original data is {self_value.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value.value if isinstance(value, Array) else value
 
@@ -202,7 +213,8 @@ class Array(object):
       index = jnp.asarray(index)
 
     # update
-    self.value = self.value.at[index].set(value)
+    self_value = self._check_tracer()
+    self.value = self_value.at[index].set(value)
 
   # ---------- #
   # operations #

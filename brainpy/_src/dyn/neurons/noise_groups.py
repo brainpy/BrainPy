@@ -3,9 +3,9 @@
 from typing import Union, Callable
 
 import jax.numpy as jnp
-from brainpy._src.dyn.context import share
+from brainpy._src.context import share
 from brainpy import math as bm, initialize as init
-from brainpy._src.dyn.base import NeuGroupNS as NeuGroup
+from brainpy._src.dynsys import NeuGroupNS as NeuGroup
 from brainpy._src.initialize import Initializer
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy.types import ArrayType, Shape

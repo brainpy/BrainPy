@@ -255,3 +255,14 @@ Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3
 For more detail installation instructions, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
 
     ''') from None
+
+
+class GPUOperatorNotFound(Exception):
+  def __init__(self, name):
+    super(GPUOperatorNotFound, self).__init__(f'''
+GPU operator for "{name}" does not found. 
+
+Please install brainpylib GPU operators with linux + CUDA environment.
+    ''')
+
+

@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple as TupleType, List
+from typing import Optional, Any, List
 
 import jax
 import numpy as np
@@ -127,9 +127,10 @@ class Variable(Array):
 
   def __init__(
       self,
-      value_or_size,
+      value_or_size: Any,
       dtype: type = None,
       batch_axis: int = None,
+      *,
       _ready_to_trace: bool = True
   ):
     if isinstance(value_or_size, int):
@@ -158,16 +159,6 @@ class Variable(Array):
 
     # ready to trace the variable
     self._ready_to_trace = _ready_to_trace and len(var_stack_list) == 0
-
-  @property
-  def nobatch_shape(self) -> TupleType[int, ...]:
-    """Shape without batch axis."""
-    if self.batch_axis is not None:
-      shape = list(self.value.shape)
-      shape.pop(self.batch_axis)
-      return tuple(shape)
-    else:
-      return self.shape
 
   @property
   def batch_axis(self) -> Optional[int]:
@@ -242,9 +233,10 @@ class TrainVar(Variable):
 
   def __init__(
       self,
-      value_or_size,
+      value_or_size: Any,
       dtype: type = None,
       batch_axis: int = None,
+      *,
       _ready_to_trace: bool = True
   ):
     super(TrainVar, self).__init__(
@@ -262,9 +254,10 @@ class Parameter(Variable):
 
   def __init__(
       self,
-      value_or_size,
+      value_or_size: Any,
       dtype: type = None,
       batch_axis: int = None,
+      *,
       _ready_to_trace: bool = True
   ):
     super(Parameter, self).__init__(
@@ -309,7 +302,7 @@ class VariableView(Variable):
   def __init__(
       self,
       value: Variable,
-      index,
+      index: Any,
   ):
     self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):

@@ -6,10 +6,9 @@ from jax import vmap
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src import tools
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
-from brainpy._src.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy._src.dyn.synouts import CUBA, MgBlock
+from brainpy._src.dynsys import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy._src.initialize import Initializer, variable_
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_integer, is_float, is_subclass

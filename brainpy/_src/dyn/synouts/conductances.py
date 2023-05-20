@@ -3,7 +3,7 @@
 from typing import Union, Callable, Optional
 
 from brainpy.math import Variable
-from brainpy._src.dyn.base import SynOut
+from brainpy._src.dynsys import SynOut
 from brainpy._src.initialize import parameter, Initializer
 from brainpy.types import ArrayType
 

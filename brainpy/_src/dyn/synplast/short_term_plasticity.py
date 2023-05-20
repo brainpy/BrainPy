@@ -4,14 +4,11 @@ from typing import Union
 
 import jax.numpy as jnp
 
-from brainpy._src.dyn.context import share
-from brainpy import math as bm, tools
-from brainpy._src.dyn.base import SynSTP
+from brainpy._src.dynsys import SynSTP
 from brainpy._src.initialize import variable
-from brainpy._src.initialize import variable_, OneInit, parameter
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_float
-from brainpy.types import ArrayType, Shape
+from brainpy.types import ArrayType
 
 __all__ = [
   'STD',

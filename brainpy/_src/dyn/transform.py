@@ -5,40 +5,15 @@ from typing import Union, Optional, Dict, Sequence
 import jax.numpy as jnp
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
-from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy import tools, math as bm
-from brainpy._src.dyn.context import share
+from brainpy._src.context import share
 from brainpy.check import is_float, is_integer
 from brainpy.types import PyTree
-from .base import DynamicalSystem, Sequential, DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystem, DynamicalSystemNS
 
 __all__ = [
   'LoopOverTime',
 ]
-
-
-class DynSysToBPObj(BrainPyObject):
-  """Transform a :py:class:`DynamicalSystem` to a :py:class:`BrainPyObject`.
-
-  Parameters
-  ----------
-  target: DynamicalSystem
-    The target to transform.
-  name: str
-    The transformed object name.
-
-  """
-
-  def __init__(self, target: DynamicalSystem, name: str = None):
-    super().__init__(name=name)
-    self.target = target
-    if not isinstance(target, DynamicalSystem):
-      raise TypeError(f'Must be instance of {DynamicalSystem.__name__}, '
-                      f'but we got {type(target)}')
-
-  def __repr__(self):
-    name = self.__class__.__name__
-    return f"{name}({tools.repr_context(str(self.target), ' ' * len(name))})"
 
 
 class LoopOverTime(DynamicalSystemNS):
@@ -133,9 +108,10 @@ class LoopOverTime(DynamicalSystemNS):
     The shared arguments across the nodes.
     For instance, `shared_arg={'fit': False}` for the prediction phase.
   data_first_axis: str
-    Denote whether the input data is time major.
-    If so, we treat the data as `(time, batch, ...)` when the `target` is in Batching mode.
-    Default is True.
+    Denoting the type of the first axis of input data.
+    If ``'T'``, we treat the data as `(time, ...)`.
+    If ``'B'``, we treat the data as `(batch, time, ...)` when the `target` is in Batching mode.
+    Default is ``'T'``.
   name: str
     The transformed object name.
   """
@@ -166,6 +142,8 @@ class LoopOverTime(DynamicalSystemNS):
       assert isinstance(shared_arg, dict)
       shared_arg['dt'] = dt
     self.dt = dt
+    self._t0 = t0
+    self._i0 = i0
     self.t0 = None if t0 is None else bm.Variable(bm.as_jax(t0))
     self.i0 = None if i0 is None else bm.Variable(bm.as_jax(i0))
 
@@ -297,9 +275,9 @@ class LoopOverTime(DynamicalSystemNS):
   def reset_state(self, batch_size=None):
     self.target.reset_state(batch_size)
     if self.i0 is not None:
-      self.i0.value = jnp.asarray(0)
+      self.i0.value = bm.as_jax(self._i0)
     if self.t0 is not None:
-      self.t0.value = jnp.asarray(0.)
+      self.t0.value = bm.as_jax(self._t0)
 
   def _run(self, static_sh, dyn_sh, x):
     share.save(**static_sh, **dyn_sh)

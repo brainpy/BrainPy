@@ -3,7 +3,7 @@
 from typing import Union
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import Container, CondNeuGroup, Channel, check_master
+from brainpy._src.dynsys import Container, CondNeuGroup, Channel, check_master
 from brainpy.types import Shape
 
 __all__ = [
