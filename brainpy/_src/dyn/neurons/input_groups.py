@@ -141,29 +141,27 @@ class SpikeTimeGroup(NeuGroupNS):
     # variables
     self.reset_state(self.mode)
 
-    # functions
-    def cond_fun(t):
-      i = self.i.value
-      return bm.logical_and(i < self.num_times, t >= self.times[i])
-
-    def body_fun(t):
-      i = self.i.value
-      if isinstance(self.mode, bm.BatchingMode):
-        self.spike[:, self.indices[i]] = True
-      else:
-        self.spike[self.indices[i]] = True
-      self.i += 1
-
-    self._run = bm.make_while(cond_fun, body_fun, dyn_vars=self.vars())
-
   def reset_state(self, batch_size=None):
     self.i = bm.Variable(bm.asarray(0))
     self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)
 
   def update(self):
     self.spike.value = bm.zeros_like(self.spike)
-    self._run(share.load('t'))
+    bm.while_loop(self._cond_fun, self._body_fun, share.load('t'))
     return self.spike.value
+
+  # functions
+  def _cond_fun(self, t):
+    i = self.i.value
+    return bm.logical_and(i < self.num_times, t >= self.times[i])
+
+  def _body_fun(self, t):
+    i = self.i.value
+    if isinstance(self.mode, bm.BatchingMode):
+      self.spike[:, self.indices[i]] = True
+    else:
+      self.spike[self.indices[i]] = True
+    self.i += 1
 
 
 class PoissonGroup(NeuGroupNS):
