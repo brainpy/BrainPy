@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+
+
 import unittest
 
 import numpy as np
 
 import brainpy as bp
+
+import matplotlib
 
 PI = bp.math.pi
 
@@ -87,5 +91,5 @@ class TestDOGDecayInit(unittest.TestCase):
     self.assertTrue(weights.shape == (np.prod(size), np.prod(size)))
 
     # visualize neuron(3, 4)
-    mat_visualize(weights[:, 3 * 12 + 4].reshape((10, 12)), cmap=plt.cm.get_cmap('Reds'))
-
+    mat_visualize(weights[:, 3 * 12 + 4].reshape((10, 12)), cmap=matplotlib.colormaps['Reds'])
+    plt.close()

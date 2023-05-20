@@ -412,7 +412,7 @@ blocksparse_matmat_p.def_abstract_eval(_blocksparse_matmat_abstract)
 blocksparse_matmat_p.def_impl(partial(xla.apply_primitive, blocksparse_matmat_p))
 xla.backend_specific_translations['cpu'][blocksparse_matmat_p] = _blocksparse_matmat_cpu_translation
 xla.backend_specific_translations['gpu'][blocksparse_matmat_p] = _blocksparse_matmat_gpu_translation
-ad.defjvp(blocksparse_matmat_p, _blocksparse_matmat_jvp_dense_a, None, None, _blocksparse_matmat_jvp_data_b)
+# ad.defjvp(blocksparse_matmat_p, _blocksparse_matmat_jvp_dense_a, None, None, _blocksparse_matmat_jvp_data_b)
 ad.primitive_jvps[blocksparse_matmat_p] = _blocksparse_matmat_jvp_transpose
 register_general_batching(blocksparse_matmat)
 
