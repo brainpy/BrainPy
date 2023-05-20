@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-
 from brainpy._src.layers.base import (
   Layer as Layer,
 )
@@ -83,5 +82,10 @@ from brainpy._src.layers.rnncells import (
   Conv1dLSTMCell as Conv1dLSTMCell,
   Conv2dLSTMCell as Conv2dLSTMCell,
   Conv3dLSTMCell as Conv3dLSTMCell,
+)
+
+from brainpy._src.layers.interoperation_flax import (
+  FromFlax,
+  ToFlaxRNNCell, ToFlax,
 )
 

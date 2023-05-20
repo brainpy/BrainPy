@@ -381,7 +381,7 @@ def generate_inputs_docs():
 
 def generate_layers_docs():
   _write_subsections_v2(
-    'brainpy._src.dyn.layers',
+    'brainpy._src.layers',
     'brainpy.layers',
     'apis/auto/layers.rst',
     subsections={
@@ -395,6 +395,7 @@ def generate_layers_docs():
       'pooling': 'Pooling Layers',
       'reservoir': 'Reservoir Layers',
       'rnncells': 'Artificial Recurrent Layers',
+      'interoperation_flax': 'Interoperation with Flax',
     }
   )
 

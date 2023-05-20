@@ -57,7 +57,10 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    :caption: Advanced Tutorials
 
    tutorial_advanced/adavanced_lowdim_analysis.ipynb
-   tutorial_advanced/interoperation.ipynb
+   tutorial_advanced/differentiation.ipynb
+   tutorial_advanced/integrate_flax_into_brainpy.ipynb
+   tutorial_advanced/integrate_bp_lif_into_flax.ipynb
+   tutorial_advanced/integrate_bp_convlstm_into_flax.ipynb
 
 
 
