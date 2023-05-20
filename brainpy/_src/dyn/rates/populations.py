@@ -1041,7 +1041,6 @@ class ThresholdLinearModel(RateModel):
       self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
 
   def update(self, x1=None, x2=None):
-    t = share.load('t')
     dt = share.load('dt')
 
     # input

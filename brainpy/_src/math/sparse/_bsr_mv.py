@@ -1,19 +1,19 @@
 
-from typing import Union, Tuple
 from functools import partial
+from typing import Union, Tuple
+
 import numba
 import numpy as np
-from jax import numpy as jnp, ensure_compile_time_eval
+from jax import numpy as jnp
 from jax.core import ShapedArray, Primitive
-from jax.lib import xla_client
 from jax.interpreters import ad, xla
+from jax.lib import xla_client
 
-from brainpy.errors import GPUOperatorNotFound
-from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,register_op_with_numba,
-                                      register_general_batching)
 from brainpy._src.math.interoperability import as_jax
+from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,
+                                            register_general_batching)
 from brainpy._src.math.sparse._utils import csr_to_coo
-
+from brainpy.errors import GPUOperatorNotFound
 
 try:
   from brainpylib import gpu_ops

@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import warnings
 from functools import partial
-from typing import Union, Tuple
 
 import jax.lax
 import numba
 import numpy as np
-from jax import core, numpy as jnp, dtypes, default_backend, random
-from jax.interpreters import ad, mlir, xla
-from jax.lib import xla_client
+from jax import numpy as jnp
 from jax.core import Primitive, ShapedArray
-from jaxlib import gpu_sparse
+from jax.interpreters import ad, xla
+from jax.lib import xla_client
 
-from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,
-                                         register_general_batching)
-from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy._src.math.interoperability import as_jax
+from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,
+                                            register_general_batching)
 from brainpy.errors import GPUOperatorNotFound
-
-import brainpylib as bl
 
 try:
     from brainpylib import gpu_ops
