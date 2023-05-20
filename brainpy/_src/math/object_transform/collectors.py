@@ -148,6 +148,20 @@ class Collector(dict):
         gather[key] = value
     return gather
 
+  def include(self, *types):
+    gather = type(self)()
+    for key, value in self.items():
+      if value.__class__ in types:
+        gather[key] = value
+    return gather
+
+  def exclude(self, *types):
+    gather = type(self)()
+    for key, value in self.items():
+      if value.__class__ not in types:
+        gather[key] = value
+    return gather
+
   def unique(self):
     """Get a new type of collector with unique values.
 

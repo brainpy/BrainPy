@@ -176,7 +176,7 @@ def variable(
       new_shape = size[:batch_axis] + (int(batch_size_or_mode),) + size[batch_axis:]
       return bm.Variable(init(new_shape), batch_axis=batch_axis)
     else:
-      raise ValueError('Unknown batch_size_or_mode.')
+      raise ValueError(f'Unknown batch_size_or_mode: {batch_size_or_mode}')
 
   else:
     if size is not None:
