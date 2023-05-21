@@ -459,29 +459,15 @@ def generate_running_docs():
 
 def generate_synapses_docs():
   _write_subsections_v2(
-    'brainpy._src.dyn.synapses',
+    'brainpy.synapses',
     'brainpy.synapses',
     'apis/auto/synapses.rst',
     subsections={
-      'abstract_models': 'Abstract Models',
-      'biological_models': 'Biological Models',
-      'delay_couplings': 'Coupling Models',
-      'gap_junction': 'Gap Junction Models',
-      'learning_rules': 'Learning Rule Models',
+      'dynamics': 'Synaptic Dynamics',
+      'synouts': 'Synaptic Output',
+      'synplast': 'Synaptic Plasticity',
     }
   )
-
-
-def generate_synouts_docs():
-  _write_module(module_name='brainpy.synouts',
-                filename='apis/auto/synouts.rst',
-                header='``brainpy.synouts`` module')
-
-
-def generate_synplast_docs():
-  _write_module(module_name='brainpy.synplast',
-                filename='apis/auto/synplast.rst',
-                header='``brainpy.synplast`` module')
 
 
 def generate_brainpy_docs():
