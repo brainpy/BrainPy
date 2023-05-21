@@ -54,12 +54,12 @@ from brainpy._src.integrators.fde.generic import (fdeint as fdeint)
 from brainpy import (channels,  # channel models
                      layers,  # ANN layers
                      neurons,  # neuron groups
+                     synapses,  # synapses
                      rates,  # rate models
                      experimental,
                      )
-from brainpy.synapses import (synapses,  # synaptic dynamics
-                              synouts,  # synaptic output
-                              synplast,)  # synaptic plasticity
+from brainpy.synapses import (synouts,  # synaptic output
+                              synplast, )  # synaptic plasticity
 
 from brainpy._src.dynsys import (DynamicalSystem as DynamicalSystem,
                                  Container as Container,
