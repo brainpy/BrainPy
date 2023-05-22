@@ -5,7 +5,7 @@ from typing import Union, Dict, Callable
 import jax.numpy as jnp
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroup, TwoEndConn
+from brainpy._src.dynsys import NeuGroup, TwoEndConn
 from brainpy._src.initialize import Initializer, delay as init_delay
 from brainpy._src.integrators import odeint, JointEq
 from brainpy._src.connect import TwoEndConnector

@@ -89,7 +89,7 @@ def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
                       lambda _: 0.,
                       lambda _: jnp.sum(states[i] * states[j]) / sqrt_ij,
                       None)
-    res = bm.for_loop(_f, dyn_vars=[], operands=indices)
+    res = bm.for_loop(_f, operands=indices)
 
   elif method == 'vmap':
     @vmap
@@ -178,7 +178,6 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
 
   if method == 'loop':
     _var = lambda aa: bm.for_loop(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2,
-                                  dyn_vars=(),
                                   operands=jnp.moveaxis(aa, 0, 1))
 
   elif method == 'vmap':

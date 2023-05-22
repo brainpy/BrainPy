@@ -150,11 +150,11 @@ class GLShortMemory(FDEIntegrator):
     inits = check_inits(inits, self.variables)
 
     # delays
-    self.delays = bm.DictVar()
+    self.delays = bm.VarDict()
     for key, val in inits.items():
       delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
       delay[0] = val
-      self.delays[key+'_delay'] = delay
+      self.delays[key+'_delay'] = bm.Variable(delay)
     self._idx = bm.Variable(bm.asarray([1]))
 
     # binomial coefficients

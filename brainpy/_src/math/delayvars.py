@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Optional, Dict
+from typing import Union, Callable
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import vmap
-from jax.lax import cond, stop_gradient
+from jax.lax import stop_gradient
 
 from brainpy import check
 from brainpy.check import is_float, is_integer, jit_error_checking
 from brainpy.errors import UnsupportedError
-from .arrayinterporate import as_jax
 from .compat_numpy import vstack, broadcast_to
-from .environment import get_dt, get_float, get_int
-from .ndarray import ndarray, Variable, Array
+from .environment import get_dt, get_float
+from .interoperability import as_jax
+from .ndarray import ndarray, Array
 from .object_transform.base import BrainPyObject
+from .object_transform.controls import cond
+from .object_transform.variables import Variable
 
 __all__ = [
   'AbstractDelay',
@@ -158,8 +159,8 @@ class TimeDelay(AbstractDelay):
     if before_t0 is None:
       self._before_type = _DATA_BEFORE
     elif callable(before_t0):
-      self._before_t0 = lambda t: jnp.asarray(jnp.broadcast_to(before_t0(t), delay_target.shape),
-                                              dtype=delay_target.dtype)
+      self._before_t0 = lambda t: as_jax(broadcast_to(before_t0(t), delay_target.shape),
+                                         dtype=delay_target.dtype)
       self._before_type = _FUNC_BEFORE
     elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
       self._before_type = _DATA_BEFORE
@@ -247,17 +248,15 @@ class TimeDelay(AbstractDelay):
       return cond(extra == 0., self._true_fn, self._false_fn, (req_num_step, extra))
     elif self.interp_method == _INTERP_ROUND:
       req_num_step = jnp.asarray(jnp.round(diff / self.dt), dtype=jnp.int32)
-      return self._true_fn([req_num_step, 0.])
+      return self._true_fn(req_num_step, 0.)
     else:
       raise UnsupportedError(f'Un-supported interpolation method {self.interp_method}, '
                              f'we only support: {[_INTERP_LINEAR, _INTERP_ROUND]}')
 
-  def _true_fn(self, div_mod):
-    req_num_step, extra = div_mod
+  def _true_fn(self, req_num_step, extra):
     return self.data[self.idx[0] + req_num_step]
 
-  def _false_fn(self, div_mod):
-    req_num_step, extra = div_mod
+  def _false_fn(self, req_num_step, extra):
     idx = jnp.asarray([self.idx[0] + req_num_step,
                        self.idx[0] + req_num_step + 1])
     idx %= self.num_delay_step

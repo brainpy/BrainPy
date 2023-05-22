@@ -3,7 +3,7 @@
 import warnings
 from typing import Union, Sequence, Dict, Callable
 
-from brainpy._src.math.ndarray import Variable
+from .variables import Variable
 from .base import FunAsObject, BrainPyObject
 
 __all__ = [

@@ -84,7 +84,7 @@ class WeightedPhaseEncoder(Encoder):
       inputs.value -= w * spike
       return spike
 
-    return bm.for_loop(f, bm.arange(num_step).value, dyn_vars=inputs)
+    return bm.for_loop(f, bm.arange(num_step).value)
 
 
 class LatencyEncoder(Encoder):

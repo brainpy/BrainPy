@@ -8,7 +8,7 @@ This module implements voltage-dependent calcium channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import Channel
+from brainpy._src.dynsys import Channel
 from brainpy._src.initialize import OneInit, Initializer, parameter, variable
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint

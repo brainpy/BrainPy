@@ -7,7 +7,7 @@ import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import DynamicalSystem
+from brainpy._src.dynsys import DynamicalSystem
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError
@@ -207,7 +207,7 @@ class OfflineTrainer(DSTrainer):
       self._f_fit_compiled[shared_kwargs_str] = (
         self._fun_train
         if self.jit['fit'] else
-        bm.jit(self._fun_train, dyn_vars=self.vars().unique())
+        bm.jit(self._fun_train)
       )
     return self._f_fit_compiled[shared_kwargs_str]
 

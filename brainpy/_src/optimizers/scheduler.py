@@ -138,7 +138,7 @@ class MultiStepLR(Scheduler):
     self.milestones = check.is_sequence(milestones, elem_type=int, allow_none=False)
     self.gamma = check.is_float(gamma, min_bound=0., max_bound=1., allow_int=False)
 
-  @partial(jax.jit, inline=True)
+  @bm.cls_jit(inline=True)
   def __call__(self, i=None):
     i = (self.last_epoch.value + 1) if i is None else i
     p = bm.ifelse([i < m for m in self.milestones],
@@ -205,7 +205,7 @@ class CosineAnnealingLR(Scheduler):
     self.T_max = check.is_integer(T_max, min_bound=1)
     self.eta_min = eta_min
 
-  @jax.jit
+  @bm.cls_jit(inline=True)
   def __call__(self, i=None):
     i = (self.last_epoch + 1) if i is None else i
     return (self.eta_min + (self.lr - self.eta_min) *
@@ -280,7 +280,7 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
   def _cond2(self, epoch):
     return epoch, self.T_0
 
-  @partial(jax.jit, inline=True)
+  @bm.cls_jit(inline=True)
   def __call__(self, i=None):
     i = (self.last_call + 1) if i is None else i
     epoch = i / self.num_call_per_epoch
@@ -290,7 +290,7 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
                               epoch)
     return self.eta_min + (self.lr - self.eta_min) * (1 + jnp.cos(jnp.pi * T_cur / T_i)) / 2
 
-  @jax.jit
+  @bm.cls_jit(inline=True)
   def current_epoch(self, i=None):
     i = (self.last_call + 1) if i is None else i
     return jnp.floor(i / self.num_call_per_epoch)

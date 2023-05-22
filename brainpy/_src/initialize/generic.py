@@ -168,7 +168,7 @@ def variable(
     if isinstance(batch_size_or_mode, bm.NonBatchingMode):
       return bm.Variable(init(size))
     elif isinstance(batch_size_or_mode, bm.BatchingMode):
-      new_shape = size[:batch_axis] + (1,) + size[batch_axis:]
+      new_shape = size[:batch_axis] + (batch_size_or_mode.batch_size,) + size[batch_axis:]
       return bm.Variable(init(new_shape), batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(init(size))
@@ -176,7 +176,7 @@ def variable(
       new_shape = size[:batch_axis] + (int(batch_size_or_mode),) + size[batch_axis:]
       return bm.Variable(init(new_shape), batch_axis=batch_axis)
     else:
-      raise ValueError('Unknown batch_size_or_mode.')
+      raise ValueError(f'Unknown batch_size_or_mode: {batch_size_or_mode}')
 
   else:
     if size is not None:
@@ -185,7 +185,10 @@ def variable(
     if isinstance(batch_size_or_mode, bm.NonBatchingMode):
       return bm.Variable(init)
     elif isinstance(batch_size_or_mode, bm.BatchingMode):
-      return bm.Variable(bm.expand_dims(init, axis=batch_axis), batch_axis=batch_axis)
+      return bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
+                                   batch_size_or_mode.batch_size,
+                                   axis=batch_axis),
+                         batch_axis=batch_axis)
     elif batch_size_or_mode in (None, False):
       return bm.Variable(init)
     elif isinstance(batch_size_or_mode, int):

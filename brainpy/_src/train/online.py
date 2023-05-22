@@ -3,15 +3,14 @@
 from functools import partial
 from typing import Dict, Sequence, Union, Callable, Tuple
 
-import jax
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.context import share
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError
@@ -239,14 +238,11 @@ class OnlineTrainer(DSTrainer):
     if shared_args is None: shared_args = dict()
     shared_kwargs_str = serialize_kwargs(shared_args)
     if shared_kwargs_str not in self._f_fit_compiled:
-      dyn_vars = self.vars().unique()
-      dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-
+      @bm.jit
       def run_func(all_inputs):
-        with jax.disable_jit(not self.jit['fit']):
-          return bm.for_loop(partial(self._step_func_fit, shared_args),
-                             all_inputs,
-                             dyn_vars=dyn_vars)
+        return bm.for_loop(partial(self._step_func_fit, shared_args),
+                           all_inputs,
+                           jit=self.jit['fit'])
 
       self._f_fit_compiled[shared_kwargs_str] = run_func
     return self._f_fit_compiled[shared_kwargs_str]

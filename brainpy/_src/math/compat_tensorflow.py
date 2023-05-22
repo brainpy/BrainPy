@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import jax.ops
 from jax import lax
 
-from brainpy._src.math.arrayinterporate import as_jax
+from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from .compat_numpy import (
   prod, min, sum, all, any, mean, std, var, concatenate, clip,
@@ -123,10 +123,10 @@ def segment_mean(data, segment_ids):
   """
   r = jax.ops.segment_sum(_as_jax_array_(data),
                           _as_jax_array_(segment_ids),
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   d = jax.ops.segment_sum(jnp.ones_like(data),
                           _as_jax_array_(segment_ids),
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   return _return(jnp.nan_to_num(r / d))
 
 
@@ -139,7 +139,7 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
   r = jax.ops.segment_sum(_as_jax_array_(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   return _return(r)
 
 
@@ -152,7 +152,7 @@ def unsorted_segment_prod(data, segment_ids, num_segments):
   r = jax.ops.segment_prod(_as_jax_array_(data),
                            _as_jax_array_(segment_ids),
                            num_segments=num_segments,
-                           indices_are_sorted=True)
+                           indices_are_sorted=False)
   return _return(r)
 
 
@@ -165,7 +165,7 @@ def unsorted_segment_max(data, segment_ids, num_segments):
   r = jax.ops.segment_max(_as_jax_array_(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   return _return(r)
 
 
@@ -178,7 +178,7 @@ def unsorted_segment_min(data, segment_ids, num_segments):
   r = jax.ops.segment_min(_as_jax_array_(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   return _return(r)
 
 
@@ -191,11 +191,11 @@ def unsorted_segment_sqrt_n(data, segment_ids, num_segments):
   r = jax.ops.segment_sum(_as_jax_array_(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   d = jax.ops.segment_sum(jnp.ones_like(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   return _return(jnp.nan_to_num(r / jnp.sqrt(d)))
 
 
@@ -208,11 +208,11 @@ def unsorted_segment_mean(data, segment_ids, num_segments):
   r = jax.ops.segment_sum(_as_jax_array_(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   d = jax.ops.segment_sum(jnp.ones_like(data),
                           _as_jax_array_(segment_ids),
                           num_segments=num_segments,
-                          indices_are_sorted=True)
+                          indices_are_sorted=False)
   return _return(jnp.nan_to_num(r / d))
 
 

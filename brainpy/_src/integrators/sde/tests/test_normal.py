@@ -7,7 +7,7 @@ import brainpy as bp
 import matplotlib.pyplot as plt
 from brainpy._src.integrators.sde.normal import ExponentialEuler
 
-block = False
+show = False
 
 
 class TestExpEuler(unittest.TestCase):
@@ -33,7 +33,9 @@ class TestExpEuler(unittest.TestCase):
     runner.run(100.)
 
     plt.plot(runner.mon.x.flatten(), runner.mon.y.flatten())
-    plt.show(block=block)
+    if show:
+      plt.show()
+    plt.close()
 
   def test2(self):
     p = 0.1
@@ -41,8 +43,8 @@ class TestExpEuler(unittest.TestCase):
 
     def lorenz_g(x, y, z, t, **kwargs):
       return bp.math.asarray([p * x, p2 * x]), \
-             bp.math.asarray([p * y, p2 * y]), \
-             bp.math.asarray([p * z, p2 * z])
+        bp.math.asarray([p * y, p2 * y]), \
+        bp.math.asarray([p * z, p2 * z])
 
     dx = lambda x, t, y, sigma=10: sigma * (y - x)
     dy = lambda y, t, x, z, rho=28: x * (rho - z) - y
@@ -54,8 +56,8 @@ class TestExpEuler(unittest.TestCase):
                             wiener_type=bp.integrators.VECTOR_WIENER,
                             var_type=bp.integrators.POP_VAR,
                             show_code=True)
-    runner = bp.integrators.IntegratorRunner(intg, monitors=['x', 'y', 'z'],
-                                             dt=0.001, inits=[1., 1., 0.], jit=False)
+    runner = bp.IntegratorRunner(intg, monitors=['x', 'y', 'z'],
+                                 dt=0.001, inits=[1., 1., 0.], jit=False)
     with self.assertRaises(ValueError):
       runner.run(100.)
 
@@ -65,8 +67,8 @@ class TestExpEuler(unittest.TestCase):
 
     def lorenz_g(x, y, z, t, **kwargs):
       return bp.math.asarray([p * x, p2 * x]).T, \
-             bp.math.asarray([p * y, p2 * y]).T, \
-             bp.math.asarray([p * z, p2 * z]).T
+        bp.math.asarray([p * y, p2 * y]).T, \
+        bp.math.asarray([p * z, p2 * z]).T
 
     dx = lambda x, t, y, sigma=10: sigma * (y - x)
     dy = lambda y, t, x, z, rho=28: x * (rho - z) - y
@@ -78,15 +80,17 @@ class TestExpEuler(unittest.TestCase):
                             wiener_type=bp.integrators.VECTOR_WIENER,
                             var_type=bp.integrators.POP_VAR,
                             show_code=True)
-    runner = bp.integrators.IntegratorRunner(intg,
-                                             monitors=['x', 'y', 'z'],
-                                             dt=0.001,
-                                             inits=[1., 1., 0.],
-                                             jit=True)
+    runner = bp.IntegratorRunner(intg,
+                                 monitors=['x', 'y', 'z'],
+                                 dt=0.001,
+                                 inits=[1., 1., 0.],
+                                 jit=True)
     runner.run(100.)
 
     plt.plot(runner.mon.x.flatten(), runner.mon.y.flatten())
-    plt.show(block=block)
+    if show:
+      plt.show()
+    plt.close()
 
 
 class TestMilstein(unittest.TestCase):
@@ -110,11 +114,14 @@ class TestMilstein(unittest.TestCase):
                      wiener_type=bp.integrators.SCALAR_WIENER,
                      var_type=bp.integrators.POP_VAR,
                      method='milstein')
-    runner = bp.integrators.IntegratorRunner(intg,
-                                             monitors=['x', 'y', 'z'],
-                                             dt=0.001, inits=[1., 1., 0.],
-                                             jit=True)
+    runner = bp.IntegratorRunner(intg,
+                                 monitors=['x', 'y', 'z'],
+                                 dt=0.001, inits=[1., 1., 0.],
+                                 jit=True)
     runner.run(100.)
 
     plt.plot(runner.mon.x.flatten(), runner.mon.y.flatten())
-    plt.show(block=block)
+    if show:
+      plt.show()
+    plt.close()
+

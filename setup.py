@@ -3,13 +3,9 @@
 import io
 import os
 import re
-import sys
-import glob
 
 from setuptools import find_packages
 from setuptools import setup
-from pybind11.setup_helpers import Pybind11Extension
-from setuptools.command.build_ext import build_ext
 
 try:
   # require users to uninstall previous brainpy releases.
@@ -41,30 +37,7 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
   README = f.read()
 
 # installation packages
-packages = find_packages()
-if 'docs' in packages:
-  packages.remove('docs')
-if 'tests' in packages:
-  packages.remove('tests')
-if 'lib' in packages:
-  packages.remove('lib')
-
-# extension modules
-if sys.platform == 'darwin': # mac
-  ext_modules = [
-    Pybind11Extension("brainpy/cpu_ops",
-                      sources=glob.glob("lib/cpu_*.cc") + glob.glob("lib/cpu_*.cpp"),
-                      cxx_std=11,
-                      extra_link_args=["-rpath", re.sub('/lib/.*', '/lib', sys.path[1])],
-                      define_macros=[('VERSION_INFO', version)]),
-  ]
-else:
-  ext_modules = [
-    Pybind11Extension("brainpy/cpu_ops",
-                      sources=glob.glob("lib/cpu_*.cc") + glob.glob("lib/cpu_*.cpp"),
-                      cxx_std=11,
-                      define_macros=[('VERSION_INFO', version)]),
-  ]
+packages = find_packages(exclude=['lib*', 'docs', 'tests'])
 
 
 # setup
@@ -78,9 +51,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.7',
-  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm', 'msgpack', "numba", "numpy"],
-  ext_modules=ext_modules,
-  cmdclass={"build_ext": build_ext},
+  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm', 'msgpack'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
@@ -103,6 +74,7 @@ setup(
     'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: Apache Software License',
     'Topic :: Scientific/Engineering :: Bio-Informatics',

@@ -329,7 +329,7 @@ class CaputoL1Schema(FDEIntegrator):
 
     # initial values
     inits = check_inits(inits, self.variables)
-    self.inits = bm.DictVar({v: bm.asarray(inits[v]) for v in self.variables})
+    self.inits = bm.VarDict({v: bm.Variable(inits[v]) for v in self.variables})
 
     # coefficients
     ranges = bm.asarray([bm.arange(1, num_memory + 2) for _ in self.variables]).T
@@ -337,8 +337,8 @@ class CaputoL1Schema(FDEIntegrator):
     self.coef = bm.flip(coef, axis=0)
 
     # used to save the difference of two adjacent states
-    self.diff_states = bm.DictVar({v + "_diff": bm.zeros((num_memory,) + self.inits[v].shape,
-                                                         dtype=self.inits[v].dtype)
+    self.diff_states = bm.VarDict({v + "_diff": bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape,
+                                                            dtype=self.inits[v].dtype))
                                    for v in self.variables})
     self.idx = bm.Variable(bm.asarray([self.num_memory - 1]))
 

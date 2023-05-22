@@ -230,10 +230,8 @@ class IntegratorRunner(Runner):
     self.idx = bm.Variable(bm.zeros(1, dtype=bm.int_))
 
   def _run_fun_integration(self, static_args, dyn_args, times, indices):
-    dyn_vars = self.vars().unique()
     return bm.for_loop(partial(self._step_fun_integrator, static_args),
                        (dyn_args, times, indices),
-                       dyn_vars=dyn_vars,
                        jit=self.jit['predict'])
 
   def _step_fun_integrator(self, static_args, dyn_args, t, i):
@@ -307,7 +305,7 @@ class IntegratorRunner(Runner):
     end_t = start_t + duration
     # times
     times = bm.arange(start_t, end_t, self.dt).value
-    indices = bm.arange(times.size).value + self.idx
+    indices = bm.arange(times.size).value + self.idx.value
 
     _dyn_args, _ = tree_flatten(dyn_args)
     for _d in _dyn_args:

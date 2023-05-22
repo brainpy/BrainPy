@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from brainpy._src.math.environment import (
+  environment as environment,
+  batching_environment as batching_environment,
+  training_environment as training_environment,
+  set as set,
+  set_environment as set_environment,
+
   set_float as set_float,
   get_float as get_float,
   set_int as set_int,
@@ -13,11 +19,7 @@ from brainpy._src.math.environment import (
   get_dt as get_dt,
   set_mode as set_mode,
   get_mode as get_mode,
-  environment as environment,
-  batching_environment as batching_environment,
-  training_environment as training_environment,
-  set as set,
-  set_environment as set_environment,
+
   enable_x64 as enable_x64,
   disable_x64 as disable_x64,
   set_platform as set_platform,

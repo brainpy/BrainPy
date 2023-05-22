@@ -9,10 +9,6 @@ from brainpy._src.math.object_transform.autograd import (
   hessian as hessian,
 )
 
-from brainpy._src.math.object_transform.abstract import (
-  ObjectTransform as ObjectTransform
-)
-
 from brainpy._src.math.object_transform.controls import (
   make_loop as make_loop,
   make_while as make_while,
@@ -23,12 +19,14 @@ from brainpy._src.math.object_transform.controls import (
   while_loop as while_loop,
 )
 
+
+from brainpy._src.math.object_transform.jit import (
+  jit as jit,
+  cls_jit as cls_jit,
+)
+
+
 from brainpy._src.math.object_transform.function import (
   to_object as to_object,
   function as function,
 )
-
-from brainpy._src.math.object_transform.jit import (
-  jit as jit,
-)
-

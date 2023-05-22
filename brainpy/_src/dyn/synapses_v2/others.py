@@ -2,8 +2,8 @@
 from typing import Union, Optional
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import DynamicalSystemNS
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystemNS
+from brainpy._src.context import share
 from brainpy.check import is_float, is_integer
 
 
@@ -68,8 +68,7 @@ class PoissonInput(DynamicalSystemNS):
       inp = bm.cond((a > 5) * (b > 5),
                     lambda _: self.rng.normal(a, b * p, self.target_shape),
                     lambda _: self.rng.binomial(self.num_input, p, self.target_shape),
-                    None,
-                    dyn_vars=self.rng)
+                    None)
     return inp * self.weight
 
   def __repr__(self):

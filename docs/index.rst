@@ -57,7 +57,10 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    :caption: Advanced Tutorials
 
    tutorial_advanced/adavanced_lowdim_analysis.ipynb
-   tutorial_advanced/interoperation.ipynb
+   tutorial_advanced/differentiation.ipynb
+   tutorial_advanced/integrate_flax_into_brainpy.ipynb
+   tutorial_advanced/integrate_bp_lif_into_flax.ipynb
+   tutorial_advanced/integrate_bp_convlstm_into_flax.ipynb
 
 
 
@@ -93,12 +96,10 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    apis/auto/brainpy.rst
    apis/auto/math.rst
    apis/auto/channels.rst
-   apis/auto/layers.rst
    apis/auto/neurons.rst
    apis/auto/rates.rst
    apis/auto/synapses.rst
-   apis/auto/synouts.rst
-   apis/auto/synplast.rst
+   apis/auto/layers.rst
    apis/auto/integrators.rst
    apis/auto/analysis.rst
    apis/auto/connect.rst

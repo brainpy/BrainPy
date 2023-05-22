@@ -6,10 +6,9 @@ from jax import vmap
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
-from brainpy._src import tools
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
-from brainpy._src.dyn.base import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy._src.dyn.synouts import CUBA, MgBlock
+from brainpy._src.dynsys import NeuGroup, SynOut, SynSTP, TwoEndConn, SynConn
 from brainpy._src.initialize import Initializer, variable_
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_integer, is_float, is_subclass
@@ -153,7 +152,7 @@ class Delta(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.event_ops.event_csr_matvec(
+        f = lambda s: bm.event_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num), transpose=True
         )
@@ -344,7 +343,7 @@ class Exponential(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.event_ops.event_csr_matvec(
+        f = lambda s: bm.event_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
@@ -549,7 +548,7 @@ class DualExponential(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.sparse_ops.cusparse_csr_matvec(
+        f = lambda s: bm.cusparse_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
@@ -894,7 +893,7 @@ class NMDA(TwoEndConn):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.event_ops.event_csr_matvec(
+        f = lambda s: bm.event_csr_matvec(
           self.g_max, self.conn_mask[0], self.conn_mask[1], s,
           shape=(self.pre.num, self.post.num),
           transpose=True
@@ -977,8 +976,7 @@ class PoissonInput(SynConn):
       inp = bm.cond((a > 5) * (b > 5),
                     lambda _: self.rng.normal(a, b * p, self.target_var.shape),
                     lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
-                    None,
-                    dyn_vars=self.rng)
+                    None)
     self.target_var += inp * self.weight
 
   def __repr__(self):

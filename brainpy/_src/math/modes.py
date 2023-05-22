@@ -23,24 +23,33 @@ class Mode(object):
     assert isinstance(other, Mode)
     return other.__class__ == self.__class__
 
+  def is_one_of(self, *modes):
+    for m_ in modes:
+      if not isinstance(m_, type):
+        raise TypeError(f'The supported type must be a tuple/list of type. But we got {m_}')
+    return self.__class__ in modes
+
   def is_a(self, mode: type):
-    assert isinstance(mode, type)
+    """Check whether the mode is exactly the desired mode."""
+    assert isinstance(mode, type), 'Must be a type.'
     return self.__class__ == mode
-  
+
   def is_parent_of(self, *modes):
+    """Check whether the mode is a parent of the given modes."""
     cls = self.__class__
-    for smode in modes:
-      if not isinstance(smode, type):
-        raise TypeError(f'supported_types must be a tuple/list of type. But wwe got {smode}')
-    if all([not issubclass(smode, cls) for smode in modes]):
+    for m_ in modes:
+      if not isinstance(m_, type):
+        raise TypeError(f'The supported type must be a tuple/list of type. But we got {m_}')
+    if all([not issubclass(m_, cls) for m_ in modes]):
       return False
     else:
       return True
 
   def is_child_of(self, *modes):
-    for smode in modes:
-      if not isinstance(smode, type):
-        raise TypeError(f'supported_types must be a tuple/list of type. But wwe got {smode}')
+    """Check whether the mode is a children of one of the given modes."""
+    for m_ in modes:
+      if not isinstance(m_, type):
+        raise TypeError(f'The supported type must be a tuple/list of type. But we got {m_}')
     return isinstance(self, modes)
 
 
@@ -58,7 +67,12 @@ class BatchingMode(Mode):
 
   :py:class:`~.NonBatchingMode` is usually used in models of model trainings.
   """
-  pass
+
+  def __init__(self, batch_size: int = 1):
+    self.batch_size = batch_size
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(batch_size={self.batch_size})'
 
 
 class TrainingMode(BatchingMode):
@@ -74,4 +88,3 @@ batching_mode = BatchingMode()
 
 training_mode = TrainingMode()
 '''Default instance of the training computation mode.'''
-

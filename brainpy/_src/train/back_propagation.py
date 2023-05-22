@@ -13,8 +13,8 @@ from tqdm import tqdm
 import brainpy.losses as losses
 import brainpy.math as bm
 from brainpy import tools, optim
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.context import share
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.running import constants as c
 from brainpy.check import serialize_kwargs
@@ -436,11 +436,7 @@ class BPTrainer(DSTrainer):
     if shared_args_str not in self._f_loss_compiled:
       self._f_loss_compiled[shared_args_str] = partial(self._step_func_loss, shared_args)
       if self.jit[c.LOSS_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self._dyn_vars)
-        dyn_vars.update(self.vars(level=0))
-        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str],
-                                                        dyn_vars=dyn_vars.unique())
+        self._f_loss_compiled[shared_args_str] = bm.jit(self._f_loss_compiled[shared_args_str])
     return self._f_loss_compiled[shared_args_str]
 
   def _get_f_grad(self, shared_args=None) -> Callable:
@@ -450,10 +446,8 @@ class BPTrainer(DSTrainer):
       _f_loss_internal = self._get_f_loss(shared_args, jit=False)
       dyn_vars = self.target.vars()
       dyn_vars.update(self._dyn_vars)
-      dyn_vars = dyn_vars.unique()
-      tran_vars = dyn_vars.subset(bm.TrainVar)
+      tran_vars = dyn_vars.subset(bm.TrainVar).unique()
       grad_f = bm.grad(_f_loss_internal,
-                       dyn_vars=dyn_vars,
                        grad_vars=tran_vars,
                        return_value=True,
                        has_aux=self.loss_has_aux)
@@ -478,8 +472,7 @@ class BPTrainer(DSTrainer):
         dyn_vars.update(self._dyn_vars)
         dyn_vars.update(self.vars(level=0))
         dyn_vars = dyn_vars.unique()
-        self._f_fit_compiled[shared_args_str] = bm.jit(self._f_fit_compiled[shared_args_str],
-                                                       dyn_vars=dyn_vars)
+        self._f_fit_compiled[shared_args_str] = bm.jit(self._f_fit_compiled[shared_args_str])
     return self._f_fit_compiled[shared_args_str]
 
   def _step_func_loss(self, shared_args, inputs, targets):
@@ -602,11 +595,7 @@ class BPFF(BPTrainer):
 
       self._f_predict_compiled[shared_args_str] = partial(self._step_func_predict, shared_args)
       if self.jit[c.PREDICT_PHASE] and jit:
-        dyn_vars = self.target.vars()
-        dyn_vars.update(self._dyn_vars)
-        dyn_vars = dyn_vars - dyn_vars.subset(bm.VariableView)
-        self._f_predict_compiled[shared_args_str] = bm.jit(self._f_predict_compiled[shared_args_str],
-                                                           dyn_vars=dyn_vars.unique())
+        self._f_predict_compiled[shared_args_str] = bm.jit(self._f_predict_compiled[shared_args_str])
     return self._f_predict_compiled[shared_args_str]
 
   def predict(

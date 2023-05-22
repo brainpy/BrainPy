@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.dyn.base import NeuGroup
+from brainpy._src.dynsys import NeuGroup
 
 __all__ = [
   'WuCANN1D',

@@ -951,7 +951,7 @@ def _record_saved_duration(checkpoint_start_time: float):
   # Note: for the very first checkpoint, this is the interval between program
   # init and the current checkpoint start time.
   duration_since_last_checkpoint = checkpoint_start_time - _LAST_CHECKPOINT_WRITE_TIME
-  if jax.version.__version_info__ > (0, 3, 25):
+  if monitoring is not None:
     monitoring.record_event_duration_secs(
       '/jax/checkpoint/write/duration_since_last_checkpoint_secs',
       duration_since_last_checkpoint)
@@ -1151,7 +1151,7 @@ def save(
   else:
     save_main_ckpt_task()
   end_time = time.time()
-  if jax.version.__version_info__ > (0, 3, 25):
+  if monitoring is not None:
     monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
                                           end_time - start_time)
   return ckpt_path
@@ -1281,7 +1281,7 @@ def save_pytree(
   else:
     save_main_ckpt_task()
   end_time = time.time()
-  if jax.version.__version_info__ > (0, 3, 25):
+  if monitoring is not None:
     monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
                                           end_time - start_time)
 
@@ -1390,7 +1390,7 @@ def multiprocess_save(
                keep, overwrite, keep_every_n_steps, start_time, async_manager)
 
   end_time = time.time()
-  if jax.version.__version_info__ > (0, 3, 25):
+  if monitoring is not None:
     monitoring.record_event_duration_secs(_WRITE_CHECKPOINT_EVENT,
                                           end_time - start_time)
   return ckpt_path
@@ -1553,7 +1553,7 @@ def load(
     restored_checkpoint = from_state_dict(target, state_dict)
 
   end_time = time.time()
-  if jax.version.__version_info__ > (0, 3, 25):
+  if monitoring is not None:
     monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
 
   return restored_checkpoint
@@ -1616,7 +1616,7 @@ def load_pytree(
 
   state_dict = msgpack_restore(checkpoint_contents)
   end_time = time.time()
-  if jax.version.__version_info__ > (0, 3, 25):
+  if monitoring is not None:
     monitoring.record_event_duration_secs(_READ_CHECKPOINT_EVENT, end_time - start_time)
 
   return state_dict

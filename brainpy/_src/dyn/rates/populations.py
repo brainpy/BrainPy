@@ -3,8 +3,8 @@
 from typing import Union, Callable
 
 from brainpy import math as bm
-from brainpy._src.dyn.context import share
-from brainpy._src.dyn.base import NeuGroupNS
+from brainpy._src.context import share
+from brainpy._src.dynsys import NeuGroupNS
 from brainpy._src.dyn.neurons.noise_groups import OUProcess
 from brainpy._src.initialize import (Initializer,
                                      Uniform,
@@ -425,7 +425,7 @@ class QIF(RateModel):
   This mean-field model is an exact representation of the macroscopic
   firing rate and membrane potential dynamics of a spiking neural network
   consisting of QIF neurons with Lorentzian distributed background
-  excitabilities. While the mean-field derivation is mathematically
+  excitability. While the mean-field derivation is mathematically
   only valid for all-to-all coupled populations of infinite size, it
   has been shown that there is a close correspondence between the
   mean-field model and neural populations with sparse coupling and
@@ -898,12 +898,12 @@ class WilsonCowanModel(RateModel):
     return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
 
   def dx(self, x, t, y, x_ext):
-    x = self.wEE * x - self.wIE * y + x_ext
-    return (-x + (1 - self.r * x) * self.F(x, self.E_a, self.E_theta)) / self.E_tau
+    xx = self.wEE * x - self.wIE * y + x_ext
+    return (-x + (1 - self.r * x) * self.F(xx, self.E_a, self.E_theta)) / self.E_tau
 
   def dy(self, y, t, x, y_ext):
-    x = self.wEI * x - self.wII * y + y_ext
-    return (-y + (1 - self.r * y) * self.F(x, self.I_a, self.I_theta)) / self.I_tau
+    xx = self.wEI * x - self.wII * y + y_ext
+    return (-y + (1 - self.r * y) * self.F(xx, self.I_a, self.I_theta)) / self.I_tau
 
   def update(self, x1=None, x2=None):
     t = share.load('t')
@@ -1041,7 +1041,6 @@ class ThresholdLinearModel(RateModel):
       self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
 
   def update(self, x1=None, x2=None):
-    t = share.load('t')
     dt = share.load('dt')
 
     # input

@@ -38,8 +38,8 @@ class COBA(SynOutNS):
     super().__init__(name=name)
     self.E = E
 
-  def update(self, post_g, post_v):
-    return post_g * (self.E - post_v)
+  def update(self, conductance, potential):
+    return conductance * (self.E - potential)
 
 
 class CUBA(SynOutNS):
@@ -65,8 +65,8 @@ class CUBA(SynOutNS):
   def __init__(self, name: str = None, ):
     super().__init__(name=name)
 
-  def update(self, g, post_V):
-    return g
+  def update(self, conductance, potential=None):
+    return conductance
 
 
 class MgBlock(SynOutNS):
@@ -114,7 +114,6 @@ class MgBlock(SynOutNS):
     self.alpha = alpha
     self.beta = beta
 
-  def update(self, post_g, post_v):
-    I = post_g * (self.E - post_v) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * post_v))
-    return I
+  def update(self, conductance, potential):
+    return conductance * (self.E - potential) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * potential))
 

@@ -4,8 +4,8 @@ from typing import Union, Sequence, Callable
 
 import jax.numpy as jnp
 import brainpy.math as bm
-from brainpy._src.dyn.base import NeuGroupNS
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import NeuGroupNS
+from brainpy._src.context import share
 from brainpy._src.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy._src.integrators.fde import CaputoL1Schema
 from brainpy._src.integrators.fde import GLShortMemory
@@ -100,6 +100,8 @@ class FractionalFHR(FractionalNeuron):
   ):
     super(FractionalFHR, self).__init__(size, keep_size=keep_size, name=name)
 
+    assert self.mode.is_one_of(bm.NonBatchingMode, )
+
     # fractional order
     self.alpha = alpha
     is_integer(num_memory, 'num_memory', allow_none=False)
@@ -137,7 +139,6 @@ class FractionalFHR(FractionalNeuron):
                                   inits=[self.V, self.w, self.y])
 
   def reset_state(self, batch_size=None):
-    assert batch_size is None
     self.V.value = parameter(self._V_initializer, self.varshape)
     self.w.value = parameter(self._w_initializer, self.varshape)
     self.y.value = parameter(self._y_initializer, self.varshape)
@@ -258,6 +259,7 @@ class FractionalIzhikevich(FractionalNeuron):
   ):
     # initialization
     super(FractionalIzhikevich, self).__init__(size=size, keep_size=keep_size, name=name)
+    assert self.mode.is_a(bm.NonBatchingMode)
 
     # params
     self.alpha = alpha

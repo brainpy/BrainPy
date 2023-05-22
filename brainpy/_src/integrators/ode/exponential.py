@@ -114,7 +114,6 @@ from brainpy._src.integrators import constants as C, utils, joint_eq
 from brainpy._src.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
 
-logger = logging.getLogger('brainpy.integrators.ode.exponential')
 
 __all__ = [
   'ExponentialEuler',
@@ -284,7 +283,6 @@ class ExponentialEuler(ODEIntegrator):
     The default numerical integration step.
   name : optional, str
     The integrator name.
-  dyn_vars : optional, dict, sequence of ArrayType, ArrayType
   """
 
   def __init__(
@@ -294,7 +292,6 @@ class ExponentialEuler(ODEIntegrator):
       dt=None,
       name=None,
       show_code=False,
-      dyn_vars=None,
       state_delays=None,
       neutral_delays=None
   ):
@@ -309,7 +306,6 @@ class ExponentialEuler(ODEIntegrator):
     if var_type == C.SYSTEM_VAR:
       raise NotImplementedError(f'{self.__class__.__name__} does not support {C.SYSTEM_VAR}, '
                                 f'because the auto-differentiation ')
-    self.dyn_vars = dyn_vars
 
     # build the integrator
     self.code_lines = []
@@ -357,7 +353,7 @@ class ExponentialEuler(ODEIntegrator):
                                                          eq=str(eq)))
 
       # gradient function
-      value_and_grad = bm.vector_grad(eq, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
+      value_and_grad = bm.vector_grad(eq, argnums=0, return_value=True)
 
       # integration function
       def integral(*args, **kwargs):

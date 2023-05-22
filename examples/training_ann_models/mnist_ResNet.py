@@ -212,7 +212,6 @@ def main():
     net = ResNet18(num_classes=10)
 
   # loss function
-  @bm.to_object(child_objs=net)
   def loss_fun(X, Y, fit=True):
     s = {'fit': fit}
     predictions = net(s, X)
@@ -227,13 +226,12 @@ def main():
                             train_vars=net.train_vars().unique())
 
   @bm.jit
-  @bm.to_object(child_objs=(grad_fun, optimizer))
   def train_fun(X, Y):
     grads, l, n = grad_fun(X, Y)
     optimizer.update(grads)
     return l, n
 
-  predict_loss_fun = bm.jit(partial(loss_fun, fit=False), child_objs=loss_fun)
+  predict_loss_fun = bm.jit(partial(loss_fun, fit=False))
 
   os.makedirs(out_dir, exist_ok=True)
   with open(os.path.join(out_dir, 'args.txt'), 'w', encoding='utf-8') as args_txt:

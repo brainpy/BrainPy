@@ -59,9 +59,6 @@ class EI_RNN(bp.DynamicalSystem):
     self.w_ro = bm.TrainVar(bp.init.parameter(w_ro, (self.e_size, num_output)))
     self.b_ro = bm.TrainVar(self.rng.uniform(-bound, bound, num_output))
 
-    # variables
-    self.reset_state(1)
-
   def reset_state(self, batch_size):
     self.h = bm.Variable(bm.zeros((batch_size, self.num_hidden)), batch_axis=0)
     self.o = bm.Variable(bm.zeros((batch_size, self.num_output)), batch_axis=0)
@@ -107,14 +104,13 @@ opt = bp.optim.Adam(lr=0.001, train_vars=net.train_vars().unique())
 
 # gradient function
 grad_f = bm.grad(net.loss,
-                 child_objs=net,
                  grad_vars=net.train_vars().unique(),
                  return_value=True,
                  has_aux=True)
 
 
 # training function
-@bm.jit(child_objs=(net, opt))
+@bm.jit
 def train(xs, ys):
   grads, loss, acc = grad_f(xs, ys)
   opt.update(grads)

@@ -5,7 +5,8 @@ from typing import TypeVar, Tuple, Union, Callable
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy._src.math.ndarray import Array, Variable, TrainVar
+from brainpy._src.math.ndarray import Array
+from brainpy._src.math.object_transform import Variable, TrainVar
 from brainpy._src import connect as conn
 from brainpy._src import initialize as init
 

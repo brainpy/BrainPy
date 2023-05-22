@@ -29,7 +29,6 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 ## Ecosystem
 
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
-- **[brainpylib](https://github.com/brainpy/brainpylib)**: Efficient operators for the sparse and event-driven computation. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
 

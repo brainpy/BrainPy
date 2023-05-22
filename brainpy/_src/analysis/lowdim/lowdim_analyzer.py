@@ -4,6 +4,7 @@ import warnings
 from functools import partial
 
 import numpy as np
+import jax
 from jax import numpy as jnp
 from jax import vmap
 from jax.scipy.optimize import minimize
@@ -274,13 +275,13 @@ class Num1DAnalyzer(LowDimAnalyzer):
       f = partial(f, **(self.pars_update + self.fixed_vars))
       f = utils.f_without_jaxarray_return(f)
       f = utils.remove_return_shape(f)
-      self.analyzed_results[C.F_fx] = bm.jit(f, device=self.jit_device)
+      self.analyzed_results[C.F_fx] = jax.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fx]
 
   @property
   def F_vmap_fx(self):
     if C.F_vmap_fx not in self.analyzed_results:
-      self.analyzed_results[C.F_vmap_fx] = bm.jit(vmap(self.F_fx), device=self.jit_device)
+      self.analyzed_results[C.F_vmap_fx] = jax.jit(vmap(self.F_fx), device=self.jit_device)
     return self.analyzed_results[C.F_vmap_fx]
 
   @property
@@ -288,7 +289,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     """The function to evaluate :math:`\frac{df_x(*\mathrm{vars}, *\mathrm{pars})}{dx}`."""
     if C.F_dfxdx not in self.analyzed_results:
       dfx = bm.vector_grad(self.F_fx, argnums=0)
-      self.analyzed_results[C.F_dfxdx] = bm.jit(dfx, device=self.jit_device)
+      self.analyzed_results[C.F_dfxdx] = jax.jit(dfx, device=self.jit_device)
     return self.analyzed_results[C.F_dfxdx]
 
   @property
@@ -307,7 +308,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
       # ---
       # "X": a two-dimensional matrix: (num_batch, num_var)
       # "args": a list of one-dimensional vectors, each has the shape of (num_batch,)
-      self.analyzed_results[C.F_vmap_fp_aux] = bm.jit(vmap(self.F_fixed_point_aux))
+      self.analyzed_results[C.F_vmap_fp_aux] = jax.jit(vmap(self.F_fixed_point_aux))
     return self.analyzed_results[C.F_vmap_fp_aux]
 
   @property
@@ -326,7 +327,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
       # ---
       # "X": a two-dimensional matrix: (num_batch, num_var)
       # "args": a list of one-dimensional vectors, each has the shape of (num_batch,)
-      self.analyzed_results[C.F_vmap_fp_opt] = bm.jit(vmap(self.F_fixed_point_opt))
+      self.analyzed_results[C.F_vmap_fp_opt] = jax.jit(vmap(self.F_fixed_point_opt))
     return self.analyzed_results[C.F_vmap_fp_opt]
 
   def _get_fixed_points(self, candidates, *args, num_seg=None, tol_aux=1e-7, loss_screen=None):
@@ -519,7 +520,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
   @property
   def F_vmap_fy(self):
     if C.F_vmap_fy not in self.analyzed_results:
-      self.analyzed_results[C.F_vmap_fy] = bm.jit(vmap(self.F_fy), device=self.jit_device)
+      self.analyzed_results[C.F_vmap_fy] = jax.jit(vmap(self.F_fy), device=self.jit_device)
     return self.analyzed_results[C.F_vmap_fy]
 
   @property
@@ -527,7 +528,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     """The function to evaluate :math:`\frac{df_x (*\mathrm{vars}, *\mathrm{pars})}{dy}`."""
     if C.F_dfxdy not in self.analyzed_results:
       dfxdy = bm.vector_grad(self.F_fx, argnums=1)
-      self.analyzed_results[C.F_dfxdy] = bm.jit(dfxdy, device=self.jit_device)
+      self.analyzed_results[C.F_dfxdy] = jax.jit(dfxdy, device=self.jit_device)
     return self.analyzed_results[C.F_dfxdy]
 
   @property
@@ -535,7 +536,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     """The function to evaluate :math:`\frac{df_y (*\mathrm{vars}, *\mathrm{pars})}{dx}`."""
     if C.F_dfydx not in self.analyzed_results:
       dfydx = bm.vector_grad(self.F_fy, argnums=0)
-      self.analyzed_results[C.F_dfydx] = bm.jit(dfydx, device=self.jit_device)
+      self.analyzed_results[C.F_dfydx] = jax.jit(dfydx, device=self.jit_device)
     return self.analyzed_results[C.F_dfydx]
 
   @property
@@ -543,7 +544,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     """The function to evaluate :math:`\frac{df_y (*\mathrm{vars}, *\mathrm{pars})}{dy}`."""
     if C.F_dfydy not in self.analyzed_results:
       dfydy = bm.vector_grad(self.F_fy, argnums=1)
-      self.analyzed_results[C.F_dfydy] = bm.jit(dfydy, device=self.jit_device)
+      self.analyzed_results[C.F_dfydy] = jax.jit(dfydy, device=self.jit_device)
     return self.analyzed_results[C.F_dfydy]
 
   @property
@@ -556,7 +557,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       def call(*var_and_pars):
         var_and_pars = tuple((vp.value if isinstance(vp, bm.Array) else vp) for vp in var_and_pars)
-        return jnp.array(bm.jit(f_jacobian, device=self.jit_device)(*var_and_pars))
+        return jnp.array(jax.jit(f_jacobian, device=self.jit_device)(*var_and_pars))
 
       self.analyzed_results[C.F_jacobian] = call
     return self.analyzed_results[C.F_jacobian]
@@ -681,7 +682,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       if self.F_x_by_y_in_fx is not None:
         utils.output("I am evaluating fx-nullcline by F_x_by_y_in_fx ...")
-        vmap_f = bm.jit(vmap(self.F_x_by_y_in_fx), device=self.jit_device)
+        vmap_f = jax.jit(vmap(self.F_x_by_y_in_fx), device=self.jit_device)
         for j, pars in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
           mesh_values = jnp.meshgrid(*((ys,) + pars))
@@ -697,7 +698,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       elif self.F_y_by_x_in_fx is not None:
         utils.output("I am evaluating fx-nullcline by F_y_by_x_in_fx ...")
-        vmap_f = bm.jit(vmap(self.F_y_by_x_in_fx), device=self.jit_device)
+        vmap_f = jax.jit(vmap(self.F_y_by_x_in_fx), device=self.jit_device)
         for j, pars in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
           mesh_values = jnp.meshgrid(*((xs,) + pars))
@@ -715,9 +716,9 @@ class Num2DAnalyzer(Num1DAnalyzer):
         utils.output("I am evaluating fx-nullcline by optimization ...")
         # auxiliary functions
         f2 = lambda y, x, *pars: self.F_fx(x, y, *pars)
-        vmap_f2 = bm.jit(vmap(f2), device=self.jit_device)
-        vmap_brentq_f2 = bm.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
-        vmap_brentq_f1 = bm.jit(vmap(utils.jax_brentq(self.F_fx)), device=self.jit_device)
+        vmap_f2 = jax.jit(vmap(f2), device=self.jit_device)
+        vmap_brentq_f2 = jax.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
+        vmap_brentq_f1 = jax.jit(vmap(utils.jax_brentq(self.F_fx)), device=self.jit_device)
 
         # num segments
         for _j, Ps in enumerate(par_seg):
@@ -774,7 +775,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       if self.F_x_by_y_in_fy is not None:
         utils.output("I am evaluating fy-nullcline by F_x_by_y_in_fy ...")
-        vmap_f = bm.jit(vmap(self.F_x_by_y_in_fy), device=self.jit_device)
+        vmap_f = jax.jit(vmap(self.F_x_by_y_in_fy), device=self.jit_device)
         for j, pars in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
           mesh_values = jnp.meshgrid(*((ys,) + pars))
@@ -790,7 +791,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       elif self.F_y_by_x_in_fy is not None:
         utils.output("I am evaluating fy-nullcline by F_y_by_x_in_fy ...")
-        vmap_f = bm.jit(vmap(self.F_y_by_x_in_fy), device=self.jit_device)
+        vmap_f = jax.jit(vmap(self.F_y_by_x_in_fy), device=self.jit_device)
         for j, pars in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
           mesh_values = jnp.meshgrid(*((xs,) + pars))
@@ -809,9 +810,9 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
         # auxiliary functions
         f2 = lambda y, x, *pars: self.F_fy(x, y, *pars)
-        vmap_f2 = bm.jit(vmap(f2), device=self.jit_device)
-        vmap_brentq_f2 = bm.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
-        vmap_brentq_f1 = bm.jit(vmap(utils.jax_brentq(self.F_fy)), device=self.jit_device)
+        vmap_f2 = jax.jit(vmap(f2), device=self.jit_device)
+        vmap_brentq_f2 = jax.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
+        vmap_brentq_f1 = jax.jit(vmap(utils.jax_brentq(self.F_fy)), device=self.jit_device)
 
         for j, Ps in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
@@ -859,7 +860,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
     xs = self.resolutions[self.x_var]
     ys = self.resolutions[self.y_var]
     P = tuple(self.resolutions[p] for p in self.target_par_names)
-    f_select = bm.jit(vmap(lambda vals, ids: vals[ids], in_axes=(1, 1)))
+    f_select = jax.jit(vmap(lambda vals, ids: vals[ids], in_axes=(1, 1)))
 
     # num seguments
     if isinstance(num_segments, int):
@@ -939,10 +940,10 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       if self.convert_type() == C.x_by_y:
         num_seg = len(self.resolutions[self.y_var])
-        f_vmap = bm.jit(vmap(self.F_y_convert[1]))
+        f_vmap = jax.jit(vmap(self.F_y_convert[1]))
       else:
         num_seg = len(self.resolutions[self.x_var])
-        f_vmap = bm.jit(vmap(self.F_x_convert[1]))
+        f_vmap = jax.jit(vmap(self.F_x_convert[1]))
       # get the signs
       signs = jnp.sign(f_vmap(candidates, *args))
       signs = signs.reshape((num_seg, -1))
@@ -972,10 +973,10 @@ class Num2DAnalyzer(Num1DAnalyzer):
       # get another value
       if self.convert_type() == C.x_by_y:
         y_values = fps
-        x_values = bm.jit(vmap(self.F_y_convert[0]))(y_values, *args)
+        x_values = jax.jit(vmap(self.F_y_convert[0]))(y_values, *args)
       else:
         x_values = fps
-        y_values = bm.jit(vmap(self.F_x_convert[0]))(x_values, *args)
+        y_values = jax.jit(vmap(self.F_x_convert[0]))(x_values, *args)
       fps = jnp.stack([x_values, y_values]).T
       return fps, selected_ids, args
 
@@ -1042,7 +1043,7 @@ class Num3DAnalyzer(Num2DAnalyzer):
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)
       f = wrapper(self.model.f_derivatives[self.z_var])
       f = partial(f, **(self.pars_update + self.fixed_vars))
-      self.analyzed_results[C.F_fz] = bm.jit(f, device=self.jit_device)
+      self.analyzed_results[C.F_fz] = jax.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fz]
 
   def fz_signs(self, pars=(), cache=False):

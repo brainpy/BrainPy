@@ -84,13 +84,12 @@ class Euler(SDEIntegrator):
   def __init__(
       self, f, g, dt=None, name=None, show_code=False,
       var_type=None, intg_type=None, wiener_type=None,
-      state_delays=None, dyn_vars=None
+      state_delays=None,
   ):
     super(Euler, self).__init__(f=f, g=g, dt=dt, name=name,
                                 var_type=var_type, intg_type=intg_type,
                                 wiener_type=wiener_type,
-                                state_delays=state_delays,
-                                dyn_vars=dyn_vars)
+                                state_delays=state_delays)
 
     self.set_integral(self.step)
 
@@ -209,14 +208,13 @@ class Heun(Euler):
 
   def __init__(self, f, g, dt=None, name=None, show_code=False,
                var_type=None, intg_type=None, wiener_type=None,
-               state_delays=None, dyn_vars=None):
+               state_delays=None, ):
     if intg_type != constants.STRA_SDE:
       raise errors.IntegratorError(f'Heun method only supports Stranovich '
                                    f'integral of SDEs, but we got {intg_type} integral.')
     super(Heun, self).__init__(f=f, g=g, dt=dt, name=name,
                                var_type=var_type, intg_type=intg_type,
-                               wiener_type=wiener_type, state_delays=state_delays,
-                               dyn_vars=dyn_vars)
+                               wiener_type=wiener_type, state_delays=state_delays)
 
 
 register_sde_integrator('heun', Heun)
@@ -259,7 +257,6 @@ class Milstein(SDEIntegrator):
       intg_type: str = None,
       wiener_type: str = None,
       state_delays: Dict[str, bm.AbstractDelay] = None,
-      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
   ):
     super(Milstein, self).__init__(f=f,
                                    g=g,
@@ -268,8 +265,7 @@ class Milstein(SDEIntegrator):
                                    var_type=var_type,
                                    intg_type=intg_type,
                                    wiener_type=wiener_type,
-                                   state_delays=state_delays,
-                                   dyn_vars=dyn_vars)
+                                   state_delays=state_delays)
     self.set_integral(self.step)
 
   def _get_g_grad(self, f, allow_raise=False, need_grad=True):
@@ -296,7 +292,7 @@ class Milstein(SDEIntegrator):
         if not allow_raise:
           raise e
       if need_grad:
-        res[0] = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars)
+        res[0] = bm.vector_grad(f, argnums=0)
       return [tuple(res)], state
 
   def step(self, *args, **kwargs):
@@ -416,7 +412,6 @@ class MilsteinGradFree(SDEIntegrator):
       intg_type: str = None,
       wiener_type: str = None,
       state_delays: Dict[str, bm.AbstractDelay] = None,
-      dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
   ):
     super(MilsteinGradFree, self).__init__(f=f,
                                            g=g,
@@ -425,8 +420,7 @@ class MilsteinGradFree(SDEIntegrator):
                                            var_type=var_type,
                                            intg_type=intg_type,
                                            wiener_type=wiener_type,
-                                           state_delays=state_delays,
-                                           dyn_vars=dyn_vars)
+                                           state_delays=state_delays)
     self.set_integral(self.step)
 
   def step(self, *args, **kwargs):
@@ -558,7 +552,6 @@ class ExponentialEuler(SDEIntegrator):
                                            var_type=var_type,
                                            intg_type=intg_type,
                                            wiener_type=wiener_type,
-                                           dyn_vars=dyn_vars,
                                            state_delays=state_delays)
 
     if self.intg_type == constants.STRA_SDE:
@@ -626,7 +619,7 @@ class ExponentialEuler(SDEIntegrator):
       if len(vars) != 1:
         raise errors.DiffEqError(constants.multi_vars_msg.format(cls=self.__class__.__name__,
                                                                  vars=str(vars), eq=str(f)))
-      value_and_grad = bm.vector_grad(f, argnums=0, dyn_vars=self.dyn_vars, return_value=True)
+      value_and_grad = bm.vector_grad(f, argnums=0, return_value=True)
 
       # integration function
       def integral(*args, **kwargs):

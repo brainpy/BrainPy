@@ -28,27 +28,28 @@ def delay_odeint(duration, eq, args=None, inits=None,
   runner.run(duration)
   return runner.mon
 
-
-def eq1(x, t, xdelay):
-  return -xdelay(t - 1)
+def get_eq1(xdelay):
+  def eq1(x, t):
+    return -xdelay(t - 1)
+  return eq1
 
 
 case1_delay = bm.TimeDelay(bm.zeros((1,)), 1., before_t0=-1., interp_method='round')
 case2_delay = bm.TimeDelay(bm.zeros((1,)), 1., before_t0=-1., interp_method='linear_interp')
-ref1 = delay_odeint(20., eq1, args={'xdelay': case1_delay},
-                    state_delays={'x': case1_delay}, method='euler')
-ref2 = delay_odeint(20., eq1, args={'xdelay': case2_delay},
-                    state_delays={'x': case2_delay}, method='euler')
+ref1 = delay_odeint(20., get_eq1(case1_delay), state_delays={'x': case1_delay}, method='euler')
+ref2 = delay_odeint(20., get_eq1(case2_delay), state_delays={'x': case2_delay}, method='euler')
 
 
-def eq2(x, t, xdelay):
-  return -xdelay(t - 2)
+def get_eq2(xdelay):
+  def eq2(x, t):
+    return -xdelay(t - 2)
+  return eq2
 
 
 delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01, interp_method='round')
-ref3 = delay_odeint(4., eq2, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01)
+ref3 = delay_odeint(4., get_eq2(delay1), state_delays={'x': delay1}, dt=0.01)
 delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01)
-ref4 = delay_odeint(4., eq2, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01)
+ref4 = delay_odeint(4., get_eq2(delay1), state_delays={'x': delay1}, dt=0.01)
 
 
 class TestFirstOrderConstantDelay(parameterized.TestCase):
@@ -64,8 +65,8 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
     case1_delay = bm.TimeDelay(bm.zeros((1,)), 1., before_t0=-1., interp_method='round')
     case2_delay = bm.TimeDelay(bm.zeros((1,)), 1., before_t0=-1., interp_method='linear_interp')
 
-    case1 = delay_odeint(20., eq1, args={'xdelay': case1_delay}, state_delays={'x': case1_delay}, method=method)
-    case2 = delay_odeint(20., eq1, args={'xdelay': case2_delay}, state_delays={'x': case2_delay}, method=method)
+    case1 = delay_odeint(20., get_eq1(case1_delay), state_delays={'x': case1_delay}, method=method)
+    case2 = delay_odeint(20., get_eq1(case2_delay), state_delays={'x': case2_delay}, method=method)
 
     print(method)
     print("case1.keys()", case1.keys())
@@ -88,9 +89,10 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
 
 
 class TestNonConstantHist(parameterized.TestCase):
-  @staticmethod
-  def eq(x, t, xdelay):
-    return -xdelay(t - 2)
+  def get_eq(self, xdelay):
+    def eq(x, t):
+      return -xdelay(t - 2)
+    return eq
 
   def __init__(self, *args, **kwargs):
     super(TestNonConstantHist, self).__init__(*args, **kwargs)
@@ -102,8 +104,8 @@ class TestNonConstantHist(parameterized.TestCase):
   def test1(self, method):
     delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01, interp_method='round')
     delay2 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01)
-    case1 = delay_odeint(4., self.eq, args={'xdelay': delay1}, state_delays={'x': delay1}, dt=0.01, method=method)
-    case2 = delay_odeint(4., self.eq, args={'xdelay': delay2}, state_delays={'x': delay2}, dt=0.01, method=method)
+    case1 = delay_odeint(4., self.get_eq(delay1), state_delays={'x': delay1}, dt=0.01, method=method)
+    case2 = delay_odeint(4., self.get_eq(delay2), state_delays={'x': delay2}, dt=0.01, method=method)
 
     print("case1.keys()", case1.keys())
     print("case2.keys()", case2.keys())
