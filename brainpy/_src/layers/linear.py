@@ -207,3 +207,21 @@ class Identity(Layer):
 
   def update(self, x):
     return x
+
+
+class CSRLinear(Layer):
+  pass
+
+
+class CSCLinear(Layer):
+  pass
+
+
+class BSRLinear(Layer):
+  pass
+
+
+class MatLinear(Layer):
+  pass
+
+

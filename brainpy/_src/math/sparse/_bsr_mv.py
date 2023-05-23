@@ -1,4 +1,3 @@
-
 from functools import partial
 from typing import Union, Tuple
 
@@ -20,25 +19,23 @@ try:
 except ImportError:
   gpu_ops = None
 
-
 __all__ = [
   'cusparse_bcsr_matvec'
 ]
 
+
 @numba.njit(fastmath=True, parallel=True, nogil=True)
 def _cusparse_bcsr_matvec_bsr_matvec_numba_imp(outs, ins):
-  data, indices, indptr, vector,  blocksize , shape, nnzb, transpose = ins
+  data, indices, indptr, vector, blocksize, shape, nnzb, transpose = ins
   blocksize = blocksize[()]
   outs.fill(0)
-
   for i in range(shape[0]):
-      tmp= np.zeros(blocksize, dtype=data.dtype)
-    
-      for j in range(indptr[i], indptr[i + 1]): 
-            start = indices[j] * blocksize
-            end = start + blocksize
-            tmp += data[start: end] @ vector[start: end] 
-      outs[i * blocksize: (i + 1) * blocksize] = tmp
+    tmp = np.zeros(blocksize, dtype=data.dtype)
+    for j in range(indptr[i], indptr[i + 1]):
+      start = indices[j] * blocksize
+      end = start + blocksize
+      tmp += data[start: end] @ vector[start: end]
+    outs[i * blocksize: (i + 1) * blocksize] = tmp
 
 
 # @numba.njit(fastmath=True, parallel=True, nogil=True)
@@ -60,9 +57,9 @@ def _cusparse_bcsr_matvec_bsr_matvec_numba_imp(outs, ins):
 #         cnt+=1
 
 
+def _cusprase_bcsr_matvec_values(values, indices, indptr, vector, *, blocksize, nnzb, shape, transpose):
+  return cusparse_bcsr_matvec(values, indices, indptr, vector, blocksize, nnzb=nnzb, shape=shape, transpose=transpose)
 
-def _cusprase_bcsr_matvec_values( values, indices, indptr, vector, *,blocksize ,nnzb, shape, transpose):
-  return cusparse_bcsr_matvec(values, indices, indptr, vector,blocksize,nnzb=nnzb ,shape=shape,transpose=transpose)
 
 def cusparse_bcsr_matvec(
     data: Union[float, jnp.ndarray],
@@ -76,7 +73,6 @@ def cusparse_bcsr_matvec(
     method: str = 'vector',
     transpose: bool = False
 ) -> jnp.ndarray:
-
   data = as_jax(data)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
@@ -95,15 +91,17 @@ def cusparse_bcsr_matvec(
                     f'But we got {data.dtype} != {vector.dtype}.')
   # assert data.ndim == indices.ndim == indptr.ndim == vector.ndim == 1
 
-  return cusparse_bcsr_matvec_vector_p.bind(data, indices, indptr, vector,blocksize = blocksize, shape=shape,nnzb=nnzb,transpose=transpose)
+  return cusparse_bcsr_matvec_vector_p.bind(data, indices, indptr, vector, blocksize=blocksize, shape=shape, nnzb=nnzb,
+                                            transpose=transpose)
 
 
-def _cusparse_bcsr_matvec_vector_cpu_translation(c, data, indices, indptr, vector, *, blocksize , shape, nnzb, transpose):
+def _cusparse_bcsr_matvec_vector_cpu_translation(c, data, indices, indptr, vector, *, blocksize, shape, nnzb,
+                                                 transpose):
   inputs = (data, indices, indptr, vector)
   print(c.get_shape(data))
-  description = dict(blocksize=blocksize,shape=shape,nnzb=nnzb, transpose=transpose,)
+  description = dict(blocksize=blocksize, shape=shape, nnzb=nnzb, transpose=transpose, )
   if transpose:
-    skip=1
+    skip = 1
   else:
     name, inputs, in_layouts, out_layouts = compile_cpu_signature_with_numba(
       c,
@@ -120,20 +118,21 @@ def _cusparse_bcsr_matvec_vector_cpu_translation(c, data, indices, indptr, vecto
     shape_with_layout=out_layouts,
   )
 
-def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vector, *,blocksize , shape,nnzb):
+
+def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vector, *, blocksize, shape, nnzb):
   if gpu_ops is None:
     raise GPUOperatorNotFound(cusparse_bcsr_matvec_vector_p.name)
-  
+
   data_shape = c.get_shape(data)
   if data_shape.element_type() == np.float32:
-    type_name = b'float' 
-  elif data_shape.element_type() == np.double: 
+    type_name = b'float'
+  elif data_shape.element_type() == np.double:
     type_name = b'double'
   else:
     raise ValueError('data_type not support(except float/double)')
-   # 有可能不是这个
+  # 有可能不是这个
 
-  opaque = gpu_ops.build_bcsrcusparsespmv_descriptor(shape[0],shape[1],blocksize,nnzb)
+  opaque = gpu_ops.build_bcsrcusparsespmv_descriptor(shape[0], shape[1], blocksize, nnzb)
   return xla_client.ops.CustomCallWithLayout(
     c,
     b'gpu_bcsr_cusparse_spmv_' + type_name,
@@ -143,9 +142,10 @@ def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vecto
                                 c.get_shape(indptr),
                                 c.get_shape(vector),
                                 ),
-    shape_with_layout=xla_client.Shape.array_shape(data_shape.element_type(), (shape[0]*blocksize,), (0,)),
+    shape_with_layout=xla_client.Shape.array_shape(data_shape.element_type(), (shape[0] * blocksize,), (0,)),
     opaque=opaque,
   )
+
 
 # def _bcsr_matvec_abstract(*args, **kwargs):
 #   data = args[0]
@@ -166,12 +166,13 @@ def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vecto
 # ):
 #   return ShapedArray(dtype=values.dtype, shape=(batch_size, shape[1] if transpose else shape[0]))
 
-def _cusparse_bcsr_matvec_abstract(data, indices, indptr, vector,*,blocksize, shape,nnzb,transpose=False):
-  return ShapedArray(dtype=data.dtype, shape=(shape[0]*blocksize,))
+def _cusparse_bcsr_matvec_abstract(data, indices, indptr, vector, *, blocksize, shape, nnzb, transpose=False):
+  return ShapedArray(dtype=data.dtype, shape=(shape[0] * blocksize,))
 
-def _cusparse_bcsr_matvec_jvp_values(data_dot, data, indices, indptr, vector, *,blocksize, shape,nnzb, transpose):
-  return cusparse_bcsr_matvec(data_dot, indices, indptr, vector,blocksize=blocksize,nnzb=nnzb, shape=shape, transpose=transpose)
 
+def _cusparse_bcsr_matvec_jvp_values(data_dot, data, indices, indptr, vector, *, blocksize, shape, nnzb, transpose):
+  return cusparse_bcsr_matvec(data_dot, indices, indptr, vector, blocksize=blocksize, nnzb=nnzb, shape=shape,
+                              transpose=transpose)
 
 
 def _cusparse_bcsr_transpose(ct, data, indices, indptr, vector, *, blocksize, shape, transpose):
@@ -185,21 +186,22 @@ def _cusparse_bcsr_transpose(ct, data, indices, indptr, vector, *, blocksize, sh
       ct_values = ad.Zero(data)
     else:
       row, col = csr_to_coo(indices, indptr)
-      cnt=0
-      ct_values=[]
+      cnt = 0
+      ct_values = []
       for i in row:
         for j in col:
-          for p in range(0,blocksize):
-            cntq=0
-            for q in range(0,blocksize):
+          for p in range(0, blocksize):
+            cntq = 0
+            for q in range(0, blocksize):
               if transpose:
-                ct_values[cnt][cntq] =  vector[i*blocksize+p]*ct[j*blocksize+q]
+                ct_values[cnt][cntq] = vector[i * blocksize + p] * ct[j * blocksize + q]
               else:
-                ct_values[cnt][cntq] =  vector[j*blocksize+q]*ct[i*blocksize+p]
-              cntq+=1
-            cnt+=1
+                ct_values[cnt][cntq] = vector[j * blocksize + q] * ct[i * blocksize + p]
+              cntq += 1
+            cnt += 1
     return ct_values, indices, indptr, vector
-  
+
+
 cusparse_bcsr_matvec_vector_p = Primitive('cusparse_block_spmv')
 cusparse_bcsr_matvec_vector_p.def_abstract_eval(_cusparse_bcsr_matvec_abstract)
 cusparse_bcsr_matvec_vector_p.def_impl(partial(xla.apply_primitive, cusparse_bcsr_matvec_vector_p))
