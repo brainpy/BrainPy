@@ -13,7 +13,7 @@ from brainpy import check
 from brainpy import math as bm
 from brainpy._src.dynsys import DynamicalSystemNS
 from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
-from brainpy.check import is_integer, jit_error_checking
+from brainpy.check import jit_error
 from brainpy._src.context import share
 
 __all__ = [
@@ -68,12 +68,13 @@ class Delay(DynamicalSystemNS):
       entries: Optional[Dict] = None,
       name: str = None,
       method: str = ROTATE_UPDATE,
+      mode: Optional[bm.Mode] = None,
   ):
-    super().__init__(name=name)
+    super().__init__(name=name, mode=mode)
     if method is None:
       if self.mode.is_a(bm.NonBatchingMode):
         method = ROTATE_UPDATE
-      elif self.mode.is_parent_of(bm.TrainingMode):
+      elif self.mode.is_a(bm.TrainingMode):
         method = CONCAT_UPDATE
       else:
         method = ROTATE_UPDATE
@@ -227,7 +228,7 @@ class Delay(DynamicalSystemNS):
     """
     assert delay_step is not None
     if check.is_checking():
-      jit_error_checking(jnp.any(delay_step > self.length), self._check_delay, delay_step)
+      jit_error(jnp.any(delay_step > self.length), self._check_delay, delay_step)
 
     if self.method == ROTATE_UPDATE:
       i = share.load('i')

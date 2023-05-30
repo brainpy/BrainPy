@@ -8,7 +8,7 @@ from jax import vmap
 from jax.lax import stop_gradient
 
 from brainpy import check
-from brainpy.check import is_float, is_integer, jit_error_checking
+from brainpy.check import is_float, is_integer, jit_error
 from brainpy.errors import UnsupportedError
 from .compat_numpy import vstack, broadcast_to
 from .environment import get_dt, get_float
@@ -221,12 +221,12 @@ class TimeDelay(AbstractDelay):
     # check
     if check.is_checking():
       current_time = self.current_time[0]
-      jit_error_checking(time > current_time + 1e-6,
-                         self._check_time1,
-                         (time, current_time))
-      jit_error_checking(time < current_time - self.delay_len - self.dt,
-                         self._check_time2,
-                         (time, current_time))
+      jit_error(time > current_time + 1e-6,
+                self._check_time1,
+                (time, current_time))
+      jit_error(time < current_time - self.delay_len - self.dt,
+                self._check_time2,
+                (time, current_time))
     if self._before_type == _FUNC_BEFORE:
       res = cond(time < self.t0,
                  self._before_t0,
@@ -426,7 +426,7 @@ class LengthDelay(AbstractDelay):
       The delay length used to retrieve the data.
     """
     if check.is_checking():
-      jit_error_checking(jnp.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
+      jit_error(jnp.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
 
     if self.update_method == ROTATE_UPDATE:
       delay_idx = (self.idx[0] + delay_len) % self.num_delay_step

@@ -7,9 +7,9 @@ show = False
 class HH(bp.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size)
-    self.INa = brainpy.dyn.channels.INa_HH1952(size, )
-    self.IK = brainpy.dyn.channels.IK_HH1952(size, )
-    self.IL = brainpy.dyn.channels.IL(size, E=-54.387, g_max=0.03)
+    self.INa = bp.channels.INa_HH1952(size, )
+    self.IK = bp.channels.IK_HH1952(size, )
+    self.IL = bp.channels.IL(size, E=-54.387, g_max=0.03)
 
 
 class HHv2(bp.NeuGroupNS):
