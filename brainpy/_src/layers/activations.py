@@ -83,10 +83,10 @@ class ReLU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/ReLU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.ReLU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -94,6 +94,8 @@ class ReLU(Layer):
 
     An implementation of CReLU - https://arxiv.org/abs/1603.05201
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.ReLU()
       >>> input = bm.random.randn(2).unsqueeze(0)
       >>> output = bm.cat((m(input), m(-input)))
@@ -143,10 +145,10 @@ class RReLU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/RReLU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.RReLU(0.1, 0.3)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -204,10 +206,10 @@ class Hardtanh(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Hardtanh.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Hardtanh(-2, 2)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -254,10 +256,10 @@ class ReLU6(Hardtanh):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/ReLU6.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.ReLU6()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -282,10 +284,10 @@ class Sigmoid(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Sigmoid.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Sigmoid()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -314,10 +316,10 @@ class Hardsigmoid(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Hardsigmoid.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Hardsigmoid()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -347,10 +349,10 @@ class Tanh(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Tanh.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Tanh()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -379,10 +381,10 @@ class SiLU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/SiLU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.SiLU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -416,10 +418,10 @@ class Mish(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Mish.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Mish()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -459,10 +461,10 @@ class Hardswish(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Hardswish.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Hardswish()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -500,10 +502,10 @@ class ELU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/ELU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.ELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -541,10 +543,10 @@ class CELU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/CELU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.CELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -587,10 +589,10 @@ class SELU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/SELU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.SELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -627,6 +629,8 @@ class GLU(Layer):
 
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.GLU()
       >>> input = bm.random.randn(4, 2)
       >>> output = m(input)
@@ -664,10 +668,10 @@ class GELU(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/GELU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.GELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -706,10 +710,10 @@ class Hardshrink(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Hardshrink.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Hardshrink()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -754,10 +758,10 @@ class LeakyReLU(Layer):
         dimensions
       - Output: :math:`(*)`, same shape as the input
 
-  .. image:: ../scripts/activation_images/LeakyReLU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.LeakyReLU(0.1)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -789,10 +793,10 @@ class LogSigmoid(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/LogSigmoid.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.LogSigmoid()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -820,10 +824,10 @@ class Softplus(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Softplus.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Softplus()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -862,10 +866,10 @@ class Softshrink(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Softshrink.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Softshrink()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -925,10 +929,10 @@ class PReLU(Layer):
   Attributes:
       weight (Tensor): the learnable weights of shape (:attr:`num_parameters`).
 
-  .. image:: ../scripts/activation_images/PReLU.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.PReLU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -939,7 +943,7 @@ class PReLU(Layer):
   def __init__(self, num_parameters: int = 1, init: float = 0.25, dtype=None) -> None:
     self.num_parameters = num_parameters
     super().__init__()
-    self.weight = Parameter(bm.empty(num_parameters, dtype=dtype).fill_(init))
+    self.weight = bm.TrainVar(bm.ones(num_parameters, dtype=dtype) * init)
 
   def update(self, input: ArrayType) -> ArrayType:
     return bm.prelu(input, self.weight)
@@ -958,10 +962,10 @@ class Softsign(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Softsign.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Softsign()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -981,10 +985,10 @@ class Tanhshrink(Layer):
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
 
-  .. image:: ../scripts/activation_images/Tanhshrink.png
-
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Tanhshrink()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
@@ -1019,6 +1023,8 @@ class Softmin(Layer):
 
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Softmin(dim=1)
       >>> input = bm.random.randn(2, 3)
       >>> output = m(input)
@@ -1070,6 +1076,8 @@ class Softmax(Layer):
 
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Softmax(dim=1)
       >>> input = bm.random.randn(2, 3)
       >>> output = m(input)
@@ -1105,6 +1113,8 @@ class Softmax2d(Layer):
 
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.Softmax2d()
       >>> # you softmax over the 2nd dimension
       >>> input = bm.random.randn(2, 3, 12, 13)
@@ -1137,6 +1147,8 @@ class LogSoftmax(Layer):
 
   Examples::
 
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
       >>> m = bp.layers.LogSoftmax(dim=1)
       >>> input = bm.random.randn(2, 3)
       >>> output = m(input)
