@@ -89,3 +89,35 @@ from brainpy._src.layers.interoperation_flax import (
   ToFlaxRNNCell, ToFlax,
 )
 
+
+from brainpy._src.layers.activations import (
+  Threshold,
+  ReLU,
+  RReLU,
+  Hardtanh,
+  ReLU6,
+  Sigmoid,
+  Hardsigmoid,
+  Tanh,
+  SiLU,
+  Mish,
+  Hardswish,
+  ELU,
+  CELU,
+  SELU,
+  GLU,
+  GELU,
+  Hardshrink,
+  LeakyReLU,
+  LogSigmoid,
+  Softplus,
+  Softshrink,
+  PReLU,
+  Softsign,
+  Tanhshrink,
+  Softmin,
+  Softmax,
+  Softmax2d,
+  LogSoftmax,
+)
+
