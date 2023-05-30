@@ -163,7 +163,7 @@ class CaputoEuler(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check.jit_error_checking(self.num_memory * dt < t, self._check_step, (dt, t))
+      check.jit_error(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)
@@ -384,7 +384,7 @@ class CaputoL1Schema(FDEIntegrator):
     t = all_args['t']
     dt = all_args.pop(DT, self.dt)
     if check.is_checking():
-      check.jit_error_checking(self.num_memory * dt < t, self._check_step, (dt, t))
+      check.jit_error(self.num_memory * dt < t, self._check_step, (dt, t))
 
     # derivative values
     devs = self.f(**all_args)

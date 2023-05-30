@@ -38,7 +38,9 @@ __all__ = [
   'is_elem_or_seq_or_dict',
   'is_all_vars',
   'is_all_objs',
+  'jit_error',
   'jit_error_checking',
+  'jit_error2',
 
   'serialize_kwargs',
 ]
@@ -346,13 +348,14 @@ def is_float(
     if not isinstance(value, (float, np.floating)):
       raise ValueError(f'{name} must be a float, but got {type(value)}')
   if min_bound is not None:
-    if value < min_bound:
-      raise ValueError(f"{name} must be a float bigger than {min_bound}, "
-                       f"while we got {value}")
+    jit_error2(value < min_bound,
+               ValueError(f"{name} must be a float bigger than {min_bound}, "
+                          f"while we got {value}"))
+
   if max_bound is not None:
-    if value > max_bound:
-      raise ValueError(f"{name} must be a float smaller than {max_bound}, "
-                       f"while we got {value}")
+    jit_error2(value > max_bound,
+               ValueError(f"{name} must be a float smaller than {max_bound}, "
+                          f"while we got {value}"))
   return value
 
 
@@ -383,13 +386,13 @@ def is_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none
     else:
       raise ValueError(f'{name} must be an int, but got {value}')
   if min_bound is not None:
-    if jnp.any(value < min_bound):
-      raise ValueError(f"{name} must be an int bigger than {min_bound}, "
-                       f"while we got {value}")
+    jit_error2(jnp.any(value < min_bound),
+               ValueError(f"{name} must be an int bigger than {min_bound}, "
+                          f"while we got {value}"))
   if max_bound is not None:
-    if jnp.any(value > max_bound):
-      raise ValueError(f"{name} must be an int smaller than {max_bound}, "
-                       f"while we got {value}")
+    jit_error2(jnp.any(value > max_bound),
+               ValueError(f"{name} must be an int smaller than {max_bound}, "
+                          f"while we got {value}"))
   return value
 
 
@@ -591,7 +594,7 @@ def _cond(err_fun, pred, err_arg):
        err_arg)
 
 
-def jit_error_checking(pred, err_fun, err_arg=None):
+def jit_error(pred, err_fun, err_arg=None):
   """Check errors in a jit function.
 
   Parameters
@@ -606,3 +609,29 @@ def jit_error_checking(pred, err_fun, err_arg=None):
 
   # jax.jit(partial(_cond, err_fun), inline=True)(pred, err_arg)
   partial(_cond, err_fun)(pred, err_arg)
+
+
+jit_error_checking = jit_error
+
+
+def jit_error2(pred: bool, err: Exception):
+  """Check errors in a jit function.
+
+  Parameters
+  ----------
+  pred: bool
+    The boolean prediction.
+  err: Exception
+    The error.
+  """
+  from brainpy._src.math.remove_vmap import remove_vmap
+
+  assert isinstance(err, Exception), 'Must be instance of Exception.'
+
+  def true_err_fun(arg, transforms):
+    raise err
+
+  cond(remove_vmap(pred),
+       lambda: id_tap(true_err_fun, None),
+       lambda: None)
+
