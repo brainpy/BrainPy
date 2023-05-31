@@ -7,6 +7,8 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as sci
 
+from .base import Surrogate
+
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from ._utils import vjp_custom
@@ -33,7 +35,9 @@ __all__ = [
 ]
 
 
-class Sigmoid:
+
+
+class Sigmoid(Surrogate):
   def __init__(self, alpha=4., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -112,7 +116,7 @@ def sigmoid(
   return z, grad
 
 
-class PiecewiseQuadratic:
+class PiecewiseQuadratic(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -211,7 +215,7 @@ def piecewise_quadratic(
   return z, grad
 
 
-class PiecewiseExp:
+class PiecewiseExp(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -296,7 +300,7 @@ def piecewise_exp(
   return z, grad
 
 
-class SoftSign:
+class SoftSign(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -376,7 +380,7 @@ def soft_sign(
   return z, grad
 
 
-class Arctan:
+class Arctan(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -455,7 +459,7 @@ def arctan(
   return z, grad
 
 
-class NonzeroSignLog:
+class NonzeroSignLog(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -547,7 +551,7 @@ def nonzero_sign_log(
   return z, grad
 
 
-class ERF:
+class ERF(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -636,7 +640,7 @@ def erf(
   return z, grad
 
 
-class PiecewiseLeakyRelu:
+class PiecewiseLeakyRelu(Surrogate):
   def __init__(self, c=0.01, w=1., origin=False):
     self.c = c
     self.w = w
@@ -744,7 +748,7 @@ def piecewise_leaky_relu(
   return z, grad
 
 
-class SquarewaveFourierSeries:
+class SquarewaveFourierSeries(Surrogate):
   def __init__(self, n=2, t_period=8., origin=False):
     self.n = n
     self.t_period = t_period
@@ -833,7 +837,7 @@ def squarewave_fourier_series(
   return z, grad
 
 
-class S2NN:
+class S2NN(Surrogate):
   def __init__(self, alpha=4., beta=1., epsilon=1e-8, origin=False):
     self.alpha = alpha
     self.beta = beta
@@ -936,7 +940,7 @@ def s2nn(
   return z, grad
 
 
-class QPseudoSpike:
+class QPseudoSpike(Surrogate):
   def __init__(self, alpha=2., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -1026,7 +1030,7 @@ def q_pseudo_spike(
   return z, grad
 
 
-class LeakyRelu:
+class LeakyRelu(Surrogate):
   def __init__(self, alpha=0.1, beta=1., origin=False):
     self.alpha = alpha
     self.beta = beta
@@ -1117,7 +1121,7 @@ def leaky_relu(
   return z, grad
 
 
-class LogTailedRelu:
+class LogTailedRelu(Surrogate):
   def __init__(self, alpha=0., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -1218,7 +1222,7 @@ def log_tailed_relu(
   return z, grad
 
 
-class ReluGrad:
+class ReluGrad(Surrogate):
   def __init__(self, alpha=0.3, width=1.):
     self.alpha = alpha
     self.width = width
@@ -1292,7 +1296,7 @@ def relu_grad(
   return z, grad
 
 
-class GaussianGrad:
+class GaussianGrad(Surrogate):
   def __init__(self, sigma=0.5, alpha=0.5):
     self.sigma = sigma
     self.alpha = alpha
@@ -1365,7 +1369,7 @@ def gaussian_grad(
   return z, grad
 
 
-class MultiGaussianGrad:
+class MultiGaussianGrad(Surrogate):
   def __init__(self, h=0.15, s=6.0, sigma=0.5, scale=0.5):
     self.h = h
     self.s = s
@@ -1452,7 +1456,7 @@ def multi_gaussian_grad(
   return z, grad
 
 
-class InvSquareGrad:
+class InvSquareGrad(Surrogate):
   def __init__(self, alpha=100.):
     self.alpha = alpha
 
@@ -1517,7 +1521,7 @@ def inv_square_grad(
   return z, grad
 
 
-class SlayerGrad:
+class SlayerGrad(Surrogate):
   def __init__(self, alpha=1.):
     self.alpha = alpha
 
