@@ -606,9 +606,8 @@ def jit_error(pred, err_fun, err_arg=None):
   err_arg: any
     The arguments which passed into `err_f`.
   """
-
-  # jax.jit(partial(_cond, err_fun), inline=True)(pred, err_arg)
-  partial(_cond, err_fun)(pred, err_arg)
+  from brainpy._src.math.interoperability import as_jax
+  partial(_cond, err_fun)(as_jax(pred), err_arg)
 
 
 jit_error_checking = jit_error
@@ -625,13 +624,14 @@ def jit_error2(pred: bool, err: Exception):
     The error.
   """
   from brainpy._src.math.remove_vmap import remove_vmap
+  from brainpy._src.math.interoperability import as_jax
 
   assert isinstance(err, Exception), 'Must be instance of Exception.'
 
   def true_err_fun(arg, transforms):
     raise err
 
-  cond(remove_vmap(pred),
+  cond(remove_vmap(as_jax(pred)),
        lambda: id_tap(true_err_fun, None),
        lambda: None)
 

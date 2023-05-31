@@ -7,7 +7,7 @@ import os
 
 
 show = False
-
+bm.set_platform('cpu')
 
 class Network(bp.Network):
   def __init__(self, signal_speed=20.):
