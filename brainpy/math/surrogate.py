@@ -4,6 +4,11 @@
 # from brainpy._src.math.surrogate._utils import (
 #   vjp_custom as vjp_custom
 # )
+
+from brainpy._src.math.surrogate.base import (
+  Surrogate
+)
+
 from brainpy._src.math.surrogate._one_input import (
   Sigmoid,
   sigmoid as sigmoid,
