@@ -131,7 +131,7 @@ class FixedProb(TwoEndConnector):
     mat = (self._jaxrand.uniform(size=(self.pre_num, self.post_num)) < self.prob) * pre_state
     mat = bm.asarray(mat)
     if not self.include_self:
-      mat = bm.fill_diagonal(mat, False)
+      bm.fill_diagonal(mat, False)
     return mat.astype(MAT_DTYPE)
 
 

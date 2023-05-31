@@ -386,6 +386,7 @@ def generate_layers_docs():
     'apis/auto/layers.rst',
     subsections={
       'base': 'Basic ANN Layer Class',
+      'activations': 'Non-linear Activations',
       'conv': 'Convolutional Layers',
       'dropout': 'Dropout Layers',
       'function': 'Function Layers',

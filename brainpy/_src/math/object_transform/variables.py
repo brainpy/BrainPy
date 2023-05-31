@@ -348,6 +348,7 @@ class VariableView(Variable):
     self._value[self.index] = v.value if isinstance(v, Array) else v
 
 
+@register_pytree_node_class
 class VarList(list):
   """A sequence of :py:class:`~.Variable`, which is compatible with
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
@@ -375,7 +376,15 @@ class VarList(list):
       super().__setitem__(key, value)
     return self
 
+  def tree_flatten(self):
+    return tuple(self), None
 
+  @classmethod
+  def tree_unflatten(cls, aux_data, children):
+    return cls(children)
+
+
+@register_pytree_node_class
 class VarDict(dict):
   """A dictionary of :py:class:`~.Variable`, which is compatible with
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
@@ -409,4 +418,11 @@ class VarDict(dict):
     else:
       super().__setitem__(key, self._check_elem(value))
     return self
+
+  def tree_flatten(self):
+    return tuple(self.values()), tuple(self.keys())
+
+  @classmethod
+  def tree_unflatten(cls, keys, values):
+    return cls(jax.util.safe_zip(keys, values))
 
