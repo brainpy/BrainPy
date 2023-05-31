@@ -12,7 +12,9 @@ on:
 
 jobs:
   make_docs:
-    runs-on: self-hosted
+    runs-on:
+      group: Default
+      labels: self-hosted
 
     steps:
       - uses: actions/checkout@v2
