@@ -316,9 +316,11 @@ def _bcsrmm_cutlass_imp2(outs, ins):  # dense(m, k) @ bcsr(k, n) -> dense(n, m)
   return res_val
 
 
-def _bcsrmm_abstract(
+def _bcsrmm_cutlass_abstract(
     A_data, B_data, B_indices, B_ptr, *, m, k, n, block_size_k, block_size_n
 ):
+  assert block_size_k == 32, 'cutlass based block-sparse mm only support block size (32, 32)'
+  assert block_size_n == 32, 'cutlass based block-sparse mm only support block size (32, 32)'
   assert B_indices.shape[0] * block_size_n == B_data.shape[0]
   assert block_size_k == B_data.shape[1]
   assert A_data.shape[0] == m
@@ -328,7 +330,7 @@ def _bcsrmm_abstract(
   return [ShapedArray(dtype=A_data.dtype, shape=(n, m))]
 
 
-def _bcsrmm_cpu_translation(
+def _bcsrmm_cutlass_cpu_translation(
     c, A_data, B_data, B_indices, B_ptr, *,
     m, k, n, block_size_k, block_size_n
 ):
@@ -341,7 +343,7 @@ def _bcsrmm_cpu_translation(
   name, inputs, in_layouts, out_layouts = compile_cpu_signature_with_numba(
     c,
     _bcsrmm_cutlass_imp2,
-    abs_eval_fn=_bcsrmm_abstract,
+    abs_eval_fn=_bcsrmm_cutlass_abstract,
     multiple_results=True,
     inputs=inputs,
     description=description
@@ -354,10 +356,7 @@ def _bcsrmm_cpu_translation(
   )
 
 
-def _bcsrmm_gpu_translation(
-    c, A_data, B_data, B_indices, B_ptr, *,
-    m, k, n, block_size_k, block_size_n
-):
+def _bcsrmm_cutlass_gpu_translation(c, A_data, B_data, B_indices, B_ptr, *, m, k, n, block_size_k, block_size_n):
   if gpu_ops is None:
     raise GPUOperatorNotFound(_bcsrmm_cutlass_p.name)
 
@@ -387,31 +386,31 @@ def _bcsrmm_gpu_translation(
   )
 
 
-def _bcsrmm_jvp_dense_a(dense_a_dot, A_data, B_ptr, B_indices, B_data, *, m, n, k, block_size_k,
-                        block_size_n):
+def _bcsrmm_cutlass_jvp_dense_a(dense_a_dot, A_data, B_ptr, B_indices, B_data, *, m, n, k, block_size_k,
+                                block_size_n):
   return bcsrmm(dense_a_dot, B_ptr, B_indices, B_data, m=m, n=n, k=k, block_size_k=block_size_k,
                 block_size_n=block_size_n)
 
 
-def _bcsrmm_jvp_data_b(data_b_dot, A_data, B_ptr, B_indices, B_data, *, m, n, k, block_size_k,
-                       block_size_n):
+def _bcsrmm_cutlass_jvp_data_b(data_b_dot, A_data, B_ptr, B_indices, B_data, *, m, n, k, block_size_k,
+                               block_size_n):
   return bcsrmm(A_data, B_ptr, B_indices, data_b_dot, m=m, n=n, k=k, block_size_k=block_size_k,
                 block_size_n=block_size_n)
 
 
-def _bcsrmm_jvp_transpose():
+def _bcsrmm_cutlass_jvp_transpose():
   # TODO: implement
   pass
 
 
 _bcsrmm_cutlass_p = Primitive('bcsrmm_cutlass_pim')
 _bcsrmm_cutlass_p.multiple_results = True
-_bcsrmm_cutlass_p.def_abstract_eval(_bcsrmm_abstract)
+_bcsrmm_cutlass_p.def_abstract_eval(_bcsrmm_cutlass_abstract)
 _bcsrmm_cutlass_p.def_impl(partial(xla.apply_primitive, _bcsrmm_cutlass_p))
-xla.backend_specific_translations['cpu'][_bcsrmm_cutlass_p] = _bcsrmm_cpu_translation
-xla.backend_specific_translations['gpu'][_bcsrmm_cutlass_p] = _bcsrmm_gpu_translation
-ad.primitive_jvps[_bcsrmm_cutlass_p] = _bcsrmm_jvp_transpose
-ad.primitive_transposes[_bcsrmm_cutlass_p] = _bcsrmm_jvp_transpose
+xla.backend_specific_translations['cpu'][_bcsrmm_cutlass_p] = _bcsrmm_cutlass_cpu_translation
+xla.backend_specific_translations['gpu'][_bcsrmm_cutlass_p] = _bcsrmm_cutlass_gpu_translation
+ad.primitive_jvps[_bcsrmm_cutlass_p] = _bcsrmm_cutlass_jvp_transpose
+ad.primitive_transposes[_bcsrmm_cutlass_p] = _bcsrmm_cutlass_jvp_transpose
 register_general_batching(bcsrmm)
 
 
