@@ -4,8 +4,8 @@
 Module for brain dynamics model building.
 """
 
-from .neurons.compat import *
-from .synapses.compat import *
+from brainpy._src.neurons.compat import *
+from brainpy._src.synapses.compat import *
 
 
 

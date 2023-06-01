@@ -32,10 +32,8 @@ except (ModuleNotFoundError, ImportError):
 try:
   from jax.experimental.array_serialization import get_tensorstore_spec, GlobalAsyncCheckpointManager  # noqa
 except (ModuleNotFoundError, ImportError):
-  try:
-    from jax.experimental.gda_serialization import get_tensorstore_spec, GlobalAsyncCheckpointManager  # noqa
-  except (ModuleNotFoundError, ImportError):
-    get_tensorstore_spec = None
+  get_tensorstore_spec = None
+  GlobalAsyncCheckpointManager = None
 
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import (AlreadyExistsError,

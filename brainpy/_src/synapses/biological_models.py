@@ -7,7 +7,7 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy._src.dynsys import NeuGroup, TwoEndConn, SynSTP, SynOut
-from brainpy._src.dyn.synouts import COBA, MgBlock
+from brainpy._src.synouts import COBA, MgBlock
 from brainpy._src.initialize import Initializer, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy._src.connect import TwoEndConnector, All2All, One2One

@@ -7,7 +7,7 @@ from jax import vmap
 
 import brainpy.math as bm
 from brainpy._src.dynsys import SynConn
-from brainpy._src.dyn.neurons.input_groups import InputGroup, OutputGroup
+from brainpy._src.neurons.input_groups import InputGroup, OutputGroup
 from brainpy._src.initialize import Initializer
 from brainpy.check import is_sequence
 from brainpy.types import ArrayType
