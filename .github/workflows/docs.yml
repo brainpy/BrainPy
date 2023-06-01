@@ -27,7 +27,9 @@ jobs:
         shell: bash -el {0}
         run: conda info
       - name: Install dependencies
+        shell: bash -el {0}
         run: |
+          conda activate
           python -m pip install --upgrade pip
           python -m pip install flake8 pytest
           if [ -f requirements-doc.txt ]; then pip install -r requirements-doc.txt; fi
