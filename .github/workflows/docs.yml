@@ -22,8 +22,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: "3.10"
-        env:
-          CONDA: ${{ steps.setup-miniconda.outputs.conda }}
+          miniconda-version: "latest"
       - name: Conda info
         shell: bash -el {0}
         run: conda info
