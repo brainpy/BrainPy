@@ -78,8 +78,8 @@ from brainpy._src.delay import Delay
 from brainpy._src.context import share
 from brainpy._src.dynsys import not_pass_shared
 # running
-from brainpy._src.dyn.runners import (DSRunner as DSRunner)
-from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
+from brainpy._src.runners import (DSRunner as DSRunner)
+from brainpy._src.transform import (LoopOverTime as LoopOverTime, )
 # DynamicalSystem base classes
 from brainpy._src.dynsys import (DynamicalSystemNS as DynamicalSystemNS,
                                  NeuGroupNS as NeuGroupNS,
