@@ -28,7 +28,7 @@ jobs:
         run: conda info
       - name: Install dependencies
         shell: bash -el {0}
-        run: |
+        run: |  
           conda activate
           python -m pip install --upgrade pip
           python -m pip install flake8 pytest
@@ -37,4 +37,4 @@ jobs:
           python setup.py install
       - name: Make docs
         run: |
-          cd brainpy_docs/docs
+          cd ~/brainpy_docs/docs
