@@ -36,6 +36,8 @@ jobs:
           pip uninstall brainpy -y
           python setup.py install
       - name: Make docs
+        shell: bash -el {0}
         run: |
+          conda activate
           cd ~/brainpy_docs/docs
           make html

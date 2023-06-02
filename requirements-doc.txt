@@ -1,8 +1,8 @@
 -r requirements.txt
 
 numba
+jaxlib
 matplotlib>=3.4
-jaxlib>=0.3.0
 scipy>=1.1.0
 
 # document requirements
