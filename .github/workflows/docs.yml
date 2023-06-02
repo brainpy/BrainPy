@@ -38,3 +38,4 @@ jobs:
       - name: Make docs
         run: |
           cd ~/brainpy_docs/docs
+          make html
