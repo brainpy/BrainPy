@@ -7,7 +7,7 @@ from jax import vmap
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
 from brainpy._src.context import share
-from brainpy._src.dyn.synapses_v2.base import SynConnNS, SynOutNS, SynSTPNS
+from brainpy._src.synapses_v2.base import SynConnNS, SynOutNS, SynSTPNS
 from brainpy._src.initialize import Initializer, variable_
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_float

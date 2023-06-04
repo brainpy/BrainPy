@@ -188,17 +188,12 @@ class PoissonGroup(NeuGroupNS):
     self.freqs = parameter(freqs, self.num, allow_none=False)
 
     # variables
-    self.rng = bm.random.default_rng(seed)
     self.reset_state(self.mode)
 
   def update(self):
-    spikes = self.rng.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
+    spikes = bm.random.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
     self.spike.value = spikes
     return spikes
-
-  def reset(self, batch_size=None):
-    self.rng.value = bm.random.default_rng(self.seed)
-    self.reset_state(batch_size)
 
   def reset_state(self, batch_size=None):
     self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)

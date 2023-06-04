@@ -52,7 +52,6 @@ class PoissonInput(DynamicalSystemNS):
     self.freq = freq
     self.weight = weight
     self.seed = seed
-    self.rng = bm.random.default_rng(seed)
 
   def update(self):
     p = self.freq * share.dt / 1e3
@@ -60,14 +59,14 @@ class PoissonInput(DynamicalSystemNS):
     b = self.num_input * (1 - p)
     if isinstance(share.dt, (int, float)):  # dt is not in tracing
       if (a > 5) and (b > 5):
-        inp = self.rng.normal(a, b * p, self.target_shape)
+        inp = bm.random.normal(a, b * p, self.target_shape)
       else:
-        inp = self.rng.binomial(self.num_input, p, self.target_shape)
+        inp = bm.random.binomial(self.num_input, p, self.target_shape)
 
     else:  # dt is in tracing
       inp = bm.cond((a > 5) * (b > 5),
-                    lambda _: self.rng.normal(a, b * p, self.target_shape),
-                    lambda _: self.rng.binomial(self.num_input, p, self.target_shape),
+                    lambda _: bm.random.normal(a, b * p, self.target_shape),
+                    lambda _: bm.random.binomial(self.num_input, p, self.target_shape),
                     None)
     return inp * self.weight
 
@@ -79,7 +78,6 @@ class PoissonInput(DynamicalSystemNS):
     pass
 
   def reset(self, batch_size=None):
-    self.rng.seed(self.seed)
     self.reset_state(batch_size)
 
 

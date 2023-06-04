@@ -960,7 +960,6 @@ class PoissonInput(SynConn):
     self.freq = freq
     self.weight = weight
     self.seed = seed
-    self.rng = bm.random.default_rng(seed)
 
   def update(self, tdi):
     p = self.freq * tdi.dt / 1e3
@@ -968,14 +967,14 @@ class PoissonInput(SynConn):
     b = self.num_input * (1 - p)
     if isinstance(tdi.dt, (int, float)):  # dt is not in tracing
       if (a > 5) and (b > 5):
-        inp = self.rng.normal(a, b * p, self.target_var.shape)
+        inp = bm.random.normal(a, b * p, self.target_var.shape)
       else:
-        inp = self.rng.binomial(self.num_input, p, self.target_var.shape)
+        inp = bm.random.binomial(self.num_input, p, self.target_var.shape)
 
     else:  # dt is in tracing
       inp = bm.cond((a > 5) * (b > 5),
-                    lambda _: self.rng.normal(a, b * p, self.target_var.shape),
-                    lambda _: self.rng.binomial(self.num_input, p, self.target_var.shape),
+                    lambda _: bm.random.normal(a, b * p, self.target_var.shape),
+                    lambda _: bm.random.binomial(self.num_input, p, self.target_var.shape),
                     None)
     self.target_var += inp * self.weight
 
@@ -987,5 +986,4 @@ class PoissonInput(SynConn):
     pass
 
   def reset(self, batch_size=None):
-    self.rng.seed(self.seed)
     self.reset_state(batch_size)
