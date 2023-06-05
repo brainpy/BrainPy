@@ -200,7 +200,7 @@ class Reservoir(Layer):
       sparse = {'data': self.Win,
                 'index': (self.ff_pres, self.ff_posts),
                 'shape': self.Wff_shape}
-      hidden = bm.sparse_matmul(x, sparse)
+      hidden = bm.sparse.seg_matmul(x, sparse)
     else:
       hidden = x @ self.Win
     # recurrent
@@ -208,7 +208,7 @@ class Reservoir(Layer):
       sparse = {'data': self.Wrec,
                 'index': (self.rec_pres, self.rec_posts),
                 'shape': (self.num_unit, self.num_unit)}
-      hidden += bm.sparse_matmul(self.state, sparse)
+      hidden += bm.sparse.seg_matmul(self.state, sparse)
     else:
       hidden += self.state @ self.Wrec
     if self.activation_type == 'internal':
