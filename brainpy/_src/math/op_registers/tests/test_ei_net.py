@@ -1,13 +1,13 @@
 import brainpy.math as bm
 import brainpy as bp
-from jax.abstract_arrays import ShapedArray
+from jax.core import ShapedArray
 
 
 bm.set_platform('cpu')
 
 
 def abs_eval(events, indices, indptr, *, weight, post_num):
-  return ShapedArray((post_num,), bm.float32)
+  return [ShapedArray((post_num,), bm.float32), ]
 
 
 def con_compute(outs, ins):
@@ -22,7 +22,7 @@ def con_compute(outs, ins):
         post_val[index] += weight
 
 
-event_sum = bm.XLACustomOp(eval_shape=abs_eval, cpu_func=con_compute, apply_cpu_func_to_gpu=True)
+event_sum = bm.XLACustomOp(eval_shape=abs_eval, cpu_func=con_compute)
 
 
 class ExponentialV2(bp.TwoEndConn):
@@ -52,13 +52,14 @@ class ExponentialV2(bp.TwoEndConn):
                         self.pre2post[0],
                         self.pre2post[1],
                         weight=self.g_max,
-                        post_num=self.post.num)
+                        post_num=self.post.num)[0]
     self.post.input += self.g * (self.E - self.post.V)
 
 
 class EINet(bp.Network):
   def __init__(self, scale):
     # neurons
+    bm.random.seed()
     pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                 V_initializer=bp.init.Normal(-55., 2.))
     E = bp.neurons.LIF(int(3200 * scale), **pars, method='exp_auto')
@@ -73,10 +74,11 @@ class EINet(bp.Network):
     super(EINet, self).__init__(E2E, E2I, I2E, I2I, E=E, I=I)
 
 
-# def test1():
-#   net2 = EINet(scale=0.1)
-#   runner2 = bp.DSRunner(net2, inputs=[('E.input', 20.), ('I.input', 20.)])
-#   r = runner2.predict(100., eval_time=True)
-#   print(r)
+def test1():
+  net2 = EINet(scale=0.1)
+  runner2 = bp.DSRunner(net2, inputs=[('E.input', 20.), ('I.input', 20.)])
+  r = runner2.predict(100., eval_time=True)
+  print(r)
+
 
 

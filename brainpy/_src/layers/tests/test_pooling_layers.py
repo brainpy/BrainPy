@@ -7,7 +7,6 @@ from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy._src.layers import pooling
 
 
 class TestPool(parameterized.TestCase):
@@ -61,43 +60,43 @@ class TestPool(parameterized.TestCase):
   def test_MaxPool2d_v1(self):
     arr = self.rng.rand(16, 32, 32, 8)
 
-    out = pooling.MaxPool2d(2, 2, channel_axis=-1)(arr)
+    out = bp.layers.MaxPool2d(2, 2, channel_axis=-1)(arr)
     self.assertTrue(out.shape == (16, 16, 16, 8))
 
-    out = pooling.MaxPool2d(2, 2, channel_axis=None)(arr)
+    out = bp.layers.MaxPool2d(2, 2, channel_axis=None)(arr)
     self.assertTrue(out.shape == (16, 32, 16, 4))
 
-    out = pooling.MaxPool2d(2, 2, channel_axis=None, padding=1)(arr)
+    out = bp.layers.MaxPool2d(2, 2, channel_axis=None, padding=1)(arr)
     self.assertTrue(out.shape == (16, 32, 17, 5))
 
-    out = pooling.MaxPool2d(2, 2, channel_axis=None, padding=(2, 1))(arr)
+    out = bp.layers.MaxPool2d(2, 2, channel_axis=None, padding=(2, 1))(arr)
     self.assertTrue(out.shape == (16, 32, 18, 5))
 
-    out = pooling.MaxPool2d(2, 2, channel_axis=-1, padding=(1, 1))(arr)
+    out = bp.layers.MaxPool2d(2, 2, channel_axis=-1, padding=(1, 1))(arr)
     self.assertTrue(out.shape == (16, 17, 17, 8))
 
-    out = pooling.MaxPool2d(2, 2, channel_axis=2, padding=(1, 1))(arr)
+    out = bp.layers.MaxPool2d(2, 2, channel_axis=2, padding=(1, 1))(arr)
     self.assertTrue(out.shape == (16, 17, 32, 5))
 
   def test_AvgPool2d_v1(self):
     arr = self.rng.rand(16, 32, 32, 8)
 
-    out = pooling.AvgPool2d(2, 2, channel_axis=-1)(arr)
+    out = bp.layers.AvgPool2d(2, 2, channel_axis=-1)(arr)
     self.assertTrue(out.shape == (16, 16, 16, 8))
 
-    out = pooling.AvgPool2d(2, 2, channel_axis=None)(arr)
+    out = bp.layers.AvgPool2d(2, 2, channel_axis=None)(arr)
     self.assertTrue(out.shape == (16, 32, 16, 4))
 
-    out = pooling.AvgPool2d(2, 2, channel_axis=None, padding=1)(arr)
+    out = bp.layers.AvgPool2d(2, 2, channel_axis=None, padding=1)(arr)
     self.assertTrue(out.shape == (16, 32, 17, 5))
 
-    out = pooling.AvgPool2d(2, 2, channel_axis=None, padding=(2, 1))(arr)
+    out = bp.layers.AvgPool2d(2, 2, channel_axis=None, padding=(2, 1))(arr)
     self.assertTrue(out.shape == (16, 32, 18, 5))
 
-    out = pooling.AvgPool2d(2, 2, channel_axis=-1, padding=(1, 1))(arr)
+    out = bp.layers.AvgPool2d(2, 2, channel_axis=-1, padding=(1, 1))(arr)
     self.assertTrue(out.shape == (16, 17, 17, 8))
 
-    out = pooling.AvgPool2d(2, 2, channel_axis=2, padding=(1, 1))(arr)
+    out = bp.layers.AvgPool2d(2, 2, channel_axis=2, padding=(1, 1))(arr)
     self.assertTrue(out.shape == (16, 17, 32, 5))
 
   @parameterized.named_parameters(
@@ -106,46 +105,48 @@ class TestPool(parameterized.TestCase):
     for target_size in [10, 9, 8, 7, 6]
   )
   def test_adaptive_pool1d(self, target_size):
+    from brainpy._src.layers.pooling import _adaptive_pool1d
+
     arr = self.rng.rand(100)
     op = jax.numpy.mean
 
-    out = pooling._adaptive_pool1d(arr, target_size, op)
+    out = _adaptive_pool1d(arr, target_size, op)
     print(out.shape)
     self.assertTrue(out.shape == (target_size,))
 
-    out = pooling._adaptive_pool1d(arr, target_size, op)
+    out = _adaptive_pool1d(arr, target_size, op)
     print(out.shape)
     self.assertTrue(out.shape == (target_size,))
 
   def test_AdaptiveAvgPool2d_v1(self):
     input = self.rng.randn(64, 8, 9)
 
-    output = pooling.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
+    output = bp.layers.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
     self.assertTrue(output.shape == (64, 5, 7))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=0)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=0)(input)
     self.assertTrue(output.shape == (64, 2, 3))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=-1)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=-1)(input)
     self.assertTrue(output.shape == (2, 3, 9))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=1)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=1)(input)
     self.assertTrue(output.shape == (2, 8, 3))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=None)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=None)(input)
     self.assertTrue(output.shape == (64, 2, 3))
 
   def test_AdaptiveAvgPool2d_v2(self):
     input = self.rng.randn(128, 64, 32, 16)
 
-    output = pooling.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
+    output = bp.layers.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
     self.assertTrue(output.shape == (128, 64, 5, 7))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=0)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=0)(input)
     self.assertTrue(output.shape == (128, 64, 2, 3))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=-1)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=-1)(input)
     self.assertTrue(output.shape == (128, 2, 3, 16))
 
-    output = pooling.AdaptiveAvgPool2d((2, 3), channel_axis=1)(input)
+    output = bp.layers.AdaptiveAvgPool2d((2, 3), channel_axis=1)(input)
     self.assertTrue(output.shape == (128, 64, 2, 3))

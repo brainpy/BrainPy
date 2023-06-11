@@ -2,8 +2,7 @@
 
 
 import jax.numpy as jnp
-from jax.abstract_arrays import ShapedArray
-from jax.core import Primitive
+from jax.core import Primitive, ShapedArray
 from jax.interpreters import batching, mlir, xla
 from .ndarray import Array
 

@@ -3,7 +3,7 @@
 
 import brainpy as bp
 from absl.testing import parameterized
-from brainpy._src.dyn.neurons import reduced_models
+from brainpy._src.neurons import reduced_models
 
 
 class TestNoise(parameterized.TestCase):
