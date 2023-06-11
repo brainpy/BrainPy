@@ -34,6 +34,8 @@ from . import linalg
 from . import random
 
 # others
+from . import sharding
+
 import jax.numpy as jnp
 from jax import config
 

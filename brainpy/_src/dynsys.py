@@ -32,7 +32,7 @@ __all__ = [
   'Channel',
 
   # neuron models
-  'NeuGroup', 'CondNeuGroup',
+  'NeuGroup', 'CondNeuGroup', 'NeuGroupNS',
 
   # synapse models
   'SynConn',
@@ -113,6 +113,9 @@ class DynamicalSystem(BrainPyObject):
     The model computation mode. It should be instance of :py:class:`~.Mode`.
   """
 
+  supported_modes: Optional[Sequence[bm.Mode]] = None
+  '''Supported computing modes.'''
+
   _pass_shared_args: bool = True
 
   global_delay_data: Dict[str, Tuple[Union[bm.LengthDelay, None], Variable]] = dict()
@@ -131,6 +134,12 @@ class DynamicalSystem(BrainPyObject):
       raise ValueError(f'Should be instance of {bm.Mode.__name__}, '
                        f'but we got {type(mode)}: {mode}')
     self._mode = mode
+
+    if self.supported_modes is not None:
+      if not self.mode.is_parent_of(*self.supported_modes):
+        raise UnsupportedError(f'The mode only supports computing modes '
+                               f'which are parents of {self.supported_modes}, '
+                               f'but we got {self.mode}.')
 
     # local delay variables
     self.local_delay_vars: Dict[str, bm.LengthDelay] = Collector()
@@ -647,6 +656,7 @@ class NeuGroup(DynamicalSystem):
                        f'But we got {type(size)}')
     self.size = size
     self.keep_size = keep_size
+
     # number of neurons
     self.num = tools.size2num(size)
 
@@ -667,7 +677,7 @@ class NeuGroup(DynamicalSystem):
     else:
       return (batch_size,) + self.varshape
 
-  def update(self, *args):
+  def update(self, *args, **kwargs):
     """The function to specify the updating rule.
     """
     raise NotImplementedError(f'Subclass of {self.__class__.__name__} must '
@@ -680,7 +690,6 @@ class NeuGroup(DynamicalSystem):
 
   def __getitem__(self, item):
     return NeuGroupView(target=self, index=item)
-
 
 
 class SynConn(DynamicalSystem):

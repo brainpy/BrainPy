@@ -5,7 +5,7 @@ from typing import Union, Callable
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dynsys import NeuGroupNS
-from brainpy._src.dyn.neurons.noise_groups import OUProcess
+from brainpy._src.neurons.noise_groups import OUProcess
 from brainpy._src.initialize import (Initializer,
                                      Uniform,
                                      parameter,
@@ -1026,11 +1026,8 @@ class ThresholdLinearModel(RateModel):
     if self.input_var:
        self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
        self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
-    if bm.any(self.noise_e != 0) or bm.any(self.noise_i != 0):
-      self.rng = bm.random.default_rng(seed)
 
   def reset(self, batch_size=None):
-    self.rng.seed(self.seed)
     self.reset_state(batch_size)
 
   def reset_state(self, batch_size=None):
@@ -1057,13 +1054,13 @@ class ThresholdLinearModel(RateModel):
 
     de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
     if bm.any(self.noise_e != 0.):
-      de += self.rng.randn(self.varshape) * self.noise_e
+      de += bm.random.randn(self.varshape) * self.noise_e
     de = de / self.tau_e
     self.e.value = bm.maximum(self.e + de * dt, 0.)
 
     di = -self.i + self.beta_i * bm.maximum(input_i, 0.)
     if bm.any(self.noise_i != 0.):
-      di += self.rng.randn(self.varshape) * self.noise_i
+      di += bm.random.randn(self.varshape) * self.noise_i
     di = di / self.tau_i
     self.i.value = bm.maximum(self.i + di * dt, 0.)
     return self.e.value

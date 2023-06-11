@@ -1,19 +1,45 @@
-# -*- coding: utf-8 -*-
 
-from typing import Union
+from typing import Union, Optional, Sequence
 
-from brainpy._src.synapses_v2.base import SynOutNS
-from brainpy.math import exp
+import numpy as np
+from brainpy import math as bm, initialize as init
+from brainpy._src.dynsys import DynamicalSystemNS
 from brainpy.types import ArrayType
 
+from brainpy._src.pnn.mixin import ParamDesc
+from brainpy._src.pnn.utils import NEU_AXIS
+
 __all__ = [
+  'PSynOut',
   'COBA',
   'CUBA',
-  'MgBlock',
+  'MgBlock'
 ]
 
 
-class COBA(SynOutNS):
+class PSynOut(DynamicalSystemNS, ParamDesc):
+  def __init__(
+      self,
+      name: Optional[str] = None,
+  ):
+    super().__init__(name=name)
+    self._conductance = None
+
+  def bind_cond(self, conductance):
+    self._conductance = conductance
+
+  def unbind_cond(self):
+    self._conductance = None
+
+  def __call__(self, *args, **kwargs):
+    if self._conductance is None:
+      raise ValueError(f'Please first pack data at the current step using '
+                       f'".bind_cond(data)". {self}')
+    ret = super().__call__(self._conductance, *args, **kwargs)
+    return ret
+
+
+class COBA(PSynOut):
   r"""Conductance-based synaptic output.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -34,15 +60,22 @@ class COBA(SynOutNS):
   CUBA
   """
 
-  def __init__(self, E: Union[float, ArrayType] = 0., name: str = None, ):
+  def __init__(
+      self,
+      E: Union[float, ArrayType] = 0.,
+      axis_names: Optional[Sequence[str]] = (NEU_AXIS, ),
+      name: Optional[str] = None,
+  ):
     super().__init__(name=name)
-    self.E = E
+
+    self.axis_names = axis_names
+    self.E = init.parameter(E, np.shape(E), axis_names=axis_names)
 
   def update(self, conductance, potential):
     return conductance * (self.E - potential)
 
 
-class CUBA(SynOutNS):
+class CUBA(PSynOut):
   r"""Current-based synaptic output.
 
   Given the conductance, this model outputs the post-synaptic current with a identity function:
@@ -62,14 +95,17 @@ class CUBA(SynOutNS):
   COBA
   """
 
-  def __init__(self, name: str = None, ):
+  def __init__(
+      self,
+      name: Optional[str] = None,
+  ):
     super().__init__(name=name)
 
   def update(self, conductance, potential=None):
     return conductance
 
 
-class MgBlock(SynOutNS):
+class MgBlock(PSynOut):
   r"""Synaptic output based on Magnesium blocking.
 
   Given the synaptic conductance, the model output the post-synaptic current with
@@ -99,21 +135,25 @@ class MgBlock(SynOutNS):
   name: str
     The model name.
   """
-
   def __init__(
       self,
       E: Union[float, ArrayType] = 0.,
       cc_Mg: Union[float, ArrayType] = 1.2,
       alpha: Union[float, ArrayType] = 0.062,
       beta: Union[float, ArrayType] = 3.57,
-      name: str = None,
+      axis_names: Optional[Sequence[str]] = (NEU_AXIS,),
+      name: Optional[str] = None,
   ):
     super().__init__(name=name)
-    self.E = E
-    self.cc_Mg = cc_Mg
-    self.alpha = alpha
-    self.beta = beta
+
+    self.axis_names = axis_names
+    self.E = init.parameter(E, np.shape(E), axis_names=axis_names)
+    self.cc_Mg = init.parameter(cc_Mg, np.shape(cc_Mg), axis_names=axis_names)
+    self.alpha = init.parameter(alpha, np.shape(alpha), axis_names=axis_names)
+    self.beta = init.parameter(alpha, np.shape(beta), axis_names=axis_names)
 
   def update(self, conductance, potential):
-    return conductance * (self.E - potential) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * potential))
+    return conductance * (self.E - potential) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * potential))
+
+
 

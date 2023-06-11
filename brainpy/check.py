@@ -3,6 +3,7 @@
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any
 
+import jax
 import numpy as np
 import numpy as onp
 from jax import numpy as jnp
@@ -251,7 +252,7 @@ def is_initializer(
       raise ValueError(f'{name} must be an initializer, but we got None.')
   if isinstance(initializer, init.Initializer):
     return initializer
-  elif isinstance(initializer, (Array, jnp.ndarray)):
+  elif isinstance(initializer, (Array, jax.Array)):
     return initializer
   elif callable(initializer):
     return initializer
@@ -281,7 +282,7 @@ def is_connector(
       raise ValueError(f'{name} must be an initializer, but we got None.')
   if isinstance(connector, conn.Connector):
     return connector
-  elif isinstance(connector, (Array, jnp.ndarray)):
+  elif isinstance(connector, (Array, jax.Array)):
     return connector
   elif callable(connector):
     return connector

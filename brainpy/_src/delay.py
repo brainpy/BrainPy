@@ -24,37 +24,37 @@ __all__ = [
 class Delay(DynamicalSystemNS):
   """Delay variable which has a fixed delay length.
 
-    The data in this delay variable is arranged as::
+  The data in this delay variable is arranged as::
 
-         delay = 0             [ data
-         delay = 1               data
-         delay = 2               data
-         ...                     ....
-         ...                     ....
-         delay = length-1        data
-         delay = length          data ]
+       delay = 0             [ data
+       delay = 1               data
+       delay = 2               data
+       ...                     ....
+       ...                     ....
+       delay = length-1        data
+       delay = length          data ]
 
-    Parameters
-    ----------
-    latest: Variable
-      The initial delay data.
-    length: int
-      The delay data length.
-    before_t0: Any
-      The delay data. It can be a Python number, like float, int, boolean values.
-      It can also be arrays. Or a callable function or instance of ``Connector``.
-      Note that ``initial_delay_data`` should be arranged as the following way::
+  Parameters
+  ----------
+  latest: Variable
+    The initial delay data.
+  length: int
+    The delay data length.
+  before_t0: Any
+    The delay data. It can be a Python number, like float, int, boolean values.
+    It can also be arrays. Or a callable function or instance of ``Connector``.
+    Note that ``initial_delay_data`` should be arranged as the following way::
 
-         delay = 1             [ data
-         delay = 2               data
-         ...                     ....
-         ...                     ....
-         delay = length-1        data
-         delay = length          data ]
-    method: str
-      The method used for updating delay.
+       delay = 1             [ data
+       delay = 2               data
+       ...                     ....
+       ...                     ....
+       delay = length-1        data
+       delay = length          data ]
+  method: str
+    The method used for updating delay.
 
-    """
+  """
 
   latest: bm.Variable
   data: Optional[bm.Variable]
@@ -64,9 +64,9 @@ class Delay(DynamicalSystemNS):
       self,
       latest: bm.Variable,
       length: int = 0,
-      before_t0: Union[float, int, bool, bm.Array, jax.Array, Callable] = None,
+      before_t0: Optional[Union[float, int, bool, bm.Array, jax.Array, Callable]] = None,
       entries: Optional[Dict] = None,
-      name: str = None,
+      name: Optional[str] = None,
       method: str = ROTATE_UPDATE,
       mode: Optional[bm.Mode] = None,
   ):
@@ -249,7 +249,10 @@ class Delay(DynamicalSystemNS):
     # the delay data
     return self.data[indices]
 
-  def update(self, latest_value: Optional[Union[bm.Array, jax.Array]] = None) -> None:
+  def update(
+      self,
+      latest_value: Optional[Union[bm.Array, jax.Array]] = None
+  ) -> None:
     """Update delay variable with the new data.
     """
     if self.data is not None:
@@ -297,4 +300,3 @@ class Delay(DynamicalSystemNS):
       self.data[1:] = self._before_t0
     elif callable(self._before_t0):
       self.data[1:] = self._before_t0((length,) + self.latest.shape, dtype=self.latest.dtype)
-

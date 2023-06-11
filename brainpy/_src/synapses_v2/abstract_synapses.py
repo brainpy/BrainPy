@@ -120,21 +120,22 @@ class Exponential(SynConnNS):
     else:
       if self.comp_method == 'sparse':
         if self.stp is None:
-          f = lambda s: bm.event_csr_matvec(self.g_max,
-                                                      self.conn_mask[0],
-                                                      self.conn_mask[1],
-                                                      s,
-                                                      shape=(self.pre_num, self.post_num),
-                                                      transpose=True)
+          f = lambda s: bm.event.csrmv(self.g_max,
+                                       self.conn_mask[0],
+                                       self.conn_mask[1],
+                                       s,
+                                       shape=(self.pre_num, self.post_num),
+                                       transpose=True)
           if isinstance(self.mode, bm.BatchingMode):
             f = vmap(f)
         else:
-          f = lambda s: bm.cusparse_csr_matvec(self.g_max,
-                                                          self.conn_mask[0],
-                                                          self.conn_mask[1],
-                                                          s,
-                                                          shape=(self.pre_num, self.post_num),
-                                                          transpose=True)
+          f = lambda s: bm.sparse.csrmv(self.g_max,
+                                        self.conn_mask[0],
+                                        self.conn_mask[1],
+                                        s,
+                                        shape=(self.pre_num, self.post_num),
+                                        transpose=True,
+                                        method='cusparse')
           if isinstance(self.mode, bm.BatchingMode):
             f = vmap(f)
         post_vs = f(pre_spike)
@@ -275,13 +276,14 @@ class DualExponential(SynConnNS):
       post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
     else:
       if self.comp_method == 'sparse':
-        f = lambda s: bm.cusparse_csr_matvec(
+        f = lambda s: bm.sparse.csrmv(
           self.g_max,
           self.conn_mask[0],
           self.conn_mask[1],
           s,
           shape=(self.conn.pre_num, self.conn.post_num),
-          transpose=True
+          transpose=True,
+          method='cusparse'
         )
         if isinstance(self.mode, bm.BatchingMode):
           f = vmap(f)
@@ -396,4 +398,3 @@ class Alpha(DualExponential):
                      stp=stp,
                      name=name,
                      mode=mode)
-

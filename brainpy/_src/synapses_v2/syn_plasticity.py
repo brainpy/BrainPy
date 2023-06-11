@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 from brainpy._src.context import share
 from brainpy import math as bm, tools
-from brainpy._src.dyn.synapses_v2.base import SynSTPNS
+from brainpy._src.synapses_v2.base import SynSTPNS
 from brainpy._src.initialize import variable_, OneInit, parameter
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType, Shape
