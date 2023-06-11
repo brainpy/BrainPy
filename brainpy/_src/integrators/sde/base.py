@@ -75,7 +75,7 @@ class SDEIntegrator(Integrator):
     self.wiener_type = wiener_type  # wiener process type
 
     # random seed
-    self.rng = bm.random.default_rng()
+    self.rng = bm.random.default_rng(clone=False)
 
     # code scope
     self.code_scope = {constants.F: f, constants.G: g, 'math': jnp, 'random': self.rng}

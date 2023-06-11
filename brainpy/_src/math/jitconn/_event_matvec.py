@@ -10,6 +10,7 @@ from jax.core import ShapedArray, Primitive
 from jax.interpreters import xla, ad
 from jax.lib import xla_client
 
+from brainpy._src.math.ndarray import _get_dtype
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.jitconn._matvec import (mv_prob_homo_p,
                                                mv_prob_uniform_p,
@@ -132,6 +133,11 @@ event_mv_prob_normal.__doc__ = mv_prob_normal.__doc__
 def _event_matvec_prob_homo_abstract(
     events, weight, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  assert _get_dtype(events) in [jnp.bool_, jnp.float32, jnp.float64]
+  assert _get_dtype(weight) in [jnp.float32, jnp.float64], '"weight" must be float valued.'
+  assert _get_dtype(clen) in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]
+
   if events.ndim != 1:
     raise ValueError('events should be a 1D vector.')
   if len(shape) != 2:
@@ -317,6 +323,15 @@ register_general_batching(event_mv_prob_homo_p)
 def _event_matvec_prob_uniform_abstract(
     events, w_low, w_high, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  assert _get_dtype(events) in [jnp.bool_, jnp.float32, jnp.float64]
+  _w_low_dtype = _get_dtype(w_low)
+  _w_high_dtype = _get_dtype(w_low)
+  assert _w_low_dtype == _w_high_dtype, '"w_low" and "w_high" must be same typed.'
+  assert _w_low_dtype in [jnp.float32, jnp.float64], '"w_low" must be float valued.'
+  assert _w_high_dtype in [jnp.float32, jnp.float64], '"w_high" must be float valued.'
+  assert _get_dtype(clen) in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]
+
   if events.ndim != 1:
     raise ValueError('events should be a 1D vector.')
   if len(shape) != 2:
@@ -493,6 +508,15 @@ ad.primitive_transposes[event_mv_prob_uniform_p] = _event_matvec_prob_uniform_tr
 def _event_matvec_prob_normal_abstract(
     events, w_mu, w_sigma, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  assert _get_dtype(events) in [jnp.bool_, jnp.float32, jnp.float64]
+  _w_mu_dtype = _get_dtype(w_mu)
+  _w_sigma_dtype = _get_dtype(w_sigma)
+  assert _w_mu_dtype == _w_sigma_dtype, '"w_mu" and "w_sigma" must be same typed.'
+  assert _w_mu_dtype in [jnp.float32, jnp.float64], '"w_mu" must be float valued.'
+  assert _w_sigma_dtype in [jnp.float32, jnp.float64], '"w_sigma" must be float valued.'
+  assert _get_dtype(clen) in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]
+
   if w_mu.ndim != 1:
     raise ValueError('w_mu should be a 1D scalar.')
   if w_sigma.ndim != 1:

@@ -100,7 +100,7 @@ class TestNodeList(bp.testing.UnitTestCase):
 
     with bm.environment(mode=bm.NonBatchingMode()):
       obj = Object()
-      self.assertTrue(len(obj.vars()) == 1)
+      self.assertTrue(len(obj.vars()) == 0)
       self.assertTrue(len(obj.nodes()) == 7)
 
       print(obj.nodes().keys())
@@ -110,7 +110,7 @@ class TestNodeList(bp.testing.UnitTestCase):
 
     with bm.environment(mode=bm.TrainingMode()):
       obj = Object()
-      self.assertTrue(len(obj.vars()) == 7)
+      self.assertTrue(len(obj.vars()) == 6)
       self.assertTrue(len(obj.nodes()) == 7)
 
       print(obj.nodes().keys())
@@ -144,7 +144,8 @@ class TestNodeDict(bp.testing.UnitTestCase):
 
     with bm.environment(mode=bm.NonBatchingMode()):
       obj = Object()
-      self.assertTrue(len(obj.vars()) == 1)
+
+      self.assertTrue(len(obj.vars()) == 0)
       self.assertTrue(len(obj.nodes()) == 7)
       self.assertTrue(len(jax.tree_util.tree_leaves(obj)) == 1)
 
@@ -155,7 +156,7 @@ class TestNodeDict(bp.testing.UnitTestCase):
 
     with bm.environment(mode=bm.TrainingMode()):
       obj = Object()
-      self.assertTrue(len(obj.vars()) == 7)
+      self.assertTrue(len(obj.vars()) == 6)
       self.assertTrue(len(obj.nodes()) == 7)
 
       print(obj.nodes().keys())

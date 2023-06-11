@@ -15,8 +15,8 @@ __all__ = [
   'Parameter',
   'VariableView',
 
-  'VarList',
-  'VarDict',
+  'VarList', 'var_list',
+  'VarDict', 'var_dict',
 ]
 
 
@@ -384,6 +384,9 @@ class VarList(list):
     return cls(children)
 
 
+var_list = VarList
+
+
 @register_pytree_node_class
 class VarDict(dict):
   """A dictionary of :py:class:`~.Variable`, which is compatible with
@@ -426,3 +429,5 @@ class VarDict(dict):
   def tree_unflatten(cls, keys, values):
     return cls(jax.util.safe_zip(keys, values))
 
+
+var_dict = VarDict

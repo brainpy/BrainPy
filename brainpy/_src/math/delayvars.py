@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Union, Callable
+import numbers
 
 import jax
 import jax.numpy as jnp
@@ -447,7 +448,7 @@ class LengthDelay(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[float, int, bool, Array, jnp.DeviceArray]):
+  def update(self, value: Union[numbers.Number, Array, jax.Array]):
     """Update delay variable with the new data.
 
     Parameters
