@@ -254,7 +254,7 @@ class LIFRefLtc(LIFLtc):
     refractory = (t - self.t_last_spike) <= self.tau_ref
     if isinstance(self.mode, bm.TrainingMode):
       refractory = stop_gradient(refractory)
-    V = bm.where(refractory, self.V.value, V)
+    V = bm.where(refractory, self.V_reset, V)
 
     # spike, refractory, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):

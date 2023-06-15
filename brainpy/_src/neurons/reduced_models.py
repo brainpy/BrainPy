@@ -435,7 +435,7 @@ class LIF(NeuGroupNS):
       refractory = (t - self.t_last_spike) <= self.tau_ref
       if isinstance(self.mode, bm.TrainingMode):
         refractory = stop_gradient(refractory)
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
 
       # spike, refractory, spiking time, and membrane potential reset
       if isinstance(self.mode, bm.TrainingMode):
@@ -653,7 +653,7 @@ class ExpIF(NeuGroupNS):
     V = self.integral(self.V.value, t, x, dt)
     if self.tau_ref is not None:
       refractory = (t - self.t_last_spike) <= self.tau_ref
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
       spike = self.V_th <= V
       V = bm.where(spike, self.V_reset, V)
       self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
@@ -839,7 +839,7 @@ class AdExIF(NeuGroupNS):
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
     if self.tau_ref is not None:
       refractory = (t - self.t_last_spike) <= self.tau_ref
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
     spike = V >= self.V_th
     self.V.value = bm.where(spike, self.V_reset, V)
     self.w.value = bm.where(spike, w + self.b, w)
@@ -997,7 +997,7 @@ class QuaIF(NeuGroupNS):
     V = self.integral(self.V.value, t, x, dt)
     if self.tau_ref is not None:
       refractory = (t - self.t_last_spike) <= self.tau_ref
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
       spike = self.V_th <= V
       t_last_spike = bm.where(spike, t, self.t_last_spike.value)
       V = bm.where(spike, self.V_reset, V)
@@ -1531,7 +1531,7 @@ class ALIFBellec2020(NeuGroupNS):
       refractory = (t - self.t_last_spike) <= self.tau_ref
       if isinstance(self.mode, bm.TrainingMode):
         refractory = stop_gradient(refractory)
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
       # spike and reset
       if isinstance(self.mode, bm.TrainingMode):
         spike = self.spike_fun((V - self.V_th - self.beta * self.a) / self.V_th)
@@ -1722,7 +1722,7 @@ class Izhikevich(NeuGroupNS):
     if self.tau_ref is not None:
       refractory = bm.as_jax((t - self.t_last_spike) <= self.tau_ref)
       refractory = stop_gradient(refractory)
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
 
       # spike, refractory, and reset membrane potential
       if isinstance(self.mode, bm.TrainingMode):
@@ -2247,7 +2247,7 @@ class LIF_SFA_Bellec2020(NeuGroupNS):
     if self.tau_ref is not None:
       # refractory
       refractory = stop_gradient((t - self.t_last_spike) <= self.tau_ref)
-      V = bm.where(refractory, self.V.value, V)
+      V = bm.where(refractory, self.V_reset, V)
       # spike and reset
       spike = self.spike_fun((V - self.V_th - self.beta * self.a) / self.V_th)
       V -= self.V_th * spike
