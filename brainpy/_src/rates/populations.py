@@ -1052,7 +1052,6 @@ class ThresholdLinearModel(RateModel):
       input_i = x2 if (x2 is not None) else 0.
 
     de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
-    print(self.noise_e)
     if bm.any(self.noise_e != 0.):
       de += bm.random.randn(self.varshape) * self.noise_e
     de = de / self.tau_e
