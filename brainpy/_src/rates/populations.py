@@ -18,7 +18,6 @@ from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
-  'RateModel',
   'FHN',
   'FeedbackFHN',
   'QIF',
@@ -350,7 +349,7 @@ class FeedbackFHN(RateModel):
     # integral
     self.integral = odeint(method=method,
                            f=JointEq([self.dx, self.dy]),
-                           state_delays={'V': self.x_delay})
+                           state_delays={'x': self.x_delay})
 
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
@@ -1053,6 +1052,7 @@ class ThresholdLinearModel(RateModel):
       input_i = x2 if (x2 is not None) else 0.
 
     de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
+    print(self.noise_e)
     if bm.any(self.noise_e != 0.):
       de += bm.random.randn(self.varshape) * self.noise_e
     de = de / self.tau_e
