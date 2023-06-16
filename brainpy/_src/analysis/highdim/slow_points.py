@@ -14,7 +14,7 @@ import brainpy._src.math as bm
 from brainpy import optim, losses
 from brainpy._src.analysis import utils, base, constants
 from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.dyn.runners import check_and_format_inputs, _f_ops
+from brainpy._src.runners import check_and_format_inputs, _f_ops
 from brainpy._src.tools.dicts import DotDict
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.types import ArrayType

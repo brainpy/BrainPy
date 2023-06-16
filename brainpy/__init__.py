@@ -51,13 +51,15 @@ from brainpy._src.integrators.fde.generic import (fdeint as fdeint)
 #  Part 3: Models  #
 # ---------------- #
 
-from brainpy import (channels,  # channel models
-                     layers,  # ANN layers
-                     neurons,  # neuron groups
-                     synapses,  # synapses
-                     rates,  # rate models
-                     experimental,
-                     )
+from brainpy import (
+  channels,  # channel models
+  layers,  # ANN layers
+  neurons,  # neuron groups
+  synapses,  # synapses
+  rates,  # rate models
+  experimental,
+  pnn,  # parallel SNN models
+)
 from brainpy.synapses import (synouts,  # synaptic output
                               synplast, )  # synaptic plasticity
 
@@ -78,16 +80,17 @@ from brainpy._src.delay import Delay
 from brainpy._src.context import share
 from brainpy._src.dynsys import not_pass_shared
 # running
-from brainpy._src.dyn.runners import (DSRunner as DSRunner)
-from brainpy._src.dyn.transform import (LoopOverTime as LoopOverTime,)
+from brainpy._src.runners import (DSRunner as DSRunner)
+from brainpy._src.transform import (LoopOverTime as LoopOverTime, )
 # DynamicalSystem base classes
-from brainpy._src.dynsys import (DynamicalSystemNS as DynamicalSystemNS,
-                                 NeuGroupNS as NeuGroupNS,
-                                 TwoEndConnNS as TwoEndConnNS,
-                                 )
-from brainpy._src.dyn.synapses_v2.base import (SynOutNS as SynOutNS,
-                                               SynSTPNS as SynSTPNS,
-                                               SynConnNS as SynConnNS, )
+from brainpy._src.dynsys import (
+  DynamicalSystemNS as DynamicalSystemNS,
+  NeuGroupNS as NeuGroupNS,
+  TwoEndConnNS as TwoEndConnNS,
+)
+from brainpy._src.synapses_v2.base import (SynOutNS as SynOutNS,
+                                           SynSTPNS as SynSTPNS,
+                                           SynConnNS as SynConnNS, )
 
 
 #  Part 4: Training  #
@@ -113,6 +116,8 @@ from ._src import base, modes, train, dyn
 #  Part 7: Deprecations  #
 # ---------------------- #
 
+
+math.__dict__['sparse_matmul'] = math.sparse.seg_matmul
 
 math.__dict__['event_matvec_prob_conn_homo_weight'] = math.jitconn.event_mv_prob_homo
 math.__dict__['event_matvec_prob_conn_uniform_weight'] = math.jitconn.event_mv_prob_uniform
@@ -242,7 +247,7 @@ dyn.__dict__['PoissonGroup'] = neurons.PoissonGroup
 dyn.__dict__['OUProcess'] = neurons.OUProcess
 
 # synapses
-from brainpy._src.dyn.synapses import compat
+from brainpy._src.synapses import compat
 dyn.__dict__['DeltaSynapse'] = compat.DeltaSynapse
 dyn.__dict__['ExpCUBA'] = compat.ExpCUBA
 dyn.__dict__['ExpCOBA'] = compat.ExpCOBA

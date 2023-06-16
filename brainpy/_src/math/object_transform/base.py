@@ -27,7 +27,7 @@ StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_key
 __all__ = [
   'BrainPyObject', 'Base', 'FunAsObject', 'ObjectTransform',
 
-  'NodeDict', 'NodeList',
+  'NodeDict', 'node_dict', 'NodeList', 'node_list',
 ]
 
 
@@ -655,6 +655,8 @@ class NodeList(list):
     return self
 
 
+node_list = NodeList
+
 
 class NodeDict(dict):
   """A dictionary of :py:class:`~.BrainPyObject`, which is compatible with
@@ -685,4 +687,7 @@ class NodeDict(dict):
   def __setitem__(self, key, value) -> 'VarDict':
     super().__setitem__(key, self._check_elem(value))
     return self
+
+
+node_dict = NodeDict
 

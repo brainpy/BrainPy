@@ -28,11 +28,12 @@ try:
   from jax import monitoring
 except (ModuleNotFoundError, ImportError):
   monitoring = None
+
 try:
-  from jax.experimental.gda_serialization.serialization import get_tensorstore_spec
-  from jax.experimental.gda_serialization.serialization import GlobalAsyncCheckpointManager
+  from jax.experimental.array_serialization import get_tensorstore_spec, GlobalAsyncCheckpointManager  # noqa
 except (ModuleNotFoundError, ImportError):
   get_tensorstore_spec = None
+  GlobalAsyncCheckpointManager = None
 
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import (AlreadyExistsError,

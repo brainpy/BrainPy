@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Union, Callable
+import numbers
 
 import jax
 import jax.numpy as jnp
@@ -426,7 +427,7 @@ class LengthDelay(AbstractDelay):
       The delay length used to retrieve the data.
     """
     if check.is_checking():
-      jit_error(jnp.any(delay_len >= self.num_delay_step), self._check_delay, delay_len)
+      jit_error(jnp.any(as_jax(delay_len >= self.num_delay_step)), self._check_delay, delay_len)
 
     if self.update_method == ROTATE_UPDATE:
       delay_idx = (self.idx[0] + delay_len) % self.num_delay_step
@@ -447,7 +448,7 @@ class LengthDelay(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[float, int, bool, Array, jnp.DeviceArray]):
+  def update(self, value: Union[numbers.Number, Array, jax.Array]):
     """Update delay variable with the new data.
 
     Parameters

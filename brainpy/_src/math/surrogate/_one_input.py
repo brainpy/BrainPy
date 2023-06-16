@@ -7,6 +7,8 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as sci
 
+from .base import Surrogate
+
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from ._utils import vjp_custom
@@ -33,13 +35,16 @@ __all__ = [
 ]
 
 
-class Sigmoid:
+class Sigmoid(Surrogate):
   def __init__(self, alpha=4., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return sigmoid(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=4., origin=False), dict(origin=[True, False]))
@@ -112,13 +117,16 @@ def sigmoid(
   return z, grad
 
 
-class PiecewiseQuadratic:
+class PiecewiseQuadratic(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return piecewise_quadratic(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
@@ -211,13 +219,16 @@ def piecewise_quadratic(
   return z, grad
 
 
-class PiecewiseExp:
+class PiecewiseExp(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return piecewise_exp(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
@@ -296,13 +307,16 @@ def piecewise_exp(
   return z, grad
 
 
-class SoftSign:
+class SoftSign(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return soft_sign(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
@@ -376,13 +390,16 @@ def soft_sign(
   return z, grad
 
 
-class Arctan:
+class Arctan(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return arctan(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), dict(origin=[True, False]))
@@ -455,13 +472,16 @@ def arctan(
   return z, grad
 
 
-class NonzeroSignLog:
+class NonzeroSignLog(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return nonzero_sign_log(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), statics={'origin': [True, False]})
@@ -547,13 +567,16 @@ def nonzero_sign_log(
   return z, grad
 
 
-class ERF:
+class ERF(Surrogate):
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return erf(x, alpha=self.alpha, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1., origin=False), statics={'origin': [True, False]})
@@ -636,7 +659,7 @@ def erf(
   return z, grad
 
 
-class PiecewiseLeakyRelu:
+class PiecewiseLeakyRelu(Surrogate):
   def __init__(self, c=0.01, w=1., origin=False):
     self.c = c
     self.w = w
@@ -644,6 +667,9 @@ class PiecewiseLeakyRelu:
 
   def __call__(self, x: Union[jax.Array, Array]):
     return piecewise_leaky_relu(x, c=self.c, w=self.w, origin=self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(c={self.c}, w={self.w})'
 
 
 @vjp_custom(['x'], dict(c=0.01, w=1., origin=False), statics={'origin': [True, False]})
@@ -744,7 +770,7 @@ def piecewise_leaky_relu(
   return z, grad
 
 
-class SquarewaveFourierSeries:
+class SquarewaveFourierSeries(Surrogate):
   def __init__(self, n=2, t_period=8., origin=False):
     self.n = n
     self.t_period = t_period
@@ -752,6 +778,9 @@ class SquarewaveFourierSeries:
 
   def __call__(self, x: Union[jax.Array, Array]):
     return squarewave_fourier_series(x, self.n, self.t_period, self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(n={self.n}, t_period={self.t_period})'
 
 
 @vjp_custom(['x'], dict(n=2, t_period=8., origin=False), statics={'origin': [True, False]})
@@ -833,7 +862,7 @@ def squarewave_fourier_series(
   return z, grad
 
 
-class S2NN:
+class S2NN(Surrogate):
   def __init__(self, alpha=4., beta=1., epsilon=1e-8, origin=False):
     self.alpha = alpha
     self.beta = beta
@@ -842,6 +871,9 @@ class S2NN:
 
   def __call__(self, x: Union[jax.Array, Array], ):
     return s2nn(x, self.alpha, self.beta, self.epsilon, self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha}, beta={self.beta}, epsilon={self.epsilon})'
 
 
 @vjp_custom(['x'],
@@ -936,13 +968,16 @@ def s2nn(
   return z, grad
 
 
-class QPseudoSpike:
+class QPseudoSpike(Surrogate):
   def __init__(self, alpha=2., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return q_pseudo_spike(x, self.alpha, self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'],
@@ -1026,7 +1061,7 @@ def q_pseudo_spike(
   return z, grad
 
 
-class LeakyRelu:
+class LeakyRelu(Surrogate):
   def __init__(self, alpha=0.1, beta=1., origin=False):
     self.alpha = alpha
     self.beta = beta
@@ -1034,6 +1069,9 @@ class LeakyRelu:
 
   def __call__(self, x: Union[jax.Array, Array]):
     return leaky_relu(x, self.alpha, self.beta, self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha}, beta={self.beta})'
 
 
 @vjp_custom(['x'],
@@ -1117,13 +1155,16 @@ def leaky_relu(
   return z, grad
 
 
-class LogTailedRelu:
+class LogTailedRelu(Surrogate):
   def __init__(self, alpha=0., origin=False):
     self.alpha = alpha
     self.origin = origin
 
   def __call__(self, x: Union[jax.Array, Array]):
     return log_tailed_relu(x, self.alpha, self.origin)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'],
@@ -1218,13 +1259,16 @@ def log_tailed_relu(
   return z, grad
 
 
-class ReluGrad:
+class ReluGrad(Surrogate):
   def __init__(self, alpha=0.3, width=1.):
     self.alpha = alpha
     self.width = width
 
   def __call__(self, x: Union[jax.Array, Array]):
     return relu_grad(x, self.alpha, self.width)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha}, width={self.width})'
 
 
 @vjp_custom(['x'], dict(alpha=0.3, width=1.))
@@ -1292,13 +1336,16 @@ def relu_grad(
   return z, grad
 
 
-class GaussianGrad:
+class GaussianGrad(Surrogate):
   def __init__(self, sigma=0.5, alpha=0.5):
     self.sigma = sigma
     self.alpha = alpha
 
   def __call__(self, x: Union[jax.Array, Array]):
     return gaussian_grad(x, self.sigma, self.alpha)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha}, sigma={self.sigma})'
 
 
 @vjp_custom(['x'], dict(sigma=0.5, alpha=0.5))
@@ -1365,7 +1412,7 @@ def gaussian_grad(
   return z, grad
 
 
-class MultiGaussianGrad:
+class MultiGaussianGrad(Surrogate):
   def __init__(self, h=0.15, s=6.0, sigma=0.5, scale=0.5):
     self.h = h
     self.s = s
@@ -1374,6 +1421,9 @@ class MultiGaussianGrad:
 
   def __call__(self, x: Union[jax.Array, Array]):
     return multi_gaussian_grad(x, self.h, self.s, self.sigma, self.scale)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(h={self.h}, s={self.s}, sigma={self.sigma}, scale={self.scale})'
 
 
 @vjp_custom(['x'], dict(h=0.15, s=6.0, sigma=0.5, scale=0.5))
@@ -1452,12 +1502,15 @@ def multi_gaussian_grad(
   return z, grad
 
 
-class InvSquareGrad:
+class InvSquareGrad(Surrogate):
   def __init__(self, alpha=100.):
     self.alpha = alpha
 
   def __call__(self, x: Union[jax.Array, Array]):
     return inv_square_grad(x, self.alpha)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=100.))
@@ -1517,12 +1570,15 @@ def inv_square_grad(
   return z, grad
 
 
-class SlayerGrad:
+class SlayerGrad(Surrogate):
   def __init__(self, alpha=1.):
     self.alpha = alpha
 
   def __call__(self, x: Union[jax.Array, Array]):
     return slayer_grad(x, self.alpha)
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(alpha={self.alpha})'
 
 
 @vjp_custom(['x'], dict(alpha=1.))

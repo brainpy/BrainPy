@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 
-def one_of(default: Any, *choices, names: Sequence[str] =None):
+def one_of(default: Any, *choices, names: Sequence[str] = None):
   names = [f'arg{i}' for i in range(len(choices))] if names is None else names
   res = default
   has_chosen = False
@@ -90,7 +90,7 @@ def to_size(x) -> Optional[Tuple[int]]:
   if isinstance(x, (tuple, list)):
     return tuple(x)
   if isinstance(x, (int, np.integer)):
-    return (x, )
+    return (x,)
   if x is None:
     return x
   raise ValueError(f'Cannot make a size for {x}')
@@ -183,3 +183,4 @@ def init_progress_bar(duration, dt, report=0.01, message=None):
     close_tqdm(iter_num)
 
   return _progress_bar
+

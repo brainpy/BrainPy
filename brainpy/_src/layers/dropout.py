@@ -46,11 +46,10 @@ class Dropout(Layer):
   ):
     super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = check.is_float(prob, min_bound=0., max_bound=1.)
-    self.rng = bm.random.default_rng(seed)
 
   def update(self, x):
     if share.load('fit'):
-      keep_mask = self.rng.bernoulli(self.prob, x.shape)
+      keep_mask = bm.random.bernoulli(self.prob, x.shape)
       return bm.where(keep_mask, x / self.prob, 0.)
     else:
       return x

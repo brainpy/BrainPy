@@ -4,7 +4,8 @@ from brainpy._src.losses.comparison import (
   cross_entropy_loss as cross_entropy_loss,
   cross_entropy_sparse as cross_entropy_sparse,
   cross_entropy_sigmoid as cross_entropy_sigmoid,
-  l1_loos as l1_loos,
+  nll_loss,
+  l1_loss as l1_loss,
   l2_loss as l2_loss,
   huber_loss as huber_loss,
   mean_absolute_error as mean_absolute_error,
@@ -17,6 +18,14 @@ from brainpy._src.losses.comparison import (
   log_cosh_loss as log_cosh_loss,
   ctc_loss_with_forward_probs as ctc_loss_with_forward_probs,
   ctc_loss as ctc_loss,
+)
+
+from brainpy._src.losses.comparison import (
+  CrossEntropyLoss,
+  NLLLoss,
+  L1Loss,
+  MAELoss,
+  MSELoss,
 )
 
 from brainpy._src.losses.regularization import (

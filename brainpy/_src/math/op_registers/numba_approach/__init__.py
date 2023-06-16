@@ -109,7 +109,6 @@ class XLACustomOp(BrainPyObject):
     return res
 
 
-
 def register_op_with_numba(
     op_name: str,
     cpu_func: Callable,
