@@ -382,6 +382,8 @@ def log_softmax(x, axis=-1):
   x = x.value if isinstance(x, Array) else x
   shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
   return shifted - jnp.log(jnp.sum(jnp.exp(shifted), axis, keepdims=True))
+  # exp = jnp.exp(x)
+  # return jnp.log(exp / exp.sum(axis=axis, keepdims=True))
 
 
 def _canonicalize_axis(axis, num_dims) -> int:

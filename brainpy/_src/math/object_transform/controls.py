@@ -8,6 +8,8 @@ import jax.numpy as jnp
 from jax import lax
 from jax.errors import UnexpectedTracerError
 from jax.tree_util import tree_flatten, tree_unflatten
+from tqdm.auto import tqdm
+from jax.experimental.host_callback import id_tap
 
 from brainpy import errors, tools
 from brainpy._src.math.interoperability import as_jax
@@ -625,12 +627,15 @@ def for_loop(
     unroll: int = 1,
     remat: bool = False,
     jit: bool = True,
+    progress_bar: bool = False,
 
     # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
   """``for-loop`` control flow with :py:class:`~.Variable`.
+
+  .. versionadded:: 2.1.11
 
   .. versionchanged:: 2.3.0
      ``dyn_vars`` has been changed into a default argument.
@@ -672,8 +677,6 @@ def for_loop(
    [16.]
    [20.]]
 
-  .. versionadded:: 2.1.11
-
   Parameters
   ----------
   body_fun: callable
@@ -699,6 +702,8 @@ def for_loop(
     Optional positive int specifying, in the underlying operation of the
     scan primitive, how many scan iterations to unroll within a single
     iteration of a loop.
+  progress_bar: bool
+    Whether we use the progress bar to report the running progress.
 
   dyn_vars: Variable, sequence of Variable, dict
     The instances of :py:class:`~.Variable`.
@@ -727,6 +732,10 @@ def for_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
+  if progress_bar:
+    num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
+    bar = tqdm(total=num_total)
+
   dyn_vars = get_stack_cache(body_fun)
   if not jit:
     if dyn_vars is None:
@@ -747,6 +756,8 @@ def for_loop(
     for k in dyn_vars.keys():
       dyn_vars[k]._value = carry[k]
     results = body_fun(*x)
+    if progress_bar:
+      id_tap(lambda *arg: bar.update(), ())
     return dyn_vars.dict_data(), results
 
   if remat:
@@ -761,7 +772,21 @@ def for_loop(
                                   unroll=unroll)
   for key in dyn_vars.keys():
     dyn_vars[key]._value = dyn_vals[key]
+  if progress_bar:
+    bar.close()
   return out_vals
+
+
+def scan(
+   f: Callable,
+   init: Any,
+   xs: Any,
+   length: Optional[int] = None,
+   reverse: bool = False,
+   unroll: int = 1
+):
+  jax.lax.scan
+
 
 
 def while_loop(

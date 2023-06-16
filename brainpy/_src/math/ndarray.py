@@ -868,7 +868,7 @@ class Array(object):
 
     Example::
 
-        >>> x = brainpy.math.randn(4, 4)
+        >>> x = brainpy.math.random.randn(4, 4)
         >>> x.size
        [4, 4]
         >>> y = x.view(16)
@@ -878,7 +878,7 @@ class Array(object):
         >>> z.size
         [2, 8]
 
-        >>> a = brainpy.math.randn(1, 2, 3, 4)
+        >>> a = brainpy.math.random.randn(1, 2, 3, 4)
         >>> a.size
         [1, 2, 3, 4]
         >>> b = a.transpose(1, 2)  # Swaps 2nd and 3rd dimension
@@ -929,7 +929,7 @@ class Array(object):
 
     Example::
 
-        >>> x = brainpy.math.randn(4, 4)
+        >>> x = brainpy.math.random.randn(4, 4)
         >>> x
         Array([[ 0.9482, -0.0310,  1.4999, -0.5316],
                 [-0.1520,  0.7472,  0.5617, -0.8649],
@@ -1017,8 +1017,7 @@ class Array(object):
 
   def as_variable(self):
     """As an instance of Variable."""
-    from brainpy.math import Variable
-    return Variable(self)
+    return brainpy.math.Variable(self)
 
   def __format__(self, specification):
     return self.value.__format__(specification)
@@ -1397,6 +1396,40 @@ class Array(object):
   @classmethod
   def tree_unflatten(cls, aux_data, flat_contents):
     return cls(*flat_contents)
+
+  # ----------------------
+  # PyTorch compatibility
+  # ----------------------
+
+  def zero_(self):
+    self.value = jnp.zeros_like(self.value)
+
+  def fill_(self, value):
+    self.fill(value)
+
+  def uniform_(self, low=0., high=1.):
+    self.value = brainpy.math.random.uniform(low, high, self.shape)
+
+  def log_normal_(self, mean=1, std=2):
+    r"""Fills self tensor with numbers samples from the log-normal distribution parameterized by the given mean
+    :math:`\mu` and standard deviation :math:`\sigma`. Note that mean and std are the mean and standard
+    deviation of the underlying normal distribution, and not of the returned distribution:
+
+    .. math::
+
+       f(x)=\frac{1}{x \sigma \sqrt{2 \pi}} e^{-\frac{(\ln x-\mu)^2}{2 \sigma^2}}
+
+    Args:
+      mean: the mean value.
+      std: the standard deviation.
+    """
+    self.value = brainpy.math.random.lognormal(mean, std, self.shape)
+
+  def normal_(self, ):
+    """
+    Fills self tensor with elements samples from the normal distribution parameterized by mean and std.
+    """
+    self.value = brainpy.math.random.randn(*self.shape)
 
 
 JaxArray = Array

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.dyn.rates.populations import (
+from brainpy._src.rates.populations import (
   RateModel as RateModel,
   FHN as FHN,
   FeedbackFHN as FeedbackFHN,

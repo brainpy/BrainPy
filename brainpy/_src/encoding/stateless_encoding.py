@@ -33,13 +33,11 @@ class PoissonEncoder(Encoder):
 
   def __init__(self,
                min_val: Optional[float] = None,
-               max_val: Optional[float] = None,
-               seed: Union[int, ArrayType] = None):
+               max_val: Optional[float] = None):
     super().__init__()
 
     self.min_val = check.is_float(min_val, 'min_val', allow_none=True)
     self.max_val = check.is_float(max_val, 'max_val', allow_none=True)
-    self.rng = bm.random.default_rng(seed)
 
   def __call__(self, x: ArrayType, num_step: int = None):
     """
@@ -66,5 +64,5 @@ class PoissonEncoder(Encoder):
     if not (self.min_val is None or self.max_val is None):
       x = (x - self.min_val) / (self.max_val - self.min_val)
     shape = x.shape if (num_step is None) else ((num_step,) + x.shape)
-    d = bm.as_jax(self.rng.rand(*shape)) < x
+    d = bm.as_jax(bm.random.rand(*shape)) < x
     return d.astype(x.dtype)

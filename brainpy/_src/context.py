@@ -52,7 +52,7 @@ class _ShareContext(DynamicalSystemNS):
       return self._arguments[key]
     if value is None:
       raise KeyError(f'Cannot found shared data of {key}. '
-                     f'Please define it with "brainpy.share.save()". ')
+                     f'Please define it with "brainpy.share.save({key}=<?>)". ')
     else:
       return value
 

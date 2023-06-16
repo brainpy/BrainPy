@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from brainpy._src.math.ndarray import Variable
 from brainpy._src.math.object_transform.base import BrainPyObject
+from brainpy._src.math.object_transform.variables import Variable
 
 __all__ = [
   'get_output_var',

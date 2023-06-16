@@ -8,6 +8,7 @@ BrainPyObject = None
 
 
 __all__ = [
+  'repr_dict',
   'repr_object',
   'repr_context',
   'copy_doc',
@@ -25,6 +26,11 @@ __all__ = [
   'get_func_source',
   'change_func_name',
 ]
+
+
+def repr_dict(dict_obj: dict):
+  ret = [f'{k}={v}' for k, v in dict_obj.items()]
+  return ', '.join(ret)
 
 
 def repr_object(x):

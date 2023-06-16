@@ -127,7 +127,6 @@ class Reservoir(Layer):
     check.is_callable(self.activation, allow_none=False)
     self.activation_type = activation_type
     check.is_string(activation_type, 'activation_type', ['internal', 'external'])
-    self.rng = bm.random.default_rng(seed)
     check.is_float(spectral_radius, 'spectral_radius', allow_none=True)
     self.spectral_radius = spectral_radius
 
@@ -160,7 +159,7 @@ class Reservoir(Layer):
     self.Wff_shape = weight_shape
     self.Win = parameter(self._Win_initializer, weight_shape)
     if self.ff_connectivity < 1.:
-      conn_mat = self.rng.random(weight_shape) > self.ff_connectivity
+      conn_mat = bm.random.random(weight_shape) > self.ff_connectivity
       self.Win[conn_mat] = 0.
     if self.comp_type == 'sparse' and self.ff_connectivity < 1.:
       self.ff_pres, self.ff_posts = jnp.where(jnp.logical_not(bm.as_jax(conn_mat)))
@@ -172,7 +171,7 @@ class Reservoir(Layer):
     recurrent_shape = (self.num_unit, self.num_unit)
     self.Wrec = parameter(self._Wrec_initializer, recurrent_shape)
     if self.rec_connectivity < 1.:
-      conn_mat = self.rng.random(recurrent_shape) > self.rec_connectivity
+      conn_mat = bm.random.random(recurrent_shape) > self.rec_connectivity
       self.Wrec[conn_mat] = 0.
     if self.spectral_radius is not None:
       current_sr = max(abs(jnp.linalg.eig(bm.as_jax(self.Wrec))[0]))
@@ -196,12 +195,12 @@ class Reservoir(Layer):
     # inputs
     x = bm.as_jax(x)
     if self.noise_ff > 0:
-      x += self.noise_ff * self.rng.uniform(-1, 1, x.shape)
+      x += self.noise_ff * bm.random.uniform(-1, 1, x.shape)
     if self.comp_type == 'sparse' and self.ff_connectivity < 1.:
       sparse = {'data': self.Win,
                 'index': (self.ff_pres, self.ff_posts),
                 'shape': self.Wff_shape}
-      hidden = bm.sparse_matmul(x, sparse)
+      hidden = bm.sparse.seg_matmul(x, sparse)
     else:
       hidden = x @ self.Win
     # recurrent
@@ -209,13 +208,13 @@ class Reservoir(Layer):
       sparse = {'data': self.Wrec,
                 'index': (self.rec_pres, self.rec_posts),
                 'shape': (self.num_unit, self.num_unit)}
-      hidden += bm.sparse_matmul(self.state, sparse)
+      hidden += bm.sparse.seg_matmul(self.state, sparse)
     else:
       hidden += self.state @ self.Wrec
     if self.activation_type == 'internal':
       hidden = self.activation(hidden)
     if self.noise_rec > 0.:
-      hidden += self.noise_rec * self.rng.uniform(-1, -1, self.state.shape)
+      hidden += self.noise_rec * bm.random.uniform(-1, -1, self.state.shape)
     # new state/output
     state = (1 - self.leaky_rate) * self.state + self.leaky_rate * hidden
     if self.activation_type == 'external':

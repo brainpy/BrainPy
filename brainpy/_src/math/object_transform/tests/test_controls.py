@@ -109,6 +109,11 @@ class TestLoop(parameterized.TestCase):
     print(ans)
     print(c)
 
+  def test_for_loop_progress_bar(self):
+    xs = bm.arange(100)
+    ys = bm.for_loop(lambda a: a, xs, progress_bar=True)
+    self.assertTrue(bm.allclose(xs, ys))
+
 
 class TestIfElse(unittest.TestCase):
   def test1(self):
@@ -224,4 +229,9 @@ class TestWhile(bp.testing.UnitTestCase):
       res2 = bm.while_loop(body, cond, operands=(1., 1.))
       self.assertTrue(bm.array_equal(res2[0], res[0]))
       self.assertTrue(bm.array_equal(res2[1], res[1]))
+
+
+
+
+
 
