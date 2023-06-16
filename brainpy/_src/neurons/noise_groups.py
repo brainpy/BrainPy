@@ -5,7 +5,7 @@ from typing import Union, Callable
 import jax.numpy as jnp
 from brainpy._src.context import share
 from brainpy import math as bm, initialize as init
-from brainpy._src.dynsys import NeuGroupNS as NeuGroup
+from brainpy._src.dynsys import NeuGroupNS
 from brainpy._src.initialize import Initializer
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy.types import ArrayType, Shape
@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 
-class OUProcess(NeuGroup):
+class OUProcess(NeuGroupNS):
   r"""The Ornstein–Uhlenbeck process.
 
   The Ornstein–Uhlenbeck process :math:`x_{t}` is defined by the following

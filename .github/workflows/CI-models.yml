@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.8", "3.9", "3.10" ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v2
@@ -29,30 +29,30 @@ jobs:
         run: |
           pytest tests/
 
-  test_linux_py37:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.7"]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-        pip install jax==0.3.25
-        pip install jaxlib==0.3.25
-        pip uninstall brainpy -y
-        python setup.py install
-    - name: Test with pytest
-      run: |
-        pytest tests/
+#  test_linux_py37:
+#    runs-on: ubuntu-latest
+#    if: github.event.pull_request.merged == true
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        python-version: ["3.7"]
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Set up Python ${{ matrix.python-version }}
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: ${{ matrix.python-version }}
+#    - name: Install dependencies
+#      run: |
+#        if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+#        pip install jax==0.3.25
+#        pip install jaxlib==0.3.25
+#        pip uninstall brainpy -y
+#        python setup.py install
+#    - name: Test with pytest
+#      run: |
+#        pytest tests/
         
   test_macos:
     runs-on: macos-latest
@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v2
@@ -77,30 +77,30 @@ jobs:
       run: |
         pytest tests/
 
-  test_macos_py37:
-    runs-on: macos-latest
-    if: github.event.pull_request.merged == true
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ "3.7" ]
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-          pip install jax==0.3.25
-          pip install jaxlib==0.3.25
-          pip uninstall brainpy -y
-          python setup.py install
-      - name: Test with pytest
-        run: |
-          pytest tests/
+#  test_macos_py37:
+#    runs-on: macos-latest
+#    if: github.event.pull_request.merged == true
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        python-version: [ "3.7" ]
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Set up Python ${{ matrix.python-version }}
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#      - name: Install dependencies
+#        run: |
+#          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+#          pip install jax==0.3.25
+#          pip install jaxlib==0.3.25
+#          pip uninstall brainpy -y
+#          python setup.py install
+#      - name: Test with pytest
+#        run: |
+#          pytest tests/
           
 
   test_windows:
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v2
@@ -120,8 +120,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install numpy>=1.21.0
-        python -m pip install "jaxlib==0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
-        python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.25.tar.gz
+        python -m pip install "jaxlib==0.4.10" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
+        python -m pip install jax==0.4.10
         python -m pip install -r requirements-dev.txt
         python -m pip install tqdm brainpylib
         pip uninstall brainpy -y
@@ -130,29 +130,29 @@ jobs:
       run: |
         pytest tests/
 
-  test_windows_py37:
-    runs-on: windows-latest
-    if: github.event.pull_request.merged == true
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.7"]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install numpy>=1.21.0
-        python -m pip install "jaxlib==0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
-        python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.25.tar.gz
-        python -m pip install -r requirements-dev.txt
-        python -m pip install tqdm brainpylib
-        pip uninstall brainpy -y
-        python setup.py install
-    - name: Test with pytest
-      run: |
-        pytest tests/
+#  test_windows_py37:
+#    runs-on: windows-latest
+#    if: github.event.pull_request.merged == true
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        python-version: ["3.7"]
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#    - name: Set up Python ${{ matrix.python-version }}
+#      uses: actions/setup-python@v2
+#      with:
+#        python-version: ${{ matrix.python-version }}
+#    - name: Install dependencies
+#      run: |
+#        python -m pip install numpy>=1.21.0
+#        python -m pip install "jaxlib==0.3.25" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
+#        python -m pip install https://github.com/google/jax/archive/refs/tags/jax-v0.3.25.tar.gz
+#        python -m pip install -r requirements-dev.txt
+#        python -m pip install tqdm brainpylib
+#        pip uninstall brainpy -y
+#        python setup.py install
+#    - name: Test with pytest
+#      run: |
+#        pytest tests/
