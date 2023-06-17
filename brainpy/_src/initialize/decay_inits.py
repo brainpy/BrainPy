@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 
 from jax import vmap, jit, numpy as jnp
@@ -8,7 +7,6 @@ from functools import partial
 from brainpy import math as bm
 from brainpy.tools import to_size, size2num
 from .base import _IntraLayerInitializer
-
 
 __all__ = [
   'GaussianDecay',
@@ -19,19 +17,20 @@ __all__ = [
 @jit
 @partial(vmap, in_axes=(0, None, None))
 def gaussian_decay_dist_cal1(i_value, post_values, sigma):
-    dists = jnp.abs(i_value - post_values)
-    exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
-    return bm.asarray(exp_dists)
+  dists = jnp.abs(i_value - post_values)
+  exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
+  return bm.asarray(exp_dists)
 
 
 @jit
 @partial(vmap, in_axes=(0, None, None, None))
 def gaussian_decay_dist_cal2(i_value, post_values, value_sizes, sigma):
-    dists = jnp.abs(i_value - post_values)
-    dists = jnp.where(dists > (value_sizes / 2), value_sizes - dists, dists)
-    exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
-    return bm.asarray(exp_dists)
-  
+  dists = jnp.abs(i_value - post_values)
+  dists = jnp.where(dists > (value_sizes / 2), value_sizes - dists, dists)
+  exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
+  return bm.asarray(exp_dists)
+
+
 class GaussianDecay(_IntraLayerInitializer):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,
   where the weights decay with gaussian function.
@@ -138,7 +137,7 @@ class GaussianDecay(_IntraLayerInitializer):
       if i_value.ndim < post_values.ndim:
         i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
       i_value_list[list_index] = i_value
-      
+
     if self.periodic_boundary:
       conn_mat = gaussian_decay_dist_cal2(i_value_list, post_values, value_sizes, self.sigma)
     else:
@@ -153,7 +152,7 @@ class GaussianDecay(_IntraLayerInitializer):
     conn_mat *= self.max_w
     conn_mat = bm.where(conn_mat < self.min_w, 0., conn_mat)
     return bm.asarray(conn_mat, dtype=dtype)
-  
+
   def __repr__(self):
     name = self.__class__.__name__
     bank = ' ' * len(name)
@@ -161,6 +160,47 @@ class GaussianDecay(_IntraLayerInitializer):
             f'{bank}periodic_boundary={self.periodic_boundary}, '
             f'include_self={self.include_self}, '
             f'normalize={self.normalize})')
+
+
+@jit
+@partial(vmap, in_axes=(0, None, None, None, None, None, None, None))
+def _dog_decay_pd(voxel_ids,
+                  values, post_values, value_sizes,
+                  max_w_p, sigma_p,
+                  max_w_n, sigma_n):
+  i_value = []
+  for i in range(len(voxel_ids)):
+    p_id = voxel_ids[i]  # position id
+    i_value.append(values[i][p_id])
+  i_value = bm.array(i_value)
+  if i_value.ndim < post_values.ndim:
+    i_value = bm.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
+  # distances
+  dists = bm.abs(i_value - post_values)
+  dists = bm.where(dists > value_sizes / 2, value_sizes - dists, dists)
+  dists_exp_p = max_w_p * bm.exp(-(bm.linalg.norm(dists, axis=0) / sigma_p) ** 2 / 2)
+  dists_exp_n = max_w_n * bm.exp(-(bm.linalg.norm(dists, axis=0) / sigma_n) ** 2 / 2)
+  return dists_exp_p - dists_exp_n
+
+
+@jit
+@partial(vmap, in_axes=(0, None, None, None, None, None, None))
+def _dog_decay(voxel_ids,
+               values, post_values,
+               max_w_p, sigma_p,
+               max_w_n, sigma_n):
+  i_value = []
+  for i in range(len(voxel_ids)):
+    p_id = voxel_ids[i]  # position id
+    i_value.append(values[i][p_id])
+  i_value = bm.array(i_value)
+  if i_value.ndim < post_values.ndim:
+    i_value = bm.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
+  # distances
+  dists = bm.abs(i_value - post_values)
+  dists_exp_p = max_w_p * bm.exp(-(bm.linalg.norm(dists, axis=0) / sigma_p) ** 2 / 2)
+  dists_exp_n = max_w_n * bm.exp(-(bm.linalg.norm(dists, axis=0) / sigma_n) ** 2 / 2)
+  return dists_exp_p - dists_exp_n
 
 
 class DOGDecay(_IntraLayerInitializer):
@@ -259,29 +299,20 @@ class DOGDecay(_IntraLayerInitializer):
       voxel_ids = tuple(np.moveaxis(m, 0, 1).flatten() for m in voxel_ids)
 
     # connectivity matrix
-    ndim = len(voxel_ids)
-    conn_weights = []
-    for v_id in range(voxel_ids[0].shape[0]):
-      i_value = []
-      for i in range(ndim):
-        p_id = voxel_ids[i][v_id]  # position id
-        i_value.append(values[i][p_id])
-      i_value = np.array(i_value)
-      if i_value.ndim < post_values.ndim:
-        i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
-      # distances
-      dists = np.abs(i_value - post_values)
-      if self.periodic_boundary:
-        dists = np.where(dists > value_sizes / 2, value_sizes - dists, dists)
-      dists_exp_p = self.max_w_p * np.exp(-(np.linalg.norm(dists, axis=0) / self.sigma_p) ** 2 / 2)
-      dists_exp_n = self.max_w_n * np.exp(-(np.linalg.norm(dists, axis=0) / self.sigma_n) ** 2 / 2)
-      conn_weights.append(dists_exp_p - dists_exp_n)
-    conn_weights = np.stack(conn_weights)
+    if self.periodic_boundary:
+      conn_weights = _dog_decay_pd(voxel_ids, values, post_values, value_sizes,
+                                   self.max_w_p, self.sigma_p,
+                                   self.max_w_n, self.sigma_n)
+    else:
+      conn_weights = _dog_decay(voxel_ids, values, post_values,
+                                self.max_w_p, self.sigma_p,
+                                self.max_w_n, self.sigma_n)
     if not self.include_self:
-      np.fill_diagonal(conn_weights, 0.)
+      conn_weights = bm.asarray(conn_weights)
+      bm.fill_diagonal(conn_weights, 0.)
 
     # connectivity weights
-    conn_weights = np.where(np.abs(conn_weights) < self.min_w, 0., conn_weights)
+    conn_weights = bm.where(np.abs(conn_weights) < self.min_w, 0., conn_weights)
     return bm.asarray(conn_weights, dtype=dtype)
 
   def __repr__(self):
