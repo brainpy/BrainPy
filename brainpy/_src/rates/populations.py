@@ -170,26 +170,26 @@ class FHN(RateModel):
   def dy(self, y, t, x, y_ext=0.):
     return (x - self.delta - self.epsilon * y) / self.tau + y_ext
 
-  def update(self, x1=None, x2=None):
+  def update(self, inp_x=None, inp_y=None):
     t = share.load('t')
     dt = share.load('dt')
 
     # input
     if self.input_var:
-      if x1 is not None:
-        self.input += x1
+      if inp_x is not None:
+        self.input += inp_x
       if self.x_ou is not None:
         self.input += self.x_ou()
-      if x2 is not None:
-        self.input_y += x2
+      if inp_y is not None:
+        self.input_y += inp_y
       if self.y_ou is not None:
         self.input_y += self.y_ou()
       input_x = self.input.value
       input_y = self.input_y.value
     else:
-      input_x = x1 if (x1 is not None) else 0.
+      input_x = inp_x if (inp_x is not None) else 0.
       if self.x_ou is not None: input_x += self.x_ou()
-      input_y = x2 if (x2 is not None) else 0.
+      input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
     # integral
@@ -370,26 +370,26 @@ class FeedbackFHN(RateModel):
   def dy(self, y, t, x, y_ext):
     return (x + self.a - self.b * y + y_ext) / self.tau
 
-  def update(self, x1=None, x2=None):
+  def update(self, inp_x=None, inp_y=None):
     t = share.load('t')
     dt = share.load('dt')
 
     # input
     if self.input_var:
-      if x1 is not None:
-        self.input += x1
+      if inp_x is not None:
+        self.input += inp_x
       if self.x_ou is not None:
         self.input += self.x_ou()
-      if x2 is not None:
-        self.input_y += x2
+      if inp_y is not None:
+        self.input_y += inp_y
       if self.y_ou is not None:
         self.input_y += self.y_ou()
       input_x = self.input.value
       input_y = self.input_y.value
     else:
-      input_x = x1 if (x1 is not None) else 0.
+      input_x = inp_x if (inp_x is not None) else 0.
       if self.x_ou is not None: input_x += self.x_ou()
-      input_y = x2 if (x2 is not None) else 0.
+      input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
     x, y = self.integral(self.x.value, self.y.value, t, x_ext=input_x, y_ext=input_y, dt=dt)
@@ -570,26 +570,26 @@ class QIF(RateModel):
     return (x ** 2 + self.eta + x_ext + self.J * y * self.tau -
             (bm.pi * y * self.tau) ** 2) / self.tau
 
-  def update(self, x1=None, x2=None):
+  def update(self, inp_x=None, inp_y=None):
     t = share.load('t')
     dt = share.load('dt')
 
     # input
     if self.input_var:
-      if x1 is not None:
-        self.input += x1
+      if inp_x is not None:
+        self.input += inp_x
       if self.x_ou is not None:
         self.input += self.x_ou()
-      if x2 is not None:
-        self.input_y += x2
+      if inp_y is not None:
+        self.input_y += inp_y
       if self.y_ou is not None:
         self.input_y += self.y_ou()
       input_x = self.input.value
       input_y = self.input_y.value
     else:
-      input_x = x1 if (x1 is not None) else 0.
+      input_x = inp_x if (inp_x is not None) else 0.
       if self.x_ou is not None: input_x += self.x_ou()
-      input_y = x2 if (x2 is not None) else 0.
+      input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
     x, y = self.integral(self.x, self.y, t=t, x_ext=input_x, y_ext=input_y, dt=dt)
@@ -722,26 +722,26 @@ class StuartLandauOscillator(RateModel):
   def dy(self, y, t, x, y_ext, a, w):
     return (a - x * x - y * y) * y - w * y + y_ext
 
-  def update(self, x1=None, x2=None):
+  def update(self, inp_x=None, inp_y=None):
     t = share.load('t')
     dt = share.load('dt')
 
     # input
     if self.input_var:
-      if x1 is not None:
-        self.input += x1
+      if inp_x is not None:
+        self.input += inp_x
       if self.x_ou is not None:
         self.input += self.x_ou()
-      if x2 is not None:
-        self.input_y += x2
+      if inp_y is not None:
+        self.input_y += inp_y
       if self.y_ou is not None:
         self.input_y += self.y_ou()
       input_x = self.input.value
       input_y = self.input_y.value
     else:
-      input_x = x1 if (x1 is not None) else 0.
+      input_x = inp_x if (inp_x is not None) else 0.
       if self.x_ou is not None: input_x += self.x_ou()
-      input_y = x2 if (x2 is not None) else 0.
+      input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
     x, y = self.integral(self.x,
@@ -905,26 +905,26 @@ class WilsonCowanModel(RateModel):
     xx = self.wEI * x - self.wII * y + y_ext
     return (-y + (1 - self.r * y) * self.F(xx, self.I_a, self.I_theta)) / self.I_tau
 
-  def update(self, x1=None, x2=None):
+  def update(self, inp_x=None, inp_y=None):
     t = share.load('t')
     dt = share.load('dt')
 
     # input
     if self.input_var:
-      if x1 is not None:
-        self.input += x1
+      if inp_x is not None:
+        self.input += inp_x
       if self.x_ou is not None:
         self.input += self.x_ou()
-      if x2 is not None:
-        self.input_y += x2
+      if inp_y is not None:
+        self.input_y += inp_y
       if self.y_ou is not None:
         self.input_y += self.y_ou()
       input_x = self.input.value
       input_y = self.input_y.value
     else:
-      input_x = x1 if (x1 is not None) else 0.
+      input_x = inp_x if (inp_x is not None) else 0.
       if self.x_ou is not None: input_x += self.x_ou()
-      input_y = x2 if (x2 is not None) else 0.
+      input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
     x, y = self.integral(self.x, self.y, t, x_ext=input_x, y_ext=input_y, dt=dt)
@@ -1037,20 +1037,20 @@ class ThresholdLinearModel(RateModel):
       self.Ie.value = variable(bm.zeros, batch_size, self.varshape)
       self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
 
-  def update(self, x1=None, x2=None):
+  def update(self, inp_e=None, inp_i=None):
     dt = share.load('dt')
 
     # input
     if self.input_var:
-      if x1 is not None:
-        self.Ie += x1
-      if x2 is not None:
-        self.Ii += x2
+      if inp_e is not None:
+        self.Ie += inp_e
+      if inp_i is not None:
+        self.Ii += inp_i
       input_e = self.Ie.value
       input_i = self.Ii.value
     else:
-      input_e = x1 if (x1 is not None) else 0.
-      input_i = x2 if (x2 is not None) else 0.
+      input_e = inp_e if (inp_e is not None) else 0.
+      input_i = inp_i if (inp_i is not None) else 0.
 
     de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
     if bm.any(self.noise_e != 0.):

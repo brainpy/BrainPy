@@ -1049,9 +1049,9 @@ class Array(object):
     from jax.dlpack import to_dlpack  # pylint: disable=g-import-not-at-top
     return to_dlpack(self.value)
 
-  # **********************************
-  # For Pytorch compitable
-  # **********************************
+  # ----------------------
+  # PyTorch compatibility
+  # ----------------------
 
   def unsqueeze(self, dim: int) -> 'Array':
     """
@@ -1194,6 +1194,33 @@ class Array(object):
     alias of Array.abs_()
     """
     return self.abs_()
+
+  def mul(self, value):
+    return Array(self.value * value)
+
+  def mul_(self, value):
+    """
+    In-place version of :meth:`~Array.mul`.
+    """
+    self.value *= value
+    return self
+
+  def multiply(self, value):  # real signature unknown; restored from __doc__
+    """
+    multiply(value) -> Tensor
+
+    See :func:`torch.multiply`.
+    """
+    return self.value * value
+
+  def multiply_(self, value):  # real signature unknown; restored from __doc__
+    """
+    multiply_(value) -> Tensor
+
+    In-place version of :meth:`~Tensor.multiply`.
+    """
+    self.value *= value
+    return self
 
   def sin(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.sin(self.value)
@@ -1360,7 +1387,7 @@ class Array(object):
 
     Parameters
     ----------
-    shape : tuple or int
+    sizes : tuple or int
         The shape of the desired array. A single integer ``i`` is interpreted
         as ``(i,)``.
 
@@ -1397,10 +1424,6 @@ class Array(object):
   def tree_unflatten(cls, aux_data, flat_contents):
     return cls(*flat_contents)
 
-  # ----------------------
-  # PyTorch compatibility
-  # ----------------------
-
   def zero_(self):
     self.value = jnp.zeros_like(self.value)
 
@@ -1430,6 +1453,14 @@ class Array(object):
     Fills self tensor with elements samples from the normal distribution parameterized by mean and std.
     """
     self.value = brainpy.math.random.randn(*self.shape)
+
+  def cuda(self):
+    self.value = jax.device_put(self.value, jax.devices('cuda')[0])
+    return self
+
+  def cpu(self):
+    self.value = jax.device_put(self.value, jax.devices('cpu')[0])
+    return self
 
 
 JaxArray = Array

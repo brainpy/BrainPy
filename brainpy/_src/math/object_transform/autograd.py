@@ -17,7 +17,7 @@ from jax.util import safe_map
 
 from brainpy import tools, check
 from brainpy._src.math.ndarray import Array
-from .variables import Variable
+from .variables import Variable, VariableStack
 from .base import BrainPyObject, ObjectTransform
 from ._tools import (dynvar_deprecation,
                      node_deprecation,
@@ -136,8 +136,12 @@ class GradientTransform(ObjectTransform):
 
   def __call__(self, *args, **kwargs):
     if self._transform is None:
-      self._dyn_vars = evaluate_dyn_vars(self.target, *args, **kwargs)
-      self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+      if jax.config.jax_disable_jit:
+        self._dyn_vars = VariableStack()
+      else:
+        self._dyn_vars = evaluate_dyn_vars(self.target, *args, **kwargs)
+        self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+
       if self._has_aux:
         self._transform = self._grad_transform(
           self._f_grad_with_aux_to_transform,

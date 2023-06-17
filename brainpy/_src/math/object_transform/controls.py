@@ -626,7 +626,7 @@ def for_loop(
     reverse: bool = False,
     unroll: int = 1,
     remat: bool = False,
-    jit: bool = True,
+    jit: Optional[bool] = None,
     progress_bar: bool = False,
 
     # deprecated
@@ -736,6 +736,9 @@ def for_loop(
     num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
     bar = tqdm(total=num_total)
 
+  # TODO: jax disable jit
+  if jit is None:
+    jit = (not jax.config.jax_disable_jit)
   dyn_vars = get_stack_cache(body_fun)
   if not jit:
     if dyn_vars is None:
@@ -764,12 +767,19 @@ def for_loop(
     fun2scan = jax.checkpoint(fun2scan)
 
   # TODO: cache mechanism?
-  with jax.disable_jit(not jit):
+  if jit:
     dyn_vals, out_vals = lax.scan(f=fun2scan,
                                   init=dyn_vars.dict_data(),
                                   xs=operands,
                                   reverse=reverse,
                                   unroll=unroll)
+  else:
+    with jax.disable_jit():
+      dyn_vals, out_vals = lax.scan(f=fun2scan,
+                                    init=dyn_vars.dict_data(),
+                                    xs=operands,
+                                    reverse=reverse,
+                                    unroll=unroll)
   for key in dyn_vars.keys():
     dyn_vars[key]._value = dyn_vals[key]
   if progress_bar:

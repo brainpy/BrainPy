@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.1"
+__version__ = "2.4.2"
 
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
 
+try:
+  import jaxlib
+  del jaxlib
+except ModuleNotFoundError:
+  raise ModuleNotFoundError(tools.jaxlib_install_info) from None
 
 #  Part 1: Math Foundation  #
 # ------------------------- #
@@ -58,7 +63,6 @@ from brainpy import (
   synapses,  # synapses
   rates,  # rate models
   experimental,
-  pnn,  # parallel SNN models
 )
 from brainpy.synapses import (synouts,  # synaptic output
                               synplast, )  # synaptic plasticity
@@ -96,7 +100,7 @@ from brainpy._src.synapses_v2.base import (SynOutNS as SynOutNS,
 #  Part 4: Training  #
 # ------------------ #
 
-from ._src.train.base import (DSTrainer as DSTrainer)
+from ._src.train.base import (DSTrainer as DSTrainer, )
 from ._src.train.back_propagation import (BPTT as BPTT,
                                           BPFF as BPFF,)
 from ._src.train.online import (OnlineTrainer as OnlineTrainer,

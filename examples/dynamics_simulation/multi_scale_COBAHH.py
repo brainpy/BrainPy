@@ -7,9 +7,8 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.dyn.channels import INa_TM1991, IL
-from brainpy.synapses import Exponential
-from brainpy.synouts import COBA
+from brainpy.channels import INa_TM1991, IL
+from brainpy.synapses import Exponential, COBA
 from brainpy.connect import FixedProb
 from jax import vmap
 
