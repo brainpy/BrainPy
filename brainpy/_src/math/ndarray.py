@@ -1454,6 +1454,14 @@ class Array(object):
     """
     self.value = brainpy.math.random.randn(*self.shape)
 
+  def cuda(self):
+    self.value = jax.device_put(self.value, jax.devices('cuda')[0])
+    return self
+
+  def cpu(self):
+    self.value = jax.device_put(self.value, jax.devices('cpu')[0])
+    return self
+
 
 JaxArray = Array
 ndarray = Array
