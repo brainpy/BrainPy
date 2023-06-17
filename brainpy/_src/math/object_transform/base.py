@@ -394,15 +394,15 @@ class BrainPyObject(object):
       check_name_uniqueness(name=name, obj=self)
       return name
 
-  def __save_state__(self) -> dict:
+  def __save_state__(self) -> Dict[str, Variable]:
     return self.vars(include_self=True, level=0).unique().dict()
 
-  def __load_state__(self, state_dict: dict) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
+  def __load_state__(self, state_dict: Dict) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
     variables = self.vars(include_self=True, level=0).unique()
     keys1 = set(state_dict.keys())
     keys2 = set(variables.keys())
     for key in keys2.intersection(keys1):
-      variables[key].value = state_dict[key]
+      variables[key].value = jax.numpy.asarray(state_dict[key])
     unexpected_keys = list(keys1 - keys2)
     missing_keys = list(keys2 - keys1)
     return unexpected_keys, missing_keys
@@ -447,15 +447,17 @@ class BrainPyObject(object):
       unexpected_keys = list(keys1 - keys2)
       missing_keys = list(keys2 - keys1)
       for key in keys2.intersection(keys1):
-        variables[key].value = state_dict[key]
+        variables[key].value = jax.numpy.asarray(state_dict[key])
     elif compatible == 'v2':
       nodes = self.nodes()
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        missing, unexpected = node.__load_state__(state_dict[name])
-        missing_keys.extend([f'{name}.{key}' for key in missing])
-        unexpected_keys.extend([f'{name}.{key}' for key in unexpected])
+        r = node.__load_state__(state_dict[name])
+        if r is not None:
+          missing, unexpected = r
+          missing_keys.extend([f'{name}.{key}' for key in missing])
+          unexpected_keys.extend([f'{name}.{key}' for key in unexpected])
     else:
       raise ValueError(f'Unknown compatible version: {compatible}')
     if warn:
