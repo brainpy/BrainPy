@@ -2,6 +2,7 @@
 
 from typing import Union, Callable, Optional, Sequence
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -95,7 +96,7 @@ def parameter(
 
 
 def variable_(
-    init: Union[Callable, ArrayType],
+    init: Union[Callable, bm.Array, jax.Array],
     sizes: Shape = None,
     batch_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
@@ -184,7 +185,6 @@ def variable(
     axis_names = list(axis_names)
     assert len(sizes) == len(axis_names)
     if batch_or_mode is not None and not isinstance(batch_or_mode, bm.NonBatchingMode):
-      assert batch_axis_name is not None
       axis_names.insert(batch_axis, batch_axis_name)
 
   if callable(init):

@@ -88,6 +88,7 @@ def evaluate_dyn_vars(f,
       f2, args, kwargs = _partial_fun(f, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
     else:
       f2, args, kwargs = f, args, kwargs
+
     with jax.ensure_compile_time_eval():
       with VariableStack() as stack:
         _ = jax.eval_shape(f2, *args, **kwargs)

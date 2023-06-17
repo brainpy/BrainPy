@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from itertools import combinations_with_replacement
-from typing import Union, Sequence, List
+from typing import Union, Sequence, List, Optional
 
 import jax.numpy as jnp
 import numpy as np
@@ -63,13 +63,13 @@ class NVAR(Layer):
 
   def __init__(
       self,
-      num_in,
+      num_in: int,
       delay: int,
-      order: Union[int, Sequence[int]] = None,
+      order: Optional[Union[int, Sequence[int]]] = None,
       stride: int = 1,
       constant: bool = False,
-      mode: bm.Mode = None,
-      name: str = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)
     check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__.__name__)
