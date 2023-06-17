@@ -3,18 +3,16 @@
 
 import unittest
 
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 
 import brainpy as bp
-
-import matplotlib
-
-PI = bp.math.pi
+import brainpy.math as bm
 
 
 # visualization
 def mat_visualize(matrix, cmap=None):
-  import matplotlib.pyplot as plt
   if cmap is None:
     cmap = plt.cm.get_cmap('coolwarm')
   plt.cm.get_cmap('coolwarm')
@@ -46,7 +44,7 @@ class TestGaussianDecayInit(unittest.TestCase):
 
   def test_gaussian_decay_init2(self):
     init = bp.init.GaussianDecay(sigma=4, max_w=1., min_w=0.1, periodic_boundary=True,
-                                 encoding_values=((-PI, PI), (10, 20), (0, 2 * PI)),
+                                 encoding_values=((-bm.pi, bm.pi), (10, 20), (0, 2 * bm.pi)),
                                  include_self=False, normalize=True)
     size = (10, 20, 30)
     weights = init(size)
@@ -68,7 +66,7 @@ class TestDOGDecayInit(unittest.TestCase):
     init = bp.init.DOGDecay(sigmas=(1., 2.5),
                             max_ws=(1.0, 0.7), min_w=0.1,
                             periodic_boundary=True,
-                            encoding_values=((-PI, PI), (10, 20), (0, 2 * PI)),
+                            encoding_values=((-bm.pi, bm.pi), (10, 20), (0, 2 * bm.pi)),
                             include_self=False,
                             normalize=True)
     size = (10, 20, 30)
@@ -78,8 +76,6 @@ class TestDOGDecayInit(unittest.TestCase):
     assert isinstance(weights, bp.math.ndarray)
 
   def test_dog_decay3(self):
-    import matplotlib.pyplot as plt
-
     size = (10, 12)
     dog_init = bp.init.DOGDecay(sigmas=(1., 3.),
                                 max_ws=(10., 5.),
