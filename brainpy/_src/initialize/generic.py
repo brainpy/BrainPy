@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Sequence
 
 import jax.numpy as jnp
 import numpy as np
@@ -10,23 +10,30 @@ from brainpy.tools import to_size
 from brainpy.types import Shape, ArrayType
 from .base import Initializer
 
+
 __all__ = [
   'parameter',
   'variable',
   'variable_',
   'noise',
   'delay',
-
-  # deprecated
-  'init_param',
 ]
+
+
+def _check_none(x, allow_none: bool = False):
+  pass
+
+
+def _is_scalar(x):
+  return isinstance(x, (float, int, bool, complex))
 
 
 def parameter(
     param: Union[Callable, Initializer, bm.ndarray, np.ndarray, jnp.ndarray, float, int, bool],
-    size: Shape,
+    sizes: Shape,
     allow_none: bool = True,
     allow_scalar: bool = True,
+    axis_names: Optional[Sequence[str]] = None
 ):
   """Initialize parameters.
 
@@ -38,12 +45,14 @@ def parameter(
     - If it is a callable function :math:`f`, the ``f(size)`` will be returned.
     - If it is an instance of :py:class:`brainpy.init.Initializer``, the ``f(size)`` will be returned.
     - If it is a tensor, then this function check whether ``tensor.shape`` is equal to the given ``size``.
-  size: int, sequence of int
+  sizes: int, sequence of int
     The shape of the parameter.
   allow_none: bool
     Whether allow the parameter is None.
   allow_scalar: bool
     Whether allow the parameter is a scalar value.
+  axis_names: sequence of str
+    The axes for automatic array sharding.
 
   Returns
   -------
@@ -60,11 +69,14 @@ def parameter(
     else:
       raise ValueError(f'Expect a parameter with type of float, ArrayType, Initializer, or '
                        f'Callable function, but we got None. ')
-  size = to_size(size)
-  if allow_scalar and isinstance(param, (float, int, bool)):
+  sizes = to_size(sizes)
+  if allow_scalar and _is_scalar(param):
     return param
+
   if callable(param):
-    param = param(size)
+    param = param(sizes)  # TODO
+    # return bm.jit(param, static_argnums=0, out_shardings=bm.sharding.get_sharding(axis_names))(size)
+
   elif isinstance(param, (np.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
   elif isinstance(param, bm.Variable):
@@ -73,32 +85,22 @@ def parameter(
     param = param
   else:
     raise ValueError(f'Unknown param type {type(param)}: {param}')
+
   if allow_scalar:
     if param.shape == () or param.shape == (1,):
       return param
-  if param.shape != size:
-    raise ValueError(f'The shape of the parameters should be {size}, but we got {param.shape}')
-  return param
-
-
-def init_param(
-    param: Union[Callable, Initializer, bm.ndarray, jnp.ndarray, float, int, bool],
-    size: Shape,
-    allow_none: bool = True,
-):
-  """Initialize parameters. Same as ``parameter()``.
-
-  .. deprecated:: 2.2.3.4
-     Will be removed since version 2.4.0.
-  """
-  return parameter(param, size, allow_none)
+  if param.shape != sizes:
+    raise ValueError(f'The shape of the parameters should be {sizes}, but we got {param.shape}')
+  return bm.sharding.partition_by_axname(param, axis_names)
 
 
 def variable_(
     init: Union[Callable, ArrayType],
-    size: Shape = None,
-    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
+    sizes: Shape = None,
+    batch_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
+    axis_names: Optional[Sequence[str]] = None,
+    batch_axis_name: Optional[str] = None,
 ):
   """Initialize a :math:`~.Variable` from a callable function or a data.
 
@@ -106,15 +108,19 @@ def variable_(
   ----------
   init: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
-  batch_size_or_mode: int, bool, Mode, optional
+  batch_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
     This is used to specify the batch size of this variable.
     If it is a boolean or an instance of ``Mode``, the batch size will be 1.
     If it is None, the variable has no batch axis.
-  size: Shape
+  sizes: Shape
     The shape of the variable.
   batch_axis: int
     The batch axis.
+  axis_names: sequence of str
+    The name for each axis. These names should match the given ``axes``.
+  batch_axis_name: str
+    The name for the batch axis. The name will be used if ``batch_size_or_mode`` is given.
 
   Returns
   -------
@@ -126,14 +132,21 @@ def variable_(
   variable, parameter, noise, delay
 
   """
-  return variable(init, batch_size_or_mode, size, batch_axis)
+  return variable(init,
+                  batch_or_mode,
+                  sizes=sizes,
+                  batch_axis=batch_axis,
+                  axis_names=axis_names,
+                  batch_axis_name=batch_axis_name)
 
 
 def variable(
     init: Union[Callable, ArrayType],
-    batch_size_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
-    size: Shape = None,
+    batch_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
+    sizes: Shape = None,
     batch_axis: int = 0,
+    axis_names: Optional[Sequence[str]] = None,
+    batch_axis_name: Optional[str] = None,
 ):
   """Initialize variables.
 
@@ -141,15 +154,19 @@ def variable(
   ----------
   init: callable, function, ArrayType
     The data to be initialized as a ``Variable``.
-  batch_size_or_mode: int, bool, Mode, optional
+  batch_or_mode: int, bool, Mode, optional
     The batch size, model ``Mode``, boolean state.
     This is used to specify the batch size of this variable.
     If it is a boolean or an instance of ``Mode``, the batch size will be 1.
     If it is None, the variable has no batch axis.
-  size: Shape
+  sizes: Shape
     The shape of the variable.
   batch_axis: int
     The batch axis.
+  axis_names: sequence of str
+    The name for each axis. These names should match the given ``axes``.
+  batch_axis_name: str
+    The name for the batch axis. The name will be used if ``batch_size_or_mode`` is given.
 
   Returns
   -------
@@ -161,43 +178,52 @@ def variable(
   variable_, parameter, noise, delay
 
   """
-  size = to_size(size)
+
+  sizes = to_size(sizes)
+  if axis_names is not None:
+    axis_names = list(axis_names)
+    assert len(sizes) == len(axis_names)
+    if batch_or_mode is not None and not isinstance(batch_or_mode, bm.NonBatchingMode):
+      assert batch_axis_name is not None
+      axis_names.insert(batch_axis, batch_axis_name)
+
   if callable(init):
-    if size is None:
+    if sizes is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
-    if isinstance(batch_size_or_mode, bm.NonBatchingMode):
-      return bm.Variable(init(size))
-    elif isinstance(batch_size_or_mode, bm.BatchingMode):
-      new_shape = size[:batch_axis] + (batch_size_or_mode.batch_size,) + size[batch_axis:]
-      return bm.Variable(init(new_shape), batch_axis=batch_axis)
-    elif batch_size_or_mode in (None, False):
-      return bm.Variable(init(size))
-    elif isinstance(batch_size_or_mode, int):
-      new_shape = size[:batch_axis] + (int(batch_size_or_mode),) + size[batch_axis:]
-      return bm.Variable(init(new_shape), batch_axis=batch_axis)
+    if isinstance(batch_or_mode, bm.NonBatchingMode):
+      data = bm.Variable(init(sizes))
+    elif isinstance(batch_or_mode, bm.BatchingMode):
+      new_shape = sizes[:batch_axis] + (batch_or_mode.batch_size,) + sizes[batch_axis:]
+      data = bm.Variable(init(new_shape), batch_axis=batch_axis)
+    elif batch_or_mode in (None, False):
+      data = bm.Variable(init(sizes))
+    elif isinstance(batch_or_mode, int):
+      new_shape = sizes[:batch_axis] + (int(batch_or_mode),) + sizes[batch_axis:]
+      data = bm.Variable(init(new_shape), batch_axis=batch_axis)
     else:
-      raise ValueError('Unknown batch_size_or_mode.')
+      raise ValueError(f'Unknown batch_size_or_mode: {batch_or_mode}')
 
   else:
-    if size is not None:
-      if bm.shape(init) != size:
-        raise ValueError(f'The shape of "data" {bm.shape(init)} does not match with "var_shape" {size}')
-    if isinstance(batch_size_or_mode, bm.NonBatchingMode):
-      return bm.Variable(init)
-    elif isinstance(batch_size_or_mode, bm.BatchingMode):
-      return bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
-                                   batch_size_or_mode.batch_size,
+    if sizes is not None:
+      if bm.shape(init) != sizes:
+        raise ValueError(f'The shape of "data" {bm.shape(init)} does not match with "var_shape" {sizes}')
+    if isinstance(batch_or_mode, bm.NonBatchingMode):
+      data = bm.Variable(init)
+    elif isinstance(batch_or_mode, bm.BatchingMode):
+      data = bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
+                                   batch_or_mode.batch_size,
                                    axis=batch_axis),
                          batch_axis=batch_axis)
-    elif batch_size_or_mode in (None, False):
-      return bm.Variable(init)
-    elif isinstance(batch_size_or_mode, int):
-      return bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
-                                   int(batch_size_or_mode),
+    elif batch_or_mode in (None, False):
+      data = bm.Variable(init)
+    elif isinstance(batch_or_mode, int):
+      data = bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
+                                   int(batch_or_mode),
                                    axis=batch_axis),
                          batch_axis=batch_axis)
     else:
       raise ValueError('Unknown batch_size_or_mode.')
+  return bm.sharding.partition_by_axname(data, axis_names)
 
 
 def noise(

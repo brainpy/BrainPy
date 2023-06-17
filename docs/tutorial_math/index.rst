@@ -7,4 +7,3 @@ Math Foundation
    variables
    brainpy_transform_concept
    control_flows
-   random_number_generation

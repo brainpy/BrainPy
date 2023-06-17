@@ -224,3 +224,4 @@ cython_debug/
 /examples/training_snn_models/data/
 /docs/tutorial_advanced/data/
 /my_tests/
+/examples/dynamics_simulation/Joglekar_2018_data/

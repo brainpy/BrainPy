@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import operator
-from typing import Union, Optional, Sequence, Any, Tuple as TupleType, List
+from typing import Union, Optional, Sequence
 
 import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
-from jax.tree_util import register_pytree_node
+from jax.tree_util import register_pytree_node_class
 
 import brainpy.math
 from brainpy.errors import MathError
@@ -60,6 +60,7 @@ def _get_dtype(v):
   return dtype
 
 
+@register_pytree_node_class
 class Array(object):
   """Multiple-dimensional array in BrainPy.
   """
@@ -77,12 +78,23 @@ class Array(object):
       value = jnp.asarray(value, dtype=dtype)
     self._value = value
 
+  def _check_tracer(self):
+    self_value = self.value
+    if hasattr(self_value, '_trace'):
+      if len(self_value._trace.main.jaxpr_stack) == 0:
+        raise RuntimeError('This Array is modified during the transformation. '
+                           'BrainPy only supports transformations for Variable. '
+                           'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
+    return self_value
+
   @property
   def value(self):
     return self._value
 
   @value.setter
   def value(self, value):
+    self_value = self._check_tracer()
+
     if isinstance(value, Array):
       value = value.value
     elif isinstance(value, np.ndarray):
@@ -92,11 +104,11 @@ class Array(object):
     else:
       value = jnp.asarray(value)
     # check
-    if value.shape != self.value.shape:
-      raise MathError(f"The shape of the original data is {self.value.shape}, "
+    if value.shape != self_value.shape:
+      raise MathError(f"The shape of the original data is {self_value.shape}, "
                       f"while we got {value.shape}.")
-    if value.dtype != self.value.dtype:
-      raise MathError(f"The dtype of the original data is {self.value.dtype}, "
+    if value.dtype != self_value.dtype:
+      raise MathError(f"The dtype of the original data is {self_value.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value.value if isinstance(value, Array) else value
 
@@ -170,8 +182,8 @@ class Array(object):
     - https://github.com/google/jax/issues/7713
     - https://github.com/google/jax/pull/3821
     """
-    for v in self.value:
-      yield v
+    for i in range(self.value.shape[0]):
+      yield self.value[i]
 
   def __getitem__(self, index):
     if isinstance(index, slice) and (index == _all_slice):
@@ -201,7 +213,8 @@ class Array(object):
       index = jnp.asarray(index)
 
     # update
-    self.value = self.value.at[index].set(value)
+    self_value = self._check_tracer()
+    self.value = self_value.at[index].set(value)
 
   # ---------- #
   # operations #
@@ -855,7 +868,7 @@ class Array(object):
 
     Example::
 
-        >>> x = brainpy.math.randn(4, 4)
+        >>> x = brainpy.math.random.randn(4, 4)
         >>> x.size
        [4, 4]
         >>> y = x.view(16)
@@ -865,7 +878,7 @@ class Array(object):
         >>> z.size
         [2, 8]
 
-        >>> a = brainpy.math.randn(1, 2, 3, 4)
+        >>> a = brainpy.math.random.randn(1, 2, 3, 4)
         >>> a.size
         [1, 2, 3, 4]
         >>> b = a.transpose(1, 2)  # Swaps 2nd and 3rd dimension
@@ -916,7 +929,7 @@ class Array(object):
 
     Example::
 
-        >>> x = brainpy.math.randn(4, 4)
+        >>> x = brainpy.math.random.randn(4, 4)
         >>> x
         Array([[ 0.9482, -0.0310,  1.4999, -0.5316],
                 [-0.1520,  0.7472,  0.5617, -0.8649],
@@ -1004,8 +1017,7 @@ class Array(object):
 
   def as_variable(self):
     """As an instance of Variable."""
-    from brainpy.math import Variable
-    return Variable(self)
+    return brainpy.math.Variable(self)
 
   def __format__(self, specification):
     return self.value.__format__(specification)
@@ -1378,12 +1390,47 @@ class Array(object):
           f'dimension {i}.  Target sizes: {sizes}.  Tensor sizes: {self.shape}')
     return Array(jnp.broadcast_to(self.value, sizes_list))
 
+  def tree_flatten(self):
+    return (self._value,), None
+
+  @classmethod
+  def tree_unflatten(cls, aux_data, flat_contents):
+    return cls(*flat_contents)
+
+  # ----------------------
+  # PyTorch compatibility
+  # ----------------------
+
+  def zero_(self):
+    self.value = jnp.zeros_like(self.value)
+
+  def fill_(self, value):
+    self.fill(value)
+
+  def uniform_(self, low=0., high=1.):
+    self.value = brainpy.math.random.uniform(low, high, self.shape)
+
+  def log_normal_(self, mean=1, std=2):
+    r"""Fills self tensor with numbers samples from the log-normal distribution parameterized by the given mean
+    :math:`\mu` and standard deviation :math:`\sigma`. Note that mean and std are the mean and standard
+    deviation of the underlying normal distribution, and not of the returned distribution:
+
+    .. math::
+
+       f(x)=\frac{1}{x \sigma \sqrt{2 \pi}} e^{-\frac{(\ln x-\mu)^2}{2 \sigma^2}}
+
+    Args:
+      mean: the mean value.
+      std: the standard deviation.
+    """
+    self.value = brainpy.math.random.lognormal(mean, std, self.shape)
+
+  def normal_(self, ):
+    """
+    Fills self tensor with elements samples from the normal distribution parameterized by mean and std.
+    """
+    self.value = brainpy.math.random.randn(*self.shape)
+
 
 JaxArray = Array
 ndarray = Array
-
-register_pytree_node(
-  Array,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: Array(*flat_contents)
-)

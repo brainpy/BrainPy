@@ -4,7 +4,7 @@ import jax
 from absl.testing import parameterized
 
 import brainpy.math as bm
-from brainpy._src.math.surrogate import two_inputs
+from brainpy._src.math.surrogate import _two_inputs as two_inputs
 
 
 class TestTwoInputsGrad(parameterized.TestCase):

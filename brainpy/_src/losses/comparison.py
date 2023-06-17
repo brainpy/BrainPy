@@ -4,11 +4,7 @@
 This module implements several loss functions.
 """
 
-# - https://github.com/deepmind/optax/blob/master/optax/_src/loss.py
-# - https://github.com/google/jaxopt/blob/main/jaxopt/_src/loss.py
-
-
-from typing import Tuple
+from typing import Tuple, Optional
 
 import jax.numpy as jnp
 from jax.lax import scan
@@ -17,17 +13,24 @@ from jax.tree_util import tree_map
 
 import brainpy.math as bm
 from brainpy.types import ArrayType
+from .base import Loss, WeightedLoss
 from .utils import _reduce, _multi_return, _is_leaf
 
 __all__ = [
-  'cross_entropy_loss',
+  'CrossEntropyLoss', 'cross_entropy_loss',
+
   'cross_entropy_sparse',
   'cross_entropy_sigmoid',
-  'l1_loos',
+
+  'NLLLoss', 'nll_loss',
+  'L1Loss', 'l1_loss',
+
   'l2_loss',
   'huber_loss',
-  'mean_absolute_error',
-  'mean_squared_error',
+
+  'MAELoss', 'mean_absolute_error',
+  'MSELoss', 'mean_squared_error',
+
   'mean_squared_log_error',
   'binary_logistic_loss',
   'multiclass_logistic_loss',
@@ -37,6 +40,151 @@ __all__ = [
   'ctc_loss_with_forward_probs',
   'ctc_loss',
 ]
+
+
+class CrossEntropyLoss(WeightedLoss):
+  r"""This criterion computes the cross entropy loss between input logits
+  and target.
+
+  It is useful when training a classification problem with `C` classes.
+  If provided, the optional argument :attr:`weight` should be a 1D `Tensor`
+  assigning weight to each of the classes.
+  This is particularly useful when you have an unbalanced training set.
+
+  The `input` is expected to contain the unnormalized logits for each class (which do `not` need
+  to be positive or sum to 1, in general).
+  `input` has to be a Tensor of size :math:`(C)` for unbatched input,
+  :math:`(minibatch, C)` or :math:`(minibatch, C, d_1, d_2, ..., d_K)` with :math:`K \geq 1` for the
+  `K`-dimensional case. The last being useful for higher dimension inputs, such
+  as computing cross entropy loss per-pixel for 2D images.
+
+  The `target` that this criterion expects should contain either:
+
+  - Class indices in the range :math:`[0, C)` where :math:`C` is the number of classes; if
+    `ignore_index` is specified, this loss also accepts this class index (this index
+    may not necessarily be in the class range). The unreduced (i.e. with :attr:`reduction`
+    set to ``'none'``) loss for this case can be described as:
+
+    .. math::
+        \ell(x, y) = L = \{l_1,\dots,l_N\}^\top, \quad
+        l_n = - w_{y_n} \log \frac{\exp(x_{n,y_n})}{\sum_{c=1}^C \exp(x_{n,c})}
+        \cdot \mathbb{1}\{y_n \not= \text{ignore\_index}\}
+
+    where :math:`x` is the input, :math:`y` is the target, :math:`w` is the weight,
+    :math:`C` is the number of classes, and :math:`N` spans the minibatch dimension as well as
+    :math:`d_1, ..., d_k` for the `K`-dimensional case. If
+    :attr:`reduction` is not ``'none'`` (default ``'mean'``), then
+
+    .. math::
+        \ell(x, y) = \begin{cases}
+            \sum_{n=1}^N \frac{1}{\sum_{n=1}^N w_{y_n} \cdot \mathbb{1}\{y_n \not= \text{ignore\_index}\}} l_n, &
+             \text{if reduction} = \text{`mean';}\\
+              \sum_{n=1}^N l_n,  &
+              \text{if reduction} = \text{`sum'.}
+          \end{cases}
+
+    Note that this case is equivalent to the combination of :class:`~torch.nn.LogSoftmax` and
+    :class:`~torch.nn.NLLLoss`.
+
+  - Probabilities for each class; useful when labels beyond a single class per minibatch item
+    are required, such as for blended labels, label smoothing, etc. The unreduced (i.e. with
+    :attr:`reduction` set to ``'none'``) loss for this case can be described as:
+
+    .. math::
+        \ell(x, y) = L = \{l_1,\dots,l_N\}^\top, \quad
+        l_n = - \sum_{c=1}^C w_c \log \frac{\exp(x_{n,c})}{\sum_{i=1}^C \exp(x_{n,i})} y_{n,c}
+
+    where :math:`x` is the input, :math:`y` is the target, :math:`w` is the weight,
+    :math:`C` is the number of classes, and :math:`N` spans the minibatch dimension as well as
+    :math:`d_1, ..., d_k` for the `K`-dimensional case. If
+    :attr:`reduction` is not ``'none'`` (default ``'mean'``), then
+
+    .. math::
+        \ell(x, y) = \begin{cases}
+            \frac{\sum_{n=1}^N l_n}{N}, &
+             \text{if reduction} = \text{`mean';}\\
+              \sum_{n=1}^N l_n,  &
+              \text{if reduction} = \text{`sum'.}
+          \end{cases}
+
+  .. note::
+      The performance of this criterion is generally better when `target` contains class
+      indices, as this allows for optimized computation. Consider providing `target` as
+      class probabilities only when a single class label per minibatch item is too restrictive.
+
+  Args:
+      weight (Tensor, optional): a manual rescaling weight given to each class.
+          If given, has to be a Tensor of size `C`
+      size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
+          the losses are averaged over each loss element in the batch. Note that for
+          some losses, there are multiple elements per sample. If the field :attr:`size_average`
+          is set to ``False``, the losses are instead summed for each minibatch. Ignored
+          when :attr:`reduce` is ``False``. Default: ``True``
+      ignore_index (int, optional): Specifies a target value that is ignored
+          and does not contribute to the input gradient. When :attr:`size_average` is
+          ``True``, the loss is averaged over non-ignored targets. Note that
+          :attr:`ignore_index` is only applicable when the target contains class indices.
+      reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
+          losses are averaged or summed over observations for each minibatch depending
+          on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
+          batch element instead and ignores :attr:`size_average`. Default: ``True``
+      reduction (str, optional): Specifies the reduction to apply to the output:
+          ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+          be applied, ``'mean'``: the weighted mean of the output is taken,
+          ``'sum'``: the output will be summed. Note: :attr:`size_average`
+          and :attr:`reduce` are in the process of being deprecated, and in
+          the meantime, specifying either of those two args will override
+          :attr:`reduction`. Default: ``'mean'``
+      label_smoothing (float, optional): A float in [0.0, 1.0]. Specifies the amount
+          of smoothing when computing the loss, where 0.0 means no smoothing. The targets
+          become a mixture of the original ground truth and a uniform distribution as described in
+          `Rethinking the Inception Architecture for Computer Vision <https://arxiv.org/abs/1512.00567>`__. Default: :math:`0.0`.
+
+  Shape:
+      - Input: Shape :math:`(C)`, :math:`(N, C)` or :math:`(N, C, d_1, d_2, ..., d_K)` with :math:`K \geq 1`
+        in the case of `K`-dimensional loss.
+      - Target: If containing class indices, shape :math:`()`, :math:`(N)` or :math:`(N, d_1, d_2, ..., d_K)` with
+        :math:`K \geq 1` in the case of K-dimensional loss where each value should be between :math:`[0, C)`.
+        If containing class probabilities, same shape as the input and each value should be between :math:`[0, 1]`.
+      - Output: If reduction is 'none', shape :math:`()`, :math:`(N)` or :math:`(N, d_1, d_2, ..., d_K)` with :math:`K \geq 1`
+        in the case of K-dimensional loss, depending on the shape of the input. Otherwise, scalar.
+
+
+      where:
+
+      .. math::
+          \begin{aligned}
+              C ={} & \text{number of classes} \\
+              N ={} & \text{batch size} \\
+          \end{aligned}
+
+  Examples::
+
+      >>> # Example of target with class indices
+      >>> loss = nn.CrossEntropyLoss()
+      >>> input = torch.randn(3, 5, requires_grad=True)
+      >>> target = torch.empty(3, dtype=torch.long).random_(5)
+      >>> output = loss(input, target)
+      >>> output.backward()
+      >>>
+      >>> # Example of target with class probabilities
+      >>> input = torch.randn(3, 5, requires_grad=True)
+      >>> target = torch.randn(3, 5).softmax(dim=1)
+      >>> output = loss(input, target)
+      >>> output.backward()
+  """
+  __constants__ = ['ignore_index', 'reduction', 'label_smoothing']
+  ignore_index: int
+  label_smoothing: float
+
+  def __init__(self, weight: Optional[ArrayType] = None, ignore_index: int = -100,
+               reduction: str = 'mean', label_smoothing: float = 0.0) -> None:
+    super().__init__(weight, reduction)
+    self.ignore_index = ignore_index
+    self.label_smoothing = label_smoothing
+
+  def update(self, input: ArrayType, target: ArrayType) -> ArrayType:
+    return cross_entropy_loss(input, target, weight=self.weight, reduction=self.reduction)
 
 
 def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
@@ -96,6 +244,7 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
     in the case of K-dimensional loss.
   """
+
   def _cel(_pred, _tar):
     if bm.ndim(_tar) + 1 == bm.ndim(_pred):
       _tar = bm.one_hot(_tar, _pred.shape[-1])
@@ -151,7 +300,223 @@ def cross_entropy_sigmoid(predicts, targets):
   return _multi_return(r)
 
 
-def l1_loos(logits, targets, reduction='sum'):
+class NLLLoss(Loss):
+  r"""The negative log likelihood loss.
+
+  The negative log likelihood loss. It is useful to train a classification
+  problem with `C` classes.
+
+  If provided, the optional argument :attr:`weight` should be a 1D Tensor assigning
+  weight to each of the classes. This is particularly useful when you have an
+  unbalanced training set.
+
+  The `input` given through a forward call is expected to contain
+  log-probabilities of each class. `input` has to be a Tensor of size either
+  :math:`(minibatch, C)` or :math:`(minibatch, C, d_1, d_2, ..., d_K)`
+  with :math:`K \geq 1` for the `K`-dimensional case. The latter is useful for
+  higher dimension inputs, such as computing NLL loss per-pixel for 2D images.
+
+  Obtaining log-probabilities in a neural network is easily achieved by
+  adding a  `LogSoftmax`  layer in the last layer of your network.
+  You may use `CrossEntropyLoss` instead, if you prefer not to add an extra
+  layer.
+
+  The `target` that this loss expects should be a class index in the range :math:`[0, C-1]`
+  where `C = number of classes`; if `ignore_index` is specified, this loss also accepts
+  this class index (this index may not necessarily be in the class range).
+
+  The unreduced (i.e. with :attr:`reduction` set to ``'none'``) loss can be described as:
+
+  .. math::
+      \ell(x, y) = L = \{l_1,\dots,l_N\}^\top, \quad
+      l_n = - w_{y_n} x_{n,y_n}, \quad
+      w_{c} = \text{weight}[c] \cdot \mathbb{1}\{c \not= \text{ignore\_index}\},
+
+  where :math:`x` is the input, :math:`y` is the target, :math:`w` is the weight, and
+  :math:`N` is the batch size. If :attr:`reduction` is not ``'none'``
+  (default ``'mean'``), then
+
+  .. math::
+      \ell(x, y) = \begin{cases}
+          \sum_{n=1}^N \frac{1}{\sum_{n=1}^N w_{y_n}} l_n, &
+          \text{if reduction} = \text{`mean';}\\
+          \sum_{n=1}^N l_n,  &
+          \text{if reduction} = \text{`sum'.}
+      \end{cases}
+
+  Args:
+      reduction (str, optional): Specifies the reduction to apply to the output:
+          ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+          be applied, ``'mean'``: the weighted mean of the output is taken,
+          ``'sum'``: the output will be summed. Note: :attr:`size_average`
+          and :attr:`reduce` are in the process of being deprecated, and in
+          the meantime, specifying either of those two args will override
+          :attr:`reduction`. Default: ``'mean'``
+
+  Shape:
+      - Input: :math:`(N, C)` or :math:`(C)`, where `C = number of classes`, or
+        :math:`(N, C, d_1, d_2, ..., d_K)` with :math:`K \geq 1`
+        in the case of `K`-dimensional loss.
+      - Target: :math:`(N)` or :math:`()`, where each value is
+        :math:`0 \leq \text{targets}[i] \leq C-1`, or
+        :math:`(N, d_1, d_2, ..., d_K)` with :math:`K \geq 1` in the case of
+        K-dimensional loss.
+      - Output: If :attr:`reduction` is ``'none'``, shape :math:`(N)` or
+        :math:`(N, d_1, d_2, ..., d_K)` with :math:`K \geq 1` in the case of K-dimensional loss.
+        Otherwise, scalar.
+
+  """
+
+  def __init__(self, reduction: str = 'mean'):
+    super().__init__(reduction=reduction)
+
+  def update(self, input, target):
+    return nll_loss(input, target, reduction=self.reduction)
+
+
+def nll_loss(input, target, reduction: str = 'mean'):
+  r"""The negative log likelihood loss.
+
+  The negative log likelihood loss. It is useful to train a classification
+  problem with `C` classes.
+
+  If provided, the optional argument :attr:`weight` should be a 1D Tensor assigning
+  weight to each of the classes. This is particularly useful when you have an
+  unbalanced training set.
+
+  The `input` given through a forward call is expected to contain
+  log-probabilities of each class. `input` has to be a Tensor of size either
+  :math:`(minibatch, C)` or :math:`(minibatch, C, d_1, d_2, ..., d_K)`
+  with :math:`K \geq 1` for the `K`-dimensional case. The latter is useful for
+  higher dimension inputs, such as computing NLL loss per-pixel for 2D images.
+
+  Obtaining log-probabilities in a neural network is easily achieved by
+  adding a  `LogSoftmax`  layer in the last layer of your network.
+  You may use `CrossEntropyLoss` instead, if you prefer not to add an extra
+  layer.
+
+  The `target` that this loss expects should be a class index in the range :math:`[0, C-1]`
+  where `C = number of classes`; if `ignore_index` is specified, this loss also accepts
+  this class index (this index may not necessarily be in the class range).
+
+  The unreduced (i.e. with :attr:`reduction` set to ``'none'``) loss can be described as:
+
+  .. math::
+      \ell(x, y) = L = \{l_1,\dots,l_N\}^\top, \quad
+      l_n = - w_{y_n} x_{n,y_n}, \quad
+      w_{c} = \text{weight}[c] \cdot \mathbb{1}\{c \not= \text{ignore\_index}\},
+
+  where :math:`x` is the input, :math:`y` is the target, :math:`w` is the weight, and
+  :math:`N` is the batch size. If :attr:`reduction` is not ``'none'``
+  (default ``'mean'``), then
+
+  .. math::
+      \ell(x, y) = \begin{cases}
+          \sum_{n=1}^N \frac{1}{\sum_{n=1}^N w_{y_n}} l_n, &
+          \text{if reduction} = \text{`mean';}\\
+          \sum_{n=1}^N l_n,  &
+          \text{if reduction} = \text{`sum'.}
+      \end{cases}
+
+  Args:
+      reduction (str, optional): Specifies the reduction to apply to the output:
+          ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+          be applied, ``'mean'``: the weighted mean of the output is taken,
+          ``'sum'``: the output will be summed. Note: :attr:`size_average`
+          and :attr:`reduce` are in the process of being deprecated, and in
+          the meantime, specifying either of those two args will override
+          :attr:`reduction`. Default: ``'mean'``
+
+  Shape:
+      - Input: :math:`(N, C)` or :math:`(C)`, where `C = number of classes`, or
+        :math:`(N, C, d_1, d_2, ..., d_K)` with :math:`K \geq 1`
+        in the case of `K`-dimensional loss.
+      - Target: :math:`(N)` or :math:`()`, where each value is
+        :math:`0 \leq \text{targets}[i] \leq C-1`, or
+        :math:`(N, d_1, d_2, ..., d_K)` with :math:`K \geq 1` in the case of
+        K-dimensional loss.
+      - Output: If :attr:`reduction` is ``'none'``, shape :math:`(N)` or
+        :math:`(N, d_1, d_2, ..., d_K)` with :math:`K \geq 1` in the case of K-dimensional loss.
+        Otherwise, scalar.
+
+  """
+  assert target.ndim + 1 == input.ndim
+  input = bm.as_jax(input)
+  target = bm.as_jax(target)
+  loss = input[jnp.arange(len(target)), target]
+  if reduction == 'mean':
+    return loss.mean()
+  elif reduction == 'sum':
+    return loss.sum()
+  elif reduction == 'none':
+    return loss
+  elif reduction is None:
+    return loss
+  else:
+    raise ValueError
+
+
+class L1Loss(Loss):
+  r"""Creates a criterion that measures the mean absolute error (MAE) between each element in
+  the input :math:`x` and target :math:`y`.
+
+  The unreduced (i.e. with :attr:`reduction` set to ``'none'``) loss can be described as:
+
+  .. math::
+      \ell(x, y) = L = \{l_1,\dots,l_N\}^\top, \quad
+      l_n = \left| x_n - y_n \right|,
+
+  where :math:`N` is the batch size. If :attr:`reduction` is not ``'none'``
+  (default ``'mean'``), then:
+
+  .. math::
+      \ell(x, y) =
+      \begin{cases}
+          \operatorname{mean}(L), & \text{if reduction} = \text{`mean';}\\
+          \operatorname{sum}(L),  & \text{if reduction} = \text{`sum'.}
+      \end{cases}
+
+  :math:`x` and :math:`y` are tensors of arbitrary shapes with a total
+  of :math:`n` elements each.
+
+  The sum operation still operates over all the elements, and divides by :math:`n`.
+
+  The division by :math:`n` can be avoided if one sets ``reduction = 'sum'``.
+
+  Supports real-valued and complex-valued inputs.
+
+  Args:
+      reduction (str, optional): Specifies the reduction to apply to the output:
+          ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
+          ``'mean'``: the sum of the output will be divided by the number of
+          elements in the output, ``'sum'``: the output will be summed. Note: :attr:`size_average`
+          and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+          specifying either of those two args will override :attr:`reduction`. Default: ``'mean'``
+
+  Shape:
+      - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
+      - Target: :math:`(*)`, same shape as the input.
+      - Output: scalar. If :attr:`reduction` is ``'none'``, then
+        :math:`(*)`, same shape as the input.
+
+  Examples::
+
+      >>> loss = nn.L1Loss()
+      >>> input = bm.random.randn(3, 5)
+      >>> target = bm.random.randn(3, 5)
+      >>> output = loss(input, target)
+      >>> output.backward()
+  """
+  __constants__ = ['reduction']
+
+  def __init__(self, reduction: str = 'mean') -> None:
+    super().__init__(reduction=reduction)
+
+  def update(self, input: ArrayType, target: ArrayType) -> ArrayType:
+    return l1_loss(input, target, reduction=self.reduction)
+
+
+def l1_loss(logits, targets, reduction='sum'):
   r"""Creates a criterion that measures the mean absolute error (MAE) between each element in
   the logits :math:`x` and targets :math:`y`. It is useful in regression problems.
 
@@ -237,6 +602,18 @@ def l2_loss(predicts, targets):
   return _multi_return(r)
 
 
+
+class MAELoss(Loss):
+  def __init__(self, axis=None, reduction: str = 'mean'):
+    super().__init__(reduction=reduction)
+    self.axis = axis
+
+  def update(self, input, target):
+    return mean_absolute_error(input, target, self.axis, reduction=self.reduction)
+
+
+
+
 def mean_absolute_error(x, y, axis=None, reduction: str = 'mean'):
   r"""Computes the mean absolute error between x and y.
 
@@ -253,6 +630,62 @@ def mean_absolute_error(x, y, axis=None, reduction: str = 'mean'):
                y,
                is_leaf=_is_leaf)
   return _multi_return(r)
+
+
+class MSELoss(Loss):
+  r"""Creates a criterion that measures the mean squared error (squared L2 norm) between
+  each element in the input :math:`x` and target :math:`y`.
+
+  The unreduced (i.e. with :attr:`reduction` set to ``'none'``) loss can be described as:
+
+  .. math::
+      \ell(x, y) = L = \{l_1,\dots,l_N\}^\top, \quad
+      l_n = \left( x_n - y_n \right)^2,
+
+  where :math:`N` is the batch size. If :attr:`reduction` is not ``'none'``
+  (default ``'mean'``), then:
+
+  .. math::
+      \ell(x, y) =
+      \begin{cases}
+          \operatorname{mean}(L), &  \text{if reduction} = \text{`mean';}\\
+          \operatorname{sum}(L),  &  \text{if reduction} = \text{`sum'.}
+      \end{cases}
+
+  :math:`x` and :math:`y` are tensors of arbitrary shapes with a total
+  of :math:`n` elements each.
+
+  The mean operation still operates over all the elements, and divides by :math:`n`.
+
+  The division by :math:`n` can be avoided if one sets ``reduction = 'sum'``.
+
+  Args:
+      reduction (str, optional): Specifies the reduction to apply to the output:
+          ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
+          ``'mean'``: the sum of the output will be divided by the number of
+          elements in the output, ``'sum'``: the output will be summed. Note: :attr:`size_average`
+          and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+          specifying either of those two args will override :attr:`reduction`. Default: ``'mean'``
+
+  Shape:
+      - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
+      - Target: :math:`(*)`, same shape as the input.
+
+  Examples::
+
+      >>> loss = nn.MSELoss()
+      >>> input = torch.randn(3, 5, requires_grad=True)
+      >>> target = torch.randn(3, 5)
+      >>> output = loss(input, target)
+      >>> output.backward()
+  """
+  __constants__ = ['reduction']
+
+  def __init__(self, reduction: str = 'mean') -> None:
+    super().__init__(reduction=reduction)
+
+  def update(self, input: ArrayType, target: ArrayType) -> ArrayType:
+    return mean_squared_error(input, target, reduction=self.reduction)
 
 
 def mean_squared_error(predicts, targets, axis=None, reduction: str = 'mean'):

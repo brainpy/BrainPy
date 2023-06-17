@@ -9,5 +9,3 @@ This module implements several loss functions.
 
 from .comparison import *
 from .regularization import *
-
-

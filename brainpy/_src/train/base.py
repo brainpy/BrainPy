@@ -3,8 +3,8 @@
 from typing import Dict, Sequence, Any, Union, Optional
 
 import brainpy.math as bm
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.runners import DSRunner
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.runners import DSRunner
 from brainpy._src.running import constants as c
 from brainpy.errors import NoLongerSupportError
 from brainpy.types import ArrayType, Output

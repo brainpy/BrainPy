@@ -4,7 +4,12 @@
 # from brainpy._src.math.surrogate._utils import (
 #   vjp_custom as vjp_custom
 # )
-from brainpy._src.math.surrogate.one_input import (
+
+from brainpy._src.math.surrogate.base import (
+  Surrogate
+)
+
+from brainpy._src.math.surrogate._one_input import (
   Sigmoid,
   sigmoid as sigmoid,
 
@@ -59,7 +64,7 @@ from brainpy._src.math.surrogate.one_input import (
   SlayerGrad,
   slayer_grad as slayer_grad,
 )
-from brainpy._src.math.surrogate.two_inputs import (
+from brainpy._src.math.surrogate._two_inputs import (
   inv_square_grad2 as inv_square_grad2,
   relu_grad2 as relu_grad2,
 )

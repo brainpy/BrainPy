@@ -19,17 +19,20 @@ import jax.scipy
 import numpy as np
 
 from .ndarray import Array
-
+from .random import uniform
 
 __all__ = [
   'celu',
   'elu',
   'gelu',
   'glu',
+  'prelu',
   'hard_tanh',
   'hard_sigmoid',
+  'tanh_shrink',
   'hard_silu',
   'hard_swish',
+  'hard_shrink',
   'leaky_relu',
   'log_sigmoid',
   'log_softmax',
@@ -37,11 +40,15 @@ __all__ = [
   'normalize',
   'relu',
   'relu6',
+  'rrelu',
   'sigmoid',
   'soft_sign',
   'softmax',
+  'softmin',
   'softplus',
+  'soft_shrink',
   'silu',
+  'mish',
   'swish',
   'selu',
   'identity',
@@ -172,7 +179,7 @@ def glu(x, axis=-1):
   return x1 * sigmoid(x2)
 
 
-def hard_tanh(x):
+def hard_tanh(x, min_val=- 1.0, max_val=1.0):
   r"""Hard :math:`\mathrm{tanh}` activation function.
 
   Computes the element-wise function:
@@ -188,9 +195,13 @@ def hard_tanh(x):
   ----------
   x: ArrayType
     The input array.
+  min_val: float
+    minimum value of the linear region range. Default: -1
+  max_val: float
+    maximum value of the linear region range. Default: 1
   """
   x = x.value if isinstance(x, Array) else x
-  return jnp.where(x > 1, 1, jnp.where(x < -1, -1, x))
+  return jnp.where(x > max_val, max_val, jnp.where(x < min_val, min_val, x))
 
 
 def hard_sigmoid(x):
@@ -207,6 +218,16 @@ def hard_sigmoid(x):
     The input array.
   """
   return relu6(x + 3.) / 6.
+
+
+def tanh_shrink(x):
+  r"""Applies the element-wise function:
+
+  .. math::
+      \text{Tanhshrink}(x) = x - \tanh(x)
+  """
+  x = x.value if isinstance(x, Array) else x
+  return x - jnp.tanh(x)
 
 
 def hard_silu(x):
@@ -226,6 +247,31 @@ def hard_silu(x):
 
 
 hard_swish = hard_silu
+
+
+def hard_shrink(x, lambd=0.5):
+  r"""Applies the Hard Shrinkage (Hardshrink) function element-wise.
+
+  Hardshrink is defined as:
+
+  .. math::
+      \text{HardShrink}(x) =
+      \begin{cases}
+      x, & \text{ if } x > \lambda \\
+      x, & \text{ if } x < -\lambda \\
+      0, & \text{ otherwise }
+      \end{cases}
+
+  Args:
+      lambd: the :math:`\lambda` value for the Hardshrink formulation. Default: 0.5
+
+  Shape:
+      - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
+      - Output: :math:`(*)`, same shape as the input.
+
+  """
+  x = x.value if isinstance(x, Array) else x
+  return jnp.where(x > lambd, x, jnp.where(x < -lambd, x, 0.))
 
 
 def leaky_relu(x, negative_slope=1e-2):
@@ -252,21 +298,29 @@ def leaky_relu(x, negative_slope=1e-2):
   return jnp.where(x >= 0, x, negative_slope * x)
 
 
-def softplus(x):
+def softplus(x, beta=1, threshold=20):
   r"""Softplus activation function.
 
   Computes the element-wise function
 
   .. math::
-    \mathrm{softplus}(x) = \log(1 + e^x)
+    \text{Softplus}(x) = \frac{1}{\beta} * \log(1 + \exp(\beta * x))
+
+  SoftPlus is a smooth approximation to the ReLU function and can be used
+  to constrain the output of a machine to always be positive.
+
+  For numerical stability the implementation reverts to the linear function
+  when :math:`input \times \beta > threshold`.
 
   Parameters
   ----------
-  x: ArrayType
-    The input array.
+  x: The input array.
+  beta: the :math:`\beta` value for the Softplus formulation. Default: 1
+  threshold: values above this revert to a linear function. Default: 20
+
   """
   x = x.value if isinstance(x, Array) else x
-  return jnp.logaddexp(x, 0)
+  return jnp.where(x > threshold, x * beta, 1 / beta * jnp.logaddexp(beta * x, 0))
 
 
 def log_sigmoid(x):
@@ -283,6 +337,28 @@ def log_sigmoid(x):
     The input array.
   """
   return -softplus(-x)
+
+
+def soft_shrink(x, lambd=0.5):
+  r"""Applies the soft shrinkage function elementwise:
+
+  .. math::
+      \text{SoftShrinkage}(x) =
+      \begin{cases}
+      x - \lambda, & \text{ if } x > \lambda \\
+      x + \lambda, & \text{ if } x < -\lambda \\
+      0, & \text{ otherwise }
+      \end{cases}
+
+  Args:
+      lambd: the :math:`\lambda` (must be no less than zero) value for the Softshrink formulation. Default: 0.5
+
+  Shape:
+      - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
+      - Output: :math:`(*)`, same shape as the input.
+  """
+  x = x.value if isinstance(x, Array) else x
+  return jnp.where(x > lambd, x - lambd, jnp.where(x < -lambd, x + lambd, 0.))
 
 
 def log_softmax(x, axis=-1):
@@ -306,6 +382,8 @@ def log_softmax(x, axis=-1):
   x = x.value if isinstance(x, Array) else x
   shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
   return shifted - jnp.log(jnp.sum(jnp.exp(shifted), axis, keepdims=True))
+  # exp = jnp.exp(x)
+  # return jnp.log(exp / exp.sum(axis=axis, keepdims=True))
 
 
 def _canonicalize_axis(axis, num_dims) -> int:
@@ -387,7 +465,35 @@ def normalize(x, axis=-1, mean=None, variance=None, epsilon=1e-5):
 
 def relu(x):
   x = x.value if isinstance(x, Array) else x
-  return jax.nn.relu(x)
+  return _relu(x)
+
+
+@jax.custom_jvp
+def _relu(x: Array) -> Array:
+  r"""Rectified linear unit activation function.
+
+  Computes the element-wise function:
+
+  .. math::
+    \mathrm{relu}(x) = \max(x, 0)
+
+  except under differentiation, we take:
+
+  .. math::
+    \nabla \mathrm{relu}(0) = 0
+
+  For more information see
+  `Numerical influence of ReLU’(0) on backpropagation
+  <https://openreview.net/forum?id=urrcVI-_jRm>`_.
+
+  Args:
+    x : input array
+  """
+  return jnp.maximum(x, 0)
+
+
+# For behavior at 0, see https://openreview.net/forum?id=urrcVI-_jRm
+_relu.defjvps(lambda g, ans, x: jax.lax.select(x > 0, g, jax.lax.full_like(g, 0)))
 
 
 def relu6(x):
@@ -405,6 +511,65 @@ def relu6(x):
   """
   x = x.value if isinstance(x, Array) else x
   return jnp.minimum(jnp.maximum(x, 0), 6.)
+
+
+def rrelu(x, lower=0.125, upper=0.3333333333333333, ):
+  r"""Applies the randomized leaky rectified liner unit function, element-wise,
+  as described in the paper:
+
+  `Empirical Evaluation of Rectified Activations in Convolutional Network`_.
+
+  The function is defined as:
+
+  .. math::
+      \text{RReLU}(x) =
+      \begin{cases}
+          x & \text{if } x \geq 0 \\
+          ax & \text{ otherwise }
+      \end{cases}
+
+  where :math:`a` is randomly sampled from uniform distribution
+  :math:`\mathcal{U}(\text{lower}, \text{upper})`.
+
+   See: https://arxiv.org/pdf/1505.00853.pdf
+
+  Args:
+      lower: lower bound of the uniform distribution. Default: :math:`\frac{1}{8}`
+      upper: upper bound of the uniform distribution. Default: :math:`\frac{1}{3}`
+
+  Shape:
+      - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
+      - Output: :math:`(*)`, same shape as the input.
+
+  .. _`Empirical Evaluation of Rectified Activations in Convolutional Network`:
+      https://arxiv.org/abs/1505.00853
+  """
+  x = x.value if isinstance(x, Array) else x
+  a = uniform(lower, upper, size=x.shape)
+  return jnp.where(x >= 0., x, a * x)
+
+
+def prelu(x, a=0.25):
+  r"""Applies the element-wise function:
+
+  .. math::
+      \text{PReLU}(x) = \max(0,x) + a * \min(0,x)
+
+  or
+
+  .. math::
+      \text{PReLU}(x) =
+      \begin{cases}
+      x, & \text{ if } x \geq 0 \\
+      ax, & \text{ otherwise }
+      \end{cases}
+
+  Here :math:`a` is a learnable parameter. When called without arguments, `nn.PReLU()` uses a single
+  parameter :math:`a` across all input channels. If called with `nn.PReLU(nChannels)`,
+  a separate :math:`a` is used for each input channel.
+  """
+  x = x.value if isinstance(x, Array) else x
+  return jnp.where(x >= 0., x, a * x)
 
 
 def sigmoid(x):
@@ -464,6 +629,33 @@ def softmax(x, axis=-1):
   return unnormalized / unnormalized.sum(axis, keepdims=True)
 
 
+def softmin(x, axis=-1):
+  r"""Applies the Softmin function to an n-dimensional input Tensor
+  rescaling them so that the elements of the n-dimensional output Tensor
+  lie in the range `[0, 1]` and sum to 1.
+
+  Softmin is defined as:
+
+  .. math::
+      \text{Softmin}(x_{i}) = \frac{\exp(-x_i)}{\sum_j \exp(-x_j)}
+
+  Shape:
+      - Input: :math:`(*)` where `*` means, any number of additional
+        dimensions
+      - Output: :math:`(*)`, same shape as the input
+
+  Args:
+      axis (int): A dimension along which Softmin will be computed (so every slice
+          along dim will sum to 1).
+  """
+  x = x.value if isinstance(x, Array) else x
+  unnormalized = jnp.exp(-x)
+  return unnormalized / unnormalized.sum(axis, keepdims=True)
+
+
+soft_max = softmax
+
+
 def silu(x):
   r"""SiLU activation function.
 
@@ -482,6 +674,25 @@ def silu(x):
 
 
 swish = silu
+
+
+def mish(x):
+  r"""Applies the Mish function, element-wise.
+
+  Mish: A Self Regularized Non-Monotonic Neural Activation Function.
+
+  .. math::
+      \text{Mish}(x) = x * \text{Tanh}(\text{Softplus}(x))
+
+  .. note::
+      See `Mish: A Self Regularized Non-Monotonic Neural Activation Function <https://arxiv.org/abs/1908.08681>`_
+
+  Shape:
+      - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
+      - Output: :math:`(*)`, same shape as the input.
+  """
+  x = x.value if isinstance(x, Array) else x
+  return x * jnp.tanh(softplus(x))
 
 
 def selu(x):

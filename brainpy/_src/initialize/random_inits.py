@@ -77,6 +77,8 @@ def calculate_gain(nonlinearity, param=None):
 
 
 def _format_shape(shape):
+  if isinstance(shape, int):
+    return (shape, )
   if len(shape) == 0:
     raise ValueError('Please provide shape.')
   if len(shape) == 1:

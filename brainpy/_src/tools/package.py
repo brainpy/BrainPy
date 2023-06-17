@@ -23,7 +23,8 @@ __all__ = [
   'SUPPORT_NUMBA',
 ]
 
-_minimal_brainpylib_version = '0.1.7'
+
+_minimal_brainpylib_version = '0.1.9'
 
 
 def import_numba():

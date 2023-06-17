@@ -6,7 +6,6 @@ import jax.numpy as jnp
 import brainpy.math as bm
 from .utils import _is_leaf, _multi_return
 
-
 __all__ = [
   'l2_norm',
   'mean_absolute',
@@ -78,4 +77,3 @@ def smooth_labels(labels, alpha: float) -> jnp.ndarray:
   r = tree_map(lambda tar: (1.0 - alpha) * tar + alpha / tar.shape[-1],
                labels, is_leaf=lambda x: isinstance(x, bm.Array))
   return _multi_return(r)
-

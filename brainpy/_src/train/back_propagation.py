@@ -13,8 +13,8 @@ from tqdm import tqdm
 import brainpy.losses as losses
 import brainpy.math as bm
 from brainpy import tools, optim
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.context import share
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.context import share
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.running import constants as c
 from brainpy.check import serialize_kwargs

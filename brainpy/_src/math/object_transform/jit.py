@@ -17,10 +17,22 @@ from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, _pa
 from .base import BrainPyObject, ObjectTransform
 from .naming import get_stack_cache, cache_stack
 from .variables import Variable, VariableStack
+from jax.sharding import Sharding
+from jax._src.sharding_impls import UnspecifiedValue, UNSPECIFIED, AUTO
 
 __all__ = [
   'jit',
 ]
+
+
+def _get_sharding(a):
+  pass
+
+
+def _get_sharding_of_dyn_vars(dyn_vars: dict):
+  leaves, tree = jax.tree_util.tree_flatten(dyn_vars)
+
+
 
 
 def _seq_of_int(static_argnums):
@@ -62,6 +74,8 @@ class JITTransform(ObjectTransform):
       abstracted_axes: Optional[Any] = None,
       name: Optional[str] = None,
       backend: Optional[str] = None,
+      in_shardings: Union[Sharding, UnspecifiedValue] = UNSPECIFIED,
+      out_shardings: Union[Sharding, UnspecifiedValue] = UNSPECIFIED,
 
       # deprecated
       dyn_vars: Dict[str, Variable] = None,
@@ -89,6 +103,16 @@ class JITTransform(ObjectTransform):
     self._inline = inline
     self._keep_unused = keep_unused
     self._abstracted_axes = abstracted_axes
+    self._in_shardings = in_shardings
+    self._out_shardings = out_shardings
+    # if isinstance(in_shardings, UnspecifiedValue):
+    #   pass
+    # else:
+    #   self._in_shardings = (UNSPECIFIED, in_shardings)
+    # if isinstance(out_shardings, UnspecifiedValue):
+    #   pass
+    # else:
+    #   self._out_shardings = (AUTO, out_shardings)
 
     # transformation function
     self._transform = None
@@ -99,18 +123,20 @@ class JITTransform(ObjectTransform):
       v._value = variable_data[key]
     out = self.fun(*args, **kwargs)
     changes = self._dyn_vars.dict_data()
-    return out, changes
+    return changes, out
 
   def __call__(self, *args, **kwargs):
     if jax.config.jax_disable_jit:
       return self.fun(*args, **kwargs)
 
     if self._transform is None:
-      self._dyn_vars = evaluate_dyn_vars(self.fun,
-                                         *args,
-                                         static_argnums=self._static_argnums,
-                                         static_argnames=self._static_argnames,
-                                         **kwargs)
+      self._dyn_vars = evaluate_dyn_vars(
+        self.fun,
+        *args,
+        static_argnums=self._static_argnums,
+        static_argnames=self._static_argnames,
+        **kwargs
+      )
       self._transform = jax.jit(
         self._transform_function,
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),
@@ -121,8 +147,10 @@ class JITTransform(ObjectTransform):
         keep_unused=self._keep_unused,
         abstracted_axes=self._abstracted_axes,
         backend=self._backend,
+        in_shardings=self._in_shardings,
+        out_shardings=self._out_shardings,
       )
-    out, changes = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
+    changes, out = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
     for key, v in self._dyn_vars.items():
       v._value = changes[key]
     return out
@@ -198,6 +226,9 @@ def jit(
     # deprecated
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+
+    # others
+    **kwargs,
 ) -> JITTransform:
   """
   JIT (Just-In-Time) compilation for BrainPy computation.
@@ -272,7 +303,8 @@ def jit(
                                   inline=inline,
                                   keep_unused=keep_unused,
                                   backend=backend,
-                                  abstracted_axes=abstracted_axes)
+                                  abstracted_axes=abstracted_axes,
+                                  **kwargs)
   else:
     return JITTransform(fun=func,
                         dyn_vars=dyn_vars,
@@ -284,7 +316,8 @@ def jit(
                         inline=inline,
                         keep_unused=keep_unused,
                         backend=backend,
-                        abstracted_axes=abstracted_axes)
+                        abstracted_axes=abstracted_axes,
+                        **kwargs)
 
 
 jit.__doc__ = jit.__doc__.format(jit_par=_jit_par.strip())
@@ -298,6 +331,7 @@ def cls_jit(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
+    **kwargs
 ) -> Callable:
   """Just-in-time compile a function and then the jitted function as the bound method for a class.
   
@@ -340,7 +374,8 @@ def cls_jit(
                                    device=device,
                                    inline=inline,
                                    keep_unused=keep_unused,
-                                   abstracted_axes=abstracted_axes)
+                                   abstracted_axes=abstracted_axes,
+                                   **kwargs)
   else:
     return _make_jit_fun(fun=func,
                          static_argnums=static_argnums,
@@ -348,7 +383,8 @@ def cls_jit(
                          device=device,
                          inline=inline,
                          keep_unused=keep_unused,
-                         abstracted_axes=abstracted_axes)
+                         abstracted_axes=abstracted_axes,
+                         **kwargs)
 
 
 cls_jit.__doc__ = cls_jit.__doc__.format(jit_pars=_jit_par)
@@ -362,6 +398,7 @@ def _make_jit_fun(
     inline: bool = False,
     keep_unused: bool = False,
     abstracted_axes: Optional[Any] = None,
+    **jit_kwargs
 ):
   static_argnums = _seq_of_int(static_argnums)
   static_argnames = _seq_of_int(static_argnames)
@@ -390,7 +427,8 @@ def _make_jit_fun(
         device=device,
         inline=inline,
         keep_unused=keep_unused,
-        abstracted_axes=abstracted_axes
+        abstracted_axes=abstracted_axes,
+        **jit_kwargs
       )
       cache_stack(hash_v, (stack, _transform))  # cache "variable stack" and "transform function"
 
@@ -406,7 +444,6 @@ def _make_jit_fun(
 
 
 def _make_transform(fun, stack):
-
   @wraps(fun)
   def _transform_function(variable_data: dict, *args, **kwargs):
     for key, v in stack.items():

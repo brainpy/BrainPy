@@ -8,16 +8,15 @@ from typing import Optional, Union
 
 import jax
 import numpy as np
-from jax import lax, jit, vmap, numpy as jnp, random as jr, core
-from jax._src import dtypes
+from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
 from jax.experimental.host_callback import call
-from jax.tree_util import register_pytree_node
+from jax.tree_util import register_pytree_node_class
 
-from brainpy.check import jit_error_checking
-from .ndarray import Array, _return
-from .object_transform import Variable
+from brainpy.check import jit_error
 from .compat_numpy import shape
 from .environment import get_int
+from .ndarray import Array, _return
+from .object_transform.variables import Variable
 
 __all__ = [
   'RandomState', 'Generator', 'DEFAULT',
@@ -80,11 +79,45 @@ def _as_jax_array(a):
   return a.value if isinstance(a, Array) else a
 
 
+def _is_python_scalar(x):
+  if hasattr(x, 'aval'):
+    return x.aval.weak_type
+  elif np.ndim(x) == 0:
+    return True
+  elif isinstance(x, (bool, int, float, complex)):
+    return True
+  else:
+    return False
+
+
+python_scalar_dtypes = {
+  bool: np.dtype('bool'),
+  int: np.dtype('int64'),
+  float: np.dtype('float64'),
+  complex: np.dtype('complex128'),
+}
+
+
+def _dtype(x, *, canonicalize: bool = False):
+  """Return the dtype object for a value or type, optionally canonicalized based on X64 mode."""
+  if x is None:
+    raise ValueError(f"Invalid argument to dtype: {x}.")
+  elif isinstance(x, type) and x in python_scalar_dtypes:
+    dt = python_scalar_dtypes[x]
+  elif type(x) in python_scalar_dtypes:
+    dt = python_scalar_dtypes[type(x)]
+  elif jax.core.is_opaque_dtype(getattr(x, 'dtype', None)):
+    dt = x.dtype
+  else:
+    dt = np.result_type(x)
+  return dtypes.canonicalize_dtype(dt) if canonicalize else dt
+
+
 def _const(example, val):
-  if dtypes.is_python_scalar(example):
+  if _is_python_scalar(example):
     dtype = dtypes.canonicalize_dtype(type(example))
     val = dtypes.scalar_type_of(example)(val)
-    return val if dtype == dtypes.dtype(val, canonicalize=True) else np.array(val, dtype)
+    return val if dtype == _dtype(val, canonicalize=True) else np.array(val, dtype)
   else:
     dtype = dtypes.canonicalize_dtype(example.dtype)
   return np.array(val, dtype)
@@ -404,13 +437,17 @@ def _check_py_seq(seq):
   return jnp.asarray(seq) if isinstance(seq, (tuple, list)) else seq
 
 
+@register_pytree_node_class
 class RandomState(Variable):
   """RandomState that track the random generator state. """
   __slots__ = ()
 
-  def __init__(self,
-               seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
-               seed: Optional[int] = None):
+  def __init__(
+      self,
+      seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
+      seed: Optional[int] = None,
+      _ready_to_trace: bool = True,
+  ):
     """RandomState constructor.
 
     Parameters
@@ -434,8 +471,9 @@ class RandomState(Variable):
       warnings.warn('Please use `seed_or_key` instead. '
                     'seed will be removed since 2.4.0', UserWarning)
 
-    if seed_or_key is None:
-      seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+    with jax.ensure_compile_time_eval():
+      if seed_or_key is None:
+        seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
     else:
@@ -443,7 +481,7 @@ class RandomState(Variable):
         raise ValueError('key must be an array with dtype uint32. '
                          f'But we got {seed_or_key}')
       key = seed_or_key
-    super(RandomState, self).__init__(key)
+    super(RandomState, self).__init__(key, _ready_to_trace=_ready_to_trace)
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
@@ -771,7 +809,7 @@ class RandomState(Variable):
 
   def bernoulli(self, p, size=None, key=None):
     p = _check_py_seq(_as_jax_array(p))
-    jit_error_checking(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
+    jit_error(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.shape(p)
     key = self.split_key() if key is None else _formalize_key(key)
@@ -793,7 +831,7 @@ class RandomState(Variable):
   def binomial(self, n, p, size=None, key=None):
     n = _check_py_seq(n.value if isinstance(n, Array) else n)
     p = _check_py_seq(p.value if isinstance(p, Array) else p)
-    jit_error_checking(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
+    jit_error(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.broadcast_shapes(jnp.shape(n), jnp.shape(p))
     key = self.split_key() if key is None else _formalize_key(key)
@@ -837,7 +875,7 @@ class RandomState(Variable):
     key = self.split_key() if key is None else _formalize_key(key)
     n = _check_py_seq(_as_jax_array(n))
     pvals = _check_py_seq(_as_jax_array(pvals))
-    jit_error_checking(jnp.sum(pvals[:-1]) > 1., self._check_p2, pvals)
+    jit_error(jnp.sum(pvals[:-1]) > 1., self._check_p2, pvals)
     if isinstance(n, jax.core.Tracer):
       raise ValueError("The total count parameter `n` should not be a jax abstract array.")
     size = _size2shape(size)
@@ -1195,11 +1233,6 @@ class RandomState(Variable):
 # alias
 Generator = RandomState
 
-# register pytree
-register_pytree_node(RandomState,
-                     lambda t: ((t.value,), None),
-                     lambda aux_data, flat_contents: RandomState(*flat_contents))
-
 # default random generator
 __a = Array(None)
 __a._value = np.random.randint(0, 10000, size=2, dtype=np.uint32)
@@ -1218,7 +1251,6 @@ def clone_rng(seed_or_key=None, clone: bool = True) -> RandomState:
     return RandomState(seed_or_key)
 
 
-# @wraps(np.random.default_rng)
 def default_rng(seed_or_key=None, clone=True) -> RandomState:
   if seed_or_key is None:
     return DEFAULT.clone() if clone else DEFAULT
@@ -1226,7 +1258,7 @@ def default_rng(seed_or_key=None, clone=True) -> RandomState:
     return RandomState(seed_or_key)
 
 
-def seed(seed: int=None):
+def seed(seed: int = None):
   """Sets a new random seed.
 
   Parameters
@@ -1234,9 +1266,11 @@ def seed(seed: int=None):
   seed: int, optional
     The random seed.
   """
-  if seed is None: seed = np.random.randint(0, 100000)
+  with jax.ensure_compile_time_eval():
+    if seed is None:
+      seed = np.random.randint(0, 100000)
+    np.random.seed(seed)
   DEFAULT.seed(seed)
-  np.random.seed(seed)
 
 
 def rand(*dn, key=None):
@@ -1275,8 +1309,6 @@ def rand(*dn, key=None):
          [ 0.49313049,  0.94909878]]) #random
   """
   return DEFAULT.rand(*dn, key=key)
-
-
 
 
 def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
@@ -1319,6 +1351,7 @@ def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
 
   Examples
   --------
+  >>> import brainpy.math as bm
   >>> bm.random.randint(2, size=10)
   array([1, 0, 0, 0, 1, 1, 0, 0, 1, 0]) # random
   >>> bm.random.randint(1, size=10)
@@ -1348,7 +1381,6 @@ def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
   """
 
   return DEFAULT.randint(low, high=high, size=size, dtype=dtype, key=key)
-
 
 
 def random_integers(low, high=None, size=None, key=None):
@@ -1396,6 +1428,7 @@ def random_integers(low, high=None, size=None, key=None):
 
   Examples
   --------
+  >>> import brainpy.math as bm
   >>> bm.random.random_integers(5)
   4 # random
   >>> type(bm.random.random_integers(5))
@@ -1426,8 +1459,6 @@ def random_integers(low, high=None, size=None, key=None):
   """
 
   return DEFAULT.random_integers(low, high=high, size=size, key=key)
-
-
 
 
 def randn(*dn, key=None):
@@ -1477,6 +1508,7 @@ def randn(*dn, key=None):
 
   Examples
   --------
+  >>> import brainpy.math as bm
   >>> bm.random.randn()
   2.1923875335537315  # random
 
@@ -1490,15 +1522,12 @@ def randn(*dn, key=None):
   return DEFAULT.randn(*dn, key=key)
 
 
-
-
 def random(size=None, key=None):
   """
   Return random floats in the half-open interval [0.0, 1.0). Alias for
   `random_sample` to ease forward-porting to the new random API.
   """
   return DEFAULT.random(size, key=key)
-
 
 
 def random_sample(size=None, key=None):
@@ -1534,16 +1563,17 @@ def random_sample(size=None, key=None):
 
   Examples
   --------
-  >>> brainpy.math.random.random_sample()
+  >>> import brainpy.math as bm
+  >>> bm.random.random_sample()
   0.47108547995356098 # random
-  >>> type(brainpy.math.random.random_sample())
+  >>> type(bm.random.random_sample())
   <class 'float'>
-  >>> brainpy.math.random.random_sample((5,))
+  >>> bm.random.random_sample((5,))
   array([ 0.30220482,  0.86820401,  0.1654503 ,  0.11659149,  0.54323428]) # random
 
   Three-by-two array of random numbers from [-5, 0):
 
-  >>> 5 * brainpy.math.random.random_sample((3, 2)) - 5
+  >>> 5 * bm.random.random_sample((3, 2)) - 5
   array([[-3.99149989, -0.52338984], # random
          [-2.99091858, -0.79479508],
          [-1.23204345, -1.75224494]])
@@ -1620,33 +1650,34 @@ def choice(a, size=None, replace=True, p=None, key=None):
   --------
   Generate a uniform random sample from np.arange(5) of size 3:
 
-  >>> brainpy.math.random.choice(5, 3)
+  >>> import brainpy.math as bm
+  >>> bm.random.choice(5, 3)
   array([0, 3, 4]) # random
   >>> #This is equivalent to brainpy.math.random.randint(0,5,3)
 
   Generate a non-uniform random sample from np.arange(5) of size 3:
 
-  >>> brainpy.math.random.choice(5, 3, p=[0.1, 0, 0.3, 0.6, 0])
+  >>> bm.random.choice(5, 3, p=[0.1, 0, 0.3, 0.6, 0])
   array([3, 3, 0]) # random
 
   Generate a uniform random sample from np.arange(5) of size 3 without
   replacement:
 
-  >>> brainpy.math.random.choice(5, 3, replace=False)
+  >>> bm.random.choice(5, 3, replace=False)
   array([3,1,0]) # random
   >>> #This is equivalent to brainpy.math.random.permutation(np.arange(5))[:3]
 
   Generate a non-uniform random sample from np.arange(5) of size
   3 without replacement:
 
-  >>> brainpy.math.random.choice(5, 3, replace=False, p=[0.1, 0, 0.3, 0.6, 0])
+  >>> bm.random.choice(5, 3, replace=False, p=[0.1, 0, 0.3, 0.6, 0])
   array([2, 3, 0]) # random
 
   Any of the above can be repeated with an arbitrary array-like
   instead of just integers. For instance:
 
   >>> aa_milne_arr = ['pooh', 'rabbit', 'piglet', 'Christopher']
-  >>> brainpy.math.random.choice(aa_milne_arr, 5, p=[0.5, 0.1, 0.1, 0.3])
+  >>> bm.random.choice(aa_milne_arr, 5, p=[0.5, 0.1, 0.1, 0.3])
   array(['pooh', 'pooh', 'pooh', 'Christopher', 'piglet'], # random
         dtype='<U11')
   """
@@ -1679,14 +1710,15 @@ def permutation(x, axis: int = 0, independent: bool = False, key=None):
 
   Examples
   --------
-  >>> brainpy.math.random.permutation(10)
+  >>> import brainpy.math as bm
+  >>> bm.random.permutation(10)
   array([1, 7, 4, 3, 0, 9, 2, 5, 8, 6]) # random
 
-  >>> brainpy.math.random.permutation([1, 4, 9, 12, 15])
+  >>> bm.random.permutation([1, 4, 9, 12, 15])
   array([15,  1,  9,  4, 12]) # random
 
   >>> arr = np.arange(9).reshape((3, 3))
-  >>> brainpy.math.random.permutation(arr)
+  >>> bm.random.permutation(arr)
   array([[6, 7, 8], # random
          [0, 1, 2],
          [3, 4, 5]])
@@ -1717,15 +1749,16 @@ def shuffle(x, axis=0, key=None):
 
   Examples
   --------
+  >>> import brainpy.math as bm
   >>> arr = np.arange(10)
-  >>> brainpy.math.random.shuffle(arr)
+  >>> bm.random.shuffle(arr)
   >>> arr
   [1 7 5 2 9 4 3 6 0 8] # random
 
   Multi-dimensional arrays are only shuffled along the first axis:
 
   >>> arr = np.arange(9).reshape((3, 3))
-  >>> brainpy.math.random.shuffle(arr)
+  >>> bm.random.shuffle(arr)
   >>> arr
   array([[3, 4, 5], # random
          [6, 7, 8],
@@ -2287,7 +2320,6 @@ def categorical(logits, axis: int = -1, size=None, key=None):
   return DEFAULT.categorical(logits, axis, size, key=key)
 
 
-
 def rand_like(input, *, dtype=None, key=None):
   """Similar to ``rand_like`` in torch. 
   
@@ -2303,6 +2335,7 @@ def rand_like(input, *, dtype=None, key=None):
     The random data.
   """
   return DEFAULT.rand_like(input, dtype=dtype, key=key)
+
 
 def randn_like(input, *, dtype=None, key=None):
   """Similar to ``randn_like`` in torch. 
@@ -2346,5 +2379,3 @@ for __k in dir(RandomState):
     __r = globals().get(__k, None)
     if __r is not None and callable(__r):
       __t.__doc__ = __r.__doc__
-
-

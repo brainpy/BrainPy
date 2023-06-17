@@ -1,4 +1,3 @@
-import unittest
 import brainpy as bp
 import brainpy.math as bm
 

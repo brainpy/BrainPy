@@ -1,10 +1,10 @@
-from typing import Optional, Any, Tuple as TupleType, List
+from typing import Optional, Any, List
 
 import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
-from jax.tree_util import register_pytree_node
+from jax.tree_util import register_pytree_node_class
 
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import MathError
@@ -15,8 +15,8 @@ __all__ = [
   'Parameter',
   'VariableView',
 
-  'VarList',
-  'VarDict',
+  'VarList', 'var_list',
+  'VarDict', 'var_dict',
 ]
 
 
@@ -98,6 +98,7 @@ class VariableStack(dict):
 var_stack_list: List[VariableStack] = []
 
 
+@register_pytree_node_class
 class Variable(Array):
   """The pointer to specify the dynamical variable.
 
@@ -126,9 +127,10 @@ class Variable(Array):
 
   def __init__(
       self,
-      value_or_size,
+      value_or_size: Any,
       dtype: type = None,
       batch_axis: int = None,
+      *,
       _ready_to_trace: bool = True
   ):
     if isinstance(value_or_size, int):
@@ -157,16 +159,6 @@ class Variable(Array):
 
     # ready to trace the variable
     self._ready_to_trace = _ready_to_trace and len(var_stack_list) == 0
-
-  @property
-  def nobatch_shape(self) -> TupleType[int, ...]:
-    """Shape without batch axis."""
-    if self.batch_axis is not None:
-      shape = list(self.value.shape)
-      shape.pop(self.batch_axis)
-      return tuple(shape)
-    else:
-      return self.shape
 
   @property
   def batch_axis(self) -> Optional[int]:
@@ -217,6 +209,10 @@ class Variable(Array):
       for stack in var_stack_list:
         stack.add(self)
 
+  @classmethod
+  def tree_unflatten(cls, aux_data, flat_contents):
+    return cls(*flat_contents, _ready_to_trace=False)
+
 
 def _get_dtype(v):
   if hasattr(v, 'dtype'):
@@ -230,15 +226,17 @@ def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
 
 
+@register_pytree_node_class
 class TrainVar(Variable):
   """The pointer to specify the trainable variable.
   """
 
   def __init__(
       self,
-      value_or_size,
+      value_or_size: Any,
       dtype: type = None,
       batch_axis: int = None,
+      *,
       _ready_to_trace: bool = True
   ):
     super(TrainVar, self).__init__(
@@ -249,15 +247,17 @@ class TrainVar(Variable):
     )
 
 
+@register_pytree_node_class
 class Parameter(Variable):
   """The pointer to specify the parameter.
   """
 
   def __init__(
       self,
-      value_or_size,
+      value_or_size: Any,
       dtype: type = None,
       batch_axis: int = None,
+      *,
       _ready_to_trace: bool = True
   ):
     super(Parameter, self).__init__(
@@ -302,7 +302,7 @@ class VariableView(Variable):
   def __init__(
       self,
       value: Variable,
-      index,
+      index: Any,
   ):
     self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):
@@ -348,25 +348,7 @@ class VariableView(Variable):
     self._value[self.index] = v.value if isinstance(v, Array) else v
 
 
-register_pytree_node(
-  Variable,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: Variable(*flat_contents, _ready_to_trace=False)
-)
-
-register_pytree_node(
-  TrainVar,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: TrainVar(*flat_contents, _ready_to_trace=False)
-)
-
-register_pytree_node(
-  Parameter,
-  lambda t: ((t.value,), None),
-  lambda aux_data, flat_contents: Parameter(*flat_contents, _ready_to_trace=False)
-)
-
-
+@register_pytree_node_class
 class VarList(list):
   """A sequence of :py:class:`~.Variable`, which is compatible with
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
@@ -394,7 +376,18 @@ class VarList(list):
       super().__setitem__(key, value)
     return self
 
+  def tree_flatten(self):
+    return tuple(self), None
 
+  @classmethod
+  def tree_unflatten(cls, aux_data, children):
+    return cls(children)
+
+
+var_list = VarList
+
+
+@register_pytree_node_class
 class VarDict(dict):
   """A dictionary of :py:class:`~.Variable`, which is compatible with
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
@@ -429,3 +422,12 @@ class VarDict(dict):
       super().__setitem__(key, self._check_elem(value))
     return self
 
+  def tree_flatten(self):
+    return tuple(self.values()), tuple(self.keys())
+
+  @classmethod
+  def tree_unflatten(cls, keys, values):
+    return cls(jax.util.safe_zip(keys, values))
+
+
+var_dict = VarDict

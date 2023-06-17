@@ -1,19 +1,24 @@
-# Change from Version 2.3.4 to Version 2.3.5
 
 
-This release continues to add supports for improving the usability of BrainPy.
+This branch of releases (``brainpy==2.4.x``) are going to support the large-scale modeling of brain dynamics. 
+
+As the start, the first release provides supports for automatic object-oriented (OO) transformations. 
 
 
-## New Features
+## What's new?
 
 
-1. New data structures for object-oriented transformations. 
-   - ``NodeList`` and ``NodeDict`` for a list/tuple/dict of ``BrainPyObject`` instances.
-   - ``ListVar`` and ``DictVar`` for a list/tuple/dict of brainpy data.
-2. `Clip` transformation for brainpy initializers.
-3. All ``brainpylib`` operators are accessible in ``brainpy.math`` module.
-4. Enable monitoring GPU models on CPU when setting ``DSRunner(..., memory_efficient=True)``. This setting can usually reduce so much memory usage.   
-5. ``brainpylib`` wheels on the linux platform support the GPU operators. Users can install gpu version of ``brainpylib`` (require ``brainpylib>=0.1.7``) directly by ``pip install brainpylib``.
+1. Automatic OO transformations on longer need to take ``dyn_vars`` or ``child_objs`` information.
+   These transformations are capable of automatic inferring the underlying dynamical variables. 
+   Specifically, they include:
+   
+   - ``brainpy.math.grad`` and other autograd functionalities
+   - ``brainpy.math.jit``
+   - ``brainpy.math.for_loop``
+   - ``brainpy.math.while_loop``
+   - ``brainpy.math.ifelse``
+   - ``brainpy.math.cond``
 
+2. Update documentations 
 
 

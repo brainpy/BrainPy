@@ -1,4 +1,4 @@
-from brainpy._src.math.operators.pre_syn_post import (
+from brainpy._src.math.pre_syn_post import (
   pre2post_sum,
   pre2post_prod,
   pre2post_max,
@@ -6,12 +6,13 @@ from brainpy._src.math.operators.pre_syn_post import (
   pre2post_mean,
 
   pre2post_event_sum,
+  pre2post_csr_event_sum,
   pre2post_coo_event_sum,
-  pre2post_event_prod,
 
   pre2syn,
 
-  syn2post_sum, syn2post,
+  syn2post_sum,
+  syn2post,
   syn2post_prod,
   syn2post_max,
   syn2post_min,

@@ -305,7 +305,7 @@ class IntegratorRunner(Runner):
     end_t = start_t + duration
     # times
     times = bm.arange(start_t, end_t, self.dt).value
-    indices = bm.arange(times.size).value + self.idx
+    indices = bm.arange(times.size).value + self.idx.value
 
     _dyn_args, _ = tree_flatten(dyn_args)
     for _d in _dyn_args:

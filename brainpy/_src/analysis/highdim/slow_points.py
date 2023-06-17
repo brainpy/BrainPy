@@ -13,8 +13,8 @@ from jax.tree_util import tree_flatten, tree_map
 import brainpy._src.math as bm
 from brainpy import optim, losses
 from brainpy._src.analysis import utils, base, constants
-from brainpy._src.dyn.base import DynamicalSystem
-from brainpy._src.dyn.runners import check_and_format_inputs, _f_ops
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.runners import check_and_format_inputs, _f_ops
 from brainpy._src.tools.dicts import DotDict
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.types import ArrayType
@@ -234,6 +234,8 @@ class SlowPointFinder(base.DSAnalyzer):
     if f_loss_batch is not None:
       raise UnsupportedError('"f_loss_batch" is no longer supported, please '
                              'use "f_loss" instead.')
+    if fun_inputs is not None:
+      raise UnsupportedError('"fun_inputs" is no longer supported.')
     if f_loss is None:
       f_loss = losses.mean_squared_error if f_type == constants.DISCRETE else losses.mean_square
     self.f_loss = f_loss

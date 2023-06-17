@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import vmap

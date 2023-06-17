@@ -1,4 +1,8 @@
 import brainpy as bp
+import brainpy.math as bm
+from jax import pmap
+
+bm.set_host_device_count(20)
 
 
 class EINet(bp.DynamicalSystemNS):
@@ -23,19 +27,19 @@ class EINet(bp.DynamicalSystemNS):
     wi = 6.7 / scale  # inhibitory synaptic weight
     self.E2E = bp.experimental.Exponential(
       bp.conn.FixedProb(0.02, pre=self.E.size, post=self.E.size),
-      g_max=we, tau=5., out=bp.experimental.COBA(E=0.)
+      g_max=we, tau=5., out=bp.experimental.COBA(E=0.), comp_method='dense'
     )
     self.E2I = bp.experimental.Exponential(
       bp.conn.FixedProb(0.02, pre=self.E.size, post=self.I.size, ),
-      g_max=we, tau=5., out=bp.experimental.COBA(E=0.)
+      g_max=we, tau=5., out=bp.experimental.COBA(E=0.), comp_method='dense'
     )
     self.I2E = bp.experimental.Exponential(
       bp.conn.FixedProb(0.02, pre=self.I.size, post=self.E.size),
-      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.)
+      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.), comp_method='dense'
     )
     self.I2I = bp.experimental.Exponential(
       bp.conn.FixedProb(0.02, pre=self.I.size, post=self.I.size),
-      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.)
+      g_max=wi, tau=10., out=bp.experimental.COBA(E=-80.), comp_method='dense'
     )
     self.delayE = bp.Delay(self.E.spike, entries={'E': delay})
     self.delayI = bp.Delay(self.I.spike, entries={'I': delay})
@@ -98,12 +102,28 @@ class EINetv2(bp.DynamicalSystemNS):
 
 
 # simulation
-net = EINet(delay=0., scale=2.)
-# net = EINetv2(delay=0., scale=2.)
+net = EINet(delay=0., scale=1.)
 runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
-r = runner.run(100., eval_time=True)
-print(r)
+runner.run(100.)
+# print(r)
 bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+
+# @pmap
+# def f2(I):
+#   net = EINet(delay=0., scale=5., e_input=I, i_input=I)
+#   # net = EINetv2(delay=0., scale=2.)
+#   runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike}, numpy_mon_after_run=False)
+#   runner.run(10000.)
+#   return runner.mon
+#   # print(r)
+#   # bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+#
+#
+# print(f2(bm.ones(20) * 20.))
+
+
+
+
 
 
 

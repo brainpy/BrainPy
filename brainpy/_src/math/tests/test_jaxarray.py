@@ -2,7 +2,9 @@
 
 
 import unittest
+import jax
 
+import brainpy as bp
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
@@ -44,7 +46,24 @@ class TestJaxArray(unittest.TestCase):
     rng = bm.random.RandomState(123)
     add = lambda: bm.asarray(rng.rand(10)) + np.zeros(1)
     self.assertTrue(isinstance(add(), bm.Array))
-    self.assertTrue(isinstance(bm.jit(add, dyn_vars=rng)(), bm.Array))
+    self.assertTrue(isinstance(bm.jit(add)(), bm.Array))
+
+
+class TestTracerError(unittest.TestCase):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+
+    self.a = bm.zeros((10, 2))
+    self.f = jax.jit(self._f)
+
+  def _f(self, b):
+    self.a[:] = bm.zeros_like(self.a)
+    return b + 1.
+
+  def test_tracing(self):
+    print(self.f(1.))
+    with self.assertRaises(RuntimeError):
+      print(self.f(bm.ones(10)))
 
 
 class TestVariable(unittest.TestCase):
@@ -62,6 +81,8 @@ class TestVariable(unittest.TestCase):
 
 class TestVariableView(unittest.TestCase):
   def test_update(self):
+    bm.random.seed()
+
     origin = bm.Variable(bm.zeros(10))
     view = bm.VariableView(origin, slice(0, 5, None))
 
@@ -77,7 +98,7 @@ class TestVariableView(unittest.TestCase):
 
     view += 10
     self.assertTrue(
-      bm.array_equal(origin, bm.concatenate([bm.arange(5) + 10, bm.zeros(5)]))
+      bm.array_equal(origin, bm.concatenate([bm.arange(10, 15), bm.zeros(5)]))
     )
 
     bm.random.shuffle(view)
@@ -90,4 +111,3 @@ class TestVariableView(unittest.TestCase):
     )
 
     self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
-
