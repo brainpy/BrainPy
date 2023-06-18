@@ -213,6 +213,12 @@ class Variable(Array):
   def tree_unflatten(cls, aux_data, flat_contents):
     return cls(*flat_contents, _ready_to_trace=False)
 
+  def clone(self) -> 'Variable':
+    """Clone the variable. """
+    r = type(self)(jnp.copy(self.value), batch_axis=self.batch_axis)
+    r._ready_to_trace = self._ready_to_trace
+    return r
+
 
 def _get_dtype(v):
   if hasattr(v, 'dtype'):

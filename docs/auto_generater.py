@@ -338,7 +338,7 @@ def generate_connect_docs():
 
 def generate_channels_docs():
   _write_subsections_v2(
-    'brainpy._src.dyn.channels',
+    'brainpy._src.channels',
     'brainpy.channels',
     'apis/auto/channels.rst',
     subsections={
@@ -421,7 +421,7 @@ def generate_measure_docs():
 
 def generate_neurons_docs():
   _write_subsections_v2(
-    'brainpy._src.dyn.neurons',
+    'brainpy._src.neurons',
     'brainpy.neurons',
     'apis/auto/neurons.rst',
     subsections={

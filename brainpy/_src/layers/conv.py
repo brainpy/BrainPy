@@ -5,7 +5,6 @@ from typing import Union, Tuple, Optional, Sequence, Callable
 from jax import lax
 
 from brainpy import math as bm, tools, check
-from brainpy._src.dynsys import not_pass_shared
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
 from .base import Layer
@@ -525,7 +524,6 @@ class _GeneralConvTranspose(Layer):
   def _check_input_dim(self, x):
     raise NotImplementedError
 
-  @not_pass_shared
   def update(self, x):
     self._check_input_dim(x)
 
