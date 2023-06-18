@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-
+import sys
+import tempfile
 import unittest
 from functools import partial
 
@@ -231,7 +232,153 @@ class TestWhile(bp.testing.UnitTestCase):
       self.assertTrue(bm.array_equal(res2[1], res[1]))
 
 
+class TestDebugAndCompile(parameterized.TestCase):
+  def test_cond1(self):
+    file = tempfile.TemporaryFile('w+')
+
+    def f_true(a):
+      print('True function ..', file=file)
+      return a
+
+    def f_false(a):
+      print('False function ..', file=file)
+      return a
+
+    jax.lax.cond(True, f_true, f_false, 1.)
+
+    expected_res = '''
+True function ..
+False function ..
+    '''
+
+    file.seek(0)
+    self.assertTrue(file.read().strip() == expected_res.strip())
+
+  def test_cond2(self):
+    file = tempfile.TemporaryFile('w+')
+
+    def f1(a):
+      print('f1 ...', file=file)
+      return a * 0.1
+
+    def f2(a):
+      print('f2 ...', file=file)
+      return a * 1.
+
+    def f3(a):
+      print('f3 ...', file=file)
+      return bm.cond(a > 1, f1, f2, a)
+
+    def f4(a):
+      print('f4 ...', file=file)
+      return a * 10.
+
+    r = bm.cond(True, f3, f4, 2.)
+    print(r)
+
+    expected_res = '''
+f3 ...
+f1 ...
+f2 ...
+f4 ...
+f3 ...
+f1 ...
+f2 ...
+f1 ...
+f2 ...
+f4 ...
+    '''
+    file.seek(0)
+    self.assertTrue(file.read().strip() == expected_res.strip())
+
+  def test_for_loop(self):
+    def f(a):
+      print('f ...', file=file)
+      return a
+
+    file = tempfile.TemporaryFile('w+')
+    bm.for_loop(f, bm.arange(10))
+    file.seek(0)
+    expect = '''
+f ...
+f ...
+    '''
+    self.assertTrue(file.read().strip() == expect.strip())
+
+    file = tempfile.TemporaryFile('w+')
+    bm.for_loop(f, bm.arange(10), jit=False)
+    file.seek(0)
+    expect = '\n'.join(['f ...'] * 10)
+    self.assertTrue(file.read().strip() == expect.strip())
 
 
+  def test_while_loop(self):
+    def cond(a):
+      print('cond ...', file=file)
+      return a < 1
+
+    def body(a):
+      print('body ...', file=file)
+      return a + 1
+
+    file = tempfile.TemporaryFile('w+')
+    bm.while_loop(body, cond, 10)
+    file.seek(0)
+    expect = '''
+cond ...
+body ...
+    '''
+    out1 = file.read().strip()
+    self.assertTrue(out1 == expect.strip())
 
 
+    file = tempfile.TemporaryFile('w+')
+    jax.lax.while_loop(cond, body, 10)
+    file.seek(0)
+    out2 = file.read().strip()
+    self.assertTrue(out1 == out2)
+
+    file = tempfile.TemporaryFile('w+')
+    with jax.disable_jit():
+      jax.lax.while_loop(cond, body, 10)
+    file.seek(0)
+    out3 = file.read().strip()
+    self.assertTrue(out3 == 'cond ...')
+
+    file = tempfile.TemporaryFile('w+')
+    with jax.disable_jit():
+      bm.while_loop(body, cond, 10)
+      file.seek(0)
+      out4 = file.read().strip()
+      self.assertTrue(out4 == 'cond ...')
+
+
+    file = tempfile.TemporaryFile('w+')
+    with jax.disable_jit():
+      jax.lax.while_loop(cond, body, -5)
+    file.seek(0)
+    out5 = file.read().strip()
+    expect = '''
+cond ...
+body ...
+cond ...
+body ...
+cond ...
+body ...
+cond ...
+body ...
+cond ...
+body ...
+cond ...
+body ...
+cond ...
+    
+    '''
+    self.assertTrue(out5 == expect.strip())
+
+    file = tempfile.TemporaryFile('w+')
+    with jax.disable_jit():
+      bm.while_loop(body, cond, -5)
+    file.seek(0)
+    out6 = file.read().strip()
+    self.assertTrue(out5 == out6)

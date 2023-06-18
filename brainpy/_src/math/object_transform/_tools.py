@@ -6,7 +6,7 @@ import jax
 
 from brainpy._src.math.object_transform.naming import (cache_stack,
                                                        get_stack_cache)
-from brainpy._src.math.object_transform.variables import VariableStack
+from brainpy._src.math.object_transform.variables import VariableStack, current_transform_number
 
 
 class Empty(object):
@@ -81,6 +81,7 @@ def evaluate_dyn_vars(
     *args,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
+    use_eval_shape: bool = True,
     **kwargs
 ):
   # arguments
@@ -92,7 +93,10 @@ def evaluate_dyn_vars(
     f2, args, kwargs = f, args, kwargs
   # stack
   with VariableStack() as stack:
-    rets = jax.eval_shape(f2, *args, **kwargs)
+    if use_eval_shape:
+      rets = jax.eval_shape(f2, *args, **kwargs)
+    else:
+      rets = f2(*args, **kwargs)
   return stack, rets
 
 
@@ -101,11 +105,12 @@ def evaluate_dyn_vars_with_cache(
     *args,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
+    with_return: bool = False,
     **kwargs
 ):
   # TODO: better way for cache mechanism
   stack = get_stack_cache(f)
-  if stack is None:
+  if stack is None or with_return:
     if len(static_argnums) or len(static_argnames):
       f2, args, kwargs = _partial_fun(f, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
     else:
@@ -113,7 +118,11 @@ def evaluate_dyn_vars_with_cache(
 
     with jax.ensure_compile_time_eval():
       with VariableStack() as stack:
-        _ = jax.eval_shape(f2, *args, **kwargs)
+        rets = jax.eval_shape(f2, *args, **kwargs)
       cache_stack(f, stack)  # cache
       del args, kwargs, f2
+    if with_return:
+      return stack, rets
+    else:
+      return stack
   return stack

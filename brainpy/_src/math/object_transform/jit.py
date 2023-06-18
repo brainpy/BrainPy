@@ -145,6 +145,7 @@ class JITTransform(ObjectTransform):
           *args,
           static_argnums=self._static_argnums,
           static_argnames=self._static_argnames,
+          use_eval_shape=current_transform_number() <= 1,
           **kwargs
         )
         self._transform = jax.jit(
