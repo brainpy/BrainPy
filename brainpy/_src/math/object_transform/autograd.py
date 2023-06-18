@@ -10,18 +10,29 @@ from jax import linear_util, dtypes, vmap, numpy as jnp, core
 from jax._src.api import (_vjp, _jvp)
 from jax.api_util import argnums_partial
 from jax.interpreters import xla
-from jax.tree_util import (tree_flatten, tree_unflatten,
-                           tree_map, tree_transpose,
-                           tree_structure)
+from jax.tree_util import (
+  tree_flatten, tree_unflatten,
+  tree_map, tree_transpose,
+  tree_structure
+)
 from jax.util import safe_map
 
 from brainpy import tools, check
 from brainpy._src.math.ndarray import Array
-from .variables import Variable, VariableStack
-from .base import BrainPyObject, ObjectTransform
-from ._tools import (dynvar_deprecation,
-                     node_deprecation,
-                     evaluate_dyn_vars)
+from ._tools import (
+  dynvar_deprecation,
+  node_deprecation,
+)
+from .base import (
+  BrainPyObject,
+  ObjectTransform
+)
+from .variables import (
+  Variable,
+  VariableStack,
+  current_transform_number,
+  new_transform,
+)
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -85,17 +96,32 @@ class GradientTransform(ObjectTransform):
     self.target = target
 
     # transform
+    self._eval_dyn_vars = False
     self._grad_transform = transform
-    self._dyn_vars = None
+    self._dyn_vars = VariableStack()
     self._transform = None
     self._grad_setting = dict() if transform_setting is None else transform_setting
+    if self._has_aux:
+      self._transform = self._grad_transform(
+        self._f_grad_with_aux_to_transform,
+        argnums=self._argnums,
+        has_aux=True,
+        **self._grad_setting
+      )
+    else:
+      self._transform = self._grad_transform(
+        self._f_grad_without_aux_to_transform,
+        argnums=self._argnums,
+        has_aux=True,
+        **self._grad_setting
+      )
 
   def _f_grad_with_aux_to_transform(self,
                                     grad_values: tuple,
                                     dyn_values: dict,
                                     *args,
                                     **kwargs):
-    for k in self._dyn_vars.keys():
+    for k in dyn_values.keys():
       self._dyn_vars[k]._value = dyn_values[k]
     for v, d in zip(self._grad_vars, grad_values):
       v._value = d
@@ -115,7 +141,7 @@ class GradientTransform(ObjectTransform):
                                        dyn_values: dict,
                                        *args,
                                        **kwargs):
-    for k in self._dyn_vars.keys():
+    for k in dyn_values.keys():
       self._dyn_vars[k]._value = dyn_values[k]
     for v, d in zip(self._grad_vars, grad_values):
       v._value = d
@@ -129,43 +155,16 @@ class GradientTransform(ObjectTransform):
     name = self.__class__.__name__
     f = tools.repr_object(self.target)
     f = tools.repr_context(f, " " * (len(name) + 6))
-    format_ref = (f'{name}(target={f}, \n' +
+    format_ref = (f'{name}({self.name}, target={f}, \n' +
                   f'{" " * len(name)} num_of_grad_vars={len(self._grad_vars)}, \n'
                   f'{" " * len(name)} num_of_dyn_vars={len(self._dyn_vars)})')
     return format_ref
 
-  def __call__(self, *args, **kwargs):
-    if self._transform is None:
-      if jax.config.jax_disable_jit:
-        self._dyn_vars = VariableStack()
-      else:
-        self._dyn_vars = evaluate_dyn_vars(self.target, *args, **kwargs)
-        self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
-
-      if self._has_aux:
-        self._transform = self._grad_transform(
-          self._f_grad_with_aux_to_transform,
-          argnums=self._argnums,
-          has_aux=True,
-          **self._grad_setting
-        )
-      else:
-        self._transform = self._grad_transform(
-          self._f_grad_without_aux_to_transform,
-          argnums=self._argnums,
-          has_aux=True,
-          **self._grad_setting
-        )
-
-    grads, (outputs, new_grad_vs, new_dyn_vs) = self._transform(
-      [v.value for v in self._grad_vars],  # gradient variables
-      self._dyn_vars.dict_data(),  # dynamical variables
-      *args,
-      **kwargs
-    )
+  def _return(self, rets):
+    grads, (outputs, new_grad_vs, new_dyn_vs) = rets
     for v, d in zip(self._grad_vars, new_grad_vs):
       v._value = d
-    for k in self._dyn_vars.keys():
+    for k in new_dyn_vs.keys():
       self._dyn_vars[k]._value = new_dyn_vs[k]
 
     # check returned grads
@@ -190,6 +189,51 @@ class GradientTransform(ObjectTransform):
         return grads, outputs[1]
       else:
         return grads
+
+  def __call__(self, *args, **kwargs):
+    if jax.config.jax_disable_jit:  # disable JIT
+      rets = self._transform(
+        [v.value for v in self._grad_vars],  # variables for gradients
+        self._dyn_vars.dict_data(),  # dynamical variables
+        *args,
+        **kwargs
+      )
+      return self._return(rets)
+
+    elif not self._eval_dyn_vars:  # evaluate dynamical variables
+      with new_transform(self):
+        with VariableStack() as stack:
+            if current_transform_number() > 1:
+              rets = self._transform(
+                [v.value for v in self._grad_vars],  # variables for gradients
+                {},  # dynamical variables
+                *args,
+                **kwargs
+              )
+            else:
+              rets = jax.eval_shape(
+                self._transform,
+                [v.value for v in self._grad_vars],  # variables for gradients
+                {},  # dynamical variables
+                *args,
+                **kwargs
+              )
+
+      self._dyn_vars = stack
+      self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+      self._eval_dyn_vars = True
+
+      # if not the outermost transformation
+      if current_transform_number():
+        return self._return(rets)
+
+    rets = self._transform(
+      [v.value for v in self._grad_vars],  # variables for gradients
+      self._dyn_vars.dict_data(),  # dynamical variables
+      *args,
+      **kwargs
+    )
+    return self._return(rets)
 
 
 def _make_grad(
@@ -723,7 +767,7 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
     else:
       y, vjp_fn = _vjp(f_partial, *dyn_args, has_aux=False)
     leaves, tree = tree_flatten(y)
-    tangents = tree_unflatten(tree, [jnp.ones_like(l) for l in leaves])
+    tangents = tree_unflatten(tree, [jnp.ones(l.shape, dtype=l.dtype) for l in leaves])
     grads = vjp_fn(tangents)
     if isinstance(argnums, int):
       grads = grads[0]

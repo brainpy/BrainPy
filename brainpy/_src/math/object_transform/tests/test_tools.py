@@ -1,7 +1,7 @@
 import brainpy as bp
 import brainpy.math as bm
 import jax
-from brainpy._src.math.object_transform._tools import evaluate_dyn_vars
+from brainpy._src.math.object_transform._tools import evaluate_dyn_vars_with_cache
 
 
 class TestTool(bp.testing.UnitTestCase):
@@ -14,7 +14,7 @@ class TestTool(bp.testing.UnitTestCase):
       neu.update()
       call_num[0] += 1
 
-    vars1 = evaluate_dyn_vars(f)
+    vars1 = evaluate_dyn_vars_with_cache(f)
     self.assertTrue(len(vars1) == len(neu.vars().unique()))
     self.assertTrue(call_num[0] == 1)
     for k, v in vars1.items():
@@ -30,14 +30,14 @@ class TestTool(bp.testing.UnitTestCase):
       neu.update()
       call_num[0] += 1
 
-    vars1 = evaluate_dyn_vars(f)
+    vars1 = evaluate_dyn_vars_with_cache(f)
     self.assertTrue(len(vars1) == len(neu.vars().unique()))
     self.assertTrue(call_num[0] == 1)
     for k, v in vars1.items():
       self.assertTrue(isinstance(v, bm.Variable))
       self.assertTrue(isinstance(v.value, jax.Array))
 
-    vars2 = evaluate_dyn_vars(f)  # using cache, do not call ``f`` again
+    vars2 = evaluate_dyn_vars_with_cache(f)  # using cache, do not call ``f`` again
     self.assertTrue(call_num[0] == 1)
     for k, v in vars2.items():
       self.assertTrue(isinstance(v, bm.Variable))
@@ -53,9 +53,9 @@ class TestTool(bp.testing.UnitTestCase):
 
     def f2():
       a[:] = 0.
-      evaluate_dyn_vars(f)
+      evaluate_dyn_vars_with_cache(f)
 
-    vars2 = evaluate_dyn_vars(f2)
+    vars2 = evaluate_dyn_vars_with_cache(f2)
     self.assertTrue(len(vars2) == len(neu.vars().unique()) + 1)
     for k, v in vars2.items():
       self.assertTrue(isinstance(v, bm.Variable))
@@ -75,9 +75,9 @@ class TestTool(bp.testing.UnitTestCase):
 
     def f2():
       a[:] = 0.
-      evaluate_dyn_vars(f)
+      evaluate_dyn_vars_with_cache(f)
 
-    vars1 = evaluate_dyn_vars(f2)  # cache
+    vars1 = evaluate_dyn_vars_with_cache(f2)  # cache
     self.assertTrue(len(vars1) == len(neu.vars().unique()) + 1)
     for k, v in vars1.items():
       self.assertTrue(isinstance(v, bm.Variable))
@@ -86,7 +86,7 @@ class TestTool(bp.testing.UnitTestCase):
     self.assertTrue(isinstance(a.value, jax.Array))
     self.assertTrue(call_num[0] == 1)
 
-    vars2 = evaluate_dyn_vars(f2)  # cache too
+    vars2 = evaluate_dyn_vars_with_cache(f2)  # cache too
     self.assertTrue(call_num[0] == 1)
 
   def test_cache3(self):
@@ -102,13 +102,13 @@ class TestTool(bp.testing.UnitTestCase):
         call_num[0] += 1
 
     model = Model()
-    evaluate_dyn_vars(model.update)
+    evaluate_dyn_vars_with_cache(model.update)
     self.assertTrue(call_num[0] == 1)
 
-    evaluate_dyn_vars(model.update)  # cache
+    evaluate_dyn_vars_with_cache(model.update)  # cache
     self.assertTrue(call_num[0] == 1)
 
-    evaluate_dyn_vars(Model().update)  # no cache
+    evaluate_dyn_vars_with_cache(Model().update)  # no cache
     self.assertTrue(call_num[0] == 2)
 
 
