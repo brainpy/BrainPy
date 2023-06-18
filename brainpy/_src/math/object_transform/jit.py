@@ -11,14 +11,23 @@ from functools import partial, wraps
 from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 
 import jax
+from jax._src.sharding_impls import UnspecifiedValue, UNSPECIFIED
+from jax.sharding import Sharding
 
 from brainpy import tools, check
-from ._tools import dynvar_deprecation, node_deprecation, evaluate_dyn_vars, _partial_fun
+from ._tools import (dynvar_deprecation,
+                     node_deprecation,
+                     evaluate_dyn_vars_with_cache,
+                     evaluate_dyn_vars,
+                     _partial_fun)
 from .base import BrainPyObject, ObjectTransform
 from .naming import get_stack_cache, cache_stack
-from .variables import Variable, VariableStack
-from jax.sharding import Sharding
-from jax._src.sharding_impls import UnspecifiedValue, UNSPECIFIED, AUTO
+from .variables import (Variable,
+                        VariableStack,
+                        outermost_transform,
+                        transform_stack,
+                        current_transform_number,
+                        new_transform)
 
 __all__ = [
   'jit',
@@ -126,30 +135,37 @@ class JITTransform(ObjectTransform):
     return changes, out
 
   def __call__(self, *args, **kwargs):
-    if jax.config.jax_disable_jit:
+    if jax.config.jax_disable_jit:  # support to disable JIT for debugging
       return self.fun(*args, **kwargs)
 
-    if self._transform is None:
-      self._dyn_vars = evaluate_dyn_vars(
-        self.fun,
-        *args,
-        static_argnums=self._static_argnums,
-        static_argnames=self._static_argnames,
-        **kwargs
-      )
-      self._transform = jax.jit(
-        self._transform_function,
-        static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),
-        static_argnames=self._static_argnames,
-        donate_argnums=self._donate_argnums,
-        device=self._device,
-        inline=self._inline,
-        keep_unused=self._keep_unused,
-        abstracted_axes=self._abstracted_axes,
-        backend=self._backend,
-        in_shardings=self._in_shardings,
-        out_shardings=self._out_shardings,
-      )
+    if self._transform is None:  # initialize the transformation
+      with new_transform(self):
+        self._dyn_vars, rets = evaluate_dyn_vars(
+          self.fun,
+          *args,
+          static_argnums=self._static_argnums,
+          static_argnames=self._static_argnames,
+          **kwargs
+        )
+        self._transform = jax.jit(
+          self._transform_function,
+          static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),
+          static_argnames=self._static_argnames,
+          donate_argnums=self._donate_argnums,
+          device=self._device,
+          inline=self._inline,
+          keep_unused=self._keep_unused,
+          abstracted_axes=self._abstracted_axes,
+          backend=self._backend,
+          in_shardings=self._in_shardings,
+          out_shardings=self._out_shardings,
+        )
+
+      # if not the outermost transformation
+      if current_transform_number():
+        return rets
+
+    # call the transformed function
     changes, out = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
     for key, v in self._dyn_vars.items():
       v._value = changes[key]
@@ -159,7 +175,7 @@ class JITTransform(ObjectTransform):
     name = self.__class__.__name__
     f = tools.repr_object(self.fun)
     f = tools.repr_context(f, " " * (len(name) + 6))
-    format_ref = (f'{name}(target={f}, \n' +
+    format_ref = (f'{name}(name={self.name}, target={f}, \n' +
                   f'{" " * len(name)} num_of_vars={len(self.vars().unique())})')
     return format_ref
 
@@ -272,8 +288,6 @@ def jit(
        collecting the dynamical variables used in the target ``func``.
   child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
     The children objects used in the target function.
-
-    .. versionadded:: 2.3.1
 
     .. deprecated:: 2.4.0
        No longer need to provide ``child_objs``. This function is capable of automatically
