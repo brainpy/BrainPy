@@ -327,16 +327,22 @@ f ...
     expect = '''
 cond ...
 body ...
+cond ...
+body ...
     '''
     out1 = file.read().strip()
+    print(out1)
     self.assertTrue(out1 == expect.strip())
-
 
     file = tempfile.TemporaryFile('w+')
     jax.lax.while_loop(cond, body, 10)
     file.seek(0)
     out2 = file.read().strip()
-    self.assertTrue(out1 == out2)
+    expect = '''
+cond ...
+body ...
+    '''
+    self.assertTrue(expect.strip() == out2)
 
     file = tempfile.TemporaryFile('w+')
     with jax.disable_jit():
