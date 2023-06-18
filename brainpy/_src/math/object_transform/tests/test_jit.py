@@ -23,8 +23,7 @@ class TestJIT(unittest.TestCase):
         self.b += a
         return self.b
 
-    bm.random.seed()
-
+    bm.random.seed(123)
     program = SomeProgram()
     b_out = bm.jit(program)()
     self.assertTrue(bm.array_equal(b_out, program.b))
@@ -42,7 +41,7 @@ class TestJIT(unittest.TestCase):
         self.b += a
         return self.b.value
 
-    bm.random.seed()
+    bm.random.seed(123)
 
     program = SomeProgram()
     with jax.disable_jit():
@@ -90,7 +89,7 @@ class TestClsJIT(unittest.TestCase):
       def update(self, x):
         self.b += x
 
-    bm.random.seed()
+    bm.random.seed(123)
 
     program = SomeProgram()
     new_b = program()
@@ -116,7 +115,7 @@ class TestClsJIT(unittest.TestCase):
       def update(self, x):
         self.b += x
 
-    bm.random.seed()
+    bm.random.seed(123)
 
     program = SomeProgram()
     with jax.disable_jit():

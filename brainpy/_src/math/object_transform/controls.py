@@ -929,19 +929,21 @@ def while_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
-  dyn_vars = get_stack_cache(body_fun)
-  if dyn_vars is None or jax.config.jax_disable_jit:
+  if jax.config.jax_disable_jit:
     dyn_vars = VariableStack()
 
   else:
-    with new_transform('while_loop'):
-      dyn_vars, rets = evaluate_dyn_vars(
-        _get_while_transform(body_fun, cond_fun, VariableStack()),
-        operands
-      )
-      cache_stack(body_fun, dyn_vars)
-    if current_transform_number():
-      return rets[1]
+    dyn_vars = get_stack_cache(body_fun)
+
+    if dyn_vars is None:
+      with new_transform('while_loop'):
+        dyn_vars, rets = evaluate_dyn_vars(
+          _get_while_transform(cond_fun, body_fun, VariableStack()),
+          operands
+        )
+        cache_stack(body_fun, dyn_vars)
+      if current_transform_number():
+        return rets[1]
 
   dyn_values, out = _get_while_transform(cond_fun, body_fun, dyn_vars)(operands)
   for k, v in dyn_vars.items():

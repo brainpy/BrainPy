@@ -228,6 +228,7 @@ class TestWhile(bp.testing.UnitTestCase):
       b = bm.Variable(bm.ones(1))
 
       res2 = bm.while_loop(body, cond, operands=(1., 1.))
+      print(res2)
       self.assertTrue(bm.array_equal(res2[0], res[0]))
       self.assertTrue(bm.array_equal(res2[1], res[1]))
 
@@ -310,7 +311,6 @@ f ...
     file.seek(0)
     expect = '\n'.join(['f ...'] * 10)
     self.assertTrue(file.read().strip() == expect.strip())
-
 
   def test_while_loop(self):
     def cond(a):
