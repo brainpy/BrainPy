@@ -82,4 +82,4 @@ class TestShape(parameterized.TestCase):
                          monitors=['e'],
                          progress_bar=False)
     runner.run(10.)
-    self.assertTupleEqual(runner.mon.x.shape, (100, 10))
+    self.assertTupleEqual(runner.mon.e.shape, (100, 10))
