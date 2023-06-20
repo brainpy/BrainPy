@@ -5,5 +5,6 @@ Math Foundation
    :maxdepth: 1
 
    variables
-   brainpy_transform_concept
    control_flows
+   Numpy_like_Operations.ipynb
+   Dedicated_Operators.ipynb
