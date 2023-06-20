@@ -5,6 +5,8 @@ import unittest
 from functools import partial
 
 import jax
+from jax import vmap
+
 from absl.testing import parameterized
 from jax._src import test_util as jtu
 
@@ -119,16 +121,16 @@ class TestLoop(parameterized.TestCase):
 class TestIfElse(unittest.TestCase):
   def test1(self):
     def f(a):
-      return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
-                       branches=[lambda _: 1,
-                                 lambda _: 2,
-                                 lambda _: 3,
-                                 lambda _: 4,
-                                 lambda _: 5])
+      return bm.ifelse(conditions=[a < 0, a < 2, a < 5, a < 10],
+                       branches=[lambda: 1,
+                                 lambda: 2,
+                                 lambda: 3,
+                                 lambda: 4,
+                                 lambda: 5])
 
     self.assertTrue(f(3) == 3)
-    self.assertTrue(f(1) == 4)
-    self.assertTrue(f(-1) == 5)
+    self.assertTrue(f(1) == 2)
+    self.assertTrue(f(-1) == 1)
 
   def test2(self):
     def f(a):
@@ -143,14 +145,14 @@ class TestIfElse(unittest.TestCase):
     var_a = bm.Variable(bm.zeros(1))
 
     def f(a):
-      def f1(_):
+      def f1():
         var_a.value += 1
         return 1
 
       return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
                        branches=[f1,
-                                 lambda _: 2, lambda _: 3,
-                                 lambda _: 4, lambda _: 5],
+                                 lambda: 2, lambda: 3,
+                                 lambda: 4, lambda: 5],
                        dyn_vars=var_a,
                        show_code=True)
 
@@ -161,8 +163,6 @@ class TestIfElse(unittest.TestCase):
     self.assertTrue(f(-1) == 5)
 
   def test_vmap(self):
-    from jax import vmap
-
     def f(operands):
       f = lambda a: bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
                               branches=[lambda _: 1,
@@ -178,8 +178,6 @@ class TestIfElse(unittest.TestCase):
     self.assertTrue(r.size == 200)
 
   def test_vmap2(self):
-    from jax import vmap
-
     def f2():
       f = lambda a: bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
                               branches=[1, 2, 3, 4, lambda _: 5],
@@ -285,11 +283,10 @@ f4 ...
 f3 ...
 f1 ...
 f2 ...
-f1 ...
-f2 ...
 f4 ...
     '''
     file.seek(0)
+    # print(file.read().strip())
     self.assertTrue(file.read().strip() == expected_res.strip())
 
   def test_for_loop(self):
@@ -357,7 +354,6 @@ body ...
       file.seek(0)
       out4 = file.read().strip()
       self.assertTrue(out4 == 'cond ...')
-
 
     file = tempfile.TemporaryFile('w+')
     with jax.disable_jit():
