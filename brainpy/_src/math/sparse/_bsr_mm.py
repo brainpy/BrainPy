@@ -15,7 +15,7 @@ from jaxlib import gpu_sparse
 
 from brainpy._src.math.op_registers import (compile_cpu_signature_with_numba,
                                          register_general_batching)
-from brainpy._src.math.sparse.utils import csr_to_coo
+from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy._src.math.interoperability import as_jax
 from brainpy.errors import GPUOperatorNotFound
 
@@ -412,7 +412,7 @@ blocksparse_matmat_p.def_abstract_eval(_blocksparse_matmat_abstract)
 blocksparse_matmat_p.def_impl(partial(xla.apply_primitive, blocksparse_matmat_p))
 xla.backend_specific_translations['cpu'][blocksparse_matmat_p] = _blocksparse_matmat_cpu_translation
 xla.backend_specific_translations['gpu'][blocksparse_matmat_p] = _blocksparse_matmat_gpu_translation
-ad.defjvp(blocksparse_matmat_p, _blocksparse_matmat_jvp_dense_a, None, None, _blocksparse_matmat_jvp_data_b)
+# ad.defjvp(blocksparse_matmat_p, _blocksparse_matmat_jvp_dense_a, None, None, _blocksparse_matmat_jvp_data_b)
 ad.primitive_jvps[blocksparse_matmat_p] = _blocksparse_matmat_jvp_transpose
 register_general_batching(blocksparse_matmat)
 

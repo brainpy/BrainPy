@@ -6,9 +6,5 @@ from brainpy._src.math.jitconn import (
   mv_prob_homo as mv_prob_homo,
   mv_prob_uniform as mv_prob_uniform,
   mv_prob_normal as mv_prob_normal,
-
-  mm_prob_homo as mm_prob_homo,
-  mm_prob_normal as mm_prob_normal,
-  mm_prob_uniform as mm_prob_uniform,
 )
 

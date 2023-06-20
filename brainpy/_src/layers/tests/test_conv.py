@@ -8,7 +8,7 @@ import brainpy.math as bm
 import brainpy as bp
 
 
-class TestConv(TestCase):
+class TestConv(bp.testing.UnitTestCase):
   def test_Conv2D_img(self):
     img = jnp.zeros((2, 200, 198, 4))
     for k in range(4):
@@ -60,7 +60,7 @@ class TestConv(TestCase):
       print("out shape: ", out.shape)
 
 
-class TestConvTranspose1d(TestCase):
+class TestConvTranspose1d(bp.testing.UnitTestCase):
   def test_conv_transpose(self):
     x = bm.ones((1, 8, 3))
     for use_bias in [True, False]:

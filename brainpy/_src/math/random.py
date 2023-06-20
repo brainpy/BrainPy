@@ -471,8 +471,9 @@ class RandomState(Variable):
       warnings.warn('Please use `seed_or_key` instead. '
                     'seed will be removed since 2.4.0', UserWarning)
 
-    if seed_or_key is None:
-      seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+    with jax.ensure_compile_time_eval():
+      if seed_or_key is None:
+        seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
     if isinstance(seed_or_key, int):
       key = jr.PRNGKey(seed_or_key)
     else:
@@ -1265,9 +1266,11 @@ def seed(seed: int = None):
   seed: int, optional
     The random seed.
   """
-  if seed is None: seed = np.random.randint(0, 100000)
+  with jax.ensure_compile_time_eval():
+    if seed is None:
+      seed = np.random.randint(0, 100000)
+    np.random.seed(seed)
   DEFAULT.seed(seed)
-  np.random.seed(seed)
 
 
 def rand(*dn, key=None):
