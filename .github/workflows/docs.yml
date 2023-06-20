@@ -40,3 +40,5 @@ jobs:
         run: |
           conda activate
           cd ~/brainpy_docs/docs
+      - uses: colpal/actions-clean@v1
+        if: ${{ always() }} # To ensure this step runs even when earlier steps fail
