@@ -720,7 +720,9 @@ def _get_for_loop_transform(
     dyn_vars,
     bar: tqdm,
     progress_bar: bool,
-    remat: bool
+    remat: bool,
+    reverse: bool,
+    unroll: int
 ):
   def fun2scan(carry, x):
     for k in dyn_vars.keys():
@@ -733,12 +735,14 @@ def _get_for_loop_transform(
   if remat:
     fun2scan = jax.checkpoint(fun2scan)
 
-  # TODO: cache mechanism?
-  return lambda operands, reverse, unroll: jax.lax.scan(f=fun2scan,
-                                                        init=dyn_vars.dict_data(),
-                                                        xs=operands,
-                                                        reverse=reverse,
-                                                        unroll=unroll)
+  def call(operands):
+    return jax.lax.scan(f=fun2scan,
+                        init=dyn_vars.dict_data(),
+                        xs=operands,
+                        reverse=reverse,
+                        unroll=unroll)
+
+  return call
 
 
 def for_loop(
@@ -867,11 +871,12 @@ def for_loop(
       # TODO: better cache mechanism?
       with new_transform('for_loop'):
         with VariableStack() as dyn_vars:
-          transform = _get_for_loop_transform(body_fun, VariableStack(), bar, progress_bar, remat)
+          transform = _get_for_loop_transform(body_fun, VariableStack(), bar,
+                                              progress_bar, remat, reverse, unroll)
           if current_transform_number() > 1:
-            rets = transform(operands, reverse, unroll)
+            rets = transform(operands)
           else:
-            rets = jax.eval_shape(transform, operands, reverse, unroll)
+            rets = jax.eval_shape(transform, operands)
       cache_stack(body_fun, dyn_vars)  # cache
       if current_transform_number():
         return rets[1]
@@ -880,12 +885,12 @@ def for_loop(
     dyn_vars = VariableStack()
 
   # TODO: cache mechanism?
-  transform = _get_for_loop_transform(body_fun, dyn_vars, bar, progress_bar, remat)
+  transform = _get_for_loop_transform(body_fun, dyn_vars, bar, progress_bar, remat, reverse, unroll)
   if jit:
-    dyn_vals, out_vals = transform(operands, reverse, unroll)
+    dyn_vals, out_vals = transform(operands)
   else:
     with jax.disable_jit():
-      dyn_vals, out_vals = transform(operands, reverse, unroll)
+      dyn_vals, out_vals = transform(operands)
   for key in dyn_vars.keys():
     dyn_vars[key]._value = dyn_vals[key]
   if progress_bar:
