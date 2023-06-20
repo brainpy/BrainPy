@@ -2,7 +2,7 @@
 
 numba
 matplotlib>=3.4
-jaxlib>=0.3.0
+jaxlib>=0.4.1
 scipy>=1.1.0
 
 # document requirements
