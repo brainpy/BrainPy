@@ -13,10 +13,8 @@ show = False
 
 class TestMultiStepLR(parameterized.TestCase):
 
-  @parameterized.named_parameters(
-    {'testcase_name': f'last_epoch={last_epoch}',
-     'last_epoch': last_epoch}
-    for last_epoch in [-1, 0, 5, 10]
+  @parameterized.product(
+    last_epoch=[-1, 0, 5, 10]
   )
   def test2(self, last_epoch):
     scheduler1 = scheduler.MultiStepLR(0.1, [10, 20], gamma=0.1, last_epoch=last_epoch)

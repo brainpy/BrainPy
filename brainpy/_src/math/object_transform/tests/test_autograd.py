@@ -996,6 +996,11 @@ class TestClassFuncVectorGrad(unittest.TestCase):
     self.assertTrue(bm.array_equal(g[1], 2 * t.y))
 
 
+def vgrad(f, *x):
+  y, vjp_fn = jax.vjp(f, *x)
+  return vjp_fn(bm.ones(y.shape).value)[0]
+
+
 class TestDebug(parameterized.TestCase):
   def test_debug1(self):
     a = bm.random.RandomState()
@@ -1084,3 +1089,64 @@ compiling f2 ...
       file.seek(0)
       # print(file.read().strip())
       self.assertTrue(file.read().strip() == expect_res.strip())
+
+  def test_debug_correctness1(self):
+    def test_f():
+      a = bm.Variable(bm.ones(2))
+      b = bm.Variable(bm.zeros(2))
+
+      @bm.vector_grad(argnums=0)
+      def f1(c):
+        a.value += 1
+        b.value += 10
+        return a * b * c
+
+      return a, b, f1(1.)
+
+    r1 = test_f()
+    print(r1)
+
+    with jax.disable_jit():
+      r2 = test_f()
+      print(r2)
+      self.assertTrue(bm.allclose(r1[0], r2[0]))
+      self.assertTrue(bm.allclose(r1[1], r2[1]))
+      self.assertTrue(bm.allclose(r1[2], r2[2]))
+
+    def f1(c, a, b):
+      a += 1
+      b += 10
+      return a * b * c
+
+    r3 = vgrad(f1, 1., bm.ones(2).value, bm.zeros(2).value)
+    self.assertTrue(bm.allclose(r1[2], r3))
+
+  def _bench_f2(self, dd):
+    a = bm.Variable(bm.ones(2))
+    b = bm.Variable(bm.zeros(2))
+
+    @bm.jit
+    def run_fun(d):
+      @bm.vector_grad(argnums=0)
+      def f1(c):
+        a.value += d
+        b.value += 10
+        return a * b * c
+
+      return a, b, f1(1.)
+
+    return run_fun(dd)
+
+  def test_debug_correctness2(self):
+    r1 = self._bench_f2(1.)
+    print(r1)
+
+    with jax.disable_jit():
+      r2 = self._bench_f2(1.)
+      print(r2)
+
+    self.assertTrue(bm.allclose(r1[0], r2[0]))
+    self.assertTrue(bm.allclose(r1[1], r2[1]))
+    self.assertTrue(bm.allclose(r1[2], r2[2]))
+
+
