@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-
+import functools
+import tempfile
 import unittest
 from pprint import pprint
 
 import jax
 import jax.numpy as jnp
 import pytest
+from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
@@ -128,14 +130,14 @@ class TestObjectFuncGrad(unittest.TestCase):
 
     bm.random.seed(0)
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b],  has_aux=True)
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b], has_aux=True)
     grads, aux = f_grad()
     for g in grads: assert (g == 1.).all()
     assert aux[0] == bm.sin(100)
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a,  has_aux=True)
+    f_grad = bm.grad(t, grad_vars=t.a, has_aux=True)
     grads, aux = f_grad()
     assert (grads == 1.).all()
     assert aux[0] == bm.sin(100)
@@ -154,13 +156,13 @@ class TestObjectFuncGrad(unittest.TestCase):
 
     bm.random.seed(0)
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b],  return_value=True)
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b], return_value=True)
     grads, returns = f_grad()
     for g in grads: assert (g == 1.).all()
     assert returns == t()
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a,  return_value=True)
+    f_grad = bm.grad(t, grad_vars=t.a, return_value=True)
     grads, returns = f_grad()
     assert (grads == 1.).all()
     assert returns == t()
@@ -178,7 +180,7 @@ class TestObjectFuncGrad(unittest.TestCase):
 
     bm.random.seed(0)
     t = Test()
-    f_grad = bm.grad(t, grad_vars=[t.a, t.b], 
+    f_grad = bm.grad(t, grad_vars=[t.a, t.b],
                      has_aux=True, return_value=True)
     grads, returns, aux = f_grad()
     for g in grads: assert (g == 1.).all()
@@ -187,7 +189,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t, grad_vars=t.a, 
+    f_grad = bm.grad(t, grad_vars=t.a,
                      has_aux=True, return_value=True)
     grads, returns, aux = f_grad()
     assert (grads == 1.).all()
@@ -222,12 +224,12 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert (arg_grads[0] == 2.).all()
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=0)
+    f_grad = bm.grad(t, argnums=0)
     arg_grads = f_grad(bm.random.random(10))
     assert (arg_grads == 2.).all()
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=[0])
+    f_grad = bm.grad(t, argnums=[0])
     arg_grads = f_grad(bm.random.random(10))
     assert (arg_grads[0] == 2.).all()
 
@@ -261,14 +263,14 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=0, has_aux=True)
+    f_grad = bm.grad(t, argnums=0, has_aux=True)
     arg_grads, aux = f_grad(bm.random.random(10))
     assert (arg_grads == 2.).all()
     assert aux[0] == bm.sin(100)
     assert aux[1] == bm.exp(0.1)
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=[0], has_aux=True)
+    f_grad = bm.grad(t, argnums=[0], has_aux=True)
     arg_grads, aux = f_grad(bm.random.random(10))
     assert (arg_grads[0] == 2.).all()
     assert aux[0] == bm.sin(100)
@@ -305,14 +307,14 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=0, return_value=True)
+    f_grad = bm.grad(t, argnums=0, return_value=True)
     d = bm.random.random(10)
     arg_grads, loss = f_grad(d)
     assert (arg_grads == 2.).all()
     assert loss == t(d)
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=[0], return_value=True)
+    f_grad = bm.grad(t, argnums=[0], return_value=True)
     d = bm.random.random(10)
     arg_grads, loss = f_grad(d)
     assert (arg_grads[0] == 2.).all()
@@ -352,7 +354,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)[0]
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=0, has_aux=True, return_value=True)
+    f_grad = bm.grad(t, argnums=0, has_aux=True, return_value=True)
     d = bm.random.random(10)
     arg_grads, loss, aux = f_grad(d)
     assert (arg_grads == 2.).all()
@@ -361,7 +363,7 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)[0]
 
     t = Test()
-    f_grad = bm.grad(t,  argnums=[0], has_aux=True, return_value=True)
+    f_grad = bm.grad(t, argnums=[0], has_aux=True, return_value=True)
     d = bm.random.random(10)
     arg_grads, loss, aux = f_grad(d)
     assert (arg_grads[0] == 2.).all()
@@ -524,6 +526,7 @@ class TestPureFuncJacobian(unittest.TestCase):
 
   def test_jacrev_return_aux1(self):
     bm.enable_x64()
+
     def f1(x, y):
       a = 4 * x[1] ** 2 - 2 * x[2]
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], a, x[2] * jnp.sin(x[0])])
@@ -689,6 +692,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
   def test_jacrev_aux1(self):
     bm.enable_x64()
+
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -728,6 +732,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
   def test_jacfwd_aux1(self):
     bm.enable_x64()
+
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -770,6 +775,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
   def test_jacrev_return_aux1(self):
     bm.enable_x64()
+
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -810,6 +816,7 @@ class TestClassFuncJacobian(unittest.TestCase):
 
   def test_jacfwd_return_aux1(self):
     bm.enable_x64()
+
     def f1(x, y):
       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
       return r
@@ -849,6 +856,7 @@ class TestClassFuncJacobian(unittest.TestCase):
     self.assertTrue(bm.array_equal(value, _val))
 
     bm.disable_x64()
+
 
 class TestPureFuncVectorGrad(unittest.TestCase):
   def test1(self):
@@ -986,3 +994,93 @@ class TestClassFuncVectorGrad(unittest.TestCase):
     g = bm.vector_grad(t, grad_vars=(t.x, t.y))()
     self.assertTrue(bm.array_equal(g[0], 2 * t.x))
     self.assertTrue(bm.array_equal(g[1], 2 * t.y))
+
+
+class TestDebug(parameterized.TestCase):
+  def test_debug1(self):
+    a = bm.random.RandomState()
+
+    def f(b):
+      print(a.value)
+      return a + b + a.random()
+
+    f = bm.vector_grad(f, argnums=0)
+    f(1.)
+
+    with jax.disable_jit():
+      f(1.)
+
+  @parameterized.product(
+    grad_fun=[bm.grad, bm.vector_grad]
+  )
+  def test_print_info1(self, grad_fun):
+    file = tempfile.TemporaryFile(mode='w+')
+
+    @functools.partial(grad_fun, argnums=0)
+    def f2(a, b):
+      print('compiling f2 ...', file=file)
+      return a + b
+
+    @functools.partial(grad_fun, argnums=0)
+    def f1(a):
+      print('compiling f1 ...', file=file)
+      return f2(a, 1.)
+
+    expect_res = '''
+compiling f1 ...
+compiling f2 ...
+compiling f1 ...
+compiling f2 ...
+    '''
+
+    print(f1(1.))
+    file.seek(0)
+    self.assertTrue(file.read().strip() == expect_res.strip())
+
+    file = tempfile.TemporaryFile(mode='w+')
+    with jax.disable_jit():
+      expect_res = '''
+compiling f1 ...
+compiling f2 ...
+      '''
+      self.assertTrue(f1(1.) == 0.)
+      file.seek(0)
+      self.assertTrue(file.read().strip() == expect_res.strip())
+
+  @parameterized.product(
+    grad_fun=[bm.grad, bm.vector_grad]
+  )
+  def test_print_info2(self, grad_fun):
+    file = tempfile.TemporaryFile(mode='w+')
+
+    @functools.partial(grad_fun, argnums=0)
+    def f1(a):
+      @functools.partial(grad_fun, argnums=0)
+      def f2(a, b):
+        print('compiling f2 ...', file=file)
+        return a + b
+
+      print('compiling f1 ...', file=file)
+      return f2(a, 1.)
+
+    expect_res = '''
+compiling f1 ...
+compiling f2 ...
+compiling f1 ...
+compiling f2 ...
+compiling f2 ...
+    '''
+    self.assertTrue(f1(1.) == 0.)
+    file.seek(0)
+    self.assertTrue(file.read().strip() == expect_res.strip())
+
+    file = tempfile.TemporaryFile(mode='w+')
+    with jax.disable_jit():
+      expect_res = '''
+compiling f1 ...
+compiling f2 ...
+      '''
+      self.assertTrue(f1(1.) == 0.)
+      file.seek(0)
+      # print(file.read().strip())
+      self.assertTrue(file.read().strip() == expect_res.strip())

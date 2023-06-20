@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-import jax
 
+
+import jax
+import tempfile
+
+import unittest
 import brainpy as bp
 import brainpy.math as bm
 
 
-class TestJIT(bp.testing.UnitTestCase):
+class TestJIT(unittest.TestCase):
   def test_jaxarray_inside_jit1(self):
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
@@ -19,6 +23,7 @@ class TestJIT(bp.testing.UnitTestCase):
         self.b += a
         return self.b
 
+    bm.random.seed(123)
     program = SomeProgram()
     b_out = bm.jit(program)()
     self.assertTrue(bm.array_equal(b_out, program.b))
@@ -35,6 +40,8 @@ class TestJIT(bp.testing.UnitTestCase):
         a = a.at[0].set(1.)
         self.b += a
         return self.b.value
+
+    bm.random.seed(123)
 
     program = SomeProgram()
     with jax.disable_jit():
@@ -62,7 +69,7 @@ class TestJIT(bp.testing.UnitTestCase):
     self.assertTrue(bm.allclose(a.value, 1.))
 
 
-class TestClsJIT(bp.testing.UnitTestCase):
+class TestClsJIT(unittest.TestCase):
 
   def test_class_jit1(self):
     class SomeProgram(bp.BrainPyObject):
@@ -81,6 +88,8 @@ class TestClsJIT(bp.testing.UnitTestCase):
       @bm.cls_jit(inline=True)
       def update(self, x):
         self.b += x
+
+    bm.random.seed(123)
 
     program = SomeProgram()
     new_b = program()
@@ -105,6 +114,8 @@ class TestClsJIT(bp.testing.UnitTestCase):
       @bm.cls_jit(inline=True)
       def update(self, x):
         self.b += x
+
+    bm.random.seed(123)
 
     program = SomeProgram()
     with jax.disable_jit():
@@ -141,3 +152,85 @@ class TestClsJIT(bp.testing.UnitTestCase):
     obj.f(1., c=2.)
     self.assertTrue(bm.allclose(obj.a.value, 0.5))
 
+
+class TestDebug(unittest.TestCase):
+  def test_debug1(self):
+    a = bm.random.RandomState()
+
+    @bm.jit
+    def f(b):
+      print(a.value)
+      return a + b + a.random()
+
+    f(1.)
+
+    with jax.disable_jit():
+      f(1.)
+
+  def test_print_info1(self):
+    file = tempfile.TemporaryFile(mode='w+')
+
+    @bm.jit
+    def f2(a, b):
+      print('compiling f2 ...', file=file)
+      return a + b
+
+    @bm.jit
+    def f1(a):
+      print('compiling f1 ...', file=file)
+      return f2(a, 1.)
+
+    expect_res = '''
+compiling f1 ...
+compiling f2 ...
+compiling f1 ...
+compiling f2 ...
+    '''
+    self.assertTrue(f1(1.) == 2.)
+    file.seek(0)
+    self.assertTrue(file.read().strip() == expect_res.strip())
+
+    file = tempfile.TemporaryFile(mode='w+')
+    with jax.disable_jit():
+      expect_res = '''
+compiling f1 ...
+compiling f2 ...
+      '''
+      self.assertTrue(f1(1.) == 2.)
+      file.seek(0)
+      self.assertTrue(file.read().strip() == expect_res.strip())
+
+  def test_print_info2(self):
+    file = tempfile.TemporaryFile(mode='w+')
+
+    @bm.jit
+    def f1(a):
+      @bm.jit
+      def f2(a, b):
+        print('compiling f2 ...', file=file)
+        return a + b
+
+      print('compiling f1 ...', file=file)
+      return f2(a, 1.)
+
+    expect_res = '''
+compiling f1 ...
+compiling f2 ...
+compiling f1 ...
+compiling f2 ...
+compiling f2 ...
+    '''
+    self.assertTrue(f1(1.) == 2.)
+    file.seek(0)
+    self.assertTrue(file.read().strip() == expect_res.strip())
+
+    file = tempfile.TemporaryFile(mode='w+')
+    with jax.disable_jit():
+      expect_res = '''
+compiling f1 ...
+compiling f2 ...
+      '''
+      self.assertTrue(f1(1.) == 2.)
+      file.seek(0)
+      # print(file.read().strip())
+      self.assertTrue(file.read().strip() == expect_res.strip())
