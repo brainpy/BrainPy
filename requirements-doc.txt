@@ -1,5 +1,7 @@
--r requirements.txt
-
+numpy
+jax>=0.4.1
+tqdm
+msgpack
 numba
 matplotlib>=3.4
 jaxlib>=0.4.1
