@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Union, Callable
+import jax
 
 from brainpy import math as bm
 from brainpy._src.context import share
@@ -18,7 +19,6 @@ from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType
 
 __all__ = [
-  'RateModel',
   'FHN',
   'FeedbackFHN',
   'QIF',
@@ -350,7 +350,7 @@ class FeedbackFHN(RateModel):
     # integral
     self.integral = odeint(method=method,
                            f=JointEq([self.dx, self.dy]),
-                           state_delays={'V': self.x_delay})
+                           state_delays={'x': self.x_delay})
 
   def reset_state(self, batch_size=None):
     self.x.value = variable(self._x_initializer, batch_size, self.varshape)
@@ -1053,13 +1053,19 @@ class ThresholdLinearModel(RateModel):
       input_i = inp_i if (inp_i is not None) else 0.
 
     de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
-    if bm.any(self.noise_e != 0.):
+    with jax.ensure_compile_time_eval():
+      has_noise = bm.any(self.noise_e != 0.)
+
+    if has_noise:
       de += bm.random.randn(self.varshape) * self.noise_e
     de = de / self.tau_e
     self.e.value = bm.maximum(self.e + de * dt, 0.)
 
     di = -self.i + self.beta_i * bm.maximum(input_i, 0.)
-    if bm.any(self.noise_i != 0.):
+    with jax.ensure_compile_time_eval():
+      has_noise = bm.any(self.noise_i != 0.)
+
+    if has_noise:
       di += bm.random.randn(self.varshape) * self.noise_i
     di = di / self.tau_i
     self.i.value = bm.maximum(self.i + di * dt, 0.)
