@@ -841,8 +841,8 @@ class Softplus(Layer):
     self.beta = beta
     self.threshold = threshold
 
-  def update(self, input: ArrayType) -> ArrayType:
-    return bm.softplus(input, self.beta, self.threshold)
+  def update(self, x: ArrayType) -> ArrayType:
+    return bm.softplus(x, self.beta, self.threshold)
 
   def extra_repr(self) -> str:
     return 'beta={}, threshold={}'.format(self.beta, self.threshold)

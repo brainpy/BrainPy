@@ -1,5 +1,6 @@
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Callable
 
+from contextlib import contextmanager
 import jax
 import numpy as np
 from jax import numpy as jnp
@@ -8,6 +9,7 @@ from jax.tree_util import register_pytree_node_class
 
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import MathError
+
 
 __all__ = [
   'Variable',
@@ -21,29 +23,35 @@ __all__ = [
 
 
 class VariableStack(dict):
+  """Variable stack, for collecting all :py:class:`~.Variable` used in the program.
+
+  :py:class:`~.VariableStack` supports all features of python dict.
+  """
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self._values = dict()
 
   def add(self, var: 'Variable'):
-    assert isinstance(var, Variable)
+    """Add a new :py:class:`~.Variable`."""
+    assert isinstance(var, Variable), f'must be instance of {Variable}'
     id_ = id(var)
     if id_ not in self:
       self[id_] = var
       self._values[id_] = var._value
 
-  def recollect_values(self):
+  def collect_values(self):
     """Collect the value of each variable once again."""
     for id_, var in self.items():
       self._values[id_] = var._value
 
-  def reassign_values(self):
-    """Assign the old value for each variable."""
+  def assign_org_values(self):
+    """Assign the original value for each variable."""
     for id_, var in self.items():
       if id_ in self._values:
         var._value = self._values[id_]
 
   def instance_of(self, cls: type) -> 'VariableStack':
+    """Collect all variables which are instances of the given class type."""
     new_dict = type(self)()
     for id_, elem in self.items():
       if isinstance(elem, cls):
@@ -51,6 +59,7 @@ class VariableStack(dict):
     return new_dict
 
   def not_instance_of(self, cls: type) -> 'VariableStack':
+    """Collect all variables which are not instance of the given class type."""
     new_dict = type(self)()
     for id_, elem in self.items():
       if not isinstance(elem, cls):
@@ -58,18 +67,21 @@ class VariableStack(dict):
     return new_dict
 
   def dict_data(self) -> dict:
+    """Get all data in the collected variables with a python dict structure."""
     new_dict = dict()
     for id_, elem in tuple(self.items()):
       new_dict[id_] = elem.value if isinstance(elem, Array) else elem
     return new_dict
 
   def list_data(self) -> list:
+    """Get all data in the collected variables with a python list structure."""
     new_list = list()
     for elem in tuple(self.values()):
       new_list.append(elem.value if isinstance(elem, Array) else elem)
     return new_list
 
   def remove_var_by_id(self, *ids, error_when_absent=False):
+    """Remove variables in the stack by the given ids."""
     for id_ in ids:
       if error_when_absent:
         self.pop(id_)
@@ -77,13 +89,13 @@ class VariableStack(dict):
         self.pop(id_, None)
 
   def __enter__(self) -> 'VariableStack':
-    self.recollect_values()  # recollect the original value of each variable
+    self.collect_values()  # recollect the original value of each variable
     var_stack_list.append(self)
     return self
 
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     var_stack_list.pop()
-    self.reassign_values()  # reassign the original value for each variable
+    self.assign_org_values()  # reassign the original value for each variable
     self._values.clear()
 
   def __add__(self, other: dict):
@@ -96,6 +108,43 @@ class VariableStack(dict):
 
 
 var_stack_list: List[VariableStack] = []
+transform_stack: List[Callable] = []
+
+
+@contextmanager
+def new_transform(transform: Any):
+  transform_stack.append(transform)
+  try:
+    yield
+  finally:
+    transform_stack.pop()
+
+
+def outermost_stack():
+  if len(var_stack_list):
+    return var_stack_list[0]
+  else:
+    return None
+
+
+def outermost_transform():
+  if len(transform_stack):
+    return transform_stack[0]
+  else:
+    return None
+
+
+def current_transform_number():
+  return len(transform_stack)
+
+
+
+def _stack_add_read(var: 'Variable'):
+  pass
+
+
+def _stack_add_write(var: 'Variable'):
+  pass
 
 
 @register_pytree_node_class
@@ -212,6 +261,12 @@ class Variable(Array):
   @classmethod
   def tree_unflatten(cls, aux_data, flat_contents):
     return cls(*flat_contents, _ready_to_trace=False)
+
+  def clone(self) -> 'Variable':
+    """Clone the variable. """
+    r = type(self)(jnp.copy(self.value), batch_axis=self.batch_axis)
+    r._ready_to_trace = self._ready_to_trace
+    return r
 
 
 def _get_dtype(v):
@@ -352,6 +407,9 @@ class VariableView(Variable):
 class VarList(list):
   """A sequence of :py:class:`~.Variable`, which is compatible with
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
+
+  Actually, :py:class:`~.VarList` is a python list.
+
   """
 
   def __init__(self, seq=()):
@@ -391,6 +449,8 @@ var_list = VarList
 class VarDict(dict):
   """A dictionary of :py:class:`~.Variable`, which is compatible with
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
+
+  Actually, :py:class:`~.VarDict` is a python dict.
 
   """
 

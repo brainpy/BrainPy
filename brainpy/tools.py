@@ -39,3 +39,9 @@ from brainpy._src.tools.others import (
   init_progress_bar as init_progress_bar,
 )
 
+from brainpy._src.tools.install import (
+  jaxlib_install_info,
+)
+
+
+

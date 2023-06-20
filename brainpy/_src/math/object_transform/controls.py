@@ -5,7 +5,6 @@ from typing import Union, Sequence, Any, Dict, Callable, Optional
 
 import jax
 import jax.numpy as jnp
-from jax import lax
 from jax.errors import UnexpectedTracerError
 from jax.tree_util import tree_flatten, tree_unflatten
 from tqdm.auto import tqdm
@@ -14,15 +13,26 @@ from jax.experimental.host_callback import id_tap
 from brainpy import errors, tools
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import (Array, )
-from ._tools import (evaluate_dyn_vars,
-                     dynvar_deprecation,
-                     node_deprecation,
-                     abstract)
+from ._tools import (
+  evaluate_dyn_vars,
+  evaluate_dyn_vars_with_cache,
+  dynvar_deprecation,
+  node_deprecation,
+  abstract
+)
 from .base import BrainPyObject, ObjectTransform
-from .naming import (get_unique_name,
-                     get_stack_cache,
-                     cache_stack)
-from .variables import (Variable, VariableStack)
+from .naming import (
+  get_unique_name,
+  get_stack_cache,
+  cache_stack
+)
+from .variables import (
+  Variable,
+  VariableStack,
+  new_transform,
+  current_transform_number,
+  transform_stack,
+)
 
 __all__ = [
   'make_loop',
@@ -204,7 +214,7 @@ def make_loop(
     def call(xs=None, length=None):
       init_values = [v.value for v in dyn_vars]
       try:
-        dyn_values, (out_values, results) = lax.scan(
+        dyn_values, (out_values, results) = jax.lax.scan(
           f=fun2scan, init=init_values, xs=xs, length=length
         )
       except UnexpectedTracerError as e:
@@ -217,7 +227,7 @@ def make_loop(
     def call(xs):
       init_values = [v.value for v in dyn_vars]
       try:
-        dyn_values, out_values = lax.scan(f=fun2scan, init=init_values, xs=xs)
+        dyn_values, out_values = jax.lax.scan(f=fun2scan, init=init_values, xs=xs)
       except UnexpectedTracerError as e:
         for v, d in zip(dyn_vars, init_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
@@ -299,9 +309,9 @@ def make_while(
   def call(x=None):
     dyn_init = [v.value for v in dyn_vars]
     try:
-      dyn_values, _ = lax.while_loop(cond_fun=_cond_fun,
-                                     body_fun=_body_fun,
-                                     init_val=(dyn_init, x))
+      dyn_values, _ = jax.lax.while_loop(cond_fun=_cond_fun,
+                                         body_fun=_body_fun,
+                                         init_val=(dyn_init, x))
     except UnexpectedTracerError as e:
       for v, d in zip(dyn_vars, dyn_init): v._value = d
       raise errors.JaxTracerError(variables=dyn_vars) from e
@@ -394,7 +404,7 @@ def make_cond(
     def call(pred, x=None):
       old_values = [v.value for v in dyn_vars]
       try:
-        dyn_values, res = lax.cond(pred, _true_fun, _false_fun, (old_values, x))
+        dyn_values, res = jax.lax.cond(pred, _true_fun, _false_fun, (old_values, x))
       except UnexpectedTracerError as e:
         for v, d in zip(dyn_vars, old_values): v._value = d
         raise errors.JaxTracerError(variables=dyn_vars) from e
@@ -406,7 +416,7 @@ def make_cond(
 
   else:
     def call(pred, x=None):
-      res = lax.cond(pred, true_fun, false_fun, x)
+      res = jax.lax.cond(pred, true_fun, false_fun, x)
       return res
 
   return ControlObject(call, dyn_vars, repr_fun={'true_fun': true_fun, 'false_fun': false_fun})
@@ -427,7 +437,7 @@ def cond(
     pred: bool,
     true_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
     false_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
-    operands: Any,
+    operands: Any = (),
 
     # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
@@ -438,8 +448,8 @@ def cond(
   >>> import brainpy.math as bm
   >>> a = bm.Variable(bm.zeros(2))
   >>> b = bm.Variable(bm.ones(2))
-  >>> def true_f(_):  a.value += 1
-  >>> def false_f(_): b.value -= 1
+  >>> def true_f():  a.value += 1
+  >>> def false_f(): b.value -= 1
   >>>
   >>> bm.cond(True, true_f, false_f)
   >>> a, b
@@ -462,12 +472,19 @@ def cond(
   operands: Any
     Operands (A) input to branching function depending on ``pred``. The type
     can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
+
   dyn_vars: optional, Variable, sequence of Variable, dict
     The dynamically changed variables.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
   child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
     The children objects used in the target function.
 
-    .. versionadded:: 2.3.1
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
 
   Returns
   -------
@@ -491,29 +508,38 @@ def cond(
     dyn_vars = VariableStack()
 
   else:
-    dyn_vars = evaluate_dyn_vars(true_fun, *operands)
-    dyn_vars += evaluate_dyn_vars(false_fun, *operands)
+    with new_transform('cond'):
+      dyn_vars, rets_true = evaluate_dyn_vars(true_fun, *operands)
+      dyn_vars2, rets_false = evaluate_dyn_vars(false_fun, *operands)
+      tree_true = jax.tree_util.tree_structure(dyn_vars)
+      tree_false = jax.tree_util.tree_structure(dyn_vars2)
+      if tree_true != tree_false:
+        raise TypeError('true_fun and false_fun output must have same type structure, '
+                        f'got {tree_true} and {tree_false}.')
+      dyn_vars += dyn_vars2
+      del tree_true, tree_false, dyn_vars2
+
+    if current_transform_number() > 0:
+      return jax.lax.cond(pred, lambda: rets_true, lambda: rets_false)
 
   # TODO: cache mechanism?
-  if len(dyn_vars) > 0:
-    def _true_fun(dyn_vals, *static_vals):
-      for k, v in dyn_vars.items():
-        v._value = dyn_vals[k]
-      r = true_fun(*static_vals)
-      return {k: v.value for k, v in dyn_vars.items()}, r
-
-    def _false_fun(dyn_vals, *static_vals):
-      for k, v in dyn_vars.items():
-        v._value = dyn_vals[k]
-      r = false_fun(*static_vals)
-      return {k: v.value for k, v in dyn_vars.items()}, r
-
-    old_values = {k: v.value for k, v in dyn_vars.items()}
-    dyn_values, res = lax.cond(pred, _true_fun, _false_fun, old_values, *operands)
+  def _true_fun(dyn_vals, *static_vals):
     for k, v in dyn_vars.items():
-      v._value = dyn_values[k]
-  else:
-    res = lax.cond(pred, true_fun, false_fun, *operands)
+      v._value = dyn_vals[k]
+    r = true_fun(*static_vals)
+    return {k: v.value for k, v in dyn_vars.items()}, r
+
+  def _false_fun(dyn_vals, *static_vals):
+    for k, v in dyn_vars.items():
+      v._value = dyn_vals[k]
+    r = false_fun(*static_vals)
+    return {k: v.value for k, v in dyn_vars.items()}, r
+
+  old_values = {k: v.value for k, v in dyn_vars.items()}
+  dyn_values, res = jax.lax.cond(pred, _true_fun, _false_fun, old_values, *operands)
+  for k, v in dyn_vars.items():
+    v._value = dyn_values[k]
+
   return res
 
 
@@ -560,14 +586,20 @@ def ifelse(
     Each branch should receive one arguement for ``operands``.
   operands: optional, Any
     The operands for each branch.
-  dyn_vars: Variable, sequence of Variable, dict
-    The dynamically changed variables.
   show_code: bool
     Whether show the formatted code.
+  dyn_vars: Variable, sequence of Variable, dict
+    The dynamically changed variables.
+
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
   child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
     The children objects used in the target function.
 
-    .. versionadded:: 2.3.1
+    .. deprecated:: 2.4.0
+       No longer need to provide ``dyn_vars``. This function is capable of automatically
+       collecting the dynamical variables used in the target ``func``.
 
   Returns
   -------
@@ -608,7 +640,8 @@ def ifelse(
       codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], branches[{num_cond - i}], f{i}, r)')
     codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands)')
     codes = '\n'.join(codes)
-    if show_code: print(codes)
+    if show_code:
+      print(codes)
     exec(compile(codes.strip(), '', 'exec'), code_scope)
     f = code_scope['f']
     r = f(operands)
@@ -620,13 +653,39 @@ def _loop_abstractify(x):
   return jax.core.mapped_aval(x.shape[0], 0, x)
 
 
+def _get_for_loop_transform(
+    body_fun,
+    dyn_vars,
+    bar: tqdm,
+    progress_bar: bool,
+    remat: bool
+):
+  def fun2scan(carry, x):
+    for k in dyn_vars.keys():
+      dyn_vars[k]._value = carry[k]
+    results = body_fun(*x)
+    if progress_bar:
+      id_tap(lambda *arg: bar.update(), ())
+    return dyn_vars.dict_data(), results
+
+  if remat:
+    fun2scan = jax.checkpoint(fun2scan)
+
+  # TODO: cache mechanism?
+  return lambda operands, reverse, unroll: jax.lax.scan(f=fun2scan,
+                                                        init=dyn_vars.dict_data(),
+                                                        xs=operands,
+                                                        reverse=reverse,
+                                                        unroll=unroll)
+
+
 def for_loop(
     body_fun: Callable,
     operands: Any,
     reverse: bool = False,
     unroll: int = 1,
     remat: bool = False,
-    jit: bool = True,
+    jit: Optional[bool] = None,
     progress_bar: bool = False,
 
     # deprecated
@@ -732,44 +791,38 @@ def for_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
+  num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
+  bar = None
   if progress_bar:
-    num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
     bar = tqdm(total=num_total)
 
+  if jit is None:  # jax disable jit
+    jit = not jax.config.jax_disable_jit
   dyn_vars = get_stack_cache(body_fun)
-  if not jit:
+  if jit:
     if dyn_vars is None:
-      dyn_vars = VariableStack()
-
-  else:
-    # TODO: better cache mechanism?
-    if dyn_vars is None:
-      with jax.ensure_compile_time_eval():
-        op_vals = jax.tree_util.tree_map(_loop_abstractify, operands)
+      # TODO: better cache mechanism?
+      with new_transform('for_loop'):
         with VariableStack() as dyn_vars:
-          _ = jax.eval_shape(body_fun, *op_vals)
-        cache_stack(body_fun, dyn_vars)  # cache
-        del op_vals
-
-  # functions
-  def fun2scan(carry, x):
-    for k in dyn_vars.keys():
-      dyn_vars[k]._value = carry[k]
-    results = body_fun(*x)
-    if progress_bar:
-      id_tap(lambda *arg: bar.update(), ())
-    return dyn_vars.dict_data(), results
-
-  if remat:
-    fun2scan = jax.checkpoint(fun2scan)
+          transform = _get_for_loop_transform(body_fun, VariableStack(), bar, progress_bar, remat)
+          if current_transform_number() > 1:
+            rets = transform(operands, reverse, unroll)
+          else:
+            rets = jax.eval_shape(transform, operands, reverse, unroll)
+      cache_stack(body_fun, dyn_vars)  # cache
+      if current_transform_number():
+        return rets[1]
+      del rets
+  else:
+    dyn_vars = VariableStack()
 
   # TODO: cache mechanism?
-  with jax.disable_jit(not jit):
-    dyn_vals, out_vals = lax.scan(f=fun2scan,
-                                  init=dyn_vars.dict_data(),
-                                  xs=operands,
-                                  reverse=reverse,
-                                  unroll=unroll)
+  transform = _get_for_loop_transform(body_fun, dyn_vars, bar, progress_bar, remat)
+  if jit:
+    dyn_vals, out_vals = transform(operands, reverse, unroll)
+  else:
+    with jax.disable_jit():
+      dyn_vals, out_vals = transform(operands, reverse, unroll)
   for key in dyn_vars.keys():
     dyn_vars[key]._value = dyn_vals[key]
   if progress_bar:
@@ -777,16 +830,30 @@ def for_loop(
   return out_vals
 
 
-def scan(
-   f: Callable,
-   init: Any,
-   xs: Any,
-   length: Optional[int] = None,
-   reverse: bool = False,
-   unroll: int = 1
-):
-  jax.lax.scan
+def _get_while_transform(cond_fun, body_fun, dyn_vars):
+  def _body_fun(op):
+    dyn_vals, old_vals = op
+    for k, v in dyn_vars.items():
+      v._value = dyn_vals[k]
+    new_vals = body_fun(*old_vals)
+    if new_vals is None:
+      new_vals = tuple()
+    if not isinstance(new_vals, tuple):
+      new_vals = (new_vals,)
+    return dyn_vars.dict_data(), new_vals
 
+  def _cond_fun(op):
+    dyn_vals, old_vals = op
+    for k, v in dyn_vars.items():
+      v._value = dyn_vals[k]
+    with jax.ensure_compile_time_eval():
+      r = cond_fun(*old_vals)
+    return r if isinstance(r, Array) else r
+
+  # TODO: cache mechanism?
+  return lambda operands: jax.lax.while_loop(cond_fun=_cond_fun,
+                                             body_fun=_body_fun,
+                                             init_val=(dyn_vars.dict_data(), operands))
 
 
 def while_loop(
@@ -850,8 +917,6 @@ def while_loop(
   child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
     The children objects used in the target function.
 
-    .. versionadded:: 2.3.1
-
     .. deprecated:: 2.4.0
        No longer need to provide ``child_objs``. This function is capable of automatically
        collecting the children objects used in the target ``func``.
@@ -868,31 +933,19 @@ def while_loop(
     dyn_vars = VariableStack()
 
   else:
-    dyn_vars = evaluate_dyn_vars(body_fun, *operands)
-    dyn_vars += evaluate_dyn_vars(cond_fun, *operands)
+    dyn_vars = get_stack_cache(body_fun)
 
-  def _body_fun(op):
-    dyn_vals, old_vals = op
-    for k, v in dyn_vars.items():
-      v._value = dyn_vals[k]
-    new_vals = body_fun(*old_vals)
-    if new_vals is None:
-      new_vals = tuple()
-    if not isinstance(new_vals, tuple):
-      new_vals = (new_vals,)
-    return dyn_vars.dict_data(), new_vals
+    if dyn_vars is None:
+      with new_transform('while_loop'):
+        dyn_vars, rets = evaluate_dyn_vars(
+          _get_while_transform(cond_fun, body_fun, VariableStack()),
+          operands
+        )
+        cache_stack(body_fun, dyn_vars)
+      if current_transform_number():
+        return rets[1]
 
-  def _cond_fun(op):
-    dyn_vals, old_vals = op
-    for k, v in dyn_vars.items():
-      v._value = dyn_vals[k]
-    r = cond_fun(*old_vals)
-    return r if isinstance(r, Array) else r
-
-  # TODO: cache mechanism?
-  dyn_values, out = lax.while_loop(cond_fun=_cond_fun,
-                                   body_fun=_body_fun,
-                                   init_val=(dyn_vars.dict_data(), operands))
+  dyn_values, out = _get_while_transform(cond_fun, body_fun, dyn_vars)(operands)
   for k, v in dyn_vars.items():
     v._value = dyn_values[k]
   return out
