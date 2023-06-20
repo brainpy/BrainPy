@@ -40,4 +40,4 @@ jobs:
         run: |
           conda activate
           cd ~/brainpy_docs/docs
-          make html 
+          make html
