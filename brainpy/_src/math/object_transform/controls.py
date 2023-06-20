@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
-
+import functools
 from typing import Union, Sequence, Any, Dict, Callable, Optional
+import numbers
 
 import jax
 import jax.numpy as jnp
@@ -426,17 +426,38 @@ def _check_f(f):
   if callable(f):
     return f
   else:
-    return (lambda _: f)
+    return (lambda *args, **kwargs: f)
 
 
 def _check_sequence(a):
   return isinstance(a, (list, tuple))
 
 
+def _cond_transform_fun(fun, dyn_vars):
+  @functools.wraps(fun)
+  def new_fun(dyn_vals, *static_vals):
+    for k, v in dyn_vars.items():
+      v._value = dyn_vals[k]
+    r = fun(*static_vals)
+    return {k: v.value for k, v in dyn_vars.items()}, r
+
+  return new_fun
+
+
+def _get_cond_transform(dyn_vars, pred, true_fun, false_fun):
+  _true_fun = _cond_transform_fun(true_fun, dyn_vars)
+  _false_fun = _cond_transform_fun(false_fun, dyn_vars)
+
+  def call_fun(operands):
+    return jax.lax.cond(pred, _true_fun, _false_fun, dyn_vars.dict_data(), *operands)
+
+  return call_fun
+
+
 def cond(
     pred: bool,
-    true_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
-    false_fun: Union[Callable, jnp.ndarray, Array, float, int, bool],
+    true_fun: Union[Callable, jnp.ndarray, Array, numbers.Number],
+    false_fun: Union[Callable, jnp.ndarray, Array, numbers.Number],
     operands: Any = (),
 
     # deprecated
@@ -504,43 +525,54 @@ def cond(
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
 
+  dyn_vars = get_stack_cache((true_fun, false_fun))
+  _transform = _get_cond_transform(VariableStack() if dyn_vars is None else dyn_vars,
+                                   pred,
+                                   true_fun,
+                                   false_fun)
   if jax.config.jax_disable_jit:
-    dyn_vars = VariableStack()
+    dyn_values, res = _transform(operands)
 
   else:
-    with new_transform('cond'):
-      dyn_vars, rets_true = evaluate_dyn_vars(true_fun, *operands)
-      dyn_vars2, rets_false = evaluate_dyn_vars(false_fun, *operands)
-      tree_true = jax.tree_util.tree_structure(dyn_vars)
-      tree_false = jax.tree_util.tree_structure(dyn_vars2)
-      if tree_true != tree_false:
-        raise TypeError('true_fun and false_fun output must have same type structure, '
-                        f'got {tree_true} and {tree_false}.')
-      dyn_vars += dyn_vars2
-      del tree_true, tree_false, dyn_vars2
-
-    if current_transform_number() > 0:
-      return jax.lax.cond(pred, lambda: rets_true, lambda: rets_false)
-
-  # TODO: cache mechanism?
-  def _true_fun(dyn_vals, *static_vals):
-    for k, v in dyn_vars.items():
-      v._value = dyn_vals[k]
-    r = true_fun(*static_vals)
-    return {k: v.value for k, v in dyn_vars.items()}, r
-
-  def _false_fun(dyn_vals, *static_vals):
-    for k, v in dyn_vars.items():
-      v._value = dyn_vals[k]
-    r = false_fun(*static_vals)
-    return {k: v.value for k, v in dyn_vars.items()}, r
-
-  old_values = {k: v.value for k, v in dyn_vars.items()}
-  dyn_values, res = jax.lax.cond(pred, _true_fun, _false_fun, old_values, *operands)
-  for k, v in dyn_vars.items():
-    v._value = dyn_values[k]
-
+    if dyn_vars is None:
+      with new_transform('cond'):
+        dyn_vars, rets = evaluate_dyn_vars(
+          _transform,
+          operands,
+          use_eval_shape=current_transform_number() <= 1
+        )
+        cache_stack((true_fun, false_fun), dyn_vars)
+      if current_transform_number() > 0:
+        return rets[1]
+    dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
+  for k in dyn_values.keys():
+    dyn_vars[k]._value = dyn_values[k]
   return res
+
+
+def _if_else_return1(conditions, branches, operands):
+  for i, pred in enumerate(conditions):
+    if pred:
+      return branches[i](*operands)
+  else:
+    return branches[-1](*operands)
+
+
+def _if_else_return2(conditions, branches):
+  for i, pred in enumerate(conditions):
+    if pred:
+      return branches[i]
+  else:
+    return branches[-1]
+
+
+def all_equal(iterator):
+  iterator = iter(iterator)
+  try:
+    first = next(iterator)
+  except StopIteration:
+    return True
+  return all(first == x for x in iterator)
 
 
 def ifelse(
@@ -620,6 +652,10 @@ def ifelse(
     raise ValueError(f'The numbers of branches and conditions do not match. '
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
+  if operands is None:
+    operands = tuple()
+  if not isinstance(operands, (tuple, list)):
+    operands = (operands,)
 
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
@@ -631,21 +667,47 @@ def ifelse(
                 branches[1],
                 operands)
   else:
+    if jax.config.jax_disable_jit:
+      return _if_else_return1(conditions, branches, operands)
+
+    else:
+      dyn_vars = get_stack_cache(tuple(branches))
+      if dyn_vars is None:
+        with new_transform('ifelse'):
+          with VariableStack() as dyn_vars:
+            if current_transform_number() > 1:
+              rets = [branch(*operands) for branch in branches]
+            else:
+              rets = [jax.eval_shape(branch, *operands) for branch in branches]
+            trees = [jax.tree_util.tree_structure(ret) for ret in rets]
+            if not all_equal(trees):
+              msg = 'All returns in branches should have the same tree structure. But we got:\n'
+              for tree in trees:
+                msg += f'- {tree}\n'
+              raise TypeError(msg)
+          cache_stack(tuple(branches), dyn_vars)
+        if current_transform_number():
+          return _if_else_return2(conditions, rets)
+
+      branches = [_cond_transform_fun(fun, dyn_vars) for fun in branches]
+
     code_scope = {'conditions': conditions, 'branches': branches}
-    codes = ['def f(operands):',
+    codes = ['def f(dyn_vals, *operands):',
              f'  f0 = branches[{len(conditions)}]']
     num_cond = len(conditions) - 1
-    code_scope['_cond'] = cond
+    code_scope['_cond'] = jax.lax.cond
     for i in range(len(conditions) - 1):
-      codes.append(f'  f{i + 1} = lambda r: _cond(conditions[{num_cond - i}], branches[{num_cond - i}], f{i}, r)')
-    codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, operands)')
+      codes.append(f'  f{i + 1} = lambda *r: _cond(conditions[{num_cond - i}], branches[{num_cond - i}], f{i}, *r)')
+    codes.append(f'  return _cond(conditions[0], branches[0], f{len(conditions) - 1}, dyn_vals, *operands)')
     codes = '\n'.join(codes)
     if show_code:
       print(codes)
     exec(compile(codes.strip(), '', 'exec'), code_scope)
     f = code_scope['f']
-    r = f(operands)
-    return r
+    dyn_values, res = f(dyn_vars.dict_data(), *operands)
+    for k in dyn_values.keys():
+      dyn_vars[k]._value = dyn_values[k]
+    return res
 
 
 def _loop_abstractify(x):
@@ -764,6 +826,7 @@ def for_loop(
   progress_bar: bool
     Whether we use the progress bar to report the running progress.
 
+    .. versionadded:: 2.4.2
   dyn_vars: Variable, sequence of Variable, dict
     The instances of :py:class:`~.Variable`.
 

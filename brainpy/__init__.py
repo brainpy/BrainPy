@@ -96,34 +96,30 @@ from brainpy._src.synapses_v2.base import (SynOutNS as SynOutNS,
 #  Part 4: Training  #
 # ------------------ #
 
-from ._src.train.base import (DSTrainer as DSTrainer, )
-from ._src.train.back_propagation import (BPTT as BPTT,
-                                          BPFF as BPFF, )
-from ._src.train.online import (OnlineTrainer as OnlineTrainer,
-                                ForceTrainer as ForceTrainer, )
-from ._src.train.offline import (OfflineTrainer as OfflineTrainer,
-                                 RidgeTrainer as RidgeTrainer, )
+from brainpy._src.train.base import (DSTrainer as DSTrainer, )
+from brainpy._src.train.back_propagation import (BPTT as BPTT,
+                                                 BPFF as BPFF, )
+from brainpy._src.train.online import (OnlineTrainer as OnlineTrainer,
+                                       ForceTrainer as ForceTrainer, )
+from brainpy._src.train.offline import (OfflineTrainer as OfflineTrainer,
+                                        RidgeTrainer as RidgeTrainer, )
 
 #  Part 6: Others    #
 # ------------------ #
 
-from . import running, testing, analysis
-from ._src.visualization import (visualize as visualize)
-from ._src import base, modes, train, dyn
+from brainpy import running, testing, analysis
+from brainpy._src.visualization import (visualize as visualize)
+from brainpy._src import base, train, dyn
 
 #  Part 7: Deprecations  #
 # ---------------------- #
 
-ode.__dict__['odeint'] = odeint
-sde.__dict__['sdeint'] = sdeint
-fde.__dict__['fdeint'] = fdeint
-
-# deprecated
+from brainpy._src import modes
 from brainpy._src.math.object_transform.base import (Base as Base,
                                                      ArrayCollector,
                                                      Collector as Collector, )
 
-
+# deprecated
 from brainpy._src import checking
 from brainpy._src.synapses import compat
 from brainpy._src.deprecations import deprecation_getattr2
@@ -189,9 +185,11 @@ dyn.__deprecations = {
   # neurons
   'HH': ('brainpy.dyn.HH', 'brainpy.neurons.HH', neurons.HH),
   'MorrisLecar': ('brainpy.dyn.MorrisLecar', 'brainpy.neurons.MorrisLecar', neurons.MorrisLecar),
-  'PinskyRinzelModel': ('brainpy.dyn.PinskyRinzelModel', 'brainpy.neurons.PinskyRinzelModel', neurons.PinskyRinzelModel),
+  'PinskyRinzelModel': ('brainpy.dyn.PinskyRinzelModel', 'brainpy.neurons.PinskyRinzelModel',
+                        neurons.PinskyRinzelModel),
   'FractionalFHR': ('brainpy.dyn.FractionalFHR', 'brainpy.neurons.FractionalFHR', neurons.FractionalFHR),
-  'FractionalIzhikevich': ('brainpy.dyn.FractionalIzhikevich', 'brainpy.neurons.FractionalIzhikevich', neurons.FractionalIzhikevich),
+  'FractionalIzhikevich': ('brainpy.dyn.FractionalIzhikevich', 'brainpy.neurons.FractionalIzhikevich',
+                           neurons.FractionalIzhikevich),
   'LIF': ('brainpy.dyn.LIF', 'brainpy.neurons.LIF', neurons.LIF),
   'ExpIF': ('brainpy.dyn.ExpIF', 'brainpy.neurons.ExpIF', neurons.ExpIF),
   'AdExIF': ('brainpy.dyn.AdExIF', 'brainpy.neurons.AdExIF', neurons.AdExIF),
@@ -217,5 +215,13 @@ dyn.__deprecations = {
 }
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 
-del deprecation_getattr2, checking
+ode.__deprecations = {'odeint': ('brainpy.ode.odeint', 'brainpy.odeint', odeint)}
+ode.__getattr__ = deprecation_getattr2('brainpy.ode', ode.__deprecations)
 
+sde.__deprecations = {'sdeint': ('brainpy.sde.sdeint', 'brainpy.sdeint', sdeint)}
+sde.__getattr__ = deprecation_getattr2('brainpy.sde', sde.__deprecations)
+
+fde.__deprecations = {'fdeint': ('brainpy.fde.fdeint', 'brainpy.fdeint', fdeint)}
+fde.__getattr__ = deprecation_getattr2('brainpy.fde', sde.__deprecations)
+
+del deprecation_getattr2, checking, compat

@@ -22,6 +22,8 @@ from brainpy._src.math.ndarray import Array
 from ._tools import (
   dynvar_deprecation,
   node_deprecation,
+  get_stack_cache,
+  cache_stack,
 )
 from .base import (
   BrainPyObject,
@@ -201,8 +203,10 @@ class GradientTransform(ObjectTransform):
       return self._return(rets)
 
     elif not self._eval_dyn_vars:  # evaluate dynamical variables
-      with new_transform(self):
-        with VariableStack() as stack:
+      stack = get_stack_cache(self.target)
+      if stack is None:
+        with new_transform(self):
+          with VariableStack() as stack:
             if current_transform_number() > 1:
               rets = self._transform(
                 [v.value for v in self._grad_vars],  # variables for gradients
@@ -218,6 +222,7 @@ class GradientTransform(ObjectTransform):
                 *args,
                 **kwargs
               )
+          cache_stack(self.target, stack)
 
       self._dyn_vars = stack
       self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
@@ -266,7 +271,7 @@ def _make_grad(
 
 
 def grad(
-    func: Callable = None,
+    func: Optional[Callable] = None,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     holomorphic: Optional[bool] = False,
@@ -278,7 +283,7 @@ def grad(
     # deprecated
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-) -> GradientTransform:
+) -> Union[Callable, GradientTransform]:
   """Automatic gradient computation for functions or class objects.
 
   This gradient function only support scalar return. It creates a function
@@ -780,7 +785,7 @@ def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
 
 
 def vector_grad(
-    func: Callable,
+    func: Optional[Callable] = None,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
     return_value: bool = False,
@@ -789,7 +794,7 @@ def vector_grad(
     # deprecated
     dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
-) -> ObjectTransform:
+) -> Union[Callable, ObjectTransform]:
   """Take vector-valued gradients for function ``func``.
 
   Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_,
@@ -850,14 +855,24 @@ def vector_grad(
   child_objs = check.is_all_objs(child_objs, out_as='dict')
   dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  return GradientTransform(target=func,
-                           transform=_vector_grad,
-                           grad_vars=grad_vars,
-                           dyn_vars=dyn_vars,
-                           child_objs=child_objs,
-                           argnums=argnums,
-                           return_value=return_value,
-                           has_aux=False if has_aux is None else has_aux)
+  if func is None:
+    return lambda f: GradientTransform(target=f,
+                                       transform=_vector_grad,
+                                       grad_vars=grad_vars,
+                                       dyn_vars=dyn_vars,
+                                       child_objs=child_objs,
+                                       argnums=argnums,
+                                       return_value=return_value,
+                                       has_aux=False if has_aux is None else has_aux)
+  else:
+    return GradientTransform(target=func,
+                             transform=_vector_grad,
+                             grad_vars=grad_vars,
+                             dyn_vars=dyn_vars,
+                             child_objs=child_objs,
+                             argnums=argnums,
+                             return_value=return_value,
+                             has_aux=False if has_aux is None else has_aux)
 
 
 def _check_callable(fun):
