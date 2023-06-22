@@ -1,4 +1,4 @@
-numpy<1.24,>=1.18
+numpy
 jax>=0.4.1
 tqdm
 msgpack
