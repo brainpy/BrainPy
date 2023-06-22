@@ -4,7 +4,7 @@ import brainpy.math as bm
 from brainpy._src.dyn._docs import pneu_doc, dpneu_doc
 from brainpy._src.dynsys import NeuGroupNS, DynamicalSystemNS
 from brainpy._src.initialize.generic import parameter, variable_
-from brainpy._src.mixin import ParamDesc, ProjSupp
+from brainpy._src.mixin import ParamDesc, SupportProjection
 from brainpy.check import is_callable
 
 __all__ = [
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class NeuDyn(NeuGroupNS, ProjSupp):
+class NeuDyn(NeuGroupNS, SupportProjection):
   """Parallelizable Neuron Group.
 
   Args:

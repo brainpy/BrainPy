@@ -4,7 +4,7 @@ from brainpy import math as bm
 from brainpy._src.delay import Delay, TargetDelay
 from brainpy._src.dyn.base import NeuDyn, SynOut
 from brainpy._src.dynsys import DynamicalSystemNS, DynamicalSystem
-from brainpy._src.mixin import DelayedInit, ReturnInfo, ProjSupp
+from brainpy._src.mixin import DelayedInit, ReturnInfo, SupportProjection
 
 __all__ = [
   'ProjAlignPre',
@@ -66,7 +66,7 @@ class ProjAlignPre(DynamicalSystemNS):
   def __init__(
       self,
       pre: NeuDyn,
-      syn: DelayedInit[ProjSupp],
+      syn: DelayedInit[SupportProjection],
       delay: Union[None, int, float],
       comm: Callable,
       out: SynOut,
@@ -81,7 +81,7 @@ class ProjAlignPre(DynamicalSystemNS):
     assert isinstance(post, NeuDyn)
     assert callable(comm)
     assert isinstance(out, SynOut)
-    assert isinstance(syn, DelayedInit) and issubclass(syn.cls, ProjSupp)
+    assert isinstance(syn, DelayedInit) and issubclass(syn.cls, SupportProjection)
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -89,8 +89,8 @@ class ProjAlignPre(DynamicalSystemNS):
     # synapse and delay initialization
     self._syn_id = syn._identifier
     if self._syn_id not in pre.post_updates:
-      syn_cls: ProjSupp = syn()
-      delay_cls = _init_delay(syn_cls.return_info())
+      syn_cls: SupportProjection = syn()
+      delay_cls = _init_delay(syn_cls.update_return())
       pre.post_updates[self._syn_id] = _AlignPre(syn_cls, delay_cls)
     delay_cls: Delay = pre.post_updates[self._syn_id].delay
     delay_cls.register_entry(self.name, delay)
@@ -130,7 +130,7 @@ class ProjAlignPost(DynamicalSystemNS):
 
   def __init__(
       self,
-      pre: ProjSupp,
+      pre: SupportProjection,
       delay: Union[None, int, float],
       comm: Callable,
       syn: DelayedInit[DynamicalSystem],
@@ -154,7 +154,7 @@ class ProjAlignPost(DynamicalSystemNS):
     # delay initialization
     self._delay_repr = '_*_align_pre_spk_delay_*_'
     if self._delay_repr not in self.pre.post_updates:
-      delay_cls = _init_delay(pre.return_info())
+      delay_cls = _init_delay(pre.update_return())
       self.pre.post_updates[self._delay_repr] = delay_cls
     delay_cls: Delay = pre.post_updates[self._delay_repr]
     delay_cls.register_entry(self.name, delay)

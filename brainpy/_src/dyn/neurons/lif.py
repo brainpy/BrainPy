@@ -129,7 +129,7 @@ class LifLtc(DiffNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_info(self):
+  def update_return(self):
     return self.spike
 
 

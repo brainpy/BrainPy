@@ -1,10 +1,7 @@
 
-
-from brainpy._src.dyn.neurons.lif import (
-  Lif,
-  LifLtc,
-  LifRefLtc,
-  LifRef,
+from brainpy._src.dyn.base import (
+  SynDyn,
+  SynOut,
 )
 
 from brainpy._src.dyn.synapses.dynamics import (
@@ -23,10 +20,5 @@ from brainpy._src.dyn.synapses.outputs import (
   COBA,
   CUBA,
   MgBlock,
-)
-
-from brainpy._src.dyn.projections import (
-  ProjAlignPost,
-  ProjAlignPre,
 )
 

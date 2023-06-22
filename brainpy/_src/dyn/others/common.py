@@ -80,7 +80,7 @@ class Leaky(NeuDyn):
       self.x += inp
     return self.x.value
 
-  def return_info(self):
+  def update_return(self):
     return self.x
 
 
@@ -155,7 +155,7 @@ class Integrator(NeuDyn):
     self.x.value = self.integral(self.x.value, t, I_ext=x, dt=dt)
     return self.x.value
 
-  def return_info(self):
+  def update_return(self):
     return self.x
 
 
