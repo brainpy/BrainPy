@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from typing import TypeVar, Tuple, Union, Callable
+import numbers
+from typing import TypeVar, Tuple, Union, Callable, Sequence
 
-import jax.numpy as jnp
+import jax
 import numpy as np
 
-from brainpy._src.math.ndarray import Array
-from brainpy._src.math.object_transform import Variable, TrainVar
 from brainpy._src import connect as conn
 from brainpy._src import initialize as init
+from brainpy._src.math.ndarray import Array
+from brainpy._src.math.object_transform import Variable, TrainVar
 
 __all__ = [
   'ArrayType', 'Parameter', 'PyTree',
   'Shape', 'Initializer',
-  'Output', 'Monitor'
+  'Output', 'Monitor', 'Sharding',
 ]
 
 
 # data
-Parameter = TypeVar('Parameter', float, int, jnp.ndarray, 'Array', 'Variable') # noqa
-ArrayType = TypeVar('ArrayType', Array, Variable, TrainVar, jnp.ndarray, np.ndarray) # noqa
+Parameter = TypeVar('Parameter', numbers.Number, jax.Array, 'Array', 'Variable') # noqa
+ArrayType = TypeVar('ArrayType', Array, Variable, TrainVar, jax.Array, np.ndarray) # noqa
 Array = ArrayType # noqa
 PyTree = TypeVar('PyTree') # noqa
 
@@ -29,6 +30,8 @@ Shape = TypeVar('Shape', int, Tuple[int, ...]) # noqa
 # component
 Output = TypeVar('Output') # noqa
 Monitor = TypeVar('Monitor') # noqa
-Connector = Union[conn.Connector, Array, Variable, jnp.ndarray, np.ndarray]
-Initializer = Union[init.Initializer, Callable, Array, Variable, jnp.ndarray, np.ndarray]
+Connector = Union[conn.Connector, Array, Variable, jax.Array, np.ndarray]
+Initializer = Union[init.Initializer, Callable, Array, Variable, jax.Array, np.ndarray]
+
+Sharding = Union[Sequence[str], jax.sharding.Sharding, jax.Device]
 

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from brainpy._src.layers.base import Layer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Loss',

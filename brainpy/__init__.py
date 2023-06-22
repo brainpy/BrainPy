@@ -55,34 +55,45 @@ from brainpy._src.integrators.fde.generic import (fdeint as fdeint)
 
 from brainpy import (
   channels,  # channel models
-  layers,  # ANN layers
   neurons,  # neuron groups
   synapses,  # synapses
   rates,  # rate models
   experimental,
-)
-from brainpy.synapses import (synouts,  # synaptic output
-                              synplast, )  # synaptic plasticity
 
-from brainpy._src.dynsys import (DynamicalSystem as DynamicalSystem,
-                                 Container as Container,
-                                 Sequential as Sequential,
-                                 Network as Network,
-                                 NeuGroup as NeuGroup,
-                                 SynConn as SynConn,
-                                 SynOut as SynOut,
-                                 SynSTP as SynSTP,
-                                 SynLTP as SynLTP,
-                                 TwoEndConn as TwoEndConn,
-                                 CondNeuGroup as CondNeuGroup,
-                                 Channel as Channel)
-from brainpy._src.delay import Delay
+  dnn, layers,  # deep neural network module
+  dyn,  # dynamics module
+  # delay,  # delay module
+)
+from brainpy._src.delay import (DataDelay, TargetDelay)
+
+from brainpy.synapses import (
+  synouts,  # synaptic output
+  synplast,  # synaptic plasticity
+)
+
+from brainpy._src.dynsys import (
+  DynamicalSystem as DynamicalSystem,
+  Container as Container,
+  Sequential as Sequential,
+  Network as Network,
+  NeuGroup as NeuGroup,
+  SynConn as SynConn,
+  SynOut as SynOut,
+  SynSTP as SynSTP,
+  SynLTP as SynLTP,
+  TwoEndConn as TwoEndConn,
+  CondNeuGroup as CondNeuGroup,
+  Channel as Channel
+)
+
 # shared parameters
 from brainpy._src.context import share
 from brainpy._src.dynsys import not_pass_shared
+
 # running
 from brainpy._src.runners import (DSRunner as DSRunner)
 from brainpy._src.transform import (LoopOverTime as LoopOverTime, )
+
 # DynamicalSystem base classes
 from brainpy._src.dynsys import (
   DynamicalSystemNS as DynamicalSystemNS,
@@ -109,7 +120,7 @@ from brainpy._src.train.offline import (OfflineTrainer as OfflineTrainer,
 
 from brainpy import running, testing, analysis
 from brainpy._src.visualization import (visualize as visualize)
-from brainpy._src import base, train, dyn
+from brainpy._src import base, train
 
 #  Part 7: Deprecations  #
 # ---------------------- #
@@ -156,6 +167,15 @@ train.__deprecations = {
   'RidgeTrainer': ('brainpy.train.RidgeTrainer', 'brainpy.RidgeTrainer', RidgeTrainer),
 }
 train.__getattr__ = deprecation_getattr2('brainpy.train', train.__deprecations)
+
+ode.__deprecations = {'odeint': ('brainpy.ode.odeint', 'brainpy.odeint', odeint)}
+ode.__getattr__ = deprecation_getattr2('brainpy.ode', ode.__deprecations)
+
+sde.__deprecations = {'sdeint': ('brainpy.sde.sdeint', 'brainpy.sdeint', sdeint)}
+sde.__getattr__ = deprecation_getattr2('brainpy.sde', sde.__deprecations)
+
+fde.__deprecations = {'fdeint': ('brainpy.fde.fdeint', 'brainpy.fdeint', fdeint)}
+fde.__getattr__ = deprecation_getattr2('brainpy.fde', sde.__deprecations)
 
 dyn.__deprecations = {
   # module
@@ -214,14 +234,5 @@ dyn.__deprecations = {
   'NMDA': ('brainpy.dyn.NMDA', 'brainpy.synapses.NMDA', compat.NMDA),
 }
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
-
-ode.__deprecations = {'odeint': ('brainpy.ode.odeint', 'brainpy.odeint', odeint)}
-ode.__getattr__ = deprecation_getattr2('brainpy.ode', ode.__deprecations)
-
-sde.__deprecations = {'sdeint': ('brainpy.sde.sdeint', 'brainpy.sdeint', sdeint)}
-sde.__getattr__ = deprecation_getattr2('brainpy.sde', sde.__deprecations)
-
-fde.__deprecations = {'fdeint': ('brainpy.fde.fdeint', 'brainpy.fdeint', fdeint)}
-fde.__getattr__ = deprecation_getattr2('brainpy.fde', sde.__deprecations)
 
 del deprecation_getattr2, checking, compat

@@ -1,5 +1,6 @@
 from functools import partial
-from typing import Dict, Optional, Any, Union, Sequence
+from typing import Optional, Any, Union, Sequence
+from contextlib import contextmanager
 
 import jax
 import numpy as np
@@ -9,40 +10,59 @@ from jax.sharding import PartitionSpec, Mesh, NamedSharding, Sharding
 from .ndarray import Array
 
 __all__ = [
-  'set',
+  'device_mesh',
   'get_sharding',
   'partition_by_axname',
   'partition_by_sharding',
+  'partition',
+
+  'NEU_AXIS',
+  'PRE_AXIS',
+  'POST_AXIS',
+  'SYN_AXIS',
+  'BATCH_AXIS',
+  'TIME_AXIS',
 ]
 
-_mesh: Optional[Mesh] = None
+NEU_AXIS = 'neuron'
+
+PRE_AXIS = 'pre'
+
+POST_AXIS = 'post'
+
+SYN_AXIS = 'synapse'
+
+BATCH_AXIS = 'batch'
+
+TIME_AXIS = 'time'
+
+_default_mesh: Optional[Mesh] = None
 
 
-def set(
-    mesh: Optional[Mesh] = None,
-    mesh_shape: Optional[Sequence[int]] = None,
-    mesh_axes: Optional[Sequence[str]] = None,
+@contextmanager
+def device_mesh(
+    devices: Any,
+    axis_names: Sequence[str],
 ):
-  global _mesh
+  global _default_mesh
+  _old_mesh = _default_mesh
 
-  if mesh_axes is not None:
-    assert mesh_axes is not None, 'Provide both "mesh_axes" and "mesh_shape".'
-    assert mesh is None, 'Provide either "mesh" or "mesh_axes" + "mesh_shape".'
-    assert len(mesh_axes) == len(mesh_shape)
-    mesh = Mesh(np.asarray(jax.devices()).reshape(*mesh_shape), axis_names=mesh_axes)
-    _mesh = mesh
-  else:
-    if mesh is not None:
-      _mesh = mesh
-      assert mesh_shape is None and mesh_axes is None, 'Provide either "mesh" or "mesh_axes" + "mesh_shape".'
-    else:
-      _mesh = None
+  devices = np.asarray(devices)
+  assert devices.ndim == len(axis_names)
+  mesh = Mesh(devices, axis_names=axis_names)
+
+  _default_mesh = mesh
+
+  try:
+    yield
+  finally:
+    _default_mesh = _old_mesh
 
 
 def _device_put(x: Union[Array, jax.Array, np.ndarray],
-                named_shard: NamedSharding):
+                device: Union[None, jax.Device, Sharding] = None):
   if isinstance(x, Array):
-    x.value = jax.device_put(x, device=named_shard)
+    x.value = jax.device_put(x, device=device)
   return x
 
 
@@ -62,7 +82,7 @@ def get_sharding(
   if axis_names is None:
     return UNSPECIFIED
   if mesh is None:
-    mesh = _mesh
+    mesh = _default_mesh
   if mesh is None:
     return UNSPECIFIED
   else:
@@ -79,7 +99,7 @@ def partition_by_axname(
 
   Args:
     x: any. Any array.
-    axis_names: list of str, or tuple of str. The name for each axis in the array.
+    axis_names: sequence of str. The name for each axis in the array.
     mesh: Mesh. The given device mesh.
 
   Returns:
@@ -87,15 +107,18 @@ def partition_by_axname(
   """
   if axis_names is None:
     return x
+  else:
+    for _leaf in jax.tree_util.tree_leaves(x, is_leaf=lambda a: isinstance(a, Array)):
+      assert np.ndim(_leaf) == len(axis_names)
   if mesh is None:
-    if _mesh is None:
+    if _default_mesh is None:
       return x
-    mesh = _mesh
-  shard = get_sharding(axis_names, mesh)
-  if shard is None:
+    mesh = _default_mesh
+  sharding = get_sharding(axis_names, mesh)
+  if sharding is None:
     return x
   else:
-    f = partial(_device_put, named_shard=shard)
+    f = partial(_device_put, device=sharding)
     return jax.tree_util.tree_map(f, x, is_leaf=lambda a: isinstance(a, Array))
 
 
@@ -103,10 +126,24 @@ def partition_by_sharding(
     x: Any,
     sharding: Optional[Sharding] = None,
 ):
+  """Partition inputs with the given sharding strategy."""
   if sharding is None:
     return x
   else:
     assert isinstance(sharding, Sharding)
-    f = partial(_device_put, named_shard=sharding)
+    f = partial(_device_put, device=sharding)
     return jax.tree_util.tree_map(f, x, is_leaf=lambda a: isinstance(a, Array))
 
+
+def partition(
+    x: Any,
+    sharding: Optional[Union[Sequence[str], jax.Device, Sharding]] = None,
+):
+  if sharding is None:
+    return x
+  elif isinstance(sharding, (jax.Device, Sharding)):
+    return jax.tree_util.tree_map(partial(_device_put, device=sharding), x, is_leaf=lambda a: isinstance(a, Array))
+  elif isinstance(sharding, (tuple, list)) and any([isinstance(s, str) for s in sharding]):
+    return partition_by_axname(x, sharding)
+  else:
+    raise TypeError
