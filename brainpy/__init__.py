@@ -179,10 +179,10 @@ fde.__getattr__ = deprecation_getattr2('brainpy.fde', sde.__deprecations)
 
 dyn.__deprecations = {
   # module
-  'channels': ('brainpy.dyn.channels', 'brainpy.channels', channels),
-  'neurons': ('brainpy.dyn.neurons', 'brainpy.neurons', neurons),
+  # 'channels': ('brainpy.dyn.channels', 'brainpy.channels', channels),
+  # 'neurons': ('brainpy.dyn.neurons', 'brainpy.neurons', neurons),
   'rates': ('brainpy.dyn.rates', 'brainpy.rates', rates),
-  'synapses': ('brainpy.dyn.synapses', 'brainpy.synapses', synapses),
+  # 'synapses': ('brainpy.dyn.synapses', 'brainpy.synapses', synapses),
   'synouts': ('brainpy.dyn.synouts', 'brainpy.synapses', synouts),
   'synplast': ('brainpy.dyn.synplast', 'brainpy.synapses', synplast),
 
@@ -193,7 +193,7 @@ dyn.__deprecations = {
   'Network': ('brainpy.dyn.Network', 'brainpy.Network', Network),
   'NeuGroup': ('brainpy.dyn.NeuGroup', 'brainpy.NeuGroup', NeuGroup),
   'SynConn': ('brainpy.dyn.SynConn', 'brainpy.SynConn', SynConn),
-  'SynOut': ('brainpy.dyn.SynOut', 'brainpy.SynOut', SynOut),
+  # 'SynOut': ('brainpy.dyn.SynOut', 'brainpy.SynOut', SynOut),
   'SynLTP': ('brainpy.dyn.SynLTP', 'brainpy.SynLTP', SynLTP),
   'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.SynSTP', SynSTP),
   'TwoEndConn': ('brainpy.dyn.TwoEndConn', 'brainpy.TwoEndConn', TwoEndConn),
@@ -231,7 +231,7 @@ dyn.__deprecations = {
   'DualExpCOBA': ('brainpy.dyn.DualExpCOBA', 'brainpy.synapses.DualExponential', compat.DualExpCOBA),
   'AlphaCUBA': ('brainpy.dyn.AlphaCUBA', 'brainpy.synapses.Alpha', compat.AlphaCUBA),
   'AlphaCOBA': ('brainpy.dyn.AlphaCOBA', 'brainpy.synapses.Alpha', compat.AlphaCOBA),
-  'NMDA': ('brainpy.dyn.NMDA', 'brainpy.synapses.NMDA', compat.NMDA),
+  # 'NMDA': ('brainpy.dyn.NMDA', 'brainpy.synapses.NMDA', compat.NMDA),
 }
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 
