@@ -905,9 +905,11 @@ def _get_while_transform(cond_fun, body_fun, dyn_vars):
       v._value = dyn_vals[k]
     new_vals = body_fun(*old_vals)
     if new_vals is None:
-      new_vals = tuple()
+      new_vals = old_vals
     if not isinstance(new_vals, tuple):
       new_vals = (new_vals,)
+    if isinstance(new_vals, list):
+      new_vals = tuple(new_vals)
     return dyn_vars.dict_data(), new_vals
 
   def _cond_fun(op):

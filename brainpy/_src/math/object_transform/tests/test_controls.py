@@ -205,6 +205,26 @@ class TestWhile(bp.testing.UnitTestCase):
     print()
     print(res)
 
+  def test3(self):
+    a = bm.Variable(bm.zeros(1))
+    b = bm.Variable(bm.ones(1))
+
+    def cond(x, y):
+      return bm.all(a.value < 6.)
+
+    def body(x, y):
+      a.value += x
+      b.value *= y
+
+    res = bm.while_loop(body, cond, operands=(1., 1.))
+    self.assertTrue(bm.allclose(a, 6.))
+    self.assertTrue(bm.allclose(b, 1.))
+    print()
+    print(res)
+    print(a)
+    print(b)
+
+
   def test2(self):
     a = bm.Variable(bm.zeros(1))
     b = bm.Variable(bm.ones(1))

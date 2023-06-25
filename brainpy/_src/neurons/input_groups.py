@@ -147,7 +147,7 @@ class SpikeTimeGroup(NeuGroupNS):
 
   def update(self):
     self.spike.value = bm.zeros_like(self.spike)
-    bm.while_loop(self._cond_fun, self._body_fun, share.load('t'))
+    bm.while_loop(self._body_fun, self._cond_fun, share.load('t'))
     return self.spike.value
 
   # functions
