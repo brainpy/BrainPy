@@ -220,8 +220,8 @@ class Ih_De1996(IhChannel, CalciumChannel):
     return self.k1 * C_Ca ** 4 * (1 - P1) - self.k2 * P1
 
   def update(self, tdi, V, C_Ca, E_Ca):
-    self.O.value = self.integral(self.O.value, self.OL.value, self.P1.value,
-                                 tdi['t'], V=V, C_Ca=C_Ca, dt=tdi['dt'])
+    self.O.value, self.OL.value, self.P1.value = self.integral(self.O.value, self.OL.value, self.P1.value,
+                                                               tdi['t'], V=V, C_Ca=C_Ca, dt=tdi['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * (self.O + self.g_inc * self.OL) * (self.E - V)

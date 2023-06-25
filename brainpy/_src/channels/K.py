@@ -812,17 +812,17 @@ class IKK2A_HM1992(_IKK2_pq_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
+    return 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
 
   def f_p_tau(self, V):
     return 1. / (bm.exp((V - self.V_sh - 81.) / 25.6) +
                  bm.exp(-(V - self.V_sh + 132) / 18.)) + 9.9
 
   def f_q_inf(self, V):
-    raise 1. / (1. + bm.exp((V - self.V_sh + 58.) / 10.6))
+    return 1. / (1. + bm.exp((V - self.V_sh + 58.) / 10.6))
 
   def f_q_tau(self, V):
-    raise 1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
+    return 1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
                 bm.exp(-(V - self.V_sh + 130.) / 7.1))
 
 
@@ -903,17 +903,17 @@ class IKK2B_HM1992(_IKK2_pq_ss):
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_inf(self, V):
-    raise 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
+    return 1. / (1. + bm.exp(-(V - self.V_sh + 43.) / 17.))
 
   def f_p_tau(self, V):
     return 1. / (bm.exp((V - self.V_sh - 81.) / 25.6) +
                  bm.exp(-(V - self.V_sh + 132) / 18.)) + 9.9
 
   def f_q_inf(self, V):
-    raise 1. / (1. + bm.exp((V - self.V_sh + 58.) / 10.6))
+    return 1. / (1. + bm.exp((V - self.V_sh + 58.) / 10.6))
 
   def f_q_tau(self, V):
-    raise bm.where(V < -70 + self.V_sh,
+    return bm.where(V < -70 + self.V_sh,
                    1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
                          bm.exp(-(V - self.V_sh + 130.) / 7.1)),
                    8.9)
@@ -1010,8 +1010,8 @@ class IKNI_Ya1989(PotassiumChannel):
       assert self.p.shape[0] == batch_size
 
   def f_p_inf(self, V):
-    raise 1. / (1. + bm.exp(-(V - self.V_sh + 35.) / 10.))
+    return 1. / (1. + bm.exp(-(V - self.V_sh + 35.) / 10.))
 
   def f_p_tau(self, V):
     temp = V - self.V_sh + 35.
-    raise self.tau_max / (3.3 * bm.exp(temp / 20.) + bm.exp(-temp / 20.))
+    return self.tau_max / (3.3 * bm.exp(temp / 20.) + bm.exp(-temp / 20.))

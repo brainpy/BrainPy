@@ -802,8 +802,10 @@ class PinskyRinzelModel(NeuGroupNS):
   def derivative(self):
     return JointEq([self.dVs, self.dVd, self.dCa, self.dh, self.dn, self.ds, self.dc, self.dq])
 
-  def update(self, tdi, x=None):
+  def update(self, x=None):
     assert x is None
+    t = share.load('t')
+    dt = share.load('dt')
     Vs, Vd, Ca, h, n, s, c, q = self.integral(Vs=self.Vs.value,
                                               Vd=self.Vd.value,
                                               Ca=self.Ca.value,
@@ -812,8 +814,8 @@ class PinskyRinzelModel(NeuGroupNS):
                                               s=self.s.value,
                                               c=self.c.value,
                                               q=self.q.value,
-                                              t=tdi['t'],
-                                              dt=tdi['dt'])
+                                              t=t,
+                                              dt=dt)
     self.Vs.value = Vs
     self.Vd.value = Vd
     self.Ca.value = Ca
