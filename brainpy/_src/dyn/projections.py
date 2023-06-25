@@ -4,12 +4,17 @@ from brainpy import math as bm
 from brainpy._src.delay import Delay, TargetDelay
 from brainpy._src.dyn.base import NeuDyn, SynOut
 from brainpy._src.dynsys import DynamicalSystemNS, DynamicalSystem
-from brainpy._src.mixin import DelayedInit, ReturnInfo, SupportProjection
+from brainpy._src.mixin import DelayedInit, ReturnInfo, ProjAutoDelay
 
 __all__ = [
+  'SynProj',
   'ProjAlignPre',
   'ProjAlignPost',
 ]
+
+
+class SynProj(DynamicalSystemNS):
+  pass
 
 
 class _AlignPre(DynamicalSystemNS):
@@ -23,6 +28,16 @@ class _AlignPre(DynamicalSystemNS):
       return x >> self.syn
     else:
       return x >> self.syn >> self.delay
+
+
+class _AlignPost(DynamicalSystemNS):
+  def __init__(self, syn, out):
+    super().__init__()
+    self.syn = syn
+    self.out = out
+
+  def update(self, *args, **kwargs):
+    self.out.bind_cond(self.syn(*args, **kwargs))
 
 
 def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
@@ -49,7 +64,7 @@ def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
   return TargetDelay(target)
 
 
-class ProjAlignPre(DynamicalSystemNS):
+class ProjAlignPre(SynProj):
   """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
 
   Args:
@@ -66,7 +81,7 @@ class ProjAlignPre(DynamicalSystemNS):
   def __init__(
       self,
       pre: NeuDyn,
-      syn: DelayedInit[SupportProjection],
+      syn: DelayedInit[ProjAutoDelay],
       delay: Union[None, int, float],
       comm: Callable,
       out: SynOut,
@@ -81,7 +96,7 @@ class ProjAlignPre(DynamicalSystemNS):
     assert isinstance(post, NeuDyn)
     assert callable(comm)
     assert isinstance(out, SynOut)
-    assert isinstance(syn, DelayedInit) and issubclass(syn.cls, SupportProjection)
+    assert isinstance(syn, DelayedInit) and issubclass(syn.cls, ProjAutoDelay)
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -89,8 +104,8 @@ class ProjAlignPre(DynamicalSystemNS):
     # synapse and delay initialization
     self._syn_id = syn._identifier
     if self._syn_id not in pre.post_updates:
-      syn_cls: SupportProjection = syn()
-      delay_cls = _init_delay(syn_cls.update_return())
+      syn_cls: ProjAutoDelay = syn()
+      delay_cls = _init_delay(syn_cls.return_for_delay())
       pre.post_updates[self._syn_id] = _AlignPre(syn_cls, delay_cls)
     delay_cls: Delay = pre.post_updates[self._syn_id].delay
     delay_cls.register_entry(self.name, delay)
@@ -104,17 +119,7 @@ class ProjAlignPre(DynamicalSystemNS):
     return current
 
 
-class _AlignPost(DynamicalSystemNS):
-  def __init__(self, syn, out):
-    super().__init__()
-    self.syn = syn
-    self.out = out
-
-  def update(self, *args, **kwargs):
-    self.out.bind_cond(self.syn(*args, **kwargs))
-
-
-class ProjAlignPost(DynamicalSystemNS):
+class ProjAlignPost(SynProj):
   """Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
 
   Args:
@@ -130,7 +135,7 @@ class ProjAlignPost(DynamicalSystemNS):
 
   def __init__(
       self,
-      pre: SupportProjection,
+      pre: ProjAutoDelay,
       delay: Union[None, int, float],
       comm: Callable,
       syn: DelayedInit[DynamicalSystem],
@@ -142,7 +147,7 @@ class ProjAlignPost(DynamicalSystemNS):
     super().__init__(name=name, mode=mode)
 
     # synaptic models
-    assert isinstance(pre, NeuDyn)
+    assert isinstance(pre, NeuDyn) and isinstance(pre, ProjAutoDelay)
     assert isinstance(post, NeuDyn)
     assert isinstance(syn, DelayedInit) and issubclass(syn.cls, DynamicalSystem)
     assert isinstance(out, DelayedInit) and issubclass(out.cls, SynOut)
@@ -154,7 +159,7 @@ class ProjAlignPost(DynamicalSystemNS):
     # delay initialization
     self._delay_repr = '_*_align_pre_spk_delay_*_'
     if self._delay_repr not in self.pre.post_updates:
-      delay_cls = _init_delay(pre.update_return())
+      delay_cls = _init_delay(pre.return_for_delay())
       self.pre.post_updates[self._delay_repr] = delay_cls
     delay_cls: Delay = pre.post_updates[self._delay_repr]
     delay_cls.register_entry(self.name, delay)

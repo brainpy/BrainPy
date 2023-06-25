@@ -6,7 +6,7 @@ __all__ = [
   'MixIn',
   'ParamDesc',
   'AlignPost',
-  'SupportProjection',
+  'ProjAutoDelay',
 ]
 
 
@@ -87,8 +87,8 @@ class ReturnInfo:
   init: Callable
 
 
-class SupportProjection(MixIn):
-  """Projection support."""
+class ProjAutoDelay(MixIn):
+  """Support for automatic delay in synaptic projection :py:class:`~.SynProj`."""
 
-  def update_return(self) -> Union[bm.Variable, ReturnInfo]:
+  def return_for_delay(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError

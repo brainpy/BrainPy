@@ -129,7 +129,7 @@ class LifLtc(DiffNeuDyn):
     self.spike.value = spike
     return spike
 
-  def update_return(self):
+  def return_for_delay(self):
     return self.spike
 
 
