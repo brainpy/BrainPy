@@ -8,6 +8,7 @@ from brainpy._src.channels import IH, Ca
 
 
 class Test_IH(parameterized.TestCase):
+  bm.random.seed(1234)
   def test_IH(self):
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):

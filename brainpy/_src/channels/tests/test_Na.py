@@ -8,6 +8,7 @@ from brainpy._src.channels import Na
 
 
 class Test_Na(parameterized.TestCase):
+  bm.random.seed(1234)
   def test_Na(self):
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):

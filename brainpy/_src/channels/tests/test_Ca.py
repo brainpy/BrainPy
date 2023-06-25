@@ -8,6 +8,7 @@ from brainpy._src.channels import Ca
 
 class Test_Ca(parameterized.TestCase):
   def test_Ca(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
@@ -25,6 +26,7 @@ class Test_Ca(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['Ca3.C'].shape, (100, 1))
 
   def test_ICaN_IS2008(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
@@ -41,6 +43,7 @@ class Test_Ca(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['Ca.ICa.p'].shape, (100, 1))
 
   def test_ICaT_HM1992(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
@@ -59,6 +62,7 @@ class Test_Ca(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['Ca.ICa.p'].shape, (100, 1))
 
   def test_ICaT_HP1992(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
@@ -77,6 +81,7 @@ class Test_Ca(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['Ca.ICa.p'].shape, (100, 1))
 
   def test_ICaHT_HM1992(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
@@ -95,6 +100,7 @@ class Test_Ca(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['Ca.ICa.p'].shape, (100, 1))
 
   def test_ICaHT_Re1993(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
@@ -113,6 +119,7 @@ class Test_Ca(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['Ca.ICa.p'].shape, (100, 1))
 
   def test_ICaL_IS2008(self):
+    bm.random.seed(1234)
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)

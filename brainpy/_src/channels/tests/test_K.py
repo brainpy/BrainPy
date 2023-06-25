@@ -7,6 +7,7 @@ from absl.testing import parameterized
 from brainpy._src.channels import K
 
 class Test_K(parameterized.TestCase):
+  bm.random.seed(1234)
   def test_K(self):
     class Neuron(bp.CondNeuGroup):
       def __init__(self, size):
