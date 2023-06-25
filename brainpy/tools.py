@@ -3,6 +3,7 @@
 
 from brainpy._src.tools.codes import (
   repr_object as repr_object,
+  repr_dict as repr_dict,
   repr_context as repr_context,
   copy_doc as copy_doc,
   code_lines_to_func as code_lines_to_func,

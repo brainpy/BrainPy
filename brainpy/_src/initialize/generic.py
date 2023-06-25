@@ -8,9 +8,8 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy.tools import to_size
-from brainpy.types import Shape, ArrayType
+from brainpy.types import Shape, ArrayType, Sharding
 from .base import Initializer
-
 
 __all__ = [
   'parameter',
@@ -34,7 +33,7 @@ def parameter(
     sizes: Shape,
     allow_none: bool = True,
     allow_scalar: bool = True,
-    axis_names: Optional[Sequence[str]] = None
+    sharding: Optional[Sharding] = None
 ):
   """Initialize parameters.
 
@@ -52,7 +51,7 @@ def parameter(
     Whether allow the parameter is None.
   allow_scalar: bool
     Whether allow the parameter is a scalar value.
-  axis_names: sequence of str
+  sharding: Sharding
     The axes for automatic array sharding.
 
   Returns
@@ -92,7 +91,7 @@ def parameter(
       return param
   if param.shape != sizes:
     raise ValueError(f'The shape of the parameters should be {sizes}, but we got {param.shape}')
-  return bm.sharding.partition_by_axname(param, axis_names)
+  return bm.sharding.partition(param, sharding)
 
 
 def variable_(
@@ -191,15 +190,15 @@ def variable(
     if sizes is None:
       raise ValueError('"varshape" cannot be None when data is a callable function.')
     if isinstance(batch_or_mode, bm.NonBatchingMode):
-      data = bm.Variable(init(sizes))
+      data = bm.Variable(init(sizes), axis_names=axis_names)
     elif isinstance(batch_or_mode, bm.BatchingMode):
       new_shape = sizes[:batch_axis] + (batch_or_mode.batch_size,) + sizes[batch_axis:]
-      data = bm.Variable(init(new_shape), batch_axis=batch_axis)
+      data = bm.Variable(init(new_shape), batch_axis=batch_axis, axis_names=axis_names)
     elif batch_or_mode in (None, False):
-      data = bm.Variable(init(sizes))
+      data = bm.Variable(init(sizes), axis_names=axis_names)
     elif isinstance(batch_or_mode, int):
       new_shape = sizes[:batch_axis] + (int(batch_or_mode),) + sizes[batch_axis:]
-      data = bm.Variable(init(new_shape), batch_axis=batch_axis)
+      data = bm.Variable(init(new_shape), batch_axis=batch_axis, axis_names=axis_names)
     else:
       raise ValueError(f'Unknown batch_size_or_mode: {batch_or_mode}')
 
@@ -208,19 +207,21 @@ def variable(
       if bm.shape(init) != sizes:
         raise ValueError(f'The shape of "data" {bm.shape(init)} does not match with "var_shape" {sizes}')
     if isinstance(batch_or_mode, bm.NonBatchingMode):
-      data = bm.Variable(init)
+      data = bm.Variable(init, axis_names=axis_names)
     elif isinstance(batch_or_mode, bm.BatchingMode):
       data = bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
                                    batch_or_mode.batch_size,
                                    axis=batch_axis),
-                         batch_axis=batch_axis)
+                         batch_axis=batch_axis,
+                         axis_names=axis_names)
     elif batch_or_mode in (None, False):
-      data = bm.Variable(init)
+      data = bm.Variable(init, axis_names=axis_names)
     elif isinstance(batch_or_mode, int):
       data = bm.Variable(bm.repeat(bm.expand_dims(init, axis=batch_axis),
                                    int(batch_or_mode),
                                    axis=batch_axis),
-                         batch_axis=batch_axis)
+                         batch_axis=batch_axis,
+                         axis_names=axis_names)
     else:
       raise ValueError('Unknown batch_size_or_mode.')
   return bm.sharding.partition_by_axname(data, axis_names)

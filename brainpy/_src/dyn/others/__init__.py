@@ -1,0 +1,2 @@
+def commono():
+  return None

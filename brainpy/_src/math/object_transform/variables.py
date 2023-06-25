@@ -1,4 +1,4 @@
-from typing import Optional, Any, List, Callable
+from typing import Optional, Any, List, Callable, Sequence
 
 from contextlib import contextmanager
 import jax
@@ -7,6 +7,7 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
+from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import MathError
 
@@ -172,7 +173,7 @@ class Variable(Array):
     The batch axis.
   """
 
-  __slots__ = ('_value', '_batch_axis', '_ready_to_trace')
+  __slots__ = ('_value', '_batch_axis', '_ready_to_trace', 'axis_names')
 
   def __init__(
       self,
@@ -180,6 +181,7 @@ class Variable(Array):
       dtype: type = None,
       batch_axis: int = None,
       *,
+      axis_names: Optional[Sequence[str]] = None,
       _ready_to_trace: bool = True
   ):
     if isinstance(value_or_size, int):
@@ -208,6 +210,13 @@ class Variable(Array):
 
     # ready to trace the variable
     self._ready_to_trace = _ready_to_trace and len(var_stack_list) == 0
+    if axis_names is not None:
+      if len(axis_names) + 1 == self.ndim:
+        axis_names = list(axis_names)
+        axis_names.insert(self.batch_axis, BATCH_AXIS)
+      assert len(axis_names) == self.ndim
+      axis_names = tuple(axis_names)
+    self.axis_names = axis_names
 
   @property
   def batch_axis(self) -> Optional[int]:
@@ -292,13 +301,15 @@ class TrainVar(Variable):
       dtype: type = None,
       batch_axis: int = None,
       *,
+      axis_names: Optional[Sequence[str]] = None,
       _ready_to_trace: bool = True
   ):
     super(TrainVar, self).__init__(
       value_or_size,
       dtype=dtype,
       batch_axis=batch_axis,
-      _ready_to_trace=_ready_to_trace
+      _ready_to_trace=_ready_to_trace,
+      axis_names=axis_names,
     )
 
 
@@ -313,13 +324,15 @@ class Parameter(Variable):
       dtype: type = None,
       batch_axis: int = None,
       *,
+      axis_names: Optional[Sequence[str]] = None,
       _ready_to_trace: bool = True
   ):
     super(Parameter, self).__init__(
       value_or_size,
       dtype=dtype,
       batch_axis=batch_axis,
-      _ready_to_trace=_ready_to_trace
+      _ready_to_trace=_ready_to_trace,
+      axis_names=axis_names,
     )
 
 

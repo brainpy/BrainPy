@@ -105,7 +105,7 @@ class TestPool(parameterized.TestCase):
     for target_size in [10, 9, 8, 7, 6]
   )
   def test_adaptive_pool1d(self, target_size):
-    from brainpy._src.layers.pooling import _adaptive_pool1d
+    from brainpy._src.dnn.pooling import _adaptive_pool1d
 
     arr = self.rng.rand(100)
     op = jax.numpy.mean
