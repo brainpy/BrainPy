@@ -103,19 +103,19 @@ class ProjAlignPre(SynProj):
 
     # synapse and delay initialization
     self._syn_id = syn._identifier
-    if self._syn_id not in pre.post_updates:
+    if self._syn_id not in pre.after_updates:
       syn_cls: ProjAutoDelay = syn()
       delay_cls = _init_delay(syn_cls.return_for_delay())
-      pre.post_updates[self._syn_id] = _AlignPre(syn_cls, delay_cls)
-    delay_cls: Delay = pre.post_updates[self._syn_id].delay
+      pre.after_updates[self._syn_id] = _AlignPre(syn_cls, delay_cls)
+    delay_cls: Delay = pre.after_updates[self._syn_id].delay
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
-    post.cur_outputs[self.name] = out
+    post.cur_inputs[self.name] = out
 
   def update(self):
-    current = self.comm(self.pre.post_updates[self._syn_id].delay.at(self.name))
-    self.post.cur_outputs[self.name].bind_cond(current)
+    current = self.comm(self.pre.after_updates[self._syn_id].delay.at(self.name))
+    self.post.cur_inputs[self.name].bind_cond(current)
     return current
 
 
@@ -158,21 +158,21 @@ class ProjAlignPost(SynProj):
 
     # delay initialization
     self._delay_repr = '_*_align_pre_spk_delay_*_'
-    if self._delay_repr not in self.pre.post_updates:
+    if self._delay_repr not in self.pre.after_updates:
       delay_cls = _init_delay(pre.return_for_delay())
-      self.pre.post_updates[self._delay_repr] = delay_cls
-    delay_cls: Delay = pre.post_updates[self._delay_repr]
+      self.pre.after_updates[self._delay_repr] = delay_cls
+    delay_cls: Delay = pre.after_updates[self._delay_repr]
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
     self._post_repr = f'{syn._identifier} // {out._identifier}'
-    if self._post_repr not in self.post.pre_updates:
+    if self._post_repr not in self.post.before_updates:
       syn_cls = syn()
       out_cls = out()
-      self.post.cur_outputs[self.name] = out_cls
-      self.post.pre_updates[self._post_repr] = _AlignPost(syn_cls, out_cls)
+      self.post.cur_inputs[self.name] = out_cls
+      self.post.before_updates[self._post_repr] = _AlignPost(syn_cls, out_cls)
 
   def update(self):
-    current = self.comm(self.pre.post_updates[self._delay_repr].at(self.name))
-    self.post.pre_updates[self._post_repr].syn.add_current(current)  # synapse post current
+    current = self.comm(self.pre.after_updates[self._delay_repr].at(self.name))
+    self.post.before_updates[self._post_repr].syn.add_current(current)  # synapse post current
     return current

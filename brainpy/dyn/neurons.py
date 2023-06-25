@@ -5,8 +5,8 @@ from brainpy._src.dyn.base import (
 
 from brainpy._src.dyn.neurons.lif import (
   Lif,
-  LifLtc,
-  LifRefLtc,
+  LifLTC,
+  LifRefLTC,
   LifRef,
 )
 

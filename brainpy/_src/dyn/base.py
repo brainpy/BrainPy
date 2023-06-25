@@ -37,12 +37,12 @@ class NeuDyn(NeuGroupNS, ProjAutoDelay):
     # axis names for parallelization
     self.sharding = sharding
 
-    # the pre- / post-updates used for computing
-    self.pre_updates: Dict[str, Callable] = bm.node_dict()
-    self.post_updates: Dict[str, Callable] = bm.node_dict()
+    # the before- / after-updates used for computing
+    self.before_updates: Dict[str, Callable] = bm.node_dict()
+    self.after_updates: Dict[str, Callable] = bm.node_dict()
 
     # outputs
-    self.cur_outputs: Dict[str, SynOut] = bm.node_dict()
+    self.cur_inputs: Dict[str, SynOut] = bm.node_dict()
 
   def init_param(self, param, shape=None, sharding=None):
     """Initialize parameters.
@@ -76,15 +76,15 @@ class NeuDyn(NeuGroupNS, ProjAutoDelay):
                      batch_axis_name=bm.sharding.BATCH_AXIS)
 
   def __call__(self, *args, **kwargs):
-    # update ``pre_updates``
-    for model in tuple(self.pre_updates.values()):
+    # update ``before_updates``
+    for model in tuple(self.before_updates.values()):
       model()
 
     # update the model self
     ret = super().__call__(*args, **kwargs)
 
-    # update ``post_updates``
-    for model in tuple(self.post_updates.values()):
+    # update ``after_updates``
+    for model in tuple(self.after_updates.values()):
       model(ret)
     return ret
 
@@ -92,7 +92,7 @@ class NeuDyn(NeuGroupNS, ProjAutoDelay):
 NeuDyn.__doc__ = NeuDyn.__doc__.format(pneu=pneu_doc)
 
 
-class DiffNeuDyn(NeuDyn):
+class GradNeuDyn(NeuDyn):
   """Differentiable and Parallelizable Neuron Group.
 
   Args:
@@ -111,9 +111,9 @@ class DiffNeuDyn(NeuDyn):
       name: Optional[str] = None,
 
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
       detach_spk: bool = False,
       method: str = 'exp_auto',
-      spk_type: Any = None,
   ):
     super().__init__(size=size,
                      mode=mode,
@@ -134,7 +134,7 @@ class DiffNeuDyn(NeuDyn):
       return self._spk_type
 
 
-DiffNeuDyn.__doc__ = DiffNeuDyn.__doc__.format(pneu=pneu_doc, dpneu=dpneu_doc)
+GradNeuDyn.__doc__ = GradNeuDyn.__doc__.format(pneu=pneu_doc, dpneu=dpneu_doc)
 
 
 class SynDyn(NeuDyn, ParamDesc):
@@ -167,4 +167,11 @@ class SynOut(DynamicalSystemNS, ParamDesc):
     ret = self.update(self._conductance, *args, **kwargs)
     return ret
 
+
+class HHTypeNeuLTC(NeuDyn):
+  pass
+
+
+class HHTypeNeu(HHTypeNeuLTC):
+  pass
 

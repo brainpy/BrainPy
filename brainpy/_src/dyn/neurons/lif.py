@@ -10,21 +10,21 @@ from brainpy._src.integrators import odeint
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
 from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc
-from brainpy._src.dyn.base import DiffNeuDyn
+from brainpy._src.dyn.base import GradNeuDyn
 
 __all__ = [
   'Lif',
-  'LifLtc',
+  'LifLTC',
   'LifRef',
-  'LifRefLtc',
+  'LifRefLTC',
 ]
 
 
-class PIF(DiffNeuDyn):
+class PIF(GradNeuDyn):
   pass
 
 
-class LifLtc(DiffNeuDyn):
+class LifLTC(GradNeuDyn):
   r"""Leaky integrate-and-fire neuron model %s.
 
   The formal equations of a LIF model [1]_ is given by:
@@ -99,7 +99,7 @@ class LifLtc(DiffNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    for out in self.cur_outputs.values():
+    for out in self.cur_inputs.values():
       I += out(V)
     return (-V + self.V_rest + self.R * I) / self.tau
 
@@ -133,22 +133,22 @@ class LifLtc(DiffNeuDyn):
     return self.spike
 
 
-class Lif(LifLtc):
+class Lif(LifLTC):
   def derivative(self, V, t, I):
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_outputs.values():
+    for out in self.cur_inputs.values():
       x += out(self.V.value)
     super().update(x)
 
 
-Lif.__doc__ = LifLtc.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc)
-LifLtc.__doc__ = LifLtc.__doc__ % (ltc_doc, lif_doc, pneu_doc, dpneu_doc)
+Lif.__doc__ = LifLTC.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc)
+LifLTC.__doc__ = LifLTC.__doc__ % (ltc_doc, lif_doc, pneu_doc, dpneu_doc)
 
 
-class LifRefLtc(LifLtc):
+class LifRefLTC(LifLTC):
   r"""Leaky integrate-and-fire neuron model %s which has refractory periods.
 
   The formal equations of a LIF model [1]_ is given by:
@@ -281,36 +281,36 @@ class LifRefLtc(LifLtc):
     return spike
 
 
-class LifRef(LifRefLtc):
+class LifRef(LifRefLTC):
   def derivative(self, V, t, I):
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_outputs.values():
+    for out in self.cur_inputs.values():
       x += out(self.V.value)
     super().update(x)
 
 
-LifRef.__doc__ = LifRefLtc.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc, ref_doc)
-LifRefLtc.__doc__ = LifRefLtc.__doc__ % (ltc_doc, lif_doc, pneu_doc, dpneu_doc, ref_doc)
+LifRef.__doc__ = LifRefLTC.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc, ref_doc)
+LifRefLTC.__doc__ = LifRefLTC.__doc__ % (ltc_doc, lif_doc, pneu_doc, dpneu_doc, ref_doc)
 
 
-class PExpIF(DiffNeuDyn):
+class PExpIF(GradNeuDyn):
   pass
 
 
-class PAdExIF(DiffNeuDyn):
+class PAdExIF(GradNeuDyn):
   pass
 
 
-class PQuaIF(DiffNeuDyn):
+class PQuaIF(GradNeuDyn):
   pass
 
 
-class PAdQuaIF(DiffNeuDyn):
+class PAdQuaIF(GradNeuDyn):
   pass
 
 
-class PGIF(DiffNeuDyn):
+class PGIF(GradNeuDyn):
   pass

@@ -92,3 +92,4 @@ class ProjAutoDelay(MixIn):
 
   def return_for_delay(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError
+
