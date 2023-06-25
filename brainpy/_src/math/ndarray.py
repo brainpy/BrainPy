@@ -1164,6 +1164,7 @@ class Array(object):
     vec2 = _as_jax_array_(vec2)
     r = alpha * jnp.outer(vec1, vec2) + beta * self.value
     self.value = r
+    return self
 
   def outer(self, other: Union['Array', jax.Array, np.ndarray]) -> 'Array':
     other = _as_jax_array_(other)
@@ -1177,11 +1178,16 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def abs_(self) -> None:
+  def abs_(self):
     """
     in-place version of Array.abs()
     """
     self.value = jnp.abs(self.value)
+    return self
+
+  def add_(self, value):
+    self.value += value
+    return self
 
   def absolute(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     """
@@ -1194,6 +1200,7 @@ class Array(object):
     alias of Array.abs_()
     """
     return self.abs_()
+
 
   def mul(self, value):
     return Array(self.value * value)
@@ -1232,9 +1239,11 @@ class Array(object):
 
   def sin_(self) -> None:
     self.value = jnp.sin(self.value)
+    return self
 
   def cos_(self) -> None:
     self.value = jnp.cos(self.value)
+    return self
 
   def cos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.cos(self.value)
@@ -1246,6 +1255,7 @@ class Array(object):
 
   def tan_(self) -> None:
     self.value = jnp.tan(self.value)
+    return self
 
   def tan(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.tan(self.value)
@@ -1257,6 +1267,7 @@ class Array(object):
 
   def sinh_(self) -> None:
     self.value = jnp.tanh(self.value)
+    return self
 
   def sinh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.tanh(self.value)
@@ -1268,6 +1279,7 @@ class Array(object):
 
   def cosh_(self) -> None:
     self.value = jnp.cosh(self.value)
+    return self
 
   def cosh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.cosh(self.value)
@@ -1279,6 +1291,7 @@ class Array(object):
 
   def tanh_(self) -> None:
     self.value = jnp.tanh(self.value)
+    return self
 
   def tanh(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.tanh(self.value)
@@ -1290,6 +1303,7 @@ class Array(object):
 
   def arcsin_(self) -> None:
     self.value = jnp.arcsin(self.value)
+    return self
 
   def arcsin(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.arcsin(self.value)
@@ -1301,6 +1315,7 @@ class Array(object):
 
   def arccos_(self) -> None:
     self.value = jnp.arccos(self.value)
+    return self
 
   def arccos(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.arccos(self.value)
@@ -1312,6 +1327,7 @@ class Array(object):
 
   def arctan_(self) -> None:
     self.value = jnp.arctan(self.value)
+    return self
 
   def arctan(self, *, out: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> Optional['Array']:
     r = jnp.arctan(self.value)
@@ -1351,6 +1367,7 @@ class Array(object):
     if max_value is None, then no upper bound.
     """
     self.clamp(min_value, max_value, out=self)
+    return self
 
   def clip_(self,
             min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
@@ -1358,13 +1375,15 @@ class Array(object):
     """
     alias for clamp_
     """
-    return self.clip(min_value, max_value, out=self)
+    self.value = self.clip(min_value, max_value, out=self)
+    return self
 
   def clone(self) -> 'Array':
     return Array(self.value.copy())
 
   def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> None:
     self.value = jnp.copy(_as_jax_array_(src))
+    return self
 
   def cov_with(
       self,
@@ -1426,12 +1445,15 @@ class Array(object):
 
   def zero_(self):
     self.value = jnp.zeros_like(self.value)
+    return self
 
   def fill_(self, value):
     self.fill(value)
+    return self
 
   def uniform_(self, low=0., high=1.):
     self.value = brainpy.math.random.uniform(low, high, self.shape)
+    return self
 
   def log_normal_(self, mean=1, std=2):
     r"""Fills self tensor with numbers samples from the log-normal distribution parameterized by the given mean
@@ -1447,12 +1469,14 @@ class Array(object):
       std: the standard deviation.
     """
     self.value = brainpy.math.random.lognormal(mean, std, self.shape)
+    return self
 
   def normal_(self, ):
     """
     Fills self tensor with elements samples from the normal distribution parameterized by mean and std.
     """
     self.value = brainpy.math.random.randn(*self.shape)
+    return self
 
   def cuda(self):
     self.value = jax.device_put(self.value, jax.devices('cuda')[0])

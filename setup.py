@@ -50,8 +50,8 @@ setup(
   author='BrainPy Team',
   author_email='chao.brain@qq.com',
   packages=packages,
-  python_requires='>=3.7',
-  install_requires=['numpy>=1.15', 'jax>=0.3.0', 'tqdm', 'msgpack'],
+  python_requires='>=3.8',
+  install_requires=['numpy>=1.15', 'jax>=0.4.1', 'tqdm', 'msgpack'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",

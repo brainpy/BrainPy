@@ -99,8 +99,11 @@ class BrainPyObject(object):
     # which cannot be accessed by self.xxx
     self.implicit_nodes: Collector = Collector()
 
+  def setattr(self, key: str, value: Any) -> None:
+    super().__setattr__(key, value)
+
   def __setattr__(self, key: str, value: Any) -> None:
-    """Overwrite `__setattr__` method for change Variable values.
+    """Overwrite `__setattr__` method for changing :py:class:`~.Variable` values.
 
     .. versionadded:: 2.3.1
 
