@@ -10,7 +10,6 @@ from jax.tree_util import register_pytree_node_class
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import MathError
 
-
 __all__ = [
   'Variable',
   'TrainVar',
@@ -27,6 +26,7 @@ class VariableStack(dict):
 
   :py:class:`~.VariableStack` supports all features of python dict.
   """
+
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self._values = dict()
@@ -82,10 +82,11 @@ class VariableStack(dict):
 
   def remove_var_by_id(self, *ids, error_when_absent=False):
     """Remove variables in the stack by the given ids."""
-    for id_ in ids:
-      if error_when_absent:
+    if error_when_absent:
+      for id_ in ids:
         self.pop(id_)
-      else:
+    else:
+      for id_ in ids:
         self.pop(id_, None)
 
   def __enter__(self) -> 'VariableStack':
@@ -136,7 +137,6 @@ def outermost_transform():
 
 def current_transform_number():
   return len(transform_stack)
-
 
 
 def _stack_add_read(var: 'Variable'):
