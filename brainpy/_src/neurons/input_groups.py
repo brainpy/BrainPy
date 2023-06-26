@@ -2,6 +2,7 @@
 
 from typing import Union, Sequence
 
+import jax
 import jax.numpy as jnp
 from brainpy._src.context import share
 import brainpy.math as bm
