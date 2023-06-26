@@ -1,7 +1,7 @@
 from typing import Optional, Callable, Union
 
 from brainpy import math as bm
-from brainpy._src.delay import Delay, TargetDelay
+from brainpy._src.delay import Delay, VariableDelay, DataDelay
 from brainpy._src.dyn.base import NeuDyn, SynOut
 from brainpy._src.dynsys import DynamicalSystemNS, DynamicalSystem
 from brainpy._src.mixin import DelayedInit, ReturnInfo, ProjAutoDelay
@@ -42,7 +42,7 @@ class _AlignPost(DynamicalSystemNS):
 
 def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
   if isinstance(info, bm.Variable):
-    target = info
+    return VariableDelay(info)
   elif isinstance(info, ReturnInfo):
     if isinstance(info.batch_or_mode, int):
       size = (info.batch_or_mode,) + tuple(info.size)
@@ -59,9 +59,10 @@ def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
     target = bm.Variable(info.init(size),
                          batch_axis=batch_axis,
                          axis_names=info.axis_names)
+    return DataDelay(target, target_init=info.init)
   else:
     raise TypeError
-  return TargetDelay(target)
+
 
 
 class ProjAlignPre(SynProj):

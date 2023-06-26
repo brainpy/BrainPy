@@ -168,28 +168,31 @@ class DynamicalSystem(BrainPyObject):
     if share is None:
       from brainpy._src.context import share
 
-    if self._pass_shared_args:
-      if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
-        if len(args) and isinstance(args[0], dict):
+    try:
+      if self._pass_shared_args:
+        if hasattr(self.update, '_new_style') and getattr(self.update, '_new_style'):
+          if len(args) and isinstance(args[0], dict):
+            share.save(**args[0])
+            return self.update(*args[1:], **kwargs)
+          else:
+            return self.update(*args, **kwargs)
+        else:
+          if len(args) and isinstance(args[0], dict):
+            return self.update(*args, **kwargs)
+          else:
+            # If first argument is not shared argument,
+            # we should get the shared arguments from the global context.
+            # However, users should set and update shared arguments
+            # in the global context when using this mode.
+            return self.update(share.get_shargs(), *args, **kwargs)
+      else:
+        if len(args) and isinstance(args[0], dict):  # it may be shared arguments
           share.save(**args[0])
           return self.update(*args[1:], **kwargs)
         else:
           return self.update(*args, **kwargs)
-      else:
-        if len(args) and isinstance(args[0], dict):
-          return self.update(*args, **kwargs)
-        else:
-          # If first argument is not shared argument,
-          # we should get the shared arguments from the global context.
-          # However, users should set and update shared arguments
-          # in the global context when using this mode.
-          return self.update(share.get_shargs(), *args, **kwargs)
-    else:
-      if len(args) and isinstance(args[0], dict):  # it may be shared arguments
-        share.save(**args[0])
-        return self.update(*args[1:], **kwargs)
-      else:
-        return self.update(*args, **kwargs)
+    except Exception as e:
+      raise RuntimeError(f'Error occurs when running {self.name}: {self}') from e
 
   def register_delay(
       self,

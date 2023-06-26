@@ -219,6 +219,14 @@ class Variable(Array):
     self.axis_names = axis_names
 
   @property
+  def size_without_batch(self):
+    if self.batch_axis is None:
+      return self.size
+    else:
+      sizes = self.size
+      return sizes[:self.batch_size] + sizes[self.batch_axis + 1:]
+
+  @property
   def batch_axis(self) -> Optional[int]:
     return self._batch_axis
 

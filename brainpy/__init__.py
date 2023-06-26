@@ -64,7 +64,6 @@ from brainpy import (
   dyn,  # dynamics module
   # delay,  # delay module
 )
-from brainpy._src.delay import (DataDelay, TargetDelay)
 
 from brainpy.synapses import (
   synouts,  # synaptic output
