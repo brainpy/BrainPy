@@ -13,6 +13,7 @@ from brainpy._src.connect.base import (
   coo2csr as coo2csr,
   coo2csc as coo2csc,
   coo2mat as coo2mat,
+  visualizeMat as visualizeMat,
 
   CONN_MAT,
   PRE_IDS, POST_IDS,
