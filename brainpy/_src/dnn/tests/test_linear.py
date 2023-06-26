@@ -70,7 +70,8 @@ class TestLinear(parameterized.TestCase):
     ]
   )
   def test_MaskedLinear(self, conn):
-    f = bp.dnn.MaskedLinear(conn, weight=bp.init.XavierNormal())
+    bm.random.DEFAULT.seed(123)
+    f = bp.dnn.MaskedLinear(conn, weight=bp.init.XavierNormal(seed=123))
     x = bm.random.random((16, 100))
     y = f(x)
     self.assertTrue(y.shape == (16, 100))
