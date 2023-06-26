@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
+from functools import partial
 from typing import Optional
 
-import jax.numpy as jnp
+from jax import vmap, jit, numpy as jnp
 import numpy as np
 
 import brainpy.math as bm
@@ -327,6 +327,21 @@ class FixedPostNum(FixedNum):
     selected_pre_inptr = jnp.cumsum(jnp.concatenate([jnp.zeros(1), pre_nums]))
     return selected_post_ids.astype(IDX_DTYPE), selected_pre_inptr.astype(IDX_DTYPE)
 
+@jit
+@partial(vmap, in_axes=(0, None, None))
+def gaussian_prob_dist_cal1(i_value, post_values, sigma):
+  dists = jnp.abs(i_value - post_values)
+  exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
+  return bm.asarray(exp_dists)
+
+@jit
+@partial(vmap, in_axes=(0, None, None, None))
+def gaussian_prob_dist_cal2(i_value, post_values, value_sizes, sigma):
+  dists = jnp.abs(i_value - post_values)
+  dists = jnp.where(dists > (value_sizes / 2), value_sizes - dists, dists)
+  exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
+  return bm.asarray(exp_dists)
+
 
 class GaussianProb(OneEndConnector):
   r"""Builds a Gaussian connectivity pattern within a population of neurons,
@@ -392,7 +407,8 @@ class GaussianProb(OneEndConnector):
             f'include_self={self.include_self}, '
             f'seed={self.seed})')
 
-  def build_mat(self, pre_size=None, post_size=None):
+  def build_mat(self, isOptimized=True):
+    self.rng = np.random.RandomState(self.seed)
     # value range to encode
     if self.encoding_values is None:
       value_ranges = tuple([(0, s) for s in self.pre_size])
@@ -426,24 +442,45 @@ class GaussianProb(OneEndConnector):
       value_sizes = np.expand_dims(value_sizes, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
 
     # probability of connections
-    prob_mat = []
-    for i in range(self.pre_num):
-      # values for node i
-      i_coordinate = tuple()
-      for s in self.pre_size[:-1]:
-        i, pos = divmod(i, s)
-        i_coordinate += (pos,)
-      i_coordinate += (i,)
-      i_value = np.array([values[i][c] for i, c in enumerate(i_coordinate)])
-      if i_value.ndim < post_values.ndim:
-        i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
-      # distances
-      dists = np.abs(i_value - post_values)
+    if isOptimized:
+      i_value_list = np.zeros(shape=(self.pre_num, len(self.pre_size), 1))
+      for i in range(self.pre_num):
+        list_index = i
+        # values for node i
+        i_coordinate = tuple()
+        for s in self.pre_size[:-1]:
+          i, pos = divmod(i, s)
+          i_coordinate += (pos,)
+        i_coordinate += (i,)
+        i_value = np.array([values[i][c] for i, c in enumerate(i_coordinate)])
+        if i_value.ndim < post_values.ndim:
+          i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
+        i_value_list[list_index] = i_value
+
       if self.periodic_boundary:
-        dists = np.where(dists > value_sizes / 2, value_sizes - dists, dists)
-      exp_dists = np.exp(-(np.linalg.norm(dists, axis=0) / self.sigma) ** 2 / 2)
-      prob_mat.append(exp_dists)
-    prob_mat = np.stack(prob_mat)
+        prob_mat = gaussian_prob_dist_cal2(i_value_list, post_values, value_sizes, self.sigma)
+      else:
+        prob_mat = gaussian_prob_dist_cal1(i_value_list, post_values, self.sigma)
+    else:
+      prob_mat = []
+      for i in range(self.pre_num):
+        # values for node i
+        i_coordinate = tuple()
+        for s in self.pre_size[:-1]:
+          i, pos = divmod(i, s)
+          i_coordinate += (pos,)
+        i_coordinate += (i,)
+        i_value = np.array([values[i][c] for i, c in enumerate(i_coordinate)])
+        if i_value.ndim < post_values.ndim:
+          i_value = np.expand_dims(i_value, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
+        # distances
+        dists = np.abs(i_value - post_values)
+        if self.periodic_boundary:
+          dists = np.where(dists > value_sizes / 2, value_sizes - dists, dists)
+        exp_dists = np.exp(-(np.linalg.norm(dists, axis=0) / self.sigma) ** 2 / 2)
+        prob_mat.append(exp_dists)
+      prob_mat = np.stack(prob_mat)
+
     if self.normalize:
       prob_mat /= prob_mat.max()
 
