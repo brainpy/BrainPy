@@ -1,14 +1,14 @@
--r requirements.txt
-
+numpy
+tqdm
+msgpack
 matplotlib>=3.4
-jaxlib>=0.3.0
+jax>=0.4.1
+jaxlib>=0.4.1
 scipy>=1.1.0
+brainpylib
 h5py
 pathos
-jax>=0.3.0
-pybind11>=2.6
-numpy
-brainpylib
+seaborn
 
 # test requirements
 pytest

@@ -23,7 +23,6 @@ __all__ = [
   'AllToAll',
   'OneToOne',
   'MaskedDense',
-  'CsrMM',
 ]
 
 

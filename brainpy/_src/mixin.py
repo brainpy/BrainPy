@@ -2,18 +2,16 @@ from typing import Optional, Sequence, Union, Tuple, Callable
 from dataclasses import dataclass
 from brainpy import tools, math as bm
 
-
 __all__ = [
   'MixIn',
   'ParamDesc',
   'AlignPost',
-  'ProjSupp',
+  'ProjAutoDelay',
 ]
 
 
 class MixIn(object):
   pass
-
 
 
 class DelayedInit(object):
@@ -41,7 +39,6 @@ class DelayedInit(object):
   @classmethod
   def __class_getitem__(cls, item):
     return cls
-
 
 
 class ParamDesc(MixIn):
@@ -77,6 +74,7 @@ class AlignPost(MixIn):
   This class provides a ``add_current()`` function for
   add external currents.
   """
+
   def add_current(self, *args, **kwargs):
     raise NotImplementedError
 
@@ -89,11 +87,9 @@ class ReturnInfo:
   init: Callable
 
 
-class ProjSupp(MixIn):
-  """Projection support."""
-  def return_info(self) -> Union[bm.Variable, ReturnInfo]:
+class ProjAutoDelay(MixIn):
+  """Support for automatic delay in synaptic projection :py:class:`~.SynProj`."""
+
+  def return_for_delay(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError
-
-
-
 

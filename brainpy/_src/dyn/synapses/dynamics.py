@@ -101,7 +101,7 @@ class Expon(SynDyn, AlignPost):
   def add_current(self, x):
     self.g.value += x
 
-  def return_info(self):
+  def return_for_delay(self):
     return self.g
 
 
@@ -195,7 +195,7 @@ class DualExpon(SynDyn):
     self.h += x
     return self.g.value
 
-  def return_info(self):
+  def return_for_delay(self):
     return self.g
 
 
@@ -378,7 +378,7 @@ class NMDA(SynDyn):
     self.x += pre_spike
     return self.g.value
 
-  def return_info(self):
+  def return_for_delay(self):
     return self.g
 
 
@@ -451,7 +451,7 @@ class STD(SynDyn):
     self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
     return self.x.value
 
-  def return_info(self):
+  def return_for_delay(self):
     return self.x
 
 
@@ -545,7 +545,7 @@ class STP(SynDyn):
     self.u.value = u
     return u * x
 
-  def return_info(self):
+  def return_for_delay(self):
     return ReturnInfo(size=self.varshape,
                       batch_or_mode=self.mode,
                       axis_names=self.sharding,
@@ -658,7 +658,7 @@ class AMPA(SynDyn):
     self.g.value = self.integral(self.g, t, TT, dt)
     return self.g.value
 
-  def return_info(self):
+  def return_for_delay(self):
     return self.g
 
 
@@ -858,7 +858,7 @@ class BioNMDA(SynDyn):
     self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
     return self.g.value
 
-  def return_info(self):
+  def return_for_delay(self):
     return self.g
 
 BioNMDA.__doc__ = BioNMDA.__doc__ % (pneu_doc,)

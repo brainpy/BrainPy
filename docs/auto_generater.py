@@ -381,9 +381,9 @@ def generate_inputs_docs():
 
 def generate_layers_docs():
   _write_subsections_v2(
-    'brainpy._src.layers',
-    'brainpy.layers',
-    'apis/auto/layers.rst',
+    'brainpy._src.dnn',
+    'brainpy.dnn',
+    'apis/auto/dnn.rst',
     subsections={
       'base': 'Basic ANN Layer Class',
       'activations': 'Non-linear Activations',
@@ -397,6 +397,21 @@ def generate_layers_docs():
       'reservoir': 'Reservoir Layers',
       'rnncells': 'Artificial Recurrent Layers',
       'interoperation_flax': 'Interoperation with Flax',
+    }
+  )
+
+
+def generate_dyn_docs():
+  _write_subsections_v2(
+    'brainpy.dyn',
+    'brainpy.dyn',
+    'apis/auto/dyn.rst',
+    subsections={
+      'channels': 'Ion Channel Dynamics',
+      'neurons': 'Neuron Dynamics',
+      'synapses': 'Synaptic Dynamics',
+      'projections': 'Synaptic Projections',
+      'others': 'Common Dynamical Models',
     }
   )
 
