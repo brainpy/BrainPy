@@ -5,23 +5,143 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.initialize import ZeroInit
-from brainpy._src.integrators import odeint
+from brainpy._src.initialize import ZeroInit, OneInit
+from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
-from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc
+from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
 from brainpy._src.dyn.base import GradNeuDyn
 
 __all__ = [
+  'IF',
+  'IFLTC',
   'Lif',
   'LifLTC',
   'LifRef',
   'LifRefLTC',
+  'ExpIF',
+  'ExpIFLTC',
+  'ExpIFRef',
+  'ExpIFRefLTC',
+  'AdExIF',
+  'AdExIFLTC',
+  'AdExIFRef',
+  'AdExIFRefLTC',
+  'QuaIF',
+  'QuaIFLTC',
+  'QuaIFRef',
+  'QuaIFRefLTC',
+  'AdQuaIF',
+  'AdQuaIFLTC',
+  'AdQuaIFRef',
+  'AdQuaIFRefLTC',
+  'Gif',
+  'GifLTC',
+  'GifRef',
+  'GifRefLTC',
 ]
 
 
-class PIF(GradNeuDyn):
-  pass
+class IFLTC(GradNeuDyn):
+  r"""Leaky Integrator Model %s.
+
+  **Model Descriptions**
+
+  This class implements a leaky integrator model, in which its dynamics is
+  given by:
+
+  .. math::
+
+     \tau \frac{dV}{dt} = - (V(t) - V_{rest}) + RI(t)
+
+  where :math:`V` is the membrane potential, :math:`V_{rest}` is the resting
+  membrane potential, :math:`\tau` is the time constant, and :math:`R` is the
+  resistance.
+
+  Args:
+    %s
+    %s
+    %s
+  """
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_rest: Union[float, ArrayType, Callable] = 0.,
+      R: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+
+    # parameters
+    self.V_rest = self.init_param(V_rest)
+    self.tau = self.init_param(tau)
+    self.R = self.init_param(R)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def derivative(self, V, t, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    return (-V + self.V_rest + self.R * I) / self.tau
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    self.V.value = self.integral(self.V.value, t, x, dt)
+    return self.V.value
+
+  def return_for_delay(self):
+    return self.V
+
+
+class IF(IFLTC):
+  def derivative(self, V, t, I):
+    return (-V + self.V_rest + self.R * I) / self.tau
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+IF.__doc__ = IFLTC.__doc__ % ('', if_doc, pneu_doc, dpneu_doc)
+IFLTC.__doc__ = IFLTC.__doc__ % (ltc_doc, if_doc, pneu_doc, dpneu_doc)
 
 
 class LifLTC(GradNeuDyn):
@@ -198,7 +318,7 @@ class LifRefLTC(LifLTC):
       V_initializer: Union[Callable, ArrayType] = ZeroInit(),
 
       # new neuron parameter
-      tau_ref: Optional[Union[float, ArrayType, Callable]] = None,
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
   ):
     # initialization
@@ -296,21 +416,1672 @@ LifRef.__doc__ = LifRefLTC.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc, ref_doc)
 LifRefLTC.__doc__ = LifRefLTC.__doc__ % (ltc_doc, lif_doc, pneu_doc, dpneu_doc, ref_doc)
 
 
-class PExpIF(GradNeuDyn):
-  pass
+class ExpIFLTC(GradNeuDyn):
+  r"""Exponential integrate-and-fire neuron model %s.
+
+    **Model Descriptions**
+
+    In the exponential integrate-and-fire model [1]_, the differential
+    equation for the membrane potential is given by
+
+    .. math::
+
+        \tau\frac{d V}{d t}= - (V-V_{rest}) + \Delta_T e^{\frac{V-V_T}{\Delta_T}} + RI(t), \\
+        \text{after} \, V(t) \gt V_{th}, V(t) = V_{reset} \, \text{last} \, \tau_{ref} \, \text{ms}
+
+    This equation has an exponential nonlinearity with "sharpness" parameter :math:`\Delta_{T}`
+    and "threshold" :math:`\vartheta_{rh}`.
+
+    The moment when the membrane potential reaches the numerical threshold :math:`V_{th}`
+    defines the firing time :math:`t^{(f)}`. After firing, the membrane potential is reset to
+    :math:`V_{rest}` and integration restarts at time :math:`t^{(f)}+\tau_{\rm ref}`,
+    where :math:`\tau_{\rm ref}` is an absolute refractory time.
+    If the numerical threshold is chosen sufficiently high, :math:`V_{th}\gg v+\Delta_T`,
+    its exact value does not play any role. The reason is that the upswing of the action
+    potential for :math:`v\gg v +\Delta_{T}` is so rapid, that it goes to infinity in
+    an incredibly short time. The threshold :math:`V_{th}` is introduced mainly for numerical
+    convenience. For a formal mathematical analysis of the model, the threshold can be pushed
+    to infinity.
+
+    The model was first introduced by Nicolas Fourcaud-Trocmé, David Hansel, Carl van Vreeswijk
+    and Nicolas Brunel [1]_. The exponential nonlinearity was later confirmed by Badel et al. [3]_.
+    It is one of the prominent examples of a precise theoretical prediction in computational
+    neuroscience that was later confirmed by experimental neuroscience.
+
+    Two important remarks:
+
+    - (i) The right-hand side of the above equation contains a nonlinearity
+      that can be directly extracted from experimental data [3]_. In this sense the exponential
+      nonlinearity is not an arbitrary choice but directly supported by experimental evidence.
+    - (ii) Even though it is a nonlinear model, it is simple enough to calculate the firing
+      rate for constant input, and the linear response to fluctuations, even in the presence
+      of input noise [4]_.
+
+    **Model Examples**
+
+    .. plot::
+      :include-source: True
+
+      >>> import brainpy as bp
+      >>> group = bp.neurons.ExpIF(1)
+      >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
+      >>> runner.run(300., )
+      >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
 
 
-class PAdExIF(GradNeuDyn):
-  pass
+    **Model Parameters**
+
+    ============= ============== ======== ===================================================
+    **Parameter** **Init Value** **Unit** **Explanation**
+    ------------- -------------- -------- ---------------------------------------------------
+    V_rest        -65            mV       Resting potential.
+    V_reset       -68            mV       Reset potential after spike.
+    V_th          -30            mV       Threshold potential of spike.
+    V_T           -59.9          mV       Threshold potential of generating action potential.
+    delta_T       3.48           \        Spike slope factor.
+    R             1              \        Membrane resistance.
+    tau           10             \        Membrane time constant. Compute by R * C.
+    tau_ref       1.7            \        Refractory period length.
+    ============= ============== ======== ===================================================
+
+    **Model Variables**
+
+    ================== ================= =========================================================
+    **Variables name** **Initial Value** **Explanation**
+    ------------------ ----------------- ---------------------------------------------------------
+    V                  0                 Membrane potential.
+    input              0                 External and synaptic input current.
+    spike              False             Flag to mark whether the neuron is spiking.
+    refractory         False             Flag to mark whether the neuron is in refractory period.
+    t_last_spike       -1e7              Last spike time stamp.
+    ================== ================= =========================================================
+
+    **References**
+
+    .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+           mechanisms determine the neuronal response to fluctuating
+           inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+    .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
+           Neuronal dynamics: From single neurons to networks and models
+           of cognition. Cambridge University Press.
+    .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
+           Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
+           are reliable predictors of naturalistic pyramidal-neuron voltage
+           traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
+    .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
+           integrate-and-fire neurons to modulated current-based and
+           conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
+    .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
+    """
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_T: Union[float, ArrayType, Callable] = -59.9,
+      delta_T: Union[float, ArrayType, Callable] = 3.48,
+      R: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+    # parameters
+    self.V_rest = self.init_param(V_rest)
+    self.V_reset = self.init_param(V_reset)
+    self.V_th = self.init_param(V_th)
+    self.V_T = self.init_param(V_T)
+    self.delta_T = self.init_param(delta_T)
+    self.tau = self.init_param(tau)
+    self.R = self.init_param(R)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def derivative(self, V, t, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
+    dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
+    return dvdt
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V = self.integral(self.V.value, t, x, dt)
+
+    # spike, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+
+    self.V.value = V
+    self.spike.value = spike
+    return spike
+
+  def return_for_delay(self):
+    return self.spike
 
 
-class PQuaIF(GradNeuDyn):
-  pass
+class ExpIF(ExpIFLTC):
+  def derivative(self, V, t, I):
+    exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
+    dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
+    return dvdt
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+ExpIF.__doc__ = ExpIFLTC.__doc__ % ('')
+ExpIFLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
+
+class ExpIFRefLTC(ExpIFLTC):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sharding] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      init_var: bool = True,
+
+      # old neuron parameter
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_T: Union[float, ArrayType, Callable] = -59.9,
+      delta_T: Union[float, ArrayType, Callable] = 3.48,
+      R: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # new neuron parameter
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
+      ref_var: bool = False,
+  ):
+    # initialization
+    super().__init__(
+      size=size,
+      name=name,
+      keep_size=keep_size,
+      mode=mode,
+      method=method,
+      sharding=sharding,
+      spk_fun=spk_fun,
+      detach_spk=detach_spk,
+      spk_type=spk_type,
+
+      init_var=False,
+
+      V_rest=V_rest,
+      V_reset=V_reset,
+      V_th=V_th,
+      V_T=V_T,
+      delta_T=delta_T,
+      R=R,
+      tau=tau,
+      V_initializer=V_initializer,
+    )
+
+    # parameters
+    self.ref_var = ref_var
+    self.tau_ref = self.init_param(tau_ref)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    super().reset_state(batch_size)
+    self.t_last_spike = self.init_variable(bm.ones, batch_size)
+    self.t_last_spike.fill_(-1e7)
+    if self.ref_var:
+      self.refractory = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V = self.integral(self.V.value, t, x, dt)
+
+    # refractory
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    if isinstance(self.mode, bm.TrainingMode):
+      refractory = stop_gradient(refractory)
+    V = bm.where(refractory, self.V.value, V)
+
+    # spike, refractory, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike_no_grad
+      spike_ = spike_no_grad > 0.
+      # will be used in other place, like Delta Synapse, so stop its gradient
+      if self.ref_var:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      if self.ref_var:
+        self.refractory.value = bm.logical_or(refractory, spike)
+      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+    self.V.value = V
+    self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
+    return spike
 
 
-class PAdQuaIF(GradNeuDyn):
-  pass
+class ExpIFRef(ExpIFRefLTC):
+  def derivative(self, V, t, I):
+    exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
+    dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
+    return dvdt
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
 
 
-class PGIF(GradNeuDyn):
-  pass
+class AdExIFLTC(GradNeuDyn):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_T: Union[float, ArrayType, Callable] = -59.9,
+      delta_T: Union[float, ArrayType, Callable] = 3.48,
+      a: Union[float, ArrayType, Callable] = 1.,
+      b: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      tau_w: Union[float, ArrayType, Callable] = 30.,
+      R: Union[float, ArrayType, Callable] = 1.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType] = ZeroInit(),
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+    # parameters
+    self.V_rest = self.init_param(V_rest)
+    self.V_reset = self.init_param(V_reset)
+    self.V_th = self.init_param(V_th)
+    self.V_T = self.init_param(V_T)
+    self.a = self.init_param(a)
+    self.b = self.init_param(b)
+    self.R = self.init_param(R)
+    self.delta_T = self.init_param(delta_T)
+    self.tau = self.init_param(tau)
+    self.tau_w = self.init_param(tau_w)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._w_initializer = is_initializer(w_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def dV(self, V, t, w, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    exp = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
+    dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
+    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
+    return dwdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.w = self.init_variable(self._w_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+
+    # spike, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike
+      w += self.b * spike
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      w = bm.where(spike, w + self.b, w)
+
+    self.V.value = V
+    self.w.value = w
+    self.spike.value = spike
+    return spike
+
+  def return_for_delay(self):
+    return self.spike
+
+
+class AdExIF(AdExIFLTC):
+  def dV(self, V, t, w, I):
+    exp = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
+    dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
+    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
+    return dwdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class AdExIFRefLTC(AdExIFLTC):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sharding] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      init_var: bool = True,
+
+      # old neuron parameter
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_T: Union[float, ArrayType, Callable] = -59.9,
+      delta_T: Union[float, ArrayType, Callable] = 3.48,
+      a: Union[float, ArrayType, Callable] = 1.,
+      b: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      tau_w: Union[float, ArrayType, Callable] = 30.,
+      R: Union[float, ArrayType, Callable] = 1.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # new neuron parameter
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
+      ref_var: bool = False,
+  ):
+    # initialization
+    super().__init__(
+      size=size,
+      name=name,
+      keep_size=keep_size,
+      mode=mode,
+      method=method,
+      sharding=sharding,
+      spk_fun=spk_fun,
+      detach_spk=detach_spk,
+      spk_type=spk_type,
+
+      init_var=False,
+
+      V_rest=V_rest,
+      V_reset=V_reset,
+      V_th=V_th,
+      V_T=V_T,
+      delta_T=delta_T,
+      a=a,
+      b=b,
+      R=R,
+      tau=tau,
+      tau_w=tau_w,
+      V_initializer=V_initializer,
+      w_initializer=w_initializer
+    )
+
+    # parameters
+    self.ref_var = ref_var
+    self.tau_ref = self.init_param(tau_ref)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._w_initializer = is_initializer(w_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    super().reset_state(batch_size)
+    self.t_last_spike = self.init_variable(bm.ones, batch_size)
+    self.t_last_spike.fill_(-1e8)
+    if self.ref_var:
+      self.refractory = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+
+    # refractory
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    if isinstance(self.mode, bm.TrainingMode):
+      refractory = stop_gradient(refractory)
+    V = bm.where(refractory, self.V.value, V)
+
+    # spike, refractory, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike_no_grad
+      w += self.b * spike_no_grad
+      spike_ = spike_no_grad > 0.
+      # will be used in other place, like Delta Synapse, so stop its gradient
+      if self.ref_var:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      w = bm.where(spike, w + self.b, w)
+      if self.ref_var:
+        self.refractory.value = bm.logical_or(refractory, spike)
+      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+    self.V.value = V
+    self.w.value = w
+    self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
+    return spike
+
+
+class AdExIFRef(AdExIFRefLTC):
+  def dV(self, V, t, w, I):
+    exp = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
+    dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
+    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
+    return dwdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class QuaIFLTC(GradNeuDyn):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_c: Union[float, ArrayType, Callable] = -50.0,
+      c: Union[float, ArrayType, Callable] = 0.07,
+      R: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+    # parameters
+    self.V_rest = self.init_param(V_rest)
+    self.V_reset = self.init_param(V_reset)
+    self.V_th = self.init_param(V_th)
+    self.V_c = self.init_param(V_c)
+    self.c = self.init_param(c)
+    self.R = self.init_param(R)
+    self.tau = self.init_param(tau)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def derivative(self, V, t, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
+    return dVdt
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V = self.integral(self.V.value, t, x, dt)
+
+    # spike, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+
+    self.V.value = V
+    self.spike.value = spike
+    return spike
+
+  def return_for_delay(self):
+    return self.spike
+
+
+class QuaIF(QuaIFLTC):
+  def derivative(self, V, t, I):
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
+    return dVdt
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class QuaIFRefLTC(QuaIFLTC):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sharding] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      init_var: bool = True,
+
+      # old neuron parameter
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_c: Union[float, ArrayType, Callable] = -50.0,
+      c: Union[float, ArrayType, Callable] = 0.07,
+      R: Union[float, ArrayType, Callable] = 1.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # new neuron parameter
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
+      ref_var: bool = False,
+  ):
+    # initialization
+    super().__init__(
+      size=size,
+      name=name,
+      keep_size=keep_size,
+      mode=mode,
+      method=method,
+      sharding=sharding,
+      spk_fun=spk_fun,
+      detach_spk=detach_spk,
+      spk_type=spk_type,
+
+      init_var=False,
+
+      V_rest=V_rest,
+      V_reset=V_reset,
+      V_th=V_th,
+      V_c=V_c,
+      c=c,
+      R=R,
+      tau=tau,
+      V_initializer=V_initializer,
+    )
+
+    # parameters
+    self.ref_var = ref_var
+    self.tau_ref = self.init_param(tau_ref)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    super().reset_state(batch_size)
+    self.t_last_spike = self.init_variable(bm.ones, batch_size)
+    self.t_last_spike.fill_(-1e7)
+    if self.ref_var:
+      self.refractory = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V = self.integral(self.V.value, t, x, dt)
+
+    # refractory
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    if isinstance(self.mode, bm.TrainingMode):
+      refractory = stop_gradient(refractory)
+    V = bm.where(refractory, self.V.value, V)
+
+    # spike, refractory, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike_no_grad
+      spike_ = spike_no_grad > 0.
+      # will be used in other place, like Delta Synapse, so stop its gradient
+      if self.ref_var:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      if self.ref_var:
+        self.refractory.value = bm.logical_or(refractory, spike)
+      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+    self.V.value = V
+    self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
+    return spike
+
+
+class QuaIFRef(QuaIFRefLTC):
+  def derivative(self, V, t, I):
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
+    return dVdt
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class AdQuaIFLTC(GradNeuDyn):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_c: Union[float, ArrayType, Callable] = -50.0,
+      a: Union[float, ArrayType, Callable] = 1.,
+      b: Union[float, ArrayType, Callable] = .1,
+      c: Union[float, ArrayType, Callable] = .07,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      tau_w: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType] = ZeroInit(),
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+    # parameters
+    self.V_rest = self.init_param(V_rest)
+    self.V_reset = self.init_param(V_reset)
+    self.V_th = self.init_param(V_th)
+    self.V_c = self.init_param(V_c)
+    self.a = self.init_param(a)
+    self.b = self.init_param(b)
+    self.c = self.init_param(c)
+    self.tau = self.init_param(tau)
+    self.tau_w = self.init_param(tau_w)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._w_initializer = is_initializer(w_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def dV(self, V, t, w, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
+    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
+    return dwdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.w = self.init_variable(self._w_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+
+    # spike, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike
+      w += self.b * spike
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      w = bm.where(spike, w + self.b, w)
+
+    self.V.value = V
+    self.w.value = w
+    self.spike.value = spike
+    return spike
+
+  def return_for_delay(self):
+    return self.spike
+
+
+class AdQuaIF(AdQuaIFLTC):
+  def dV(self, V, t, w, I):
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
+    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
+    return dwdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class AdQuaIFRefLTC(AdQuaIFLTC):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sharding] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      init_var: bool = True,
+
+      # old neuron parameter
+      V_rest: Union[float, ArrayType, Callable] = -65.,
+      V_reset: Union[float, ArrayType, Callable] = -68.,
+      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_c: Union[float, ArrayType, Callable] = -50.0,
+      a: Union[float, ArrayType, Callable] = 1.,
+      b: Union[float, ArrayType, Callable] = .1,
+      c: Union[float, ArrayType, Callable] = .07,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      tau_w: Union[float, ArrayType, Callable] = 10.,
+      V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      w_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # new neuron parameter
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
+      ref_var: bool = False,
+  ):
+    # initialization
+    super().__init__(
+      size=size,
+      name=name,
+      keep_size=keep_size,
+      mode=mode,
+      method=method,
+      sharding=sharding,
+      spk_fun=spk_fun,
+      detach_spk=detach_spk,
+      spk_type=spk_type,
+
+      init_var=False,
+
+      V_rest=V_rest,
+      V_reset=V_reset,
+      V_th=V_th,
+      V_c=V_c,
+      a=a,
+      b=b,
+      c=c,
+      tau=tau,
+      tau_w=tau_w,
+      V_initializer=V_initializer,
+      w_initializer=w_initializer
+    )
+
+    # parameters
+    self.ref_var = ref_var
+    self.tau_ref = self.init_param(tau_ref)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._w_initializer = is_initializer(w_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    super().reset_state(batch_size)
+    self.t_last_spike = self.init_variable(bm.ones, batch_size)
+    self.t_last_spike.fill_(-1e8)
+    if self.ref_var:
+      self.refractory = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+
+    # refractory
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    if isinstance(self.mode, bm.TrainingMode):
+      refractory = stop_gradient(refractory)
+    V = bm.where(refractory, self.V.value, V)
+
+    # spike, refractory, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike_no_grad
+      w += self.b * spike_no_grad
+      spike_ = spike_no_grad > 0.
+      # will be used in other place, like Delta Synapse, so stop its gradient
+      if self.ref_var:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      w = bm.where(spike, w + self.b, w)
+      if self.ref_var:
+        self.refractory.value = bm.logical_or(refractory, spike)
+      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+    self.V.value = V
+    self.w.value = w
+    self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
+    return spike
+
+
+class AdQuaIFRef(AdQuaIFRefLTC):
+  def dV(self, V, t, w, I):
+    dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
+    return dVdt
+
+  def dw(self, w, t, V):
+    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
+    return dwdt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.dw])
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class GifLTC(GradNeuDyn):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_rest: Union[float, ArrayType, Callable] = -70.,
+      V_reset: Union[float, ArrayType, Callable] = -70.,
+      V_th_inf: Union[float, ArrayType, Callable] = -50.,
+      V_th_reset: Union[float, ArrayType, Callable] = -60.,
+      R: Union[float, ArrayType, Callable] = 20.,
+      tau: Union[float, ArrayType, Callable] = 20.,
+      a: Union[float, ArrayType, Callable] = 0.,
+      b: Union[float, ArrayType, Callable] = 0.01,
+      k1: Union[float, ArrayType, Callable] = 0.2,
+      k2: Union[float, ArrayType, Callable] = 0.02,
+      R1: Union[float, ArrayType, Callable] = 0.,
+      R2: Union[float, ArrayType, Callable] = 1.,
+      A1: Union[float, ArrayType, Callable] = 0.,
+      A2: Union[float, ArrayType, Callable] = 0.,
+      V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
+      I1_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      I2_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      Vth_initializer: Union[Callable, ArrayType] = OneInit(-50.),
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+    # parameters
+    self.V_rest = self.init_param(V_rest)
+    self.V_reset = self.init_param(V_reset)
+    self.V_th_inf = self.init_param(V_th_inf)
+    self.V_th_reset = self.init_param(V_th_reset)
+    self.R = self.init_param(R)
+    self.a = self.init_param(a)
+    self.b = self.init_param(b)
+    self.k1 = self.init_param(k1)
+    self.k2 = self.init_param(k2)
+    self.R1 = self.init_param(R1)
+    self.R2 = self.init_param(R2)
+    self.A1 = self.init_param(A1)
+    self.A2 = self.init_param(A2)
+    self.tau = self.init_param(tau)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._I1_initializer = is_initializer(I1_initializer)
+    self._I2_initializer = is_initializer(I2_initializer)
+    self._Vth_initializer = is_initializer(Vth_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def dI1(self, I1, t):
+    return - self.k1 * I1
+
+  def dI2(self, I2, t):
+    return - self.k2 * I2
+
+  def dVth(self, V_th, t, V):
+    return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
+
+  def dV(self, V, t, I1, I2, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
+
+  @property
+  def derivative(self):
+    return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.I1 = self.init_variable(self._I1_initializer, batch_size)
+    self.I2 = self.init_variable(self._I2_initializer, batch_size)
+    self.V_th = self.init_variable(self._Vth_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    I1, I2, V_th, V = self.integral(self.I1.value, self.I2.value, self.V_th.value, self.V.value, t, x, dt)
+
+    # spike, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike
+      I1 += spike * (self.R1 * I1 + self.A1 - I1)
+      I2 += spike * (self.R2 * I2 + self.A2 - I2)
+      reset_th = self.spk_fun(self.V_th_reset - V_th) * spike
+      V_th += reset_th * (self.V_th_reset - V_th)
+
+    else:
+      spike = self.V_th <= V
+      V = bm.where(spike, self.V_reset, V)
+      I1 = bm.where(spike, self.R1 * I1 + self.A1, I1)
+      I2 = bm.where(spike, self.R2 * I2 + self.A2, I2)
+      V_th = bm.where(spike, bm.maximum(self.V_th_reset, V_th), V_th)
+    self.spike.value = spike
+    self.I1.value = I1
+    self.I2.value = I2
+    self.V_th.value = V_th
+    self.V.value = V
+    return spike
+
+  def return_for_delay(self):
+    return self.spike
+
+
+class Gif(GifLTC):
+  def dI1(self, I1, t):
+    return - self.k1 * I1
+
+  def dI2(self, I2, t):
+    return - self.k2 * I2
+
+  def dVth(self, V_th, t, V):
+    return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
+
+  def dV(self, V, t, I1, I2, I):
+    return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
+
+  @property
+  def derivative(self):
+    return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class GifRefLTC(GifLTC):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sharding] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      init_var: bool = True,
+
+      # old neuron parameter
+      V_rest: Union[float, ArrayType, Callable] = -70.,
+      V_reset: Union[float, ArrayType, Callable] = -70.,
+      V_th_inf: Union[float, ArrayType, Callable] = -50.,
+      V_th_reset: Union[float, ArrayType, Callable] = -60.,
+      R: Union[float, ArrayType, Callable] = 20.,
+      tau: Union[float, ArrayType, Callable] = 20.,
+      a: Union[float, ArrayType, Callable] = 0.,
+      b: Union[float, ArrayType, Callable] = 0.01,
+      k1: Union[float, ArrayType, Callable] = 0.2,
+      k2: Union[float, ArrayType, Callable] = 0.02,
+      R1: Union[float, ArrayType, Callable] = 0.,
+      R2: Union[float, ArrayType, Callable] = 1.,
+      A1: Union[float, ArrayType, Callable] = 0.,
+      A2: Union[float, ArrayType, Callable] = 0.,
+      V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
+      I1_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      I2_initializer: Union[Callable, ArrayType] = ZeroInit(),
+      Vth_initializer: Union[Callable, ArrayType] = OneInit(-50.),
+
+      # new neuron parameter
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
+      ref_var: bool = False,
+  ):
+    # initialization
+    super().__init__(
+      size=size,
+      name=name,
+      keep_size=keep_size,
+      mode=mode,
+      method=method,
+      sharding=sharding,
+      spk_fun=spk_fun,
+      detach_spk=detach_spk,
+      spk_type=spk_type,
+
+      init_var=False,
+
+      V_rest=V_rest,
+      V_reset=V_reset,
+      V_th_inf=V_th_inf,
+      V_th_reset=V_th_reset,
+      R=R,
+      a=a,
+      b=b,
+      k1=k1,
+      k2=k2,
+      R1=R1,
+      R2=R2,
+      A1=A1,
+      A2=A2,
+      tau=tau,
+      V_initializer=V_initializer,
+      I1_initializer=I1_initializer,
+      I2_initializer=I2_initializer,
+      Vth_initializer=Vth_initializer,
+    )
+
+    # parameters
+    self.ref_var = ref_var
+    self.tau_ref = self.init_param(tau_ref)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._I1_initializer = is_initializer(I1_initializer)
+    self._I2_initializer = is_initializer(I2_initializer)
+    self._Vth_initializer = is_initializer(Vth_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    super().reset_state(batch_size)
+    self.t_last_spike = self.init_variable(bm.ones, batch_size)
+    self.t_last_spike.fill_(-1e8)
+    if self.ref_var:
+      self.refractory = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    I1, I2, V_th, V = self.integral(self.I1.value, self.I2.value, self.V_th.value, self.V.value, t, x, dt)
+
+    # refractory
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    if isinstance(self.mode, bm.TrainingMode):
+      refractory = stop_gradient(refractory)
+    V = bm.where(refractory, self.V.value, V)
+
+    # spike, refractory, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
+      V += (self.V_reset - V) * spike
+      I1 += spike * (self.R1 * I1 + self.A1 - I1)
+      I2 += spike * (self.R2 * I2 + self.A2 - I2)
+      reset_th = self.spk_fun(self.V_th_reset - V_th) * spike
+      V_th += reset_th * (self.V_th_reset - V_th)
+      spike_ = spike_no_grad > 0.
+      # will be used in other place, like Delta Synapse, so stop its gradient
+      if self.ref_var:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.V_reset, V)
+      I1 = bm.where(spike, self.R1 * I1 + self.A1, I1)
+      I2 = bm.where(spike, self.R2 * I2 + self.A2, I2)
+      V_th = bm.where(spike, bm.maximum(self.V_th_reset, V_th), V_th)
+      if self.ref_var:
+        self.refractory.value = bm.logical_or(refractory, spike)
+      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+    self.V.value = V
+    self.I1.value = I1
+    self.I2.value = I2
+    self.V_th.value = V_th
+    self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
+    return spike
+
+
+class GifRef(GifRefLTC):
+  def dI1(self, I1, t):
+    return - self.k1 * I1
+
+  def dI2(self, I2, t):
+    return - self.k2 * I2
+
+  def dVth(self, V_th, t, V):
+    return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
+
+  def dV(self, V, t, I1, I2, I):
+    return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
+
+  @property
+  def derivative(self):
+    return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class IzhikevichLTC(GradNeuDyn):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sequence[str]] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      init_var: bool = True,
+
+      # neuron parameters
+      V_th: Union[float, ArrayType, Callable] = 30.,
+      a: Union[float, ArrayType, Callable] = 0.02,
+      b: Union[float, ArrayType, Callable] = 0.20,
+      c: Union[float, ArrayType, Callable] = -65.,
+      d: Union[float, ArrayType, Callable] = 8.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      R: Union[float, ArrayType, Callable] = 1.,
+      V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
+      u_initializer: Union[Callable, ArrayType] = None,
+  ):
+    # initialization
+    super().__init__(size=size,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode,
+                     sharding=sharding,
+                     spk_fun=spk_fun,
+                     detach_spk=detach_spk,
+                     method=method,
+                     spk_type=spk_type)
+    # parameters
+    self.V_th = self.init_param(V_th)
+    self.a = self.init_param(a)
+    self.b = self.init_param(b)
+    self.c = self.init_param(c)
+    self.d = self.init_param(d)
+    self.R = self.init_param(R)
+    self.tau = self.init_param(tau)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._u_initializer = is_initializer(u_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def dV(self, V, t, u, I):
+    for out in self.cur_inputs.values():
+      I += out(V)
+    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    return dVdt
+
+  def du(self, u, t, V):
+    dudt = self.a * (self.b * V - u)
+    return dudt
+
+  @property
+  def derivative(self):
+    return JointEq([self.dV, self.du])
+
+  def reset_state(self, batch_size=None):
+    self.V = self.init_variable(self._V_initializer, batch_size)
+    u_initializer = OneInit(self.b * self.V) if self._u_initializer is None else self._u_initializer
+    self._u_initializer = is_initializer(u_initializer)
+    self.u = self.init_variable(self._u_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V, u = self.integral(self.V.value, self.u.value, t, x, dt)
+
+    # spike, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike = stop_gradient(spike) if self.detach_spk else spike
+      V += spike * (self.c - self.V_th)
+      u += spike * self.d
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.c, V)
+      u = bm.where(spike, u + self.d, u)
+
+    self.V.value = V
+    self.u.value = u
+    self.spike.value = spike
+    return spike
+
+  def return_for_delay(self):
+    return self.spike
+
+
+class Izhikevich(IzhikevichLTC):
+  def dV(self, V, t, u, I):
+    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    return dVdt
+
+  def du(self, u, t, V):
+    dudt = self.a * (self.b * V - u)
+    return dudt
+
+  def derivative(self):
+    return JointEq([self.dV, self.du])
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)
+
+
+class IzhikevichRefLTC(IzhikevichLTC):
+  def __init__(
+      self,
+      size: Shape,
+      sharding: Optional[Sharding] = None,
+      keep_size: bool = False,
+      mode: Optional[bm.Mode] = None,
+      spk_fun: Callable = bm.surrogate.InvSquareGrad(),
+      spk_type: Any = None,
+      detach_spk: bool = False,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      init_var: bool = True,
+
+      # old neuron parameter
+      V_th: Union[float, ArrayType, Callable] = 30.,
+      a: Union[float, ArrayType, Callable] = 0.02,
+      b: Union[float, ArrayType, Callable] = 0.20,
+      c: Union[float, ArrayType, Callable] = -65.,
+      d: Union[float, ArrayType, Callable] = 8.,
+      tau: Union[float, ArrayType, Callable] = 10.,
+      R: Union[float, ArrayType, Callable] = 1.,
+      V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
+      u_initializer: Union[Callable, ArrayType] = None,
+
+      # new neuron parameter
+      tau_ref: Union[float, ArrayType, Callable] = 0.,
+      ref_var: bool = False,
+  ):
+    # initialization
+    super().__init__(
+      size=size,
+      name=name,
+      keep_size=keep_size,
+      mode=mode,
+      method=method,
+      sharding=sharding,
+      spk_fun=spk_fun,
+      detach_spk=detach_spk,
+      spk_type=spk_type,
+
+      init_var=False,
+
+      V_th=V_th,
+      a=a,
+      b=b,
+      c=c,
+      d=d,
+      R=R,
+      tau=tau,
+      V_initializer=V_initializer,
+      u_initializer=u_initializer
+    )
+
+    # parameters
+    self.ref_var = ref_var
+    self.tau_ref = self.init_param(tau_ref)
+
+    # initializers
+    self._V_initializer = is_initializer(V_initializer)
+    self._u_initializer = is_initializer(u_initializer)
+
+    # integral
+    self.integral = odeint(method=method, f=self.derivative)
+
+    # variables
+    if init_var:
+      self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    super().reset_state(batch_size)
+    self.t_last_spike = self.init_variable(bm.ones, batch_size)
+    self.t_last_spike.fill_(-1e7)
+    if self.ref_var:
+      self.refractory = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+
+  def update(self, x=None):
+    t = share.load('t')
+    dt = share.load('dt')
+    x = 0. if x is None else x
+
+    # integrate membrane potential
+    V, u = self.integral(self.V.value, self.u.value, t, x, dt)
+
+    # refractory
+    refractory = (t - self.t_last_spike) <= self.tau_ref
+    if isinstance(self.mode, bm.TrainingMode):
+      refractory = stop_gradient(refractory)
+    V = bm.where(refractory, self.V.value, V)
+
+    # spike, refractory, spiking time, and membrane potential reset
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spk_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
+      V += spike * (self.c - self.V_th)
+      u += spike * self.d
+      spike_ = spike_no_grad > 0.
+      # will be used in other place, like Delta Synapse, so stop its gradient
+      if self.ref_var:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      t_last_spike = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+
+    else:
+      spike = V >= self.V_th
+      V = bm.where(spike, self.c, V)
+      u = bm.where(spike, u + self.d, u)
+      if self.ref_var:
+        self.refractory.value = bm.logical_or(refractory, spike)
+      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+    self.V.value = V
+    self.u.value = u
+    self.spike.value = spike
+    self.t_last_spike.value = t_last_spike
+    return spike
+
+
+class IzhikevichRef(IzhikevichRefLTC):
+  def dV(self, V, t, u, I):
+    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    return dVdt
+
+  def du(self, u, t, V):
+    dudt = self.a * (self.b * V - u)
+    return dudt
+
+  def derivative(self):
+    return JointEq([self.dV, self.du])
+
+  def update(self, x=None):
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x += out(self.V.value)
+    super().update(x)

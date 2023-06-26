@@ -4,7 +4,7 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.channels import Ca
+from brainpy._src.dyn.channels import Ca
 
 class Test_Ca(parameterized.TestCase):
   def test_Ca(self):

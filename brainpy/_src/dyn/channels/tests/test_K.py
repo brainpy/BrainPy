@@ -4,7 +4,7 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.channels import K
+from brainpy._src.dyn.channels import K
 
 class Test_K(parameterized.TestCase):
   bm.random.seed(1234)

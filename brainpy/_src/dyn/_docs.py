@@ -18,6 +18,13 @@ ref_doc = '''
     has_ref_var: bool. Whether has the refractory variable. Default is ``False``.
 '''.strip()
 
+if_doc = '''
+    V_rest: float, ArrayType, callable. Resting membrane potential.
+    R: float, ArrayType, callable. Membrane resistance.
+    tau: float, ArrayType, callable. Membrane time constant.
+    V_initializer: ArrayType, callable. The initializer of membrane potential.
+'''.strip()
+
 lif_doc = '''
     V_rest: float, ArrayType, callable. Resting membrane potential.
     V_reset: float, ArrayType, callable. Reset potential after spike.

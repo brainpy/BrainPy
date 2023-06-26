@@ -28,6 +28,7 @@ class NeuDyn(NeuGroupNS, ProjAutoDelay):
       keep_size: bool = False,
       mode: bm.Mode = None,
       name: str = None,
+      method: str = 'exp_auto'
   ):
     super().__init__(size=size,
                      mode=mode,
@@ -36,6 +37,9 @@ class NeuDyn(NeuGroupNS, ProjAutoDelay):
 
     # axis names for parallelization
     self.sharding = sharding
+
+    # integration method
+    self.method = method
 
     # the before- / after-updates used for computing
     self.before_updates: Dict[str, Callable] = bm.node_dict()
@@ -109,21 +113,21 @@ class GradNeuDyn(NeuDyn):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
+      method: str = 'exp_auto',
 
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
       detach_spk: bool = False,
-      method: str = 'exp_auto',
   ):
     super().__init__(size=size,
                      mode=mode,
                      keep_size=keep_size,
                      name=name,
-                     sharding=sharding)
+                     sharding=sharding,
+                     method=method)
 
     self.spk_fun = is_callable(spk_fun)
     self.detach_spk = detach_spk
-    self.method = method
     self._spk_type = spk_type
 
   @property

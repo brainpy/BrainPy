@@ -4,7 +4,7 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.channels import KCa, Ca
+from brainpy._src.dyn.channels import KCa, Ca
 
 class Test_KCa(parameterized.TestCase):
   bm.random.seed(1234)
