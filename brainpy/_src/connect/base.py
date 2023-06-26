@@ -9,8 +9,6 @@ import numpy as onp
 from brainpy import tools, math as bm
 from brainpy.errors import ConnectorError
 
-import matplotlib.pyplot as plt
-import seaborn as sns
 import textwrap
 
 __all__ = [
@@ -729,6 +727,12 @@ def coo2csc(coo, post_num, data=None):
 
 
 def visualizeMat(mat, description):
+  try:
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+  except (ModuleNotFoundError, ImportError):
+    print('Please install seaborn and matplotlib for this function')
+    return
   sns.heatmap(mat, cmap='viridis')
   warpped_title = textwrap.fill(description, width=60)
   plt.title(warpped_title)
