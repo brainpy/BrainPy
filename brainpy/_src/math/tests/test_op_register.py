@@ -137,8 +137,8 @@ class TestOpRegister(unittest.TestCase):
     )
     t, _ = runner3.run(100., eval_time=True)
     print(t)
-    ax = fig.add_subplot(gs[0, 1])
-    bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
+    # ax = fig.add_subplot(gs[0, 1])
+    # bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
 
     # clear
     plt.close()

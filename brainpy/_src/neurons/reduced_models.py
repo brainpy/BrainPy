@@ -586,6 +586,7 @@ class ExpIF(NeuGroupNS):
       tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = bm.surrogate.inv_square_grad,
       keep_size: bool = False,
       input_var: bool = True,
       ref_var: bool = False,
@@ -615,6 +616,9 @@ class ExpIF(NeuGroupNS):
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
+
+    # training setting
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # variables
     self.reset_state(self.mode)
@@ -650,18 +654,38 @@ class ExpIF(NeuGroupNS):
       x = self.input.value
     else:
       x = 0. if x is None else x
+
     V = self.integral(self.V.value, t, x, dt)
+
     if self.tau_ref is not None:
       refractory = (t - self.t_last_spike) <= self.tau_ref
+      if isinstance(self.mode, bm.TrainingMode):
+        refractory = stop_gradient(refractory)
       V = bm.where(refractory, self.V.value, V)
-      spike = self.V_th <= V
-      V = bm.where(spike, self.V_reset, V)
-      self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
-      if self.ref_var:
-        self.refractory.value = bm.logical_or(refractory, spike)
+
+      if isinstance(self.mode, bm.TrainingMode):
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += (self.V_reset - V) * spike_no_grad
+        spike_ = spike_no_grad > 0.
+        self.t_last_spike.value = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+        if self.ref_var:
+        # will be used in other place, like Delta Synapse, so stop its gradient
+          self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+      else:
+        spike = self.V_th <= V
+        V = bm.where(spike, self.V_reset, V)
+        self.t_last_spike.value = bm.where(spike, t, self.t_last_spike)
+        if self.ref_var:
+          self.refractory.value = bm.logical_or(refractory, spike)
     else:
-      spike = self.V_th <= V
-      V = bm.where(spike, self.V_reset, V)
+      if isinstance(self.mode, bm.TrainingMode):
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        spike = self.V_th <= V
+        V = bm.where(spike, self.V_reset, V)
     self.V.value = V
     self.spike.value = spike
     return spike
@@ -763,6 +787,7 @@ class AdExIF(NeuGroupNS):
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+      spike_fun: Callable = bm.surrogate.inv_square_grad,
       method: str = 'exp_auto',
       keep_size: bool = False,
       input_var: bool = True,
@@ -789,6 +814,7 @@ class AdExIF(NeuGroupNS):
     self.delta_T = parameter(delta_T, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     self.input_var = input_var
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -836,17 +862,33 @@ class AdExIF(NeuGroupNS):
       x = self.input.value
     else:
       x = 0. if x is None else x
+
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+
     if self.tau_ref is not None:
       refractory = (t - self.t_last_spike) <= self.tau_ref
+      if isinstance(self.mode, bm.TrainingMode):
+        refractory = stop_gradient(refractory)
       V = bm.where(refractory, self.V.value, V)
-    spike = V >= self.V_th
-    self.V.value = bm.where(spike, self.V_reset, V)
-    self.w.value = bm.where(spike, w + self.b, w)
-    self.spike.value = spike
-    if self.tau_ref is not None:
-      self.refractory.value = bm.logical_or(refractory, spike)
-      self.t_last_spike.value = bm.where(spike, t, self.t_last_spike.value)
+
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spike_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike)
+      V += (self.V_reset - V) * spike_no_grad
+      w += self.b * spike_no_grad
+      spike_ = spike_no_grad > 0.
+      if self.tau_ref is not None:
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+        self.t_last_spike.value = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+    else:
+      spike = V >= self.V_th
+      self.V.value = bm.where(spike, self.V_reset, V)
+      self.w.value = bm.where(spike, w + self.b, w)
+      self.spike.value = spike
+      if self.tau_ref is not None:
+        self.refractory.value = bm.logical_or(refractory, spike)
+        self.t_last_spike.value = bm.where(spike, t, self.t_last_spike.value)
+
     return spike
 
   def clear_input(self):
@@ -934,6 +976,7 @@ class QuaIF(NeuGroupNS):
       tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = bm.surrogate.inv_square_grad,
       keep_size: bool = False,
       input_var: bool = True,
       mode: bm.Mode = None,
@@ -958,6 +1001,7 @@ class QuaIF(NeuGroupNS):
     self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
     self.noise = init_noise(noise, self.varshape, num_vars=1)
     self.input_var = input_var
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -994,18 +1038,36 @@ class QuaIF(NeuGroupNS):
       x = self.input.value
     else:
       x = 0. if x is None else x
+
     V = self.integral(self.V.value, t, x, dt)
+
     if self.tau_ref is not None:
       refractory = (t - self.t_last_spike) <= self.tau_ref
+      if isinstance(self.mode, bm.TrainingMode):
+        refractory = stop_gradient(refractory)
       V = bm.where(refractory, self.V.value, V)
-      spike = self.V_th <= V
-      t_last_spike = bm.where(spike, t, self.t_last_spike.value)
-      V = bm.where(spike, self.V_reset, V)
-      self.refractory.value = bm.logical_or(refractory, spike)
-      self.t_last_spike.value = t_last_spike
+
+      if isinstance(self.mode, bm.TrainingMode):
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += (self.V_reset - V) * spike_no_grad
+        spike_ = spike_no_grad > 0.
+        self.refractory.value = stop_gradient(bm.logical_or(refractory, spike_).value)
+        self.t_last_spike.value = stop_gradient(bm.where(spike_, t, self.t_last_spike.value))
+      else:
+        spike = self.V_th <= V
+        t_last_spike = bm.where(spike, t, self.t_last_spike.value)
+        V = bm.where(spike, self.V_reset, V)
+        self.refractory.value = bm.logical_or(refractory, spike)
+        self.t_last_spike.value = t_last_spike
     else:
-      spike = self.V_th <= V
-      V = bm.where(spike, self.V_reset, V)
+      if isinstance(self.mode, bm.TrainingMode):
+        spike = self.spike_fun(V - self.V_th)
+        spike_no_grad = stop_gradient(spike)
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        spike = self.V_th <= V
+        V = bm.where(spike, self.V_reset, V)
     self.V.value = V
     self.spike.value = spike
 
@@ -1106,6 +1168,7 @@ class AdQuaIF(NeuGroupNS):
       V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = bm.surrogate.inv_square_grad,
       method: str = 'exp_auto',
       keep_size: bool = False,
       input_var: bool = True,
@@ -1130,6 +1193,7 @@ class AdQuaIF(NeuGroupNS):
     self.tau_w = parameter(tau_w, self.varshape, allow_none=False)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     self.input_var = input_var
+    self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -1173,10 +1237,18 @@ class AdQuaIF(NeuGroupNS):
       x = self.input.value
     else:
       x = 0. if x is None else x
+
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
-    spike = self.V_th <= V
-    self.V.value = bm.where(spike, self.V_reset, V)
-    self.w.value = bm.where(spike, w + self.b, w)
+
+    if isinstance(self.mode, bm.TrainingMode):
+      spike = self.spike_fun(V - self.V_th)
+      spike_no_grad = stop_gradient(spike)
+      V += (self.V_reset - V) * spike_no_grad
+      w += self.b * spike_no_grad
+    else:
+      spike = self.V_th <= V
+      self.V.value = bm.where(spike, self.V_reset, V)
+      self.w.value = bm.where(spike, w + self.b, w)
     self.spike.value = spike
     return spike
 
