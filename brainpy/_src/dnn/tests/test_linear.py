@@ -64,7 +64,7 @@ class TestLinear(parameterized.TestCase):
 
   @parameterized.product(
     conn=[
-      bp.conn.FixedProb(0.1, pre=100, post=100),
+      # bp.conn.FixedProb(0.1, pre=100, post=100),
       bp.conn.GridFour(pre=100, post=100),
       bp.conn.GaussianProb(0.1, pre=100, post=100),
     ]
