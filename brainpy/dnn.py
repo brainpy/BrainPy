@@ -5,6 +5,7 @@ from brainpy._src.dnn.base import (
   Layer as Layer,
 )
 
+
 from brainpy._src.dnn.conv import (
   Conv1d as Conv1d,
   Conv2d as Conv2d,
@@ -22,21 +23,31 @@ from brainpy._src.dnn.dropout import (
   Dropout as Dropout,
 )
 
+
 from brainpy._src.dnn.function import (
   Activation as Activation,
   Flatten as Flatten,
   FunAsLayer as FunAsLayer,
 )
 
+
 from brainpy._src.dnn.linear import (
   Dense as Dense,
   Linear as Linear,
   Identity as Identity,
-
   AllToAll as AllToAll,
   OneToOne as OneToOne,
-  MaskedDense as MaskedDense,
+  MaskedLinear as MaskedLinear,
+  CSRLinear as CSRLinear,
+  EventCSRLinear as EventCSRLinear,
+  JitFPHomoLinear as JitFPHomoLinear,
+  JitFPUniformLinear as JitFPUniformLinear,
+  JitFPNormalLinear as JitFPNormalLinear,
+  EventJitFPHomoLinear as EventJitFPHomoLinear,
+  EventJitFPNormalLinear as EventJitFPNormalLinear,
+  EventJitFPUniformLinear as EventJitFPUniformLinear,
 )
+
 
 from brainpy._src.dnn.normalization import (
   BatchNorm1d as BatchNorm1d,
@@ -50,9 +61,11 @@ from brainpy._src.dnn.normalization import (
   InstanceNorm as InstanceNorm,
 )
 
+
 from brainpy._src.dnn.nvar import (
   NVAR as NVAR,
 )
+
 
 from brainpy._src.dnn.pooling import (
   MaxPool as MaxPool,
@@ -75,9 +88,11 @@ from brainpy._src.dnn.pooling import (
   AdaptiveMaxPool3d as AdaptiveMaxPool3d,
 )
 
+
 from brainpy._src.dnn.reservoir import (
   Reservoir as Reservoir,
 )
+
 
 from brainpy._src.dnn.rnncells import (
   RNNCell as RNNCell,
@@ -87,6 +102,7 @@ from brainpy._src.dnn.rnncells import (
   Conv2dLSTMCell as Conv2dLSTMCell,
   Conv3dLSTMCell as Conv3dLSTMCell,
 )
+
 
 from brainpy._src.dnn.interoperation_flax import (
   FromFlax,
