@@ -743,9 +743,9 @@ class ExpIFRef(ExpIFRefLTC):
     super().update(x)
 
 ExpIF.__doc__ = ExpIFLTC.__doc__ % ('')
-ExpIFLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
 ExpIFRefLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
 ExpIFRef.__doc__ = ExpIFLTC.__doc__ % ('')
+ExpIFLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
 
 
 class AdExIFLTC(GradNeuDyn):
@@ -1095,9 +1095,9 @@ class AdExIFRef(AdExIFRefLTC):
     super().update(x)
 
 AdExIF.__doc__ = AdExIFLTC.__doc__ % ('')
-AdExIFLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
 AdExIFRefLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
 AdExIFRef.__doc__ = AdExIFLTC.__doc__ % ('')
+AdExIFLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
 
 class QuaIFLTC(GradNeuDyn):
   r"""Quadratic Integrate-and-Fire neuron model %s.
@@ -1388,9 +1388,9 @@ class QuaIFRef(QuaIFRefLTC):
 
 
 QuaIF.__doc__ = QuaIFLTC.__doc__ % ('')
-QuaIFLTC.__doc__ = QuaIFLTC.__doc__ % (ltc_doc)
 QuaIFRefLTC.__doc__ = QuaIFLTC.__doc__ % (ltc_doc)
 QuaIFRef.__doc__ = QuaIFLTC.__doc__ % ('')
+QuaIFLTC.__doc__ = QuaIFLTC.__doc__ % (ltc_doc)
 
 
 class AdQuaIFLTC(GradNeuDyn):
@@ -1736,9 +1736,9 @@ class AdQuaIFRef(AdQuaIFRefLTC):
 
 
 AdQuaIF.__doc__ = AdQuaIFLTC.__doc__ % ('')
-AdQuaIFLTC.__doc__ = AdQuaIFLTC.__doc__ % (ltc_doc)
 AdQuaIFRefLTC.__doc__ = AdQuaIFLTC.__doc__ % (ltc_doc)
 AdQuaIFRef.__doc__ = AdQuaIFLTC.__doc__ % ('')
+AdQuaIFLTC.__doc__ = AdQuaIFLTC.__doc__ % (ltc_doc)
 
 
 class GifLTC(GradNeuDyn):
@@ -2146,9 +2146,9 @@ class GifRef(GifRefLTC):
 
 
 Gif.__doc__ = GifLTC.__doc__ % ('')
-GifLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
 GifRefLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
 GifRef.__doc__ = GifLTC.__doc__ % ('')
+GifLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
 
 
 class IzhikevichLTC(GradNeuDyn):
@@ -2479,6 +2479,6 @@ class IzhikevichRef(IzhikevichRefLTC):
 
 
 Izhikevich.__doc__ = IzhikevichLTC.__doc__ % ('')
-IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
 IzhikevichRefLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
 IzhikevichRef.__doc__ = IzhikevichLTC.__doc__ % ('')
+IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
