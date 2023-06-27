@@ -39,6 +39,10 @@ __all__ = [
   'GifLTC',
   'GifRef',
   'GifRefLTC',
+  'Izhikevich',
+  'IzhikevichLTC',
+  'IzhikevichRef',
+  'IzhikevichRefLTC',
 ]
 
 
