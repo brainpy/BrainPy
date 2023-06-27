@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.channels.base import (
+from brainpy._src.dyn.channels.base import (
   Ion as Ion,
   IonChannel as IonChannel,
   Calcium as Calcium,
@@ -11,7 +11,7 @@ from brainpy._src.channels.base import (
   LeakyChannel as LeakyChannel,
 )
 
-from brainpy._src.channels.Ca import (
+from brainpy._src.dyn.channels.Ca import (
   CalciumFixed as CalciumFixed,
   CalciumDyna as CalciumDyna,
   CalciumDetailed as CalciumDetailed,
@@ -23,12 +23,12 @@ from brainpy._src.channels.Ca import (
   ICaL_IS2008 as ICaL_IS2008,
 )
 
-from brainpy._src.channels.IH import (
+from brainpy._src.dyn.channels.IH import (
   Ih_HM1992 as Ih_HM1992,
   Ih_De1996 as Ih_De1996,
 )
 
-from brainpy._src.channels.K import (
+from brainpy._src.dyn.channels.K import (
   IKDR_Ba2002 as IKDR_Ba2002,
   IK_TM1991 as IK_TM1991,
   IK_HH1952 as IK_HH1952,
@@ -39,16 +39,16 @@ from brainpy._src.channels.K import (
   IKNI_Ya1989 as IKNI_Ya1989,
 )
 
-from brainpy._src.channels.KCa import (
+from brainpy._src.dyn.channels.KCa import (
   IAHP_De1994 as IAHP_De1994,
 )
 
-from brainpy._src.channels.leaky import (
+from brainpy._src.dyn.channels.leaky import (
   IL as IL,
   IKL as IKL,
 )
 
-from brainpy._src.channels.Na import (
+from brainpy._src.dyn.channels.Na import (
   INa_Ba2002 as INa_Ba2002,
   INa_TM1991 as INa_TM1991,
   INa_HH1952 as INa_HH1952,
