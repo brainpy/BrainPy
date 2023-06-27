@@ -863,7 +863,7 @@ class PowerLaw(TwoEndConnector):
          Phys. Rev. E, 65, 026107, 2002.
   """
 
-  def __init__(self, m, p, directed=False, seed=None, **kwargs):
+  def __init__(self, m: int, p: float, directed=False, seed=None, **kwargs):
     super(PowerLaw, self).__init__(**kwargs)
     self.m = m
     self.p = p

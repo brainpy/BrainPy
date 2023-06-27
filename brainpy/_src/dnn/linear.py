@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Dict, Optional, Union, Callable, Sequence
+from typing import Dict, Optional, Union, Callable
 
+import jax
 import jax.numpy as jnp
 
 from brainpy import math as bm
@@ -16,13 +17,14 @@ from brainpy.types import ArrayType, Sharding
 from .base import Layer
 
 __all__ = [
-  'Dense',
-  'Linear',
+  'Dense', 'Linear',
   'Identity',
-
   'AllToAll',
   'OneToOne',
-  'MaskedDense',
+  'MaskedLinear',
+  'CSRLinear', 'EventCSRLinear',
+  'JitFPHomoLinear', 'JitFPUniformLinear', 'JitFPNormalLinear',
+  'EventJitFPHomoLinear', 'EventJitFPNormalLinear', 'EventJitFPUniformLinear',
 ]
 
 
@@ -83,11 +85,13 @@ class Dense(Layer):
     is_initializer(b_initializer, 'bias_initializer', allow_none=True)
 
     # parameter initialization
-    self.W = parameter(self.weight_initializer, (num_in, self.num_out))
-    self.b = parameter(self.bias_initializer, (self.num_out,))
+    W = parameter(self.weight_initializer, (num_in, self.num_out))
+    b = parameter(self.bias_initializer, (self.num_out,))
     if isinstance(self.mode, bm.TrainingMode):
-      self.W = bm.TrainVar(self.W)
-      self.b = None if (self.b is None) else bm.TrainVar(self.b)
+      W = bm.TrainVar(W)
+      b = None if (b is None) else bm.TrainVar(b)
+    self.W = W
+    self.b = b
 
     # fitting parameters
     self.online_fit_by = None
@@ -214,22 +218,6 @@ class Identity(Layer):
     return x
 
 
-class CSRLinear(Layer):
-  pass
-
-
-class CSCLinear(Layer):
-  pass
-
-
-class BSRLinear(Layer):
-  pass
-
-
-class MatLinear(Layer):
-  pass
-
-
 class AllToAll(Layer):
   """Synaptic matrix multiplication with All2All connections.
 
@@ -250,7 +238,6 @@ class AllToAll(Layer):
       weight: Union[float, ArrayType, Callable],
       sharding: Optional[Sharding] = None,
       include_self: bool = True,
-
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
@@ -261,17 +248,18 @@ class AllToAll(Layer):
     self.include_self = include_self
     self.sharding = sharding
 
-    self.weight = init.parameter(weight, (self.num_pre, self.num_post), sharding=sharding)
+    weight = init.parameter(weight, (self.num_pre, self.num_post), sharding=sharding)
     if isinstance(self.mode, bm.TrainingMode):
-      self.weight = bm.TrainVar(self.weight)
+      weight = bm.TrainVar(weight)
+    self.weight = weight
 
   def update(self, pre_val):
     if bm.ndim(self.weight) == 0:  # weight is a scalar
       if isinstance(self.mode, bm.BatchingMode):
-        assert pre_val.ndim == 2
+        assert pre_val.ndim == 2, 'Under the batching mode, the input should be a 2D array.'
         post_val = bm.sum(pre_val, keepdims=True, axis=1)
       else:
-        assert pre_val.ndim == 1
+        assert pre_val.ndim == 1, 'Under the NonBatching mode, the input should be a 1D array.'
         post_val = bm.sum(pre_val)
       if not self.include_self:
         if self.num_pre == self.num_post:
@@ -285,6 +273,7 @@ class AllToAll(Layer):
       post_val = self.weight * post_val
 
     else:  # weight is a matrix
+      assert self.weight.ndim == 2, '"weight" must be a 2D matrix.'
       if not self.include_self:
         post_val = pre_val @ bm.fill_diagonal(self.weight, 0., inplace=False)
       else:
@@ -317,30 +306,16 @@ class OneToOne(Layer):
     self.num = num
     self.sharding = sharding
 
-    self.weight = init.parameter(weight, (self.num,), sharding=sharding)
+    weight = init.parameter(weight, (self.num,), sharding=sharding)
     if isinstance(self.mode, bm.TrainingMode):
-      self.weight = bm.TrainVar(self.weight)
+      weight = bm.TrainVar(weight)
+    self.weight = weight
 
   def update(self, pre_val):
     return pre_val * self.weight
 
 
-class _SynMatMul(Layer):
-  def __init__(
-      self,
-      conn: connect.TwoEndConnector,
-      sharding: Optional[Sharding] = None,
-      mode: Optional[bm.Mode] = None,
-      name: Optional[str] = None,
-  ):
-    super().__init__(name=name, mode=mode)
-
-    assert isinstance(conn, connect.TwoEndConnector)
-    self.conn = conn
-    self.sharding = sharding
-
-
-class MaskedDense(_SynMatMul):
+class MaskedLinear(Layer):
   r"""Synaptic matrix multiplication with dense computation.
 
   It performs the computation of:
@@ -368,7 +343,11 @@ class MaskedDense(_SynMatMul):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super().__init__(name=name, mode=mode, conn=mask)
+    super().__init__(name=name, mode=mode)
+
+    assert isinstance(mask, connect.TwoEndConnector)
+    self.conn = mask
+    self.sharding = sharding
 
     # weight
     weight = init.parameter(weight, (mask.pre_num, mask.post_num), sharding=sharding)
@@ -383,7 +362,7 @@ class MaskedDense(_SynMatMul):
     return x @ (self.weight * self.mask)
 
 
-class CsrMM(_SynMatMul):
+class CSRLinear(Layer):
   r"""Synaptic matrix multiplication with CSR sparse computation.
 
   It performs the computation of:
@@ -410,22 +389,49 @@ class CsrMM(_SynMatMul):
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
+      method: str = 'cusparse',
+      transpose: bool = True,
   ):
-    super().__init__(name=name, mode=mode, conn=conn)
+    super().__init__(name=name, mode=mode)
+
+    assert isinstance(conn, connect.TwoEndConnector)
+    assert sharding is None, 'Currently this model does not support sharding.'
+    self.conn = conn
+    self.sharding = sharding
+    self.method = method
+    self.transpose = transpose
 
     # connection
     self.indices, self.indptr = self.conn.require('csr')
 
     # weight
-    self.weight = init.parameter(weight, (conn.pre_num, conn.post_num), sharding=sharding)
+    weight = init.parameter(weight, (self.indices.size,))
     if isinstance(self.mode, bm.TrainingMode):
-      self.weight = bm.TrainVar(self.weight)
+      weight = bm.TrainVar(weight)
+    self.weight = weight
 
   def update(self, x):
-    raise NotImplementedError
+    if x.ndim == 1:
+      return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
+                             shape=(self.conn.pre_num, self.conn.post_num),
+                             transpose=self.transpose,
+                             method=self.method)
+    elif x.ndim > 1:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_csrmv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_csrmv(self, x):
+    return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
+                           shape=(self.conn.pre_num, self.conn.post_num),
+                           transpose=self.transpose,
+                           method=self.method)
 
 
-class CscMM(_SynMatMul):
+class CSCLinear(Layer):
   r"""Synaptic matrix multiplication with CSC sparse computation.
 
   It performs the computation of:
@@ -453,14 +459,79 @@ class CscMM(_SynMatMul):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super().__init__(name=name, mode=mode, conn=conn)
+    super().__init__(name=name, mode=mode)
+
+    assert isinstance(conn, connect.TwoEndConnector)
+    self.conn = conn
+    self.sharding = sharding
 
 
-class EventCsrMM(_SynMatMul):
-  pass
+class EventCSRLinear(Layer):
+  r"""Synaptic matrix multiplication with event CSR sparse computation.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic spikes,
+  :math:`M` the synaptic weight using a CSR sparse matrix.
+
+  Args:
+    conn: TwoEndConnector. The connection.
+    weight: Synaptic weights. Can be a scalar, array, or callable function.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      conn: connect.TwoEndConnector,
+      weight: Union[float, ArrayType, Callable],
+      sharding: Optional[Sharding] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      transpose: bool = True,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    assert isinstance(conn, connect.TwoEndConnector)
+    assert sharding is None, 'Currently this model does not support sharding.'
+    self.conn = conn
+    self.sharding = sharding
+    self.transpose = transpose
+
+    # connection
+    self.indices, self.indptr = self.conn.require('csr')
+
+    # weight
+    weight = init.parameter(weight, (self.indices.size,))
+    if isinstance(self.mode, bm.TrainingMode):
+      weight = bm.TrainVar(weight)
+    self.weight = weight
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.event.csrmv(self.weight, self.indices, self.indptr, x,
+                            shape=(self.conn.pre_num, self.conn.post_num),
+                            transpose=self.transpose)
+    elif x.ndim > 1:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_csrmv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_csrmv(self, x):
+    return bm.event.csrmv(self.weight, self.indices, self.indptr, x,
+                          shape=(self.conn.pre_num, self.conn.post_num),
+                          transpose=self.transpose)
 
 
-class BcsrMM(_SynMatMul):
+class BcsrMM(Layer):
   r"""Synaptic matrix multiplication with BCSR sparse computation.
 
   It performs the computation of:
@@ -488,10 +559,14 @@ class BcsrMM(_SynMatMul):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super().__init__(name=name, mode=mode, conn=conn)
+    super().__init__(name=name, mode=mode)
+
+    assert isinstance(conn, connect.TwoEndConnector)
+    self.conn = conn
+    self.sharding = sharding
 
 
-class BcscMM(_SynMatMul):
+class BcscMM(Layer):
   r"""Synaptic matrix multiplication with BCSC sparse computation.
 
   It performs the computation of:
@@ -519,28 +594,486 @@ class BcscMM(_SynMatMul):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super().__init__(name=name, mode=mode, conn=conn)
+    super().__init__(name=name, mode=mode)
+
+    assert isinstance(conn, connect.TwoEndConnector)
+    self.conn = conn
+    self.sharding = sharding
 
 
-class JitProbHomoMM(_SynMatMul):
-  pass
+class JitFPHomoLinear(Layer):
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic variable,
+  :math:`M` the synaptic weights which has the fixed sparse connectivity and weights.
+  Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
+  and at each connection, the synaptic value is the same :math:`weight`.
+
+  Args:
+    num_in: int. The number of the input feature. A positive integer.
+    num_out: int. The number of the input feature. A positive integer.
+    prob: float. The connectivity probability.
+    weight: float. The synaptic value at each position.
+    seed: int. The random seed used to keep the reproducibility of the connectivity.
+    transpose: bool. Transpose the JIT matrix or not. Default False.
+    atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
+       May be changed in the future.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      num_in: int,
+      num_out: int,
+      prob: float,
+      weight: float,
+      seed: int,
+      sharding: Optional[Sharding] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      transpose: bool = False,
+      atomic: bool = False,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    self.prob = prob
+    self.sharding = sharding
+    self.transpose = transpose
+    self.seed = seed
+    self.atomic = atomic
+    self.num_in = num_in
+    self.num_out = num_out
+
+    # weight
+    if isinstance(self.mode, bm.TrainingMode):
+      weight = bm.TrainVar(weight)
+    self.weight = weight
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.jitconn.mv_prob_homo(x, self.weight, self.prob, self.seed,
+                                     shape=(self.num_out, self.num_in),
+                                     transpose=self.transpose,
+                                     outdim_parallel=not self.atomic)
+    elif x.ndim == 2:
+      return jax.vmap(self._batch_mv)(x)
+    elif x.ndim > 2:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_mv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_mv(self, x):
+    return bm.jitconn.mv_prob_homo(x, self.weight, self.prob, self.seed,
+                                   shape=(self.num_out, self.num_in),
+                                   transpose=self.transpose,
+                                   outdim_parallel=not self.atomic)
 
 
-class JitProbUniformMM(_SynMatMul):
-  pass
+class JitFPUniformLinear(Layer):
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic variable,
+  :math:`M` the synaptic weights which has the fixed sparse connectivity and weights.
+  Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
+  and at each connection, the synaptic value is sample from a uniform distribution :math:`U(w_{low}, w_{high})`.
+
+  Args:
+    num_in: int. The number of the input feature. A positive integer.
+    num_out: int. The number of the input feature. A positive integer.
+    prob: float. The connectivity probability.
+    w_low: float. The lowest value of the uniform distribution.
+    w_high: float. The highest value of the uniform distribution.
+    seed: int. The random seed used to keep the reproducibility of the connectivity.
+    transpose: bool. Transpose the JIT matrix or not. Default False.
+    atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
+       May be changed in the future.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      num_in: int,
+      num_out: int,
+      prob: float,
+      w_low: float,
+      w_high: float,
+      seed: int,
+      sharding: Optional[Sharding] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      transpose: bool = False,
+      atomic: bool = False,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    self.prob = prob
+    self.sharding = sharding
+    self.transpose = transpose
+    self.seed = seed
+    self.atomic = atomic
+    self.num_in = num_in
+    self.num_out = num_out
+
+    # weight
+    self.w_low = w_low
+    self.w_high = w_high
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.jitconn.mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
+                                        shape=(self.num_out, self.num_in),
+                                        transpose=self.transpose,
+                                        outdim_parallel=not self.atomic)
+    elif x.ndim == 2:
+      return jax.vmap(self._batch_mv)(x)
+    elif x.ndim > 2:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_mv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_mv(self, x):
+    return bm.jitconn.mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
+                                      shape=(self.num_out, self.num_in),
+                                      transpose=self.transpose,
+                                      outdim_parallel=not self.atomic)
 
 
-class JitProbNormalMM(_SynMatMul):
-  pass
+class JitFPNormalLinear(Layer):
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic variable,
+  :math:`M` the synaptic weights which has the fixed sparse connectivity and weights.
+  Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
+  and at each connection, the synaptic value is sample from a normal distribution :math:`N(\mu, \sigma)`.
+
+  Args:
+    num_in: int. The number of the input feature. A positive integer.
+    num_out: int. The number of the input feature. A positive integer.
+    prob: float. The connectivity probability.
+    w_mu: float. The center of the normal distribution.
+    w_sigma: float. The standard variance of the normal distribution.
+    seed: int. The random seed used to keep the reproducibility of the connectivity.
+    transpose: bool. Transpose the JIT matrix or not. Default False.
+    atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
+       May be changed in the future.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      num_in: int,
+      num_out: int,
+      prob: float,
+      w_mu: float,
+      w_sigma: float,
+      seed: int,
+      sharding: Optional[Sharding] = None,
+      transpose: bool = False,
+      atomic: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    self.prob = prob
+    self.sharding = sharding
+    self.transpose = transpose
+    self.seed = seed
+    self.atomic = atomic
+    self.num_in = num_in
+    self.num_out = num_out
+
+    # weight
+    self.w_mu = w_mu
+    self.w_sigma = w_sigma
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.jitconn.mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+                                       shape=(self.num_out, self.num_in),
+                                       transpose=self.transpose,
+                                       outdim_parallel=not self.atomic)
+    elif x.ndim == 2:
+      return jax.vmap(self._batch_mv)(x)
+    elif x.ndim > 2:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_mv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_mv(self, x):
+    return bm.jitconn.mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+                                     shape=(self.num_out, self.num_in),
+                                     transpose=self.transpose,
+                                     outdim_parallel=not self.atomic)
 
 
-class EventJitProbHomMM(_SynMatMul):
-  pass
+class EventJitFPHomoLinear(Layer):
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic spikes,
+  :math:`M` the synaptic weights which has the fixed sparse connectivity and weights.
+  Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
+  and at each connection, the synaptic value is the same :math:`weight`.
+
+  Args:
+    num_in: int. The number of the input feature. A positive integer.
+    num_out: int. The number of the input feature. A positive integer.
+    prob: float. The connectivity probability.
+    weight: float. The synaptic value at each position.
+    seed: int. The random seed used to keep the reproducibility of the connectivity.
+    transpose: bool. Transpose the JIT matrix or not. Default False.
+    atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
+       May be changed in the future.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      num_in: int,
+      num_out: int,
+      prob: float,
+      weight: float,
+      seed: int,
+      sharding: Optional[Sharding] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      transpose: bool = False,
+      atomic: bool = False,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    self.prob = prob
+    self.sharding = sharding
+    self.transpose = transpose
+    self.seed = seed
+    self.atomic = atomic
+    self.num_in = num_in
+    self.num_out = num_out
+
+    # weight
+    if isinstance(self.mode, bm.TrainingMode):
+      weight = bm.TrainVar(weight)
+    self.weight = weight
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.jitconn.event_mv_prob_homo(x, self.weight, self.prob, self.seed,
+                                           shape=(self.num_out, self.num_in),
+                                           transpose=self.transpose,
+                                           outdim_parallel=not self.atomic)
+    elif x.ndim == 2:
+      return jax.vmap(self._batch_mv)(x)
+    elif x.ndim > 2:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_mv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_mv(self, x):
+    return bm.jitconn.event_mv_prob_homo(x, self.weight, self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
 
 
-class EventJitProbUniformMM(_SynMatMul):
-  pass
+class EventJitFPUniformLinear(Layer):
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic spikes,
+  :math:`M` the synaptic weights which has the fixed sparse connectivity and weights.
+  Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
+  and at each connection, the synaptic value is sample from a uniform distribution :math:`U(w_{low}, w_{high})`.
+
+  Args:
+    num_in: int. The number of the input feature. A positive integer.
+    num_out: int. The number of the input feature. A positive integer.
+    prob: float. The connectivity probability.
+    w_low: float. The lowest value of the uniform distribution.
+    w_high: float. The highest value of the uniform distribution.
+    seed: int. The random seed used to keep the reproducibility of the connectivity.
+    transpose: bool. Transpose the JIT matrix or not. Default False.
+    atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
+       May be changed in the future.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      num_in: int,
+      num_out: int,
+      prob: float,
+      w_low: float,
+      w_high: float,
+      seed: int,
+      sharding: Optional[Sharding] = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+      transpose: bool = False,
+      atomic: bool = False,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    self.prob = prob
+    self.sharding = sharding
+    self.transpose = transpose
+    self.seed = seed
+    self.atomic = atomic
+    self.num_in = num_in
+    self.num_out = num_out
+
+    # weight
+    self.w_low = w_low
+    self.w_high = w_high
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.jitconn.event_mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
+                                              shape=(self.num_out, self.num_in),
+                                              transpose=self.transpose,
+                                              outdim_parallel=not self.atomic)
+    elif x.ndim == 2:
+      return jax.vmap(self._batch_mv)(x)
+    elif x.ndim > 2:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_mv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_mv(self, x):
+    return bm.jitconn.event_mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
+                                            shape=(self.num_out, self.num_in),
+                                            transpose=self.transpose,
+                                            outdim_parallel=not self.atomic)
 
 
-class EventJitProbNormalMM(_SynMatMul):
-  pass
+class EventJitFPNormalLinear(Layer):
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
+
+  It performs the computation of:
+
+  .. math::
+
+     y = x @ M
+
+  where :math:`y` is the postsynaptic value, :math:`x` the presynaptic spikes,
+  :math:`M` the synaptic weights which has the fixed sparse connectivity and weights.
+  Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
+  and at each connection, the synaptic value is sample from a normal distribution :math:`N(\mu, \sigma)`.
+
+  Args:
+    num_in: int. The number of the input feature. A positive integer.
+    num_out: int. The number of the input feature. A positive integer.
+    prob: float. The connectivity probability.
+    w_mu: float. The center of the normal distribution.
+    w_sigma: float. The standard variance of the normal distribution.
+    seed: int. The random seed used to keep the reproducibility of the connectivity.
+    transpose: bool. Transpose the JIT matrix or not. Default False.
+    atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
+       May be changed in the future.
+    sharding: The sharding strategy.
+    mode: The synaptic computing mode.
+    name: The synapse model name.
+  """
+
+  def __init__(
+      self,
+      num_in: int,
+      num_out: int,
+      prob: float,
+      w_mu: float,
+      w_sigma: float,
+      seed: int,
+      sharding: Optional[Sharding] = None,
+      transpose: bool = False,
+      atomic: bool = False,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
+  ):
+    super().__init__(name=name, mode=mode)
+
+    self.prob = prob
+    self.sharding = sharding
+    self.transpose = transpose
+    self.seed = seed
+    self.atomic = atomic
+    self.num_in = num_in
+    self.num_out = num_out
+
+    # weight
+    self.w_mu = w_mu
+    self.w_sigma = w_sigma
+
+  def update(self, x):
+    if x.ndim == 1:
+      return bm.jitconn.event_mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+                                             shape=(self.num_out, self.num_in),
+                                             transpose=self.transpose,
+                                             outdim_parallel=not self.atomic)
+    elif x.ndim == 2:
+      return jax.vmap(self._batch_mv)(x)
+    elif x.ndim > 2:
+      shapes = x.shape[:-1]
+      x = bm.flatten(x, end_dim=-2)
+      y = jax.vmap(self._batch_mv)(x)
+      return bm.reshape(y, shapes + (y.shape[-1],))
+    else:
+      raise ValueError
+
+  def _batch_mv(self, x):
+    return bm.jitconn.event_mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+                                           shape=(self.num_out, self.num_in),
+                                           transpose=self.transpose,
+                                           outdim_parallel=not self.atomic)
