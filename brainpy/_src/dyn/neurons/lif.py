@@ -618,8 +618,7 @@ class ExpIF(ExpIFLTC):
       x += out(self.V.value)
     super().update(x)
 
-ExpIF.__doc__ = ExpIFLTC.__doc__ % ('')
-ExpIFLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
+
 
 class ExpIFRefLTC(ExpIFLTC):
   def __init__(
@@ -743,8 +742,86 @@ class ExpIFRef(ExpIFRefLTC):
       x += out(self.V.value)
     super().update(x)
 
+ExpIF.__doc__ = ExpIFLTC.__doc__ % ('')
+ExpIFLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
+ExpIFRefLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
+ExpIFRef.__doc__ = ExpIFLTC.__doc__ % ('')
+
 
 class AdExIFLTC(GradNeuDyn):
+  r"""Adaptive exponential integrate-and-fire neuron model %s.
+
+  **Model Descriptions**
+
+  The **adaptive exponential integrate-and-fire model**, also called AdEx, is a
+  spiking neuron model with two variables [1]_ [2]_.
+
+  .. math::
+
+      \begin{aligned}
+      \tau_m\frac{d V}{d t} &= - (V-V_{rest}) + \Delta_T e^{\frac{V-V_T}{\Delta_T}} - Rw + RI(t), \\
+      \tau_w \frac{d w}{d t} &=a(V-V_{rest}) - w
+      \end{aligned}
+
+  once the membrane potential reaches the spike threshold,
+
+  .. math::
+
+      V \rightarrow V_{reset}, \\
+      w \rightarrow w+b.
+
+  The first equation describes the dynamics of the membrane potential and includes
+  an activation term with an exponential voltage dependence. Voltage is coupled to
+  a second equation which describes adaptation. Both variables are reset if an action
+  potential has been triggered. The combination of adaptation and exponential voltage
+  dependence gives rise to the name Adaptive Exponential Integrate-and-Fire model.
+
+  The adaptive exponential integrate-and-fire model is capable of describing known
+  neuronal firing patterns, e.g., adapting, bursting, delayed spike initiation,
+  initial bursting, fast spiking, and regular spiking.
+
+  **Model Examples**
+
+  - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Gerstner_2005_AdExIF_model.html>`_
+
+  **Model Parameters**
+
+  ============= ============== ======== ========================================================================================================================
+  **Parameter** **Init Value** **Unit** **Explanation**
+  ------------- -------------- -------- ------------------------------------------------------------------------------------------------------------------------
+  V_rest        -65            mV       Resting potential.
+  V_reset       -68            mV       Reset potential after spike.
+  V_th          -30            mV       Threshold potential of spike and reset.
+  V_T           -59.9          mV       Threshold potential of generating action potential.
+  delta_T       3.48           \        Spike slope factor.
+  a             1              \        The sensitivity of the recovery variable :math:`u` to the sub-threshold fluctuations of the membrane potential :math:`v`
+  b             1              \        The increment of :math:`w` produced by a spike.
+  R             1              \        Membrane resistance.
+  tau           10             ms       Membrane time constant. Compute by R * C.
+  tau_w         30             ms       Time constant of the adaptation current.
+  tau_ref       0.             ms       Refractory time.
+  ============= ============== ======== ========================================================================================================================
+
+  **Model Variables**
+
+  ================== ================= =========================================================
+  **Variables name** **Initial Value** **Explanation**
+  ------------------ ----------------- ---------------------------------------------------------
+  V                   0                 Membrane potential.
+  w                   0                 Adaptation current.
+  input               0                 External and synaptic input current.
+  spike               False             Flag to mark whether the neuron is spiking.
+  refractory          False             Flag to mark whether the neuron is in refractory period.
+  t_last_spike        -1e7              Last spike time stamp.
+  ================== ================= =========================================================
+
+  **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
+  """
   def __init__(
       self,
       size: Shape,
@@ -1017,8 +1094,77 @@ class AdExIFRef(AdExIFRefLTC):
       x += out(self.V.value)
     super().update(x)
 
+AdExIF.__doc__ = AdExIFLTC.__doc__ % ('')
+AdExIFLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
+AdExIFRefLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
+AdExIFRef.__doc__ = AdExIFLTC.__doc__ % ('')
 
 class QuaIFLTC(GradNeuDyn):
+  r"""Quadratic Integrate-and-Fire neuron model %s.
+
+    **Model Descriptions**
+
+    In contrast to physiologically accurate but computationally expensive
+    neuron models like the Hodgkin–Huxley model, the QIF model [1]_ seeks only
+    to produce **action potential-like patterns** and ignores subtleties
+    like gating variables, which play an important role in generating action
+    potentials in a real neuron. However, the QIF model is incredibly easy
+    to implement and compute, and relatively straightforward to study and
+    understand, thus has found ubiquitous use in computational neuroscience.
+
+    .. math::
+
+        \tau \frac{d V}{d t}=c(V-V_{rest})(V-V_c) + RI(t)
+
+    where the parameters are taken to be :math:`c` =0.07, and :math:`V_c = -50 mV` (Latham et al., 2000).
+
+    **Model Examples**
+
+    .. plot::
+      :include-source: True
+
+      >>> import brainpy as bp
+      >>>
+      >>> group = bp.neurons.QuaIF(1,)
+      >>>
+      >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 20.))
+      >>> runner.run(duration=200.)
+      >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
+
+
+    **Model Parameters**
+
+    ============= ============== ======== ========================================================================================================================
+    **Parameter** **Init Value** **Unit** **Explanation**
+    ------------- -------------- -------- ------------------------------------------------------------------------------------------------------------------------
+    V_rest        -65            mV       Resting potential.
+    V_reset       -68            mV       Reset potential after spike.
+    V_th          -30            mV       Threshold potential of spike and reset.
+    V_c           -50            mV       Critical voltage for spike initiation. Must be larger than V_rest.
+    c             .07            \        Coefficient describes membrane potential update. Larger than 0.
+    R             1              \        Membrane resistance.
+    tau           10             ms       Membrane time constant. Compute by R * C.
+    tau_ref       0              ms       Refractory period length.
+    ============= ============== ======== ========================================================================================================================
+
+    **Model Variables**
+
+    ================== ================= =========================================================
+    **Variables name** **Initial Value** **Explanation**
+    ------------------ ----------------- ---------------------------------------------------------
+    V                   0                 Membrane potential.
+    input               0                 External and synaptic input current.
+    spike               False             Flag to mark whether the neuron is spiking.
+    refractory          False             Flag to mark whether the neuron is in refractory period.
+    t_last_spike       -1e7               Last spike time stamp.
+    ================== ================= =========================================================
+
+    **References**
+
+    .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
+            (2000) Intrinsic dynamics in neuronal networks. I. Theory.
+            J. Neurophysiology 83, pp. 808–827.
+    """
   def __init__(
       self,
       size: Shape,
@@ -1241,7 +1387,88 @@ class QuaIFRef(QuaIFRefLTC):
     super().update(x)
 
 
+QuaIF.__doc__ = QuaIFLTC.__doc__ % ('')
+QuaIFLTC.__doc__ = QuaIFLTC.__doc__ % (ltc_doc)
+QuaIFRefLTC.__doc__ = QuaIFLTC.__doc__ % (ltc_doc)
+QuaIFRef.__doc__ = QuaIFLTC.__doc__ % ('')
+
+
 class AdQuaIFLTC(GradNeuDyn):
+  r"""Adaptive quadratic integrate-and-fire neuron model %s.
+
+  **Model Descriptions**
+
+  The adaptive quadratic integrate-and-fire neuron model [1]_ is given by:
+
+  .. math::
+
+      \begin{aligned}
+      \tau_m \frac{d V}{d t}&=c(V-V_{rest})(V-V_c) - w + I(t), \\
+      \tau_w \frac{d w}{d t}&=a(V-V_{rest}) - w,
+      \end{aligned}
+
+  once the membrane potential reaches the spike threshold,
+
+  .. math::
+
+      V \rightarrow V_{reset}, \\
+      w \rightarrow w+b.
+
+  **Model Examples**
+
+  .. plot::
+    :include-source: True
+
+    >>> import brainpy as bp
+    >>> group = bp.neurons.AdQuaIF(1, )
+    >>> runner = bp.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
+    >>> runner.run(300)
+    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+    >>> fig.add_subplot(gs[0, 0])
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V')
+    >>> fig.add_subplot(gs[1, 0])
+    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, ylabel='w', show=True)
+
+  **Model Parameters**
+
+  ============= ============== ======== =======================================================
+  **Parameter** **Init Value** **Unit** **Explanation**
+  ------------- -------------- -------- -------------------------------------------------------
+  V_rest         -65            mV       Resting potential.
+  V_reset        -68            mV       Reset potential after spike.
+  V_th           -30            mV       Threshold potential of spike and reset.
+  V_c            -50            mV       Critical voltage for spike initiation. Must be larger
+                                         than :math:`V_{rest}`.
+  a               1              \       The sensitivity of the recovery variable :math:`u` to
+                                         the sub-threshold fluctuations of the membrane
+                                         potential :math:`v`
+  b              .1             \        The increment of :math:`w` produced by a spike.
+  c              .07             \       Coefficient describes membrane potential update.
+                                         Larger than 0.
+  tau            10             ms       Membrane time constant.
+  tau_w          10             ms       Time constant of the adaptation current.
+  ============= ============== ======== =======================================================
+
+  **Model Variables**
+
+  ================== ================= ==========================================================
+  **Variables name** **Initial Value** **Explanation**
+  ------------------ ----------------- ----------------------------------------------------------
+  V                   0                 Membrane potential.
+  w                   0                 Adaptation current.
+  input               0                 External and synaptic input current.
+  spike               False             Flag to mark whether the neuron is spiking.
+  t_last_spike        -1e7              Last spike time stamp.
+  ================== ================= ==========================================================
+
+  **References**
+
+  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
+         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
+  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
+         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
+         Mathematics 68, no. 4 (2008): 1045-1079.
+  """
   def __init__(
       self,
       size: Shape,
@@ -1508,7 +1735,93 @@ class AdQuaIFRef(AdQuaIFRefLTC):
     super().update(x)
 
 
+AdQuaIF.__doc__ = AdQuaIFLTC.__doc__ % ('')
+AdQuaIFLTC.__doc__ = AdQuaIFLTC.__doc__ % (ltc_doc)
+AdQuaIFRefLTC.__doc__ = AdQuaIFLTC.__doc__ % (ltc_doc)
+AdQuaIFRef.__doc__ = AdQuaIFLTC.__doc__ % ('')
+
+
 class GifLTC(GradNeuDyn):
+  r"""Generalized Integrate-and-Fire model %s.
+
+    **Model Descriptions**
+
+    The generalized integrate-and-fire model [1]_ is given by
+
+    .. math::
+
+        &\frac{d I_j}{d t} = - k_j I_j
+
+        &\frac{d V}{d t} = ( - (V - V_{rest}) + R\sum_{j}I_j + RI) / \tau
+
+        &\frac{d V_{th}}{d t} = a(V - V_{rest}) - b(V_{th} - V_{th\infty})
+
+    When :math:`V` meet :math:`V_{th}`, Generalized IF neuron fires:
+
+    .. math::
+
+        &I_j \leftarrow R_j I_j + A_j
+
+        &V \leftarrow V_{reset}
+
+        &V_{th} \leftarrow max(V_{th_{reset}}, V_{th})
+
+    Note that :math:`I_j` refers to arbitrary number of internal currents.
+
+    **Model Examples**
+
+    - `Detailed examples to reproduce different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Niebur_2009_GIF.html>`_
+
+    **Model Parameters**
+
+    ============= ============== ======== ====================================================================
+    **Parameter** **Init Value** **Unit** **Explanation**
+    ------------- -------------- -------- --------------------------------------------------------------------
+    V_rest        -70            mV       Resting potential.
+    V_reset       -70            mV       Reset potential after spike.
+    V_th_inf      -50            mV       Target value of threshold potential :math:`V_{th}` updating.
+    V_th_reset    -60            mV       Free parameter, should be larger than :math:`V_{reset}`.
+    R             20             \        Membrane resistance.
+    tau           20             ms       Membrane time constant. Compute by :math:`R * C`.
+    a             0              \        Coefficient describes the dependence of
+                                          :math:`V_{th}` on membrane potential.
+    b             0.01           \        Coefficient describes :math:`V_{th}` update.
+    k1            0.2            \        Constant pf :math:`I1`.
+    k2            0.02           \        Constant of :math:`I2`.
+    R1            0              \        Free parameter.
+                                          Describes dependence of :math:`I_1` reset value on
+                                          :math:`I_1` value before spiking.
+    R2            1              \        Free parameter.
+                                          Describes dependence of :math:`I_2` reset value on
+                                          :math:`I_2` value before spiking.
+    A1            0              \        Free parameter.
+    A2            0              \        Free parameter.
+    ============= ============== ======== ====================================================================
+
+    **Model Variables**
+
+    ================== ================= =========================================================
+    **Variables name** **Initial Value** **Explanation**
+    ------------------ ----------------- ---------------------------------------------------------
+    V                  -70               Membrane potential.
+    input              0                 External and synaptic input current.
+    spike              False             Flag to mark whether the neuron is spiking.
+    V_th               -50               Spiking threshold potential.
+    I1                 0                 Internal current 1.
+    I2                 0                 Internal current 2.
+    t_last_spike       -1e7              Last spike time stamp.
+    ================== ================= =========================================================
+
+    **References**
+
+    .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
+           integrate-and-fire neural model produces diverse spiking
+           behaviors." Neural computation 21.3 (2009): 704-718.
+    .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
+           Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
+           leaky integrate-and-fire models classify multiple neuron types."
+           Nature communications 9, no. 1 (2018): 1-15.
+  """
   def __init__(
       self,
       size: Shape,
@@ -1832,7 +2145,79 @@ class GifRef(GifRefLTC):
     super().update(x)
 
 
+Gif.__doc__ = GifLTC.__doc__ % ('')
+GifLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
+GifRefLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
+GifRef.__doc__ = GifLTC.__doc__ % ('')
+
+
 class IzhikevichLTC(GradNeuDyn):
+  r"""The Izhikevich neuron model %s.
+
+    **Model Descriptions**
+
+    The dynamics of the Izhikevich neuron model [1]_ [2]_ is given by:
+
+    .. math ::
+
+        \frac{d V}{d t} &= 0.04 V^{2}+5 V+140-u+I
+
+        \frac{d u}{d t} &=a(b V-u)
+
+    .. math ::
+
+        \text{if}  v \geq 30  \text{mV}, \text{then}
+        \begin{cases} v \leftarrow c \\
+        u \leftarrow u+d \end{cases}
+
+    **Model Examples**
+
+    - `Detailed examples to reproduce different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Izhikevich_2003_Izhikevich_model.html>`_
+
+    **Model Parameters**
+
+    ============= ============== ======== ================================================================================
+    **Parameter** **Init Value** **Unit** **Explanation**
+    ------------- -------------- -------- --------------------------------------------------------------------------------
+    a             0.02           \        It determines the time scale of
+                                          the recovery variable :math:`u`.
+    b             0.2            \        It describes the sensitivity of the
+                                          recovery variable :math:`u` to
+                                          the sub-threshold fluctuations of the
+                                          membrane potential :math:`v`.
+    c             -65            \        It describes the after-spike reset value
+                                          of the membrane potential :math:`v` caused by
+                                          the fast high-threshold :math:`K^{+}`
+                                          conductance.
+    d             8              \        It describes after-spike reset of the
+                                          recovery variable :math:`u`
+                                          caused by slow high-threshold
+                                          :math:`Na^{+}` and :math:`K^{+}` conductance.
+    tau_ref       0              ms       Refractory period length. [ms]
+    V_th          30             mV       The membrane potential threshold.
+    ============= ============== ======== ================================================================================
+
+    **Model Variables**
+
+    ================== ================= =========================================================
+    **Variables name** **Initial Value** **Explanation**
+    ------------------ ----------------- ---------------------------------------------------------
+    V                          -65        Membrane potential.
+    u                          1          Recovery variable.
+    input                      0          External and synaptic input current.
+    spike                      False      Flag to mark whether the neuron is spiking.
+    refractory                False       Flag to mark whether the neuron is in refractory period.
+    t_last_spike               -1e7       Last spike time stamp.
+    ================== ================= =========================================================
+
+    **References**
+
+    .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
+           Transactions on neural networks 14.6 (2003): 1569-1572.
+
+    .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
+           IEEE transactions on neural networks 15.5 (2004): 1063-1070.
+    """
   def __init__(
       self,
       size: Shape,
@@ -2091,3 +2476,9 @@ class IzhikevichRef(IzhikevichRefLTC):
     for out in self.cur_inputs.values():
       x += out(self.V.value)
     super().update(x)
+
+
+Izhikevich.__doc__ = IzhikevichLTC.__doc__ % ('')
+IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
+IzhikevichRefLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
+IzhikevichRef.__doc__ = IzhikevichLTC.__doc__ % ('')
