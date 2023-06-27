@@ -1878,7 +1878,7 @@ class IzhikevichLTC(GradNeuDyn):
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
-    self._u_initializer = is_initializer(u_initializer)
+    self._u_initializer = is_initializer(u_initializer, allow_none=True)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -1946,6 +1946,7 @@ class Izhikevich(IzhikevichLTC):
     dudt = self.a * (self.b * V - u)
     return dudt
 
+  @property
   def derivative(self):
     return JointEq([self.dV, self.du])
 
@@ -2016,7 +2017,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
-    self._u_initializer = is_initializer(u_initializer)
+    self._u_initializer = is_initializer(u_initializer, allow_none=True)
 
     # integral
     self.integral = odeint(method=method, f=self.derivative)
@@ -2081,6 +2082,7 @@ class IzhikevichRef(IzhikevichRefLTC):
     dudt = self.a * (self.b * V - u)
     return dudt
 
+  @property
   def derivative(self):
     return JointEq([self.dV, self.du])
 
