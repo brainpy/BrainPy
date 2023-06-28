@@ -129,7 +129,7 @@ class IFLTC(GradNeuDyn):
     self.V.value = self.integral(self.V.value, t, x, dt)
     return self.V.value
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.V
 
 
@@ -253,7 +253,7 @@ class LifLTC(GradNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -602,7 +602,7 @@ class ExpIFLTC(GradNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -927,7 +927,7 @@ class AdExIFLTC(GradNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -1249,7 +1249,7 @@ class QuaIFLTC(GradNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -1571,7 +1571,7 @@ class AdQuaIFLTC(GradNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -1950,7 +1950,7 @@ class GifLTC(GradNeuDyn):
     self.V.value = V
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -2318,7 +2318,7 @@ class IzhikevichLTC(GradNeuDyn):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 

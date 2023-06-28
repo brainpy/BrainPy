@@ -306,7 +306,7 @@ class HHLTC(HHTypeNeuLTC):
     self.n.value = n
     return self.spike.value
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -671,7 +671,7 @@ class MorrisLecarLTC(HHTypeNeuLTC):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
@@ -960,7 +960,7 @@ class WangBuzsakiModelLTC(HHTypeNeuLTC):
     self.n.value = n
     return self.spike.value
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 class WangBuzsakiModel(WangBuzsakiModelLTC):

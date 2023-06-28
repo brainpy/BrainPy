@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from brainpy._src.context import share
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable_
+from brainpy._src.mixin import ReturnInfo
 from brainpy.types import Shape, ArrayType
 from brainpy._src.dyn.base import NeuDyn
 
@@ -41,10 +42,12 @@ class InputGroup(NeuDyn):
                                      size=size,
                                      keep_size=keep_size,
                                      mode=mode)
-    self.spike = None
 
   def update(self, x):
     return x
+
+  def return_info(self):
+    return ReturnInfo(self.varshape, self.sharding, self.mode, bm.zeros)
 
   def reset_state(self, batch_size=None):
     pass
@@ -77,10 +80,11 @@ class OutputGroup(NeuDyn):
     self.spike = None
 
   def update(self, x):
-    return x
+    return bm.sharding.partition(x, sharding=self.sharding)
 
   def reset_state(self, batch_size=None):
     pass
+
 
 
 class SpikeTimeGroup(NeuDyn):
@@ -156,6 +160,9 @@ class SpikeTimeGroup(NeuDyn):
     bm.while_loop(self._body_fun, self._cond_fun, share.load('t'))
     return self.spike.value
 
+  def return_info(self):
+    return self.spike
+
   # functions
   def _cond_fun(self, t):
     i = self.i.value
@@ -202,6 +209,9 @@ class PoissonGroup(NeuDyn):
     spikes = bm.random.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
     self.spike.value = spikes
     return spikes
+
+  def return_info(self):
+    return self.spike
 
   def reset_state(self, batch_size=None):
     self.spike = variable_(lambda s: jnp.zeros(s, dtype=bool), self.varshape, batch_size)

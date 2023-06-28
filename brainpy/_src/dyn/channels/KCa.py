@@ -105,7 +105,7 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     self.integral = odeint(self.dp, method=method)
 
   def dp(self, p, t, C_Ca):
-    C2 = self.alpha * bm.power(bm.as_jax(C_Ca), self.n)
+    C2 = self.alpha * bm.power(C_Ca, self.n)
     C3 = C2 + self.beta
     return self.phi * (C2 / C3 - p) * C3
 
