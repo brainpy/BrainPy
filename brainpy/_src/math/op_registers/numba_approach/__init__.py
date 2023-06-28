@@ -7,7 +7,6 @@ from typing import Union, Sequence
 
 import numba
 from jax import core
-from jax.abstract_arrays import ShapedArray
 from jax.interpreters import xla, batching, ad
 from jax.tree_util import tree_map
 from numba.core.dispatcher import Dispatcher
@@ -112,7 +111,7 @@ class XLACustomOp(BrainPyObject):
 def register_op_with_numba(
     op_name: str,
     cpu_func: Callable,
-    out_shapes: Union[Callable, ShapedArray, Sequence[ShapedArray]],
+    out_shapes: Union[Callable, core.ShapedArray, Sequence[core.ShapedArray]],
     gpu_func_translation: Callable = None,
     batching_translation: Callable = None,
     jvp_translation: Callable = None,
@@ -175,11 +174,11 @@ def register_op_with_numba(
     else:
       shapes = out_shapes
 
-    if isinstance(shapes, ShapedArray):
+    if isinstance(shapes, core.ShapedArray):
       pass
     elif isinstance(shapes, (tuple, list)):
       for elem in shapes:
-        if not isinstance(elem, ShapedArray):
+        if not isinstance(elem, core.ShapedArray):
           raise ValueError(f'Elements in "out_shapes" must be instances of '
                            f'jax.abstract_arrays.ShapedArray, but we got '
                            f'{type(elem)}: {elem}')
