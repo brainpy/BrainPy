@@ -82,7 +82,6 @@ class JITTransform(ObjectTransform):
       keep_unused: bool = False,
       abstracted_axes: Optional[Any] = None,
       name: Optional[str] = None,
-      backend: Optional[str] = None,
       in_shardings: Union[Sharding, UnspecifiedValue] = UNSPECIFIED,
       out_shardings: Union[Sharding, UnspecifiedValue] = UNSPECIFIED,
 
@@ -104,7 +103,6 @@ class JITTransform(ObjectTransform):
     self.fun = fun
 
     # parameters
-    self._backend = backend
     self._static_argnums = _seq_of_int(static_argnums)
     self._static_argnames = _seq_of_str(static_argnames)
     self._donate_argnums = donate_argnums
@@ -157,7 +155,6 @@ class JITTransform(ObjectTransform):
           inline=self._inline,
           keep_unused=self._keep_unused,
           abstracted_axes=self._abstracted_axes,
-          backend=self._backend,
           in_shardings=self._in_shardings,
           out_shardings=self._out_shardings,
         )
@@ -246,7 +243,7 @@ def jit(
 
     # others
     **kwargs,
-) -> JITTransform:
+) -> Union[Callable, JITTransform]:
   """
   JIT (Just-In-Time) compilation for BrainPy computation.
 
@@ -317,7 +314,6 @@ def jit(
                                   device=device,
                                   inline=inline,
                                   keep_unused=keep_unused,
-                                  backend=backend,
                                   abstracted_axes=abstracted_axes,
                                   **kwargs)
   else:
@@ -330,7 +326,6 @@ def jit(
                         device=device,
                         inline=inline,
                         keep_unused=keep_unused,
-                        backend=backend,
                         abstracted_axes=abstracted_axes,
                         **kwargs)
 
