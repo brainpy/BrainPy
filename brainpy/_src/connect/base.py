@@ -726,7 +726,7 @@ def coo2csc(coo, post_num, data=None):
     return pre_ids_new, indptr_new, data_new
 
 
-def visualizeMat(mat, description):
+def visualizeMat(mat, description='Untitled'):
   try:
     import seaborn as sns
     import matplotlib.pyplot as plt
