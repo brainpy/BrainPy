@@ -21,7 +21,7 @@ __all__ = [
 
 
 class HHLTC(HHTypeNeuLTC):
-  r"""Hodgkin–Huxley neuron model.
+  r"""Hodgkin–Huxley neuron model with liquid time constant.
 
   **Model Descriptions**
 
@@ -306,11 +306,181 @@ class HHLTC(HHTypeNeuLTC):
     self.n.value = n
     return self.spike.value
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
 class HH(HHLTC):
+  r"""Hodgkin–Huxley neuron model.
+
+    **Model Descriptions**
+
+    The Hodgkin-Huxley (HH; Hodgkin & Huxley, 1952) model [1]_ for the generation of
+    the nerve action potential is one of the most successful mathematical models of
+    a complex biological process that has ever been formulated. The basic concepts
+    expressed in the model have proved a valid approach to the study of bio-electrical
+    activity from the most primitive single-celled organisms such as *Paramecium*,
+    right through to the neurons within our own brains.
+
+    Mathematically, the model is given by,
+
+    .. math::
+
+        C \frac {dV} {dt} = -(\bar{g}_{Na} m^3 h (V &-E_{Na})
+        + \bar{g}_K n^4 (V-E_K) + g_{leak} (V - E_{leak})) + I(t)
+
+        \frac {dx} {dt} &= \alpha_x (1-x)  - \beta_x, \quad x\in {\rm{\{m, h, n\}}}
+
+        &\alpha_m(V) = \frac {0.1(V+40)}{1-\exp(\frac{-(V + 40)} {10})}
+
+        &\beta_m(V) = 4.0 \exp(\frac{-(V + 65)} {18})
+
+        &\alpha_h(V) = 0.07 \exp(\frac{-(V+65)}{20})
+
+        &\beta_h(V) = \frac 1 {1 + \exp(\frac{-(V + 35)} {10})}
+
+        &\alpha_n(V) = \frac {0.01(V+55)}{1-\exp(-(V+55)/10)}
+
+        &\beta_n(V) = 0.125 \exp(\frac{-(V + 65)} {80})
+
+    The illustrated example of HH neuron model please see `this notebook <../neurons/HH_model.ipynb>`_.
+
+    The Hodgkin–Huxley model can be thought of as a differential equation system with
+    four state variables, :math:`V_{m}(t),n(t),m(t)`, and :math:`h(t)`, that change
+    with respect to time :math:`t`. The system is difficult to study because it is a
+    nonlinear system and cannot be solved analytically. However, there are many numeric
+    methods available to analyze the system. Certain properties and general behaviors,
+    such as limit cycles, can be proven to exist.
+
+    *1. Center manifold*
+
+    Because there are four state variables, visualizing the path in phase space can
+    be difficult. Usually two variables are chosen, voltage :math:`V_{m}(t)` and the
+    potassium gating variable :math:`n(t)`, allowing one to visualize the limit cycle.
+    However, one must be careful because this is an ad-hoc method of visualizing the
+    4-dimensional system. This does not prove the existence of the limit cycle.
+
+    .. image:: ../../../_static/Hodgkin_Huxley_Limit_Cycle.png
+        :align: center
+
+    A better projection can be constructed from a careful analysis of the Jacobian of
+    the system, evaluated at the equilibrium point. Specifically, the eigenvalues of
+    the Jacobian are indicative of the center manifold's existence. Likewise, the
+    eigenvectors of the Jacobian reveal the center manifold's orientation. The
+    Hodgkin–Huxley model has two negative eigenvalues and two complex eigenvalues
+    with slightly positive real parts. The eigenvectors associated with the two
+    negative eigenvalues will reduce to zero as time :math:`t` increases. The remaining
+    two complex eigenvectors define the center manifold. In other words, the
+    4-dimensional system collapses onto a 2-dimensional plane. Any solution
+    starting off the center manifold will decay towards the *center manifold*.
+    Furthermore, the limit cycle is contained on the center manifold.
+
+    *2. Bifurcations*
+
+    If the injected current :math:`I` were used as a bifurcation parameter, then the
+    Hodgkin–Huxley model undergoes a Hopf bifurcation. As with most neuronal models,
+    increasing the injected current will increase the firing rate of the neuron.
+    One consequence of the Hopf bifurcation is that there is a minimum firing rate.
+    This means that either the neuron is not firing at all (corresponding to zero
+    frequency), or firing at the minimum firing rate. Because of the all-or-none
+    principle, there is no smooth increase in action potential amplitude, but
+    rather there is a sudden "jump" in amplitude. The resulting transition is
+    known as a `canard <http://www.scholarpedia.org/article/Canards>`_.
+
+    .. image:: ../../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
+       :align: center
+
+    The following image shows the bifurcation diagram of the Hodgkin–Huxley model
+    as a function of the external drive :math:`I` [3]_. The green lines show the amplitude
+    of a stable limit cycle and the blue lines indicate unstable limit-cycle behaviour,
+    both born from Hopf bifurcations. The solid red line shows the stable fixed point
+    and the black line shows the unstable fixed point.
+
+    .. image:: ../../../_static/Hodgkin_Huxley_bifurcation.png
+       :align: center
+
+    **Model Examples**
+
+    .. plot::
+      :include-source: True
+
+      >>> import brainpy as bp
+      >>> group = bp.neurons.HH(2)
+      >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
+      >>> runner.run(200.)
+      >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
+
+    .. plot::
+      :include-source: True
+
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
+      >>> import matplotlib.pyplot as plt
+      >>>
+      >>> group = bp.neurons.HH(2)
+      >>>
+      >>> I1 = bp.inputs.spike_input(sp_times=[500., 550., 1000, 1030, 1060, 1100, 1200], sp_lens=5, sp_sizes=5., duration=2000, )
+      >>> I2 = bp.inputs.spike_input(sp_times=[600., 900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
+      >>> I1 += bp.math.random.normal(0, 3, size=I1.shape)
+      >>> I2 += bp.math.random.normal(0, 3, size=I2.shape)
+      >>> I = bm.stack((I1, I2), axis=-1)
+      >>>
+      >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', I, 'iter'))
+      >>> runner.run(2000.)
+      >>>
+      >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
+      >>> fig.add_subplot(gs[0, 0])
+      >>> plt.plot(runner.mon.ts, runner.mon.V[:, 0])
+      >>> plt.plot(runner.mon.ts, runner.mon.V[:, 1] + 130)
+      >>> plt.xlim(10, 2000)
+      >>> plt.xticks([])
+      >>> plt.yticks([])
+      >>> plt.show()
+
+    Parameters
+    ----------
+    size: sequence of int, int
+      The size of the neuron group.
+    ENa: float, ArrayType, Initializer, callable
+      The reversal potential of sodium. Default is 50 mV.
+    gNa: float, ArrayType, Initializer, callable
+      The maximum conductance of sodium channel. Default is 120 msiemens.
+    EK: float, ArrayType, Initializer, callable
+      The reversal potential of potassium. Default is -77 mV.
+    gK: float, ArrayType, Initializer, callable
+      The maximum conductance of potassium channel. Default is 36 msiemens.
+    EL: float, ArrayType, Initializer, callable
+      The reversal potential of learky channel. Default is -54.387 mV.
+    gL: float, ArrayType, Initializer, callable
+      The conductance of learky channel. Default is 0.03 msiemens.
+    V_th: float, ArrayType, Initializer, callable
+      The threshold of the membrane spike. Default is 20 mV.
+    C: float, ArrayType, Initializer, callable
+      The membrane capacitance. Default is 1 ufarad.
+    V_initializer: ArrayType, Initializer, callable
+      The initializer of membrane potential.
+    m_initializer: ArrayType, Initializer, callable
+      The initializer of m channel.
+    h_initializer: ArrayType, Initializer, callable
+      The initializer of h channel.
+    n_initializer: ArrayType, Initializer, callable
+      The initializer of n channel.
+    method: str
+      The numerical integration method.
+    name: str
+      The group name.
+
+    References
+    ----------
+
+    .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
+           of membrane current and its application to conduction and excitation
+           in nerve." The Journal of physiology 117.4 (1952): 500.
+    .. [2] https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
+    .. [3] Ashwin, Peter, Stephen Coombes, and Rachel Nicks. "Mathematical
+           frameworks for oscillatory network dynamics in neuroscience."
+           The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
+    """
   def dV(self, V, t, m, h, n, I):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
     I_K = (self.gK * n ** 4.0) * (V - self.EK)
@@ -330,7 +500,7 @@ class HH(HHLTC):
 
 
 class MorrisLecarLTC(HHTypeNeuLTC):
-  r"""The Morris-Lecar neuron model.
+  r"""The Morris-Lecar neuron model with liquid time constant.
 
     **Model Descriptions**
 
@@ -501,11 +671,83 @@ class MorrisLecarLTC(HHTypeNeuLTC):
     self.spike.value = spike
     return spike
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 
 class MorrisLecar(MorrisLecarLTC):
+  r"""The Morris-Lecar neuron model.
+
+      **Model Descriptions**
+
+      The Morris-Lecar model [4]_ (Also known as :math:`I_{Ca}+I_K`-model)
+      is a two-dimensional "reduced" excitation model applicable to
+      systems having two non-inactivating voltage-sensitive conductances.
+      This model was named after Cathy Morris and Harold Lecar, who
+      derived it in 1981. Because it is two-dimensional, the Morris-Lecar
+      model is one of the favorite conductance-based models in computational neuroscience.
+
+      The original form of the model employed an instantaneously
+      responding voltage-sensitive Ca2+ conductance for excitation and a delayed
+      voltage-dependent K+ conductance for recovery. The equations of the model are:
+
+      .. math::
+
+          \begin{aligned}
+          C\frac{dV}{dt} =& -  g_{Ca} M_{\infty} (V - V_{Ca})- g_{K} W(V - V_{K}) -
+                            g_{Leak} (V - V_{Leak}) + I_{ext} \\
+          \frac{dW}{dt} =& \frac{W_{\infty}(V) - W}{ \tau_W(V)}
+          \end{aligned}
+
+      Here, :math:`V` is the membrane potential, :math:`W` is the "recovery variable",
+      which is almost invariably the normalized :math:`K^+`-ion conductance, and
+      :math:`I_{ext}` is the applied current stimulus.
+
+      **Model Examples**
+
+      .. plot::
+        :include-source: True
+
+        >>> import brainpy as bp
+        >>>
+        >>> group = bp.neurons.MorrisLecar(1)
+        >>> runner = bp.DSRunner(group, monitors=['V', 'W'], inputs=('input', 100.))
+        >>> runner.run(1000)
+        >>>
+        >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+        >>> fig.add_subplot(gs[0, 0])
+        >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.W, ylabel='W')
+        >>> fig.add_subplot(gs[1, 0])
+        >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
+
+
+      **Model Parameters**
+
+      ============= ============== ======== =======================================================
+      **Parameter** **Init Value** **Unit** **Explanation**
+      ------------- -------------- -------- -------------------------------------------------------
+      V_Ca          130            mV       Equilibrium potentials of Ca+.(mV)
+      g_Ca          4.4            \        Maximum conductance of corresponding Ca+.(mS/cm2)
+      V_K           -84            mV       Equilibrium potentials of K+.(mV)
+      g_K           8              \        Maximum conductance of corresponding K+.(mS/cm2)
+      V_Leak        -60            mV       Equilibrium potentials of leak current.(mV)
+      g_Leak        2              \        Maximum conductance of leak current.(mS/cm2)
+      C             20             \        Membrane capacitance.(uF/cm2)
+      V1            -1.2           \        Potential at which M_inf = 0.5.(mV)
+      V2            18             \        Reciprocal of slope of voltage dependence of M_inf.(mV)
+      V3            2              \        Potential at which W_inf = 0.5.(mV)
+      V4            30             \        Reciprocal of slope of voltage dependence of W_inf.(mV)
+      phi           0.04           \        A temperature factor. (1/s)
+      V_th          10             mV       The spike threshold.
+      ============= ============== ======== =======================================================
+
+      References
+      ----------
+
+      .. [4] Lecar, Harold. "Morris-lecar model." Scholarpedia 2.10 (2007): 1333.
+      .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
+      .. [6] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
+      """
   def dV(self, V, t, W, I):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
@@ -532,7 +774,7 @@ class MorrisLecar(MorrisLecarLTC):
 
 
 class WangBuzsakiModelLTC(HHTypeNeuLTC):
-  r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model.
+  r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model with liquid time constant.
 
     Each model is described by a single compartment and obeys the current balance equation:
 
@@ -718,10 +960,93 @@ class WangBuzsakiModelLTC(HHTypeNeuLTC):
     self.n.value = n
     return self.spike.value
 
-  def return_for_delay(self):
+  def return_info(self):
     return self.spike
 
 class WangBuzsakiModel(WangBuzsakiModelLTC):
+  r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model.
+
+    Each model is described by a single compartment and obeys the current balance equation:
+
+    .. math::
+
+        C_{m} \frac{d V}{d t}=-I_{\mathrm{Na}}-I_{\mathrm{K}}-I_{\mathrm{L}}-I_{\mathrm{syn}}+I_{\mathrm{app}}
+
+    where :math:`C_{m}=1 \mu \mathrm{F} / \mathrm{cm}^{2}` and :math:`I_{\mathrm{app}}` is the
+    injected current (in :math:`\mu \mathrm{A} / \mathrm{cm}^{2}` ). The leak current
+    :math:`I_{\mathrm{L}}=g_{\mathrm{L}}\left(V-E_{\mathrm{L}}\right)` has a conductance
+    :math:`g_{\mathrm{L}}=0.1 \mathrm{mS} / \mathrm{cm}^{2}`, so that the passive time constant
+    :math:`\tau_{0}=C_{m} / g_{\mathrm{L}}=10 \mathrm{msec} ; E_{\mathrm{L}}=-65 \mathrm{mV}`.
+
+    The spike-generating :math:`\mathrm{Na}^{+}` and :math:`\mathrm{K}^{+}` voltage-dependent ion
+    currents :math:`\left(I_{\mathrm{Na}}\right.` and :math:`I_{\mathrm{K}}` ) are of the
+    Hodgkin-Huxley type (Hodgkin and Huxley, 1952). The transient sodium current
+    :math:`I_{\mathrm{Na}}=g_{\mathrm{Na}} m_{\infty}^{3} h\left(V-E_{\mathrm{Na}}\right)`,
+    where the activation variable :math:`m` is assumed fast and substituted by its steady-state
+    function :math:`m_{\infty}=\alpha_{m} /\left(\alpha_{m}+\beta_{m}\right)` ;
+    :math:`\alpha_{m}(V)=-0.1(V+35) /(\exp (-0.1(V+35))-1), \beta_{m}(V)=4 \exp (-(V+60) / 18)`.
+    The inactivation variable :math:`h` obeys a first-order kinetics:
+
+    .. math::
+
+        \frac{d h}{d t}=\phi\left(\alpha_{h}(1-h)-\beta_{h} h\right)
+
+    where :math:`\alpha_{h}(V)=0.07 \exp (-(V+58) / 20)` and
+    :math:`\beta_{h}(V)=1 /(\exp (-0.1(V+28)) +1) \cdot g_{\mathrm{Na}}=35 \mathrm{mS} / \mathrm{cm}^{2}` ;
+    :math:`E_{\mathrm{Na}}=55 \mathrm{mV}, \phi=5 .`
+
+    The delayed rectifier :math:`I_{\mathrm{K}}=g_{\mathrm{K}} n^{4}\left(V-E_{\mathrm{K}}\right)`,
+    where the activation variable :math:`n` obeys the following equation:
+
+    .. math::
+
+       \frac{d n}{d t}=\phi\left(\alpha_{n}(1-n)-\beta_{n} n\right)
+
+    with :math:`\alpha_{n}(V)=-0.01(V+34) /(\exp (-0.1(V+34))-1)` and
+    :math:`\beta_{n}(V)=0.125\exp (-(V+44) / 80)` ; :math:`g_{\mathrm{K}}=9 \mathrm{mS} / \mathrm{cm}^{2}`, and
+    :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
+
+
+    Parameters
+    ----------
+    size: sequence of int, int
+      The size of the neuron group.
+    ENa: float, ArrayType, Initializer, callable
+      The reversal potential of sodium. Default is 50 mV.
+    gNa: float, ArrayType, Initializer, callable
+      The maximum conductance of sodium channel. Default is 120 msiemens.
+    EK: float, ArrayType, Initializer, callable
+      The reversal potential of potassium. Default is -77 mV.
+    gK: float, ArrayType, Initializer, callable
+      The maximum conductance of potassium channel. Default is 36 msiemens.
+    EL: float, ArrayType, Initializer, callable
+      The reversal potential of learky channel. Default is -54.387 mV.
+    gL: float, ArrayType, Initializer, callable
+      The conductance of learky channel. Default is 0.03 msiemens.
+    V_th: float, ArrayType, Initializer, callable
+      The threshold of the membrane spike. Default is 20 mV.
+    C: float, ArrayType, Initializer, callable
+      The membrane capacitance. Default is 1 ufarad.
+    phi: float, ArrayType, Initializer, callable
+      The temperature regulator constant.
+    V_initializer: ArrayType, Initializer, callable
+      The initializer of membrane potential.
+    h_initializer: ArrayType, Initializer, callable
+      The initializer of h channel.
+    n_initializer: ArrayType, Initializer, callable
+      The initializer of n channel.
+    method: str
+      The numerical integration method.
+    name: str
+      The group name.
+
+    References
+    ----------
+    .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
+           inhibition in a hippocampal interneuronal network model. Journal of
+           neuroscience, 16(20), pp.6402-6413.
+
+  """
   def m_inf(self, V):
     alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
     beta = 4. * bm.exp(-(V + 60.) / 18.)

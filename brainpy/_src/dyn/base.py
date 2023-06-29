@@ -7,6 +7,7 @@ from brainpy._src.initialize.generic import parameter, variable_
 from brainpy._src.mixin import ParamDesc, ProjAutoDelay
 from brainpy.check import is_callable
 
+
 __all__ = [
   'NeuDyn',
   'SynDyn',

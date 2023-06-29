@@ -14,6 +14,7 @@ __all__ = [
 
 
 class SynProj(DynamicalSystemNS):
+  """Synaptic projection."""
   pass
 
 
@@ -64,7 +65,6 @@ def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
     raise TypeError
 
 
-
 class ProjAlignPre(SynProj):
   """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
 
@@ -106,7 +106,7 @@ class ProjAlignPre(SynProj):
     self._syn_id = syn._identifier
     if self._syn_id not in pre.after_updates:
       syn_cls: ProjAutoDelay = syn()
-      delay_cls = _init_delay(syn_cls.return_for_delay())
+      delay_cls = _init_delay(syn_cls.return_info())
       pre.after_updates[self._syn_id] = _AlignPre(syn_cls, delay_cls)
     delay_cls: Delay = pre.after_updates[self._syn_id].delay
     delay_cls.register_entry(self.name, delay)
@@ -160,7 +160,7 @@ class ProjAlignPost(SynProj):
     # delay initialization
     self._delay_repr = '_*_align_pre_spk_delay_*_'
     if self._delay_repr not in self.pre.after_updates:
-      delay_cls = _init_delay(pre.return_for_delay())
+      delay_cls = _init_delay(pre.return_info())
       self.pre.after_updates[self._delay_repr] = delay_cls
     delay_cls: Delay = pre.after_updates[self._delay_repr]
     delay_cls.register_entry(self.name, delay)

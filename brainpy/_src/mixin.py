@@ -90,6 +90,6 @@ class ReturnInfo:
 class ProjAutoDelay(MixIn):
   """Support for automatic delay in synaptic projection :py:class:`~.SynProj`."""
 
-  def return_for_delay(self) -> Union[bm.Variable, ReturnInfo]:
+  def return_info(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError
 
