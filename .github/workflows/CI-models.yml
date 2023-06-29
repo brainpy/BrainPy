@@ -1,12 +1,17 @@
 name: Continuous Integration with Models
 
 on:
-#  pull_request:
-#    types: [ closed ]
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches:
+      - '**'        # matches every branch
+
+
+#
+#on:
+#  push:
+#    branches: [ master ]
+#  pull_request:
+#    branches: [ master ]
 
 jobs:
   test_linux:
