@@ -1,4 +1,6 @@
 import time
+from datetime import datetime
+
 import brainpy as bp
 import unittest
 import pytest
@@ -610,4 +612,5 @@ class TwoEndConnector(unittest.TestCase):
 
 class TestSave(unittest.TestCase):
     def test_save(self):
-        df.to_csv('time.csv', index=False)
+        df.to_csv('connector_time_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.csv',
+                  index=False)
