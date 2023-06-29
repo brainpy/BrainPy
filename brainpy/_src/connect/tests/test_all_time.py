@@ -4,7 +4,10 @@ from datetime import datetime
 import brainpy as bp
 import unittest
 import pytest
-import pandas as pd
+try:
+    import pandas as pd
+except (ImportError, ModuleNotFoundError):
+    print('No pandas installed, skip test.')
 
 df = pd.DataFrame(
     columns=['connector name', 'superclass', 'connect matrix size', 'build function', 'other parameter',
