@@ -33,15 +33,15 @@ class OneEndConnector(unittest.TestCase):
                                'sigma=1/include_self=False',
                                time_used]
 
-            start = time.time()
-            conn.require(bp.connect.COO)
-            time_used = get_ms(time.time() - start)
-            df.loc[len(df)] = ['GaussianProb',
-                               'OneEndConnector',
-                               f'{size}x{size}',
-                               'build_coo',
-                               'sigma=1/include_self=False',
-                               time_used]
+            # start = time.time()
+            # conn.require(bp.connect.COO)
+            # time_used = get_ms(time.time() - start)
+            # df.loc[len(df)] = ['GaussianProb',
+            #                    'OneEndConnector',
+            #                    f'{size}x{size}',
+            #                    'build_coo',
+            #                    'sigma=1/include_self=False',
+            #                    time_used]
 
             start = time.time()
             conn.require(bp.connect.CSR)
@@ -589,15 +589,15 @@ class TwoEndConnector(unittest.TestCase):
                                '',
                                time_used]
 
-            start = time.time()
-            conn.require(bp.connect.COO)
-            time_used = get_ms(time.time() - start)
-            df.loc[len(df)] = ['All2All',
-                               'TwoEndConnector',
-                               f'{size}x{size}',
-                               'build_coo',
-                               '',
-                               time_used]
+            # start = time.time()
+            # conn.require(bp.connect.COO)
+            # time_used = get_ms(time.time() - start)
+            # df.loc[len(df)] = ['All2All',
+            #                    'TwoEndConnector',
+            #                    f'{size}x{size}',
+            #                    'build_coo',
+            #                    '',
+            #                    time_used]
 
             start = time.time()
             conn.require(bp.connect.CSR)
