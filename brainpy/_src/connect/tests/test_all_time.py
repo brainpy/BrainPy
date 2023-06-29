@@ -655,5 +655,8 @@ class TwoEndConnector(unittest.TestCase):
 
 class TestSave(unittest.TestCase):
     def test_save(self):
-        df.to_csv('connector_time_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.csv',
-                  index=False)
+        try:
+            df.to_csv('connector_time_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.csv',
+                      index=False)
+        except (NameError, UnboundLocalError):
+            print('No pandas installed, skip test.')
