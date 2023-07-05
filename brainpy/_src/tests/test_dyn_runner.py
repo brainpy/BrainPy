@@ -64,6 +64,8 @@ class TestDSRunner(unittest.TestCase):
                                            output=bp.synouts.COBA(E=-80.), g_max=wi,
                                            tau=10., method=method)
 
+    bm.random.seed()
+
     net = EINet(scale=1., method='exp_auto')
     # with JIT
     runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike},

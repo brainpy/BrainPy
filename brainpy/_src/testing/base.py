@@ -14,7 +14,4 @@ class UnitTestCase(unittest.TestCase):
     bm.random.seed(np.random.randint(0, 100000))
     self.rng = bm.random.RandomState(np.random.randint(0, 100000))
 
-  def __del__(self):
-    bm.clear_buffer_memory()
-
 

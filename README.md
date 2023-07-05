@@ -9,9 +9,7 @@
 	<a href="https://github.com/brainpy/BrainPy"><img alt="LICENSE" src="https://anaconda.org/brainpy/brainpy/badges/license.svg"></a>
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brainpy"><img alt="PyPI version" src="https://badge.fury.io/py/brainpy.svg"></a>
-    <a href="https://github.com/brainpy/BrainPy"><img alt="Linux CI" src="https://github.com/brainpy/BrainPy/actions/workflows/Linux_CI.yml/badge.svg"></a>
-    <a href="https://github.com/brainpy/BrainPy"><img alt="Windows CI" src="https://github.com/brainpy/BrainPy/actions/workflows/Windows_CI.yml/badge.svg"></a>
-    <a href="https://github.com/brainpy/BrainPy"><img alt="MacOS CI" src="https://github.com/brainpy/BrainPy/actions/workflows/MacOS_CI.yml/badge.svg"></a>
+    <a href="https://github.com/brainpy/BrainPy"><img alt="Continuous Integration" src="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml/badge.svg"></a>
 </p>
 
 
