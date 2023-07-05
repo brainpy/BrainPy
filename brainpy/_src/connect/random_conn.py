@@ -1305,6 +1305,7 @@ class ProbDist(TwoEndConnector):
     self._connect_3d_jit = _connect_3d_jit
     self._connect_4d_jit = _connect_4d_jit
 
+
   def build_coo(self, isOptimized=True):
     if len(self.pre_size) != len(self.post_size):
       raise ValueError('The dimensions of shapes of two objects to establish connections should '

@@ -180,7 +180,7 @@ def test_PowerLaw():
         print('conn_mat', mat)
 
 
-def test_prob_dist():
+def test_ProbDist():
     conn = bp.connect.ProbDist(dist=1, prob=0.5, pre_ratio=0.3, seed=1234, include_self=True)
     for size in [100, (10, 20), (2, 10, 20), (2, 3, 4, 5)]:
         conn(pre_size=size, post_size=size)

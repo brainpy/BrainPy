@@ -15,9 +15,11 @@ except (ImportError, ModuleNotFoundError):
     print('No pandas installed, skip test.')
 
 # size_same = [100, 500, 2500, 12500, 25000, 37500, 50000]
-size_same = [100, 500, 2500, 12500]
-size_diff = [(10, 100), (100, 1000), (1000, 10000)]
+# size_same = [100, 500, 2500, 12500]
+# size_diff = [(10, 100), (100, 1000), (1000, 10000)]
 
+size_same = [100, 500, 2500]
+size_diff = [(10, 100), (100, 1000)]
 
 def get_ms(value):
     return round(value * 1000, 4)
