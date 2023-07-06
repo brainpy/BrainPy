@@ -4,6 +4,7 @@ from typing import Optional
 
 from jax import vmap, jit, numpy as jnp
 import numpy as np
+from numba import njit, prange
 
 import brainpy.math as bm
 from brainpy.errors import ConnectorError
@@ -683,11 +684,11 @@ class ScaleFreeBA(TwoEndConnector):
             f'directed={self.directed}, '
             f'seed={self.seed})')
 
-  def build_conn(self):
+  def build_mat(self, isOptimized=True):
     assert self.pre_num == self.post_num
 
     # seed
-    self.seed = self.rng.randint(1, int(1e7))
+    self.rng = np.random.RandomState(self.seed)
     numba_seed(self.seed)
 
     num_node = self.pre_num
@@ -700,7 +701,31 @@ class ScaleFreeBA(TwoEndConnector):
     # Target nodes for new edges
     targets = list(range(self.m))
     # List of existing nodes, with nodes repeated once for each adjacent edge
-    repeated_nodes = []
+
+    if not isOptimized:
+      repeated_nodes = []
+      # Start adding the other n-m nodes. The first node is m.
+      source = self.m
+      while source < num_node:
+        # Add edges to m nodes from the source.
+        origins = [source] * self.m
+        conn[origins, targets] = True
+        if not self.directed:
+          conn[targets, origins] = True
+        # Add one node to the list for each new edge just created.
+        repeated_nodes.extend(targets)
+        # And the new node "source" has m edges to add to the list.
+        repeated_nodes.extend([source] * self.m)
+        # Now choose m unique nodes from the existing nodes
+        # Pick uniformly from repeated_nodes (preferential attachment)
+        targets = list(self._connect(np.asarray(repeated_nodes), self.m))
+        source += 1
+      return conn
+
+    # List of existing nodes, with nodes repeated once for each adjacent edge
+    # Preallocate repeated_nodes as a numpy array
+    repeated_nodes = np.empty(2 * num_node * self.m, dtype=int)
+    size_repeated_nodes = 0
     # Start adding the other n-m nodes. The first node is m.
     source = self.m
     while source < num_node:
@@ -710,15 +735,17 @@ class ScaleFreeBA(TwoEndConnector):
       if not self.directed:
         conn[targets, origins] = True
       # Add one node to the list for each new edge just created.
-      repeated_nodes.extend(targets)
+      repeated_nodes[size_repeated_nodes:size_repeated_nodes + self.m] = targets
+      size_repeated_nodes += self.m
       # And the new node "source" has m edges to add to the list.
-      repeated_nodes.extend([source] * self.m)
+      repeated_nodes[size_repeated_nodes:size_repeated_nodes + self.m] = source
+      size_repeated_nodes += self.m
       # Now choose m unique nodes from the existing nodes
       # Pick uniformly from repeated_nodes (preferential attachment)
-      targets = list(self._connect(np.asarray(repeated_nodes), self.m))
+      targets = list(self._connect(repeated_nodes[:size_repeated_nodes], self.m))
       source += 1
 
-    return 'mat', conn
+    return conn
 
 
 class ScaleFreeBADual(TwoEndConnector):
@@ -773,10 +800,10 @@ class ScaleFreeBADual(TwoEndConnector):
     return (f'{self.__class__.__name__}(m1={self.m1}, m2={self.m2}, '
             f'p={self.p}, directed={self.directed}, seed={self.seed})')
 
-  def build_conn(self):
+  def build_mat(self, isOptimized=True):
     assert self.pre_num == self.post_num
     # seed
-    self.seed = self.rng.randint(1, int(1e7))
+    self.rng = np.random.RandomState(self.seed)
     numba_seed(self.seed)
 
     num_node = self.pre_num
@@ -791,8 +818,38 @@ class ScaleFreeBADual(TwoEndConnector):
 
     # Add max(m1,m2) initial nodes (m0 in barabasi-speak)
     conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
+
+    if not isOptimized:
+      # List of existing nodes, with nodes repeated once for each adjacent edge
+      repeated_nodes = []
+      # Start adding the remaining nodes.
+      source = max(self.m1, self.m2)
+      # Pick which m to use first time (m1 or m2)
+      m = self.m1 if self.rng.random() < self.p else self.m2
+      # Target nodes for new edges
+      targets = list(range(m))
+      while source < num_node:
+        # Add edges to m nodes from the source.
+        origins = [source] * m
+        conn[origins, targets] = True
+        if not self.directed:
+          conn[targets, origins] = True
+        # Add one node to the list for each new edge just created.
+        repeated_nodes.extend(targets)
+        # And the new node "source" has m edges to add to the list.
+        repeated_nodes.extend([source] * m)
+        # Pick which m to use next time (m1 or m2)
+        m = self.m1 if self.rng.random() < self.p else self.m2
+        # Now choose m unique nodes from the existing nodes
+        # Pick uniformly from repeated_nodes (preferential attachment)
+        targets = list(self._connect(np.asarray(repeated_nodes), m))
+        source += 1
+      return conn
+
     # List of existing nodes, with nodes repeated once for each adjacent edge
-    repeated_nodes = []
+    # Preallocate repeated_nodes as a numpy array
+    repeated_nodes = np.empty(2 * num_node * max(self.m1, self.m2), dtype=int)
+    size_repeated_nodes = 0
     # Start adding the remaining nodes.
     source = max(self.m1, self.m2)
     # Pick which m to use first time (m1 or m2)
@@ -806,17 +863,19 @@ class ScaleFreeBADual(TwoEndConnector):
       if not self.directed:
         conn[targets, origins] = True
       # Add one node to the list for each new edge just created.
-      repeated_nodes.extend(targets)
+      repeated_nodes[size_repeated_nodes:size_repeated_nodes + m] = targets
+      size_repeated_nodes += m
       # And the new node "source" has m edges to add to the list.
-      repeated_nodes.extend([source] * m)
+      repeated_nodes[size_repeated_nodes:size_repeated_nodes + m] = source
+      size_repeated_nodes += m
       # Pick which m to use next time (m1 or m2)
       m = self.m1 if self.rng.random() < self.p else self.m2
       # Now choose m unique nodes from the existing nodes
       # Pick uniformly from repeated_nodes (preferential attachment)
-      targets = list(self._connect(np.asarray(repeated_nodes), m))
+      targets = list(self._connect(repeated_nodes[:size_repeated_nodes], m))
       source += 1
 
-    return 'mat', conn
+    return conn
 
 
 class PowerLaw(TwoEndConnector):
@@ -886,51 +945,99 @@ class PowerLaw(TwoEndConnector):
   def __repr__(self):
     return (f'{self.__class__.__name__}(m={self.m}, p={self.p}, directed={self.directed}, seed={self.seed})')
 
-  def build_conn(self):
+  def build_mat(self, isOptimized=True):
     assert self.pre_num == self.post_num
     # seed
-    self.seed = self.rng.randint(1, int(1e7))
+    self.rng = np.random.RandomState(self.seed)
     numba_seed(self.seed)
     num_node = self.pre_num
     if self.m < 1 or num_node < self.m:
       raise ConnectorError(f"Must have m>1 and m<n, while m={self.m} and n={num_node}")
     # add m initial nodes (m0 in barabasi-speak)
     conn = np.zeros((num_node, num_node), dtype=MAT_DTYPE)
-    repeated_nodes = list(range(self.m))  # list of existing nodes to sample from
-    # with nodes repeated once for each adjacent edge
+
+    if not isOptimized:
+      repeated_nodes = list(range(self.m))  # list of existing nodes to sample from
+      # with nodes repeated once for each adjacent edge
+      source = self.m  # next node is m
+      while source < num_node:  # Now add the other n-1 nodes
+        possible_targets = self._connect(np.asarray(repeated_nodes), self.m)
+        # do one preferential attachment for new node
+        target = possible_targets.pop()
+        conn[source, target] = True
+        if not self.directed:
+          conn[target, source] = True
+        repeated_nodes.append(target)  # add one node to list for each new link
+        count = 1
+        while count < self.m:  # add m-1 more new links
+          if self.rng.random() < self.p:  # clustering step: add triangle
+            neighbors = np.where(conn[target])[0]
+            neighborhood = [nbr for nbr in neighbors if not conn[source, nbr] and not nbr == source]
+            if neighborhood:  # if there is a neighbor without a link
+              nbr = self.rng.choice(neighborhood)
+              conn[source, nbr] = True  # add triangle
+              if not self.directed:
+                conn[nbr, source] = True
+              repeated_nodes.append(nbr)
+              count = count + 1
+              continue  # go to top of while loop
+          # else do preferential attachment step if above fails
+          target = possible_targets.pop()
+          conn[source, target] = True
+          if not self.directed:
+            conn[target, source] = True
+          repeated_nodes.append(target)
+          count = count + 1
+        repeated_nodes.extend([source] * self.m)  # add source node to list m times
+        source += 1
+      return conn
+
+    # Preallocate repeated_nodes as a numpy array
+    repeated_nodes = np.empty(2 * num_node * self.m, dtype=int)
+    repeated_nodes[:self.m] = np.arange(self.m)
+    size_repeated_nodes = self.m
+
     source = self.m  # next node is m
     while source < num_node:  # Now add the other n-1 nodes
-      possible_targets = self._connect(np.asarray(repeated_nodes), self.m)
+      possible_targets = list(self._connect(repeated_nodes[:size_repeated_nodes], self.m))
+      possible_targets.reverse()
+
       # do one preferential attachment for new node
       target = possible_targets.pop()
       conn[source, target] = True
       if not self.directed:
         conn[target, source] = True
-      repeated_nodes.append(target)  # add one node to list for each new link
+      repeated_nodes[size_repeated_nodes] = target
+      size_repeated_nodes += 1
+
       count = 1
       while count < self.m:  # add m-1 more new links
         if self.rng.random() < self.p:  # clustering step: add triangle
           neighbors = np.where(conn[target])[0]
-          neighborhood = [nbr for nbr in neighbors if not conn[source, nbr] and not nbr == source]
+          neighborhood = [nbr for nbr in neighbors if not conn[source, nbr] and nbr != source]
           if neighborhood:  # if there is a neighbor without a link
             nbr = self.rng.choice(neighborhood)
             conn[source, nbr] = True  # add triangle
             if not self.directed:
               conn[nbr, source] = True
-            repeated_nodes.append(nbr)
-            count = count + 1
+            repeated_nodes[size_repeated_nodes] = nbr
+            size_repeated_nodes += 1
+            count += 1
             continue  # go to top of while loop
+
         # else do preferential attachment step if above fails
         target = possible_targets.pop()
         conn[source, target] = True
         if not self.directed:
           conn[target, source] = True
-        repeated_nodes.append(target)
-        count = count + 1
-      repeated_nodes.extend([source] * self.m)  # add source node to list m times
-      source += 1
+        repeated_nodes[size_repeated_nodes] = target
+        size_repeated_nodes += 1
+        count += 1
 
-    return 'mat', conn
+      repeated_nodes[size_repeated_nodes:size_repeated_nodes + self.m] = source
+      size_repeated_nodes += self.m
+      source += 1
+    return conn
 
 
 @numba_jit
@@ -973,6 +1080,54 @@ class ProbDist(TwoEndConnector):
 
     rng = np.random if SUPPORT_NUMBA else self.rng
 
+    # @njit(parallel=True)
+    # def _connect_1d_jit_parallel(pre_pos, pre_size, post_size, n_dim):
+    #   all_post_ids = np.zeros(post_size[0], dtype=np.int32)
+    #   all_pre_ids = np.zeros(post_size[0], dtype=np.int32)
+    #   size = 0
+    #
+    #   if rng.random() < pre_ratio:
+    #     normalized_pos = np.zeros(n_dim)
+    #     for i in prange(n_dim):  # Use prange for potential parallelism
+    #       pre_len = pre_size[i]
+    #       post_len = post_size[i]
+    #       normalized_pos[i] = pre_pos[i] * post_len / pre_len
+    #     for i in prange(post_size[0]):
+    #       post_pos = np.asarray((i,))
+    #       d = np.abs(pre_pos[0] - post_pos[0])  # Adjust the distance calculation
+    #       if d <= dist:
+    #         if d == 0. and not include_self:
+    #           continue
+    #         if rng.random() <= prob:
+    #           all_post_ids[size] = pos2ind(post_pos, post_size)
+    #           all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+    #           size += 1
+    #   return all_pre_ids[:size], all_post_ids[:size]  # Return filled part of the arrays
+
+    @njit
+    def _connect_1d_jit(pre_pos, pre_size, post_size, n_dim):
+      all_post_ids = np.zeros(post_size[0], dtype=np.int32)
+      all_pre_ids = np.zeros(post_size[0], dtype=np.int32)
+      size = 0
+
+      if rng.random() < pre_ratio:
+        normalized_pos = np.zeros(n_dim)
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos[i] = pre_pos[i] * post_len / pre_len
+        for i in range(post_size[0]):
+          post_pos = np.asarray((i,))
+          d = np.abs(pre_pos[0] - post_pos[0])
+          if d <= dist:
+            if d == 0. and not include_self:
+              continue
+            if rng.random() <= prob:
+              all_post_ids[size] = pos2ind(post_pos, post_size)
+              all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+              size += 1
+      return all_pre_ids[:size], all_post_ids[:size]
+
     def _connect_1d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
       all_pre_ids = []
@@ -992,6 +1147,32 @@ class ProbDist(TwoEndConnector):
               all_post_ids.append(pos2ind(post_pos, post_size))
               all_pre_ids.append(pos2ind(pre_pos, pre_size))
       return all_pre_ids, all_post_ids
+
+    @njit
+    def _connect_2d_jit(pre_pos, pre_size, post_size, n_dim):
+      max_size = post_size[0] * post_size[1]
+      all_post_ids = np.zeros(max_size, dtype=np.int32)
+      all_pre_ids = np.zeros(max_size, dtype=np.int32)
+      size = 0
+
+      if rng.random() < pre_ratio:
+        normalized_pos = np.zeros(n_dim)
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos[i] = pre_pos[i] * post_len / pre_len
+        for i in range(post_size[0]):
+          for j in range(post_size[1]):
+            post_pos = np.asarray((i, j))
+            d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+            if d <= dist:
+              if d == 0. and not include_self:
+                continue
+              if rng.random() <= prob:
+                all_post_ids[size] = pos2ind(post_pos, post_size)
+                all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                size += 1
+      return all_pre_ids[:size], all_post_ids[:size]  # Return filled part of the arrays
 
     def _connect_2d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
@@ -1014,6 +1195,33 @@ class ProbDist(TwoEndConnector):
                 all_pre_ids.append(pos2ind(pre_pos, pre_size))
       return all_pre_ids, all_post_ids
 
+    @njit
+    def _connect_3d_jit(pre_pos, pre_size, post_size, n_dim):
+      max_size = post_size[0] * post_size[1] * post_size[2]
+      all_post_ids = np.zeros(max_size, dtype=np.int32)
+      all_pre_ids = np.zeros(max_size, dtype=np.int32)
+      size = 0
+
+      if rng.random() < pre_ratio:
+        normalized_pos = np.zeros(n_dim)
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos[i] = pre_pos[i] * post_len / pre_len
+        for i in range(post_size[0]):
+          for j in range(post_size[1]):
+            for k in range(post_size[2]):
+              post_pos = np.asarray((i, j, k))
+              d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+              if d <= dist:
+                if d == 0. and not include_self:
+                  continue
+                if rng.random() <= prob:
+                  all_post_ids[size] = pos2ind(post_pos, post_size)
+                  all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                  size += 1
+      return all_pre_ids[:size], all_post_ids[:size]
+
     def _connect_3d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
       all_pre_ids = []
@@ -1035,6 +1243,34 @@ class ProbDist(TwoEndConnector):
                   all_post_ids.append(pos2ind(post_pos, post_size))
                   all_pre_ids.append(pos2ind(pre_pos, pre_size))
       return all_pre_ids, all_post_ids
+
+    @njit
+    def _connect_4d_jit(pre_pos, pre_size, post_size, n_dim):
+      max_size = post_size[0] * post_size[1] * post_size[2] * post_size[3]
+      all_post_ids = np.zeros(max_size, dtype=np.int32)
+      all_pre_ids = np.zeros(max_size, dtype=np.int32)
+      size = 0
+
+      if rng.random() < pre_ratio:
+        normalized_pos = np.zeros(n_dim)
+        for i in range(n_dim):
+          pre_len = pre_size[i]
+          post_len = post_size[i]
+          normalized_pos[i] = pre_pos[i] * post_len / pre_len
+        for i in range(post_size[0]):
+          for j in range(post_size[1]):
+            for k in range(post_size[2]):
+              for l in range(post_size[3]):
+                post_pos = np.asarray((i, j, k, l))
+                d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+                if d <= dist:
+                  if d == 0. and not include_self:
+                    continue
+                  if rng.random() <= prob:
+                    all_post_ids[size] = pos2ind(post_pos, post_size)
+                    all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                    size += 1
+      return all_pre_ids[:size], all_post_ids[:size]
 
     def _connect_4d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
@@ -1064,26 +1300,46 @@ class ProbDist(TwoEndConnector):
     self._connect_3d = numba_jit(_connect_3d)
     self._connect_4d = numba_jit(_connect_4d)
 
-  def build_coo(self):
+    self._connect_1d_jit = _connect_1d_jit
+    self._connect_2d_jit = _connect_2d_jit
+    self._connect_3d_jit = _connect_3d_jit
+    self._connect_4d_jit = _connect_4d_jit
+
+
+  def build_coo(self, isOptimized=True):
     if len(self.pre_size) != len(self.post_size):
       raise ValueError('The dimensions of shapes of two objects to establish connections should '
                        f'be the same. But we got dimension {len(self.pre_size)} != {len(self.post_size)}. '
                        f'Specifically, pre size = {self.pre_size}, post size = {self.post_size}')
-    self.seed = self.rng.randint(1, int(1e7))
+    self.rng = np.random.RandomState(self.seed)
     numba_seed(self.seed)
 
     # connections
     n_dim = len(self.pre_size)
-    if n_dim == 1:
-      f = self._connect_1d
-    elif n_dim == 2:
-      f = self._connect_2d
-    elif n_dim == 3:
-      f = self._connect_3d
-    elif n_dim == 4:
-      f = self._connect_4d
+    if not isOptimized:
+      if n_dim == 1:
+        f = self._connect_1d
+      elif n_dim == 2:
+        f = self._connect_2d
+      elif n_dim == 3:
+        f = self._connect_3d
+      elif n_dim == 4:
+        f = self._connect_4d
+      else:
+        raise NotImplementedError('Does not support the network dimension bigger than 4.')
     else:
-      raise NotImplementedError('Does not support the network dimension bigger than 4.')
+      if n_dim == 1:
+        f = self._connect_1d_jit
+      elif n_dim == 2:
+        f = self._connect_2d_jit
+      elif n_dim == 3:
+        f = self._connect_3d_jit
+      elif n_dim == 4:
+        f = self._connect_4d_jit
+      else:
+        raise NotImplementedError('Does not support the network dimension bigger than 4.')
+
+
 
     pre_size = np.asarray(self.pre_size)
     post_size = np.asarray(self.post_size)
@@ -1092,6 +1348,7 @@ class ProbDist(TwoEndConnector):
     pre_ids = np.meshgrid(*(np.arange(p) for p in self.pre_size), indexing='ij')
     pre_ids = tuple([(np.moveaxis(p, 0, 1).flatten()) if p.ndim > 1 else p.flatten() for p in pre_ids])
     size = np.prod(pre_size)
+
     for i in range(size):
       pre_pos = np.asarray([p[i] for p in pre_ids])
       pres, posts = f(pre_pos, pre_size=pre_size, post_size=post_size, n_dim=n_dim)
