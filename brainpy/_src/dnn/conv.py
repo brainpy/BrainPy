@@ -4,7 +4,7 @@ from typing import Union, Tuple, Optional, Sequence, Callable
 
 from jax import lax
 
-from brainpy import math as bm, tools, check
+from brainpy import math as bm, tools
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
 from .base import Layer
@@ -81,6 +81,8 @@ class _GeneralConv(Layer):
     The name of the object.
   """
 
+  supported_modes = (bm.TrainingMode, bm.BatchingMode)
+
   def __init__(
       self,
       num_spatial_dims: int,
@@ -99,7 +101,6 @@ class _GeneralConv(Layer):
       name: str = None,
   ):
     super(_GeneralConv, self).__init__(name=name, mode=mode)
-    check.is_subclass(self.mode, (bm.TrainingMode, bm.BatchingMode), self.name)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
@@ -462,6 +463,8 @@ Conv3D = Conv3d
 
 
 class _GeneralConvTranspose(Layer):
+  supported_modes = (bm.TrainingMode, bm.BatchingMode)
+
   def __init__(
       self,
       num_spatial_dims: int,
@@ -478,8 +481,6 @@ class _GeneralConvTranspose(Layer):
       name: str = None,
   ):
     super().__init__(name=name, mode=mode)
-
-    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels

@@ -1,26 +1,187 @@
 from functools import partial
-from typing import Union, Callable, Optional, Any, Sequence
+from typing import Any, Sequence
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.initialize import ZeroInit, OneInit, Uniform
-from brainpy._src.integrators import odeint, JointEq
+from brainpy._src.dynsys import NeuDyn, IonChaDyn, DynamicalSystem
+from brainpy._src.initialize import OneInit
+from brainpy._src.initialize import Uniform, variable_, noise as init_noise
+from brainpy._src.integrators import JointEq
+from brainpy._src.integrators import odeint, sdeint
+from brainpy._src.mixin import Container, TreeNode
+from brainpy._src.types import ArrayType
 from brainpy.check import is_initializer
-from brainpy.types import Shape, ArrayType, Sharding
-from brainpy._src.dyn.base import HHTypeNeuLTC
-
+from brainpy.types import Shape
 
 __all__ = [
+  'CondNeuGroupLTC',
+  'CondNeuGroup',
   'HHLTC',
   'HH',
   'MorrisLecarLTC',
   'MorrisLecar',
-  'WangBuzsakiModelLTC',
-  'WangBuzsakiModel'
+  'WangBuzsakiHHLTC',
+  'WangBuzsakiHH'
 ]
 
 
-class HHLTC(HHTypeNeuLTC):
+class HHTypedNeuron(NeuDyn, Container, TreeNode):
+  master_type = DynamicalSystem
+
+
+class CondNeuGroupLTC(HHTypedNeuron):
+  r"""Base class to model conductance-based neuron group.
+
+  The standard formulation for a conductance-based model is given as
+
+  .. math::
+
+      C_m {dV \over dt} = \sum_jg_j(E - V) + I_{ext}
+
+  where :math:`g_j=\bar{g}_{j} M^x N^y` is the channel conductance, :math:`E` is the
+  reversal potential, :math:`M` is the activation variable, and :math:`N` is the
+  inactivation variable.
+
+  :math:`M` and :math:`N` have the dynamics of
+
+  .. math::
+
+      {dx \over dt} = \phi_x {x_\infty (V) - x \over \tau_x(V)}
+
+  where :math:`x \in [M, N]`, :math:`\phi_x` is a temperature-dependent factor,
+  :math:`x_\infty` is the steady state, and :math:`\tau_x` is the time constant.
+  Equivalently, the above equation can be written as:
+
+  .. math::
+
+      \frac{d x}{d t}=\phi_{x}\left(\alpha_{x}(1-x)-\beta_{x} x\right)
+
+  where :math:`\alpha_{x}` and :math:`\beta_{x}` are rate constants.
+
+  .. versionadded:: 2.1.9
+     Model the conductance-based neuron model.
+
+  Parameters
+  ----------
+  size : int, sequence of int
+    The network size of this neuron group.
+  method: str
+    The numerical integration method.
+  name : optional, str
+    The neuron group name.
+
+  """
+
+  def __init__(
+      self,
+      size: Shape,
+      keep_size: bool = False,
+      C: Union[float, ArrayType, Callable] = 1.,
+      A: Union[float, ArrayType, Callable] = 1e-3,
+      V_th: Union[float, ArrayType, Callable] = 0.,
+      V_initializer: Union[Callable, ArrayType] = Uniform(-70, -60.),
+      noise: Optional[Union[float, ArrayType, Callable]] = None,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
+      init_var: bool = True,
+      input_var: bool = True,
+      spk_type: Optional[type] = None,
+      **channels
+  ):
+    super().__init__(size, keep_size=keep_size, mode=mode, name=name, )
+
+    # attribute for ``Container``
+    self.children = bm.node_dict(self.format_elements(IonChaDyn, **channels))
+
+    # parameters for neurons
+    self.input_var = input_var
+    self.C = C
+    self.A = A
+    self.V_th = V_th
+    self.noise = init_noise(noise, self.varshape, num_vars=1)
+    self._V_initializer = V_initializer
+    self.spk_type = ((bm.float_ if isinstance(self.mode, bm.TrainingMode) else bm.bool)
+                     if (spk_type is None) else spk_type)
+
+    # function
+    if self.noise is None:
+      self.integral = odeint(f=self.derivative, method=method)
+    else:
+      self.integral = sdeint(f=self.derivative, g=self.noise, method=method)
+
+    if init_var:
+      self.reset_state(self.mode)
+
+  def derivative(self, V, t, I):
+    # synapses
+    for out in self.cur_inputs.values():
+      I = I + out(V)
+    # channels
+    for ch in self.nodes(level=1, include_self=False).subset(IonChaDyn).unique().values():
+      I = I + ch.current(V)
+    return I / self.C
+
+  def reset_state(self, batch_size=None):
+    self.V = variable_(self._V_initializer, self.varshape, batch_size)
+    self.spike = variable_(partial(bm.zeros, dtype=self.spk_type), self.varshape, batch_size)
+    if self.input_var:
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
+    for channel in self.nodes(level=1, include_self=False).subset(IonChaDyn).unique().values():
+      channel.reset_state(self.V.value, batch_size=batch_size)
+
+  def update(self, x=None):
+    # inputs
+    x = 0. if x is None else x
+    if self.input_var:
+      self.input += x
+      x = self.input.value
+    x = x * (1e-3 / self.A)
+
+    # integral
+    V = self.integral(self.V.value, share['t'], x, share['dt'])
+
+    # check whether the children channels have the correct parents.
+    channels = self.nodes(level=1, include_self=False).subset(IonChaDyn).unique()
+    self.check_hierarchies(self.__class__, **channels)
+
+    # update channels
+    for node in channels.values():
+      node.update(self.V.value)
+
+    # update variables
+    if self.spike.dtype == bool:
+      self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
+    else:
+      self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th).astype(self.spike.dtype)
+    self.V.value = V
+    return self.spike
+
+  def clear_input(self):
+    """Useful for monitoring inputs. """
+    if self.input_var:
+      self.input.value = bm.zeros_like(self.input)
+
+  def return_info(self):
+    return self.spike
+
+
+class CondNeuGroup(CondNeuGroupLTC):
+  def derivative(self, V, t, I):
+    for ch in self.nodes(level=1, include_self=False).subset(IonChaDyn).unique().values():
+      I = I + ch.current(V)
+    return I / self.C
+
+  def update(self, x=None):
+    # inputs
+    x = 0. if x is None else x
+    for out in self.cur_inputs.values():
+      x = x + out(self.V.value)
+    return super().update(x)
+
+
+class HHLTC(NeuDyn):
   r"""Hodgkin–Huxley neuron model with liquid time constant.
 
   **Model Descriptions**
@@ -191,6 +352,7 @@ class HHLTC(HHTypeNeuLTC):
          frameworks for oscillatory network dynamics in neuroscience."
          The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
   """
+
   def __init__(
       self,
       size: Union[int, Sequence[int]],
@@ -481,6 +643,7 @@ class HH(HHLTC):
            frameworks for oscillatory network dynamics in neuroscience."
            The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
     """
+
   def dV(self, V, t, m, h, n, I):
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
     I_K = (self.gK * n ** 4.0) * (V - self.EK)
@@ -496,10 +659,10 @@ class HH(HHLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
-class MorrisLecarLTC(HHTypeNeuLTC):
+class MorrisLecarLTC(NeuDyn):
   r"""The Morris-Lecar neuron model with liquid time constant.
 
     **Model Descriptions**
@@ -572,6 +735,9 @@ class MorrisLecarLTC(HHTypeNeuLTC):
     .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
     .. [6] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
     """
+
+  supported_modes = (bm.NonBatchingMode, bm.BatchingMode)
+
   def __init__(
       self,
       size: Union[int, Sequence[int]],
@@ -748,6 +914,7 @@ class MorrisLecar(MorrisLecarLTC):
       .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
       .. [6] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
       """
+
   def dV(self, V, t, W, I):
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
@@ -770,10 +937,10 @@ class MorrisLecar(MorrisLecarLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
-class WangBuzsakiModelLTC(HHTypeNeuLTC):
+class WangBuzsakiHHLTC(NeuDyn):
   r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model with liquid time constant.
 
     Each model is described by a single compartment and obeys the current balance equation:
@@ -857,6 +1024,7 @@ class WangBuzsakiModelLTC(HHTypeNeuLTC):
            neuroscience, 16(20), pp.6402-6413.
 
     """
+
   def __init__(
       self,
       size: Union[int, Sequence[int]],
@@ -963,7 +1131,8 @@ class WangBuzsakiModelLTC(HHTypeNeuLTC):
   def return_info(self):
     return self.spike
 
-class WangBuzsakiModel(WangBuzsakiModelLTC):
+
+class WangBuzsakiHH(WangBuzsakiHHLTC):
   r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model.
 
     Each model is described by a single compartment and obeys the current balance equation:
@@ -1047,6 +1216,7 @@ class WangBuzsakiModel(WangBuzsakiModelLTC):
            neuroscience, 16(20), pp.6402-6413.
 
   """
+
   def m_inf(self, V):
     alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
     beta = 4. * bm.exp(-(V + 60.) / 18.)
@@ -1079,4 +1249,4 @@ class WangBuzsakiModel(WangBuzsakiModelLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)

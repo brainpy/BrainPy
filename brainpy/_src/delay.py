@@ -1,21 +1,20 @@
 """
 Delay variable.
 """
+
 import math
 import numbers
-from typing import Union, Callable, Optional, Dict, Sequence
+from typing import Union, Dict, Callable, Optional
 
 import jax
-from functools import partial
 import jax.numpy as jnp
 import numpy as np
-from jax.lax import stop_gradient
 
 from brainpy import check
-from brainpy import math as bm, tools
+from brainpy import math as bm
 from brainpy._src.context import share
-from brainpy._src.initialize import parameter, variable_
-from brainpy._src.dynsys import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.initialize import variable_
 from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 from brainpy._src.mixin import ParamDesc
 from brainpy.check import jit_error
@@ -27,7 +26,7 @@ __all__ = [
 ]
 
 
-class Delay(DynamicalSystemNS, ParamDesc):
+class Delay(DynamicalSystem, ParamDesc):
   """Base class for delay variables.
 
   Args:
@@ -61,9 +60,9 @@ class Delay(DynamicalSystemNS, ParamDesc):
 
     # delay method
     if method is None:
-      if self.mode.is_parent_of(bm.NonBatchingMode):
+      if self.mode.is_one_of(bm.NonBatchingMode, bm.BatchingMode):
         method = ROTATE_UPDATE
-      elif self.mode.is_parent_of(bm.TrainingMode):
+      elif self.mode.is_a(bm.TrainingMode):
         method = CONCAT_UPDATE
       else:
         method = ROTATE_UPDATE
@@ -129,7 +128,7 @@ class Delay(DynamicalSystemNS, ParamDesc):
     raise NotImplementedError()
 
 
-class _TargetDelay1(Delay):
+class VariableDelay2(Delay):
   """Delay variable which has a fixed delay length.
 
   The data in this delay variable is arranged as::
@@ -170,7 +169,6 @@ class _TargetDelay1(Delay):
 
       # delay target
       target: bm.Variable,
-      sharding: Optional[Sequence[str]] = None,
 
       # delay time
       time: Optional[Union[int, float]] = None,
@@ -198,22 +196,15 @@ class _TargetDelay1(Delay):
       assert target.batch_axis is not None
 
     # sharding
-    if sharding is not None:
-      if len(sharding) == target.ndim:
-        sharding = list(sharding)
-      elif len(sharding) + 1 == target.ndim and target.batch_axis is not None:
-        sharding = list(sharding)
-        sharding.insert(target.batch_axis, bm.sharding.BATCH_AXIS)
-      else:
-        raise ValueError('sharding axis names do not match the target dimension. ')
-    self._target_axis_names = tuple(sharding)
-    if sharding is not None:
-      sharding = list(sharding)
+    sharding = None
+    if target.axis_names is not None:
+      sharding = list(target.axis_names)
       sharding.insert(0, bm.sharding.TIME_AXIS)
-    self._data_sharding = tuple(sharding)
+      sharding = tuple(sharding)
+    self.axis_names = sharding
 
     # target
-    self.target = bm.sharding.partition(target, self._target_axis_names)
+    self.target = target
 
     # delay data
     self._init = init
@@ -353,7 +344,7 @@ class _TargetDelay1(Delay):
     if self.method == ROTATE_UPDATE:
       i = share.load('i')
       delay_idx = (i + delay_step) % (self.max_length + 1)
-      delay_idx = stop_gradient(delay_idx)
+      delay_idx = jax.lax.stop_gradient(delay_idx)
 
     elif self.method == CONCAT_UPDATE:
       delay_idx = delay_step
@@ -618,7 +609,7 @@ class VariableDelay(Delay):
     if self.method == ROTATE_UPDATE:
       i = share.load('i')
       delay_idx = (i + delay_step - 1) % self.max_length
-      delay_idx = stop_gradient(delay_idx)
+      delay_idx = jax.lax.stop_gradient(delay_idx)
 
     elif self.method == CONCAT_UPDATE:
       delay_idx = delay_step
@@ -654,7 +645,8 @@ class VariableDelay(Delay):
       # update the delay data at the first position
       elif self.method == CONCAT_UPDATE:
         if self.max_length > 1:
-          self.data.value = bm.vstack([latest_value, self.data[1:]])
+          latest_value = bm.expand_dims(latest_value, 0)
+          self.data.value = bm.concat([latest_value, self.data[1:]], axis=0)
         else:
           self.data[0] = latest_value
 
@@ -742,3 +734,5 @@ class DataDelay(VariableDelay):
     """
     self.target.value = latest_value
     super().update(latest_value)
+
+

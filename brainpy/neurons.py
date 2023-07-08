@@ -1,32 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.neurons.biological_models import (
+from brainpy._src.dynold.neurons.biological_models import (
   HH as HH,
   MorrisLecar as MorrisLecar,
   PinskyRinzelModel as PinskyRinzelModel,
   WangBuzsakiModel as WangBuzsakiModel,
 )
 
-from brainpy._src.neurons.fractional_models import (
+from brainpy._src.dynold.neurons.fractional_models import (
   FractionalNeuron as FractionalNeuron,
   FractionalFHR as FractionalFHR,
   FractionalIzhikevich as FractionalIzhikevich,
 )
 
-from brainpy._src.neurons.input_groups import (
-  InputGroup as InputGroup,
-  OutputGroup as OutputGroup,
-  SpikeTimeGroup as SpikeTimeGroup,
-  PoissonGroup as PoissonGroup,
-)
-
-from brainpy._src.neurons.noise_groups import (
-  OUProcess as OUProcess,
-)
-
-from brainpy._src.neurons.reduced_models import (
-  Leaky as Leaky,
-  Integrator as Integrator,
+from brainpy._src.dynold.neurons.reduced_models import (
   LeakyIntegrator as LeakyIntegrator,
   LIF as LIF,
   ExpIF as ExpIF,

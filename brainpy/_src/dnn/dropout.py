@@ -36,10 +36,6 @@ class Dropout(Layer):
       mode: bm.Mode = None,
       name: str = None
   ):
-    """
-
-
-    """
     super(Dropout, self).__init__(mode=mode, name=name)
     self.prob = check.is_float(prob, min_bound=0., max_bound=1.)
 

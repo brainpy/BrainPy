@@ -5,7 +5,7 @@ from brainpy._src import initialize as init
 from brainpy._src import tools
 from brainpy._src.context import share
 from brainpy._src.dyn._docs import pneu_doc
-from brainpy._src.dyn.base import NeuDyn
+from brainpy._src.dynsys import NeuDyn
 from brainpy._src.integrators import odeint
 from brainpy.check import is_initializer
 from brainpy.types import ArrayType

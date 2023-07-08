@@ -4,10 +4,12 @@ from brainpy import math as bm
 from brainpy.types import ArrayType
 from .base import Layer
 
-__all__ = ['Threshold', 'ReLU', 'RReLU', 'Hardtanh', 'ReLU6', 'Sigmoid', 'Hardsigmoid', 'Tanh',
-           'SiLU', 'Mish', 'Hardswish', 'ELU', 'CELU', 'SELU', 'GLU', 'GELU', 'Hardshrink', 'LeakyReLU',
-           'LogSigmoid', 'Softplus', 'Softshrink', 'PReLU', 'Softsign', 'Tanhshrink',
-           'Softmin', 'Softmax', 'Softmax2d', 'LogSoftmax']
+__all__ = [
+  'Threshold', 'ReLU', 'RReLU', 'Hardtanh', 'ReLU6', 'Sigmoid', 'Hardsigmoid', 'Tanh',
+  'SiLU', 'Mish', 'Hardswish', 'ELU', 'CELU', 'SELU', 'GLU', 'GELU', 'Hardshrink', 'LeakyReLU',
+  'LogSigmoid', 'Softplus', 'Softshrink', 'PReLU', 'Softsign', 'Tanhshrink',
+  'Softmin', 'Softmax', 'Softmax2d', 'LogSoftmax'
+]
 
 
 def _inplace(inp, val, inplace):

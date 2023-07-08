@@ -52,7 +52,7 @@ class IL(LeakyChannel):
   def reset_state(self, V, batch_size=None):
     pass
 
-  def update(self, tdi, V):
+  def update(self, V):
     pass
 
   def current(self, V):

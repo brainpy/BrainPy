@@ -316,7 +316,7 @@ class OneToOne(Layer):
 
 
 class MaskedLinear(Layer):
-  r"""Synaptic matrix multiplication with dense computation.
+  r"""Synaptic matrix multiplication with masked dense computation.
 
   It performs the computation of:
 
@@ -326,6 +326,10 @@ class MaskedLinear(Layer):
 
   where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
   :math:`M` the synaptic weight using a dense matrix.
+
+  >>> import brainpy as bp
+  >>> l = bp.dnn.MaskedLinear(bp.conn.FixedProb(0.1, pre=100, post=100),
+  >>>                         weight=0.1)
 
   Args:
     mask: TwoEndConnector. The connection.
