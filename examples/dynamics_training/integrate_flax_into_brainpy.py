@@ -25,7 +25,7 @@ class CNN(nn.Module):
     return x
 
 
-class Network(bp.DynamicalSystemNS):
+class Network(bp.DynamicalSystem):
   def __init__(self):
     super(Network, self).__init__()
     self.cnn = bp.layers.FromFlax(CNN(), bm.ones([1, 4, 28, 1]))
