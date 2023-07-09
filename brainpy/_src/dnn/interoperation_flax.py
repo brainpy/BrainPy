@@ -7,7 +7,7 @@ from jax.tree_util import tree_flatten, tree_map, tree_unflatten
 from brainpy import math as bm
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.context import share
-from .base import Layer
+from brainpy._src.layer import Layer
 
 try:
   import flax  # noqa

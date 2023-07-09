@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.math import activations
-from .base import Layer
+from brainpy._src.layer import Layer
 from brainpy.check import (is_integer,
                            is_initializer)
 from brainpy.initialize import (XavierNormal,

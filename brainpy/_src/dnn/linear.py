@@ -14,7 +14,7 @@ from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'Dense', 'Linear',

@@ -5,7 +5,7 @@ from typing import Optional
 
 import brainpy.math as bm
 from brainpy import check
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'Activation',

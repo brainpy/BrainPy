@@ -1,6 +1,8 @@
 import numbers
+import sys
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, TypeVar
+from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
 
 import jax
 import jax.numpy as jnp
@@ -8,9 +10,13 @@ import numpy as np
 
 from brainpy import math as bm, tools
 from brainpy._src.initialize import parameter
-from brainpy._src.python_typing_copied import (_SpecialForm, _UnionGenericAlias,
-                                               _type_check, _remove_dups_flatten)
+
 from brainpy.types import ArrayType
+
+if sys.version_info.minor > 8:
+  from typing import (_UnionGenericAlias)
+else:
+  from typing import (_GenericAlias, _tp_cache)
 
 DynamicalSystem = None
 
@@ -469,46 +475,99 @@ class UnionType2(MixIn):
     return _MetaUnionType('UnionType', types, {})
 
 
-class _JointGenericAlias(_UnionGenericAlias, _root=True):
-  def __subclasscheck__(self, subclass):
-    return all([issubclass(subclass, cls) for cls in set(self.__args__)])
+if sys.version_info.minor > 8:
+  class _JointGenericAlias(_UnionGenericAlias, _root=True):
+    def __subclasscheck__(self, subclass):
+      return all([issubclass(subclass, cls) for cls in set(self.__args__)])
 
 
-@_SpecialForm
-def JointType(self, parameters):
-  """Joint type; JointType[X, Y] means either X or Y.
+  @_SpecialForm
+  def JointType(self, parameters):
+    """Joint type; JointType[X, Y] means either X or Y.
 
-  To define a union, use e.g. Union[int, str].  Details:
-  - The arguments must be types and there must be at least one.
-  - None as an argument is a special case and is replaced by
-    type(None).
-  - Unions of unions are flattened, e.g.::
+    To define a union, use e.g. Union[int, str].  Details:
+    - The arguments must be types and there must be at least one.
+    - None as an argument is a special case and is replaced by
+      type(None).
+    - Unions of unions are flattened, e.g.::
 
-      JointType[JointType[int, str], float] == JointType[int, str, float]
+        JointType[JointType[int, str], float] == JointType[int, str, float]
 
-  - Unions of a single argument vanish, e.g.::
+    - Unions of a single argument vanish, e.g.::
 
-      JointType[int] == int  # The constructor actually returns int
+        JointType[int] == int  # The constructor actually returns int
 
-  - Redundant arguments are skipped, e.g.::
+    - Redundant arguments are skipped, e.g.::
 
-      JointType[int, str, int] == JointType[int, str]
+        JointType[int, str, int] == JointType[int, str]
 
-  - When comparing unions, the argument order is ignored, e.g.::
+    - When comparing unions, the argument order is ignored, e.g.::
 
-      JointType[int, str] == JointType[str, int]
+        JointType[int, str] == JointType[str, int]
 
-  - You cannot subclass or instantiate a union.
-  - You can use Optional[X] as a shorthand for JointType[X, None].
-  """
-  if parameters == ():
-    raise TypeError("Cannot take a Union of no types.")
-  if not isinstance(parameters, tuple):
-    parameters = (parameters,)
-  msg = "JointType[arg, ...]: each arg must be a type."
-  parameters = tuple(_type_check(p, msg) for p in parameters)
-  parameters = _remove_dups_flatten(parameters)
-  if len(parameters) == 1:
-    return parameters[0]
-  return _JointGenericAlias(self, parameters)
+    - You cannot subclass or instantiate a union.
+    - You can use Optional[X] as a shorthand for JointType[X, None].
+    """
+    if parameters == ():
+      raise TypeError("Cannot take a Union of no types.")
+    if not isinstance(parameters, tuple):
+      parameters = (parameters,)
+    msg = "JointType[arg, ...]: each arg must be a type."
+    parameters = tuple(_type_check(p, msg) for p in parameters)
+    parameters = _remove_dups_flatten(parameters)
+    if len(parameters) == 1:
+      return parameters[0]
+    return _JointGenericAlias(self, parameters)
 
+else:
+  class _JointGenericAlias(_GenericAlias, _root=True):
+    def __subclasscheck__(self, subclass):
+      return all([issubclass(subclass, cls) for cls in set(self.__args__)])
+
+
+  class _SpecialForm2(_SpecialForm, _root=True):
+    @_tp_cache
+    def __getitem__(self, parameters):
+      if self._name == 'JointType':
+        if parameters == ():
+          raise TypeError("Cannot take a Union of no types.")
+        if not isinstance(parameters, tuple):
+          parameters = (parameters,)
+        msg = "Union[arg, ...]: each arg must be a type."
+        parameters = tuple(_type_check(p, msg) for p in parameters)
+        parameters = _remove_dups_flatten(parameters)
+        if len(parameters) == 1:
+          return parameters[0]
+        return _JointGenericAlias(self, parameters)
+      else:
+        return super().__getitem__(parameters)
+
+
+  JointType = _SpecialForm2(
+    'JointType',
+    doc="""Joint type; JointType[X, Y] means either X or Y.
+  
+    To define a union, use e.g. JointType[int, str].  Details:
+    - The arguments must be types and there must be at least one.
+    - None as an argument is a special case and is replaced by
+      type(None).
+    - Unions of unions are flattened, e.g.::
+  
+        JointType[JointType[int, str], float] == JointType[int, str, float]
+  
+    - Unions of a single argument vanish, e.g.::
+  
+        JointType[int] == int  # The constructor actually returns int
+  
+    - Redundant arguments are skipped, e.g.::
+  
+        JointType[int, str, int] == JointType[int, str]
+  
+    - When comparing unions, the argument order is ignored, e.g.::
+  
+        JointType[int, str] == JointType[str, int]
+  
+    - You cannot subclass or instantiate a union.
+    - You can use Optional[X] as a shorthand for JointType[X, None].
+    """
+  )

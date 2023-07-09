@@ -8,7 +8,7 @@ from brainpy._src.context import share
 from brainpy import math as bm, check
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'BatchNorm1d',

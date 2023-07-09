@@ -27,3 +27,12 @@ from brainpy._src.dynold.neurons.reduced_models import (
   FHN as FHN,
   LIF_SFA_Bellec2020,
 )
+from .dyn.others import (
+  InputGroup as InputGroup,
+  OutputGroup as OutputGroup,
+  SpikeTimeGroup as SpikeTimeGroup,
+  PoissonGroup as PoissonGroup,
+  Leaky as Leaky,
+  Integrator as Integrator,
+  OUProcess as OUProcess, 
+)

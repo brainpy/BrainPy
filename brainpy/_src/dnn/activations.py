@@ -2,7 +2,7 @@ from typing import Optional
 
 from brainpy import math as bm
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'Threshold', 'ReLU', 'RReLU', 'Hardtanh', 'ReLU6', 'Sigmoid', 'Hardsigmoid', 'Tanh',

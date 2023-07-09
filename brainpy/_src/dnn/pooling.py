@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm, check
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'MaxPool',

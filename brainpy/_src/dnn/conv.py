@@ -7,7 +7,7 @@ from jax import lax
 from brainpy import math as bm, tools
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'Conv1d', 'Conv2d', 'Conv3d',

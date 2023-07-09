@@ -4,7 +4,7 @@ from typing import Optional
 
 from brainpy._src.context import share
 from brainpy import math as bm, check
-from .base import Layer
+from brainpy._src.layer import Layer
 
 __all__ = [
   'Dropout'
