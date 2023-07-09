@@ -61,7 +61,7 @@ from brainpy._src.dynsys import (
   Network as Network,
   Dynamic as Dynamic,  # category
   Projection as Projection,
-  AnnLayer as Layer,
+  AnnLayer as AnnLayer,
 )
 DynamicalSystemNS = DynamicalSystem
 
