@@ -35,7 +35,7 @@ class TestIO1(unittest.TestCase):
     io2.a2 = io1.a
     io2.b2 = io2.b
 
-    self.net = bp.Container(io1, io2)
+    self.net = bp.DynSysGroup(io1, io2)
 
     print(self.net.vars().keys())
     print(self.net.vars().unique().keys())
@@ -115,7 +115,7 @@ class TestIO2(unittest.TestCase):
     io1 = IO1()
     io2 = IO2()
 
-    self.net = bp.Container(io1, io2)
+    self.net = bp.DynSysGroup(io1, io2)
 
     print(self.net.vars().keys())
     print(self.net.vars().unique().keys())

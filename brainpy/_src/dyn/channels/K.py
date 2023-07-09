@@ -8,6 +8,7 @@ This module implements voltage-dependent potassium channels.
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
+from brainpy._src.context import share
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import Shape, ArrayType
@@ -92,8 +93,8 @@ class _IK_p4_markov(PotassiumChannel):
   def derivative(self, p, t, V):
     return self.phi * (self.f_p_alpha(V) * (1. - p) - self.f_p_beta(V) * p)
 
-  def update(self, tdi, V):
-    self.p.value = self.integral(self.p.value, tdi['t'], V, tdi['dt'])
+  def update(self, V):
+    self.p.value = self.integral(self.p.value, share['t'], V, share['dt'])
 
   def current(self, V):
     return self.g_max * self.p ** 4 * (self.E - V)
@@ -415,9 +416,8 @@ class _IKA_p4q_ss(PotassiumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, tdi, V):
-    t, dt = tdi['t'], tdi['dt']
-    self.p.value, self.q.value = self.integral(self.p.value, self.q.value, t, V, dt)
+  def update(self, V):
+    self.p.value, self.q.value = self.integral(self.p.value, self.q.value, share['t'], V, share['dt'])
 
   def current(self, V):
     return self.g_max * self.p ** 4 * self.q * (self.E - V)
@@ -710,9 +710,8 @@ class _IKK2_pq_ss(PotassiumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, tdi, V):
-    t, dt = tdi['t'], tdi['dt']
-    self.p.value, self.q.value = self.integral(self.p.value, self.q.value, t, V, dt)
+  def update(self, V):
+    self.p.value, self.q.value = self.integral(self.p.value, self.q.value, share['t'], V, share['dt'])
 
   def current(self, V):
     return self.g_max * self.p * self.q * (self.E - V)
@@ -997,9 +996,8 @@ class IKNI_Ya1989(PotassiumChannel):
   def dp(self, p, t, V):
     return self.phi_p * (self.f_p_inf(V) - p) / self.f_p_tau(V)
 
-  def update(self, tdi, V):
-    t, dt = tdi['t'], tdi['dt']
-    self.p.value = self.integral(self.p.value, t, V, dt)
+  def update(self, V):
+    self.p.value = self.integral(self.p.value, share['t'], V, share['dt'])
 
   def current(self, V):
     return self.g_max * self.p * (self.E - V)

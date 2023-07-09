@@ -41,7 +41,7 @@ parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 
 
-class LIFNode(bp.DynamicalSystemNS):
+class LIFNode(bp.DynamicalSystem):
   def __init__(self, size, tau=100.0, v_threshold=1.0, v_reset=0.0, fire: bool = True):
     super().__init__()
     bp.check.is_subclass(self.mode, [bp.math.TrainingMode, bp.math.BatchingMode])
@@ -93,7 +93,7 @@ class LIFNode(bp.DynamicalSystemNS):
       return self.v.value
 
 
-class IFNode(bp.DynamicalSystemNS):
+class IFNode(bp.DynamicalSystem):
   def __init__(self, size, v_threshold=0.75, v_reset=0.0):
     super().__init__()
     bp.check.is_subclass(self.mode, [bm.TrainingMode, bm.BatchingMode])
@@ -121,7 +121,7 @@ class IFNode(bp.DynamicalSystemNS):
     return spike
 
 
-class ResNet11(bp.DynamicalSystemNS):
+class ResNet11(bp.DynamicalSystem):
   def __init__(self):
     super().__init__()
 

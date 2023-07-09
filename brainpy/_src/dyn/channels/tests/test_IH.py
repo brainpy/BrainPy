@@ -4,17 +4,16 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.dyn.channels import IH, Ca
 
 
 class Test_IH(parameterized.TestCase):
   bm.random.seed(1234)
   def test_IH(self):
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
-        self.IH = IH.Ih_HM1992(size)
-        self.Ca = Ca.CalciumDetailed(size, IH=IH.Ih_De1996(size))
+        self.IH = bp.dyn.Ih_HM1992(size)
+        self.Ca = bp.dyn.CalciumDetailed(size, IH=bp.dyn.Ih_De1996(size))
 
     model = Neuron(1)
     runner = bp.DSRunner(model,

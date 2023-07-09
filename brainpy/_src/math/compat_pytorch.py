@@ -34,7 +34,6 @@ __all__ = [
 ]
 
 
-
 Tensor = Array
 cat = concatenate
 

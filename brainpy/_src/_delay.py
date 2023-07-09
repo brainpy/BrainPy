@@ -11,7 +11,7 @@ from jax.lax import stop_gradient
 
 from brainpy import check
 from brainpy import math as bm
-from brainpy._src.dynsys import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 from brainpy._src.context import share
 
@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 
-class Delay(DynamicalSystemNS):
+class Delay(DynamicalSystem):
   """Delay variable which has a fixed delay length.
 
   The data in this delay variable is arranged as::

@@ -99,10 +99,6 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    apis/auto/math.rst
    apis/auto/dnn.rst
    apis/auto/dyn.rst
-   apis/auto/channels.rst
-   apis/auto/neurons.rst
-   apis/auto/rates.rst
-   apis/auto/synapses.rst
    apis/auto/integrators.rst
    apis/auto/analysis.rst
    apis/auto/connect.rst
@@ -114,6 +110,19 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    apis/auto/optim.rst
    apis/auto/running.rst
    apis/auto/changelog.rst
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Deprecated APIs
+
+   apis/channels.rst
+   apis/neurons.rst
+   apis/rates.rst
+   apis/synapses.rst
+   apis/synouts.rst
+   apis/synplast.rst
+   apis/layers.rst
 
 
 Indices and tables

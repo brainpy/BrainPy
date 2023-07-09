@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm, check
-from .base import Layer
+from brainpy._src.dynsys import AnnLayer
 
 __all__ = [
   'MaxPool',
@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class Pool(Layer):
+class Pool(AnnLayer):
   """Pooling functions are implemented using the ReduceWindow XLA op.
 
   Parameters
@@ -285,7 +285,7 @@ class AvgPool(Pool):
       return pooled / window_counts
 
 
-class _MaxPoolNd(Layer):
+class _MaxPoolNd(AnnLayer):
   def __init__(
       self,
       init_value,
@@ -717,7 +717,7 @@ def _generate_vmap(fun: Callable, map_axes: List[int]):
   return fun
 
 
-class AdaptivePool(Layer):
+class AdaptivePool(AnnLayer):
   """General N dimensional adaptive down-sampling to a target shape.
 
   Parameters

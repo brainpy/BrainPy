@@ -10,7 +10,7 @@ from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
 from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
-from brainpy._src.dyn.base import GradNeuDyn
+from .base import GradNeuDyn
 
 __all__ = [
   'IF',
@@ -67,6 +67,7 @@ class IFLTC(GradNeuDyn):
     %s
     %s
   """
+
   def __init__(
       self,
       size: Shape,
@@ -413,7 +414,7 @@ class LifRef(LifRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 LifRef.__doc__ = LifRefLTC.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc, ref_doc)
@@ -517,6 +518,7 @@ class ExpIFLTC(GradNeuDyn):
            conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
     .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
     """
+
   def __init__(
       self,
       size: Shape,
@@ -616,8 +618,7 @@ class ExpIF(ExpIFLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
-
+    return super().update(x)
 
 
 class ExpIFRefLTC(ExpIFLTC):
@@ -740,7 +741,8 @@ class ExpIFRef(ExpIFRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
+
 
 ExpIF.__doc__ = ExpIFLTC.__doc__ % ('')
 ExpIFRefLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
@@ -822,6 +824,7 @@ class AdExIFLTC(GradNeuDyn):
          inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
   .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
   """
+
   def __init__(
       self,
       size: Shape,
@@ -949,7 +952,7 @@ class AdExIF(AdExIFLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 class AdExIFRefLTC(AdExIFLTC):
@@ -1092,12 +1095,14 @@ class AdExIFRef(AdExIFRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
+
 
 AdExIF.__doc__ = AdExIFLTC.__doc__ % ('')
 AdExIFRefLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
 AdExIFRef.__doc__ = AdExIFLTC.__doc__ % ('')
 AdExIFLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
+
 
 class QuaIFLTC(GradNeuDyn):
   r"""Quadratic Integrate-and-Fire neuron model %s.
@@ -1165,6 +1170,7 @@ class QuaIFLTC(GradNeuDyn):
             (2000) Intrinsic dynamics in neuronal networks. I. Theory.
             J. Neurophysiology 83, pp. 808–827.
     """
+
   def __init__(
       self,
       size: Shape,
@@ -1262,7 +1268,7 @@ class QuaIF(QuaIFLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 class QuaIFRefLTC(QuaIFLTC):
@@ -1384,7 +1390,7 @@ class QuaIFRef(QuaIFRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 QuaIF.__doc__ = QuaIFLTC.__doc__ % ('')
@@ -1469,6 +1475,7 @@ class AdQuaIFLTC(GradNeuDyn):
          nonlinear integrate-and-fire neurons." SIAM Journal on Applied
          Mathematics 68, no. 4 (2008): 1045-1079.
   """
+
   def __init__(
       self,
       size: Shape,
@@ -1592,7 +1599,7 @@ class AdQuaIF(AdQuaIFLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 class AdQuaIFRefLTC(AdQuaIFLTC):
@@ -1732,7 +1739,7 @@ class AdQuaIFRef(AdQuaIFRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 AdQuaIF.__doc__ = AdQuaIFLTC.__doc__ % ('')
@@ -1822,6 +1829,7 @@ class GifLTC(GradNeuDyn):
            leaky integrate-and-fire models classify multiple neuron types."
            Nature communications 9, no. 1 (2018): 1-15.
   """
+
   def __init__(
       self,
       size: Shape,
@@ -1975,7 +1983,7 @@ class Gif(GifLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 class GifRefLTC(GifLTC):
@@ -2142,7 +2150,7 @@ class GifRef(GifRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 Gif.__doc__ = GifLTC.__doc__ % ('')
@@ -2218,6 +2226,7 @@ class IzhikevichLTC(GradNeuDyn):
     .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
            IEEE transactions on neural networks 15.5 (2004): 1063-1070.
     """
+
   def __init__(
       self,
       size: Shape,
@@ -2339,7 +2348,7 @@ class Izhikevich(IzhikevichLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 class IzhikevichRefLTC(IzhikevichLTC):
@@ -2475,7 +2484,7 @@ class IzhikevichRef(IzhikevichRefLTC):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
       x += out(self.V.value)
-    super().update(x)
+    return super().update(x)
 
 
 Izhikevich.__doc__ = IzhikevichLTC.__doc__ % ('')

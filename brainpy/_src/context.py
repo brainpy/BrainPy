@@ -4,10 +4,9 @@ Context for brainpy computation.
 This context defines all shared data used in all modules in a computation.
 """
 
-from typing import Any
-from typing import Union
+from typing import Any, Union
 
-from brainpy._src.dynsys import DynamicalSystemNS
+from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.math.environment import get_dt
 from brainpy._src.tools.dicts import DotDict
 
@@ -16,7 +15,7 @@ __all__ = [
 ]
 
 
-class _ShareContext(DynamicalSystemNS):
+class _ShareContext(DynamicalSystem):
   def __init__(self):
     super().__init__()
 

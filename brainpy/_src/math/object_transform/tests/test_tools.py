@@ -92,7 +92,7 @@ class TestTool(bp.testing.UnitTestCase):
   def test_cache3(self):
     call_num = [0]
 
-    class Model(bp.DynamicalSystemNS):
+    class Model(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
         self.a = bm.Variable(bm.ones(1))

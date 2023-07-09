@@ -4,7 +4,7 @@ import unittest
 
 show = False
 
-class EINet(bp.DynamicalSystemNS):
+class EINet(bp.DynamicalSystem):
   def __init__(self, scale=1.0, e_input=20., i_input=20., delay=None):
     super().__init__()
 
@@ -52,7 +52,7 @@ class EINet(bp.DynamicalSystemNS):
     self.delayI(self.I(i_inp))
 
 
-class EINetv2(bp.DynamicalSystemNS):
+class EINetv2(bp.DynamicalSystem):
   def __init__(self, scale=1.0, e_input=20., i_input=20., delay=None):
     super().__init__()
 

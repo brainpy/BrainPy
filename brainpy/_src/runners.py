@@ -83,27 +83,19 @@ def check_and_format_inputs(host, inputs):
   # checking 1: absolute access
   #    Check whether the input target node is accessible,
   #    and check whether the target node has the attribute
-  nodes = None
   for one_input in inputs:
     key = one_input[0]
     if isinstance(key, bm.Variable):
       real_target = key
     elif isinstance(key, str):
-      if nodes is None:
-        nodes = host.nodes(method='absolute', level=-1, include_self=True)
       splits = key.split('.')
-      target = '.'.join(splits[:-1])
-      key = splits[-1]
-      if target == '':
-        real_target = host
-      else:
-        if target not in nodes:
-          inputs_not_found_target.append(one_input)
-          continue
-        real_target = nodes[target]
-      if not hasattr(real_target, key):
-        raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
-      real_target = getattr(real_target, key)
+      target = host
+      try:
+        for split in splits:
+          target = getattr(target, split)
+      except AttributeError:
+        raise AttributeError(f'target {target} does not have "{split}"')
+      real_target = target
     else:
       raise RunningError(f'For each input, input[0] must be a string  to '
                          f'specify variable of the target, but we got {key}.')
@@ -112,18 +104,18 @@ def check_and_format_inputs(host, inputs):
   # checking 2: relative access
   #    Check whether the input target node is accessible
   #    and check whether the target node has the attribute
-  if len(inputs_not_found_target):
-    nodes = host.nodes(method='relative', level=-1, include_self=True)
-    for one_input in inputs_not_found_target:
-      splits = one_input[0].split('.')
-      target, key = '.'.join(splits[:-1]), splits[-1]
-      if target not in nodes:
-        raise RunningError(f'Input target "{target}" is not defined in {host}.')
-      real_target = nodes[target]
-      if not hasattr(real_target, key):
-        raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
-      real_target = getattr(real_target, key)
-      inputs_which_found_target.append((real_target,) + tuple(one_input[1:]))
+  # if len(inputs_not_found_target):
+  #   nodes = host.nodes(method='relative', level=-1, include_self=True)
+  #   for one_input in inputs_not_found_target:
+  #     splits = one_input[0].split('.')
+  #     target, key = '.'.join(splits[:-1]), splits[-1]
+  #     if target not in nodes:
+  #       raise RunningError(f'Input target "{target}" is not defined in {host}.')
+  #     real_target = nodes[target]
+  #     if not hasattr(real_target, key):
+  #       raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
+  #     real_target = getattr(real_target, key)
+  #     inputs_which_found_target.append((real_target,) + tuple(one_input[1:]))
 
   # 3. format inputs
   # ---------

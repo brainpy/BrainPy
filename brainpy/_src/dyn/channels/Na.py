@@ -8,6 +8,7 @@ This module implements voltage-dependent sodium channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
+from brainpy._src.context import share
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType, Shape
@@ -95,9 +96,8 @@ class _INa_p3q_markov(SodiumChannel):
   def dq(self, q, t, V):
     return self.phi * (self.f_q_alpha(V) * (1. - q) - self.f_q_beta(V) * q)
 
-  def update(self, tdi, V):
-    t, dt = tdi['t'], tdi['dt']
-    p, q = self.integral(self.p, self.q, t, V, dt)
+  def update(self, V):
+    p, q = self.integral(self.p, self.q, share['t'], V, share['dt'])
     self.p.value, self.q.value = p, q
 
   def current(self, V):

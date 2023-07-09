@@ -14,7 +14,7 @@ from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
-from .base import Layer
+from brainpy._src.dynsys import AnnLayer
 
 __all__ = [
   'Dense', 'Linear',
@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class Dense(Layer):
+class Dense(AnnLayer):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -207,7 +207,7 @@ class Dense(Layer):
 Linear = Dense
 
 
-class Identity(Layer):
+class Identity(AnnLayer):
   r"""A placeholder identity operator that is argument-insensitive.
   """
 
@@ -218,7 +218,7 @@ class Identity(Layer):
     return x
 
 
-class AllToAll(Layer):
+class AllToAll(AnnLayer):
   """Synaptic matrix multiplication with All2All connections.
 
   Args:
@@ -281,7 +281,7 @@ class AllToAll(Layer):
     return post_val
 
 
-class OneToOne(Layer):
+class OneToOne(AnnLayer):
   """Synaptic matrix multiplication with One2One connection.
 
   Args:
@@ -315,8 +315,8 @@ class OneToOne(Layer):
     return pre_val * self.weight
 
 
-class MaskedLinear(Layer):
-  r"""Synaptic matrix multiplication with dense computation.
+class MaskedLinear(AnnLayer):
+  r"""Synaptic matrix multiplication with masked dense computation.
 
   It performs the computation of:
 
@@ -326,6 +326,10 @@ class MaskedLinear(Layer):
 
   where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
   :math:`M` the synaptic weight using a dense matrix.
+
+  >>> import brainpy as bp
+  >>> l = bp.dnn.MaskedLinear(bp.conn.FixedProb(0.1, pre=100, post=100),
+  >>>                         weight=0.1)
 
   Args:
     mask: TwoEndConnector. The connection.
@@ -362,7 +366,7 @@ class MaskedLinear(Layer):
     return x @ (self.weight * self.mask)
 
 
-class CSRLinear(Layer):
+class CSRLinear(AnnLayer):
   r"""Synaptic matrix multiplication with CSR sparse computation.
 
   It performs the computation of:
@@ -431,7 +435,7 @@ class CSRLinear(Layer):
                            method=self.method)
 
 
-class CSCLinear(Layer):
+class CSCLinear(AnnLayer):
   r"""Synaptic matrix multiplication with CSC sparse computation.
 
   It performs the computation of:
@@ -466,7 +470,7 @@ class CSCLinear(Layer):
     self.sharding = sharding
 
 
-class EventCSRLinear(Layer):
+class EventCSRLinear(AnnLayer):
   r"""Synaptic matrix multiplication with event CSR sparse computation.
 
   It performs the computation of:
@@ -531,7 +535,7 @@ class EventCSRLinear(Layer):
                           transpose=self.transpose)
 
 
-class BcsrMM(Layer):
+class BcsrMM(AnnLayer):
   r"""Synaptic matrix multiplication with BCSR sparse computation.
 
   It performs the computation of:
@@ -566,7 +570,7 @@ class BcsrMM(Layer):
     self.sharding = sharding
 
 
-class BcscMM(Layer):
+class BcscMM(AnnLayer):
   r"""Synaptic matrix multiplication with BCSC sparse computation.
 
   It performs the computation of:
@@ -601,7 +605,7 @@ class BcscMM(Layer):
     self.sharding = sharding
 
 
-class JitFPHomoLinear(Layer):
+class JitFPHomoLinear(AnnLayer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -680,7 +684,7 @@ class JitFPHomoLinear(Layer):
                                    outdim_parallel=not self.atomic)
 
 
-class JitFPUniformLinear(Layer):
+class JitFPUniformLinear(AnnLayer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -760,7 +764,7 @@ class JitFPUniformLinear(Layer):
                                       outdim_parallel=not self.atomic)
 
 
-class JitFPNormalLinear(Layer):
+class JitFPNormalLinear(AnnLayer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -840,7 +844,7 @@ class JitFPNormalLinear(Layer):
                                      outdim_parallel=not self.atomic)
 
 
-class EventJitFPHomoLinear(Layer):
+class EventJitFPHomoLinear(AnnLayer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -919,7 +923,7 @@ class EventJitFPHomoLinear(Layer):
                                          outdim_parallel=not self.atomic)
 
 
-class EventJitFPUniformLinear(Layer):
+class EventJitFPUniformLinear(AnnLayer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -999,7 +1003,7 @@ class EventJitFPUniformLinear(Layer):
                                             outdim_parallel=not self.atomic)
 
 
-class EventJitFPNormalLinear(Layer):
+class EventJitFPNormalLinear(AnnLayer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:

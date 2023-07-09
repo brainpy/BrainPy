@@ -1,24 +1,21 @@
 
-from brainpy._src.dyn.base import (
-  SynDyn,
-  SynOut,
-)
-
-from brainpy._src.dyn.synapses.dynamics import (
+from brainpy._src.dyn.synapses.abstract_models import (
+  Delta,
   Expon,
   DualExpon,
-  Alpha,
   NMDA,
   STD,
   STP,
+)
+from brainpy._src.dyn.synapses.bio_models import (
   AMPA,
   GABAa,
   BioNMDA,
 )
-
-from brainpy._src.dyn.synapses.outputs import (
-  COBA,
-  CUBA,
-  MgBlock,
+from brainpy._src.dyn.synapses.delay_couplings import (
+  DiffusiveCoupling,
+  AdditiveCoupling,
 )
+
+
 

@@ -45,7 +45,3 @@ class TestSliceView(unittest.TestCase):
     print('After modification 2: ')
     print(lif.V)
 
-
-
-
-
