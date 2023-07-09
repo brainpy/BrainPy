@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -22,7 +22,7 @@ class MatConn(TwoEndConnector):
   def __init__(self, conn_mat, **kwargs):
     super(MatConn, self).__init__(**kwargs)
 
-    assert isinstance(conn_mat, (np.ndarray, bm.Array, jnp.ndarray)) and conn_mat.ndim == 2
+    assert isinstance(conn_mat, (np.ndarray, bm.Array, jax.Array)) and conn_mat.ndim == 2
     self.pre_num, self.post_num = conn_mat.shape
     self.pre_size, self.post_size = (self.pre_num,), (self.post_num,)
 

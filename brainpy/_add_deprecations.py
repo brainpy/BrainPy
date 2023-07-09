@@ -88,7 +88,6 @@ dyn.__deprecations = {
 
   # synapses
   'SynConn': ('brainpy.dyn.SynConn', 'brainpy.synapses.SynConn', synapses.SynConn),
-  # 'SynLTP': ('brainpy.dyn.SynLTP', 'brainpy.synapses.SynLTP', synapses.SynLTP),
   'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'TwoEndConn': ('brainpy.dyn.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
   'DeltaSynapse': ('brainpy.dyn.DeltaSynapse', 'brainpy.synapses.Delta', synapses.DeltaSynapse),
