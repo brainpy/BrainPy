@@ -425,7 +425,7 @@ class TwoEndConnector(Connector):
           return bm.as_jax(self.build_coo()[0], dtype=IDX_DTYPE)
         elif POST_IDS in structures and _has_coo_imp:
           return bm.as_jax(self.build_coo()[1], dtype=IDX_DTYPE)
-        elif COO in structures and not _has_coo_imp:
+        elif COO in structures and _has_coo_imp:
           return bm.as_jax(self.build_coo(), dtype=IDX_DTYPE)
 
       elif len(structures) == 2:
@@ -726,7 +726,7 @@ def coo2csc(coo, post_num, data=None):
     return pre_ids_new, indptr_new, data_new
 
 
-def visualizeMat(mat, description):
+def visualizeMat(mat, description='Untitled'):
   try:
     import seaborn as sns
     import matplotlib.pyplot as plt
