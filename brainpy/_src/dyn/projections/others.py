@@ -1,4 +1,5 @@
 import numbers
+import warnings
 from typing import Union, Optional
 
 from brainpy import check, math as bm
@@ -37,9 +38,13 @@ class PoissonInput(Projection):
       freq: Union[int, float],
       weight: Union[int, float],
       mode: Optional[bm.Mode] = None,
-      name: Optional[str] = None
+      name: Optional[str] = None,
+      seed=None
   ):
     super().__init__(name=name, mode=mode)
+
+    if seed is not None:
+      warnings.warn('')
 
     if not isinstance(target_var, bm.Variable):
       raise TypeError(f'"target_var" must be an instance of Variable. '
@@ -66,7 +71,7 @@ class PoissonInput(Projection):
                     lambda: bm.random.binomial(self.num_input, p, self.target_var.shape),
                     ())
 
-    inp = bm.sharding.partition(inp, self.target_var.sharding)
+    # inp = bm.sharding.partition(inp, self.target_var.sharding)
     self.target_var += inp * self.weight
 
   def __repr__(self):

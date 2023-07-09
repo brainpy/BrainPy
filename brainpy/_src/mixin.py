@@ -8,7 +8,8 @@ import numpy as np
 
 from brainpy import math as bm, tools
 from brainpy._src.initialize import parameter
-from brainpy._src.typing_copy import _SpecialForm, _UnionGenericAlias, _type_check, _remove_dups_flatten
+from brainpy._src.python_typing_copied import (_SpecialForm, _UnionGenericAlias,
+                                               _type_check, _remove_dups_flatten)
 from brainpy.types import ArrayType
 
 DynamicalSystem = None
@@ -404,6 +405,9 @@ class DelayRegister(MixIn):
         delay = global_delay_data[name][0]
         target = global_delay_data[name][1]
         delay.reset(target.value)
+
+  def get_delay_var(self, name):
+    return global_delay_data[name]
 
 
 class BindCondData(MixIn):

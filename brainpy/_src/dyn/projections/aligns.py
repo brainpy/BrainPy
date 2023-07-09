@@ -2,8 +2,8 @@ from typing import Optional, Callable, Union
 
 from brainpy import math as bm
 from brainpy._src.delay import Delay, VariableDelay, DataDelay
-from brainpy._src.dynsys import DynamicalSystem, Projection, NeuDyn
-from brainpy._src.mixin import JointType, ParamDesc, ParamDescInit, ReturnInfo, AutoDelaySupp, BindCondData, AlignPost
+from brainpy._src.dynsys import DynamicalSystem, Projection, Dynamics
+from brainpy._src.mixin import JointType, ParamDescInit, ReturnInfo, AutoDelaySupp, BindCondData, AlignPost
 
 __all__ = [
   'ProjAlignPre',
@@ -81,7 +81,7 @@ class ProjAlignPre(Projection):
       delay: Union[None, int, float],
       comm: Callable,
       out: JointType[DynamicalSystem, BindCondData],
-      post: NeuDyn,
+      post: Dynamics,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -92,7 +92,7 @@ class ProjAlignPre(Projection):
     assert isinstance(syn, ParamDescInit[JointType[DynamicalSystem, AutoDelaySupp]])
     assert isinstance(comm, Callable)
     assert isinstance(out, JointType[DynamicalSystem, BindCondData])
-    assert isinstance(post, NeuDyn)
+    assert isinstance(post, Dynamics)
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -140,7 +140,7 @@ class ProjAlignPost(Projection):
       comm: Callable,
       syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
       out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
-      post: NeuDyn,
+      post: Dynamics,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -151,7 +151,7 @@ class ProjAlignPost(Projection):
     assert isinstance(comm, Callable)
     assert isinstance(syn, ParamDescInit[JointType[DynamicalSystem, AlignPost]])
     assert isinstance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
-    assert isinstance(post, NeuDyn)
+    assert isinstance(post, Dynamics)
     self.pre = pre
     self.post = post
     self.comm = comm

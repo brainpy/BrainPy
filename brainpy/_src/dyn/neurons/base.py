@@ -2,7 +2,7 @@ from typing import Sequence, Union, Callable, Any, Optional
 
 import brainpy.math as bm
 from brainpy._src.dyn._docs import pneu_doc, dpneu_doc
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy.check import is_callable
 
 __all__ = ['GradNeuDyn']

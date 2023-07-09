@@ -1,4 +1,5 @@
 
+from .base import *
 from .ions import *
 from .channels import *
 from .neurons import *

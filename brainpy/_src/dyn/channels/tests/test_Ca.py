@@ -4,12 +4,11 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.dyn.channels import Ca
 
 
 class Test_Ca(parameterized.TestCase):
   def test_Ca(self):
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca1 = bp.dyn.CalciumFixed(size)
@@ -29,7 +28,7 @@ class Test_Ca(parameterized.TestCase):
   def test_ICaN_IS2008(self):
     bm.random.seed(1234)
 
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca = bp.dyn.CalciumDetailed(size,
@@ -47,7 +46,7 @@ class Test_Ca(parameterized.TestCase):
   def test_ICaT_HM1992(self):
     bm.random.seed(1234)
 
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca = bp.dyn.CalciumDetailed(size,
@@ -67,7 +66,7 @@ class Test_Ca(parameterized.TestCase):
   def test_ICaT_HP1992(self):
     bm.random.seed(1234)
 
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca = bp.dyn.CalciumDetailed(size,
@@ -87,7 +86,7 @@ class Test_Ca(parameterized.TestCase):
   def test_ICaHT_HM1992(self):
     bm.random.seed(1234)
 
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca = bp.dyn.CalciumDetailed(size,
@@ -107,7 +106,7 @@ class Test_Ca(parameterized.TestCase):
   def test_ICaHT_Re1993(self):
     bm.random.seed(1234)
 
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca = bp.dyn.CalciumDetailed(size,
@@ -127,7 +126,7 @@ class Test_Ca(parameterized.TestCase):
   def test_ICaL_IS2008(self):
     bm.random.seed(1234)
 
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size)
         self.Ca = bp.dyn.CalciumDetailed(size,

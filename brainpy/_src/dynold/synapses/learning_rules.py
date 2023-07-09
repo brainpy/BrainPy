@@ -6,7 +6,8 @@ from brainpy._src.connect import TwoEndConnector
 from brainpy._src.dyn import synapses
 from brainpy._src.dynold.synouts import CUBA
 from brainpy._src.dynold.synapses import _TwoEndConnAlignPre
-from brainpy._src.dynsys import NeuDyn, Sequential
+from brainpy._src.dynsys import Sequential
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import Initializer
 from brainpy._src.mixin import ParamDesc
 from brainpy.types import ArrayType

@@ -6,7 +6,7 @@ import brainpy.math as bm
 from brainpy import check
 from brainpy._src.context import share
 from brainpy._src.dyn.neurons import hh
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import (OneInit,
                                      Initializer,
                                      parameter,
@@ -198,10 +198,18 @@ class HH(hh.HH):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+
+    self.noise = init_noise(noise, self.varshape, num_vars=4)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -298,10 +306,17 @@ class MorrisLecar(hh.MorrisLecar):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -797,16 +812,23 @@ class WangBuzsakiModel(hh.WangBuzsakiHH):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=3)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
     super().reset_state(batch_size)
     if self.input_var:
-      self.input.value = variable_(bm.zeros, self.varshape, batch_size)
+      self.input = variable_(bm.zeros, self.varshape, batch_size)
 
   def update(self, x=None):
     if self.input_var:

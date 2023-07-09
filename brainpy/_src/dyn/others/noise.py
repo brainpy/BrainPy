@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import variable_, parameter
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy.types import Shape, ArrayType

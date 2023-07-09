@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import collections
 import gc
 import inspect
 from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
+import collections
 
+import jax
 import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import AutoDelaySupp, ParamDesc, Container, DelayRegister, global_delay_data
+from brainpy._src.mixin import AutoDelaySupp, Container, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 
@@ -22,8 +23,8 @@ __all__ = [
   # containers
   'DynSysGroup', 'Network', 'Sequential',
 
-  # base classes
-  'NeuDyn', 'SynDyn', 'IonChaDyn',
+  # category
+  'Dynamics', 'Projection',
 ]
 
 SLICE_VARS = 'slice_vars'
@@ -79,16 +80,16 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
      If users want to define the logic of running models across multiple steps,
      we recommend users to use :py:func:`~.for_loop`, :py:class:`~.LoopOverTime`,
      :py:class:`~.DSRunner`, or :py:class:`~.DSTrainer`.
-      
+
      To be compatible with previous APIs, :py:class:`~.DynamicalSystem` inherits
-     from the :py:class:`~.DelayRegister`. It's worthy to note that the methods of 
-     :py:class:`~.DelayRegister` will be removed in the future, including: 
-     
+     from the :py:class:`~.DelayRegister`. It's worthy to note that the methods of
+     :py:class:`~.DelayRegister` will be removed in the future, including:
+
      - ``.register_delay()``
      - ``.get_delay_data()``
      - ``.update_local_delays()``
      - ``.reset_local_delays()``
-      
+
   Parameters
   ----------
   name : optional, str
@@ -507,9 +508,6 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
 
-
-
-
 class Projection(DynamicalSystem):
   def reset_state(self, *args, **kwargs):
     pass
@@ -626,22 +624,7 @@ class Dynamics(DynamicalSystem):
     return f'{self.__class__.__name__}(name={self.name}, mode={self.mode}, size={self.size})'
 
   def __getitem__(self, item):
-    return NeuDynView(target=self, index=item)
-
-
-class NeuDyn(Dynamics, AutoDelaySupp):
-  """Neuronal Dynamics."""
-  pass
-
-
-class SynDyn(Dynamics, AutoDelaySupp, ParamDesc):
-  """Synaptic Dynamics."""
-  pass
-
-
-class IonChaDyn(Dynamics):
-  """Ion Channel Dynamics."""
-  pass
+    return DynView(target=self, index=item)
 
 
 class DynView(Dynamics):
@@ -661,50 +644,42 @@ class DynView(Dynamics):
       self,
       target: Dynamics,
       index: Union[slice, Sequence, ArrayType],
-      varshape: Tuple[int, ...] = None,
-      name: str = None,
-      mode: bm.Mode = None
+      name: Optional[str] = None,
   ):
-    # initialization
-    DynamicalSystem.__init__(self, name=name, mode=mode)
-
     # check target
-    if not isinstance(target, DynamicalSystem):
-      raise TypeError(f'Should be instance of DynamicalSystem, but we got {type(target)}.')
+    if not isinstance(target, Dynamics):
+      raise TypeError(f'Should be instance of {Dynamics.__name__}, but we got {type(target)}.')
     self.target = target  # the target object to slice
 
     # check slicing
     if isinstance(index, (int, slice)):
       index = (index,)
     self.index = index  # the slice
+    if len(self.index) > len(target.varshape):
+      raise ValueError(f"Length of the index should be less than "
+                       f"that of the target's varshape. But we "
+                       f"got {len(self.index)} > {len(target.varshape)}")
 
     # get all variables for slicing
-    if not hasattr(self.target, SLICE_VARS):
-      if varshape is None:
-        if isinstance(target, NeuDyn):
-          varshape = target.varshape
-        else:
-          raise UnsupportedError('Should provide varshape when the target does '
-                                 f'not define its {SLICE_VARS}')
-      all_vars = target.vars(level=1, include_self=True, method='relative')
-      all_vars = {k: v for k, v in all_vars.items()}  # TODO
-      # all_vars = {k: v for k, v in all_vars.items() if v.nobatch_shape == varshape}
-    else:
+    if hasattr(self.target, SLICE_VARS):
       all_vars = {}
       for var_str in getattr(self.target, SLICE_VARS):
         v = eval(f'target.{var_str}')
         all_vars[var_str] = v
+    else:
+      all_vars = target.vars(level=1, include_self=True, method='relative')
+      all_vars = {k: v for k, v in all_vars.items()}  # TODO
+      # all_vars = {k: v for k, v in all_vars.items() if v.nobatch_shape == varshape}
 
     # slice variables
     self.slice_vars = dict()
     for k, v in all_vars.items():
       if v.batch_axis is not None:
-        index = ((self.index[:v.batch_axis] +
-                  (slice(None, None, None),) +
-                  self.index[v.batch_axis:])
-                 if len(self.index) > v.batch_axis else
-                 (self.index + tuple([slice(None, None, None)
-                                      for _ in range(v.batch_axis - len(self.index) + 1)])))
+        index = (
+          (self.index[:v.batch_axis] + (slice(None, None, None),) + self.index[v.batch_axis:])
+          if (len(self.index) > v.batch_axis) else
+          (self.index + tuple([slice(None, None, None) for _ in range(v.batch_axis - len(self.index) + 1)]))
+        )
       else:
         index = self.index
       self.slice_vars[k] = bm.VariableView(v, index)
@@ -712,14 +687,32 @@ class DynView(Dynamics):
     # sub-nodes
     nodes = target.nodes(method='relative', level=1, include_self=False).subset(DynamicalSystem)
     for k, node in nodes.items():
-      if isinstance(node, NeuDyn):
-        node = NeuDynView(node, self.index)
+      if isinstance(node, Dynamics):
+        node = DynView(node, self.index)
       else:
-        node = DynView(node, self.index, varshape)
+        node = DynView(node, self.index)
       setattr(self, k, node)
 
+    # initialization
+    # get size
+    size = []
+    for i, idx in enumerate(self.index):
+      if isinstance(idx, int):
+        size.append(1)
+      elif isinstance(idx, slice):
+        size.append(_slice_to_num(idx, target.varshape[i]))
+      else:
+        # should be a list/tuple/array of int
+        # do not check again
+        if not isinstance(idx, collections.Iterable):
+          raise TypeError('Should be an iterable object of int.')
+        size.append(len(idx))
+    size += list(target.varshape[len(self.index):])
+
+    super().__init__(size, keep_size=target.keep_size, name=name, mode=target.mode)
+
   def __repr__(self):
-    return f'{self.__class__.__name__}(target={self.target}, index={self.index})'
+    return f'{self.name}(target={self.target}, index={self.index})'
 
   def __getattribute__(self, item):
     try:
@@ -733,7 +726,7 @@ class DynView(Dynamics):
 
   def __setattr__(self, key, value):
     if hasattr(self, 'slice_vars'):
-      slice_vars = super(DynView, self).__getattribute__('slice_vars')
+      slice_vars = super().__getattribute__('slice_vars')
       if key in slice_vars:
         v = slice_vars[key]
         v.value = value
@@ -741,7 +734,8 @@ class DynView(Dynamics):
     super(DynView, self).__setattr__(key, value)
 
   def update(self, *args, **kwargs):
-    raise NoImplementationError(f'DSView {self} cannot be updated. Please update its parent {self.target}')
+    raise NoImplementationError(f'{DynView.__name__} {self} cannot be updated. '
+                                f'Please update its parent {self.target}')
 
   def reset_state(self, batch_size=None):
     pass
@@ -773,41 +767,3 @@ def _slice_to_num(slice_: slice, length: int):
     start += step
     num += 1
   return num
-
-
-class NeuDynView(DynView, NeuDyn):
-  """A view for a neuron group instance."""
-
-  def __init__(
-      self,
-      target: NeuDyn,
-      index: Union[slice, Sequence, ArrayType],
-      name: str = None,
-      mode: bm.Mode = None
-  ):
-    DynView.__init__(self, target, index)
-
-    # check slicing
-    var_shapes = target.varshape
-    if len(self.index) > len(var_shapes):
-      raise ValueError(f"Length of the index should be less than "
-                       f"that of the target's varshape. But we "
-                       f"got {len(self.index)} > {len(var_shapes)}")
-
-    # get size
-    size = []
-    for i, idx in enumerate(self.index):
-      if isinstance(idx, int):
-        size.append(1)
-      elif isinstance(idx, slice):
-        size.append(_slice_to_num(idx, var_shapes[i]))
-      else:
-        # should be a list/tuple/array of int
-        # do not check again
-        if not isinstance(idx, collections.Iterable):
-          raise TypeError('Should be an iterable object of int.')
-        size.append(len(idx))
-    size += list(var_shapes[len(self.index):])
-
-    # initialization
-    NeuDyn.__init__(self, tuple(size), name=name, mode=mode)

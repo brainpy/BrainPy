@@ -8,7 +8,7 @@ from brainpy._src.dyn import synapses
 from brainpy._src.dynold.synapses import _SynSTP, _SynOut, _TwoEndConnAlignPre
 from brainpy._src.dynold.synapses.base import _init_stp, _DelayedSyn
 from brainpy._src.dynold.synouts import COBA, MgBlock
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy.types import ArrayType
 
 __all__ = [

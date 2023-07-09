@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn.neurons import lif
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import (ZeroInit,
                                      OneInit,
                                      Initializer,
@@ -196,10 +196,17 @@ class LIF(lif.LifRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -320,10 +327,17 @@ class ExpIF(lif.ExpIFRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -421,10 +435,17 @@ class AdExIF(lif.AdExIFRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -514,10 +535,17 @@ class QuaIF(lif.QuaIFRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=1)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -617,10 +645,17 @@ class AdQuaIF(lif.AdQuaIFRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -725,10 +760,17 @@ class GIF(lif.GifRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=4)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -819,10 +861,17 @@ class Izhikevich(lif.IzhikevichRef):
   """
 
   def __init__(
-      self, *args, input_var: bool = True, **kwargs,
+      self,
+      *args,
+      input_var: bool = True,
+      noise: Union[float, ArrayType, Initializer, Callable] = None,
+      **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):

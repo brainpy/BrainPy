@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import numbers
 from typing import Optional, Union, Sequence, Tuple, Callable
 
 import jax.numpy as jnp
 from jax import vmap
 
 import brainpy.math as bm
-from brainpy._src.dynsys import DynSysGroup as SynConn
-from brainpy._src.neurons.input_groups import InputGroup, OutputGroup
+from brainpy._src.dynsys import Projection
 from brainpy._src.initialize import Initializer
 from brainpy.check import is_sequence
 from brainpy.types import ArrayType
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-class DelayCoupling(SynConn):
+class DelayCoupling(Projection):
   """Delay coupling.
 
   Parameters
@@ -44,15 +44,12 @@ class DelayCoupling(SynConn):
       var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
       conn_mat: ArrayType,
       required_shape: Tuple[int, ...],
-      delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
-      initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
-      name: str = None,
-      mode: bm.Mode = None,
+      delay_steps: Optional[Union[int, ArrayType, Callable]] = None,
+      initial_delay_data: Union[Callable, ArrayType, numbers.Number] = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
-    super(DelayCoupling, self).__init__(name=name,
-                                        mode=mode,
-                                        pre=InputGroup(1),
-                                        post=OutputGroup(1))
+    super().__init__(name=name, mode=mode)
 
     # delay variable
     if not isinstance(delay_var, bm.Variable):
@@ -177,7 +174,7 @@ class DiffusiveCoupling(DelayCoupling):
       raise ValueError(f'Only support 1d vector of coupling variable. '
                        f'But we got {jnp.ndim(coupling_var2)}')
 
-    super(DiffusiveCoupling, self).__init__(
+    super().__init__(
       delay_var=coupling_var1,
       var_to_output=var_to_output,
       conn_mat=conn_mat,
@@ -191,10 +188,10 @@ class DiffusiveCoupling(DelayCoupling):
     self.coupling_var1 = coupling_var1
     self.coupling_var2 = coupling_var2
 
-  def update(self, tdi):
+  def update(self):
     # delays
     axis = self.coupling_var1.ndim
-    delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
+    delay_var: bm.LengthDelay = self.get_delay_var(f'delay_{id(self.delay_var)}')[0]
     if self.delay_steps is None:
       diffusive = (jnp.expand_dims(self.coupling_var1.value, axis=axis) -
                    jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))
@@ -263,7 +260,7 @@ class AdditiveCoupling(DelayCoupling):
       raise ValueError(f'Only support 1d vector of coupling variable. '
                        f'But we got {jnp.ndim(coupling_var)}')
 
-    super(AdditiveCoupling, self).__init__(
+    super().__init__(
       delay_var=coupling_var,
       var_to_output=var_to_output,
       conn_mat=conn_mat,
@@ -276,10 +273,10 @@ class AdditiveCoupling(DelayCoupling):
 
     self.coupling_var = coupling_var
 
-  def update(self, tdi):
+  def update(self):
     # delay function
     axis = self.coupling_var.ndim
-    delay_var: bm.LengthDelay = self.global_delay_data[f'delay_{id(self.delay_var)}'][0]
+    delay_var: bm.LengthDelay = self.get_delay_var(f'delay_{id(self.delay_var)}')[0]
     if self.delay_steps is None:
       additive = self.coupling_var @ self.conn_mat
     elif self.delay_type == 'array':

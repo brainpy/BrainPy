@@ -8,6 +8,7 @@ from brainpy._src.dyn.channels.Ca import (
   ICaT_HM1992,
   ICaT_HP1992,
   ICaHT_HM1992,
+  ICaHT_Re1993,
   ICaL_IS2008,
 )
 

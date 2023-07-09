@@ -59,19 +59,18 @@ from brainpy._src.dynsys import (
   DynSysGroup as DynSysGroup,  # collectors
   Sequential as Sequential,
   Network as Network,
-  Dynamics as Dynamics,  # dynamics
-  NeuDyn as NeuDyn,
-  SynDyn as SynDyn,
-  IonChaDyn as IonChaDyn,
+  Dynamics as Dynamics,  # category
+  Projection as Projection,
 )
 DynamicalSystemNS = DynamicalSystem
-NeuGroup = NeuGroupNS = NeuDyn
+
 
 # building blocks
 from brainpy import (
   dnn, layers,  # module for dnn layers
   dyn,  # module for modeling dynamics
 )
+NeuGroup = NeuGroupNS = dyn.NeuDyn
 
 # shared parameters
 from brainpy._src.context import (share as share)
@@ -131,6 +130,11 @@ __deprecations = {
   'Container': ('brainpy.Container', 'brainpy.DynSysGroup', DynSysGroup),
   'optimizers': ('brainpy.optimizers', 'brainpy.optim', optim),
   'TensorCollector': ('brainpy.TensorCollector', 'brainpy.ArrayCollector', ArrayCollector),
+  'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
+  'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
+  'SynConn': ('brainpy.SynConn', 'brainpy.synapses.SynConn', synapses.SynConn),
+  'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
+  'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.syn.CondNeuGroup', dyn.CondNeuGroup),
 }
 __getattr__ = deprecation_getattr2('brainpy', __deprecations)
 

@@ -30,4 +30,9 @@ from brainpy._src.dynold.synapses.compat import (
 from brainpy._src.dynold.synapses.learning_rules import (
   STP as STP,
 )
+from brainpy._src.dyn.synapses.delay_couplings import (
+  DiffusiveCoupling,
+  AdditiveCoupling,
+)
+
 

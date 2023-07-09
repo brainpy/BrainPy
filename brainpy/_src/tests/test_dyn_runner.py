@@ -73,8 +73,7 @@ class TestDSRunner(unittest.TestCase):
 
     # without JIT
     runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike},
-                         inputs=[(net.E.input, 20.), (net.I.input, 20.)],
-                         jit=False).run(0.2)
+                         inputs=[(net.E.input, 20.), (net.I.input, 20.)], jit=False).run(0.2)
 
 
 

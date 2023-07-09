@@ -4,13 +4,12 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.neurons import noise_groups
 
 
 class Test_Noise_Group(parameterized.TestCase):
   def test_OU(self):
     bm.random.seed(1234)
-    model = noise_groups.OUProcess(size=1, mean=0., sigma=0.1)
+    model = bp.dyn.OUProcess(size=1, mean=0., sigma=0.1)
     runner = bp.DSRunner(model,
                          monitors=['x'],
                          progress_bar=False)

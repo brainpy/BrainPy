@@ -4,7 +4,7 @@ from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.dynsys import IonChaDyn
+from brainpy._src.dyn.base import IonChaDyn
 from brainpy._src.initialize import OneInit, Initializer, parameter, variable
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
+from absl.testing import parameterized
+
 import brainpy as bp
 import brainpy.math as bm
-from brainpy import rates
-from absl.testing import parameterized
-from brainpy._src.synapses import delay_couplings
 
 
 class Test_delay_couplings(parameterized.TestCase):
@@ -14,7 +13,7 @@ class Test_delay_couplings(parameterized.TestCase):
     areas = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn1')
     conn = bp.synapses.DiffusiveCoupling(areas.x, areas.x, areas.input,
                                          conn_mat=bp.conn.All2All(pre=areas.num, post=areas.num).require('conn_mat'),
-                                         initial_delay_data = bp.init.Uniform(0, 0.05))
+                                         initial_delay_data=bp.init.Uniform(0, 0.05))
     net = bp.Network(areas, conn)
 
     # 运行模拟

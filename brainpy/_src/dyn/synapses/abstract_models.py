@@ -4,7 +4,7 @@ import jax.numpy
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn._docs import pneu_doc
-from brainpy._src.dynsys import SynDyn
+from brainpy._src.dyn.base import SynDyn
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.mixin import AlignPost, ReturnInfo

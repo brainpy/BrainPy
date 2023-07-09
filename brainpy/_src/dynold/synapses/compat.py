@@ -5,7 +5,7 @@ from typing import Union, Dict, Callable
 
 from brainpy._src.connect import TwoEndConnector
 from brainpy._src.dynold.synouts import COBA, CUBA
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import Initializer
 from brainpy.types import ArrayType
 from .abstract_models import Delta, Exponential, DualExponential

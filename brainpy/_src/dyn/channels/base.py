@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.dynsys import IonChaDyn
+from brainpy._src.dyn.base import IonChaDyn
 from brainpy._src.mixin import TreeNode
 from brainpy._src.dyn.ions.base import Calcium
 from brainpy._src.dyn.neurons.hh import HHTypedNeuron

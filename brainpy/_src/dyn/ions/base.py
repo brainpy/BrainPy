@@ -4,7 +4,7 @@ from typing import Union
 
 import brainpy.math as bm
 from brainpy._src.dyn.neurons.hh import CondNeuGroup
-from brainpy._src.dynsys import IonChaDyn
+from brainpy._src.dyn.base import IonChaDyn
 from brainpy._src.mixin import Container, TreeNode
 from brainpy.types import Shape
 

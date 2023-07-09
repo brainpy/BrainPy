@@ -138,7 +138,7 @@ class ExponentialEuler(ODEIntegrator):
     >>> import brainpy as bp
     >>> import brainpy.math as bm
     >>>
-    >>> class HH(bp.NeuDyn):
+    >>> class HH(bp.dyn.NeuDyn):
     >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
     >>>                gL=0.1, V_th=20., phi=5.0, name=None):
     >>>     super(HH, self).__init__(size=size, name=name)
@@ -211,7 +211,7 @@ class ExponentialEuler(ODEIntegrator):
     >>> import brainpy as bp
     >>> import brainpy.math as bm
     >>>
-    >>> class HH(bp.NeuDyn):
+    >>> class HH(bp.dyn.NeuDyn):
     >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
     >>>                gL=0.1, V_th=20., phi=5.0, name=None):
     >>>     super(HH, self).__init__(size=size, name=name)

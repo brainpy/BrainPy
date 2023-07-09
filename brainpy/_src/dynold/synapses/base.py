@@ -7,7 +7,8 @@ from brainpy import math as bm
 from brainpy._src.connect import TwoEndConnector, MatConn, IJConn, One2One, All2All
 from brainpy._src.dnn import linear
 from brainpy._src.dyn import projections
-from brainpy._src.dynsys import Projection, DynamicalSystem, NeuDyn, Sequential
+from brainpy._src.dynsys import Projection, DynamicalSystem
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import parameter
 from brainpy._src.mixin import (ParamDesc, ParamDescInit, JointType,
                                 AutoDelaySupp, BindCondData, AlignPost,
@@ -445,7 +446,8 @@ class _TwoEndConnAlignPre(TwoEndConn):
         raise UnsupportedError(f'Does not support {comp_method}, only "sparse" or "dense".')
     self.proj = proj
     self.proj.post.cur_inputs.pop(self.proj.name)
-    self.stp = self.pre.after_updates[self.proj._syn_id].syn.stp
+    if hasattr(self.pre.after_updates[self.proj._syn_id].syn, 'stp'):
+      self.stp = self.pre.after_updates[self.proj._syn_id].syn.stp
 
   def update(self, pre_spike=None, stop_spike_gradient: bool = False):
     if pre_spike is None:

@@ -7,7 +7,7 @@ import jax
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn.others.noise import OUProcess
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import (Initializer,
                                      Uniform,
                                      parameter,

@@ -8,8 +8,8 @@ from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy._src.integrators.fde.generic import fdeint
-from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network,
-                                 NeuDyn, Projection, IonChaDyn)
+from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network)
+from brainpy._src.dyn.base import NeuDyn, IonChaDyn
 from brainpy._src.runners import DSRunner
 from brainpy._src.deprecations import deprecation_getattr2
 
@@ -55,6 +55,8 @@ neurons.__getattr__ = deprecation_getattr2('brainpy.neurons', neurons.__deprecat
 
 synapses.__deprecations = {
   'PoissonInput': ('brainpy.synapses.PoissonInput', 'brainpy.dyn.PoissonInput', dyn.PoissonInput),
+  'DiffusiveCoupling': ('brainpy.synapses.DiffusiveCoupling', 'brainpy.dyn.DiffusiveCoupling', dyn.DiffusiveCoupling),
+  'AdditiveCoupling': ('brainpy.synapses.AdditiveCoupling', 'brainpy.dyn.AdditiveCoupling', dyn.AdditiveCoupling),
 }
 synapses.__getattr__ = deprecation_getattr2('brainpy.synapses', synapses.__deprecations)
 
@@ -87,7 +89,7 @@ dyn.__deprecations = {
   # synapses
   'SynConn': ('brainpy.dyn.SynConn', 'brainpy.synapses.SynConn', synapses.SynConn),
   # 'SynLTP': ('brainpy.dyn.SynLTP', 'brainpy.synapses.SynLTP', synapses.SynLTP),
-  'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.synapses.SynSTP', synapses._SynSTP),
+  'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'TwoEndConn': ('brainpy.dyn.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
   'DeltaSynapse': ('brainpy.dyn.DeltaSynapse', 'brainpy.synapses.Delta', synapses.DeltaSynapse),
   'ExpCUBA': ('brainpy.dyn.ExpCUBA', 'brainpy.synapses.Exponential', synapses.ExpCUBA),

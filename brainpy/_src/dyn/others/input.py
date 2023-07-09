@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import warnings
 from functools import partial
 from typing import Union, Sequence, Any, Optional, Callable
 
@@ -9,7 +9,7 @@ import jax.numpy as jnp
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn.utils import get_spk_type
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import parameter, variable_
 from brainpy._src.mixin import ReturnInfo
 from brainpy.types import Shape, ArrayType
@@ -165,7 +165,8 @@ class SpikeTimeGroup(NeuDyn):
                            batch_axis_name=bm.sharding.BATCH_AXIS)
 
   def update(self):
-    self.spike.value = bm.sharding.partition(bm.zeros_like(self.spike), self.spike.sharding)
+    # self.spike.value = bm.sharding.partition(bm.zeros_like(self.spike), self.spike.sharding)
+    self.spike.value = bm.zeros_like(self.spike)
     bm.while_loop(self._body_fun, self._cond_fun, ())
     return self.spike.value
 
@@ -199,12 +200,16 @@ class PoissonGroup(NeuDyn):
       spk_type: Optional[type] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
+      seed=None,
   ):
     super(PoissonGroup, self).__init__(size=size,
                                        sharding=sharding,
                                        name=name,
                                        keep_size=keep_size,
                                        mode=mode)
+
+    if seed is not None:
+      warnings.warn('')
 
     # parameters
     self.freqs = parameter(freqs, self.num, allow_none=False)
@@ -216,7 +221,7 @@ class PoissonGroup(NeuDyn):
   def update(self):
     spikes = bm.random.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
     spikes = bm.asarray(spikes, dtype=self.spk_type)
-    spikes = bm.sharding.partition(spikes, self.spike.sharding)
+    # spikes = bm.sharding.partition(spikes, self.spike.sharding)
     self.spike.value = spikes
     return spikes
 

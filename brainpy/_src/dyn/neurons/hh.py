@@ -4,7 +4,8 @@ from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.dynsys import NeuDyn, IonChaDyn, DynamicalSystem
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.dyn.base import NeuDyn, IonChaDyn
 from brainpy._src.initialize import OneInit
 from brainpy._src.initialize import Uniform, variable_, noise as init_noise
 from brainpy._src.integrators import JointEq

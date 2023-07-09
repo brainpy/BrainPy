@@ -8,7 +8,7 @@ import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
 from brainpy._src.dyn import synapses
 from brainpy._src.dynold.synouts import MgBlock, CUBA
-from brainpy._src.dynsys import NeuDyn
+from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.initialize import Initializer
 from brainpy._src.mixin import AlignPost
 from brainpy.types import ArrayType
@@ -293,8 +293,8 @@ class Exponential(_TwoEndConnAlignPost, AlignPost):
     if bm.size(self.tau) != 1:
       raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
-    syn = synapses.Expon.desc(pre.size,
-                              pre.keep_size,
+    syn = synapses.Expon.desc(post.size,
+                              post.keep_size,
                               mode=mode,
                               tau=tau,
                               method=method)
