@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import gc
 import inspect
-from typing import Union, Dict, Callable, Sequence, Optional, Tuple, Any
-import collections
+from typing import Union, Dict, Callable, Sequence, Optional, Any
 
-import jax
 import numpy as np
 
 from brainpy import tools, math as bm
@@ -24,7 +23,7 @@ __all__ = [
   'DynSysGroup', 'Network', 'Sequential',
 
   # category
-  'Dynamics', 'Projection',
+  'Dynamic', 'Projection', 'AnnLayer',
 ]
 
 SLICE_VARS = 'slice_vars'
@@ -356,18 +355,18 @@ class Network(DynSysGroup):
       node()
 
     # update nodes of dynamics
-    for node in nodes.subset(Dynamics).values():
+    for node in nodes.subset(Dynamic).values():
       node()
 
     # update nodes with other types, including delays, ...
-    for node in nodes.not_subset(Dynamics).not_subset(Projection).values():
+    for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node()
 
   def reset_state(self, batch_size=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
 
     # reset dynamics
-    for node in nodes.subset(Dynamics).values():
+    for node in nodes.subset(Dynamic).values():
       node.reset_state(batch_size)
 
     # reset projections
@@ -375,7 +374,7 @@ class Network(DynSysGroup):
       node.reset_state(batch_size)
 
     # reset other types of nodes, including delays, ...
-    for node in nodes.not_subset(Dynamics).not_subset(Projection).values():
+    for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node.reset_state(batch_size)
 
 
@@ -513,7 +512,7 @@ class Projection(DynamicalSystem):
     pass
 
 
-class Dynamics(DynamicalSystem):
+class Dynamic(DynamicalSystem):
   """Base class to model dynamics.
 
   There are several essential attributes:
@@ -627,7 +626,14 @@ class Dynamics(DynamicalSystem):
     return DynView(target=self, index=item)
 
 
-class DynView(Dynamics):
+class AnnLayer(DynamicalSystem):
+  """Base class for a layer of artificial neural network."""
+
+  def reset_state(self, *args, **kwargs):
+    pass
+
+
+class DynView(Dynamic):
   """DSView, an object used to get a view of a dynamical system instance.
 
   It can get a subset view of variables in a dynamical system instance.
@@ -642,13 +648,13 @@ class DynView(Dynamics):
 
   def __init__(
       self,
-      target: Dynamics,
+      target: Dynamic,
       index: Union[slice, Sequence, ArrayType],
       name: Optional[str] = None,
   ):
     # check target
-    if not isinstance(target, Dynamics):
-      raise TypeError(f'Should be instance of {Dynamics.__name__}, but we got {type(target)}.')
+    if not isinstance(target, Dynamic):
+      raise TypeError(f'Should be instance of {Dynamic.__name__}, but we got {type(target)}.')
     self.target = target  # the target object to slice
 
     # check slicing
@@ -687,7 +693,7 @@ class DynView(Dynamics):
     # sub-nodes
     nodes = target.nodes(method='relative', level=1, include_self=False).subset(DynamicalSystem)
     for k, node in nodes.items():
-      if isinstance(node, Dynamics):
+      if isinstance(node, Dynamic):
         node = DynView(node, self.index)
       else:
         node = DynView(node, self.index)

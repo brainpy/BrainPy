@@ -7,7 +7,7 @@ from jax import lax
 from brainpy import math as bm, tools
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
-from brainpy._src.layer import Layer
+from brainpy._src.dynsys import AnnLayer
 
 __all__ = [
   'Conv1d', 'Conv2d', 'Conv3d',
@@ -36,7 +36,7 @@ def to_dimension_numbers(num_spatial_dims: int,
                                   out_spec=image_dn)
 
 
-class _GeneralConv(Layer):
+class _GeneralConv(AnnLayer):
   """Apply a convolution to the inputs.
 
   Parameters
@@ -462,7 +462,7 @@ Conv2D = Conv2d
 Conv3D = Conv3d
 
 
-class _GeneralConvTranspose(Layer):
+class _GeneralConvTranspose(AnnLayer):
   supported_modes = (bm.TrainingMode, bm.BatchingMode)
 
   def __init__(

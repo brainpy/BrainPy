@@ -59,8 +59,9 @@ from brainpy._src.dynsys import (
   DynSysGroup as DynSysGroup,  # collectors
   Sequential as Sequential,
   Network as Network,
-  Dynamics as Dynamics,  # category
+  Dynamic as Dynamic,  # category
   Projection as Projection,
+  AnnLayer as Layer,
 )
 DynamicalSystemNS = DynamicalSystem
 

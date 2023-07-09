@@ -10,7 +10,6 @@ import numpy as np
 
 from brainpy import math as bm, tools
 from brainpy._src.initialize import parameter
-
 from brainpy.types import ArrayType
 
 if sys.version_info.minor > 8:
@@ -23,6 +22,7 @@ DynamicalSystem = None
 __all__ = [
   'MixIn',
   'ParamDesc',
+  'ParamDescInit',
   'AlignPost',
   'AutoDelaySupp',
   'NoSH',

@@ -1,6 +1,6 @@
 
 from ._src import checking, train, integrators
-from . import tools, math, integrators, dyn, neurons, synapses
+from . import tools, math, integrators, dyn, dnn, neurons, synapses, layers
 from .integrators import ode, fde, sde
 from brainpy._src.integrators.base import Integrator
 from brainpy._src.integrators.runner import IntegratorRunner
@@ -8,7 +8,7 @@ from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy._src.integrators.fde.generic import fdeint
-from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network)
+from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network, AnnLayer)
 from brainpy._src.dyn.base import NeuDyn, IonChaDyn
 from brainpy._src.runners import DSRunner
 from brainpy._src.deprecations import deprecation_getattr2
@@ -100,5 +100,17 @@ dyn.__deprecations = {
   'AlphaCOBA': ('brainpy.dyn.AlphaCOBA', 'brainpy.synapses.Alpha', synapses.AlphaCOBA),
 }
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
+
+
+dnn.__deprecations = {
+  'Layer': ('brainpy.dnn.Layer', 'brainpy.AnnLayer', AnnLayer),
+}
+dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
+
+
+layers.__deprecations = {
+  'Layer': ('brainpy.layers.Layer', 'brainpy.AnnLayer', AnnLayer),
+}
+layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
 
 

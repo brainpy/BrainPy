@@ -1,6 +1,6 @@
 
 from brainpy._src.dyn.base import (
-  Dynamics,
+  Dynamic,
   NeuDyn,
   SynDyn,
   IonChaDyn,

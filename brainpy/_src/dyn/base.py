@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.dynsys import Dynamics
+from brainpy._src.dynsys import Dynamic
 from brainpy._src.mixin import AutoDelaySupp, ParamDesc
 
 __all__ = [
@@ -8,17 +8,17 @@ __all__ = [
 ]
 
 
-class NeuDyn(Dynamics, AutoDelaySupp):
+class NeuDyn(Dynamic, AutoDelaySupp):
   """Neuronal Dynamics."""
   pass
 
 
-class SynDyn(Dynamics, AutoDelaySupp, ParamDesc):
+class SynDyn(Dynamic, AutoDelaySupp, ParamDesc):
   """Synaptic Dynamics."""
   pass
 
 
-class IonChaDyn(Dynamics):
+class IonChaDyn(Dynamic):
   """Ion Channel Dynamics."""
   pass
 

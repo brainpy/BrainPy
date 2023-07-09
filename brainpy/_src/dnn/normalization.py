@@ -8,7 +8,7 @@ from brainpy._src.context import share
 from brainpy import math as bm, check
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.types import ArrayType
-from brainpy._src.layer import Layer
+from brainpy._src.dynsys import AnnLayer
 
 __all__ = [
   'BatchNorm1d',
@@ -32,7 +32,7 @@ def _square(x):
     return lax.square(x)
 
 
-class BatchNorm(Layer):
+class BatchNorm(AnnLayer):
   r"""Batch Normalization layer [1]_.
 
   This layer aims to reduce the internal covariant shift of data. It
@@ -407,7 +407,7 @@ class BatchNorm3d(BatchNorm):
     assert x.shape[-1] == self.num_features
 
 
-class LayerNorm(Layer):
+class LayerNorm(AnnLayer):
   r"""Layer normalization (https://arxiv.org/abs/1607.06450).
 
   .. math::
@@ -504,7 +504,7 @@ class LayerNorm(Layer):
     return out
 
 
-class GroupNorm(Layer):
+class GroupNorm(AnnLayer):
   r"""Group normalization layer.
 
   .. math::
