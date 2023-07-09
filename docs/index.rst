@@ -22,6 +22,12 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
 
+.. note::
+   BrainPy is still a research experimental project.
+   APIs may be changed over time. Please always keeps
+   in mind which BrainPy version are you using.
+
+
 
 .. toctree::
    :maxdepth: 1
