@@ -4,9 +4,12 @@
 .. currentmodule:: brainpy.synapses 
 .. automodule:: brainpy.synapses 
 
-.. contents::
-   :local:
-   :depth: 1
+
+
+From ``brainpy>=2.4.3``, most of models in ``brainpy.synapses`` have been reimplemented with ``brainpy.dyn`` module.
+
+However, ``brainpy.synapses`` is still independent from ``brainpy.dyn`` module.
+
 
 Synaptic Dynamics
 -----------------

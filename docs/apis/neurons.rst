@@ -8,6 +8,20 @@
    :local:
    :depth: 1
 
+
+From ``brainpy>=2.4.3``, most of models in ``brainpy.neurons`` have been reimplemented with ``brainpy.dyn`` module.
+
+However, ``brainpy.neurons`` is still independent from ``brainpy.dyn`` module.
+
+The most significant difference between models in ``brainpy.neurons`` and ``brainpy.dyn`` is that:
+
+- the former only support the integration style without liquid time constant (which means that
+  the time constants in these neuron models are fixed once initialization)
+- the former supports the integration with SDE by specifying the ``noise`` parameter. For example,
+  ``brainpy.neurons.HH(size, ..., noise=1.)``
+- the former has one additional ``input`` variable for receiving external inputs.
+
+
 Biological Models
 -----------------
 
@@ -44,30 +58,9 @@ Reduced Models
    QuaIF
    AdQuaIF
    GIF
-   ALIFBellec2020
    Izhikevich
    HindmarshRose
    FHN
-
-
-Noise Models
-------------
-
-.. autosummary::
-   :toctree: generated/
-
-   OUProcess
-
-
-Input Models
-------------
-
-.. autosummary::
-   :toctree: generated/
-
-   InputGroup
-   OutputGroup
-   SpikeTimeGroup
-   PoissonGroup
-
+   ALIFBellec2020
+   LIF_SFA_Bellec2020
 
