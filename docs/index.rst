@@ -59,17 +59,12 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Advanced Tutorials
 
-   tutorial_advanced/how_to_debug.ipynb
-   tutorial_advanced/gotchas_of_brainpy_transforms.ipynb
-   tutorial_advanced/advanced_lowdim_analysis.ipynb
-   tutorial_advanced/differentiation.ipynb
-   tutorial_advanced/integrate_flax_into_brainpy.ipynb
-   tutorial_advanced/integrate_bp_lif_into_flax.ipynb
-   tutorial_advanced/integrate_bp_convlstm_into_flax.ipynb
-
+   tutorial_advanced/math.rst
+   tutorial_advanced/interoperation.rst
+   tutorial_advanced/analysis.rst
 
 
 .. toctree::
