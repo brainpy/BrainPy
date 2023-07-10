@@ -23,9 +23,9 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
 
 .. note::
-   BrainPy is still a research experimental project.
+   BrainPy is still an experimental research project.
    APIs may be changed over time. Please always keeps
-   in mind which BrainPy version are you using.
+   in mind what BrainPy version you are using.
 
 
 
@@ -115,6 +115,7 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    apis/auto/measure.rst
    apis/auto/optim.rst
    apis/auto/running.rst
+   apis/auto/mixin.rst
    apis/auto/changelog.rst
 
 
