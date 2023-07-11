@@ -114,7 +114,7 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    apis/auto/changelog.rst
 
 
-The following APIs will be no longer supported.
+The following APIs will no longer be maintained in the future, but you can still use them normally.
 
 .. toctree::
    :maxdepth: 1
