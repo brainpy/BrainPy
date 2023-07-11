@@ -4,15 +4,16 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.dyn.channels import KCa, Ca
+
 
 class Test_KCa(parameterized.TestCase):
   bm.random.seed(1234)
+
   def test_KCa(self):
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size, V_initializer=bp.init.Uniform(-70, -50.))
-        self.Ca = Ca.CalciumDetailed(size, KCa=KCa.IAHP_De1994(size))
+        self.Ca = bp.dyn.CalciumDetailed(size, KCa=bp.dyn.IAHP_De1994(size))
 
     model = Neuron(1)
     runner = bp.DSRunner(model,

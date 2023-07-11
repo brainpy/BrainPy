@@ -2,8 +2,6 @@
 
 import pytest
 
-import unittest
-
 import brainpy as bp
 
 

@@ -7,7 +7,7 @@ from jax import lax
 from brainpy import math as bm, tools, check
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.dynsys import AnnLayer
 
 __all__ = [
   'Conv1d', 'Conv2d', 'Conv3d',
@@ -36,7 +36,7 @@ def to_dimension_numbers(num_spatial_dims: int,
                                   out_spec=image_dn)
 
 
-class _GeneralConv(Layer):
+class _GeneralConv(AnnLayer):
   """Apply a convolution to the inputs.
 
   Parameters
@@ -80,6 +80,8 @@ class _GeneralConv(Layer):
   name: str, Optional
     The name of the object.
   """
+
+  supported_modes = (bm.TrainingMode, bm.BatchingMode)
 
   def __init__(
       self,
@@ -461,8 +463,8 @@ Conv2D = Conv2d
 Conv3D = Conv3d
 
 
-class _GeneralConvTranspose(Layer):
-
+class _GeneralConvTranspose(AnnLayer):
+  supported_modes = (bm.TrainingMode, bm.BatchingMode)
 
   def __init__(
       self,
@@ -606,8 +608,6 @@ class ConvTranspose1d(_GeneralConvTranspose):
     )
 
   def _check_input_dim(self, x):
-    if isinstance(self.mode, bm.BatchingMode):
-        pass
     if x.ndim != 3:
       raise ValueError(f"expected 3D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
@@ -711,7 +711,7 @@ class ConvTranspose3d(_GeneralConvTranspose):
       name: The name of the module.
     """
     super().__init__(
-      num_spatial_dims=3,
+      num_spatial_dims=1,
       in_channels=in_channels,
       out_channels=out_channels,
       kernel_size=kernel_size,

@@ -4,7 +4,7 @@ neu_pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                 V_initializer=bp.init.Normal(-55., 2.))
 
 
-class EICOBA_PreAlign(bp.DynamicalSystemNS):
+class EICOBA_PreAlign(bp.DynamicalSystem):
   def __init__(self, num_exc, num_inh, inp=20.):
     super().__init__()
 
@@ -54,7 +54,7 @@ class EICOBA_PreAlign(bp.DynamicalSystemNS):
     self.I(self.inp)
 
 
-class EICOBA_PostAlign(bp.DynamicalSystemNS):
+class EICOBA_PostAlign(bp.DynamicalSystem):
   def __init__(self, num_exc, num_inh, inp=20.):
     super().__init__()
     self.inp = inp
@@ -165,5 +165,5 @@ def run2():
 
 if __name__ == '__main__':
   # run1()
-  # run2()
-  run3()
+  run2()
+  # run3()

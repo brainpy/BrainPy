@@ -12,7 +12,7 @@ class HH(bp.CondNeuGroup):
     self.IL = bp.channels.IL(size, E=-54.387, g_max=0.03)
 
 
-class HHv2(bp.NeuGroupNS):
+class HHv2(bp.dyn.NeuDyn):
   def __init__(self, size, ENa=50., gNa=120., EK=-77., gK=36., EL=-54.387, gL=0.03, V_th=20., C=1.0):
     super().__init__(size=size)
 

@@ -341,6 +341,10 @@ class LengthDelay(AbstractDelay):
     self.num_delay_step: int = 0
     self.idx: Variable = None
 
+    self.delay_target = None
+    if isinstance(delay_target, Variable):
+      self.delay_target = delay_target
+
     # initialization
     self.reset(delay_target, delay_len, initial_delay_data, batch_axis)
 
@@ -448,7 +452,7 @@ class LengthDelay(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[numbers.Number, Array, jax.Array]):
+  def update(self, value: Union[numbers.Number, Array, jax.Array] = None):
     """Update delay variable with the new data.
 
     Parameters
@@ -456,6 +460,12 @@ class LengthDelay(AbstractDelay):
     value: Any
       The value of the latest data, used to update this delay variable.
     """
+    if value is None:
+      if self.delay_target is None:
+        raise ValueError('Must provide value.')
+      else:
+        value = self.delay_target.value
+
     if self.update_method == ROTATE_UPDATE:
       self.idx.value = stop_gradient(as_jax((self.idx - 1) % self.num_delay_step))
       self.data[self.idx[0]] = value

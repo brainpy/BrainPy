@@ -40,7 +40,7 @@ class GABAa_without_Variable(bp.TwoEndConn):
     self.post.inputs -= jnp.sum(self.s, axis=0) * (self.post.V - self.E)
 
 
-class HH_without_Variable(bp.NeuGroup):
+class HH_without_Variable(bp.dyn.NeuDyn):
   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0,
                gNa=35., gK=9., gL=0.1, V_th=20., phi=5.0, **kwargs):
     super(HH_without_Variable, self).__init__(size=size, **kwargs)
@@ -117,7 +117,7 @@ def test_neu_vars_1():
   assert len(vars) == 0
 
 
-class HH_with_Variable(bp.NeuGroup):
+class HH_with_Variable(bp.dyn.NeuDyn):
   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0,
                gNa=35., gK=9., gL=0.1, V_th=20., phi=5.0, **kwargs):
     super(HH_with_Variable, self).__init__(size=size, **kwargs)

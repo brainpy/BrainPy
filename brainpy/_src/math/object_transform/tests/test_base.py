@@ -81,7 +81,7 @@ class TestCollectionFunction(unittest.TestCase):
 
 class TestNodeList(bp.testing.UnitTestCase):
   def test_NodeList_1(self):
-    class Object(bp.DynamicalSystemNS):
+    class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
 
@@ -121,7 +121,7 @@ class TestNodeList(bp.testing.UnitTestCase):
 
 class TestNodeDict(bp.testing.UnitTestCase):
   def test_NodeDict_1(self):
-    class Object(bp.DynamicalSystemNS):
+    class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
 
@@ -167,7 +167,7 @@ class TestNodeDict(bp.testing.UnitTestCase):
 
 class TestVarList(bp.testing.UnitTestCase):
   def test_ListVar_1(self):
-    class Object(bp.DynamicalSystemNS):
+    class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
         self.vs = bm.VarList([bm.Variable(1.),
@@ -196,7 +196,7 @@ class TestVarList(bp.testing.UnitTestCase):
 
 class TestVarDict(bp.testing.UnitTestCase):
   def test_DictVar_1(self):
-    class Object(bp.DynamicalSystemNS):
+    class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
         self.vs = bm.VarDict({'a': bm.Variable(1.),

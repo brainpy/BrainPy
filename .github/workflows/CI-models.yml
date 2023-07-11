@@ -16,7 +16,6 @@ on:
 jobs:
   test_linux:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +63,6 @@ jobs:
         
   test_macos:
     runs-on: macos-latest
-    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:
@@ -113,7 +111,6 @@ jobs:
 
   test_windows:
     runs-on: windows-latest
-    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:

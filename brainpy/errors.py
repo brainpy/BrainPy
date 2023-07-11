@@ -232,3 +232,9 @@ Please install brainpylib GPU operators with linux + CUDA environment.
     ''')
 
 
+
+
+class SharedArgError(BrainPyError):
+  pass
+
+

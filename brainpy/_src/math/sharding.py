@@ -131,8 +131,11 @@ def partition_by_sharding(
     return x
   else:
     assert isinstance(sharding, Sharding)
-    f = partial(_device_put, device=sharding)
-    return jax.tree_util.tree_map(f, x, is_leaf=lambda a: isinstance(a, Array))
+    if isinstance(x, (Array, jax.Array)):
+      return _device_put(x, device=sharding)
+    return jax.tree_util.tree_map(partial(_device_put, device=sharding),
+                                  x,
+                                  is_leaf=lambda a: isinstance(a, Array))
 
 
 def partition(
@@ -142,7 +145,11 @@ def partition(
   if sharding is None:
     return x
   elif isinstance(sharding, (jax.Device, Sharding)):
-    return jax.tree_util.tree_map(partial(_device_put, device=sharding), x, is_leaf=lambda a: isinstance(a, Array))
+    if isinstance(x, (Array, jax.Array)):
+      return _device_put(x, device=sharding)
+    return jax.tree_util.tree_map(partial(_device_put, device=sharding),
+                                  x,
+                                  is_leaf=lambda a: isinstance(a, Array))
   elif isinstance(sharding, (tuple, list)) and any([isinstance(s, str) for s in sharding]):
     return partition_by_axname(x, sharding)
   else:

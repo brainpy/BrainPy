@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.math import activations
-from .base import Layer
+from brainpy._src.dynsys import AnnLayer
 from brainpy.check import (is_integer,
                            is_initializer)
 from brainpy.initialize import (XavierNormal,
@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-class RNNCell(Layer):
+class RNNCell(AnnLayer):
   r"""Basic fully-connected RNN core.
 
   Given :math:`x_t` and the previous hidden state :math:`h_{t-1}` the
@@ -125,7 +125,7 @@ class RNNCell(Layer):
     return self.state.value
 
 
-class GRUCell(Layer):
+class GRUCell(AnnLayer):
   r"""Gated Recurrent Unit.
 
   The implementation is based on (Chung, et al., 2014) [1]_ with biases.
@@ -247,7 +247,7 @@ class GRUCell(Layer):
     return self.state.value
 
 
-class LSTMCell(Layer):
+class LSTMCell(AnnLayer):
   r"""Long short-term memory (LSTM) RNN core.
 
   The implementation is based on (zaremba, et al., 2014) [1]_. Given
@@ -442,7 +442,7 @@ class LSTM(LSTMCell):
     super(LSTM, self).__init__(*args, **kwargs)
 
 
-class _ConvNDLSTMCell(Layer):
+class _ConvNDLSTMCell(AnnLayer):
   r"""``num_spatial_dims``-D convolutional LSTM.
 
   The implementation is based on :cite:`xingjian2015convolutional`.

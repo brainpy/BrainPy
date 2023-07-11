@@ -8,7 +8,7 @@ import numpy as np
 
 import brainpy.math as bm
 from brainpy import check
-from .base import Layer
+from brainpy._src.dynsys import AnnLayer
 
 __all__ = [
   'NVAR'
@@ -34,7 +34,7 @@ def _comb(N, k):
     return 0
 
 
-class NVAR(Layer):
+class NVAR(AnnLayer):
   """Nonlinear vector auto-regression (NVAR) node.
 
   This class has the following features:

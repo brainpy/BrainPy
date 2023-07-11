@@ -96,7 +96,7 @@ class Test_HH(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['spike'].shape, (1, 100, 10))
 
   def test_WangBuzsakiModel(self):
-    model = hh.WangBuzsakiModel(size=1)
+    model = hh.WangBuzsakiHH(size=1)
     runner = bp.DSRunner(model,
                           monitors=['V', 'n', 'h', 'spike'],
                           progress_bar=False)
@@ -107,7 +107,7 @@ class Test_HH(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
 
   def test_WangBuzsakiModel_batching_mode(self):
-    model = hh.WangBuzsakiModel(size=10, mode=bm.batching_mode)
+    model = hh.WangBuzsakiHH(size=10, mode=bm.batching_mode)
     runner = bp.DSRunner(model,
                           monitors=['V', 'n', 'h', 'spike'],
                           progress_bar=False)
@@ -118,7 +118,7 @@ class Test_HH(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['spike'].shape, (1, 100, 10))
 
   def test_WangBuzsakiModelLTC(self):
-    model = hh.WangBuzsakiModelLTC(size=1)
+    model = hh.WangBuzsakiHHLTC(size=1)
     runner = bp.DSRunner(model,
                           monitors=['V', 'n', 'h', 'spike'],
                           progress_bar=False)
@@ -129,7 +129,7 @@ class Test_HH(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
 
   def test_WangBuzsakiModelLTC_batching_mode(self):
-    model = hh.WangBuzsakiModelLTC(size=10, mode=bm.batching_mode)
+    model = hh.WangBuzsakiHHLTC(size=10, mode=bm.batching_mode)
     runner = bp.DSRunner(model,
                           monitors=['V', 'n', 'h', 'spike'],
                           progress_bar=False)

@@ -8,11 +8,13 @@ This module implements calcium-dependent potassium channels.
 
 from typing import Union, Callable
 
+from brainpy._src.context import share
 import brainpy.math as bm
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType
-from .base import Calcium, CalciumChannel, PotassiumChannel
+from .base import CalciumChannel, PotassiumChannel
+from brainpy._src.dyn.ions.base import Calcium
 
 __all__ = [
   'IAHP_De1994',
@@ -84,11 +86,10 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    CalciumChannel.__init__(self,
-                            size=size,
-                            keep_size=keep_size,
-                            name=name,
-                            mode=mode)
+    super().__init__(size=size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -109,9 +110,8 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     C3 = C2 + self.beta
     return self.phi * (C2 / C3 - p) * C3
 
-  def update(self, tdi, V, C_Ca, E_Ca):
-    t, dt = tdi['t'], tdi['dt']
-    self.p.value = self.integral(self.p.value, t, C_Ca=C_Ca, dt=dt)
+  def update(self, V, C_Ca, E_Ca):
+    self.p.value = self.integral(self.p.value, share['t'], C_Ca=C_Ca, dt=share['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * self.p * self.p * (self.E - V)

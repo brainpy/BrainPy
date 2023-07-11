@@ -8,10 +8,12 @@ This module implements hyperpolarization-activated cation channels.
 from typing import Union, Callable
 
 import brainpy.math as bm
+from brainpy._src.context import share
+from brainpy._src.dyn.ions.base import Calcium
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import Shape, ArrayType
-from .base import IhChannel, CalciumChannel, Calcium
+from .base import IhChannel, CalciumChannel
 
 __all__ = [
   'Ih_HM1992',
@@ -88,8 +90,8 @@ class Ih_HM1992(IhChannel):
     if batch_size is not None:
       assert self.p.shape[0] == batch_size
 
-  def update(self, tdi, V):
-    self.p.value = self.integral(self.p.value, tdi['t'], V, tdi['dt'])
+  def update(self, V):
+    self.p.value = self.integral(self.p.value, share['t'], V, share['dt'])
 
   def current(self, V):
     return self.g_max * self.p * (self.E - V)
@@ -174,12 +176,10 @@ class Ih_De1996(IhChannel, CalciumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    # IhChannel.__init__(self, size, name=name, keep_size=keep_size)
-    CalciumChannel.__init__(self,
-                            size,
-                            keep_size=keep_size,
-                            name=name,
-                            mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.T = parameter(T, self.varshape, allow_none=False)
@@ -219,9 +219,9 @@ class Ih_De1996(IhChannel, CalciumChannel):
   def dP1(self, P1, t, C_Ca):
     return self.k1 * C_Ca ** 4 * (1 - P1) - self.k2 * P1
 
-  def update(self, tdi, V, C_Ca, E_Ca):
+  def update(self, V, C_Ca, E_Ca):
     self.O.value, self.OL.value, self.P1.value = self.integral(self.O.value, self.OL.value, self.P1.value,
-                                                               tdi['t'], V=V, C_Ca=C_Ca, dt=tdi['dt'])
+                                                               share['t'], V=V, C_Ca=C_Ca, dt=share['dt'])
 
   def current(self, V, C_Ca, E_Ca):
     return self.g_max * (self.O + self.g_inc * self.OL) * (self.E - V)

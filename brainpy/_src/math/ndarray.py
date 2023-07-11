@@ -88,6 +88,14 @@ class Array(object):
     return self_value
 
   @property
+  def sharding(self):
+    return self._value.sharding
+
+  @property
+  def addressable_shards(self):
+    return self._value.addressable_shards
+
+  @property
   def value(self):
     return self._value
 
