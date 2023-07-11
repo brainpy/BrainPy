@@ -9,14 +9,14 @@ from brainpy._src.initialize import Normal, ZeroInit, Initializer, parameter, va
 from brainpy import check
 from brainpy.tools import to_size
 from brainpy.types import ArrayType
-from brainpy._src.dynsys import AnnLayer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Reservoir',
 ]
 
 
-class Reservoir(AnnLayer):
+class Reservoir(Layer):
   r"""Reservoir node, a pool of leaky-integrator neurons
   with random recurrent connections [1]_.
 

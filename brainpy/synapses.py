@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from brainpy._src.dynold.synapses.base import (
-  SynConn as SynConn,
   _SynSTP as SynSTP,
   _SynOut as SynOut,
   TwoEndConn as TwoEndConn,

@@ -5,7 +5,7 @@ from typing import Optional
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.dynsys import AnnLayer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Activation',
@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-class Activation(AnnLayer):
+class Activation(Layer):
   r"""Applies an activation function to the inputs
 
   Parameters:
@@ -43,7 +43,7 @@ class Activation(AnnLayer):
     return self.activate_fun(*args, **kwargs, **self.kwargs)
 
 
-class Flatten(AnnLayer):
+class Flatten(Layer):
   r"""Flattens a contiguous range of dims into 2D or 1D.
 
   Parameters:
@@ -69,7 +69,7 @@ class Flatten(AnnLayer):
       return x.flatten()
 
 
-class FunAsLayer(AnnLayer):
+class FunAsLayer(Layer):
   def __init__(
       self,
       fun: Callable,
