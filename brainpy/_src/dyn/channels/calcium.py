@@ -5,30 +5,45 @@ This module implements voltage-dependent calcium channels.
 
 """
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.dyn.ions.ca import CalciumDyna
+from brainpy._src.dyn.ions.calcium import Calcium, CalciumDyna
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType
-from .base import CalciumChannel
+from .base import IonChannel
 
 __all__ = [
-  'ICaN_IS2008',
+  'CalciumChannel',
 
+  'ICaN_IS2008',
   'ICaT_HM1992',
   'ICaT_HP1992',
-
   'ICaHT_HM1992',
-
   'ICaL_IS2008',
 ]
 
 
-# -------------------------
+class CalciumChannel(IonChannel):
+  """Base class for Calcium ion channels."""
+
+  master_type = Calcium
+  '''The type of the master object.'''
+
+  def update(self, V, C, E):
+    raise NotImplementedError
+
+  def current(self, V, C, E):
+    raise NotImplementedError
+
+  def reset(self, V, C, E, batch_size: int = None):
+    self.reset_state(V, C, E, batch_size)
+
+  def reset_state(self, V, C, E, batch_size: int = None):
+    raise NotImplementedError('Must be implemented by the subclass.')
 
 
 class _ICa_p2q_ss(CalciumChannel):
@@ -72,13 +87,13 @@ class _ICa_p2q_ss(CalciumChannel):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 3.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
-      mode: bm.Mode = None,
-      name: str = None
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None
   ):
-    super(_ICa_p2q_ss, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      mode=mode, )
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode, )
 
     # parameters
     self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
@@ -98,13 +113,13 @@ class _ICa_p2q_ss(CalciumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
-  def update(self, V, C_Ca, E_Ca):
+  def update(self, V, C, E):
     self.p.value, self.q.value = self.integral(self.p, self.q, share['t'], V, share['dt'])
 
-  def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
+  def current(self, V, C, E):
+    return self.g_max * self.p * self.p * self.q * (E - V)
 
-  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
+  def reset_state(self, V, C, E, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
     if batch_size is not None:
@@ -165,13 +180,13 @@ class _ICa_p2q_markov(CalciumChannel):
       phi_q: Union[float, ArrayType, Initializer, Callable] = 3.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
-    super(_ICa_p2q_markov, self).__init__(size,
-                                          keep_size=keep_size,
-                                          name=name,
-                                          mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.phi_p = parameter(phi_p, self.varshape, allow_none=False)
@@ -191,13 +206,13 @@ class _ICa_p2q_markov(CalciumChannel):
   def dq(self, q, t, V):
     return self.phi_q * (self.f_q_alpha(V) * (1 - q) - self.f_q_beta(V) * q)
 
-  def update(self, V, C_Ca, E_Ca):
+  def update(self, V, C, E):
     self.p.value, self.q.value = self.integral(self.p, self.q, share['t'], V, share['dt'])
 
-  def current(self, V, C_Ca, E_Ca):
-    return self.g_max * self.p * self.p * self.q * (E_Ca - V)
+  def current(self, V, C, E):
+    return self.g_max * self.p * self.p * self.q * (E - V)
 
-  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
+  def reset_state(self, V, C, E, batch_size=None):
     alpha, beta = self.f_p_alpha(V), self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
     alpha, beta = self.f_q_alpha(V), self.f_q_beta(V)
@@ -267,13 +282,13 @@ class ICaN_IS2008(CalciumChannel):
       g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
-    super(ICaN_IS2008, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -291,15 +306,15 @@ class ICaN_IS2008(CalciumChannel):
     p_inf = 2.7 / (bm.exp(-(V + 55.) / 15.) + bm.exp((V + 55.) / 15.)) + 1.6
     return self.phi * (phi_p - p) / p_inf
 
-  def update(self, V, C_Ca, E_Ca):
+  def update(self, V, C, E):
     self.p.value = self.integral(self.p.value, share['t'], V, share['dt'])
 
-  def current(self, V, C_Ca, E_Ca):
-    M = C_Ca / (C_Ca + 0.2)
+  def current(self, V, C, E):
+    M = C / (C + 0.2)
     g = self.g_max * M * self.p
     return g * (self.E - V)
 
-  def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
+  def reset_state(self, V, C, E, batch_size=None):
     self.p.value = 1.0 / (1 + bm.exp(-(V + 43.) / 5.2))
     if batch_size is not None:
       assert self.p.shape[0] == batch_size
@@ -365,19 +380,19 @@ class ICaT_HM1992(_ICa_p2q_ss):
       phi_p: Union[float, ArrayType, Initializer, Callable] = None,
       phi_q: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
     phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
-    super(ICaT_HM1992, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      method=method,
-                                      g_max=g_max,
-                                      phi_p=phi_p,
-                                      phi_q=phi_q,
-                                      mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     g_max=g_max,
+                     phi_p=phi_p,
+                     phi_q=phi_q,
+                     mode=mode)
 
     # parameters
     self.T = parameter(T, self.varshape, allow_none=False)
@@ -397,8 +412,8 @@ class ICaT_HM1992(_ICa_p2q_ss):
 
   def f_q_tau(self, V):
     return bm.where(V >= (-80. + self.V_sh),
-                     bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
-                     bm.exp((V + 467. - self.V_sh) / 66.6))
+                    bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
+                    bm.exp((V + 467. - self.V_sh) / 66.6))
 
 
 class ICaT_HP1992(_ICa_p2q_ss):
@@ -463,19 +478,19 @@ class ICaT_HP1992(_ICa_p2q_ss):
       phi_p: Union[float, ArrayType, Initializer, Callable] = None,
       phi_q: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
     phi_p = T_base_p ** ((T - 24) / 10) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 24) / 10) if phi_q is None else phi_q
-    super(ICaT_HP1992, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      method=method,
-                                      g_max=g_max,
-                                      phi_p=phi_p,
-                                      phi_q=phi_q,
-                                      mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     g_max=g_max,
+                     phi_p=phi_p,
+                     phi_q=phi_q,
+                     mode=mode)
 
     # parameters
     self.T = parameter(T, self.varshape, allow_none=False)
@@ -556,17 +571,17 @@ class ICaHT_HM1992(_ICa_p2q_ss):
       g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
       V_sh: Union[float, ArrayType, Initializer, Callable] = 25.,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
-    super(ICaHT_HM1992, self).__init__(size,
-                                       keep_size=keep_size,
-                                       name=name,
-                                       method=method,
-                                       g_max=g_max,
-                                       phi_p=T_base_p ** ((T - 24) / 10),
-                                       phi_q=T_base_q ** ((T - 24) / 10),
-                                       mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     g_max=g_max,
+                     phi_p=T_base_p ** ((T - 24) / 10),
+                     phi_q=T_base_q ** ((T - 24) / 10),
+                     mode=mode)
 
     # parameters
     self.T = parameter(T, self.varshape, allow_none=False)
@@ -593,8 +608,8 @@ class ICaHT_HM1992(_ICa_p2q_ss):
 
   def f_q_tau(self, V):
     return bm.where(V >= (-80. + self.V_sh),
-                     bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
-                     bm.exp((V + 467. - self.V_sh) / 66.6))
+                    bm.exp(-(V + 22. - self.V_sh) / 10.5) + 28.,
+                    bm.exp((V + 467. - self.V_sh) / 66.6))
 
 
 class ICaHT_Re1993(_ICa_p2q_markov):
@@ -663,19 +678,19 @@ class ICaHT_Re1993(_ICa_p2q_markov):
       g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
       V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
     phi_p = T_base_p ** ((T - 23.) / 10.) if phi_p is None else phi_p
     phi_q = T_base_q ** ((T - 23.) / 10.) if phi_q is None else phi_q
-    super(ICaHT_Re1993, self).__init__(size,
-                                       keep_size=keep_size,
-                                       name=name,
-                                       method=method,
-                                       g_max=g_max,
-                                       phi_p=phi_p,
-                                       phi_q=phi_q,
-                                       mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     g_max=g_max,
+                     phi_p=phi_p,
+                     phi_q=phi_q,
+                     mode=mode)
     self.T = parameter(T, self.varshape, allow_none=False)
     self.T_base_p = parameter(T_base_p, self.varshape, allow_none=False)
     self.T_base_q = parameter(T_base_q, self.varshape, allow_none=False)
@@ -750,17 +765,17 @@ class ICaL_IS2008(_ICa_p2q_ss):
       g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
       V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
-    super(ICaL_IS2008, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      method=method,
-                                      g_max=g_max,
-                                      phi_p=T_base_p ** ((T - 24) / 10),
-                                      phi_q=T_base_q ** ((T - 24) / 10),
-                                      mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     g_max=g_max,
+                     phi_p=T_base_p ** ((T - 24) / 10),
+                     phi_q=T_base_q ** ((T - 24) / 10),
+                     mode=mode)
 
     # parameters
     self.T = parameter(T, self.varshape, allow_none=False)

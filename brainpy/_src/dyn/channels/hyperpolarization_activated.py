@@ -2,18 +2,18 @@
 
 """
 This module implements hyperpolarization-activated cation channels.
-
 """
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.dyn.ions.base import Calcium
+from brainpy._src.dyn.ions.calcium import Calcium
+from brainpy._src.dyn.neurons.hh import HHTypedNeuron
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import Shape, ArrayType
-from .base import IhChannel, CalciumChannel
+from .base import IonChannel
 
 __all__ = [
   'Ih_HM1992',
@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 
-class Ih_HM1992(IhChannel):
+class Ih_HM1992(IonChannel):
   r"""The hyperpolarization-activated cation current model propsoed by (Huguenard & McCormick, 1992) [1]_.
 
   The hyperpolarization-activated cation current model is adopted from
@@ -55,6 +55,8 @@ class Ih_HM1992(IhChannel):
 
   """
 
+  master_type = HHTypedNeuron
+
   def __init__(
       self,
       size: Shape,
@@ -63,13 +65,13 @@ class Ih_HM1992(IhChannel):
       E: Union[float, ArrayType, Initializer, Callable] = 43.,
       phi: Union[float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
-    super(Ih_HM1992, self).__init__(size,
-                                    keep_size=keep_size,
-                                    name=name,
-                                    mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.phi = parameter(phi, self.varshape, allow_none=False)
@@ -103,7 +105,7 @@ class Ih_HM1992(IhChannel):
     return 1. / (bm.exp(-0.086 * V - 14.59) + bm.exp(0.0701 * V - 1.87))
 
 
-class Ih_De1996(IhChannel, CalciumChannel):
+class Ih_De1996(IonChannel):
   r"""The hyperpolarization-activated cation current model propsoed by (Destexhe, et al., 1996) [1]_.
 
   The full kinetic schema was
@@ -173,8 +175,8 @@ class Ih_De1996(IhChannel, CalciumChannel):
       T_base: Union[float, ArrayType] = 3.,
       phi: Union[float, ArrayType, Initializer, Callable] = None,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
   ):
     super().__init__(size,
                      keep_size=keep_size,

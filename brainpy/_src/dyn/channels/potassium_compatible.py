@@ -5,27 +5,27 @@ This module implements voltage-dependent potassium channels.
 
 """
 
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Sequence
 
 import brainpy.math as bm
 from brainpy._src.context import share
+from brainpy._src.dyn.channels.leaky import LeakyChannel
+from brainpy._src.dyn.neurons.hh import HHTypedNeuron
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
-from brainpy.types import Shape, ArrayType
-from .base import PotassiumChannel
+from brainpy.types import ArrayType
+from .potassium import PotassiumChannel
 
 __all__ = [
   'IKDR_Ba2002',
   'IK_TM1991',
   'IK_HH1952',
-
   'IKA1_HM1992',
   'IKA2_HM1992',
-
   'IKK2A_HM1992',
   'IKK2B_HM1992',
-
   'IKNI_Ya1989',
+  'IKL',
 ]
 
 
@@ -63,10 +63,11 @@ class _IK_p4_markov(PotassiumChannel):
     The object name.
 
   """
+  master_type = HHTypedNeuron
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -75,10 +76,10 @@ class _IK_p4_markov(PotassiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(_IK_p4_markov, self).__init__(size,
-                                        keep_size=keep_size,
-                                        name=name,
-                                        mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     self.E = parameter(E, self.varshape, allow_none=False)
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
@@ -162,7 +163,7 @@ class IKDR_Ba2002(_IK_p4_markov):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -239,7 +240,7 @@ class IK_TM1991(_IK_p4_markov):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -310,7 +311,7 @@ class IK_HH1952(_IK_p4_markov):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -379,10 +380,11 @@ class _IKA_p4q_ss(PotassiumChannel):
          TEA-sensitive K current in acutely isolated rat thalamic relay
          neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
   """
+  master_type = HHTypedNeuron
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -392,10 +394,10 @@ class _IKA_p4q_ss(PotassiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(_IKA_p4q_ss, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -496,7 +498,7 @@ class IKA1_HM1992(_IKA_p4q_ss):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 30.,
@@ -591,7 +593,7 @@ class IKA2_HM1992(_IKA_p4q_ss):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 20.,
@@ -673,10 +675,11 @@ class _IKK2_pq_ss(PotassiumChannel):
          neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
   """
+  master_type = HHTypedNeuron
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -686,10 +689,10 @@ class _IKK2_pq_ss(PotassiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(_IKK2_pq_ss, self).__init__(size,
-                                      keep_size=keep_size,
-                                      name=name,
-                                      mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -786,7 +789,7 @@ class IKK2A_HM1992(_IKK2_pq_ss):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -822,7 +825,7 @@ class IKK2A_HM1992(_IKK2_pq_ss):
 
   def f_q_tau(self, V):
     return 1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
-                bm.exp(-(V - self.V_sh + 130.) / 7.1))
+                 bm.exp(-(V - self.V_sh + 130.) / 7.1))
 
 
 class IKK2B_HM1992(_IKK2_pq_ss):
@@ -877,7 +880,7 @@ class IKK2B_HM1992(_IKK2_pq_ss):
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -913,9 +916,9 @@ class IKK2B_HM1992(_IKK2_pq_ss):
 
   def f_q_tau(self, V):
     return bm.where(V < -70 + self.V_sh,
-                   1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
-                         bm.exp(-(V - self.V_sh + 130.) / 7.1)),
-                   8.9)
+                    1. / (bm.exp((V - self.V_sh - 1329.) / 200.) +
+                          bm.exp(-(V - self.V_sh + 130.) / 7.1)),
+                    8.9)
 
 
 class IKNI_Ya1989(PotassiumChannel):
@@ -959,10 +962,11 @@ class IKNI_Ya1989(PotassiumChannel):
   .. [1] Yamada, Walter M. "Multiple channels and calcium dynamics." Methods in neuronal modeling (1989): 97-133.
 
   """
+  master_type = HHTypedNeuron
 
   def __init__(
       self,
-      size: Shape,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       E: Union[float, ArrayType, Initializer, Callable] = -90.,
       g_max: Union[float, ArrayType, Initializer, Callable] = 0.004,
@@ -1013,3 +1017,44 @@ class IKNI_Ya1989(PotassiumChannel):
   def f_p_tau(self, V):
     temp = V - self.V_sh + 35.
     return self.tau_max / (3.3 * bm.exp(temp / 20.) + bm.exp(-temp / 20.))
+
+
+class IKL(LeakyChannel):
+  """The potassium leak channel current.
+
+  Parameters
+  ----------
+  g_max : float
+    The potassium leakage conductance which is modulated by both
+    acetylcholine and norepinephrine.
+  E : float
+    The reversal potential.
+  """
+
+  def __init__(
+      self,
+      size: Union[int, Sequence[int]],
+      keep_size: bool = False,
+      g_max: Union[int, float, ArrayType, Initializer, Callable] = 0.005,
+      E: Union[int, float, ArrayType, Initializer, Callable] = -90.,
+      method: str = None,
+      name: str = None,
+      mode: bm.Mode = None,
+  ):
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
+
+    self.E = parameter(E, self.varshape, allow_none=False)
+    self.g_max = parameter(g_max, self.varshape, allow_none=False)
+    self.method = method
+
+  def reset_state(self, V, batch_size=None):
+    pass
+
+  def update(self, V):
+    pass
+
+  def current(self, V):
+    return self.g_max * (self.E - V)
