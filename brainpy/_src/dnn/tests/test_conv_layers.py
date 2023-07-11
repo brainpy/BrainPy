@@ -199,9 +199,9 @@ class TestConvTranspose3d(bp.testing.UnitTestCase):
                 in_channels=3,
                 out_channels=4,
                 kernel_size=(3, 3, 3),
-                # padding='VALID',
-                # w_initializer=bp.init.OneInit(),
-                # b_initializer=bp.init.OneInit() if use_bias else None,
+                padding='VALID',
+                w_initializer=bp.init.OneInit(),
+                b_initializer=bp.init.OneInit() if use_bias else None,
                 mode=bm.training_mode
             )
         y = conv_transpose_module(x)
