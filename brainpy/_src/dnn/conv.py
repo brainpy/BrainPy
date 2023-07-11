@@ -462,6 +462,8 @@ Conv3D = Conv3d
 
 
 class _GeneralConvTranspose(Layer):
+
+
   def __init__(
       self,
       num_spatial_dims: int,
@@ -604,6 +606,8 @@ class ConvTranspose1d(_GeneralConvTranspose):
     )
 
   def _check_input_dim(self, x):
+    if isinstance(self.mode, bm.BatchingMode):
+        pass
     if x.ndim != 3:
       raise ValueError(f"expected 3D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
@@ -707,7 +711,7 @@ class ConvTranspose3d(_GeneralConvTranspose):
       name: The name of the module.
     """
     super().__init__(
-      num_spatial_dims=1,
+      num_spatial_dims=3,
       in_channels=in_channels,
       out_channels=out_channels,
       kernel_size=kernel_size,

@@ -771,6 +771,8 @@ class AdaptivePool(Layer):
 
     # channel axis
     channel_axis = self.channel_axis
+
+
     if channel_axis:
       if not 0 <= abs(channel_axis) < x.ndim:
         raise ValueError(f"Invalid channel axis {channel_axis} for {x.shape}")
