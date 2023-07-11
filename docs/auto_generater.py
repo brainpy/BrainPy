@@ -510,7 +510,6 @@ def generate_brainpy_docs():
                                     'Network',
                                     'Dynamic',
                                     'Projection',
-                                    'AnnLayer',
                                     ],
       'Simulating Dynamical System': ['DSRunner'],
       'Training Dynamical System': ['DSTrainer',
