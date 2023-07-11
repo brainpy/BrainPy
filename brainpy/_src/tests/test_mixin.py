@@ -18,7 +18,7 @@ class TestParamDesc(unittest.TestCase):
 class TestJointType(unittest.TestCase):
   def test1(self):
     T = bp.mixin.JointType[bp.DynamicalSystem]
-    self.assertTrue(isinstance(bp.AnnLayer(), T))
+    self.assertTrue(isinstance(bp.dnn.Layer(), T))
 
     T = bp.mixin.JointType[bp.DynamicalSystem, bp.mixin.ParamDesc]
     self.assertTrue(isinstance(bp.dyn.Expon(1), T))

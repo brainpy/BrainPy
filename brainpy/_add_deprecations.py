@@ -8,7 +8,7 @@ from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy._src.integrators.fde.generic import fdeint
-from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network, AnnLayer)
+from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network)
 from brainpy._src.dyn.base import NeuDyn, IonChaDyn
 from brainpy._src.runners import DSRunner
 from brainpy._src.deprecations import deprecation_getattr2
@@ -108,9 +108,9 @@ dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 # dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
 
 
-layers.__deprecations = {
-  'Layer': ('brainpy.layers.Layer', 'brainpy.AnnLayer', AnnLayer),
-}
-layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
+# layers.__deprecations = {
+#   'Layer': ('brainpy.layers.Layer', 'brainpy.AnnLayer', AnnLayer),
+# }
+# layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
 
 

@@ -39,7 +39,6 @@ from brainpy._src.dyn.channels.potassium_compatible import (
 
 
 from brainpy._src.dyn.channels.hyperpolarization_activated import (
-  IhChannel,
   Ih_HM1992,
   Ih_De1996,
 )

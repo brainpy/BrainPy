@@ -4,14 +4,14 @@ from typing import Optional
 
 from brainpy._src.context import share
 from brainpy import math as bm, check
-from brainpy._src.dynsys import AnnLayer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Dropout'
 ]
 
 
-class Dropout(AnnLayer):
+class Dropout(Layer):
   """A layer that stochastically ignores a subset of inputs each training step.
 
   In training, to compensate for the fraction of input values dropped (`rate`),
