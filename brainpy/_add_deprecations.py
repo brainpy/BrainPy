@@ -8,7 +8,7 @@ from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.integrators.sde.generic import sdeint
 from brainpy._src.integrators.fde.generic import fdeint
-from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network, AnnLayer)
+from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network)
 from brainpy._src.dyn.base import NeuDyn, IonChaDyn
 from brainpy._src.runners import DSRunner
 from brainpy._src.deprecations import deprecation_getattr2
@@ -82,14 +82,15 @@ dyn.__deprecations = {
   'Container': ('brainpy.dyn.Container', 'brainpy.DynSysGroup', DynSysGroup),
   'Sequential': ('brainpy.dyn.Sequential', 'brainpy.Sequential', Sequential),
   'Network': ('brainpy.dyn.Network', 'brainpy.Network', Network),
-  'NeuGroup': ('brainpy.dyn.NeuGroup', 'brainpy.NeuDyn', NeuDyn),
   'Channel': ('brainpy.dyn.Channel', 'brainpy.IonChaDyn', IonChaDyn),
   'DSRunner': ('brainpy.dyn.DSRunner', 'brainpy.DSRunner', DSRunner),
 
+  # neurons
+  'NeuGroup': ('brainpy.dyn.NeuGroup', 'brainpy.dyn.NeuDyn', NeuDyn),
+
   # synapses
-  'SynConn': ('brainpy.dyn.SynConn', 'brainpy.synapses.SynConn', synapses.SynConn),
-  'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'TwoEndConn': ('brainpy.dyn.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
+  'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'DeltaSynapse': ('brainpy.dyn.DeltaSynapse', 'brainpy.synapses.Delta', synapses.DeltaSynapse),
   'ExpCUBA': ('brainpy.dyn.ExpCUBA', 'brainpy.synapses.Exponential', synapses.ExpCUBA),
   'ExpCOBA': ('brainpy.dyn.ExpCOBA', 'brainpy.synapses.Exponential', synapses.ExpCOBA),
@@ -101,15 +102,15 @@ dyn.__deprecations = {
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 
 
-dnn.__deprecations = {
-  'Layer': ('brainpy.dnn.Layer', 'brainpy.AnnLayer', AnnLayer),
-}
-dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
+# dnn.__deprecations = {
+#   'Layer': ('brainpy.dnn.Layer', 'brainpy.AnnLayer', AnnLayer),
+# }
+# dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
 
 
-layers.__deprecations = {
-  'Layer': ('brainpy.layers.Layer', 'brainpy.AnnLayer', AnnLayer),
-}
-layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
+# layers.__deprecations = {
+#   'Layer': ('brainpy.layers.Layer', 'brainpy.AnnLayer', AnnLayer),
+# }
+# layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
 
 

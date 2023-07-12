@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from .base import *
 from .activations import *
 from .dropout import *
 from .nvar import *

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import brainpy.math as bm
 from brainpy._src.context import share
@@ -8,13 +8,18 @@ from brainpy._src.dyn.base import IonChaDyn
 from brainpy._src.initialize import OneInit, Initializer, parameter, variable
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType
-from .base import Calcium
+from .base import Ion
 
 __all__ = [
+  'Calcium',
   'CalciumFixed',
   'CalciumDetailed',
   'CalciumFirstOrder',
 ]
+
+
+class Calcium(Ion):
+  pass
 
 
 class CalciumFixed(Calcium):
@@ -31,16 +36,16 @@ class CalciumFixed(Calcium):
       E: Union[float, ArrayType, Initializer, Callable] = 120.,
       C: Union[float, ArrayType, Initializer, Callable] = 2.4e-4,
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
       **channels
   ):
-    super(CalciumFixed, self).__init__(size,
-                                       keep_size=keep_size,
-                                       method=method,
-                                       name=name,
-                                       mode=mode,
-                                       **channels)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     method=method,
+                     name=name,
+                     mode=mode,
+                     **channels)
     self.E = parameter(E, self.varshape, allow_none=False)
     self.C = parameter(C, self.varshape, allow_none=False)
 
@@ -82,16 +87,16 @@ class CalciumDyna(Calcium):
       T: Union[float, ArrayType, Initializer, Callable] = 36.,
       C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
       **channels
   ):
-    super(CalciumDyna, self).__init__(size,
-                                      keep_size=keep_size,
-                                      method=method,
-                                      name=name,
-                                      mode=mode,
-                                      **channels)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     method=method,
+                     name=name,
+                     mode=mode,
+                     **channels)
 
     # parameters
     self.C0 = parameter(C0, self.varshape, allow_none=False)
@@ -248,19 +253,19 @@ class CalciumDetailed(CalciumDyna):
       C0: Union[float, ArrayType, Initializer, Callable] = 2.,
       C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
       **channels
   ):
-    super(CalciumDetailed, self).__init__(size,
-                                          keep_size=keep_size,
-                                          method=method,
-                                          name=name,
-                                          T=T,
-                                          C0=C0,
-                                          C_initializer=C_initializer,
-                                          mode=mode,
-                                          **channels)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     method=method,
+                     name=name,
+                     T=T,
+                     C0=C0,
+                     C_initializer=C_initializer,
+                     mode=mode,
+                     **channels)
 
     # parameters
     self.d = parameter(d, self.varshape, allow_none=False)
@@ -292,19 +297,19 @@ class CalciumFirstOrder(CalciumDyna):
       C0: Union[float, ArrayType, Initializer, Callable] = 2.,
       C_initializer: Union[Initializer, Callable, ArrayType] = OneInit(2.4e-4),
       method: str = 'exp_auto',
-      name: str = None,
-      mode: bm.Mode = None,
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
       **channels
   ):
-    super(CalciumFirstOrder, self).__init__(size,
-                                            keep_size=keep_size,
-                                            method=method,
-                                            name=name,
-                                            T=T,
-                                            C0=C0,
-                                            C_initializer=C_initializer,
-                                            mode=mode,
-                                            **channels)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     method=method,
+                     name=name,
+                     T=T,
+                     C0=C0,
+                     C_initializer=C_initializer,
+                     mode=mode,
+                     **channels)
 
     # parameters
     self.alpha = parameter(alpha, self.varshape, allow_none=False)
@@ -314,4 +319,3 @@ class CalciumFirstOrder(CalciumDyna):
     ICa = self.current(V, C, self.E)
     drive = bm.maximum(- self.alpha * ICa, 0.)
     return drive - self.beta * C
-

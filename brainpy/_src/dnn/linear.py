@@ -14,7 +14,7 @@ from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
-from brainpy._src.dynsys import AnnLayer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Dense', 'Linear',
@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class Dense(AnnLayer):
+class Dense(Layer):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -207,7 +207,7 @@ class Dense(AnnLayer):
 Linear = Dense
 
 
-class Identity(AnnLayer):
+class Identity(Layer):
   r"""A placeholder identity operator that is argument-insensitive.
   """
 
@@ -218,7 +218,7 @@ class Identity(AnnLayer):
     return x
 
 
-class AllToAll(AnnLayer):
+class AllToAll(Layer):
   """Synaptic matrix multiplication with All2All connections.
 
   Args:
@@ -281,7 +281,7 @@ class AllToAll(AnnLayer):
     return post_val
 
 
-class OneToOne(AnnLayer):
+class OneToOne(Layer):
   """Synaptic matrix multiplication with One2One connection.
 
   Args:
@@ -315,7 +315,7 @@ class OneToOne(AnnLayer):
     return pre_val * self.weight
 
 
-class MaskedLinear(AnnLayer):
+class MaskedLinear(Layer):
   r"""Synaptic matrix multiplication with masked dense computation.
 
   It performs the computation of:
@@ -332,8 +332,9 @@ class MaskedLinear(AnnLayer):
   >>>                         weight=0.1)
 
   Args:
-    mask: TwoEndConnector. The connection.
+    conn: TwoEndConnector. The connection.
     weight: Synaptic weights. Can be a scalar, array, or callable function.
+    mask_fun: Masking function.
     sharding: The sharding strategy. 
     mode: The synaptic computing mode.
     name: The synapse model name.
@@ -341,20 +342,22 @@ class MaskedLinear(AnnLayer):
 
   def __init__(
       self,
-      mask: connect.TwoEndConnector,
+      conn: connect.TwoEndConnector,
       weight: Union[float, ArrayType, Callable],
+      mask_fun: Callable = Identity(),
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
     super().__init__(name=name, mode=mode)
 
-    assert isinstance(mask, connect.TwoEndConnector)
-    self.conn = mask
+    assert isinstance(conn, connect.TwoEndConnector)
+    self.conn = conn
     self.sharding = sharding
+    self.mask_fun = mask_fun
 
     # weight
-    weight = init.parameter(weight, (mask.pre_num, mask.post_num), sharding=sharding)
+    weight = init.parameter(weight, (conn.pre_num, conn.post_num), sharding=sharding)
     if isinstance(self.mode, bm.TrainingMode):
       weight = bm.TrainVar(weight)
     self.weight = weight
@@ -363,10 +366,10 @@ class MaskedLinear(AnnLayer):
     self.mask = bm.sharding.partition(self.conn.require('conn_mat'), sharding=sharding)
 
   def update(self, x):
-    return x @ (self.weight * self.mask)
+    return x @ self.mask_fun(self.weight * self.mask)
 
 
-class CSRLinear(AnnLayer):
+class CSRLinear(Layer):
   r"""Synaptic matrix multiplication with CSR sparse computation.
 
   It performs the computation of:
@@ -435,7 +438,7 @@ class CSRLinear(AnnLayer):
                            method=self.method)
 
 
-class CSCLinear(AnnLayer):
+class CSCLinear(Layer):
   r"""Synaptic matrix multiplication with CSC sparse computation.
 
   It performs the computation of:
@@ -470,7 +473,7 @@ class CSCLinear(AnnLayer):
     self.sharding = sharding
 
 
-class EventCSRLinear(AnnLayer):
+class EventCSRLinear(Layer):
   r"""Synaptic matrix multiplication with event CSR sparse computation.
 
   It performs the computation of:
@@ -535,7 +538,7 @@ class EventCSRLinear(AnnLayer):
                           transpose=self.transpose)
 
 
-class BcsrMM(AnnLayer):
+class BcsrMM(Layer):
   r"""Synaptic matrix multiplication with BCSR sparse computation.
 
   It performs the computation of:
@@ -570,7 +573,7 @@ class BcsrMM(AnnLayer):
     self.sharding = sharding
 
 
-class BcscMM(AnnLayer):
+class BcscMM(Layer):
   r"""Synaptic matrix multiplication with BCSC sparse computation.
 
   It performs the computation of:
@@ -605,7 +608,7 @@ class BcscMM(AnnLayer):
     self.sharding = sharding
 
 
-class JitFPHomoLinear(AnnLayer):
+class JitFPHomoLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -684,7 +687,7 @@ class JitFPHomoLinear(AnnLayer):
                                    outdim_parallel=not self.atomic)
 
 
-class JitFPUniformLinear(AnnLayer):
+class JitFPUniformLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -764,7 +767,7 @@ class JitFPUniformLinear(AnnLayer):
                                       outdim_parallel=not self.atomic)
 
 
-class JitFPNormalLinear(AnnLayer):
+class JitFPNormalLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -844,7 +847,7 @@ class JitFPNormalLinear(AnnLayer):
                                      outdim_parallel=not self.atomic)
 
 
-class EventJitFPHomoLinear(AnnLayer):
+class EventJitFPHomoLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -923,7 +926,7 @@ class EventJitFPHomoLinear(AnnLayer):
                                          outdim_parallel=not self.atomic)
 
 
-class EventJitFPUniformLinear(AnnLayer):
+class EventJitFPUniformLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -1003,7 +1006,7 @@ class EventJitFPUniformLinear(AnnLayer):
                                             outdim_parallel=not self.atomic)
 
 
-class EventJitFPNormalLinear(AnnLayer):
+class EventJitFPNormalLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:

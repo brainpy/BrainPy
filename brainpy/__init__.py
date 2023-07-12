@@ -61,7 +61,6 @@ from brainpy._src.dynsys import (
   Network as Network,
   Dynamic as Dynamic,  # category
   Projection as Projection,
-  AnnLayer as AnnLayer,
 )
 DynamicalSystemNS = DynamicalSystem
 
@@ -133,7 +132,7 @@ __deprecations = {
   'TensorCollector': ('brainpy.TensorCollector', 'brainpy.ArrayCollector', ArrayCollector),
   'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
-  'SynConn': ('brainpy.SynConn', 'brainpy.synapses.SynConn', synapses.SynConn),
+  'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
   'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
   'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.syn.CondNeuGroup', dyn.CondNeuGroup),
 }

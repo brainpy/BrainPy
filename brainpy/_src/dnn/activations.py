@@ -1,7 +1,7 @@
 from typing import Optional
 
 from brainpy import math as bm
-from brainpy._src.dynsys import AnnLayer
+from brainpy._src.dnn.base import Layer
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -21,7 +21,7 @@ def _inplace(inp, val, inplace):
     return val
 
 
-class Threshold(AnnLayer):
+class Threshold(Layer):
   r"""Thresholds each element of the input Tensor.
 
   Threshold is defined as:
@@ -73,7 +73,7 @@ class Threshold(AnnLayer):
     )
 
 
-class ReLU(AnnLayer):
+class ReLU(Layer):
   r"""Applies the rectified linear unit function element-wise:
 
   :math:`\text{ReLU}(x) = (x)^+ = \max(0, x)`
@@ -118,7 +118,7 @@ class ReLU(AnnLayer):
     return inplace_str
 
 
-class RReLU(AnnLayer):
+class RReLU(Layer):
   r"""Applies the randomized leaky rectified liner unit function, element-wise,
   as described in the paper:
 
@@ -184,7 +184,7 @@ class RReLU(AnnLayer):
     return 'lower={}, upper={}{}'.format(self.lower, self.upper, inplace_str)
 
 
-class Hardtanh(AnnLayer):
+class Hardtanh(Layer):
   r"""Applies the HardTanh function element-wise.
 
   HardTanh is defined as:
@@ -275,7 +275,7 @@ class ReLU6(Hardtanh):
     return inplace_str
 
 
-class Sigmoid(AnnLayer):
+class Sigmoid(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -299,7 +299,7 @@ class Sigmoid(AnnLayer):
     return bm.sigmoid(input)
 
 
-class Hardsigmoid(AnnLayer):
+class Hardsigmoid(Layer):
   r"""Applies the Hardsigmoid function element-wise.
 
   Hardsigmoid is defined as:
@@ -339,7 +339,7 @@ class Hardsigmoid(AnnLayer):
     return _inplace(input, x, self.inplace)
 
 
-class Tanh(AnnLayer):
+class Tanh(Layer):
   r"""Applies the Hyperbolic Tangent (Tanh) function element-wise.
 
   Tanh is defined as:
@@ -364,7 +364,7 @@ class Tanh(AnnLayer):
     return bm.tanh(input)
 
 
-class SiLU(AnnLayer):
+class SiLU(Layer):
   r"""Applies the Sigmoid Linear Unit (SiLU) function, element-wise.
   The SiLU function is also known as the swish function.
 
@@ -408,7 +408,7 @@ class SiLU(AnnLayer):
     return inplace_str
 
 
-class Mish(AnnLayer):
+class Mish(Layer):
   r"""Applies the Mish function, element-wise.
   Mish: A Self Regularized Non-Monotonic Neural Activation Function.
 
@@ -448,7 +448,7 @@ class Mish(AnnLayer):
     return inplace_str
 
 
-class Hardswish(AnnLayer):
+class Hardswish(Layer):
   r"""Applies the Hardswish function, element-wise, as described in the paper:
   `Searching for MobileNetV3 <https://arxiv.org/abs/1905.02244>`_.
 
@@ -488,7 +488,7 @@ class Hardswish(AnnLayer):
     return _inplace(input, bm.hard_swish(input), self.inplace)
 
 
-class ELU(AnnLayer):
+class ELU(Layer):
   r"""Applies the Exponential Linear Unit (ELU) function, element-wise, as described
   in the paper: `Fast and Accurate Deep Network Learning by Exponential Linear
   Units (ELUs) <https://arxiv.org/abs/1511.07289>`__.
@@ -534,7 +534,7 @@ class ELU(AnnLayer):
     return 'alpha={}{}'.format(self.alpha, inplace_str)
 
 
-class CELU(AnnLayer):
+class CELU(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -578,7 +578,7 @@ class CELU(AnnLayer):
     return 'alpha={}{}'.format(self.alpha, inplace_str)
 
 
-class SELU(AnnLayer):
+class SELU(Layer):
   r"""Applied element-wise, as:
 
   .. math::
@@ -621,7 +621,7 @@ class SELU(AnnLayer):
     return inplace_str
 
 
-class GLU(AnnLayer):
+class GLU(Layer):
   r"""Applies the gated linear unit function
   :math:`{GLU}(a, b)= a \otimes \sigma(b)` where :math:`a` is the first half
   of the input matrices and :math:`b` is the second half.
@@ -656,7 +656,7 @@ class GLU(AnnLayer):
     return 'dim={}'.format(self.dim)
 
 
-class GELU(AnnLayer):
+class GELU(Layer):
   r"""Applies the Gaussian Error Linear Units function:
 
   .. math:: \text{GELU}(x) = x * \Phi(x)
@@ -697,7 +697,7 @@ class GELU(AnnLayer):
     return 'approximate={}'.format(repr(self.approximate))
 
 
-class Hardshrink(AnnLayer):
+class Hardshrink(Layer):
   r"""Applies the Hard Shrinkage (Hardshrink) function element-wise.
 
   Hardshrink is defined as:
@@ -739,7 +739,7 @@ class Hardshrink(AnnLayer):
     return '{}'.format(self.lambd)
 
 
-class LeakyReLU(AnnLayer):
+class LeakyReLU(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -790,7 +790,7 @@ class LeakyReLU(AnnLayer):
     return 'negative_slope={}{}'.format(self.negative_slope, inplace_str)
 
 
-class LogSigmoid(AnnLayer):
+class LogSigmoid(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -813,7 +813,7 @@ class LogSigmoid(AnnLayer):
     return bm.log_sigmoid(input)
 
 
-class Softplus(AnnLayer):
+class Softplus(Layer):
   r"""Applies the Softplus function :math:`\text{Softplus}(x) = \frac{1}{\beta} *
   \log(1 + \exp(\beta * x))` element-wise.
 
@@ -855,7 +855,7 @@ class Softplus(AnnLayer):
     return 'beta={}, threshold={}'.format(self.beta, self.threshold)
 
 
-class Softshrink(AnnLayer):
+class Softshrink(Layer):
   r"""Applies the soft shrinkage function elementwise:
 
   .. math::
@@ -895,7 +895,7 @@ class Softshrink(AnnLayer):
     return str(self.lambd)
 
 
-class PReLU(AnnLayer):
+class PReLU(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -959,7 +959,7 @@ class PReLU(AnnLayer):
     return 'num_parameters={}'.format(self.num_parameters)
 
 
-class Softsign(AnnLayer):
+class Softsign(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -982,7 +982,7 @@ class Softsign(AnnLayer):
     return bm.soft_sign(input)
 
 
-class Tanhshrink(AnnLayer):
+class Tanhshrink(Layer):
   r"""Applies the element-wise function:
 
   .. math::
@@ -1005,7 +1005,7 @@ class Tanhshrink(AnnLayer):
     return bm.tanh_shrink(input)
 
 
-class Softmin(AnnLayer):
+class Softmin(Layer):
   r"""Applies the Softmin function to an n-dimensional input Tensor
   rescaling them so that the elements of the n-dimensional output Tensor
   lie in the range `[0, 1]` and sum to 1.
@@ -1050,7 +1050,7 @@ class Softmin(AnnLayer):
     return 'dim={dim}'.format(dim=self.dim)
 
 
-class Softmax(AnnLayer):
+class Softmax(Layer):
   r"""Applies the Softmax function to an n-dimensional input Tensor
   rescaling them so that the elements of the n-dimensional output Tensor
   lie in the range [0,1] and sum to 1.
@@ -1104,7 +1104,7 @@ class Softmax(AnnLayer):
     return 'dim={dim}'.format(dim=self.dim)
 
 
-class Softmax2d(AnnLayer):
+class Softmax2d(Layer):
   r"""Applies SoftMax over features to each spatial location.
 
   When given an image of ``Channels x Height x Width``, it will
@@ -1133,7 +1133,7 @@ class Softmax2d(AnnLayer):
     return bm.softmax(input, -3)
 
 
-class LogSoftmax(AnnLayer):
+class LogSoftmax(Layer):
   r"""Applies the :math:`\log(\text{Softmax}(x))` function to an n-dimensional
   input Tensor. The LogSoftmax formulation can be simplified as:
 

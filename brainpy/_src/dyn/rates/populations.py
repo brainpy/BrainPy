@@ -99,7 +99,7 @@ class FHN(RateModel):
       mode: bm.Mode = None,
       input_var: bool = True,
   ):
-    super(FHN, self).__init__(size=size,
+    super().__init__(size=size,
                               name=name,
                               keep_size=keep_size,
                               mode=mode)

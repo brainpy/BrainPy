@@ -8,20 +8,20 @@ This module implements calcium-dependent potassium channels.
 
 from typing import Union, Callable
 
-from brainpy._src.context import share
 import brainpy.math as bm
+from brainpy._src.context import share
+from brainpy._src.dyn.ions.calcium import Calcium
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType
-from .base import CalciumChannel, PotassiumChannel
-from brainpy._src.dyn.ions.base import Calcium
+from .base import IonChannel
 
 __all__ = [
   'IAHP_De1994',
 ]
 
 
-class IAHP_De1994(PotassiumChannel, CalciumChannel):
+class IAHP_De1994(IonChannel):
   r"""The calcium-dependent potassium current model proposed by (Destexhe, et al., 1994) [1]_.
 
   Both in vivo (Contreras et al. 1993; Mulle et al. 1986) and in
@@ -124,3 +124,4 @@ class IAHP_De1994(PotassiumChannel, CalciumChannel):
     else:
       self.p.value = bm.broadcast_to(C2 / C3, (batch_size,) + self.varshape)
       assert self.p.shape[0] == batch_size
+

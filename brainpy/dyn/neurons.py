@@ -32,6 +32,7 @@ from brainpy._src.dyn.neurons.lif import (
 )
 
 from brainpy._src.dyn.neurons.hh import (
+  HHTypedNeuron,
   CondNeuGroupLTC,
   CondNeuGroup,
   HH,

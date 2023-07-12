@@ -23,7 +23,7 @@ __all__ = [
   'DynSysGroup', 'Network', 'Sequential',
 
   # category
-  'Dynamic', 'Projection', 'AnnLayer',
+  'Dynamic', 'Projection',
 ]
 
 SLICE_VARS = 'slice_vars'
@@ -322,26 +322,6 @@ class DynSysGroup(DynamicalSystem, Container):
 
     self.children = bm.node_dict(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
 
-  def update(self):
-    """Update function of a container.
-
-    In this update function, the update functions in children systems are
-    iteratively called.
-    """
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
-      node()
-
-  def clear_input(self):
-    """Clear inputs in the children classes."""
-    for node in self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values():
-      node.clear_input()
-
-
-class Network(DynSysGroup):
-  """A group of :py:class:`~.DynamicalSystem`s which defines the nodes and edges in a network.
-  """
-
-  @not_pass_shared
   def update(self, *args, **kwargs):
     """Step function of a network.
 
@@ -365,17 +345,29 @@ class Network(DynSysGroup):
   def reset_state(self, batch_size=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
 
-    # reset dynamics
-    for node in nodes.subset(Dynamic).values():
-      node.reset_state(batch_size)
-
     # reset projections
     for node in nodes.subset(Projection).values():
+      node.reset_state(batch_size)
+
+    # reset dynamics
+    for node in nodes.subset(Dynamic).values():
       node.reset_state(batch_size)
 
     # reset other types of nodes, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node.reset_state(batch_size)
+
+  def clear_input(self):
+    """Clear inputs in the children classes."""
+    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
+    for node in nodes.values():
+      node.clear_input()
+
+
+class Network(DynSysGroup):
+  """A group of :py:class:`~.DynamicalSystem`s which defines the nodes and edges in a network.
+  """
+  pass
 
 
 class Sequential(DynamicalSystem, AutoDelaySupp):
@@ -624,13 +616,6 @@ class Dynamic(DynamicalSystem):
 
   def __getitem__(self, item):
     return DynView(target=self, index=item)
-
-
-class AnnLayer(DynamicalSystem):
-  """Base class for a layer of artificial neural network."""
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class DynView(Dynamic):

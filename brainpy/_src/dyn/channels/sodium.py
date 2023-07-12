@@ -9,19 +9,39 @@ from typing import Union, Callable
 
 import brainpy.math as bm
 from brainpy._src.context import share
+from brainpy._src.dyn.ions.sodium import Sodium
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType, Shape
-from .base import SodiumChannel
+from .base import IonChannel
 
 __all__ = [
-  'INa_Ba2002',
-  'INa_TM1991',
-  'INa_HH1952',
+  'SodiumChannel',
+  'INa_Ba2002v2',
+  'INa_TM1991v2',
+  'INa_HH1952v2',
 ]
 
 
-class _INa_p3q_markov(SodiumChannel):
+class SodiumChannel(IonChannel):
+  """Base class for sodium channel dynamics."""
+
+  master_type = Sodium
+
+  def update(self, V, C, E):
+    raise NotImplementedError
+
+  def current(self, V, C, E):
+    raise NotImplementedError
+
+  def reset(self, V, C, E, batch_size: int = None):
+    self.reset_state(V, C, E, batch_size)
+
+  def reset_state(self, V, C, E, batch_size: int = None):
+    raise NotImplementedError('Must be implemented by the subclass.')
+
+
+class _INa_p3q_markov_v2(SodiumChannel):
   r"""The sodium current model of :math:`p^3q` current which described with first-order Markov chain.
 
   The general model can be used to model the dynamics with:
@@ -55,20 +75,18 @@ class _INa_p3q_markov(SodiumChannel):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
       g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
       phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
       method: str = 'exp_auto',
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(_INa_p3q_markov, self).__init__(size=size,
-                                          keep_size=keep_size,
-                                          name=name,
-                                          mode=mode)
+    super().__init__(size=size,
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
-    self.E = parameter(E, self.varshape, allow_none=False)
     self.phi = parameter(phi, self.varshape, allow_none=False)
     self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
@@ -79,7 +97,7 @@ class _INa_p3q_markov(SodiumChannel):
     # function
     self.integral = odeint(JointEq([self.dp, self.dq]), method=method)
 
-  def reset_state(self, V, batch_size=None):
+  def reset_state(self, V, C, E, batch_size=None):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
@@ -96,12 +114,12 @@ class _INa_p3q_markov(SodiumChannel):
   def dq(self, q, t, V):
     return self.phi * (self.f_q_alpha(V) * (1. - q) - self.f_q_beta(V) * q)
 
-  def update(self, V):
+  def update(self, V, C, E):
     p, q = self.integral(self.p, self.q, share['t'], V, share['dt'])
     self.p.value, self.q.value = p, q
 
-  def current(self, V):
-    return self.g_max * self.p ** 3 * self.q * (self.E - V)
+  def current(self, V, C, E):
+    return self.g_max * self.p ** 3 * self.q * (E - V)
 
   def f_p_alpha(self, V):
     raise NotImplementedError
@@ -116,7 +134,7 @@ class _INa_p3q_markov(SodiumChannel):
     raise NotImplementedError
 
 
-class INa_Ba2002(_INa_p3q_markov):
+class INa_Ba2002v2(_INa_p3q_markov_v2):
   r"""The sodium current model.
 
   The sodium current model is adopted from (Bazhenov, et, al. 2002) [1]_.
@@ -164,21 +182,19 @@ class INa_Ba2002(_INa_p3q_markov):
       size: Shape,
       keep_size: bool = False,
       T: Union[int, float, ArrayType] = 36.,
-      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
       g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -50.,
       method: str = 'exp_auto',
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_Ba2002, self).__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     method=method,
-                                     phi=3 ** ((T - 36) / 10),
-                                     g_max=g_max,
-                                     E=E,
-                                     mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     phi=3 ** ((T - 36) / 10),
+                     g_max=g_max,
+                     mode=mode)
     self.T = parameter(T, self.varshape, allow_none=False)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
@@ -197,7 +213,7 @@ class INa_Ba2002(_INa_p3q_markov):
     return 4. / (1. + bm.exp(-(V - self.V_sh - 40.) / 5.))
 
 
-class INa_TM1991(_INa_p3q_markov):
+class INa_TM1991v2(_INa_p3q_markov_v2):
   r"""The sodium current model described by (Traub and Miles, 1991) [1]_.
 
   The dynamics of this sodium current model is given by:
@@ -250,7 +266,6 @@ class INa_TM1991(_INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
       g_max: Union[int, float, ArrayType, Initializer, Callable] = 120.,
       phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -63.,
@@ -258,14 +273,13 @@ class INa_TM1991(_INa_p3q_markov):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_TM1991, self).__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     method=method,
-                                     E=E,
-                                     phi=phi,
-                                     g_max=g_max,
-                                     mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     phi=phi,
+                     g_max=g_max,
+                     mode=mode)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
@@ -283,7 +297,7 @@ class INa_TM1991(_INa_p3q_markov):
     return 4. / (1 + bm.exp(-(V - self.V_sh - 40) / 5))
 
 
-class INa_HH1952(_INa_p3q_markov):
+class INa_HH1952v2(_INa_p3q_markov_v2):
   r"""The sodium current model described by Hodgkin–Huxley model [1]_.
 
   The dynamics of this sodium current model is given by:
@@ -337,7 +351,6 @@ class INa_HH1952(_INa_p3q_markov):
       self,
       size: Shape,
       keep_size: bool = False,
-      E: Union[int, float, ArrayType, Initializer, Callable] = 50.,
       g_max: Union[int, float, ArrayType, Initializer, Callable] = 120.,
       phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
       V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
@@ -345,14 +358,13 @@ class INa_HH1952(_INa_p3q_markov):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_HH1952, self).__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     method=method,
-                                     E=E,
-                                     phi=phi,
-                                     g_max=g_max,
-                                     mode=mode)
+    super().__init__(size,
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     phi=phi,
+                     g_max=g_max,
+                     mode=mode)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):

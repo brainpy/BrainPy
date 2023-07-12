@@ -60,30 +60,30 @@ class ParamDescInit(object):
   """Delayed initialization for parameter describers.
   """
 
-  def __init__(self, cls: type, *args, **kwargs):
+  def __init__(self, cls: type, *desc_tuple, **desc_dict):
     self.cls = cls
 
     # arguments
-    self.args = args
-    self.kwargs = kwargs
+    self.args = desc_tuple
+    self.kwargs = desc_dict
 
     # identifier
     if isinstance(cls, _JointGenericAlias):
       name = str(cls)
-      repr_kwargs = {k: v for k, v in kwargs.items()}
+      repr_kwargs = {k: v for k, v in desc_dict.items()}
     else:
       assert isinstance(cls, type)
       if issubclass(cls, ParamDesc) and (cls.not_desc_params is not None):
-        repr_kwargs = {k: v for k, v in kwargs.items() if k not in cls.not_desc_params}
+        repr_kwargs = {k: v for k, v in desc_dict.items() if k not in cls.not_desc_params}
       else:
-        repr_kwargs = {k: v for k, v in kwargs.items()}
+        repr_kwargs = {k: v for k, v in desc_dict.items()}
       name = cls.__name__
     for k in tuple(repr_kwargs.keys()):
       if isinstance(repr_kwargs[k], bm.Variable):
         repr_kwargs[k] = id(repr_kwargs[k])
     repr_args = tools.repr_dict(repr_kwargs)
-    if len(args):
-      repr_args = f"{', '.join([repr(arg) for arg in args])}, {repr_args}"
+    if len(desc_tuple):
+      repr_args = f"{', '.join([repr(arg) for arg in desc_tuple])}, {repr_args}"
     self._identifier = f'{name}({repr_args})'
 
   def __call__(self, *args, **kwargs):
@@ -197,43 +197,53 @@ class Container(MixIn):
       res[k] = v
     return res
 
+  def add_elem(self, **elements):
+    """Add new elements.
+
+    >>> obj = Container()
+    >>> obj.add_elem(1.)
+
+    Args:
+      elements: children objects.
+    """
+    self.check_hierarchies(type(self), **elements)
+    self.children.update(self.format_elements(object, **elements))
+
 
 class TreeNode(MixIn):
   """Tree node. """
 
   master_type: type
 
-  @staticmethod
-  def check_hierarchies(root, *leaves, **named_leaves):
+  def check_hierarchies(self, root, *leaves, **named_leaves):
     global DynamicalSystem
     if DynamicalSystem is None:
       from brainpy._src.dynsys import DynamicalSystem
 
     for leaf in leaves:
       if isinstance(leaf, DynamicalSystem):
-        TreeNode.check_hierarchy(root, leaf)
+        self.check_hierarchy(root, leaf)
       elif isinstance(leaf, (list, tuple)):
-        TreeNode.check_hierarchies(root, *leaf)
+        self.check_hierarchies(root, *leaf)
       elif isinstance(leaf, dict):
-        TreeNode.check_hierarchies(root, **leaf)
+        self.check_hierarchies(root, **leaf)
       else:
         raise ValueError(f'Do not support {type(leaf)}.')
     for leaf in named_leaves.values():
       if not isinstance(leaf, DynamicalSystem):
         raise ValueError(f'Do not support {type(leaf)}. Must be instance of {DynamicalSystem.__name__}')
-      TreeNode.check_hierarchy(root, leaf)
+      self.check_hierarchy(root, leaf)
 
-  @staticmethod
-  def check_hierarchy(root, leaf):
+  def check_hierarchy(self, root, leaf):
     if hasattr(leaf, 'master_type'):
       master_type = leaf.master_type
     else:
-      raise ValueError('Child class should define "root_type" to '
+      raise ValueError('Child class should define "master_type" to '
                        'specify the type of the root node. '
                        f'But we did not found it in {leaf}')
     if not issubclass(root, master_type):
       raise TypeError(f'Type does not match. {leaf} requires a master with type '
-                      f'of {leaf.master_type}, but the master now is {leaf}.')
+                      f'of {leaf.master_type}, but the master now is {root}.')
 
 
 class DelayRegister(MixIn):

@@ -16,6 +16,7 @@ from brainpy.check import is_initializer
 from brainpy.types import Shape
 
 __all__ = [
+  'HHTypedNeuron',
   'CondNeuGroupLTC',
   'CondNeuGroup',
   'HHLTC',
@@ -27,11 +28,11 @@ __all__ = [
 ]
 
 
-class HHTypedNeuron(NeuDyn, Container, TreeNode):
-  master_type = DynamicalSystem
+class HHTypedNeuron(NeuDyn):
+  pass
 
 
-class CondNeuGroupLTC(HHTypedNeuron):
+class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
   r"""Base class to model conductance-based neuron group.
 
   The standard formulation for a conductance-based model is given as
@@ -149,7 +150,7 @@ class CondNeuGroupLTC(HHTypedNeuron):
 
     # update channels
     for node in channels.values():
-      node.update(self.V.value)
+      node(self.V.value)
 
     # update variables
     if self.spike.dtype == bool:
@@ -157,7 +158,7 @@ class CondNeuGroupLTC(HHTypedNeuron):
     else:
       self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th).astype(self.spike.dtype)
     self.V.value = V
-    return self.spike
+    return self.spike.value
 
   def clear_input(self):
     """Useful for monitoring inputs. """

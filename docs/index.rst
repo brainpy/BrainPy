@@ -23,9 +23,9 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
 
 .. note::
-   BrainPy is still a research experimental project.
+   BrainPy is still an experimental research project.
    APIs may be changed over time. Please always keeps
-   in mind which BrainPy version are you using.
+   in mind what BrainPy version you are using.
 
 
 
@@ -59,17 +59,12 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Advanced Tutorials
 
-   tutorial_advanced/how_to_debug.ipynb
-   tutorial_advanced/gotchas_of_brainpy_transforms.ipynb
-   tutorial_advanced/advanced_lowdim_analysis.ipynb
-   tutorial_advanced/differentiation.ipynb
-   tutorial_advanced/integrate_flax_into_brainpy.ipynb
-   tutorial_advanced/integrate_bp_lif_into_flax.ipynb
-   tutorial_advanced/integrate_bp_convlstm_into_flax.ipynb
-
+   tutorial_advanced/math.rst
+   tutorial_advanced/interoperation.rst
+   tutorial_advanced/analysis.rst
 
 
 .. toctree::
@@ -115,12 +110,14 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    apis/auto/measure.rst
    apis/auto/optim.rst
    apis/auto/running.rst
+   apis/auto/mixin.rst
    apis/auto/changelog.rst
 
 
+The following APIs will no longer be maintained in the future, but you can still use them normally.
+
 .. toctree::
    :maxdepth: 1
-   :caption: Deprecated APIs
 
    apis/channels.rst
    apis/neurons.rst

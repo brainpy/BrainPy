@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import numpy as np
 
 import brainpy as bp
@@ -8,13 +9,34 @@ import brainpy.math as bm
 bm.set_host_device_count(20)
 
 
-class HH(bp.CondNeuGroup):
+class HH(bp.dyn.CondNeuGroup):
   def __init__(self, size):
-    super(HH, self).__init__(size, keep_size=True)
+    super().__init__(size, keep_size=True)
 
     self.INa = bp.channels.INa_HH1952(size, keep_size=True)
     self.IK = bp.channels.IK_HH1952(size, keep_size=True)
     self.IL = bp.channels.IL(size, E=-54.387, g_max=0.03, keep_size=True)
+
+
+class HHv2(bp.dyn.CondNeuGroupLTC):
+  def __init__(self, size):
+    super().__init__(size, keep_size=True)
+
+    self.Na = bp.dyn.SodiumFixed(size, E=50.)
+    self.Na.add(ina=bp.dyn.INa_HH1952v2(size, keep_size=True))
+
+    self.K = bp.dyn.PotassiumFixed(size, E=50.)
+    self.K.add(ik=bp.dyn.IK_HH1952v2(size, keep_size=True))
+
+    self.IL = bp.dyn.IL(size, E=-54.387, g_max=0.03, keep_size=True)
+
+    self.KNa = bp.dyn.mixs(self.Na, self.K)
+    self.KNa.add()
+
+
+
+
+
 
 
 # hh = HH(1)

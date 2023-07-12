@@ -1,6 +1,6 @@
 from typing import Optional
 
-from brainpy._src.dynsys import AnnLayer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Loss',
@@ -8,7 +8,7 @@ __all__ = [
 ]
 
 
-class Loss(AnnLayer):
+class Loss(Layer):
   reduction: str
 
   def __init__(self, reduction: str = 'mean') -> None:

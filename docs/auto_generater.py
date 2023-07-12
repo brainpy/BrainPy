@@ -379,6 +379,12 @@ def generate_inputs_docs():
                 header='``brainpy.inputs`` module')
 
 
+def generate_mixin_docs():
+  _write_module(module_name='brainpy.mixin',
+                filename='apis/auto/mixin.rst',
+                header='``brainpy.mixin`` module')
+
+
 def generate_dnn_docs():
   _write_subsections_v2(
     'brainpy.dnn',
@@ -504,7 +510,6 @@ def generate_brainpy_docs():
                                     'Network',
                                     'Dynamic',
                                     'Projection',
-                                    'AnnLayer',
                                     ],
       'Simulating Dynamical System': ['DSRunner'],
       'Training Dynamical System': ['DSTrainer',
