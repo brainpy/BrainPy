@@ -21,6 +21,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(size)
     y = f(x)
     self.assertTrue(y.shape == size[:-1] + (num_out,))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     size=[(10,),
@@ -33,6 +34,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(size)
     y = f(x)
     self.assertTrue(y.shape == size)
+    bm.clear_buffer_memory()
 
   def test_AllToAll1(self):
     bm.random.seed()
@@ -49,6 +51,7 @@ class TestLinear(parameterized.TestCase):
       y = f(x)
       expected = bm.sum(x, keepdims=True) * 0.1
       self.assertTrue(bm.allclose(y, expected))
+    bm.clear_buffer_memory()
 
   def test_OneToOne(self):
     bm.random.seed()
@@ -65,6 +68,7 @@ class TestLinear(parameterized.TestCase):
       y = f(x)
       expected = x * 0.1
       self.assertTrue(bm.allclose(y, expected))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     conn=[
@@ -80,6 +84,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random((16, 100))
     y = f(x)
     self.assertTrue(y.shape == (16, 100))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     conn=[
@@ -98,6 +103,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random((100,))
     y = f(x)
     self.assertTrue(y.shape == (100,))
+    bm.clear_buffer_memory()
 
 
   @parameterized.product(
@@ -116,6 +122,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random((100,))
     y = f(x)
     self.assertTrue(y.shape == (100,))
+    bm.clear_buffer_memory()
 
 
   @parameterized.product(
@@ -129,6 +136,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(shape + (100,))
     y = f(x)
     self.assertTrue(y.shape == shape + (200,))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     prob=[0.01, 0.05, 0.5],
@@ -142,6 +150,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(shape + (100,))
     y = f(x)
     self.assertTrue(y.shape == shape + (200,))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     prob=[0.01, 0.1, 0.5],
@@ -155,6 +164,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(shape + (100,))
     y = f(x)
     self.assertTrue(y.shape == shape + (200,))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     prob=[0.01, 0.05, 0.5],
@@ -169,6 +179,7 @@ class TestLinear(parameterized.TestCase):
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     prob=[0.01, 0.05, 0.5],
@@ -184,6 +195,7 @@ class TestLinear(parameterized.TestCase):
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
+    bm.clear_buffer_memory()
 
   @parameterized.product(
     prob=[0.01, 0.1, 0.5],
@@ -199,6 +211,7 @@ class TestLinear(parameterized.TestCase):
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
+    bm.clear_buffer_memory()
 
 
 if __name__ == '__main__':
