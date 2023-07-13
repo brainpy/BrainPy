@@ -63,7 +63,10 @@ from brainpy._src.dynsys import (
   Projection as Projection,
 )
 DynamicalSystemNS = DynamicalSystem
-
+# delays
+from brainpy._src.delay import (
+  VariableDelay as VariableDelay,
+)
 
 # building blocks
 from brainpy import (
