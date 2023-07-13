@@ -225,7 +225,7 @@ class LifLTC(GradNeuDyn):
 
   def derivative(self, V, t, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None):
@@ -265,7 +265,7 @@ class Lif(LifLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     super().update(x)
 
 
@@ -413,7 +413,7 @@ class LifRef(LifRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -573,7 +573,7 @@ class ExpIFLTC(GradNeuDyn):
 
   def derivative(self, V, t, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
     return dvdt
@@ -617,7 +617,7 @@ class ExpIF(ExpIFLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -740,7 +740,7 @@ class ExpIFRef(ExpIFRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -887,7 +887,7 @@ class AdExIFLTC(GradNeuDyn):
 
   def dV(self, V, t, w, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     exp = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
     return dVdt
@@ -951,7 +951,7 @@ class AdExIF(AdExIFLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -1094,7 +1094,7 @@ class AdExIFRef(AdExIFRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -1225,7 +1225,7 @@ class QuaIFLTC(GradNeuDyn):
 
   def derivative(self, V, t, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
     return dVdt
 
@@ -1267,7 +1267,7 @@ class QuaIF(QuaIFLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -1389,7 +1389,7 @@ class QuaIFRef(QuaIFRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -1536,7 +1536,7 @@ class AdQuaIFLTC(GradNeuDyn):
 
   def dV(self, V, t, w, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
     return dVdt
 
@@ -1598,7 +1598,7 @@ class AdQuaIF(AdQuaIFLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -1738,7 +1738,7 @@ class AdQuaIFRef(AdQuaIFRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -1913,7 +1913,7 @@ class GifLTC(GradNeuDyn):
 
   def dV(self, V, t, I1, I2, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
 
   @property
@@ -1982,7 +1982,7 @@ class Gif(GifLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -2149,7 +2149,7 @@ class GifRef(GifRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -2283,7 +2283,7 @@ class IzhikevichLTC(GradNeuDyn):
 
   def dV(self, V, t, u, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     dVdt = 0.04 * V * V + 5 * V + 140 - u + I
     return dVdt
 
@@ -2347,7 +2347,7 @@ class Izhikevich(IzhikevichLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
@@ -2483,7 +2483,7 @@ class IzhikevichRef(IzhikevichRefLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     return super().update(x)
 
 
