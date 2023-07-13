@@ -102,7 +102,6 @@ from brainpy import (analysis as analysis)
 
 #  Part: Others    #
 # ---------------- #
-from brainpy import testing
 from brainpy._src.visualization import (visualize as visualize)
 
 

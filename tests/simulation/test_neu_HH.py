@@ -1,10 +1,11 @@
 import brainpy as bp
 import brainpy.math as bm
+import unittest
 
 show = False
 
 
-class HH(bp.CondNeuGroup):
+class HH(bp.dyn.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size)
     self.INa = bp.channels.INa_HH1952(size, )
@@ -89,7 +90,7 @@ class HHv2(bp.dyn.NeuDyn):
     return dV_grad
 
 
-class TestHH(bp.testing.UnitTestCase):
+class TestHH(unittest.TestCase):
   def test1(self):
     bm.random.seed()
     hh = HH(1)

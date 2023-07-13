@@ -188,8 +188,10 @@ class TestIfElse(unittest.TestCase):
     self.assertTrue(f2().size == 200)
 
 
-class TestWhile(bp.testing.UnitTestCase):
+class TestWhile(unittest.TestCase):
   def test1(self):
+    bm.random.seed()
+
     a = bm.Variable(bm.zeros(1))
     b = bm.Variable(bm.ones(1))
 
@@ -206,6 +208,8 @@ class TestWhile(bp.testing.UnitTestCase):
     print(res)
 
   def test3(self):
+    bm.random.seed()
+
     a = bm.Variable(bm.zeros(1))
     b = bm.Variable(bm.ones(1))
 
@@ -224,8 +228,9 @@ class TestWhile(bp.testing.UnitTestCase):
     print(a)
     print(b)
 
-
   def test2(self):
+    bm.random.seed()
+
     a = bm.Variable(bm.zeros(1))
     b = bm.Variable(bm.ones(1))
 
