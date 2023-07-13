@@ -17,6 +17,7 @@ class TestPool(parameterized.TestCase):
         self.rng = bm.random.default_rng(12345)
 
     def test_maxpool(self):
+        bm.random.seed()
         x = jnp.arange(9).reshape((1, 3, 3, 1)).astype(jnp.float32)
         print(jnp.arange(9).reshape(3, 3))
         print(x)
@@ -31,6 +32,7 @@ class TestPool(parameterized.TestCase):
         np.testing.assert_allclose(y, expected_y)
 
     def test_maxpool2(self):
+        bm.random.seed()
         x = self.rng.rand(10, 20, 20, 4)
         with bm.training_environment():
             net = bp.dnn.MaxPool((2, 2), (2, 2), channel_axis=-1)
@@ -38,6 +40,7 @@ class TestPool(parameterized.TestCase):
         print("out shape: ", y.shape)
 
     def test_minpool(self):
+        bm.random.seed()
         x = jnp.arange(9).reshape((1, 3, 3, 1)).astype(jnp.float32)
         shared = {'fit': False}
         with bm.training_environment():
@@ -51,6 +54,7 @@ class TestPool(parameterized.TestCase):
         np.testing.assert_allclose(y, expected_y)
 
     def test_avgpool(self):
+        bm.random.seed()
         x = jnp.full((1, 3, 3, 1), 2.)
         with bm.training_environment():
             net = bp.dnn.AvgPool((2, 2), 1, channel_axis=-1)
@@ -59,6 +63,7 @@ class TestPool(parameterized.TestCase):
         np.testing.assert_allclose(y, np.full((1, 2, 2, 1), 2.))
 
     def test_MaxPool2d_v1(self):
+        bm.random.seed()
         arr = self.rng.rand(16, 32, 32, 8)
 
         out = bp.dnn.MaxPool2d(2, 2, channel_axis=-1)(arr)
@@ -80,6 +85,7 @@ class TestPool(parameterized.TestCase):
         self.assertTrue(out.shape == (16, 17, 32, 5))
 
     def test_AvgPool2d_v1(self):
+        bm.random.seed()
         arr = self.rng.rand(16, 32, 32, 8)
 
         out = bp.dnn.AvgPool2d(2, 2, channel_axis=-1)(arr)
@@ -106,6 +112,7 @@ class TestPool(parameterized.TestCase):
         for target_size in [10, 9, 8, 7, 6]
     )
     def test_adaptive_pool1d(self, target_size):
+        bm.random.seed()
         from brainpy._src.dnn.pooling import _adaptive_pool1d
 
         arr = self.rng.rand(100)
@@ -120,6 +127,7 @@ class TestPool(parameterized.TestCase):
         self.assertTrue(out.shape == (target_size,))
 
     def test_AdaptiveAvgPool2d_v1(self):
+        bm.random.seed()
         input = self.rng.randn(64, 8, 9)
 
         output = bp.dnn.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
@@ -138,6 +146,7 @@ class TestPool(parameterized.TestCase):
         self.assertTrue(output.shape == (64, 2, 3))
 
     def test_AdaptiveAvgPool2d_v2(self):
+        bm.random.seed()
         input = self.rng.randn(128, 64, 32, 16)
 
         output = bp.dnn.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
@@ -154,12 +163,14 @@ class TestPool(parameterized.TestCase):
         print()
 
     def test_AdaptiveAvgPool3d_v1(self):
+        bm.random.seed()
         input = bm.random.randn(10, 128, 64, 32)
         net = bp.dnn.AdaptiveAvgPool3d(target_shape=[6, 5, 3], channel_axis=0, mode=bm.nonbatching_mode)
         output = net(input)
         self.assertTrue(output.shape == (10, 6, 5, 3))
 
     def test_AdaptiveAvgPool3d_v2(self):
+        bm.random.seed()
         input = bm.random.randn(10, 20, 128, 64, 32)
         net = bp.dnn.AdaptiveAvgPool3d(target_shape=[6, 5, 3], mode=bm.batching_mode)
         output = net(input)
@@ -169,6 +180,7 @@ class TestPool(parameterized.TestCase):
         axis=(-1, 0, 1)
     )
     def test_AdaptiveMaxPool1d_v1(self, axis):
+        bm.random.seed()
         input = bm.random.randn(32, 16)
         net = bp.dnn.AdaptiveMaxPool1d(target_shape=4, channel_axis=axis)
         output = net(input)
@@ -177,6 +189,7 @@ class TestPool(parameterized.TestCase):
         axis=(-1, 0, 1, 2)
     )
     def test_AdaptiveMaxPool1d_v2(self, axis):
+        bm.random.seed()
         input = bm.random.randn(2, 32, 16)
         net = bp.dnn.AdaptiveMaxPool1d(target_shape=4, channel_axis=axis)
         output = net(input)
@@ -185,6 +198,7 @@ class TestPool(parameterized.TestCase):
         axis=(-1, 0, 1, 2)
     )
     def test_AdaptiveMaxPool2d_v1(self, axis):
+        bm.random.seed()
         input = bm.random.randn(32, 16, 12)
         net = bp.dnn.AdaptiveAvgPool2d(target_shape=[5, 4], channel_axis=axis)
         output = net(input)
@@ -193,6 +207,7 @@ class TestPool(parameterized.TestCase):
         axis=(-1, 0, 1, 2, 3)
     )
     def test_AdaptiveMaxPool2d_v2(self, axis):
+        bm.random.seed()
         input = bm.random.randn(2, 32, 16, 12)
         net = bp.dnn.AdaptiveAvgPool2d(target_shape=[5, 4], channel_axis=axis)
         # output = net(input)
@@ -201,6 +216,7 @@ class TestPool(parameterized.TestCase):
         axis=(-1, 0, 1, 2, 3)
     )
     def test_AdaptiveMaxPool3d_v1(self, axis):
+        bm.random.seed()
         input = bm.random.randn(2, 128, 64, 32)
         net = bp.dnn.AdaptiveMaxPool3d(target_shape=[6, 5, 4], channel_axis=axis)
         output = net(input)
@@ -210,6 +226,7 @@ class TestPool(parameterized.TestCase):
         axis=(-1, 0, 1, 2, 3, 4)
     )
     def test_AdaptiveMaxPool3d_v1(self, axis):
+        bm.random.seed()
         input = bm.random.randn(2, 128, 64, 32, 16)
         net = bp.dnn.AdaptiveMaxPool3d(target_shape=[6, 5, 4], channel_axis=axis)
         output = net(input)

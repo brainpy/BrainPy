@@ -5,12 +5,14 @@ from unittest import TestCase
 import jax.numpy as jnp
 import brainpy.math as bm
 from absl.testing import absltest
+from absl.testing import parameterized
 import brainpy as bp
 
 
-class TestFunction(bp.testing.UnitTestCase):
+class TestFunction(parameterized.TestCase):
 
     def test_flatten_batching_mode(self):
+        bm.random.seed()
         layer = bp.dnn.Flatten(mode=bm.BatchingMode())
         input = bm.random.randn(20, 10, 10, 6)
 
@@ -20,6 +22,7 @@ class TestFunction(bp.testing.UnitTestCase):
         self.assertEqual(output.shape, expected_shape)
 
     def test_flatten_non_batching_mode(self):
+        bm.random.seed()
         layer = bp.dnn.Flatten(mode=bm.NonBatchingMode())
         input = bm.random.randn(10, 10, 6)
 

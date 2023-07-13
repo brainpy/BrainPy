@@ -4,12 +4,13 @@ from unittest import TestCase
 from absl.testing import absltest
 import jax.numpy as jnp
 import brainpy.math as bm
-
+from absl.testing import parameterized
 import brainpy as bp
 
 
-class TestConv(bp.testing.UnitTestCase):
+class TestConv(parameterized.TestCase):
     def test_Conv2D_img(self):
+        bm.random.seed()
         img = jnp.zeros((2, 200, 198, 4))
         for k in range(4):
             x = 30 + 60 * k
@@ -28,6 +29,7 @@ class TestConv(bp.testing.UnitTestCase):
             # plt.show()
 
     def test_conv1D(self):
+        bm.random.seed()
         with bp.math.training_environment():
             model = bp.layers.Conv1d(in_channels=3, out_channels=32, kernel_size=(3,))
 
@@ -41,6 +43,7 @@ class TestConv(bp.testing.UnitTestCase):
             # plt.show()
 
     def test_conv2D(self):
+        bm.random.seed()
         with bp.math.training_environment():
             model = bp.layers.Conv2d(in_channels=3, out_channels=32, kernel_size=(3, 3))
 
@@ -54,6 +57,7 @@ class TestConv(bp.testing.UnitTestCase):
             # plt.show()
 
     def test_conv3D(self):
+        bm.random.seed()
         with bp.math.training_environment():
             model = bp.layers.Conv3d(in_channels=3, out_channels=32, kernel_size=(3, 3, 3))
             input = bp.math.ones((2, 5, 5, 5, 3))
@@ -61,8 +65,9 @@ class TestConv(bp.testing.UnitTestCase):
             print("out shape: ", out.shape)
 
 
-class TestConvTranspose1d(bp.testing.UnitTestCase):
+class TestConvTranspose1d(parameterized.TestCase):
     def test_conv_transpose(self):
+        bm.random.seed()
         x = bm.ones((1, 8, 3))
         for use_bias in [True, False]:
             conv_transpose_module = bp.layers.ConvTranspose1d(
@@ -92,6 +97,7 @@ class TestConvTranspose1d(bp.testing.UnitTestCase):
             self.assertTrue(bm.allclose(y, correct_ans))
 
     def test_single_input_masked_conv_transpose(self):
+        bm.random.seed()
         x = jnp.ones((1, 8, 3))
         m = jnp.tril(jnp.ones((3, 3, 4)))
         conv_transpose_module = bp.layers.ConvTranspose1d(
@@ -120,6 +126,7 @@ class TestConvTranspose1d(bp.testing.UnitTestCase):
         self.assertTrue(bm.allclose(y, correct_ans))
 
     def test_computation_padding_same(self):
+        bm.random.seed()
         data = jnp.ones([1, 3, 1])
         for use_bias in [True, False]:
             net = bp.layers.ConvTranspose1d(
@@ -141,8 +148,9 @@ class TestConvTranspose1d(bp.testing.UnitTestCase):
             self.assertTrue(bm.allclose(out, expected_out, rtol=1e-5))
 
 
-class TestConvTranspose2d(bp.testing.UnitTestCase):
+class TestConvTranspose2d(parameterized.TestCase):
     def test_conv_transpose(self):
+        bm.random.seed()
         x = bm.ones((1, 8, 8, 3))
         for use_bias in [True, False]:
             conv_transpose_module = bp.layers.ConvTranspose2d(
@@ -159,6 +167,7 @@ class TestConvTranspose2d(bp.testing.UnitTestCase):
         print(y.shape)
 
     def test_single_input_masked_conv_transpose(self):
+        bm.random.seed()
         x = jnp.ones((1, 8, 8, 3))
         m = jnp.tril(jnp.ones((3, 3, 3, 4)))
         conv_transpose_module = bp.layers.ConvTranspose2d(
@@ -174,6 +183,7 @@ class TestConvTranspose2d(bp.testing.UnitTestCase):
         print(y.shape)
 
     def test_computation_padding_same(self):
+        bm.random.seed()
         x = bm.ones((1, 8, 8, 3))
         for use_bias in [True, False]:
             conv_transpose_module = bp.layers.ConvTranspose2d(
@@ -191,8 +201,9 @@ class TestConvTranspose2d(bp.testing.UnitTestCase):
         print(y.shape)
 
 
-class TestConvTranspose3d(bp.testing.UnitTestCase):
+class TestConvTranspose3d(parameterized.TestCase):
     def test_conv_transpose(self):
+        bm.random.seed()
         x = bm.ones((1, 8, 8, 8, 3))
         for use_bias in [True, False]:
             conv_transpose_module = bp.layers.ConvTranspose3d(
@@ -208,6 +219,7 @@ class TestConvTranspose3d(bp.testing.UnitTestCase):
         print(y.shape)
 
     def test_single_input_masked_conv_transpose(self):
+        bm.random.seed()
         x = jnp.ones((1, 8, 8, 8, 3))
         m = jnp.tril(jnp.ones((3, 3, 3, 3, 4)))
         conv_transpose_module = bp.layers.ConvTranspose3d(
@@ -223,6 +235,7 @@ class TestConvTranspose3d(bp.testing.UnitTestCase):
         print(y.shape)
 
     def test_computation_padding_same(self):
+        bm.random.seed()
         x = bm.ones((1, 8, 8, 8, 3))
         for use_bias in [True, False]:
             conv_transpose_module = bp.layers.ConvTranspose3d(
