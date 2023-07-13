@@ -103,6 +103,7 @@ class TestExpEulerAuto(unittest.TestCase):
         self.n.value = n
         self.input[:] = 0.
 
+    bm.random.seed()
     hh1 = HH(1, method='exp_euler')
     runner1 = bp.DSRunner(hh1, inputs=('input', 2.), monitors=['V', 'h', 'n'])
     runner1.run(100)
@@ -125,4 +126,5 @@ class TestExpEulerAuto(unittest.TestCase):
     self.assertTrue(diff < 1e0)
 
     plt.close()
+    bm.clear_buffer_memory()
 

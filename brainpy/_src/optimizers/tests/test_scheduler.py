@@ -13,7 +13,6 @@ show = False
 
 
 class TestMultiStepLR(parameterized.TestCase):
-
   @parameterized.product(
     last_epoch=[-1, 0, 5, 10]
   )
@@ -31,9 +30,7 @@ class TestMultiStepLR(parameterized.TestCase):
     bm.clear_buffer_memory()
 
 
-
 class TestStepLR(parameterized.TestCase):
-
   @parameterized.named_parameters(
     {'testcase_name': f'last_epoch={last_epoch}',
      'last_epoch': last_epoch}
@@ -43,7 +40,6 @@ class TestStepLR(parameterized.TestCase):
     bm.random.seed()
     scheduler1 = scheduler.StepLR(0.1, 10, gamma=0.1, last_epoch=last_epoch)
     scheduler2 = scheduler.StepLR(0.1, 10, gamma=0.1, last_epoch=last_epoch)
-
     for i in range(1, 25):
       lr1 = scheduler1(i + last_epoch)
       lr2 = scheduler2()
@@ -107,4 +103,3 @@ class TestCosineAnnealingWarmRestarts(unittest.TestCase):
       plt.show()
       plt.close()
     bm.clear_buffer_memory()
-

@@ -20,6 +20,7 @@ class TestGLShortMemory(unittest.TestCase):
       dz = x * y - c * z
       return dx, dy, dz
 
+    bp.math.random.seed()
     integral = bp.fde.GLShortMemory(lorenz,
                                     alpha=0.99,
                                     num_memory=500,
@@ -32,5 +33,6 @@ class TestGLShortMemory(unittest.TestCase):
 
     plt.plot(runner.mon.x.flatten(), runner.mon.z.flatten())
     plt.show(block=block)
+    bp.math.clear_buffer_memory()
 
 
