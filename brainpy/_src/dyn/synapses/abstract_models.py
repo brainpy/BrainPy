@@ -15,6 +15,7 @@ __all__ = [
   'Delta',
   'Expon',
   'DualExpon',
+  'DualExponV2',
   'Alpha',
   'NMDA',
   'STD',
@@ -154,11 +155,9 @@ class Expon(SynDyn, AlignPost):
     self.g = self.init_variable(bm.zeros, batch_size)
 
   def update(self, x=None):
-    t = share.load('t')
-    dt = share.load('dt')
-    self.g.value = self.integral(self.g.value, t, dt)
+    self.g.value = self.integral(self.g.value, share['t'], share['dt'])
     if x is not None:
-      self.g.value += x
+      self.add_current(x)
     return self.g.value
 
   def add_current(self, x):
@@ -250,11 +249,8 @@ class DualExpon(SynDyn):
     return -g / self.tau_decay + h
 
   def update(self, x):
-    t = share.load('t')
-    dt = share.load('dt')
-
     # update synaptic variables
-    self.g.value, self.h.value = self.integral(self.g.value, self.h.value, t, dt=dt)
+    self.g.value, self.h.value = self.integral(self.g.value, self.h.value, share['t'], dt=share['dt'])
     self.h += x
     return self.g.value
 
@@ -263,6 +259,85 @@ class DualExpon(SynDyn):
 
 
 DualExpon.__doc__ = DualExpon.__doc__ % (pneu_doc,)
+
+
+class DualExponV2(SynDyn, AlignPost):
+  r"""Dual exponential synapse model.
+
+  The dual exponential synapse model [1]_, also named as *difference of two exponentials* model,
+  is given by:
+
+  .. math::
+
+    g_{\mathrm{syn}}(t)=g_{\mathrm{max}} \frac{\tau_{1} \tau_{2}}{
+        \tau_{1}-\tau_{2}}\left(\exp \left(-\frac{t-t_{0}}{\tau_{1}}\right)
+        -\exp \left(-\frac{t-t_{0}}{\tau_{2}}\right)\right)
+
+  where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
+  is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
+  spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
+
+  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
+         "The Synapse." Principles of Computational Modelling in Neuroscience.
+         Cambridge: Cambridge UP, 2011. 172-95. Print.
+  .. [2] Roth, A., & Van Rossum, M. C. W. (2009). Modeling Synapses. Computational
+         Modeling Methods for Neuroscientists.
+
+  Args:
+    tau_decay: float, ArrayArray, Callable. The time constant of the synaptic decay phase. [ms]
+    tau_rise: float, ArrayArray, Callable. The time constant of the synaptic rise phase. [ms]
+    %s
+  """
+
+  def __init__(
+      self,
+      size: Union[int, Sequence[int]],
+      keep_size: bool = False,
+      sharding: Optional[Sequence[str]] = None,
+      method: str = 'exp_auto',
+      name: Optional[str] = None,
+      mode: Optional[bm.Mode] = None,
+
+      # synapse parameters
+      tau_decay: Union[float, ArrayType, Callable] = 10.0,
+      tau_rise: Union[float, ArrayType, Callable] = 1.,
+  ):
+    super().__init__(name=name,
+                     mode=mode,
+                     size=size,
+                     keep_size=keep_size,
+                     sharding=sharding)
+
+    # parameters
+    self.tau_rise = self.init_param(tau_rise)
+    self.tau_decay = self.init_param(tau_decay)
+    self.coeff = self.tau_rise * self.tau_decay / (self.tau_decay - self.tau_rise)
+
+    # integrator
+    self.integral = odeint(lambda g, t, tau: -g / tau, method=method)
+
+    self.reset_state(self.mode)
+
+  def reset_state(self, batch_size=None):
+    self.g_rise = self.init_variable(bm.zeros, batch_size)
+    self.g_decay = self.init_variable(bm.zeros, batch_size)
+
+  def update(self, x=None):
+    self.g_rise.value = self.integral(self.g_rise.value, share['t'], self.tau_rise, share['dt'])
+    self.g_decay.value = self.integral(self.g_decay.value, share['t'], self.tau_decay, share['dt'])
+    if x is not None:
+      self.add_current(x)
+    return self.coeff * (self.g_decay - self.g_rise)
+
+  def add_current(self, inp):
+    self.g_rise += inp
+    self.g_decay += inp
+
+  def return_info(self):
+    return ReturnInfo(self.varshape, self.sharding, self.mode, bm.zeros)
+
+
+DualExponV2.__doc__ = DualExponV2.__doc__ % (pneu_doc,)
 
 
 class Alpha(DualExpon):
