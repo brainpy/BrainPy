@@ -1,6 +1,6 @@
 import brainpy as bp
 from absl.testing import parameterized
-
+from absl.testing import absltest
 import brainpy.math as bm
 
 
@@ -93,6 +93,24 @@ class TestLinear(parameterized.TestCase):
     y = f(x)
     self.assertTrue(y.shape == (100,))
 
+
+  @parameterized.product(
+    conn=[
+      bp.conn.FixedProb(0.1, pre=100, post=100),
+      bp.conn.GridFour(pre=100, post=100),
+      bp.conn.GaussianProb(0.1, pre=100, post=100),
+    ]
+  )
+  def test_EventCSRLinear(self,conn):
+    f=bp.layers.EventCSRLinear(conn,weight=bp.init.Normal())
+    x = bm.random.random((16, 100))
+    y = f(x)
+    self.assertTrue(y.shape == (16, 100))
+    x = bm.random.random((100,))
+    y = f(x)
+    self.assertTrue(y.shape == (100,))
+
+
   @parameterized.product(
     prob=[0.01, 0.05, 0.5],
     weight=[0.01, 0.01],
@@ -170,3 +188,5 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(y2.shape == shape + (200,))
 
 
+if __name__ == '__main__':
+  absltest.main()
