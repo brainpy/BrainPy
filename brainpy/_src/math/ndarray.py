@@ -80,7 +80,7 @@ class Array(object):
 
   def _check_tracer(self):
     self_value = self.value
-    if hasattr(self_value, '_trace'):
+    if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
       if len(self_value._trace.main.jaxpr_stack) == 0:
         raise RuntimeError('This Array is modified during the transformation. '
                            'BrainPy only supports transformations for Variable. '
