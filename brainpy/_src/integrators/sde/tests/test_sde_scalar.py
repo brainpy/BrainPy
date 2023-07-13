@@ -28,7 +28,7 @@ def lorenz_g(x, y, z, t):
 
 
 def lorenz_system(method, **kwargs):
-  bp.math.seed()
+  bp.math.random.seed()
   integral = bp.math.jit(method(f=lorenz_f,
                                 g=lorenz_g,
                                 show_code=True,
