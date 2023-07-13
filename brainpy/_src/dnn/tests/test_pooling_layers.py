@@ -14,8 +14,6 @@ class TestPool(parameterized.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.rng = bm.random.default_rng(12345)
-
     def test_maxpool(self):
         bm.random.seed()
         x = jnp.arange(9).reshape((1, 3, 3, 1)).astype(jnp.float32)
@@ -33,7 +31,7 @@ class TestPool(parameterized.TestCase):
 
     def test_maxpool2(self):
         bm.random.seed()
-        x = self.rng.rand(10, 20, 20, 4)
+        x = bm.random.rand(10, 20, 20, 4)
         with bm.training_environment():
             net = bp.dnn.MaxPool((2, 2), (2, 2), channel_axis=-1)
         y = net(x)
@@ -64,7 +62,7 @@ class TestPool(parameterized.TestCase):
 
     def test_MaxPool2d_v1(self):
         bm.random.seed()
-        arr = self.rng.rand(16, 32, 32, 8)
+        arr = bm.random.rand(16, 32, 32, 8)
 
         out = bp.dnn.MaxPool2d(2, 2, channel_axis=-1)(arr)
         self.assertTrue(out.shape == (16, 16, 16, 8))
@@ -86,7 +84,7 @@ class TestPool(parameterized.TestCase):
 
     def test_AvgPool2d_v1(self):
         bm.random.seed()
-        arr = self.rng.rand(16, 32, 32, 8)
+        arr = bm.random.rand(16, 32, 32, 8)
 
         out = bp.dnn.AvgPool2d(2, 2, channel_axis=-1)(arr)
         self.assertTrue(out.shape == (16, 16, 16, 8))
@@ -115,7 +113,7 @@ class TestPool(parameterized.TestCase):
         bm.random.seed()
         from brainpy._src.dnn.pooling import _adaptive_pool1d
 
-        arr = self.rng.rand(100)
+        arr = bm.random.rand(100)
         op = jax.numpy.mean
 
         out = _adaptive_pool1d(arr, target_size, op)
@@ -128,7 +126,7 @@ class TestPool(parameterized.TestCase):
 
     def test_AdaptiveAvgPool2d_v1(self):
         bm.random.seed()
-        input = self.rng.randn(64, 8, 9)
+        input = bm.random.randn(64, 8, 9)
 
         output = bp.dnn.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
         self.assertTrue(output.shape == (64, 5, 7))
@@ -147,7 +145,7 @@ class TestPool(parameterized.TestCase):
 
     def test_AdaptiveAvgPool2d_v2(self):
         bm.random.seed()
-        input = self.rng.randn(128, 64, 32, 16)
+        input = bm.random.randn(128, 64, 32, 16)
 
         output = bp.dnn.AdaptiveAvgPool2d((5, 7), channel_axis=0)(input)
         self.assertTrue(output.shape == (128, 64, 5, 7))
