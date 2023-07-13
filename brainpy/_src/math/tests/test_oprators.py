@@ -35,30 +35,35 @@ class TestSyn2Post(unittest.TestCase):
     segment_ids = bm.array([0, 0, 1, 1, 2])
     self.assertTrue(bm.array_equal(bm.syn2post_sum(data, segment_ids, 3),
                                    bm.asarray([1, 5, 4])))
+    bm.clear_buffer_memory()
 
   def test_syn2post_max(self):
     data = bm.arange(5)
     segment_ids = bm.array([0, 0, 1, 1, 2])
     self.assertTrue(bm.array_equal(bm.syn2post_max(data, segment_ids, 3),
                                    bm.asarray([1, 3, 4])))
+    bm.clear_buffer_memory()
 
   def test_syn2post_min(self):
     data = bm.arange(5)
     segment_ids = bm.array([0, 0, 1, 1, 2])
     self.assertTrue(bm.array_equal(bm.syn2post_min(data, segment_ids, 3),
                                    bm.asarray([0, 2, 4])))
+    bm.clear_buffer_memory()
 
   def test_syn2post_prod(self):
     data = bm.arange(5)
     segment_ids = bm.array([0, 0, 1, 1, 2])
     self.assertTrue(bm.array_equal(bm.syn2post_prod(data, segment_ids, 3),
                                    bm.asarray([0, 6, 4])))
+    bm.clear_buffer_memory()
 
   def test_syn2post_mean(self):
     data = bm.arange(5)
     segment_ids = bm.array([0, 0, 1, 1, 2])
     self.assertTrue(bm.array_equal(bm.syn2post_mean(data, segment_ids, 3),
                                    bm.asarray([0.5, 2.5, 4.])))
+    bm.clear_buffer_memory()
 
   def test_syn2post_softmax(self):
     data = bm.arange(5)
@@ -79,6 +84,7 @@ class TestSyn2Post(unittest.TestCase):
     data = bm.arange(5)
     segment_ids = bm.array([0, 0, 1, 1, 2])
     print(bm.syn2post_softmax(data, segment_ids, 4))
+    bm.clear_buffer_memory()
 
 #
 # class TestSparseMatmul(unittest.TestCase):
