@@ -64,12 +64,12 @@ class TestCrossCorrelation(unittest.TestCase):
 
 class TestVoltageFluctuation(unittest.TestCase):
   def test_vf1(self):
-    rng = bm.random.RandomState(122)
-    voltages = rng.normal(0, 10, size=(1000, 100))
+    bm.random.seed()
+    voltages = bm.random.normal(0, 10, size=(100, 10))
     print(bp.measure.voltage_fluctuation(voltages))
 
     bm.enable_x64()
-    voltages = bm.ones((1000, 100)).value
+    voltages = bm.ones((100, 10)).value
     r1 = bp.measure.voltage_fluctuation(voltages)
 
     jit_f = jit(partial(bp.measure.voltage_fluctuation, numpy=False))
