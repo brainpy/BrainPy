@@ -107,6 +107,10 @@ def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
   return np.mean(np.asarray(res))
 
 
+def _f_signal(signal):
+  return jnp.mean(signal * signal) - jnp.mean(signal) ** 2
+
+
 def voltage_fluctuation(potentials, numpy=True, method='loop'):
   r"""Calculate neuronal synchronization via voltage variance.
 
@@ -177,15 +181,14 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
   avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
 
   if method == 'loop':
-    _var = lambda aa: bm.for_loop(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2,
-                                  operands=jnp.moveaxis(aa, 0, 1))
+    _var = bm.for_loop(_f_signal, operands=jnp.moveaxis(potentials, 0, 1))
 
   elif method == 'vmap':
-    _var = vmap(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2, in_axes=1)
+    _var = vmap(_f_signal, in_axes=1)(potentials)
   else:
     raise UnsupportedError(f'Do not support {method}. We only support "loop" or "vmap".')
 
-  var_mean = jnp.mean(_var(potentials))
+  var_mean = jnp.mean(_var)
   r = jnp.where(var_mean == 0., 1., avg_var / var_mean)
   return bm.as_numpy(r) if numpy else r
 
