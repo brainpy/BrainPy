@@ -5,8 +5,8 @@ import unittest
 import jax.numpy
 import matplotlib.pyplot as plt
 from absl.testing import parameterized
-import brainpy.math as bm
 
+import brainpy.math as bm
 from brainpy._src.optimizers import scheduler
 
 show = False

@@ -69,7 +69,7 @@ class TestVoltageFluctuation(unittest.TestCase):
     print(bp.measure.voltage_fluctuation(voltages))
 
     bm.enable_x64()
-    voltages = bm.ones((100, 10)).value
+    voltages = bm.ones((100, 10))
     r1 = bp.measure.voltage_fluctuation(voltages)
 
     jit_f = jit(partial(bp.measure.voltage_fluctuation, numpy=False))
