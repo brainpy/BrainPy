@@ -62,6 +62,7 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
     for name in get_supported_methods()
   )
   def test1(self, method):
+    bm.random.seed()
     case1_delay = bm.TimeDelay(bm.zeros((1,)), 1., before_t0=-1., interp_method='round')
     case2_delay = bm.TimeDelay(bm.zeros((1,)), 1., before_t0=-1., interp_method='linear_interp')
 
@@ -87,6 +88,8 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
     # plt.show(block=block)
     # plt.close()
 
+    bm.clear_buffer_memory()
+
 
 class TestNonConstantHist(parameterized.TestCase):
   def get_eq(self, xdelay):
@@ -102,6 +105,8 @@ class TestNonConstantHist(parameterized.TestCase):
     for name in get_supported_methods()
   )
   def test1(self, method):
+    bm.random.seed()
+
     delay1 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01, interp_method='round')
     delay2 = bm.TimeDelay(bm.zeros(1), 2., before_t0=lambda t: jnp.exp(-t) - 1, dt=0.01)
     case1 = delay_odeint(4., self.get_eq(delay1), state_delays={'x': delay1}, dt=0.01, method=method)
@@ -114,3 +119,4 @@ class TestNonConstantHist(parameterized.TestCase):
 
     # self.assertTrue((case1['x'] - self.ref1['x']).mean() < 1e-1)
     # self.assertTrue((case2['x'] - self.ref2['x']).mean() < 1e-1)
+    bm.clear_buffer_memory()

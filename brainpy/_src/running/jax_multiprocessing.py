@@ -60,8 +60,10 @@ def jax_vectorize_map(
     run_f = vmap(func) if clear_buffer else vmap_func
     if isinstance(arguments, dict):
       r = run_f(**tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
-    else:
+    elif isinstance(arguments, (tuple, list)):
       r = run_f(*tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
+    else:
+      raise TypeError
     res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.Array))
     if results is None:
       results = tuple([np.asarray(val) if clear_buffer else val] for val in res_values)
