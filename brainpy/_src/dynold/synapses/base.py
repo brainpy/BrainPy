@@ -7,6 +7,7 @@ from brainpy._src.connect import TwoEndConnector, One2One, All2All
 from brainpy._src.dnn import linear
 from brainpy._src.dyn import projections
 from brainpy._src.dyn.base import NeuDyn
+from brainpy._src.dyn.projections.aligns import _pre_delay_repr
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.initialize import parameter
 from brainpy._src.mixin import (ParamDesc, ParamDescInit, JointType,
@@ -22,7 +23,6 @@ __all__ = [
   '_TwoEndConnAlignPre',
   '_TwoEndConnAlignPost',
 ]
-
 
 
 class _SynapseComponent(DynamicalSystem):
@@ -119,7 +119,7 @@ class _SynSTP(_SynapseComponent, ParamDesc, AutoDelaySupp):
 
   def return_info(self):
     assert self.isregistered
-    return ReturnInfo(self.master.pre.varshape, None, self.master.pre.mode, init=bm.zeros)
+    return ReturnInfo(self.master.pre.varshape, None, self.master.pre.mode, bm.zeros)
 
 
 class _NullSynOut(_SynOut):
@@ -316,38 +316,38 @@ class _TwoEndConnAlignPre(TwoEndConn):
 
     # Projection
     if isinstance(conn, All2All):
-      proj = projections.ProjAlignPre(pre=pre,
-                                      syn=syn,
-                                      delay=delay,
-                                      comm=linear.AllToAll(pre.num, post.num, g_max),
-                                      out=_TempOut(),
-                                      post=post)
+      proj = projections.ProjAlignPreMg1(pre=pre,
+                                         syn=syn,
+                                         delay=delay,
+                                         comm=linear.AllToAll(pre.num, post.num, g_max),
+                                         out=_TempOut(),
+                                         post=post)
 
     elif isinstance(conn, One2One):
       assert post.num == pre.num
-      proj = projections.ProjAlignPre(pre=pre,
-                                      syn=syn,
-                                      delay=delay,
-                                      comm=linear.OneToOne(pre.num, g_max),
-                                      out=_TempOut(),
-                                      post=post)
+      proj = projections.ProjAlignPreMg1(pre=pre,
+                                         syn=syn,
+                                         delay=delay,
+                                         comm=linear.OneToOne(pre.num, g_max),
+                                         out=_TempOut(),
+                                         post=post)
 
     else:
       if comp_method == 'dense':
-        proj = projections.ProjAlignPre(pre=pre,
-                                        syn=syn,
-                                        delay=delay,
-                                        comm=linear.MaskedLinear(conn, g_max),
-                                        out=_TempOut(),
-                                        post=post)
+        proj = projections.ProjAlignPreMg1(pre=pre,
+                                           syn=syn,
+                                           delay=delay,
+                                           comm=linear.MaskedLinear(conn, g_max),
+                                           out=_TempOut(),
+                                           post=post)
 
       elif comp_method == 'sparse':
-        proj = projections.ProjAlignPre(pre=pre,
-                                        syn=syn,
-                                        delay=delay,
-                                        comm=linear.CSRLinear(conn, g_max),
-                                        out=_TempOut(),
-                                        post=post)
+        proj = projections.ProjAlignPreMg1(pre=pre,
+                                           syn=syn,
+                                           delay=delay,
+                                           comm=linear.CSRLinear(conn, g_max),
+                                           out=_TempOut(),
+                                           post=post)
 
       else:
         raise UnsupportedError(f'Does not support {comp_method}, only "sparse" or "dense".')
@@ -365,12 +365,22 @@ class _TwoEndConnAlignPre(TwoEndConn):
     return self.output(current)
 
 
+class _UpdateSTP(DynamicalSystem):
+  def __init__(self, stp):
+    super().__init__()
+    self.stp = stp
+
+  def update(self, x):
+    self.stp.update(x)
+    return self.stp(x)
+
+
 class _TwoEndConnAlignPost(TwoEndConn):
   def __init__(
       self,
       pre: NeuDyn,
       post: NeuDyn,
-      syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
+      syn: JointType[DynamicalSystem, AlignPost],
       conn: TwoEndConnector,
       g_max: Union[float, ArrayType, Callable],
       output: _SynOut = _NullSynOut(),
@@ -389,50 +399,52 @@ class _TwoEndConnAlignPost(TwoEndConn):
                      mode=mode,
                      init_stp=True)
 
-    pre = _DelayedSyn(pre, self.stp)
     delay = _get_delay(delay_step)
-
-    # make every synapse unique
-    syn._identifier = syn._identifier + f' // {self.name}'
+    if self.stp is None:
+      pre = pre
+    else:
+      stp = _UpdateSTP(self.stp)
+      pre.after_updates[self.name] = stp
+      pre = stp
 
     # Projection
     if isinstance(conn, All2All):
-      proj = projections.ProjAlignPost(pre=pre,
-                                       delay=delay,
-                                       comm=linear.AllToAll(self.pre.num, self.post.num, g_max),
-                                       syn=syn,
-                                       out=_TempOut.desc(),
-                                       post=post)
+      proj = projections.ProjAlignPost2(pre=pre,
+                                        delay=delay,
+                                        comm=linear.AllToAll(self.pre.num, self.post.num, g_max),
+                                        syn=syn,
+                                        out=_TempOut(),
+                                        post=post)
 
     elif isinstance(conn, One2One):
       assert post.num == self.pre.num
-      proj = projections.ProjAlignPost(pre=pre,
-                                       delay=delay,
-                                       comm=linear.OneToOne(self.pre.num, g_max),
-                                       syn=syn,
-                                       out=_TempOut.desc(),
-                                       post=post)
+      proj = projections.ProjAlignPost2(pre=pre,
+                                        delay=delay,
+                                        comm=linear.OneToOne(self.pre.num, g_max),
+                                        syn=syn,
+                                        out=_TempOut(),
+                                        post=post)
 
     else:
       if comp_method == 'dense':
-        proj = projections.ProjAlignPost(pre=pre,
-                                         delay=delay,
-                                         comm=linear.MaskedLinear(conn, g_max),
-                                         syn=syn,
-                                         out=_TempOut.desc(),
-                                         post=post)
+        proj = projections.ProjAlignPost2(pre=pre,
+                                          delay=delay,
+                                          comm=linear.MaskedLinear(self.conn, g_max),
+                                          syn=syn,
+                                          out=_TempOut(),
+                                          post=post)
 
       elif comp_method == 'sparse':
         if self.stp is None:
-          comm = linear.EventCSRLinear(conn, g_max)
+          comm = linear.EventCSRLinear(self.conn, g_max)
         else:
-          comm = linear.CSRLinear(conn, g_max)
-        proj = projections.ProjAlignPost(pre=pre,
-                                         delay=delay,
-                                         comm=comm,
-                                         syn=syn,
-                                         out=_TempOut.desc(),
-                                         post=post)
+          comm = linear.CSRLinear(self.conn, g_max)
+        proj = projections.ProjAlignPost2(pre=pre,
+                                          delay=delay,
+                                          comm=comm,
+                                          syn=syn,
+                                          out=_TempOut(),
+                                          post=post)
 
       else:
         raise UnsupportedError(f'Does not support {comp_method}, only "sparse" or "dense".')
@@ -441,12 +453,12 @@ class _TwoEndConnAlignPost(TwoEndConn):
 
   def update(self, pre_spike=None, stop_spike_gradient: bool = False):
     if pre_spike is None:
-      pre_spike = self.proj.pre.after_updates[self.proj._delay_repr].at(self.proj.name)
+      pre_spike = self.proj.pre.after_updates[_pre_delay_repr].at(self.proj.name)
     if stop_spike_gradient:
       # TODO: if self.stp is not None
       pre_spike = jax.lax.stop_gradient(pre_spike)
     current = self.proj.comm(pre_spike)
-    self.proj.post.before_updates[self.proj._post_repr].syn.add_current(current)  # synapse post current
+    self.proj.post.before_updates[self.proj.name].syn.add_current(current)  # synapse post current
     return self.output(current)
 
 
@@ -468,4 +480,3 @@ class _DelayedSyn(DynamicalSystem, ParamDesc, AutoDelaySupp):
       return self.syn.return_info()
     else:
       return self.stp.return_info()
-
