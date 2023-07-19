@@ -159,6 +159,15 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     """Clear the input at the current time step."""
     pass
 
+  def step_run(self, i, *args, **kwargs):
+    global share
+    if share is None:
+      from brainpy._src.context import share
+    share.save(i=i, t=i * bm.dt)
+    return self.update(*args, **kwargs)
+
+  jit_step_run = bm.cls_jit(step_run, inline=True)
+
   @property
   def mode(self) -> bm.Mode:
     """Mode of the model, which is useful to control the multiple behaviors of the model."""
