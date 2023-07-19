@@ -85,9 +85,9 @@ class TestMixIons2(unittest.TestCase):
 
     hh.reset_state()
 
-    ICa = hh.ca.current(hh.V)
-    INa = hh.na.current(hh.V)
-    IK = hh.k.current(hh.V)
+    ICa = hh.ca.current(hh.V, external=True)
+    INa = hh.na.current(hh.V, external=True)
+    IK = hh.k.current(hh.V, external=True)
     print(ICa, INa, IK)
 
     self.assertTrue(bm.allclose(INa, 0.))
