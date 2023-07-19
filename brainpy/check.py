@@ -507,15 +507,11 @@ def is_instance(
   name: str
     The checking target name.
   """
-  if isinstance(supported_types, type):
-    supported_types = (supported_types,)
-  if not isinstance(supported_types, (tuple, list)):
-    raise TypeError(f'supported_types must be a tuple/list of type. But wwe got {type(supported_types)}')
-  for smode in supported_types:
-    assert isinstance(smode, type), f'supported_types must be a tuple/list of type. But wwe got {smode}'
+  if not name:
+    name = 'We'
   if not isinstance(instance, supported_types):
-    raise NotImplementedError(f"{name} does not support {instance}. We only support "
-                              f"{', '.join([mode.__name__ for mode in supported_types])}. ")
+    raise NotImplementedError(f"{name} expect to get an instance of {supported_types}."
+                              f"But we got {type(instance)}. ")
   return instance
 
 

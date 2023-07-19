@@ -6,13 +6,14 @@ import jax
 
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
+from brainpy._src.context import share
 from brainpy._src.dyn import synapses
-from brainpy._src.dynold.synouts import MgBlock, CUBA
 from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.initialize import Initializer
-from brainpy._src.mixin import AlignPost
+from brainpy._src.dynold.synouts import MgBlock, CUBA
+from brainpy._src.initialize import Initializer, variable_
+from brainpy._src.integrators.ode.generic import odeint
 from brainpy.types import ArrayType
-from .base import TwoEndConn, _SynSTP, _SynOut, _TwoEndConnAlignPre, _TwoEndConnAlignPost, _DelayedSyn, _init_stp
+from .base import TwoEndConn, _SynSTP, _SynOut, _TwoEndConnAlignPre, _DelayedSyn, _init_stp
 
 __all__ = [
   'Delta',
@@ -175,7 +176,7 @@ class Delta(TwoEndConn):
     return self.output(post_vs)
 
 
-class Exponential(_TwoEndConnAlignPost, AlignPost):
+class Exponential(TwoEndConn):
   r"""Exponential decay synapse model.
 
   **Model Descriptions**
@@ -201,10 +202,10 @@ class Exponential(_TwoEndConnAlignPost, AlignPost):
        & g_{\mathrm{syn}}(t) = g_{max} g * \mathrm{STP} \\
        & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
        \end{aligned}
-  
+
   where :math:`\mathrm{STP}` is used to model the short-term plasticity effect.
-  
-  
+
+
   **Model Examples**
 
   - `(Brunel & Hakim, 1999) Fast Global Oscillation <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Brunel_Hakim_1999_fast_oscillation.html>`_
@@ -241,9 +242,9 @@ class Exponential(_TwoEndConnAlignPost, AlignPost):
 
   Parameters
   ----------
-  pre: NeuDyn
+  pre: NeuGroup
     The pre-synaptic neuron group.
-  post: NeuDyn
+  post: NeuGroup
     The post-synaptic neuron group.
   conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
@@ -282,10 +283,19 @@ class Exponential(_TwoEndConnAlignPost, AlignPost):
       delay_step: Union[int, ArrayType, Initializer, Callable] = None,
       tau: Union[float, ArrayType] = 8.0,
       method: str = 'exp_auto',
-      name: Optional[str] = None,
-      mode: Optional[bm.Mode] = None,
+
+      # other parameters
+      name: str = None,
+      mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
+    super().__init__(pre=pre,
+                     post=post,
+                     conn=conn,
+                     output=output,
+                     stp=stp,
+                     name=name,
+                     mode=mode)
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
     self.comp_method = comp_method
@@ -293,37 +303,71 @@ class Exponential(_TwoEndConnAlignPost, AlignPost):
     if bm.size(self.tau) != 1:
       raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
-    syn = synapses.Expon.desc(post.size,
-                              post.keep_size,
-                              mode=mode,
-                              tau=tau,
-                              method=method)
+    # connections and weights
+    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
 
-    super().__init__(pre=pre,
-                     post=post,
-                     syn=syn,
-                     conn=conn,
-                     output=output,
-                     stp=stp,
-                     comp_method=comp_method,
-                     g_max=g_max,
-                     delay_step=delay_step,
-                     name=name,
-                     mode=mode)
+    # variables
+    self.g = variable_(bm.zeros, self.post.num, self.mode)
+    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
-    # copy the references
-    syn = self.post.before_updates[self.proj._post_repr].syn
-    self.g = syn.g
+    # function
+    self.integral = odeint(lambda g, t: -g / self.tau, method=method)
+
+  def reset_state(self, batch_size=None):
+    self.g.value = variable_(bm.zeros, self.post.num, batch_size)
+    self.output.reset_state(batch_size)
+    if self.stp is not None: self.stp.reset_state(batch_size)
 
   def update(self, pre_spike=None):
-    return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
+    t, dt = share['t'], share['dt']
 
-  def add_current(self, input):
-    self.g += input
+    # delays
+    if pre_spike is None:
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+    pre_spike = bm.as_jax(pre_spike)
+    if self.stop_spike_gradient:
+      pre_spike = jax.lax.stop_gradient(pre_spike)
+
+    # update sub-components
+    self.output.update()
+    if self.stp is not None:
+      self.stp.update(pre_spike)
+
+    # post values
+    if isinstance(self.conn, All2All):
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
+      if self.stp is not None: syn_value = self.stp(syn_value)
+      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
+    elif isinstance(self.conn, One2One):
+      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
+      if self.stp is not None: syn_value = self.stp(syn_value)
+      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
+    else:
+      if self.comp_method == 'sparse':
+        f = lambda s: bm.event.csrmv(self.g_max,
+                                     self.conn_mask[0],
+                                     self.conn_mask[1],
+                                     s,
+                                     shape=(self.pre.num, self.post.num),
+                                     transpose=True)
+        if isinstance(self.mode, bm.BatchingMode): f = jax.vmap(f)
+        post_vs = f(pre_spike)
+        # if not isinstance(self.stp, _NullSynSTP):
+        #   raise NotImplementedError()
+      else:
+        syn_value = bm.asarray(pre_spike, dtype=bm.float_)
+        if self.stp is not None:
+          syn_value = self.stp(syn_value)
+        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
+    # updates
+    self.g.value = self.integral(self.g.value, t, dt) + post_vs
+
+    # output
+    return self.output(self.g)
 
 
 class _DelayedDualExp(_DelayedSyn):
-  not_desc_params = ('master', 'stp', 'mode')
+  not_desc_params = ('master', 'mode')
 
   def __init__(self, size, keep_size, mode, tau_decay, tau_rise, method, master, stp=None):
     syn = synapses.DualExpon(size,

@@ -166,13 +166,14 @@ class Ion(IonChaDyn, Container, TreeNode):
     for node in self.nodes(level=1, include_self=False).unique().subset(IonChaDyn).values():
       node.update(V, self.C, self.E)
 
-  def current(self, V, C=None, E=None):
+  def current(self, V, C=None, E=None, external: bool = False):
     """Generate ion channel current.
 
     Args:
       V: The membrane potential.
       C: The ion concentration.
       E: The reversal potential.
+      external: Include the external current.
 
     Returns:
       Current.
@@ -186,8 +187,9 @@ class Ion(IonChaDyn, Container, TreeNode):
     if len(nodes) > 0:
       for node in nodes:
         current = current + node.current(V, C, E)
-    for key, node in self.external.items():
-      current = current + node(V, C, E)
+    if external:
+      for key, node in self.external.items():
+        current = current + node(V, C, E)
     return current
 
   def reset_state(self, V, batch_size=None):

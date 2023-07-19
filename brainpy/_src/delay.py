@@ -21,8 +21,9 @@ from brainpy.check import jit_error
 
 __all__ = [
   'Delay',
-  'VariableDelay',
+  'VariDelay',
   'DataDelay',
+  'DelayAccess',
 ]
 
 
@@ -431,8 +432,8 @@ def _check_target_sharding(sharding, ndim, mode: bm.Mode):
   return sharding
 
 
-class VariableDelay(Delay):
-  """Delay variable which has a fixed delay length.
+class VariDelay(Delay):
+  """Generate Delays for the given :py:class:`~.Variable` instance.
 
   The data in this delay variable is arranged as::
 
@@ -517,8 +518,8 @@ class VariableDelay(Delay):
 
     # other info
     if entries is not None:
-      for entry, value in entries.items():
-        self.register_entry(entry, value)
+      for entry, delay_time in entries.items():
+        self.register_entry(entry, delay_time)
 
   def register_entry(
       self,
@@ -572,11 +573,17 @@ class VariableDelay(Delay):
       raise KeyError(f'Does not find delay entry "{entry}".')
     delay_step = self._registered_entries[entry]
     if delay_step is None or delay_step == 0.:
-      return self.target.value
+      if len(indices):
+        return self.target[indices]
+      else:
+        return self.target.value
     else:
       assert self.data is not None
       if delay_step == 0:
-        return self.target.value
+        if len(indices):
+          return self.target[indices]
+        else:
+          return self.target.value
       else:
         return self.retrieve(delay_step, *indices)
 
@@ -683,16 +690,15 @@ class VariableDelay(Delay):
       self.data[:] = self._init((length,) + self.target.shape, dtype=self.target.dtype)
 
 
-class DataDelay(VariableDelay):
-  
+class DataDelay(VariDelay):
   not_desc_params = ('time', 'entries')
 
   def __init__(
       self,
 
       # delay target
-      target: bm.Variable,
-      target_init: Callable,
+      data: bm.Variable,
+      data_init: Union[Callable, bm.Array, jax.Array],
 
       # delay time
       time: Optional[Union[int, float]] = None,
@@ -710,8 +716,8 @@ class DataDelay(VariableDelay):
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
-    self.target_init = target_init
-    super().__init__(target=target,
+    self.target_init = data_init
+    super().__init__(target=data,
                      time=time,
                      init=init,
                      entries=entries,
@@ -734,5 +740,22 @@ class DataDelay(VariableDelay):
     """
     self.target.value = latest_value
     super().update(latest_value)
+
+
+class DelayAccess(DynamicalSystem):
+  def __init__(
+      self,
+      delay: Delay,
+      time: Union[None, int, float],
+      *indices
+  ):
+    super().__init__(mode=delay.mode)
+    self.delay = delay
+    assert isinstance(delay, Delay)
+    delay.register_entry(self.name, time)
+    self.indices = indices
+
+  def update(self):
+    return self.delay.at(self.name, *self.indices)
 
 

@@ -40,11 +40,11 @@ class InputGroup(NeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(InputGroup, self).__init__(name=name,
-                                     sharding=sharding,
-                                     size=size,
-                                     keep_size=keep_size,
-                                     mode=mode)
+    super().__init__(name=name,
+                     sharding=sharding,
+                     size=size,
+                     keep_size=keep_size,
+                     mode=mode)
 
   def update(self, x):
     return x
@@ -74,11 +74,11 @@ class OutputGroup(NeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
-    super(OutputGroup, self).__init__(name=name,
-                                      sharding=sharding,
-                                      size=size,
-                                      keep_size=keep_size,
-                                      mode=mode)
+    super().__init__(name=name,
+                     sharding=sharding,
+                     size=size,
+                     keep_size=keep_size,
+                     mode=mode)
 
   def update(self, x):
     return x
@@ -130,11 +130,11 @@ class SpikeTimeGroup(NeuDyn):
       mode: Optional[bm.Mode] = None,
       need_sort: bool = True,
   ):
-    super(SpikeTimeGroup, self).__init__(size=size,
-                                         sharding=sharding,
-                                         name=name,
-                                         keep_size=keep_size,
-                                         mode=mode)
+    super().__init__(size=size,
+                     sharding=sharding,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode)
 
     # parameters
     if keep_size:
@@ -202,11 +202,11 @@ class PoissonGroup(NeuDyn):
       mode: Optional[bm.Mode] = None,
       seed=None,
   ):
-    super(PoissonGroup, self).__init__(size=size,
-                                       sharding=sharding,
-                                       name=name,
-                                       keep_size=keep_size,
-                                       mode=mode)
+    super().__init__(size=size,
+                     sharding=sharding,
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode)
 
     if seed is not None:
       warnings.warn('')

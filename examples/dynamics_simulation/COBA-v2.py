@@ -1,4 +1,5 @@
 import brainpy as bp
+import brainpy.math as bm
 
 neu_pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                 V_initializer=bp.init.Normal(-55., 2.))
@@ -12,7 +13,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
     self.E = bp.dyn.LifRefLTC(num_exc, **neu_pars)
     self.I = bp.dyn.LifRefLTC(num_inh, **neu_pars)
 
-    self.E2I = bp.dyn.ProjAlignPre(
+    self.E2I = bp.dyn.ProjAlignPreMg1(
       pre=self.E,
       syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
       delay=None,
@@ -20,7 +21,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA(E=0.),
       post=self.I,
     )
-    self.E2E = bp.dyn.ProjAlignPre(
+    self.E2E = bp.dyn.ProjAlignPreMg1(
       pre=self.E,
       syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
       delay=None,
@@ -28,7 +29,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA(E=0.),
       post=self.E,
     )
-    self.I2E = bp.dyn.ProjAlignPre(
+    self.I2E = bp.dyn.ProjAlignPreMg1(
       pre=self.I,
       syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
       delay=None,
@@ -36,7 +37,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA(E=-80.),
       post=self.E,
     )
-    self.I2I = bp.dyn.ProjAlignPre(
+    self.I2I = bp.dyn.ProjAlignPreMg1(
       pre=self.I,
       syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
       delay=0.,
@@ -62,7 +63,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
     self.E = bp.dyn.LifRefLTC(num_exc, **neu_pars)
     self.I = bp.dyn.LifRefLTC(num_inh, **neu_pars)
 
-    self.E2E = bp.dyn.ProjAlignPost(
+    self.E2E = bp.dyn.ProjAlignPostMg2(
       pre=self.E,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.E.num, post=self.E.num), 0.6),
@@ -70,7 +71,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA.desc(E=0.),
       post=self.E,
     )
-    self.E2I = bp.dyn.ProjAlignPost(
+    self.E2I = bp.dyn.ProjAlignPostMg2(
       pre=self.E,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.E.num, post=self.I.num), 0.6),
@@ -78,7 +79,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA.desc(E=0.),
       post=self.I,
     )
-    self.I2E = bp.dyn.ProjAlignPost(
+    self.I2E = bp.dyn.ProjAlignPostMg2(
       pre=self.I,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.I.num, post=self.E.num), 6.7),
@@ -86,7 +87,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA.desc(E=-80.),
       post=self.E,
     )
-    self.I2I = bp.dyn.ProjAlignPost(
+    self.I2I = bp.dyn.ProjAlignPostMg2(
       pre=self.I,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.I.num, post=self.I.num), 6.7),
@@ -147,10 +148,13 @@ def run3():
 
 
 def run1():
-  net = EICOBA_PostAlign(3200, 800)
-  runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
-  print(runner.run(100., eval_time=True))
-  bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+  with bm.environment(mode=bm.BatchingMode(10)):
+    net = EICOBA_PostAlign(3200, 800)
+    runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
+    print(runner.run(100., eval_time=True))
+    print(runner.mon['E.spike'].shape)
+    print(runner.mon['ts'].shape)
+    bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'][0], show=True)
 
 
 def run2():
