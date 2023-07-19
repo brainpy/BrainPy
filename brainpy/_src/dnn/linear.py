@@ -4,6 +4,7 @@
 from typing import Dict, Optional, Union, Callable
 
 import jax
+import numpy as np
 import jax.numpy as jnp
 
 from brainpy import math as bm
@@ -63,8 +64,8 @@ class Dense(Layer):
       num_out: int,
       W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(Dense, self).__init__(mode=mode, name=name)
 
@@ -642,7 +643,7 @@ class JitFPHomoLinear(Layer):
       num_out: int,
       prob: float,
       weight: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -654,7 +655,7 @@ class JitFPHomoLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -723,7 +724,7 @@ class JitFPUniformLinear(Layer):
       prob: float,
       w_low: float,
       w_high: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -735,7 +736,7 @@ class JitFPUniformLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -803,7 +804,7 @@ class JitFPNormalLinear(Layer):
       prob: float,
       w_mu: float,
       w_sigma: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
       atomic: bool = False,
@@ -815,7 +816,7 @@ class JitFPNormalLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -881,7 +882,7 @@ class EventJitFPHomoLinear(Layer):
       num_out: int,
       prob: float,
       weight: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -893,7 +894,7 @@ class EventJitFPHomoLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 1000000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -962,7 +963,7 @@ class EventJitFPUniformLinear(Layer):
       prob: float,
       w_low: float,
       w_high: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -974,7 +975,7 @@ class EventJitFPUniformLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -1042,7 +1043,7 @@ class EventJitFPNormalLinear(Layer):
       prob: float,
       w_mu: float,
       w_sigma: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
       atomic: bool = False,
@@ -1054,7 +1055,7 @@ class EventJitFPNormalLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out

@@ -7,3 +7,4 @@ from .synapses import *
 from .projections import *
 from .others import *
 from .outs import *
+from .compat import NeuGroup

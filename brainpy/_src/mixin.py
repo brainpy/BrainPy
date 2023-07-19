@@ -103,6 +103,14 @@ class ParamDescInit(object):
   def __class_getitem__(cls, item: type):
     return ParamDescInit(item)
 
+  @property
+  def identifier(self):
+    return self._identifier
+
+  @identifier.setter
+  def identifier(self, value):
+    self._identifier = value
+
 
 class AlignPost(MixIn):
   """Align post MixIn.
@@ -118,9 +126,26 @@ class AlignPost(MixIn):
 @dataclass
 class ReturnInfo:
   size: Sequence[int]
-  axis_names: Optional[Sequence[str]]
-  batch_or_mode: Optional[Union[int, bm.Mode]]
-  init: Callable
+  axis_names: Optional[Sequence[str]] = None
+  batch_or_mode: Optional[Union[int, bm.Mode]] = None
+  data: Union[Callable, bm.Array, jax.Array] = bm.zeros
+
+  def get_data(self):
+    if isinstance(self.data, Callable):
+      if isinstance(self.batch_or_mode, int):
+        size = (self.batch_or_mode,) + tuple(self.size)
+      elif isinstance(self.batch_or_mode, bm.NonBatchingMode):
+        size = tuple(self.size)
+      elif isinstance(self.batch_or_mode, bm.BatchingMode):
+        size = (self.batch_or_mode.batch_size,) + tuple(self.size)
+      else:
+        size = tuple(self.size)
+      init = self.data(size)
+    elif isinstance(self.data, (bm.Array, jax.Array)):
+      init = self.data
+    else:
+      raise ValueError
+    return init
 
 
 class AutoDelaySupp(MixIn):
@@ -493,12 +518,13 @@ if sys.version_info.minor > 8:
 
   @_SpecialForm
   def JointType(self, parameters):
-    """Joint type; JointType[X, Y] means either X or Y.
+    """Joint type; JointType[X, Y] means both X and Y.
 
-    To define a union, use e.g. Union[int, str].  Details:
+    To define a union, use e.g. Union[int, str].
+
+    Details:
     - The arguments must be types and there must be at least one.
-    - None as an argument is a special case and is replaced by
-      type(None).
+    - None as an argument is a special case and is replaced by `type(None)`.
     - Unions of unions are flattened, e.g.::
 
         JointType[JointType[int, str], float] == JointType[int, str, float]
@@ -519,7 +545,7 @@ if sys.version_info.minor > 8:
     - You can use Optional[X] as a shorthand for JointType[X, None].
     """
     if parameters == ():
-      raise TypeError("Cannot take a Union of no types.")
+      raise TypeError("Cannot take a Joint of no types.")
     if not isinstance(parameters, tuple):
       parameters = (parameters,)
     msg = "JointType[arg, ...]: each arg must be a type."
@@ -540,10 +566,10 @@ else:
     def __getitem__(self, parameters):
       if self._name == 'JointType':
         if parameters == ():
-          raise TypeError("Cannot take a Union of no types.")
+          raise TypeError("Cannot take a Joint of no types.")
         if not isinstance(parameters, tuple):
           parameters = (parameters,)
-        msg = "Union[arg, ...]: each arg must be a type."
+        msg = "JointType[arg, ...]: each arg must be a type."
         parameters = tuple(_type_check(p, msg) for p in parameters)
         parameters = _remove_dups_flatten(parameters)
         if len(parameters) == 1:
@@ -555,12 +581,14 @@ else:
 
   JointType = _SpecialForm2(
     'JointType',
-    doc="""Joint type; JointType[X, Y] means either X or Y.
+    doc="""Joint type; JointType[X, Y] means both X and Y.
   
-    To define a union, use e.g. JointType[int, str].  Details:
+    To define a union, use e.g. JointType[int, str].  
+    
+    Details:
+    
     - The arguments must be types and there must be at least one.
-    - None as an argument is a special case and is replaced by
-      type(None).
+    - None as an argument is a special case and is replaced by `type(None)`.
     - Unions of unions are flattened, e.g.::
   
         JointType[JointType[int, str], float] == JointType[int, str, float]

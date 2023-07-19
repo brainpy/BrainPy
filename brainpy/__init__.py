@@ -58,14 +58,14 @@ from brainpy._src.dynsys import (
   DynamicalSystem as DynamicalSystem,
   DynSysGroup as DynSysGroup,  # collectors
   Sequential as Sequential,
-  Network as Network,
   Dynamic as Dynamic,  # category
   Projection as Projection,
 )
 DynamicalSystemNS = DynamicalSystem
+Network = DynSysGroup
 # delays
 from brainpy._src.delay import (
-  VariableDelay as VariableDelay,
+  VariDelay as VariDelay,
 )
 
 # building blocks
