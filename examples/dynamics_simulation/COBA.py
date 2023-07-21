@@ -140,12 +140,6 @@ class EINet(bp.Network):
 # bm.set_host_device_count(num_device)
 # bm.sharding.set(mesh_axes=(bp.dyn.PNEU_AXIS,), mesh_shape=(num_device, ))
 
-def run3():
-  net = EICOBA_PreAlign(3200, 800)
-  runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
-  print(runner.run(100., eval_time=True))
-  bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
-
 
 def run1():
   with bm.environment(mode=bm.BatchingMode(10)):
@@ -167,7 +161,22 @@ def run2():
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
 
 
+def run3():
+  net = EICOBA_PreAlign(3200, 800)
+  runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
+  print(runner.run(100., eval_time=True))
+  bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+
+
+def run4():
+  net = EICOBA_PostAlign(3200, 800)
+  runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
+  print(runner.run(100., eval_time=True))
+  bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+
+
 if __name__ == '__main__':
-  # run1()
+  run1()
   run2()
-  # run3()
+  run3()
+  run4()

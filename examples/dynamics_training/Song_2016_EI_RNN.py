@@ -27,7 +27,7 @@ class EI_RNN(bp.DynamicalSystem):
       w_rr=bp.init.KaimingUniform(scale=1.),
       w_ro=bp.init.KaimingUniform(scale=1.)
   ):
-    super(EI_RNN, self).__init__()
+    super().__init__()
 
     # parameters
     self.tau = 100

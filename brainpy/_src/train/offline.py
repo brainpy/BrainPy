@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Sequence, Union, Callable
+from typing import Dict, Sequence, Union, Callable, Any
 
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
+from brainpy import tools
+from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.runners import _call_fun_with_share
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError
 from brainpy.types import ArrayType, Output
 from ._utils import format_ys
@@ -56,7 +58,7 @@ class OfflineTrainer(DSTrainer):
   ):
     self._true_numpy_mon_after_run = kwargs.get('numpy_mon_after_run', True)
     kwargs['numpy_mon_after_run'] = False
-    super(OfflineTrainer, self).__init__(target=target, **kwargs)
+    super().__init__(target=target, **kwargs)
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
@@ -83,6 +85,8 @@ class OfflineTrainer(DSTrainer):
     # set the training method
     for node in self.train_nodes:
       node.offline_fit_by = fit_method
+    # training function
+    self._jit_fun_train = bm.jit(self._fun_train, static_argnames=['shared_args'])
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -92,7 +96,7 @@ class OfflineTrainer(DSTrainer):
 
   def predict(
       self,
-      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
+      inputs: Any,
       reset_state: bool = False,
       shared_args: Dict = None,
       eval_time: bool = False
@@ -108,20 +112,18 @@ class OfflineTrainer(DSTrainer):
       The input values.
     reset_state: bool
       Reset the target state before running.
-    shared_args: dict
-      The shared arguments across nodes.
     eval_time: bool
       Whether we evaluate the running time or not?
+    shared_args: dict
+      The shared arguments across nodes.
 
     Returns
     -------
     output: ArrayType
       The running output.
     """
-    outs = super(OfflineTrainer, self).predict(inputs=inputs,
-                                               reset_state=reset_state,
-                                               shared_args=shared_args,
-                                               eval_time=eval_time)
+    outs = super().predict(inputs=inputs, reset_state=reset_state,
+                           eval_time=eval_time, shared_args=shared_args)
     for node in self.train_nodes:
       node.fit_record.clear()
     return outs
@@ -152,8 +154,10 @@ class OfflineTrainer(DSTrainer):
     shared_args: dict
       The shared keyword arguments for the target models.
     """
-    if shared_args is None: shared_args = dict()
+    if shared_args is None:
+      shared_args = dict()
     shared_args['fit'] = shared_args.get('fit', True)
+    shared_args = tools.DotDict(shared_args)
 
     # checking training and testing data
     if not isinstance(train_data, (list, tuple)):
@@ -167,6 +171,7 @@ class OfflineTrainer(DSTrainer):
     xs, ys = train_data
 
     # prediction, get all needed data
+    shared_args['fit'] = shared_args.get('fit', False)
     outs = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
 
     # check target data
@@ -182,7 +187,9 @@ class OfflineTrainer(DSTrainer):
     for node in self.train_nodes:
       key = f'{node.name}-fit_record'
       monitor_data[key] = self.mon.get(key)
-    self._get_f_train(shared_args)(monitor_data, ys)
+    run_fun = self._jit_fun_train if self.jit['fit'] else self._fun_train
+    shared_args['fit'] = True
+    run_fun(monitor_data, ys, shared_args=shared_args)
     del monitor_data
 
     # close the progress bar
@@ -199,19 +206,14 @@ class OfflineTrainer(DSTrainer):
 
     return outs
 
-  def _get_f_train(self, shared_args: Dict = None) -> Callable:
-    """Get training function."""
-    shared_args = dict() if shared_args is None else shared_args
-    shared_kwargs_str = serialize_kwargs(shared_args)
-    if shared_kwargs_str not in self._f_fit_compiled:
-      self._f_fit_compiled[shared_kwargs_str] = (
-        self._fun_train
-        if self.jit['fit'] else
-        bm.jit(self._fun_train)
-      )
-    return self._f_fit_compiled[shared_kwargs_str]
+  def _fun_train(self,
+                 monitor_data: Dict[str, ArrayType],
+                 target_data: Dict[str, ArrayType],
+                 shared_args: Dict = None):
+    if shared_args is None:
+      shared_args = dict()
+    share.save(**shared_args)
 
-  def _fun_train(self, monitor_data: Dict[str, ArrayType], target_data: Dict[str, ArrayType]):
     for node in self.train_nodes:
       fit_record = monitor_data[f'{node.name}-fit_record']
       targets = target_data[node.name]
@@ -219,18 +221,18 @@ class OfflineTrainer(DSTrainer):
       if self.progress_bar:
         id_tap(lambda *args: self._pbar.update(), ())
 
-  def _step_func_monitor(self, shared):
+  def _step_func_monitor(self):
     res = dict()
     for key, val in self._monitors.items():
       if callable(val):
-        res[key] = val(shared)
+        res[key] = _call_fun_with_share(val)
       else:
         (variable, idx) = val
         if idx is None:
           res[key] = variable.value
         else:
           res[key] = variable[bm.asarray(idx)]
-    if shared.get('fit', False):
+    if share.load('fit'):
       for node in self.train_nodes:
         res[f'{node.name}-fit_record'] = node.fit_record
     return res
@@ -238,8 +240,8 @@ class OfflineTrainer(DSTrainer):
   def _check_interface(self):
     for node in self.train_nodes:
       if not hasattr(node, 'offline_fit'):
-          raise NoImplementationError(
-            f'''
+        raise NoImplementationError(
+          f'''
             The node
             
             {node}
@@ -248,20 +250,7 @@ class OfflineTrainer(DSTrainer):
             However, it does not implement the required training 
             interface "offline_fit()" function. 
             '''
-          )
-      # if hasattr(node.offline_init, 'not_customized'):
-      #   if node.offline_init.not_customized:
-      #     raise NoImplementationError(
-      #       f'''
-      #       The node
-      #
-      #       {node}
-      #
-      #       is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}.
-      #       However, it does not implement the required training
-      #       interface "offline_init()" function.
-      #       '''
-      #     )
+        )
 
 
 class RidgeTrainer(OfflineTrainer):
@@ -278,6 +267,4 @@ class RidgeTrainer(OfflineTrainer):
   """
 
   def __init__(self, target, alpha=1e-7, **kwargs):
-    super(RidgeTrainer, self).__init__(target=target,
-                                       fit_method=dict(name='ridge', alpha=alpha),
-                                       **kwargs)
+    super().__init__(target=target, fit_method=dict(name='ridge', alpha=alpha), **kwargs)

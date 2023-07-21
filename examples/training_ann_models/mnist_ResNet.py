@@ -39,10 +39,10 @@ class BasicBlock(bp.DynamicalSystem):
         bp.layers.BatchNorm2D(self.expansion * planes)
       )
 
-  def update(self, s, x):
-    out = bm.relu(self.bn1(s, self.conv1(s, x)))
-    out = self.bn2(s, self.conv2(s, out))
-    out += self.shortcut(s, x)
+  def update(self, x):
+    out = bm.relu(self.bn1(self.conv1(x)))
+    out = self.bn2(self.conv2(out))
+    out += self.shortcut(x)
     preact = out
     out = bm.relu(out)
     if self.is_last:
@@ -77,10 +77,10 @@ class Bottleneck(bp.DynamicalSystem):
       )
 
   def update(self, s, x):
-    out = bm.relu(self.bn1(s, self.conv1(s, x)))
-    out = bm.relu(self.bn2(s, self.conv2(s, out)))
-    out = self.bn3(s, self.conv3(s, out))
-    out += self.shortcut(s, x)
+    out = bm.relu(self.bn1(self.conv1(x)))
+    out = bm.relu(self.bn2(self.conv2(out)))
+    out = self.bn3(self.conv3(out))
+    out += self.shortcut(x)
     preact = out
     out = bm.relu(out)
     if self.is_last:
@@ -141,21 +141,21 @@ class ResNet(bp.DynamicalSystem):
     return bp.Sequential(*layers)
 
   def update(self, s, x, is_feat=False, preact=False):
-    out = bm.relu(self.bn1(s, self.conv1(s, x)))
+    out = bm.relu(self.bn1(self.conv1(x)))
     f0 = out
-    out, f1_pre = self.layer1(s, out)
+    out, f1_pre = self.layer1(out)
     f1 = out
-    out, f2_pre = self.layer2(s, out)
+    out, f2_pre = self.layer2(out)
     f2 = out
-    out, f3_pre = self.layer3(s, out)
+    out, f3_pre = self.layer3(out)
     f3 = out
-    out, f4_pre = self.layer4(s, out)
+    out, f4_pre = self.layer4(out)
     f4 = out
-    # out = self.avgpool(s, out)
+    # out = self.avgpool(out)
     # out = out.reshape(128, -1)
     out = bm.mean(out, axis=(1, 2))
     f5 = out
-    out = self.linear(s, out)
+    out = self.linear(out)
     if is_feat:
       if preact:
         return [[f0, f1_pre, f2_pre, f3_pre, f4_pre, f5], out]
@@ -213,8 +213,8 @@ def main():
 
   # loss function
   def loss_fun(X, Y, fit=True):
-    s = {'fit': fit}
-    predictions = net(s, X)
+    bp.share.save(fit=fit)
+    predictions = net(X)
     l = bp.losses.cross_entropy_loss(predictions, Y)
     n = bm.sum(predictions.argmax(1) == Y)
     return l, n

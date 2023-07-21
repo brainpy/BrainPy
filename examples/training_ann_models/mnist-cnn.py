@@ -10,20 +10,20 @@ import brainpy.math as bm
 class FeedForwardModel(bp.DynamicalSystem):
   def __init__(self):
     super(FeedForwardModel, self).__init__()
-    self.conv1 = bp.layers.Conv2d(1, 32, kernel_size=(3, 3), strides=(1, 1), padding='SAME')
-    self.pool = bp.layers.MaxPool(2, 2, channel_axis=-1)
-    self.conv2 = bp.layers.Conv2d(32, 64, kernel_size=(3, 3), strides=(1, 1), padding='SAME')
-    self.fc1 = bp.layers.Dense(64 * 7 * 7, 1024)
-    self.fc2 = bp.layers.Dense(1024, 512)
-    self.fc3 = bp.layers.Dense(512, 10)
+    self.conv1 = bp.dnn.Conv2d(1, 32, kernel_size=(3, 3), strides=(1, 1), padding='SAME')
+    self.pool = bp.dnn.MaxPool(2, 2, channel_axis=-1)
+    self.conv2 = bp.dnn.Conv2d(32, 64, kernel_size=(3, 3), strides=(1, 1), padding='SAME')
+    self.fc1 = bp.dnn.Dense(64 * 7 * 7, 1024)
+    self.fc2 = bp.dnn.Dense(1024, 512)
+    self.fc3 = bp.dnn.Dense(512, 10)
 
-  def update(self, s, x):
-    x = self.pool(s, bm.relu(self.conv1(s, x)))
-    x = self.pool(s, bm.relu(self.conv2(s, x)))
+  def update(self, x):
+    x = self.pool(bm.relu(self.conv1(x)))
+    x = self.pool(bm.relu(self.conv2(x)))
     x = x.reshape(-1, 64 * 7 * 7)
-    x = bm.relu(self.fc1(s, x))
-    x = bm.relu(self.fc2(s, x))
-    x = self.fc3(s, x)
+    x = bm.relu(self.fc1(x))
+    x = bm.relu(self.fc2(x))
+    x = self.fc3(x)
     return x
 
 

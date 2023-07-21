@@ -3,6 +3,7 @@
 import collections
 import gc
 import inspect
+import warnings
 from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
@@ -12,6 +13,7 @@ from brainpy._src.initialize import parameter, variable_
 from brainpy._src.mixin import AutoDelaySupp, Container, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
+from brainpy._src.deprecations import _update_deprecate_msg
 
 share = None
 
@@ -160,13 +162,38 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     pass
 
   def step_run(self, i, *args, **kwargs):
+    """The step run function.
+
+    This function can be directly applied to run the dynamical system.
+    Particularly, ``i`` denotes the running index.
+
+    Args:
+      i: The current running index.
+      *args: The arguments of ``update()`` function.
+      **kwargs: The arguments of ``update()`` function.
+
+    Returns:
+      out: The update function returns.
+    """
     global share
     if share is None:
       from brainpy._src.context import share
     share.save(i=i, t=i * bm.dt)
     return self.update(*args, **kwargs)
 
-  jit_step_run = bm.cls_jit(step_run, inline=True)
+  @bm.cls_jit(inline=True)
+  def jit_step_run(self, i, *args, **kwargs):
+    """The jitted step function for running.
+
+    Args:
+      i: The current running index.
+      *args: The arguments of ``update()`` function.
+      **kwargs: The arguments of ``update()`` function.
+
+    Returns:
+      out: The update function returns.
+    """
+    return self.step_run(i, *args, **kwargs)
 
   @property
   def mode(self) -> bm.Mode:
@@ -189,19 +216,20 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
 
     if len(update_args) and update_args[0].name in ['tdi', 'sh', 'sha']:
       if len(args) > 0:
-        if isinstance(args[0], dict):
+        if isinstance(args[0], dict) and all([bm.isscalar(v) for v in args[0].values()]):
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
           #    update(tdi, *args, **kwargs)
           ret = update_fun(*args, **kwargs)
-          # TODO: deprecation
+          warnings.warn(_update_deprecate_msg, UserWarning)
         else:
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
           #    update(*args, **kwargs)
           ret = update_fun(share.get_shargs(), *args, **kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
       else:
         if update_args[0].name in kwargs:
           # define:
@@ -209,12 +237,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
           # call:
           #    update(tdi=??, **kwargs)
           ret = update_fun(**kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
         else:
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
           #    update(**kwargs)
           ret = update_fun(share.get_shargs(), *args, **kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
       return ret
 
     try:
@@ -230,6 +260,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
         #    update(*args, **kwargs)
         share.save(**args[0])
         ret = update_fun(*args[1:], **kwargs)
+        warnings.warn(_update_deprecate_msg, UserWarning)
         return ret
       else:
         # user define ``update()`` function which receives the shared argument,
@@ -240,6 +271,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
         # as
         #    update(tdi, *args, **kwargs)
         ret = update_fun(share.get_shargs(), *args, **kwargs)
+        warnings.warn(_update_deprecate_msg, UserWarning)
         return ret
     else:
       return update_fun(*args, **kwargs)
@@ -259,14 +291,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
 
-    # update ``before_updates``
+    # ``before_updates``
     for model in self.before_updates.values():
       model()
 
     # update the model self
     ret = self.update(*args, **kwargs)
 
-    # update ``after_updates``
+    # ``after_updates``
     for model in self.after_updates.values():
       model(ret)
     return ret

@@ -8,6 +8,40 @@ __all__ = [
 ]
 
 
+_update_deprecate_msg = '''
+From brainpy>=2.4.3, update() function no longer needs to receive a global shared argument.
+
+Instead of using:
+
+  def update(self, tdi, *args, **kwagrs):
+     t = tdi['t']
+     ...
+
+Please use:
+
+  def update(self, *args, **kwagrs):
+     t = bp.share['t']
+     ...
+'''
+
+
+_input_deprecate_msg = '''
+From brainpy>=2.4.3, input() function no longer needs to receive a global shared argument.
+
+Instead of using:
+
+  def input(tdi):
+     ...
+
+Please use:
+
+  def input():
+     t = bp.share['t']
+     ...
+'''
+
+
+
 def _deprecate(msg):
   warnings.simplefilter('always', DeprecationWarning)  # turn off filter
   warnings.warn(msg, category=DeprecationWarning, stacklevel=2)

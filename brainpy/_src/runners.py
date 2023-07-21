@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-
+import functools
+import inspect
 import time
 import warnings
 from collections.abc import Iterable
-from functools import partial
-from typing import Dict, Union, Sequence, Callable, Tuple, Optional
+from typing import Dict, Union, Sequence, Callable, Tuple, Optional, Any
 
 import jax
 import jax.numpy as jnp
@@ -14,13 +14,12 @@ from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map, tree_flatten
 
 from brainpy import math as bm, tools
-from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.context import share
+from brainpy._src.deprecations import _input_deprecate_msg
+from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.running.runner import Runner
-from brainpy.check import serialize_kwargs
 from brainpy.errors import RunningError
-from brainpy.types import ArrayType, Output, Monitor
-
+from brainpy.types import Output, Monitor
 
 __all__ = [
   'DSRunner',
@@ -28,6 +27,16 @@ __all__ = [
 
 SUPPORTED_INPUT_OPS = ['-', '+', '*', '/', '=']
 SUPPORTED_INPUT_TYPE = ['fix', 'iter', 'func']
+
+
+def _call_fun_with_share(f, *args, **kwargs):
+  try:
+    sha = share.get_shargs()
+    inspect.signature(f).bind(sha, *args, **kwargs)
+    warnings.warn(_input_deprecate_msg, UserWarning)
+    return f(sha, *args, **kwargs)
+  except TypeError:
+    return f(*args, **kwargs)
 
 
 def _is_brainpy_array(x):
@@ -78,7 +87,6 @@ def check_and_format_inputs(host, inputs):
   # 2. get targets and attributes
   # ---------
   inputs_which_found_target = []
-  inputs_not_found_target = []
 
   # checking 1: absolute access
   #    Check whether the input target node is accessible,
@@ -100,22 +108,6 @@ def check_and_format_inputs(host, inputs):
       raise RunningError(f'For each input, input[0] must be a string  to '
                          f'specify variable of the target, but we got {key}.')
     inputs_which_found_target.append((real_target,) + tuple(one_input[1:]))
-
-  # checking 2: relative access
-  #    Check whether the input target node is accessible
-  #    and check whether the target node has the attribute
-  # if len(inputs_not_found_target):
-  #   nodes = host.nodes(method='relative', level=-1, include_self=True)
-  #   for one_input in inputs_not_found_target:
-  #     splits = one_input[0].split('.')
-  #     target, key = '.'.join(splits[:-1]), splits[-1]
-  #     if target not in nodes:
-  #       raise RunningError(f'Input target "{target}" is not defined in {host}.')
-  #     real_target = nodes[target]
-  #     if not hasattr(real_target, key):
-  #       raise RunningError(f'Input target key "{key}" is not defined in {real_target}.')
-  #     real_target = getattr(real_target, key)
-  #     inputs_which_found_target.append((real_target,) + tuple(one_input[1:]))
 
   # 3. format inputs
   # ---------
@@ -257,7 +249,7 @@ class DSRunner(Runner):
     - A list of string with index specification. Like ``monitors=[('a', 1), ('b', [1,3,5]), 'c']``
     - A dict with the explicit monitor target, like: ``monitors={'a': model.spike, 'b': model.V}``
     - A dict with the index specification, like: ``monitors={'a': (model.spike, 0), 'b': (model.V, [1,2])}``
-    - A dict with the callable function, like ``monitors={'a': lambda tdi: model.spike[:5]}``
+    - A dict with the callable function, like ``monitors={'a': lambda: model.spike[:5]}``
 
     .. versionchanged:: 2.3.1
        ``fun_monitors`` are merged into ``monitors``.
@@ -266,8 +258,8 @@ class DSRunner(Runner):
     The dict ``key`` should be a string for the later retrieval by ``runner.mon[key]``.
     The dict ``value`` should be a callable function which receives two arguments: ``t`` and ``dt``.
     .. code-block::
-       fun_monitors = {'spike': lambda tdi: model.spike[:10],
-                       'V10': lambda tdi: model.V[10]}
+       fun_monitors = {'spike': lambda: model.spike[:10],
+                       'V10': lambda: model.V[10]}
 
     .. deprecated:: 2.3.1
        Will be removed since version 2.4.0.
@@ -334,17 +326,16 @@ class DSRunner(Runner):
     if not isinstance(target, DynamicalSystem):
       raise RunningError(f'"target" must be an instance of {DynamicalSystem.__name__}, '
                          f'but we got {type(target)}: {target}')
-    super(DSRunner, self).__init__(target=target,
-                                   monitors=monitors,
-                                   fun_monitors=fun_monitors,
-                                   jit=jit,
-                                   progress_bar=progress_bar,
-                                   dyn_vars=dyn_vars,
-                                   numpy_mon_after_run=numpy_mon_after_run)
+    super().__init__(target=target,
+                     monitors=monitors,
+                     fun_monitors=fun_monitors,
+                     jit=jit,
+                     progress_bar=progress_bar,
+                     dyn_vars=dyn_vars,
+                     numpy_mon_after_run=numpy_mon_after_run)
 
     # t0 and i0
     self.i0 = 0
-    self._t0 = t0
     self.t0 = t0
     if data_first_axis is None:
       data_first_axis = 'B' if isinstance(self.target.mode, bm.BatchingMode) else 'T'
@@ -369,7 +360,7 @@ class DSRunner(Runner):
       self._inputs = check_and_format_inputs(host=target, inputs=inputs)
 
     # run function
-    self._f_predict_compiled = dict()
+    self._jit_step_func_predict = bm.jit(self._step_func_predict, static_argnames=['shared_args'])
 
     # monitors
     self._memory_efficient = memory_efficient
@@ -388,15 +379,15 @@ class DSRunner(Runner):
   def reset_state(self):
     """Reset state of the ``DSRunner``."""
     self.i0 = 0
-    self.t0 = self._t0
+    self.t0 = self.t0
 
   def predict(
       self,
       duration: float = None,
-      inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]] = None,
+      inputs: Any = None,
       reset_state: bool = False,
-      shared_args: Dict = None,
       eval_time: bool = False,
+      shared_args: Dict = None,
 
       # deprecated
       inputs_are_batching: bool = None,
@@ -431,10 +422,10 @@ class DSRunner(Runner):
          Will be removed after version 2.4.0.
     reset_state: bool
       Whether reset the model states.
-    shared_args: optional, dict
-      The shared arguments across different layers.
     eval_time: bool
       Whether ro evaluate the running time.
+    shared_args: optional, dict
+      The shared arguments across different layers.
 
     Returns
     -------
@@ -469,19 +460,13 @@ class DSRunner(Runner):
       self.reset_state()
 
     # shared arguments and inputs
-    if shared_args is None:
-      shared_args = dict()
-    shared_args['fit'] = shared_args.get('fit', False)
-    shared = tools.DotDict(i=np.arange(num_step, dtype=bm.int_))
-    shared['t'] = shared['i'] * self.dt
-    shared['i'] += self.i0
-    shared['t'] += self.t0
+    indices = np.arange(self.i0, self.i0 + num_step, dtype=bm.int_)
 
     if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
       inputs = tree_map(lambda x: jnp.moveaxis(x, 0, 1), inputs)
 
     # build monitor
-    for key in self.mon.var_names:
+    for key in self._monitors.keys():
       self.mon[key] = []  # reshape the monitor items
 
     # init progress bar
@@ -492,8 +477,11 @@ class DSRunner(Runner):
     # running
     if eval_time:
       t0 = time.time()
-    with jax.disable_jit(not self.jit['predict']):
-      outputs, hists = self._predict(xs=(shared['t'], shared['i'], inputs), shared_args=shared_args)
+    if inputs is None:
+      inputs = tuple()
+    if not isinstance(inputs, (tuple, list)):
+      inputs = (inputs,)
+    outputs, hists = self._predict(indices, *inputs, shared_args=shared_args)
     if eval_time:
       running_time = time.time() - t0
 
@@ -503,17 +491,18 @@ class DSRunner(Runner):
 
     # post-running for monitors
     if self._memory_efficient:
-      self.mon['ts'] = shared['t'] + self.dt
-      for key in self.mon.var_names:
+      self.mon['ts'] = indices * self.dt + self.t0
+      for key in self._monitors.keys():
         self.mon[key] = np.asarray(self.mon[key])
     else:
-      hists['ts'] = shared['t'] + self.dt
+      hists['ts'] = indices * self.dt + self.t0
       if self.numpy_mon_after_run:
         hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
+      else:
+        hists['ts'] = bm.as_jax(hists['ts'])
       for key in hists.keys():
         self.mon[key] = hists[key]
     self.i0 += num_step
-    self.t0 += (num_step * self.dt if duration is None else duration)
     return outputs if not eval_time else (running_time, outputs)
 
   def run(self, *args, **kwargs) -> Union[Output, Tuple[float, Output]]:
@@ -526,17 +515,12 @@ class DSRunner(Runner):
     """
     return self.predict(*args, **kwargs)
 
-  def _predict(
-      self,
-      xs: Sequence,
-      shared_args: Dict = None,
-  ) -> Union[Output, Monitor]:
+  def _predict(self, indices, *xs, shared_args=None) -> Union[Output, Monitor]:
     """Predict the output according to the inputs.
 
     Parameters
     ----------
     xs: sequence
-      Must be a tuple/list of data, including `(times, indices, inputs)`.
       If `inputs` is not None, it should be a tensor with the shape of
       :math:`(num_time, ...)`.
     shared_args: optional, dict
@@ -547,18 +531,21 @@ class DSRunner(Runner):
     outputs, hists
       A tuple of pair of (outputs, hists).
     """
-    _predict_func = self._get_f_predict(shared_args)
-    outs_and_mons = _predict_func(xs)
+    if shared_args is None:
+      shared_args = dict()
+    shared_args = tools.DotDict(shared_args)
+
+    outs_and_mons = self._fun_predict(indices, *xs, shared_args=shared_args)
     if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
       outs_and_mons = tree_map(lambda x: jnp.moveaxis(x, 0, 1) if x.ndim >= 2 else x,
                                outs_and_mons)
     return outs_and_mons
 
-  def _step_func_monitor(self, shared):
+  def _step_func_monitor(self):
     res = dict()
     for key, val in self._monitors.items():
       if callable(val):
-        res[key] = val(shared)
+        res[key] = _call_fun_with_share(val)
       else:
         (variable, idx) = val
         if idx is None:
@@ -567,21 +554,21 @@ class DSRunner(Runner):
           res[key] = variable[bm.as_jax(idx)]
     return res
 
-  def _step_func_input(self, shared):
+  def _step_func_input(self):
     if self._fun_inputs is not None:
-      self._fun_inputs(shared)
+      self._fun_inputs(share.get_shargs())
     if callable(self._inputs):
-      self._inputs(shared)
+      _call_fun_with_share(self._inputs)
     else:
       for ops, values in self._inputs['fixed'].items():
         for var, data in values:
           _f_ops(ops, var, data)
       for ops, values in self._inputs['array'].items():
         for var, data in values:
-          _f_ops(ops, var, data[shared['i']])
+          _f_ops(ops, var, data[share['i']])
       for ops, values in self._inputs['functional'].items():
         for var, data in values:
-          _f_ops(ops, var, data(shared))
+          _f_ops(ops, var, _call_fun_with_share(data))
       for ops, values in self._inputs['iterated'].items():
         for var, data in values:
           _f_ops(ops, var, next(data))
@@ -628,25 +615,24 @@ class DSRunner(Runner):
     for key, val in args.items():
       self.mon[key].append(val)
 
-  def _step_func_predict(self, shared_args, t, i, x):
+  def _step_func_predict(self, i, *x, shared_args=None):
     # input step
-    shared = tools.DotDict(t=t, i=i, dt=self.dt)
-    shared.update(shared_args)
-    share.save(**shared)
-    self._step_func_input(shared)
+    if shared_args is not None:
+      assert isinstance(shared_args, dict)
+      share.save(**shared_args)
+    share.save(t=self.t0 + i * self.dt, i=i, dt=self.dt)
+    self._step_func_input()
 
     # dynamics update step
-    args = () if x is None else (x,)
-    out = self.target(*args)
+    out = self.target(*x)
 
     # monitor step
-    shared['t'] += self.dt
-    mon = self._step_func_monitor(shared)
+    mon = self._step_func_monitor()
 
     # finally
     if self.progress_bar:
       id_tap(lambda *arg: self._pbar.update(), ())
-    share.clear_shargs()
+    # share.clear_shargs()
     self.target.clear_input()
 
     if self._memory_efficient:
@@ -655,40 +641,24 @@ class DSRunner(Runner):
     else:
       return out, mon
 
-  def _get_f_predict(self, shared_args: Dict = None):
-    if shared_args is None:
-      shared_args = dict()
-
-    shared_kwargs_str = serialize_kwargs(shared_args)
-    if shared_kwargs_str not in self._f_predict_compiled:
-
-      if self._memory_efficient:
-        _jit_step = bm.jit(partial(self._step_func_predict, shared_args))
-
-        def run_func(all_inputs):
-          outs = None
-          times, indices, xs = all_inputs
-          for i in range(times.shape[0]):
-            out, _ = _jit_step(times[i], indices[i], tree_map(lambda a: a[i], xs))
-            if outs is None:
-              outs = tree_map(lambda a: [], out)
-            outs = tree_map(lambda a, o: o.append(a), out, outs)
-          outs = tree_map(lambda a: bm.as_jax(a), outs)
-          return outs, None
-
+  def _fun_predict(self, indices, *inputs, shared_args=None):
+    if self._memory_efficient:
+      if self.jit['predict']:
+        run_fun = self._jit_step_func_predict
       else:
-        step = partial(self._step_func_predict, shared_args)
+        run_fun = self._step_func_predict
 
-        def run_func(all_inputs):
-          return bm.for_loop(step, all_inputs, jit=self.jit['predict'])
+      outs = None
+      for i in range(indices.shape[0]):
+        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs), shared_args=shared_args)
+        if outs is None:
+          outs = tree_map(lambda a: [], out)
+        outs = tree_map(lambda a, o: o.append(a), out, outs)
+      outs = tree_map(lambda a: bm.as_jax(a), outs)
+      return outs, None
 
-      self._f_predict_compiled[shared_kwargs_str] = run_func
-
-    return self._f_predict_compiled[shared_kwargs_str]
-
-  def __del__(self):
-    if hasattr(self, '_f_predict_compiled'):
-      for key in tuple(self._f_predict_compiled.keys()):
-        self._f_predict_compiled.pop(key)
-    super(DSRunner, self).__del__()
-
+    else:
+      return bm.for_loop(self._step_func_predict,
+                         (indices, *inputs),
+                         jit=self.jit['predict'],
+                         unroll_kwargs={'shared_args': shared_args})

@@ -722,12 +722,13 @@ def _get_for_loop_transform(
     progress_bar: bool,
     remat: bool,
     reverse: bool,
-    unroll: int
+    unroll: int,
+    unroll_kwargs: tools.DotDict
 ):
   def fun2scan(carry, x):
     for k in dyn_vars.keys():
       dyn_vars[k]._value = carry[k]
-    results = body_fun(*x)
+    results = body_fun(*x, **unroll_kwargs)
     if progress_bar:
       id_tap(lambda *arg: bar.update(), ())
     return dyn_vars.dict_data(), results
@@ -753,6 +754,7 @@ def for_loop(
     remat: bool = False,
     jit: Optional[bool] = None,
     progress_bar: bool = False,
+    unroll_kwargs: Optional[Dict] = None,
 
     # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
@@ -845,6 +847,8 @@ def for_loop(
     .. deprecated:: 2.4.0
        No longer need to provide ``child_objs``. This function is capable of automatically
        collecting the children objects used in the target ``func``.
+  unroll_kwargs: dict
+    The keyword arguments without unrolling.
 
   Returns
   -------
@@ -854,6 +858,10 @@ def for_loop(
 
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
+
+  if unroll_kwargs is None:
+    unroll_kwargs = dict()
+  unroll_kwargs = tools.DotDict(unroll_kwargs)
 
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
@@ -865,19 +873,20 @@ def for_loop(
 
   if jit is None:  # jax disable jit
     jit = not jax.config.jax_disable_jit
-  dyn_vars = get_stack_cache(body_fun)
+  dyn_vars = get_stack_cache((body_fun, unroll_kwargs))
   if jit:
     if dyn_vars is None:
       # TODO: better cache mechanism?
       with new_transform('for_loop'):
         with VariableStack() as dyn_vars:
           transform = _get_for_loop_transform(body_fun, VariableStack(), bar,
-                                              progress_bar, remat, reverse, unroll)
+                                              progress_bar, remat, reverse, unroll,
+                                              unroll_kwargs)
           if current_transform_number() > 1:
             rets = transform(operands)
           else:
             rets = jax.eval_shape(transform, operands)
-      cache_stack(body_fun, dyn_vars)  # cache
+      cache_stack((body_fun, unroll_kwargs), dyn_vars)  # cache
       if current_transform_number():
         return rets[1]
       del rets
@@ -885,7 +894,9 @@ def for_loop(
     dyn_vars = VariableStack()
 
   # TODO: cache mechanism?
-  transform = _get_for_loop_transform(body_fun, dyn_vars, bar, progress_bar, remat, reverse, unroll)
+  transform = _get_for_loop_transform(body_fun, dyn_vars, bar,
+                                      progress_bar, remat, reverse,
+                                      unroll, unroll_kwargs)
   if jit:
     dyn_vals, out_vals = transform(operands)
   else:

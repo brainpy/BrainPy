@@ -3,7 +3,7 @@ from typing import Optional, Callable, Union
 import jax
 
 from brainpy import math as bm, check
-from brainpy._src.delay import Delay, VariDelay, DataDelay, DelayAccess
+from brainpy._src.delay import Delay, VarDelay, DataDelay, DelayAccess
 from brainpy._src.dynsys import DynamicalSystem, Projection, Dynamic, Sequential
 from brainpy._src.mixin import JointType, ParamDescInit, ReturnInfo, AutoDelaySupp, BindCondData, AlignPost
 
@@ -54,7 +54,7 @@ class _AlignPreMg(DynamicalSystem):
 
 def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
   if isinstance(info, bm.Variable):
-    return VariDelay(info)
+    return VarDelay(info)
   elif isinstance(info, ReturnInfo):
     if isinstance(info.batch_or_mode, int):
       shape = (info.batch_or_mode,) + tuple(info.size)
@@ -106,7 +106,7 @@ class VanillaProj(Projection):
           super().__init__()
           self.N = bp.dyn.LifRef(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                  V_initializer=bp.init.Normal(-55., 2.))
-          self.delay = bp.VariableDelay(self.N.spike, entries={'I': None})
+          self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
           self.syn1 = bp.dyn.Expon(size=3200, tau=5.)
           self.syn2 = bp.dyn.Expon(size=800, tau=10.)
           self.E = bp.dyn.VanillaProj(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
@@ -180,7 +180,7 @@ class ProjAlignPostMg1(Projection):
         super().__init__()
         self.N = bp.dyn.LifRef(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                V_initializer=bp.init.Normal(-55., 2.))
-        self.delay = bp.VariableDelay(self.N.spike, entries={'I': None})
+        self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
         self.E = bp.dyn.ProjAlignPostMg1(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
                                          syn=bp.dyn.Expon.desc(size=4000, tau=5.),
                                          out=bp.dyn.COBA.desc(E=0.),
@@ -374,7 +374,7 @@ class ProjAlignPost1(Projection):
           super().__init__()
           self.N = bp.dyn.LifRef(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                  V_initializer=bp.init.Normal(-55., 2.))
-          self.delay = bp.VariableDelay(self.N.spike, entries={'I': None})
+          self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
           self.E = bp.dyn.ProjAlignPost1(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
                                          syn=bp.dyn.Expon(size=4000, tau=5.),
                                          out=bp.dyn.COBA(E=0.),
