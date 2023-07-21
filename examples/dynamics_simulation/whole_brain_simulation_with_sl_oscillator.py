@@ -10,7 +10,7 @@ bp.check.turn_off()
 
 
 def bifurcation_analysis():
-  model = bp.rates.StuartLandauOscillator(1, method='exp_auto')
+  model = bp.dyn.StuartLandauOscillator(1, method='exp_auto')
   pp = bp.analysis.Bifurcation2D(
     model,
     target_vars={'x': [-2, 2], 'y': [-2, 2]},
@@ -22,7 +22,7 @@ def bifurcation_analysis():
   pp.show_figure()
 
 
-class Network(bp.Network):
+class Network(bp.DynSysGroup):
   def __init__(self, noise=0.14):
     super(Network, self).__init__()
 
@@ -35,8 +35,8 @@ class Network(bp.Network):
     bm.fill_diagonal(conn_mat, 0)
     gc = 0.6  # global coupling strength
 
-    self.sl = bp.rates.StuartLandauOscillator(80, x_ou_sigma=noise, y_ou_sigma=noise)
-    self.coupling = bp.synapses.DiffusiveCoupling(
+    self.sl = bp.dyn.StuartLandauOscillator(80, x_ou_sigma=noise, y_ou_sigma=noise)
+    self.coupling = bp.dyn.DiffusiveCoupling(
       self.sl.x, self.sl.x,
       var_to_output=self.sl.input,
       conn_mat=conn_mat * gc
@@ -87,6 +87,6 @@ def net_analysis():
 
 
 if __name__ == '__main__':
-  bifurcation_analysis()
+  # bifurcation_analysis()
   simulation()
-  net_analysis()
+  # net_analysis()

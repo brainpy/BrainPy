@@ -14,7 +14,7 @@ class MeanFieldQIF(bp.DynamicalSystem):
   """
 
   def __init__(self, method='exp_auto'):
-    super(MeanFieldQIF, self).__init__()
+    super().__init__()
 
     # parameters
     self.tau = 1.  # the population time constant
@@ -38,8 +38,9 @@ class MeanFieldQIF(bp.DynamicalSystem):
     self.int_r = bp.odeint(dr, method=method)
     self.int_v = bp.odeint(dv, method=method)
 
-  def update(self, tdi):
-    t, dt = tdi['t'], tdi['dt']
+  def update(self):
+    t = bp.share['t']
+    dt = bp.share['dt']
     self.r.value = self.int_r(self.r, t, self.v, self.delta, dt)
     self.v.value = self.int_v(self.v, t, self.r, self.Iext, self.eta, dt)
     self.Iext[:] = 0.

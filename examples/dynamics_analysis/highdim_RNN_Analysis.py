@@ -26,7 +26,7 @@ class RNNNet(bp.DynamicalSystem):
       w_rr=bp.init.KaimingNormal(scale=1.),
       w_ro=bp.init.KaimingNormal(scale=1.)
   ):
-    super(RNNNet, self).__init__()
+    super().__init__()
 
     self.tau = 100
     self.num_input = num_input
@@ -64,7 +64,7 @@ class RNNNet(bp.DynamicalSystem):
   def readout(self, h):
     return h @ self.w_ro + self.b_ro
 
-  def update(self, sha, x):
+  def update(self, x):
     self.h.value = self.cell(x, self.h.value)
     return self.readout(self.h.value)
 
