@@ -115,7 +115,7 @@ class IFLTC(GradNeuDyn):
 
   def derivative(self, V, t, I):
     for out in self.cur_inputs.values():
-      I += out(V)
+      I = I + out(V)
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None):
@@ -141,7 +141,7 @@ class IF(IFLTC):
   def update(self, x=None):
     x = 0. if x is None else x
     for out in self.cur_inputs.values():
-      x += out(self.V.value)
+      x = x + out(self.V.value)
     super().update(x)
 
 

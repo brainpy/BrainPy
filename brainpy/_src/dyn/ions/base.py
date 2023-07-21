@@ -171,8 +171,8 @@ class Ion(IonChaDyn, Container, TreeNode):
 
     Args:
       V: The membrane potential.
-      C: The ion concentration.
-      E: The reversal potential.
+      C: The given ion concentration.
+      E: The given reversal potential.
       external: Include the external current.
 
     Returns:
