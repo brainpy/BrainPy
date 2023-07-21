@@ -9,6 +9,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm, tools
+from brainpy._src.math.object_transform.naming import get_unique_name
 from brainpy._src.initialize import parameter
 from brainpy.types import ArrayType
 
@@ -192,19 +193,25 @@ class Container(MixIn):
     string = ", \n".join(child_str)
     return f'{cls_name}({string})'
 
+  def __get_elem_name(self, elem):
+    if isinstance(elem, bm.BrainPyObject):
+      return elem.name
+    else:
+      return get_unique_name('ContainerElem')
+
   def format_elements(self, child_type: type, *children_as_tuple, **children_as_dict):
     res = dict()
 
     # add tuple-typed components
     for module in children_as_tuple:
       if isinstance(module, child_type):
-        res[module.name] = module
+        res[self.__get_elem_name(module)] = module
       elif isinstance(module, (list, tuple)):
         for m in module:
           if not isinstance(m, child_type):
             raise ValueError(f'Should be instance of {child_type.__name__}. '
                              f'But we got {type(m)}')
-          res[m.name] = m
+          res[self.__get_elem_name(m)] = m
       elif isinstance(module, dict):
         for k, v in module.items():
           if not isinstance(v, child_type):
@@ -226,12 +233,12 @@ class Container(MixIn):
     """Add new elements.
 
     >>> obj = Container()
-    >>> obj.add_elem(1.)
+    >>> obj.add_elem(a=1.)
 
     Args:
       elements: children objects.
     """
-    self.check_hierarchies(type(self), **elements)
+    # self.check_hierarchies(type(self), **elements)
     self.children.update(self.format_elements(object, **elements))
 
 

@@ -379,7 +379,6 @@ class DSRunner(Runner):
   def reset_state(self):
     """Reset state of the ``DSRunner``."""
     self.i0 = 0
-    self.t0 = self.t0
 
   def predict(
       self,

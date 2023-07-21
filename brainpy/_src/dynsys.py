@@ -411,7 +411,7 @@ class Network(DynSysGroup):
   pass
 
 
-class Sequential(DynamicalSystem, AutoDelaySupp):
+class Sequential(DynamicalSystem, AutoDelaySupp, Container):
   """A sequential `input-output` module.
 
   Modules will be added to it in the order they are passed in the
@@ -468,22 +468,12 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
       **modules_as_dict
   ):
     super().__init__(name=name, mode=mode)
-    self._dyn_modules = bm.NodeDict()
-    self._static_modules = dict()
-    i = 0
-    for m in modules_as_tuple + tuple(modules_as_dict.values()):
-      key = self.__format_key(i)
-      if isinstance(m, bm.BrainPyObject):
-        self._dyn_modules[key] = m
-      else:
-        self._static_modules[key] = m
-      i += 1
-    self._num = i
+    self.children = bm.node_dict(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
 
   def update(self, x):
     """Update function of a sequential model.
     """
-    for m in self.__all_nodes():
+    for m in self.children.values():
       x = m(x)
     return x
 
@@ -493,15 +483,6 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
       raise UnsupportedError(f'Does not support "return_info()" because the last node is '
                              f'not instance of {AutoDelaySupp.__name__}')
     return last.return_info()
-
-  def append(self, module: Callable):
-    assert isinstance(module, Callable)
-    key = self.__format_key(self._num)
-    if isinstance(module, bm.BrainPyObject):
-      self._dyn_modules[key] = module
-    else:
-      self._static_modules[key] = module
-    self._num += 1
 
   def __format_key(self, i):
     return f'l-{i}'
@@ -518,19 +499,17 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
 
   def __getitem__(self, key: Union[int, slice, str]):
     if isinstance(key, str):
-      if key in self._dyn_modules:
-        return self._dyn_modules[key]
-      elif key in self._static_modules:
-        return self._static_modules[key]
+      if key in self.children:
+        return self.children[key]
       else:
         raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
     elif isinstance(key, slice):
-      return Sequential(*(self.__all_nodes()[key]))
+      return Sequential(**dict(tuple(self.children.items())[key]))
     elif isinstance(key, int):
-      return self.__all_nodes()[key]
+      return tuple(self.children.values())[key]
     elif isinstance(key, (tuple, list)):
-      _all_nodes = self.__all_nodes()
-      return Sequential(*[_all_nodes[k] for k in key])
+      _all_nodes = tuple(self.children.items())
+      return Sequential(**dict(_all_nodes[k] for k in key))
     else:
       raise KeyError(f'Unknown type of key: {type(key)}')
 
@@ -653,7 +632,7 @@ class Dynamic(DynamicalSystem):
                      batch_axis_name=bm.sharding.BATCH_AXIS)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(name={self.name}, mode={self.mode}, size={self.size})'
+    return f'{self.name}(mode={self.mode}, size={self.size})'
 
   def __getitem__(self, item):
     return DynView(target=self, index=item)
