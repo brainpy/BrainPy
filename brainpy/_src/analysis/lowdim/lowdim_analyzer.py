@@ -99,7 +99,8 @@ class LowDimAnalyzer(DSAnalyzer):
         raise errors.AnalyzerError(f'{key} is not a dynamical variable in {self.model}.')
       value = self.target_vars[key]
       if value[0] > value[1]:
-        raise errors.AnalyzerError(f'The range of variable {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
+        raise errors.AnalyzerError(
+          f'The range of variable {key} is reversed, which means {value[0]} should be smaller than {value[1]}.')
 
     # fixed variables
     # ----------------
@@ -246,7 +247,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
   """
 
   def __init__(self, *args, **kwargs):
-    super(Num1DAnalyzer, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.x_var = self.target_var_names[0]
     if len(self.target_vars) < 1:
       raise errors.AnalyzerError(f'{Num1DAnalyzer.__name__} only supports dynamical system '
@@ -407,7 +408,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
   """
 
   def __init__(self, *args, **kwargs):
-    super(Num2DAnalyzer, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     if len(self.target_vars) < 2:
       raise errors.AnalyzerError(f'{Num1DAnalyzer.__name__} only supports dynamical system '
                                  f'with >= 2 variables. But we got {len(self.target_vars)} '
@@ -1028,7 +1029,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
 class Num3DAnalyzer(Num2DAnalyzer):
   def __init__(self, *args, **kwargs):
-    super(Num3DAnalyzer, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     if len(self.target_vars) < 3:
       raise errors.AnalyzerError(f'{Num1DAnalyzer.__name__} only supports dynamical system '
                                  f'with >= 3 variables. But we got {len(self.target_vars)} '
@@ -1045,7 +1046,3 @@ class Num3DAnalyzer(Num2DAnalyzer):
       f = partial(f, **(self.pars_update + self.fixed_vars))
       self.analyzed_results[C.F_fz] = jax.jit(f, device=self.jit_device)
     return self.analyzed_results[C.F_fz]
-
-  def fz_signs(self, pars=(), cache=False):
-    xyz = tuple(self.resolutions.values())
-    return utils.get_sign2(self.F_fz, *xyz, args=pars)

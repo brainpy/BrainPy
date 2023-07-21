@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import inspect
 import math
 import time
+import warnings
 from typing import Callable, Union, Dict, Sequence, Tuple
 
 import jax.numpy as jnp
@@ -18,6 +20,8 @@ from brainpy._src.context import share
 from brainpy._src.runners import check_and_format_inputs, _f_ops
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.types import ArrayType
+from brainpy._src.deprecations import _input_deprecate_msg
+
 
 __all__ = [
   'SlowPointFinder',
@@ -514,7 +518,7 @@ class SlowPointFinder(base.DSAnalyzer):
     # Compute pairwise distances between all fixed points.
     distances = np.asarray(utils.euclidean_distance_jax(self.fixed_points, num_fps))
 
-    # Find second smallest element in each column of the pairwise distance matrix.
+    # Find the second smallest element in each column of the pairwise distance matrix.
     # This corresponds to the closest neighbor for each fixed point.
     closest_neighbor = np.partition(distances, kth=1, axis=0)[1]
 
@@ -640,7 +644,12 @@ class SlowPointFinder(base.DSAnalyzer):
     if self._inputs is None:
       return
     elif callable(self._inputs):
-      self._inputs(share.get_shargs())
+      try:
+        ba = inspect.signature(self._inputs).bind(dict())
+        self._inputs(share.get_shargs())
+        warnings.warn(_input_deprecate_msg, UserWarning)
+      except TypeError:
+        self._inputs()
     else:
       for ops, values in self._inputs['fixed'].items():
         for var, data in values:
