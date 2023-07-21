@@ -365,12 +365,6 @@ class LifRefLTC(LifLTC):
     self.ref_var = ref_var
     self.tau_ref = self.init_param(tau_ref)
 
-    # initializers
-    self._V_initializer = is_initializer(V_initializer)
-
-    # integral
-    self.integral = odeint(method=method, f=self.derivative)
-
     # variables
     if init_var:
       self.reset_state(self.mode)

@@ -734,7 +734,7 @@ class NMDA(_TwoEndConnAlignPre):
     >>>
     >>> neu1 = neurons.HH(1)
     >>> neu2 = neurons.HH(1)
-    >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All(), E=0.)
+    >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All())
     >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
     >>>
     >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
@@ -848,7 +848,7 @@ class NMDA(_TwoEndConnAlignPre):
                      mode=mode)
 
     # copy the references
-    syn = self.pre.after_updates[self.proj._syn_id].syn.syn
+    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.x = syn.x
 

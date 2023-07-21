@@ -316,35 +316,35 @@ class _TwoEndConnAlignPre(TwoEndConn):
 
     # Projection
     if isinstance(conn, All2All):
-      proj = projections.ProjAlignPreMg1(pre=pre,
-                                         syn=syn,
+      proj = projections.ProjAlignPreMg2(pre=pre,
                                          delay=delay,
+                                         syn=syn,
                                          comm=linear.AllToAll(pre.num, post.num, g_max),
                                          out=_TempOut(),
                                          post=post)
 
     elif isinstance(conn, One2One):
       assert post.num == pre.num
-      proj = projections.ProjAlignPreMg1(pre=pre,
-                                         syn=syn,
+      proj = projections.ProjAlignPreMg2(pre=pre,
                                          delay=delay,
+                                         syn=syn,
                                          comm=linear.OneToOne(pre.num, g_max),
                                          out=_TempOut(),
                                          post=post)
 
     else:
       if comp_method == 'dense':
-        proj = projections.ProjAlignPreMg1(pre=pre,
-                                           syn=syn,
+        proj = projections.ProjAlignPreMg2(pre=pre,
                                            delay=delay,
+                                           syn=syn,
                                            comm=linear.MaskedLinear(conn, g_max),
                                            out=_TempOut(),
                                            post=post)
 
       elif comp_method == 'sparse':
-        proj = projections.ProjAlignPreMg1(pre=pre,
-                                           syn=syn,
+        proj = projections.ProjAlignPreMg2(pre=pre,
                                            delay=delay,
+                                           syn=syn,
                                            comm=linear.CSRLinear(conn, g_max),
                                            out=_TempOut(),
                                            post=post)
@@ -353,16 +353,26 @@ class _TwoEndConnAlignPre(TwoEndConn):
         raise UnsupportedError(f'Does not support {comp_method}, only "sparse" or "dense".')
     self.proj = proj
     self.proj.post.cur_inputs.pop(self.proj.name)
-    if hasattr(self.pre.after_updates[self.proj._syn_id].syn, 'stp'):
-      self.stp = self.pre.after_updates[self.proj._syn_id].syn.stp
+    if hasattr(self.post.before_updates[self.proj._syn_id].syn, 'stp'):
+      self.stp = self.post.before_updates[self.proj._syn_id].syn.stp
 
   def update(self, pre_spike=None, stop_spike_gradient: bool = False):
     if pre_spike is None:
-      pre_spike = self.pre.after_updates[self.proj._syn_id].delay.at(self.proj.name)
+      pre_spike = self.post.before_updates[self.proj._syn_id].syn.return_info()
+      pre_spike = _get_return(pre_spike)
     if stop_spike_gradient:
       pre_spike = jax.lax.stop_gradient(pre_spike)
     current = self.proj.comm(pre_spike)
     return self.output(current)
+  
+  
+def _get_return(return_info):
+  if isinstance(return_info, bm.Variable):
+    return return_info.value
+  elif isinstance(return_info, ReturnInfo):
+    return return_info.get_data()
+  else:
+    raise NotImplementedError
 
 
 class _UpdateSTP(DynamicalSystem):

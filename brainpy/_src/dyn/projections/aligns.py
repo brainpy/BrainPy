@@ -635,7 +635,7 @@ class ProjAlignPreMg1(Projection):
     self.comm = comm
 
     # synapse and delay initialization
-    self._syn_id = syn._identifier
+    self._syn_id = syn.identifier
     if self._syn_id not in pre.after_updates:
       # "syn_cls" needs an instance of "ProjAutoDelay"
       syn_cls: AutoDelaySupp = syn()

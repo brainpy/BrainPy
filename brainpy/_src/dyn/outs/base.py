@@ -9,7 +9,10 @@ __all__ = [
 
 
 class SynOut(DynamicalSystem, ParamDesc, BindCondData):
-  """Base class for synaptic outputs."""
+  """Base class for synaptic outputs.
+
+  :py:class:`~.SynOut` is also subclass of :py:class:`~.ParamDesc` and :pu:class:`~.BindCondData`.
+  """
   def __init__(self, name: Optional[str] = None):
     super().__init__(name=name)
 
