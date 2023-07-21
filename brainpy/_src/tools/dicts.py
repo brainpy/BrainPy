@@ -217,6 +217,9 @@ class DotDict(dict):
         gather[k] = v
     return gather
 
+  def __hash__(self):
+    return hash(tuple(sorted(self.items())))
+
 
 register_pytree_node(
   DotDict,
