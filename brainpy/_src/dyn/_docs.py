@@ -11,6 +11,9 @@ dpneu_doc = '''
     detach_spk: bool.
     method: str. The numerical integration method.
     spk_type: The spike data type.
+    spk_reset: The way to reset the membrane potential when the neuron generates spikes.
+        This parameter only works when the computing mode is ``TrainingMode``.
+        It can be ``soft`` and ``hard``. Default is ``soft``.
 '''.strip()
 
 ref_doc = '''
