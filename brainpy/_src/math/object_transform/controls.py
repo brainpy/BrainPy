@@ -723,11 +723,12 @@ def _get_for_loop_transform(
     remat: bool,
     reverse: bool,
     unroll: int,
+    unroll_kwargs: tools.DotDict
 ):
   def fun2scan(carry, x):
     for k in dyn_vars.keys():
       dyn_vars[k]._value = carry[k]
-    results = body_fun(*x)
+    results = body_fun(*x, **unroll_kwargs)
     if progress_bar:
       id_tap(lambda *arg: bar.update(), ())
     return dyn_vars.dict_data(), results
@@ -860,6 +861,7 @@ def for_loop(
 
   if unroll_kwargs is None:
     unroll_kwargs = dict()
+  unroll_kwargs = tools.DotDict(unroll_kwargs)
 
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
@@ -871,19 +873,20 @@ def for_loop(
 
   if jit is None:  # jax disable jit
     jit = not jax.config.jax_disable_jit
-  dyn_vars = get_stack_cache(body_fun)
+  dyn_vars = get_stack_cache((body_fun, unroll_kwargs))
   if jit:
     if dyn_vars is None:
       # TODO: better cache mechanism?
       with new_transform('for_loop'):
         with VariableStack() as dyn_vars:
           transform = _get_for_loop_transform(body_fun, VariableStack(), bar,
-                                              progress_bar, remat, reverse, unroll)
+                                              progress_bar, remat, reverse, unroll,
+                                              unroll_kwargs)
           if current_transform_number() > 1:
             rets = transform(operands)
           else:
             rets = jax.eval_shape(transform, operands)
-      cache_stack(body_fun, dyn_vars)  # cache
+      cache_stack((body_fun, unroll_kwargs), dyn_vars)  # cache
       if current_transform_number():
         return rets[1]
       del rets
@@ -893,7 +896,7 @@ def for_loop(
   # TODO: cache mechanism?
   transform = _get_for_loop_transform(body_fun, dyn_vars, bar,
                                       progress_bar, remat, reverse,
-                                      unroll)
+                                      unroll, unroll_kwargs)
   if jit:
     dyn_vals, out_vals = transform(operands)
   else:

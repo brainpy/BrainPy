@@ -466,7 +466,7 @@ class DSRunner(Runner):
       inputs = tree_map(lambda x: jnp.moveaxis(x, 0, 1), inputs)
 
     # build monitor
-    for key in self.mon.var_names:
+    for key in self._monitors.keys():
       self.mon[key] = []  # reshape the monitor items
 
     # init progress bar
@@ -492,7 +492,7 @@ class DSRunner(Runner):
     # post-running for monitors
     if self._memory_efficient:
       self.mon['ts'] = indices * self.dt + self.t0
-      for key in self.mon.var_names:
+      for key in self._monitors.keys():
         self.mon[key] = np.asarray(self.mon[key])
     else:
       hists['ts'] = indices * self.dt + self.t0
@@ -658,6 +658,7 @@ class DSRunner(Runner):
       return outs, None
 
     else:
-      return bm.for_loop(functools.partial(self._step_func_predict, shared_args=shared_args),
+      return bm.for_loop(self._step_func_predict,
                          (indices, *inputs),
-                         jit=self.jit['predict'])
+                         jit=self.jit['predict'],
+                         unroll_kwargs={'shared_args': shared_args})

@@ -118,7 +118,6 @@ class Runner(BrainPyObject):
 
     # monitor for user access
     self.mon = DotDict()
-    self.mon['var_names'] = tuple(self._monitors.keys())
 
     # progress bar
     assert isinstance(progress_bar, bool), 'Must be a boolean variable.'

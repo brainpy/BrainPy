@@ -177,7 +177,7 @@ class OnlineTrainer(DSTrainer):
                     is_leaf=lambda y: isinstance(y, bm.Array))
 
     # init monitor
-    for key in self.mon.var_names:
+    for key in self._monitors.keys():
       self.mon[key] = []  # reshape the monitor items
 
     # init progress bar

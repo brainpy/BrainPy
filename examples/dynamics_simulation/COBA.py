@@ -168,7 +168,6 @@ def run3():
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
 
 
-
 def run4():
   net = EICOBA_PostAlign(3200, 800)
   runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})

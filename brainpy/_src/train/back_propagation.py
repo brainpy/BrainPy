@@ -605,7 +605,7 @@ class BPFF(BPTrainer):
       self.target.reset_state(self._get_input_batch_size(xs=inputs))
       self.reset_state()
     # init monitor
-    for key in self.mon.var_names:
+    for key in self._monitors.keys():
       self.mon[key] = []  # reshape the monitor items
     # prediction
     if not isinstance(inputs, (tuple, list)):
