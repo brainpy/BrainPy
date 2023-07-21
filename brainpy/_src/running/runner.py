@@ -127,7 +127,6 @@ class Runner(BrainPyObject):
 
     # dynamical changed variables
     self._dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-    self.register_implicit_vars(self._dyn_vars)
 
     # numpy mon after run
     self.numpy_mon_after_run = numpy_mon_after_run

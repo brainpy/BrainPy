@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-
-from functools import partial
-from typing import Dict, Sequence, Union, Callable, Tuple
+import functools
+from typing import Dict, Sequence, Union, Callable
 
 import numpy as np
 import tqdm.auto
@@ -9,10 +8,10 @@ from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
-from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.context import share
+from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.runners import _call_fun_with_share
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.check import serialize_kwargs
 from brainpy.errors import NoImplementationError
 from brainpy.types import ArrayType, Output
 from ._utils import format_ys
@@ -58,7 +57,7 @@ class OnlineTrainer(DSTrainer):
       fit_method: Union[OnlineAlgorithm, Callable, Dict, str] = None,
       **kwargs
   ):
-    super(OnlineTrainer, self).__init__(target=target, **kwargs)
+    super().__init__(target=target, **kwargs)
 
     # get all trainable nodes
     nodes = self.target.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
@@ -145,6 +144,7 @@ class OnlineTrainer(DSTrainer):
   ) -> Output:
     if shared_args is None: shared_args = dict()
     shared_args['fit'] = shared_args.get('fit', True)
+    shared_args = tools.DotDict(shared_args)
 
     # checking training and testing data
     if not isinstance(train_data, (list, tuple)):
@@ -166,11 +166,8 @@ class OnlineTrainer(DSTrainer):
     # format input/target data
     ys = format_ys(self, ys)
     num_step = self._get_input_time_step(xs=xs)
-    shared = tools.DotDict(i=bm.arange(num_step, dtype=bm.int_).value)
-    shared['t'] = shared['i'] * self.dt
-    shared['t'] += self.t0
-    shared['i'] += self.i0
 
+    indices = np.arange(self.i0, num_step + self.i0, dtype=np.int_)
     if self.data_first_axis == 'B':
       xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                     xs,
@@ -189,35 +186,33 @@ class OnlineTrainer(DSTrainer):
       self._pbar.set_description(f"Train {num_step} steps: ", refresh=True)
 
     # prediction
-    outs, hists = self._fit(tix=(shared['t'], shared['i'], xs), ys=ys, shared_args=shared_args)
+    xs = (xs, ) if not isinstance(xs, (tuple, list)) else xs
+    outs, hists = self._fit(indices, xs=xs, ys=ys, shared_args=shared_args)
 
     # close the progress bar
     if self.progress_bar:
       self._pbar.close()
 
     # post-running for monitors
-    hists['ts'] = shared['t'] + self.dt
     if self.numpy_mon_after_run:
       hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
     for key in hists.keys():
       self.mon[key] = hists[key]
-    self.i0 += shared['t'].shape[0]
-    self.t0 += num_step * self.dt
+    self.i0 += num_step
     return outs
 
-  def _fit(
-      self,
-      tix: Tuple,
-      ys: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
-      shared_args: Dict = None,
-  ):
+  def _fit(self,
+           indices: ArrayType,
+           xs: Sequence,
+           ys: Dict[str, ArrayType],
+           shared_args: Dict = None):
     """Predict the output according to the inputs.
 
     Parameters
     ----------
-    tix: tuple
-      Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
-    ys: ArrayType
+    indices: ArrayType
+      The running indices.
+    ys: dict
       Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
     shared_args: optional, dict
       The shared keyword arguments.
@@ -227,41 +222,28 @@ class OnlineTrainer(DSTrainer):
     outputs, hists
       A tuple of pair of (outputs, hists).
     """
-    _fit_func = self._get_fit_func(shared_args)
-    hists = _fit_func(tix + (ys,))
+    hists = bm.for_loop(functools.partial(self._step_func_fit, shared_args=shared_args),
+                        (indices, xs, ys),
+                        jit=self.jit['fit'])
     hists = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                      hists,
                      is_leaf=lambda x: isinstance(x, bm.Array))
     return hists
 
-  def _get_fit_func(self, shared_args: Dict = None):
-    if shared_args is None: shared_args = dict()
-    shared_kwargs_str = serialize_kwargs(shared_args)
-    if shared_kwargs_str not in self._f_fit_compiled:
-      @bm.jit
-      def run_func(all_inputs):
-        return bm.for_loop(partial(self._step_func_fit, shared_args),
-                           all_inputs,
-                           jit=self.jit['fit'])
-
-      self._f_fit_compiled[shared_kwargs_str] = run_func
-    return self._f_fit_compiled[shared_kwargs_str]
-
-  def _step_func_fit(self, shared_args, t, i, x, ys):
-    shared = tools.DotDict(t=t, dt=self.dt, i=i)
-    shared.update(shared_args)
-    share.save(**shared)
+  def _step_func_fit(self, i, xs: Sequence, ys: Dict, shared_args=None):
+    if shared_args is None:
+      shared_args = dict()
+    share.save(t=i * self.dt, dt=self.dt, i=i, **shared_args)
 
     # input step
     self.target.clear_input()
-    self._step_func_input(shared)
+    self._step_func_input()
 
     # update step
-    args = () if x is None else (x, )
-    out = self.target(*args)
+    out = self.target(*xs)
 
     # monitor step
-    monitors = self._step_func_monitor(shared)
+    monitors = self._step_func_monitor()
     for node in self.train_nodes:
       fit_record = monitors.pop(f'{node.name}-fit_record')
       target = ys[node.name]
@@ -275,32 +257,32 @@ class OnlineTrainer(DSTrainer):
   def _check_interface(self):
     for node in self.train_nodes:
       if not hasattr(node, 'online_fit'):
-          raise NoImplementationError(
-            f'The node \n\n{node}\n\n'
-            f'is set to be trainable with {self.__class__.__name__} method. '
-            f'However, it does not implement the required training '
-            f'interface "online_fit()" function. '
-          )
+        raise NoImplementationError(
+          f'The node \n\n{node}\n\n'
+          f'is set to be trainable with {self.__class__.__name__} method. '
+          f'However, it does not implement the required training '
+          f'interface "online_fit()" function. '
+        )
       if not hasattr(node, 'online_init'):
-          raise NoImplementationError(
-            f'The node \n\n{node}\n\n'
-            f'is set to be trainable with {self.__class__.__name__} method. '
-            f'However, it does not implement the required training '
-            f'interface "online_init()" function. '
-          )
+        raise NoImplementationError(
+          f'The node \n\n{node}\n\n'
+          f'is set to be trainable with {self.__class__.__name__} method. '
+          f'However, it does not implement the required training '
+          f'interface "online_init()" function. '
+        )
 
-  def _step_func_monitor(self, shared):
+  def _step_func_monitor(self):
     res = dict()
     for key, val in self._monitors.items():
       if callable(val):
-        res[key] = val(shared)
+        res[key] = _call_fun_with_share(val)
       else:
         (variable, idx) = val
         if idx is None:
           res[key] = variable.value
         else:
           res[key] = variable[bm.asarray(idx)]
-    if shared.get('fit', False):
+    if share.load('fit'):
       for node in self.train_nodes:
         res[f'{node.name}-fit_record'] = node.fit_record
     return res
