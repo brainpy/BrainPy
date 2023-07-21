@@ -131,7 +131,6 @@ from brainpy._add_deprecations import deprecation_getattr2
 __deprecations = {
   'Module': ('brainpy.Module', 'brainpy.DynamicalSystem', DynamicalSystem),
   'Channel': ('brainpy.Channel', 'brainpy.dyn.IonChannel', dyn.IonChannel),
-  'NeuGroup': ('brainpy.NeuGroup', 'brainpy.dyn.NeuDyn', dyn.NeuDyn),
   'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
   'Container': ('brainpy.Container', 'brainpy.DynSysGroup', DynSysGroup),
 
