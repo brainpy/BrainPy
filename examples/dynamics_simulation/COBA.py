@@ -56,12 +56,16 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
 
 
 class EICOBA_PostAlign(bp.DynamicalSystem):
-  def __init__(self, num_exc, num_inh, inp=20.):
+  def __init__(self, num_exc, num_inh, inp=20., ltc=True):
     super().__init__()
     self.inp = inp
 
-    self.E = bp.dyn.LifRefLTC(num_exc, **neu_pars)
-    self.I = bp.dyn.LifRefLTC(num_inh, **neu_pars)
+    if ltc:
+      self.E = bp.dyn.LifRefLTC(num_exc, **neu_pars)
+      self.I = bp.dyn.LifRefLTC(num_inh, **neu_pars)
+    else:
+      self.E = bp.dyn.LifRef(num_exc, **neu_pars)
+      self.I = bp.dyn.LifRef(num_inh, **neu_pars)
 
     self.E2E = bp.dyn.ProjAlignPostMg2(
       pre=self.E,
@@ -145,10 +149,10 @@ def run1():
   with bm.environment(mode=bm.BatchingMode(10)):
     net = EICOBA_PostAlign(3200, 800)
     runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
+    bp.visualize.raster_plot(runner.mon['ts'], runner.mon['E.spike'][0], show=True)
     print(runner.run(100., eval_time=True))
     print(runner.mon['E.spike'].shape)
     print(runner.mon['ts'].shape)
-    bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'][0], show=True)
 
 
 def run2():
@@ -169,14 +173,15 @@ def run3():
 
 
 def run4():
-  net = EICOBA_PostAlign(3200, 800)
+  bm.set(dt=0.5)
+  net = EICOBA_PostAlign(3200, 800, ltc=True)
   runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
   print(runner.run(100., eval_time=True))
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
 
 
 if __name__ == '__main__':
-  run1()
-  run2()
-  run3()
+  # run1()
+  # run2()
+  # run3()
   run4()

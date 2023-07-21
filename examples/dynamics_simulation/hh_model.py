@@ -18,6 +18,15 @@ class HH(bp.dyn.CondNeuGroup):
     self.IL = bp.channels.IL(size, E=-54.387, g_max=0.03)
 
 
+class HHLTC(bp.dyn.CondNeuGroupLTC):
+  def __init__(self, size):
+    super().__init__(size)
+
+    self.INa = bp.channels.INa_HH1952(size)
+    self.IK = bp.channels.IK_HH1952(size)
+    self.IL = bp.channels.IL(size, E=-54.387, g_max=0.03)
+
+
 class HHv2(bp.dyn.CondNeuGroupLTC):
   def __init__(self, size):
     super().__init__(size)

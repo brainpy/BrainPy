@@ -4,7 +4,7 @@ import jax
 
 from brainpy import math as bm, check
 from brainpy._src.delay import Delay, VarDelay, DataDelay, DelayAccess
-from brainpy._src.dynsys import DynamicalSystem, Projection, Dynamic, Sequential
+from brainpy._src.dynsys import DynamicalSystem, Projection, Dynamic
 from brainpy._src.mixin import JointType, ParamDescInit, ReturnInfo, AutoDelaySupp, BindCondData, AlignPost
 
 __all__ = [
