@@ -29,6 +29,7 @@ class GradNeuDyn(NeuDyn):
 
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
   ):
     super().__init__(size=size,
@@ -38,6 +39,7 @@ class GradNeuDyn(NeuDyn):
                      sharding=sharding,
                      method=method)
 
+    self.spk_reset = spk_reset
     self.spk_fun = is_callable(spk_fun)
     self.detach_spk = detach_spk
     self._spk_type = spk_type
