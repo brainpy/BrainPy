@@ -722,7 +722,7 @@ def _get_for_loop_transform(
     progress_bar: bool,
     remat: bool,
     reverse: bool,
-    unroll: int
+    unroll: int,
 ):
   def fun2scan(carry, x):
     for k in dyn_vars.keys():
@@ -753,6 +753,7 @@ def for_loop(
     remat: bool = False,
     jit: Optional[bool] = None,
     progress_bar: bool = False,
+    unroll_kwargs: Optional[Dict] = None,
 
     # deprecated
     dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
@@ -845,6 +846,8 @@ def for_loop(
     .. deprecated:: 2.4.0
        No longer need to provide ``child_objs``. This function is capable of automatically
        collecting the children objects used in the target ``func``.
+  unroll_kwargs: dict
+    The keyword arguments without unrolling.
 
   Returns
   -------
@@ -854,6 +857,9 @@ def for_loop(
 
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
+
+  if unroll_kwargs is None:
+    unroll_kwargs = dict()
 
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
@@ -885,7 +891,9 @@ def for_loop(
     dyn_vars = VariableStack()
 
   # TODO: cache mechanism?
-  transform = _get_for_loop_transform(body_fun, dyn_vars, bar, progress_bar, remat, reverse, unroll)
+  transform = _get_for_loop_transform(body_fun, dyn_vars, bar,
+                                      progress_bar, remat, reverse,
+                                      unroll)
   if jit:
     dyn_vals, out_vals = transform(operands)
   else:

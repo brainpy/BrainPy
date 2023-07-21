@@ -21,7 +21,7 @@ from brainpy.check import jit_error
 
 __all__ = [
   'Delay',
-  'VariDelay',
+  'VarDelay',
   'DataDelay',
   'DelayAccess',
 ]
@@ -432,7 +432,7 @@ def _check_target_sharding(sharding, ndim, mode: bm.Mode):
   return sharding
 
 
-class VariDelay(Delay):
+class VarDelay(Delay):
   """Generate Delays for the given :py:class:`~.Variable` instance.
 
   The data in this delay variable is arranged as::
@@ -690,7 +690,7 @@ class VariDelay(Delay):
       self.data[:] = self._init((length,) + self.target.shape, dtype=self.target.dtype)
 
 
-class DataDelay(VariDelay):
+class DataDelay(VarDelay):
   not_desc_params = ('time', 'entries')
 
   def __init__(

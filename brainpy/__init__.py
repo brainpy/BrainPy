@@ -65,7 +65,7 @@ DynamicalSystemNS = DynamicalSystem
 Network = DynSysGroup
 # delays
 from brainpy._src.delay import (
-  VariDelay as VariDelay,
+  VarDelay as VarDelay,
 )
 
 # building blocks
@@ -129,12 +129,16 @@ from brainpy._src.math.object_transform.base import (Base as Base,
 from brainpy._add_deprecations import deprecation_getattr2
 
 __deprecations = {
+  'Module': ('brainpy.Module', 'brainpy.DynamicalSystem', DynamicalSystem),
+  'Channel': ('brainpy.Channel', 'brainpy.dyn.IonChannel', dyn.IonChannel),
+  'NeuGroup': ('brainpy.NeuGroup', 'brainpy.dyn.NeuDyn', dyn.NeuDyn),
+  'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
   'Container': ('brainpy.Container', 'brainpy.DynSysGroup', DynSysGroup),
+
   'optimizers': ('brainpy.optimizers', 'brainpy.optim', optim),
   'TensorCollector': ('brainpy.TensorCollector', 'brainpy.ArrayCollector', ArrayCollector),
   'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
-  'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
   'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
   'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.syn.CondNeuGroup', dyn.CondNeuGroup),
 }

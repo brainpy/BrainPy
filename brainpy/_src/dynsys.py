@@ -13,6 +13,7 @@ from brainpy._src.initialize import parameter, variable_
 from brainpy._src.mixin import AutoDelaySupp, Container, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
+from brainpy._src.deprecations import _update_deprecate_msg
 
 share = None
 
@@ -28,21 +29,6 @@ __all__ = [
 ]
 
 SLICE_VARS = 'slice_vars'
-
-_update_deprecate_msg = '''
-From brainpy>=2.4.3, update() function no longer needs to receive a global shared argument.
-
-Instead of using:
-          
-  def update(self, tdi, *args, **kwagrs):
-     ...
-          
-Please use:
-          
-  def update(self, *args, **kwagrs):
-     t = bp.share['t']
-     ...
-'''
 
 
 def not_pass_shared(func: Callable):
@@ -305,14 +291,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
 
-    # update ``before_updates``
+    # ``before_updates``
     for model in self.before_updates.values():
       model()
 
     # update the model self
     ret = self.update(*args, **kwargs)
 
-    # update ``after_updates``
+    # ``after_updates``
     for model in self.after_updates.values():
       model(ret)
     return ret
