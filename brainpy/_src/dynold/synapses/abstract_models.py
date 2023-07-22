@@ -9,11 +9,13 @@ from brainpy._src.connect import TwoEndConnector, All2All, One2One
 from brainpy._src.context import share
 from brainpy._src.dyn import synapses
 from brainpy._src.dyn.base import NeuDyn
+from brainpy._src.dnn import linear
 from brainpy._src.dynold.synouts import MgBlock, CUBA
 from brainpy._src.initialize import Initializer, variable_
 from brainpy._src.integrators.ode.generic import odeint
+from brainpy._src.dyn.projections.aligns import _pre_delay_repr, _init_delay
 from brainpy.types import ArrayType
-from .base import TwoEndConn, _SynSTP, _SynOut, _TwoEndConnAlignPre, _DelayedSyn, _init_stp
+from .base import TwoEndConn, _SynSTP, _SynOut, _TwoEndConnAlignPre
 
 __all__ = [
   'Delta',
@@ -100,12 +102,12 @@ class Delta(TwoEndConn):
       stop_spike_gradient: bool = False,
   ):
     super().__init__(name=name,
-                                pre=pre,
-                                post=post,
-                                conn=conn,
-                                output=output,
-                                stp=stp,
-                                mode=mode)
+                     pre=pre,
+                     post=post,
+                     conn=conn,
+                     output=output,
+                     stp=stp,
+                     mode=mode)
 
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
@@ -298,29 +300,40 @@ class Exponential(TwoEndConn):
                      mode=mode)
     # parameters
     self.stop_spike_gradient = stop_spike_gradient
-    self.comp_method = comp_method
-    self.tau = tau
-    if bm.size(self.tau) != 1:
-      raise ValueError(f'"tau" must be a scalar or a tensor with size of 1. But we got {self.tau}')
 
-    # connections and weights
-    self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, sparse_data='csr')
+    # synapse dynamics
+    self.syn = synapses.Expon(post.varshape, tau=tau, method=method)
+
+    # Projection
+    if isinstance(conn, All2All):
+      self.comm = linear.AllToAll(pre.num, post.num, g_max)
+    elif isinstance(conn, One2One):
+      assert post.num == pre.num
+      self.comm = linear.OneToOne(pre.num, g_max)
+    else:
+      if comp_method == 'dense':
+        self.comm = linear.MaskedLinear(conn, g_max)
+      elif comp_method == 'sparse':
+        if self.stp is None:
+          self.comm = linear.EventCSRLinear(conn, g_max)
+        else:
+          self.comm = linear.CSRLinear(conn, g_max)
+      else:
+        raise ValueError(f'Does not support {comp_method}, only "sparse" or "dense".')
 
     # variables
-    self.g = variable_(bm.zeros, self.post.num, self.mode)
+    self.g = self.syn.g
+
+    # delay
     self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
 
-    # function
-    self.integral = odeint(lambda g, t: -g / self.tau, method=method)
-
   def reset_state(self, batch_size=None):
-    self.g.value = variable_(bm.zeros, self.post.num, batch_size)
+    self.syn.reset_state(batch_size)
     self.output.reset_state(batch_size)
-    if self.stp is not None: self.stp.reset_state(batch_size)
+    if self.stp is not None:
+      self.stp.reset_state(batch_size)
 
   def update(self, pre_spike=None):
-    t, dt = share['t'], share['dt']
-
     # delays
     if pre_spike is None:
       pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
@@ -332,52 +345,13 @@ class Exponential(TwoEndConn):
     self.output.update()
     if self.stp is not None:
       self.stp.update(pre_spike)
+      pre_spike = self.stp(pre_spike)
 
     # post values
-    if isinstance(self.conn, All2All):
-      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
-      if self.stp is not None: syn_value = self.stp(syn_value)
-      post_vs = self._syn2post_with_all2all(syn_value, self.g_max)
-    elif isinstance(self.conn, One2One):
-      syn_value = bm.asarray(pre_spike, dtype=bm.float_)
-      if self.stp is not None: syn_value = self.stp(syn_value)
-      post_vs = self._syn2post_with_one2one(syn_value, self.g_max)
-    else:
-      if self.comp_method == 'sparse':
-        f = lambda s: bm.event.csrmv(self.g_max,
-                                     self.conn_mask[0],
-                                     self.conn_mask[1],
-                                     s,
-                                     shape=(self.pre.num, self.post.num),
-                                     transpose=True)
-        if isinstance(self.mode, bm.BatchingMode): f = jax.vmap(f)
-        post_vs = f(pre_spike)
-        # if not isinstance(self.stp, _NullSynSTP):
-        #   raise NotImplementedError()
-      else:
-        syn_value = bm.asarray(pre_spike, dtype=bm.float_)
-        if self.stp is not None:
-          syn_value = self.stp(syn_value)
-        post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
-    # updates
-    self.g.value = self.integral(self.g.value, t, dt) + post_vs
+    g = self.syn(self.comm(pre_spike))
 
     # output
-    return self.output(self.g)
-
-
-class _DelayedDualExp(_DelayedSyn):
-  not_desc_params = ('master', 'mode')
-
-  def __init__(self, size, keep_size, mode, tau_decay, tau_rise, method, master, stp=None):
-    syn = synapses.DualExpon(size,
-                             keep_size,
-                             mode=mode,
-                             tau_decay=tau_decay,
-                             tau_rise=tau_rise,
-                             method=method)
-    stp = _init_stp(stp, master)
-    super().__init__(syn, stp)
+    return self.output(g)
 
 
 class DualExponential(_TwoEndConnAlignPre):
@@ -507,14 +481,12 @@ class DualExponential(_TwoEndConnAlignPre):
       raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. '
                        f'But we got {self.tau_decay}')
 
-    syn = _DelayedDualExp.desc(pre.size,
-                               pre.keep_size,
-                               mode=mode,
-                               tau_decay=tau_decay,
-                               tau_rise=tau_rise,
-                               method=method,
-                               stp=stp,
-                               master=self)
+    syn = synapses.DualExpon(pre.size,
+                             pre.keep_size,
+                             mode=mode,
+                             tau_decay=tau_decay,
+                             tau_rise=tau_rise,
+                             method=method, )
 
     super().__init__(pre=pre,
                      post=post,
@@ -530,7 +502,6 @@ class DualExponential(_TwoEndConnAlignPre):
 
     self.check_post_attrs('input')
     # copy the references
-    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.h = syn.h
 
@@ -650,21 +621,6 @@ class Alpha(DualExponential):
                                 name=name,
                                 mode=mode,
                                 stop_spike_gradient=stop_spike_gradient)
-
-
-class _DelayedNMDA(_DelayedSyn):
-  not_desc_params = ('master', 'stp', 'mode')
-
-  def __init__(self, size, keep_size, mode, a, tau_decay, tau_rise, method, master, stp=None):
-    syn = synapses.NMDA(size,
-                        keep_size,
-                        mode=mode,
-                        a=a,
-                        tau_decay=tau_decay,
-                        tau_rise=tau_rise,
-                        method=method)
-    stp = _init_stp(stp, master)
-    super().__init__(syn, stp)
 
 
 class NMDA(_TwoEndConnAlignPre):
@@ -825,15 +781,13 @@ class NMDA(_TwoEndConnAlignPre):
     self.comp_method = comp_method
     self.stop_spike_gradient = stop_spike_gradient
 
-    syn = _DelayedNMDA.desc(pre.size,
-                            pre.keep_size,
-                            mode=mode,
-                            a=a,
-                            tau_decay=tau_decay,
-                            tau_rise=tau_rise,
-                            method=method,
-                            stp=stp,
-                            master=self)
+    syn = synapses.NMDA(pre.size,
+                        pre.keep_size,
+                        mode=mode,
+                        a=a,
+                        tau_decay=tau_decay,
+                        tau_rise=tau_rise,
+                        method=method, )
 
     super().__init__(pre=pre,
                      post=post,
@@ -848,7 +802,6 @@ class NMDA(_TwoEndConnAlignPre):
                      mode=mode)
 
     # copy the references
-    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.x = syn.x
 

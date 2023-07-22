@@ -747,15 +747,15 @@ class ProjAlignPreMg2(Projection):
 
     # synapse and delay initialization
     if _pre_delay_repr not in self.pre.after_updates:
-      delay_cls = _init_delay(pre.return_info())
-      self.pre.after_updates[_pre_delay_repr] = delay_cls
+      delay_ins = _init_delay(pre.return_info())
+      self.pre.after_updates[_pre_delay_repr] = delay_ins
 
     # synapse
     self._syn_id = f'{str(delay)} / {syn.identifier}'
     if self._syn_id not in post.before_updates:
       # delay
-      delay_cls: Delay = pre.after_updates[_pre_delay_repr]
-      delay_access = DelayAccess(delay_cls, delay)
+      delay_ins: Delay = pre.after_updates[_pre_delay_repr]
+      delay_access = DelayAccess(delay_ins, delay)
       # synapse
       syn_cls = syn()
       # add to "after_updates"
@@ -765,8 +765,7 @@ class ProjAlignPreMg2(Projection):
     post.cur_inputs[self.name] = out
 
   def update(self):
-    x = self.post.before_updates[self._syn_id].syn.return_info()
-    x = _get_return(x)
+    x = _get_return(self.post.before_updates[self._syn_id].syn.return_info())
     current = self.comm(x)
     self.post.cur_inputs[self.name].bind_cond(current)
     return current

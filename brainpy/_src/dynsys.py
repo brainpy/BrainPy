@@ -216,6 +216,9 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     update_args = tuple(inspect.signature(update_fun).parameters.values())
 
     if len(update_args) and update_args[0].name in ['tdi', 'sh', 'sha']:
+      # define the update function with:
+      #     update(tdi, *args, **kwargs)
+      #
       if len(args) > 0:
         if isinstance(args[0], dict) and all([bm.isscalar(v) for v in args[0].values()]):
           # define:

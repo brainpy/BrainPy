@@ -46,7 +46,7 @@ class GapJunction(TwoEndConn):
     else:
       raise ValueError
 
-  def update(self, tdi):
+  def update(self):
     if self.comp_method == 'dense':
       # pre -> post
       diff = (self.pre.V.reshape((-1, 1)) - self.post.V) * self.conn_mat * self.weights
