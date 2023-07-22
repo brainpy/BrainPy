@@ -89,7 +89,7 @@ class Ih_HM1992(IonChannel):
 
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def update(self, V):
@@ -237,7 +237,7 @@ class Ih_De1996(IonChannel):
     beta = (1 - inf) / tau
     self.O.value = alpha / (alpha + alpha * self.k3 * self.P1 / self.k4 + beta)
     self.OL.value = self.k3 * self.P1 * self.O / self.k4
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.P1.shape[0] == batch_size
       assert self.O.shape[0] == batch_size
       assert self.OL.shape[0] == batch_size

@@ -120,7 +120,7 @@ class _IK_p4_markov_v2(PotassiumChannel):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def f_p_alpha(self, V):
@@ -434,7 +434,7 @@ class _IKA_p4q_ss_v2(PotassiumChannel):
   def reset_state(self, V, C, E, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -722,7 +722,7 @@ class _IKK2_pq_ss_v2(PotassiumChannel):
   def reset_state(self, V, C, E, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -1001,7 +1001,7 @@ class IKNI_Ya1989v2(PotassiumChannel):
 
   def reset_state(self, V, C, E, batch_size=None):
     self.p.value = self.f_p_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def f_p_inf(self, V):
@@ -1087,7 +1087,7 @@ class _IK_p4_markov(PotassiumChannel):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def f_p_alpha(self, V):
@@ -1410,7 +1410,7 @@ class _IKA_p4q_ss(PotassiumChannel):
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -1705,7 +1705,7 @@ class _IKK2_pq_ss(PotassiumChannel):
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -1991,7 +1991,7 @@ class IKNI_Ya1989(PotassiumChannel):
 
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def f_p_inf(self, V):

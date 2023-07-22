@@ -119,9 +119,17 @@ class IAHP_De1994(IonChannel):
   def reset_state(self, V, C_Ca, E_Ca, batch_size=None):
     C2 = self.alpha * bm.power(C_Ca, self.n)
     C3 = C2 + self.beta
-    if batch_size is None:
-      self.p.value = bm.broadcast_to(C2 / C3, self.varshape)
+    self.p[:] = C2 / C3
+    if isinstance(batch_size, int):
+      batch_size = batch_size
+      size = (batch_size,) + self.varshape
+    elif isinstance(batch_size, bm.Mode):
+      if isinstance(batch_size, bm.BatchingMode):
+        size = (batch_size.batch_size,) + self.varshape
+      else:
+        batch_size = None
+        size = self.varshape
     else:
-      self.p.value = bm.broadcast_to(C2 / C3, (batch_size,) + self.varshape)
-      assert self.p.shape[0] == batch_size
+      size = self.varshape
+    self.p.value = bm.broadcast_to(C2 / C3, size)
 

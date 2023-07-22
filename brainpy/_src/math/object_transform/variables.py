@@ -71,7 +71,7 @@ class VariableStack(dict):
     """Get all data in the collected variables with a python dict structure."""
     new_dict = dict()
     for id_, elem in tuple(self.items()):
-      new_dict[id_] = elem._value if isinstance(elem, Array) else elem
+      new_dict[id_] = elem.value if isinstance(elem, Array) else elem
     return new_dict
 
   def list_data(self) -> list:

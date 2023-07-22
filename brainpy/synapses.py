@@ -33,5 +33,7 @@ from brainpy._src.dyn.synapses.delay_couplings import (
   DiffusiveCoupling,
   AdditiveCoupling,
 )
-
+from brainpy._src.dynold.synapses.gap_junction import (
+  GapJunction
+)
 

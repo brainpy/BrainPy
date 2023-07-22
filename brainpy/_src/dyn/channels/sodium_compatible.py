@@ -88,7 +88,7 @@ class _INa_p3q_markov(IonChannel):
     alpha = self.f_q_alpha(V)
     beta = self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 

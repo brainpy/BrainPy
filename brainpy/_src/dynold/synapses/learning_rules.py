@@ -203,14 +203,13 @@ class STP(_TwoEndConnAlignPre):
     self.U = U
     self.A = A
 
-    syn = _STPModel.desc(pre.size,
-                         pre.keep_size,
-                         tau,
-                         U,
-                         tau_f,
-                         tau_d,
-                         mode=None,
-                         method=method)
+    syn = _STPModel(pre.size,
+                    pre.keep_size,
+                    tau,
+                    U,
+                    tau_f,
+                    tau_d,
+                    method=method)
 
     super().__init__(pre=pre,
                      post=post,
@@ -223,8 +222,6 @@ class STP(_TwoEndConnAlignPre):
                      name=name)
 
     # variables
-    syn = self.pre.after_updates[self.proj._syn_id].syn
-    self.x = syn[0].x
-    self.u = syn[0].u
-    self.I = syn[1].g
-
+    self.x = self.syn[0].x
+    self.u = self.syn[0].u
+    self.I = self.syn[1].g

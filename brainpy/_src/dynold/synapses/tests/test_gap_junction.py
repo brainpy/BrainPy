@@ -4,7 +4,7 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.dyn.synapses import gap_junction
+from brainpy._src.dynold.synapses import gap_junction
 
 
 class Test_gap_junction(parameterized.TestCase):

@@ -117,6 +117,20 @@ class TestLoop(parameterized.TestCase):
     ys = bm.for_loop(lambda a: a, xs, progress_bar=True)
     self.assertTrue(bm.allclose(xs, ys))
 
+  def test_for_loop2(self):
+    class MyClass(bp.DynamicalSystem):
+      def __init__(self):
+        super().__init__()
+        self.a = bm.Variable(bm.zeros(1))
+
+      def update(self):
+        self.a += 1
+
+    cls = MyClass()
+    indices = bm.arange(10)
+    bm.for_loop(cls.step_run, indices)
+    self.assertTrue(bm.allclose(cls.a, 10.))
+
 
 class TestIfElse(unittest.TestCase):
   def test1(self):
