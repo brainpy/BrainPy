@@ -223,7 +223,7 @@ class STP(_TwoEndConnAlignPre):
                      name=name)
 
     # variables
-    syn = self.pre.after_updates[self.proj._syn_id].syn
+    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.x = syn[0].x
     self.u = syn[0].u
     self.I = syn[1].g

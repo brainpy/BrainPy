@@ -89,7 +89,7 @@ class AMPA(_TwoEndConnAlignPre):
                      mode=mode)
 
     # copy the references
-    syn = self.pre.after_updates[self.proj._syn_id].syn.syn
+    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.spike_arrival_time = syn.spike_arrival_time
 
@@ -179,22 +179,22 @@ class GABAa(AMPA):
       mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
-    super(GABAa, self).__init__(pre=pre,
-                                post=post,
-                                conn=conn,
-                                output=output,
-                                stp=stp,
-                                comp_method=comp_method,
-                                delay_step=delay_step,
-                                g_max=g_max,
-                                alpha=alpha,
-                                beta=beta,
-                                T=T,
-                                T_duration=T_duration,
-                                method=method,
-                                name=name,
-                                mode=mode,
-                                stop_spike_gradient=stop_spike_gradient, )
+    super().__init__(pre=pre,
+                     post=post,
+                     conn=conn,
+                     output=output,
+                     stp=stp,
+                     comp_method=comp_method,
+                     delay_step=delay_step,
+                     g_max=g_max,
+                     alpha=alpha,
+                     beta=beta,
+                     T=T,
+                     T_duration=T_duration,
+                     method=method,
+                     name=name,
+                     mode=mode,
+                     stop_spike_gradient=stop_spike_gradient, )
 
 
 class _DelayedNMDA(_DelayedSyn):
@@ -405,7 +405,7 @@ class BioNMDA(_TwoEndConnAlignPre):
                      mode=mode)
 
     # copy the references
-    syn = self.pre.after_updates[self.proj._syn_id].syn.syn
+    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.x = syn.x
     self.spike_arrival_time = syn.spike_arrival_time

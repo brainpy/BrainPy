@@ -122,6 +122,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
 
     # local delay variables:
     # Compatible for ``DelayRegister``
+    # TODO: will be deprecated in the future
     self.local_delay_vars: Dict = bm.node_dict()
 
     # the before- / after-updates used for computing
@@ -383,6 +384,10 @@ class DynSysGroup(DynamicalSystem, Container):
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node()
 
+    # update delays
+    # TODO: Will be deprecated in the future
+    self.update_local_delays(nodes)
+
   def reset_state(self, batch_size=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
 
@@ -397,6 +402,10 @@ class DynSysGroup(DynamicalSystem, Container):
     # reset other types of nodes, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node.reset_state(batch_size)
+
+    # reset delays
+    # TODO: will be removed in the future
+    self.reset_local_delays(nodes)
 
   def clear_input(self):
     """Clear inputs in the children classes."""

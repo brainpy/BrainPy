@@ -219,7 +219,7 @@ class PoissonGroup(NeuDyn):
     self.reset_state(self.mode)
 
   def update(self):
-    spikes = bm.random.rand_like(self.spike) <= (self.freqs * share.dt / 1000.)
+    spikes = bm.random.rand_like(self.spike) <= (self.freqs * share['dt'] / 1000.)
     spikes = bm.asarray(spikes, dtype=self.spk_type)
     # spikes = bm.sharding.partition(spikes, self.spike.sharding)
     self.spike.value = spikes

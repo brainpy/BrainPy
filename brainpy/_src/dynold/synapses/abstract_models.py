@@ -99,7 +99,7 @@ class Delta(TwoEndConn):
       mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
-    super(Delta, self).__init__(name=name,
+    super().__init__(name=name,
                                 pre=pre,
                                 post=post,
                                 conn=conn,
@@ -530,7 +530,7 @@ class DualExponential(_TwoEndConnAlignPre):
 
     self.check_post_attrs('input')
     # copy the references
-    syn = self.pre.after_updates[self.proj._syn_id].syn.syn
+    syn = self.post.before_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.h = syn.h
 
