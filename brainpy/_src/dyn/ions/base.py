@@ -31,6 +31,9 @@ class MixIons(IonChaDyn, Container, TreeNode):
     assert all([isinstance(cls, Ion) for cls in ions]), f'Must be a sequence of Ion. But got {ions}.'
     super().__init__(size=ions[0].size, keep_size=ions[0].keep_size, sharding=ions[0].sharding)
 
+    # Attribute of "Container"
+    self.children = bm.node_dict()
+
     self.ions: Sequence['Ion'] = tuple(ions)
     self._ion_classes = tuple([type(ion) for ion in self.ions])
     for k, v in channels.items():
@@ -158,7 +161,9 @@ class Ion(IonChaDyn, Container, TreeNode):
       **channels
   ):
     super().__init__(size, keep_size=keep_size, mode=mode, method=method, name=name)
-    self.children.update(self.format_elements(IonChaDyn, **channels))
+
+    # Attribute of "Container"
+    self.children = bm.node_dict(self.format_elements(IonChaDyn, **channels))
     self.external: Dict[str, Callable] = dict()  # not found by `.nodes()` or `.vars()`
 
   def update(self, V):

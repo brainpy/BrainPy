@@ -120,6 +120,11 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
                                f'which are parents of {self.supported_modes}, '
                                f'but we got {self.mode}.')
 
+    # local delay variables:
+    # Compatible for ``DelayRegister``
+    # TODO: will be deprecated in the future
+    self.local_delay_vars: Dict = bm.node_dict()
+
     # the before- / after-updates used for computing
     # added after the version of 2.4.3
     self.before_updates: Dict[str, Callable] = bm.node_dict()
@@ -359,7 +364,9 @@ class DynSysGroup(DynamicalSystem, Container):
       **children_as_dict
   ):
     super().__init__(name=name, mode=mode)
-    self.children.update(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
+
+    # Attribute of "Container"
+    self.children = bm.node_dict(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
 
   def update(self, *args, **kwargs):
     """Step function of a network.
@@ -474,7 +481,9 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       **modules_as_dict
   ):
     super().__init__(name=name, mode=mode)
-    self.children.update(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
+
+    # Attribute of "Container"
+    self.children = bm.node_dict(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
 
   def update(self, x):
     """Update function of a sequential model.
@@ -572,6 +581,9 @@ class Dynamic(DynamicalSystem, ReceiveInputProj):
 
     # initialize
     super().__init__(name=name, mode=mode)
+
+    # Attribute for "ReceiveInputProj"
+    self.cur_inputs = bm.node_dict()
 
   @property
   def varshape(self):
