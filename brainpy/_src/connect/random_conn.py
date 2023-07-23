@@ -71,7 +71,7 @@ class FixedProb(TwoEndConnector):
             f'seed={self.seed})')
 
   def _iii(self):
-    if (not self.include_self) and (self.pre_num != self.post_num):
+    if (self.include_self) and (self.pre_num != self.post_num):
       raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
                            f'But `include_self` is set to True.')
 
@@ -218,7 +218,7 @@ class FixedPreNum(FixedNum):
     if isinstance(self.num, int) and self.num > self.pre_num:
       raise ConnectorError(f'"num" must be smaller than "pre_num", '
                            f'but got {self.num} > {self.pre_num}')
-    if (not self.include_self) and (self.pre_num != self.post_num):
+    if (self.include_self) and (self.pre_num != self.post_num):
       raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
                            f'But `include_self` is set to True.')
     pre_num_to_select = int(self.pre_num * self.num) if isinstance(self.num, float) else self.num
@@ -278,7 +278,7 @@ class FixedPostNum(FixedNum):
     if isinstance(self.num, int) and self.num > self.post_num:
       raise ConnectorError(f'"num" must be smaller than "post_num", '
                            f'but got {self.num} > {self.post_num}')
-    if (not self.include_self) and (self.pre_num != self.post_num):
+    if (self.include_self) and (self.pre_num != self.post_num):
       raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
                            f'But `include_self` is set to True.')
     post_num_to_select = int(self.post_num * self.num) if isinstance(self.num, float) else self.num
