@@ -120,11 +120,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
                                f'which are parents of {self.supported_modes}, '
                                f'but we got {self.mode}.')
 
-    # local delay variables:
-    # Compatible for ``DelayRegister``
-    # TODO: will be deprecated in the future
-    self.local_delay_vars: Dict = bm.node_dict()
-
     # the before- / after-updates used for computing
     # added after the version of 2.4.3
     self.before_updates: Dict[str, Callable] = bm.node_dict()
@@ -364,8 +359,7 @@ class DynSysGroup(DynamicalSystem, Container):
       **children_as_dict
   ):
     super().__init__(name=name, mode=mode)
-
-    self.children = bm.node_dict(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
+    self.children.update(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
 
   def update(self, *args, **kwargs):
     """Step function of a network.
@@ -480,7 +474,7 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       **modules_as_dict
   ):
     super().__init__(name=name, mode=mode)
-    self.children = bm.node_dict(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
+    self.children.update(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
 
   def update(self, x):
     """Update function of a sequential model.
@@ -495,19 +489,6 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       raise UnsupportedError(f'Does not support "return_info()" because the last node is '
                              f'not instance of {AutoDelaySupp.__name__}')
     return last.return_info()
-
-  def __format_key(self, i):
-    return f'l-{i}'
-
-  def __all_nodes(self):
-    nodes = []
-    for i in range(self._num):
-      key = self.__format_key(i)
-      if key not in self._dyn_modules:
-        nodes.append(self._static_modules[key])
-      else:
-        nodes.append(self._dyn_modules[key])
-    return nodes
 
   def __getitem__(self, key: Union[int, slice, str]):
     if isinstance(key, str):
@@ -526,7 +507,7 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       raise KeyError(f'Unknown type of key: {type(key)}')
 
   def __repr__(self):
-    nodes = self.__all_nodes()
+    nodes = self.children.values()
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(nodes))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 

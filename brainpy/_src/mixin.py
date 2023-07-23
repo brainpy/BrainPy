@@ -168,6 +168,9 @@ class Container(MixIn):
   """
   children: bm.node_dict
 
+  def __init__(self, *args, **kwargs):
+    self.children = bm.node_dict()
+
   def __getitem__(self, item):
     """Overwrite the slice access (`self['']`). """
     if item in self.children:
@@ -280,6 +283,14 @@ class TreeNode(MixIn):
 
 class DelayRegister(MixIn):
   local_delay_vars: bm.node_dict
+
+  def __init__(self, *args, **kwargs):
+    super().__init__()
+
+    # local delay variables:
+    # Compatible for ``DelayRegister``
+    # TODO: will be deprecated in the future
+    self.local_delay_vars: Dict = bm.node_dict()
 
   def register_delay(
       self,

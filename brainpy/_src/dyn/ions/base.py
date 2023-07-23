@@ -33,7 +33,6 @@ class MixIons(IonChaDyn, Container, TreeNode):
 
     self.ions: Sequence['Ion'] = tuple(ions)
     self._ion_classes = tuple([type(ion) for ion in self.ions])
-    self.children = bm.node_dict()
     for k, v in channels.items():
       self.add_elem(k=v)
 
@@ -159,7 +158,7 @@ class Ion(IonChaDyn, Container, TreeNode):
       **channels
   ):
     super().__init__(size, keep_size=keep_size, mode=mode, method=method, name=name)
-    self.children = bm.node_dict(self.format_elements(IonChaDyn, **channels))
+    self.children.update(self.format_elements(IonChaDyn, **channels))
     self.external: Dict[str, Callable] = dict()  # not found by `.nodes()` or `.vars()`
 
   def update(self, V):

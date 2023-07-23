@@ -94,7 +94,7 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
     super().__init__(size, keep_size=keep_size, mode=mode, name=name, )
 
     # attribute for ``Container``
-    self.children = bm.node_dict(self.format_elements(IonChaDyn, **channels))
+    self.children.update(self.format_elements(IonChaDyn, **channels))
 
     # parameters for neurons
     self.input_var = input_var
