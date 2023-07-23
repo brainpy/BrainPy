@@ -200,9 +200,12 @@ class LIF(lif.LifRef):
       *args,
       input_var: bool = True,
       noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape)
     if self.noise is not None:
@@ -331,9 +334,12 @@ class ExpIF(lif.ExpIFRef):
       *args,
       input_var: bool = True,
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape)
     if self.noise is not None:
@@ -439,9 +445,12 @@ class AdExIF(lif.AdExIFRef):
       *args,
       input_var: bool = True,
       noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     if self.noise is not None:
@@ -539,9 +548,12 @@ class QuaIF(lif.QuaIFRef):
       *args,
       input_var: bool = True,
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape, num_vars=1)
     if self.noise is not None:
@@ -649,9 +661,12 @@ class AdQuaIF(lif.AdQuaIFRef):
       *args,
       input_var: bool = True,
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     if self.noise is not None:
@@ -764,9 +779,12 @@ class GIF(lif.GifRef):
       *args,
       input_var: bool = True,
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape, num_vars=4)
     if self.noise is not None:
@@ -865,9 +883,12 @@ class Izhikevich(lif.IzhikevichRef):
       *args,
       input_var: bool = True,
       noise: Union[float, ArrayType, Initializer, Callable] = None,
+      spike_fun: Callable = None,
       **kwargs,
   ):
     self.input_var = input_var
+    if spike_fun is not None:
+      kwargs['spk_fun'] = spike_fun
     super().__init__(*args, **kwargs, init_var=False)
     self.noise = init_noise(noise, self.varshape, num_vars=2)
     if self.noise is not None:
