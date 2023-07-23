@@ -1149,4 +1149,25 @@ compiling f2 ...
     self.assertTrue(bm.allclose(r1[1], r2[1]))
     self.assertTrue(bm.allclose(r1[2], r2[2]))
 
+  def test_cache1(self):
+      file = tempfile.TemporaryFile(mode='w+')
+
+      def f(a, b):
+        print('compiling f ...', file=file)
+        return a + b
+
+      grad1 = bm.grad(f)(1., 2.)  # call "f" twice, one for Variable finding, one for compiling
+      grad2 = bm.vector_grad(f)(1., 2.)  # call "f" once for compiling
+
+      file.seek(0)
+      print(file.read().strip())
+
+      expect_res = '''
+compiling f ...
+compiling f ...
+compiling f ...
+      '''
+      file.seek(0)
+      self.assertTrue(file.read().strip() == expect_res.strip())
+
 
