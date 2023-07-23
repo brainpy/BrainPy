@@ -109,10 +109,10 @@ class VanillaProj(Projection):
           self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
           self.syn1 = bp.dyn.Expon(size=3200, tau=5.)
           self.syn2 = bp.dyn.Expon(size=800, tau=10.)
-          self.E = bp.dyn.VanillaProj(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
+          self.E = bp.dyn.VanillaProj(comm=bp.dnn.JitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
                                       out=bp.dyn.COBA(E=0.),
                                       post=self.N)
-          self.I = bp.dyn.VanillaProj(comm=bp.dnn.EventJitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
+          self.I = bp.dyn.VanillaProj(comm=bp.dnn.JitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
                                       out=bp.dyn.COBA(E=-80.),
                                       post=self.N)
 
