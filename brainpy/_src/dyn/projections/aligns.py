@@ -5,7 +5,9 @@ import jax
 from brainpy import math as bm, check
 from brainpy._src.delay import Delay, VarDelay, DataDelay, DelayAccess
 from brainpy._src.dynsys import DynamicalSystem, Projection, Dynamic
-from brainpy._src.mixin import JointType, ParamDescInit, ReturnInfo, AutoDelaySupp, BindCondData, AlignPost
+from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
+                                AutoDelaySupp, BindCondData, AlignPost,
+                                ReceiveInputProj)
 
 __all__ = [
   'VanillaProj',
@@ -141,7 +143,7 @@ class VanillaProj(Projection):
       self,
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -150,16 +152,16 @@ class VanillaProj(Projection):
     # synaptic models
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.post = post
     self.comm = comm
 
     # output initialization
-    post.cur_inputs[self.name] = out
+    post.add_inp_fun(self.name, out)
 
   def update(self, x):
     current = self.comm(x)
-    self.post.cur_inputs[self.name].bind_cond(current)
+    self.post.get_inp_fun(self.name).bind_cond(current)
     return current
 
 
@@ -216,7 +218,7 @@ class ProjAlignPostMg1(Projection):
       comm: DynamicalSystem,
       syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
       out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -226,7 +228,7 @@ class ProjAlignPostMg1(Projection):
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AlignPost]])
     check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.post = post
     self.comm = comm
 
@@ -235,7 +237,7 @@ class ProjAlignPostMg1(Projection):
     if self._post_repr not in self.post.before_updates:
       syn_cls = syn()
       out_cls = out()
-      self.post.cur_inputs[self.name] = out_cls
+      self.post.add_inp_fun(self.name, out_cls)
       self.post.before_updates[self._post_repr] = _AlignPost(syn_cls, out_cls)
 
   def update(self, x):
@@ -322,7 +324,7 @@ class ProjAlignPostMg2(Projection):
       comm: DynamicalSystem,
       syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
       out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -333,7 +335,7 @@ class ProjAlignPostMg2(Projection):
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AlignPost]])
     check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -352,7 +354,7 @@ class ProjAlignPostMg2(Projection):
     if self._post_repr not in self.post.before_updates:
       syn_cls = syn()
       out_cls = out()
-      self.post.cur_inputs[self.name] = out_cls
+      self.post.add_inp_fun(self.name, out_cls)
       self.post.before_updates[self._post_repr] = _AlignPost(syn_cls, out_cls)
 
   def update(self):
@@ -411,7 +413,7 @@ class ProjAlignPost1(Projection):
       comm: DynamicalSystem,
       syn: JointType[DynamicalSystem, AlignPost],
       out: JointType[DynamicalSystem, BindCondData],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -421,12 +423,12 @@ class ProjAlignPost1(Projection):
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(syn, JointType[DynamicalSystem, AlignPost])
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.post = post
     self.comm = comm
 
     # synapse and output initialization
-    self.post.cur_inputs[self.name] = out
+    self.post.add_inp_fun(self.name, out)
     self.post.before_updates[self.name] = _AlignPost(syn, out)
 
   def update(self, x):
@@ -509,7 +511,7 @@ class ProjAlignPost2(Projection):
       comm: DynamicalSystem,
       syn: JointType[DynamicalSystem, AlignPost],
       out: JointType[DynamicalSystem, BindCondData],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -520,7 +522,7 @@ class ProjAlignPost2(Projection):
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(syn, JointType[DynamicalSystem, AlignPost])
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -535,7 +537,7 @@ class ProjAlignPost2(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
-    self.post.cur_inputs[self.name] = out
+    self.post.add_inp_fun(self.name, out)
     self.post.before_updates[self.name] = _AlignPost(syn, out)
 
   def update(self):
@@ -618,7 +620,7 @@ class ProjAlignPreMg1(Projection):
       delay: Union[None, int, float],
       comm: Callable,
       out: JointType[DynamicalSystem, BindCondData],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -629,7 +631,7 @@ class ProjAlignPreMg1(Projection):
     check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AutoDelaySupp]])
     check.is_instance(comm, Callable)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -646,7 +648,7 @@ class ProjAlignPreMg1(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
-    post.cur_inputs[self.name] = out
+    post.add_inp_fun(self.name, out)
 
   def update(self, x=None):
     if x is None:
@@ -729,7 +731,7 @@ class ProjAlignPreMg2(Projection):
       syn: ParamDescInit[JointType[DynamicalSystem, AutoDelaySupp]],
       comm: Callable,
       out: JointType[DynamicalSystem, BindCondData],
-      post: Dynamic,
+      post: JointType[DynamicalSystem, ReceiveInputProj],
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -740,7 +742,7 @@ class ProjAlignPreMg2(Projection):
     check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AutoDelaySupp]])
     check.is_instance(comm, Callable)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
-    check.is_instance(post, Dynamic)
+    check.is_instance(post, JointType[DynamicalSystem, ReceiveInputProj])
     self.pre = pre
     self.post = post
     self.comm = comm
@@ -762,10 +764,10 @@ class ProjAlignPreMg2(Projection):
       post.before_updates[self._syn_id] = _AlignPreMg(delay_access, syn_cls)
 
     # output initialization
-    post.cur_inputs[self.name] = out
+    post.add_inp_fun(self.name, out)
 
   def update(self):
     x = _get_return(self.post.before_updates[self._syn_id].syn.return_info())
     current = self.comm(x)
-    self.post.cur_inputs[self.name].bind_cond(current)
+    self.post.get_inp_fun(self.name).bind_cond(current)
     return current

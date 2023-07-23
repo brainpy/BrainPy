@@ -10,7 +10,7 @@ import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import AutoDelaySupp, Container, DelayRegister, global_delay_data
+from brainpy._src.mixin import AutoDelaySupp, Container, ReceiveInputProj, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
@@ -449,14 +449,14 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
   >>> l = bp.Sequential(bp.layers.Dense(100, 10),
   >>>                   bm.relu,
   >>>                   bp.layers.Dense(10, 2))
-  >>> l({}, bm.random.random((256, 100)))
+  >>> l(bm.random.random((256, 100)))
   >>>
   >>> # Using Sequential with Dict. This is functionally the
   >>> # same as the above code
   >>> l = bp.Sequential(l1=bp.layers.Dense(100, 10),
   >>>                   l2=bm.relu,
   >>>                   l3=bp.layers.Dense(10, 2))
-  >>> l({}, bm.random.random((256, 100)))
+  >>> l(bm.random.random((256, 100)))
 
 
   Args:
@@ -517,7 +517,7 @@ class Projection(DynamicalSystem):
     pass
 
 
-class Dynamic(DynamicalSystem):
+class Dynamic(DynamicalSystem, ReceiveInputProj):
   """Base class to model dynamics.
 
   There are several essential attributes:
@@ -569,9 +569,6 @@ class Dynamic(DynamicalSystem):
 
     # integration method
     self.method = method
-
-    # inputs
-    self.cur_inputs: Dict = bm.node_dict()
 
     # initialize
     super().__init__(name=name, mode=mode)
