@@ -36,17 +36,28 @@ global_delay_data = dict()
 
 
 class MixIn(object):
-  """Base MixIn object."""
+  """Base MixIn object.
+
+  The key for a :py:class:`~.MixIn` is that: no initialization function, only behavioral functions.
+  """
   pass
 
 
 class ReceiveInputProj(MixIn):
   """The :py:class:`~.MixIn` that receives the input projections.
 
+  Note that the subclass should define a ``cur_inputs`` attribute.
+
   """
   cur_inputs: bm.node_dict
 
   def add_inp_fun(self, key: Any, fun: Callable):
+    """Add an input function.
+
+    Args:
+      key: The dict key.
+      fun: The function to generate inputs.
+    """
     if not callable(fun):
       raise TypeError('Must be a function.')
     if key in self.cur_inputs:
@@ -54,11 +65,29 @@ class ReceiveInputProj(MixIn):
     self.cur_inputs[key] = fun
 
   def get_inp_fun(self, key):
+    """Get the input function.
+
+    Args:
+      key: The key.
+
+    Returns:
+      The input function which generates currents.
+    """
     return self.cur_inputs.get(key)
 
-  def sum_inputs(self, *args, init=0.):
+  def sum_inputs(self, *args, init=0., **kwargs):
+    """Summarize all inputs by the defined input functions ``.cur_inputs``.
+
+    Args:
+      *args: The arguments for input functions.
+      init: The initial input data.
+      **kwargs: The arguments for input functions.
+
+    Returns:
+
+    """
     for out in self.cur_inputs.values():
-      init = init + out(*args)
+      init = init + out(*args, **kwargs)
     return init
 
 

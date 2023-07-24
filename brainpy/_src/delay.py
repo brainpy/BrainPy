@@ -682,7 +682,10 @@ class VarDelay(Delay):
                 static_argnames='dtype',
                 out_shardings=bm.sharding.get_sharding(self.axis_names))
     data = f((length,) + self.target.shape, dtype=self.target.dtype)
-    self.data = bm.Variable(data, batch_axis=batch_axis)
+    if self.data is None:
+      self.data = bm.Variable(data, batch_axis=batch_axis)
+    else:
+      self.data._value = data
     # update delay data
     if isinstance(self._init, (bm.Array, jax.Array, numbers.Number)):
       self.data[:] = self._init

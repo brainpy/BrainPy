@@ -641,7 +641,14 @@ class ObjectTransform(BrainPyObject):
 
 class NodeList(list):
   """A sequence of :py:class:`~.BrainPyObject`, which is compatible with
-  :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
+  :py:func:`~.vars()` and :py:func:`~.nodes()` operations in a :py:class:`~.BrainPyObject`.
+
+  That is to say, any nodes that are wrapped into :py:class:`~.NodeList` will be automatically
+  retieved when using :py:func:`~.nodes()` function.
+
+  >>> import brainpy as bp
+  >>> l = bm.node_list([bp.dnn.Dense(1, 2),
+  >>>                   bp.dnn.LSTMCell(2, 3)])
   """
 
   def __init__(self, seq=()):
