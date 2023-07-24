@@ -117,8 +117,7 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
 
   def derivative(self, V, t, I):
     # synapses
-    for out in self.cur_inputs.values():
-      I = I + out(V)
+    I = self.sum_inputs(V, init=I)
     # channels
     for ch in self.nodes(level=1, include_self=False).subset(IonChaDyn).unique().values():
       I = I + ch.current(V)
@@ -177,8 +176,7 @@ class CondNeuGroup(CondNeuGroupLTC):
   def update(self, x=None):
     # inputs
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x = x + out(self.V.value)
+    x = self.sum_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -444,8 +442,7 @@ class HHLTC(NeuDyn):
     self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
 
   def dV(self, V, t, m, h, n, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
     I_K = (self.gK * n ** 4.0) * (V - self.EK)
     I_leak = self.gL * (V - self.EL)
@@ -658,8 +655,7 @@ class HH(HHLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
+    x = self.sum_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -806,8 +802,7 @@ class MorrisLecarLTC(NeuDyn):
     self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
 
   def dV(self, V, t, W, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
     I_K = self.g_K * W * (V - self.V_K)
@@ -924,20 +919,9 @@ class MorrisLecar(MorrisLecarLTC):
     dVdt = (- I_Ca - I_K - I_Leak + I) / self.C
     return dVdt
 
-  def dW(self, W, t, V):
-    tau_W = 1 / (self.phi * bm.cosh((V - self.V3) / (2 * self.V4)))
-    W_inf = (1 / 2) * (1 + bm.tanh((V - self.V3) / self.V4))
-    dWdt = (W_inf - W) / tau_W
-    return dWdt
-
-  @property
-  def derivative(self):
-    return JointEq(self.dV, self.dW)
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
+    x = self.sum_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -1105,8 +1089,7 @@ class WangBuzsakiHHLTC(NeuDyn):
     return self.phi * dndt
 
   def dV(self, V, t, h, n, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     INa = self.gNa * self.m_inf(V) ** 3 * h * (V - self.ENa)
     IK = self.gK * n ** 4 * (V - self.EK)
     IL = self.gL * (V - self.EL)
@@ -1218,23 +1201,6 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
 
   """
 
-  def m_inf(self, V):
-    alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
-    beta = 4. * bm.exp(-(V + 60.) / 18.)
-    return alpha / (alpha + beta)
-
-  def dh(self, h, t, V):
-    alpha = 0.07 * bm.exp(-(V + 58) / 20)
-    beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
-    dhdt = alpha * (1 - h) - beta * h
-    return self.phi * dhdt
-
-  def dn(self, n, t, V):
-    alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
-    beta = 0.125 * bm.exp(-(V + 44) / 80)
-    dndt = alpha * (1 - n) - beta * n
-    return self.phi * dndt
-
   def dV(self, V, t, h, n, I):
     INa = self.gNa * self.m_inf(V) ** 3 * h * (V - self.ENa)
     IK = self.gK * n ** 4 * (V - self.EK)
@@ -1242,12 +1208,7 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
     dVdt = (- INa - IK - IL + I) / self.C
     return dVdt
 
-  @property
-  def derivative(self):
-    return JointEq(self.dV, self.dh, self.dn)
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
+    x = self.sum_inputs(self.V.value, init=x)
     return super().update(x)

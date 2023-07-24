@@ -1,7 +1,7 @@
 import numbers
 import sys
 from dataclasses import dataclass
-from typing import Union, Dict, Callable, Sequence, Optional, TypeVar
+from typing import Union, Dict, Callable, Sequence, Optional, TypeVar, Any
 from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
 
 import jax
@@ -26,7 +26,6 @@ __all__ = [
   'ParamDescInit',
   'AlignPost',
   'AutoDelaySupp',
-  'NoSH',
   'Container',
   'TreeNode',
   'BindCondData',
@@ -39,6 +38,28 @@ global_delay_data = dict()
 class MixIn(object):
   """Base MixIn object."""
   pass
+
+
+class ReceiveInputProj(MixIn):
+  """The :py:class:`~.MixIn` that receives the input projections.
+
+  """
+  cur_inputs: bm.node_dict
+
+  def add_inp_fun(self, key: Any, fun: Callable):
+    if not callable(fun):
+      raise TypeError('Must be a function.')
+    if key in self.cur_inputs:
+      raise ValueError(f'Key "{key}" has been defined and used.')
+    self.cur_inputs[key] = fun
+
+  def get_inp_fun(self, key):
+    return self.cur_inputs.get(key)
+
+  def sum_inputs(self, *args, init=0.):
+    for out in self.cur_inputs.values():
+      init = init + out(*args)
+    return init
 
 
 class ParamDesc(MixIn):
@@ -154,13 +175,6 @@ class AutoDelaySupp(MixIn):
 
   def return_info(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError('Must implement the "return_info()" function.')
-
-
-class NoSH(MixIn):
-  """``MixIn`` to indicate that no shared parameters should be passed into the ``update()`` function."""
-
-  def __init__(self, *args, **kwargs):
-    self._pass_shared_args = False
 
 
 class Container(MixIn):

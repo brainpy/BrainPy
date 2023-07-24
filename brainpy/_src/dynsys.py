@@ -10,7 +10,7 @@ import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import AutoDelaySupp, Container, DelayRegister, global_delay_data
+from brainpy._src.mixin import AutoDelaySupp, Container, ReceiveInputProj, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
@@ -365,6 +365,7 @@ class DynSysGroup(DynamicalSystem, Container):
   ):
     super().__init__(name=name, mode=mode)
 
+    # Attribute of "Container"
     self.children = bm.node_dict(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
 
   def update(self, *args, **kwargs):
@@ -455,14 +456,14 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
   >>> l = bp.Sequential(bp.layers.Dense(100, 10),
   >>>                   bm.relu,
   >>>                   bp.layers.Dense(10, 2))
-  >>> l({}, bm.random.random((256, 100)))
+  >>> l(bm.random.random((256, 100)))
   >>>
   >>> # Using Sequential with Dict. This is functionally the
   >>> # same as the above code
   >>> l = bp.Sequential(l1=bp.layers.Dense(100, 10),
   >>>                   l2=bm.relu,
   >>>                   l3=bp.layers.Dense(10, 2))
-  >>> l({}, bm.random.random((256, 100)))
+  >>> l(bm.random.random((256, 100)))
 
 
   Args:
@@ -480,6 +481,8 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       **modules_as_dict
   ):
     super().__init__(name=name, mode=mode)
+
+    # Attribute of "Container"
     self.children = bm.node_dict(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
 
   def update(self, x):
@@ -495,19 +498,6 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       raise UnsupportedError(f'Does not support "return_info()" because the last node is '
                              f'not instance of {AutoDelaySupp.__name__}')
     return last.return_info()
-
-  def __format_key(self, i):
-    return f'l-{i}'
-
-  def __all_nodes(self):
-    nodes = []
-    for i in range(self._num):
-      key = self.__format_key(i)
-      if key not in self._dyn_modules:
-        nodes.append(self._static_modules[key])
-      else:
-        nodes.append(self._dyn_modules[key])
-    return nodes
 
   def __getitem__(self, key: Union[int, slice, str]):
     if isinstance(key, str):
@@ -526,7 +516,7 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
       raise KeyError(f'Unknown type of key: {type(key)}')
 
   def __repr__(self):
-    nodes = self.__all_nodes()
+    nodes = self.children.values()
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(nodes))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
@@ -536,7 +526,7 @@ class Projection(DynamicalSystem):
     pass
 
 
-class Dynamic(DynamicalSystem):
+class Dynamic(DynamicalSystem, ReceiveInputProj):
   """Base class to model dynamics.
 
   There are several essential attributes:
@@ -589,11 +579,11 @@ class Dynamic(DynamicalSystem):
     # integration method
     self.method = method
 
-    # inputs
-    self.cur_inputs: Dict = bm.node_dict()
-
     # initialize
     super().__init__(name=name, mode=mode)
+
+    # Attribute for "ReceiveInputProj"
+    self.cur_inputs = bm.node_dict()
 
   @property
   def varshape(self):
