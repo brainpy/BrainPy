@@ -504,9 +504,7 @@ class DelayRegister(MixIn):
 class BindCondData(MixIn):
   """Bind temporary conductance data.
   """
-
-  def __init__(self, *args, **kwargs):
-    self._conductance = None
+  _conductance: Optional
 
   def bind_cond(self, conductance):
     self._conductance = conductance
