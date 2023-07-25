@@ -133,6 +133,40 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     # super initialization
     super().__init__(name=name)
 
+  def add_bef_update(self, key: Any, fun: Callable):
+    if key in self.before_updates:
+      raise KeyError(f'{key} has been registered in before_updates of {self}')
+    self.before_updates[key] = fun
+
+  def add_aft_update(self, key: Any, fun: Callable):
+    if key in self.after_updates:
+      raise KeyError(f'{key} has been registered in after_updates of {self}')
+    self.after_updates[key] = fun
+
+  def get_bef_update(self, key: Any):
+    if key not in self.before_updates:
+      raise KeyError(f'{key} is not registered in before_updates of {self}')
+    return self.before_updates.get(key)
+
+  def get_aft_update(self, key: Any):
+    if key not in self.after_updates:
+      raise KeyError(f'{key} is not registered in after_updates of {self}')
+    return self.after_updates.get(key)
+
+  def has_bef_update(self, key: Any):
+    return key in self.before_updates
+
+  def has_aft_update(self, key: Any):
+    return key in self.after_updates
+
+  def reset_bef_updates(self, batch_size=None):
+    for node in self.before_updates.values():
+      node.reset_state(batch_size)
+
+  def reset_aft_updates(self, batch_size=None):
+    for node in self.after_updates.values():
+      node.reset_state(batch_size)
+
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
 
@@ -406,7 +440,11 @@ class DynSysGroup(DynamicalSystem, Container):
     # reset other types of nodes, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node.reset_state(batch_size)
-
+    
+    # reset
+    self.reset_aft_updates(batch_size)
+    self.reset_bef_updates(batch_size)
+    
     # reset delays
     # TODO: will be removed in the future
     self.reset_local_delays(nodes)

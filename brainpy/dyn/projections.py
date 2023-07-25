@@ -8,6 +8,8 @@ from brainpy._src.dyn.projections.aligns import (
   ProjAlignPost2,
   ProjAlignPreMg1,
   ProjAlignPreMg2,
+  ProjAlignPre1,
+  ProjAlignPre2,
 )
 
 from brainpy._src.dyn.projections.conn import (
