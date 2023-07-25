@@ -26,16 +26,16 @@ Please use:
 
 
 _input_deprecate_msg = '''
-From brainpy>=2.4.3, input() function no longer needs to receive a global shared argument.
+From brainpy>=2.4.3, input() and monitor() function no longer needs to receive a global shared argument.
 
 Instead of using:
 
-  def input(tdi):
+  def f_input_or_monitor(tdi):
      ...
 
 Please use:
 
-  def input():
+  def f_input_or_monitor():
      t = bp.share['t']
      ...
 '''

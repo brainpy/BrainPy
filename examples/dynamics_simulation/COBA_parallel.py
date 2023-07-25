@@ -3,7 +3,7 @@ import jax
 import brainpy as bp
 import brainpy.math as bm
 
-bm.set_host_device_count(4)
+# bm.set_host_device_count(4)
 
 
 class EINet1(bp.DynSysGroup):

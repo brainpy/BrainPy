@@ -149,6 +149,7 @@ def run1():
   with bm.environment(mode=bm.BatchingMode(10)):
     net = EICOBA_PostAlign(3200, 800)
     runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
+    runner.run(100.)
     bp.visualize.raster_plot(runner.mon['ts'], runner.mon['E.spike'][0], show=True)
     print(runner.run(100., eval_time=True))
     print(runner.mon['E.spike'].shape)
