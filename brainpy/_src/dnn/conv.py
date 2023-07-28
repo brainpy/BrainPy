@@ -101,7 +101,6 @@ class _GeneralConv(Layer):
       name: str = None,
   ):
     super(_GeneralConv, self).__init__(name=name, mode=mode)
-    check.is_subclass(self.mode, (bm.TrainingMode, bm.BatchingMode), self.name)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
