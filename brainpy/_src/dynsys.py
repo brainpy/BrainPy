@@ -14,8 +14,8 @@ from brainpy._src.mixin import AutoDelaySupp, Container, ReceiveInputProj, Delay
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
+from brainpy._src.context import share
 
-share = None
 
 __all__ = [
   # general
@@ -210,9 +210,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     Returns:
       out: The update function returns.
     """
-    global share
-    if share is None:
-      from brainpy._src.context import share
     share.save(i=i, t=i * bm.dt)
     return self.update(*args, **kwargs)
 
@@ -243,9 +240,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     self._mode = value
 
   def _compatible_update(self, *args, **kwargs):
-    global share
-    if share is None:
-      from brainpy._src.context import share
     update_fun = super().__getattribute__('update')
     update_args = tuple(inspect.signature(update_fun).parameters.values())
 
