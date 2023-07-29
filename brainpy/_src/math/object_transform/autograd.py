@@ -448,7 +448,7 @@ def _unravel_array_into_pytree(pytree, axis, arr, is_leaf=None):
   leaves, treedef = tree_flatten(pytree, is_leaf=is_leaf)
   axis = axis % arr.ndim
   shapes = [arr.shape[:axis] + np.shape(l) + arr.shape[axis + 1:] for l in leaves]
-  parts = arr.split(np.cumsum(safe_map(np.size, leaves[:-1])), axis)
+  parts = jnp.split(arr, np.cumsum(safe_map(np.size, leaves[:-1])), axis)
   reshaped_parts = [x.reshape(shape) for x, shape in zip(parts, shapes)]
   return tree_unflatten(treedef, reshaped_parts, )
 
