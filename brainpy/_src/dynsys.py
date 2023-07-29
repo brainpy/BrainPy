@@ -14,8 +14,8 @@ from brainpy._src.mixin import AutoDelaySupp, Container, ReceiveInputProj, Delay
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
+from brainpy._src.context import share
 
-share = None
 
 __all__ = [
   # general
@@ -210,9 +210,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     Returns:
       out: The update function returns.
     """
-    global share
-    if share is None:
-      from brainpy._src.context import share
     share.save(i=i, t=i * bm.dt)
     return self.update(*args, **kwargs)
 
@@ -243,9 +240,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     self._mode = value
 
   def _compatible_update(self, *args, **kwargs):
-    global share
-    if share is None:
-      from brainpy._src.context import share
     update_fun = super().__getattribute__('update')
     update_args = tuple(inspect.signature(update_fun).parameters.values())
 
@@ -254,7 +248,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
       #     update(tdi, *args, **kwargs)
       #
       if len(args) > 0:
-        if isinstance(args[0], dict) and all([bm.isscalar(v) for v in args[0].values()]):
+        if isinstance(args[0], dict) and all([bm.ndim(v) == 0 for v in args[0].values()]):
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
@@ -312,6 +306,21 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
         warnings.warn(_update_deprecate_msg, UserWarning)
         return ret
     else:
+      if len(args) and isinstance(args[0], dict) and all([bm.ndim(v) == 0 for v in args[0].values()]):
+        try:
+          ba = inspect.signature(update_fun).bind(*args[1:], **kwargs)
+        except TypeError:
+          pass
+        else:
+          # -----
+          # define as:
+          #    update(x=None)
+          # call as
+          #    update(tdi)
+          share.save(**args[0])
+          ret = update_fun(*args[1:], **kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
+          return ret
       return update_fun(*args, **kwargs)
 
   def __getattribute__(self, item):
@@ -440,11 +449,11 @@ class DynSysGroup(DynamicalSystem, Container):
     # reset other types of nodes, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node.reset_state(batch_size)
-    
+
     # reset
     self.reset_aft_updates(batch_size)
     self.reset_bef_updates(batch_size)
-    
+
     # reset delays
     # TODO: will be removed in the future
     self.reset_local_delays(nodes)
