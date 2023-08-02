@@ -42,6 +42,8 @@ class RNNCell(Layer):
 
   Parameters
   ----------
+  num_in: int
+    The dimension of the input vector
   num_out: int
     The number of hidden unit in the node.
   state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
@@ -111,7 +113,7 @@ class RNNCell(Layer):
       self.state[:] = self.state2train
 
   def reset_state(self, batch_size=None):
-    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out,), allow_none=False)
     if self.train_state:
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
@@ -149,6 +151,8 @@ class GRUCell(Layer):
 
   Parameters
   ----------
+  num_in: int
+    The dimension of the input vector
   num_out: int
     The number of hidden unit in the node.
   state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
@@ -280,6 +284,8 @@ class LSTMCell(Layer):
 
   Parameters
   ----------
+  num_in: int
+    The dimension of the input vector
   num_out: int
     The number of hidden unit in the node.
   state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
@@ -363,15 +369,15 @@ class LSTMCell(Layer):
       self.state[:] = self.state2train
 
   def update(self, x):
-    h, c = jnp.split(self.state.value, 2, axis=-1)
+    h, c = bm.split(self.state.value, 2, axis=-1)
     gated = x @ self.Wi
     if self.b is not None:
       gated += self.b
     gated += h @ self.Wh
-    i, g, f, o = jnp.split(gated, indices_or_sections=4, axis=-1)
+    i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
     c = bm.sigmoid(f + 1.) * c + bm.sigmoid(i) * self.activation(g)
     h = bm.sigmoid(o) * self.activation(c)
-    self.state.value = jnp.concatenate([h, c], axis=-1)
+    self.state.value = bm.concatenate([h, c], axis=-1)
     return h
 
   @property
@@ -531,7 +537,8 @@ class _ConvNDLSTMCell(Layer):
                                         rhs_dilation=rhs_dilation,
                                         groups=groups,
                                         w_initializer=w_initializer,
-                                        b_initializer=b_initializer, )
+                                        b_initializer=b_initializer,
+                                        mode=mode)
     self.hidden_to_hidden = _GeneralConv(num_spatial_dims=num_spatial_dims,
                                          in_channels=out_channels,
                                          out_channels=out_channels * 4,
@@ -542,7 +549,8 @@ class _ConvNDLSTMCell(Layer):
                                          rhs_dilation=rhs_dilation,
                                          groups=groups,
                                          w_initializer=w_initializer,
-                                         b_initializer=b_initializer, )
+                                         b_initializer=b_initializer,
+                                         mode=mode)
     self.reset_state()
 
   def reset_state(self, batch_size: int = 1):
@@ -598,6 +606,10 @@ class Conv1dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
       mode: Optional[bm.Mode] = None,
   ):
     """Constructs a 1-D convolutional LSTM.
+
+    Input: [Batch_Size, Input_Data_Size, Input_Channel_Size]
+
+    Output: [Batch_Size, Output_Data_Size, Output_Channel_Size]
 
     Args:
       input_shape: Shape of the inputs excluding batch size.
@@ -656,6 +668,10 @@ class Conv2dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
   ):
     """Constructs a 2-D convolutional LSTM.
 
+    Input: [Batch_Size, Input_Data_Size_Dim1,Input_Data_Size_Dim2, Input_Channel_Size]
+
+    Output: [Batch_Size, Output_Data_Size_Dim1,Output_Data_Size_Dim2 , Output_Channel_Size]
+
     Args:
       input_shape: Shape of the inputs excluding batch size.
       out_channels: Number of output channels.
@@ -712,6 +728,10 @@ class Conv3dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
       mode: Optional[bm.Mode] = None,
   ):
     """Constructs a 3-D convolutional LSTM.
+
+    Input: [Batch_Size, Input_Data_Size_Dim1,Input_Data_Size_Dim2,Input_Data_Size_Dim3 ,Input_Channel_Size]
+
+    Output: [Batch_Size, Output_Data_Size_Dim1,Output_Data_Size_Dim2,Output_Data_Size_Dim3,Output_Channel_Size]
 
     Args:
       input_shape: Shape of the inputs excluding batch size.
