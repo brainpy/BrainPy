@@ -113,7 +113,7 @@ class RNNCell(Layer):
       self.state[:] = self.state2train
 
   def reset_state(self, batch_size=None):
-    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out,), allow_none=False)
     if self.train_state:
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train

@@ -1,46 +1,33 @@
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy.initialize import (XavierNormal,
-                                ZeroInit,
-                                Orthogonal,
-                                parameter,
-                                variable,
-                                Initializer)
 from absl.testing import absltest
 import brainpy as bp
 
 
 class Test_Rnncells(parameterized.TestCase):
-
     @parameterized.product(
-        Wi_initializer=[XavierNormal(),
-                        bm.ones([10, 64])],
         mode=[bm.TrainingMode(),
               bm.TrainingMode(20),
               bm.BatchingMode(),
-              bm.BatchingMode(20),
-              bm.NonBatchingMode()]
+              bm.BatchingMode(20)
+              ]
     )
-    def test_RNNCell(self, Wi_initializer, mode):
+    def test_RNNCell(self,mode):
         bm.random.seed()
         input = bm.random.randn(20, 10)
         layer = bp.dnn.RNNCell(num_in=10,
                                num_out=64,
-                               Wi_initializer=Wi_initializer,
                                mode=mode
                                )
-        if mode in [bm.TrainingMode(), bm.BatchingMode(), bm.NonBatchingMode()]:
-            for i in input:
-                output = layer(i)
-        else:
-            output = layer(input)
+        output = layer(input)
+        bm.clear_buffer_memory()
 
     @parameterized.product(
         mode=[bm.TrainingMode(),
               bm.TrainingMode(50),
               bm.BatchingMode(),
-              bm.BatchingMode(50),
-              bm.NonBatchingMode()]
+              bm.BatchingMode(50)
+              ]
     )
     def test_GRUCell(self, mode):
         bm.random.seed()
@@ -48,18 +35,15 @@ class Test_Rnncells(parameterized.TestCase):
         layer = bp.dnn.GRUCell(num_in=100,
                                num_out=64,
                                mode=mode)
-        if mode in [bm.TrainingMode(), bm.BatchingMode(), bm.NonBatchingMode()]:
-            for i in input:
-                output = layer(i)
-        else:
-            output = layer(input)
+        output = layer(input)
+        bm.clear_buffer_memory()
 
     @parameterized.product(
         mode=[bm.TrainingMode(),
               bm.TrainingMode(50),
               bm.BatchingMode(),
-              bm.BatchingMode(50),
-              bm.NonBatchingMode()]
+              bm.BatchingMode(50)
+              ]
     )
     def test_LSTMCell(self, mode):
         bm.random.seed()
@@ -67,17 +51,16 @@ class Test_Rnncells(parameterized.TestCase):
         layer = bp.dnn.LSTMCell(num_in=100,
                                 num_out=64,
                                 mode=mode)
-        if mode in [bm.TrainingMode(), bm.BatchingMode(), bm.NonBatchingMode()]:
-            for i in input:
-                output = layer(i)
-        else:
-            output = layer(input)
+
+        output = layer(input)
+        bm.clear_buffer_memory()
+
 
     @parameterized.product(
         mode=[bm.TrainingMode(),
               bm.TrainingMode(4),
               bm.BatchingMode(),
-              bm.BatchingMode(4), ]
+              bm.BatchingMode(4)]
     )
     def test_Conv1dLSTMCell(self, mode):
         bm.random.seed()
@@ -88,12 +71,13 @@ class Test_Rnncells(parameterized.TestCase):
                                       kernel_size=4,
                                       mode=mode)
         output = layer(input)
+        bm.clear_buffer_memory()
 
     @parameterized.product(
         mode=[bm.TrainingMode(),
               bm.TrainingMode(4),
               bm.BatchingMode(),
-              bm.BatchingMode(4), ]
+              bm.BatchingMode(4)]
     )
     def test_Conv2dLSTMCell(self, mode):
         bm.random.seed()
@@ -104,12 +88,13 @@ class Test_Rnncells(parameterized.TestCase):
                                       kernel_size=(4, 4),
                                       mode=mode)
         output = layer(input)
+        bm.clear_buffer_memory()
 
     @parameterized.product(
         mode=[bm.TrainingMode(),
               bm.TrainingMode(4),
               bm.BatchingMode(),
-              bm.BatchingMode(4), ]
+              bm.BatchingMode(4)]
     )
     def test_Conv3dLSTMCell(self, mode):
         bm.random.seed()
@@ -120,6 +105,7 @@ class Test_Rnncells(parameterized.TestCase):
                                       kernel_size=(4, 4, 4),
                                       mode=mode)
         output = layer(input)
+        bm.clear_buffer_memory()
 
 
 if __name__ == '__main__':

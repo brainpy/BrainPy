@@ -19,6 +19,7 @@ class Test_Conv(parameterized.TestCase):
                               kernel_size=5,
                               mode=mode)
         output = layer(input)
+        bm.clear_buffer_memory()
 
     @parameterized.product(
         mode=[bm.TrainingMode(),
