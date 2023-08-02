@@ -79,8 +79,10 @@ class TestCollectionFunction(unittest.TestCase):
     self.assertTrue(len(net.vars(level=3, include_self=False)) == (2 + 4 + 8) * 2)
 
 
-class TestNodeList(bp.testing.UnitTestCase):
+class TestNodeList(unittest.TestCase):
   def test_NodeList_1(self):
+    bm.random.seed()
+
     class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
@@ -119,8 +121,10 @@ class TestNodeList(bp.testing.UnitTestCase):
       # print(jax.tree_util.tree_structure(obj))
 
 
-class TestNodeDict(bp.testing.UnitTestCase):
+class TestNodeDict(unittest.TestCase):
   def test_NodeDict_1(self):
+    bm.random.seed()
+
     class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
@@ -165,8 +169,10 @@ class TestNodeDict(bp.testing.UnitTestCase):
       # print(jax.tree_util.tree_structure(obj))
 
 
-class TestVarList(bp.testing.UnitTestCase):
+class TestVarList(unittest.TestCase):
   def test_ListVar_1(self):
+    bm.random.seed()
+
     class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
@@ -194,8 +200,10 @@ class TestVarList(bp.testing.UnitTestCase):
     self.assertTrue(bm.allclose(obj.vs[2], bm.ones(10) * 11.))
 
 
-class TestVarDict(bp.testing.UnitTestCase):
+class TestVarDict(unittest.TestCase):
   def test_DictVar_1(self):
+    bm.random.seed()
+
     class Object(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()

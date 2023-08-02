@@ -74,7 +74,9 @@ class TestRKMethods(unittest.TestCase):
                    explicit_rk.RK4,
                    explicit_rk.Ralston4,
                    explicit_rk.RK4Rule38]:
+      bm.random.seed()
       mon_x, mon_y, mon_z = run_integrator(method)
       assert np.linalg.norm(mon_x - _baseline_x) / (duration / dt) < 0.1
       assert np.linalg.norm(mon_y - _baseline_y) / (duration / dt) < 0.1
       assert np.linalg.norm(mon_z - _baseline_z) / (duration / dt) < 0.1
+      bm.clear_buffer_memory()

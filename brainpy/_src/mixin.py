@@ -1,7 +1,7 @@
 import numbers
 import sys
 from dataclasses import dataclass
-from typing import Union, Dict, Callable, Sequence, Optional, TypeVar
+from typing import Union, Dict, Callable, Sequence, Optional, TypeVar, Any
 from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
 
 import jax
@@ -9,6 +9,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm, tools
+from brainpy._src.math.object_transform.naming import get_unique_name
 from brainpy._src.initialize import parameter
 from brainpy.types import ArrayType
 
@@ -25,7 +26,6 @@ __all__ = [
   'ParamDescInit',
   'AlignPost',
   'AutoDelaySupp',
-  'NoSH',
   'Container',
   'TreeNode',
   'BindCondData',
@@ -36,8 +36,59 @@ global_delay_data = dict()
 
 
 class MixIn(object):
-  """Base MixIn object."""
+  """Base MixIn object.
+
+  The key for a :py:class:`~.MixIn` is that: no initialization function, only behavioral functions.
+  """
   pass
+
+
+class ReceiveInputProj(MixIn):
+  """The :py:class:`~.MixIn` that receives the input projections.
+
+  Note that the subclass should define a ``cur_inputs`` attribute.
+
+  """
+  cur_inputs: bm.node_dict
+
+  def add_inp_fun(self, key: Any, fun: Callable):
+    """Add an input function.
+
+    Args:
+      key: The dict key.
+      fun: The function to generate inputs.
+    """
+    if not callable(fun):
+      raise TypeError('Must be a function.')
+    if key in self.cur_inputs:
+      raise ValueError(f'Key "{key}" has been defined and used.')
+    self.cur_inputs[key] = fun
+
+  def get_inp_fun(self, key):
+    """Get the input function.
+
+    Args:
+      key: The key.
+
+    Returns:
+      The input function which generates currents.
+    """
+    return self.cur_inputs.get(key)
+
+  def sum_inputs(self, *args, init=0., **kwargs):
+    """Summarize all inputs by the defined input functions ``.cur_inputs``.
+
+    Args:
+      *args: The arguments for input functions.
+      init: The initial input data.
+      **kwargs: The arguments for input functions.
+
+    Returns:
+
+    """
+    for out in self.cur_inputs.values():
+      init = init + out(*args, **kwargs)
+    return init
 
 
 class ParamDesc(MixIn):
@@ -103,6 +154,14 @@ class ParamDescInit(object):
   def __class_getitem__(cls, item: type):
     return ParamDescInit(item)
 
+  @property
+  def identifier(self):
+    return self._identifier
+
+  @identifier.setter
+  def identifier(self, value):
+    self._identifier = value
+
 
 class AlignPost(MixIn):
   """Align post MixIn.
@@ -118,9 +177,26 @@ class AlignPost(MixIn):
 @dataclass
 class ReturnInfo:
   size: Sequence[int]
-  axis_names: Optional[Sequence[str]]
-  batch_or_mode: Optional[Union[int, bm.Mode]]
-  init: Callable
+  axis_names: Optional[Sequence[str]] = None
+  batch_or_mode: Optional[Union[int, bm.Mode]] = None
+  data: Union[Callable, bm.Array, jax.Array] = bm.zeros
+
+  def get_data(self):
+    if isinstance(self.data, Callable):
+      if isinstance(self.batch_or_mode, int):
+        size = (self.batch_or_mode,) + tuple(self.size)
+      elif isinstance(self.batch_or_mode, bm.NonBatchingMode):
+        size = tuple(self.size)
+      elif isinstance(self.batch_or_mode, bm.BatchingMode):
+        size = (self.batch_or_mode.batch_size,) + tuple(self.size)
+      else:
+        size = tuple(self.size)
+      init = self.data(size)
+    elif isinstance(self.data, (bm.Array, jax.Array)):
+      init = self.data
+    else:
+      raise ValueError
+    return init
 
 
 class AutoDelaySupp(MixIn):
@@ -128,13 +204,6 @@ class AutoDelaySupp(MixIn):
 
   def return_info(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError('Must implement the "return_info()" function.')
-
-
-class NoSH(MixIn):
-  """``MixIn`` to indicate that no shared parameters should be passed into the ``update()`` function."""
-
-  def __init__(self, *args, **kwargs):
-    self._pass_shared_args = False
 
 
 class Container(MixIn):
@@ -167,19 +236,25 @@ class Container(MixIn):
     string = ", \n".join(child_str)
     return f'{cls_name}({string})'
 
+  def __get_elem_name(self, elem):
+    if isinstance(elem, bm.BrainPyObject):
+      return elem.name
+    else:
+      return get_unique_name('ContainerElem')
+
   def format_elements(self, child_type: type, *children_as_tuple, **children_as_dict):
     res = dict()
 
     # add tuple-typed components
     for module in children_as_tuple:
       if isinstance(module, child_type):
-        res[module.name] = module
+        res[self.__get_elem_name(module)] = module
       elif isinstance(module, (list, tuple)):
         for m in module:
           if not isinstance(m, child_type):
             raise ValueError(f'Should be instance of {child_type.__name__}. '
                              f'But we got {type(m)}')
-          res[m.name] = m
+          res[self.__get_elem_name(m)] = m
       elif isinstance(module, dict):
         for k, v in module.items():
           if not isinstance(v, child_type):
@@ -201,12 +276,12 @@ class Container(MixIn):
     """Add new elements.
 
     >>> obj = Container()
-    >>> obj.add_elem(1.)
+    >>> obj.add_elem(a=1.)
 
     Args:
       elements: children objects.
     """
-    self.check_hierarchies(type(self), **elements)
+    # self.check_hierarchies(type(self), **elements)
     self.children.update(self.format_elements(object, **elements))
 
 
@@ -429,9 +504,7 @@ class DelayRegister(MixIn):
 class BindCondData(MixIn):
   """Bind temporary conductance data.
   """
-
-  def __init__(self, *args, **kwargs):
-    self._conductance = None
+  _conductance: Optional
 
   def bind_cond(self, conductance):
     self._conductance = conductance
@@ -493,12 +566,13 @@ if sys.version_info.minor > 8:
 
   @_SpecialForm
   def JointType(self, parameters):
-    """Joint type; JointType[X, Y] means either X or Y.
+    """Joint type; JointType[X, Y] means both X and Y.
 
-    To define a union, use e.g. Union[int, str].  Details:
+    To define a union, use e.g. Union[int, str].
+
+    Details:
     - The arguments must be types and there must be at least one.
-    - None as an argument is a special case and is replaced by
-      type(None).
+    - None as an argument is a special case and is replaced by `type(None)`.
     - Unions of unions are flattened, e.g.::
 
         JointType[JointType[int, str], float] == JointType[int, str, float]
@@ -519,7 +593,7 @@ if sys.version_info.minor > 8:
     - You can use Optional[X] as a shorthand for JointType[X, None].
     """
     if parameters == ():
-      raise TypeError("Cannot take a Union of no types.")
+      raise TypeError("Cannot take a Joint of no types.")
     if not isinstance(parameters, tuple):
       parameters = (parameters,)
     msg = "JointType[arg, ...]: each arg must be a type."
@@ -540,10 +614,10 @@ else:
     def __getitem__(self, parameters):
       if self._name == 'JointType':
         if parameters == ():
-          raise TypeError("Cannot take a Union of no types.")
+          raise TypeError("Cannot take a Joint of no types.")
         if not isinstance(parameters, tuple):
           parameters = (parameters,)
-        msg = "Union[arg, ...]: each arg must be a type."
+        msg = "JointType[arg, ...]: each arg must be a type."
         parameters = tuple(_type_check(p, msg) for p in parameters)
         parameters = _remove_dups_flatten(parameters)
         if len(parameters) == 1:
@@ -555,12 +629,14 @@ else:
 
   JointType = _SpecialForm2(
     'JointType',
-    doc="""Joint type; JointType[X, Y] means either X or Y.
+    doc="""Joint type; JointType[X, Y] means both X and Y.
   
-    To define a union, use e.g. JointType[int, str].  Details:
+    To define a union, use e.g. JointType[int, str].  
+    
+    Details:
+    
     - The arguments must be types and there must be at least one.
-    - None as an argument is a special case and is replaced by
-      type(None).
+    - None as an argument is a special case and is replaced by `type(None)`.
     - Unions of unions are flattened, e.g.::
   
         JointType[JointType[int, str], float] == JointType[int, str, float]

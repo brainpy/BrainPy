@@ -75,10 +75,12 @@ class EINet(bp.Network):
 
 
 def test1():
+  bm.random.seed()
   net2 = EINet(scale=0.1)
   runner2 = bp.DSRunner(net2, inputs=[('E.input', 20.), ('I.input', 20.)])
   r = runner2.predict(100., eval_time=True)
-  print(r)
+  bm.clear_buffer_memory()
+
 
 
 

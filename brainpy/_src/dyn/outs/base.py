@@ -9,9 +9,13 @@ __all__ = [
 
 
 class SynOut(DynamicalSystem, ParamDesc, BindCondData):
-  """Base class for synaptic outputs."""
+  """Base class for synaptic outputs.
+
+  :py:class:`~.SynOut` is also subclass of :py:class:`~.ParamDesc` and :pu:class:`~.BindCondData`.
+  """
   def __init__(self, name: Optional[str] = None):
     super().__init__(name=name)
+    self._conductance = None
 
   def __call__(self, *args, **kwargs):
     if self._conductance is None:
@@ -19,3 +23,6 @@ class SynOut(DynamicalSystem, ParamDesc, BindCondData):
                        f'".{BindCondData.bind_cond.__name__}(data)". {self}')
     ret = self.update(self._conductance, *args, **kwargs)
     return ret
+
+  def reset_state(self, *args, **kwargs):
+    pass

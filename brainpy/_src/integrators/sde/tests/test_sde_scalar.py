@@ -2,13 +2,12 @@
 
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
 import brainpy as bp
 from brainpy.integrators import sde
-import matplotlib.pyplot as plt
-
 
 block = False
 sigma = 10
@@ -29,6 +28,7 @@ def lorenz_g(x, y, z, t):
 
 
 def lorenz_system(method, **kwargs):
+  bp.math.random.seed()
   integral = bp.math.jit(method(f=lorenz_f,
                                 g=lorenz_g,
                                 show_code=True,
@@ -57,6 +57,7 @@ def lorenz_system(method, **kwargs):
   ax.set_xlabel('z')
   plt.show(block=block)
   plt.close(fig)
+  bp.math.clear_buffer_memory()
 
 
 class TestScalarWienerIntegral(unittest.TestCase):

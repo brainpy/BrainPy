@@ -18,7 +18,7 @@ from jax.tree_util import (
 from jax.util import safe_map
 
 from brainpy import tools, check
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import Array, _as_jax_array_
 from ._tools import (
   dynvar_deprecation,
   node_deprecation,
@@ -224,13 +224,17 @@ class GradientTransform(ObjectTransform):
               )
           cache_stack(self.target, stack)
 
-      self._dyn_vars = stack
-      self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
-      self._eval_dyn_vars = True
+        self._dyn_vars = stack
+        self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+        self._eval_dyn_vars = True
 
-      # if not the outermost transformation
-      if current_transform_number():
-        return self._return(rets)
+        # if not the outermost transformation
+        if current_transform_number():
+          return self._return(rets)
+      else:
+        self._dyn_vars = stack
+        self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+        self._eval_dyn_vars = True
 
     rets = self._transform(
       [v.value for v in self._grad_vars],  # variables for gradients
@@ -444,7 +448,7 @@ def _unravel_array_into_pytree(pytree, axis, arr, is_leaf=None):
   leaves, treedef = tree_flatten(pytree, is_leaf=is_leaf)
   axis = axis % arr.ndim
   shapes = [arr.shape[:axis] + np.shape(l) + arr.shape[axis + 1:] for l in leaves]
-  parts = arr.split(np.cumsum(safe_map(np.size, leaves[:-1])), axis)
+  parts = jnp.split(_as_jax_array_(arr), np.cumsum(safe_map(np.size, leaves[:-1])), axis)
   reshaped_parts = [x.reshape(shape) for x, shape in zip(parts, shapes)]
   return tree_unflatten(treedef, reshaped_parts, )
 

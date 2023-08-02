@@ -405,13 +405,14 @@ def _make_jit_fun(
 
   @wraps(fun)
   def call_fun(self, *args, **kwargs):
-    fun2 = partial(fun, self)
     if jax.config.jax_disable_jit:
-      return fun2(*args, **kwargs)
+      return fun(self, *args, **kwargs)
 
     hash_v = hash(fun) + hash(self)
     cache = get_stack_cache(hash_v)  # TODO: better cache mechanism
     if cache is None:
+      fun2 = partial(fun, self)
+      
       with jax.ensure_compile_time_eval():
         if len(static_argnums) or len(static_argnames):
           fun3, args_, kwargs_ = _partial_fun(fun2, args, kwargs, static_argnums, static_argnames)

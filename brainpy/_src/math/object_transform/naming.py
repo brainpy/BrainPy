@@ -32,7 +32,7 @@ def check_name_uniqueness(name, obj):
     _name2id[name] = id(obj)
 
 
-def get_unique_name(type_):
+def get_unique_name(type_: str):
   """Get the unique name for the given object type."""
   if type_ not in _typed_names:
     _typed_names[type_] = 0

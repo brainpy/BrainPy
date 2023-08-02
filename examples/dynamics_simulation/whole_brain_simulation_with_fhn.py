@@ -21,7 +21,7 @@ def bifurcation_analysis():
   pp.show_figure()
 
 
-class Network(bp.Network):
+class Network(bp.DynSysGroup):
   def __init__(self, signal_speed=20.):
     super(Network, self).__init__()
 
@@ -36,12 +36,12 @@ class Network(bp.Network):
     delay_mat = bm.asarray(delay_mat)
     bm.fill_diagonal(delay_mat, 0)
 
-    self.fhn = bp.rates.FHN(
+    self.fhn = bp.dyn.FHN(
       80,
       x_ou_sigma=0.01,
       y_ou_sigma=0.01,
     )
-    self.coupling = bp.synapses.DiffusiveCoupling(
+    self.coupling = bp.dyn.DiffusiveCoupling(
       self.fhn.x,
       self.fhn.x,
       var_to_output=self.fhn.input,
@@ -95,5 +95,5 @@ def net_analysis():
 
 if __name__ == '__main__':
   # bifurcation_analysis()
-  # net_simulation()
-  net_analysis()
+  net_simulation()
+  # net_analysis()

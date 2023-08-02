@@ -33,8 +33,9 @@ class FitzHughNagumoModel(bp.DynamicalSystem):
     self.int_V = bp.odeint(dV, method=method)
     self.int_w = bp.odeint(dw, method=method)
 
-  def update(self, tdi):
-    t, dt = tdi['t'], tdi['dt']
+  def update(self):
+    t = bp.share['t']
+    dt = bp.share['dt']
     self.V.value = self.int_V(self.V, t, self.w, self.Iext, dt)
     self.w.value = self.int_w(self.w, t, self.V, self.a, self.b, dt)
     self.Iext[:] = 0.

@@ -107,6 +107,10 @@ def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
   return np.mean(np.asarray(res))
 
 
+def _f_signal(signal):
+  return jnp.mean(signal * signal) - jnp.mean(signal) ** 2
+
+
 def voltage_fluctuation(potentials, numpy=True, method='loop'):
   r"""Calculate neuronal synchronization via voltage variance.
 
@@ -143,33 +147,23 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
       \chi^2 \left( N \right) = \frac{\sigma_V^2}{ \frac{1}{N} \sum_{i=1}^N
       \sigma_{V_i}^2}
 
-  Parameters
-  ----------
-  potentials : ndarray
-    The membrane potential matrix of the neuron group.
-  numpy: bool
-    Whether we use numpy array as the functional output.
-    If ``False``, this function can be JIT compiled.
-  method: str
-    The method to calculate all pairs of cross correlation.
-    Supports two kinds of methods: `loop` and `vmap`.
-    `vmap` method will consume much more memory.
-
-    .. versionadded:: 2.2.3.4
-
-
-  Returns
-  -------
-  sync_index : float
-      The synchronization index.
-
-  References
-  ----------
   .. [1] Golomb, D. and Rinzel J. (1993) Dynamics of globally coupled
          inhibitory neurons with heterogeneity. Phys. Rev. E 48:4810-4814.
   .. [2] Golomb D. and Rinzel J. (1994) Clustering in globally coupled
          inhibitory neurons. Physica D 72:259-282.
   .. [3] David Golomb (2007) Neuronal synchrony measures. Scholarpedia, 2(1):1347.
+
+  Args:
+    potentials: The membrane potential matrix of the neuron group.
+    numpy: Whether we use numpy array as the functional output. If ``False``, this function can be JIT compiled.
+    method: The method to calculate all pairs of cross correlation.
+       Supports two kinds of methods: `loop` and `vmap`.
+      `vmap` method will consume much more memory.
+
+      .. versionadded:: 2.2.3.4
+
+  Returns:
+    sync_index: The synchronization index.
   """
 
   potentials = bm.as_jax(potentials)
@@ -177,15 +171,14 @@ def voltage_fluctuation(potentials, numpy=True, method='loop'):
   avg_var = jnp.mean(avg * avg) - jnp.mean(avg) ** 2
 
   if method == 'loop':
-    _var = lambda aa: bm.for_loop(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2,
-                                  operands=jnp.moveaxis(aa, 0, 1))
+    _var = bm.for_loop(_f_signal, operands=jnp.moveaxis(potentials, 0, 1))
 
   elif method == 'vmap':
-    _var = vmap(lambda signal: jnp.mean(signal * signal) - jnp.mean(signal) ** 2, in_axes=1)
+    _var = vmap(_f_signal, in_axes=1)(potentials)
   else:
     raise UnsupportedError(f'Do not support {method}. We only support "loop" or "vmap".')
 
-  var_mean = jnp.mean(_var(potentials))
+  var_mean = jnp.mean(_var)
   r = jnp.where(var_mean == 0., 1., avg_var / var_mean)
   return bm.as_numpy(r) if numpy else r
 

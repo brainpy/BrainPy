@@ -118,7 +118,6 @@ class Runner(BrainPyObject):
 
     # monitor for user access
     self.mon = DotDict()
-    self.mon['var_names'] = tuple(self._monitors.keys())
 
     # progress bar
     assert isinstance(progress_bar, bool), 'Must be a boolean variable.'
@@ -127,7 +126,6 @@ class Runner(BrainPyObject):
 
     # dynamical changed variables
     self._dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-    self.register_implicit_vars(self._dyn_vars)
 
     # numpy mon after run
     self.numpy_mon_after_run = numpy_mon_after_run

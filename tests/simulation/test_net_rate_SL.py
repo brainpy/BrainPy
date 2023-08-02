@@ -25,8 +25,9 @@ class Network(bp.Network):
     )
 
 
-class TestSL(bp.testing.UnitTestCase):
+class TestSL(unittest.TestCase):
   def test1(self):
+    bm.random.seed()
     net = Network()
     runner = bp.DSRunner(net, monitors=['sl.x'])
     runner.run(6e3 if show else 1e2)

@@ -80,7 +80,7 @@ class Array(object):
 
   def _check_tracer(self):
     self_value = self.value
-    if hasattr(self_value, '_trace'):
+    if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
       if len(self_value._trace.main.jaxpr_stack) == 0:
         raise RuntimeError('This Array is modified during the transformation. '
                            'BrainPy only supports transformations for Variable. '
@@ -748,7 +748,7 @@ class Array(object):
     sub-arrays : list of ndarrays
       A list of sub-arrays as views into `ary`.
     """
-    return [_return(a) for a in self.value.split(indices_or_sections, axis=axis)]
+    return [_return(a) for a in jnp.split(self.value, indices_or_sections, axis=axis)]
 
   def take(self, indices, axis=None, mode=None):
     """Return an array formed from the elements of a at the given indices."""

@@ -145,6 +145,7 @@ class Expon(SynDyn, AlignPost):
 
     # function
     self.integral = odeint(self.derivative, method=method)
+    self._current = None
 
     self.reset_state(self.mode)
 
@@ -334,7 +335,8 @@ class DualExponV2(SynDyn, AlignPost):
     self.g_decay += inp
 
   def return_info(self):
-    return ReturnInfo(self.varshape, self.sharding, self.mode, bm.zeros)
+    return ReturnInfo(self.varshape, self.sharding, self.mode,
+                      lambda shape: self.coeff * (self.g_decay - self.g_rise))
 
 
 DualExponV2.__doc__ = DualExponV2.__doc__ % (pneu_doc,)
@@ -586,7 +588,13 @@ class STD(SynDyn):
     t = share.load('t')
     dt = share.load('dt')
     x = self.integral(self.x.value, t, dt)
-    self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
+
+    # --- original code:
+    # self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
+
+    # --- simplified code:
+    self.x.value = x - pre_spike * self.U * self.x
+
     return self.x.value
 
   def return_info(self):
@@ -677,22 +685,26 @@ class STP(SynDyn):
     t = share.load('t')
     dt = share.load('dt')
     u, x = self.integral(self.u.value, self.x.value, t, dt)
-    if pre_spike.dtype == jax.numpy.bool_:
-      u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
-      x = bm.where(pre_spike, x - u * self.x, x)
-    else:
-      u = pre_spike * (u + self.U * (1 - self.u)) + (1 - pre_spike) * u
-      x = pre_spike * (x - u * self.x) + (1 - pre_spike) * x
+
+    # --- original code:
+    #   if pre_spike.dtype == jax.numpy.bool_:
+    #     u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
+    #     x = bm.where(pre_spike, x - u * self.x, x)
+    #   else:
+    #     u = pre_spike * (u + self.U * (1 - self.u)) + (1 - pre_spike) * u
+    #     x = pre_spike * (x - u * self.x) + (1 - pre_spike) * x
+
+    # --- simplified code:
+    u = pre_spike * self.U * (1 - self.u) + u
+    x = pre_spike * -u * self.x + x
+
     self.x.value = x
     self.u.value = u
     return u * x
 
   def return_info(self):
-    return ReturnInfo(size=self.varshape,
-                      batch_or_mode=self.mode,
-                      axis_names=self.sharding,
-                      init=Constant(self.U))
+    return ReturnInfo(self.varshape, self.sharding, self.mode,
+                      lambda shape: self.u * self.x)
 
 
 STP.__doc__ = STP.__doc__ % (pneu_doc,)
-

@@ -6,7 +6,6 @@ import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector
 from brainpy._src.dyn import synapses
 from brainpy._src.dynold.synapses import _SynSTP, _SynOut, _TwoEndConnAlignPre
-from brainpy._src.dynold.synapses.base import _init_stp, _DelayedSyn
 from brainpy._src.dynold.synouts import COBA, MgBlock
 from brainpy._src.dyn.base import NeuDyn
 from brainpy.types import ArrayType
@@ -16,22 +15,6 @@ __all__ = [
   'GABAa',
   'BioNMDA',
 ]
-
-
-class _DelayedAMPA(_DelayedSyn):
-  not_desc_params = ('master', 'stp', 'mode')
-
-  def __init__(self, size, keep_size, mode, alpha, beta, T, T_dur, method, master, stp=None):
-    syn = synapses.AMPA(size,
-                        keep_size,
-                        mode=mode,
-                        alpha=alpha,
-                        beta=beta,
-                        T=T,
-                        T_dur=T_dur,
-                        method=method)
-    stp = _init_stp(stp, master)
-    super().__init__(syn, stp)
 
 
 class AMPA(_TwoEndConnAlignPre):
@@ -71,10 +54,8 @@ class AMPA(_TwoEndConnAlignPre):
       raise ValueError(f'"T_duration" must be a scalar or a tensor with size of 1. But we got {T_duration}')
 
     # AMPA
-    syn = _DelayedAMPA.desc(
-      pre.size, pre.keep_size, mode=mode, alpha=alpha, beta=beta,
-      T=T, T_dur=T_duration, method=method, stp=stp, master=self,
-    )
+    syn = synapses.AMPA(pre.size, pre.keep_size, mode=mode, alpha=alpha, beta=beta,
+                        T=T, T_dur=T_duration, method=method)
 
     super().__init__(pre=pre,
                      post=post,
@@ -89,7 +70,6 @@ class AMPA(_TwoEndConnAlignPre):
                      mode=mode)
 
     # copy the references
-    syn = self.pre.after_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.spike_arrival_time = syn.spike_arrival_time
 
@@ -179,40 +159,22 @@ class GABAa(AMPA):
       mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
-    super(GABAa, self).__init__(pre=pre,
-                                post=post,
-                                conn=conn,
-                                output=output,
-                                stp=stp,
-                                comp_method=comp_method,
-                                delay_step=delay_step,
-                                g_max=g_max,
-                                alpha=alpha,
-                                beta=beta,
-                                T=T,
-                                T_duration=T_duration,
-                                method=method,
-                                name=name,
-                                mode=mode,
-                                stop_spike_gradient=stop_spike_gradient, )
-
-
-class _DelayedNMDA(_DelayedSyn):
-  not_desc_params = ('master', 'stp', 'mode')
-
-  def __init__(self, size, keep_size, alpha1, beta1, alpha2, beta2, T, T_dur, method, mode, master, stp=None):
-    syn = synapses.BioNMDA(size,
-                           keep_size,
-                           mode=mode,
-                           alpha1=alpha1,
-                           beta1=beta1,
-                           alpha2=alpha2,
-                           beta2=beta2,
-                           T=T,
-                           T_dur=T_dur,
-                           method=method)
-    stp = _init_stp(stp, master)
-    super().__init__(syn, stp)
+    super().__init__(pre=pre,
+                     post=post,
+                     conn=conn,
+                     output=output,
+                     stp=stp,
+                     comp_method=comp_method,
+                     delay_step=delay_step,
+                     g_max=g_max,
+                     alpha=alpha,
+                     beta=beta,
+                     T=T,
+                     T_duration=T_duration,
+                     method=method,
+                     name=name,
+                     mode=mode,
+                     stop_spike_gradient=stop_spike_gradient, )
 
 
 class BioNMDA(_TwoEndConnAlignPre):
@@ -380,18 +342,16 @@ class BioNMDA(_TwoEndConnAlignPre):
     self.comp_method = comp_method
     self.stop_spike_gradient = stop_spike_gradient
 
-    syn = _DelayedNMDA.desc(pre.size,
-                            pre.keep_size,
-                            mode=mode,
-                            alpha1=alpha1,
-                            beta1=beta1,
-                            alpha2=alpha2,
-                            beta2=beta2,
-                            T=T_0,
-                            T_dur=T_dur,
-                            method=method,
-                            stp=stp,
-                            master=self)
+    syn = synapses.BioNMDA(pre.size,
+                           pre.keep_size,
+                           mode=mode,
+                           alpha1=alpha1,
+                           beta1=beta1,
+                           alpha2=alpha2,
+                           beta2=beta2,
+                           T=T_0,
+                           T_dur=T_dur,
+                           method=method, )
     super().__init__(pre=pre,
                      post=post,
                      syn=syn,
@@ -405,7 +365,6 @@ class BioNMDA(_TwoEndConnAlignPre):
                      mode=mode)
 
     # copy the references
-    syn = self.pre.after_updates[self.proj._syn_id].syn.syn
     self.g = syn.g
     self.x = syn.x
     self.spike_arrival_time = syn.spike_arrival_time

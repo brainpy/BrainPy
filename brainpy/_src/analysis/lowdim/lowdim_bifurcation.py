@@ -31,13 +31,13 @@ class Bifurcation1D(Num1DAnalyzer):
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                pars_update=None, resolutions=None, options=None):
-    super(Bifurcation1D, self).__init__(model=model,
-                                        target_pars=target_pars,
-                                        target_vars=target_vars,
-                                        fixed_vars=fixed_vars,
-                                        pars_update=pars_update,
-                                        resolutions=resolutions,
-                                        options=options)
+    super().__init__(model=model,
+                     target_pars=target_pars,
+                     target_vars=target_vars,
+                     fixed_vars=fixed_vars,
+                     pars_update=pars_update,
+                     resolutions=resolutions,
+                     options=options)
 
     if len(self.target_pars) == 0:
       raise ValueError
@@ -146,13 +146,13 @@ class Bifurcation2D(Num2DAnalyzer):
 
   def __init__(self, model, target_pars, target_vars, fixed_vars=None,
                pars_update=None, resolutions=None, options=None):
-    super(Bifurcation2D, self).__init__(model=model,
-                                        target_pars=target_pars,
-                                        target_vars=target_vars,
-                                        fixed_vars=fixed_vars,
-                                        pars_update=pars_update,
-                                        resolutions=resolutions,
-                                        options=options)
+    super().__init__(model=model,
+                     target_pars=target_pars,
+                     target_vars=target_vars,
+                     fixed_vars=fixed_vars,
+                     pars_update=pars_update,
+                     resolutions=resolutions,
+                     options=options)
 
     if len(self.target_pars) == 0:
       raise ValueError
@@ -458,13 +458,13 @@ class FastSlow1D(Bifurcation1D):
       resolutions=None,
       options: dict = None
   ):
-    super(FastSlow1D, self).__init__(model=model,
-                                     target_pars=slow_vars,
-                                     target_vars=fast_vars,
-                                     fixed_vars=fixed_vars,
-                                     pars_update=pars_update,
-                                     resolutions=resolutions,
-                                     options=options)
+    super().__init__(model=model,
+                     target_pars=slow_vars,
+                     target_vars=fast_vars,
+                     fixed_vars=fixed_vars,
+                     pars_update=pars_update,
+                     resolutions=resolutions,
+                     options=options)
 
     # standard integrators
     self._std_integrators = dict()
@@ -549,13 +549,13 @@ class FastSlow2D(Bifurcation2D):
       resolutions=0.1,
       options: dict = None
   ):
-    super(FastSlow2D, self).__init__(model=model,
-                                     target_pars=slow_vars,
-                                     target_vars=fast_vars,
-                                     fixed_vars=fixed_vars,
-                                     pars_update=pars_update,
-                                     resolutions=resolutions,
-                                     options=options)
+    super().__init__(model=model,
+                     target_pars=slow_vars,
+                     target_vars=fast_vars,
+                     fixed_vars=fixed_vars,
+                     pars_update=pars_update,
+                     resolutions=resolutions,
+                     options=options)
     # standard integrators
     self._std_integrators = dict()
     for key, intg in self.model.name2integral.items():

@@ -118,7 +118,7 @@ class TestOpRegister(unittest.TestCase):
     bm.random.seed(123)
     fig, gs = bp.visualize.get_figure(1, 2, 4, 5)
 
-    net = EINet(ExponentialSyn, scale=1., method='euler')
+    net = EINet(ExponentialSyn, scale=0.1, method='euler')
     runner = bp.DSRunner(
       net,
       inputs=[(net.E.input, 20.), (net.I.input, 20.)],
@@ -129,7 +129,7 @@ class TestOpRegister(unittest.TestCase):
     ax = fig.add_subplot(gs[0, 0])
     bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], ax=ax)
 
-    net3 = EINet(ExponentialSyn3, scale=1., method='euler')
+    net3 = EINet(ExponentialSyn3, scale=0.1, method='euler')
     runner3 = bp.DSRunner(
       net3,
       inputs=[(net3.E.input, 20.), (net3.I.input, 20.)],
@@ -137,9 +137,5 @@ class TestOpRegister(unittest.TestCase):
     )
     t, _ = runner3.run(100., eval_time=True)
     print(t)
-    # ax = fig.add_subplot(gs[0, 1])
-    # bp.visualize.raster_plot(runner3.mon.ts, runner3.mon['E.spike'], ax=ax, show=True)
-
-    # clear
     plt.close()
     bm.clear_buffer_memory()

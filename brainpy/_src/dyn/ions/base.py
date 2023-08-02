@@ -31,9 +31,11 @@ class MixIons(IonChaDyn, Container, TreeNode):
     assert all([isinstance(cls, Ion) for cls in ions]), f'Must be a sequence of Ion. But got {ions}.'
     super().__init__(size=ions[0].size, keep_size=ions[0].keep_size, sharding=ions[0].sharding)
 
+    # Attribute of "Container"
+    self.children = bm.node_dict()
+
     self.ions: Sequence['Ion'] = tuple(ions)
     self._ion_classes = tuple([type(ion) for ion in self.ions])
-    self.children = bm.node_dict()
     for k, v in channels.items():
       self.add_elem(k=v)
 
@@ -159,6 +161,8 @@ class Ion(IonChaDyn, Container, TreeNode):
       **channels
   ):
     super().__init__(size, keep_size=keep_size, mode=mode, method=method, name=name)
+
+    # Attribute of "Container"
     self.children = bm.node_dict(self.format_elements(IonChaDyn, **channels))
     self.external: Dict[str, Callable] = dict()  # not found by `.nodes()` or `.vars()`
 
@@ -166,13 +170,14 @@ class Ion(IonChaDyn, Container, TreeNode):
     for node in self.nodes(level=1, include_self=False).unique().subset(IonChaDyn).values():
       node.update(V, self.C, self.E)
 
-  def current(self, V, C=None, E=None):
+  def current(self, V, C=None, E=None, external: bool = False):
     """Generate ion channel current.
 
     Args:
       V: The membrane potential.
-      C: The ion concentration.
-      E: The reversal potential.
+      C: The given ion concentration.
+      E: The given reversal potential.
+      external: Include the external current.
 
     Returns:
       Current.
@@ -186,8 +191,9 @@ class Ion(IonChaDyn, Container, TreeNode):
     if len(nodes) > 0:
       for node in nodes:
         current = current + node.current(V, C, E)
-    for key, node in self.external.items():
-      current = current + node(V, C, E)
+    if external:
+      for key, node in self.external.items():
+        current = current + node(V, C, E)
     return current
 
   def reset_state(self, V, batch_size=None):

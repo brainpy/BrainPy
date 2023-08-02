@@ -10,6 +10,7 @@ import brainpy as bp
 
 class TestCaputoL1(unittest.TestCase):
   def test1(self):
+    bp.math.random.seed()
     bp.math.enable_x64()
     alpha = 0.9
     intg = bp.fde.CaputoL1Schema(lambda a, t: a,
@@ -32,4 +33,5 @@ class TestCaputoL1(unittest.TestCase):
       print(memory_trace[0], )
       print(memory_trace2[0], bp.math.array_equal(memory_trace[0], memory_trace2[0]))
 
+    bp.math.clear_buffer_memory()
     bp.math.disable_x64()

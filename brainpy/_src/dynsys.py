@@ -3,17 +3,19 @@
 import collections
 import gc
 import inspect
+import warnings
 from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import AutoDelaySupp, Container, DelayRegister, global_delay_data
+from brainpy._src.mixin import AutoDelaySupp, Container, ReceiveInputProj, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
+from brainpy._src.deprecations import _update_deprecate_msg
+from brainpy._src.context import share
 
-share = None
 
 __all__ = [
   # general
@@ -120,6 +122,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
 
     # local delay variables:
     # Compatible for ``DelayRegister``
+    # TODO: will be deprecated in the future
     self.local_delay_vars: Dict = bm.node_dict()
 
     # the before- / after-updates used for computing
@@ -129,6 +132,40 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
 
     # super initialization
     super().__init__(name=name)
+
+  def add_bef_update(self, key: Any, fun: Callable):
+    if key in self.before_updates:
+      raise KeyError(f'{key} has been registered in before_updates of {self}')
+    self.before_updates[key] = fun
+
+  def add_aft_update(self, key: Any, fun: Callable):
+    if key in self.after_updates:
+      raise KeyError(f'{key} has been registered in after_updates of {self}')
+    self.after_updates[key] = fun
+
+  def get_bef_update(self, key: Any):
+    if key not in self.before_updates:
+      raise KeyError(f'{key} is not registered in before_updates of {self}')
+    return self.before_updates.get(key)
+
+  def get_aft_update(self, key: Any):
+    if key not in self.after_updates:
+      raise KeyError(f'{key} is not registered in after_updates of {self}')
+    return self.after_updates.get(key)
+
+  def has_bef_update(self, key: Any):
+    return key in self.before_updates
+
+  def has_aft_update(self, key: Any):
+    return key in self.after_updates
+
+  def reset_bef_updates(self, batch_size=None):
+    for node in self.before_updates.values():
+      node.reset_state(batch_size)
+
+  def reset_aft_updates(self, batch_size=None):
+    for node in self.after_updates.values():
+      node.reset_state(batch_size)
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
@@ -159,6 +196,37 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     """Clear the input at the current time step."""
     pass
 
+  def step_run(self, i, *args, **kwargs):
+    """The step run function.
+
+    This function can be directly applied to run the dynamical system.
+    Particularly, ``i`` denotes the running index.
+
+    Args:
+      i: The current running index.
+      *args: The arguments of ``update()`` function.
+      **kwargs: The arguments of ``update()`` function.
+
+    Returns:
+      out: The update function returns.
+    """
+    share.save(i=i, t=i * bm.dt)
+    return self.update(*args, **kwargs)
+
+  @bm.cls_jit(inline=True)
+  def jit_step_run(self, i, *args, **kwargs):
+    """The jitted step function for running.
+
+    Args:
+      i: The current running index.
+      *args: The arguments of ``update()`` function.
+      **kwargs: The arguments of ``update()`` function.
+
+    Returns:
+      out: The update function returns.
+    """
+    return self.step_run(i, *args, **kwargs)
+
   @property
   def mode(self) -> bm.Mode:
     """Mode of the model, which is useful to control the multiple behaviors of the model."""
@@ -172,27 +240,28 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
     self._mode = value
 
   def _compatible_update(self, *args, **kwargs):
-    global share
-    if share is None:
-      from brainpy._src.context import share
     update_fun = super().__getattribute__('update')
     update_args = tuple(inspect.signature(update_fun).parameters.values())
 
     if len(update_args) and update_args[0].name in ['tdi', 'sh', 'sha']:
+      # define the update function with:
+      #     update(tdi, *args, **kwargs)
+      #
       if len(args) > 0:
-        if isinstance(args[0], dict):
+        if isinstance(args[0], dict) and all([bm.ndim(v) == 0 for v in args[0].values()]):
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
           #    update(tdi, *args, **kwargs)
           ret = update_fun(*args, **kwargs)
-          # TODO: deprecation
+          warnings.warn(_update_deprecate_msg, UserWarning)
         else:
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
           #    update(*args, **kwargs)
           ret = update_fun(share.get_shargs(), *args, **kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
       else:
         if update_args[0].name in kwargs:
           # define:
@@ -200,12 +269,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
           # call:
           #    update(tdi=??, **kwargs)
           ret = update_fun(**kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
         else:
           # define:
           #    update(tdi, *args, **kwargs)
           # call:
           #    update(**kwargs)
           ret = update_fun(share.get_shargs(), *args, **kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
       return ret
 
     try:
@@ -221,6 +292,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
         #    update(*args, **kwargs)
         share.save(**args[0])
         ret = update_fun(*args[1:], **kwargs)
+        warnings.warn(_update_deprecate_msg, UserWarning)
         return ret
       else:
         # user define ``update()`` function which receives the shared argument,
@@ -231,8 +303,24 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
         # as
         #    update(tdi, *args, **kwargs)
         ret = update_fun(share.get_shargs(), *args, **kwargs)
+        warnings.warn(_update_deprecate_msg, UserWarning)
         return ret
     else:
+      if len(args) and isinstance(args[0], dict) and all([bm.ndim(v) == 0 for v in args[0].values()]):
+        try:
+          ba = inspect.signature(update_fun).bind(*args[1:], **kwargs)
+        except TypeError:
+          pass
+        else:
+          # -----
+          # define as:
+          #    update(x=None)
+          # call as
+          #    update(tdi)
+          share.save(**args[0])
+          ret = update_fun(*args[1:], **kwargs)
+          warnings.warn(_update_deprecate_msg, UserWarning)
+          return ret
       return update_fun(*args, **kwargs)
 
   def __getattribute__(self, item):
@@ -250,14 +338,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
   def __call__(self, *args, **kwargs):
     """The shortcut to call ``update`` methods."""
 
-    # update ``before_updates``
+    # ``before_updates``
     for model in self.before_updates.values():
       model()
 
     # update the model self
     ret = self.update(*args, **kwargs)
 
-    # update ``after_updates``
+    # ``after_updates``
     for model in self.after_updates.values():
       model(ret)
     return ret
@@ -320,6 +408,7 @@ class DynSysGroup(DynamicalSystem, Container):
   ):
     super().__init__(name=name, mode=mode)
 
+    # Attribute of "Container"
     self.children = bm.node_dict(self.format_elements(child_type, *children_as_tuple, **children_as_dict))
 
   def update(self, *args, **kwargs):
@@ -342,6 +431,10 @@ class DynSysGroup(DynamicalSystem, Container):
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node()
 
+    # update delays
+    # TODO: Will be deprecated in the future
+    self.update_local_delays(nodes)
+
   def reset_state(self, batch_size=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
 
@@ -357,6 +450,14 @@ class DynSysGroup(DynamicalSystem, Container):
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node.reset_state(batch_size)
 
+    # reset
+    self.reset_aft_updates(batch_size)
+    self.reset_bef_updates(batch_size)
+
+    # reset delays
+    # TODO: will be removed in the future
+    self.reset_local_delays(nodes)
+
   def clear_input(self):
     """Clear inputs in the children classes."""
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
@@ -370,7 +471,7 @@ class Network(DynSysGroup):
   pass
 
 
-class Sequential(DynamicalSystem, AutoDelaySupp):
+class Sequential(DynamicalSystem, AutoDelaySupp, Container):
   """A sequential `input-output` module.
 
   Modules will be added to it in the order they are passed in the
@@ -402,14 +503,14 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
   >>> l = bp.Sequential(bp.layers.Dense(100, 10),
   >>>                   bm.relu,
   >>>                   bp.layers.Dense(10, 2))
-  >>> l({}, bm.random.random((256, 100)))
+  >>> l(bm.random.random((256, 100)))
   >>>
   >>> # Using Sequential with Dict. This is functionally the
   >>> # same as the above code
   >>> l = bp.Sequential(l1=bp.layers.Dense(100, 10),
   >>>                   l2=bm.relu,
   >>>                   l3=bp.layers.Dense(10, 2))
-  >>> l({}, bm.random.random((256, 100)))
+  >>> l(bm.random.random((256, 100)))
 
 
   Args:
@@ -427,22 +528,14 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
       **modules_as_dict
   ):
     super().__init__(name=name, mode=mode)
-    self._dyn_modules = bm.NodeDict()
-    self._static_modules = dict()
-    i = 0
-    for m in modules_as_tuple + tuple(modules_as_dict.values()):
-      key = self.__format_key(i)
-      if isinstance(m, bm.BrainPyObject):
-        self._dyn_modules[key] = m
-      else:
-        self._static_modules[key] = m
-      i += 1
-    self._num = i
+
+    # Attribute of "Container"
+    self.children = bm.node_dict(self.format_elements(object, *modules_as_tuple, **modules_as_dict))
 
   def update(self, x):
     """Update function of a sequential model.
     """
-    for m in self.__all_nodes():
+    for m in self.children.values():
       x = m(x)
     return x
 
@@ -453,48 +546,24 @@ class Sequential(DynamicalSystem, AutoDelaySupp):
                              f'not instance of {AutoDelaySupp.__name__}')
     return last.return_info()
 
-  def append(self, module: Callable):
-    assert isinstance(module, Callable)
-    key = self.__format_key(self._num)
-    if isinstance(module, bm.BrainPyObject):
-      self._dyn_modules[key] = module
-    else:
-      self._static_modules[key] = module
-    self._num += 1
-
-  def __format_key(self, i):
-    return f'l-{i}'
-
-  def __all_nodes(self):
-    nodes = []
-    for i in range(self._num):
-      key = self.__format_key(i)
-      if key not in self._dyn_modules:
-        nodes.append(self._static_modules[key])
-      else:
-        nodes.append(self._dyn_modules[key])
-    return nodes
-
   def __getitem__(self, key: Union[int, slice, str]):
     if isinstance(key, str):
-      if key in self._dyn_modules:
-        return self._dyn_modules[key]
-      elif key in self._static_modules:
-        return self._static_modules[key]
+      if key in self.children:
+        return self.children[key]
       else:
         raise KeyError(f'Does not find a component named {key} in\n {str(self)}')
     elif isinstance(key, slice):
-      return Sequential(*(self.__all_nodes()[key]))
+      return Sequential(**dict(tuple(self.children.items())[key]))
     elif isinstance(key, int):
-      return self.__all_nodes()[key]
+      return tuple(self.children.values())[key]
     elif isinstance(key, (tuple, list)):
-      _all_nodes = self.__all_nodes()
-      return Sequential(*[_all_nodes[k] for k in key])
+      _all_nodes = tuple(self.children.items())
+      return Sequential(**dict(_all_nodes[k] for k in key))
     else:
       raise KeyError(f'Unknown type of key: {type(key)}')
 
   def __repr__(self):
-    nodes = self.__all_nodes()
+    nodes = self.children.values()
     entries = '\n'.join(f'  [{i}] {tools.repr_object(x)}' for i, x in enumerate(nodes))
     return f'{self.__class__.__name__}(\n{entries}\n)'
 
@@ -504,7 +573,7 @@ class Projection(DynamicalSystem):
     pass
 
 
-class Dynamic(DynamicalSystem):
+class Dynamic(DynamicalSystem, ReceiveInputProj):
   """Base class to model dynamics.
 
   There are several essential attributes:
@@ -557,11 +626,11 @@ class Dynamic(DynamicalSystem):
     # integration method
     self.method = method
 
-    # inputs
-    self.cur_inputs: Dict = bm.node_dict()
-
     # initialize
     super().__init__(name=name, mode=mode)
+
+    # Attribute for "ReceiveInputProj"
+    self.cur_inputs = bm.node_dict()
 
   @property
   def varshape(self):
@@ -612,7 +681,7 @@ class Dynamic(DynamicalSystem):
                      batch_axis_name=bm.sharding.BATCH_AXIS)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(name={self.name}, mode={self.mode}, size={self.size})'
+    return f'{self.name}(mode={self.mode}, size={self.size})'
 
   def __getitem__(self, item):
     return DynView(target=self, index=item)

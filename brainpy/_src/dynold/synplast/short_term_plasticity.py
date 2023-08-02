@@ -58,7 +58,7 @@ class STD(_SynSTP):
       method: str = 'exp_auto',
       name: str = None
   ):
-    super(STD, self).__init__(name=name)
+    super().__init__(name=name)
 
     # parameters
     is_float(tau, 'tau', min_bound=0, )
@@ -88,6 +88,9 @@ class STD(_SynSTP):
     if jnp.shape(g) != self.x.shape:
       raise ValueError('Shape does not match.')
     return g * self.x
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(tau={self.tau}, U={self.U}, method={self.method})'
 
 
 class STP(_SynSTP):
@@ -184,3 +187,7 @@ class STP(_SynSTP):
     if jnp.shape(g) != self.x.shape:
       raise ValueError('Shape does not match.')
     return g * self.x * self.u
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}(tau_f={self.tau_f}, tau_d={self.tau_d}, U={self.U}, method={self.method})'
+
