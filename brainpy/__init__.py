@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.3"
+__version__ = "2.4.3.post3"
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
@@ -58,12 +58,15 @@ from brainpy._src.dynsys import (
   DynamicalSystem as DynamicalSystem,
   DynSysGroup as DynSysGroup,  # collectors
   Sequential as Sequential,
-  Network as Network,
   Dynamic as Dynamic,  # category
   Projection as Projection,
 )
 DynamicalSystemNS = DynamicalSystem
-
+Network = DynSysGroup
+# delays
+from brainpy._src.delay import (
+  VarDelay as VarDelay,
+)
 
 # building blocks
 from brainpy import (
@@ -102,7 +105,6 @@ from brainpy import (analysis as analysis)
 
 #  Part: Others    #
 # ---------------- #
-from brainpy import testing
 from brainpy._src.visualization import (visualize as visualize)
 
 
@@ -127,12 +129,15 @@ from brainpy._src.math.object_transform.base import (Base as Base,
 from brainpy._add_deprecations import deprecation_getattr2
 
 __deprecations = {
+  'Module': ('brainpy.Module', 'brainpy.DynamicalSystem', DynamicalSystem),
+  'Channel': ('brainpy.Channel', 'brainpy.dyn.IonChannel', dyn.IonChannel),
+  'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
   'Container': ('brainpy.Container', 'brainpy.DynSysGroup', DynSysGroup),
+
   'optimizers': ('brainpy.optimizers', 'brainpy.optim', optim),
   'TensorCollector': ('brainpy.TensorCollector', 'brainpy.ArrayCollector', ArrayCollector),
   'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
-  'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
   'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
   'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.syn.CondNeuGroup', dyn.CondNeuGroup),
 }

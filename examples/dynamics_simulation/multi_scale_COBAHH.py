@@ -7,12 +7,9 @@ import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy.channels import INa_TM1991, IL
-from brainpy.synapses import Exponential, COBA
 from brainpy.connect import FixedProb
 from jax import vmap
 
-comp_method = 'sparse'
 
 
 area_names = ['V1', 'V2', 'V4', 'TEO', 'TEpd']
@@ -47,8 +44,8 @@ class HH(bp.CondNeuGroup):
   def __init__(self, size):
     super(HH, self).__init__(size, V_initializer=bp.init.Uniform(-70, -50.))
     self.IK = IK(size, g_max=30., V_sh=-63.)
-    self.INa = INa_TM1991(size, g_max=100., V_sh=-63.)
-    self.IL = IL(size, E=-60., g_max=0.05)
+    self.INa = bp.dyn.INa_TM1991(size, g_max=100., V_sh=-63.)
+    self.IL = bp.dyn.IL(size, E=-60., g_max=0.05)
 
 
 class Network(bp.Network):

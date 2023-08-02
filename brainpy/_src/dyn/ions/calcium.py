@@ -273,7 +273,7 @@ class CalciumDetailed(CalciumDyna):
     self.C_rest = parameter(C_rest, self.varshape, allow_none=False)
 
   def derivative(self, C, t, V):
-    ICa = self.current(V, C, self.E)
+    ICa = self.current(V, C, self.E, external=True)
     drive = bm.maximum(- ICa / (2 * self.F * self.d), 0.)
     return drive + (self.C_rest - C) / self.tau
 
@@ -316,6 +316,6 @@ class CalciumFirstOrder(CalciumDyna):
     self.beta = parameter(beta, self.varshape, allow_none=False)
 
   def derivative(self, C, t, V):
-    ICa = self.current(V, C, self.E)
+    ICa = self.current(V, C, self.E, external=True)
     drive = bm.maximum(- self.alpha * ICa, 0.)
     return drive - self.beta * C

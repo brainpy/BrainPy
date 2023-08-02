@@ -1,4 +1,4 @@
-Interoperation
+Analysis
 ================
 
 .. toctree::

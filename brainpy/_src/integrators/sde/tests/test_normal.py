@@ -4,6 +4,7 @@
 import unittest
 
 import brainpy as bp
+import brainpy.math as bm
 import matplotlib.pyplot as plt
 from brainpy._src.integrators.sde.normal import ExponentialEuler
 
@@ -21,21 +22,24 @@ class TestExpEuler(unittest.TestCase):
     dy = lambda y, t, x, z, rho=28: x * (rho - z) - y
     dz = lambda z, t, x, y, beta=8 / 3: x * y - beta * z
 
+    bm.random.seed()
     intg = ExponentialEuler(f=bp.JointEq([dx, dy, dz]),
                             g=lorenz_g,
                             intg_type=bp.integrators.ITO_SDE,
                             wiener_type=bp.integrators.SCALAR_WIENER,
                             var_type=bp.integrators.POP_VAR,
                             show_code=True)
-    runner = bp.integrators.IntegratorRunner(intg,
-                                             monitors=['x', 'y', 'z'],
-                                             dt=0.001, inits=[1., 1., 0.])
+    runner = bp.IntegratorRunner(intg,
+                                 monitors=['x', 'y', 'z'],
+                                 dt=0.001, inits=[1., 1., 0.])
     runner.run(100.)
 
     plt.plot(runner.mon.x.flatten(), runner.mon.y.flatten())
     if show:
       plt.show()
     plt.close()
+    bm.clear_buffer_memory()
+
 
   def test2(self):
     p = 0.1
@@ -50,6 +54,7 @@ class TestExpEuler(unittest.TestCase):
     dy = lambda y, t, x, z, rho=28: x * (rho - z) - y
     dz = lambda z, t, x, y, beta=8 / 3: x * y - beta * z
 
+    bm.random.seed()
     intg = ExponentialEuler(f=bp.JointEq([dx, dy, dz]),
                             g=lorenz_g,
                             intg_type=bp.integrators.ITO_SDE,
@@ -60,6 +65,7 @@ class TestExpEuler(unittest.TestCase):
                                  dt=0.001, inits=[1., 1., 0.], jit=False)
     with self.assertRaises(ValueError):
       runner.run(100.)
+    bm.clear_buffer_memory()
 
   def test3(self):
     p = 0.1
@@ -70,6 +76,7 @@ class TestExpEuler(unittest.TestCase):
         bp.math.asarray([p * y, p2 * y]).T, \
         bp.math.asarray([p * z, p2 * z]).T
 
+    bm.random.seed()
     dx = lambda x, t, y, sigma=10: sigma * (y - x)
     dy = lambda y, t, x, z, rho=28: x * (rho - z) - y
     dz = lambda z, t, x, y, beta=8 / 3: x * y - beta * z
@@ -91,6 +98,7 @@ class TestExpEuler(unittest.TestCase):
     if show:
       plt.show()
     plt.close()
+    bm.clear_buffer_memory()
 
 
 class TestMilstein(unittest.TestCase):
@@ -108,6 +116,7 @@ class TestMilstein(unittest.TestCase):
     fy = lambda y, t, x, z: x * (rho - z) - y
     fz = lambda z, t, x, y: x * y - beta * z
 
+    bm.random.seed()
     intg = bp.sdeint(f=bp.JointEq(fx, fy, fz),
                      g=bp.JointEq(gx, gy, gz),
                      intg_type=bp.integrators.ITO_SDE,
@@ -124,4 +133,4 @@ class TestMilstein(unittest.TestCase):
     if show:
       plt.show()
     plt.close()
-
+    bm.clear_buffer_memory()

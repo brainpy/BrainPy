@@ -35,11 +35,7 @@ auto_generater.generate_running_docs()
 auto_generater.generate_brainpy_docs()
 auto_generater.generate_integrators_doc()
 auto_generater.generate_math_docs()
-# auto_generater.generate_channels_docs()
-# auto_generater.generate_layers_docs()
-# auto_generater.generate_neurons_docs()
-# auto_generater.generate_rates_docs()
-# auto_generater.generate_synapses_docs()
+auto_generater.generate_mixin_docs()
 
 
 changelogs = [

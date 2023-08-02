@@ -122,7 +122,7 @@ class _ICa_p2q_ss(CalciumChannel):
   def reset_state(self, V, C, E, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -217,7 +217,7 @@ class _ICa_p2q_markov(CalciumChannel):
     self.p.value = alpha / (alpha + beta)
     alpha, beta = self.f_q_alpha(V), self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -316,7 +316,7 @@ class ICaN_IS2008(CalciumChannel):
 
   def reset_state(self, V, C, E, batch_size=None):
     self.p.value = 1.0 / (1 + bm.exp(-(V + 43.) / 5.2))
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
 

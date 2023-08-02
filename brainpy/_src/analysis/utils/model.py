@@ -5,6 +5,7 @@ from brainpy._src.math.object_transform import Variable
 from brainpy._src.math.environment import get_float
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.context import share
 from brainpy._src.runners import DSRunner
 from brainpy._src.integrators.base import Integrator
 from brainpy._src.integrators.joint_eq import JointEq
@@ -126,16 +127,12 @@ class TrajectModel(DynamicalSystem):
     self.integrals = integrals
 
     # runner
-    self.runner = DSRunner(self,
-                           monitors=list(initial_vars.keys()),
-                           dyn_vars=self.vars().unique(),
-                           dt=dt,
-                           progress_bar=False)
+    self.runner = DSRunner(self, monitors=list(initial_vars.keys()), dt=dt, progress_bar=False)
 
-  def update(self, sha):
+  def update(self):
     all_vars = list(self.implicit_vars.values())
     for key, intg in self.integrals.items():
-      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=sha['dt']))
+      self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=share['dt']))
 
   def __getattr__(self, item):
     child_vars = super(TrajectModel, self).__getattribute__('implicit_vars')

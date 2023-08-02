@@ -13,7 +13,7 @@ from brainpy._src.dyn.neurons.hh import HHTypedNeuron
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType
-from .sodium import SodiumChannel
+from .base import IonChannel
 
 __all__ = [
   'INa_Ba2002',
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-class _INa_p3q_markov(SodiumChannel):
+class _INa_p3q_markov(IonChannel):
   r"""The sodium current model of :math:`p^3q` current which described with first-order Markov chain.
 
   The general model can be used to model the dynamics with:
@@ -64,7 +64,7 @@ class _INa_p3q_markov(SodiumChannel):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(_INa_p3q_markov, self).__init__(size=size,
+    super().__init__(size=size,
                                           keep_size=keep_size,
                                           name=name,
                                           mode=mode)
@@ -88,7 +88,7 @@ class _INa_p3q_markov(SodiumChannel):
     alpha = self.f_q_alpha(V)
     beta = self.f_q_beta(V)
     self.q.value = alpha / (alpha + beta)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -173,7 +173,7 @@ class INa_Ba2002(_INa_p3q_markov):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_Ba2002, self).__init__(size,
+    super().__init__(size,
                                      keep_size=keep_size,
                                      name=name,
                                      method=method,
@@ -260,7 +260,7 @@ class INa_TM1991(_INa_p3q_markov):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_TM1991, self).__init__(size,
+    super().__init__(size,
                                      keep_size=keep_size,
                                      name=name,
                                      method=method,
@@ -347,7 +347,7 @@ class INa_HH1952(_INa_p3q_markov):
       name: str = None,
       mode: bm.Mode = None,
   ):
-    super(INa_HH1952, self).__init__(size,
+    super().__init__(size,
                                      keep_size=keep_size,
                                      name=name,
                                      method=method,

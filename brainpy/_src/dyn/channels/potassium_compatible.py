@@ -9,12 +9,11 @@ from typing import Union, Callable, Optional, Sequence
 
 import brainpy.math as bm
 from brainpy._src.context import share
-from brainpy._src.dyn.channels.leaky import LeakyChannel
+from brainpy._src.dyn.channels.base import IonChannel
 from brainpy._src.dyn.neurons.hh import HHTypedNeuron
 from brainpy._src.initialize import Initializer, parameter, variable
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.types import ArrayType
-from .potassium import PotassiumChannel
 
 __all__ = [
   'IKDR_Ba2002',
@@ -29,7 +28,7 @@ __all__ = [
 ]
 
 
-class _IK_p4_markov(PotassiumChannel):
+class _IK_p4_markov(IonChannel):
   r"""The delayed rectifier potassium channel of :math:`p^4`
   current which described with first-order Markov chain.
 
@@ -104,7 +103,7 @@ class _IK_p4_markov(PotassiumChannel):
     alpha = self.f_p_alpha(V)
     beta = self.f_p_beta(V)
     self.p.value = alpha / (alpha + beta)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def f_p_alpha(self, V):
@@ -339,7 +338,7 @@ class IK_HH1952(_IK_p4_markov):
     return 0.125 * bm.exp(-(V - self.V_sh + 20) / 80)
 
 
-class _IKA_p4q_ss(PotassiumChannel):
+class _IKA_p4q_ss(IonChannel):
   r"""The rapidly inactivating Potassium channel of :math:`p^4q`
   current which described with steady-state format.
 
@@ -427,7 +426,7 @@ class _IKA_p4q_ss(PotassiumChannel):
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -634,7 +633,7 @@ class IKA2_HM1992(_IKA_p4q_ss):
                     19.)
 
 
-class _IKK2_pq_ss(PotassiumChannel):
+class _IKK2_pq_ss(IonChannel):
   r"""The slowly inactivating Potassium channel of :math:`pq`
   current which described with steady-state format.
 
@@ -722,7 +721,7 @@ class _IKK2_pq_ss(PotassiumChannel):
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
     self.q.value = self.f_q_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
       assert self.q.shape[0] == batch_size
 
@@ -921,7 +920,7 @@ class IKK2B_HM1992(_IKK2_pq_ss):
                     8.9)
 
 
-class IKNI_Ya1989(PotassiumChannel):
+class IKNI_Ya1989(IonChannel):
   r"""A slow non-inactivating K+ current described by Yamada et al. (1989) [1]_.
 
   This slow potassium current can effectively account for spike-frequency adaptation.
@@ -1008,7 +1007,7 @@ class IKNI_Ya1989(PotassiumChannel):
 
   def reset_state(self, V, batch_size=None):
     self.p.value = self.f_p_inf(V)
-    if batch_size is not None:
+    if isinstance(batch_size, int):
       assert self.p.shape[0] == batch_size
 
   def f_p_inf(self, V):
@@ -1019,7 +1018,7 @@ class IKNI_Ya1989(PotassiumChannel):
     return self.tau_max / (3.3 * bm.exp(temp / 20.) + bm.exp(-temp / 20.))
 
 
-class IKL(LeakyChannel):
+class IKL(IonChannel):
   """The potassium leak channel current.
 
   Parameters
@@ -1030,6 +1029,8 @@ class IKL(LeakyChannel):
   E : float
     The reversal potential.
   """
+
+  master_type = HHTypedNeuron
 
   def __init__(
       self,

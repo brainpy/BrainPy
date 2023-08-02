@@ -120,7 +120,7 @@ class MgBlock(SynOut):
     self.E = init.parameter(E, np.shape(E), sharding=sharding)
     self.cc_Mg = init.parameter(cc_Mg, np.shape(cc_Mg), sharding=sharding)
     self.alpha = init.parameter(alpha, np.shape(alpha), sharding=sharding)
-    self.beta = init.parameter(alpha, np.shape(beta), sharding=sharding)
+    self.beta = init.parameter(beta, np.shape(beta), sharding=sharding)
 
   def update(self, conductance, potential):
     return conductance * (self.E - potential) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * potential))

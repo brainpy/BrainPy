@@ -42,63 +42,19 @@ class DotDict(dict):
   >>> f(d)
   TypeError: Argument 'a' of type <class 'str'> is not a valid JAX type.
 
-  At this moment, you can label this attribute `names` as not a key in the dictionary
-  by using the syntax::
-
-  >>> d.add_attr_not_key('names')
-  >>> f(d)
-  {'a': DeviceArray(10, dtype=int32, weak_type=True),
-   'b': DeviceArray(20, dtype=int32, weak_type=True),
-   'c': DeviceArray(30, dtype=int32, weak_type=True)}
-
   """
-
-  '''Used to exclude variables that '''
-  attrs_not_keys = ('attrs_not_keys', 'var_names')
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.__dict__ = self
-    self.var_names = ()
 
   def copy(self) -> 'DotDict':
     return type(self)(super().copy())
-
-  def keys(self):
-    """Retrieve all keys in the dict, excluding ignored keys."""
-    keys = []
-    for k in super(DotDict, self).keys():
-      if k not in self.attrs_not_keys:
-        keys.append(k)
-    return tuple(keys)
-
-  def values(self):
-    """Retrieve all values in the dict, excluding values of ignored keys."""
-    values = []
-    for k, v in super(DotDict, self).items():
-      if k not in self.attrs_not_keys:
-        values.append(v)
-    return tuple(values)
-
-  def items(self):
-    """Retrieve all items in the dict, excluding ignored items."""
-    items = []
-    for k, v in super(DotDict, self).items():
-      if k not in self.attrs_not_keys:
-        items.append((k, v))
-    return items
 
   def to_numpy(self):
     """Change all values to numpy arrays."""
     for key in tuple(self.keys()):
       self[key] = np.asarray(self[key])
-
-  def add_attr_not_key(self, *args):
-    """Add excluded attribute when retrieving dictionary keys. """
-    for arg in args:
-      if not isinstance(arg, str):
-        raise TypeError('Only support string.')
-    self.attrs_not_keys += args
 
   def update(self, *args, **kwargs):
     super().update(*args, **kwargs)
@@ -179,7 +135,7 @@ class DotDict(dict):
 
     >>> import brainpy as bp
     >>>
-    >>> some_collector = Collector()
+    >>> some_collector = DotDict()
     >>>
     >>> # get all trainable variables
     >>> some_collector.subset(bp.math.TrainVar)
@@ -216,6 +172,9 @@ class DotDict(dict):
         seen.add(id(v))
         gather[k] = v
     return gather
+
+  def __hash__(self):
+    return hash(tuple(sorted(self.items())))
 
 
 register_pytree_node(
