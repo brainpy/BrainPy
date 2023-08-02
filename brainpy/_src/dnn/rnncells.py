@@ -369,15 +369,15 @@ class LSTMCell(Layer):
       self.state[:] = self.state2train
 
   def update(self, x):
-    h, c = jnp.split(self.state.value, 2, axis=-1)
+    h, c = bm.split(self.state.value, 2, axis=-1)
     gated = x @ self.Wi
     if self.b is not None:
       gated += self.b
     gated += h @ self.Wh
-    i, g, f, o = jnp.split(gated, indices_or_sections=4, axis=-1)
+    i, g, f, o = bm.split(gated, indices_or_sections=4, axis=-1)
     c = bm.sigmoid(f + 1.) * c + bm.sigmoid(i) * self.activation(g)
     h = bm.sigmoid(o) * self.activation(c)
-    self.state.value = jnp.concatenate([h, c], axis=-1)
+    self.state.value = bm.concatenate([h, c], axis=-1)
     return h
 
   @property

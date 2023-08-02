@@ -81,7 +81,7 @@ class _GeneralConv(Layer):
     The name of the object.
   """
 
-  # supported_modes = (bm.TrainingMode, bm.BatchingMode)
+  supported_modes = (bm.TrainingMode, bm.BatchingMode,bm.NonBatchingMode)
 
   def __init__(
       self,
