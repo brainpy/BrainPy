@@ -15,6 +15,7 @@ from brainpy.initialize import (XavierNormal,
                                 Orthogonal,
                                 parameter,
                                 variable,
+                                variable_,
                                 Initializer)
 from brainpy.types import ArrayType
 from .conv import _GeneralConv
@@ -517,8 +518,6 @@ class _ConvNDLSTMCell(Layer):
     """
     super().__init__(name=name, mode=mode)
 
-    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode)
-
     # parameters
     self._state_initializer = state_initializer
     is_initializer(state_initializer, 'state_initializer', allow_none=False)
@@ -551,21 +550,29 @@ class _ConvNDLSTMCell(Layer):
                                          w_initializer=w_initializer,
                                          b_initializer=b_initializer,
                                          mode=mode)
+    if type(mode) == bm.NonBatchingMode:
+      self.nonbatching = True
+    else:
+      self.nonbatching = False
     self.reset_state()
 
   def reset_state(self, batch_size: int = 1):
-    shape = self.input_shape + (self.out_channels,)
-    h = parameter(self._state_initializer, (batch_size,) + shape, allow_none=False)
-    c = parameter(self._state_initializer, (batch_size,) + shape, allow_none=False)
-    self.h = bm.Variable(h, batch_axis=0)
-    self.c = bm.Variable(c, batch_axis=0)
-    if self.mode.is_a(bm.TrainingMode) and self.train_state:
-      h_to_train = parameter(self._state_initializer, shape, allow_none=False)
-      c_to_train = parameter(self._state_initializer, shape, allow_none=False)
-      self.h_to_train = bm.TrainVar(h_to_train)
-      self.c_to_train = bm.TrainVar(c_to_train)
-      self.h[:] = self.h_to_train
-      self.c[:] = self.c_to_train
+    if self.nonbatching:
+      shape = self.input_shape + (self.out_channels,)
+      self.h = variable_(self._state_initializer, shape)
+      self.c = variable_(self._state_initializer, shape)
+    else:
+      shape = self.input_shape + (self.out_channels,)
+      self.h = variable_(self._state_initializer, shape, batch_size)
+      self.c = variable_(self._state_initializer, shape, batch_size)
+      self.c = variable_(self.c, batch_axis=0)
+      if self.mode.is_a(bm.TrainingMode) and self.train_state:
+        h_to_train = parameter(self._state_initializer, shape, allow_none=False)
+        c_to_train = parameter(self._state_initializer, shape, allow_none=False)
+        self.h_to_train = bm.TrainVar(h_to_train)
+        self.c_to_train = bm.TrainVar(c_to_train)
+        self.h[:] = self.h_to_train
+        self.c[:] = self.c_to_train
 
   def update(self, x):
     gates = self.input_to_hidden(x) + self.hidden_to_hidden(self.h)

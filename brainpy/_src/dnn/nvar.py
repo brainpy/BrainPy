@@ -72,7 +72,6 @@ class NVAR(Layer):
       name: Optional[str] = None,
   ):
     super(NVAR, self).__init__(mode=mode, name=name)
-    check.is_subclass(self.mode, (bm.BatchingMode, bm.NonBatchingMode), self.__class__.__name__)
 
     # parameters
     order = tuple() if order is None else order
