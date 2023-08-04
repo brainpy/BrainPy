@@ -81,7 +81,7 @@ class _GeneralConv(Layer):
     The name of the object.
   """
 
-  supported_modes = (bm.TrainingMode, bm.BatchingMode,bm.NonBatchingMode)
+  supported_modes = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
 
   def __init__(
       self,
@@ -149,17 +149,18 @@ class _GeneralConv(Layer):
 
   def _check_input_dim(self, x):
     if x.ndim != self.num_spatial_dims + 2 and x.ndim != self.num_spatial_dims + 1:
-      raise ValueError(f"expected {self.num_spatial_dims + 2}D or {self.num_spatial_dims + 1}D input (got {x.ndim}D input)")
+      raise ValueError(
+        f"expected {self.num_spatial_dims + 2}D or {self.num_spatial_dims + 1}D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
 
   def update(self, x):
     self._check_input_dim(x)
-    nonbatching=False
+    nonbatching = False
     if x.ndim == self.num_spatial_dims + 1:
-        nonbatching=True
-        x=x.unsqueeze(0)
+      nonbatching = True
+      x = x.unsqueeze(0)
     w = self.w.value
     if self.mask is not None:
       try:
@@ -176,9 +177,9 @@ class _GeneralConv(Layer):
                                  feature_group_count=self.groups,
                                  dimension_numbers=self.dimension_numbers)
     if nonbatching:
-        return y[0] if self.b is None else (y + self.b.value)[0]
+      return y[0] if self.b is None else (y + self.b.value)[0]
     else:
-        return y if self.b is None else (y + self.b.value)
+      return y if self.b is None else (y + self.b.value)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
@@ -271,7 +272,7 @@ class Conv1d(_GeneralConv):
                                  name=name)
 
   def _check_input_dim(self, x):
-    if x.ndim != 3 and x.ndim !=2 :
+    if x.ndim != 3 and x.ndim != 2:
       raise ValueError(f"expected 3D or 2D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
@@ -364,7 +365,7 @@ class Conv2d(_GeneralConv):
                                  name=name)
 
   def _check_input_dim(self, x):
-    if x.ndim != 4 and x.ndim !=3:
+    if x.ndim != 4 and x.ndim != 3:
       raise ValueError(f"expected 4D or 3D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
@@ -487,9 +488,9 @@ class _GeneralConvTranspose(Layer):
       mode: bm.Mode = None,
       name: str = None,
   ):
-    super(_GeneralConvTranspose,self).__init__(name=name, mode=mode)
+    super(_GeneralConvTranspose, self).__init__(name=name, mode=mode)
 
-    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode,bm.NonBatchingMode)
+    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
@@ -537,9 +538,9 @@ class _GeneralConvTranspose(Layer):
   def update(self, x):
     self._check_input_dim(x)
     nonbatching = False
-    if x.ndim==self.num_spatial_dims + 1:
-        nonbatching=True
-        x=x.unsqueeze(0)
+    if x.ndim == self.num_spatial_dims + 1:
+      nonbatching = True
+      x = x.unsqueeze(0)
     w = self.w.value
     if self.mask is not None:
       try:
@@ -555,9 +556,9 @@ class _GeneralConvTranspose(Layer):
                            rhs_dilation=None,
                            dimension_numbers=self.dimension_numbers)
     if nonbatching:
-        return y[0] if self.b is None else (y + self.b.value)[0]
+      return y[0] if self.b is None else (y + self.b.value)[0]
     else:
-        return y if self.b is None else (y + self.b.value)
+      return y if self.b is None else (y + self.b.value)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
