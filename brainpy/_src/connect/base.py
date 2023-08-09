@@ -778,6 +778,16 @@ def mat2mat_num(mat, num, seed=0):
 
 
 def visualizeMat(mat, description='Untitled'):
+  """
+  Visualize the matrix. (Need seaborn and matplotlib)
+
+  parameters
+  ----------
+  mat : jnp.ndarray
+      The matrix to be visualized.
+  description : str
+      The title of the figure.
+  """
   try:
     import seaborn as sns
     import matplotlib.pyplot as plt
