@@ -91,13 +91,11 @@ def test_random_fix_total1():
     conn1 = bp.connect.FixedTotalNum(num=8, allow_multi_conn=False, seed=1234)(pre_size=3, post_size=4)
     coo1 = conn1.require(bp.connect.COO)
     conn_mat = bp.connect.coo2mat_num(ij=coo1, num_pre=3, num_post=4, num=conn1.num, seed=1234)
-    bp.connect.visualizeMat(conn_mat, 'FixedTotalNum: allow_multi_conn=False')
 
 def test_random_fix_total2():
     conn1 = bp.connect.FixedTotalNum(num=8, allow_multi_conn=True, seed=1234)(pre_size=3, post_size=4)
     mat1 = conn1.require(bp.connect.CONN_MAT)
     conn_mat = bp.connect.mat2mat_num(mat=mat1, num=conn1.num, seed=1234)
-    bp.connect.visualizeMat(conn_mat, 'FixedTotalNum: allow_multi_conn=True')
 
 
 def test_gaussian_prob1():

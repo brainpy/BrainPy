@@ -144,7 +144,7 @@ class FixedTotalNum(TwoEndConnector):
   num : float,int
     The conn total number.
   allow_multi_conn : bool, optional
-    Whether allow multiple connections between two neurons.
+    Whether allow one pre-synaptic neuron connects to multiple post-synaptic neurons.
   seed: int, optional
     The random number seed.
   """
