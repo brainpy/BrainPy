@@ -1,6 +1,6 @@
 
 from ._src import checking, train, integrators
-from . import tools, math, integrators, dyn, dnn, neurons, synapses, layers
+from . import tools, math, integrators, dyn, dnn, neurons, synapses, layers, connect
 from .integrators import ode, fde, sde
 from brainpy._src.integrators.base import Integrator
 from brainpy._src.integrators.runner import IntegratorRunner
@@ -113,4 +113,12 @@ dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 # }
 # layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
 
+
+connect.__deprecations = {
+    'one2one': ('brainpy.connect.one2one', 'brainpy.connect.One2One', connect.One2One),
+    'all2all': ('brainpy.connect.all2all', 'brainpy.connect.All2All', connect.All2All),
+    'grid_four': ('brainpy.connect.grid_four', 'brainpy.connect.GridFour', connect.GridFour),
+    'grid_eight': ('brainpy.connect.grid_eight', 'brainpy.connect.GridEight', connect.GridEight),
+}
+connect.__getattr__ = deprecation_getattr2('brainpy.connect', connect.__deprecations)
 
