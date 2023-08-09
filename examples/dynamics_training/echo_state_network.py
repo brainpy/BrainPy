@@ -6,7 +6,7 @@ import brainpy.math as bm
 bm.set_environment(bm.batching_mode)
 
 
-class ESN(bp.DynamicalSystemNS):
+class ESN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
     self.r = bp.layers.Reservoir(num_in,
@@ -25,7 +25,7 @@ class ESN(bp.DynamicalSystemNS):
     return x >> self.r >> self.o
 
 
-class NGRC(bp.DynamicalSystemNS):
+class NGRC(bp.DynamicalSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 

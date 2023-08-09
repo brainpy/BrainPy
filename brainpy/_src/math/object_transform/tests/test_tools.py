@@ -1,11 +1,13 @@
 import brainpy as bp
 import brainpy.math as bm
 import jax
+import unittest
 from brainpy._src.math.object_transform._tools import evaluate_dyn_vars_with_cache
 
 
-class TestTool(bp.testing.UnitTestCase):
+class TestTool(unittest.TestCase):
   def test1(self):
+    bm.random.seed()
     neu = bp.neurons.HH((5,))
     call_num = [0]
 
@@ -22,6 +24,7 @@ class TestTool(bp.testing.UnitTestCase):
       self.assertTrue(isinstance(v.value, jax.Array))
 
   def test_cache1(self):
+    bm.random.seed()
     neu = bp.neurons.HH((5,))
     call_num = [0]
 
@@ -44,6 +47,7 @@ class TestTool(bp.testing.UnitTestCase):
       self.assertTrue(isinstance(v.value, jax.Array))
 
   def test_nested_evaluate(self):
+    bm.random.seed()
     neu = bp.neurons.HH((5,))
     a = bm.Variable(bm.ones(1))
 
@@ -64,6 +68,7 @@ class TestTool(bp.testing.UnitTestCase):
     self.assertTrue(isinstance(a.value, jax.Array))
 
   def test_cache2(self):
+    bm.random.seed()
     neu = bp.neurons.HH((5,))
     a = bm.Variable(bm.ones(1))
     call_num = [0]
@@ -90,9 +95,10 @@ class TestTool(bp.testing.UnitTestCase):
     self.assertTrue(call_num[0] == 1)
 
   def test_cache3(self):
+    bm.random.seed()
     call_num = [0]
 
-    class Model(bp.DynamicalSystemNS):
+    class Model(bp.DynamicalSystem):
       def __init__(self):
         super().__init__()
         self.a = bm.Variable(bm.ones(1))

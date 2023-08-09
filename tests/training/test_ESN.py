@@ -3,33 +3,33 @@ import brainpy.math as bm
 import unittest
 
 
-class ESN(bp.DynamicalSystemNS):
+class ESN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
-    self.r = bp.layers.Reservoir(num_in,
-                                 num_hidden,
-                                 Win_initializer=bp.init.Uniform(-0.1, 0.1),
-                                 Wrec_initializer=bp.init.Normal(scale=0.1),
-                                 in_connectivity=0.02,
-                                 rec_connectivity=0.02,
-                                 comp_type='dense')
-    self.o = bp.layers.Dense(num_hidden,
-                             num_out,
-                             W_initializer=bp.init.Normal(),
-                             mode=bm.training_mode)
+    self.r = bp.dnn.Reservoir(num_in,
+                              num_hidden,
+                              Win_initializer=bp.init.Uniform(-0.1, 0.1),
+                              Wrec_initializer=bp.init.Normal(scale=0.1),
+                              in_connectivity=0.02,
+                              rec_connectivity=0.02,
+                              comp_type='dense')
+    self.o = bp.dnn.Dense(num_hidden,
+                          num_out,
+                          W_initializer=bp.init.Normal(),
+                          mode=bm.training_mode)
 
   def update(self, x):
     return x >> self.r >> self.o
 
 
-class NGRC(bp.DynamicalSystemNS):
+class NGRC(bp.DynamicalSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
-    self.r = bp.layers.NVAR(num_in, delay=2, order=2)
-    self.o = bp.layers.Dense(self.r.num_out, num_out,
-                             W_initializer=bp.init.Normal(0.1),
-                             mode=bm.training_mode)
+    self.r = bp.dnn.NVAR(num_in, delay=2, order=2)
+    self.o = bp.dnn.Dense(self.r.num_out, num_out,
+                          W_initializer=bp.init.Normal(0.1),
+                          mode=bm.training_mode)
 
   def update(self, x):
     return x >> self.r >> self.o

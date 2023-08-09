@@ -1,10 +1,4 @@
 
-from brainpy._src.dyn.base import (
-  NeuDyn,
-  GradNeuDyn,
-  HHTypeNeu,
-  HHTypeNeuLTC
-)
 
 from brainpy._src.dyn.neurons.lif import (
   Lif,
@@ -38,19 +32,17 @@ from brainpy._src.dyn.neurons.lif import (
 )
 
 from brainpy._src.dyn.neurons.hh import (
+  HHTypedNeuron,
+  CondNeuGroupLTC,
+  CondNeuGroup,
   HH,
   HHLTC,
   MorrisLecar,
   MorrisLecarLTC,
-  WangBuzsakiModel,
-  WangBuzsakiModelLTC,
+  WangBuzsakiHH,
+  WangBuzsakiHHLTC,
 )
 
-from brainpy._src.dyn.neurons.input import (
-  InputGroup,
-  OutputGroup,
-  SpikeTimeGroup,
-  PoissonGroup,
-)
+
 
 

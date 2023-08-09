@@ -7,7 +7,7 @@ from jax import lax
 from brainpy import math as bm, tools, check
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Conv1d', 'Conv2d', 'Conv3d',
@@ -81,6 +81,8 @@ class _GeneralConv(Layer):
     The name of the object.
   """
 
+  supported_modes = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
+
   def __init__(
       self,
       num_spatial_dims: int,
@@ -99,7 +101,6 @@ class _GeneralConv(Layer):
       name: str = None,
   ):
     super(_GeneralConv, self).__init__(name=name, mode=mode)
-    check.is_subclass(self.mode, (bm.TrainingMode, bm.BatchingMode), self.name)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
@@ -147,14 +148,19 @@ class _GeneralConv(Layer):
         self.b = bm.TrainVar(self.b)
 
   def _check_input_dim(self, x):
-    if x.ndim != self.num_spatial_dims + 2:
-      raise ValueError(f"expected {self.num_spatial_dims + 2}D input (got {x.ndim}D input)")
+    if x.ndim != self.num_spatial_dims + 2 and x.ndim != self.num_spatial_dims + 1:
+      raise ValueError(
+        f"expected {self.num_spatial_dims + 2}D or {self.num_spatial_dims + 1}D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
 
   def update(self, x):
     self._check_input_dim(x)
+    nonbatching = False
+    if x.ndim == self.num_spatial_dims + 1:
+      nonbatching = True
+      x = x.unsqueeze(0)
     w = self.w.value
     if self.mask is not None:
       try:
@@ -170,7 +176,10 @@ class _GeneralConv(Layer):
                                  rhs_dilation=self.rhs_dilation,
                                  feature_group_count=self.groups,
                                  dimension_numbers=self.dimension_numbers)
-    return y if self.b is None else (y + self.b.value)
+    if nonbatching:
+      return y[0] if self.b is None else (y + self.b.value)[0]
+    else:
+      return y if self.b is None else (y + self.b.value)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
@@ -263,8 +272,8 @@ class Conv1d(_GeneralConv):
                                  name=name)
 
   def _check_input_dim(self, x):
-    if x.ndim != 3:
-      raise ValueError(f"expected 3D input (got {x.ndim}D input)")
+    if x.ndim != 3 and x.ndim != 2:
+      raise ValueError(f"expected 3D or 2D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
@@ -356,8 +365,8 @@ class Conv2d(_GeneralConv):
                                  name=name)
 
   def _check_input_dim(self, x):
-    if x.ndim != 4:
-      raise ValueError(f"expected 4D input (got {x.ndim}D input)")
+    if x.ndim != 4 and x.ndim != 3:
+      raise ValueError(f"expected 4D or 3D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
@@ -449,8 +458,8 @@ class Conv3d(_GeneralConv):
                                  name=name)
 
   def _check_input_dim(self, x):
-    if x.ndim != 5:
-      raise ValueError(f"expected 5D input (got {x.ndim}D input)")
+    if x.ndim != 5 and x.ndim != 4:
+      raise ValueError(f"expected 5D or 4D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
@@ -462,6 +471,8 @@ Conv3D = Conv3d
 
 
 class _GeneralConvTranspose(Layer):
+  supported_modes = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
+
   def __init__(
       self,
       num_spatial_dims: int,
@@ -477,9 +488,9 @@ class _GeneralConvTranspose(Layer):
       mode: bm.Mode = None,
       name: str = None,
   ):
-    super().__init__(name=name, mode=mode)
+    super(_GeneralConvTranspose, self).__init__(name=name, mode=mode)
 
-    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode)
+    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
@@ -526,7 +537,10 @@ class _GeneralConvTranspose(Layer):
 
   def update(self, x):
     self._check_input_dim(x)
-
+    nonbatching = False
+    if x.ndim == self.num_spatial_dims + 1:
+      nonbatching = True
+      x = x.unsqueeze(0)
     w = self.w.value
     if self.mask is not None:
       try:
@@ -541,7 +555,10 @@ class _GeneralConvTranspose(Layer):
                            precision=self.precision,
                            rhs_dilation=None,
                            dimension_numbers=self.dimension_numbers)
-    return y if self.b is None else (y + self.b.value)
+    if nonbatching:
+      return y[0] if self.b is None else (y + self.b.value)[0]
+    else:
+      return y if self.b is None else (y + self.b.value)
 
   def __repr__(self):
     return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
@@ -604,8 +621,8 @@ class ConvTranspose1d(_GeneralConvTranspose):
     )
 
   def _check_input_dim(self, x):
-    if x.ndim != 3:
-      raise ValueError(f"expected 3D input (got {x.ndim}D input)")
+    if x.ndim != 3 and x.ndim != 2:
+      raise ValueError(f"expected 3D or 2D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
@@ -660,8 +677,8 @@ class ConvTranspose2d(_GeneralConvTranspose):
     )
 
   def _check_input_dim(self, x):
-    if x.ndim != 4:
-      raise ValueError(f"expected 4D input (got {x.ndim}D input)")
+    if x.ndim != 4 and x.ndim != 3:
+      raise ValueError(f"expected 4D or 3D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")
@@ -707,7 +724,7 @@ class ConvTranspose3d(_GeneralConvTranspose):
       name: The name of the module.
     """
     super().__init__(
-      num_spatial_dims=1,
+      num_spatial_dims=3,
       in_channels=in_channels,
       out_channels=out_channels,
       kernel_size=kernel_size,
@@ -722,8 +739,8 @@ class ConvTranspose3d(_GeneralConvTranspose):
     )
 
   def _check_input_dim(self, x):
-    if x.ndim != 5:
-      raise ValueError(f"expected 5D input (got {x.ndim}D input)")
+    if x.ndim != 5 and x.ndim != 4:
+      raise ValueError(f"expected 5D or 4D input (got {x.ndim}D input)")
     if self.in_channels != x.shape[-1]:
       raise ValueError(f"input channels={x.shape[-1]} needs to have "
                        f"the same size as in_channels={self.in_channels}.")

@@ -8,7 +8,7 @@ from brainpy._src.context import share
 from brainpy import math as bm, check
 from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'BatchNorm1d',
@@ -84,6 +84,7 @@ class BatchNorm(Layer):
   .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
   """
+  supported_modes = (bm.BatchingMode, bm.TrainingMode)
 
   def __init__(
       self,
@@ -100,7 +101,7 @@ class BatchNorm(Layer):
       name: Optional[str] = None,
   ):
     super(BatchNorm, self).__init__(name=name, mode=mode)
-    check.is_subclass(self.mode, (bm.BatchingMode, bm.TrainingMode), self.name)
+    # check.is_subclass(self.mode, (bm.BatchingMode, bm.TrainingMode), self.name)
 
     # parameters
     self.num_features = num_features

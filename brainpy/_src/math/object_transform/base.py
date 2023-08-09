@@ -641,7 +641,14 @@ class ObjectTransform(BrainPyObject):
 
 class NodeList(list):
   """A sequence of :py:class:`~.BrainPyObject`, which is compatible with
-  :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
+  :py:func:`~.vars()` and :py:func:`~.nodes()` operations in a :py:class:`~.BrainPyObject`.
+
+  That is to say, any nodes that are wrapped into :py:class:`~.NodeList` will be automatically
+  retieved when using :py:func:`~.nodes()` function.
+
+  >>> import brainpy as bp
+  >>> l = bm.node_list([bp.dnn.Dense(1, 2),
+  >>>                   bp.dnn.LSTMCell(2, 3)])
   """
 
   def __init__(self, seq=()):
@@ -649,8 +656,8 @@ class NodeList(list):
     self.extend(seq)
 
   def append(self, element) -> 'NodeList':
-    if not isinstance(element, BrainPyObject):
-      raise TypeError(f'element must be an instance of {BrainPyObject.__name__}.')
+    # if not isinstance(element, BrainPyObject):
+    #   raise TypeError(f'element must be an instance of {BrainPyObject.__name__}.')
     super().append(element)
     return self
 
@@ -668,10 +675,10 @@ class NodeDict(dict):
   :py:func:`.vars()` operation in a :py:class:`~.BrainPyObject`.
   """
 
-  def _check_elem(self, elem):
-    if not isinstance(elem, BrainPyObject):
-      raise TypeError(f'Element should be {BrainPyObject.__name__}, but got {type(elem)}.')
-    return elem
+  # def _check_elem(self, elem):
+  #   if not isinstance(elem, BrainPyObject):
+  #     raise TypeError(f'Element should be {BrainPyObject.__name__}, but got {type(elem)}.')
+  #   return elem
 
   def __init__(self, *args, **kwargs):
     super().__init__()
@@ -690,7 +697,7 @@ class NodeDict(dict):
     return self
 
   def __setitem__(self, key, value) -> 'VarDict':
-    super().__setitem__(key, self._check_elem(value))
+    super().__setitem__(key, value)
     return self
 
 

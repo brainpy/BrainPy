@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm, check
-from .base import Layer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'MaxPool',
@@ -63,8 +63,6 @@ class Pool(Layer):
       name: Optional[str] = None,
   ):
     super(Pool, self).__init__(mode=mode, name=name)
-
-    check.is_subclass(self.mode, [bm.NonBatchingMode, bm.TrainingMode])
 
     self.init_value = init_value
     self.computation = computation
@@ -771,6 +769,7 @@ class AdaptivePool(Layer):
 
     # channel axis
     channel_axis = self.channel_axis
+
     if channel_axis:
       if not 0 <= abs(channel_axis) < x.ndim:
         raise ValueError(f"Invalid channel axis {channel_axis} for {x.shape}")

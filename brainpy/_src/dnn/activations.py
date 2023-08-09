@@ -1,18 +1,20 @@
 from typing import Optional
 
 from brainpy import math as bm
+from brainpy._src.dnn.base import Layer
 from brainpy.types import ArrayType
-from .base import Layer
 
-__all__ = ['Threshold', 'ReLU', 'RReLU', 'Hardtanh', 'ReLU6', 'Sigmoid', 'Hardsigmoid', 'Tanh',
-           'SiLU', 'Mish', 'Hardswish', 'ELU', 'CELU', 'SELU', 'GLU', 'GELU', 'Hardshrink', 'LeakyReLU',
-           'LogSigmoid', 'Softplus', 'Softshrink', 'PReLU', 'Softsign', 'Tanhshrink',
-           'Softmin', 'Softmax', 'Softmax2d', 'LogSoftmax']
+__all__ = [
+  'Threshold', 'ReLU', 'RReLU', 'Hardtanh', 'ReLU6', 'Sigmoid', 'Hardsigmoid', 'Tanh',
+  'SiLU', 'Mish', 'Hardswish', 'ELU', 'CELU', 'SELU', 'GLU', 'GELU', 'Hardshrink', 'LeakyReLU',
+  'LogSigmoid', 'Softplus', 'Softshrink', 'PReLU', 'Softsign', 'Tanhshrink',
+  'Softmin', 'Softmax', 'Softmax2d', 'LogSoftmax'
+]
 
 
 def _inplace(inp, val, inplace):
   if inplace:
-    assert isinstance(input, bm.Array), 'input must be instance of brainpy.math.Array if inplace=True'
+    assert isinstance(inp, bm.Array), 'input must be instance of brainpy.math.Array if inplace=True'
     inp.value = val
     return inp
   else:
@@ -44,7 +46,7 @@ class Threshold(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Threshold(0.1, 20)
+      >>> m = bp.dnn.Threshold(0.1, 20)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -87,7 +89,7 @@ class ReLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.ReLU()
+      >>> m = bp.dnn.ReLU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
 
@@ -96,7 +98,7 @@ class ReLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.ReLU()
+      >>> m = bp.dnn.ReLU()
       >>> input = bm.random.randn(2).unsqueeze(0)
       >>> output = bm.cat((m(input), m(-input)))
   """
@@ -149,7 +151,7 @@ class RReLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.RReLU(0.1, 0.3)
+      >>> m = bp.dnn.RReLU(0.1, 0.3)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
 
@@ -210,7 +212,7 @@ class Hardtanh(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Hardtanh(-2, 2)
+      >>> m = bp.dnn.Hardtanh(-2, 2)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -260,7 +262,7 @@ class ReLU6(Hardtanh):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.ReLU6()
+      >>> m = bp.dnn.test_ReLU6()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -288,7 +290,7 @@ class Sigmoid(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Sigmoid()
+      >>> m = bp.dnn.Sigmoid()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -320,7 +322,7 @@ class Hardsigmoid(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Hardsigmoid()
+      >>> m = bp.dnn.Hardsigmoid()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -353,7 +355,7 @@ class Tanh(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Tanh()
+      >>> m = bp.dnn.Tanh()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -376,6 +378,8 @@ class SiLU(Layer):
       in Reinforcement Learning <https://arxiv.org/abs/1702.03118>`_ and `Swish:
       a Self-Gated Activation Function <https://arxiv.org/abs/1710.05941v1>`_
       where the SiLU was experimented with later.
+  Args:
+      inplace: can optionally do the operation in-place. Default: ``False``
 
   Shape:
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
@@ -385,7 +389,7 @@ class SiLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.SiLU()
+      >>> m = bp.dnn.SiLU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -414,6 +418,9 @@ class Mish(Layer):
   .. note::
       See `Mish: A Self Regularized Non-Monotonic Neural Activation Function <https://arxiv.org/abs/1908.08681>`_
 
+  Args:
+      inplace: can optionally do the operation in-place. Default: ``False``
+
   Shape:
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
       - Output: :math:`(*)`, same shape as the input.
@@ -422,7 +429,7 @@ class Mish(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Mish()
+      >>> m = bp.dnn.Mish()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -465,7 +472,7 @@ class Hardswish(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Hardswish()
+      >>> m = bp.dnn.Hardswish()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -506,7 +513,7 @@ class ELU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.ELU()
+      >>> m = bp.dnn.ELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -547,7 +554,7 @@ class CELU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.CELU()
+      >>> m = bp.dnn.CELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
 
@@ -593,7 +600,7 @@ class SELU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.SELU()
+      >>> m = bp.dnn.SELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
 
@@ -631,7 +638,7 @@ class GLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.GLU()
+      >>> m = bp.dnn.GLU()
       >>> input = bm.random.randn(4, 2)
       >>> output = m(input)
   """
@@ -672,7 +679,7 @@ class GELU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.GELU()
+      >>> m = bp.dnn.GELU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -714,7 +721,7 @@ class Hardshrink(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Hardshrink()
+      >>> m = bp.dnn.Hardshrink()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -762,7 +769,7 @@ class LeakyReLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.LeakyReLU(0.1)
+      >>> m = bp.dnn.LeakyReLU(0.1)
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -797,7 +804,7 @@ class LogSigmoid(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.LogSigmoid()
+      >>> m = bp.dnn.LogSigmoid()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -828,7 +835,7 @@ class Softplus(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Softplus()
+      >>> m = bp.dnn.Softplus()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -870,7 +877,7 @@ class Softshrink(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Softshrink()
+      >>> m = bp.dnn.Softshrink()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -903,8 +910,8 @@ class PReLU(Layer):
       ax, & \text{ otherwise }
       \end{cases}
 
-  Here :math:`a` is a learnable parameter. When called without arguments, `bp.layers.PReLU()` uses a single
-  parameter :math:`a` across all input channels. If called with `bp.layers.PReLU(nChannels)`,
+  Here :math:`a` is a learnable parameter. When called without arguments, `bp.dnn.PReLU()` uses a single
+  parameter :math:`a` across all input channels. If called with `bp.dnn.PReLU(nChannels)`,
   a separate :math:`a` is used for each input channel.
 
 
@@ -933,7 +940,7 @@ class PReLU(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.PReLU()
+      >>> m = bp.dnn.PReLU()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -966,7 +973,7 @@ class Softsign(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Softsign()
+      >>> m = bp.dnn.Softsign()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -989,7 +996,7 @@ class Tanhshrink(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Tanhshrink()
+      >>> m = bp.dnn.Tanhshrink()
       >>> input = bm.random.randn(2)
       >>> output = m(input)
   """
@@ -1025,7 +1032,7 @@ class Softmin(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Softmin(dim=1)
+      >>> m = bp.dnn.Softmin(dim=1)
       >>> input = bm.random.randn(2, 3)
       >>> output = m(input)
   """
@@ -1078,7 +1085,7 @@ class Softmax(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Softmax(dim=1)
+      >>> m = bp.dnn.Softmax(dim=1)
       >>> input = bm.random.randn(2, 3)
       >>> output = m(input)
 
@@ -1115,14 +1122,14 @@ class Softmax2d(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.Softmax2d()
+      >>> m = bp.dnn.Softmax2d()
       >>> # you softmax over the 2nd dimension
       >>> input = bm.random.randn(2, 3, 12, 13)
       >>> output = m(input)
   """
 
   def update(self, input: ArrayType) -> ArrayType:
-    assert input.dim() == 4 or input.dim() == 3, 'Softmax2d requires a 3D or 4D tensor as input'
+    assert input.ndim == 4 or input.ndim == 3, 'Softmax2d requires a 3D or 4D tensor as input'
     return bm.softmax(input, -3)
 
 
@@ -1149,7 +1156,7 @@ class LogSoftmax(Layer):
 
       >>> import brainpy as bp
       >>> import brainpy.math as bm
-      >>> m = bp.layers.LogSoftmax(dim=1)
+      >>> m = bp.dnn.LogSoftmax(dim=1)
       >>> input = bm.random.randn(2, 3)
       >>> output = m(input)
   """

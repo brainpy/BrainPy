@@ -55,13 +55,13 @@ class PhasePlane1D(Num1DAnalyzer):
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
-    super(PhasePlane1D, self).__init__(model=model,
-                                       target_vars=target_vars,
-                                       fixed_vars=fixed_vars,
-                                       target_pars=target_pars,
-                                       pars_update=pars_update,
-                                       resolutions=resolutions,
-                                       **kwargs)
+    super().__init__(model=model,
+                     target_vars=target_vars,
+                     fixed_vars=fixed_vars,
+                     target_pars=target_pars,
+                     pars_update=pars_update,
+                     resolutions=resolutions,
+                     **kwargs)
     # utils.output(f'I am {PhasePlane1D.__name__}.')
 
   def plot_vector_field(self, show=False, with_plot=True, with_return=False):
@@ -150,13 +150,13 @@ class PhasePlane2D(Num2DAnalyzer):
     if (target_pars is not None) and len(target_pars) > 0:
       raise errors.AnalyzerError(f'Phase plane analysis does not support "target_pars". '
                                  f'While we detect "target_pars={target_pars}".')
-    super(PhasePlane2D, self).__init__(model=model,
-                                       target_vars=target_vars,
-                                       fixed_vars=fixed_vars,
-                                       target_pars=target_pars,
-                                       pars_update=pars_update,
-                                       resolutions=resolutions,
-                                       **kwargs)
+    super().__init__(model=model,
+                     target_vars=target_vars,
+                     fixed_vars=fixed_vars,
+                     target_pars=target_pars,
+                     pars_update=pars_update,
+                     resolutions=resolutions,
+                     **kwargs)
 
   @property
   def F_vmap_brentq_fy(self):
@@ -251,7 +251,7 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_plot:
       if x_style is None:
         x_style = dict(color='cornflowerblue', alpha=.7, fmt='.')
-      line_args = (x_style.pop('fmt'), ) if 'fmt' in x_style else tuple()
+      line_args = (x_style.pop('fmt'),) if 'fmt' in x_style else tuple()
       pyplot.plot(x_values_in_fx, y_values_in_fx, *line_args, **x_style, label=f"{self.x_var} nullcline")
 
     # Nullcline of the y variable
@@ -263,7 +263,7 @@ class PhasePlane2D(Num2DAnalyzer):
     if with_plot:
       if y_style is None:
         y_style = dict(color='lightcoral', alpha=.7, fmt='.')
-      line_args = (y_style.pop('fmt'), ) if 'fmt' in y_style else tuple()
+      line_args = (y_style.pop('fmt'),) if 'fmt' in y_style else tuple()
       pyplot.plot(x_values_in_fy, y_values_in_fy, *line_args, **y_style, label=f"{self.y_var} nullcline")
 
     if with_plot:

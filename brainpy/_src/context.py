@@ -4,10 +4,8 @@ Context for brainpy computation.
 This context defines all shared data used in all modules in a computation.
 """
 
-from typing import Any
-from typing import Union
+from typing import Any, Union
 
-from brainpy._src.dynsys import DynamicalSystemNS
 from brainpy._src.math.environment import get_dt
 from brainpy._src.tools.dicts import DotDict
 
@@ -16,7 +14,7 @@ __all__ = [
 ]
 
 
-class _ShareContext(DynamicalSystemNS):
+class _ShareContext:
   def __init__(self):
     super().__init__()
 
@@ -89,18 +87,6 @@ class _ShareContext(DynamicalSystemNS):
   def clear(self) -> None:
     """Clear all shared data in this computation context."""
     self._arguments.clear()
-
-  def __call__(self, *args, **kwargs):
-    pass
-
-  def update(self, *args, **kwargs):
-    pass
-
-  def reset(self, batch_size: int = None):
-    pass
-
-  def reset_state(self, batch_size: int = None):
-    pass
 
 
 share = _ShareContext()

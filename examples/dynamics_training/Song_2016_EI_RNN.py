@@ -27,7 +27,7 @@ class EI_RNN(bp.DynamicalSystem):
       w_rr=bp.init.KaimingUniform(scale=1.),
       w_ro=bp.init.KaimingUniform(scale=1.)
   ):
-    super(EI_RNN, self).__init__()
+    super().__init__()
 
     # parameters
     self.tau = 100
@@ -72,7 +72,6 @@ class EI_RNN(bp.DynamicalSystem):
   def readout(self, h):
     return h @ self.w_ro + self.b_ro
 
-  @bp.not_pass_shared
   def update(self, x):
     self.h.value = self.cell(x, self.h)
     self.o.value = self.readout(self.h[:, :self.e_size])

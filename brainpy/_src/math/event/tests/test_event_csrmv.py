@@ -9,12 +9,13 @@ from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
+import platform
 
-import brainpylib as bl
 import pytest
 
-if bl.__version__ < '0.1.9':
-  pytest.skip('Need brainpylib>=0.1.9', allow_module_level=True)
+is_manual_test = False
+if platform.system() == 'Windows' and not is_manual_test:
+  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 
 def sum_op(op):

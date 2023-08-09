@@ -5,8 +5,9 @@ from typing import Dict
 from jax.tree_util import tree_flatten, tree_map, tree_unflatten
 
 from brainpy import math as bm
-from brainpy._src.dynsys import DynamicalSystemNS, DynamicalSystem
+from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.context import share
+from brainpy._src.dnn.base import Layer
 
 try:
   import flax  # noqa
@@ -34,7 +35,7 @@ def _is_bp(a):
   return isinstance(a, bm.Array)
 
 
-class FromFlax(DynamicalSystemNS):
+class FromFlax(Layer):
   """
   Transform a Flax module as a BrainPy :py:class:`~.DynamicalSystem`.
 

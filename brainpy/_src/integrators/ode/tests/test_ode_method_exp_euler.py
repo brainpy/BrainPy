@@ -46,7 +46,7 @@ class TestExpnentialEuler(unittest.TestCase):
 
 class TestExpEulerAuto(unittest.TestCase):
   def test_hh_model(self):
-    class HH(bp.NeuGroup):
+    class HH(bp.dyn.NeuDyn):
       def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
                    gL=0.1, V_th=20., phi=5.0, name=None, method='exponential_euler'):
         super(HH, self).__init__(size=size, name=name)
@@ -103,6 +103,7 @@ class TestExpEulerAuto(unittest.TestCase):
         self.n.value = n
         self.input[:] = 0.
 
+    bm.random.seed()
     hh1 = HH(1, method='exp_euler')
     runner1 = bp.DSRunner(hh1, inputs=('input', 2.), monitors=['V', 'h', 'n'])
     runner1.run(100)
@@ -125,4 +126,5 @@ class TestExpEulerAuto(unittest.TestCase):
     self.assertTrue(diff < 1e0)
 
     plt.close()
+    bm.clear_buffer_memory()
 

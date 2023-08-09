@@ -10,7 +10,7 @@ from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
 from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
-from brainpy._src.dyn.base import GradNeuDyn
+from .base import GradNeuDyn
 
 __all__ = [
   'IF',
@@ -67,6 +67,7 @@ class IFLTC(GradNeuDyn):
     %s
     %s
   """
+
   def __init__(
       self,
       size: Shape,
@@ -76,6 +77,7 @@ class IFLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -95,7 +97,8 @@ class IFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset)
 
     # parameters
     self.V_rest = self.init_param(V_rest)
@@ -113,12 +116,12 @@ class IFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None):
     self.V = self.init_variable(self._V_initializer, batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -127,6 +130,7 @@ class IFLTC(GradNeuDyn):
 
     # integrate membrane potential
     self.V.value = self.integral(self.V.value, t, x, dt)
+
     return self.V.value
 
   def return_info(self):
@@ -139,9 +143,8 @@ class IF(IFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 IF.__doc__ = IFLTC.__doc__ % ('', if_doc, pneu_doc, dpneu_doc)
@@ -182,6 +185,7 @@ class LifLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -203,7 +207,8 @@ class LifLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset)
 
     # parameters
     self.V_rest = self.init_param(V_rest)
@@ -223,8 +228,7 @@ class LifLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None):
@@ -243,7 +247,12 @@ class LifLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike
+      else:
+        raise ValueError
 
     else:
       spike = V >= self.V_th
@@ -263,9 +272,8 @@ class Lif(LifLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 Lif.__doc__ = LifLTC.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc)
@@ -309,6 +317,7 @@ class LifRefLTC(LifLTC):
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
       detach_spk: bool = False,
+      spk_reset: str = 'soft',
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
@@ -336,6 +345,7 @@ class LifRefLTC(LifLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -350,12 +360,6 @@ class LifRefLTC(LifLTC):
     # parameters
     self.ref_var = ref_var
     self.tau_ref = self.init_param(tau_ref)
-
-    # initializers
-    self._V_initializer = is_initializer(V_initializer)
-
-    # integral
-    self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -386,7 +390,12 @@ class LifRefLTC(LifLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike_no_grad
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike_no_grad
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        raise ValueError
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
       if self.ref_var:
@@ -411,9 +420,8 @@ class LifRef(LifRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 LifRef.__doc__ = LifRefLTC.__doc__ % ('', lif_doc, pneu_doc, dpneu_doc, ref_doc)
@@ -517,6 +525,7 @@ class ExpIFLTC(GradNeuDyn):
            conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
     .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
     """
+
   def __init__(
       self,
       size: Shape,
@@ -526,6 +535,7 @@ class ExpIFLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -549,7 +559,9 @@ class ExpIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset)
+
     # parameters
     self.V_rest = self.init_param(V_rest)
     self.V_reset = self.init_param(V_reset)
@@ -570,8 +582,7 @@ class ExpIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
     return dvdt
@@ -592,7 +603,12 @@ class ExpIFLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike
+      else:
+        raise ValueError
 
     else:
       spike = V >= self.V_th
@@ -614,10 +630,8 @@ class ExpIF(ExpIFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
-
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 class ExpIFRefLTC(ExpIFLTC):
@@ -630,6 +644,7 @@ class ExpIFRefLTC(ExpIFLTC):
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
       detach_spk: bool = False,
+      spk_reset: str = 'soft',
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
@@ -659,6 +674,7 @@ class ExpIFRefLTC(ExpIFLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -711,7 +727,12 @@ class ExpIFRefLTC(ExpIFLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike_no_grad
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike_no_grad
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        raise ValueError
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
       if self.ref_var:
@@ -738,9 +759,9 @@ class ExpIFRef(ExpIFRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
+
 
 ExpIF.__doc__ = ExpIFLTC.__doc__ % ('')
 ExpIFRefLTC.__doc__ = ExpIFLTC.__doc__ % (ltc_doc)
@@ -822,6 +843,7 @@ class AdExIFLTC(GradNeuDyn):
          inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
   .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
   """
+
   def __init__(
       self,
       size: Shape,
@@ -831,6 +853,7 @@ class AdExIFLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -858,7 +881,8 @@ class AdExIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset)
     # parameters
     self.V_rest = self.init_param(V_rest)
     self.V_reset = self.init_param(V_reset)
@@ -883,8 +907,7 @@ class AdExIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def dV(self, V, t, w, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     exp = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
     return dVdt
@@ -914,7 +937,12 @@ class AdExIFLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike
+      else:
+        raise ValueError
       w += self.b * spike
 
     else:
@@ -937,19 +965,10 @@ class AdExIF(AdExIFLTC):
     dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
     return dVdt
 
-  def dw(self, w, t, V):
-    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
-    return dwdt
-
-  @property
-  def derivative(self):
-    return JointEq([self.dV, self.dw])
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 class AdExIFRefLTC(AdExIFLTC):
@@ -961,6 +980,7 @@ class AdExIFRefLTC(AdExIFLTC):
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       name: Optional[str] = None,
@@ -995,6 +1015,7 @@ class AdExIFRefLTC(AdExIFLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -1052,7 +1073,12 @@ class AdExIFRefLTC(AdExIFLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike_no_grad
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike_no_grad
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        raise ValueError
       w += self.b * spike_no_grad
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
@@ -1080,24 +1106,17 @@ class AdExIFRef(AdExIFRefLTC):
     dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
     return dVdt
 
-  def dw(self, w, t, V):
-    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
-    return dwdt
-
-  @property
-  def derivative(self):
-    return JointEq([self.dV, self.dw])
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
+
 
 AdExIF.__doc__ = AdExIFLTC.__doc__ % ('')
 AdExIFRefLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
 AdExIFRef.__doc__ = AdExIFLTC.__doc__ % ('')
 AdExIFLTC.__doc__ = AdExIFLTC.__doc__ % (ltc_doc)
+
 
 class QuaIFLTC(GradNeuDyn):
   r"""Quadratic Integrate-and-Fire neuron model %s.
@@ -1165,6 +1184,7 @@ class QuaIFLTC(GradNeuDyn):
             (2000) Intrinsic dynamics in neuronal networks. I. Theory.
             J. Neurophysiology 83, pp. 808–827.
     """
+
   def __init__(
       self,
       size: Shape,
@@ -1174,6 +1194,7 @@ class QuaIFLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -1197,7 +1218,8 @@ class QuaIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset)
     # parameters
     self.V_rest = self.init_param(V_rest)
     self.V_reset = self.init_param(V_reset)
@@ -1218,8 +1240,7 @@ class QuaIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
     return dVdt
 
@@ -1239,7 +1260,12 @@ class QuaIFLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike
+      else:
+        raise ValueError
 
     else:
       spike = V >= self.V_th
@@ -1260,9 +1286,8 @@ class QuaIF(QuaIFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 class QuaIFRefLTC(QuaIFLTC):
@@ -1274,6 +1299,7 @@ class QuaIFRefLTC(QuaIFLTC):
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       name: Optional[str] = None,
@@ -1304,6 +1330,7 @@ class QuaIFRefLTC(QuaIFLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -1356,7 +1383,12 @@ class QuaIFRefLTC(QuaIFLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike_no_grad
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike_no_grad
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        raise ValueError
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
       if self.ref_var:
@@ -1382,9 +1414,8 @@ class QuaIFRef(QuaIFRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 QuaIF.__doc__ = QuaIFLTC.__doc__ % ('')
@@ -1469,6 +1500,7 @@ class AdQuaIFLTC(GradNeuDyn):
          nonlinear integrate-and-fire neurons." SIAM Journal on Applied
          Mathematics 68, no. 4 (2008): 1045-1079.
   """
+
   def __init__(
       self,
       size: Shape,
@@ -1478,6 +1510,7 @@ class AdQuaIFLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -1504,7 +1537,8 @@ class AdQuaIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset)
     # parameters
     self.V_rest = self.init_param(V_rest)
     self.V_reset = self.init_param(V_reset)
@@ -1528,8 +1562,7 @@ class AdQuaIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def dV(self, V, t, w, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
     return dVdt
 
@@ -1558,7 +1591,12 @@ class AdQuaIFLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike
+      else:
+        raise ValueError
       w += self.b * spike
 
     else:
@@ -1580,19 +1618,10 @@ class AdQuaIF(AdQuaIFLTC):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
     return dVdt
 
-  def dw(self, w, t, V):
-    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
-    return dwdt
-
-  @property
-  def derivative(self):
-    return JointEq([self.dV, self.dw])
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 class AdQuaIFRefLTC(AdQuaIFLTC):
@@ -1604,6 +1633,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       name: Optional[str] = None,
@@ -1637,6 +1667,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -1693,7 +1724,12 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike_no_grad
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike_no_grad
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        raise ValueError
       w += self.b * spike_no_grad
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
@@ -1720,19 +1756,10 @@ class AdQuaIFRef(AdQuaIFRefLTC):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
     return dVdt
 
-  def dw(self, w, t, V):
-    dwdt = (self.a * (V - self.V_rest) - w) / self.tau_w
-    return dwdt
-
-  @property
-  def derivative(self):
-    return JointEq([self.dV, self.dw])
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 AdQuaIF.__doc__ = AdQuaIFLTC.__doc__ % ('')
@@ -1822,6 +1849,7 @@ class GifLTC(GradNeuDyn):
            leaky integrate-and-fire models classify multiple neuron types."
            Nature communications 9, no. 1 (2018): 1-15.
   """
+
   def __init__(
       self,
       size: Shape,
@@ -1831,6 +1859,7 @@ class GifLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -1864,7 +1893,8 @@ class GifLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset, )
     # parameters
     self.V_rest = self.init_param(V_rest)
     self.V_reset = self.init_param(V_reset)
@@ -1904,8 +1934,7 @@ class GifLTC(GradNeuDyn):
     return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
 
   def dV(self, V, t, I1, I2, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
 
   @property
@@ -1931,11 +1960,15 @@ class GifLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike
+      else:
+        raise ValueError
       I1 += spike * (self.R1 * I1 + self.A1 - I1)
       I2 += spike * (self.R2 * I2 + self.A2 - I2)
-      reset_th = self.spk_fun(self.V_th_reset - V_th) * spike
-      V_th += reset_th * (self.V_th_reset - V_th)
+      V_th += (bm.maximum(self.V_th_reset, V_th) - V_th) * spike
 
     else:
       spike = self.V_th <= V
@@ -1955,27 +1988,13 @@ class GifLTC(GradNeuDyn):
 
 
 class Gif(GifLTC):
-  def dI1(self, I1, t):
-    return - self.k1 * I1
-
-  def dI2(self, I2, t):
-    return - self.k2 * I2
-
-  def dVth(self, V_th, t, V):
-    return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
-
   def dV(self, V, t, I1, I2, I):
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
 
-  @property
-  def derivative(self):
-    return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 class GifRefLTC(GifLTC):
@@ -1987,6 +2006,7 @@ class GifRefLTC(GifLTC):
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       name: Optional[str] = None,
@@ -2027,6 +2047,7 @@ class GifRefLTC(GifLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -2092,11 +2113,15 @@ class GifRefLTC(GifLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += (self.V_reset - V) * spike
+      if self.spk_reset == 'soft':
+        V -= (self.V_th - self.V_reset) * spike_no_grad
+      elif self.spk_reset == 'hard':
+        V += (self.V_reset - V) * spike_no_grad
+      else:
+        raise ValueError
       I1 += spike * (self.R1 * I1 + self.A1 - I1)
       I2 += spike * (self.R2 * I2 + self.A2 - I2)
-      reset_th = self.spk_fun(self.V_th_reset - V_th) * spike
-      V_th += reset_th * (self.V_th_reset - V_th)
+      V_th += (bm.maximum(self.V_th_reset, V_th) - V_th) * spike_no_grad
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
       if self.ref_var:
@@ -2122,33 +2147,19 @@ class GifRefLTC(GifLTC):
 
 
 class GifRef(GifRefLTC):
-  def dI1(self, I1, t):
-    return - self.k1 * I1
-
-  def dI2(self, I2, t):
-    return - self.k2 * I2
-
-  def dVth(self, V_th, t, V):
-    return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
-
   def dV(self, V, t, I1, I2, I):
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
 
-  @property
-  def derivative(self):
-    return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
-Gif.__doc__ = GifLTC.__doc__ % ('')
-GifRefLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
-GifRef.__doc__ = GifLTC.__doc__ % ('')
-GifLTC.__doc__ = GifLTC.__doc__ % (ltc_doc)
+Gif.__doc__ = GifLTC.__doc__ % ''
+GifRefLTC.__doc__ = GifLTC.__doc__ % ltc_doc
+GifRef.__doc__ = GifLTC.__doc__ % ''
+GifLTC.__doc__ = GifLTC.__doc__ % ltc_doc
 
 
 class IzhikevichLTC(GradNeuDyn):
@@ -2218,6 +2229,7 @@ class IzhikevichLTC(GradNeuDyn):
     .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
            IEEE transactions on neural networks 15.5 (2004): 1063-1070.
     """
+
   def __init__(
       self,
       size: Shape,
@@ -2227,6 +2239,7 @@ class IzhikevichLTC(GradNeuDyn):
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
@@ -2251,7 +2264,8 @@ class IzhikevichLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type)
+                     spk_type=spk_type,
+                     spk_reset=spk_reset, )
     # parameters
     self.V_th = self.init_param(V_th)
     self.a = self.init_param(a)
@@ -2273,8 +2287,7 @@ class IzhikevichLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def dV(self, V, t, u, I):
-    for out in self.cur_inputs.values():
-      I += out(V)
+    I = self.sum_inputs(V, init=I)
     dVdt = 0.04 * V * V + 5 * V + 140 - u + I
     return dVdt
 
@@ -2305,7 +2318,7 @@ class IzhikevichLTC(GradNeuDyn):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike = stop_gradient(spike) if self.detach_spk else spike
-      V += spike * (self.c - self.V_th)
+      V += spike * (self.c - V)
       u += spike * self.d
 
     else:
@@ -2327,19 +2340,10 @@ class Izhikevich(IzhikevichLTC):
     dVdt = 0.04 * V * V + 5 * V + 140 - u + I
     return dVdt
 
-  def du(self, u, t, V):
-    dudt = self.a * (self.b * V - u)
-    return dudt
-
-  @property
-  def derivative(self):
-    return JointEq([self.dV, self.du])
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
 class IzhikevichRefLTC(IzhikevichLTC):
@@ -2351,6 +2355,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
+      spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
       name: Optional[str] = None,
@@ -2382,6 +2387,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
       spk_fun=spk_fun,
       detach_spk=detach_spk,
       spk_type=spk_type,
+      spk_reset=spk_reset,
 
       init_var=False,
 
@@ -2436,7 +2442,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
     if isinstance(self.mode, bm.TrainingMode):
       spike = self.spk_fun(V - self.V_th)
       spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-      V += spike * (self.c - self.V_th)
+      V += spike * (self.c - V)
       u += spike * self.d
       spike_ = spike_no_grad > 0.
       # will be used in other place, like Delta Synapse, so stop its gradient
@@ -2463,22 +2469,13 @@ class IzhikevichRef(IzhikevichRefLTC):
     dVdt = 0.04 * V * V + 5 * V + 140 - u + I
     return dVdt
 
-  def du(self, u, t, V):
-    dudt = self.a * (self.b * V - u)
-    return dudt
-
-  @property
-  def derivative(self):
-    return JointEq([self.dV, self.du])
-
   def update(self, x=None):
     x = 0. if x is None else x
-    for out in self.cur_inputs.values():
-      x += out(self.V.value)
-    super().update(x)
+    x = self.sum_inputs(self.V.value, init=x)
+    return super().update(x)
 
 
-Izhikevich.__doc__ = IzhikevichLTC.__doc__ % ('')
-IzhikevichRefLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
-IzhikevichRef.__doc__ = IzhikevichLTC.__doc__ % ('')
-IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % (ltc_doc)
+Izhikevich.__doc__ = IzhikevichLTC.__doc__ % ''
+IzhikevichRefLTC.__doc__ = IzhikevichLTC.__doc__ % ltc_doc
+IzhikevichRef.__doc__ = IzhikevichLTC.__doc__ % ''
+IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % ltc_doc

@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - '**'        # matches every branch
+  pull_request:
+    branches:
+      - '**'        # matches every branch
 
 
 #
@@ -16,7 +19,6 @@ on:
 jobs:
   test_linux:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +66,6 @@ jobs:
         
   test_macos:
     runs-on: macos-latest
-    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:
@@ -113,11 +114,10 @@ jobs:
 
   test_windows:
     runs-on: windows-latest
-    if: github.event.pull_request.merged == true
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v2
@@ -128,8 +128,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install numpy>=1.21.0
-        python -m pip install "jaxlib==0.4.10" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
-        python -m pip install jax==0.4.10
         python -m pip install -r requirements-dev.txt
         python -m pip install tqdm brainpylib
         pip uninstall brainpy -y

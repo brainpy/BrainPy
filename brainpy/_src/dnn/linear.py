@@ -4,6 +4,7 @@
 from typing import Dict, Optional, Union, Callable
 
 import jax
+import numpy as np
 import jax.numpy as jnp
 
 from brainpy import math as bm
@@ -14,7 +15,7 @@ from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
-from .base import Layer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Dense', 'Linear',
@@ -63,8 +64,8 @@ class Dense(Layer):
       num_out: int,
       W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
-      mode: bm.Mode = None,
-      name: str = None,
+      mode: Optional[bm.Mode] = None,
+      name: Optional[str] = None,
   ):
     super(Dense, self).__init__(mode=mode, name=name)
 
@@ -316,7 +317,7 @@ class OneToOne(Layer):
 
 
 class MaskedLinear(Layer):
-  r"""Synaptic matrix multiplication with dense computation.
+  r"""Synaptic matrix multiplication with masked dense computation.
 
   It performs the computation of:
 
@@ -327,9 +328,14 @@ class MaskedLinear(Layer):
   where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
   :math:`M` the synaptic weight using a dense matrix.
 
+  >>> import brainpy as bp
+  >>> l = bp.dnn.MaskedLinear(bp.conn.FixedProb(0.1, pre=100, post=100),
+  >>>                         weight=0.1)
+
   Args:
-    mask: TwoEndConnector. The connection.
+    conn: TwoEndConnector. The connection.
     weight: Synaptic weights. Can be a scalar, array, or callable function.
+    mask_fun: Masking function.
     sharding: The sharding strategy. 
     mode: The synaptic computing mode.
     name: The synapse model name.
@@ -337,20 +343,22 @@ class MaskedLinear(Layer):
 
   def __init__(
       self,
-      mask: connect.TwoEndConnector,
+      conn: connect.TwoEndConnector,
       weight: Union[float, ArrayType, Callable],
+      mask_fun: Callable = Identity(),
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
     super().__init__(name=name, mode=mode)
 
-    assert isinstance(mask, connect.TwoEndConnector)
-    self.conn = mask
+    assert isinstance(conn, connect.TwoEndConnector)
+    self.conn = conn
     self.sharding = sharding
+    self.mask_fun = mask_fun
 
     # weight
-    weight = init.parameter(weight, (mask.pre_num, mask.post_num), sharding=sharding)
+    weight = init.parameter(weight, (conn.pre_num, conn.post_num), sharding=sharding)
     if isinstance(self.mode, bm.TrainingMode):
       weight = bm.TrainVar(weight)
     self.weight = weight
@@ -359,7 +367,7 @@ class MaskedLinear(Layer):
     self.mask = bm.sharding.partition(self.conn.require('conn_mat'), sharding=sharding)
 
   def update(self, x):
-    return x @ (self.weight * self.mask)
+    return x @ self.mask_fun(self.weight * self.mask)
 
 
 class CSRLinear(Layer):
@@ -635,7 +643,7 @@ class JitFPHomoLinear(Layer):
       num_out: int,
       prob: float,
       weight: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -647,7 +655,7 @@ class JitFPHomoLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -716,7 +724,7 @@ class JitFPUniformLinear(Layer):
       prob: float,
       w_low: float,
       w_high: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -728,7 +736,7 @@ class JitFPUniformLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -796,7 +804,7 @@ class JitFPNormalLinear(Layer):
       prob: float,
       w_mu: float,
       w_sigma: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
       atomic: bool = False,
@@ -808,7 +816,7 @@ class JitFPNormalLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -874,7 +882,7 @@ class EventJitFPHomoLinear(Layer):
       num_out: int,
       prob: float,
       weight: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -886,7 +894,7 @@ class EventJitFPHomoLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 1000000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -955,7 +963,7 @@ class EventJitFPUniformLinear(Layer):
       prob: float,
       w_low: float,
       w_high: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -967,7 +975,7 @@ class EventJitFPUniformLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out
@@ -1035,7 +1043,7 @@ class EventJitFPNormalLinear(Layer):
       prob: float,
       w_mu: float,
       w_sigma: float,
-      seed: int,
+      seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
       atomic: bool = False,
@@ -1047,7 +1055,7 @@ class EventJitFPNormalLinear(Layer):
     self.prob = prob
     self.sharding = sharding
     self.transpose = transpose
-    self.seed = seed
+    self.seed = np.random.randint(0, 100000) if seed is None else seed
     self.atomic = atomic
     self.num_in = num_in
     self.num_out = num_out

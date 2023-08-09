@@ -9,7 +9,7 @@ from brainpy._src.initialize import Normal, ZeroInit, Initializer, parameter, va
 from brainpy import check
 from brainpy.tools import to_size
 from brainpy.types import ArrayType
-from .base import Layer
+from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Reservoir',

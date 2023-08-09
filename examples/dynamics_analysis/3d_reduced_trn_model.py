@@ -7,9 +7,9 @@ bp.math.enable_x64()
 bp.math.set_platform('cpu')
 
 
-class ReducedTRNModel(bp.NeuGroup):
+class ReducedTRNModel(bp.dyn.NeuDyn):
   def __init__(self, size, name=None, T=36., method='rk4'):
-    super(ReducedTRNModel, self).__init__(size=size, name=name)
+    super().__init__(size=size, name=name)
 
     self.IT_th = -3.
     self.b = 0.5

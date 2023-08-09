@@ -5,18 +5,27 @@ This module implements leakage channels.
 
 """
 
-from typing import Union, Callable
+from typing import Union, Callable, Sequence
 
 import brainpy.math as bm
+from brainpy._src.dyn.neurons.hh import HHTypedNeuron
 from brainpy._src.initialize import Initializer, parameter
-from brainpy.types import ArrayType, Shape
-
-from .base import LeakyChannel
+from brainpy.types import ArrayType
+from .base import IonChannel
 
 __all__ = [
+  'LeakyChannel',
   'IL',
-  'IKL',
 ]
+
+
+class LeakyChannel(IonChannel):
+  """Base class for leaky channel dynamics."""
+
+  master_type = HHTypedNeuron
+
+  def reset_state(self, V, batch_size=None):
+    pass
 
 
 class IL(LeakyChannel):
@@ -32,7 +41,7 @@ class IL(LeakyChannel):
 
   def __init__(
       self,
-      size,
+      size: Union[int, Sequence[int]],
       keep_size: bool = False,
       g_max: Union[int, float, ArrayType, Initializer, Callable] = 0.1,
       E: Union[int, float, ArrayType, Initializer, Callable] = -70.,
@@ -52,39 +61,8 @@ class IL(LeakyChannel):
   def reset_state(self, V, batch_size=None):
     pass
 
-  def update(self, tdi, V):
+  def update(self, V):
     pass
 
   def current(self, V):
     return self.g_max * (self.E - V)
-
-
-class IKL(IL):
-  """The potassium leak channel current.
-
-  Parameters
-  ----------
-  g_max : float
-    The potassium leakage conductance which is modulated by both
-    acetylcholine and norepinephrine.
-  E : float
-    The reversal potential.
-  """
-
-  def __init__(
-      self,
-      size: Shape,
-      keep_size: bool = False,
-      g_max: Union[int, float, ArrayType, Initializer, Callable] = 0.005,
-      E: Union[int, float, ArrayType, Initializer, Callable] = -90.,
-      method: str = None,
-      name: str = None,
-      mode: bm.Mode = None,
-  ):
-    super(IKL, self).__init__(size=size,
-                              keep_size=keep_size,
-                              g_max=g_max,
-                              E=E,
-                              method=method,
-                              name=name,
-                              mode=mode)

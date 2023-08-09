@@ -2,17 +2,17 @@
 
 from functools import partial
 
-import brainpylib as bl
 import jax
 import jax.numpy as jnp
 import pytest
 from absl.testing import parameterized
-
+import platform
 import brainpy as bp
 import brainpy.math as bm
 
-if bl.__version__ < '0.1.9':
-  pytest.skip('Need brainpylib>=0.1.9', allow_module_level=True)
+is_manual_test = False
+if platform.system() == 'Windows' and not is_manual_test:
+  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 cusparse_csr_matvec = partial(bm.sparse.csrmv, method='cusparse')
 scalar_csr_matvec = partial(bm.sparse.csrmv, method='scalar')

@@ -4,7 +4,7 @@ import pytest
 import brainpy as bp
 
 
-class LIF(bp.NeuGroup):
+class LIF(bp.dyn.NeuDyn):
   pass
 
 

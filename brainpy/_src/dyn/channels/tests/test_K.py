@@ -4,22 +4,21 @@
 import brainpy as bp
 import brainpy.math as bm
 from absl.testing import parameterized
-from brainpy._src.dyn.channels import K
 
 class Test_K(parameterized.TestCase):
   bm.random.seed(1234)
   def test_K(self):
-    class Neuron(bp.CondNeuGroup):
+    class Neuron(bp.dyn.CondNeuGroup):
       def __init__(self, size):
         super(Neuron, self).__init__(size, V_initializer=bp.init.Uniform(-70, -50.))
-        self.IK_1 = K.IKDR_Ba2002(size)
-        self.IK_2 = K.IK_TM1991(size)
-        self.IK_3 = K.IK_HH1952(size)
-        self.IK_4 = K.IKA1_HM1992(size)
-        self.IK_5 = K.IKA2_HM1992(size)
-        self.IK_6 = K.IKK2A_HM1992(size)
-        self.IK_7 = K.IKK2B_HM1992(size)
-        self.IK_8 = K.IKNI_Ya1989(size)
+        self.IK_1 = bp.dyn.IKDR_Ba2002(size)
+        self.IK_2 = bp.dyn.IK_TM1991(size)
+        self.IK_3 = bp.dyn.IK_HH1952(size)
+        self.IK_4 = bp.dyn.IKA1_HM1992(size)
+        self.IK_5 = bp.dyn.IKA2_HM1992(size)
+        self.IK_6 = bp.dyn.IKK2A_HM1992(size)
+        self.IK_7 = bp.dyn.IKK2B_HM1992(size)
+        self.IK_8 = bp.dyn.IKNI_Ya1989(size)
 
     model = Neuron(1)
     runner = bp.DSRunner(model,

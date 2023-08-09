@@ -379,24 +379,26 @@ def generate_inputs_docs():
                 header='``brainpy.inputs`` module')
 
 
-def generate_layers_docs():
+def generate_mixin_docs():
+  _write_module(module_name='brainpy.mixin',
+                filename='apis/auto/mixin.rst',
+                header='``brainpy.mixin`` module')
+
+
+def generate_dnn_docs():
   _write_subsections_v2(
-    'brainpy._src.dnn',
+    'brainpy.dnn',
     'brainpy.dnn',
     'apis/auto/dnn.rst',
     subsections={
-      'base': 'Basic ANN Layer Class',
       'activations': 'Non-linear Activations',
       'conv': 'Convolutional Layers',
-      'dropout': 'Dropout Layers',
-      'function': 'Function Layers',
       'linear': 'Dense Connection Layers',
       'normalization': 'Normalization Layers',
-      'nvar': 'NVAR Layers',
       'pooling': 'Pooling Layers',
-      'reservoir': 'Reservoir Layers',
-      'rnncells': 'Artificial Recurrent Layers',
-      'interoperation_flax': 'Interoperation with Flax',
+      'recurrent': 'Artificial Recurrent Layers',
+      'interoperation': 'Interoperation with Flax',
+      'others': 'Other Layers',
     }
   )
 
@@ -407,11 +409,15 @@ def generate_dyn_docs():
     'brainpy.dyn',
     'apis/auto/dyn.rst',
     subsections={
+      'base': 'Base Classes',
+      'ions': 'Ion Dynamics',
       'channels': 'Ion Channel Dynamics',
       'neurons': 'Neuron Dynamics',
       'synapses': 'Synaptic Dynamics',
       'projections': 'Synaptic Projections',
       'others': 'Common Dynamical Models',
+      'outs': 'Synaptic Output Models',
+      'rates': 'Population Rate Models',
     }
   )
 
@@ -474,16 +480,17 @@ def generate_running_docs():
 
 
 def generate_synapses_docs():
-  _write_subsections_v2(
-    'brainpy.synapses',
-    'brainpy.synapses',
-    'apis/auto/synapses.rst',
-    subsections={
-      'dynamics': 'Synaptic Dynamics',
-      'synouts': 'Synaptic Output',
-      'synplast': 'Synaptic Plasticity',
-    }
-  )
+  _write_module(module_name='brainpy.synapses',
+                filename='apis/auto/synapses.rst',
+                header='``brainpy.synapses`` module')
+
+  _write_module(module_name='brainpy.synouts',
+                filename='apis/auto/synouts.rst',
+                header='``brainpy.synouts`` module')
+
+  _write_module(module_name='brainpy.synplast',
+                filename='apis/auto/synplast.rst',
+                header='``brainpy.synplast`` module')
 
 
 def generate_brainpy_docs():
@@ -498,17 +505,11 @@ def generate_brainpy_docs():
                                              'sdeint',
                                              'fdeint'],
       'Building Dynamical System': ['DynamicalSystem',
-                                    'Container',
+                                    'DynSysGroup',
                                     'Sequential',
                                     'Network',
-                                    'NeuGroup',
-                                    'SynConn',
-                                    'SynOut',
-                                    'SynSTP',
-                                    'SynLTP',
-                                    'TwoEndConn',
-                                    'CondNeuGroup',
-                                    'Channel',
+                                    'Dynamic',
+                                    'Projection',
                                     ],
       'Simulating Dynamical System': ['DSRunner'],
       'Training Dynamical System': ['DSTrainer',
@@ -518,7 +519,7 @@ def generate_brainpy_docs():
                                     'ForceTrainer',
                                     'OfflineTrainer',
                                     'RidgeTrainer'],
-      'Dynamical System Helpers': ['DSPartial', 'NoSharedArg', 'LoopOverTime'],
+      'Dynamical System Helpers': ['LoopOverTime'],
     }
   )
 
