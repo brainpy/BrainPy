@@ -71,7 +71,7 @@ def not_pass_shared(func: Callable):
   return func
 
 
-class DynamicalSystem(bm.BrainPyObject, DelayRegister):
+class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
   """Base Dynamical System class.
 
   .. note::
@@ -119,6 +119,9 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister):
         raise UnsupportedError(f'The mode only supports computing modes '
                                f'which are parents of {self.supported_modes}, '
                                f'but we got {self.mode}.')
+
+    # Attribute for "ReceiveInputProj"
+    self.cur_inputs = bm.node_dict()
 
     # local delay variables:
     # Compatible for ``DelayRegister``
@@ -573,7 +576,7 @@ class Projection(DynamicalSystem):
     pass
 
 
-class Dynamic(DynamicalSystem, ReceiveInputProj):
+class Dynamic(DynamicalSystem):
   """Base class to model dynamics.
 
   There are several essential attributes:
@@ -628,9 +631,6 @@ class Dynamic(DynamicalSystem, ReceiveInputProj):
 
     # initialize
     super().__init__(name=name, mode=mode)
-
-    # Attribute for "ReceiveInputProj"
-    self.cur_inputs = bm.node_dict()
 
   @property
   def varshape(self):

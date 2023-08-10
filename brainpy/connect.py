@@ -13,6 +13,8 @@ from brainpy._src.connect.base import (
   coo2csr as coo2csr,
   coo2csc as coo2csc,
   coo2mat as coo2mat,
+  coo2mat_num as coo2mat_num,
+  mat2mat_num as mat2mat_num,
   visualizeMat as visualizeMat,
 
   CONN_MAT,
