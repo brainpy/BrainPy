@@ -272,7 +272,7 @@ class Container(MixIn):
       res[k] = v
     return res
 
-  def add_elem(self, **elements):
+  def add_elem(self, *elems, **elements):
     """Add new elements.
 
     >>> obj = Container()
@@ -281,8 +281,7 @@ class Container(MixIn):
     Args:
       elements: children objects.
     """
-    # self.check_hierarchies(type(self), **elements)
-    self.children.update(self.format_elements(object, **elements))
+    self.children.update(self.format_elements(object, *elems, **elements))
 
 
 class TreeNode(MixIn):

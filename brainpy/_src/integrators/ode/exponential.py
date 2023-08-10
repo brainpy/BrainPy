@@ -199,7 +199,7 @@ class ExponentialEuler(ODEIntegrator):
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
-    >>> run = bp.dyn.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+    >>> run = bp.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
@@ -269,7 +269,7 @@ class ExponentialEuler(ODEIntegrator):
     >>>     self.n.value = n
     >>>     self.input[:] = 0.
     >>>
-    >>> run = bp.dyn.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+    >>> run = bp.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 

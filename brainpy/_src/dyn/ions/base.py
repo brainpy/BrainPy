@@ -82,15 +82,15 @@ class MixIons(IonChaDyn, Container, TreeNode):
         raise TypeError(f'Type does not match. {leaf} requires a master with type '
                         f'of {leaf.master_type}, but the master type now is {roots}.')
 
-  def add_elem(self, **elements):
+  def add_elem(self, *elems, **elements):
     """Add new elements.
 
     Args:
       elements: children objects.
     """
-    self.check_hierarchies(self._ion_classes, **elements)
-    self.children.update(self.format_elements(IonChaDyn, **elements))
-    for key, elem in elements.items():
+    self.check_hierarchies(self._ion_classes, *elems, **elements)
+    self.children.update(self.format_elements(IonChaDyn, *elems, **elements))
+    for elem in tuple(elems) + tuple(elements.values()):
       for ion_root in elem.master_type.__args__:
         ion = self._get_imp(ion_root)
         ion.add_external_current(elem.name, self._get_ion_fun(ion, elem))

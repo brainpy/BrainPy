@@ -70,8 +70,8 @@ def run(indexes):
 
 
 with bm.sharding.device_mesh(jax.devices(), [bm.sharding.NEU_AXIS]):
-  # model = EINet1()
   model = EINet2()
   indices = bm.arange(1000)
   spks = run(indices)
 bp.visualize.raster_plot(indices, spks, show=True)
+

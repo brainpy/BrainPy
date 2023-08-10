@@ -570,8 +570,20 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
 
 class Projection(DynamicalSystem):
   def reset_state(self, *args, **kwargs):
-    pass
+    nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
+    if len(nodes):
+      for node in nodes:
+        node.reset_state(*args, **kwargs)
+    else:
+      raise ValueError('Do not implement the reset_state() function.')
 
+  def update(self, *args, **kwargs):
+    nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
+    if len(nodes):
+      for node in nodes:
+        node(*args, **kwargs)
+    else:
+      raise ValueError('Do not implement the update() function.')
 
 class Dynamic(DynamicalSystem, ReceiveInputProj):
   """Base class to model dynamics.

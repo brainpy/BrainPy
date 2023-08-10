@@ -769,8 +769,7 @@ def for_loop(
      Please change your call from ``for_loop(fun, dyn_vars, operands)``
      to ``for_loop(fun, operands, dyn_vars)``.
 
-  Simply speaking, all dynamically changed variables used in the body function should
-  be labeld in ``dyn_vars`` argument. All returns in body function will be gathered
+  All returns in body function will be gathered
   as the return of the whole loop.
 
   >>> import brainpy.math as bm

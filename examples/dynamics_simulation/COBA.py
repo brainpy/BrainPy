@@ -174,11 +174,15 @@ def run3():
 
 
 def run4():
-  bm.set(dt=0.5)
+  bm.set(dt=0.5, x64=True)
   net = EICOBA_PostAlign(3200, 800, ltc=True)
   runner = bp.DSRunner(net, monitors={'E.spike': net.E.spike})
   print(runner.run(100., eval_time=True))
   bp.visualize.raster_plot(runner.mon.ts, runner.mon['E.spike'], show=True)
+
+
+
+
 
 
 if __name__ == '__main__':
