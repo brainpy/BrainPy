@@ -1,4 +1,3 @@
-import brainpy.math as bm
 from absl.testing import parameterized
 from absl.testing import absltest
 import brainpy as bp

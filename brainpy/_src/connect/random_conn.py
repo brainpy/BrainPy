@@ -143,12 +143,17 @@ class FixedTotalNum(TwoEndConnector):
   ----------
   num : float,int
     The conn total number.
+  allow_multi_conn : bool, optional
+    Whether allow one pre-synaptic neuron connects to multiple post-synaptic neurons.
   seed: int, optional
     The random number seed.
   """
 
-  def __init__(self, num, seed=None, **kwargs):
-    super(FixedTotalNum, self).__init__(**kwargs)
+  def __init__(self,
+               num,
+               allow_multi_conn=False,
+               seed=None, **kwargs):
+    super().__init__(**kwargs)
     if isinstance(num, int):
       assert num >= 0, '"num" must be a non-negative integer.'
     elif isinstance(num, float):
@@ -157,14 +162,21 @@ class FixedTotalNum(TwoEndConnector):
       raise ConnectorError(f'Unknown type: {type(num)}')
     self.num = num
     self.seed = format_seed(seed)
+    self.allow_multi_conn = allow_multi_conn
     self.rng = bm.random.RandomState(self.seed)
 
   def build_coo(self):
-    if self.num > self.pre_num * self.post_num:
+    mat_element_num = self.pre_num * self.post_num
+    if self.num > mat_element_num:
       raise ConnectorError(f'"num" must be smaller than "all2all num", '
-                           f'but got {self.num} > {self.pre_num * self.post_num}')
-    selected_pre_ids = self.rng.randint(0, self.pre_num, (self.num,))
-    selected_post_ids = self.rng.randint(0, self.post_num, (self.num,))
+                           f'but got {self.num} > {mat_element_num}')
+    if self.allow_multi_conn:
+      selected_pre_ids = self.rng.randint(0, self.pre_num, (self.num,))
+      selected_post_ids = self.rng.randint(0, self.post_num, (self.num,))
+    else:
+      index = self.rng.choice(mat_element_num, size=(self.num,), replace=False)
+      selected_pre_ids = index // self.post_num
+      selected_post_ids = index % self.post_num
     return selected_pre_ids.astype(IDX_DTYPE), selected_post_ids.astype(IDX_DTYPE)
 
   def __repr__(self):

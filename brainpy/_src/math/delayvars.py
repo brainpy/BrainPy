@@ -43,7 +43,7 @@ _INTERP_ROUND = 'round'
 
 
 class TimeDelay(AbstractDelay):
-  """Delay variable which has a fixed delay time length.
+  r"""Delay variable which has a fixed delay time length.
 
   For example, we create a delay variable which has a maximum delay length of 1 ms
 
@@ -93,7 +93,7 @@ class TimeDelay(AbstractDelay):
     The delay data before ::math`t_0`.
     - when `before_t0` is a function, it should receive a time argument `t`
     - when `before_to` is a tensor, it should be a tensor with shape
-      of :math:`(num\_delay, ...)`, where the longest delay data is aranged in
+      of :math:`(num_delay, ...)`, where the longest delay data is aranged in
       the first index.
   name: str
     The delay instance name.

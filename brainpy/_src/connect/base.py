@@ -29,6 +29,7 @@ __all__ = [
   'mat2coo', 'mat2csc', 'mat2csr',
   'csr2csc', 'csr2mat', 'csr2coo',
   'coo2csr', 'coo2csc', 'coo2mat',
+  'coo2mat_num', 'mat2mat_num',
 
   # visualize
   'visualizeMat',
@@ -426,7 +427,8 @@ class TwoEndConnector(Connector):
         elif POST_IDS in structures and _has_coo_imp:
           return bm.as_jax(self.build_coo()[1], dtype=IDX_DTYPE)
         elif COO in structures and _has_coo_imp:
-          return bm.as_jax(self.build_coo(), dtype=IDX_DTYPE)
+          r = self.build_coo()
+          return bm.as_jax(r[0], dtype=IDX_DTYPE), bm.as_jax(r[1], dtype=IDX_DTYPE)
 
       elif len(structures) == 2:
         if (PRE_IDS in structures and POST_IDS in structures and _has_coo_imp):
@@ -725,8 +727,67 @@ def coo2csc(coo, post_num, data=None):
     data_new = data[sort_ids]
     return pre_ids_new, indptr_new, data_new
 
+def coo2mat_num(ij, num_pre, num_post, num, seed=0):
+  """
+  convert (indices, indptr) to a dense connection number matrix.\n
+  Specific for FixedTotalNum.
+  """
+  rng = bm.random.RandomState(seed)
+  mat = coo2mat(ij, num_pre, num_post)
+
+  # get nonzero indices and number
+  nonzero_idx = jnp.nonzero(mat)
+  nonzero_num = jnp.count_nonzero(mat)
+
+  # get multi connection number
+  multi_conn_num = num - nonzero_num
+
+  # alter the element type to int
+  mat = mat.astype(jnp.int32)
+
+  # 随机在mat中选取nonzero_idx的元素，将其值加1
+  index = rng.choice(nonzero_num, size=(multi_conn_num,), replace=False)
+  for i in index:
+    mat = mat.at[nonzero_idx[0][i], nonzero_idx[1][i]].set(mat[nonzero_idx[0][i], nonzero_idx[1][i]] + 1)
+
+  return mat
+
+def mat2mat_num(mat, num, seed=0):
+  """
+  Convert boolean matrix to a dense connection number matrix.\n
+  Specific for FixedTotalNum.
+  """
+  rng = bm.random.RandomState(seed)
+
+  # get nonzero indices and number
+  nonzero_idx = jnp.nonzero(mat)
+  nonzero_num = jnp.count_nonzero(mat)
+
+  # get multi connection number
+  multi_conn_num = num - nonzero_num
+
+  # alter the element type to int
+  mat = mat.astype(jnp.int32)
+
+  # 随机在mat中选取nonzero_idx的元素，将其值加1
+  index = rng.choice(nonzero_num, size=(multi_conn_num,), replace=False)
+  for i in index:
+      mat = mat.at[nonzero_idx[0][i], nonzero_idx[1][i]].set(mat[nonzero_idx[0][i], nonzero_idx[1][i]] + 1)
+
+  return mat
+
 
 def visualizeMat(mat, description='Untitled'):
+  """
+  Visualize the matrix. (Need seaborn and matplotlib)
+
+  parameters
+  ----------
+  mat : jnp.ndarray
+      The matrix to be visualized.
+  description : str
+      The title of the figure.
+  """
   try:
     import seaborn as sns
     import matplotlib.pyplot as plt

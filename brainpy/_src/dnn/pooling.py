@@ -64,8 +64,6 @@ class Pool(Layer):
   ):
     super(Pool, self).__init__(mode=mode, name=name)
 
-    check.is_subclass(self.mode, [bm.NonBatchingMode, bm.TrainingMode])
-
     self.init_value = init_value
     self.computation = computation
     self.kernel_size = kernel_size
@@ -771,7 +769,6 @@ class AdaptivePool(Layer):
 
     # channel axis
     channel_axis = self.channel_axis
-
 
     if channel_axis:
       if not 0 <= abs(channel_axis) < x.ndim:
