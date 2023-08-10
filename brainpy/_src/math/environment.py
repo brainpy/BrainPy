@@ -6,6 +6,7 @@ import inspect
 import os
 import re
 import sys
+import warnings
 from typing import Any, Callable, TypeVar, cast
 
 from jax import config, numpy as jnp, devices
@@ -14,7 +15,6 @@ from jax.lib import xla_bridge
 from . import modes
 
 bm = None
-
 
 __all__ = [
   # context manage for environment setting
@@ -36,7 +36,6 @@ __all__ = [
   # default computation modes
   'set_mode', 'get_mode',
 
-
   # set jax environments
   'enable_x64', 'disable_x64',
   'set_platform', 'get_platform',
@@ -52,7 +51,6 @@ __all__ = [
   'dftype',
 
 ]
-
 
 # See https://mypy.readthedocs.io/en/latest/generics.html#declaring-decorators
 FuncType = Callable[..., Any]
@@ -553,11 +551,23 @@ def get_mode() -> modes.Mode:
   return bm.mode
 
 
-def enable_x64():
-  config.update("jax_enable_x64", True)
-  set_int(jnp.int64)
-  set_float(jnp.float64)
-  set_complex(jnp.complex128)
+def enable_x64(x64=None):
+  if x64 is None:
+    x64 = True
+  else:
+    warnings.warn(
+      '\n'
+      'Instead of "brainpy.math.enable_x64(True)", use "brainpy.math.enable_x64()". \n'
+      'Instead of "brainpy.math.enable_x64(False)", use "brainpy.math.disable_x64()". \n',
+      DeprecationWarning
+    )
+  if x64:
+    config.update("jax_enable_x64", True)
+    set_int(jnp.int64)
+    set_float(jnp.float64)
+    set_complex(jnp.complex128)
+  else:
+    disable_x64()
 
 
 def disable_x64():
@@ -649,4 +659,3 @@ def enable_gpu_memory_preallocation():
   """Disable pre-allocating the GPU memory."""
   os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'true'
   os.environ.pop('XLA_PYTHON_CLIENT_ALLOCATOR')
-
