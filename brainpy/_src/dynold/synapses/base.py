@@ -1,3 +1,4 @@
+import warnings
 from typing import Union, Dict, Callable, Optional, Tuple
 
 import jax
@@ -324,5 +325,26 @@ class _TwoEndConnAlignPre(TwoEndConn):
       pre_spike = self.stp(pre_spike)
     current = self.comm(self.syn(pre_spike))
     return self.output(current)
+
+  @property
+  def g_max(self):
+    warnings.warn('"<your_synapse>.g_max" is deprecated. '
+                  'Use "<your_synapse>.comm.weight" instead.',
+                  UserWarning)
+    return self.comm.weight
+
+  @g_max.setter
+  def g_max(self, v):
+    warnings.warn('Updating "<your_synapse>.g_max" is deprecated. '
+                  'Updating "<your_synapse>.comm.weight" instead.',
+                  UserWarning)
+    self.comm.weight = v
+
+  def reset_state(self, *args, **kwargs):
+    self.syn.reset_state(*args, **kwargs)
+    self.comm.reset_state(*args, **kwargs)
+    self.output.reset_state(*args, **kwargs)
+    if self.stp is not None:
+      self.stp.reset_state(*args, **kwargs)
 
 
