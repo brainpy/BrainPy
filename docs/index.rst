@@ -88,7 +88,7 @@ Features
 ----
 
 Installation
-------------
+^^^^^^^^^^^^
 .. tab-set::
 
     .. tab-item:: CPU
@@ -102,6 +102,8 @@ Installation
        .. code-block:: bash
 
           pip install brainpy
+
+For more information about supported accelerators and platforms, and for other installation details, please see installation section.
 
 ----
 
