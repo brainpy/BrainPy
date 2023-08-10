@@ -58,8 +58,8 @@ class _ShareContext:
     """Save shared arguments in the global context."""
     assert len(args) % 2 == 0
     for i in range(0, len(args), 2):
-      identifier = args[i * 2]
-      data = args[i * 2 + 1]
+      identifier = args[i]
+      data = args[i + 1]
       self._arguments[identifier] = data
     for identifier, data in kwargs.items():
       self._arguments[identifier] = data
