@@ -4,23 +4,160 @@ BrainPy documentation
 `BrainPy`_ is a highly flexible and extensible framework targeting on the
 general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
 
-- **JIT compilation** and **automatic differentiation** for class objects.
-- **Numerical methods** for ordinary differential equations (ODEs),
-  stochastic differential equations (SDEs),
-  delay differential equations (DDEs),
-  fractional differential equations (FDEs), etc.
-- **Dynamics building** with the modular and composable programming interface.
-- **Dynamics simulation** for various brain objects with parallel supports.
-- **Dynamics training** with various machine learning algorithms,
-  like FORCE learning, ridge regression, back-propagation, etc.
-- **Dynamics analysis** for low- and high-dimensional systems, including
-  phase plane analysis, bifurcation analysis, linearization analysis,
-  and fixed/slow point finding.
-- And more others ......
-
-
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
+
+Features
+^^^^^^^^^
+
+.. grid::
+
+   .. grid-item::
+      :columns: 12 12 12 6
+
+      .. card:: OO Transformations
+         :class-card: sd-border-0
+         :shadow: none
+         :class-title: sd-fs-5
+
+         .. div:: sd-font-normal
+
+            BrainPy supports object-oriented transformations, including
+            :meth:`JIT <brainpy.math.jit>` compilation, :meth:`Autograd <brainpy.math.grad>`.
+
+   .. grid-item::
+      :columns: 12 12 12 6
+
+      .. card:: Numerical Integrators
+         :class-card: sd-border-0
+         :shadow: none
+         :class-title: sd-fs-5
+
+         .. div:: sd-font-normal
+
+            Numerical methods for ordinary differential equations (ODEs), stochastic differential equations (SDEs), delay differential equations (DDEs), fractional differential equations (FDEs), etc.
+
+   .. grid-item::
+      :columns: 12 12 12 6
+
+      .. card:: Dynamics Building
+         :class-card: sd-border-0
+         :shadow: none
+         :class-title: sd-fs-5
+
+         .. div:: sd-font-normal
+
+            BrainPy provides a modular and composable programming interface for building dynamics.
+
+   .. grid-item::
+      :columns: 12 12 12 6
+
+      .. card:: Dynamics Simulation
+         :class-card: sd-border-0
+         :shadow: none
+         :class-title: sd-fs-5
+
+         .. div:: sd-font-normal
+
+            BrainPy supports dynamics simulation for various brain objects with parallel supports.
+
+   .. grid-item::
+      :columns: 12 12 12 6
+
+      .. card:: Dynamics Training
+         :class-card: sd-border-0
+         :shadow: none
+         :class-title: sd-fs-5
+
+         .. div:: sd-font-normal
+
+            BrainPy supports dynamics training with various machine learning algorithms, like FORCE learning, ridge regression, back-propagation, etc.
+
+   .. grid-item::
+      :columns: 12 12 12 6
+
+      .. card:: Dynamics Analysis
+         :class-card: sd-border-0
+         :shadow: none
+         :class-title: sd-fs-5
+
+         .. div:: sd-font-normal
+
+            BrainPy supports dynamics analysis for low- and high-dimensional systems, including phase plane analysis, bifurcation analysis, linearization analysis, and fixed/slow point finding.
+
+----
+
+Installation
+------------
+.. tab-set::
+
+    .. tab-item:: CPU
+
+       .. code-block:: bash
+
+          pip install brainpy
+
+    .. tab-item:: GPU (CUDA)
+
+       .. code-block:: bash
+
+          pip install brainpy
+
+----
+
+Learn more
+^^^^^^^^^^
+
+.. grid::
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`rocket_launch;2em` Installation
+         :class-card: sd-text-black sd-bg-light
+         :link: quickstart/installation.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`library_books;2em` Core Concepts
+         :class-card: sd-text-black sd-bg-light
+         :link: core_concepts.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`science;2em` Brain Dynamics Tutorials
+         :class-card: sd-text-black sd-bg-light
+         :link: brain_dynamics_tutorials.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`science;2em` Advanced Tutorials
+         :class-card: sd-text-black sd-bg-light
+         :link: advanced_tutorials.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`science;2em` Toolboxes
+         :class-card: sd-text-black sd-bg-light
+         :link: toolboxes.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`science;2em` Frequently Asked Questions
+         :class-card: sd-text-black sd-bg-light
+         :link: FAQ.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`science;2em` API documentation
+         :class-card: sd-text-black sd-bg-light
+         :link: api.html
 
 .. note::
    BrainPy is still an experimental research project.
@@ -28,8 +165,8 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    in mind what BrainPy version you are using.
 
 
-
 .. toctree::
+   :hidden:
    :maxdepth: 1
    :caption: Quickstart
 
@@ -39,93 +176,19 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    quickstart/analysis
 
 
-.. toctree::
-   :maxdepth: 1
-   :caption: BrainPy Core Concepts
-
-   core_concept/brainpy_transform_concept
-   core_concept/brainpy_dynamical_system
-
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
-   :caption: Brain Dynamics Tutorials
+   :caption: Tutorials
 
-   tutorial_math/index
-   tutorial_building/index
-   tutorial_simulation/index
-   tutorial_training/index
-   tutorial_analysis/index
+   core_concepts.rst
+   brain_dynamics_tutorials.rst
+   advanced_tutorials.rst
+   toolboxes.rst
+   FAQ.rst
+   api.rst
 
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Advanced Tutorials
-
-   tutorial_advanced/math.rst
-   tutorial_advanced/interoperation.rst
-   tutorial_advanced/analysis.rst
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Toolboxes
-
-   tutorial_toolbox/ode_numerical_solvers
-   tutorial_toolbox/sde_numerical_solvers
-   tutorial_toolbox/fde_numerical_solvers
-   tutorial_toolbox/dde_numerical_solvers
-   tutorial_toolbox/joint_equations
-   tutorial_toolbox/synaptic_connections
-   tutorial_toolbox/synaptic_weights
-   tutorial_toolbox/optimizers
-   tutorial_toolbox/saving_and_loading
-   tutorial_toolbox/inputs
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Frequently Asked Questions
-
-   tutorial_FAQs/citing_and_publication
-   tutorial_FAQs/uniqueness_of-brainpy-math
-   tutorial_FAQs/brainpy_ecosystem.ipynb
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: API Documentation
-
-   apis/auto/brainpy.rst
-   apis/auto/math.rst
-   apis/auto/dnn.rst
-   apis/auto/dyn.rst
-   apis/auto/integrators.rst
-   apis/auto/analysis.rst
-   apis/auto/connect.rst
-   apis/auto/encoding.rst
-   apis/auto/initialize.rst
-   apis/auto/inputs.rst
-   apis/auto/losses.rst
-   apis/auto/measure.rst
-   apis/auto/optim.rst
-   apis/auto/running.rst
-   apis/auto/mixin.rst
-   apis/auto/changelog.rst
-
-
-The following APIs will no longer be maintained in the future, but you can still use them normally.
-
-.. toctree::
-   :maxdepth: 1
-
-   apis/channels.rst
-   apis/neurons.rst
-   apis/rates.rst
-   apis/synapses.rst
-   apis/synouts.rst
-   apis/synplast.rst
-   apis/layers.rst
 
 
 Indices and tables
