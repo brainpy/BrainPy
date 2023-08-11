@@ -61,6 +61,7 @@ Features
 
             BrainPy supports dynamics simulation for various brain objects with parallel supports.
 
+
    .. grid-item::
       :columns: 12 12 12 6
 
