@@ -71,7 +71,7 @@ extensions = [
   'myst_nb',
   'matplotlib.sphinxext.plot_directive',
   'sphinx_thebe',
-
+  'sphinx_design'
   # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -79,6 +79,8 @@ extensions = [
 # so a file named "default.css" will overwrite the builtin "default.css".
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+source_suffix = ['.rst', '.ipynb', '.md']
+
 
 # source_suffix = '.rst'
 autosummary_generate = True
