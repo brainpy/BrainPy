@@ -80,6 +80,7 @@ general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, Bra
    tutorial_toolbox/synaptic_weights
    tutorial_toolbox/optimizers
    tutorial_toolbox/saving_and_loading
+   tutorial_toolbox/surrogate_gradient
    tutorial_toolbox/inputs
 
 
