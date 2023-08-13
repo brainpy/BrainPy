@@ -10,8 +10,12 @@ scipy>=1.1.0
 # document requirements
 pandoc
 Jinja2
-sphinx>=4
+sphinx>=5
 myst-nb
 sphinx_thebe
-sphinx-autodoc-typehints~=1.18.0
-sphinx-book-theme>=0.3.3
+sphinx-autodoc-typehints
+sphinx-book-theme>=1.0.1
+sphinx-copybutton>=0.5.0
+sphinx-remove-toctrees
+jupyter-sphinx>=0.3.2
+sphinx-design
