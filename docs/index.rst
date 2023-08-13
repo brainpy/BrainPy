@@ -23,7 +23,7 @@ Features
          .. div:: sd-font-normal
 
             BrainPy supports object-oriented transformations, including
-            :meth:`JIT <brainpy.math.jit>` compilation, :meth:`Autograd <brainpy.math.grad>`.
+            JIT compilation, Autograd.
 
    .. grid-item::
       :columns: 12 12 12 6
@@ -35,12 +35,12 @@ Features
 
          .. div:: sd-font-normal
 
-            Numerical methods for ordinary differential equations (ODEs), stochastic differential equations (SDEs), delay differential equations (DDEs), fractional differential equations (FDEs), etc.
+            Numerical methods for ODEs, SDEs, DDEs, FDEs, etc.
 
    .. grid-item::
       :columns: 12 12 12 6
 
-      .. card:: Dynamics Building
+      .. card:: Model Building
          :class-card: sd-border-0
          :shadow: none
          :class-title: sd-fs-5
@@ -52,7 +52,7 @@ Features
    .. grid-item::
       :columns: 12 12 12 6
 
-      .. card:: Dynamics Simulation
+      .. card:: Model Simulation
          :class-card: sd-border-0
          :shadow: none
          :class-title: sd-fs-5
@@ -65,7 +65,7 @@ Features
    .. grid-item::
       :columns: 12 12 12 6
 
-      .. card:: Dynamics Training
+      .. card:: Model Training
          :class-card: sd-border-0
          :shadow: none
          :class-title: sd-fs-5
@@ -77,7 +77,7 @@ Features
    .. grid-item::
       :columns: 12 12 12 6
 
-      .. card:: Dynamics Analysis
+      .. card:: Model Analysis
          :class-card: sd-border-0
          :shadow: none
          :class-title: sd-fs-5
@@ -96,13 +96,13 @@ Installation
 
        .. code-block:: bash
 
-          pip install brainpy
+          pip install brainpy brainpylib
 
     .. tab-item:: GPU (CUDA)
 
        .. code-block:: bash
 
-          pip install brainpy
+          pip install brainpy brainpylib
 
 For more information about supported accelerators and platforms, and for other installation details, please see installation section.
 

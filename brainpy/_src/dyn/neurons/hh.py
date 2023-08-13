@@ -222,91 +222,6 @@ class HHLTC(NeuDyn):
   methods available to analyze the system. Certain properties and general behaviors,
   such as limit cycles, can be proven to exist.
 
-  *1. Center manifold*
-
-  Because there are four state variables, visualizing the path in phase space can
-  be difficult. Usually two variables are chosen, voltage :math:`V_{m}(t)` and the
-  potassium gating variable :math:`n(t)`, allowing one to visualize the limit cycle.
-  However, one must be careful because this is an ad-hoc method of visualizing the
-  4-dimensional system. This does not prove the existence of the limit cycle.
-
-  .. image:: ../../../_static/Hodgkin_Huxley_Limit_Cycle.png
-      :align: center
-
-  A better projection can be constructed from a careful analysis of the Jacobian of
-  the system, evaluated at the equilibrium point. Specifically, the eigenvalues of
-  the Jacobian are indicative of the center manifold's existence. Likewise, the
-  eigenvectors of the Jacobian reveal the center manifold's orientation. The
-  Hodgkin–Huxley model has two negative eigenvalues and two complex eigenvalues
-  with slightly positive real parts. The eigenvectors associated with the two
-  negative eigenvalues will reduce to zero as time :math:`t` increases. The remaining
-  two complex eigenvectors define the center manifold. In other words, the
-  4-dimensional system collapses onto a 2-dimensional plane. Any solution
-  starting off the center manifold will decay towards the *center manifold*.
-  Furthermore, the limit cycle is contained on the center manifold.
-
-  *2. Bifurcations*
-
-  If the injected current :math:`I` were used as a bifurcation parameter, then the
-  Hodgkin–Huxley model undergoes a Hopf bifurcation. As with most neuronal models,
-  increasing the injected current will increase the firing rate of the neuron.
-  One consequence of the Hopf bifurcation is that there is a minimum firing rate.
-  This means that either the neuron is not firing at all (corresponding to zero
-  frequency), or firing at the minimum firing rate. Because of the all-or-none
-  principle, there is no smooth increase in action potential amplitude, but
-  rather there is a sudden "jump" in amplitude. The resulting transition is
-  known as a `canard <http://www.scholarpedia.org/article/Canards>`_.
-
-  .. image:: ../../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
-     :align: center
-
-  The following image shows the bifurcation diagram of the Hodgkin–Huxley model
-  as a function of the external drive :math:`I` [3]_. The green lines show the amplitude
-  of a stable limit cycle and the blue lines indicate unstable limit-cycle behaviour,
-  both born from Hopf bifurcations. The solid red line shows the stable fixed point
-  and the black line shows the unstable fixed point.
-
-  .. image:: ../../../_static/Hodgkin_Huxley_bifurcation.png
-     :align: center
-
-  **Model Examples**
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> group = bp.neurons.HH(2)
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
-    >>> runner.run(200.)
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
-
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> group = bp.neurons.HH(2)
-    >>>
-    >>> I1 = bp.inputs.spike_input(sp_times=[500., 550., 1000, 1030, 1060, 1100, 1200], sp_lens=5, sp_sizes=5., duration=2000, )
-    >>> I2 = bp.inputs.spike_input(sp_times=[600., 900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
-    >>> I1 += bp.math.random.normal(0, 3, size=I1.shape)
-    >>> I2 += bp.math.random.normal(0, 3, size=I2.shape)
-    >>> I = bm.stack((I1, I2), axis=-1)
-    >>>
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', I, 'iter'))
-    >>> runner.run(2000.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon.V[:, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon.V[:, 1] + 130)
-    >>> plt.xlim(10, 2000)
-    >>> plt.xticks([])
-    >>> plt.yticks([])
-    >>> plt.show()
-
   Parameters
   ----------
   size: sequence of int, int
@@ -505,97 +420,6 @@ class HH(HHLTC):
 
     The illustrated example of HH neuron model please see `this notebook <../neurons/HH_model.ipynb>`_.
 
-    The Hodgkin–Huxley model can be thought of as a differential equation system with
-    four state variables, :math:`V_{m}(t),n(t),m(t)`, and :math:`h(t)`, that change
-    with respect to time :math:`t`. The system is difficult to study because it is a
-    nonlinear system and cannot be solved analytically. However, there are many numeric
-    methods available to analyze the system. Certain properties and general behaviors,
-    such as limit cycles, can be proven to exist.
-
-    *1. Center manifold*
-
-    Because there are four state variables, visualizing the path in phase space can
-    be difficult. Usually two variables are chosen, voltage :math:`V_{m}(t)` and the
-    potassium gating variable :math:`n(t)`, allowing one to visualize the limit cycle.
-    However, one must be careful because this is an ad-hoc method of visualizing the
-    4-dimensional system. This does not prove the existence of the limit cycle.
-
-    .. image:: ../../../_static/Hodgkin_Huxley_Limit_Cycle.png
-        :align: center
-
-    A better projection can be constructed from a careful analysis of the Jacobian of
-    the system, evaluated at the equilibrium point. Specifically, the eigenvalues of
-    the Jacobian are indicative of the center manifold's existence. Likewise, the
-    eigenvectors of the Jacobian reveal the center manifold's orientation. The
-    Hodgkin–Huxley model has two negative eigenvalues and two complex eigenvalues
-    with slightly positive real parts. The eigenvectors associated with the two
-    negative eigenvalues will reduce to zero as time :math:`t` increases. The remaining
-    two complex eigenvectors define the center manifold. In other words, the
-    4-dimensional system collapses onto a 2-dimensional plane. Any solution
-    starting off the center manifold will decay towards the *center manifold*.
-    Furthermore, the limit cycle is contained on the center manifold.
-
-    *2. Bifurcations*
-
-    If the injected current :math:`I` were used as a bifurcation parameter, then the
-    Hodgkin–Huxley model undergoes a Hopf bifurcation. As with most neuronal models,
-    increasing the injected current will increase the firing rate of the neuron.
-    One consequence of the Hopf bifurcation is that there is a minimum firing rate.
-    This means that either the neuron is not firing at all (corresponding to zero
-    frequency), or firing at the minimum firing rate. Because of the all-or-none
-    principle, there is no smooth increase in action potential amplitude, but
-    rather there is a sudden "jump" in amplitude. The resulting transition is
-    known as a `canard <http://www.scholarpedia.org/article/Canards>`_.
-
-    .. image:: ../../../_static/Hodgkins_Huxley_bifurcation_by_I.gif
-       :align: center
-
-    The following image shows the bifurcation diagram of the Hodgkin–Huxley model
-    as a function of the external drive :math:`I` [3]_. The green lines show the amplitude
-    of a stable limit cycle and the blue lines indicate unstable limit-cycle behaviour,
-    both born from Hopf bifurcations. The solid red line shows the stable fixed point
-    and the black line shows the unstable fixed point.
-
-    .. image:: ../../../_static/Hodgkin_Huxley_bifurcation.png
-       :align: center
-
-    **Model Examples**
-
-    .. plot::
-      :include-source: True
-
-      >>> import brainpy as bp
-      >>> group = bp.neurons.HH(2)
-      >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
-      >>> runner.run(200.)
-      >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
-
-    .. plot::
-      :include-source: True
-
-      >>> import brainpy as bp
-      >>> import brainpy.math as bm
-      >>> import matplotlib.pyplot as plt
-      >>>
-      >>> group = bp.neurons.HH(2)
-      >>>
-      >>> I1 = bp.inputs.spike_input(sp_times=[500., 550., 1000, 1030, 1060, 1100, 1200], sp_lens=5, sp_sizes=5., duration=2000, )
-      >>> I2 = bp.inputs.spike_input(sp_times=[600., 900, 950, 1500], sp_lens=5, sp_sizes=5., duration=2000, )
-      >>> I1 += bp.math.random.normal(0, 3, size=I1.shape)
-      >>> I2 += bp.math.random.normal(0, 3, size=I2.shape)
-      >>> I = bm.stack((I1, I2), axis=-1)
-      >>>
-      >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', I, 'iter'))
-      >>> runner.run(2000.)
-      >>>
-      >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
-      >>> fig.add_subplot(gs[0, 0])
-      >>> plt.plot(runner.mon.ts, runner.mon.V[:, 0])
-      >>> plt.plot(runner.mon.ts, runner.mon.V[:, 1] + 130)
-      >>> plt.xlim(10, 2000)
-      >>> plt.xticks([])
-      >>> plt.yticks([])
-      >>> plt.show()
 
     Parameters
     ----------
@@ -686,23 +510,6 @@ class MorrisLecarLTC(NeuDyn):
     Here, :math:`V` is the membrane potential, :math:`W` is the "recovery variable",
     which is almost invariably the normalized :math:`K^+`-ion conductance, and
     :math:`I_{ext}` is the applied current stimulus.
-
-    **Model Examples**
-
-    .. plot::
-      :include-source: True
-
-      >>> import brainpy as bp
-      >>>
-      >>> group = bp.neurons.MorrisLecar(1)
-      >>> runner = bp.DSRunner(group, monitors=['V', 'W'], inputs=('input', 100.))
-      >>> runner.run(1000)
-      >>>
-      >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-      >>> fig.add_subplot(gs[0, 0])
-      >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.W, ylabel='W')
-      >>> fig.add_subplot(gs[1, 0])
-      >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
 
 
     **Model Parameters**
@@ -864,24 +671,6 @@ class MorrisLecar(MorrisLecarLTC):
       Here, :math:`V` is the membrane potential, :math:`W` is the "recovery variable",
       which is almost invariably the normalized :math:`K^+`-ion conductance, and
       :math:`I_{ext}` is the applied current stimulus.
-
-      **Model Examples**
-
-      .. plot::
-        :include-source: True
-
-        >>> import brainpy as bp
-        >>>
-        >>> group = bp.neurons.MorrisLecar(1)
-        >>> runner = bp.DSRunner(group, monitors=['V', 'W'], inputs=('input', 100.))
-        >>> runner.run(1000)
-        >>>
-        >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-        >>> fig.add_subplot(gs[0, 0])
-        >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.W, ylabel='W')
-        >>> fig.add_subplot(gs[1, 0])
-        >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
-
 
       **Model Parameters**
 

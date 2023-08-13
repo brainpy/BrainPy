@@ -274,14 +274,11 @@ class ExpIF(lif.ExpIFRef):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> group = bp.neurons.ExpIF(1)
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
-    >>> runner.run(300., )
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
+  >>> import brainpy as bp
+  >>> group = bp.neurons.ExpIF(1)
+  >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
+  >>> runner.run(300., )
+  >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V', show=True)
 
 
   **Model Parameters**
@@ -497,16 +494,13 @@ class QuaIF(lif.QuaIFRef):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>>
-    >>> group = bp.neurons.QuaIF(1,)
-    >>>
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 20.))
-    >>> runner.run(duration=200.)
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
+  >>> import brainpy as bp
+  >>>
+  >>> group = bp.neurons.QuaIF(1,)
+  >>>
+  >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 20.))
+  >>> runner.run(duration=200.)
+  >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
 
 
   **Model Parameters**
@@ -602,18 +596,15 @@ class AdQuaIF(lif.AdQuaIFRef):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> group = bp.neurons.AdQuaIF(1, )
-    >>> runner = bp.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
-    >>> runner.run(300)
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V')
-    >>> fig.add_subplot(gs[1, 0])
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, ylabel='w', show=True)
+  >>> import brainpy as bp
+  >>> group = bp.neurons.AdQuaIF(1, )
+  >>> runner = bp.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
+  >>> runner.run(300)
+  >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+  >>> fig.add_subplot(gs[0, 0])
+  >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, ylabel='V')
+  >>> fig.add_subplot(gs[1, 0])
+  >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, ylabel='w', show=True)
 
   **Model Parameters**
 
@@ -940,32 +931,29 @@ class HindmarshRose(NeuDyn):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy.math as bm
-    >>> import brainpy as bp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> bp.math.set_dt(dt=0.01)
-    >>> bp.ode.set_default_odeint('rk4')
-    >>>
-    >>> types = ['quiescence', 'spiking', 'bursting', 'irregular_spiking', 'irregular_bursting']
-    >>> bs = bm.array([1.0, 3.5, 2.5, 2.95, 2.8])
-    >>> Is = bm.array([2.0, 5.0, 3.0, 3.3, 3.7])
-    >>>
-    >>> # define neuron type
-    >>> group = bp.neurons.HindmarshRose(len(types), b=bs)
-    >>> runner = bp.DSRunner(group, monitors=['V'], inputs=['input', Is],)
-    >>> runner.run(1e3)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(row_num=3, col_num=2, row_len=3, col_len=5)
-    >>> for i, mode in enumerate(types):
-    >>>     fig.add_subplot(gs[i // 2, i % 2])
-    >>>     plt.plot(runner.mon.ts, runner.mon.V[:, i])
-    >>>     plt.title(mode)
-    >>>     plt.xlabel('Time [ms]')
-    >>> plt.show()
+  >>> import brainpy.math as bm
+  >>> import brainpy as bp
+  >>> import matplotlib.pyplot as plt
+  >>>
+  >>> bp.math.set_dt(dt=0.01)
+  >>> bp.ode.set_default_odeint('rk4')
+  >>>
+  >>> types = ['quiescence', 'spiking', 'bursting', 'irregular_spiking', 'irregular_bursting']
+  >>> bs = bm.array([1.0, 3.5, 2.5, 2.95, 2.8])
+  >>> Is = bm.array([2.0, 5.0, 3.0, 3.3, 3.7])
+  >>>
+  >>> # define neuron type
+  >>> group = bp.neurons.HindmarshRose(len(types), b=bs)
+  >>> runner = bp.DSRunner(group, monitors=['V'], inputs=['input', Is],)
+  >>> runner.run(1e3)
+  >>>
+  >>> fig, gs = bp.visualize.get_figure(row_num=3, col_num=2, row_len=3, col_len=5)
+  >>> for i, mode in enumerate(types):
+  >>>     fig.add_subplot(gs[i // 2, i % 2])
+  >>>     plt.plot(runner.mon.ts, runner.mon.V[:, i])
+  >>>     plt.title(mode)
+  >>>     plt.xlabel('Time [ms]')
+  >>> plt.show()
 
   **Model Parameters**
 
@@ -1159,15 +1147,12 @@ class FHN(NeuDyn):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> fhn = bp.neurons.FHN(1)
-    >>> runner = bp.DSRunner(fhn, inputs=('input', 1.), monitors=['V', 'w'])
-    >>> runner.run(100.)
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w')
-    >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
+  >>> import brainpy as bp
+  >>> fhn = bp.neurons.FHN(1)
+  >>> runner = bp.DSRunner(fhn, inputs=('input', 1.), monitors=['V', 'w'])
+  >>> runner.run(100.)
+  >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.w, legend='w')
+  >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
 
   **Model Parameters**
 

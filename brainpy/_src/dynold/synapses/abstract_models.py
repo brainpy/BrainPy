@@ -42,27 +42,24 @@ class Delta(TwoEndConn):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> from brainpy import synapses, neurons
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = neurons.LIF(1)
-    >>> neu2 = neurons.LIF(1)
-    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), g_max=5.)
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.xlim(40, 150)
-    >>> plt.legend()
-    >>> plt.show()
+  >>> import brainpy as bp
+  >>> from brainpy import synapses, neurons
+  >>> import matplotlib.pyplot as plt
+  >>>
+  >>> neu1 = neurons.LIF(1)
+  >>> neu2 = neurons.LIF(1)
+  >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), g_max=5.)
+  >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+  >>>
+  >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.), ('post.input', 10.)], monitors=['pre.V', 'post.V', 'pre.spike'])
+  >>> runner.run(150.)
+  >>>
+  >>> fig, gs = bp.visualize.get_figure(1, 1, 3, 8)
+  >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+  >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+  >>> plt.xlim(40, 150)
+  >>> plt.legend()
+  >>> plt.show()
 
   Parameters
   ----------
@@ -212,32 +209,30 @@ class Exponential(TwoEndConn):
   - `(Brette, et, al., 2007) CUBA <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Brette_2007_CUBA.html>`_
   - `(Tian, et al., 2020) E/I Net for fast response <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Tian_2020_EI_net_for_fast_response.html>`_
 
-  .. plot::
-    :include-source: True
 
-    >>> import brainpy as bp
-    >>> from brainpy import neurons, synapses, synouts
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = neurons.LIF(1)
-    >>> neu2 = neurons.LIF(1)
-    >>> syn1 = synapses.Exponential(neu1, neu2, bp.conn.All2All(),
-    >>>                             g_max=5., output=synouts.CUBA())
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>>
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.legend()
-    >>> plt.show()
+  >>> import brainpy as bp
+  >>> from brainpy import neurons, synapses, synouts
+  >>> import matplotlib.pyplot as plt
+  >>>
+  >>> neu1 = neurons.LIF(1)
+  >>> neu2 = neurons.LIF(1)
+  >>> syn1 = synapses.Exponential(neu1, neu2, bp.conn.All2All(),
+  >>>                             g_max=5., output=synouts.CUBA())
+  >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+  >>>
+  >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g'])
+  >>> runner.run(150.)
+  >>>
+  >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+  >>> fig.add_subplot(gs[0, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+  >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+  >>> plt.legend()
+  >>>
+  >>> fig.add_subplot(gs[1, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+  >>> plt.legend()
+  >>> plt.show()
 
   Parameters
   ----------
@@ -354,97 +349,94 @@ class Exponential(TwoEndConn):
 class DualExponential(_TwoEndConnAlignPre):
   r"""Dual exponential synapse model.
 
-    **Model Descriptions**
+  **Model Descriptions**
 
-    The dual exponential synapse model [1]_, also named as *difference of two exponentials* model,
-    is given by:
+  The dual exponential synapse model [1]_, also named as *difference of two exponentials* model,
+  is given by:
 
-    .. math::
+  .. math::
 
-      g_{\mathrm{syn}}(t)=g_{\mathrm{max}} \frac{\tau_{1} \tau_{2}}{
-          \tau_{1}-\tau_{2}}\left(\exp \left(-\frac{t-t_{0}}{\tau_{1}}\right)
-          -\exp \left(-\frac{t-t_{0}}{\tau_{2}}\right)\right)
+    g_{\mathrm{syn}}(t)=g_{\mathrm{max}} \frac{\tau_{1} \tau_{2}}{
+        \tau_{1}-\tau_{2}}\left(\exp \left(-\frac{t-t_{0}}{\tau_{1}}\right)
+        -\exp \left(-\frac{t-t_{0}}{\tau_{2}}\right)\right)
 
-    where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
-    is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
-    spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
+  where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
+  is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
+  spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
 
-    However, in practice, this formula is hard to implement. The equivalent solution is
-    two coupled linear differential equations [2]_:
+  However, in practice, this formula is hard to implement. The equivalent solution is
+  two coupled linear differential equations [2]_:
 
-    .. math::
+  .. math::
 
-        \begin{aligned}
-        &g_{\mathrm{syn}}(t)=g_{\mathrm{max}} g * \mathrm{STP} \\
-        &\frac{d g}{d t}=-\frac{g}{\tau_{\mathrm{decay}}}+h \\
-        &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
-        \end{aligned}
+      \begin{aligned}
+      &g_{\mathrm{syn}}(t)=g_{\mathrm{max}} g * \mathrm{STP} \\
+      &\frac{d g}{d t}=-\frac{g}{\tau_{\mathrm{decay}}}+h \\
+      &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
+      \end{aligned}
 
-    where :math:`\mathrm{STP}` is used to model the short-term plasticity effect of synapses.
+  where :math:`\mathrm{STP}` is used to model the short-term plasticity effect of synapses.
 
-    **Model Examples**
+  **Model Examples**
 
-    .. plot::
-      :include-source: True
+  >>> import brainpy as bp
+  >>> from brainpy import neurons, synapses, synouts
+  >>> import matplotlib.pyplot as plt
+  >>>
+  >>> neu1 = neurons.LIF(1)
+  >>> neu2 = neurons.LIF(1)
+  >>> syn1 = synapses.DualExponential(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
+  >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+  >>>
+  >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+  >>> runner.run(150.)
+  >>>
+  >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+  >>> fig.add_subplot(gs[0, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+  >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+  >>> plt.legend()
+  >>>
+  >>> fig.add_subplot(gs[1, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
+  >>> plt.legend()
+  >>> plt.show()
 
-      >>> import brainpy as bp
-      >>> from brainpy import neurons, synapses, synouts
-      >>> import matplotlib.pyplot as plt
-      >>>
-      >>> neu1 = neurons.LIF(1)
-      >>> neu2 = neurons.LIF(1)
-      >>> syn1 = synapses.DualExponential(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
-      >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
-      >>>
-      >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
-      >>> runner.run(150.)
-      >>>
-      >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-      >>> fig.add_subplot(gs[0, 0])
-      >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-      >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-      >>> plt.legend()
-      >>>
-      >>> fig.add_subplot(gs[1, 0])
-      >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-      >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
-      >>> plt.legend()
-      >>> plt.show()
+  Parameters
+  ----------
+  pre: NeuDyn
+    The pre-synaptic neuron group.
+  post: NeuDyn
+    The post-synaptic neuron group.
+  conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    The synaptic connections.
+  comp_method: str
+    The connection type used for model speed optimization. It can be
+    `sparse` and `dense`. The default is `sparse`.
+  delay_step: int, ArrayType, Initializer, Callable
+    The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
+  tau_decay: float, ArrayArray, ndarray
+    The time constant of the synaptic decay phase. [ms]
+  tau_rise: float, ArrayArray, ndarray
+    The time constant of the synaptic rise phase. [ms]
+  g_max: float, ArrayType, Initializer, Callable
+    The synaptic strength (the maximum conductance). Default is 1.
+  name: str
+    The name of this synaptic projection.
+  method: str
+    The numerical integration methods.
 
-    Parameters
-    ----------
-    pre: NeuDyn
-      The pre-synaptic neuron group.
-    post: NeuDyn
-      The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
-      The synaptic connections.
-    comp_method: str
-      The connection type used for model speed optimization. It can be
-      `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ArrayType, Initializer, Callable
-      The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    tau_decay: float, ArrayArray, ndarray
-      The time constant of the synaptic decay phase. [ms]
-    tau_rise: float, ArrayArray, ndarray
-      The time constant of the synaptic rise phase. [ms]
-    g_max: float, ArrayType, Initializer, Callable
-      The synaptic strength (the maximum conductance). Default is 1.
-    name: str
-      The name of this synaptic projection.
-    method: str
-      The numerical integration methods.
+  References
+  ----------
 
-    References
-    ----------
+  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
+         "The Synapse." Principles of Computational Modelling in Neuroscience.
+         Cambridge: Cambridge UP, 2011. 172-95. Print.
+  .. [2] Roth, A., & Van Rossum, M. C. W. (2009). Modeling Synapses. Computational
+         Modeling Methods for Neuroscientists.
 
-    .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-           "The Synapse." Principles of Computational Modelling in Neuroscience.
-           Cambridge: Cambridge UP, 2011. 172-95. Print.
-    .. [2] Roth, A., & Van Rossum, M. C. W. (2009). Modeling Synapses. Computational
-           Modeling Methods for Neuroscientists.
-
-    """
+  """
 
   def __init__(
       self,
@@ -530,31 +522,28 @@ class Alpha(DualExponential):
 
   **Model Examples**
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> from brainpy import neurons, synapses, synouts
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = neurons.LIF(1)
-    >>> neu2 = neurons.LIF(1)
-    >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
-    >>> plt.legend()
-    >>> plt.show()
+  >>> import brainpy as bp
+  >>> from brainpy import neurons, synapses, synouts
+  >>> import matplotlib.pyplot as plt
+  >>>
+  >>> neu1 = neurons.LIF(1)
+  >>> neu2 = neurons.LIF(1)
+  >>> syn1 = synapses.Alpha(neu1, neu2, bp.connect.All2All(), output=synouts.CUBA())
+  >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+  >>>
+  >>> runner = bp.DSRunner(net, inputs=[('pre.input', 25.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.h'])
+  >>> runner.run(150.)
+  >>>
+  >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+  >>> fig.add_subplot(gs[0, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+  >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+  >>> plt.legend()
+  >>> fig.add_subplot(gs[1, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.h'], label='h')
+  >>> plt.legend()
+  >>> plt.show()
 
   Parameters
   ----------
@@ -678,32 +667,29 @@ class NMDA(_TwoEndConnAlignPre):
   - `(Wang, 2002) Decision making spiking model <https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2002_decision_making_spiking.html>`_
 
 
-  .. plot::
-    :include-source: True
-
-    >>> import brainpy as bp
-    >>> from brainpy import synapses, neurons
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> neu1 = neurons.HH(1)
-    >>> neu2 = neurons.HH(1)
-    >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All())
-    >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
-    >>>
-    >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
-    >>> runner.run(150.)
-    >>>
-    >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
-    >>> fig.add_subplot(gs[0, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
-    >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
-    >>> plt.legend()
-    >>>
-    >>> fig.add_subplot(gs[1, 0])
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
-    >>> plt.plot(runner.mon.ts, runner.mon['syn.x'], label='x')
-    >>> plt.legend()
-    >>> plt.show()
+  >>> import brainpy as bp
+  >>> from brainpy import synapses, neurons
+  >>> import matplotlib.pyplot as plt
+  >>>
+  >>> neu1 = neurons.HH(1)
+  >>> neu2 = neurons.HH(1)
+  >>> syn1 = synapses.NMDA(neu1, neu2, bp.connect.All2All())
+  >>> net = bp.Network(pre=neu1, syn=syn1, post=neu2)
+  >>>
+  >>> runner = bp.DSRunner(net, inputs=[('pre.input', 5.)], monitors=['pre.V', 'post.V', 'syn.g', 'syn.x'])
+  >>> runner.run(150.)
+  >>>
+  >>> fig, gs = bp.visualize.get_figure(2, 1, 3, 8)
+  >>> fig.add_subplot(gs[0, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['pre.V'], label='pre-V')
+  >>> plt.plot(runner.mon.ts, runner.mon['post.V'], label='post-V')
+  >>> plt.legend()
+  >>>
+  >>> fig.add_subplot(gs[1, 0])
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.g'], label='g')
+  >>> plt.plot(runner.mon.ts, runner.mon['syn.x'], label='x')
+  >>> plt.legend()
+  >>> plt.show()
 
   Parameters
   ----------
