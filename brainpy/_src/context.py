@@ -38,7 +38,7 @@ class _ShareContext:
     self._arguments['dt'] = dt
 
   def load(self, key, value: Any = None):
-    """Get the shared data by the ``key``.
+    """Load the shared data by the ``key``.
 
     Args:
       key (str): the key to indicate the data.

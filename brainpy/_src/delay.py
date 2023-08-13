@@ -16,7 +16,7 @@ from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.initialize import variable_
 from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
-from brainpy._src.mixin import ParamDesc
+from brainpy._src.mixin import ParamDesc, ReturnInfo
 from brainpy.check import jit_error
 
 
@@ -26,6 +26,9 @@ __all__ = [
   'DataDelay',
   'DelayAccess',
 ]
+
+
+delay_identifier = '_*_delay_*_'
 
 
 class Delay(DynamicalSystem, ParamDesc):
@@ -474,3 +477,40 @@ class DelayAccess(DynamicalSystem):
     return self.delay.at(self.name, *self.indices)
 
 
+def init_delay_by_return(info: Union[bm.Variable, ReturnInfo]) -> Delay:
+  if isinstance(info, bm.Variable):
+    return VarDelay(info)
+
+  elif isinstance(info, ReturnInfo):
+    # batch size
+    if isinstance(info.batch_or_mode, int):
+      shape = (info.batch_or_mode,) + tuple(info.size)
+      batch_axis = 0
+    elif isinstance(info.batch_or_mode, bm.NonBatchingMode):
+      shape = tuple(info.size)
+      batch_axis = None
+    elif isinstance(info.batch_or_mode, bm.BatchingMode):
+      shape = (info.batch_or_mode.batch_size,) + tuple(info.size)
+      batch_axis = 0
+    else:
+      shape = tuple(info.size)
+      batch_axis = None
+
+    # init
+    if isinstance(info.data, Callable):
+      init = info.data(shape)
+    elif isinstance(info.data, (bm.Array, jax.Array)):
+      init = info.data
+    else:
+      raise TypeError
+    assert init.shape == shape
+
+    # axis names
+    if info.axis_names is not None:
+      assert init.ndim == len(info.axis_names)
+
+    # variable
+    target = bm.Variable(init, batch_axis=batch_axis, axis_names=info.axis_names)
+    return DataDelay(target, data_init=info.data)
+  else:
+    raise TypeError

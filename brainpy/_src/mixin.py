@@ -1,5 +1,6 @@
 import numbers
 import sys
+import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, TypeVar, Any
 from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
@@ -19,6 +20,8 @@ else:
   from typing import (_GenericAlias, _tp_cache)
 
 DynamicalSystem = None
+delay_identifier, init_delay_by_return = None, None
+
 
 __all__ = [
   'MixIn',
@@ -323,6 +326,40 @@ class TreeNode(MixIn):
 class DelayRegister(MixIn):
   local_delay_vars: bm.node_dict
 
+  def register_delay_at(
+      self,
+      name: str,
+      delay: Union[numbers.Number, ArrayType] = None,
+  ):
+    """Register relay at the given delay time.
+
+    Args:
+      name: str. The identifier of the delay.
+      delay: The delay time.
+    """
+    global delay_identifier, init_delay_by_return, DynamicalSystem
+    if init_delay_by_return is None: from brainpy._src.delay import init_delay_by_return
+    if delay_identifier is None: from brainpy._src.delay import delay_identifier
+    if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
+
+    assert isinstance(self, AutoDelaySupp), f'self must be an instance of {AutoDelaySupp.__name__}'
+    assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
+    if not self.has_aft_update(delay_identifier):
+      self.add_aft_update(delay_identifier, init_delay_by_return(self.return_info()))
+    delay_cls = self.get_aft_update(delay_identifier)
+    delay_cls.register_entry(name, delay)
+
+  def get_delay_at(self, name):
+    """Get the delay at the given identifier (`name`).
+
+    Args:
+      name: The identifier of the delay.
+
+    Returns:
+      The delay data.
+    """
+    return self.get_aft_update(delay_identifier).at(name)
+
   def register_delay(
       self,
       identifier: str,
@@ -332,22 +369,22 @@ class DelayRegister(MixIn):
   ):
     """Register delay variable.
 
-    Parameters
-    ----------
-    identifier: str
-      The delay variable name.
-    delay_step: Optional, int, ArrayType, callable, Initializer
-      The number of the steps of the delay.
-    delay_target: Variable
-      The target variable for delay.
-    initial_delay_data: float, int, ArrayType, callable, Initializer
-      The initializer for the delay data.
+    Args:
+      identifier: str. The delay access name.
+      delay_target: The target variable for delay.
+      delay_step: The delay time step.
+      initial_delay_data: The initializer for the delay data.
 
-    Returns
-    -------
-    delay_step: int, ArrayType
-      The number of the delay steps.
+    Returns:
+      delay_step: The number of the delay steps.
     """
+    warnings.warn('\n'
+                  'Starting from brainpy>=2.4.4, instead of ".register_delay()", '
+                  'we recommend the user to first use ".register_delay_at()", '
+                  'then use ".get_delay_at()" to access the delayed data. '
+                  '".register_delay()" will be removed after 2.5.0.',
+                  UserWarning)
+
     # delay steps
     if delay_step is None:
       delay_type = 'none'
@@ -422,6 +459,13 @@ class DelayRegister(MixIn):
     delay_data: ArrayType
       The delay data at the given time.
     """
+    warnings.warn('\n'
+                  'Starting from brainpy>=2.4.4, instead of ".get_delay_data()", '
+                  'we recommend the user to first use ".register_delay_at()", '
+                  'then use ".get_delay_at()" to access the delayed data.'
+                  '".get_delay_data()" will be removed after 2.5.0.',
+                  UserWarning)
+
     if delay_step is None:
       return global_delay_data[identifier][1].value
 
@@ -630,7 +674,7 @@ else:
     'JointType',
     doc="""Joint type; JointType[X, Y] means both X and Y.
   
-    To define a union, use e.g. JointType[int, str].  
+    To define a joint, use e.g. JointType[int, str].  
     
     Details:
     

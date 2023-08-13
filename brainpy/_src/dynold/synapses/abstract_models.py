@@ -6,14 +6,11 @@ import jax
 
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
-from brainpy._src.context import share
+from brainpy._src.dnn import linear
 from brainpy._src.dyn import synapses
 from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dnn import linear
 from brainpy._src.dynold.synouts import MgBlock, CUBA
-from brainpy._src.initialize import Initializer, variable_
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy._src.dyn.projections.aligns import _pre_delay_repr, _init_delay
+from brainpy._src.initialize import Initializer
 from brainpy.types import ArrayType
 from .base import TwoEndConn, _SynSTP, _SynOut, _TwoEndConnAlignPre
 

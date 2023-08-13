@@ -3,7 +3,7 @@ from typing import Optional, Callable, Union
 import jax
 
 from brainpy import math as bm, check
-from brainpy._src.delay import Delay, VarDelay, DataDelay, DelayAccess
+from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
                                 AutoDelaySupp, BindCondData, AlignPost)
@@ -15,8 +15,6 @@ __all__ = [
   'ProjAlignPreMg1', 'ProjAlignPreMg2',
   'ProjAlignPre1', 'ProjAlignPre2',
 ]
-
-_pre_delay_repr = '_*_align_pre_spk_delay_*_'
 
 
 class _AlignPre(DynamicalSystem):
@@ -52,37 +50,6 @@ class _AlignPreMg(DynamicalSystem):
 
   def update(self, *args, **kwargs):
     return self.syn(self.access())
-
-
-def _init_delay(info: Union[bm.Variable, ReturnInfo]) -> Delay:
-  if isinstance(info, bm.Variable):
-    return VarDelay(info)
-  elif isinstance(info, ReturnInfo):
-    if isinstance(info.batch_or_mode, int):
-      shape = (info.batch_or_mode,) + tuple(info.size)
-      batch_axis = 0
-    elif isinstance(info.batch_or_mode, bm.NonBatchingMode):
-      shape = tuple(info.size)
-      batch_axis = None
-    elif isinstance(info.batch_or_mode, bm.BatchingMode):
-      shape = (info.batch_or_mode.batch_size,) + tuple(info.size)
-      batch_axis = 0
-    else:
-      shape = tuple(info.size)
-      batch_axis = None
-    if isinstance(info.data, Callable):
-      init = info.data(shape)
-    elif isinstance(info.data, (bm.Array, jax.Array)):
-      init = info.data
-    else:
-      raise TypeError
-    assert init.shape == shape
-    if info.axis_names is not None:
-      assert init.ndim == len(info.axis_names)
-    target = bm.Variable(init, batch_axis=batch_axis, axis_names=info.axis_names)
-    return DataDelay(target, data_init=info.data)
-  else:
-    raise TypeError
 
 
 def _get_return(return_info):
@@ -344,12 +311,12 @@ class ProjAlignPostMg2(Projection):
     self.comm = comm
 
     # delay initialization
-    if not pre.has_aft_update(_pre_delay_repr):
+    if not pre.has_aft_update(delay_identifier):
       # pre should support "ProjAutoDelay"
-      delay_cls = _init_delay(pre.return_info())
+      delay_cls = init_delay_by_return(pre.return_info())
       # add to "after_updates"
-      pre.add_aft_update(_pre_delay_repr, delay_cls)
-    delay_cls: Delay = pre.get_aft_update(_pre_delay_repr)
+      pre.add_aft_update(delay_identifier, delay_cls)
+    delay_cls: Delay = pre.get_aft_update(delay_identifier)
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
@@ -366,7 +333,7 @@ class ProjAlignPostMg2(Projection):
     self.refs['out'] = post.get_bef_update(self._post_repr).out  # invisible to ``self.node()``
 
   def update(self):
-    x = self.refs['pre'].get_aft_update(_pre_delay_repr).at(self.name)
+    x = self.refs['pre'].get_aft_update(delay_identifier).at(self.name)
     current = self.comm(x)
     self.refs['syn'].add_current(current)  # synapse post current
     return current
@@ -538,12 +505,12 @@ class ProjAlignPost2(Projection):
     self.syn = syn
 
     # delay initialization
-    if not pre.has_aft_update(_pre_delay_repr):
+    if not pre.has_aft_update(delay_identifier):
       # pre should support "ProjAutoDelay"
-      delay_cls = _init_delay(pre.return_info())
+      delay_cls = init_delay_by_return(pre.return_info())
       # add to "after_updates"
-      pre.add_aft_update(_pre_delay_repr, delay_cls)
-    delay_cls: Delay = pre.get_aft_update(_pre_delay_repr)
+      pre.add_aft_update(delay_identifier, delay_cls)
+    delay_cls: Delay = pre.get_aft_update(delay_identifier)
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
@@ -554,7 +521,7 @@ class ProjAlignPost2(Projection):
     self.refs['out'] = out
 
   def update(self):
-    x = self.refs['pre'].get_aft_update(_pre_delay_repr).at(self.name)
+    x = self.refs['pre'].get_aft_update(delay_identifier).at(self.name)
     g = self.syn(self.comm(x))
     self.refs['out'].bind_cond(g)  # synapse post current
     return g
@@ -652,7 +619,7 @@ class ProjAlignPreMg1(Projection):
     if not pre.has_aft_update(self._syn_id):
       # "syn_cls" needs an instance of "ProjAutoDelay"
       syn_cls: AutoDelaySupp = syn()
-      delay_cls = _init_delay(syn_cls.return_info())
+      delay_cls = init_delay_by_return(syn_cls.return_info())
       # add to "after_updates"
       pre.add_aft_update(self._syn_id, _AlignPre(syn_cls, delay_cls))
     delay_cls: Delay = pre.get_aft_update(self._syn_id).delay
@@ -761,10 +728,10 @@ class ProjAlignPreMg2(Projection):
     self.comm = comm
 
     # delay initialization
-    if not pre.has_aft_update(_pre_delay_repr):
-      delay_ins = _init_delay(pre.return_info())
-      pre.add_aft_update(_pre_delay_repr, delay_ins)
-    delay_cls = pre.get_aft_update(_pre_delay_repr)
+    if not pre.has_aft_update(delay_identifier):
+      delay_ins = init_delay_by_return(pre.return_info())
+      pre.add_aft_update(delay_identifier, delay_ins)
+    delay_cls = pre.get_aft_update(delay_identifier)
 
     # synapse initialization
     self._syn_id = f'Delay({str(delay)}) // {syn.identifier}'
@@ -879,7 +846,7 @@ class ProjAlignPre1(Projection):
     self.comm = comm
 
     # synapse and delay initialization
-    delay_cls = _init_delay(syn.return_info())
+    delay_cls = init_delay_by_return(syn.return_info())
     delay_cls.register_entry(self.name, delay)
     pre.add_aft_update(self.name, _AlignPre(syn, delay_cls))
 
@@ -988,10 +955,10 @@ class ProjAlignPre2(Projection):
     self.syn = syn
 
     # delay initialization
-    if not pre.has_aft_update(_pre_delay_repr):
-      delay_ins = _init_delay(pre.return_info())
-      pre.add_aft_update(_pre_delay_repr, delay_ins)
-    delay_cls = pre.get_aft_update(_pre_delay_repr)
+    if not pre.has_aft_update(delay_identifier):
+      delay_ins = init_delay_by_return(pre.return_info())
+      pre.add_aft_update(delay_identifier, delay_ins)
+    delay_cls = pre.get_aft_update(delay_identifier)
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
@@ -999,7 +966,7 @@ class ProjAlignPre2(Projection):
 
     # references
     self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
-    self.refs['delay'] = pre.get_aft_update(_pre_delay_repr)
+    self.refs['delay'] = pre.get_aft_update(delay_identifier)
 
   def update(self):
     spk = self.refs['delay'].at(self.name)
