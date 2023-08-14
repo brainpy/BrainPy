@@ -178,6 +178,7 @@ class ProjAlignPostMg1(Projection):
     syn: The synaptic dynamics.
     out: The synaptic output.
     post: The post-synaptic neuron group.
+    out_prefix: str. The prefix of the output function.
     name: str. The projection name.
     mode:  Mode. The computing mode.
   """
@@ -188,6 +189,7 @@ class ProjAlignPostMg1(Projection):
       syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
       out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -201,11 +203,15 @@ class ProjAlignPostMg1(Projection):
     self.comm = comm
 
     # synapse and output initialization
-    self._post_repr = f'{syn.identifier} // {out.identifier}'
+    self._post_repr = f'{out_prefix} // {syn.identifier} // {out.identifier}'
     if not post.has_bef_update(self._post_repr):
       syn_cls = syn()
       out_cls = out()
-      post.add_inp_fun(self.name, out_cls)
+      if out_prefix is None:
+        out_name = self.name
+      else:
+        out_name = f'{out_prefix}-{self.name}'
+      post.add_inp_fun(out_name, out_cls)
       post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
 
     # references
@@ -297,6 +303,7 @@ class ProjAlignPostMg2(Projection):
       syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
       out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -320,15 +327,19 @@ class ProjAlignPostMg2(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
-    self._post_repr = f'{syn.identifier} // {out.identifier}'
+    self._post_repr = f'{out_prefix} // {syn.identifier} // {out.identifier}'
     if not post.has_bef_update(self._post_repr):
       syn_cls = syn()
       out_cls = out()
-      post.add_inp_fun(self.name, out_cls)
+      if out_prefix is None:
+        out_name = self.name
+      else:
+        out_name = f'{out_prefix}-{self.name}'
+      post.add_inp_fun(out_name, out_cls)
       post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
 
     # references
-    self.refs = dict(pre=pre, post=post)   # invisible to ``self.nodes()``
+    self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
     self.refs['syn'] = post.get_bef_update(self._post_repr).syn  # invisible to ``self.node()``
     self.refs['out'] = post.get_bef_update(self._post_repr).out  # invisible to ``self.node()``
 
@@ -389,6 +400,7 @@ class ProjAlignPost1(Projection):
       syn: JointType[DynamicalSystem, AlignPost],
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -402,7 +414,11 @@ class ProjAlignPost1(Projection):
     self.comm = comm
 
     # synapse and output initialization
-    post.add_inp_fun(self.name, out)
+    if out_prefix is None:
+      out_name = self.name
+    else:
+      out_name = f'{out_prefix}-{self.name}'
+    post.add_inp_fun(out_name, out)
     post.add_bef_update(self.name, _AlignPost(syn, out))
 
     # reference
@@ -490,6 +506,7 @@ class ProjAlignPost2(Projection):
       syn: JointType[DynamicalSystem, AlignPost],
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -514,7 +531,11 @@ class ProjAlignPost2(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
-    post.add_inp_fun(self.name, out)
+    if out_prefix is None:
+      out_name = self.name
+    else:
+      out_name = f'{out_prefix}-{self.name}'
+    post.add_inp_fun(out_name, out)
 
     # references
     self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
@@ -601,6 +622,7 @@ class ProjAlignPreMg1(Projection):
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -626,7 +648,11 @@ class ProjAlignPreMg1(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
-    post.add_inp_fun(self.name, out)
+    if out_prefix is None:
+      out_name = self.name
+    else:
+      out_name = f'{out_prefix}-{self.name}'
+    post.add_inp_fun(out_name, out)
 
     # references
     self.refs = dict(pre=pre, post=post, out=out, delay=delay_cls)  # invisible to ``self.nodes()``
@@ -714,6 +740,7 @@ class ProjAlignPreMg2(Projection):
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -744,7 +771,11 @@ class ProjAlignPreMg2(Projection):
       delay_cls.add_bef_update(self._syn_id, _AlignPreMg(delay_access, syn_cls))
 
     # output initialization
-    post.add_inp_fun(self.name, out)
+    if out_prefix is None:
+      out_name = self.name
+    else:
+      out_name = f'{out_prefix}-{self.name}'
+    post.add_inp_fun(out_name, out)
 
     # references
     self.refs = dict(pre=pre, post=post)  # invisible to `self.nodes()`
@@ -832,6 +863,7 @@ class ProjAlignPre1(Projection):
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -851,7 +883,11 @@ class ProjAlignPre1(Projection):
     pre.add_aft_update(self.name, _AlignPre(syn, delay_cls))
 
     # output initialization
-    post.add_inp_fun(self.name, out)
+    if out_prefix is None:
+      out_name = self.name
+    else:
+      out_name = f'{out_prefix}-{self.name}'
+    post.add_inp_fun(out_name, out)
 
     # references
     self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
@@ -940,6 +976,7 @@ class ProjAlignPre2(Projection):
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
+      out_prefix: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
   ):
@@ -962,7 +999,11 @@ class ProjAlignPre2(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
-    post.add_inp_fun(self.name, out)
+    if out_prefix is None:
+      out_name = self.name
+    else:
+      out_name = f'{out_prefix}-{self.name}'
+    post.add_inp_fun(out_name, out)
 
     # references
     self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
@@ -973,4 +1014,3 @@ class ProjAlignPre2(Projection):
     g = self.comm(self.syn(spk))
     self.refs['out'].bind_cond(g)
     return g
-
