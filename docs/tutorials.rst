@@ -1,5 +1,6 @@
-Brain Dynamics Tutorials
-========================
+BDP Tutorials
+=============
+
 This section contains tutorials on how to use BrainPy to accomplish model building, simulation, training, and analysis.
 
 .. toctree::

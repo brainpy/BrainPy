@@ -35,7 +35,7 @@ Features
 
          .. div:: sd-font-normal
 
-            Numerical methods for ODEs, SDEs, DDEs, FDEs, etc.
+            BrainPy provides various numerical integration methods for ODEs, SDEs, DDEs, FDEs, etc.
 
    .. grid-item::
       :columns: 12 12 12 6
@@ -84,7 +84,7 @@ Features
 
          .. div:: sd-font-normal
 
-            BrainPy supports dynamics analysis for low- and high-dimensional systems, including phase plane analysis, bifurcation analysis, linearization analysis, and fixed/slow point finding.
+            BrainPy supports dynamics analysis for low- and high-dimensional systems, including phase plane, bifurcation, linearization, and fixed/slow point analysis.
 
 ----
 
@@ -130,7 +130,7 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` Brain Dynamics Tutorials
+      .. card:: :material-regular:`science;2em` BDP Tutorials
          :class-card: sd-text-black sd-bg-light
          :link: brain_dynamics_tutorials.html
 
@@ -144,14 +144,14 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` Toolboxes
+      .. card:: :material-regular:`science;2em` BDP Toolboxes
          :class-card: sd-text-black sd-bg-light
          :link: toolboxes.html
 
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` Frequently Asked Questions
+      .. card:: :material-regular:`science;2em` FAQ
          :class-card: sd-text-black sd-bg-light
          :link: FAQ.html
 
@@ -186,17 +186,9 @@ Learn more
    :caption: Tutorials
 
    core_concepts.rst
-   brain_dynamics_tutorials.rst
+   tutorials.rst
    advanced_tutorials.rst
    toolboxes.rst
    FAQ.rst
    api.rst
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
