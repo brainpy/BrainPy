@@ -78,7 +78,7 @@ class ReceiveInputProj(MixIn):
     """
     return self.cur_inputs.get(key)
 
-  def sum_inputs(self, *args, init=0., **kwargs):
+  def sum_inputs(self, *args, init=0., label=None, **kwargs):
     """Summarize all inputs by the defined input functions ``.cur_inputs``.
 
     Args:
@@ -87,10 +87,15 @@ class ReceiveInputProj(MixIn):
       **kwargs: The arguments for input functions.
 
     Returns:
-
+      The total currents.
     """
-    for out in self.cur_inputs.values():
-      init = init + out(*args, **kwargs)
+    if label is None:
+      for key, out in self.cur_inputs.items():
+        init = init + out(*args, **kwargs)
+    else:
+      for key, out in self.cur_inputs.items():
+        if key.startswith(label + ' // '):
+          init = init + out(*args, **kwargs)
     return init
 
 
@@ -378,12 +383,12 @@ class DelayRegister(MixIn):
     Returns:
       delay_step: The number of the delay steps.
     """
-    warnings.warn('\n'
-                  'Starting from brainpy>=2.4.4, instead of ".register_delay()", '
-                  'we recommend the user to first use ".register_delay_at()", '
-                  'then use ".get_delay_at()" to access the delayed data. '
-                  '".register_delay()" will be removed after 2.5.0.',
-                  UserWarning)
+    # warnings.warn('\n'
+    #               'Starting from brainpy>=2.4.4, instead of ".register_delay()", '
+    #               'we recommend the user to first use ".register_delay_at()", '
+    #               'then use ".get_delay_at()" to access the delayed data. '
+    #               '".register_delay()" will be removed after 2.5.0.',
+    #               UserWarning)
 
     # delay steps
     if delay_step is None:
@@ -459,12 +464,12 @@ class DelayRegister(MixIn):
     delay_data: ArrayType
       The delay data at the given time.
     """
-    warnings.warn('\n'
-                  'Starting from brainpy>=2.4.4, instead of ".get_delay_data()", '
-                  'we recommend the user to first use ".register_delay_at()", '
-                  'then use ".get_delay_at()" to access the delayed data.'
-                  '".get_delay_data()" will be removed after 2.5.0.',
-                  UserWarning)
+    # warnings.warn('\n'
+    #               'Starting from brainpy>=2.4.4, instead of ".get_delay_data()", '
+    #               'we recommend the user to first use ".register_delay_at()", '
+    #               'then use ".get_delay_at()" to access the delayed data.'
+    #               '".get_delay_data()" will be removed after 2.5.0.',
+    #               UserWarning)
 
     if delay_step is None:
       return global_delay_data[identifier][1].value

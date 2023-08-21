@@ -77,7 +77,8 @@ class BatchingMode(Mode):
 
 class TrainingMode(BatchingMode):
   """Training mode requires data batching."""
-  pass
+  def to_batch_mode(self):
+    return BatchingMode(self.batch_size)
 
 
 nonbatching_mode = NonBatchingMode()
