@@ -78,7 +78,7 @@ class ReceiveInputProj(MixIn):
     """
     return self.cur_inputs.get(key)
 
-  def sum_inputs(self, *args, init=0., prefix=None, **kwargs):
+  def sum_inputs(self, *args, init=0., label=None, **kwargs):
     """Summarize all inputs by the defined input functions ``.cur_inputs``.
 
     Args:
@@ -89,12 +89,12 @@ class ReceiveInputProj(MixIn):
     Returns:
       The total currents.
     """
-    if prefix is None:
+    if label is None:
       for key, out in self.cur_inputs.items():
         init = init + out(*args, **kwargs)
     else:
       for key, out in self.cur_inputs.items():
-        if key.startswith(prefix):
+        if key.startswith(label + ' // '):
           init = init + out(*args, **kwargs)
     return init
 
