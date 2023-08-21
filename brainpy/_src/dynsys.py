@@ -137,38 +137,46 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
     super().__init__(name=name)
 
   def add_bef_update(self, key: Any, fun: Callable):
+    """Add the before update into this node"""
     if key in self.before_updates:
       raise KeyError(f'{key} has been registered in before_updates of {self}')
     self.before_updates[key] = fun
 
   def add_aft_update(self, key: Any, fun: Callable):
+    """Add the after update into this node"""
     if key in self.after_updates:
       raise KeyError(f'{key} has been registered in after_updates of {self}')
     self.after_updates[key] = fun
 
   def get_bef_update(self, key: Any):
+    """Get the before update of this node by the given ``key``."""
     if key not in self.before_updates:
       raise KeyError(f'{key} is not registered in before_updates of {self}')
     return self.before_updates.get(key)
 
   def get_aft_update(self, key: Any):
+    """Get the after update of this node by the given ``key``."""
     if key not in self.after_updates:
       raise KeyError(f'{key} is not registered in after_updates of {self}')
     return self.after_updates.get(key)
 
   def has_bef_update(self, key: Any):
+    """Whether this node has the before update of the given ``key``."""
     return key in self.before_updates
 
   def has_aft_update(self, key: Any):
+    """Whether this node has the after update of the given ``key``."""
     return key in self.after_updates
 
-  def reset_bef_updates(self, batch_size=None):
+  def reset_bef_updates(self, *args, **kwargs):
+    """Reset all before updates."""
     for node in self.before_updates.values():
-      node.reset_state(batch_size)
+      node.reset_state(*args, **kwargs)
 
-  def reset_aft_updates(self, batch_size=None):
+  def reset_aft_updates(self, *args, **kwargs):
+    """Reset all after updates."""
     for node in self.after_updates.values():
-      node.reset_state(batch_size)
+      node.reset_state(*args, **kwargs)
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
@@ -179,9 +187,11 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
   def reset(self, *args, **kwargs):
-    """Reset function which reset the whole variables in the model.
+    """Reset function which resets the whole variables in the model.
     """
-    self.reset_state(*args, **kwargs)
+    child_nodes = self.nodes(level=-1, include_self=True).subset(DynamicalSystem).unique()
+    for node in child_nodes.values():
+      node.reset_state(*args, **kwargs)
 
   def reset_state(self, *args, **kwargs):
     """Reset function which reset the states in the model.
@@ -584,7 +594,7 @@ class Projection(DynamicalSystem):
     nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
     if len(nodes):
       for node in nodes:
-        node(*args, **kwargs)
+        node.update(*args, **kwargs)
     else:
       raise ValueError('Do not implement the update() function.')
 
