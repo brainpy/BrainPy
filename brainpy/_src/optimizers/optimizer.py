@@ -5,6 +5,7 @@ from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
 from jax.lax import cond
+import brainpy as bp
 
 import brainpy.math as bm
 from brainpy import check
@@ -44,7 +45,7 @@ class Optimizer(BrainPyObject):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
       name: Optional[str] = None
   ):
@@ -75,7 +76,7 @@ class Optimizer(BrainPyObject):
 class CommonOpt(Optimizer):
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
       weight_decay: Optional[float] = None,
       name: Optional[str] = None
@@ -107,7 +108,7 @@ class SGD(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       weight_decay: Optional[float] = None,
       name: Optional[str] = None
@@ -169,7 +170,7 @@ class Momentum(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       momentum: float = 0.9,
       weight_decay: Optional[float] = None,
@@ -233,7 +234,7 @@ class MomentumNesterov(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       weight_decay: Optional[float] = None,
       momentum: float = 0.9,
@@ -305,7 +306,7 @@ class Adagrad(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       weight_decay: Optional[float] = None,
       epsilon: float = 1e-6,
@@ -389,7 +390,7 @@ class Adadelta(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler] = 0.01,
+      lr: Union[float, Scheduler, bm.Variable] = 0.01,
       train_vars: Dict[str, bm.Variable] = None,
       weight_decay: Optional[float] = None,
       epsilon: float = 1e-6,
@@ -469,7 +470,7 @@ class RMSProp(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       weight_decay: Optional[float] = None,
       epsilon: float = 1e-6,
@@ -542,7 +543,7 @@ class Adam(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, bm.Variable, Scheduler],
       train_vars: Dict[str, bm.Variable] = None,
       beta1: float = 0.9,
       beta2: float = 0.999,
@@ -632,7 +633,7 @@ class LARS(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       momentum: float = 0.9,
       weight_decay: float = 1e-4,
@@ -724,7 +725,7 @@ class Adan(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler] = 1e-3,
+      lr: Union[float, Scheduler, bm.Variable] = 1e-3,
       train_vars: Dict[str, bm.Variable] = None,
       betas: Tuple[float, float, float] = (0.02, 0.08, 0.01),
       eps: float = 1e-8,
@@ -891,7 +892,7 @@ class AdamW(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       beta1: float = 0.9,
       beta2: float = 0.999,
@@ -1016,7 +1017,7 @@ class SM3(CommonOpt):
 
   def __init__(
       self,
-      lr: Union[float, Scheduler],
+      lr: Union[float, Scheduler, bm.Variable],
       train_vars: Dict[str, bm.Variable] = None,
       beta: float = 0.,
       momentum: float = 0.,

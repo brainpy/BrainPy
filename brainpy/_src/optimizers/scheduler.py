@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-
-
+import warnings
 from functools import partial
-from typing import Sequence
+from typing import Sequence, Union
 
 import jax
 import jax.numpy as jnp
@@ -20,7 +19,7 @@ from brainpy.errors import MathError
 def make_schedule(scalar_or_schedule):
   if isinstance(scalar_or_schedule, Scheduler):
     return scalar_or_schedule
-  elif isinstance(scalar_or_schedule, (int, float)):
+  elif isinstance(scalar_or_schedule, (int, float, bm.Variable)):
     return Constant(scalar_or_schedule)
   else:
     raise TypeError(type(scalar_or_schedule))
@@ -29,11 +28,15 @@ def make_schedule(scalar_or_schedule):
 class Scheduler(BrainPyObject):
   """The learning rate scheduler."""
 
-  def __init__(self, lr: float, last_epoch: int = -1):
+  def __init__(self, lr: Union[float, bm.Variable], last_epoch: int = -1):
     super(Scheduler, self).__init__()
-    self.lr = check.is_float(lr, )
+    assert bm.ndim(lr) == 0
+    self.lr = lr
     check.is_integer(last_epoch, allow_none=False, min_bound=-1)
     self.last_epoch = bm.Variable(jnp.asarray(last_epoch))
+
+  def set_value(self, learning_rate):
+    self.lr = learning_rate
 
   def step_epoch(self):
     self.last_epoch += 1
@@ -54,10 +57,9 @@ class Constant(Scheduler):
 
 
 class CallBasedScheduler(Scheduler):
-  def __init__(self, lr: float, last_epoch: int = -1, last_call: int = -1):
+  def __init__(self, lr: Union[float, bm.Variable], last_epoch: int = -1, last_call: int = -1):
     super().__init__(lr=lr, last_epoch=last_epoch)
 
-    self.lr = check.is_float(lr, )
     check.is_integer(last_call, allow_none=False, min_bound=-1)
     self.last_call = bm.Variable(jnp.asarray(last_call))
 
@@ -325,9 +327,9 @@ class ExponentialLR(Scheduler):
     return f'{self.__class__.__name__}(lr={self.lr}, last_epoch={self.last_epoch}, gamma={self.gamma})'
 
 
-class ExponentialDecay(CallBasedScheduler):
+class ExponentialDecayLR(CallBasedScheduler):
   def __init__(self, lr, decay_steps, decay_rate, last_epoch: int = -1, last_call: int = -1):
-    super(ExponentialDecay, self).__init__(lr=lr, last_epoch=last_epoch, last_call=last_call)
+    super().__init__(lr=lr, last_epoch=last_epoch, last_call=last_call)
     self.decay_steps = decay_steps
     self.decay_rate = decay_rate
 
@@ -342,12 +344,19 @@ class ExponentialDecay(CallBasedScheduler):
             f'last_call={self.last_call.value})')
 
 
-class InverseTimeDecay(ExponentialDecay):
+class ExponentialDecay(ExponentialDecayLR):
+  def __init__(self, *args, **kwargs):
+    super(ExponentialDecay, self).__init__(*args, **kwargs)
+
+    warnings.warn("ExponentialDecay is abandoned, please use ExponentialDecayLR insteadly.")
+
+
+class InverseTimeDecayLR(ExponentialDecayLR):
   def __init__(self, lr, decay_steps, decay_rate, staircase=False,
                last_epoch: int = -1, last_call: int = -1):
-    super(InverseTimeDecay, self).__init__(lr, decay_steps, decay_rate,
-                                           last_epoch=last_epoch,
-                                           last_call=last_call)
+    super(InverseTimeDecayLR, self).__init__(lr, decay_steps, decay_rate,
+                                             last_epoch=last_epoch,
+                                             last_call=last_call)
     self.staircase = staircase
 
   def __call__(self, i=None):
@@ -361,9 +370,16 @@ class InverseTimeDecay(ExponentialDecay):
     return f'{self.__class__.__name__}({self.lr}, staircase={self.staircase})'
 
 
-class PolynomialDecay(CallBasedScheduler):
+class InverseTimeDecay(InverseTimeDecayLR):
+  def __init__(self, *args, **kwargs):
+    super(InverseTimeDecay, self).__init__(*args, **kwargs)
+
+    warnings.warn("InverseTimeDecay is abandoned, please use InverseTimeDecayLR insteadly.")
+
+
+class PolynomialDecayLR(CallBasedScheduler):
   def __init__(self, lr, decay_steps, final_lr, power=1.0, last_epoch: int = -1, last_call: int = -1):
-    super(PolynomialDecay, self).__init__(lr, last_epoch=last_epoch, last_call=last_call)
+    super(PolynomialDecayLR, self).__init__(lr, last_epoch=last_epoch, last_call=last_call)
     self.decay_steps = decay_steps
     self.final_lr = final_lr
     self.power = power
@@ -382,9 +398,16 @@ class PolynomialDecay(CallBasedScheduler):
             f'power={self.power})')
 
 
-class PiecewiseConstant(CallBasedScheduler):
+class PolynomialDecay(PolynomialDecayLR):
+  def __init__(self, *args, **kwargs):
+    super(PolynomialDecay, self).__init__(*args, **kwargs)
+
+    warnings.warn("PolynomialDecay is abandoned, please use PolynomialDecayLR insteadly.")
+
+
+class PiecewiseConstantLR(CallBasedScheduler):
   def __init__(self, boundaries, values, last_epoch: int = -1, last_call: int = -1):
-    super(PiecewiseConstant, self).__init__(0., last_epoch=last_epoch, last_call=last_call)
+    super(PiecewiseConstantLR, self).__init__(0., last_epoch=last_epoch, last_call=last_call)
 
     boundaries = jnp.array(boundaries)
     values = jnp.array(values)
@@ -398,3 +421,10 @@ class PiecewiseConstant(CallBasedScheduler):
   def __call__(self, i=None):
     i = (self.last_call.value + 1) if i is None else i
     return self.values[jnp.sum(i > self.boundaries)]
+
+
+class PiecewiseConstant(PiecewiseConstantLR):
+  def __init__(self, *args, **kwargs):
+    super(PiecewiseConstant, self).__init__(*args, **kwargs)
+
+    warnings.warn("PiecewiseConstant is abandoned, please use PiecewiseConstantLR insteadly.")

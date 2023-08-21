@@ -36,6 +36,10 @@ from brainpy._src.optimizers.scheduler import (
   InverseTimeDecay as InverseTimeDecay,
   PolynomialDecay as PolynomialDecay,
   PiecewiseConstant as PiecewiseConstant,
+  PiecewiseConstantLR as PiecewiseConstantLR,
+  PolynomialDecayLR as PolynomialDecayLR,
+  InverseTimeDecayLR as InverseTimeDecayLR,
+  ExponentialDecayLR as ExponentialDecayLR
 )
 from brainpy._src.optimizers.scheduler import (
   StepLR as StepLR,
