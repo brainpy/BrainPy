@@ -196,14 +196,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
   def reset_state(self, *args, **kwargs):
     """Reset function which reset the states in the model.
     """
-    child_nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
-    if len(child_nodes) > 0:
-      for node in child_nodes.values():
-        node.reset_state(*args, **kwargs)
-      self.reset_local_delays(child_nodes)
-    else:
-      raise NotImplementedError('Must implement "reset_state" function by subclass self. '
-                                f'Error of {self.name}')
+    pass
 
   def clear_input(self):
     """Clear the input at the current time step."""
