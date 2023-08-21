@@ -35,8 +35,8 @@ class Scheduler(BrainPyObject):
     check.is_integer(last_epoch, allow_none=False, min_bound=-1)
     self.last_epoch = bm.Variable(jnp.asarray(last_epoch))
 
-  def set_value(self,learning_rate):
-    self.lr=learning_rate
+  def set_value(self, learning_rate):
+    self.lr = learning_rate
 
   def step_epoch(self):
     self.last_epoch += 1
@@ -351,13 +351,12 @@ class ExponentialDecay(ExponentialDecayLR):
     warnings.warn("ExponentialDecay is abandoned, please use ExponentialDecayLR insteadly.")
 
 
-
 class InverseTimeDecayLR(ExponentialDecayLR):
   def __init__(self, lr, decay_steps, decay_rate, staircase=False,
                last_epoch: int = -1, last_call: int = -1):
     super(InverseTimeDecayLR, self).__init__(lr, decay_steps, decay_rate,
-                                           last_epoch=last_epoch,
-                                           last_call=last_call)
+                                             last_epoch=last_epoch,
+                                             last_call=last_call)
     self.staircase = staircase
 
   def __call__(self, i=None):
@@ -369,6 +368,7 @@ class InverseTimeDecayLR(ExponentialDecayLR):
 
   def __repr__(self):
     return f'{self.__class__.__name__}({self.lr}, staircase={self.staircase})'
+
 
 class InverseTimeDecay(InverseTimeDecayLR):
   def __init__(self, *args, **kwargs):
@@ -397,6 +397,7 @@ class PolynomialDecayLR(CallBasedScheduler):
             f'final_lr={self.final_lr}, '
             f'power={self.power})')
 
+
 class PolynomialDecay(PolynomialDecayLR):
   def __init__(self, *args, **kwargs):
     super(PolynomialDecay, self).__init__(*args, **kwargs)
@@ -420,6 +421,7 @@ class PiecewiseConstantLR(CallBasedScheduler):
   def __call__(self, i=None):
     i = (self.last_call.value + 1) if i is None else i
     return self.values[jnp.sum(i > self.boundaries)]
+
 
 class PiecewiseConstant(PiecewiseConstantLR):
   def __init__(self, *args, **kwargs):
