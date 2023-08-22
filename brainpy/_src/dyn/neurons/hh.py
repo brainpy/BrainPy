@@ -222,6 +222,23 @@ class HHLTC(NeuDyn):
   methods available to analyze the system. Certain properties and general behaviors,
   such as limit cycles, can be proven to exist.
 
+
+  .. code-block:: python
+
+      import brainpy as bp
+
+      neu = bp.dyn.HHLTC(1)
+
+      # raise input current from 4 mA to 40 mA
+      inputs = bp.inputs.ramp_input(4, 40, 700, 100, 600,)
+
+      runner = bp.DSRunner(neu, monitors=['V'])
+      runner.run(inputs=inputs)
+
+      bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
+
+
+
   Parameters
   ----------
   size: sequence of int, int
@@ -254,6 +271,8 @@ class HHLTC(NeuDyn):
     The numerical integration method.
   name: str
     The group name.
+
+
 
   References
   ----------
@@ -417,6 +436,25 @@ class HH(HHLTC):
         &\alpha_n(V) = \frac {0.01(V+55)}{1-\exp(-(V+55)/10)}
 
         &\beta_n(V) = 0.125 \exp(\frac{-(V + 65)} {80})
+
+    .. code-block::python
+
+        import brainpy as bp
+        import matplotlib.pyplot as plt
+
+        neu = bp.dyn.HH(1,)
+
+        inputs = bp.inputs.ramp_input(4, 40, 700, 100, 600, )
+
+        runner = bp.DSRunner(neu, monitors=['V'])
+        runner.run(inputs = inputs)
+
+        plt.plot(runner.mon['ts'], runner.mon['V'])
+        plt.plot(runner.mon.ts, inputs.value)       # show input current
+        plt.legend(['Membrane potential/mA', 'Input current/mA'], loc='upper right')
+
+        plt.tight_layout()
+        plt.show()
 
     The illustrated example of HH neuron model please see `this notebook <../neurons/HH_model.ipynb>`_.
 
@@ -757,6 +795,22 @@ class WangBuzsakiHHLTC(NeuDyn):
     :math:`\beta_{n}(V)=0.125\exp (-(V+44) / 80)` ; :math:`g_{\mathrm{K}}=9 \mathrm{mS} / \mathrm{cm}^{2}`, and
     :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
+    Here is a simple usage example:
+
+    .. code-block:: python
+
+        import brainpy as bp
+        import matplotlib.pyplot as plt
+
+        neu = bp.dyn.WangBuzsakiHHLTC(1, )
+
+        inputs = bp.inputs.ramp_input(.1, 1, 700, 100, 600, )
+        runner = bp.DSRunner(neu, monitors=['V'])
+        runner.run(inputs=inputs)
+        plt.plot(runner.mon['ts'], runner.mon['V'])
+        plt.legend(['Membrane potential/mA', loc='upper right')
+        plt.tight_layout()
+        plt.show()
 
     Parameters
     ----------
@@ -948,6 +1002,22 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
     :math:`\beta_{n}(V)=0.125\exp (-(V+44) / 80)` ; :math:`g_{\mathrm{K}}=9 \mathrm{mS} / \mathrm{cm}^{2}`, and
     :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
+    Here is an example:
+
+    .. code-block:: python
+
+        import brainpy as bp
+        import matplotlib.pyplot as plt
+
+        neu = bp.dyn.WangBuzsakiHH(1, )
+
+        inputs = bp.inputs.ramp_input(.1, 1, 700, 100, 600, )
+        runner = bp.DSRunner(neu, monitors=['V'])
+        runner.run(inputs=inputs)
+        plt.plot(runner.mon['ts'], runner.mon['V'])
+        plt.legend(['Membrane potential/mA', loc='upper right')
+        plt.tight_layout()
+        plt.show()
 
     Parameters
     ----------
