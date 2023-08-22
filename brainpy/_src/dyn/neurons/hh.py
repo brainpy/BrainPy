@@ -13,7 +13,6 @@ from brainpy._src.mixin import Container, TreeNode
 from brainpy._src.types import ArrayType
 from brainpy.check import is_initializer
 from brainpy.types import Shape
-#from brainpy._src.dyn._docs import pneu_doc, dpneu_doc
 
 __all__ = [
   'HHTypedNeuron',
