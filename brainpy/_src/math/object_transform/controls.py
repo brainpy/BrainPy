@@ -653,7 +653,7 @@ def ifelse(
                      f'Got len(conditions)={len(conditions)} and len(branches)={len(branches)}. '
                      f'We expect len(conditions) + 1 == len(branches). ')
   if operands is None:
-    operands = tuple()
+    operands = (tuple(),)
   if not isinstance(operands, (tuple, list)):
     operands = (operands,)
 
