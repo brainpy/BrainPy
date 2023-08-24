@@ -151,7 +151,7 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`Quick Reference All;2em` FAQ
+      .. card:: :material-regular:`rocket_launch;2em` FAQ
          :class-card: sd-text-black sd-bg-light
          :link: FAQ.html
 
@@ -165,7 +165,7 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`Apps;2em` Examples
+      .. card:: :material-regular:`settings;2em` Examples
          :class-card: sd-text-black sd-bg-light
          :link: https://brainpy-examples.readthedocs.io/en/latest/index.html
 
