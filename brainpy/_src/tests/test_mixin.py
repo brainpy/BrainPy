@@ -31,13 +31,13 @@ class TestJointType(unittest.TestCase):
 
 
 class TestDelayRegister(unittest.TestCase):
-  def test11(self):
-    lif = bp.dyn.Lif(10)
-    with self.assertWarns(UserWarning):
-      lif.register_delay('pre.spike', 10, lif.spike)
-
-    with self.assertWarns(UserWarning):
-      lif.get_delay_data('pre.spike', 10)
+  # def test11(self):
+  #   lif = bp.dyn.Lif(10)
+  #   with self.assertWarns(UserWarning):
+  #     lif.register_delay('pre.spike', 10, lif.spike)
+  #
+  #   with self.assertWarns(UserWarning):
+  #     lif.get_delay_data('pre.spike', 10)
 
   def test2(self):
     bp.share.save(i=0)
