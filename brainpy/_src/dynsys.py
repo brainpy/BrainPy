@@ -16,7 +16,6 @@ from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
 from brainpy._src.context import share
 
-
 __all__ = [
   # general
   'DynamicalSystem',
@@ -137,38 +136,46 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
     super().__init__(name=name)
 
   def add_bef_update(self, key: Any, fun: Callable):
+    """Add the before update into this node"""
     if key in self.before_updates:
       raise KeyError(f'{key} has been registered in before_updates of {self}')
     self.before_updates[key] = fun
 
   def add_aft_update(self, key: Any, fun: Callable):
+    """Add the after update into this node"""
     if key in self.after_updates:
       raise KeyError(f'{key} has been registered in after_updates of {self}')
     self.after_updates[key] = fun
 
   def get_bef_update(self, key: Any):
+    """Get the before update of this node by the given ``key``."""
     if key not in self.before_updates:
       raise KeyError(f'{key} is not registered in before_updates of {self}')
     return self.before_updates.get(key)
 
   def get_aft_update(self, key: Any):
+    """Get the after update of this node by the given ``key``."""
     if key not in self.after_updates:
       raise KeyError(f'{key} is not registered in after_updates of {self}')
     return self.after_updates.get(key)
 
   def has_bef_update(self, key: Any):
+    """Whether this node has the before update of the given ``key``."""
     return key in self.before_updates
 
   def has_aft_update(self, key: Any):
+    """Whether this node has the after update of the given ``key``."""
     return key in self.after_updates
 
-  def reset_bef_updates(self, batch_size=None):
+  def reset_bef_updates(self, *args, **kwargs):
+    """Reset all before updates."""
     for node in self.before_updates.values():
-      node.reset_state(batch_size)
+      node.reset_state(*args, **kwargs)
 
-  def reset_aft_updates(self, batch_size=None):
+  def reset_aft_updates(self, *args, **kwargs):
+    """Reset all after updates."""
     for node in self.after_updates.values():
-      node.reset_state(batch_size)
+      node.reset_state(*args, **kwargs)
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
@@ -180,24 +187,40 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
 
   def reset(self, *args, **kwargs):
     """Reset function which reset the whole variables in the model.
+
+    ``reset()`` function is a collective behavior which resets states in the current node,
+    nodes in ``before_updates``, and nodes in ``after_updates``.
+
     """
+    self.reset_bef_updates(*args, **kwargs)
     self.reset_state(*args, **kwargs)
+    self.reset_aft_updates(*args, **kwargs)
 
   def reset_state(self, *args, **kwargs):
-    """Reset function which reset the states in the model.
+    """Reset function which resets the states in the model.
+
+    If the model behaves like a gather or collector, it will rest all states
+    (by calling ``reset()`` function) in children nodes.
+
+    If the model behaves as a single module, it requires users to implement this
+    rest function.
+
+    Simply speaking, this function should implement the logic of resetting of
+    local variables in this node.
     """
     child_nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
     if len(child_nodes) > 0:
       for node in child_nodes.values():
-        node.reset_state(*args, **kwargs)
+        node.reset(*args, **kwargs)
       self.reset_local_delays(child_nodes)
     else:
-      raise NotImplementedError('Must implement "reset_state" function by subclass self. '
-                                f'Error of {self.name}')
+      raise NotImplementedError(f'Must implement "reset_state" function by subclass self. Error of {self.name}')
 
-  def clear_input(self):
+  def clear_input(self, *args, **kwargs):
     """Clear the input at the current time step."""
-    pass
+    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
+    for node in nodes.values():
+      node.clear_input()
 
   def step_run(self, i, *args, **kwargs):
     """The step run function.
@@ -438,34 +461,24 @@ class DynSysGroup(DynamicalSystem, Container):
     # TODO: Will be deprecated in the future
     self.update_local_delays(nodes)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_or_mode=None):
     nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
 
     # reset projections
     for node in nodes.subset(Projection).values():
-      node.reset_state(batch_size)
+      node.reset(batch_or_mode)
 
     # reset dynamics
     for node in nodes.subset(Dynamic).values():
-      node.reset_state(batch_size)
+      node.reset(batch_or_mode)
 
     # reset other types of nodes, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
-      node.reset_state(batch_size)
-
-    # reset
-    self.reset_aft_updates(batch_size)
-    self.reset_bef_updates(batch_size)
+      node.reset(batch_or_mode)
 
     # reset delays
     # TODO: will be removed in the future
     self.reset_local_delays(nodes)
-
-  def clear_input(self):
-    """Clear inputs in the children classes."""
-    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
-    for node in nodes.values():
-      node.clear_input()
 
 
 class Network(DynSysGroup):
@@ -572,21 +585,27 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
 
 
 class Projection(DynamicalSystem):
-  def reset_state(self, *args, **kwargs):
-    nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
-    if len(nodes):
-      for node in nodes:
-        node.reset_state(*args, **kwargs)
-    else:
-      raise ValueError('Do not implement the reset_state() function.')
 
   def update(self, *args, **kwargs):
     nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
     if len(nodes):
       for node in nodes:
-        node(*args, **kwargs)
+        node.update(*args, **kwargs)
     else:
       raise ValueError('Do not implement the update() function.')
+
+  def reset_state(self, *args, **kwargs):
+    nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
+    if len(nodes):
+      for node in nodes:
+        node.reset(*args, **kwargs)
+    else:
+      raise ValueError('Do not implement the reset_state() function.')
+
+  def clear_input(self, *args, **kwargs):
+    """Empty function of clearing inputs."""
+    pass
+
 
 class Dynamic(DynamicalSystem):
   """Base class to model dynamics.
@@ -697,6 +716,13 @@ class Dynamic(DynamicalSystem):
 
   def __getitem__(self, item):
     return DynView(target=self, index=item)
+
+  def clear_input(self, *args, **kwargs):
+    """Empty function of clearing inputs."""
+    pass
+
+  def reset_state(self, *args, **kwargs):
+    raise NotImplementedError(f'Must implement "reset_state" function by subclass self. Error of {self.name}')
 
 
 class DynView(Dynamic):

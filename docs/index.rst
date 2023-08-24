@@ -96,13 +96,13 @@ Installation
 
        .. code-block:: bash
 
-          pip install brainpy brainpylib
+          pip install brainpy brainpylib  # windows, linux, macos
 
     .. tab-item:: GPU (CUDA)
 
        .. code-block:: bash
 
-          pip install brainpy brainpylib
+          pip install brainpy brainpylib  # only on linux
 
 For more information about supported accelerators and platforms, and for other installation details, please see installation section.
 
@@ -137,30 +137,38 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` Advanced Tutorials
+      .. card:: :material-regular:`token;2em` Advanced Tutorials
          :class-card: sd-text-black sd-bg-light
          :link: advanced_tutorials.html
 
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` BDP Toolboxes
+      .. card:: :material-regular:`settings;2em` BDP Toolboxes
          :class-card: sd-text-black sd-bg-light
          :link: toolboxes.html
 
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` FAQ
+      .. card:: :material-regular:`Quick Reference All;2em` FAQ
          :class-card: sd-text-black sd-bg-light
          :link: FAQ.html
 
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`science;2em` API documentation
+      .. card:: :material-regular:`data_exploration;2em` API documentation
          :class-card: sd-text-black sd-bg-light
          :link: api.html
+
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`Apps;2em` Examples
+         :class-card: sd-text-black sd-bg-light
+         :link: https://brainpy-examples.readthedocs.io/en/latest/index.html
+
 
 .. note::
    BrainPy is still an experimental research project.

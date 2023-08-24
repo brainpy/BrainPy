@@ -593,11 +593,11 @@ def ifelse(
   >>> import brainpy.math as bm
   >>> def f(a):
   >>>    return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
-  >>>                     branches=[lambda _: 1,
-  >>>                               lambda _: 2,
-  >>>                               lambda _: 3,
-  >>>                               lambda _: 4,
-  >>>                               lambda _: 5])
+  >>>                     branches=[lambda: 1,
+  >>>                               lambda: 2,
+  >>>                               lambda: 3,
+  >>>                               lambda: 4,
+  >>>                               lambda: 5])
   >>> f(1)
   4
   >>> # or, it can be expressed as:
