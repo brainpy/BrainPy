@@ -132,7 +132,7 @@ Learn more
 
       .. card:: :material-regular:`science;2em` BDP Tutorials
          :class-card: sd-text-black sd-bg-light
-         :link: brain_dynamics_tutorials.html
+         :link: tutorials.html
 
    .. grid-item::
       :columns: 6 6 6 4

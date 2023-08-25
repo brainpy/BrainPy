@@ -1,6 +1,5 @@
 from typing import Union, Sequence, Callable, Optional
 
-import jax.numpy
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn._docs import pneu_doc
@@ -8,7 +7,6 @@ from brainpy._src.dyn.base import SynDyn
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.mixin import AlignPost, ReturnInfo
-from brainpy._src.initialize import Constant
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -368,9 +366,9 @@ class Alpha(DualExpon):
           Cambridge: Cambridge UP, 2011. 172-95. Print.
 
   Args:
+    %s
     tau_decay: float, ArrayType, Callable. The time constant [ms] of the synaptic decay phase.
        The name of this synaptic projection.
-    %s
   """
 
   def __init__(
