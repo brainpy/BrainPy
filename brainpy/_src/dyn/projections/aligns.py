@@ -210,7 +210,7 @@ class ProjAlignPostMg1(Projection):
       if out_label is None:
         out_name = self.name
       else:
-        out_name = f'{out_label}-{self.name}'
+        out_name = f'{out_label} // {self.name}'
       post.add_inp_fun(out_name, out_cls)
       post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
 
@@ -334,7 +334,7 @@ class ProjAlignPostMg2(Projection):
       if out_label is None:
         out_name = self.name
       else:
-        out_name = f'{out_label}-{self.name}'
+        out_name = f'{out_label} // {self.name}'
       post.add_inp_fun(out_name, out_cls)
       post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
 
@@ -417,7 +417,7 @@ class ProjAlignPost1(Projection):
     if out_label is None:
       out_name = self.name
     else:
-      out_name = f'{out_label}-{self.name}'
+      out_name = f'{out_label} // {self.name}'
     post.add_inp_fun(out_name, out)
     post.add_bef_update(self.name, _AlignPost(syn, out))
 
@@ -534,7 +534,7 @@ class ProjAlignPost2(Projection):
     if out_label is None:
       out_name = self.name
     else:
-      out_name = f'{out_label}-{self.name}'
+      out_name = f'{out_label} // {self.name}'
     post.add_inp_fun(out_name, out)
 
     # references
@@ -651,7 +651,7 @@ class ProjAlignPreMg1(Projection):
     if out_label is None:
       out_name = self.name
     else:
-      out_name = f'{out_label}-{self.name}'
+      out_name = f'{out_label} // {self.name}'
     post.add_inp_fun(out_name, out)
 
     # references
@@ -774,7 +774,7 @@ class ProjAlignPreMg2(Projection):
     if out_label is None:
       out_name = self.name
     else:
-      out_name = f'{out_label}-{self.name}'
+      out_name = f'{out_label} // {self.name}'
     post.add_inp_fun(out_name, out)
 
     # references
@@ -886,7 +886,7 @@ class ProjAlignPre1(Projection):
     if out_label is None:
       out_name = self.name
     else:
-      out_name = f'{out_label}-{self.name}'
+      out_name = f'{out_label} // {self.name}'
     post.add_inp_fun(out_name, out)
 
     # references
@@ -1002,7 +1002,7 @@ class ProjAlignPre2(Projection):
     if out_label is None:
       out_name = self.name
     else:
-      out_name = f'{out_label}-{self.name}'
+      out_name = f'{out_label} // {self.name}'
     post.add_inp_fun(out_name, out)
 
     # references
