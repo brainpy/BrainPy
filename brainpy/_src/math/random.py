@@ -489,6 +489,13 @@ class RandomState(Variable):
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
 
+  @property
+  def value(self):
+    if isinstance(self._value, jax.Array) and self._value.is_deleted():
+      self.seed()
+    self._append_to_stack()
+    return self._value
+
   # ------------------- #
   # seed and random key #
   # ------------------- #
