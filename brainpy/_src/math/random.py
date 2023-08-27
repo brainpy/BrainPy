@@ -491,8 +491,8 @@ class RandomState(Variable):
 
   @property
   def value(self):
-    if isinstance(self._value, jax.Array) and self._value.is_deleted():
-      self.seed()
+    if hasattr(self._value, 'is_deleted') and self._value.is_deleted():
+        self.seed()
     self._append_to_stack()
     return self._value
 

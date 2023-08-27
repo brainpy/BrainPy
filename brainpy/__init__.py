@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.4"
+__version__ = "2.4.4.post2"
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
