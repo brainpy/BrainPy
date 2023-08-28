@@ -74,11 +74,8 @@ class SDEIntegrator(Integrator):
     self.intg_type = intg_type  # integral type
     self.wiener_type = wiener_type  # wiener process type
 
-    # random seed
-    self.rng = bm.random.default_rng(clone=False)
-
     # code scope
-    self.code_scope = {constants.F: f, constants.G: g, 'math': jnp, 'random': self.rng}
+    self.code_scope = {constants.F: f, constants.G: g, 'math': jnp, 'random': bm.random.DEFAULT}
     # code lines
     self.func_name = f_names(f)
     self.code_lines = [f'def {self.func_name}({", ".join(self.arguments)}):']
