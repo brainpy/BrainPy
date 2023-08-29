@@ -102,18 +102,6 @@ dyn.__deprecations = {
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 
 
-# dnn.__deprecations = {
-#   'Layer': ('brainpy.dnn.Layer', 'brainpy.AnnLayer', AnnLayer),
-# }
-# dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
-
-
-# layers.__deprecations = {
-#   'Layer': ('brainpy.layers.Layer', 'brainpy.AnnLayer', AnnLayer),
-# }
-# layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
-
-
 connect.__deprecations = {
     'one2one': ('brainpy.connect.one2one', 'brainpy.connect.One2One', connect.One2One),
     'all2all': ('brainpy.connect.all2all', 'brainpy.connect.All2All', connect.All2All),

@@ -23,4 +23,6 @@ from brainpy._src.math.compat_pytorch import (
   arctan as arctan,
   atan2 as atan2,
   atanh as atanh,
+  clamp_max,
+  clamp_min,
 )
