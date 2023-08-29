@@ -11,6 +11,7 @@ import numpy as np
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
 from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node_class
+from jax._src.array import ArrayImpl
 
 from brainpy.check import jit_error
 from .compat_numpy import shape
@@ -488,6 +489,14 @@ class RandomState(Variable):
     i = print_code.index('(')
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
+
+  @property
+  def value(self):
+    if isinstance(self._value, ArrayImpl):
+      if self._value.is_deleted():
+        self.seed()
+    self._append_to_stack()
+    return self._value
 
   # ------------------- #
   # seed and random key #
