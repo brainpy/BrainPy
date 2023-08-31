@@ -303,7 +303,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
 
     # synaptic communications
     if isinstance(conn, All2All):
-      self.comm = linear.AllToAll(pre.num, post.num, g_max)
+      self.comm = linear.AllToAll(pre.num, post.num, g_max, include_self=conn.include_self)
     elif isinstance(conn, One2One):
       assert post.num == pre.num
       self.comm = linear.OneToOne(pre.num, g_max)
