@@ -97,7 +97,7 @@ class FixedProb(TwoEndConnector):
 
       @numba_jit  # (parallel=True, nogil=True)
       def single_conn():
-        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=get_idx_type())
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=IDX_DTYPE)
         for i in numba_range(pre_num_to_select):
           posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
         return posts
@@ -249,7 +249,7 @@ class FixedPreNum(FixedNum):
 
       @numba_jit  # (parallel=True, nogil=True)
       def single_conn():
-        posts = np.zeros((post_num_total, pre_num_to_select), dtype=get_idx_type())
+        posts = np.zeros((post_num_total, pre_num_to_select), dtype=IDX_DTYPE)
         for i in numba_range(post_num_total):
           posts[i] = rng.choice(pre_num_total, pre_num_to_select, replace=False)
         return posts
@@ -310,7 +310,7 @@ class FixedPostNum(FixedNum):
 
       @numba_jit  # (parallel=True, nogil=True)
       def single_conn():
-        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=get_idx_type())
+        posts = np.zeros((pre_num_to_select, post_num_to_select), dtype=IDX_DTYPE)
         for i in numba_range(pre_num_to_select):
           posts[i] = rng.choice(post_num_total, post_num_to_select, replace=False)
         return posts
@@ -1118,8 +1118,8 @@ class ProbDist(TwoEndConnector):
 
     @njit
     def _connect_1d_jit(pre_pos, pre_size, post_size, n_dim):
-      all_post_ids = np.zeros(post_size[0], dtype=get_idx_type())
-      all_pre_ids = np.zeros(post_size[0], dtype=get_idx_type())
+      all_post_ids = np.zeros(post_size[0], dtype=IDX_DTYPE)
+      all_pre_ids = np.zeros(post_size[0], dtype=IDX_DTYPE)
       size = 0
 
       if rng.random() < pre_ratio:
@@ -1163,8 +1163,8 @@ class ProbDist(TwoEndConnector):
     @njit
     def _connect_2d_jit(pre_pos, pre_size, post_size, n_dim):
       max_size = post_size[0] * post_size[1]
-      all_post_ids = np.zeros(max_size, dtype=get_idx_type())
-      all_pre_ids = np.zeros(max_size, dtype=get_idx_type())
+      all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+      all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
       size = 0
 
       if rng.random() < pre_ratio:
@@ -1210,8 +1210,8 @@ class ProbDist(TwoEndConnector):
     @njit
     def _connect_3d_jit(pre_pos, pre_size, post_size, n_dim):
       max_size = post_size[0] * post_size[1] * post_size[2]
-      all_post_ids = np.zeros(max_size, dtype=get_idx_type())
-      all_pre_ids = np.zeros(max_size, dtype=get_idx_type())
+      all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+      all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
       size = 0
 
       if rng.random() < pre_ratio:
@@ -1259,8 +1259,8 @@ class ProbDist(TwoEndConnector):
     @njit
     def _connect_4d_jit(pre_pos, pre_size, post_size, n_dim):
       max_size = post_size[0] * post_size[1] * post_size[2] * post_size[3]
-      all_post_ids = np.zeros(max_size, dtype=get_idx_type())
-      all_pre_ids = np.zeros(max_size, dtype=get_idx_type())
+      all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+      all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
       size = 0
 
       if rng.random() < pre_ratio:
