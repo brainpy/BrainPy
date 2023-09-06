@@ -18,8 +18,8 @@ from tqdm.auto import tqdm
 from brainpy.errors import PackageMissingError
 
 try:
-  from pathos.helpers import cpu_count
-  from pathos.multiprocessing import ProcessPool
+  from pathos.helpers import cpu_count  # noqa
+  from pathos.multiprocessing import ProcessPool  # noqa
 except ModuleNotFoundError:
   cpu_count = None
   ProcessPool = None

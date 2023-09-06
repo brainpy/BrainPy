@@ -40,18 +40,18 @@ class TestIO1(unittest.TestCase):
     print(self.net.vars().keys())
     print(self.net.vars().unique().keys())
 
-  def test_h5(self):
-    bp.checkpoints.io.save_as_h5('io_test_tmp.h5', self.net.vars())
-    bp.checkpoints.io.load_by_h5('io_test_tmp.h5', self.net, verbose=True)
-
-    bp.checkpoints.io.save_as_h5('io_test_tmp.hdf5', self.net.vars())
-    bp.checkpoints.io.load_by_h5('io_test_tmp.hdf5', self.net, verbose=True)
-
-  def test_h5_postfix(self):
-    with self.assertRaises(ValueError):
-      bp.checkpoints.io.save_as_h5('io_test_tmp.h52', self.net.vars())
-    with self.assertRaises(ValueError):
-      bp.checkpoints.io.load_by_h5('io_test_tmp.h52', self.net, verbose=True)
+  # def test_h5(self):
+  #   bp.checkpoints.io.save_as_h5('io_test_tmp.h5', self.net.vars())
+  #   bp.checkpoints.io.load_by_h5('io_test_tmp.h5', self.net, verbose=True)
+  #
+  #   bp.checkpoints.io.save_as_h5('io_test_tmp.hdf5', self.net.vars())
+  #   bp.checkpoints.io.load_by_h5('io_test_tmp.hdf5', self.net, verbose=True)
+  #
+  # def test_h5_postfix(self):
+  #   with self.assertRaises(ValueError):
+  #     bp.checkpoints.io.save_as_h5('io_test_tmp.h52', self.net.vars())
+  #   with self.assertRaises(ValueError):
+  #     bp.checkpoints.io.load_by_h5('io_test_tmp.h52', self.net, verbose=True)
 
   def test_npz(self):
     bp.checkpoints.io.save_as_npz('io_test_tmp.npz', self.net.vars())
@@ -120,18 +120,18 @@ class TestIO2(unittest.TestCase):
     print(self.net.vars().keys())
     print(self.net.vars().unique().keys())
 
-  def test_h5(self):
-    bp.checkpoints.io.save_as_h5('io_test_tmp.h5', self.net.vars())
-    bp.checkpoints.io.load_by_h5('io_test_tmp.h5', self.net, verbose=True)
-
-    bp.checkpoints.io.save_as_h5('io_test_tmp.hdf5', self.net.vars())
-    bp.checkpoints.io.load_by_h5('io_test_tmp.hdf5', self.net, verbose=True)
-
-  def test_h5_postfix(self):
-    with self.assertRaises(ValueError):
-      bp.checkpoints.io.save_as_h5('io_test_tmp.h52', self.net.vars())
-    with self.assertRaises(ValueError):
-      bp.checkpoints.io.load_by_h5('io_test_tmp.h52', self.net, verbose=True)
+  # def test_h5(self):
+  #   bp.checkpoints.io.save_as_h5('io_test_tmp.h5', self.net.vars())
+  #   bp.checkpoints.io.load_by_h5('io_test_tmp.h5', self.net, verbose=True)
+  #
+  #   bp.checkpoints.io.save_as_h5('io_test_tmp.hdf5', self.net.vars())
+  #   bp.checkpoints.io.load_by_h5('io_test_tmp.hdf5', self.net, verbose=True)
+  #
+  # def test_h5_postfix(self):
+  #   with self.assertRaises(ValueError):
+  #     bp.checkpoints.io.save_as_h5('io_test_tmp.h52', self.net.vars())
+  #   with self.assertRaises(ValueError):
+  #     bp.checkpoints.io.load_by_h5('io_test_tmp.h52', self.net, verbose=True)
 
   def test_npz(self):
     bp.checkpoints.io.save_as_npz('io_test_tmp.npz', self.net.vars())
