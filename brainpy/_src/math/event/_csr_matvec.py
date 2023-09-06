@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 
+"""
+
+Key points for the operator customization:
+
+1. `index` has two kinds of types: int32, int64
+2. `data` has two kinds of types: float32, float64
+3. `events` has three kinds of types: bool (True or False), float32, float64
+
+"""
+
 
 from functools import partial
 from typing import Union, Tuple
@@ -59,10 +69,12 @@ def csrmv(
   transpose: bool
     A boolean specifying whether to transpose the sparse matrix
     before computing.
+    If ``transpose=True``, the operator will compute based on the
+    event-driven property of the ``events`` vector.
 
   Returns
   -------
-  y : ndarry
+  y : Array
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
@@ -83,10 +95,10 @@ def csrmv(
     raise ValueError('indices should be a 1D vector with integer type.')
   if np.ndim(indptr) != 1:
     raise ValueError('indptr should be a 1D vector with integer type.')
-  if indices.dtype not in [jnp.int32, jnp.uint32]:
-    raise ValueError('indices should be a 1D vector with int32 or uint32 type.')
-  if indptr.dtype not in [jnp.int32, jnp.uint32]:
-    raise ValueError('indptr should be a 1D vector with int32 or uint32 type.')
+  if indices.dtype not in [jnp.int32, jnp.int64]:
+    raise ValueError('indices should be a 1D vector with int32 or int64 type.')
+  if indptr.dtype not in [jnp.int32, jnp.int64]:
+    raise ValueError('indptr should be a 1D vector with int32 or int64 type.')
   if np.ndim(events) != 1:
     raise ValueError('events should be a 1D vector.')
   if len(shape) != 2:
@@ -311,7 +323,7 @@ def _event_csr_matvec_abstract(values, indices, indptr, events, *, shape, transp
 
 
 @numba.njit(fastmath=True)
-def _event_csr_matvec_transpose_numba_imp(outs, ins):
+def _event_csr_matvec_transpose_numba_imp1_bool(outs, ins):
   res_val = outs
   res_val.fill(0)
   values, indices, indptr, events, shape, _ = ins
@@ -330,9 +342,29 @@ def _event_csr_matvec_transpose_numba_imp(outs, ins):
           col_i = indices[j]
           res_val[col_i] += values
 
+@numba.njit(fastmath=True)
+def _event_csr_matvec_transpose_numba_imp2(outs, ins):
+  res_val = outs
+  res_val.fill(0)
+  values, indices, indptr, events, shape, _ = ins
+  if values.shape[0] > 1:  # heter
+    for row_i in range(shape[0]):
+      if events[row_i] > 0.:
+        for j in range(indptr[row_i], indptr[row_i + 1]):
+          col_i = indices[j]
+          res_val[col_i] += values[j]
+
+  else:  # homo
+    values = values[0]
+    for row_i in range(shape[0]):
+      if events[row_i] > 0.:
+        for j in range(indptr[row_i], indptr[row_i + 1]):
+          col_i = indices[j]
+          res_val[col_i] += values
+
 
 @numba.njit(fastmath=True, parallel=True, nogil=True)
-def _event_csr_matvec_numba_imp(outs, ins):
+def _event_csr_matvec_numba_imp1_bool(outs, ins):
   res_val = outs
   res_val.fill(0)
   values, indices, indptr, events, shape, _ = ins
@@ -357,22 +389,57 @@ def _event_csr_matvec_numba_imp(outs, ins):
       res_val[row_i] = r
 
 
+@numba.njit(fastmath=True, parallel=True, nogil=True)
+def _event_csr_matvec_numba_imp2(outs, ins):
+  res_val = outs
+  res_val.fill(0)
+  values, indices, indptr, events, shape, _ = ins
+
+  if values.shape[0] > 1:  # heter
+    for row_i in range(shape[0]):
+      r = 0.
+      for j in range(indptr[row_i], indptr[row_i + 1]):
+        col_i = indices[j]
+        if events[col_i] > 0.:
+          r += values[j]
+      res_val[row_i] = r
+
+  else:  # homo
+    values = values[0]
+    for row_i in numba.prange(shape[0]):
+      r = 0.
+      for j in range(indptr[row_i], indptr[row_i + 1]):
+        col_i = indices[j]
+        if events[col_i] > 0.:
+          r += values
+      res_val[row_i] = r
+
+
 def _event_csr_matvec_cpu_translation(c, values, indices, indptr, events, *, shape, transpose):
   inputs = (values, indices, indptr, events)
+  event_type = c.get_shape(events)
   description = dict(shape=shape, transpose=transpose)
   if transpose:
+    if event_type.element_type() == jnp.bool_:
+      imp = _event_csr_matvec_transpose_numba_imp1_bool
+    else:
+      imp = _event_csr_matvec_transpose_numba_imp2
     name, inputs, in_layouts, out_layouts = compile_cpu_signature_with_numba(
       c,
-      _event_csr_matvec_transpose_numba_imp,
+      imp,
       abs_eval_fn=_event_csr_matvec_abstract,
       multiple_results=False,
       inputs=inputs,
       description=description
     )
   else:
+    if event_type.element_type() == jnp.bool_:
+      imp = _event_csr_matvec_numba_imp1_bool
+    else:
+      imp = _event_csr_matvec_numba_imp2
     name, inputs, in_layouts, out_layouts = compile_cpu_signature_with_numba(
       c,
-      _event_csr_matvec_numba_imp,
+      imp,
       abs_eval_fn=_event_csr_matvec_abstract,
       multiple_results=False,
       inputs=inputs,
@@ -390,28 +457,39 @@ def _event_csr_matvec_gpu_translation(c, data, indices, indptr, vector, *, shape
   if gpu_ops is None:
     raise GPUOperatorNotFound(event_csr_matvec_p.name)
 
+  # shape checking
   data_shape = c.get_shape(data)
+  indices_shape = c.get_shape(indices)
+  indptr_shape = c.get_shape(indptr)
   vec_shape = c.get_shape(vector)
-
   if data_shape.element_type() == jnp.float32:
-    type_name = b'_float'
+    ftype = b'_float'
   elif data_shape.element_type() == jnp.float64:
-    type_name = b'_double'
+    ftype = b'_double'
   else:
     raise ValueError
-
+  assert indices_shape.element_type() == indptr_shape.element_type()
+  if indices_shape.element_type() == jnp.int32:
+    itype = b'_int'
+  elif indices_shape.element_type() == jnp.int64:
+    itype = b'_long'
+  else:
+    raise ValueError
   data_name = b'_homo' if data_shape.dimensions() == (1,) else b'_heter'
+  tran_type = b'_transpose' if transpose else b''
   if vec_shape.element_type() == jnp.bool_:
     vec_type = b'_bool'
   else:
-    if vec_shape.element_type() != data_shape.element_type():
-      raise ValueError
-    vec_type = type_name
+    assert vec_shape.element_type() == data_shape.element_type()
+    vec_type = b''
 
-  opaque = gpu_ops.build_twouint_onebool_descriptor(shape[0], shape[1], transpose)
+  # opaque
+  opaque = gpu_ops.build_double_size_descriptor(shape[0], shape[1])
+
+  # call
   return xla_client.ops.CustomCallWithLayout(
     c,
-    b'event_csr_matvec' + data_name + type_name + vec_type,
+    b'event_csrmv' + data_name + ftype + itype + vec_type + tran_type,
     operands=(data, indices, indptr, vector),
     operand_shapes_with_layout=(c.get_shape(data),
                                 c.get_shape(indices),

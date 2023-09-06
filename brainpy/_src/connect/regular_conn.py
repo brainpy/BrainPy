@@ -39,7 +39,7 @@ class One2One(TwoEndConnector):
     if self.pre_num != self.post_num:
       raise ConnectorError(f'One2One connection must be defined in two groups with the '
                            f'same size, but {self.pre_num} != {self.post_num}.')
-    return np.arange(self.pre_num, dtype=IDX_DTYPE), np.arange(self.post_num, dtype=IDX_DTYPE),
+    return np.arange(self.pre_num, dtype=get_idx_type()), np.arange(self.post_num, dtype=get_idx_type()),
 
   def build_csr(self):
     if self.pre_num != self.post_num:
@@ -47,7 +47,7 @@ class One2One(TwoEndConnector):
                            f'same size, but {self.pre_num} != {self.post_num}.')
     ind = np.arange(self.pre_num)
     indptr = np.arange(self.pre_num + 1)
-    return (np.asarray(ind, dtype=IDX_DTYPE), np.asarray(indptr, dtype=IDX_DTYPE))
+    return (np.asarray(ind, dtype=get_idx_type()), np.asarray(indptr, dtype=get_idx_type()))
 
   def build_mat(self):
     if self.pre_num != self.post_num:
@@ -179,7 +179,7 @@ class GridConn(OneEndConnector):
       strides = jnp.asarray(get_size_length(self.post_size))
       pres = jnp.sum(pres * strides, axis=1)
       posts = jnp.sum(posts * strides, axis=1)
-    return jnp.asarray(pres, dtype=IDX_DTYPE), jnp.asarray(posts, dtype=IDX_DTYPE)
+    return jnp.asarray(pres, dtype=get_idx_type()), jnp.asarray(posts, dtype=get_idx_type())
 
 
 class GridFour(GridConn):

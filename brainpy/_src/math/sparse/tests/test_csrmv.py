@@ -3,7 +3,6 @@
 from functools import partial
 
 import jax
-import jax.numpy as jnp
 import pytest
 from absl.testing import parameterized
 import platform
@@ -45,11 +44,11 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     vector = bm.as_jax(vector)
     r1 = cusparse_csr_matvec(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
     r2 = cusparse_csr_matvec(heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
-    self.assertTrue(jnp.allclose(r1, r2))
+    self.assertTrue(bm.allclose(r1, r2))
 
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     r3 = (vector @ dense) if transpose else (dense @ vector)
-    self.assertTrue(jnp.allclose(r1, r3))
+    self.assertTrue(bm.allclose(r1, r3))
 
     bm.clear_buffer_memory()
 
@@ -78,10 +77,10 @@ class Test_cusparse_csrmv(parameterized.TestCase):
 
     r1 = jax.vmap(f1)(homo_data)
     r2 = jax.vmap(f1)(heter_data)
-    self.assertTrue(jnp.allclose(r1, r2))
+    self.assertTrue(bm.allclose(r1, r2))
 
     r3 = jax.vmap(f2)(dense_data)
-    self.assertTrue(jnp.allclose(r1, r3))
+    self.assertTrue(bm.allclose(r1, r3))
 
     bm.clear_buffer_memory()
 
@@ -114,7 +113,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
 
     r1 = csr_f1(homo_data)
     r2 = dense_f1(homo_data)
-    self.assertTrue(jnp.allclose(r1, r2))
+    self.assertTrue(bm.allclose(r1, r2))
 
     csr_f2 = jax.grad(lambda v: cusparse_csr_matvec(homo_data, indices, indptr, v,
                                                     shape=shape, transpose=transpose).sum())
@@ -123,7 +122,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
 
     r3 = csr_f2(vector)
     r4 = dense_f2(vector)
-    self.assertTrue(jnp.allclose(r3, r4))
+    self.assertTrue(bm.allclose(r3, r4))
 
     csr_f3 = jax.grad(lambda a, v: cusparse_csr_matvec(a, indices, indptr, v,
                                                        shape=shape, transpose=transpose).sum(),
@@ -135,8 +134,8 @@ class Test_cusparse_csrmv(parameterized.TestCase):
 
     r5 = csr_f3(homo_data, vector)
     r6 = dense_f3(homo_data, vector)
-    self.assertTrue(jnp.allclose(r5[0], r6[0]))
-    self.assertTrue(jnp.allclose(r5[1], r6[1]))
+    self.assertTrue(bm.allclose(r5[0], r6[0]))
+    self.assertTrue(bm.allclose(r5[1], r6[1]))
 
     bm.clear_buffer_memory()
 
@@ -161,7 +160,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
                              shape=shape, transpose=transpose)
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     r2 = (vector @ dense) if transpose else (dense @ vector)
-    self.assertTrue(jnp.allclose(r1, r2))
+    self.assertTrue(bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
 
@@ -190,7 +189,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
 
     r1 = jax.vmap(f1)(heter_data)
     r2 = jax.vmap(f2)(dense_data)
-    self.assertTrue(jnp.allclose(r1, r2))
+    self.assertTrue(bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
 
@@ -222,7 +221,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     r2 = dense_f1(dense_data)
     rows, cols = bm.sparse.csr_to_coo(indices, indptr)
     r2 = r2[rows, cols]
-    self.assertTrue(jnp.allclose(r1, r2))
+    self.assertTrue(bm.allclose(r1, r2))
 
     csr_f2 = jax.grad(lambda v: cusparse_csr_matvec(heter_data, indices, indptr, v,
                                                     shape=shape,
@@ -232,7 +231,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
                         argnums=0)
     r3 = csr_f2(vector)
     r4 = dense_f2(vector)
-    self.assertTrue(jnp.allclose(r3, r4))
+    self.assertTrue(bm.allclose(r3, r4))
 
     bm.clear_buffer_memory()
 
@@ -271,13 +270,13 @@ class Test_csrmv(parameterized.TestCase):
     r4 = scalar_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
     r5 = cusparse_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
     r6 = vector_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
-    self.assertTrue(jnp.allclose(r1, r4))
-    self.assertTrue(jnp.allclose(r1, r5))
-    self.assertTrue(jnp.allclose(r1, r6))
+    self.assertTrue(bm.allclose(r1, r4))
+    self.assertTrue(bm.allclose(r1, r5))
+    self.assertTrue(bm.allclose(r1, r6))
 
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     rdense = dense @ vector
-    self.assertTrue(jnp.allclose(r1, rdense))
+    self.assertTrue(bm.allclose(r1, rdense))
 
     bm.clear_buffer_memory()
 
