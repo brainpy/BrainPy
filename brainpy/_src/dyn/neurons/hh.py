@@ -180,7 +180,7 @@ class CondNeuGroup(CondNeuGroupLTC):
     return super().update(x)
 
 
-class HHLTC(NeuDyn):
+class HHLTC(HHTypedNeuron):
   r"""Hodgkin–Huxley neuron model with liquid time constant.
 
   **Model Descriptions**
@@ -758,7 +758,7 @@ class MorrisLecar(MorrisLecarLTC):
     return super().update(x)
 
 
-class WangBuzsakiHHLTC(NeuDyn):
+class WangBuzsakiHHLTC(HHTypedNeuron):
   r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model with liquid time constant.
 
   Each model is described by a single compartment and obeys the current balance equation:
