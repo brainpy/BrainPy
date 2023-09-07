@@ -1,6 +1,5 @@
 from typing import Union, Sequence, Callable, Optional
 
-import jax.numpy
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn._docs import pneu_doc
@@ -8,7 +7,6 @@ from brainpy._src.dyn.base import SynDyn
 from brainpy._src.integrators.joint_eq import JointEq
 from brainpy._src.integrators.ode.generic import odeint
 from brainpy._src.mixin import AlignPost, ReturnInfo
-from brainpy._src.initialize import Constant
 from brainpy.types import ArrayType
 
 __all__ = [
@@ -53,7 +51,6 @@ class Delta(SynDyn, AlignPost):
           "The Synapse." Principles of Computational Modelling in Neuroscience.
           Cambridge: Cambridge UP, 2011. 172-95. Print.
 
-  Args:
   """
 
   def __init__(
@@ -113,12 +110,73 @@ class Expon(SynDyn, AlignPost):
        & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
        \end{aligned}
 
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+
+        class ExponSparseCOBA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.Expon.desc(pre.num, tau=tau),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, syn_cls, E=0.):
+                super().__init__()
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = syn_cls(self.pre, self.post, delay=None, prob=1., g_max=1., tau=5., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+  Moreover, it can also be used with interface ``ProjAlignPostMg2``:
+
+  .. code-block:: python
+
+        class ExponSparseCOBAPost(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPostMg2(
+                    pre=pre,
+                    delay=delay,
+                    comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    syn=bp.dyn.Expon.desc(post.num, tau=tau),
+                    out=bp.dyn.COBA.desc(E=E),
+                    post=post,
+                )
+
+
+
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
           "The Synapse." Principles of Computational Modelling in Neuroscience.
           Cambridge: Cambridge UP, 2011. 172-95. Print.
 
   Args:
-    tau: float, ArrayType, Callable. The time constant of decay. [ms]
+    tau: float. The time constant of decay. [ms]
     %s
   """
 
@@ -199,6 +257,66 @@ class DualExpon(SynDyn):
       &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
       \end{aligned}
 
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+
+        class DualExpSparseCOBA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau_decay, tau_rise, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.DualExpon.desc(pre.num, tau_decay=tau_decay, tau_rise=tau_rise),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, syn_cls, E=0.):
+                super().__init__()
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = syn_cls(self.pre, self.post, delay=None, prob=1., g_max=1.,
+                                   tau_decay=5., tau_rise=1., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        net = SimpleNet(DualExpSparseCOBA, E=0.)
+        conductances, currents, potentials = bm.for_loop(net.step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
+
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
          "The Synapse." Principles of Computational Modelling in Neuroscience.
          Cambridge: Cambridge UP, 2011. 172-95. Print.
@@ -277,6 +395,87 @@ class DualExponV2(SynDyn, AlignPost):
   where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
   is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
   spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
+
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+
+        class DualExponV2SparseCOBA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau_decay, tau_rise, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.DualExponV2.desc(pre.num, tau_decay=tau_decay, tau_rise=tau_rise),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, syn_cls, E=0.):
+                super().__init__()
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = syn_cls(self.pre, self.post, delay=None, prob=1., g_max=1., tau_decay=5., tau_rise=1., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g_rise
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+
+
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        net = SimpleNet(DualExponV2SparseCOBAPost, E=0.)
+        conductances, currents, potentials = bm.for_loop(net.step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
+
+
+  Moreover, it can also be used with interface ``ProjAlignPostMg2``:
+
+  .. code-block:: python
+
+        class DualExponV2SparseCOBAPost(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau_decay, tau_rise, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPostMg2(
+                    pre=pre,
+                    delay=delay,
+                    comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    syn=bp.dyn.DualExponV2.desc(post.num, tau_decay=tau_decay, tau_rise=tau_rise),
+                    out=bp.dyn.COBA.desc(E=E),
+                    post=post,
+                )
+
+
 
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
          "The Synapse." Principles of Computational Modelling in Neuroscience.
@@ -363,14 +562,78 @@ class Alpha(DualExpon):
       &\frac{d h}{d t}=-\frac{h}{\tau}+\delta\left(t_{0}-t\right)
       \end{aligned}
 
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+
+        class AlphaSparseCOBA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau_decay, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.Alpha.desc(pre.num, tau_decay=tau_decay),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, syn_cls, E=0.):
+                super().__init__()
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = syn_cls(self.pre, self.post, delay=None, prob=1., g_max=1.,
+                                   tau_decay=5., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        net = SimpleNet(AlphaSparseCOBA, E=0.)
+        conductances, currents, potentials = bm.for_loop(net.step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
+
+
+
+
+
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
           "The Synapse." Principles of Computational Modelling in Neuroscience.
           Cambridge: Cambridge UP, 2011. 172-95. Print.
 
   Args:
+    %s
     tau_decay: float, ArrayType, Callable. The time constant [ms] of the synaptic decay phase.
        The name of this synaptic projection.
-    %s
   """
 
   def __init__(
@@ -451,6 +714,68 @@ class NMDA(SynDyn):
 
   The NMDA receptor has been thought to be very important for controlling
   synaptic plasticity and mediating learning and memory functions [3]_.
+
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+
+        class NMDASparseCOBA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, tau_decay, tau_rise, E):
+                super().__init__()
+
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.NMDA.desc(pre.num,
+                                              tau_decay=tau_decay, tau_rise=tau_rise),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, syn_cls, E=0.):
+                super().__init__()
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = syn_cls(self.pre, self.post, delay=None, prob=1., g_max=1.,
+                                   tau_decay=5., tau_rise=1., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        net = SimpleNet(NMDASparseCOBA, E=0.)
+        conductances, currents, potentials = bm.for_loop(net.step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
+
 
 
   .. [1] Brunel N, Wang X J. Effects of neuromodulation in a
