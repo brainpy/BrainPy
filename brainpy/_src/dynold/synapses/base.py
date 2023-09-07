@@ -303,7 +303,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
 
     # synaptic communications
     if isinstance(conn, All2All):
-      self.comm = linear.AllToAll(pre.num, post.num, g_max)
+      self.comm = linear.AllToAll(pre.num, post.num, g_max, include_self=conn.include_self)
     elif isinstance(conn, One2One):
       assert post.num == pre.num
       self.comm = linear.OneToOne(pre.num, g_max)
@@ -341,10 +341,10 @@ class _TwoEndConnAlignPre(TwoEndConn):
     self.comm.weight = v
 
   def reset_state(self, *args, **kwargs):
-    self.syn.reset_state(*args, **kwargs)
-    self.comm.reset_state(*args, **kwargs)
-    self.output.reset_state(*args, **kwargs)
+    self.syn.reset(*args, **kwargs)
+    self.comm.reset(*args, **kwargs)
+    self.output.reset(*args, **kwargs)
     if self.stp is not None:
-      self.stp.reset_state(*args, **kwargs)
+      self.stp.reset(*args, **kwargs)
 
 

@@ -256,7 +256,7 @@ class Variable(Array):
     ext_shape = jnp.shape(v)
     int_shape = jnp.shape(_value)
     if self._batch_axis is not None:
-      ext_shape = v.shape[:self._batch_axis] + v.shape[self._batch_axis + 1:]
+      ext_shape = ext_shape[:self._batch_axis] + ext_shape[self._batch_axis + 1:]
       int_shape = int_shape[:self._batch_axis] + int_shape[self._batch_axis + 1:]
     if ext_shape != int_shape:
       error = f"The shape of the original data is {int_shape}, while we got {ext_shape}"
@@ -268,7 +268,14 @@ class Variable(Array):
       raise MathError(f"The dtype of the original data is {int_dtype}, "
                       f"while we got {ext_dtype}.")
     self._append_to_stack()
-    self._value = v.value if isinstance(v, Array) else v
+    if isinstance(v, Array):
+      v = v.value
+    elif isinstance(v, np.ndarray):
+      v = jnp.asarray(v)
+    else:
+      v = v
+    self._value = v
+
 
   def _append_to_stack(self):
     if self._ready_to_trace:

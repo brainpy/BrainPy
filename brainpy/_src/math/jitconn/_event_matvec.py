@@ -50,7 +50,7 @@ def event_mv_prob_homo(
   with jax.ensure_compile_time_eval():
     if seed is None:
       seed = int(np.random.randint(0, int(1e8)))
-  seed = jnp.atleast_1d(as_jax(seed))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.int32))
   r = event_mv_prob_homo_p.bind(events,
                                 weight,
                                 clen,
@@ -83,7 +83,7 @@ def event_mv_prob_uniform(
   with jax.ensure_compile_time_eval():
     if seed is None:
       seed = int(np.random.randint(0, int(1e8)))
-  seed = jnp.atleast_1d(as_jax(seed))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.int32))
   return event_mv_prob_uniform_p.bind(events,
                                       w_low,
                                       w_high,
@@ -116,7 +116,7 @@ def event_mv_prob_normal(
   with jax.ensure_compile_time_eval():
     if seed is None:
       seed = int(np.random.randint(0, int(1e8)))
-  seed = jnp.atleast_1d(as_jax(seed))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.int32))
   return event_mv_prob_normal_p.bind(events,
                                      w_mu,
                                      w_sigma,
@@ -210,9 +210,9 @@ def _event_matvec_prob_homo_gpu_translation(
                                                 shape[0] if transpose else shape[1], )
 
   if outdim_parallel:
-    fn = b'gpu_event_matvec_prob_homo_v2' + type_name + event_type
+    fn = b'gpu_jit_event_csrmv_prob_homo_v2' + type_name + event_type
   else:
-    fn = b'gpu_event_matvec_atomic_prob_homo_v2' + type_name + event_type
+    fn = b'gpu_jit_event_csrmv_atomic_prob_homo_v2' + type_name + event_type
 
   return xla_client.ops.CustomCallWithLayout(
     c,
@@ -393,9 +393,9 @@ def _event_matvec_prob_uniform_gpu_translation(
   opaque = gpu_ops.build_double_size_descriptor(shape[1] if transpose else shape[0],
                                                 shape[0] if transpose else shape[1])
   if outdim_parallel:
-    fn = b'gpu_event_matvec_prob_uniform_v2' + type_name + event_type
+    fn = b'gpu_jit_event_csrmv_prob_uniform_v2' + type_name + event_type
   else:
-    fn = b'gpu_event_matvec_atomic_prob_uniform_v2' + type_name + event_type
+    fn = b'gpu_jit_event_csrmv_atomic_prob_uniform_v2' + type_name + event_type
   return xla_client.ops.CustomCallWithLayout(
     c,
     fn,
@@ -585,9 +585,9 @@ def _event_matvec_prob_normal_gpu_translation(
   opaque = gpu_ops.build_double_size_descriptor(shape[1] if transpose else shape[0],
                                                 shape[0] if transpose else shape[1])
   if outdim_parallel:
-    fn = b'gpu_event_matvec_prob_normal_v2' + type_name + event_type
+    fn = b'gpu_jit_event_csrmv_prob_normal_v2' + type_name + event_type
   else:
-    fn = b'gpu_event_matvec_atomic_prob_normal_v2' + type_name + event_type
+    fn = b'gpu_jit_event_csrmv_atomic_prob_normal_v2' + type_name + event_type
   return xla_client.ops.CustomCallWithLayout(
     c,
     fn,

@@ -9,6 +9,7 @@ from brainpy._src.encoding.stateful_encoding import (
   WeightedPhaseEncoder as WeightedPhaseEncoder,
 )
 from brainpy._src.encoding.stateless_encoding import (
-  PoissonEncoder as PoissonEncoder
+  PoissonEncoder as PoissonEncoder,
+  DiffEncoder as DiffEncoder,
 )
 

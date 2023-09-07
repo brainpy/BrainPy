@@ -6,7 +6,7 @@ import numpy as np
 
 from .ndarray import Array, _as_jax_array_, _return, _check_out
 from .compat_numpy import (
-  concatenate, shape
+  concatenate, shape, minimum, maximum,
 )
 
 __all__ = [
@@ -31,8 +31,9 @@ __all__ = [
   'arctan',
   'atan2',
   'atanh',
+  'clamp_max',
+  'clamp_min',
 ]
-
 
 Tensor = Array
 cat = concatenate
@@ -80,28 +81,28 @@ def flatten(input: Union[jax.Array, Array],
     raise ValueError(f'start_dim {start_dim} is out of size.')
   if end_dim < 0 or end_dim > ndim:
     raise ValueError(f'end_dim {end_dim} is out of size.')
-  new_shape = shape[:start_dim] + (np.prod(shape[start_dim: end_dim], dtype=int), ) + shape[end_dim:]
+  new_shape = shape[:start_dim] + (np.prod(shape[start_dim: end_dim], dtype=int),) + shape[end_dim:]
   return jnp.reshape(input, new_shape)
 
 
 def unsqueeze(input: Union[jax.Array, Array], dim: int) -> Array:
-    """Returns a new tensor with a dimension of size one inserted at the specified position.
-  The returned tensor shares the same underlying data with this tensor.
-  A dim value within the range [-input.dim() - 1, input.dim() + 1) can be used.
-  Negative dim will correspond to unsqueeze() applied at dim = dim + input.dim() + 1.
-  Parameters
-  ----------
-  input: Array
-    The input Array
-  dim: int
-    The index at which to insert the singleton dimension
+  """Returns a new tensor with a dimension of size one inserted at the specified position.
+The returned tensor shares the same underlying data with this tensor.
+A dim value within the range [-input.dim() - 1, input.dim() + 1) can be used.
+Negative dim will correspond to unsqueeze() applied at dim = dim + input.dim() + 1.
+Parameters
+----------
+input: Array
+  The input Array
+dim: int
+  The index at which to insert the singleton dimension
 
-  Returns
-  -------
-  out: Array
-  """
-    input = _as_jax_array_(input)
-    return Array(jnp.expand_dims(input, dim))
+Returns
+-------
+out: Array
+"""
+  input = _as_jax_array_(input)
+  return Array(jnp.expand_dims(input, dim))
 
 
 # Math operations
@@ -115,10 +116,12 @@ def abs(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 absolute = abs
 
+
 def acos(input: Union[jax.Array, Array],
-         *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+         *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   r = jnp.arccos(input)
   if out is None:
@@ -127,10 +130,12 @@ def acos(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arccos = acos
 
+
 def acosh(input: Union[jax.Array, Array],
-          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   r = jnp.arccosh(input)
   if out is None:
@@ -139,7 +144,9 @@ def acosh(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arccosh = acosh
+
 
 def add(input: Union[jax.Array, Array, jnp.number],
         other: Union[jax.Array, Array, jnp.number],
@@ -155,6 +162,7 @@ def add(input: Union[jax.Array, Array, jnp.number],
     _check_out(out)
     out.value = r
 
+
 def addcdiv(input: Union[jax.Array, Array, jnp.number],
             tensor1: Union[jax.Array, Array, jnp.number],
             tensor2: Union[jax.Array, Array, jnp.number],
@@ -165,7 +173,8 @@ def addcdiv(input: Union[jax.Array, Array, jnp.number],
   other = jnp.divide(tensor1, tensor2)
   return add(input, other, alpha=value, out=out)
 
-def addcmul(input:  Union[jax.Array, Array, jnp.number],
+
+def addcmul(input: Union[jax.Array, Array, jnp.number],
             tensor1: Union[jax.Array, Array, jnp.number],
             tensor2: Union[jax.Array, Array, jnp.number],
             *, value: jnp.number = 1,
@@ -174,6 +183,7 @@ def addcmul(input:  Union[jax.Array, Array, jnp.number],
   tensor2 = _as_jax_array_(tensor2)
   other = jnp.multiply(tensor1, tensor2)
   return add(input, other, alpha=value, out=out)
+
 
 def angle(input: Union[jax.Array, Array, jnp.number],
           *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
@@ -185,8 +195,9 @@ def angle(input: Union[jax.Array, Array, jnp.number],
     _check_out(out)
     out.value = r
 
+
 def asin(input: Union[jax.Array, Array],
-          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+         *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   r = jnp.arcsin(input)
   if out is None:
@@ -195,10 +206,12 @@ def asin(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arcsin = asin
 
+
 def asinh(input: Union[jax.Array, Array],
-          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+          *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   r = jnp.arcsinh(input)
   if out is None:
@@ -207,10 +220,12 @@ def asinh(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arcsinh = asinh
 
+
 def atan(input: Union[jax.Array, Array],
-          *, out: Optional[Union[Array,jax.Array, np.ndarray]] = None) -> Optional[Array]:
+         *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
   input = _as_jax_array_(input)
   r = jnp.arctan(input)
   if out is None:
@@ -219,7 +234,9 @@ def atan(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arctan = atan
+
 
 def atanh(input: Union[jax.Array, Array],
           *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
@@ -231,7 +248,9 @@ def atanh(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arctanh = atanh
+
 
 def atan2(input: Union[jax.Array, Array],
           *, out: Optional[Union[Array, jax.Array, np.ndarray]] = None) -> Optional[Array]:
@@ -243,4 +262,7 @@ def atan2(input: Union[jax.Array, Array],
     _check_out(out)
     out.value = r
 
+
 arctan2 = atan2
+clamp_max = minimum
+clamp_min = maximum

@@ -74,7 +74,10 @@ class _ShareContext:
 
   def get_shargs(self) -> DotDict:
     """Get all shared arguments in the global context."""
-    return self._arguments.copy()
+    shs = self._arguments.copy()
+    if 'dt' not in shs:
+      shs['dt'] = self.dt
+    return shs
 
   def clear_shargs(self, *args) -> None:
     """Clear all shared arguments in the global context."""
