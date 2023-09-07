@@ -722,7 +722,6 @@ class NMDA(SynDyn):
         import numpy as np
         import brainpy as bp
         import brainpy.math as bm
-
         import matplotlib.pyplot as plt
 
 
