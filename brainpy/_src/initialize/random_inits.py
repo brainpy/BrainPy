@@ -253,12 +253,12 @@ class KaimingUniform(VarianceScaling):
       out_axis: int = -1,
       seed: int = None
   ):
-    super(KaimingUniform, self).__init__(scale,
-                                         mode,
-                                         distribution,
-                                         in_axis=in_axis,
-                                         out_axis=out_axis,
-                                         seed=seed)
+    super().__init__(scale,
+                     mode,
+                     distribution,
+                     in_axis=in_axis,
+                     out_axis=out_axis,
+                     seed=seed)
 
 
 class KaimingNormal(VarianceScaling):
@@ -271,12 +271,12 @@ class KaimingNormal(VarianceScaling):
       out_axis: int = -1,
       seed: int = None
   ):
-    super(KaimingNormal, self).__init__(scale,
-                                        mode,
-                                        distribution,
-                                        in_axis=in_axis,
-                                        out_axis=out_axis,
-                                        seed=seed)
+    super().__init__(scale,
+                     mode,
+                     distribution,
+                     in_axis=in_axis,
+                     out_axis=out_axis,
+                     seed=seed)
 
 
 class XavierUniform(VarianceScaling):
@@ -289,12 +289,12 @@ class XavierUniform(VarianceScaling):
       out_axis: int = -1,
       seed: int = None
   ):
-    super(XavierUniform, self).__init__(scale,
-                                        mode,
-                                        distribution,
-                                        in_axis=in_axis,
-                                        out_axis=out_axis,
-                                        seed=seed)
+    super().__init__(scale,
+                     mode,
+                     distribution,
+                     in_axis=in_axis,
+                     out_axis=out_axis,
+                     seed=seed)
 
 
 class XavierNormal(VarianceScaling):
@@ -307,12 +307,12 @@ class XavierNormal(VarianceScaling):
       out_axis: int = -1,
       seed: int = None
   ):
-    super(XavierNormal, self).__init__(scale,
-                                       mode,
-                                       distribution,
-                                       in_axis=in_axis,
-                                       out_axis=out_axis,
-                                       seed=seed)
+    super().__init__(scale,
+                     mode,
+                     distribution,
+                     in_axis=in_axis,
+                     out_axis=out_axis,
+                     seed=seed)
 
 
 class LecunUniform(VarianceScaling):
@@ -325,12 +325,12 @@ class LecunUniform(VarianceScaling):
       out_axis: int = -1,
       seed: int = None
   ):
-    super(LecunUniform, self).__init__(scale,
-                                       mode,
-                                       distribution,
-                                       in_axis=in_axis,
-                                       out_axis=out_axis,
-                                       seed=seed)
+    super().__init__(scale,
+                     mode,
+                     distribution,
+                     in_axis=in_axis,
+                     out_axis=out_axis,
+                     seed=seed)
 
 
 class LecunNormal(VarianceScaling):
@@ -343,12 +343,12 @@ class LecunNormal(VarianceScaling):
       out_axis: int = -1,
       seed: int = None
   ):
-    super(LecunNormal, self).__init__(scale,
-                                      mode,
-                                      distribution,
-                                      in_axis=in_axis,
-                                      out_axis=out_axis,
-                                      seed=seed)
+    super().__init__(scale,
+                     mode,
+                     distribution,
+                     in_axis=in_axis,
+                     out_axis=out_axis,
+                     seed=seed)
 
 
 class Orthogonal(_InterLayerInitializer):
@@ -365,7 +365,7 @@ class Orthogonal(_InterLayerInitializer):
       axis: int = -1,
       seed: int = None
   ):
-    super(Orthogonal, self).__init__()
+    super().__init__()
     self.scale = scale
     self.axis = axis
     self.rng = bm.random.default_rng(seed, clone=False)
@@ -423,5 +423,3 @@ class DeltaOrthogonal(_InterLayerInitializer):
 
   def __repr__(self):
     return f'{self.__class__.__name__}(scale={self.scale}, axis={self.axis})'
-
-

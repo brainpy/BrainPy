@@ -24,7 +24,7 @@ __all__ = [
 ]
 
 
-_minimal_brainpylib_version = '0.1.9'
+_minimal_brainpylib_version = '0.1.10'
 
 
 def import_numba():

@@ -76,10 +76,6 @@ def csr_to_dense(
   data = as_jax(data)
   indices = as_jax(indices)
   indptr = as_jax(indptr)
-
-  if jax.default_backend() == 'gpu':
-    indices = jnp.asarray(indices, dtype=dtypes.canonicalize_dtype(int))
-    indptr = jnp.asarray(indptr, dtype=dtypes.canonicalize_dtype(int))
   return csr_to_dense_p.bind(data, indices, indptr, shape=shape)
 
 

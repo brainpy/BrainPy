@@ -137,10 +137,10 @@ class Euler(SDEIntegrator):
         if diffusions[key] is not None:
           shape = jnp.shape(all_args[key])
           if self.wiener_type == constants.SCALAR_WIENER:
-            integral += diffusions[key] * self.rng.randn(*shape) * jnp.sqrt(dt)
+            integral += diffusions[key] * bm.random.randn(*shape) * jnp.sqrt(dt)
           else:
             shape += jnp.shape(diffusions[key])[-1:]
-            integral += jnp.sum(diffusions[key] * self.rng.randn(*shape), axis=-1) * jnp.sqrt(dt)
+            integral += jnp.sum(diffusions[key] * bm.random.randn(*shape), axis=-1) * jnp.sqrt(dt)
         integrals.append(integral)
 
     else:
@@ -156,7 +156,7 @@ class Euler(SDEIntegrator):
             noise_shape = jnp.shape(diffusions[key])
             self._check_vector_wiener_dim(noise_shape, shape)
             shape += noise_shape[-1:]
-          noise = self.rng.randn(*shape)
+          noise = bm.random.randn(*shape)
           all_noises[key] = noise * jnp.sqrt(dt)
           if self.wiener_type == constants.VECTOR_WIENER:
             y_bar = all_args[key] + jnp.sum(diffusions[key] * noise, axis=-1)
@@ -358,7 +358,7 @@ class Milstein(SDEIntegrator):
           noise_shape = jnp.shape(diffusions[key])
           self._check_vector_wiener_dim(noise_shape, shape)
           shape += noise_shape[-1:]
-        noise = self.rng.randn(*shape) * jnp.sqrt(dt)
+        noise = bm.random.randn(*shape) * jnp.sqrt(dt)
         if self.wiener_type == constants.VECTOR_WIENER:
           integral += jnp.sum(diffusions[key] * noise, axis=-1)
         else:
@@ -483,7 +483,7 @@ class MilsteinGradFree(SDEIntegrator):
           noise_shape = jnp.shape(diffusions[key])
           self._check_vector_wiener_dim(noise_shape, shape)
           shape += noise_shape[-1:]
-        noise = self.rng.randn(*shape) * jnp.sqrt(dt)
+        noise = bm.random.randn(*shape) * jnp.sqrt(dt)
         if self.wiener_type == constants.VECTOR_WIENER:
           integral += jnp.sum(diffusions[key] * noise, axis=-1)
         else:
@@ -597,9 +597,9 @@ class ExponentialEuler(SDEIntegrator):
             noise_shape = jnp.shape(diffusion)
             self._check_vector_wiener_dim(noise_shape, shape)
             shape += noise_shape[-1:]
-            diffusion = jnp.sum(diffusion * self.rng.randn(*shape), axis=-1)
+            diffusion = jnp.sum(diffusion * bm.random.randn(*shape), axis=-1)
           else:
-            diffusion = diffusion * self.rng.randn(*shape)
+            diffusion = diffusion * bm.random.randn(*shape)
           r += diffusion * jnp.sqrt(params_in[constants.DT])
         # final result
         results.append(r)

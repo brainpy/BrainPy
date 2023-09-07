@@ -3,7 +3,6 @@ import unittest
 import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
-import numpy.random as nr
 
 import brainpy.math as bm
 import brainpy.math.random as br
@@ -548,3 +547,11 @@ class TestRandom(unittest.TestCase):
     br.seed()
     a = bm.random.t([1., 2.], size=None)
     self.assertTupleEqual(a.shape, (2,))
+
+
+class TestRandomKey(unittest.TestCase):
+  def test_clear_memory(self):
+    bm.random.split_key()
+    bm.clear_buffer_memory()
+    print(bm.random.DEFAULT.value)
+    self.assertTrue(isinstance(bm.random.DEFAULT.value, np.ndarray))

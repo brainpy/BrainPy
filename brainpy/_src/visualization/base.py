@@ -105,3 +105,8 @@ class visualize(object):
                   lw=1):
     from .styles import plot_style1
     plot_style1(fontsize=fontsize, axes_edgecolor=axes_edgecolor, figsize=figsize, lw=lw)
+
+  @staticmethod
+  def animator(data, fig, ax, num_steps=False, interval=40, cmap="plasma"):
+    from .animation import animator
+    return animator(data, fig, ax, num_steps=num_steps, interval=interval, cmap=cmap)

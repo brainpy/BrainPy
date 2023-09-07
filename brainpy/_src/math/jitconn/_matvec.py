@@ -94,7 +94,7 @@ def mv_prob_homo(
   with jax.ensure_compile_time_eval():
     if seed is None:
       seed = int(np.random.randint(0, int(1e8)))
-  seed = jnp.atleast_1d(as_jax(seed))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.int32))
   return mv_prob_homo_p.bind(vector,
                              weight,
                              clen,
@@ -174,7 +174,7 @@ def mv_prob_uniform(
   with jax.ensure_compile_time_eval():
     if seed is None:
       seed = int(np.random.randint(0, int(1e8)))
-  seed = jnp.atleast_1d(as_jax(seed))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.int32))
   return mv_prob_uniform_p.bind(vector,
                                 w_low,
                                 w_high,
@@ -254,7 +254,7 @@ def mv_prob_normal(
   with jax.ensure_compile_time_eval():
     if seed is None:
       seed = int(np.random.randint(0, int(1e8)))
-  seed = jnp.atleast_1d(as_jax(seed))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.int32))
   return mv_prob_normal_p.bind(vector,
                                w_mu,
                                w_sigma,
@@ -361,9 +361,9 @@ def _matvec_prob_homo_gpu_translation(
                                                 shape[0] if transpose else shape[1])
 
   if outdim_parallel:
-    fn = b'gpu_matvec_prob_homo_v2' + type_name
+    fn = b'gpu_jit_csrmv_prob_homo_v2' + type_name
   else:
-    fn = b'gpu_matvec_atomic_prob_homo_v2' + type_name
+    fn = b'gpu_jit_csrmv_atomic_prob_homo_v2' + type_name
   return xla_client.ops.CustomCallWithLayout(
     c,
     fn,
@@ -553,9 +553,9 @@ def _matvec_prob_uniform_gpu_translation(
                                                 shape[0] if transpose else shape[1])
 
   if outdim_parallel:
-    fn = b'gpu_matvec_prob_uniform_v2' + type_name
+    fn = b'gpu_jit_csrmv_prob_uniform_v2' + type_name
   else:
-    fn = b'gpu_matvec_atomic_prob_uniform_v2' + type_name
+    fn = b'gpu_jit_csrmv_atomic_prob_uniform_v2' + type_name
 
   return xla_client.ops.CustomCallWithLayout(
     c,
@@ -733,9 +733,9 @@ def _matvec_prob_normal_gpu_translation(
                                                 shape[0] if transpose else shape[1])
 
   if outdim_parallel:
-    fn = b'gpu_matvec_prob_normal_v2' + type_name
+    fn = b'gpu_jit_csrmv_prob_normal_v2' + type_name
   else:
-    fn = b'gpu_matvec_atomic_prob_normal_v2' + type_name
+    fn = b'gpu_jit_csrmv_atomic_prob_normal_v2' + type_name
 
   return xla_client.ops.CustomCallWithLayout(
     c,

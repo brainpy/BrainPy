@@ -100,9 +100,9 @@ class FHN(RateModel):
       input_var: bool = True,
   ):
     super().__init__(size=size,
-                              name=name,
-                              keep_size=keep_size,
-                              mode=mode)
+                     name=name,
+                     keep_size=keep_size,
+                     mode=mode)
 
     # model parameters
     self.alpha = parameter(alpha, self.varshape, allow_none=False)
@@ -1025,8 +1025,8 @@ class ThresholdLinearModel(RateModel):
     self.e = variable(e_initializer, self.mode, self.varshape)  # Firing rate of excitatory population
     self.i = variable(i_initializer, self.mode, self.varshape)  # Firing rate of inhibitory population
     if self.input_var:
-       self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
-       self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
+      self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
+      self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
 
   def reset(self, batch_size=None):
     self.reset_state(batch_size)
