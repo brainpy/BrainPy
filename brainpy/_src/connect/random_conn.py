@@ -128,8 +128,11 @@ class FixedProb(TwoEndConnector):
     return selected_post_ids.astype(get_idx_type()), selected_pre_inptr.astype(get_idx_type())
 
   def build_mat(self):
-    pre_state = self._jaxrand.uniform(size=(self.pre_num, 1)) < self.pre_ratio
-    mat = (self._jaxrand.uniform(size=(self.pre_num, self.post_num)) < self.prob) * pre_state
+    if self.pre_ratio < 1.:
+      pre_state = self._jaxrand.uniform(size=(self.pre_num, 1)) < self.pre_ratio
+      mat = (self._jaxrand.uniform(size=(self.pre_num, self.post_num)) < self.prob) * pre_state
+    else:
+      mat = (self._jaxrand.uniform(size=(self.pre_num, self.post_num)) < self.prob)
     mat = bm.asarray(mat)
     if not self.include_self:
       bm.fill_diagonal(mat, False)
