@@ -6,7 +6,6 @@ import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
-from jax._src.array import ArrayImpl
 
 from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy._src.math.ndarray import Array
@@ -39,13 +38,13 @@ class VariableStack(dict):
     id_ = id(var)
     if id_ not in self:
       self[id_] = var
-      # self._values[id_] = var._value
-      v = var._value
-      if not isinstance(v, ArrayImpl):
-        with jax.ensure_compile_time_eval():
-          v = jnp.zeros_like(v)
-          var._value = v
-      self._values[id_] = v
+      self._values[id_] = var._value
+      # v = var._value
+      # if isinstance(v, Tracer):
+      #   with jax.ensure_compile_time_eval():
+      #     v = jnp.zeros_like(v)
+      #     var._value = v
+      # self._values[id_] = v
 
   def collect_values(self):
     """Collect the value of each variable once again."""
@@ -114,7 +113,6 @@ class VariableStack(dict):
     if isinstance(other, VariableStack):
       new_dict._values.update(other._values)
     return new_dict
-
 
 var_stack_list: List[VariableStack] = []
 transform_stack: List[Callable] = []

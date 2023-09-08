@@ -20,7 +20,7 @@ from brainpy._src.math.object_transform.collectors import (ArrayCollector, Colle
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        check_name_uniqueness)
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
-                                                          VarList, VarDict)
+                                                          VarList, VarDict, var_stack_list)
 
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
 
@@ -116,6 +116,10 @@ class BrainPyObject(object):
       if not isinstance(value, Variable):
         value = Variable(value)
       value._ready_to_trace = True
+      v = value._value
+      if len(var_stack_list) > 0 and isinstance(v, jax.core.Tracer):
+        with jax.ensure_compile_time_eval():
+          value._value = jax.numpy.zeros_like(v)
       self.setattr(key, value)
     else:
       var = getattr(self, key)
