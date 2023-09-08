@@ -1253,6 +1253,19 @@ def split_key():
   return DEFAULT.split_key()
 
 
+def split_keys(n):
+  """Create multiple seeds from the current seed. This is used
+  internally by `pmap` and `vmap` to ensure that random numbers
+  are different in parallel threads.
+
+  Parameters
+  ----------
+  n : int
+    The number of seeds to generate.
+  """
+  return DEFAULT.split_keys(n)
+
+
 def clone_rng(seed_or_key=None, clone: bool = True) -> RandomState:
   if seed_or_key is None:
     return DEFAULT.clone() if clone else DEFAULT
