@@ -6,6 +6,7 @@ import numpy as np
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
+from jax._src.array import ArrayImpl
 
 from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy._src.math.ndarray import Array
@@ -38,7 +39,13 @@ class VariableStack(dict):
     id_ = id(var)
     if id_ not in self:
       self[id_] = var
-      self._values[id_] = var._value
+      # self._values[id_] = var._value
+      v = var._value
+      if not isinstance(v, ArrayImpl):
+        with jax.ensure_compile_time_eval():
+          v = jnp.zeros_like(v)
+          var._value = v
+      self._values[id_] = v
 
   def collect_values(self):
     """Collect the value of each variable once again."""
@@ -71,7 +78,7 @@ class VariableStack(dict):
     """Get all data in the collected variables with a python dict structure."""
     new_dict = dict()
     for id_, elem in tuple(self.items()):
-      new_dict[id_] = elem.value if isinstance(elem, Array) else elem
+      new_dict[id_] = elem.value
     return new_dict
 
   def list_data(self) -> list:
@@ -163,14 +170,11 @@ class Variable(Array):
   Note that when initializing a `Variable` by the data shape,
   all values in this `Variable` will be initialized as zeros.
 
-  Parameters
-  ----------
-  value_or_size: Shape, Array, int
-    The value or the size of the value.
-  dtype:
-    The type of the data.
-  batch_axis: optional, int
-    The batch axis.
+  Args:
+    value_or_size: Shape, Array, int. The value or the size of the value.
+    dtype: Any. The type of the data.
+    batch_axis: optional, int. The batch axis.
+    axis_names: sequence of str. The name for each axis.
   """
 
   __slots__ = ('_value', '_batch_axis', '_ready_to_trace', 'axis_names')
@@ -191,7 +195,7 @@ class Variable(Array):
     else:
       value = value_or_size
 
-    super(Variable, self).__init__(value, dtype=dtype)
+    super().__init__(value, dtype=dtype)
 
     # check batch axis
     if isinstance(value, Variable):
@@ -276,7 +280,6 @@ class Variable(Array):
       v = v
     self._value = v
 
-
   def _append_to_stack(self):
     if self._ready_to_trace:
       for stack in var_stack_list:
@@ -319,7 +322,7 @@ class TrainVar(Variable):
       axis_names: Optional[Sequence[str]] = None,
       _ready_to_trace: bool = True
   ):
-    super(TrainVar, self).__init__(
+    super().__init__(
       value_or_size,
       dtype=dtype,
       batch_axis=batch_axis,
@@ -342,7 +345,7 @@ class Parameter(Variable):
       axis_names: Optional[Sequence[str]] = None,
       _ready_to_trace: bool = True
   ):
-    super(Parameter, self).__init__(
+    super().__init__(
       value_or_size,
       dtype=dtype,
       batch_axis=batch_axis,
@@ -390,7 +393,7 @@ class VariableView(Variable):
     self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
-    super(VariableView, self).__init__(value.value, batch_axis=value.batch_axis, _ready_to_trace=False)
+    super().__init__(value.value, batch_axis=value.batch_axis, _ready_to_trace=False)
     self._value = value
 
   def __repr__(self) -> str:

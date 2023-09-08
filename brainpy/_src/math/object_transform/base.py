@@ -102,17 +102,35 @@ class BrainPyObject(object):
   def setattr(self, key: str, value: Any) -> None:
     super().__setattr__(key, value)
 
+  def in_trace_variable(self, key: str, value: Variable) -> Variable:
+    """Initialize and get the in-trace variable.
+
+    Args:
+      key: str. The name of the variable.
+      value: Array. The data of the in-trace variable.
+
+    Returns:
+      variable.
+    """
+    if not hasattr(self, key):
+      if not isinstance(value, Variable):
+        value = Variable(value)
+      value._ready_to_trace = True
+      self.setattr(key, value)
+    else:
+      var = getattr(self, key)
+      var.value = value
+      value = var
+    return value
+
   def __setattr__(self, key: str, value: Any) -> None:
     """Overwrite `__setattr__` method for changing :py:class:`~.Variable` values.
 
     .. versionadded:: 2.3.1
 
-    Parameters
-    ----------
-    key: str
-      The attribute.
-    value: Any
-      The value.
+    Args:
+      key: str. The attribute.
+      value: Any. The value.
     """
     if key in self.__dict__:
       val = self.__dict__[key]
@@ -252,7 +270,7 @@ class BrainPyObject(object):
           continue
         v = getattr(node, k)
         if isinstance(v, Variable) and not isinstance(v, exclude_types):
-            gather[f'{node_path}.{k}' if node_path else k] = v
+          gather[f'{node_path}.{k}' if node_path else k] = v
         elif isinstance(v, VarList):
           for i, vv in enumerate(v):
             if not isinstance(vv, exclude_types):
@@ -702,4 +720,3 @@ class NodeDict(dict):
 
 
 node_dict = NodeDict
-
