@@ -44,14 +44,15 @@ For detailed installation instructions, please refer to the documentation: [Quic
 
 If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
 
-BrainPy is developed by a team in Neural Information Processing Lab at Peking University China. 
+BrainPy is developed by a team in Neural Information Processing Lab at Peking University, China. 
+Our team is committed to the long-term maintenance and development of the project. 
 
-Its development has been supported by Science and Technology Innovation 2030 - 
-Brain Science and Brain-inspired Intelligence Project (China Brain Project) 
+Moreover, the development of BrainPy is being or has been supported by Science and Technology 
+Innovation 2030 - Brain Science and Brain-inspired Intelligence Project (China Brain Project), 
 and Beijing Academy of Artificial Intelligence. 
 
 
-## Development roadmap
+## Ongoing development plans
 
 We highlight the key features and functionalities that are currently under active development. 
 
