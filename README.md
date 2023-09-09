@@ -23,27 +23,45 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 
 
 
+## Installation
+
+BrainPy is based on Python (>=3.8) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. Install the latest version of BrainPy:
+
+```bash
+$ pip install brainpy brainpylib -U
+```
+
+For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
+
+
 ## Ecosystem
 
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
 
-
-
-## Install
-
-BrainPy is based on Python (>=3.7) and can be installed on  Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. Install the latest version of BrainPy:
-
-```bash
-$ pip install brainpy -U
-```
-
-For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
-
-
-
-
-## Citing
+## Citing and Funding
 
 If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+
+BrainPy is developed by a team in Neural Information Processing Lab at Peking University China. 
+
+Its development has been supported by Science and Technology Innovation 2030 - 
+Brain Science and Brain-inspired Intelligence Project (China Brain Project) 
+and Beijing Academy of Artificial Intelligence. 
+
+
+## Development roadmap
+
+We highlight the key features and functionalities that are currently under active development. 
+
+We also welcome your contributions 
+(see [Contributing to BrainPy](https://brainpy.readthedocs.io/en/latest/tutorial_advanced/contributing.html)). 
+
+- [x] model and data parallelization on multiple devices for dense connection models
+- [ ] model parallelization on multiple devices for sparse spiking network models
+- [ ] data parallelization on multiple devices for sparse spiking network models
+- [ ] pipeline parallelization on multiple devices for sparse spiking network models
+- [ ] multi-compartment modeling
+- [ ] measurements, analysis, and visualization methods for large-scale spiking data
+
