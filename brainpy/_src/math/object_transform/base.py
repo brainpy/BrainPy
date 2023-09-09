@@ -135,22 +135,25 @@ class BrainPyObject(object):
     Returns:
       The instance of :py:class:`~.Variable`.
     """
-    if not hasattr(self, name):
-      if not isinstance(value, Variable):
-        value = Variable(value)
-      value._ready_to_trace = True
-      if len(var_stack_list) > 0 and isinstance(value._value, jax.core.Tracer):
-        with jax.ensure_compile_time_eval():
-          value._value = jax.numpy.zeros_like(value._value)
-      self.setattr(name, value)
-    else:
+    # the variable has been created
+    if hasattr(self, name):
       var = getattr(self, name)
-      if not isinstance(var, Variable):
-        raise KeyError(f'"{name}" has been used in this class. Please assign '
-                       f'another name for the initialization of variables '
-                       f'tracing during computation and compilation.')
-      var.value = value
-      value = var
+      if isinstance(var, Variable):
+        var.value = value
+        return var
+
+    # create the variable
+    if not isinstance(value, Variable):
+      value = Variable(value)
+    value._ready_to_trace = True
+    if len(var_stack_list) > 0 and isinstance(value._value, jax.core.Tracer):
+      with jax.ensure_compile_time_eval():
+        value._value = jax.numpy.zeros_like(value._value)
+    self.setattr(name, value)
+    # if not isinstance(var, Variable):
+    #   raise KeyError(f'"{name}" has been used in this class. Please assign '
+    #                  f'another name for the initialization of variables '
+    #                  f'tracing during computation and compilation.')
     return value
 
   def __setattr__(self, key: str, value: Any) -> None:
