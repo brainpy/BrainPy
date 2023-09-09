@@ -102,27 +102,53 @@ class BrainPyObject(object):
   def setattr(self, key: str, value: Any) -> None:
     super().__setattr__(key, value)
 
-  def in_trace_variable(self, key: str, value: Variable) -> Variable:
-    """Initialize and get the in-trace variable.
+  def tracing_variable(self, name: str, value: Union[jax.Array, Array]) -> Variable:
+    """Initialize and get the variable which can be traced during computation.
+
+    Although this function is designed to initialize tracing variables during computation or compilation,
+    it can also be used for initialization of variables before or after computation and compilation.
+
+    - If ``name`` has been used in this object, a ``KeyError`` will be raised.
+    - If the variable has not been instantiated, the given ``value`` will be used to
+      instantiate a :py:class:`~.Variable`.
+    - If the variable has been created, the further call of this function will
+      refresh the value of the variable with the given ``value``.
+
+    Here is the usage example::
+
+       class Example(bm.BrainPyObject):
+         def fun(self):
+           # this line will create a Variable instance
+           self.tracing_variable('a', bm.zeros(10))
+
+           # calling this function again will assign a different value
+           # to the created Variable instance
+           self.tracing_variable('a', bm.random.random(10))
 
     Args:
-      key: str. The name of the variable.
-      value: Array. The data of the in-trace variable.
+      name: str. The variable name.
+      value: Array. The data of the in-trace variable. It can also be the instance of
+         :py:class:`~.Variable`, so that users can control the property of the created
+         variable instance. If an ``Array`` is provided, then it will be instantiated
+        as a :py:class:`~.Variable`.
 
     Returns:
-      variable.
+      The instance of :py:class:`~.Variable`.
     """
-    if not hasattr(self, key):
+    if not hasattr(self, name):
       if not isinstance(value, Variable):
         value = Variable(value)
       value._ready_to_trace = True
-      v = value._value
-      if len(var_stack_list) > 0 and isinstance(v, jax.core.Tracer):
+      if len(var_stack_list) > 0 and isinstance(value._value, jax.core.Tracer):
         with jax.ensure_compile_time_eval():
-          value._value = jax.numpy.zeros_like(v)
-      self.setattr(key, value)
+          value._value = jax.numpy.zeros_like(value._value)
+      self.setattr(name, value)
     else:
-      var = getattr(self, key)
+      var = getattr(self, name)
+      if not isinstance(var, Variable):
+        raise KeyError(f'"{name}" has been used in this class. Please assign '
+                       f'another name for the initialization of variables '
+                       f'tracing during computation and compilation.')
       var.value = value
       value = var
     return value

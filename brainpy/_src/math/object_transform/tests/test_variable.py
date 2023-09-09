@@ -13,7 +13,7 @@ class TestVar(unittest.TestCase):
         self.f3 = bm.jit(self.fff)
 
       def f(self):
-        b = self.in_trace_variable('b', bm.ones(1,))
+        b = self.tracing_variable('b', bm.ones(1, ))
         self.a += (b * 2)
         return self.a.value
 
