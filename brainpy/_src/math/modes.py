@@ -61,6 +61,10 @@ class NonBatchingMode(Mode):
   """
   pass
 
+  @property
+  def batch_size(self):
+    return tuple()
+
 
 class BatchingMode(Mode):
   """Batching mode.

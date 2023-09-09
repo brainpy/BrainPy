@@ -7,6 +7,7 @@ from brainpy._src.math.random import (
 
   seed as seed,
   split_key as split_key,
+  split_keys as split_keys,
   default_rng as default_rng,
 
   # numpy compatibility
