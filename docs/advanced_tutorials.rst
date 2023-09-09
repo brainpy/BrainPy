@@ -35,3 +35,13 @@ Advanced dynamics analysis
    :maxdepth: 1
 
    tutorial_advanced/advanced_lowdim_analysis.ipynb
+
+
+Developer guides
+---------------
+
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_advanced/contributing.md
+
