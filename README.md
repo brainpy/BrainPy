@@ -40,16 +40,13 @@ For detailed installation instructions, please refer to the documentation: [Quic
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
 
-## Citing and Funding
-
-If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+## Citing 
 
 BrainPy is developed by a team in Neural Information Processing Lab at Peking University, China. 
 Our team is committed to the long-term maintenance and development of the project. 
 
-Moreover, the development of BrainPy is being or has been supported by Science and Technology 
-Innovation 2030 - Brain Science and Brain-inspired Intelligence Project (China Brain Project), 
-and Beijing Academy of Artificial Intelligence. 
+If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+
 
 
 ## Ongoing development plans
