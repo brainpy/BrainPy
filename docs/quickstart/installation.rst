@@ -93,32 +93,36 @@ If you want to install a CPU-only version of `jax` and `jaxlib`, you can run
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cpu]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install --upgrade "jax[cpu]"
 
 If you want to install JAX with both CPU and NVidia GPU support, you must first install
 `CUDA`_ and `CuDNN`_, if they have not already been installed. Next, run
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+    # CUDA 12 installation
+    # Note: wheels only available on linux.
+    pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
+    # CUDA 11 installation
+    # Note: wheels only available on linux.
+    pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 Alternatively, you can download the preferred release ".whl" file for jaxlib
 from the above release links, and install it via ``pip``:
 
 .. code-block:: bash
 
-    pip install xxx-0.3.14-xxx.whl
+    pip install xxx-0.4.15-xxx.whl
 
-    pip install jax==0.3.14
+    pip install jax==0.4.15
 
 .. note::
 
-   Note that the versions of `jaxlib` and `jax` should be consistent.
+    Note that the versions of jaxlib and jax should be consistent.
 
-   For example, if you are using `jax==0.3.14`, you would better install `jax==0.3.14`.
-
-
+    For example, if you are using jax==0.4.15, you would better install
+jax==0.4.15.
 
 Windows
 ^^^^^^^
@@ -142,9 +146,9 @@ Then install it via ``pip``:
 
 .. code-block:: bash
 
-    pip install xxx-0.3.14-xxx.whl
+    pip install xxx-0.4.15-xxx.whl
 
-    pip install jax==0.3.14
+    pip install jax==0.4.15
 
 WSL
 ^^^
@@ -163,13 +167,44 @@ Many customized operators in BrainPy are implemented in ``brainpylib``.
 
 .. code-block:: bash
 
-   pip install brainpylib
+    # CUDA 12 installation
+    pip install --upgrade "brainpylib[cuda12]" -f https://www.brainpylib/index.html
+
+.. code-block:: bash
+
+    # CUDA 11 installation
+    pip install --upgrade "brainpylib[cuda11]" -f https://www.brainpylib/index.html
 
 For windows, Linux and MacOS users, ``brainpylib`` supports CPU operators.
 
 For CUDA users, ``brainpylib`` only support GPU on Linux platform. You can install GPU version ``brainpylib``
 on Linux through ``pip install brainpylib`` too.
 
+Installation from docker
+========================
+
+If you want to use BrainPy in docker, you can use the following command
+to install BrainPy:
+
+.. code:: bash
+
+   docker pull ztqakita/brainpy
+
+Running BrainPy online with binder
+==================================
+
+Click on the following link to launch the Binder environment with the
+BrainPy repository:
+
+|image1|
+
+Wait for the Binder environment to build. This might take a few moments.
+
+Once the environment is ready, you'll be redirected to a Jupyter
+notebook interface within your web browser.
+
+.. |image1| image:: https://camo.githubusercontent.com/581c077bdbc6ca6899c86d0acc6145ae85e9d80e6f805a1071793dbe48917982/68747470733a2f2f6d7962696e6465722e6f72672f62616467655f6c6f676f2e737667
+   :target: https://mybinder.org/v2/gh/brainpy/BrainPy-binder/main
 
 
 .. _NumPy: https://numpy.org/
