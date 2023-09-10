@@ -10,4 +10,5 @@ from brainpy._src.mixin import (
   Container as Container,
   TreeNode as TreeNode,
   JointType as JointType,
+  SupportPlasticity as SupportPlasticity,
 )

@@ -33,6 +33,7 @@ __all__ = [
   'TreeNode',
   'BindCondData',
   'JointType',
+  'SupportPlasticity',
 ]
 
 global_delay_data = dict()
@@ -559,6 +560,16 @@ class BindCondData(MixIn):
 
   def unbind_cond(self):
     self._conductance = None
+
+
+class SupportPlasticity(MixIn):
+  """Support synaptic plasticity by modifying the weights.
+  """
+  def plasticity(self,
+                 dW: Union[bm.Array, jax.Array],
+                 constraints: Optional[Callable] = None,
+                 ):
+    raise NotImplementedError
 
 
 T = TypeVar('T')
