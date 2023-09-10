@@ -64,7 +64,7 @@ class Dense(Layer, SupportPlasticity):
       self,
       num_in: int,
       num_out: int,
-      weight_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
+      W_initializer: Union[Initializer, Callable, ArrayType] = XavierNormal(),
       b_initializer: Optional[Union[Initializer, Callable, ArrayType]] = ZeroInit(),
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
@@ -82,18 +82,18 @@ class Dense(Layer, SupportPlasticity):
                        f'a positive integer. Received: num_out={num_out}')
 
     # weight initializer
-    self.weight_initializer = weight_initializer
+    self.W_initializer = W_initializer
     self.bias_initializer = b_initializer
-    is_initializer(weight_initializer, 'weight_initializer')
+    is_initializer(W_initializer, 'weight_initializer')
     is_initializer(b_initializer, 'bias_initializer', allow_none=True)
 
     # parameter initialization
-    weight = parameter(self.weight_initializer, (num_in, self.num_out))
+    W = parameter(self.W_initializer, (num_in, self.num_out))
     b = parameter(self.bias_initializer, (self.num_out,))
     if isinstance(self.mode, bm.TrainingMode):
-      weight = bm.TrainVar(weight)
+      W = bm.TrainVar(W)
       b = None if (b is None) else bm.TrainVar(b)
-    self.weight = weight
+    self.W = W
     self.b = b
 
     # fitting parameters
@@ -109,7 +109,7 @@ class Dense(Layer, SupportPlasticity):
 
   def update(self, x):
     x = bm.as_jax(x)
-    res = x @ self.weight
+    res = x @ self.W
     if self.b is not None:
       res += self.b
 
@@ -160,11 +160,11 @@ class Dense(Layer, SupportPlasticity):
 
     # assign trained weights
     if self.b is None:
-      self.weight += dW
+      self.W += dW
     else:
       db, dW = jnp.split(dW, [1])
       self.b += db[0]
-      self.weight += dW
+      self.W += dW
 
   def offline_fit(self,
                   target: ArrayType,
@@ -200,25 +200,25 @@ class Dense(Layer, SupportPlasticity):
 
     # assign trained weights
     if self.b is None:
-      self.weight.value = weights
+      self.W.value = weights
     else:
       bias, Wff = jnp.split(weights, [1])
-      self.weight.value = Wff
+      self.W.value = Wff
       self.b.value = bias[0]
 
   def plasticity(self, dW, constraints=None):
-    if isinstance(self.weight, float):
+    if isinstance(self.W, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
       raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
-    if self.weight.shape != dW.shape:
+    if self.W.shape != dW.shape:
       raise ValueError(f'The shape of delta_weight {dW.shape} '
-                       f'should be the same as the shape of weight {self.weight.shape}.')
-    if not isinstance(self.weight, bm.Variable):
-      self.tracing_variable('weight', self.weight, self.weight.shape)
-    self.weight += dW
+                       f'should be the same as the shape of weight {self.W.shape}.')
+    if not isinstance(self.W, bm.Variable):
+      self.tracing_variable('W', self.W, self.W.shape)
+    self.W += dW
     if constraints is not None:
-      self.weight.value = constraints(self.weight)
+      self.W.value = constraints(self.W)
 
 
 Linear = Dense
