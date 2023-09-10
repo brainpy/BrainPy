@@ -5,7 +5,7 @@ from brainpy import math as bm, check
 from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
-                                AutoDelaySupp, BindCondData, AlignPost)
+                                AutoDelaySupp, BindCondData, AlignPost, SupportPlasticity)
 from brainpy._src.initialize import parameter
 from brainpy._src.dyn.synapses.abstract_models import Expon
 
