@@ -18,25 +18,26 @@ import shutil
 sys.path.insert(0, os.path.abspath('../'))
 
 import brainpy
-from docs import auto_generater
 
 os.makedirs('apis/auto/', exist_ok=True)
-auto_generater.generate_analysis_docs()
-auto_generater.generate_connect_docs()
-auto_generater.generate_encoding_docs()
-auto_generater.generate_initialize_docs()
-auto_generater.generate_inputs_docs()
-auto_generater.generate_dnn_docs()
-auto_generater.generate_dyn_docs()
-auto_generater.generate_losses_docs()
-auto_generater.generate_measure_docs()
-auto_generater.generate_optim_docs()
-auto_generater.generate_running_docs()
-auto_generater.generate_brainpy_docs()
-auto_generater.generate_integrators_doc()
-auto_generater.generate_math_docs()
-auto_generater.generate_mixin_docs()
 
+# from docs import auto_generater
+# auto_generater.generate_analysis_docs()
+# auto_generater.generate_connect_docs()
+# auto_generater.generate_encoding_docs()
+# auto_generater.generate_initialize_docs()
+# auto_generater.generate_inputs_docs()
+# auto_generater.generate_dnn_docs()
+# auto_generater.generate_dyn_docs()
+# auto_generater.generate_losses_docs()
+# auto_generater.generate_measure_docs()
+# auto_generater.generate_optim_docs()
+# auto_generater.generate_running_docs()
+# auto_generater.generate_brainpy_docs()
+# auto_generater.generate_integrators_doc()
+# auto_generater.generate_math_docs()
+# auto_generater.generate_mixin_docs()
+# sys.exit()
 
 changelogs = [
   ('../changelog.rst', 'apis/auto/changelog.rst'),
