@@ -163,7 +163,7 @@ Dependency 3: brainpylib
 ------------------------
 
 Many customized operators in BrainPy are implemented in ``brainpylib``.
-``brainpylib`` can also be installed through `pypi <https://pypi.org/project/brainpylib/>`_.
+``brainpylib`` can also be installed from https://www.brainpylib/index.html according to your CUDA version.
 
 .. code-block:: bash
 
