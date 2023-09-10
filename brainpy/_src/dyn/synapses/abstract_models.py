@@ -715,13 +715,14 @@ class NMDA(SynDyn):
   The NMDA receptor has been thought to be very important for controlling
   synaptic plasticity and mediating learning and memory functions [3]_.
 
-  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown below:
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
 
   .. code-block:: python
 
         import numpy as np
         import brainpy as bp
         import brainpy.math as bm
+
         import matplotlib.pyplot as plt
 
 
