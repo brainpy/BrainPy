@@ -1,7 +1,5 @@
 from typing import Optional, Callable, Union
 
-import jax
-
 from brainpy import math as bm, check
 from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
 from brainpy._src.dynsys import DynamicalSystem, Projection
@@ -127,6 +125,7 @@ class VanillaProj(Projection):
 
     # references
     self.refs = dict(post=post, out=out)  # invisible to ``self.nodes()``
+    self.refs['comm'] = comm  # unify the access
 
   def update(self, x):
     current = self.comm(x)
@@ -218,6 +217,7 @@ class ProjAlignPostMg1(Projection):
     self.refs = dict(post=post)  # invisible to ``self.nodes()``
     self.refs['syn'] = post.get_bef_update(self._post_repr).syn
     self.refs['out'] = post.get_bef_update(self._post_repr).out
+    self.refs['comm'] = comm  # unify the access
 
   def update(self, x):
     current = self.comm(x)
@@ -342,6 +342,9 @@ class ProjAlignPostMg2(Projection):
     self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
     self.refs['syn'] = post.get_bef_update(self._post_repr).syn  # invisible to ``self.node()``
     self.refs['out'] = post.get_bef_update(self._post_repr).out  # invisible to ``self.node()``
+    # unify the access
+    self.refs['comm'] = comm
+    self.refs['delay'] = pre.get_aft_update(delay_identifier)
 
   def update(self):
     x = self.refs['pre'].get_aft_update(delay_identifier).at(self.name)
@@ -422,9 +425,13 @@ class ProjAlignPost1(Projection):
     post.add_bef_update(self.name, _AlignPost(syn, out))
 
     # reference
-    self.refs = dict(post=post)  # invisible to ``self.nodes()``
+    self.refs = dict()
+    # invisible to ``self.nodes()``
+    self.refs['post'] = post
     self.refs['syn'] = post.get_bef_update(self.name).syn
     self.refs['out'] = post.get_bef_update(self.name).out
+    # unify the access
+    self.refs['comm'] = comm
 
   def update(self, x):
     current = self.comm(x)
@@ -538,8 +545,15 @@ class ProjAlignPost2(Projection):
     post.add_inp_fun(out_name, out)
 
     # references
-    self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
+    self.refs = dict()
+    # invisible to ``self.nodes()``
+    self.refs['pre'] = pre
+    self.refs['post'] = post
     self.refs['out'] = out
+    # unify the access
+    self.refs['delay'] = pre.get_aft_update(delay_identifier)
+    self.refs['comm'] = comm
+    self.refs['syn'] = syn
 
   def update(self):
     x = self.refs['pre'].get_aft_update(delay_identifier).at(self.name)
@@ -655,8 +669,15 @@ class ProjAlignPreMg1(Projection):
     post.add_inp_fun(out_name, out)
 
     # references
-    self.refs = dict(pre=pre, post=post, out=out, delay=delay_cls)  # invisible to ``self.nodes()``
+    self.refs = dict()
+    # invisible to ``self.nodes()``
+    self.refs['pre'] = pre
+    self.refs['post'] = post
+    self.refs['out'] = out
+    self.refs['delay'] = delay_cls
     self.refs['syn'] = pre.get_aft_update(self._syn_id).syn
+    # unify the access
+    self.refs['comm'] = comm
 
   def update(self, x=None):
     if x is None:
@@ -778,9 +799,14 @@ class ProjAlignPreMg2(Projection):
     post.add_inp_fun(out_name, out)
 
     # references
-    self.refs = dict(pre=pre, post=post)  # invisible to `self.nodes()`
+    self.refs = dict()
+    # invisible to `self.nodes()`
+    self.refs['pre'] = pre
+    self.refs['post'] = post
     self.refs['syn'] = delay_cls.get_bef_update(self._syn_id).syn
     self.refs['out'] = out
+    # unify the access
+    self.refs['comm'] = comm
 
   def update(self):
     x = _get_return(self.refs['syn'].return_info())
@@ -890,9 +916,15 @@ class ProjAlignPre1(Projection):
     post.add_inp_fun(out_name, out)
 
     # references
-    self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
+    self.refs = dict()
+    # invisible to ``self.nodes()``
+    self.refs['pre'] = pre
+    self.refs['post'] = post
+    self.refs['out'] = out
     self.refs['delay'] = delay_cls
     self.refs['syn'] = syn
+    # unify the access
+    self.refs['comm'] = comm
 
   def update(self, x=None):
     if x is None:
@@ -1006,8 +1038,15 @@ class ProjAlignPre2(Projection):
     post.add_inp_fun(out_name, out)
 
     # references
-    self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
+    self.refs = dict()
+    # invisible to ``self.nodes()``
+    self.refs['pre'] = pre
+    self.refs['post'] = post
+    self.refs['out'] = out
     self.refs['delay'] = pre.get_aft_update(delay_identifier)
+    # unify the access
+    self.refs['syn'] = syn
+    self.refs['comm'] = comm
 
   def update(self):
     spk = self.refs['delay'].at(self.name)

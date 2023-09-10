@@ -81,6 +81,9 @@ def csrmv(
     indptr = as_jax(indptr)
     vector = as_jax(vector)
 
+    if vector.dtype == jnp.bool_:
+        vector = as_jax(vector, dtype=data.dtype)
+
     if method == 'cusparse':
         if jax.default_backend() == 'gpu':
             if data.shape[0] == 1:

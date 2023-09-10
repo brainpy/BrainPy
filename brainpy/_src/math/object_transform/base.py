@@ -20,8 +20,12 @@ from brainpy._src.math.object_transform.collectors import (ArrayCollector, Colle
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        check_name_uniqueness)
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
-                                                          VarList, VarDict)
+                                                          VarList, VarDict, var_stack_list)
+from brainpy._src.math.modes import Mode
+from brainpy._src.math.sharding import BATCH_AXIS
 
+
+variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
 
 __all__ = [
@@ -102,17 +106,91 @@ class BrainPyObject(object):
   def setattr(self, key: str, value: Any) -> None:
     super().__setattr__(key, value)
 
+  def tracing_variable(
+      self,
+      name: str,
+      init: Union[Callable, Array, jax.Array],
+      shape: Union[int, Sequence[int]],
+      batch_or_mode: Union[int, bool, Mode] = None,
+      batch_axis: int = 0,
+      axis_names: Optional[Sequence[str]] = None,
+      batch_axis_name: Optional[str] = BATCH_AXIS,
+  ) -> Variable:
+    """Initialize the variable which can be traced during computations and transformations.
+
+    Although this function is designed to initialize tracing variables during computation or compilation,
+    it can also be used for the initialization of variables before computation and compilation.
+
+    - If the variable has not been instantiated, a :py:class:`~.Variable` will be instantiated.
+    - If the variable has been created, the further call of this function will return the created variable.
+
+    Here is the usage example::
+
+       class Example(bm.BrainPyObject):
+         def fun(self):
+           # The first time of calling `.fun()`, this line will create a Variable instance.
+           # If users repeatedly call `.fun()` function, this line will not initialize variables again.
+           # Instead, it will return the variable has been created.
+           self.tracing_variable('a', bm.zeros, (10,))
+
+           # The created variable can be accessed with self.xxx
+           self.a.value = bm.ones(10)
+
+           # Calling this function again will not reinitialize the
+           # variable again, Instead, it will return the variable
+           # that has been created.
+           a = self.tracing_variable('a', bm.zeros, (10,))
+
+    Args:
+      name: str. The variable name.
+      init: callable, Array. The data to be initialized as a ``Variable``.
+      batch_or_mode: int, bool, Mode. This is used to specify the batch size of this variable.
+        If it is a boolean or an instance of ``Mode``, the batch size will be 1.
+        If it is None, the variable has no batch axis.
+      shape: int, sequence of int. The shape of the variable.
+      batch_axis: int. The batch axis, if batch size is given.
+      axis_names: sequence of str. The name for each axis. These names should match the given ``axes``.
+      batch_axis_name: str. The name for the batch axis. The name will be used
+        if ``batch_or_mode`` is given. Default is ``brainpy.math.sharding.BATCH_AXIS``.
+
+    Returns:
+      The instance of :py:class:`~.Variable`.
+    """
+    # the variable has been created
+    if hasattr(self, name):
+      var = getattr(self, name)
+      if isinstance(var, Variable):
+        return var
+        # if var.shape != value.shape:
+        #   raise ValueError(
+        #     f'"{name}" has been used in this class with the shape of {var.shape} (!= {value.shape}). '
+        #     f'Please assign another name for the initialization of variables '
+        #     f'tracing during computation and compilation.'
+        #   )
+        # if var.dtype != value.dtype:
+        #   raise ValueError(
+        #     f'"{name}" has been used in this class with the dtype of {var.dtype} (!= {value.dtype}). '
+        #     f'Please assign another name for the initialization of variables '
+        #     f'tracing during computation and compilation.'
+        #   )
+
+    global variable_
+    if variable_ is None:
+      from brainpy.initialize import variable_
+    with jax.ensure_compile_time_eval():
+      value = variable_(init, shape, batch_or_mode, batch_axis, axis_names, batch_axis_name)
+      value._ready_to_trace = True
+    self.setattr(name, value)
+    return value
+
   def __setattr__(self, key: str, value: Any) -> None:
     """Overwrite `__setattr__` method for changing :py:class:`~.Variable` values.
 
     .. versionadded:: 2.3.1
 
-    Parameters
-    ----------
-    key: str
-      The attribute.
-    value: Any
-      The value.
+    Args:
+      key: str. The attribute.
+      value: Any. The value.
     """
     if key in self.__dict__:
       val = self.__dict__[key]
@@ -252,7 +330,7 @@ class BrainPyObject(object):
           continue
         v = getattr(node, k)
         if isinstance(v, Variable) and not isinstance(v, exclude_types):
-            gather[f'{node_path}.{k}' if node_path else k] = v
+          gather[f'{node_path}.{k}' if node_path else k] = v
         elif isinstance(v, VarList):
           for i, vv in enumerate(v):
             if not isinstance(vv, exclude_types):
@@ -702,4 +780,3 @@ class NodeDict(dict):
 
 
 node_dict = NodeDict
-

@@ -151,7 +151,7 @@ def save_as_h5(filename: str, variables: dict):
     raise ValueError(f'Cannot save variables as a HDF5 file. We only support file with '
                      f'postfix of ".hdf5" and ".h5". But we got {filename}')
 
-  import h5py
+  import h5py # noqa
 
   # check variables
   check_dict_data(variables, name='variables')
@@ -184,7 +184,7 @@ def load_by_h5(filename: str, target, verbose: bool = False):
                      f'postfix of ".hdf5" and ".h5". But we got {filename}')
 
   # read data
-  import h5py
+  import h5py # noqa
   load_vars = dict()
   with h5py.File(filename, "r") as f:
     for key in f.keys():
