@@ -5,7 +5,9 @@
 
 .. autoclass:: {{ objname }}
 
-   .. automethod:: __init__
+   {% for item in methods %}
+      .. automethod:: {{ item }}
+   {%- endfor %}
 
    {% block methods %}
 
