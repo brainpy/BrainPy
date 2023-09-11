@@ -16,7 +16,7 @@ from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter, variable_
 from brainpy.types import ArrayType, Sharding
 from brainpy._src.dnn.base import Layer
-from brainpy._src.mixin import SupportPlasticity
+from brainpy._src.mixin import SupportSTDP
 from brainpy._src.connect import mat2coo
 
 __all__ = [
@@ -31,7 +31,7 @@ __all__ = [
 ]
 
 
-class Dense(Layer, SupportPlasticity):
+class Dense(Layer, SupportSTDP):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -206,7 +206,7 @@ class Dense(Layer, SupportPlasticity):
       self.W.value = Wff
       self.b.value = bias[0]
 
-  def plasticity(self, dW, constraints=None):
+  def update_STDP(self, dW, constraints=None):
     if isinstance(self.W, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
@@ -235,7 +235,7 @@ class Identity(Layer):
     return x
 
 
-class AllToAll(Layer, SupportPlasticity):
+class AllToAll(Layer, SupportSTDP):
   """Synaptic matrix multiplication with All2All connections.
 
   Args:
@@ -297,7 +297,7 @@ class AllToAll(Layer, SupportPlasticity):
         post_val = pre_val @ self.weight
     return post_val
 
-  def plasticity(self, dW, constraints=None):
+  def update_STDP(self, dW, constraints=None):
     if isinstance(self.weight, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
@@ -313,7 +313,7 @@ class AllToAll(Layer, SupportPlasticity):
 
 
 
-class OneToOne(Layer, SupportPlasticity):
+class OneToOne(Layer, SupportSTDP):
   """Synaptic matrix multiplication with One2One connection.
 
   Args:
@@ -346,7 +346,7 @@ class OneToOne(Layer, SupportPlasticity):
   def update(self, pre_val):
     return pre_val * self.weight
 
-  def plasticity(self, dW, constraints=None):
+  def update_STDP(self, dW, constraints=None):
     if isinstance(self.weight, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
@@ -362,7 +362,7 @@ class OneToOne(Layer, SupportPlasticity):
       self.weight.value = constraints(self.weight)
 
 
-class MaskedLinear(Layer, SupportPlasticity):
+class MaskedLinear(Layer, SupportSTDP):
   r"""Synaptic matrix multiplication with masked dense computation.
 
   It performs the computation of:
@@ -415,7 +415,7 @@ class MaskedLinear(Layer, SupportPlasticity):
   def update(self, x):
     return x @ self.mask_fun(self.weight * self.mask)
 
-  def plasticity(self, dW, constraints=None):
+  def update_STDP(self, dW, constraints=None):
     if isinstance(self.weight, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
@@ -431,7 +431,7 @@ class MaskedLinear(Layer, SupportPlasticity):
       self.weight.value = constraints(self.weight)
 
 
-class CSRLinear(Layer, SupportPlasticity):
+class CSRLinear(Layer, SupportSTDP):
   r"""Synaptic matrix multiplication with CSR sparse computation.
 
   It performs the computation of:
@@ -499,7 +499,7 @@ class CSRLinear(Layer, SupportPlasticity):
                            transpose=self.transpose,
                            method=self.method)
 
-  def plasticity(self, dW, constraints=None):
+  def update_STDP(self, dW, constraints=None):
     if isinstance(self.weight, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
@@ -551,7 +551,7 @@ class CSCLinear(Layer):
     self.sharding = sharding
 
 
-class EventCSRLinear(Layer, SupportPlasticity):
+class EventCSRLinear(Layer, SupportSTDP):
   r"""Synaptic matrix multiplication with event CSR sparse computation.
 
   It performs the computation of:
@@ -615,7 +615,7 @@ class EventCSRLinear(Layer, SupportPlasticity):
                           shape=(self.conn.pre_num, self.conn.post_num),
                           transpose=self.transpose)
 
-  def plasticity(self, dW, constraints=None):
+  def update_STDP(self, dW, constraints=None):
     if isinstance(self.weight, float):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):

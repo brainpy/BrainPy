@@ -10,7 +10,6 @@ from brainpy._src.dyn.projections.aligns import (
   ProjAlignPreMg2,
   ProjAlignPre1,
   ProjAlignPre2,
-  STDP_Song2000
 )
 
 from brainpy._src.dyn.projections.conn import (
@@ -19,5 +18,9 @@ from brainpy._src.dyn.projections.conn import (
 
 from brainpy._src.dyn.projections.others import (
   PoissonInput as PoissonInput,
+)
+
+from brainpy._src.dyn.projections.plasticity import (
+  STDP_Song2000 as STDP_Song2000,
 )
 

@@ -5,7 +5,7 @@ from brainpy import math as bm, check
 from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
-                                AutoDelaySupp, BindCondData, AlignPost, SupportPlasticity)
+                                AutoDelaySupp, BindCondData, AlignPost, SupportSTDP)
 from brainpy._src.initialize import parameter
 from brainpy._src.dyn.synapses.abstract_models import Expon
 
@@ -84,9 +84,49 @@ class STDP_Song2000(Projection):
   of :math:`A_{pre}`, :math:`A_2` is the increment of :math:`A_{post}` produced by a spike.
 
   Example:
-
-
-
+  >>> import brainpy as bp
+  >>> import brainpy.math as bm
+  >>> class STDPNet(bp.DynamicalSystem):
+  >>>    def __init__(self, num_pre, num_post):
+  >>>      super().__init__()
+  >>>      self.pre = bp.dyn.LifRef(num_pre, name='neu1')
+  >>>      self.post = bp.dyn.LifRef(num_post, name='neu2')
+  >>>      self.syn = bp.dyn.STDP_Song2000(
+  >>>        pre=self.pre,
+  >>>        delay=1.,
+  >>>        comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+  >>>                                   weight=lambda s: bm.Variable(bm.random.rand(*s) * 0.1)),
+  >>>        syn=bp.dyn.Expon.desc(self.post.varshape, tau=5.),
+  >>>        out=bp.dyn.COBA.desc(E=0.),
+  >>>        post=self.post,
+  >>>        tau_s=16.8,
+  >>>        tau_t=33.7,
+  >>>        A1=0.96,
+  >>>        A2=0.53,
+  >>>      )
+  >>>
+  >>>    def update(self, I_pre, I_post):
+  >>>      self.syn()
+  >>>      self.pre(I_pre)
+  >>>      self.post(I_post)
+  >>>      conductance = self.syn.refs['syn'].g
+  >>>      Apre = self.syn.refs['pre_trace'].g
+  >>>      Apost = self.syn.refs['post_trace'].g
+  >>>      current = self.post.sum_inputs(self.post.V)
+  >>>      return self.pre.spike, self.post.spike, conductance, Apre, Apost, current, self.syn.comm.weight
+  >>> duration = 300.
+  >>> I_pre = bp.inputs.section_input([0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0],
+  >>>                                 [5, 15, 15, 15, 15, 15, 100, 15, 15, 15, 15, 15, duration - 255])
+  >>> I_post = bp.inputs.section_input([0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0],
+  >>>                                  [10, 15, 15, 15, 15, 15, 90, 15, 15, 15, 15, 15, duration - 250])
+  >>>
+  >>> net = STDPNet(1, 1)
+  >>> def run(i, I_pre, I_post):
+  >>>   pre_spike, post_spike, g, Apre, Apost, current, W = net.step_run(i, I_pre, I_post)
+  >>>   return pre_spike, post_spike, g, Apre, Apost, current, W
+  >>>
+  >>> indices = bm.arange(0, duration, bm.dt)
+  >>> pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post], jit=True)
 
   Args:
     tau_s: float, ArrayType, Callable. The time constant of :math:`A_{pre}`.
@@ -117,8 +157,7 @@ class STDP_Song2000(Projection):
     # synaptic models
     check.is_instance(pre, JointType[DynamicalSystem, AutoDelaySupp])
     check.is_instance(syn, ParamDescInit[DynamicalSystem])
-    # TODO: check
-    check.is_instance(comm, JointType[DynamicalSystem, SupportPlasticity])
+    check.is_instance(comm, JointType[DynamicalSystem, SupportSTDP])
     check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
     check.is_instance(post, DynamicalSystem)
     self.pre_num = pre.num
@@ -175,7 +214,6 @@ class STDP_Song2000(Projection):
       self.refs['syn'] = delay_cls.get_bef_update(self._syn_id).syn
       self.refs['out'] = out
 
-    # TODO: Expon and other can be parameters of the class
     self.refs['pre_trace'] = self.calculate_trace(pre, delay, Expon.desc(pre.num, tau=tau_s))
     self.refs['post_trace'] = self.calculate_trace(post, None, Expon.desc(post.num, tau=tau_t))
     # parameters
@@ -199,7 +237,7 @@ class STDP_Song2000(Projection):
       delay_ins = init_delay_by_return(target.return_info())
       target.add_aft_update(delay_identifier, delay_ins)
     delay_cls = target.get_aft_update(delay_identifier)
-    delay_cls.register_entry(self.name, delay)
+    delay_cls.register_entry(target.name, delay)
 
     # synapse initialization
     _syn_id = f'Delay({str(delay)}) // {syn.identifier}'
@@ -226,7 +264,7 @@ class STDP_Song2000(Projection):
     Apre = self.refs['pre_trace'].g
     Apost = self.refs['post_trace'].g
     delta_w = - bm.outer(pre_spike, Apost * self.A2) + bm.outer(Apre * self.A1, post_spike)
-    self.comm.update_weights(delta_w)
+    self.comm.plasticity(delta_w)
 
     current = self.comm(x)
     if issubclass(self.syn.cls, AlignPost):
