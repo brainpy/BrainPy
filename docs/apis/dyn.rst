@@ -13,5 +13,6 @@
    brainpy.dyn.outs.rst
    brainpy.dyn.rates.rst
    brainpy.dyn.projections.rst
+   brainpy.dyn.plasticity.rst
    brainpy.dyn.others.rst
 
