@@ -10,7 +10,7 @@ import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import SupportAutoDelay, Container, ReceiveInputProj, DelayRegister, global_delay_data
+from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
@@ -70,7 +70,7 @@ def not_pass_shared(func: Callable):
   return func
 
 
-class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
+class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   """Base Dynamical System class.
 
   .. note::
