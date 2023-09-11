@@ -22,7 +22,7 @@ from .object_transform.variables import Variable
 __all__ = [
   'RandomState', 'Generator', 'DEFAULT',
 
-  'seed', 'default_rng', 'split_key',
+  'seed', 'default_rng', 'split_key', 'split_keys',
 
   # numpy compatibility
   'rand', 'randint', 'random_integers', 'randn', 'random',
@@ -1258,6 +1258,8 @@ def split_keys(n):
   internally by `pmap` and `vmap` to ensure that random numbers
   are different in parallel threads.
 
+  .. versionadded:: 2.4.5
+
   Parameters
   ----------
   n : int
@@ -1267,6 +1269,15 @@ def split_keys(n):
 
 
 def clone_rng(seed_or_key=None, clone: bool = True) -> RandomState:
+  """Clone the random state according to the given setting.
+
+  Args:
+    seed_or_key: The seed (an integer) or the random key.
+    clone: Bool. Whether clone the default random state.
+
+  Returns:
+    The random state.
+  """
   if seed_or_key is None:
     return DEFAULT.clone() if clone else DEFAULT
   else:

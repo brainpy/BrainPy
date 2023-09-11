@@ -1,6 +1,5 @@
 import numbers
 import sys
-import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, TypeVar, Any
 from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
@@ -44,59 +43,6 @@ class MixIn(object):
   The key for a :py:class:`~.MixIn` is that: no initialization function, only behavioral functions.
   """
   pass
-
-
-class ReceiveInputProj(MixIn):
-  """The :py:class:`~.MixIn` that receives the input projections.
-
-  Note that the subclass should define a ``cur_inputs`` attribute.
-
-  """
-  cur_inputs: bm.node_dict
-
-  def add_inp_fun(self, key: Any, fun: Callable):
-    """Add an input function.
-
-    Args:
-      key: The dict key.
-      fun: The function to generate inputs.
-    """
-    if not callable(fun):
-      raise TypeError('Must be a function.')
-    if key in self.cur_inputs:
-      raise ValueError(f'Key "{key}" has been defined and used.')
-    self.cur_inputs[key] = fun
-
-  def get_inp_fun(self, key):
-    """Get the input function.
-
-    Args:
-      key: The key.
-
-    Returns:
-      The input function which generates currents.
-    """
-    return self.cur_inputs.get(key)
-
-  def sum_inputs(self, *args, init=0., label=None, **kwargs):
-    """Summarize all inputs by the defined input functions ``.cur_inputs``.
-
-    Args:
-      *args: The arguments for input functions.
-      init: The initial input data.
-      **kwargs: The arguments for input functions.
-
-    Returns:
-      The total currents.
-    """
-    if label is None:
-      for key, out in self.cur_inputs.items():
-        init = init + out(*args, **kwargs)
-    else:
-      for key, out in self.cur_inputs.items():
-        if key.startswith(label + ' // '):
-          init = init + out(*args, **kwargs)
-    return init
 
 
 class ParamDesc(MixIn):
@@ -205,13 +151,6 @@ class ReturnInfo:
     else:
       raise ValueError
     return init
-
-
-class SupportAutoDelay(MixIn):
-  """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
-
-  def return_info(self) -> Union[bm.Variable, ReturnInfo]:
-    raise NotImplementedError('Must implement the "return_info()" function.')
 
 
 class Container(MixIn):
@@ -549,8 +488,71 @@ class DelayRegister(MixIn):
     return global_delay_data[name]
 
 
+class SupportInputProj(MixIn):
+  """The :py:class:`~.MixIn` that receives the input projections.
+
+  Note that the subclass should define a ``cur_inputs`` attribute.
+
+  """
+  cur_inputs: bm.node_dict
+
+  def add_inp_fun(self, key: Any, fun: Callable):
+    """Add an input function.
+
+    Args:
+      key: The dict key.
+      fun: The function to generate inputs.
+    """
+    if not callable(fun):
+      raise TypeError('Must be a function.')
+    if key in self.cur_inputs:
+      raise ValueError(f'Key "{key}" has been defined and used.')
+    self.cur_inputs[key] = fun
+
+  def get_inp_fun(self, key):
+    """Get the input function.
+
+    Args:
+      key: The key.
+
+    Returns:
+      The input function which generates currents.
+    """
+    return self.cur_inputs.get(key)
+
+  def sum_inputs(self, *args, init=0., label=None, **kwargs):
+    """Summarize all inputs by the defined input functions ``.cur_inputs``.
+
+    Args:
+      *args: The arguments for input functions.
+      init: The initial input data.
+      **kwargs: The arguments for input functions.
+
+    Returns:
+      The total currents.
+    """
+    if label is None:
+      for key, out in self.cur_inputs.items():
+        init = init + out(*args, **kwargs)
+    else:
+      for key, out in self.cur_inputs.items():
+        if key.startswith(label + ' // '):
+          init = init + out(*args, **kwargs)
+    return init
+
+
+class SupportAutoDelay(MixIn):
+  """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
+
+  def return_info(self) -> Union[bm.Variable, ReturnInfo]:
+    raise NotImplementedError('Must implement the "return_info()" function.')
+
+
 class SupportOnline(MixIn):
-  """:py:class:`~.MixIn` to support the online training methods."""
+  """:py:class:`~.MixIn` to support the online training methods.
+
+  .. versionadded:: 2.4.5
+  """
 
   online_fit_by: Optional  # methods for online fitting
 
@@ -562,7 +564,10 @@ class SupportOnline(MixIn):
 
 
 class SupportOffline(MixIn):
-  """:py:class:`~.MixIn` to support the offline training methods."""
+  """:py:class:`~.MixIn` to support the offline training methods.
+
+  .. versionadded:: 2.4.5
+  """
 
   offline_fit_by: Optional  # methods for offline fitting
 
@@ -572,6 +577,8 @@ class SupportOffline(MixIn):
 
 class BindCondData(MixIn):
   """Bind temporary conductance data.
+
+
   """
   _conductance: Optional
 

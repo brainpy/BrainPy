@@ -1,7 +1,7 @@
 
 from brainpy._src.mixin import (
     MixIn as MixIn,
-    ReceiveInputProj as ReceiveInputProj,
+    SupportInputProj as ReceiveInputProj,
     AlignPost as AlignPost,
     SupportAutoDelay as AutoDelaySupp,
     ParamDesc as ParamDesc,
