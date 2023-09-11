@@ -11,7 +11,7 @@ from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.initialize import parameter
 from brainpy._src.mixin import (ParamDesc, JointType,
-                                AutoDelaySupp, BindCondData, ReturnInfo)
+                                SupportAutoDelay, BindCondData, ReturnInfo)
 from brainpy.errors import UnsupportedError
 from brainpy.types import ArrayType
 
@@ -109,7 +109,7 @@ class _SynOut(_SynapseComponent, ParamDesc):
     pass
 
 
-class _SynSTP(_SynapseComponent, ParamDesc, AutoDelaySupp):
+class _SynSTP(_SynapseComponent, ParamDesc, SupportAutoDelay):
   """Base class for synaptic short-term plasticity."""
 
   def update(self, pre_spike):

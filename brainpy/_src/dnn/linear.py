@@ -10,12 +10,12 @@ import jax.numpy as jnp
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
-from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 from brainpy._src.dnn.base import Layer
+from brainpy._src.mixin import SupportOnline, SupportOffline
 
 __all__ = [
   'Dense', 'Linear',
@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 
-class Dense(Layer):
+class Dense(Layer, SupportOnline, SupportOffline):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
@@ -51,12 +51,6 @@ class Dense(Layer):
   mode: Mode
     Enable training this node or not. (default True)
   """
-
-  online_fit_by: Optional[OnlineAlgorithm]
-  '''Online fitting method.'''
-
-  offline_fit_by: Optional[OfflineAlgorithm]
-  '''Offline fitting method.'''
 
   def __init__(
       self,
@@ -95,8 +89,8 @@ class Dense(Layer):
     self.b = b
 
     # fitting parameters
-    self.online_fit_by = None
-    self.offline_fit_by = None
+    self.online_fit_by = None  # support online training
+    self.offline_fit_by = None  # support offline training
     self.fit_record = dict()
 
   def __repr__(self):
