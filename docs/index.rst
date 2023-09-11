@@ -195,8 +195,8 @@ Learn more
 
    core_concepts.rst
    tutorials.rst
-   advanced_tutorials.rst
    toolboxes.rst
+   advanced_tutorials.rst
    FAQ.rst
    api.rst
 

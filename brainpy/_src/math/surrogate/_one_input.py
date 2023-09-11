@@ -36,6 +36,11 @@ __all__ = [
 
 
 class Sigmoid(Surrogate):
+  """Spike function with the sigmoid-shaped surrogate gradient.
+
+  Also see :py:class:`~.sigmoid`.
+
+  """
   def __init__(self, alpha=4., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -118,6 +123,11 @@ def sigmoid(
 
 
 class PiecewiseQuadratic(Surrogate):
+  """Judge spiking state with a piecewise quadratic function.
+
+  Also see :py:class:`~.piecewise_quadratic`.
+
+  """
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -220,6 +230,10 @@ def piecewise_quadratic(
 
 
 class PiecewiseExp(Surrogate):
+  """Judge spiking state with a piecewise exponential function.
+
+  Also see :py:class:`~.piecewise_exp`.
+  """
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -308,6 +322,10 @@ def piecewise_exp(
 
 
 class SoftSign(Surrogate):
+  """Judge spiking state with a soft sign function.
+
+  Also see :py:class:`~.soft_sign`.
+  """
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -391,6 +409,10 @@ def soft_sign(
 
 
 class Arctan(Surrogate):
+  """Judge spiking state with an arctan function.
+
+  Also see :py:class:`~.arctan`.
+  """
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -473,6 +495,10 @@ def arctan(
 
 
 class NonzeroSignLog(Surrogate):
+  """Judge spiking state with a nonzero sign log function.
+
+  Also see :py:class:`~.nonzero_sign_log`.
+  """
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -568,6 +594,10 @@ def nonzero_sign_log(
 
 
 class ERF(Surrogate):
+  """Judge spiking state with an erf function.
+
+  Also see :py:class:`~.erf`.
+  """
   def __init__(self, alpha=1., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -660,6 +690,10 @@ def erf(
 
 
 class PiecewiseLeakyRelu(Surrogate):
+  """Judge spiking state with a piecewise leaky relu function.
+
+  Also see :py:class:`~.piecewise_leaky_relu`.
+  """
   def __init__(self, c=0.01, w=1., origin=False):
     self.c = c
     self.w = w
@@ -771,6 +805,10 @@ def piecewise_leaky_relu(
 
 
 class SquarewaveFourierSeries(Surrogate):
+  """Judge spiking state with a squarewave fourier series.
+
+  Also see :py:class:`~.squarewave_fourier_series`.
+  """
   def __init__(self, n=2, t_period=8., origin=False):
     self.n = n
     self.t_period = t_period
@@ -863,6 +901,10 @@ def squarewave_fourier_series(
 
 
 class S2NN(Surrogate):
+  """Judge spiking state with the S2NN surrogate spiking function.
+
+  Also see :py:class:`~.s2nn`.
+  """
   def __init__(self, alpha=4., beta=1., epsilon=1e-8, origin=False):
     self.alpha = alpha
     self.beta = beta
@@ -969,6 +1011,10 @@ def s2nn(
 
 
 class QPseudoSpike(Surrogate):
+  """Judge spiking state with the q-PseudoSpike surrogate function.
+
+  Also see :py:class:`~.q_pseudo_spike`.
+  """
   def __init__(self, alpha=2., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -1062,6 +1108,10 @@ def q_pseudo_spike(
 
 
 class LeakyRelu(Surrogate):
+  """Judge spiking state with the Leaky ReLU function.
+
+  Also see :py:class:`~.leaky_relu`.
+  """
   def __init__(self, alpha=0.1, beta=1., origin=False):
     self.alpha = alpha
     self.beta = beta
@@ -1156,6 +1206,10 @@ def leaky_relu(
 
 
 class LogTailedRelu(Surrogate):
+  """Judge spiking state with the Log-tailed ReLU function.
+
+  Also see :py:class:`~.log_tailed_relu`.
+  """
   def __init__(self, alpha=0., origin=False):
     self.alpha = alpha
     self.origin = origin
@@ -1260,6 +1314,10 @@ def log_tailed_relu(
 
 
 class ReluGrad(Surrogate):
+  """Judge spiking state with the ReLU gradient function.
+
+  Also see :py:class:`~.relu_grad`.
+  """
   def __init__(self, alpha=0.3, width=1.):
     self.alpha = alpha
     self.width = width
@@ -1337,6 +1395,10 @@ def relu_grad(
 
 
 class GaussianGrad(Surrogate):
+  """Judge spiking state with the Gaussian gradient function.
+
+  Also see :py:class:`~.gaussian_grad`.
+  """
   def __init__(self, sigma=0.5, alpha=0.5):
     self.sigma = sigma
     self.alpha = alpha
@@ -1413,6 +1475,10 @@ def gaussian_grad(
 
 
 class MultiGaussianGrad(Surrogate):
+  """Judge spiking state with the multi-Gaussian gradient function.
+
+  Also see :py:class:`~.multi_gaussian_grad`.
+  """
   def __init__(self, h=0.15, s=6.0, sigma=0.5, scale=0.5):
     self.h = h
     self.s = s
@@ -1503,6 +1569,10 @@ def multi_gaussian_grad(
 
 
 class InvSquareGrad(Surrogate):
+  """Judge spiking state with the inverse-square surrogate gradient function.
+
+  Also see :py:class:`~.inv_square_grad`.
+  """
   def __init__(self, alpha=100.):
     self.alpha = alpha
 
@@ -1571,6 +1641,10 @@ def inv_square_grad(
 
 
 class SlayerGrad(Surrogate):
+  """Judge spiking state with the slayer surrogate gradient function.
+
+  Also see :py:class:`~.slayer_grad`.
+  """
   def __init__(self, alpha=1.):
     self.alpha = alpha
 
