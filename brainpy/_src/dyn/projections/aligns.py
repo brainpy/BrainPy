@@ -4,7 +4,7 @@ from brainpy import math as bm, check
 from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
-                                AutoDelaySupp, BindCondData, AlignPost)
+                                SupportAutoDelay, BindCondData, AlignPost)
 
 __all__ = [
   'VanillaProj',
@@ -297,7 +297,7 @@ class ProjAlignPostMg2(Projection):
 
   def __init__(
       self,
-      pre: JointType[DynamicalSystem, AutoDelaySupp],
+      pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       comm: DynamicalSystem,
       syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
@@ -310,7 +310,7 @@ class ProjAlignPostMg2(Projection):
     super().__init__(name=name, mode=mode)
 
     # synaptic models
-    check.is_instance(pre, JointType[DynamicalSystem, AutoDelaySupp])
+    check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AlignPost]])
     check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
@@ -507,7 +507,7 @@ class ProjAlignPost2(Projection):
 
   def __init__(
       self,
-      pre: JointType[DynamicalSystem, AutoDelaySupp],
+      pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       comm: DynamicalSystem,
       syn: JointType[DynamicalSystem, AlignPost],
@@ -520,7 +520,7 @@ class ProjAlignPost2(Projection):
     super().__init__(name=name, mode=mode)
 
     # synaptic models
-    check.is_instance(pre, JointType[DynamicalSystem, AutoDelaySupp])
+    check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(syn, JointType[DynamicalSystem, AlignPost])
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
@@ -631,7 +631,7 @@ class ProjAlignPreMg1(Projection):
   def __init__(
       self,
       pre: DynamicalSystem,
-      syn: ParamDescInit[JointType[DynamicalSystem, AutoDelaySupp]],
+      syn: ParamDescInit[JointType[DynamicalSystem, SupportAutoDelay]],
       delay: Union[None, int, float],
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
@@ -644,7 +644,7 @@ class ProjAlignPreMg1(Projection):
 
     # synaptic models
     check.is_instance(pre, DynamicalSystem)
-    check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AutoDelaySupp]])
+    check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, SupportAutoDelay]])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
     check.is_instance(post, DynamicalSystem)
@@ -654,7 +654,7 @@ class ProjAlignPreMg1(Projection):
     self._syn_id = f'{syn.identifier} // Delay'
     if not pre.has_aft_update(self._syn_id):
       # "syn_cls" needs an instance of "ProjAutoDelay"
-      syn_cls: AutoDelaySupp = syn()
+      syn_cls: SupportAutoDelay = syn()
       delay_cls = init_delay_by_return(syn_cls.return_info())
       # add to "after_updates"
       pre.add_aft_update(self._syn_id, _AlignPre(syn_cls, delay_cls))
@@ -755,7 +755,7 @@ class ProjAlignPreMg2(Projection):
 
   def __init__(
       self,
-      pre: JointType[DynamicalSystem, AutoDelaySupp],
+      pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       syn: ParamDescInit[DynamicalSystem],
       comm: DynamicalSystem,
@@ -768,7 +768,7 @@ class ProjAlignPreMg2(Projection):
     super().__init__(name=name, mode=mode)
 
     # synaptic models
-    check.is_instance(pre, JointType[DynamicalSystem, AutoDelaySupp])
+    check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(syn, ParamDescInit[DynamicalSystem])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
@@ -884,7 +884,7 @@ class ProjAlignPre1(Projection):
   def __init__(
       self,
       pre: DynamicalSystem,
-      syn: JointType[DynamicalSystem, AutoDelaySupp],
+      syn: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
@@ -897,7 +897,7 @@ class ProjAlignPre1(Projection):
 
     # synaptic models
     check.is_instance(pre, DynamicalSystem)
-    check.is_instance(syn, JointType[DynamicalSystem, AutoDelaySupp])
+    check.is_instance(syn, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
     check.is_instance(post, DynamicalSystem)
@@ -1002,7 +1002,7 @@ class ProjAlignPre2(Projection):
 
   def __init__(
       self,
-      pre: JointType[DynamicalSystem, AutoDelaySupp],
+      pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       syn: DynamicalSystem,
       comm: DynamicalSystem,
@@ -1015,7 +1015,7 @@ class ProjAlignPre2(Projection):
     super().__init__(name=name, mode=mode)
 
     # synaptic models
-    check.is_instance(pre, JointType[DynamicalSystem, AutoDelaySupp])
+    check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(syn, DynamicalSystem)
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
