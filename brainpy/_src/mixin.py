@@ -33,6 +33,7 @@ __all__ = [
   'TreeNode',
   'BindCondData',
   'JointType',
+  'SupportSTDP',
 ]
 
 global_delay_data = dict()
@@ -580,6 +581,16 @@ class BindCondData(MixIn):
 
   def unbind_cond(self):
     self._conductance = None
+
+
+class SupportSTDP(MixIn):
+  """Support synaptic plasticity by modifying the weights.
+  """
+  def update_STDP(self,
+                  dW: Union[bm.Array, jax.Array],
+                  constraints: Optional[Callable] = None,
+                  ):
+    raise NotImplementedError
 
 
 T = TypeVar('T')
