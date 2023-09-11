@@ -264,7 +264,7 @@ class STDP_Song2000(Projection):
     Apre = self.refs['pre_trace'].g
     Apost = self.refs['post_trace'].g
     delta_w = - bm.outer(pre_spike, Apost * self.A2) + bm.outer(Apre * self.A1, post_spike)
-    self.comm.plasticity(delta_w)
+    self.comm.update_STDP(delta_w)
 
     current = self.comm(x)
     if issubclass(self.syn.cls, AlignPost):
