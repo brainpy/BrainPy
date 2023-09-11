@@ -28,7 +28,7 @@ __all__ = [
   'ParamDesc',
   'ParamDescInit',
   'AlignPost',
-  'AutoDelaySupp',
+  'SupportAutoDelay',
   'Container',
   'TreeNode',
   'BindCondData',
@@ -207,7 +207,7 @@ class ReturnInfo:
     return init
 
 
-class AutoDelaySupp(MixIn):
+class SupportAutoDelay(MixIn):
   """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
 
   def return_info(self) -> Union[bm.Variable, ReturnInfo]:
@@ -347,7 +347,7 @@ class DelayRegister(MixIn):
     if delay_identifier is None: from brainpy._src.delay import delay_identifier
     if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
 
-    assert isinstance(self, AutoDelaySupp), f'self must be an instance of {AutoDelaySupp.__name__}'
+    assert isinstance(self, SupportAutoDelay), f'self must be an instance of {SupportAutoDelay.__name__}'
     assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
     if not self.has_aft_update(delay_identifier):
       self.add_aft_update(delay_identifier, init_delay_by_return(self.return_info()))
@@ -549,6 +549,27 @@ class DelayRegister(MixIn):
     return global_delay_data[name]
 
 
+class SupportOnline(MixIn):
+  """:py:class:`~.MixIn` to support the online training methods."""
+
+  online_fit_by: Optional  # methods for online fitting
+
+  def online_init(self):
+    raise NotImplementedError
+
+  def online_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
+    raise NotImplementedError
+
+
+class SupportOffline(MixIn):
+  """:py:class:`~.MixIn` to support the offline training methods."""
+
+  offline_fit_by: Optional  # methods for offline fitting
+
+  def offline_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
+    raise NotImplementedError
+
+
 class BindCondData(MixIn):
   """Bind temporary conductance data.
   """
@@ -598,7 +619,7 @@ class UnionType2(MixIn):
 
   >>> import brainpy as bp
   >>>
-  >>> isinstance(bp.dyn.Expon(1), JointType[bp.DynamicalSystem, bp.mixin.ParamDesc, bp.mixin.AutoDelaySupp])
+  >>> isinstance(bp.dyn.Expon(1), JointType[bp.DynamicalSystem, bp.mixin.ParamDesc, bp.mixin.SupportAutoDelay])
   """
 
   @classmethod
