@@ -1,60 +1,17 @@
 from typing import Optional, Callable, Union
 
-from brainpy.types import ArrayType
 from brainpy import math as bm, check
 from brainpy._src.delay import DelayAccess, delay_identifier, init_delay_by_return
-from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
-                                AutoDelaySupp, BindCondData, AlignPost, SupportSTDP)
-from brainpy._src.initialize import parameter
 from brainpy._src.dyn.synapses.abstract_models import Expon
+from brainpy._src.dynsys import DynamicalSystem, Projection
+from brainpy._src.initialize import parameter
+from brainpy._src.mixin import (JointType, ParamDescInit, SupportAutoDelay, BindCondData, AlignPost, SupportSTDP)
+from brainpy.types import ArrayType
+from .aligns import _AlignPost, _AlignPreMg, _get_return
 
 __all__ = [
-  'STDP_Song2000'
+  'STDP_Song2000',
 ]
-
-class _AlignPre(DynamicalSystem):
-  def __init__(self, syn, delay=None):
-    super().__init__()
-    self.syn = syn
-    self.delay = delay
-
-  def update(self, x):
-    if self.delay is None:
-      return x >> self.syn
-    else:
-      return x >> self.syn >> self.delay
-
-
-class _AlignPost(DynamicalSystem):
-  def __init__(self,
-               syn: Callable,
-               out: JointType[DynamicalSystem, BindCondData]):
-    super().__init__()
-    self.syn = syn
-    self.out = out
-
-  def update(self, *args, **kwargs):
-    self.out.bind_cond(self.syn(*args, **kwargs))
-
-
-class _AlignPreMg(DynamicalSystem):
-  def __init__(self, access, syn):
-    super().__init__()
-    self.access = access
-    self.syn = syn
-
-  def update(self, *args, **kwargs):
-    return self.syn(self.access())
-
-
-def _get_return(return_info):
-  if isinstance(return_info, bm.Variable):
-    return return_info.value
-  elif isinstance(return_info, ReturnInfo):
-    return return_info.get_data()
-  else:
-    raise NotImplementedError
 
 
 class STDP_Song2000(Projection):
@@ -135,9 +92,10 @@ class STDP_Song2000(Projection):
     A2: float, ArrayType, Callable. The increment of :math:`A_{post}` produced by a spike.
     %s
   """
+
   def __init__(
       self,
-      pre: JointType[DynamicalSystem, AutoDelaySupp],
+      pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       syn: ParamDescInit[DynamicalSystem],
       comm: DynamicalSystem,
@@ -148,6 +106,7 @@ class STDP_Song2000(Projection):
       tau_t: Union[float, ArrayType, Callable] = 33.7,
       A1: Union[float, ArrayType, Callable] = 0.96,
       A2: Union[float, ArrayType, Callable] = 0.53,
+      # others
       out_label: Optional[str] = None,
       name: Optional[str] = None,
       mode: Optional[bm.Mode] = None,
@@ -155,7 +114,7 @@ class STDP_Song2000(Projection):
     super().__init__(name=name, mode=mode)
 
     # synaptic models
-    check.is_instance(pre, JointType[DynamicalSystem, AutoDelaySupp])
+    check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(syn, ParamDescInit[DynamicalSystem])
     check.is_instance(comm, JointType[DynamicalSystem, SupportSTDP])
     check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
@@ -252,6 +211,7 @@ class STDP_Song2000(Projection):
     return delay_cls.get_bef_update(_syn_id).syn
 
   def update(self):
+    # pre spikes, and pre-synaptic variables
     if issubclass(self.syn.cls, AlignPost):
       pre_spike = self.refs['delay'].at(self.name)
       x = pre_spike
@@ -259,13 +219,16 @@ class STDP_Song2000(Projection):
       pre_spike = self.refs['delay'].access()
       x = _get_return(self.refs['syn'].return_info())
 
+    # post spikes
     post_spike = self.refs['post'].spike
 
+    # weight updates
     Apre = self.refs['pre_trace'].g
     Apost = self.refs['post_trace'].g
     delta_w = - bm.outer(pre_spike, Apost * self.A2) + bm.outer(Apre * self.A1, post_spike)
     self.comm.update_STDP(delta_w)
 
+    # currents
     current = self.comm(x)
     if issubclass(self.syn.cls, AlignPost):
       self.refs['syn'].add_current(current)  # synapse post current
