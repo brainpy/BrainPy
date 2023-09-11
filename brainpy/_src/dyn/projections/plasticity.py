@@ -2,7 +2,7 @@ from typing import Optional, Callable, Union
 
 from brainpy.types import ArrayType
 from brainpy import math as bm, check
-from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
+from brainpy._src.delay import DelayAccess, delay_identifier, init_delay_by_return
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
                                 AutoDelaySupp, BindCondData, AlignPost, SupportSTDP)

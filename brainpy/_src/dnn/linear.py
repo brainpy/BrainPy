@@ -13,11 +13,10 @@ from brainpy._src.context import share
 from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.check import is_initializer
 from brainpy.errors import MathError
-from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter, variable_
+from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportSTDP
-from brainpy._src.connect import mat2coo
 
 __all__ = [
   'Dense', 'Linear',
