@@ -529,16 +529,12 @@ def cond(
   if not jax.config.jax_disable_jit:
     if dyn_vars is None:
       with new_transform('cond'):
-        dyn_vars1, rets = evaluate_dyn_vars(
-          true_fun, *operands, use_eval_shape=current_transform_number() <= 1
-        )
-        dyn_vars2, rets = evaluate_dyn_vars(
-          false_fun, *operands, use_eval_shape=current_transform_number() <= 1
-        )
+        dyn_vars1, rets = evaluate_dyn_vars(true_fun, *operands, use_eval_shape=current_transform_number() <= 1)
+        dyn_vars2, rets = evaluate_dyn_vars(false_fun, *operands, use_eval_shape=current_transform_number() <= 1)
         dyn_vars = dyn_vars1 + dyn_vars2
         cache_stack((true_fun, false_fun), dyn_vars)
       if current_transform_number() > 0:
-        return rets[1]
+        return rets
   dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
   for k in dyn_values.keys():
@@ -1014,7 +1010,7 @@ def while_loop(
         dyn_vars = dyn_vars1 + dyn_vars2
         cache_stack((body_fun, cond_fun), dyn_vars)
       if current_transform_number():
-        return rets[1]
+        return rets
   dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, out = _get_while_transform(cond_fun, body_fun, dyn_vars)(operands)
   for k, v in dyn_vars.items():

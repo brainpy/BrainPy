@@ -228,7 +228,6 @@ class TestWhile(unittest.TestCase):
     print()
     print(res)
 
-
   def test2(self):
     bm.random.seed()
 
