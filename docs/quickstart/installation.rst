@@ -197,33 +197,43 @@ Dependency 3: brainpylib
 ------------------------
 
 Many customized operators in BrainPy are implemented in ``brainpylib``.
-``brainpylib`` can also be installed from https://www.brainpylib/index.html according to your CUDA version.
+``brainpylib`` can also be installed from pypi according to your devices.
+For windows, Linux and MacOS users, ``brainpylib`` supports CPU operators.
+You can install CPU-version `brainpylib` by:
+
+.. code-block:: bash
+
+    # CPU installation
+    pip install --upgrade brainpylib
+
+For Nvidia GPU users, ``brainpylib`` only support Linux system and WSL2 subsystem. You can install the CUDA-version by using:
 
 .. code-block:: bash
 
     # CUDA 12 installation
-    pip install --upgrade "brainpylib[cuda12]" -f https://www.brainpylib/index.html
+    pip install --upgrade brainpylib-cu12x
 
 .. code-block:: bash
 
     # CUDA 11 installation
-    pip install --upgrade "brainpylib[cuda11]" -f https://www.brainpylib/index.html
+    pip install --upgrade brainpylib-cu11x
 
-For windows, Linux and MacOS users, ``brainpylib`` supports CPU operators.
-
-For CUDA users, ``brainpylib`` only support GPU on Linux platform. You can install GPU version ``brainpylib``
-on Linux through ``pip install brainpylib`` too.
-
-
-Installation from docker
+Running BrainPy with docker
 ------------------------
 
-If you want to use BrainPy in docker, you can use the following command
-to install BrainPy:
+If you want to use BrainPy in docker, you can use the following command to pull the docker image:
 
 .. code:: bash
 
-   docker pull ztqakita/brainpy
+   docker pull brainpy/brainpy:latest
+
+You can then run the docker image by:
+
+.. code:: bash
+
+   docker run -it --platform linux/amd64 brainpy/brainpy:latest
+
+Please notice that BrainPy docker image is based on the `ubuntu22.04` image, so it only support CPU version of BrainPy.
 
 
 Running BrainPy online with binder

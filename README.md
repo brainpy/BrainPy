@@ -34,6 +34,24 @@ $ pip install brainpy brainpylib -U
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
 
 
+### Using BrainPy with docker
+
+We provide a docker image for BrainPy. You can use the following command to pull the image:
+```bash
+$ docker pull brainpy/brainpy:latest
+```
+
+Then, you can run the image with the following command:
+```bash
+$ docker run -it --platform linux/amd64 brainpy/brainpy:latest
+```
+
+### Using BrainPy with Binder
+
+We provide a Binder environment for BrainPy. You can use the following button to launch the environment:
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/brainpy/BrainPy-binder/main)
+
 ## Ecosystem
 
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
