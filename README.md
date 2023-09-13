@@ -43,7 +43,7 @@ $ docker pull brainpy/brainpy:latest
 
 Then, you can run the image with the following command:
 ```bash
-$ docker run -it brainpy/brainpy:latest
+$ docker run -it --platform linux/amd64 brainpy/brainpy:latest
 ```
 
 ### Using BrainPy with Binder

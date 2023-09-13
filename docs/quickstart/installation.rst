@@ -225,13 +225,13 @@ If you want to use BrainPy in docker, you can use the following command to pull 
 
 .. code:: bash
 
-   docker pull brainpy/brainpy
+   docker pull brainpy/brainpy:latest
 
 You can then run the docker image by:
 
 .. code:: bash
 
-   docker run -it brainpy/brainpy
+   docker run -it --platform linux/amd64 brainpy/brainpy:latest
 
 Please notice that BrainPy docker image is based on the `ubuntu22.04` image, so it only support CPU version of BrainPy.
 

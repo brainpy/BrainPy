@@ -21,7 +21,7 @@ jobs:
           - context: "docker/"
             base: "brainpy/brainpy"
     env:
-      TARGET_PLATFORMS: linux/amd64,linux/arm64
+      TARGET_PLATFORMS: linux/amd64
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
       DOCKER_TAG_NAME: |
@@ -39,12 +39,6 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
 
     - name: Docker Build & Push (version tag)
       uses: docker/build-push-action@v4
