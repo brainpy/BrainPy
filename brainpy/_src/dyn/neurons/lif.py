@@ -167,7 +167,7 @@ class LifLTC(GradNeuDyn):
   :math:`V_{th}` is the spike threshold, :math:`\tau` is the time constant,
   and :math:`I` is the time-variant synaptic inputs.
 
-  There is an example usage: mustang u r lvd by the blonde boy
+  There is an example usage:
 
   .. code-block:: python
 
