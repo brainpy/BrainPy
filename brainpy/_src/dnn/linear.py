@@ -10,12 +10,12 @@ import jax.numpy as jnp
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
-from brainpy.algorithms import OnlineAlgorithm, OfflineAlgorithm
 from brainpy.check import is_initializer
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 from brainpy._src.dnn.base import Layer
+from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
 
 __all__ = [
   'Dense', 'Linear',
@@ -29,14 +29,14 @@ __all__ = [
 ]
 
 
-class Dense(Layer):
+class Dense(Layer, SupportOnline, SupportOffline, SupportSTDP):
   r"""A linear transformation applied over the last dimension of the input.
 
   Mathematically, this node can be defined as:
 
   .. math::
 
-     y = x  \cdot W + b
+     y = x  \cdot weight + b
 
   Parameters
   ----------
@@ -44,19 +44,13 @@ class Dense(Layer):
     The number of the input feature. A positive integer.
   num_out: int
     The number of the output features. A positive integer.
-  W_initializer: optional, Initializer
+  weight_initializer: optional, Initializer
     The weight initialization.
   b_initializer: optional, Initializer
     The bias initialization.
   mode: Mode
     Enable training this node or not. (default True)
   """
-
-  online_fit_by: Optional[OnlineAlgorithm]
-  '''Online fitting method.'''
-
-  offline_fit_by: Optional[OfflineAlgorithm]
-  '''Offline fitting method.'''
 
   def __init__(
       self,
@@ -80,13 +74,13 @@ class Dense(Layer):
                        f'a positive integer. Received: num_out={num_out}')
 
     # weight initializer
-    self.weight_initializer = W_initializer
+    self.W_initializer = W_initializer
     self.bias_initializer = b_initializer
     is_initializer(W_initializer, 'weight_initializer')
     is_initializer(b_initializer, 'bias_initializer', allow_none=True)
 
     # parameter initialization
-    W = parameter(self.weight_initializer, (num_in, self.num_out))
+    W = parameter(self.W_initializer, (num_in, self.num_out))
     b = parameter(self.bias_initializer, (self.num_out,))
     if isinstance(self.mode, bm.TrainingMode):
       W = bm.TrainVar(W)
@@ -95,8 +89,8 @@ class Dense(Layer):
     self.b = b
 
     # fitting parameters
-    self.online_fit_by = None
-    self.offline_fit_by = None
+    self.online_fit_by = None  # support online training
+    self.offline_fit_by = None  # support offline training
     self.fit_record = dict()
 
   def __repr__(self):
@@ -204,6 +198,20 @@ class Dense(Layer):
       self.W.value = Wff
       self.b.value = bias[0]
 
+  def update_STDP(self, dW, constraints=None):
+    if isinstance(self.W, float):
+      raise ValueError(f'Cannot update the weight of a constant node.')
+    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
+    if self.W.shape != dW.shape:
+      raise ValueError(f'The shape of delta_weight {dW.shape} '
+                       f'should be the same as the shape of weight {self.W.shape}.')
+    if not isinstance(self.W, bm.Variable):
+      self.tracing_variable('W', self.W, self.W.shape)
+    self.W += dW
+    if constraints is not None:
+      self.W.value = constraints(self.W)
+
 
 Linear = Dense
 
@@ -219,7 +227,7 @@ class Identity(Layer):
     return x
 
 
-class AllToAll(Layer):
+class AllToAll(Layer, SupportSTDP):
   """Synaptic matrix multiplication with All2All connections.
 
   Args:
@@ -281,8 +289,23 @@ class AllToAll(Layer):
         post_val = pre_val @ self.weight
     return post_val
 
+  def update_STDP(self, dW, constraints=None):
+    if isinstance(self.weight, float):
+      raise ValueError(f'Cannot update the weight of a constant node.')
+    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
+    if self.weight.shape != dW.shape:
+      raise ValueError(f'The shape of delta_weight {dW.shape} '
+                       f'should be the same as the shape of weight {self.weight.shape}.')
+    if not isinstance(self.weight, bm.Variable):
+      self.tracing_variable('weight', self.weight, self.weight.shape)
+    self.weight += dW
+    if constraints is not None:
+      self.weight.value = constraints(self.weight)
 
-class OneToOne(Layer):
+
+
+class OneToOne(Layer, SupportSTDP):
   """Synaptic matrix multiplication with One2One connection.
 
   Args:
@@ -315,8 +338,23 @@ class OneToOne(Layer):
   def update(self, pre_val):
     return pre_val * self.weight
 
+  def update_STDP(self, dW, constraints=None):
+    if isinstance(self.weight, float):
+      raise ValueError(f'Cannot update the weight of a constant node.')
+    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
+    dW = dW.sum(axis=0)
+    if self.weight.shape != dW.shape:
+      raise ValueError(f'The shape of delta_weight {dW.shape} '
+                       f'should be the same as the shape of weight {self.weight.shape}.')
+    if not isinstance(self.weight, bm.Variable):
+      self.tracing_variable('weight', self.weight, self.weight.shape)
+    self.weight += dW
+    if constraints is not None:
+      self.weight.value = constraints(self.weight)
 
-class MaskedLinear(Layer):
+
+class MaskedLinear(Layer, SupportSTDP):
   r"""Synaptic matrix multiplication with masked dense computation.
 
   It performs the computation of:
@@ -369,8 +407,23 @@ class MaskedLinear(Layer):
   def update(self, x):
     return x @ self.mask_fun(self.weight * self.mask)
 
+  def update_STDP(self, dW, constraints=None):
+    if isinstance(self.weight, float):
+      raise ValueError(f'Cannot update the weight of a constant node.')
+    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
+    if self.weight.shape != dW.shape:
+      raise ValueError(f'The shape of delta_weight {dW.shape} '
+                       f'should be the same as the shape of weight {self.weight.shape}.')
+    if not isinstance(self.weight, bm.Variable):
+      self.tracing_variable('weight', self.weight, self.weight.shape)
 
-class CSRLinear(Layer):
+    self.weight += dW
+    if constraints is not None:
+      self.weight.value = constraints(self.weight)
+
+
+class CSRLinear(Layer, SupportSTDP):
   r"""Synaptic matrix multiplication with CSR sparse computation.
 
   It performs the computation of:
@@ -438,6 +491,22 @@ class CSRLinear(Layer):
                            transpose=self.transpose,
                            method=self.method)
 
+  def update_STDP(self, dW, constraints=None):
+    if isinstance(self.weight, float):
+      raise ValueError(f'Cannot update the weight of a constant node.')
+    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
+    pre_ids, post_ids = bm.sparse.csr_to_coo(self.indices, self.indptr)
+    sparse_dW = dW[pre_ids, post_ids]
+    if self.weight.shape != sparse_dW.shape:
+      raise ValueError(f'The shape of sparse delta_weight {sparse_dW.shape} '
+                       f'should be the same as the shape of sparse weight {self.weight.shape}.')
+    if not isinstance(self.weight, bm.Variable):
+      self.tracing_variable('weight', self.weight, self.weight.shape)
+    self.weight += sparse_dW
+    if constraints is not None:
+      self.weight.value = constraints(self.weight)
+
 
 class CSCLinear(Layer):
   r"""Synaptic matrix multiplication with CSC sparse computation.
@@ -474,7 +543,7 @@ class CSCLinear(Layer):
     self.sharding = sharding
 
 
-class EventCSRLinear(Layer):
+class EventCSRLinear(Layer, SupportSTDP):
   r"""Synaptic matrix multiplication with event CSR sparse computation.
 
   It performs the computation of:
@@ -537,6 +606,22 @@ class EventCSRLinear(Layer):
     return bm.event.csrmv(self.weight, self.indices, self.indptr, x,
                           shape=(self.conn.pre_num, self.conn.post_num),
                           transpose=self.transpose)
+
+  def update_STDP(self, dW, constraints=None):
+    if isinstance(self.weight, float):
+      raise ValueError(f'Cannot update the weight of a constant node.')
+    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
+      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
+    pre_ids, post_ids = bm.sparse.csr_to_coo(self.indices, self.indptr)
+    sparse_dW = dW[pre_ids, post_ids]
+    if self.weight.shape != sparse_dW.shape:
+      raise ValueError(f'The shape of sparse delta_weight {sparse_dW.shape} '
+                       f'should be the same as the shape of sparse weight {self.weight.shape}.')
+    if not isinstance(self.weight, bm.Variable):
+      self.tracing_variable('weight', self.weight, self.weight.shape)
+    self.weight += sparse_dW
+    if constraints is not None:
+      self.weight.value = constraints(self.weight)
 
 
 class BcsrMM(Layer):

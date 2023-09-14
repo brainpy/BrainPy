@@ -34,22 +34,37 @@ $ pip install brainpy brainpylib -U
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
 
 
+### Using BrainPy with docker
+
+We provide a docker image for BrainPy. You can use the following command to pull the image:
+```bash
+$ docker pull brainpy/brainpy:latest
+```
+
+Then, you can run the image with the following command:
+```bash
+$ docker run -it --platform linux/amd64 brainpy/brainpy:latest
+```
+
+### Using BrainPy with Binder
+
+We provide a Binder environment for BrainPy. You can use the following button to launch the environment:
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/brainpy/BrainPy-binder/main)
+
 ## Ecosystem
 
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
 
-## Citing and Funding
-
-If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+## Citing 
 
 BrainPy is developed by a team in Neural Information Processing Lab at Peking University, China. 
 Our team is committed to the long-term maintenance and development of the project. 
 
-Moreover, the development of BrainPy is being or has been supported by Science and Technology 
-Innovation 2030 - Brain Science and Brain-inspired Intelligence Project (China Brain Project), 
-and Beijing Academy of Artificial Intelligence. 
+If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+
 
 
 ## Ongoing development plans

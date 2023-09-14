@@ -1,12 +1,11 @@
 numpy
-tqdm
-msgpack
-matplotlib>=3.4
+numba
+brainpylib
 jax>=0.4.1
 jaxlib>=0.4.1
-scipy>=1.1.0
-brainpylib
-numba
+matplotlib>=3.4
+msgpack
+tqdm
 
 # test requirements
 pytest

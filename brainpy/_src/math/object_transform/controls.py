@@ -526,25 +526,17 @@ def cond(
   node_deprecation(child_objs)
 
   dyn_vars = get_stack_cache((true_fun, false_fun))
-  _transform = _get_cond_transform(VariableStack() if dyn_vars is None else dyn_vars,
-                                   pred,
-                                   true_fun,
-                                   false_fun)
-  if jax.config.jax_disable_jit:
-    dyn_values, res = _transform(operands)
-
-  else:
+  if not jax.config.jax_disable_jit:
     if dyn_vars is None:
       with new_transform('cond'):
-        dyn_vars, rets = evaluate_dyn_vars(
-          _transform,
-          operands,
-          use_eval_shape=current_transform_number() <= 1
-        )
+        dyn_vars1, rets = evaluate_dyn_vars(true_fun, *operands, use_eval_shape=current_transform_number() <= 1)
+        dyn_vars2, rets = evaluate_dyn_vars(false_fun, *operands, use_eval_shape=current_transform_number() <= 1)
+        dyn_vars = dyn_vars1 + dyn_vars2
         cache_stack((true_fun, false_fun), dyn_vars)
       if current_transform_number() > 0:
-        return rets[1]
-    dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
+        return rets
+  dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
+  dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
   for k in dyn_values.keys():
     dyn_vars[k]._value = dyn_values[k]
   return res
@@ -1009,22 +1001,17 @@ def while_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
-  if jax.config.jax_disable_jit:
-    dyn_vars = VariableStack()
-
-  else:
-    dyn_vars = get_stack_cache(body_fun)
-
+  dyn_vars = get_stack_cache((body_fun, cond_fun))
+  if not jax.config.jax_disable_jit:
     if dyn_vars is None:
       with new_transform('while_loop'):
-        dyn_vars, rets = evaluate_dyn_vars(
-          _get_while_transform(cond_fun, body_fun, VariableStack()),
-          operands
-        )
-        cache_stack(body_fun, dyn_vars)
+        dyn_vars1, _ = evaluate_dyn_vars(cond_fun, *operands, use_eval_shape=current_transform_number() <= 1)
+        dyn_vars2, rets = evaluate_dyn_vars(body_fun, *operands, use_eval_shape=current_transform_number() <= 1)
+        dyn_vars = dyn_vars1 + dyn_vars2
+        cache_stack((body_fun, cond_fun), dyn_vars)
       if current_transform_number():
-        return rets[1]
-
+        return rets
+  dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, out = _get_while_transform(cond_fun, body_fun, dyn_vars)(operands)
   for k, v in dyn_vars.items():
     v._value = dyn_values[k]

@@ -1,5 +1,4 @@
 
-
 from brainpy._src.dyn.projections.aligns import (
   VanillaProj,
   ProjAlignPostMg1,
@@ -19,4 +18,5 @@ from brainpy._src.dyn.projections.conn import (
 from brainpy._src.dyn.projections.others import (
   PoissonInput as PoissonInput,
 )
+
 
