@@ -725,7 +725,6 @@ class NMDA(SynDyn):
 
         import matplotlib.pyplot as plt
 
-
         class NMDASparseCOBA(bp.Projection):
             def __init__(self, pre, post, delay, prob, g_max, tau_decay, tau_rise, E):
                 super().__init__()

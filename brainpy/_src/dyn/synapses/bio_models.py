@@ -1,6 +1,5 @@
 from typing import Union, Sequence, Callable, Optional
 
-import jax.numpy
 from brainpy import math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn._docs import pneu_doc
