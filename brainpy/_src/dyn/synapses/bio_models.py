@@ -56,6 +56,65 @@ class AMPA(SynDyn):
 
   where :math:`g_{max}` is the maximum conductance, and `E` is the reverse potential.
 
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+        class AMPA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, E=0.):
+                super().__init__()
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                  pre=pre,
+                  delay=delay,
+                  syn=bp.dyn.AMPA.desc(pre.num, alpha=0.98, beta=0.18, T=0.5, T_dur=0.5),
+                  comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                  out=bp.dyn.COBA(E=E),
+                  post=post,
+                )
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, E=0.):
+                super().__init__()
+
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = AMPA(self.pre, self.post, delay=None, prob=1., g_max=1., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        conductances, currents, potentials = bm.for_loop(SimpleNet(E=0.).step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+
+
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
+
+
   .. [1] Vijayan S, Kopell N J. Thalamic model of awake alpha oscillations
          and implications for stimulus processing[J]. Proceedings of the
          National Academy of Sciences, 2012, 109(45): 18553-18558.
@@ -145,6 +204,66 @@ class GABAa(AMPA):
   - De-activating rate constant :math:`\beta=0.18`
   - Transmitter concentration :math:`[T]=1\,\mu ho(\mu S)` when synapse is
     triggered by a pre-synaptic spike, with the duration of 1. ms.
+
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+        class GABAa(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, E=-80.):
+                super().__init__()
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.GABAa.desc(pre.num, alpha=0.53, beta=0.18, T=1.0, T_dur=1.0),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, E=0.):
+                super().__init__()
+
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = AMPA(self.pre, self.post, delay=None, prob=1., g_max=1., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        conductances, currents, potentials = bm.for_loop(SimpleNet(E=0.).step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
+
 
   .. [1] Destexhe, Alain, and Denis Paré. "Impact of network activity
          on the integrative properties of neocortical pyramidal neurons
@@ -240,6 +359,65 @@ class BioNMDA(SynDyn):
 
   The NMDA receptor has been thought to be very important for controlling
   synaptic plasticity and mediating learning and memory functions [3]_.
+
+  This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+
+  .. code-block:: python
+
+        import numpy as np
+        import brainpy as bp
+        import brainpy.math as bm
+
+        import matplotlib.pyplot as plt
+
+
+        class BioNMDA(bp.Projection):
+            def __init__(self, pre, post, delay, prob, g_max, E=0.):
+                super().__init__()
+                self.proj = bp.dyn.ProjAlignPreMg2(
+                    pre=pre,
+                    delay=delay,
+                    syn=bp.dyn.BioNMDA.desc(pre.num, alpha1=2, beta1=0.01, alpha2=0.2, beta2=0.5, T=1, T_dur=1),
+                    comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
+                    out=bp.dyn.COBA(E=E),
+                    post=post,
+                )
+
+        class SimpleNet(bp.DynSysGroup):
+            def __init__(self, E=0.):
+                super().__init__()
+
+                self.pre = bp.dyn.SpikeTimeGroup(1, indices=(0, 0, 0, 0), times=(10., 30., 50., 70.))
+                self.post = bp.dyn.LifRef(1, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                                          V_initializer=bp.init.Constant(-60.))
+                self.syn = BioNMDA(self.pre, self.post, delay=None, prob=1., g_max=1., E=E)
+
+            def update(self):
+                self.pre()
+                self.syn()
+                self.post()
+
+                # monitor the following variables
+                conductance = self.syn.proj.refs['syn'].g
+                current = self.post.sum_inputs(self.post.V)
+                return conductance, current, self.post.V
+
+
+        indices = np.arange(1000)  # 100 ms, dt= 0.1 ms
+        conductances, currents, potentials = bm.for_loop(SimpleNet(E=0.).step_run, indices, progress_bar=True)
+        ts = indices * bm.get_dt()
+
+        fig, gs = bp.visualize.get_figure(1, 3, 3.5, 4)
+        fig.add_subplot(gs[0, 0])
+        plt.plot(ts, conductances)
+        plt.title('Syn conductance')
+        fig.add_subplot(gs[0, 1])
+        plt.plot(ts, currents)
+        plt.title('Syn current')
+        fig.add_subplot(gs[0, 2])
+        plt.plot(ts, potentials)
+        plt.title('Post V')
+        plt.show()
 
   .. [1] Devaney A J . Mathematical Foundations of Neuroscience[M].
          Springer New York, 2010: 162.

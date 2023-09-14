@@ -733,8 +733,7 @@ class NMDA(SynDyn):
                 self.proj = bp.dyn.ProjAlignPreMg2(
                     pre=pre,
                     delay=delay,
-                    syn=bp.dyn.NMDA.desc(pre.num,
-                                              tau_decay=tau_decay, tau_rise=tau_rise),
+                    syn=bp.dyn.NMDA.desc(pre.num, tau_decay=tau_decay, tau_rise=tau_rise),
                     comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=pre.num, post=post.num), g_max),
                     out=bp.dyn.COBA(E=E),
                     post=post,
