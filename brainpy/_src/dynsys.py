@@ -170,12 +170,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   def reset_bef_updates(self, *args, **kwargs):
     """Reset all before updates."""
     for node in self.before_updates.values():
-      node.reset_state(*args, **kwargs)
+      if isinstance(node, DynamicalSystem):
+        node.reset(*args, **kwargs)
 
   def reset_aft_updates(self, *args, **kwargs):
     """Reset all after updates."""
     for node in self.after_updates.values():
-      node.reset_state(*args, **kwargs)
+      if isinstance(node, DynamicalSystem):
+        node.reset(*args, **kwargs)
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
@@ -348,6 +350,12 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
           warnings.warn(_update_deprecate_msg, UserWarning)
           return ret
       return update_fun(*args, **kwargs)
+
+  # def __getattr__(self, item):
+  #   if item == 'update':
+  #     return self._compatible_update  # update function compatible with previous ``update()`` function
+  #   else:
+  #     return object.__getattribute__(self, item)
 
   def __getattribute__(self, item):
     if item == 'update':
