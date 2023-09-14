@@ -98,11 +98,17 @@ Installation
 
           pip install brainpy brainpylib  # windows, linux, macos
 
-    .. tab-item:: GPU (CUDA)
+    .. tab-item:: GPU (CUDA-11x)
 
        .. code-block:: bash
 
-          pip install brainpy brainpylib  # only on linux
+          pip install brainpy brainpylib-cu11x  # only on linux
+
+    .. tab-item:: GPU (CUDA-12x)
+
+       .. code-block:: bash
+
+          pip install brainpy brainpylib-cu12x  # only on linux
 
 For more information about supported accelerators and platforms, and for other installation details, please see installation section.
 
