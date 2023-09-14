@@ -375,10 +375,6 @@ class VarDelay(Delay):
     # initialize delay data
     if self.data is not None:
       self._init_data(self.max_length, batch_size)
-    for cls in self.before_updates.values():
-      cls.reset_state(batch_size)
-    for cls in self.after_updates.values():
-      cls.reset_state(batch_size)
 
   def _init_data(self, length: int, batch_size: int = None):
     if batch_size is not None:
@@ -468,13 +464,16 @@ class DelayAccess(DynamicalSystem):
       *indices
   ):
     super().__init__(mode=delay.mode)
-    self.delay = delay
+    self.refs = {'delay': delay}
     assert isinstance(delay, Delay)
     delay.register_entry(self.name, time)
     self.indices = indices
 
   def update(self):
-    return self.delay.at(self.name, *self.indices)
+    return self.refs['delay'].at(self.name, *self.indices)
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 def init_delay_by_return(info: Union[bm.Variable, ReturnInfo]) -> Delay:
