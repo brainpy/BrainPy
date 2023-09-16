@@ -6,12 +6,14 @@ Synaptic Projections
 
 
 
+Reduced Projections
+-------------------
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
    :template: classtemplate.rst
 
-   VanillaProj
    ProjAlignPostMg1
    ProjAlignPostMg2
    ProjAlignPost1
@@ -20,5 +22,30 @@ Synaptic Projections
    ProjAlignPreMg2
    ProjAlignPre1
    ProjAlignPre2
+
+
+
+Projections
+-----------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   VanillaProj
    SynConn
+
+
+
+Inputs
+------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+
    PoissonInput
+   InputVar

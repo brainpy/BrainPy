@@ -95,7 +95,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   name : optional, str
     The name of the dynamical system.
   mode: optional, Mode
-    The model computation mode. It should be instance of :py:class:`~.Mode`.
+    The model computation mode. It should be an instance of :py:class:`~.Mode`.
   """
 
   supported_modes: Optional[Sequence[bm.Mode]] = None
@@ -609,10 +609,6 @@ class Projection(DynamicalSystem):
         node.reset(*args, **kwargs)
     else:
       raise ValueError('Do not implement the reset_state() function.')
-
-  def clear_input(self, *args, **kwargs):
-    """Empty function of clearing inputs."""
-    pass
 
 
 class Dynamic(DynamicalSystem):
