@@ -40,7 +40,8 @@ class STDP_Song2000(Projection):
   where :math:`t_{sp}` denotes the spike time and :math:`A_1` is the increment
   of :math:`A_{pre}`, :math:`A_2` is the increment of :math:`A_{post}` produced by a spike.
 
-  Example::
+  Here is an example of the usage of this class::
+
     import brainpy as bp
     import brainpy.math as bm
 
@@ -138,10 +139,7 @@ class STDP_Song2000(Projection):
       if not post.has_bef_update(self._post_repr):
         syn_cls = syn()
         out_cls = out()
-        if out_label is None:
-          out_name = self.name
-        else:
-          out_name = f'{out_label} // {self.name}'
+        out_name = self.name if out_label is None else f'{out_label} // {self.name}'
         post.add_inp_fun(out_name, out_cls)
         post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
       # references
@@ -154,35 +152,29 @@ class STDP_Song2000(Projection):
       # synapse initialization
       self._syn_id = f'Delay({str(delay)}) // {syn.identifier}'
       if not delay_cls.has_bef_update(self._syn_id):
-        # delay
         delay_access = DelayAccess(delay_cls, delay)
-        # synapse
         syn_cls = syn()
-        # add to "after_updates"
         delay_cls.add_bef_update(self._syn_id, _AlignPreMg(delay_access, syn_cls))
-
       # output initialization
-      if out_label is None:
-        out_name = self.name
-      else:
-        out_name = f'{out_label} // {self.name}'
+      out_name = self.name if out_label is None else f'{out_label} // {self.name}'
       post.add_inp_fun(out_name, out)
-
       # references
       self.refs = dict(pre=pre, post=post)  # invisible to `self.nodes()`
       self.refs['delay'] = delay_cls.get_bef_update(self._syn_id)
       self.refs['syn'] = delay_cls.get_bef_update(self._syn_id).syn
       self.refs['out'] = out
 
-    self.refs['pre_trace'] = self.calculate_trace(pre, delay, Expon.desc(pre.num, tau=tau_s))
-    self.refs['post_trace'] = self.calculate_trace(post, None, Expon.desc(post.num, tau=tau_t))
-    # parameters
+    # trace initialization
+    self.refs['pre_trace'] = self._init_trace(pre, delay, Expon.desc(pre.num, tau=tau_s))
+    self.refs['post_trace'] = self._init_trace(post, None, Expon.desc(post.num, tau=tau_t))
+
+    # synapse parameters
     self.tau_s = parameter(tau_s, sizes=self.pre_num)
     self.tau_t = parameter(tau_t, sizes=self.post_num)
     self.A1 = parameter(A1, sizes=self.pre_num)
     self.A2 = parameter(A2, sizes=self.post_num)
 
-  def calculate_trace(
+  def _init_trace(
       self,
       target: DynamicalSystem,
       delay: Union[None, int, float],
@@ -234,5 +226,5 @@ class STDP_Song2000(Projection):
     if issubclass(self.syn.cls, AlignPost):
       self.refs['syn'].add_current(current)  # synapse post current
     else:
-      self.refs['out'].bind_cond(current)
+      self.refs['out'].bind_cond(current)  # align pre
     return current

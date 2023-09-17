@@ -44,7 +44,7 @@ class Dense(Layer, SupportOnline, SupportOffline, SupportSTDP):
     The number of the input feature. A positive integer.
   num_out: int
     The number of the output features. A positive integer.
-  weight_initializer: optional, Initializer
+  W_initializer: optional, Initializer
     The weight initialization.
   b_initializer: optional, Initializer
     The bias initialization.
