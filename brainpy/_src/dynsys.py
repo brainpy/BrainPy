@@ -610,6 +610,10 @@ class Projection(DynamicalSystem):
     else:
       raise ValueError('Do not implement the reset_state() function.')
 
+  def clear_input(self, *args, **kwargs):
+    """Empty function of clearing inputs."""
+    pass
+
 
 class Dynamic(DynamicalSystem):
   """Base class to model dynamics.
