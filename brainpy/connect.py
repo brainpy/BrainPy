@@ -16,6 +16,7 @@ from brainpy._src.connect.base import (
   coo2mat_num as coo2mat_num,
   mat2mat_num as mat2mat_num,
   visualizeMat as visualizeMat,
+  set_default_dtype as set_default_dtype,
 
   CONN_MAT,
   PRE_IDS, POST_IDS,
