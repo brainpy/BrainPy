@@ -13,6 +13,7 @@ from brainpy._src.mixin import Container, TreeNode
 from brainpy._src.types import ArrayType
 from brainpy.check import is_initializer
 from brainpy.types import Shape
+#from brainpy._src.dyn._docs import pneu_doc, dpneu_doc
 
 __all__ = [
   'HHTypedNeuron',
@@ -180,7 +181,7 @@ class CondNeuGroup(CondNeuGroupLTC):
     return super().update(x)
 
 
-class HHLTC(HHTypedNeuron):
+class HHLTC(NeuDyn):
   r"""Hodgkin–Huxley neuron model with liquid time constant.
 
   **Model Descriptions**
@@ -221,6 +222,20 @@ class HHLTC(HHTypedNeuron):
   nonlinear system and cannot be solved analytically. However, there are many numeric
   methods available to analyze the system. Certain properties and general behaviors,
   such as limit cycles, can be proven to exist.
+
+
+  References
+  ----------
+
+  .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
+         of membrane current and its application to conduction and excitation
+         in nerve." The Journal of physiology 117.4 (1952): 500.
+  .. [2] https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
+  .. [3] Ashwin, Peter, Stephen Coombes, and Rachel Nicks. "Mathematical
+         frameworks for oscillatory network dynamics in neuroscience."
+         The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
+
+  **Examples**
 
   Here is a simple usage example:
 
@@ -274,17 +289,6 @@ class HHLTC(HHTypedNeuron):
     The group name.
 
 
-
-  References
-  ----------
-
-  .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
-         of membrane current and its application to conduction and excitation
-         in nerve." The Journal of physiology 117.4 (1952): 500.
-  .. [2] https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
-  .. [3] Ashwin, Peter, Stephen Coombes, and Rachel Nicks. "Mathematical
-         frameworks for oscillatory network dynamics in neuroscience."
-         The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
 
 
   """
@@ -440,6 +444,19 @@ class HH(HHLTC):
 
       &\beta_n(V) = 0.125 \exp(\frac{-(V + 65)} {80})
 
+  References
+  ----------
+
+  .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
+         of membrane current and its application to conduction and excitation
+         in nerve." The Journal of physiology 117.4 (1952): 500.
+  .. [2] https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
+  .. [3] Ashwin, Peter, Stephen Coombes, and Rachel Nicks. "Mathematical
+         frameworks for oscillatory network dynamics in neuroscience."
+         The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
+
+  **Examples**
+
   Here is a simple usage example:
 
   .. code-block:: python
@@ -496,17 +513,6 @@ class HH(HHLTC):
     The numerical integration method.
   name: str
     The group name.
-
-  References
-  ----------
-
-  .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
-         of membrane current and its application to conduction and excitation
-         in nerve." The Journal of physiology 117.4 (1952): 500.
-  .. [2] https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
-  .. [3] Ashwin, Peter, Stephen Coombes, and Rachel Nicks. "Mathematical
-         frameworks for oscillatory network dynamics in neuroscience."
-         The Journal of Mathematical Neuroscience 6, no. 1 (2016): 1-92.
 
   """
 
@@ -758,7 +764,7 @@ class MorrisLecar(MorrisLecarLTC):
     return super().update(x)
 
 
-class WangBuzsakiHHLTC(HHTypedNeuron):
+class WangBuzsakiHHLTC(NeuDyn):
   r"""Wang-Buzsaki model [9]_, an implementation of a modified Hodgkin-Huxley model with liquid time constant.
 
   Each model is described by a single compartment and obeys the current balance equation:
@@ -800,6 +806,15 @@ class WangBuzsakiHHLTC(HHTypedNeuron):
   with :math:`\alpha_{n}(V)=-0.01(V+34) /(\exp (-0.1(V+34))-1)` and
   :math:`\beta_{n}(V)=0.125\exp (-(V+44) / 80)` ; :math:`g_{\mathrm{K}}=9 \mathrm{mS} / \mathrm{cm}^{2}`, and
   :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
+
+
+  References
+  ----------
+  .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
+         inhibition in a hippocampal interneuronal network model. Journal of
+         neuroscience, 16(20), pp.6402-6413.
+
+  **Examples**
 
   Here is a simple usage example:
 
@@ -851,11 +866,6 @@ class WangBuzsakiHHLTC(HHTypedNeuron):
   name: str
     The group name.
 
-  References
-  ----------
-  .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
-         inhibition in a hippocampal interneuronal network model. Journal of
-         neuroscience, 16(20), pp.6402-6413.
 
   """
 
@@ -1008,6 +1018,15 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
   :math:`\beta_{n}(V)=0.125\exp (-(V+44) / 80)` ; :math:`g_{\mathrm{K}}=9 \mathrm{mS} / \mathrm{cm}^{2}`, and
   :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
+
+  References
+  ----------
+  .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
+         inhibition in a hippocampal interneuronal network model. Journal of
+         neuroscience, 16(20), pp.6402-6413.
+
+  **Examples**
+
   Here is an example:
 
   .. code-block:: python
@@ -1057,12 +1076,6 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
     The numerical integration method.
   name: str
     The group name.
-
-  References
-  ----------
-  .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
-         inhibition in a hippocampal interneuronal network model. Journal of
-         neuroscience, 16(20), pp.6402-6413.
 
   """
 

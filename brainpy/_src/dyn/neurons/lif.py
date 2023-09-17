@@ -167,7 +167,13 @@ class LifLTC(GradNeuDyn):
   :math:`V_{th}` is the spike threshold, :math:`\tau` is the time constant,
   and :math:`I` is the time-variant synaptic inputs.
 
-  There is an example usage:
+
+  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
+         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
+
+  **Examples**
+
+  There is an example usage: mustang u r lvd by the blonde boy
 
   .. code-block:: python
 
@@ -182,10 +188,6 @@ class LifLTC(GradNeuDyn):
       runner.run(inputs=inputs)
 
       bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
-
-
-  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
-         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
 
   Args:
     %s
@@ -299,6 +301,11 @@ class Lif(LifLTC):
   :math:`V_{th}` is the spike threshold, :math:`\tau` is the time constant,
   and :math:`I` is the time-variant synaptic inputs.
 
+  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
+         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
+
+  **Examples**
+
   There is an example usage:
 
   .. code-block:: python
@@ -313,9 +320,6 @@ class Lif(LifLTC):
       runner.run(inputs=inputs)
       bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
 
-
-  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
-         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
 
   Args:
     %s
@@ -354,6 +358,10 @@ class LifRefLTC(LifLTC):
   :math:`\tau_{ref}` is the refractory time period,
   and :math:`I` is the time-variant synaptic inputs.
 
+  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
+         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
+
+  **Examples**
 
   There is an example usage:
 
@@ -376,8 +384,6 @@ class LifRefLTC(LifLTC):
 
 
 
-  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
-         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
 
   Args:
     %s
@@ -510,6 +516,10 @@ class LifRef(LifRefLTC):
   :math:`\tau_{ref}` is the refractory time period,
   and :math:`I` is the time-variant synaptic inputs.
 
+  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
+         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
+
+  **Examples**
 
   There is an example usage:
 
@@ -532,8 +542,7 @@ class LifRef(LifRefLTC):
 
 
 
-  .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
-         neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
+
 
   Args:
     %s
@@ -597,6 +606,24 @@ class ExpIFLTC(GradNeuDyn):
       rate for constant input, and the linear response to fluctuations, even in the presence
       of input noise [4]_.
 
+    **References**
+
+    .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+           mechanisms determine the neuronal response to fluctuating
+           inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+    .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
+           Neuronal dynamics: From single neurons to networks and models
+           of cognition. Cambridge University Press.
+    .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
+           Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
+           are reliable predictors of naturalistic pyramidal-neuron voltage
+           traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
+    .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
+           integrate-and-fire neurons to modulated current-based and
+           conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
+    .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
+
+    **Examples**
 
     There is a simple usage example::
 
@@ -641,22 +668,6 @@ class ExpIFLTC(GradNeuDyn):
     ================== ================= =========================================================
 
 
-    **References**
-
-    .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-           mechanisms determine the neuronal response to fluctuating
-           inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-    .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
-           Neuronal dynamics: From single neurons to networks and models
-           of cognition. Cambridge University Press.
-    .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
-           Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
-           are reliable predictors of naturalistic pyramidal-neuron voltage
-           traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
-    .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
-           integrate-and-fire neurons to modulated current-based and
-           conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
-    .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
     """
 
   def __init__(
@@ -796,6 +807,24 @@ class ExpIF(ExpIFLTC):
     rate for constant input, and the linear response to fluctuations, even in the presence
     of input noise [4]_.
 
+  **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
+         Neuronal dynamics: From single neurons to networks and models
+         of cognition. Cambridge University Press.
+  .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
+         Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
+         are reliable predictors of naturalistic pyramidal-neuron voltage
+         traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
+  .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
+         integrate-and-fire neurons to modulated current-based and
+         conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
+  .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
+
+  **Examples**
 
   There is a simple usage example::
 
@@ -840,22 +869,7 @@ class ExpIF(ExpIFLTC):
   ================== ================= =========================================================
 
 
-  **References**
 
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
-         Neuronal dynamics: From single neurons to networks and models
-         of cognition. Cambridge University Press.
-  .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
-         Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
-         are reliable predictors of naturalistic pyramidal-neuron voltage
-         traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
-  .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
-         integrate-and-fire neurons to modulated current-based and
-         conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
-  .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
 
   Args:
     %s
@@ -914,6 +928,24 @@ class ExpIFRefLTC(ExpIFLTC):
     rate for constant input, and the linear response to fluctuations, even in the presence
     of input noise [4]_.
 
+  **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
+         Neuronal dynamics: From single neurons to networks and models
+         of cognition. Cambridge University Press.
+  .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
+         Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
+         are reliable predictors of naturalistic pyramidal-neuron voltage
+         traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
+  .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
+         integrate-and-fire neurons to modulated current-based and
+         conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
+  .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
+
+  **Examples**
 
   There is a simple usage example::
 
@@ -958,22 +990,6 @@ class ExpIFRefLTC(ExpIFLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
-         Neuronal dynamics: From single neurons to networks and models
-         of cognition. Cambridge University Press.
-  .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
-         Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
-         are reliable predictors of naturalistic pyramidal-neuron voltage
-         traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
-  .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
-         integrate-and-fire neurons to modulated current-based and
-         conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
-  .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
 
   Args:
     %s
@@ -1138,6 +1154,24 @@ class ExpIFRef(ExpIFRefLTC):
     rate for constant input, and the linear response to fluctuations, even in the presence
     of input noise [4]_.
 
+  **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
+         Neuronal dynamics: From single neurons to networks and models
+         of cognition. Cambridge University Press.
+  .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
+         Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
+         are reliable predictors of naturalistic pyramidal-neuron voltage
+         traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
+  .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
+         integrate-and-fire neurons to modulated current-based and
+         conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
+  .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
+
+  **Examples**
 
   There is a simple usage example::
 
@@ -1182,22 +1216,6 @@ class ExpIFRef(ExpIFRefLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014).
-         Neuronal dynamics: From single neurons to networks and models
-         of cognition. Cambridge University Press.
-  .. [3] Badel, Laurent, Sandrine Lefort, Romain Brette, Carl CH Petersen,
-         Wulfram Gerstner, and Magnus JE Richardson. "Dynamic IV curves
-         are reliable predictors of naturalistic pyramidal-neuron voltage
-         traces." Journal of Neurophysiology 99, no. 2 (2008): 656-666.
-  .. [4] Richardson, Magnus JE. "Firing-rate response of linear and nonlinear
-         integrate-and-fire neurons to modulated current-based and
-         conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
-  .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
 
   Args:
     %s
@@ -1253,6 +1271,15 @@ class AdExIFLTC(GradNeuDyn):
   neuronal firing patterns, e.g., adapting, bursting, delayed spike initiation,
   initial bursting, fast spiking, and regular spiking.
 
+    **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
+
+  **Examples**
+
   An example usage:
 
   .. code-block:: python
@@ -1269,6 +1296,7 @@ class AdExIFLTC(GradNeuDyn):
       runner.run(inputs=inputs)
 
       bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], plot_ids=(0, 1), show=True)
+
   **Model Examples**
 
   - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Gerstner_2005_AdExIF_model.html>`_
@@ -1305,12 +1333,7 @@ class AdExIFLTC(GradNeuDyn):
   ================== ================= =========================================================
 
 
-  **References**
 
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
   """
 
   def __init__(
@@ -1460,6 +1483,15 @@ class AdExIF(AdExIFLTC):
   neuronal firing patterns, e.g., adapting, bursting, delayed spike initiation,
   initial bursting, fast spiking, and regular spiking.
 
+  **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
+
+  **Examples**
+
   An example usage:
 
   .. code-block:: python
@@ -1476,6 +1508,7 @@ class AdExIF(AdExIFLTC):
       runner.run(inputs=inputs)
 
       bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], plot_ids=(0, 1), show=True)
+
   **Model Examples**
 
   - `Examples for different firing patterns <https://brainpy-examples.readthedocs.io/en/latest/neurons/Gerstner_2005_AdExIF_model.html>`_
@@ -1512,12 +1545,6 @@ class AdExIF(AdExIFLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
 
   Args:
     %s
@@ -1566,6 +1593,15 @@ class AdExIFRefLTC(AdExIFLTC):
   The adaptive exponential integrate-and-fire model is capable of describing known
   neuronal firing patterns, e.g., adapting, bursting, delayed spike initiation,
   initial bursting, fast spiking, and regular spiking.
+
+    **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
+
+  **Examples**
 
   An example usage:
 
@@ -1620,12 +1656,7 @@ class AdExIFRefLTC(AdExIFLTC):
   ================== ================= =========================================================
 
 
-  **References**
 
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
 
   Args:
     %s
@@ -1793,7 +1824,16 @@ class AdExIFRef(AdExIFRefLTC):
   neuronal firing patterns, e.g., adapting, bursting, delayed spike initiation,
   initial bursting, fast spiking, and regular spiking.
 
-  An example usage:
+    **References**
+
+  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
+         mechanisms determine the neuronal response to fluctuating
+         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
+  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
+
+  **Examples**
+
+  Here is an example usage:
 
   .. code-block:: python
 
@@ -1846,12 +1886,6 @@ class AdExIFRef(AdExIFRefLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Fourcaud-Trocmé, Nicolas, et al. "How spike generation
-         mechanisms determine the neuronal response to fluctuating
-         inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
-  .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
 
   Args:
     %s
@@ -1895,7 +1929,15 @@ class QuaIFLTC(GradNeuDyn):
 
   where the parameters are taken to be :math:`c` =0.07, and :math:`V_c = -50 mV` (Latham et al., 2000).
 
-  There is an example usage:
+  **References**
+
+  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
+          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
+          J. Neurophysiology 83, pp. 808–827.
+
+  **Examples**
+
+  Here is an example usage:
 
   .. code-block:: python
 
@@ -1942,11 +1984,7 @@ class QuaIFLTC(GradNeuDyn):
 
 
 
-  **References**
 
-  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
-          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
-          J. Neurophysiology 83, pp. 808–827.
   """
 
   def __init__(
@@ -2062,6 +2100,15 @@ class QuaIF(QuaIFLTC):
 
   where the parameters are taken to be :math:`c` =0.07, and :math:`V_c = -50 mV` (Latham et al., 2000).
 
+  **References**
+
+  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
+          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
+          J. Neurophysiology 83, pp. 808–827.
+
+
+  **Examples**
+
   There is an example usage:
 
   .. code-block:: python
@@ -2110,12 +2157,6 @@ class QuaIF(QuaIFLTC):
 
 
 
-  **References**
-
-  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
-          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
-          J. Neurophysiology 83, pp. 808–827.
-
   Args:
     %s
     %s
@@ -2149,6 +2190,14 @@ class QuaIFRefLTC(QuaIFLTC):
       \tau \frac{d V}{d t}=c(V-V_{rest})(V-V_c) + RI(t)
 
   where the parameters are taken to be :math:`c` =0.07, and :math:`V_c = -50 mV` (Latham et al., 2000).
+
+  **References**
+
+  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
+          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
+          J. Neurophysiology 83, pp. 808–827.
+
+  **Examples**
 
   There is an example usage:
 
@@ -2198,11 +2247,7 @@ class QuaIFRefLTC(QuaIFLTC):
 
 
 
-  **References**
 
-  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
-          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
-          J. Neurophysiology 83, pp. 808–827.
 
   Args:
     %s
@@ -2345,6 +2390,14 @@ class QuaIFRef(QuaIFRefLTC):
 
   where the parameters are taken to be :math:`c` =0.07, and :math:`V_c = -50 mV` (Latham et al., 2000).
 
+  **References**
+
+  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
+          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
+          J. Neurophysiology 83, pp. 808–827.
+
+  **Examples**
+
   There is an example usage:
 
   .. code-block:: python
@@ -2393,12 +2446,6 @@ class QuaIFRef(QuaIFRefLTC):
 
 
 
-  **References**
-
-  .. [1]  P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
-          (2000) Intrinsic dynamics in neuronal networks. I. Theory.
-          J. Neurophysiology 83, pp. 808–827.
-
   Args:
     %s
     %s
@@ -2443,7 +2490,17 @@ class AdQuaIFLTC(GradNeuDyn):
       V \rightarrow V_{reset}, \\
       w \rightarrow w+b.
 
-  There is an example usage:
+  **References**
+
+  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
+         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
+  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
+         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
+         Mathematics 68, no. 4 (2008): 1045-1079.
+
+  **Examples**
+
+  Here is an example usage:
 
   .. code-block:: python
 
@@ -2495,13 +2552,6 @@ class AdQuaIFLTC(GradNeuDyn):
   ================== ================= ==========================================================
 
 
-  **References**
-
-  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
-         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
-  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
-         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
-         Mathematics 68, no. 4 (2008): 1045-1079.
   """
 
   def __init__(
@@ -2637,6 +2687,16 @@ class AdQuaIF(AdQuaIFLTC):
       V \rightarrow V_{reset}, \\
       w \rightarrow w+b.
 
+  **References**
+
+  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
+         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
+  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
+         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
+         Mathematics 68, no. 4 (2008): 1045-1079.
+
+  **Examples**
+
   There is an example usage:
 
   .. code-block:: python
@@ -2689,13 +2749,7 @@ class AdQuaIF(AdQuaIFLTC):
   ================== ================= ==========================================================
 
 
-  **References**
 
-  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
-         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
-  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
-         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
-         Mathematics 68, no. 4 (2008): 1045-1079.
 
   Args:
     %s
@@ -2732,6 +2786,16 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
 
       V \rightarrow V_{reset}, \\
       w \rightarrow w+b.
+
+  **References**
+
+  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
+         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
+  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
+         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
+         Mathematics 68, no. 4 (2008): 1045-1079.
+
+  **Examples**
 
   There is an example usage:
 
@@ -2786,13 +2850,6 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
   ================== ================= ==========================================================
 
 
-  **References**
-
-  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
-         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
-  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
-         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
-         Mathematics 68, no. 4 (2008): 1045-1079.
 
   Args:
     %s
@@ -2947,6 +3004,16 @@ class AdQuaIFRef(AdQuaIFRefLTC):
       V \rightarrow V_{reset}, \\
       w \rightarrow w+b.
 
+  **References**
+
+  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
+         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
+  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
+         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
+         Mathematics 68, no. 4 (2008): 1045-1079.
+
+  **Examples**
+
   There is an example usage:
 
   .. code-block:: python
@@ -2998,13 +3065,6 @@ class AdQuaIFRef(AdQuaIFRefLTC):
   ================== ================= ==========================================================
 
 
-  **References**
-
-  .. [1] Izhikevich, E. M. (2004). Which model to use for cortical spiking
-         neurons?. IEEE transactions on neural networks, 15(5), 1063-1070.
-  .. [2] Touboul, Jonathan. "Bifurcation analysis of a general class of
-         nonlinear integrate-and-fire neurons." SIAM Journal on Applied
-         Mathematics 68, no. 4 (2008): 1045-1079.
 
   Args:
     %s
@@ -3054,6 +3114,19 @@ class GifLTC(GradNeuDyn):
       &V_{th} \leftarrow max(V_{th_{reset}}, V_{th})
 
   Note that :math:`I_j` refers to arbitrary number of internal currents.
+
+
+  **References**
+
+  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
+         integrate-and-fire neural model produces diverse spiking
+         behaviors." Neural computation 21.3 (2009): 704-718.
+  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
+         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
+         leaky integrate-and-fire models classify multiple neuron types."
+         Nature communications 9, no. 1 (2018): 1-15.
+
+  **Examples**
 
   There is a simple usage: you r bound to be together, roy and edward
 
@@ -3124,15 +3197,6 @@ class GifLTC(GradNeuDyn):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
-         integrate-and-fire neural model produces diverse spiking
-         behaviors." Neural computation 21.3 (2009): 704-718.
-  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
-         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
-         leaky integrate-and-fire models classify multiple neuron types."
-         Nature communications 9, no. 1 (2018): 1-15.
 """
 
   def __init__(
@@ -3299,6 +3363,19 @@ class Gif(GifLTC):
 
   Note that :math:`I_j` refers to arbitrary number of internal currents.
 
+
+  **References**
+
+  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
+         integrate-and-fire neural model produces diverse spiking
+         behaviors." Neural computation 21.3 (2009): 704-718.
+  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
+         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
+         leaky integrate-and-fire models classify multiple neuron types."
+         Nature communications 9, no. 1 (2018): 1-15.
+
+  **Examples**
+
   There is a simple usage:
 
   .. code-block:: python
@@ -3368,15 +3445,6 @@ class Gif(GifLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
-         integrate-and-fire neural model produces diverse spiking
-         behaviors." Neural computation 21.3 (2009): 704-718.
-  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
-         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
-         leaky integrate-and-fire models classify multiple neuron types."
-         Nature communications 9, no. 1 (2018): 1-15.
 
   Args:
     %s
@@ -3418,6 +3486,19 @@ class GifRefLTC(GifLTC):
       &V_{th} \leftarrow max(V_{th_{reset}}, V_{th})
 
   Note that :math:`I_j` refers to arbitrary number of internal currents.
+
+
+  **References**
+
+  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
+         integrate-and-fire neural model produces diverse spiking
+         behaviors." Neural computation 21.3 (2009): 704-718.
+  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
+         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
+         leaky integrate-and-fire models classify multiple neuron types."
+         Nature communications 9, no. 1 (2018): 1-15.
+
+  **Examples**
 
   There is a simple usage: mustang i love u
 
@@ -3489,15 +3570,6 @@ class GifRefLTC(GifLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
-         integrate-and-fire neural model produces diverse spiking
-         behaviors." Neural computation 21.3 (2009): 704-718.
-  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
-         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
-         leaky integrate-and-fire models classify multiple neuron types."
-         Nature communications 9, no. 1 (2018): 1-15.
 
   Args:
     %s
@@ -3681,6 +3753,19 @@ class GifRef(GifRefLTC):
 
   Note that :math:`I_j` refers to arbitrary number of internal currents.
 
+
+  **References**
+
+  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
+         integrate-and-fire neural model produces diverse spiking
+         behaviors." Neural computation 21.3 (2009): 704-718.
+  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
+         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
+         leaky integrate-and-fire models classify multiple neuron types."
+         Nature communications 9, no. 1 (2018): 1-15.
+
+  **Examples**
+
   There is a simple usage:
 
   .. code-block:: python
@@ -3750,15 +3835,6 @@ class GifRef(GifRefLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
-         integrate-and-fire neural model produces diverse spiking
-         behaviors." Neural computation 21.3 (2009): 704-718.
-  .. [2] Teeter, Corinne, Ramakrishnan Iyer, Vilas Menon, Nathan
-         Gouwens, David Feng, Jim Berg, Aaron Szafer et al. "Generalized
-         leaky integrate-and-fire models classify multiple neuron types."
-         Nature communications 9, no. 1 (2018): 1-15.
 
   Args:
     %s
@@ -3800,6 +3876,17 @@ class IzhikevichLTC(GradNeuDyn):
         \text{if}  v \geq 30  \text{mV}, \text{then}
         \begin{cases} v \leftarrow c \\
         u \leftarrow u+d \end{cases}
+
+
+    **References**
+
+    .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
+           Transactions on neural networks 14.6 (2003): 1569-1572.
+
+    .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
+           IEEE transactions on neural networks 15.5 (2004): 1063-1070.
+
+    **Examples**
 
     There is a simple usage example::
 
@@ -3859,13 +3946,6 @@ class IzhikevichLTC(GradNeuDyn):
     ================== ================= =========================================================
 
 
-    **References**
-
-    .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
-           Transactions on neural networks 14.6 (2003): 1569-1572.
-
-    .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
-           IEEE transactions on neural networks 15.5 (2004): 1063-1070.
     """
 
   def __init__(
@@ -3992,6 +4072,17 @@ class Izhikevich(IzhikevichLTC):
       \begin{cases} v \leftarrow c \\
       u \leftarrow u+d \end{cases}
 
+
+  **References**
+
+  .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
+         Transactions on neural networks 14.6 (2003): 1569-1572.
+
+  .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
+         IEEE transactions on neural networks 15.5 (2004): 1063-1070.
+
+  **Examples**
+
   There is a simple usage example::
 
     import brainpy as bp
@@ -4049,14 +4140,6 @@ class Izhikevich(IzhikevichLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
-         Transactions on neural networks 14.6 (2003): 1569-1572.
-
-  .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
-         IEEE transactions on neural networks 15.5 (2004): 1063-1070.
-
   Args:
     %s
     %s
@@ -4091,6 +4174,16 @@ class IzhikevichRefLTC(IzhikevichLTC):
       \text{if}  v \geq 30  \text{mV}, \text{then}
       \begin{cases} v \leftarrow c \\
       u \leftarrow u+d \end{cases}
+
+    **References**
+
+  .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
+         Transactions on neural networks 14.6 (2003): 1569-1572.
+
+  .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
+         IEEE transactions on neural networks 15.5 (2004): 1063-1070.
+
+  **Examples**
 
   There is a simple usage example::
 
@@ -4149,13 +4242,6 @@ class IzhikevichRefLTC(IzhikevichLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
-         Transactions on neural networks 14.6 (2003): 1569-1572.
-
-  .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
-         IEEE transactions on neural networks 15.5 (2004): 1063-1070.
 
   Args:
     %s
@@ -4300,6 +4386,18 @@ class IzhikevichRef(IzhikevichRefLTC):
       \begin{cases} v \leftarrow c \\
       u \leftarrow u+d \end{cases}
 
+
+
+  **References**
+
+  .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
+         Transactions on neural networks 14.6 (2003): 1569-1572.
+
+  .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
+         IEEE transactions on neural networks 15.5 (2004): 1063-1070.
+
+  **Examples**
+
   There is a simple usage example::
 
     import brainpy as bp
@@ -4357,13 +4455,6 @@ class IzhikevichRef(IzhikevichRefLTC):
   ================== ================= =========================================================
 
 
-  **References**
-
-  .. [1] Izhikevich, Eugene M. "Simple model of spiking neurons." IEEE
-         Transactions on neural networks 14.6 (2003): 1569-1572.
-
-  .. [2] Izhikevich, Eugene M. "Which model to use for cortical spiking neurons?."
-         IEEE transactions on neural networks 15.5 (2004): 1063-1070.
 
   Args:
     %s
