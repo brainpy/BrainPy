@@ -10,7 +10,7 @@ import numpy as np
 
 from brainpy import tools, math as bm
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import AutoDelaySupp, Container, ReceiveInputProj, DelayRegister, global_delay_data
+from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, global_delay_data
 from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 from brainpy._src.deprecations import _update_deprecate_msg
@@ -70,7 +70,7 @@ def not_pass_shared(func: Callable):
   return func
 
 
-class DynamicalSystem(bm.BrainPyObject, DelayRegister, ReceiveInputProj):
+class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   """Base Dynamical System class.
 
   .. note::
@@ -487,7 +487,7 @@ class Network(DynSysGroup):
   pass
 
 
-class Sequential(DynamicalSystem, AutoDelaySupp, Container):
+class Sequential(DynamicalSystem, SupportAutoDelay, Container):
   """A sequential `input-output` module.
 
   Modules will be added to it in the order they are passed in the
@@ -557,9 +557,9 @@ class Sequential(DynamicalSystem, AutoDelaySupp, Container):
 
   def return_info(self):
     last = self[-1]
-    if not isinstance(last, AutoDelaySupp):
+    if not isinstance(last, SupportAutoDelay):
       raise UnsupportedError(f'Does not support "return_info()" because the last node is '
-                             f'not instance of {AutoDelaySupp.__name__}')
+                             f'not instance of {SupportAutoDelay.__name__}')
     return last.return_info()
 
   def __getitem__(self, key: Union[int, slice, str]):

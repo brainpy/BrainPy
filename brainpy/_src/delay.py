@@ -327,7 +327,7 @@ class VarDelay(Delay):
 
     if self.method == ROTATE_UPDATE:
       i = share.load('i')
-      delay_idx = bm.as_jax((delay_step - i - 1) % self.max_length)
+      delay_idx = bm.as_jax((delay_step - i - 1) % self.max_length, dtype=jnp.int32)
       delay_idx = jax.lax.stop_gradient(delay_idx)
 
     elif self.method == CONCAT_UPDATE:
@@ -358,7 +358,7 @@ class VarDelay(Delay):
       # update the delay data at the rotation index
       if self.method == ROTATE_UPDATE:
         i = share.load('i')
-        idx = bm.as_jax((-i - 1) % self.max_length)
+        idx = bm.as_jax((-i - 1) % self.max_length, dtype=jnp.int32)
         self.data[idx] = latest_value
 
       # update the delay data at the first position

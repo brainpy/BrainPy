@@ -141,6 +141,8 @@ class BrainPyObject(object):
            # that has been created.
            a = self.tracing_variable('a', bm.zeros, (10,))
 
+    .. versionadded:: 2.4.5
+
     Args:
       name: str. The variable name.
       init: callable, Array. The data to be initialized as a ``Variable``.

@@ -1,6 +1,5 @@
 import numbers
 import sys
-import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, TypeVar, Any
 from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
@@ -28,11 +27,15 @@ __all__ = [
   'ParamDesc',
   'ParamDescInit',
   'AlignPost',
-  'AutoDelaySupp',
   'Container',
   'TreeNode',
   'BindCondData',
   'JointType',
+  'SupportSTDP',
+  'SupportAutoDelay',
+  'SupportInputProj',
+  'SupportOnline',
+  'SupportOffline',
 ]
 
 global_delay_data = dict()
@@ -44,59 +47,6 @@ class MixIn(object):
   The key for a :py:class:`~.MixIn` is that: no initialization function, only behavioral functions.
   """
   pass
-
-
-class ReceiveInputProj(MixIn):
-  """The :py:class:`~.MixIn` that receives the input projections.
-
-  Note that the subclass should define a ``cur_inputs`` attribute.
-
-  """
-  cur_inputs: bm.node_dict
-
-  def add_inp_fun(self, key: Any, fun: Callable):
-    """Add an input function.
-
-    Args:
-      key: The dict key.
-      fun: The function to generate inputs.
-    """
-    if not callable(fun):
-      raise TypeError('Must be a function.')
-    if key in self.cur_inputs:
-      raise ValueError(f'Key "{key}" has been defined and used.')
-    self.cur_inputs[key] = fun
-
-  def get_inp_fun(self, key):
-    """Get the input function.
-
-    Args:
-      key: The key.
-
-    Returns:
-      The input function which generates currents.
-    """
-    return self.cur_inputs.get(key)
-
-  def sum_inputs(self, *args, init=0., label=None, **kwargs):
-    """Summarize all inputs by the defined input functions ``.cur_inputs``.
-
-    Args:
-      *args: The arguments for input functions.
-      init: The initial input data.
-      **kwargs: The arguments for input functions.
-
-    Returns:
-      The total currents.
-    """
-    if label is None:
-      for key, out in self.cur_inputs.items():
-        init = init + out(*args, **kwargs)
-    else:
-      for key, out in self.cur_inputs.items():
-        if key.startswith(label + ' // '):
-          init = init + out(*args, **kwargs)
-    return init
 
 
 class ParamDesc(MixIn):
@@ -205,13 +155,6 @@ class ReturnInfo:
     else:
       raise ValueError
     return init
-
-
-class AutoDelaySupp(MixIn):
-  """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
-
-  def return_info(self) -> Union[bm.Variable, ReturnInfo]:
-    raise NotImplementedError('Must implement the "return_info()" function.')
 
 
 class Container(MixIn):
@@ -347,7 +290,7 @@ class DelayRegister(MixIn):
     if delay_identifier is None: from brainpy._src.delay import delay_identifier
     if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
 
-    assert isinstance(self, AutoDelaySupp), f'self must be an instance of {AutoDelaySupp.__name__}'
+    assert isinstance(self, SupportAutoDelay), f'self must be an instance of {SupportAutoDelay.__name__}'
     assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
     if not self.has_aft_update(delay_identifier):
       self.add_aft_update(delay_identifier, init_delay_by_return(self.return_info()))
@@ -549,8 +492,97 @@ class DelayRegister(MixIn):
     return global_delay_data[name]
 
 
+class SupportInputProj(MixIn):
+  """The :py:class:`~.MixIn` that receives the input projections.
+
+  Note that the subclass should define a ``cur_inputs`` attribute.
+
+  """
+  cur_inputs: bm.node_dict
+
+  def add_inp_fun(self, key: Any, fun: Callable):
+    """Add an input function.
+
+    Args:
+      key: The dict key.
+      fun: The function to generate inputs.
+    """
+    if not callable(fun):
+      raise TypeError('Must be a function.')
+    if key in self.cur_inputs:
+      raise ValueError(f'Key "{key}" has been defined and used.')
+    self.cur_inputs[key] = fun
+
+  def get_inp_fun(self, key):
+    """Get the input function.
+
+    Args:
+      key: The key.
+
+    Returns:
+      The input function which generates currents.
+    """
+    return self.cur_inputs.get(key)
+
+  def sum_inputs(self, *args, init=0., label=None, **kwargs):
+    """Summarize all inputs by the defined input functions ``.cur_inputs``.
+
+    Args:
+      *args: The arguments for input functions.
+      init: The initial input data.
+      **kwargs: The arguments for input functions.
+
+    Returns:
+      The total currents.
+    """
+    if label is None:
+      for key, out in self.cur_inputs.items():
+        init = init + out(*args, **kwargs)
+    else:
+      for key, out in self.cur_inputs.items():
+        if key.startswith(label + ' // '):
+          init = init + out(*args, **kwargs)
+    return init
+
+
+class SupportAutoDelay(MixIn):
+  """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
+
+  def return_info(self) -> Union[bm.Variable, ReturnInfo]:
+    raise NotImplementedError('Must implement the "return_info()" function.')
+
+
+class SupportOnline(MixIn):
+  """:py:class:`~.MixIn` to support the online training methods.
+
+  .. versionadded:: 2.4.5
+  """
+
+  online_fit_by: Optional  # methods for online fitting
+
+  def online_init(self):
+    raise NotImplementedError
+
+  def online_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
+    raise NotImplementedError
+
+
+class SupportOffline(MixIn):
+  """:py:class:`~.MixIn` to support the offline training methods.
+
+  .. versionadded:: 2.4.5
+  """
+
+  offline_fit_by: Optional  # methods for offline fitting
+
+  def offline_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
+    raise NotImplementedError
+
+
 class BindCondData(MixIn):
   """Bind temporary conductance data.
+
+
   """
   _conductance: Optional
 
@@ -559,6 +591,16 @@ class BindCondData(MixIn):
 
   def unbind_cond(self):
     self._conductance = None
+
+
+class SupportSTDP(MixIn):
+  """Support synaptic plasticity by modifying the weights.
+  """
+  def update_STDP(self,
+                  dW: Union[bm.Array, jax.Array],
+                  constraints: Optional[Callable] = None,
+                  ):
+    raise NotImplementedError
 
 
 T = TypeVar('T')
@@ -598,7 +640,7 @@ class UnionType2(MixIn):
 
   >>> import brainpy as bp
   >>>
-  >>> isinstance(bp.dyn.Expon(1), JointType[bp.DynamicalSystem, bp.mixin.ParamDesc, bp.mixin.AutoDelaySupp])
+  >>> isinstance(bp.dyn.Expon(1), JointType[bp.DynamicalSystem, bp.mixin.ParamDesc, bp.mixin.SupportAutoDelay])
   """
 
   @classmethod

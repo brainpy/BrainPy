@@ -1,0 +1,16 @@
+numpy
+tqdm
+msgpack
+matplotlib>=3.4
+jax
+jaxlib
+scipy>=1.1.0
+brainpy
+brainpylib
+brainpy_datasets
+h5py
+pathos
+
+# test requirements
+pytest
+absl-py

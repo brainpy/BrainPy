@@ -78,8 +78,8 @@ BrainPy relies on `JAX`_. JAX is a high-performance JIT compiler which enables
 users to run Python code on CPU, GPU, and TPU devices. Core functionalities of
 BrainPy (>=2.0.0) have been migrated to the JAX backend.
 
-Linux & MacOS
-^^^^^^^^^^^^^
+Linux
+^^^^^
 
 Currently, JAX supports **Linux** (Ubuntu 16.04 or later) and **macOS** (10.12 or
 later) platforms. The provided binary releases of `jax` and `jaxlib` for Linux and macOS
@@ -93,14 +93,20 @@ If you want to install a CPU-only version of `jax` and `jaxlib`, you can run
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cpu]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+    pip install --upgrade "jax[cpu]"
 
 If you want to install JAX with both CPU and NVidia GPU support, you must first install
 `CUDA`_ and `CuDNN`_, if they have not already been installed. Next, run
 
 .. code-block:: bash
 
-    pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+    # CUDA 12 installation
+    # Note: wheels only available on linux.
+    pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+    # CUDA 11 installation
+    # Note: wheels only available on linux.
+    pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 
 Alternatively, you can download the preferred release ".whl" file for jaxlib
@@ -108,23 +114,54 @@ from the above release links, and install it via ``pip``:
 
 .. code-block:: bash
 
-    pip install xxx-0.3.14-xxx.whl
+    pip install xxx-0.4.15-xxx.whl
 
-    pip install jax==0.3.14
+    pip install jax==0.4.15
 
 .. note::
 
-   Note that the versions of `jaxlib` and `jax` should be consistent.
+    Note that the versions of jaxlib and jax should be consistent.
 
-   For example, if you are using `jax==0.3.14`, you would better install `jax==0.3.14`.
+    For example, if you are using jax==0.4.15, you would better install jax==0.4.15.
+
+
+MacOS
+^^^^^
+
+If you are using macOS Intel, we recommend you first to install the Miniconda Intel installer:
+
+1. Download the package in the link https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.pkg
+2. Then click the downloaded package and install it.
+
+
+If you are using the latest M1 macOS version, you'd better to install the Miniconda M1 installer:
+
+
+1. Download the package in the link https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
+2. Then click the downloaded package and install it.
+
+
+Finally, you can install `jax` and `jaxlib` as the same as the Linux platform.
+
+.. code-block:: bash
+
+   pip install --upgrade "jax[cpu]"
 
 
 
 Windows
 ^^^^^^^
 
-For **Windows** users, `jax` and `jaxlib` can be installed from the community supports.
-Specifically, you can install `jax` and `jaxlib` through:
+For **Windows** users with Python >= 3.9, `jax` and `jaxlib` can be installed
+directly from the PyPi channel.
+
+.. code-block:: bash
+
+   pip install jax jaxlib
+
+
+For **Windows** users with Python <= 3.8, `jax` and `jaxlib` can be installed
+from the community supports. Specifically, you can install `jax` and `jaxlib` through:
 
 .. code-block:: bash
 
@@ -137,14 +174,15 @@ If you are using GPU, you can install GPU-versioned wheels through:
    pip install "jax[cuda111]" -f https://whls.blob.core.windows.net/unstable/index.html
 
 Alternatively, you can manually install you favourite version of `jax` and `jaxlib` by
-downloading binary releases of JAX for Windows from https://whls.blob.core.windows.net/unstable/index.html .
+downloading binary releases of JAX for Windows from
+https://whls.blob.core.windows.net/unstable/index.html .
 Then install it via ``pip``:
 
 .. code-block:: bash
 
-    pip install xxx-0.3.14-xxx.whl
+    pip install xxx-0.4.15-xxx.whl
 
-    pip install jax==0.3.14
+    pip install jax==0.4.15
 
 WSL
 ^^^
@@ -159,17 +197,60 @@ Dependency 3: brainpylib
 ------------------------
 
 Many customized operators in BrainPy are implemented in ``brainpylib``.
-``brainpylib`` can also be installed through `pypi <https://pypi.org/project/brainpylib/>`_.
+``brainpylib`` can also be installed from pypi according to your devices.
+For windows, Linux and MacOS users, ``brainpylib`` supports CPU operators.
+You can install CPU-version `brainpylib` by:
 
 .. code-block:: bash
 
-   pip install brainpylib
+    # CPU installation
+    pip install --upgrade brainpylib
 
-For windows, Linux and MacOS users, ``brainpylib`` supports CPU operators.
+For Nvidia GPU users, ``brainpylib`` only support Linux system and WSL2 subsystem. You can install the CUDA-version by using:
 
-For CUDA users, ``brainpylib`` only support GPU on Linux platform. You can install GPU version ``brainpylib``
-on Linux through ``pip install brainpylib`` too.
+.. code-block:: bash
 
+    # CUDA 12 installation
+    pip install --upgrade brainpylib-cu12x
+
+.. code-block:: bash
+
+    # CUDA 11 installation
+    pip install --upgrade brainpylib-cu11x
+
+Running BrainPy with docker
+------------------------
+
+If you want to use BrainPy in docker, you can use the following command to pull the docker image:
+
+.. code:: bash
+
+   docker pull brainpy/brainpy:latest
+
+You can then run the docker image by:
+
+.. code:: bash
+
+   docker run -it --platform linux/amd64 brainpy/brainpy:latest
+
+Please notice that BrainPy docker image is based on the `ubuntu22.04` image, so it only support CPU version of BrainPy.
+
+
+Running BrainPy online with binder
+----------------------------------
+
+Click on the following link to launch the Binder environment with the
+BrainPy repository:
+
+|image1|
+
+Wait for the Binder environment to build. This might take a few moments.
+
+Once the environment is ready, you'll be redirected to a Jupyter
+notebook interface within your web browser.
+
+.. |image1| image:: https://camo.githubusercontent.com/581c077bdbc6ca6899c86d0acc6145ae85e9d80e6f805a1071793dbe48917982/68747470733a2f2f6d7962696e6465722e6f72672f62616467655f6c6f676f2e737667
+   :target: https://mybinder.org/v2/gh/brainpy/BrainPy-binder/main
 
 
 .. _NumPy: https://numpy.org/

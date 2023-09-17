@@ -43,7 +43,7 @@ def _write_module(module_name, filename, header=None, template=False):
   # write autosummary
   fout.write('.. autosummary::\n')
   if template:
-    fout.write('   :template: class_template.rst\n')
+    fout.write('   :template: classtemplate.rst\n')
   fout.write('   :toctree: generated/\n\n')
   for m in functions:
     fout.write(f'   {m}\n')
@@ -77,7 +77,9 @@ def _write_submodules(module_name, filename, header=None, submodule_names=(), se
 
     # write autosummary
     fout.write('.. autosummary::\n')
-    fout.write('   :toctree: generated/\n\n')
+    fout.write('   :toctree: generated/\n')
+    fout.write('   :nosignatures:\n')
+    fout.write('   :template: classtemplate.rst\n\n')
     for m in functions:
       fout.write(f'   {m}\n')
     for m in classes:
@@ -109,7 +111,9 @@ def _write_subsections(module_name,
     fout.write(name + '\n')
     fout.write('-' * len(name) + '\n\n')
     fout.write('.. autosummary::\n')
-    fout.write('   :toctree: generated/\n\n')
+    fout.write('   :toctree: generated/\n')
+    fout.write('   :nosignatures:\n')
+    fout.write('   :template: classtemplate.rst\n\n')
     for m in values:
       fout.write(f'   {m}\n')
     fout.write(f'\n\n')
@@ -140,7 +144,9 @@ def _write_subsections_v2(module_path,
     fout.write(subheader + '\n')
     fout.write('-' * len(subheader) + '\n\n')
     fout.write('.. autosummary::\n')
-    fout.write('   :toctree: generated/\n\n')
+    fout.write('   :toctree: generated/\n')
+    fout.write('   :nosignatures:\n')
+    fout.write('   :template: classtemplate.rst\n\n')
     for m in functions:
       fout.write(f'   {m}\n')
     for m in classes:
@@ -182,7 +188,9 @@ def _write_subsections_v3(module_path,
       fout.write(subheader + '\n')
       fout.write('~' * len(subheader) + '\n\n')
       fout.write('.. autosummary::\n')
-      fout.write('   :toctree: generated/\n\n')
+      fout.write('   :toctree: generated/\n')
+      fout.write('   :nosignatures:\n')
+      fout.write('   :template: classtemplate.rst\n\n')
       for m in functions:
         fout.write(f'   {m}\n')
       for m in classes:
@@ -220,7 +228,9 @@ def _write_subsections_v4(module_path,
 
 
     fout.write('.. autosummary::\n')
-    fout.write('   :toctree: generated/\n\n')
+    fout.write('   :toctree: generated/\n')
+    fout.write('   :nosignatures:\n')
+    fout.write('   :template: classtemplate.rst\n\n')
     for m in functions:
       fout.write(f'   {m}\n')
     for m in classes:
