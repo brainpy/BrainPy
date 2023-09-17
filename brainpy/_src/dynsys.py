@@ -593,6 +593,12 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
 
 
 class Projection(DynamicalSystem):
+  """Base class to model synaptic projections.
+
+  Args:
+    name: The name of the dynamic system.
+    mode: The computing mode. It should be an instance of :py:class:`~.Mode`.
+  """
 
   def update(self, *args, **kwargs):
     nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())

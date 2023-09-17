@@ -51,3 +51,4 @@ class Test_STDP(parameterized.TestCase):
 
     indices = bm.arange(0, duration, bm.dt)
     bm.for_loop(run, [indices, I_pre, I_post], jit=True)
+    bm.clear_buffer_memory()
