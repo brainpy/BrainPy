@@ -12,17 +12,18 @@ class Test_Reservoir(parameterized.TestCase):
               bm.BatchingMode(10),
               bm.NonBatchingMode()]
     )
-    def test_Reservoir(self,mode):
+    def test_Reservoir(self, mode):
         bm.random.seed()
-        input=bm.random.randn(10,3)
-        layer=bp.dnn.Reservoir(input_shape=3,
-                               num_out=5,
-                               mode=mode)
+        input = bm.random.randn(10, 3)
+        layer = bp.dnn.Reservoir(input_shape=3,
+                                 num_out=5,
+                                 mode=mode)
         if mode in [bm.NonBatchingMode()]:
             for i in input:
-                output=layer(i)
+                output = layer(i)
         else:
-            output=layer(input)
+            output = layer(input)
+
 
 if __name__ == '__main__':
     absltest.main()

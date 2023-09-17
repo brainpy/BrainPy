@@ -17,8 +17,7 @@ __all__ = [
 
 
 class Reservoir(Layer):
-  r"""Reservoir node, a pool of leaky-integrator neurons
-  with random recurrent connections [1]_.
+  r"""Reservoir node, a pool of leaky-integrator neurons with random recurrent connections [1]_.
 
   Parameters
   ----------
@@ -81,8 +80,6 @@ class Reservoir(Layer):
     Distribution of noise. Must be a random variable generator
     distribution (see :py:class:`brainpy.math.random.RandomState`),
     by default "normal". 
-  seed: optional, int
-    The seed for random sampling in this node.
 
   References
   ----------
@@ -107,7 +104,6 @@ class Reservoir(Layer):
       noise_in: float = 0.,
       noise_rec: float = 0.,
       noise_type: str = 'normal',
-      seed: Optional[int] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None
   ):
