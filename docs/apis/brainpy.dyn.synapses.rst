@@ -5,6 +5,12 @@ Synaptic Dynamics
 .. automodule:: brainpy.dyn
 
 
+
+
+Phenomenological synapse models
+-------------------------------
+
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -18,8 +24,33 @@ Synaptic Dynamics
    NMDA
    STD
    STP
+
+
+
+Biological synapse models
+-------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
    AMPA
    GABAa
    BioNMDA
+
+
+
+Gap junction models
+-------------------
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
    DiffusiveCoupling
    AdditiveCoupling
+
+
