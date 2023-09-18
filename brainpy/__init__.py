@@ -149,7 +149,7 @@ __deprecations = {
   'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
   'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
-  'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.syn.CondNeuGroup', dyn.CondNeuGroup),
+  'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.dyn.CondNeuGroup', dyn.CondNeuGroup),
 }
 __getattr__ = deprecation_getattr2('brainpy', __deprecations)
 
