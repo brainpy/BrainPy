@@ -136,23 +136,6 @@ Pooling Layers
    AdaptiveMaxPool3d
 
 
-Artificial Recurrent Layers
----------------------------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-   :template: classtemplate.rst
-
-   NVAR
-   Reservoir
-   RNNCell
-   GRUCell
-   LSTMCell
-   Conv1dLSTMCell
-   Conv2dLSTMCell
-   Conv3dLSTMCell
-
 
 Interoperation with Flax
 ------------------------

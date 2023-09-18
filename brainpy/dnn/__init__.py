@@ -6,4 +6,3 @@ from .linear import *
 from .normalization import *
 from .others import *
 from .pooling import *
-from .recurrent import *
