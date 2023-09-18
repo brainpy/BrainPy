@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.4.post4"
+__version__ = "2.4.5"
 _minimal_brainpylib_version = '0.1.10'
 
 # fundamental supporting modules
