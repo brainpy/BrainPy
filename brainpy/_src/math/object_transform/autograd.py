@@ -915,9 +915,8 @@ def _valid_jaxtype(arg):
 
 def _check_output_dtype_revderiv(name, holomorphic, x):
   aval = core.get_aval(x)
-  if core.is_opaque_dtype(aval.dtype):
-    raise TypeError(
-      f"{name} with output element type {aval.dtype.name}")
+  if jnp.issubdtype(aval.dtype, dtypes.extended):
+    raise TypeError(f"{name} with output element type {aval.dtype.name}")
   if holomorphic:
     if not dtypes.issubdtype(aval.dtype, np.complexfloating):
       raise TypeError(f"{name} with holomorphic=True requires outputs with complex dtype, "
@@ -938,9 +937,8 @@ def _check_output_dtype_revderiv(name, holomorphic, x):
 def _check_input_dtype_revderiv(name, holomorphic, allow_int, x):
   _check_arg(x)
   aval = core.get_aval(x)
-  if core.is_opaque_dtype(aval.dtype):
-    raise TypeError(
-      f"{name} with input element type {aval.dtype.name}")
+  if jnp.issubdtype(aval.dtype, dtypes.extended):
+    raise TypeError(f"{name} with input element type {aval.dtype.name}")
   if holomorphic:
     if not dtypes.issubdtype(aval.dtype, np.complexfloating):
       raise TypeError(f"{name} with holomorphic=True requires inputs with complex dtype, "
@@ -972,7 +970,7 @@ def _check_output_dtype_jacfwd(holomorphic, x):
 def _check_input_dtype_jacfwd(holomorphic: bool, x: Any) -> None:
   _check_arg(x)
   aval = core.get_aval(x)
-  if core.is_opaque_dtype(aval.dtype):
+  if jnp.issubdtype(aval.dtype, dtypes.extended):
     raise TypeError(f"jacfwd with input element type {aval.dtype.name}")
   if holomorphic:
     if not dtypes.issubdtype(aval.dtype, np.complexfloating):
