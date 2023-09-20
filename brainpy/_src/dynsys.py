@@ -95,7 +95,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   name : optional, str
     The name of the dynamical system.
   mode: optional, Mode
-    The model computation mode. It should be instance of :py:class:`~.Mode`.
+    The model computation mode. It should be an instance of :py:class:`~.Mode`.
   """
 
   supported_modes: Optional[Sequence[bm.Mode]] = None
@@ -170,12 +170,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   def reset_bef_updates(self, *args, **kwargs):
     """Reset all before updates."""
     for node in self.before_updates.values():
-      node.reset_state(*args, **kwargs)
+      if isinstance(node, DynamicalSystem):
+        node.reset(*args, **kwargs)
 
   def reset_aft_updates(self, *args, **kwargs):
     """Reset all after updates."""
     for node in self.after_updates.values():
-      node.reset_state(*args, **kwargs)
+      if isinstance(node, DynamicalSystem):
+        node.reset(*args, **kwargs)
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
@@ -348,6 +350,12 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
           warnings.warn(_update_deprecate_msg, UserWarning)
           return ret
       return update_fun(*args, **kwargs)
+
+  # def __getattr__(self, item):
+  #   if item == 'update':
+  #     return self._compatible_update  # update function compatible with previous ``update()`` function
+  #   else:
+  #     return object.__getattribute__(self, item)
 
   def __getattribute__(self, item):
     if item == 'update':
@@ -585,6 +593,12 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
 
 
 class Projection(DynamicalSystem):
+  """Base class to model synaptic projections.
+
+  Args:
+    name: The name of the dynamic system.
+    mode: The computing mode. It should be an instance of :py:class:`~.Mode`.
+  """
 
   def update(self, *args, **kwargs):
     nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())

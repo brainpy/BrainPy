@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.4.post4"
+__version__ = "2.4.5"
+_minimal_brainpylib_version = '0.1.10'
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
@@ -10,6 +11,15 @@ try:
   del jaxlib
 except ModuleNotFoundError:
   raise ModuleNotFoundError(tools.jaxlib_install_info) from None
+
+
+try:
+  import brainpylib
+  if brainpylib.__version__ < _minimal_brainpylib_version:
+    raise SystemError(f'This version of brainpy ({__version__}) needs brainpylib >= {_minimal_brainpylib_version}.')
+  del brainpylib
+except ModuleNotFoundError:
+  pass
 
 #  Part: Math Foundation  #
 # ----------------------- #
@@ -139,7 +149,7 @@ __deprecations = {
   'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
   'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
   'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
-  'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.syn.CondNeuGroup', dyn.CondNeuGroup),
+  'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.dyn.CondNeuGroup', dyn.CondNeuGroup),
 }
 __getattr__ = deprecation_getattr2('brainpy', __deprecations)
 

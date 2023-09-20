@@ -18,13 +18,12 @@ from brainpy.initialize import (XavierNormal,
                                 variable_,
                                 Initializer)
 from brainpy.types import ArrayType
-from .conv import _GeneralConv
+from brainpy._src.dnn.conv import _GeneralConv
+
 
 __all__ = [
   'RNNCell', 'GRUCell', 'LSTMCell',
   'Conv1dLSTMCell', 'Conv2dLSTMCell', 'Conv3dLSTMCell',
-  # deprecated
-  'VanillaRNN', 'GRU', 'LSTM',
 ]
 
 
@@ -403,50 +402,6 @@ class LSTMCell(Layer):
       raise ValueError('Cannot set "c" state. Because the state is not initialized.')
     self.state[self.state.shape[0] // 2:, :] = value
 
-
-class VanillaRNN(RNNCell):
-  """Vanilla RNN.
-
-  .. deprecated:: 2.2.3.4
-     Use :py:class:`~.RNNCell` instead. :py:class:`~.VanillaRNN` will be removed since version 2.4.0.
-
-  """
-
-  def __init__(self, *args, **kwargs):
-    super(VanillaRNN, self).__init__(*args, **kwargs)
-    warnings.warn('Use "brainpy.layers.RNNCell" instead. '
-                  '"brainpy.layers.VanillaRNN" is deprecated and will be removed since 2.4.0.',
-                  UserWarning)
-
-
-class GRU(GRUCell):
-  """GRU.
-
-  .. deprecated:: 2.2.3.4
-     Use :py:class:`~.GRUCell` instead. :py:class:`~.GRU` will be removed since version 2.4.0.
-
-  """
-
-  def __init__(self, *args, **kwargs):
-    super(GRU, self).__init__(*args, **kwargs)
-    warnings.warn('Use "brainpy.layers.GRUCell" instead. '
-                  '"brainpy.layers.GRU" is deprecated and will be removed since 2.4.0.',
-                  UserWarning)
-
-
-class LSTM(LSTMCell):
-  """LSTM.
-
-  .. deprecated:: 2.2.3.4
-     Use :py:class:`~.LSTMCell` instead. :py:class:`~.LSTM` will be removed since version 2.4.0.
-
-  """
-
-  def __init__(self, *args, **kwargs):
-    warnings.warn('Use "brainpy.layers.LSTMCell" instead. '
-                  '"brainpy.layers.LSTM" is deprecated and will be removed since 2.4.0.',
-                  UserWarning)
-    super(LSTM, self).__init__(*args, **kwargs)
 
 
 class _ConvNDLSTMCell(Layer):

@@ -19,4 +19,6 @@ from brainpy._src.dyn.projections.others import (
   PoissonInput as PoissonInput,
 )
 
-
+from brainpy._src.dyn.projections.inputs import (
+  InputVar,
+)

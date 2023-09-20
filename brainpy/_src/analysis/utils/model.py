@@ -135,11 +135,11 @@ class TrajectModel(DynamicalSystem):
       self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=share['dt']))
 
   def __getattr__(self, item):
-    child_vars = super(TrajectModel, self).__getattribute__('implicit_vars')
+    child_vars = super().__getattribute__('implicit_vars')
     if item in child_vars:
       return child_vars[item]
     else:
-      return super(TrajectModel, self).__getattribute__(item)
+      return super().__getattribute__(item)
 
   def run(self, duration):
     self.runner.run(duration)

@@ -101,6 +101,30 @@ dyn.__deprecations = {
 }
 dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
 
+dnn.__deprecations = {
+  'NVAR': ('brainpy.dnn.NVAR', 'brainpy.dyn.NVAR', dyn.NVAR),
+  'Reservoir': ('brainpy.dnn.Reservoir', 'brainpy.dyn.Reservoir', dyn.Reservoir),
+  'RNNCell': ('brainpy.dnn.RNNCell', 'brainpy.dyn.RNNCell', dyn.RNNCell),
+  'GRUCell': ('brainpy.dnn.GRUCell', 'brainpy.dyn.GRUCell', dyn.GRUCell),
+  'LSTMCell': ('brainpy.dnn.LSTMCell', 'brainpy.dyn.LSTMCell', dyn.LSTMCell),
+  'Conv1dLSTMCell': ('brainpy.dnn.Conv1dLSTMCell', 'brainpy.dyn.Conv1dLSTMCell', dyn.Conv1dLSTMCell),
+  'Conv2dLSTMCell': ('brainpy.dnn.Conv2dLSTMCell', 'brainpy.dyn.Conv2dLSTMCell', dyn.Conv2dLSTMCell),
+  'Conv3dLSTMCell': ('brainpy.dnn.Conv3dLSTMCell', 'brainpy.dyn.Conv3dLSTMCell', dyn.Conv3dLSTMCell),
+}
+dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
+
+layers.__deprecations = {
+  'NVAR': ('brainpy.layers.NVAR', 'brainpy.dyn.NVAR', dyn.NVAR),
+  'Reservoir': ('brainpy.layers.Reservoir', 'brainpy.dyn.Reservoir', dyn.Reservoir),
+  'RNNCell': ('brainpy.layers.RNNCell', 'brainpy.dyn.RNNCell', dyn.RNNCell),
+  'GRUCell': ('brainpy.layers.GRUCell', 'brainpy.dyn.GRUCell', dyn.GRUCell),
+  'LSTMCell': ('brainpy.layers.LSTMCell', 'brainpy.dyn.LSTMCell', dyn.LSTMCell),
+  'Conv1dLSTMCell': ('brainpy.layers.Conv1dLSTMCell', 'brainpy.dyn.Conv1dLSTMCell', dyn.Conv1dLSTMCell),
+  'Conv2dLSTMCell': ('brainpy.layers.Conv2dLSTMCell', 'brainpy.dyn.Conv2dLSTMCell', dyn.Conv2dLSTMCell),
+  'Conv3dLSTMCell': ('brainpy.layers.Conv3dLSTMCell', 'brainpy.dyn.Conv3dLSTMCell', dyn.Conv3dLSTMCell),
+}
+layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
+
 
 connect.__deprecations = {
     'one2one': ('brainpy.connect.one2one', 'brainpy.connect.One2One', connect.One2One),
