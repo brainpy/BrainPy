@@ -1,6 +1,6 @@
 import brainpy.math as bm
 import brainpy as bp
-from jax import ShapedArray
+from jax.core import ShapedArray
 
 
 def abs_eval(events, indices, indptr, *, weight, post_num):
