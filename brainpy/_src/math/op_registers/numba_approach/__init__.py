@@ -45,7 +45,7 @@ class XLACustomOp(BrainPyObject):
   cpu_func: callable
     The function defines the computation on CPU backend. Same as ``con_compute``.
   gpu_func: callable
-    The function defines the computation on GPU backend. Currently, this function is not supportted.
+    The function defines the computation on GPU backend. Currently, this function is not supported.
   apply_cpu_func_to_gpu: bool
     Whether allows to apply CPU function on GPU backend. If True, the GPU data will move to CPU,
     and after calculation, the returned outputs on CPU backend will move to GPU.
