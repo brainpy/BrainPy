@@ -2,7 +2,7 @@ numpy
 numba
 brainpylib
 jax>=0.4.1, <0.4.16
-jaxlib>=0.4.1, <0.4.16
+jaxlib>=0.4.1, <0.4.17
 matplotlib>=3.4
 msgpack
 tqdm
