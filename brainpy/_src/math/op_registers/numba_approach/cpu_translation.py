@@ -136,7 +136,8 @@ def compile_cpu_signature_with_numba(
                                input_dimensions,
                                output_dtypes,
                                output_shapes,
-                               multiple_results)
+                               multiple_results,
+                               debug=True)
   output_layouts = [xla_client.Shape.array_shape(*arg)
                     for arg in zip(output_dtypes, output_shapes, output_layouts)]
   output_layouts = (xla_client.Shape.tuple_shape(output_layouts)

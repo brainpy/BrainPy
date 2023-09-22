@@ -19,6 +19,7 @@ __all__ = [
 
 
 class Calcium(Ion):
+  """Base class for modeling Calcium ion."""
   pass
 
 

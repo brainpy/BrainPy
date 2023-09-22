@@ -2,8 +2,8 @@ numpy
 tqdm
 msgpack
 numba
-jax>=0.4.1, <0.4.16
-jaxlib>=0.4.1, <0.4.16
+jax
+jaxlib
 matplotlib>=3.4
 scipy>=1.1.0
 numba

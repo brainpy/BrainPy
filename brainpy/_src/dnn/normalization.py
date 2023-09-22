@@ -587,8 +587,8 @@ class GroupNorm(Layer):
     x = (x - mean) * lax.rsqrt(var + lax.convert_element_type(self.epsilon, x.dtype))
     x = x.reshape(origin_shape)
     if self.affine:
-      x = x * lax.broadcast_to_rank(self.scale, origin_dim)
-      x = x + lax.broadcast_to_rank(self.bias, origin_dim)
+      x = x * lax.broadcast_to_rank(self.scale.value, origin_dim)
+      x = x + lax.broadcast_to_rank(self.bias.value, origin_dim)
     return x
 
 
