@@ -13,6 +13,7 @@ __all__ = [
 
 
 class Sodium(Ion):
+  """Base class for modeling Sodium ion."""
   pass
 
 

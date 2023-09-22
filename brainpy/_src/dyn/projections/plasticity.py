@@ -31,11 +31,11 @@ class STDP_Song2000(Projection):
 
   .. math::
 
-    \begin{aligned}
-    \frac{dw}{dt} & = & -A_{post}\delta(t-t_{sp}) + A_{pre}\delta(t-t_{sp}), \\
-    \frac{dA_{pre}}{dt} & = & -\frac{A_{pre}}{\tau_s}+A_1\delta(t-t_{sp}), \\
-    \frac{dA_{post}}{dt} & = & -\frac{A_{post}}{\tau_t}+A_2\delta(t-t_{sp}), \\
-    \tag{1}\end{aligned}
+      \begin{aligned}
+      \frac{dw}{dt} & = & -A_{post}\delta(t-t_{sp}) + A_{pre}\delta(t-t_{sp}), \\
+      \frac{dA_{pre}}{dt} & = & -\frac{A_{pre}}{\tau_s}+A_1\delta(t-t_{sp}), \\
+      \frac{dA_{post}}{dt} & = & -\frac{A_{post}}{\tau_t}+A_2\delta(t-t_{sp}), \\
+      \end{aligned}
 
   where :math:`t_{sp}` denotes the spike time and :math:`A_1` is the increment
   of :math:`A_{pre}`, :math:`A_2` is the increment of :math:`A_{post}` produced by a spike.
