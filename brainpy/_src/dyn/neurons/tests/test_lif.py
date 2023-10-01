@@ -6,6 +6,7 @@ import brainpy.math as bm
 from absl.testing import parameterized
 from brainpy._src.dyn.neurons import lif
 
+
 class Test_lif(parameterized.TestCase):
   @parameterized.named_parameters(
     {'testcase_name': f'{name}', 'neuron': name}
@@ -26,7 +27,6 @@ class Test_lif(parameterized.TestCase):
       runner.run(10.)
       self.assertTupleEqual(runner.mon['V'].shape, (100, 1))
       self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-
 
   @parameterized.named_parameters(
     {'testcase_name': f'{name}', 'neuron': name}

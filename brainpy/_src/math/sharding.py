@@ -54,7 +54,7 @@ def device_mesh(
   _default_mesh = mesh
 
   try:
-    yield
+    yield _default_mesh
   finally:
     _default_mesh = _old_mesh
 
@@ -143,6 +143,8 @@ def partition(
     sharding: Optional[Union[Sequence[str], jax.Device, Sharding]] = None,
 ):
   if sharding is None:
+    return x
+  if isinstance(sharding, UnspecifiedValue):
     return x
   elif isinstance(sharding, (jax.Device, Sharding)):
     if isinstance(x, (Array, jax.Array)):

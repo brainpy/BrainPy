@@ -572,7 +572,7 @@ class RandomState(Variable):
     r = jr.uniform(key, shape=dn, minval=0., maxval=1.)
     return _return(r)
 
-  def randint(self, low, high=None, size=None, dtype=None, key=None):
+  def randint(self, low, high=None, size=None, dtype=int, key=None):
     dtype = get_int() if dtype is None else dtype
     low = _as_jax_array(low)
     high = _as_jax_array(high)
@@ -1344,7 +1344,7 @@ def rand(*dn, key=None):
   return DEFAULT.rand(*dn, key=key)
 
 
-def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
+def randint(low, high=None, size=None, dtype=int, key=None):
   r"""Return random integers from `low` (inclusive) to `high` (exclusive).
 
   Return random integers from the "discrete uniform" distribution of
