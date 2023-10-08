@@ -612,7 +612,8 @@ class EventCSRLinear(Layer, SupportSTDP):
       raise ValueError(f'Cannot update the weight of a constant node.')
     if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
       raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
-    pre_ids, post_ids = bm.sparse.csr_to_coo(self.indices, self.indptr)
+    with jax.ensure_compile_time_eval():
+      pre_ids, post_ids = bm.sparse.csr_to_coo(self.indices, self.indptr)
     sparse_dW = dW[pre_ids, post_ids]
     if self.weight.shape != sparse_dW.shape:
       raise ValueError(f'The shape of sparse delta_weight {sparse_dW.shape} '

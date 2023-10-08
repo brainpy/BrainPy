@@ -28,6 +28,12 @@ def _is_scalar(x):
   return isinstance(x, (float, int, bool, complex))
 
 
+def _check_var(x):
+  if isinstance(x, bm.Variable):
+    x.ready_to_trace = True
+  return x
+
+
 def parameter(
     param: Union[Callable, Initializer, bm.Array, np.ndarray, jax.Array, float, int, bool],
     sizes: Shape,
@@ -74,10 +80,10 @@ def parameter(
     return param
 
   if callable(param):
-    # param = param(sizes)  # TODO
-    return bm.jit(param,
-                  static_argnums=0,
-                  out_shardings=bm.sharding.get_sharding(sharding))(sizes)
+    v = bm.jit(param,
+               static_argnums=0,
+               out_shardings=bm.sharding.get_sharding(sharding))(sizes)
+    return _check_var(v)  # TODO: checking the Variable need to be traced
 
   elif isinstance(param, (np.ndarray, jnp.ndarray)):
     param = bm.asarray(param)

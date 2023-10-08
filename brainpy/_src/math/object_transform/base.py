@@ -181,7 +181,7 @@ class BrainPyObject(object):
       from brainpy.initialize import variable_
     with jax.ensure_compile_time_eval():
       value = variable_(init, shape, batch_or_mode, batch_axis, axis_names, batch_axis_name)
-      value._ready_to_trace = True
+      value.ready_to_trace = True
     self.setattr(name, value)
     return value
 
