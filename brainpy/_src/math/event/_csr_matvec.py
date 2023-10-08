@@ -95,9 +95,9 @@ def csrmv(
     raise ValueError('indices should be a 1D vector with integer type.')
   if np.ndim(indptr) != 1:
     raise ValueError('indptr should be a 1D vector with integer type.')
-  if indices.dtype not in [jnp.int32, jnp.int64]:
+  if indices.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
     raise ValueError('indices should be a 1D vector with int32 or int64 type.')
-  if indptr.dtype not in [jnp.int32, jnp.int64]:
+  if indptr.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
     raise ValueError('indptr should be a 1D vector with int32 or int64 type.')
   if np.ndim(events) != 1:
     raise ValueError('events should be a 1D vector.')
@@ -328,19 +328,20 @@ def _event_csr_matvec_transpose_numba_imp1_bool(outs, ins):
   res_val.fill(0)
   values, indices, indptr, events, shape, _ = ins
   if values.shape[0] > 1:  # heter
-    for row_i in range(shape[0]):
-      if events[row_i]:
+    for row_i, event in enumerate(events):
+      if event:
         for j in range(indptr[row_i], indptr[row_i + 1]):
           col_i = indices[j]
           res_val[col_i] += values[j]
 
   else:  # homo
     values = values[0]
-    for row_i in range(shape[0]):
-      if events[row_i]:
+    for row_i, event in enumerate(events):
+      if event:
         for j in range(indptr[row_i], indptr[row_i + 1]):
           col_i = indices[j]
           res_val[col_i] += values
+
 
 @numba.njit(fastmath=True)
 def _event_csr_matvec_transpose_numba_imp2(outs, ins):
@@ -348,16 +349,16 @@ def _event_csr_matvec_transpose_numba_imp2(outs, ins):
   res_val.fill(0)
   values, indices, indptr, events, shape, _ = ins
   if values.shape[0] > 1:  # heter
-    for row_i in range(shape[0]):
-      if events[row_i] > 0.:
+    for row_i, event in enumerate(events):
+      if event > 0.:
         for j in range(indptr[row_i], indptr[row_i + 1]):
           col_i = indices[j]
           res_val[col_i] += values[j]
 
   else:  # homo
     values = values[0]
-    for row_i in range(shape[0]):
-      if events[row_i] > 0.:
+    for row_i, event in enumerate(events):
+      if event > 0.:
         for j in range(indptr[row_i], indptr[row_i + 1]):
           col_i = indices[j]
           res_val[col_i] += values

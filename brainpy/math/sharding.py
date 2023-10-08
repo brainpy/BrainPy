@@ -5,6 +5,7 @@ from brainpy._src.math.sharding import (
   partition_by_axname,
   partition_by_sharding,
   partition,
+  keep_constraint,
 
   NEU_AXIS,
   PRE_AXIS,

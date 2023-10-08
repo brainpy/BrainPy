@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
-
+import os
+os.environ['JAX_TRACEBACK_FILTERING'] = 'off'
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
 
+
 class Test_STDP(parameterized.TestCase):
   def test_STDP(self):
     bm.random.seed()
+
     class STDPNet(bp.DynamicalSystem):
       def __init__(self, num_pre, num_post):
         super().__init__()
@@ -45,6 +48,7 @@ class Test_STDP(parameterized.TestCase):
                                      [10, 15, 15, 15, 15, 15, 90, 15, 15, 15, 15, 15, duration - 250])
 
     net = STDPNet(1, 1)
+
     def run(i, I_pre, I_post):
       pre_spike, post_spike, g, Apre, Apost, current, W = net.step_run(i, I_pre, I_post)
       return pre_spike, post_spike, g, Apre, Apost, current, W
@@ -52,3 +56,4 @@ class Test_STDP(parameterized.TestCase):
     indices = bm.arange(0, duration, bm.dt)
     bm.for_loop(run, [indices, I_pre, I_post], jit=True)
     bm.clear_buffer_memory()
+

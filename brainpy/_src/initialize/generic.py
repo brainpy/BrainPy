@@ -28,8 +28,14 @@ def _is_scalar(x):
   return isinstance(x, (float, int, bool, complex))
 
 
+def _check_var(x):
+  if isinstance(x, bm.Variable):
+    x.ready_to_trace = True
+  return x
+
+
 def parameter(
-    param: Union[Callable, Initializer, bm.ndarray, np.ndarray, jnp.ndarray, float, int, bool],
+    param: Union[Callable, Initializer, bm.Array, np.ndarray, jax.Array, float, int, bool],
     sizes: Shape,
     allow_none: bool = True,
     allow_scalar: bool = True,
@@ -74,8 +80,10 @@ def parameter(
     return param
 
   if callable(param):
-    param = param(sizes)  # TODO
-    # return bm.jit(param, static_argnums=0, out_shardings=bm.sharding.get_sharding(axis_names))(size)
+    v = bm.jit(param,
+               static_argnums=0,
+               out_shardings=bm.sharding.get_sharding(sharding))(sizes)
+    return _check_var(v)  # TODO: checking the Variable need to be traced
 
   elif isinstance(param, (np.ndarray, jnp.ndarray)):
     param = bm.asarray(param)
@@ -104,32 +112,9 @@ def variable_(
 ):
   """Initialize a :math:`~.Variable` from a callable function or a data.
 
-  Parameters
-  ----------
-  init: callable, function, ArrayType
-    The data to be initialized as a ``Variable``.
-  batch_or_mode: int, bool, Mode, optional
-    The batch size, model ``Mode``, boolean state.
-    This is used to specify the batch size of this variable.
-    If it is a boolean or an instance of ``Mode``, the batch size will be 1.
-    If it is None, the variable has no batch axis.
-  sizes: Shape
-    The shape of the variable.
-  batch_axis: int
-    The batch axis.
-  axis_names: sequence of str
-    The name for each axis. These names should match the given ``axes``.
-  batch_axis_name: str
-    The name for the batch axis. The name will be used if ``batch_size_or_mode`` is given.
-
-  Returns
-  -------
-  variable: bm.Variable
-    The target ``Variable`` instance.
-
   See Also
   --------
-  variable, parameter, noise, delay
+  variable
 
   """
   return variable(init,
@@ -152,10 +137,10 @@ def variable(
 
   Parameters
   ----------
-  init: callable, function, ArrayType
+  init: callable, ArrayType
     The data to be initialized as a ``Variable``.
   batch_or_mode: int, bool, Mode, optional
-    The batch size, model ``Mode``, boolean state.
+    The batch size, mode ``Mode``, boolean state.
     This is used to specify the batch size of this variable.
     If it is a boolean or an instance of ``Mode``, the batch size will be 1.
     If it is None, the variable has no batch axis.

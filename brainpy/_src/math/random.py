@@ -447,7 +447,7 @@ class RandomState(Variable):
       self,
       seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
       seed: Optional[int] = None,
-      _ready_to_trace: bool = True,
+      ready_to_trace: bool = True,
   ):
     """RandomState constructor.
 
@@ -482,7 +482,7 @@ class RandomState(Variable):
         raise ValueError('key must be an array with dtype uint32. '
                          f'But we got {seed_or_key}')
       key = seed_or_key
-    super(RandomState, self).__init__(key, _ready_to_trace=_ready_to_trace)
+    super(RandomState, self).__init__(key, ready_to_trace=ready_to_trace)
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
@@ -572,7 +572,7 @@ class RandomState(Variable):
     r = jr.uniform(key, shape=dn, minval=0., maxval=1.)
     return _return(r)
 
-  def randint(self, low, high=None, size=None, dtype=None, key=None):
+  def randint(self, low, high=None, size=None, dtype=int, key=None):
     dtype = get_int() if dtype is None else dtype
     low = _as_jax_array(low)
     high = _as_jax_array(high)
@@ -1344,7 +1344,7 @@ def rand(*dn, key=None):
   return DEFAULT.rand(*dn, key=key)
 
 
-def randint(low, high=None, size=None, dtype=jnp.int_, key=None):
+def randint(low, high=None, size=None, dtype=int, key=None):
   r"""Return random integers from `low` (inclusive) to `high` (exclusive).
 
   Return random integers from the "discrete uniform" distribution of

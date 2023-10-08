@@ -6,7 +6,7 @@ import unittest
 class ESN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden, num_out):
     super(ESN, self).__init__()
-    self.r = bp.dnn.Reservoir(num_in,
+    self.r = bp.dyn.Reservoir(num_in,
                               num_hidden,
                               Win_initializer=bp.init.Uniform(-0.1, 0.1),
                               Wrec_initializer=bp.init.Normal(scale=0.1),
@@ -26,7 +26,7 @@ class NGRC(bp.DynamicalSystem):
   def __init__(self, num_in, num_out):
     super(NGRC, self).__init__()
 
-    self.r = bp.dnn.NVAR(num_in, delay=2, order=2)
+    self.r = bp.dyn.NVAR(num_in, delay=2, order=2)
     self.o = bp.dnn.Dense(self.r.num_out, num_out,
                           W_initializer=bp.init.Normal(0.1),
                           mode=bm.training_mode)

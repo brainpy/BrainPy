@@ -1,12 +1,33 @@
 Ion Channel Dynamics
 ====================
 
+
+
 .. currentmodule:: brainpy.dyn
 .. automodule:: brainpy.dyn
+
 
 .. contents::
    :local:
    :depth: 1
+
+
+Ion channel models are the building blocks of computational neuron models. Their biological fidelity
+is therefore crucial for the interpretation of simulations.
+
+Ion channels in the brain are specialized proteins that are embedded in the cell membranes of neurons.
+They act as gatekeepers, regulating the flow of specific ions across the membrane in response to various
+signals and stimuli. Ion channels are crucial for generating and controlling electrical signals in neurons.
+
+There are different types of ion channels in the brain, each with specific properties and functions. Some
+of the most important types include voltage-gated ion channels, ligand-gated ion channels, and leak channels.
+Voltage-gated ion channels open or close in response to changes in the electrical potential across the
+membrane. Ligand-gated ion channels open or close when specific molecules, such as neurotransmitters,
+bind to them. Leak channels allow a small, continuous flow of ions across the membrane, contributing to
+the resting membrane potential.
+
+Modeling the dynamics of ion channels in the brain involves capturing their behavior and interactions
+using mathematical models and computer simulations.
 
 
 Base Classes
