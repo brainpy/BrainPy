@@ -32,6 +32,7 @@ dynamics programming. For more information and usage examples, please refer to t
    brainpy.math.sparse.rst
    brainpy.math.surrogate.rst
    brainpy.math.random.rst
+   brainpy.math.sharding.rst
    brainpy.math.environment.rst
    brainpy.math.modes.rst
 
