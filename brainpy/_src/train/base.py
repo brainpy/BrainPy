@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, Sequence, Any, Union, Optional
+from typing import Dict, Sequence, Any, Optional
 
 import brainpy.math as bm
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.runners import DSRunner
 from brainpy._src.running import constants as c
 from brainpy.errors import NoLongerSupportError
-from brainpy.types import ArrayType, Output
+from brainpy.types import Output
 
 __all__ = [
   'DSTrainer',

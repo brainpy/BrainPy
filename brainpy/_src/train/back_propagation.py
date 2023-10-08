@@ -9,10 +9,10 @@ import numpy as np
 from jax.tree_util import tree_map
 from tqdm import tqdm
 
-from brainpy import tools
 import brainpy.losses as losses
 import brainpy.math as bm
 from brainpy import optim
+from brainpy import tools
 from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.running import constants as c

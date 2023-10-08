@@ -10,9 +10,9 @@ from jax.tree_util import tree_map
 from brainpy import math as bm, tools
 from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.mixin import SupportOnline
 from brainpy._src.runners import _call_fun_with_share
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.errors import NoImplementationError
 from brainpy.types import ArrayType, Output
 from ._utils import format_ys
 from .base import DSTrainer
@@ -256,19 +256,12 @@ class OnlineTrainer(DSTrainer):
 
   def _check_interface(self):
     for node in self.train_nodes:
-      if not hasattr(node, 'online_fit'):
-        raise NoImplementationError(
+      if not isinstance(node, SupportOnline):
+        raise TypeError(
           f'The node \n\n{node}\n\n'
-          f'is set to be trainable with {self.__class__.__name__} method. '
-          f'However, it does not implement the required training '
-          f'interface "online_fit()" function. '
-        )
-      if not hasattr(node, 'online_init'):
-        raise NoImplementationError(
-          f'The node \n\n{node}\n\n'
-          f'is set to be trainable with {self.__class__.__name__} method. '
-          f'However, it does not implement the required training '
-          f'interface "online_init()" function. '
+          f'is set to be trainable with {self.__class__.__name__} method. \n'
+          f'{self.__class__.__name__} only support training nodes that are instances '
+          f'of {SupportOnline}. '
         )
 
   def _step_func_monitor(self):
