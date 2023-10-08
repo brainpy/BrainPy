@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import operator
-from typing import Union, Optional, Sequence
+from typing import Union, Optional, Sequence, Any
 
 import jax
 import numpy as np
@@ -14,6 +14,7 @@ from brainpy.errors import MathError
 
 __all__ = [
   'Array', 'ndarray', 'JaxArray',  # alias of Array
+  'ShardedArray',
 ]
 
 # Ways to change values in a zero-dimensional array
@@ -63,12 +64,24 @@ def _get_dtype(v):
 @register_pytree_node_class
 class Array(object):
   """Multiple-dimensional array in BrainPy.
+
+  Compared to ``jax.Array``, :py:class:`~.Array` has the following advantages:
+
+  - In-place updating is supported.
+
+  >>> import brainpy.math as bm
+  >>> a = bm.asarray([1, 2, 3.])
+  >>> a[0] = 10.
+
+  - Keep sharding constraints during computation.
+
+  - More dense array operations with PyTorch syntax.
+
   """
 
-  is_brainpy_array = True
-  __slots__ = ("_value",)
+  __slots__ = ('_value', '_keep_sharding')
 
-  def __init__(self, value, dtype=None):
+  def __init__(self, value, dtype: Any = None):
     # array value
     if isinstance(value, Array):
       value = value._value
@@ -97,6 +110,7 @@ class Array(object):
 
   @property
   def value(self):
+    # return the value
     return self._value
 
   @value.setter
@@ -1209,7 +1223,6 @@ class Array(object):
     """
     return self.abs_()
 
-
   def mul(self, value):
     return Array(self.value * value)
 
@@ -1445,7 +1458,7 @@ class Array(object):
     return Array(jnp.broadcast_to(self.value, sizes_list))
 
   def tree_flatten(self):
-    return (self._value,), None
+    return (self.value,), None
 
   @classmethod
   def tree_unflatten(cls, aux_data, flat_contents):
@@ -1497,3 +1510,58 @@ class Array(object):
 
 JaxArray = Array
 ndarray = Array
+
+
+@register_pytree_node_class
+class ShardedArray(Array):
+  """The sharded array, which stores data across multiple devices.
+
+  A drawback of sharding is that the data may not be evenly distributed on shards.
+
+  Args:
+    value: the array value.
+    dtype: the array type.
+    keep_sharding: keep the array sharding information using ``jax.lax.with_sharding_constraint``. Default True.
+  """
+
+  __slots__ = ('_value', '_keep_sharding')
+
+  def __init__(self, value, dtype: Any = None, *, keep_sharding: bool = True):
+    super().__init__(value, dtype)
+    self._keep_sharding = keep_sharding
+
+  @property
+  def value(self):
+    """The value stored in this array.
+
+    Returns:
+      The stored data.
+    """
+    # keep sharding constraints
+    if self._keep_sharding and hasattr(self._value, 'sharding') and (self._value.sharding is not None):
+        return jax.lax.with_sharding_constraint(self._value, self._value.sharding)
+    # return the value
+    return self._value
+
+  @value.setter
+  def value(self, value):
+    self_value = self._check_tracer()
+
+    if isinstance(value, Array):
+      value = value.value
+    elif isinstance(value, np.ndarray):
+      value = jnp.asarray(value)
+    elif isinstance(value, jax.Array):
+      pass
+    else:
+      value = jnp.asarray(value)
+    # check
+    if value.shape != self_value.shape:
+      raise MathError(f"The shape of the original data is {self_value.shape}, "
+                      f"while we got {value.shape}.")
+    if value.dtype != self_value.dtype:
+      raise MathError(f"The dtype of the original data is {self_value.dtype}, "
+                      f"while we got {value.dtype}.")
+    self._value = value.value if isinstance(value, Array) else value
+
+
