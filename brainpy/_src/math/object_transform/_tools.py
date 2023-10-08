@@ -1,6 +1,6 @@
 import warnings
 from functools import wraps
-from typing import Sequence
+from typing import Sequence, Tuple, Any
 
 import jax
 
@@ -79,11 +79,12 @@ def abstract(x):
 def evaluate_dyn_vars(
     f,
     *args,
+    transform: str = None,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
     use_eval_shape: bool = True,
     **kwargs
-):
+) -> Tuple[VariableStack, Any]:
   # arguments
   if len(static_argnums) or len(static_argnames):
     f2, args, kwargs = _partial_fun(f, args, kwargs,

@@ -225,7 +225,7 @@ class GradientTransform(ObjectTransform):
           cache_stack(self.target, stack)
 
         self._dyn_vars = stack
-        self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+        self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
         self._eval_dyn_vars = True
 
         # if not the outermost transformation
@@ -233,7 +233,7 @@ class GradientTransform(ObjectTransform):
           return self._return(rets)
       else:
         self._dyn_vars = stack
-        self._dyn_vars.remove_var_by_id(*[id(v) for v in self._grad_vars])
+        self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
         self._eval_dyn_vars = True
 
     rets = self._transform(

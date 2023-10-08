@@ -19,8 +19,7 @@ from .op_register import *
 from . import surrogate, event, sparse, jitconn
 
 # Variable and Objects for object-oriented JAX transformations
-from .object_base import *
-from .object_transform import *
+from .oo_transform import *
 
 # environment settings
 from .modes import *

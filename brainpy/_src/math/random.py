@@ -447,7 +447,7 @@ class RandomState(Variable):
       self,
       seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
       seed: Optional[int] = None,
-      _ready_to_trace: bool = True,
+      ready_to_trace: bool = True,
   ):
     """RandomState constructor.
 
@@ -482,7 +482,7 @@ class RandomState(Variable):
         raise ValueError('key must be an array with dtype uint32. '
                          f'But we got {seed_or_key}')
       key = seed_or_key
-    super(RandomState, self).__init__(key, _ready_to_trace=_ready_to_trace)
+    super(RandomState, self).__init__(key, ready_to_trace=ready_to_trace)
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
