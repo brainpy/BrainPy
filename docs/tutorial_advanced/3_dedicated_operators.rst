@@ -4,4 +4,4 @@ Brain Dynamics Dedicated Operators
 .. toctree::
    :maxdepth: 1
 
-   low-level_operator_customization.ipynb
+   operator_custom_with_numba.ipynb
