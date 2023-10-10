@@ -560,7 +560,7 @@ class SupportOnline(MixIn):
 
   online_fit_by: Optional  # methods for online fitting
 
-  def online_init(self):
+  def online_init(self, *args, **kwargs):
     raise NotImplementedError
 
   def online_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
@@ -574,6 +574,9 @@ class SupportOffline(MixIn):
   """
 
   offline_fit_by: Optional  # methods for offline fitting
+
+  def offline_init(self, *args, **kwargs):
+    pass
 
   def offline_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
     raise NotImplementedError

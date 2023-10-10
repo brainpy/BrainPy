@@ -10,9 +10,9 @@ import brainpy.math as bm
 from brainpy import tools
 from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.mixin import SupportOffline
 from brainpy._src.runners import _call_fun_with_share
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.errors import NoImplementationError
 from brainpy.types import ArrayType, Output
 from ._utils import format_ys
 from .base import DSTrainer
@@ -239,16 +239,15 @@ class OfflineTrainer(DSTrainer):
 
   def _check_interface(self):
     for node in self.train_nodes:
-      if not hasattr(node, 'offline_fit'):
-        raise NoImplementationError(
+      if not isinstance(node, SupportOffline):
+        raise TypeError(
           f'''
             The node
-            
+
             {node}
-            
-            is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}. 
-            However, it does not implement the required training 
-            interface "offline_fit()" function. 
+
+            is set to be computing mode of {bm.training_mode} with {self.__class__.__name__}.
+            However, {self.__class__.__name__} only support training nodes that are instances of {SupportOffline}.
             '''
         )
 
