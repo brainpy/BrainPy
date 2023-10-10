@@ -37,7 +37,7 @@ class _OneInpSurrogate(Surrogate):
     self.forward_use_surrogate = forward_use_surrogate
     self._true_call_ = jax.custom_gradient(self.call)
 
-  def __call__(self, x: Union[jax.Array, Array]):
+  def __call__(self, x: jax.Array):
     return self._true_call_(as_jax(x))
 
   def call(self, x):
@@ -70,7 +70,7 @@ class Sigmoid(_OneInpSurrogate):
 
   """
 
-  def __init__(self, alpha=4., forward_use_surrogate=False):
+  def __init__(self, alpha: float = 4., forward_use_surrogate=False):
     super().__init__(forward_use_surrogate)
     self.alpha = alpha
 
@@ -154,7 +154,7 @@ class PiecewiseQuadratic(_OneInpSurrogate):
 
   """
 
-  def __init__(self, alpha=1., forward_use_surrogate=False):
+  def __init__(self, alpha: float = 1., forward_use_surrogate=False):
     super().__init__(forward_use_surrogate)
     self.alpha = alpha
 
@@ -258,7 +258,7 @@ class PiecewiseExp(_OneInpSurrogate):
   piecewise_exp
   """
 
-  def __init__(self, alpha=1., forward_use_surrogate=False):
+  def __init__(self, alpha: float = 1., forward_use_surrogate=False):
     super().__init__(forward_use_surrogate)
     self.alpha = alpha
 

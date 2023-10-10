@@ -1181,7 +1181,7 @@ class Array(object):
       *,
       beta: float = 1.0,
       alpha: float = 1.0
-  ) -> None:
+  ):
     vec1 = _as_jax_array_(vec1)
     vec2 = _as_jax_array_(vec2)
     r = alpha * jnp.outer(vec1, vec2) + beta * self.value
@@ -1217,7 +1217,7 @@ class Array(object):
     """
     return self.abs(out=out)
 
-  def absolute_(self) -> None:
+  def absolute_(self):
     """
     alias of Array.abs_()
     """
@@ -1258,11 +1258,11 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def sin_(self) -> None:
+  def sin_(self):
     self.value = jnp.sin(self.value)
     return self
 
-  def cos_(self) -> None:
+  def cos_(self):
     self.value = jnp.cos(self.value)
     return self
 
@@ -1274,7 +1274,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def tan_(self) -> None:
+  def tan_(self):
     self.value = jnp.tan(self.value)
     return self
 
@@ -1286,7 +1286,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def sinh_(self) -> None:
+  def sinh_(self):
     self.value = jnp.tanh(self.value)
     return self
 
@@ -1298,7 +1298,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def cosh_(self) -> None:
+  def cosh_(self):
     self.value = jnp.cosh(self.value)
     return self
 
@@ -1310,7 +1310,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def tanh_(self) -> None:
+  def tanh_(self):
     self.value = jnp.tanh(self.value)
     return self
 
@@ -1322,7 +1322,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def arcsin_(self) -> None:
+  def arcsin_(self):
     self.value = jnp.arcsin(self.value)
     return self
 
@@ -1334,7 +1334,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def arccos_(self) -> None:
+  def arccos_(self):
     self.value = jnp.arccos(self.value)
     return self
 
@@ -1346,7 +1346,7 @@ class Array(object):
       _check_out(out)
       out.value = r
 
-  def arctan_(self) -> None:
+  def arctan_(self):
     self.value = jnp.arctan(self.value)
     return self
 
@@ -1381,7 +1381,7 @@ class Array(object):
 
   def clamp_(self,
              min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-             max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> None:
+             max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None):
     """
     return the value between min_value and max_value,
     if min_value is None, then no lower bound,
@@ -1392,7 +1392,7 @@ class Array(object):
 
   def clip_(self,
             min_value: Optional[Union['Array', jax.Array, np.ndarray]] = None,
-            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None) -> None:
+            max_value: Optional[Union['Array', jax.Array, np.ndarray]] = None):
     """
     alias for clamp_
     """
@@ -1402,7 +1402,7 @@ class Array(object):
   def clone(self) -> 'Array':
     return Array(self.value.copy())
 
-  def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> None:
+  def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> 'Array':
     self.value = jnp.copy(_as_jax_array_(src))
     return self
 
@@ -1506,6 +1506,16 @@ class Array(object):
   def cpu(self):
     self.value = jax.device_put(self.value, jax.devices('cpu')[0])
     return self
+
+  # dtype exchanging #
+  # ---------------- #
+
+  def bool(self): return jnp.asarray(self.value, dtypt=jnp.bool_)
+  def int(self): return jnp.asarray(self.value, dtypt=jnp.int32)
+  def long(self): return jnp.asarray(self.value, dtypt=jnp.int64)
+  def half(self): return jnp.asarray(self.value, dtypt=jnp.float16)
+  def float(self): return jnp.asarray(self.value, dtypt=jnp.float32)
+  def double(self): return jnp.asarray(self.value, dtype=jnp.float64)
 
 
 JaxArray = Array

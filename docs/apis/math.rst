@@ -35,4 +35,5 @@ dynamics programming. For more information and usage examples, please refer to t
    brainpy.math.sharding.rst
    brainpy.math.environment.rst
    brainpy.math.modes.rst
+   brainpy.math.op_register.rst
 
