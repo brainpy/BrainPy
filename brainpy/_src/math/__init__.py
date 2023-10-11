@@ -30,7 +30,7 @@ Details in the following.
 #
 
 
-from .brainpylib_check import cpu_ops, gpu_ops
+from . import brainpylib_check
 
 # data structure
 from .ndarray import *
@@ -61,3 +61,4 @@ from .object_transform import *
 from .modes import *
 from .environment import *
 
+del brainpylib_check

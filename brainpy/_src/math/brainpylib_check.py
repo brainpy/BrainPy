@@ -20,8 +20,10 @@ try:
 except ImportError:
   gpu_ops = None
 
+# check brainpy and brainpylib version consistency
 _minimal_brainpylib_version = '0.1.10'
-
 if brainpylib is not None:
   if brainpylib.__version__ < _minimal_brainpylib_version:
     raise SystemError(f'This version of brainpy needs brainpylib >= {_minimal_brainpylib_version}.')
+  if hasattr(brainpylib, 'check_brainpy_version'):
+    brainpylib.check_brainpy_version()
