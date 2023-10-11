@@ -24,8 +24,6 @@ __all__ = [
 ]
 
 
-_minimal_brainpylib_version = '0.1.10'
-
 
 def import_numba():
   if numba is None:
@@ -38,8 +36,6 @@ def import_brainpylib():
   if brainpylib is None:
     raise ModuleNotFoundError('brainpylib is needed. Please install brainpylib through:\n'
                               '> pip install brainpylib\n\n')
-  if brainpylib.__version__ < _minimal_brainpylib_version:
-    raise SystemError(f'This version of brainpy needs brainpylib >= {_minimal_brainpylib_version}.')
   return brainpylib
 
 

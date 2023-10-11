@@ -30,6 +30,8 @@ Details in the following.
 #
 
 
+from .brainpylib_check import cpu_ops, gpu_ops
+
 # data structure
 from .ndarray import *
 from .delayvars import *
