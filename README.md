@@ -64,17 +64,21 @@ Then, you can run the image with the following command:
 $ docker run -it --platform linux/amd64 brainpy/brainpy:latest
 ```
 
+
 ### Using BrainPy with Binder
 
 We provide a Binder environment for BrainPy. You can use the following button to launch the environment:
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/brainpy/BrainPy-binder/main)
 
+
 ## Ecosystem
 
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
+- [第一届神经计算建模与编程培训班](https://github.com/brainpy/1st-neural-modeling-and-programming-course)
+
 
 ## Citing 
 
