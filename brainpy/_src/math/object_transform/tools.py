@@ -1,12 +1,14 @@
 import warnings
 from functools import wraps
-from typing import Sequence, Tuple, Any
+from typing import Sequence, Tuple, Any, Callable
 
 import jax
 
 from brainpy._src.math.object_transform.naming import (cache_stack,
                                                        get_stack_cache)
-from brainpy._src.math.object_transform.variables import VariableStack, current_transform_number
+from brainpy._src.math.object_transform.variables import VariableStack
+
+fun_in_eval_shape = []
 
 
 class Empty(object):
@@ -16,11 +18,13 @@ class Empty(object):
 empty = Empty()
 
 
-def _partial_fun(fun,
-                 args: tuple,
-                 kwargs: dict,
-                 static_argnums: Sequence[int] = (),
-                 static_argnames: Sequence[str] = ()):
+def _partial_fun(
+    fun: Callable,
+    args: tuple,
+    kwargs: dict,
+    static_argnums: Sequence[int] = (),
+    static_argnames: Sequence[str] = ()
+):
   static_args, dyn_args = [], []
   for i, arg in enumerate(args):
     if i in static_argnums:
@@ -79,7 +83,6 @@ def abstract(x):
 def evaluate_dyn_vars(
     f,
     *args,
-    transform: str = None,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
     use_eval_shape: bool = True,
@@ -119,7 +122,7 @@ def evaluate_dyn_vars_with_cache(
 
     with jax.ensure_compile_time_eval():
       with VariableStack() as stack:
-        rets = jax.eval_shape(f2, *args, **kwargs)
+        rets = eval_shape(f2, *args, **kwargs)
       cache_stack(f, stack)  # cache
       del args, kwargs, f2
     if with_return:
@@ -127,3 +130,44 @@ def evaluate_dyn_vars_with_cache(
     else:
       return stack
   return stack
+
+
+def eval_shape(
+    fun: Callable,
+    *args,
+    static_argnums: Sequence[int] = (),
+    static_argnames: Sequence[str] = (),
+    **kwargs
+):
+  """Compute the shape/dtype of ``fun`` without any FLOPs.
+
+  Args:
+    fun: The callable function.
+    *args:
+    **kwargs:
+    static_argnums: The static argument indices.
+    static_argnames: The static argument names.
+
+  Returns:
+    The variable stack and the functional returns.
+  """
+  # reorganize the function
+  if len(static_argnums) or len(static_argnames):
+    f2, args, kwargs = _partial_fun(fun, args, kwargs,
+                                    static_argnums=static_argnums,
+                                    static_argnames=static_argnames)
+  else:
+    f2, args, kwargs = fun, args, kwargs
+
+  # evaluate the function
+  fun_in_eval_shape.append(fun)
+  try:
+    with jax.ensure_compile_time_eval():
+      with VariableStack() as stack:
+        if len(fun_in_eval_shape) > 1:
+          returns = fun(*args, **kwargs)
+        else:
+          returns = jax.eval_shape(fun, *args, **kwargs)
+  finally:
+    fun_in_eval_shape.pop()
+  return stack, returns

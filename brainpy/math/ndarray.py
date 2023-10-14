@@ -5,4 +5,5 @@ from brainpy._src.math.ndarray import (
   Array as Tensor,
   ndarray as ndarray,
   JaxArray as JaxArray,
+  ShardedArray as ShardedArray,
 )

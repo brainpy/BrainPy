@@ -13,7 +13,7 @@ from jax.experimental.host_callback import id_tap
 from brainpy import errors, tools
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import (Array, )
-from ._tools import (
+from .tools import (
   evaluate_dyn_vars,
   evaluate_dyn_vars_with_cache,
   dynvar_deprecation,
@@ -31,7 +31,6 @@ from .variables import (
   VariableStack,
   new_transform,
   current_transform_number,
-  transform_stack,
 )
 
 __all__ = [

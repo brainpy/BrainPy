@@ -14,11 +14,11 @@ import jax
 from jax.sharding import Sharding
 
 from brainpy import tools, check
-from ._tools import (dynvar_deprecation,
-                     node_deprecation,
-                     evaluate_dyn_vars_with_cache,
-                     evaluate_dyn_vars,
-                     _partial_fun)
+from .tools import (dynvar_deprecation,
+                    node_deprecation,
+                    evaluate_dyn_vars_with_cache,
+                    evaluate_dyn_vars,
+                    _partial_fun)
 from .base import BrainPyObject, ObjectTransform
 from .naming import get_stack_cache, cache_stack
 from ..ndarray import Array

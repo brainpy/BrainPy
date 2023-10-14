@@ -2,7 +2,7 @@ import brainpy as bp
 import brainpy.math as bm
 import jax
 import unittest
-from brainpy._src.math.object_transform._tools import evaluate_dyn_vars_with_cache
+from brainpy._src.math.object_transform.tools import evaluate_dyn_vars_with_cache
 
 
 class TestTool(unittest.TestCase):
