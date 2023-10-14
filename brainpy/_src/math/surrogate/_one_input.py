@@ -78,7 +78,7 @@ class Sigmoid(_OneInpSurrogate):
     return sci.special.expit(x)
 
   def surrogate_grad(self, dz, x):
-    sgax = sci.special.expit(x * self.alpha)
+    sgax = sci.special.expit(as_jax(x) * self.alpha)
     dx = as_jax(dz) * (1. - sgax) * sgax * self.alpha
     return dx
 
@@ -159,6 +159,7 @@ class PiecewiseQuadratic(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     z = jnp.where(x < -1 / self.alpha,
                   0.,
                   jnp.where(x > 1 / self.alpha,
@@ -167,6 +168,7 @@ class PiecewiseQuadratic(_OneInpSurrogate):
     return z
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.where(jnp.abs(x) > 1 / self.alpha, 0., dz * (-(self.alpha * x) ** 2 + self.alpha))
     return dx
 
@@ -263,10 +265,12 @@ class PiecewiseExp(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = (self.alpha / 2) * jnp.exp(-self.alpha * jnp.abs(x))
     return dx * as_jax(dz)
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     return jnp.where(x < 0, jnp.exp(self.alpha * x) / 2, 1 - jnp.exp(-self.alpha * x) / 2)
 
   def __repr__(self):
@@ -352,10 +356,12 @@ class SoftSign(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = self.alpha * 0.5 / (1 + jnp.abs(self.alpha * x)) ** 2
     return dx * as_jax(dz)
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     return x / (2 / self.alpha + 2 * jnp.abs(x)) + 0.5
 
   def __repr__(self):
@@ -436,10 +442,12 @@ class Arctan(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = self.alpha * 0.5 / (1 + (jnp.pi / 2 * self.alpha * x) ** 2)
     return dx * as_jax(dz)
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     return jnp.arctan2(jnp.pi / 2 * self.alpha * x) / jnp.pi + 0.5
 
   def __repr__(self):
@@ -519,10 +527,12 @@ class NonzeroSignLog(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = as_jax(dz) / (1 / self.alpha + jnp.abs(x))
     return dx
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     return jnp.where(x < 0, -1., 1.) * jnp.log(jnp.abs(self.alpha * x) + 1)
 
   def __repr__(self):
@@ -615,10 +625,12 @@ class ERF(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = (self.alpha / jnp.sqrt(jnp.pi)) * jnp.exp(-jnp.power(self.alpha, 2) * x * x)
     return dx * as_jax(dz)
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     return sci.special.erf(-self.alpha * x) * 0.5
 
   def __repr__(self):
@@ -709,6 +721,7 @@ class PiecewiseLeakyRelu(_OneInpSurrogate):
     self.w = w
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     z = jnp.where(x < -self.w,
                   self.c * x + self.c * self.w,
                   jnp.where(x > self.w,
@@ -717,6 +730,7 @@ class PiecewiseLeakyRelu(_OneInpSurrogate):
     return z
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.where(jnp.abs(x) > self.w, self.c, 1 / self.w)
     return dx * as_jax(dz)
 
@@ -822,6 +836,7 @@ class SquarewaveFourierSeries(_OneInpSurrogate):
     self.t_period = t_period
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     w = jnp.pi * 2. / self.t_period
     dx = jnp.cos(w * x)
     for i in range(2, self.n):
@@ -830,6 +845,7 @@ class SquarewaveFourierSeries(_OneInpSurrogate):
     return dx * as_jax(dz)
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     w = jnp.pi * 2. / self.t_period
     ret = jnp.sin(w * x)
     for i in range(2, self.n):
@@ -919,12 +935,14 @@ class S2NN(_OneInpSurrogate):
     self.epsilon = epsilon
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     z = jnp.where(x < 0.,
                   sci.special.expit(x * self.alpha),
                   self.beta * jnp.log(jnp.abs((x + 1.)) + self.epsilon) + 0.5)
     return z
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     sg = sci.special.expit(self.alpha * x)
     dx = jnp.where(x < 0., self.alpha * sg * (1. - sg), self.beta / (x + 1.))
     return dx * as_jax(dz)
@@ -1023,10 +1041,12 @@ class QPseudoSpike(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.power(1 + 2 / (self.alpha + 1) * jnp.abs(x), -self.alpha)
     return dx * as_jax(dz)
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     z = jnp.where(x < 0.,
                   0.5 * jnp.power(1 - 2 / (self.alpha - 1) * jnp.abs(x), 1 - self.alpha),
                   1. - 0.5 * jnp.power(1 + 2 / (self.alpha - 1) * jnp.abs(x), 1 - self.alpha))
@@ -1117,9 +1137,11 @@ class LeakyRelu(_OneInpSurrogate):
     self.beta = beta
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     return jnp.where(x < 0., self.alpha * x, self.beta * x)
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.where(x < 0., self.alpha, self.beta)
     return dx * as_jax(dz)
 
@@ -1209,6 +1231,7 @@ class LogTailedRelu(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_fun(self, x):
+    x = as_jax(x)
     z = jnp.where(x > 1,
                   jnp.log(x),
                   jnp.where(x > 0,
@@ -1217,6 +1240,7 @@ class LogTailedRelu(_OneInpSurrogate):
     return z
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.where(x > 1,
                    1 / x,
                    jnp.where(x > 0,
@@ -1314,6 +1338,7 @@ class ReluGrad(_OneInpSurrogate):
     self.width = width
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.maximum(self.alpha * self.width - jnp.abs(x) * self.alpha, 0)
     return dx * as_jax(dz)
 
@@ -1393,6 +1418,7 @@ class GaussianGrad(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = jnp.exp(-(x ** 2) / 2 * jnp.power(self.sigma, 2)) / (jnp.sqrt(2 * jnp.pi) * self.sigma)
     return self.alpha * dx * as_jax(dz)
 
@@ -1473,6 +1499,7 @@ class MultiGaussianGrad(_OneInpSurrogate):
     self.scale = scale
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     g1 = jnp.exp(-x ** 2 / (2 * jnp.power(self.sigma, 2))) / (jnp.sqrt(2 * jnp.pi) * self.sigma)
     g2 = jnp.exp(-(x - self.sigma) ** 2 / (2 * jnp.power(self.s * self.sigma, 2))
                  ) / (jnp.sqrt(2 * jnp.pi) * self.s * self.sigma)
@@ -1564,6 +1591,7 @@ class InvSquareGrad(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = as_jax(dz) / (self.alpha * jnp.abs(x) + 1.0) ** 2
     return dx
 
@@ -1634,6 +1662,7 @@ class SlayerGrad(_OneInpSurrogate):
     self.alpha = alpha
 
   def surrogate_grad(self, dz, x):
+    x = as_jax(x)
     dx = as_jax(dz) * jnp.exp(-self.alpha * jnp.abs(x))
     return dx
 

@@ -1,16 +1,19 @@
 Object-oriented Transformations
 ===============================
 
+.. currentmodule:: brainpy.math
+.. automodule:: brainpy.math
+
+
 .. contents::
    :local:
    :depth: 1
 
 
+
 Objects and Variables
 ---------------------
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
 
 .. autosummary::
    :toctree: generated/
@@ -34,11 +37,10 @@ Objects and Variables
    var_dict
 
 
+
 Object-oriented Transformations
 -------------------------------
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
 
 .. autosummary::
    :toctree: generated/
@@ -62,3 +64,16 @@ Object-oriented Transformations
    cls_jit
    to_object
    function
+
+
+Helpers for Object-oriented Transformations
+-------------------------------------------
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   eval_shape
+

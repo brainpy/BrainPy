@@ -19,7 +19,7 @@ from jax.util import safe_map
 
 from brainpy import tools, check
 from brainpy._src.math.ndarray import Array, _as_jax_array_
-from ._tools import (
+from .tools import (
   dynvar_deprecation,
   node_deprecation,
   get_stack_cache,

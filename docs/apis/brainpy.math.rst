@@ -12,11 +12,21 @@ General Mathematical Operators
 
 
 
-Array Interoperability
-----------------------
+BrainPy Array
+-------------
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+    Array
+    ShardedArray
+
+
+
+Array Interoperability to JAX
+-----------------------------
 
 .. autosummary::
    :toctree: generated/
@@ -25,16 +35,37 @@ Array Interoperability
 
    as_device_array
    as_jax
+
+
+
+
+Array Interoperability to NumPy
+-------------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
    as_ndarray
    as_numpy
+
+
+
+Array Interoperability to BrainPy
+---------------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
    as_variable
+   asarray
 
 
 Activation Functions
 --------------------
-
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
 
 .. autosummary::
    :toctree: generated/

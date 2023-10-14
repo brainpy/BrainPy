@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-# from brainpy._src.math.surrogate._utils import (
-#   vjp_custom as vjp_custom
-# )
-
 from brainpy._src.math.surrogate.base import (
   Surrogate
 )

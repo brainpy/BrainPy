@@ -97,6 +97,33 @@ class TestClsJIT(unittest.TestCase):
     program.update(1.)
     self.assertTrue(bm.allclose(new_b + 1., program.b))
 
+  def test_class_jit2(self):
+    class SomeProgram(bp.BrainPyObject):
+      def __init__(self):
+        super(SomeProgram, self).__init__()
+        self.a = bm.zeros(2)
+        self.b = bm.Variable(bm.ones(2))
+
+        self.call1 = bm.jit(self.call, static_argnums=0)
+        self.call2 = bm.jit(self.call, static_argnames=['fit'])
+
+      def call(self, fit=True):
+        a = bm.random.uniform(size=2)
+        if fit:
+          a = a.at[0].set(1.)
+        self.b += a
+        return self.b
+
+    bm.random.seed(123)
+    program = SomeProgram()
+    new_b1 = program.call1(True)
+    new_b2 = program.call2(fit=False)
+    print()
+    print(new_b1, )
+    print(new_b2, )
+    with self.assertRaises(jax.errors.TracerBoolConversionError):
+      new_b3 = program.call2(False)
+
   def test_class_jit1_with_disable(self):
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):

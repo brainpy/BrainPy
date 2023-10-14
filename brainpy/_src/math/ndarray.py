@@ -1510,11 +1510,11 @@ class Array(object):
   # dtype exchanging #
   # ---------------- #
 
-  def bool(self): return jnp.asarray(self.value, dtypt=jnp.bool_)
-  def int(self): return jnp.asarray(self.value, dtypt=jnp.int32)
-  def long(self): return jnp.asarray(self.value, dtypt=jnp.int64)
-  def half(self): return jnp.asarray(self.value, dtypt=jnp.float16)
-  def float(self): return jnp.asarray(self.value, dtypt=jnp.float32)
+  def bool(self): return jnp.asarray(self.value, dtype=jnp.bool_)
+  def int(self): return jnp.asarray(self.value, dtype=jnp.int32)
+  def long(self): return jnp.asarray(self.value, dtype=jnp.int64)
+  def half(self): return jnp.asarray(self.value, dtype=jnp.float16)
+  def float(self): return jnp.asarray(self.value, dtype=jnp.float32)
   def double(self): return jnp.asarray(self.value, dtype=jnp.float64)
 
 
