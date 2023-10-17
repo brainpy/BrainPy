@@ -488,8 +488,6 @@ def _make_jit_fun(
         del args_, kwargs_
       _transform = jax.jit(
         _make_transform(fun2, stack),
-        static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),
-        static_argnames=static_argnames,
         device=device,
         inline=inline,
         keep_unused=keep_unused,
