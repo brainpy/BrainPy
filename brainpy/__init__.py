@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.5.post5"
+__version__ = "2.4.5.post6"
 _minimal_brainpylib_version = '0.1.10'
 
 # fundamental supporting modules
@@ -120,7 +120,7 @@ from brainpy._src.visualization import (visualize as visualize)
 
 #  Part: Deprecations  #
 # -------------------- #
-from brainpy._src import base, train
+from brainpy._src import train
 from brainpy import (
   channels,  # channel models
   neurons,  # neuron groups
