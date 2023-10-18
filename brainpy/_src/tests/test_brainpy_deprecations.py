@@ -5,10 +5,7 @@ bp_deprecated_names = list(brainpy.__deprecations.keys())
 mode_deprecated_names = list(brainpy.modes.__deprecations.keys())
 tools_deprecated_names = list(brainpy.tools.__deprecations.keys())
 train_deprecated_names = list(brainpy.train.__deprecations.keys())
-# dyn_deprecated_names = list(brainpy.dyn.__deprecations.keys())
 intg_deprecated_names = list(brainpy.integrators.__deprecations.keys())
-
-io_deprecated_names = list(brainpy.base.io.__deprecations.keys())
 
 
 class Test(parameterized.TestCase):
@@ -53,10 +50,3 @@ class Test(parameterized.TestCase):
   def test_brainpy_intg(self, name):
     with self.assertWarns(DeprecationWarning):
       getattr(brainpy.integrators, name)
-
-  @parameterized.product(
-    name=io_deprecated_names
-  )
-  def test_io(self, name):
-    with self.assertWarns(DeprecationWarning):
-      getattr(brainpy.base.io, name)
