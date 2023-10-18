@@ -87,7 +87,6 @@ NeuGroup = NeuGroupNS = dyn.NeuDyn
 
 # shared parameters
 from brainpy._src.context import (share as share)
-from brainpy._src.dynsys import not_pass_shared
 
 
 #  Part: Running  #

@@ -183,8 +183,8 @@ class Reservoir(Layer):
     # initialize state
     self.state = variable(jnp.zeros, self.mode, self.output_shape)
 
-  def reset_state(self, batch_size=None):
-    self.state.value = variable(jnp.zeros, batch_size, self.output_shape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.state.value = variable(jnp.zeros, batch_or_mode, self.output_shape)
 
   def update(self, x):
     """Feedforward output."""

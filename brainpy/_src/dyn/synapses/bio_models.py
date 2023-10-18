@@ -32,7 +32,7 @@ class AMPA(SynDyn):
   is affected by the concentration of neurotransmitters. We denote the concentration
   of neurotransmitters as :math:`[T]` and get the following Markov process.
 
-  .. image:: ../../../_static/synapse_markov.png
+  .. image:: ../../_static/synapse_markov.png
       :align: center
 
   We obtained the following formula when describing the process by a differential equation.
@@ -161,9 +161,9 @@ class AMPA(SynDyn):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.g = self.init_variable(bm.zeros, batch_size)
-    self.spike_arrival_time = self.init_variable(bm.ones, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
+    self.spike_arrival_time = self.init_variable(bm.ones, batch_or_mode)
     self.spike_arrival_time.fill(-1e7)
 
   def dg(self, g, t, TT):
@@ -476,10 +476,10 @@ class BioNMDA(SynDyn):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.g = self.init_variable(bm.zeros, batch_size)
-    self.x = self.init_variable(bm.zeros, batch_size)
-    self.spike_arrival_time = self.init_variable(bm.ones, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
+    self.x = self.init_variable(bm.zeros, batch_or_mode)
+    self.spike_arrival_time = self.init_variable(bm.ones, batch_or_mode)
     self.spike_arrival_time.fill(-1e7)
 
   def dg(self, g, t, x):

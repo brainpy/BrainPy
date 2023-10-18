@@ -154,16 +154,12 @@ class FHN(RateModel):
     # integral functions
     self.integral = odeint(f=JointEq(self.dx, self.dy), method=method)
 
-  def reset_state(self, batch_size=None):
-    self.x.value = variable(self._x_initializer, batch_size, self.varshape)
-    self.y.value = variable(self._y_initializer, batch_size, self.varshape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x.value = variable(self._x_initializer, batch_or_mode, self.varshape)
+    self.y.value = variable(self._y_initializer, batch_or_mode, self.varshape)
     if self.input_var:
-      self.input.value = variable(bm.zeros, batch_size, self.varshape)
-      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
-    if self.x_ou is not None:
-      self.x_ou.reset_state(batch_size)
-    if self.y_ou is not None:
-      self.y_ou.reset_state(batch_size)
+      self.input.value = variable(bm.zeros, batch_or_mode, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_or_mode, self.varshape)
 
   def dx(self, x, t, y, x_ext):
     return - self.alpha * x ** 3 + self.beta * x ** 2 + self.gamma * x - y + x_ext
@@ -353,17 +349,13 @@ class FeedbackFHN(RateModel):
                            f=JointEq([self.dx, self.dy]),
                            state_delays={'x': self.x_delay})
 
-  def reset_state(self, batch_size=None):
-    self.x.value = variable(self._x_initializer, batch_size, self.varshape)
-    self.y.value = variable(self._y_initializer, batch_size, self.varshape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x.value = variable(self._x_initializer, batch_or_mode, self.varshape)
+    self.y.value = variable(self._y_initializer, batch_or_mode, self.varshape)
     self.x_delay.reset(self.x, self.delay)
     if self.input_var:
-      self.input = variable(bm.zeros, batch_size, self.varshape)
-      self.input_y = variable(bm.zeros, batch_size, self.varshape)
-    if self.x_ou is not None:
-      self.x_ou.reset_state(batch_size)
-    if self.y_ou is not None:
-      self.y_ou.reset_state(batch_size)
+      self.input = variable(bm.zeros, batch_or_mode, self.varshape)
+      self.input_y = variable(bm.zeros, batch_or_mode, self.varshape)
 
   def dx(self, x, t, y, x_ext):
     return x - x * x * x / 3 - y + x_ext + self.mu * (self.x_delay(t - self.delay) - self.v0)
@@ -553,16 +545,12 @@ class QIF(RateModel):
     # functions
     self.integral = odeint(JointEq([self.dx, self.dy]), method=method)
 
-  def reset_state(self, batch_size=None):
-    self.x.value = variable(self._x_initializer, batch_size, self.varshape)
-    self.y.value = variable(self._y_initializer, batch_size, self.varshape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x.value = variable(self._x_initializer, batch_or_mode, self.varshape)
+    self.y.value = variable(self._y_initializer, batch_or_mode, self.varshape)
     if self.input_var:
-      self.input.value = variable(bm.zeros, batch_size, self.varshape)
-      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
-    if self.x_ou is not None:
-      self.x_ou.reset_state(batch_size)
-    if self.y_ou is not None:
-      self.y_ou.reset_state(batch_size)
+      self.input.value = variable(bm.zeros, batch_or_mode, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_or_mode, self.varshape)
 
   def dy(self, y, t, x, y_ext):
     return (self.delta / (bm.pi * self.tau) + 2. * x * y + y_ext) / self.tau
@@ -706,16 +694,12 @@ class StuartLandauOscillator(RateModel):
     # integral functions
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
-  def reset_state(self, batch_size=None):
-    self.x.value = variable(self._x_initializer, batch_size, self.varshape)
-    self.y.value = variable(self._y_initializer, batch_size, self.varshape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x.value = variable(self._x_initializer, batch_or_mode, self.varshape)
+    self.y.value = variable(self._y_initializer, batch_or_mode, self.varshape)
     if self.input_var:
-      self.input.value = variable(bm.zeros, batch_size, self.varshape)
-      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
-    if self.x_ou is not None:
-      self.x_ou.reset_state(batch_size)
-    if self.y_ou is not None:
-      self.y_ou.reset_state(batch_size)
+      self.input.value = variable(bm.zeros, batch_or_mode, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_or_mode, self.varshape)
 
   def dx(self, x, t, y, x_ext, a, w):
     return (a - x * x - y * y) * x - w * y + x_ext
@@ -884,16 +868,12 @@ class WilsonCowanModel(RateModel):
     # functions
     self.integral = odeint(f=JointEq([self.dx, self.dy]), method=method)
 
-  def reset_state(self, batch_size=None):
-    self.x.value = variable(self._x_initializer, batch_size, self.varshape)
-    self.y.value = variable(self._y_initializer, batch_size, self.varshape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x.value = variable(self._x_initializer, batch_or_mode, self.varshape)
+    self.y.value = variable(self._y_initializer, batch_or_mode, self.varshape)
     if self.input_var:
-      self.input.value = variable(bm.zeros, batch_size, self.varshape)
-      self.input_y.value = variable(bm.zeros, batch_size, self.varshape)
-    if self.x_ou is not None:
-      self.x_ou.reset_state(batch_size)
-    if self.y_ou is not None:
-      self.y_ou.reset_state(batch_size)
+      self.input.value = variable(bm.zeros, batch_or_mode, self.varshape)
+      self.input_y.value = variable(bm.zeros, batch_or_mode, self.varshape)
 
   def F(self, x, a, theta):
     return 1 / (1 + bm.exp(-a * (x - theta))) - 1 / (1 + bm.exp(a * theta))
@@ -1028,15 +1008,12 @@ class ThresholdLinearModel(RateModel):
       self.Ie = variable(bm.zeros, self.mode, self.varshape)  # Input of excitaory population
       self.Ii = variable(bm.zeros, self.mode, self.varshape)  # Input of inhibitory population
 
-  def reset(self, batch_size=None):
-    self.reset_state(batch_size)
-
-  def reset_state(self, batch_size=None):
-    self.e.value = variable(self._e_initializer, batch_size, self.varshape)
-    self.i.value = variable(self._i_initializer, batch_size, self.varshape)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.e.value = variable(self._e_initializer, batch_or_mode, self.varshape)
+    self.i.value = variable(self._i_initializer, batch_or_mode, self.varshape)
     if self.input_var:
-      self.Ie.value = variable(bm.zeros, batch_size, self.varshape)
-      self.Ii.value = variable(bm.zeros, batch_size, self.varshape)
+      self.Ie.value = variable(bm.zeros, batch_or_mode, self.varshape)
+      self.Ii.value = variable(bm.zeros, batch_or_mode, self.varshape)
 
   def update(self, inp_e=None, inp_i=None):
     dt = share.load('dt')
