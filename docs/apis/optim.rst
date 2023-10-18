@@ -38,12 +38,8 @@ Schedulers
    :template: classtemplate.rst
 
    make_schedule
-   partial
-   BrainPyObject
-   MathError
    Scheduler
    Constant
-   CallBasedScheduler
    StepLR
    MultiStepLR
    CosineAnnealingLR
@@ -57,7 +53,5 @@ Schedulers
    PolynomialDecay
    PiecewiseConstantLR
    PiecewiseConstant
-   Sequence
-   Union
 
 
