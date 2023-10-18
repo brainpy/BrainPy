@@ -150,40 +150,29 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
-
-    Assume any dynamical system depends on the shared variables (`sha`),
-    like time variable ``t``, the step precision ``dt``, and the time step `i`.
     """
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
   def reset(self, *args, **kwargs):
-    """Reset function which reset the whole variables in the model.
+    """Reset function which reset the whole variables in the model (including its children models).
 
-    ``reset()`` function is a collective behavior which resets states in the current node,
-    nodes in ``before_updates``, and nodes in ``after_updates``.
+    ``reset()`` function is a collective behavior which resets all states in this model.
 
+    See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
     child_nodes = self.nodes().subset(DynamicalSystem).unique()
     for node in child_nodes.values():
         node.reset_state(*args, **kwargs)
 
   def reset_state(self, *args, **kwargs):
-    """Reset function which resets all states in the model and its children.
+    """Reset function which resets local states in this model.
 
     Simply speaking, this function should implement the logic of resetting of
-    all variables in this node (including its children nodes).
+    local variables in this node.
+
+    See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
     pass
-
-  @not_implemented
-  def __reset_state__(self, *args, **kwargs):
-    """Reset states of the current node (API version 2)."""
-    pass
-    # raise NotImplementedError(
-    #   f'Must implement "__reset_state__" function by subclass self. '
-    #   f'See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_reset.html for details. \n'
-    #   f' Error of {self.name}'
-    # )
 
   def clear_input(self, *args, **kwargs):
     """Clear the input at the current time step."""
@@ -786,7 +775,7 @@ class DynView(Dynamic):
     raise NoImplementationError(f'{DynView.__name__} {self} cannot be updated. '
                                 f'Please update its parent {self.target}')
 
-  def __reset_state__(self, batch_size=None):
+  def reset_state(self, batch_size=None):
     pass
 
 
