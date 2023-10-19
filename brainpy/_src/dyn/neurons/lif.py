@@ -82,6 +82,7 @@ class IFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = 0.,
@@ -99,12 +100,19 @@ class IFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,)
 
     # parameters
     self.V_rest = self.init_param(V_rest)
     self.tau = self.init_param(tau)
     self.R = self.init_param(R)
+
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -124,10 +132,16 @@ class IFLTC(GradNeuDyn):
     self.V = self.init_variable(self._V_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     self.V.value = self.integral(self.V.value, t, x, dt)
@@ -209,6 +223,7 @@ class LifLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = 0.,
@@ -228,7 +243,7 @@ class LifLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,)
 
     # parameters
     self.V_rest = self.init_param(V_rest)
@@ -236,6 +251,15 @@ class LifLTC(GradNeuDyn):
     self.V_th = self.init_param(V_th)
     self.tau = self.init_param(tau)
     self.R = self.init_param(R)
+
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
+      self.V_reset = self.scale.scaling_offset(self.V_reset)
+      self.V_th = self.scale.scaling_offset(self.V_th)
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -255,10 +279,16 @@ class LifLTC(GradNeuDyn):
     self.V = self.init_variable(self._V_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, x, dt)
@@ -406,6 +436,7 @@ class LifRefLTC(LifLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = 0.,
@@ -433,6 +464,7 @@ class LifRefLTC(LifLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -461,6 +493,9 @@ class LifRefLTC(LifLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, x, dt)
@@ -683,6 +718,7 @@ class ExpIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -704,7 +740,7 @@ class ExpIFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,)
 
     # parameters
     self.V_rest = self.init_param(V_rest)
@@ -714,6 +750,17 @@ class ExpIFLTC(GradNeuDyn):
     self.delta_T = self.init_param(delta_T)
     self.tau = self.init_param(tau)
     self.R = self.init_param(R)
+
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
+      self.V_reset = self.scale.scaling_offset(self.V_reset)
+      self.V_th = self.scale.scaling_offset(self.V_th)
+      self.V_T = self.scale.scaling_offset(self.V_T)
+      self.delta_T = self.scale.scaling(self.delta_T)
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -735,10 +782,16 @@ class ExpIFLTC(GradNeuDyn):
     self.V = self.init_variable(self._V_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, x, dt)
@@ -1010,6 +1063,7 @@ class ExpIFRefLTC(ExpIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -1039,6 +1093,7 @@ class ExpIFRefLTC(ExpIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -1075,6 +1130,9 @@ class ExpIFRefLTC(ExpIFLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, x, dt)
@@ -1349,6 +1407,7 @@ class AdExIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -1387,6 +1446,18 @@ class AdExIFLTC(GradNeuDyn):
     self.tau = self.init_param(tau)
     self.tau_w = self.init_param(tau_w)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
+      self.V_reset = self.scale.scaling_offset(self.V_reset)
+      self.V_th = self.scale.scaling_offset(self.V_th)
+      self.V_T = self.scale.scaling_offset(self.V_T)
+      self.delta_T = self.scale.scaling(self.delta_T)
+      self.b = self.scale.scaling(self.b)
+
     # initializers
     self._V_initializer = is_initializer(V_initializer)
     self._w_initializer = is_initializer(w_initializer)
@@ -1417,10 +1488,17 @@ class AdExIFLTC(GradNeuDyn):
     self.w = self.init_variable(self._w_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+      self.w = self.scale.scaling(self.w)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
@@ -1677,6 +1755,7 @@ class AdExIFRefLTC(AdExIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -1710,6 +1789,7 @@ class AdExIFRefLTC(AdExIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -1751,6 +1831,9 @@ class AdExIFRefLTC(AdExIFLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
@@ -2000,6 +2083,7 @@ class QuaIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2031,6 +2115,17 @@ class QuaIFLTC(GradNeuDyn):
     self.R = self.init_param(R)
     self.tau = self.init_param(tau)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
+      self.V_reset = self.scale.scaling_offset(self.V_reset)
+      self.V_th = self.scale.scaling_offset(self.V_th)
+      self.V_c = self.scale.scaling_offset(self.V_c)
+      self.c = self.scale.scaling_inv(self.c)
+
     # initializers
     self._V_initializer = is_initializer(V_initializer)
 
@@ -2050,10 +2145,16 @@ class QuaIFLTC(GradNeuDyn):
     self.V = self.init_variable(self._V_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, x, dt)
@@ -2268,6 +2369,7 @@ class QuaIFRefLTC(QuaIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2297,6 +2399,7 @@ class QuaIFRefLTC(QuaIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -2333,6 +2436,9 @@ class QuaIFRefLTC(QuaIFLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V = self.integral(self.V.value, t, x, dt)
@@ -2567,6 +2673,7 @@ class AdQuaIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2603,6 +2710,18 @@ class AdQuaIFLTC(GradNeuDyn):
     self.tau = self.init_param(tau)
     self.tau_w = self.init_param(tau_w)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
+      self.V_reset = self.scale.scaling_offset(self.V_reset)
+      self.V_th = self.scale.scaling_offset(self.V_th)
+      self.V_c = self.scale.scaling_offset(self.V_c)
+      self.c = self.scale.scaling_inv(self.c)
+      self.b = self.scale.scaling(self.b)
+
     # initializers
     self._V_initializer = is_initializer(V_initializer)
     self._w_initializer = is_initializer(w_initializer)
@@ -2632,10 +2751,17 @@ class AdQuaIFLTC(GradNeuDyn):
     self.w = self.init_variable(self._w_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+      self.w = self.scale.scaling(self.w)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
@@ -2870,6 +2996,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2902,6 +3029,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -2942,6 +3070,9 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
@@ -3212,6 +3343,7 @@ class GifLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -70.,
@@ -3260,6 +3392,18 @@ class GifLTC(GradNeuDyn):
     self.A2 = self.init_param(A2)
     self.tau = self.init_param(tau)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_rest = self.scale.scaling_offset(self.V_rest)
+      self.V_reset = self.scale.scaling_offset(self.V_reset)
+      self.V_th_inf = self.scale.scaling_offset(self.V_th_inf)
+      self.V_th_reset = self.scale.scaling_offset(self.V_th_reset)
+      self.A1 = self.scale.scaling(self.A1)
+      self.A2 = self.scale.scaling(self.A2)
+
     # initializers
     self._V_initializer = is_initializer(V_initializer)
     self._I1_initializer = is_initializer(I1_initializer)
@@ -3297,10 +3441,19 @@ class GifLTC(GradNeuDyn):
     self.V_th = self.init_variable(self._Vth_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+      self.V_th = self.scale.scaling_offset(self.V_th)
+      self.I1 = self.scale.scaling(self.I1)
+      self.I2 = self.scale.scaling(self.I2)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     I1, I2, V_th, V = self.integral(self.I1.value, self.I2.value, self.V_th.value, self.V.value, t, x, dt)
@@ -3591,6 +3744,7 @@ class GifRefLTC(GifLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -70.,
@@ -3630,6 +3784,7 @@ class GifRefLTC(GifLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -3679,6 +3834,9 @@ class GifRefLTC(GifLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     I1, I2, V_th, V = self.integral(self.I1.value, self.I2.value, self.V_th.value, self.V.value, t, x, dt)
@@ -3961,9 +4119,13 @@ class IzhikevichLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # neuron parameters
       V_th: Union[float, ArrayType, Callable] = 30.,
+      p1: Union[float, ArrayType, Callable] = 0.04,
+      p2: Union[float, ArrayType, Callable] = 5.,
+      p3: Union[float, ArrayType, Callable] = 140.,
       a: Union[float, ArrayType, Callable] = 0.02,
       b: Union[float, ArrayType, Callable] = 0.20,
       c: Union[float, ArrayType, Callable] = -65.,
@@ -3986,12 +4148,27 @@ class IzhikevichLTC(GradNeuDyn):
                      spk_reset=spk_reset, )
     # parameters
     self.V_th = self.init_param(V_th)
+    self.p1 = self.init_param(p1)
+    self.p2 = self.init_param(p2)
+    self.p3 = self.init_param(p3)
     self.a = self.init_param(a)
     self.b = self.init_param(b)
     self.c = self.init_param(c)
     self.d = self.init_param(d)
     self.R = self.init_param(R)
     self.tau = self.init_param(tau)
+
+    if isinstance(self.mode, bm.TrainingMode):
+      if scale is None:
+        self.scale = bm.get_scale()
+      else:
+        self.scale = scale
+      self.V_th = self.scale.scaling_offset(self.V_th)
+      self.p1 = self.scale.scaling_inv(self.p1)
+      self.p2 = self.scale.scaling_offset(self.p2, bias=-p1 * 2 * self.scale.bias, scale=1.)
+      self.p3 = self.scale.scaling_offset(self.p3, bias=p1 * self.scale.bias ** 2 + b * self.scale.bias - p2 * self.scale.bias)
+      self.c = self.scale.scaling_offset(self.c)
+      self.d = self.scale.scaling(self.d)
 
     # initializers
     self._V_initializer = is_initializer(V_initializer)
@@ -4006,7 +4183,7 @@ class IzhikevichLTC(GradNeuDyn):
 
   def dV(self, V, t, u, I):
     I = self.sum_inputs(V, init=I)
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
   def du(self, u, t, V):
@@ -4024,10 +4201,17 @@ class IzhikevichLTC(GradNeuDyn):
     self.u = self.init_variable(self._u_initializer, batch_size)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
+    if isinstance(self.mode, bm.TrainingMode):
+      self.V = self.scale.scaling_offset(self.V)
+      self.u = self.scale.scaling_offset(self.u, bias=self.b * self.scale.bias)
+
   def update(self, x=None):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V, u = self.integral(self.V.value, self.u.value, t, x, dt)
@@ -4147,7 +4331,7 @@ class Izhikevich(IzhikevichLTC):
   """
 
   def dV(self, V, t, u, I):
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
   def update(self, x=None):
@@ -4263,9 +4447,13 @@ class IzhikevichRefLTC(IzhikevichLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scale: Optional[bm.Scale] = None,
 
       # old neuron parameter
       V_th: Union[float, ArrayType, Callable] = 30.,
+      p1: Union[float, ArrayType, Callable] = 0.04,
+      p2: Union[float, ArrayType, Callable] = 5.,
+      p3: Union[float, ArrayType, Callable] = 140.,
       a: Union[float, ArrayType, Callable] = 0.02,
       b: Union[float, ArrayType, Callable] = 0.20,
       c: Union[float, ArrayType, Callable] = -65.,
@@ -4293,8 +4481,12 @@ class IzhikevichRefLTC(IzhikevichLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scale=scale,
 
       V_th=V_th,
+      p1=p1,
+      p2=p2,
+      p3=p3,
       a=a,
       b=b,
       c=c,
@@ -4331,6 +4523,9 @@ class IzhikevichRefLTC(IzhikevichLTC):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
+
+    if isinstance(self.mode, bm.TrainingMode):
+      x = self.scale.scaling(x)
 
     # integrate membrane potential
     V, u = self.integral(self.V.value, self.u.value, t, x, dt)
@@ -4463,7 +4658,7 @@ class IzhikevichRef(IzhikevichRefLTC):
  """
 
   def dV(self, V, t, u, I):
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
   def update(self, x=None):

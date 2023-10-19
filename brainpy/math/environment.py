@@ -19,6 +19,8 @@ from brainpy._src.math.environment import (
   get_dt as get_dt,
   set_mode as set_mode,
   get_mode as get_mode,
+  get_scale as get_scale,
+  set_scale as set_scale,
 
   enable_x64 as enable_x64,
   disable_x64 as disable_x64,
