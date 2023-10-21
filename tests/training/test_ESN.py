@@ -120,7 +120,7 @@ class TestESN(unittest.TestCase):
     with bm.batching_environment():
       model = NGRC(num_in, num_out)
     batch_size = 10
-    model.reset_state(batch_size)
+    model.reset(batch_size)
     X = bm.random.random((batch_size, 200, num_in))
     Y = bm.random.random((batch_size, 200, num_out))
     trainer = bp.RidgeTrainer(model, alpha=1e-6)

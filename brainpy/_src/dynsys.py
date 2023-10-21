@@ -13,7 +13,7 @@ from brainpy._src.context import share
 from brainpy._src.deprecations import _update_deprecate_msg
 from brainpy._src.initialize import parameter, variable_
 from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, global_delay_data
-from brainpy.errors import NoImplementationError, UnsupportedError
+from brainpy.errors import NoImplementationError, UnsupportedError, APIChangedError
 from brainpy.types import ArrayType, Shape
 
 __all__ = [
@@ -31,7 +31,6 @@ SLICE_VARS = 'slice_vars'
 
 
 def not_implemented(fun):
-
   def new_fun(*args, **kwargs):
     return fun(*args, **kwargs)
 
@@ -153,16 +152,20 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     """
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
-  def reset(self, *args, **kwargs):
+  def reset(self, *args, include_self: bool = False, **kwargs):
     """Reset function which reset the whole variables in the model (including its children models).
 
     ``reset()`` function is a collective behavior which resets all states in this model.
 
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+
+    Args::
+      include_self: bool. Reset states including the node self. Please turn on this if the node has
+        implemented its ".reset_state()" function.
     """
-    child_nodes = self.nodes().subset(DynamicalSystem).unique()
+    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).unique()
     for node in child_nodes.values():
-        node.reset_state(*args, **kwargs)
+      node.reset_state(*args, **kwargs)
 
   def reset_state(self, *args, **kwargs):
     """Reset function which resets local states in this model.
@@ -172,7 +175,17 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
-    pass
+    raise APIChangedError(
+      '''
+    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed.
+    
+    1. If you are resetting all states in a network by calling ".reset_state()", please use ".reset()" function. 
+       ".reset_state()" only defines the resetting of local states in a local node (excluded its children nodes). 
+    
+    2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
+    
+      '''
+    )
 
   def clear_input(self, *args, **kwargs):
     """Clear the input at the current time step."""

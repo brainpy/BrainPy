@@ -140,13 +140,13 @@ class ExplicitRKIntegrator(ODEIntegrator):
                show_code=False,
                state_delays=None,
                neutral_delays=None):
-    super(ExplicitRKIntegrator, self).__init__(f=f,
-                                               var_type=var_type,
-                                               dt=dt,
-                                               name=name,
-                                               show_code=show_code,
-                                               state_delays=state_delays,
-                                               neutral_delays=neutral_delays)
+    super().__init__(f=f,
+                     var_type=var_type,
+                     dt=dt,
+                     name=name,
+                     show_code=show_code,
+                     state_delays=state_delays,
+                     neutral_delays=neutral_delays)
 
     # integrator keywords
     keywords = {
