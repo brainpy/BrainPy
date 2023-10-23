@@ -41,8 +41,8 @@ from jax import config
 mode = NonBatchingMode()
 '''Default computation mode.'''
 
-scale = Scale(scale=1., bias=0.)
-'''Default scale.'''
+scaling = IdScaling()
+'''Default scaling.'''
 
 dt = 0.1
 '''Default time step.'''

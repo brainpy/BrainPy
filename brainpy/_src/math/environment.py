@@ -37,8 +37,8 @@ __all__ = [
   # default computation modes
   'set_mode', 'get_mode',
 
-  # default scale
-  'set_scale', 'get_scale',
+  # default scaling
+  'set_scaling', 'get_scaling',
 
   # set jax environments
   'enable_x64', 'disable_x64',
@@ -156,7 +156,7 @@ class environment(_DecoratorContextManager):
   def __init__(
       self,
       mode: modes.Mode = None,
-      scale: scales.Scale = None,
+      scale: scales.Scaling = None,
       dt: float = None,
       x64: bool = None,
       complex_: type = None,
@@ -175,8 +175,8 @@ class environment(_DecoratorContextManager):
       self.old_mode = get_mode()
 
     if scale is not None:
-      assert isinstance(scale, scales.Scale), f'"scale" must a {scales.Scale}.'
-      self.old_scale = get_scale()
+      assert isinstance(scale, scales.Scaling), f'"scaling" must a {scales.Scaling}.'
+      self.old_scale = get_scaling()
 
     if x64 is not None:
       assert isinstance(x64, bool), f'"x64" must be a bool.'
@@ -210,7 +210,7 @@ class environment(_DecoratorContextManager):
   def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
     if self.mode is not None: set_mode(self.mode)
-    if self.scale is not None: set_scale(self.scale)
+    if self.scale is not None: set_scaling(self.scale)
     if self.x64 is not None: set_x64(self.x64)
     if self.float_ is not None: set_float(self.float_)
     if self.int_ is not None: set_int(self.int_)
@@ -221,7 +221,7 @@ class environment(_DecoratorContextManager):
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     if self.dt is not None: set_dt(self.old_dt)
     if self.mode is not None: set_mode(self.old_mode)
-    if self.scale is not None: set_scale(self.old_scale)
+    if self.scale is not None: set_scaling(self.old_scale)
     if self.x64 is not None: set_x64(self.old_x64)
     if self.int_ is not None: set_int(self.old_int)
     if self.float_ is not None:  set_float(self.old_float)
@@ -256,7 +256,7 @@ class training_environment(environment):
 
   def __init__(
       self,
-      scale: scales.Scale = None,
+      scale: scales.Scaling = None,
       dt: float = None,
       x64: bool = None,
       complex_: type = None,
@@ -309,7 +309,7 @@ class batching_environment(environment):
 
 def set(
     mode: modes.Mode = None,
-    scale: scales.Scale = None,
+    scale: scales.Scaling = None,
     dt: float = None,
     x64: bool = None,
     complex_: type = None,
@@ -323,7 +323,7 @@ def set(
   ----------
   mode: Mode
     The computing mode.
-  scale: Scale
+  scale: Scaling
     The numerical scaling.
   dt: float
     The numerical integration precision.
@@ -347,8 +347,8 @@ def set(
     set_mode(mode)
 
   if scale is not None:
-    assert isinstance(scale, scales.Scale), f'"scale" must a {scales.Scale}.'
-    set_scale(scale)
+    assert isinstance(scale, scales.Scaling), f'"scaling" must a {scales.Scaling}.'
+    set_scaling(scale)
 
   if x64 is not None:
     assert isinstance(x64, bool), f'"x64" must be a bool.'
@@ -573,33 +573,33 @@ def get_mode() -> modes.Mode:
   return bm.mode
 
 
-def set_scale(scale: scales.Scale):
-  """Set the default computing scale.
+def set_scaling(scaling: scales.Scaling):
+  """Set the default computing scaling.
 
   Parameters
   ----------
-  scale: Scale
-    The instance of :py:class:`~.Scale`.
+  scale: Scaling
+    The instance of :py:class:`~.Scaling`.
   """
-  if not isinstance(scales, scales.Scale):
-    raise TypeError(f'Must be instance of brainpy.math.Scale. '
-                    f'But we got {type(scale)}: {scale}')
+  if not isinstance(scales, scales.Scaling):
+    raise TypeError(f'Must be instance of brainpy.math.Scaling. '
+                    f'But we got {type(scaling)}: {scaling}')
   global bm
   if bm is None: from brainpy import math as bm
-  bm.__dict__['scale'] = scale
+  bm.__dict__['scaling'] = scaling
 
 
-def get_scale() -> scales.Scale:
-  """Get the default computing scale.
+def get_scaling() -> scales.Scaling:
+  """Get the default computing scaling.
 
   Returns
   -------
-  scale: Scale
-    The default computing scale.
+  scaling: Scaling
+    The default computing scaling.
   """
   global bm
   if bm is None: from brainpy import math as bm
-  return bm.scale
+  return bm.scaling
 
 
 def enable_x64(x64=None):

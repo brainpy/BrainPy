@@ -26,6 +26,7 @@ class GradNeuDyn(NeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       method: str = 'exp_auto',
+      scaling: Optional[bm.Scaling] = None,
 
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
       spk_type: Any = None,
@@ -43,6 +44,10 @@ class GradNeuDyn(NeuDyn):
     self.spk_fun = is_callable(spk_fun)
     self.detach_spk = detach_spk
     self._spk_type = spk_type
+    if scaling is None:
+      self.scaling = bm.get_scaling()
+    else:
+      self.scaling = scaling
 
   @property
   def spk_type(self):
@@ -50,6 +55,27 @@ class GradNeuDyn(NeuDyn):
       return bm.float_ if isinstance(self.mode, bm.TrainingMode) else bm.bool_
     else:
       return self._spk_type
+
+  def offset_scaling(self, x, bias=None, scale=None):
+    s = self.scaling.offset_scaling(x, bias=bias, scale=scale)
+    if isinstance(x, bm.Variable):
+      x.value = s
+      return x
+    return s
+
+  def std_scaling(self, x, scale=None):
+    s = self.scaling.std_scaling(x, scale=scale)
+    if isinstance(x, bm.Variable):
+      x.value = s
+      return x
+    return s
+
+  def inv_scaling(self, x, scale=None):
+    s = self.scaling.inv_scaling(x, scale=scale)
+    if isinstance(x, bm.Variable):
+      x.value = s
+      return x
+    return s
 
 
 GradNeuDyn.__doc__ = GradNeuDyn.__doc__.format(pneu=pneu_doc, dpneu=dpneu_doc)
