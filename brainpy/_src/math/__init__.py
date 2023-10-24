@@ -60,5 +60,6 @@ from .object_transform import *
 # environment settings
 from .modes import *
 from .environment import *
+from .scales import *
 
 del brainpylib_check

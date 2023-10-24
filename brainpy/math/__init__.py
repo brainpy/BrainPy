@@ -24,6 +24,7 @@ from .oo_transform import *
 # environment settings
 from .modes import *
 from .environment import *
+from .scales import *
 from .others import *
 
 # high-level numpy operations
@@ -39,6 +40,9 @@ from jax import config
 
 mode = NonBatchingMode()
 '''Default computation mode.'''
+
+membrane_scaling = IdScaling()
+'''Default membrane_scaling.'''
 
 dt = 0.1
 '''Default time step.'''
