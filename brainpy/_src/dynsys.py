@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import collections
-import gc
 import inspect
 import warnings
+import numbers
 from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
@@ -12,7 +12,7 @@ from brainpy import tools, math as bm
 from brainpy._src.context import share
 from brainpy._src.deprecations import _update_deprecate_msg
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, global_delay_data
+from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, _get_delay_tool
 from brainpy.errors import NoImplementationError, UnsupportedError, APIChangedError
 from brainpy.types import ArrayType, Shape
 
@@ -27,6 +27,8 @@ __all__ = [
   'Dynamic', 'Projection',
 ]
 
+
+IonChaDyn = None
 SLICE_VARS = 'slice_vars'
 
 
@@ -87,13 +89,9 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
                                f'which are parents of {self.supported_modes}, '
                                f'but we got {self.mode}.')
 
-    # Attribute for "ReceiveInputProj"
+    # Attribute for "SupportInputProj"
+    # each instance of "SupportInputProj" should have a "cur_inputs" attribute
     self.cur_inputs = bm.node_dict()
-
-    # local delay variables:
-    # Compatible for ``DelayRegister``
-    # TODO: will be deprecated in the future
-    self.local_delay_vars: Dict = bm.node_dict()
 
     # the before- / after-updates used for computing
     # added after the version of 2.4.3
@@ -135,18 +133,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     """Whether this node has the after update of the given ``key``."""
     return key in self.after_updates
 
-  def reset_bef_updates(self, *args, **kwargs):
-    """Reset all before updates."""
-    for node in self.before_updates.values():
-      if isinstance(node, DynamicalSystem):
-        node.reset(*args, **kwargs)
-
-  def reset_aft_updates(self, *args, **kwargs):
-    """Reset all after updates."""
-    for node in self.after_updates.values():
-      if isinstance(node, DynamicalSystem):
-        node.reset(*args, **kwargs)
-
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
     """
@@ -163,7 +149,10 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       include_self: bool. Reset states including the node self. Please turn on this if the node has
         implemented its ".reset_state()" function.
     """
-    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).unique()
+    global IonChaDyn
+    if IonChaDyn is None:
+      from brainpy._src.dyn.base import IonChaDyn
+    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).not_subset(IonChaDyn).unique()
     for node in child_nodes.values():
       node.reset_state(*args, **kwargs)
 
@@ -235,6 +224,44 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       raise ValueError(f'Must be instance of {bm.Mode.__name__}, '
                        f'but we got {type(value)}: {value}')
     self._mode = value
+
+  def register_local_delay(
+      self,
+      var_name: str,
+      delay_name: str,
+      delay: Union[numbers.Number, ArrayType] = None,
+  ):
+    """Register local relay at the given delay time.
+
+    Args:
+      var_name: str. The name of the delay target variable.
+      delay_name: str. The name of the current delay data.
+      delay: The delay time.
+    """
+    delay_identifier, init_delay_by_return = _get_delay_tool()
+    delay_identifier = delay_identifier + var_name
+    try:
+      target = getattr(self, var_name)
+    except AttributeError:
+      raise AttributeError(f'This node {self} does not has attribute of "{var_name}".')
+    if not self.has_aft_update(delay_identifier):
+      self.add_aft_update(delay_identifier, init_delay_by_return(target))
+    delay_cls = self.get_aft_update(delay_identifier)
+    delay_cls.register_entry(delay_name, delay)
+
+  def get_local_delay(self, var_name, delay_name):
+    """Get the delay at the given identifier (`name`).
+
+    Args:
+      var_name: The name of the target delay variable.
+      delay_name: The identifier of the delay.
+
+    Returns:
+      The delayed data at the given delay position.
+    """
+    delay_identifier, init_delay_by_return = _get_delay_tool()
+    delay_identifier = delay_identifier + var_name
+    return self.get_aft_update(delay_identifier).at(delay_name)
 
   def _compatible_update(self, *args, **kwargs):
     update_fun = super().__getattribute__('update')
@@ -320,20 +347,14 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
           return ret
       return update_fun(*args, **kwargs)
 
-  # def __getattr__(self, item):
-  #   if item == 'update':
-  #     return self._compatible_update  # update function compatible with previous ``update()`` function
-  #   else:
-  #     return object.__getattribute__(self, item)
+  def _get_update_fun(self):
+    return object.__getattribute__(self, 'update')
 
   def __getattribute__(self, item):
     if item == 'update':
       return self._compatible_update  # update function compatible with previous ``update()`` function
     else:
       return super().__getattribute__(item)
-
-  def _get_update_fun(self):
-    return object.__getattribute__(self, 'update')
 
   def __repr__(self):
     return f'{self.name}(mode={self.mode})'
@@ -352,29 +373,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     for model in self.after_updates.values():
       model(ret)
     return ret
-
-  def __del__(self):
-    """Function for handling `del` behavior.
-
-    This function is used to pop out the variables which registered in global delay data.
-    """
-    try:
-      if hasattr(self, 'local_delay_vars'):
-        for key in tuple(self.local_delay_vars.keys()):
-          val = global_delay_data.pop(key)
-          del val
-          val = self.local_delay_vars.pop(key)
-          del val
-      if hasattr(self, 'implicit_nodes'):
-        for key in tuple(self.implicit_nodes.keys()):
-          del self.implicit_nodes[key]
-      if hasattr(self, 'implicit_vars'):
-        for key in tuple(self.implicit_vars.keys()):
-          del self.implicit_vars[key]
-      for key in tuple(self.__dict__.keys()):
-        del self.__dict__[key]
-    finally:
-      gc.collect()
 
   def __rrshift__(self, other):
     """Support using right shift operator to call modules.
@@ -433,10 +431,6 @@ class DynSysGroup(DynamicalSystem, Container):
     # update nodes with other types, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node()
-
-    # update delays
-    # TODO: Will be deprecated in the future
-    self.update_local_delays(nodes)
 
 
 class Network(DynSysGroup):

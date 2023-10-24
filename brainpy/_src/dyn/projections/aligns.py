@@ -27,6 +27,9 @@ class _AlignPre(DynamicalSystem):
     else:
       return x >> self.syn >> self.delay
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
 
 class _AlignPost(DynamicalSystem):
   def __init__(self,
@@ -39,6 +42,9 @@ class _AlignPost(DynamicalSystem):
   def update(self, *args, **kwargs):
     self.out.bind_cond(self.syn(*args, **kwargs))
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
 
 class _AlignPreMg(DynamicalSystem):
   def __init__(self, access, syn):
@@ -48,6 +54,9 @@ class _AlignPreMg(DynamicalSystem):
 
   def update(self, *args, **kwargs):
     return self.syn(self.access())
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 def _get_return(return_info):
@@ -131,6 +140,9 @@ class VanillaProj(Projection):
     current = self.comm(x)
     self.refs['out'].bind_cond(current)
     return current
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 class ProjAlignPostMg1(Projection):
@@ -223,6 +235,9 @@ class ProjAlignPostMg1(Projection):
     current = self.comm(x)
     self.refs['syn'].add_current(current)  # synapse post current
     return current
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 class ProjAlignPostMg2(Projection):
@@ -352,6 +367,9 @@ class ProjAlignPostMg2(Projection):
     self.refs['syn'].add_current(current)  # synapse post current
     return current
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
 
 class ProjAlignPost1(Projection):
   """Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
@@ -437,6 +455,9 @@ class ProjAlignPost1(Projection):
     current = self.comm(x)
     self.refs['syn'].add_current(current)
     return current
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 class ProjAlignPost2(Projection):
@@ -560,6 +581,9 @@ class ProjAlignPost2(Projection):
     g = self.syn(self.comm(x))
     self.refs['out'].bind_cond(g)  # synapse post current
     return g
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 class ProjAlignPreMg1(Projection):
@@ -685,6 +709,9 @@ class ProjAlignPreMg1(Projection):
     current = self.comm(x)
     self.refs['out'].bind_cond(current)
     return current
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 class ProjAlignPreMg2(Projection):
@@ -814,6 +841,9 @@ class ProjAlignPreMg2(Projection):
     self.refs['out'].bind_cond(current)
     return current
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
 
 class ProjAlignPre1(Projection):
   """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
@@ -932,6 +962,9 @@ class ProjAlignPre1(Projection):
     current = self.comm(x)
     self.refs['out'].bind_cond(current)
     return current
+
+  def reset_state(self, *args, **kwargs):
+    pass
 
 
 class ProjAlignPre2(Projection):
@@ -1053,3 +1086,6 @@ class ProjAlignPre2(Projection):
     g = self.comm(self.syn(spk))
     self.refs['out'].bind_cond(g)
     return g
+
+  def reset_state(self, *args, **kwargs):
+    pass

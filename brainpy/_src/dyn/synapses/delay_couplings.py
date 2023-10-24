@@ -191,7 +191,7 @@ class DiffusiveCoupling(DelayCoupling):
   def update(self):
     # delays
     axis = self.coupling_var1.ndim
-    delay_var: bm.LengthDelay = self.get_delay_var(f'delay_{id(self.delay_var)}')[0]
+    delay_var = self.get_delay_var(f'delay_{id(self.delay_var)}')
     if self.delay_steps is None:
       diffusive = (jnp.expand_dims(self.coupling_var1.value, axis=axis) -
                    jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))
@@ -201,13 +201,13 @@ class DiffusiveCoupling(DelayCoupling):
         indices = (slice(None, None, None), jnp.arange(self.coupling_var1.size),)
       else:
         indices = (jnp.arange(self.coupling_var1.size),)
-      f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (..., pre.num)
+      f = vmap(lambda steps: delay_var.retrieve(steps, *indices), in_axes=1)  # (..., pre.num)
       delays = f(self.delay_steps)  # (..., post.num, pre.num)
       diffusive = (jnp.moveaxis(bm.as_jax(delays), axis - 1, axis) -
                    jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))  # (..., pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
     elif self.delay_type == 'int':
-      delayed_data = delay_var(self.delay_steps)  # (..., pre.num)
+      delayed_data = delay_var.retrieve(self.delay_steps)  # (..., pre.num)
       diffusive = (jnp.expand_dims(delayed_data, axis=axis) -
                    jnp.expand_dims(self.coupling_var2.value, axis=axis - 1))  # (..., pre.num, post.num)
       diffusive = (self.conn_mat * diffusive).sum(axis=axis - 1)
@@ -276,7 +276,7 @@ class AdditiveCoupling(DelayCoupling):
   def update(self):
     # delay function
     axis = self.coupling_var.ndim
-    delay_var: bm.LengthDelay = self.get_delay_var(f'delay_{id(self.delay_var)}')[0]
+    delay_var = self.get_delay_var(f'delay_{id(self.delay_var)}')
     if self.delay_steps is None:
       additive = self.coupling_var @ self.conn_mat
     elif self.delay_type == 'array':
@@ -284,11 +284,11 @@ class AdditiveCoupling(DelayCoupling):
         indices = (slice(None, None, None), jnp.arange(self.coupling_var.size),)
       else:
         indices = (jnp.arange(self.coupling_var.size),)
-      f = vmap(lambda steps: delay_var(steps, *indices), in_axes=1)  # (.., pre.num,)
+      f = vmap(lambda steps: delay_var.retrieve(steps, *indices), in_axes=1)  # (.., pre.num,)
       delays = f(self.delay_steps)  # (..., post.num, pre.num)
       additive = (self.conn_mat * jnp.moveaxis(delays, axis - 1, axis)).sum(axis=axis - 1)
     elif self.delay_type == 'int':
-      delayed_var = delay_var(self.delay_steps)  # (..., pre.num)
+      delayed_var = delay_var.retrieve(self.delay_steps)  # (..., pre.num)
       additive = delayed_var @ self.conn_mat
     else:
       raise ValueError

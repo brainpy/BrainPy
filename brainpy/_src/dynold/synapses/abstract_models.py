@@ -124,7 +124,7 @@ class Delta(TwoEndConn):
   def update(self, pre_spike=None):
     # pre-synaptic spikes
     if pre_spike is None:
-      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", delay_step=self.delay_step)
+      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
     pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
       pre_spike = jax.lax.stop_gradient(pre_spike)
