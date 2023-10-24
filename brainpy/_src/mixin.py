@@ -1,16 +1,14 @@
 import numbers
 import sys
+import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, TypeVar, Any
 from typing import (_SpecialForm, _type_check, _remove_dups_flatten)
 
 import jax
-import jax.numpy as jnp
-import numpy as np
 
 from brainpy import math as bm, tools
 from brainpy._src.math.object_transform.naming import get_unique_name
-from brainpy._src.initialize import parameter
 from brainpy.types import ArrayType
 
 if sys.version_info.minor > 8:
@@ -26,6 +24,7 @@ __all__ = [
   'MixIn',
   'ParamDesc',
   'ParamDescInit',
+  'DelayRegister',
   'AlignPost',
   'Container',
   'TreeNode',
@@ -38,7 +37,19 @@ __all__ = [
   'SupportOffline',
 ]
 
-global_delay_data = dict()
+
+def _get_delay_tool():
+  global delay_identifier, init_delay_by_return
+  if init_delay_by_return is None: from brainpy._src.delay import init_delay_by_return
+  if delay_identifier is None: from brainpy._src.delay import delay_identifier
+  return delay_identifier, init_delay_by_return
+
+
+def _get_dynsys():
+  global DynamicalSystem
+  if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
+  return DynamicalSystem
+
 
 
 class MixIn(object):
@@ -272,28 +283,28 @@ class TreeNode(MixIn):
 
 
 class DelayRegister(MixIn):
-  local_delay_vars: bm.node_dict
 
   def register_delay_at(
       self,
       name: str,
       delay: Union[numbers.Number, ArrayType] = None,
+      target: Optional[bm.Variable] = None
   ):
     """Register relay at the given delay time.
 
     Args:
       name: str. The identifier of the delay.
       delay: The delay time.
+      target: Variable. The delay target variable.
     """
-    global delay_identifier, init_delay_by_return, DynamicalSystem
-    if init_delay_by_return is None: from brainpy._src.delay import init_delay_by_return
-    if delay_identifier is None: from brainpy._src.delay import delay_identifier
-    if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
-
-    assert isinstance(self, SupportAutoDelay), f'self must be an instance of {SupportAutoDelay.__name__}'
+    delay_identifier, init_delay_by_return = _get_delay_tool()
+    DynamicalSystem = _get_dynsys()
     assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
     if not self.has_aft_update(delay_identifier):
-      self.add_aft_update(delay_identifier, init_delay_by_return(self.return_info()))
+      if target is None:
+        assert isinstance(self, SupportAutoDelay), f'self must be an instance of {SupportAutoDelay.__name__}'
+        target = self.return_info()
+      self.add_aft_update(delay_identifier, init_delay_by_return(target))
     delay_cls = self.get_aft_update(delay_identifier)
     delay_cls.register_entry(name, delay)
 
@@ -324,71 +335,23 @@ class DelayRegister(MixIn):
       initial_delay_data: The initializer for the delay data.
 
     Returns:
-      delay_step: The number of the delay steps.
+      delay_pos: The position of the delay.
     """
-    # warnings.warn('\n'
-    #               'Starting from brainpy>=2.4.4, instead of ".register_delay()", '
-    #               'we recommend the user to first use ".register_delay_at()", '
-    #               'then use ".get_delay_at()" to access the delayed data. '
-    #               '".register_delay()" will be removed after 2.5.0.',
-    #               UserWarning)
-
-    # delay steps
-    if delay_step is None:
-      delay_type = 'none'
-    elif isinstance(delay_step, (int, np.integer, jnp.integer)):
-      delay_type = 'homo'
-    elif isinstance(delay_step, (bm.ndarray, jnp.ndarray, np.ndarray)):
-      if delay_step.size == 1 and delay_step.ndim == 0:
-        delay_type = 'homo'
-      else:
-        delay_type = 'heter'
-        delay_step = bm.asarray(delay_step)
-    elif callable(delay_step):
-      delay_step = parameter(delay_step, delay_target.shape, allow_none=False)
-      delay_type = 'heter'
-    else:
-      raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
-                       f'integer, array of integers, callable function, brainpy.init.Initializer.')
-    if delay_type == 'heter':
-      if delay_step.dtype not in [bm.int32, bm.int64]:
-        raise ValueError('Only support delay steps of int32, int64. If your '
-                         'provide delay time length, please divide the "dt" '
-                         'then provide us the number of delay steps.')
-      if delay_target.shape[0] != delay_step.shape[0]:
-        raise ValueError(f'Shape is mismatched: {delay_target.shape[0]} != {delay_step.shape[0]}')
-    if delay_type != 'none':
-      max_delay_step = int(bm.max(delay_step))
-
-    # delay target
-    if delay_type != 'none':
-      if not isinstance(delay_target, bm.Variable):
-        raise ValueError(f'"delay_target" must be an instance of Variable, but we got {type(delay_target)}')
-
-    # delay variable
-    # TODO
-    if delay_type != 'none':
-      if identifier not in global_delay_data:
-        delay = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
-        global_delay_data[identifier] = (delay, delay_target)
-        self.local_delay_vars[identifier] = delay
-      else:
-        delay = global_delay_data[identifier][0]
-        if delay is None:
-          delay = bm.LengthDelay(delay_target, max_delay_step, initial_delay_data)
-          global_delay_data[identifier] = (delay, delay_target)
-          self.local_delay_vars[identifier] = delay
-        elif delay.num_delay_step - 1 < max_delay_step:
-          global_delay_data[identifier][0].reset(delay_target, max_delay_step, initial_delay_data)
-    else:
-      if identifier not in global_delay_data:
-        global_delay_data[identifier] = (None, delay_target)
-    return delay_step
+    _delay_identifier, _init_delay_by_return = _get_delay_tool()
+    DynamicalSystem = _get_dynsys()
+    assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
+    _delay_identifier = _delay_identifier + identifier
+    if not self.has_aft_update(_delay_identifier):
+      self.add_aft_update(_delay_identifier, _init_delay_by_return(delay_target, initial_delay_data))
+    delay_cls = self.get_aft_update(_delay_identifier)
+    name = get_unique_name('delay')
+    delay_cls.register_entry(name, delay_step)
+    return name
 
   def get_delay_data(
       self,
       identifier: str,
-      delay_step: Optional[Union[int, bm.Array, jax.Array]],
+      delay_pos: str,
       *indices: Union[int, slice, bm.Array, jax.Array],
   ):
     """Get delay data according to the provided delay steps.
@@ -397,7 +360,7 @@ class DelayRegister(MixIn):
     ----------
     identifier: str
       The delay variable name.
-    delay_step: Optional, int, ArrayType
+    delay_pos: str
       The delay length.
     indices: optional, int, slice, ArrayType
       The indices of the delay.
@@ -407,34 +370,10 @@ class DelayRegister(MixIn):
     delay_data: ArrayType
       The delay data at the given time.
     """
-    # warnings.warn('\n'
-    #               'Starting from brainpy>=2.4.4, instead of ".get_delay_data()", '
-    #               'we recommend the user to first use ".register_delay_at()", '
-    #               'then use ".get_delay_at()" to access the delayed data.'
-    #               '".get_delay_data()" will be removed after 2.5.0.',
-    #               UserWarning)
-
-    if delay_step is None:
-      return global_delay_data[identifier][1].value
-
-    if identifier in global_delay_data:
-      if bm.ndim(delay_step) == 0:
-        return global_delay_data[identifier][0](delay_step, *indices)
-      else:
-        if len(indices) == 0:
-          indices = (bm.arange(delay_step.size),)
-        return global_delay_data[identifier][0](delay_step, *indices)
-
-    elif identifier in self.local_delay_vars:
-      if bm.ndim(delay_step) == 0:
-        return self.local_delay_vars[identifier](delay_step)
-      else:
-        if len(indices) == 0:
-          indices = (bm.arange(delay_step.size),)
-        return self.local_delay_vars[identifier](delay_step, *indices)
-
-    else:
-      raise ValueError(f'{identifier} is not defined in delay variables.')
+    _delay_identifier, _init_delay_by_return = _get_delay_tool()
+    _delay_identifier = _delay_identifier + identifier
+    delay_cls = self.get_aft_update(_delay_identifier)
+    return delay_cls.at(delay_pos, *indices)
 
   def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
     """Update local delay variables.
@@ -448,22 +387,8 @@ class DelayRegister(MixIn):
     nodes: sequence, dict
       The nodes to update their delay variables.
     """
-    global DynamicalSystem
-    if DynamicalSystem is None:
-      from brainpy._src.dynsys import DynamicalSystem
-
-    # update delays
-    if nodes is None:
-      nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
-    elif isinstance(nodes, dict):
-      nodes = tuple(nodes.values())
-    if not isinstance(nodes, (tuple, list)):
-      nodes = (nodes,)
-    for node in nodes:
-      for name in node.local_delay_vars:
-        delay = global_delay_data[name][0]
-        target = global_delay_data[name][1]
-        delay.update(target.value)
+    warnings.warn('.update_local_delays() has been removed since brainpy>=2.4.6',
+                  DeprecationWarning)
 
   def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
     """Reset local delay variables.
@@ -473,23 +398,14 @@ class DelayRegister(MixIn):
     nodes: sequence, dict
       The nodes to Reset their delay variables.
     """
-    global DynamicalSystem
-    if DynamicalSystem is None:
-      from brainpy._src.dynsys import DynamicalSystem
-
-    # reset delays
-    if nodes is None:
-      nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values()
-    elif isinstance(nodes, dict):
-      nodes = nodes.values()
-    for node in nodes:
-      for name in node.local_delay_vars:
-        delay = global_delay_data[name][0]
-        target = global_delay_data[name][1]
-        delay.reset(target.value)
+    warnings.warn('.reset_local_delays() has been removed since brainpy>=2.4.6',
+                  DeprecationWarning)
 
   def get_delay_var(self, name):
-    return global_delay_data[name]
+    _delay_identifier, _init_delay_by_return = _get_delay_tool()
+    _delay_identifier = _delay_identifier + name
+    delay_cls = self.get_aft_update(_delay_identifier)
+    return delay_cls
 
 
 class SupportInputProj(MixIn):
@@ -599,10 +515,12 @@ class BindCondData(MixIn):
 class SupportSTDP(MixIn):
   """Support synaptic plasticity by modifying the weights.
   """
-  def update_STDP(self,
-                  dW: Union[bm.Array, jax.Array],
-                  constraints: Optional[Callable] = None,
-                  ):
+
+  def update_STDP(
+      self,
+      dW: Union[bm.Array, jax.Array],
+      constraints: Optional[Callable] = None,
+  ):
     raise NotImplementedError
 
 

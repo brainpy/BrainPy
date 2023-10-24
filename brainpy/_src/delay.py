@@ -369,7 +369,7 @@ class VarDelay(Delay):
         else:
           self.data[0] = latest_value
 
-  def reset_state(self, batch_size: int = None):
+  def reset_state(self, batch_size: int = None, **kwargs):
     """Reset the delay data.
     """
     # initialize delay data
@@ -439,7 +439,7 @@ class DataDelay(VarDelay):
                      name=name,
                      mode=mode)
 
-  def reset_state(self, batch_size: int = None):
+  def reset_state(self, batch_size: int = None, **kwargs):
     """Reset the delay data.
     """
     self.target.value = variable_(self.target_init, self.target.size_without_batch, batch_size)
@@ -476,9 +476,9 @@ class DelayAccess(DynamicalSystem):
     pass
 
 
-def init_delay_by_return(info: Union[bm.Variable, ReturnInfo]) -> Delay:
+def init_delay_by_return(info: Union[bm.Variable, ReturnInfo], initial_delay_data=None) -> Delay:
   if isinstance(info, bm.Variable):
-    return VarDelay(info)
+    return VarDelay(info, init=initial_delay_data)
 
   elif isinstance(info, ReturnInfo):
     # batch size
@@ -510,6 +510,6 @@ def init_delay_by_return(info: Union[bm.Variable, ReturnInfo]) -> Delay:
 
     # variable
     target = bm.Variable(init, batch_axis=batch_axis, axis_names=info.axis_names)
-    return DataDelay(target, data_init=info.data)
+    return DataDelay(target, data_init=info.data, init=initial_delay_data)
   else:
     raise TypeError
