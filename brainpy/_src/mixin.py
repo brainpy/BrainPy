@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numbers
 import sys
 import warnings
@@ -283,41 +285,6 @@ class TreeNode(MixIn):
 
 
 class DelayRegister(MixIn):
-
-  def register_delay_at(
-      self,
-      name: str,
-      delay: Union[numbers.Number, ArrayType] = None,
-      target: Optional[bm.Variable] = None
-  ):
-    """Register relay at the given delay time.
-
-    Args:
-      name: str. The identifier of the delay.
-      delay: The delay time.
-      target: Variable. The delay target variable.
-    """
-    delay_identifier, init_delay_by_return = _get_delay_tool()
-    DynamicalSystem = _get_dynsys()
-    assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
-    if not self.has_aft_update(delay_identifier):
-      if target is None:
-        assert isinstance(self, SupportAutoDelay), f'self must be an instance of {SupportAutoDelay.__name__}'
-        target = self.return_info()
-      self.add_aft_update(delay_identifier, init_delay_by_return(target))
-    delay_cls = self.get_aft_update(delay_identifier)
-    delay_cls.register_entry(name, delay)
-
-  def get_delay_at(self, name):
-    """Get the delay at the given identifier (`name`).
-
-    Args:
-      name: The identifier of the delay.
-
-    Returns:
-      The delay data.
-    """
-    return self.get_aft_update(delay_identifier).at(name)
 
   def register_delay(
       self,

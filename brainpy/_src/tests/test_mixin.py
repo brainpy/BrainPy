@@ -42,8 +42,8 @@ class TestDelayRegister(unittest.TestCase):
   def test2(self):
     bp.share.save(i=0)
     lif = bp.dyn.Lif(10)
-    lif.register_delay_at('a', 10.)
-    data = lif.get_delay_at('a')
+    lif.register_local_delay('a', 10.)
+    data = lif.get_local_delay('a')
     self.assertTrue(bm.allclose(data, bm.zeros(10)))
 
 
