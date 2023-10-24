@@ -20,7 +20,7 @@ class SynOut(DynamicalSystem, ParamDesc, BindCondData):
     super().__init__(name=name)
     self._conductance = None
     if scaling is None:
-      self.scaling = bm.get_scaling()
+      self.scaling = bm.get_membrane_scaling()
     else:
       self.scaling = scaling
 
@@ -36,21 +36,21 @@ class SynOut(DynamicalSystem, ParamDesc, BindCondData):
 
   def offset_scaling(self, x, bias=None, scale=None):
     s = self.scaling.offset_scaling(x, bias=bias, scale=scale)
-    if isinstance(x, bm.Variable):
+    if isinstance(x, bm.Array):
       x.value = s
       return x
     return s
 
   def std_scaling(self, x, scale=None):
     s = self.scaling.std_scaling(x, scale=scale)
-    if isinstance(x, bm.Variable):
+    if isinstance(x, bm.Array):
       x.value = s
       return x
     return s
 
   def inv_scaling(self, x, scale=None):
     s = self.scaling.inv_scaling(x, scale=scale)
-    if isinstance(x, bm.Variable):
+    if isinstance(x, bm.Array):
       x.value = s
       return x
     return s

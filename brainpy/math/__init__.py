@@ -41,8 +41,8 @@ from jax import config
 mode = NonBatchingMode()
 '''Default computation mode.'''
 
-scaling = IdScaling()
-'''Default scaling.'''
+membrane_scaling = IdScaling()
+'''Default membrane_scaling.'''
 
 dt = 0.1
 '''Default time step.'''
