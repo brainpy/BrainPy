@@ -67,8 +67,8 @@ class OUProcess(NeuDyn):
     # integral functions
     self.integral = sdeint(f=self.df, g=self.dg, method=method)
 
-  def reset_state(self, batch_size=None):
-    self.x = variable_(lambda s: jnp.ones(s) * self.mean, self.varshape, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x = variable_(lambda s: jnp.ones(s) * self.mean, self.varshape, batch_or_mode)
 
   def df(self, x, t):
     return (self.mean - x) / self.tau

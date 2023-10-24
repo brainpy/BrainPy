@@ -100,7 +100,7 @@ class STDP_Song2000(Projection):
       pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       syn: ParamDescInit[DynamicalSystem],
-      comm: DynamicalSystem,
+      comm: JointType[DynamicalSystem, SupportSTDP],
       out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
       post: DynamicalSystem,
       # synapse parameters

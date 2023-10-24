@@ -9,12 +9,12 @@ from typing import Union, Dict, Callable, Sequence, Optional, Any
 import numpy as np
 
 from brainpy import tools, math as bm
+from brainpy._src.context import share
+from brainpy._src.deprecations import _update_deprecate_msg
 from brainpy._src.initialize import parameter, variable_
 from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, global_delay_data
-from brainpy.errors import NoImplementationError, UnsupportedError
+from brainpy.errors import NoImplementationError, UnsupportedError, APIChangedError
 from brainpy.types import ArrayType, Shape
-from brainpy._src.deprecations import _update_deprecate_msg
-from brainpy._src.context import share
 
 __all__ = [
   # general
@@ -30,44 +30,12 @@ __all__ = [
 SLICE_VARS = 'slice_vars'
 
 
-def not_pass_shared(func: Callable):
-  """Label the update function as the one without passing shared arguments.
+def not_implemented(fun):
+  def new_fun(*args, **kwargs):
+    return fun(*args, **kwargs)
 
-  The original update function explicitly requires shared arguments at the first place::
-
-    class TheModel(DynamicalSystem):
-        def update(self, s, x):
-            # s is the shared arguments, like `t`, `dt`, etc.
-            pass
-
-  So, each time we call the model we should provide shared arguments into the model::
-
-    TheModel()(shared, inputs)
-
-  When we label the update function as ``do_not_pass_sha_args``, this time there is no
-  need to call the dynamical system with shared arguments::
-
-    class NewModel(DynamicalSystem):
-       @no_shared
-       def update(self, x):
-         pass
-
-    NewModel()(inputs)
-
-  .. versionadded:: 2.3.5
-
-  Parameters
-  ----------
-  func: Callable
-    The function in the :py:class:`~.DynamicalSystem`.
-
-  Returns
-  -------
-  func: Callable
-    The wrapped function for the class.
-  """
-  func._new_style = True
-  return func
+  new_fun._not_implemented = True
+  return new_fun
 
 
 class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
@@ -181,42 +149,43 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
-
-    Assume any dynamical system depends on the shared variables (`sha`),
-    like time variable ``t``, the step precision ``dt``, and the time step `i`.
     """
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
-  def reset(self, *args, **kwargs):
-    """Reset function which reset the whole variables in the model.
+  def reset(self, *args, include_self: bool = False, **kwargs):
+    """Reset function which reset the whole variables in the model (including its children models).
 
-    ``reset()`` function is a collective behavior which resets states in the current node,
-    nodes in ``before_updates``, and nodes in ``after_updates``.
+    ``reset()`` function is a collective behavior which resets all states in this model.
 
+    See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+
+    Args::
+      include_self: bool. Reset states including the node self. Please turn on this if the node has
+        implemented its ".reset_state()" function.
     """
-    self.reset_bef_updates(*args, **kwargs)
-    self.reset_state(*args, **kwargs)
-    self.reset_aft_updates(*args, **kwargs)
+    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).unique()
+    for node in child_nodes.values():
+      node.reset_state(*args, **kwargs)
 
   def reset_state(self, *args, **kwargs):
-    """Reset function which resets the states in the model.
-
-    If the model behaves like a gather or collector, it will rest all states
-    (by calling ``reset()`` function) in children nodes.
-
-    If the model behaves as a single module, it requires users to implement this
-    rest function.
+    """Reset function which resets local states in this model.
 
     Simply speaking, this function should implement the logic of resetting of
     local variables in this node.
+
+    See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
-    child_nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique()
-    if len(child_nodes) > 0:
-      for node in child_nodes.values():
-        node.reset(*args, **kwargs)
-      self.reset_local_delays(child_nodes)
-    else:
-      raise NotImplementedError(f'Must implement "reset_state" function by subclass self. Error of {self.name}')
+    raise APIChangedError(
+      '''
+    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed.
+    
+    1. If you are resetting all states in a network by calling ".reset_state()", please use ".reset()" function. 
+       ".reset_state()" only defines the resetting of local states in a local node (excluded its children nodes). 
+    
+    2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
+    
+      '''
+    )
 
   def clear_input(self, *args, **kwargs):
     """Clear the input at the current time step."""
@@ -469,25 +438,6 @@ class DynSysGroup(DynamicalSystem, Container):
     # TODO: Will be deprecated in the future
     self.update_local_delays(nodes)
 
-  def reset_state(self, batch_or_mode=None):
-    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
-
-    # reset projections
-    for node in nodes.subset(Projection).values():
-      node.reset(batch_or_mode)
-
-    # reset dynamics
-    for node in nodes.subset(Dynamic).values():
-      node.reset(batch_or_mode)
-
-    # reset other types of nodes, including delays, ...
-    for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
-      node.reset(batch_or_mode)
-
-    # reset delays
-    # TODO: will be removed in the future
-    self.reset_local_delays(nodes)
-
 
 class Network(DynSysGroup):
   """A group of :py:class:`~.DynamicalSystem`s which defines the nodes and edges in a network.
@@ -608,14 +558,6 @@ class Projection(DynamicalSystem):
     else:
       raise ValueError('Do not implement the update() function.')
 
-  def reset_state(self, *args, **kwargs):
-    nodes = tuple(self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().values())
-    if len(nodes):
-      for node in nodes:
-        node.reset(*args, **kwargs)
-    else:
-      raise ValueError('Do not implement the reset_state() function.')
-
   def clear_input(self, *args, **kwargs):
     """Empty function of clearing inputs."""
     pass
@@ -734,9 +676,6 @@ class Dynamic(DynamicalSystem):
   def clear_input(self, *args, **kwargs):
     """Empty function of clearing inputs."""
     pass
-
-  def reset_state(self, *args, **kwargs):
-    raise NotImplementedError(f'Must implement "reset_state" function by subclass self. Error of {self.name}')
 
 
 class DynView(Dynamic):

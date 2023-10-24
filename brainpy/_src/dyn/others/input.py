@@ -52,7 +52,7 @@ class InputGroup(NeuDyn):
   def return_info(self):
     return ReturnInfo(self.varshape, self.sharding, self.mode, bm.zeros)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_or_mode=None, **kwargs):
     pass
 
 
@@ -86,7 +86,7 @@ class OutputGroup(NeuDyn):
   def return_info(self):
     return ReturnInfo(self.varshape, self.sharding, self.mode, bm.zeros)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     pass
 
 
@@ -156,7 +156,7 @@ class SpikeTimeGroup(NeuDyn):
     # variables
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.i = bm.Variable(bm.asarray(0))
     self.spike = variable_(partial(jnp.zeros, dtype=self.spk_type),
                            self.varshape,
@@ -228,7 +228,7 @@ class PoissonGroup(NeuDyn):
   def return_info(self):
     return self.spike
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.spike = variable_(partial(jnp.zeros, dtype=self.spk_type),
                            self.varshape,
                            batch_size,

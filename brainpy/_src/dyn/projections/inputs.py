@@ -83,7 +83,7 @@ class InputVar(Dynamic, SupportAutoDelay):
 
         self.reset_state(self.mode)
 
-    def reset_state(self, batch_or_mode=None):
+    def reset_state(self, batch_or_mode=None, **kwargs):
         self.input = self.init_variable(bm.zeros, batch_or_mode)
 
     def update(self, *args, **kwargs):

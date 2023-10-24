@@ -117,16 +117,16 @@ class NVAR(Layer):
     if self.constant:
       self.num_out += 1
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_or_mode=None, **kwargs):
     """Reset the node state which depends on batch size."""
     self.idx[0] = 0
     # To store the last inputs.
     # Note, the batch axis is not in the first dimension, so we
     # manually handle the state of NVAR, rather return it.
-    if batch_size is None:
+    if batch_or_mode is None:
       self.store.value = jnp.zeros((self.num_delay, self.num_in))
     else:
-      self.store.value = jnp.zeros((self.num_delay, batch_size, self.num_in))
+      self.store.value = jnp.zeros((self.num_delay, batch_or_mode, self.num_in))
 
   def update(self, x):
     all_parts = []

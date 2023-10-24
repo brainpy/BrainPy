@@ -365,7 +365,7 @@ class HHLTC(NeuDyn):
   n_inf = lambda self, V: self.n_alpha(V) / (self.n_alpha(V) + self.n_beta(V))
   dn = lambda self, n, t, V: self.n_alpha(V) * (1 - n) - self.n_beta(V) * n
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.init_variable(self._V_initializer, batch_size)
     if self._m_initializer is None:
       self.m = bm.Variable(self.m_inf(self.V.value), batch_axis=self.V.batch_axis)
@@ -652,10 +652,10 @@ class MorrisLecarLTC(NeuDyn):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.V = self.init_variable(self._V_initializer, batch_size)
-    self.W = self.init_variable(self._W_initializer, batch_size)
-    self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.V = self.init_variable(self._V_initializer, batch_or_mode)
+    self.W = self.init_variable(self._W_initializer, batch_or_mode)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_or_mode)
 
   def dV(self, V, t, W, I):
     I = self.sum_inputs(V, init=I)

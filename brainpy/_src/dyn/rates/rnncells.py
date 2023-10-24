@@ -112,8 +112,8 @@ class RNNCell(Layer):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
-  def reset_state(self, batch_size=None):
-    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out,), allow_none=False)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.state.value = parameter(self._state_initializer, (batch_or_mode, self.num_out,), allow_none=False)
     if self.train_state:
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
@@ -224,8 +224,8 @@ class GRUCell(Layer):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out,), allow_none=False))
       self.state[:] = self.state2train
 
-  def reset_state(self, batch_size=None):
-    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out), allow_none=False)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.state.value = parameter(self._state_initializer, (batch_or_mode, self.num_out), allow_none=False)
     if self.train_state:
       self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
       self.state[:] = self.state2train
@@ -362,8 +362,8 @@ class LSTMCell(Layer):
       self.state2train = bm.TrainVar(parameter(state_initializer, (self.num_out * 2,), allow_none=False))
       self.state[:] = self.state2train
 
-  def reset_state(self, batch_size=None):
-    self.state.value = parameter(self._state_initializer, (batch_size, self.num_out * 2), allow_none=False)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.state.value = parameter(self._state_initializer, (batch_or_mode, self.num_out * 2), allow_none=False)
     if self.train_state:
       self.state2train.value = parameter(self._state_initializer, self.num_out * 2, allow_none=False)
       self.state[:] = self.state2train
@@ -505,21 +505,17 @@ class _ConvNDLSTMCell(Layer):
                                          w_initializer=w_initializer,
                                          b_initializer=b_initializer,
                                          mode=mode)
-    if type(mode) == bm.NonBatchingMode:
-      self.nonbatching = True
-    else:
-      self.nonbatching = False
     self.reset_state()
 
-  def reset_state(self, batch_size: int = 1):
-    if self.nonbatching:
+  def reset_state(self, batch_or_mode: int = 1, **kwargs):
+    if self.mode.is_a(bm.NonBatchingMode):
       shape = self.input_shape + (self.out_channels,)
       self.h = variable_(self._state_initializer, shape)
       self.c = variable_(self._state_initializer, shape)
     else:
       shape = self.input_shape + (self.out_channels,)
-      self.h = variable_(self._state_initializer, shape, batch_size)
-      self.c = variable_(self._state_initializer, shape, batch_size)
+      self.h = variable_(self._state_initializer, shape, batch_or_mode)
+      self.c = variable_(self._state_initializer, shape, batch_or_mode)
       self.c = variable_(self.c, batch_axis=0)
       if self.mode.is_a(bm.TrainingMode) and self.train_state:
         h_to_train = parameter(self._state_initializer, shape, allow_none=False)

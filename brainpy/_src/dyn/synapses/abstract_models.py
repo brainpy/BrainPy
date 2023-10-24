@@ -69,8 +69,8 @@ class Delta(SynDyn, AlignPost):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.g = self.init_variable(bm.zeros, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
 
   def update(self, x=None):
     if x is not None:
@@ -210,8 +210,8 @@ class Expon(SynDyn, AlignPost):
   def derivative(self, g, t):
     return -g / self.tau
 
-  def reset_state(self, batch_size=None):
-    self.g = self.init_variable(bm.zeros, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
 
   def update(self, x=None):
     self.g.value = self.integral(self.g.value, share['t'], share['dt'])
@@ -357,9 +357,9 @@ class DualExpon(SynDyn):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.h = self.init_variable(bm.zeros, batch_size)
-    self.g = self.init_variable(bm.zeros, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.h = self.init_variable(bm.zeros, batch_or_mode)
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
 
   def dh(self, h, t):
     return -h / self.tau_rise
@@ -518,9 +518,9 @@ class DualExponV2(SynDyn, AlignPost):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.g_rise = self.init_variable(bm.zeros, batch_size)
-    self.g_decay = self.init_variable(bm.zeros, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.g_rise = self.init_variable(bm.zeros, batch_or_mode)
+    self.g_decay = self.init_variable(bm.zeros, batch_or_mode)
 
   def update(self, x=None):
     self.g_rise.value = self.integral(self.g_rise.value, share['t'], self.tau_rise, share['dt'])
@@ -830,9 +830,9 @@ class NMDA(SynDyn):
   def dx(self, x, t):
     return -x / self.tau_rise
 
-  def reset_state(self, batch_size=None):
-    self.g = self.init_variable(bm.zeros, batch_size)
-    self.x = self.init_variable(bm.zeros, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
+    self.x = self.init_variable(bm.zeros, batch_or_mode)
 
   def update(self, pre_spike):
     t = share.load('t')
@@ -904,8 +904,8 @@ class STD(SynDyn):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.x = self.init_variable(bm.ones, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x = self.init_variable(bm.ones, batch_or_mode)
 
   def update(self, pre_spike):
     t = share.load('t')
@@ -993,9 +993,9 @@ class STP(SynDyn):
 
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    self.x = self.init_variable(bm.ones, batch_size)
-    self.u = self.init_variable(bm.ones, batch_size)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.x = self.init_variable(bm.ones, batch_or_mode)
+    self.u = self.init_variable(bm.ones, batch_or_mode)
     self.u.fill_(self.U)
 
   @property

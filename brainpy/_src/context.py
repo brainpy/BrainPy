@@ -37,20 +37,24 @@ class _ShareContext:
   def set_dt(self, dt: Union[int, float]):
     self._arguments['dt'] = dt
 
-  def load(self, key, value: Any = None):
+  def load(self, key, value: Any = None, desc: str = None):
     """Load the shared data by the ``key``.
 
     Args:
       key (str): the key to indicate the data.
       value (Any): the default value when ``key`` is not defined in the shared.
+      desc: (str): the description of the key.
     """
     if key == 'dt':
       return self.dt
     if key in self._arguments:
       return self._arguments[key]
     if value is None:
-      raise KeyError(f'Cannot found shared data of {key}. '
-                     f'Please define it with "brainpy.share.save({key}=<?>)". ')
+      warn = f'Cannot found shared data of {key}. \n'
+      if desc is not None:
+        warn += f'{key}: {desc}\n'
+      warn += f'Please define it with "brainpy.share.save({key}=<your data>)". '
+      raise KeyError(warn)
     else:
       return value
 

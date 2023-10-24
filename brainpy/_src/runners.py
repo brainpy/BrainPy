@@ -455,7 +455,7 @@ class DSRunner(Runner):
 
     # reset the states of the model and the runner
     if reset_state:
-      self.target.reset_state(self._get_input_batch_size(inputs))
+      self.target.reset(self._get_input_batch_size(inputs))
       self.reset_state()
 
     # shared arguments and inputs

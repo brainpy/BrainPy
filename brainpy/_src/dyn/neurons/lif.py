@@ -122,7 +122,7 @@ class IFLTC(GradNeuDyn):
     I = self.sum_inputs(V, init=I)
     return (-V + self.V_rest + self.R * I) / self.tau
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
@@ -255,7 +255,7 @@ class LifLTC(GradNeuDyn):
     I = self.sum_inputs(V, init=I)
     return (-V + self.V_rest + self.R * I) / self.tau
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
@@ -451,8 +451,8 @@ class LifRefLTC(LifLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e7)
     if self.ref_var:
@@ -728,7 +728,7 @@ class ExpIFLTC(GradNeuDyn):
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
     return dvdt
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
@@ -1063,8 +1063,8 @@ class ExpIFRefLTC(ExpIFLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e7)
     if self.ref_var:
@@ -1413,7 +1413,7 @@ class AdExIFLTC(GradNeuDyn):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.w = self.std_scaling(self.init_variable(self._w_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
@@ -1743,8 +1743,8 @@ class AdExIFRefLTC(AdExIFLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e8)
     if self.ref_var:
@@ -2044,7 +2044,7 @@ class QuaIFLTC(GradNeuDyn):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
     return dVdt
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
@@ -2317,8 +2317,8 @@ class QuaIFRefLTC(QuaIFLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e7)
     if self.ref_var:
@@ -2621,7 +2621,7 @@ class AdQuaIFLTC(GradNeuDyn):
   def derivative(self):
     return JointEq([self.dV, self.dw])
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.w = self.std_scaling(self.init_variable(self._w_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
@@ -2925,8 +2925,8 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e8)
     if self.ref_var:
@@ -3286,7 +3286,7 @@ class GifLTC(GradNeuDyn):
   def derivative(self):
     return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.V_th = self.offset_scaling(self.init_variable(self._Vth_initializer, batch_size))
     self.I1 = self.std_scaling(self.init_variable(self._I1_initializer, batch_size))
@@ -3666,8 +3666,8 @@ class GifRefLTC(GifLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e8)
     if self.ref_var:
@@ -4024,7 +4024,7 @@ class IzhikevichLTC(GradNeuDyn):
   def derivative(self):
     return JointEq([self.dV, self.du])
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     self.V = self.init_variable(self._V_initializer, batch_size)
     u_initializer = OneInit(self.b * self.V) if self._u_initializer is None else self._u_initializer
     self._u_initializer = is_initializer(u_initializer)
@@ -4337,8 +4337,8 @@ class IzhikevichRefLTC(IzhikevichLTC):
     if init_var:
       self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
-    super().reset_state(batch_size)
+  def reset_state(self, batch_size=None, **kwargs):
+    super().reset_state(batch_size, **kwargs)
     self.t_last_spike = self.init_variable(bm.ones, batch_size)
     self.t_last_spike.fill_(-1e7)
     if self.ref_var:

@@ -20,10 +20,9 @@ from brainpy._src.math.object_transform.collectors import (ArrayCollector, Colle
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        check_name_uniqueness)
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
-                                                          VarList, VarDict, var_stack_list)
+                                                          VarList, VarDict)
 from brainpy._src.math.modes import Mode
 from brainpy._src.math.sharding import BATCH_AXIS
-
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
@@ -299,11 +298,13 @@ class BrainPyObject(object):
         raise ValueError(f'Must be instance of {node_cls.__name__}, but we got {type(node)}')
       self.implicit_nodes[key] = node
 
-  def vars(self,
-           method: str = 'absolute',
-           level: int = -1,
-           include_self: bool = True,
-           exclude_types: Tuple[type, ...] = None):
+  def vars(
+      self,
+      method: str = 'absolute',
+      level: int = -1,
+      include_self: bool = True,
+      exclude_types: Tuple[type, ...] = None
+  ):
     """Collect all variables in this node and the children nodes.
 
     Parameters
@@ -477,10 +478,12 @@ class BrainPyObject(object):
       check_name_uniqueness(name=name, obj=self)
       return name
 
-  def __save_state__(self) -> Dict[str, Variable]:
+  def __save_state__(self, **kwargs) -> Dict[str, Variable]:
+    """Save states. """
     return self.vars(include_self=True, level=0).unique().dict()
 
-  def __load_state__(self, state_dict: Dict) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
+  def __load_state__(self, state_dict: Dict, **kwargs) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
+    """Load states from the external objects."""
     variables = self.vars(include_self=True, level=0).unique()
     keys1 = set(state_dict.keys())
     keys2 = set(variables.keys())
@@ -490,7 +493,7 @@ class BrainPyObject(object):
     missing_keys = list(keys2 - keys1)
     return unexpected_keys, missing_keys
 
-  def state_dict(self) -> dict:
+  def state_dict(self, **kwargs) -> dict:
     """Returns a dictionary containing a whole state of the module.
 
     Returns
@@ -499,12 +502,15 @@ class BrainPyObject(object):
       A dictionary containing a whole state of the module.
     """
     nodes = self.nodes()  # retrieve all nodes
-    return {key: node.__save_state__() for key, node in nodes.items()}
+    return {key: node.__save_state__(**kwargs) for key, node in nodes.items()}
 
-  def load_state_dict(self,
-                      state_dict: Dict[str, Any],
-                      warn: bool = True,
-                      compatible: str = 'v2'):
+  def load_state_dict(
+      self,
+      state_dict: Dict[str, Any],
+      warn: bool = True,
+      compatible: str = 'v2',
+      **kwargs,
+  ):
     """Copy parameters and buffers from :attr:`state_dict` into
     this module and its descendants.
 
@@ -514,6 +520,8 @@ class BrainPyObject(object):
       A dict containing parameters and persistent buffers.
     warn: bool
       Warnings when there are missing keys or unexpected keys in the external ``state_dict``.
+    compatible: bool
+      The version of API for compatibility.
 
     Returns
     -------
@@ -536,7 +544,7 @@ class BrainPyObject(object):
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        r = node.__load_state__(state_dict[name])
+        r = node.__load_state__(state_dict[name], **kwargs)
         if r is not None:
           missing, unexpected = r
           missing_keys.extend([f'{name}.{key}' for key in missing])
@@ -549,55 +557,6 @@ class BrainPyObject(object):
       if len(missing_keys):
         warnings.warn(f'Missing keys in state_dict: {missing_keys}', UserWarning)
     return StateLoadResult(missing_keys, unexpected_keys)
-
-  def load_states(self, filename, verbose=False):
-    """Load the model states.
-
-    Parameters
-    ----------
-    filename : str
-      The filename which stores the model states.
-    verbose: bool
-      Whether report the load progress.
-    """
-    from brainpy._src.checkpoints import io
-    if not os.path.exists(filename):
-      raise errors.BrainPyError(f'Cannot find the file path: {filename}')
-    elif filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.load_by_h5(filename, target=self, verbose=verbose)
-    elif filename.endswith('.pkl'):
-      io.load_by_pkl(filename, target=self, verbose=verbose)
-    elif filename.endswith('.npz'):
-      io.load_by_npz(filename, target=self, verbose=verbose)
-    elif filename.endswith('.mat'):
-      io.load_by_mat(filename, target=self, verbose=verbose)
-    else:
-      raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
-
-  def save_states(self, filename, variables=None, **setting):
-    """Save the model states.
-
-    Parameters
-    ----------
-    filename : str
-      The file name which to store the model states.
-    variables: optional, dict, ArrayCollector
-      The variables to save. If not provided, all variables retrieved by ``~.vars()`` will be used.
-    """
-    if variables is None:
-      variables = self.vars(method='absolute', level=-1)
-
-    from brainpy._src.checkpoints import io
-    if filename.endswith('.hdf5') or filename.endswith('.h5'):
-      io.save_as_h5(filename, variables=variables)
-    elif filename.endswith('.pkl') or filename.endswith('.pickle'):
-      io.save_as_pkl(filename, variables=variables)
-    elif filename.endswith('.npz'):
-      io.save_as_npz(filename, variables=variables, **setting)
-    elif filename.endswith('.mat'):
-      io.save_as_mat(filename, variables=variables)
-    else:
-      raise errors.BrainPyError(f'Unknown file format: {filename}. We only supports {io.SUPPORTED_FORMATS}')
 
   def to(self, device: Optional[Any]):
     """Moves all variables into the given device.
