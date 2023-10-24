@@ -174,6 +174,9 @@ class STDP_Song2000(Projection):
     self.A1 = parameter(A1, sizes=self.pre_num)
     self.A2 = parameter(A2, sizes=self.post_num)
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
   def _init_trace(
       self,
       target: DynamicalSystem,

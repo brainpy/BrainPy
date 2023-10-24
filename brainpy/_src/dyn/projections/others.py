@@ -54,6 +54,9 @@ class PoissonInput(Projection):
     self.freq = check.is_float(freq, min_bound=0., allow_int=True)
     self.weight = check.is_float(weight, allow_int=True)
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
   def update(self):
     p = self.freq * share['dt'] / 1e3
     a = self.num_input * p
