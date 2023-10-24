@@ -30,6 +30,8 @@ class COBA(SynOut):
     The axis names for variable for parallelization.
   name: str
     The model name.
+  scaling: brainpy.Scaling
+    The scaling object.
 
   See Also
   --------
@@ -41,11 +43,12 @@ class COBA(SynOut):
       E: Union[float, ArrayType],
       sharding: Optional[Sequence[str]] = None,
       name: Optional[str] = None,
+      scaling: Optional[bm.Scaling] = None,
   ):
-    super().__init__(name=name)
+    super().__init__(name=name, scaling=scaling)
 
     self.sharding = sharding
-    self.E = init.parameter(E, np.shape(E), sharding=sharding)
+    self.E = self.offset_scaling(init.parameter(E, np.shape(E), sharding=sharding))
 
   def update(self, conductance, potential):
     return conductance * (self.E - potential)
@@ -64,13 +67,22 @@ class CUBA(SynOut):
   ----------
   name: str
     The model name.
+  scaling: brainpy.Scaling
+    The scaling object.
 
   See Also
   --------
   COBA
   """
+  def __init__(
+      self,
+      name: Optional[str] = None,
+      scaling: Optional[bm.Scaling] = None,
+  ):
+    super().__init__(name=name, scaling=scaling)
+
   def update(self, conductance, potential=None):
-    return conductance
+    return self.std_scaling(conductance)
 
 
 class MgBlock(SynOut):
@@ -111,19 +123,20 @@ class MgBlock(SynOut):
       cc_Mg: Union[float, ArrayType] = 1.2,
       alpha: Union[float, ArrayType] = 0.062,
       beta: Union[float, ArrayType] = 3.57,
+      V_offset: Union[float, ArrayType] = 0.,
       sharding: Optional[Sequence[str]] = None,
       name: Optional[str] = None,
+      scaling: Optional[bm.Scaling] = None,
   ):
-    super().__init__(name=name)
+    super().__init__(name=name, scaling=scaling)
 
     self.sharding = sharding
-    self.E = init.parameter(E, np.shape(E), sharding=sharding)
+    self.E = self.offset_scaling(init.parameter(E, np.shape(E), sharding=sharding))
+    self.V_offset = self.offset_scaling(init.parameter(V_offset, np.shape(V_offset), sharding=sharding))
     self.cc_Mg = init.parameter(cc_Mg, np.shape(cc_Mg), sharding=sharding)
-    self.alpha = init.parameter(alpha, np.shape(alpha), sharding=sharding)
+    self.alpha = self.inv_scaling(init.parameter(alpha, np.shape(alpha), sharding=sharding))
     self.beta = init.parameter(beta, np.shape(beta), sharding=sharding)
 
   def update(self, conductance, potential):
-    return conductance * (self.E - potential) / (1 + self.cc_Mg / self.beta * bm.exp(-self.alpha * potential))
-
-
-
+    return conductance *\
+      (self.E - potential) / (1 + self.cc_Mg / self.beta * bm.exp(self.alpha * (self.V_offset - potential)))

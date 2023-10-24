@@ -82,6 +82,7 @@ class IFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = 0.,
@@ -99,10 +100,11 @@ class IFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,
+                     scaling=scaling)
 
     # parameters
-    self.V_rest = self.init_param(V_rest)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
     self.tau = self.init_param(tau)
     self.R = self.init_param(R)
 
@@ -121,7 +123,7 @@ class IFLTC(GradNeuDyn):
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -209,6 +211,7 @@ class LifLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = 0.,
@@ -228,12 +231,13 @@ class LifLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,
+                     scaling=scaling)
 
     # parameters
-    self.V_rest = self.init_param(V_rest)
-    self.V_reset = self.init_param(V_reset)
-    self.V_th = self.init_param(V_th)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
+    self.V_reset = self.offset_scaling(self.init_param(V_reset))
+    self.V_th = self.offset_scaling(self.init_param(V_th))
     self.tau = self.init_param(tau)
     self.R = self.init_param(R)
 
@@ -252,7 +256,7 @@ class LifLTC(GradNeuDyn):
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -380,11 +384,6 @@ class LifRefLTC(LifLTC):
 
       bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
 
-
-
-
-
-
   Args:
     %s
     %s
@@ -406,6 +405,7 @@ class LifRefLTC(LifLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = 0.,
@@ -433,6 +433,7 @@ class LifRefLTC(LifLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -537,12 +538,6 @@ class LifRef(LifRefLTC):
       runner.run(inputs=inputs)
 
       bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
-
-
-
-
-
-
 
   Args:
     %s
@@ -683,11 +678,12 @@ class ExpIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
       V_reset: Union[float, ArrayType, Callable] = -68.,
-      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_th: Union[float, ArrayType, Callable] = -55.,
       V_T: Union[float, ArrayType, Callable] = -59.9,
       delta_T: Union[float, ArrayType, Callable] = 3.48,
       R: Union[float, ArrayType, Callable] = 1.,
@@ -704,14 +700,15 @@ class ExpIFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,
+                     scaling=scaling)
 
     # parameters
-    self.V_rest = self.init_param(V_rest)
-    self.V_reset = self.init_param(V_reset)
-    self.V_th = self.init_param(V_th)
-    self.V_T = self.init_param(V_T)
-    self.delta_T = self.init_param(delta_T)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
+    self.V_reset = self.offset_scaling(self.init_param(V_reset))
+    self.V_th = self.offset_scaling(self.init_param(V_th))
+    self.V_T = self.offset_scaling(self.init_param(V_T))
+    self.delta_T = self.std_scaling(self.init_param(delta_T))
     self.tau = self.init_param(tau)
     self.R = self.init_param(R)
 
@@ -732,7 +729,7 @@ class ExpIFLTC(GradNeuDyn):
     return dvdt
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -1010,11 +1007,12 @@ class ExpIFRefLTC(ExpIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
       V_reset: Union[float, ArrayType, Callable] = -68.,
-      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_th: Union[float, ArrayType, Callable] = -55.,
       V_T: Union[float, ArrayType, Callable] = -59.9,
       delta_T: Union[float, ArrayType, Callable] = 3.48,
       R: Union[float, ArrayType, Callable] = 1.,
@@ -1039,6 +1037,7 @@ class ExpIFRefLTC(ExpIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -1349,11 +1348,12 @@ class AdExIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
       V_reset: Union[float, ArrayType, Callable] = -68.,
-      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_th: Union[float, ArrayType, Callable] = -55.,
       V_T: Union[float, ArrayType, Callable] = -59.9,
       delta_T: Union[float, ArrayType, Callable] = 3.48,
       a: Union[float, ArrayType, Callable] = 1.,
@@ -1374,16 +1374,17 @@ class AdExIFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,
+                     scaling=scaling)
     # parameters
-    self.V_rest = self.init_param(V_rest)
-    self.V_reset = self.init_param(V_reset)
-    self.V_th = self.init_param(V_th)
-    self.V_T = self.init_param(V_T)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
+    self.V_reset = self.offset_scaling(self.init_param(V_reset))
+    self.V_th = self.offset_scaling(self.init_param(V_th))
+    self.V_T = self.offset_scaling(self.init_param(V_T))
     self.a = self.init_param(a)
-    self.b = self.init_param(b)
+    self.b = self.std_scaling(self.init_param(b))
     self.R = self.init_param(R)
-    self.delta_T = self.init_param(delta_T)
+    self.delta_T = self.std_scaling(self.init_param(delta_T))
     self.tau = self.init_param(tau)
     self.tau_w = self.init_param(tau_w)
 
@@ -1413,8 +1414,8 @@ class AdExIFLTC(GradNeuDyn):
     return JointEq([self.dV, self.dw])
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
-    self.w = self.init_variable(self._w_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
+    self.w = self.std_scaling(self.init_variable(self._w_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -1677,11 +1678,12 @@ class AdExIFRefLTC(AdExIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
       V_reset: Union[float, ArrayType, Callable] = -68.,
-      V_th: Union[float, ArrayType, Callable] = -30.,
+      V_th: Union[float, ArrayType, Callable] = -55.,
       V_T: Union[float, ArrayType, Callable] = -59.9,
       delta_T: Union[float, ArrayType, Callable] = 3.48,
       a: Union[float, ArrayType, Callable] = 1.,
@@ -1710,6 +1712,7 @@ class AdExIFRefLTC(AdExIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -1885,8 +1888,6 @@ class AdExIFRef(AdExIFRefLTC):
   t_last_spike        -1e7              Last spike time stamp.
   ================== ================= =========================================================
 
-
-
   Args:
     %s
     %s
@@ -1980,11 +1981,6 @@ class QuaIFLTC(GradNeuDyn):
   refractory          False             Flag to mark whether the neuron is in refractory period.
   t_last_spike       -1e7               Last spike time stamp.
   ================== ================= =========================================================
-
-
-
-
-
   """
 
   def __init__(
@@ -2000,6 +1996,7 @@ class QuaIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2021,13 +2018,14 @@ class QuaIFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,
+                     scaling=scaling)
     # parameters
-    self.V_rest = self.init_param(V_rest)
-    self.V_reset = self.init_param(V_reset)
-    self.V_th = self.init_param(V_th)
-    self.V_c = self.init_param(V_c)
-    self.c = self.init_param(c)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
+    self.V_reset = self.offset_scaling(self.init_param(V_reset))
+    self.V_th = self.offset_scaling(self.init_param(V_th))
+    self.V_c = self.offset_scaling(self.init_param(V_c))
+    self.c = self.inv_scaling(self.init_param(c))
     self.R = self.init_param(R)
     self.tau = self.init_param(tau)
 
@@ -2047,7 +2045,7 @@ class QuaIFLTC(GradNeuDyn):
     return dVdt
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -2244,11 +2242,6 @@ class QuaIFRefLTC(QuaIFLTC):
   t_last_spike       -1e7               Last spike time stamp.
   ================== ================= =========================================================
 
-
-
-
-
-
   Args:
     %s
     %s
@@ -2268,6 +2261,7 @@ class QuaIFRefLTC(QuaIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2297,6 +2291,7 @@ class QuaIFRefLTC(QuaIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -2443,9 +2438,6 @@ class QuaIFRef(QuaIFRefLTC):
   t_last_spike       -1e7               Last spike time stamp.
   ================== ================= =========================================================
 
-
-
-
   Args:
     %s
     %s
@@ -2567,6 +2559,7 @@ class AdQuaIFLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2591,15 +2584,16 @@ class AdQuaIFLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset)
+                     spk_reset=spk_reset,
+                     scaling=scaling)
     # parameters
-    self.V_rest = self.init_param(V_rest)
-    self.V_reset = self.init_param(V_reset)
-    self.V_th = self.init_param(V_th)
-    self.V_c = self.init_param(V_c)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
+    self.V_reset = self.offset_scaling(self.init_param(V_reset))
+    self.V_th = self.offset_scaling(self.init_param(V_th))
+    self.V_c = self.offset_scaling(self.init_param(V_c))
     self.a = self.init_param(a)
-    self.b = self.init_param(b)
-    self.c = self.init_param(c)
+    self.b = self.std_scaling(self.init_param(b))
+    self.c = self.inv_scaling(self.init_param(c))
     self.tau = self.init_param(tau)
     self.tau_w = self.init_param(tau_w)
 
@@ -2628,8 +2622,8 @@ class AdQuaIFLTC(GradNeuDyn):
     return JointEq([self.dV, self.dw])
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
-    self.w = self.init_variable(self._w_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
+    self.w = self.std_scaling(self.init_variable(self._w_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -2849,8 +2843,6 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
   t_last_spike        -1e7              Last spike time stamp.
   ================== ================= ==========================================================
 
-
-
   Args:
     %s
     %s
@@ -2870,6 +2862,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -65.,
@@ -2902,6 +2895,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -3212,6 +3206,7 @@ class GifLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_rest: Union[float, ArrayType, Callable] = -70.,
@@ -3243,12 +3238,13 @@ class GifLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset, )
+                     spk_reset=spk_reset,
+                     scaling=scaling)
     # parameters
-    self.V_rest = self.init_param(V_rest)
-    self.V_reset = self.init_param(V_reset)
-    self.V_th_inf = self.init_param(V_th_inf)
-    self.V_th_reset = self.init_param(V_th_reset)
+    self.V_rest = self.offset_scaling(self.init_param(V_rest))
+    self.V_reset = self.offset_scaling(self.init_param(V_reset))
+    self.V_th_inf = self.offset_scaling(self.init_param(V_th_inf))
+    self.V_th_reset = self.offset_scaling(self.init_param(V_th_reset))
     self.R = self.init_param(R)
     self.a = self.init_param(a)
     self.b = self.init_param(b)
@@ -3256,8 +3252,8 @@ class GifLTC(GradNeuDyn):
     self.k2 = self.init_param(k2)
     self.R1 = self.init_param(R1)
     self.R2 = self.init_param(R2)
-    self.A1 = self.init_param(A1)
-    self.A2 = self.init_param(A2)
+    self.A1 = self.std_scaling(self.init_param(A1))
+    self.A2 = self.std_scaling(self.init_param(A2))
     self.tau = self.init_param(tau)
 
     # initializers
@@ -3291,10 +3287,10 @@ class GifLTC(GradNeuDyn):
     return JointEq(self.dI1, self.dI2, self.dVth, self.dV)
 
   def reset_state(self, batch_size=None, **kwargs):
-    self.V = self.init_variable(self._V_initializer, batch_size)
-    self.I1 = self.init_variable(self._I1_initializer, batch_size)
-    self.I2 = self.init_variable(self._I2_initializer, batch_size)
-    self.V_th = self.init_variable(self._Vth_initializer, batch_size)
+    self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
+    self.V_th = self.offset_scaling(self.init_variable(self._Vth_initializer, batch_size))
+    self.I1 = self.std_scaling(self.init_variable(self._I1_initializer, batch_size))
+    self.I2 = self.std_scaling(self.init_variable(self._I2_initializer, batch_size))
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -3591,6 +3587,7 @@ class GifRefLTC(GifLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_rest: Union[float, ArrayType, Callable] = -70.,
@@ -3630,6 +3627,7 @@ class GifRefLTC(GifLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_rest=V_rest,
       V_reset=V_reset,
@@ -3914,7 +3912,7 @@ class IzhikevichLTC(GradNeuDyn):
     ============= ============== ======== ================================================================================
     **Parameter** **Init Value** **Unit** **Explanation**
     ------------- -------------- -------- --------------------------------------------------------------------------------
-    a             0.02           \        It determines the time scale of
+    a             0.02           \        It determines the time scaling of
                                           the recovery variable :math:`u`.
     b             0.2            \        It describes the sensitivity of the
                                           recovery variable :math:`u` to
@@ -3944,8 +3942,6 @@ class IzhikevichLTC(GradNeuDyn):
     refractory                False       Flag to mark whether the neuron is in refractory period.
     t_last_spike               -1e7       Last spike time stamp.
     ================== ================= =========================================================
-
-
     """
 
   def __init__(
@@ -3961,9 +3957,13 @@ class IzhikevichLTC(GradNeuDyn):
       detach_spk: bool = False,
       method: str = 'exp_auto',
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # neuron parameters
       V_th: Union[float, ArrayType, Callable] = 30.,
+      p1: Union[float, ArrayType, Callable] = 0.04,
+      p2: Union[float, ArrayType, Callable] = 5.,
+      p3: Union[float, ArrayType, Callable] = 140.,
       a: Union[float, ArrayType, Callable] = 0.02,
       b: Union[float, ArrayType, Callable] = 0.20,
       c: Union[float, ArrayType, Callable] = -65.,
@@ -3983,13 +3983,20 @@ class IzhikevichLTC(GradNeuDyn):
                      detach_spk=detach_spk,
                      method=method,
                      spk_type=spk_type,
-                     spk_reset=spk_reset, )
+                     spk_reset=spk_reset,
+                     scaling=scaling)
     # parameters
-    self.V_th = self.init_param(V_th)
+    self.V_th = self.offset_scaling(self.init_param(V_th))
+    self.p1 = self.inv_scaling(self.init_param(p1))
+    p2_scaling = self.scaling.clone(bias=-p1 * 2 * self.scaling.bias, scale=1.)
+    self.p2 = p2_scaling.offset_scaling(self.init_param(p2))
+    p3_bias = p1 * self.scaling.bias ** 2 + b * self.scaling.bias - p2 * self.scaling.bias
+    p3_scaling = self.scaling.clone(bias=p3_bias, scale=self.scaling.scale)
+    self.p3 = p3_scaling.offset_scaling(self.init_param(p3))
     self.a = self.init_param(a)
     self.b = self.init_param(b)
-    self.c = self.init_param(c)
-    self.d = self.init_param(d)
+    self.c = self.offset_scaling(self.init_param(c))
+    self.d = self.std_scaling(self.init_param(d))
     self.R = self.init_param(R)
     self.tau = self.init_param(tau)
 
@@ -4006,7 +4013,7 @@ class IzhikevichLTC(GradNeuDyn):
 
   def dV(self, V, t, u, I):
     I = self.sum_inputs(V, init=I)
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
   def du(self, u, t, V):
@@ -4021,7 +4028,9 @@ class IzhikevichLTC(GradNeuDyn):
     self.V = self.init_variable(self._V_initializer, batch_size)
     u_initializer = OneInit(self.b * self.V) if self._u_initializer is None else self._u_initializer
     self._u_initializer = is_initializer(u_initializer)
-    self.u = self.init_variable(self._u_initializer, batch_size)
+    self.V = self.offset_scaling(self.V)
+    self.u = self.offset_scaling(self.init_variable(self._u_initializer, batch_size), bias=self.b * self.scaling.bias,
+                                 scale=self.scaling.scale)
     self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
 
   def update(self, x=None):
@@ -4108,7 +4117,7 @@ class Izhikevich(IzhikevichLTC):
   ============= ============== ======== ================================================================================
   **Parameter** **Init Value** **Unit** **Explanation**
   ------------- -------------- -------- --------------------------------------------------------------------------------
-  a             0.02           \        It determines the time scale of
+  a             0.02           \        It determines the time scaling of
                                         the recovery variable :math:`u`.
   b             0.2            \        It describes the sensitivity of the
                                         recovery variable :math:`u` to
@@ -4147,7 +4156,7 @@ class Izhikevich(IzhikevichLTC):
   """
 
   def dV(self, V, t, u, I):
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
   def update(self, x=None):
@@ -4210,7 +4219,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
   ============= ============== ======== ================================================================================
   **Parameter** **Init Value** **Unit** **Explanation**
   ------------- -------------- -------- --------------------------------------------------------------------------------
-  a             0.02           \        It determines the time scale of
+  a             0.02           \        It determines the time scaling of
                                         the recovery variable :math:`u`.
   b             0.2            \        It describes the sensitivity of the
                                         recovery variable :math:`u` to
@@ -4263,9 +4272,13 @@ class IzhikevichRefLTC(IzhikevichLTC):
       method: str = 'exp_auto',
       name: Optional[str] = None,
       init_var: bool = True,
+      scaling: Optional[bm.Scaling] = None,
 
       # old neuron parameter
       V_th: Union[float, ArrayType, Callable] = 30.,
+      p1: Union[float, ArrayType, Callable] = 0.04,
+      p2: Union[float, ArrayType, Callable] = 5.,
+      p3: Union[float, ArrayType, Callable] = 140.,
       a: Union[float, ArrayType, Callable] = 0.02,
       b: Union[float, ArrayType, Callable] = 0.20,
       c: Union[float, ArrayType, Callable] = -65.,
@@ -4293,8 +4306,12 @@ class IzhikevichRefLTC(IzhikevichLTC):
       spk_reset=spk_reset,
 
       init_var=False,
+      scaling=scaling,
 
       V_th=V_th,
+      p1=p1,
+      p2=p2,
+      p3=p3,
       a=a,
       b=b,
       c=c,
@@ -4423,7 +4440,7 @@ class IzhikevichRef(IzhikevichRefLTC):
   ============= ============== ======== ================================================================================
   **Parameter** **Init Value** **Unit** **Explanation**
   ------------- -------------- -------- --------------------------------------------------------------------------------
-  a             0.02           \        It determines the time scale of
+  a             0.02           \        It determines the time scaling of
                                         the recovery variable :math:`u`.
   b             0.2            \        It describes the sensitivity of the
                                         recovery variable :math:`u` to
@@ -4463,7 +4480,7 @@ class IzhikevichRef(IzhikevichRefLTC):
  """
 
   def dV(self, V, t, u, I):
-    dVdt = 0.04 * V * V + 5 * V + 140 - u + I
+    dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
   def update(self, x=None):
