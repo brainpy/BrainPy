@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import collections
-import gc
 import inspect
 import warnings
 from typing import Union, Dict, Callable, Sequence, Optional, Any
@@ -12,7 +11,7 @@ from brainpy import tools, math as bm
 from brainpy._src.context import share
 from brainpy._src.deprecations import _update_deprecate_msg
 from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, global_delay_data
+from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister
 from brainpy.errors import NoImplementationError, UnsupportedError, APIChangedError
 from brainpy.types import ArrayType, Shape
 
@@ -27,6 +26,8 @@ __all__ = [
   'Dynamic', 'Projection',
 ]
 
+
+IonChaDyn = None
 SLICE_VARS = 'slice_vars'
 
 
@@ -163,7 +164,10 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       include_self: bool. Reset states including the node self. Please turn on this if the node has
         implemented its ".reset_state()" function.
     """
-    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).unique()
+    global IonChaDyn
+    if IonChaDyn is None:
+      from brainpy._src.dyn.base import IonChaDyn
+    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).not_subset(IonChaDyn).unique()
     for node in child_nodes.values():
       node.reset_state(*args, **kwargs)
 
@@ -353,29 +357,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       model(ret)
     return ret
 
-  def __del__(self):
-    """Function for handling `del` behavior.
-
-    This function is used to pop out the variables which registered in global delay data.
-    """
-    try:
-      if hasattr(self, 'local_delay_vars'):
-        for key in tuple(self.local_delay_vars.keys()):
-          val = global_delay_data.pop(key)
-          del val
-          val = self.local_delay_vars.pop(key)
-          del val
-      if hasattr(self, 'implicit_nodes'):
-        for key in tuple(self.implicit_nodes.keys()):
-          del self.implicit_nodes[key]
-      if hasattr(self, 'implicit_vars'):
-        for key in tuple(self.implicit_vars.keys()):
-          del self.implicit_vars[key]
-      for key in tuple(self.__dict__.keys()):
-        del self.__dict__[key]
-    finally:
-      gc.collect()
-
   def __rrshift__(self, other):
     """Support using right shift operator to call modules.
 
@@ -433,10 +414,6 @@ class DynSysGroup(DynamicalSystem, Container):
     # update nodes with other types, including delays, ...
     for node in nodes.not_subset(Dynamic).not_subset(Projection).values():
       node()
-
-    # update delays
-    # TODO: Will be deprecated in the future
-    self.update_local_delays(nodes)
 
 
 class Network(DynSysGroup):
