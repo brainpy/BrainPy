@@ -13,6 +13,7 @@ from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
 from . import modes
+from . import scales
 
 bm = None
 
@@ -35,6 +36,9 @@ __all__ = [
 
   # default computation modes
   'set_mode', 'get_mode',
+
+  # default membrane_scaling
+  'set_membrane_scaling', 'get_membrane_scaling',
 
   # set jax environments
   'enable_x64', 'disable_x64',
@@ -152,6 +156,7 @@ class environment(_DecoratorContextManager):
   def __init__(
       self,
       mode: modes.Mode = None,
+      scaling: scales.Scaling = None,
       dt: float = None,
       x64: bool = None,
       complex_: type = None,
@@ -168,6 +173,10 @@ class environment(_DecoratorContextManager):
     if mode is not None:
       assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
       self.old_mode = get_mode()
+
+    if scaling is not None:
+      assert isinstance(scaling, scales.Scaling), f'"membrane_scaling" must a {scales.Scaling}.'
+      self.old_scaling = get_membrane_scaling()
 
     if x64 is not None:
       assert isinstance(x64, bool), f'"x64" must be a bool.'
@@ -191,6 +200,7 @@ class environment(_DecoratorContextManager):
 
     self.dt = dt
     self.mode = mode
+    self.scaling = scaling
     self.x64 = x64
     self.complex_ = complex_
     self.float_ = float_
@@ -200,6 +210,7 @@ class environment(_DecoratorContextManager):
   def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
     if self.mode is not None: set_mode(self.mode)
+    if self.scaling is not None: set_membrane_scaling(self.scaling)
     if self.x64 is not None: set_x64(self.x64)
     if self.float_ is not None: set_float(self.float_)
     if self.int_ is not None: set_int(self.int_)
@@ -210,6 +221,7 @@ class environment(_DecoratorContextManager):
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
     if self.dt is not None: set_dt(self.old_dt)
     if self.mode is not None: set_mode(self.old_mode)
+    if self.scaling is not None: set_membrane_scaling(self.old_scaling)
     if self.x64 is not None: set_x64(self.old_x64)
     if self.int_ is not None: set_int(self.old_int)
     if self.float_ is not None:  set_float(self.old_float)
@@ -219,6 +231,7 @@ class environment(_DecoratorContextManager):
   def clone(self):
     return self.__class__(dt=self.dt,
                           mode=self.mode,
+                          scaling=self.scaling,
                           x64=self.x64,
                           bool_=self.bool_,
                           complex_=self.complex_,
@@ -250,6 +263,7 @@ class training_environment(environment):
       int_: type = None,
       bool_: type = None,
       batch_size: int = 1,
+      scaling: scales.Scaling = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -257,6 +271,7 @@ class training_environment(environment):
                      float_=float_,
                      int_=int_,
                      bool_=bool_,
+                     scaling=scaling,
                      mode=modes.TrainingMode(batch_size))
 
 
@@ -282,6 +297,7 @@ class batching_environment(environment):
       int_: type = None,
       bool_: type = None,
       batch_size: int = 1,
+      scaling: scales.Scaling = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -289,11 +305,13 @@ class batching_environment(environment):
                      float_=float_,
                      int_=int_,
                      bool_=bool_,
-                     mode=modes.BatchingMode(batch_size))
+                     mode=modes.BatchingMode(batch_size),
+                     scaling=scaling)
 
 
 def set(
     mode: modes.Mode = None,
+    scaling: scales.Scaling = None,
     dt: float = None,
     x64: bool = None,
     complex_: type = None,
@@ -307,6 +325,8 @@ def set(
   ----------
   mode: Mode
     The computing mode.
+  scaling: Scaling
+    The numerical scaling.
   dt: float
     The numerical integration precision.
   x64: bool
@@ -327,6 +347,10 @@ def set(
   if mode is not None:
     assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
     set_mode(mode)
+
+  if scaling is not None:
+    assert isinstance(scaling, scales.Scaling), f'"membrane_scaling" must a {scales.Scaling}.'
+    set_membrane_scaling(scaling)
 
   if x64 is not None:
     assert isinstance(x64, bool), f'"x64" must be a bool.'
@@ -549,6 +573,35 @@ def get_mode() -> modes.Mode:
   global bm
   if bm is None: from brainpy import math as bm
   return bm.mode
+
+
+def set_membrane_scaling(scaling: scales.Scaling):
+  """Set the default computing membrane_scaling.
+
+  Parameters
+  ----------
+  scaling: Scaling
+    The instance of :py:class:`~.Scaling`.
+  """
+  if not isinstance(scales, scales.Scaling):
+    raise TypeError(f'Must be instance of brainpy.math.Scaling. '
+                    f'But we got {type(scaling)}: {scaling}')
+  global bm
+  if bm is None: from brainpy import math as bm
+  bm.__dict__['membrane_scaling'] = scaling
+
+
+def get_membrane_scaling() -> scales.Scaling:
+  """Get the default computing membrane_scaling.
+
+  Returns
+  -------
+  membrane_scaling: Scaling
+    The default computing membrane_scaling.
+  """
+  global bm
+  if bm is None: from brainpy import math as bm
+  return bm.membrane_scaling
 
 
 def enable_x64(x64=None):

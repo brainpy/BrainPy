@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
@@ -39,3 +39,24 @@ class Test_lif(parameterized.TestCase):
                          progress_bar=False)
     runner.run(10.)
     self.assertTupleEqual(runner.mon['V'].shape, (1, 100, 10))
+
+  @parameterized.named_parameters(
+    {'testcase_name': f'{name}', 'neuron': name}
+    for name in lif.__all__
+  )
+  def test_training_lif(self, neuron):
+    if neuron not in ['IF', 'IFLTC']:
+      model1 = getattr(lif, neuron)(size=1,
+                                   V_initializer=bp.init.Constant(-70.),
+                                   mode=bm.training_mode,
+                                   spk_reset='hard',
+                                   scaling=bm.Scaling.transform(V_range=[-70, 30], scaled_V_range=[0, 1]))
+      model2 = getattr(lif, neuron)(size=1,
+                                    V_initializer=bp.init.Constant(-70.),
+                                    mode=bm.training_mode,
+                                    spk_reset='hard',
+                                    scaling=bm.Scaling(scale=1, bias=0))
+      indices = bm.arange(5000)
+      spks1 = bm.for_loop(lambda i: model1.step_run(i, 10./model1.scaling.scale), indices, jit=True)
+      spks2 = bm.for_loop(lambda i: model2.step_run(i, 10./model2.scaling.scale), indices, jit=True)
+      self.assertTrue(np.allclose(spks1, spks2))
