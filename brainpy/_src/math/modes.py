@@ -52,6 +52,15 @@ class Mode(object):
         raise TypeError(f'The supported type must be a tuple/list of type. But we got {m_}')
     return isinstance(self, modes)
 
+  def is_batch_mode(self):
+    return isinstance(self, BatchingMode)
+
+  def is_train_mode(self):
+    return isinstance(self, TrainingMode)
+
+  def is_nonbatch_mode(self):
+    return isinstance(self, NonBatchingMode)
+
 
 class NonBatchingMode(Mode):
   """Normal non-batching mode.

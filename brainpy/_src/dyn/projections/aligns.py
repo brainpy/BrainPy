@@ -1,9 +1,10 @@
 from typing import Optional, Callable, Union
 
 from brainpy import math as bm, check
-from brainpy._src.delay import Delay, DelayAccess, delay_identifier, init_delay_by_return
+from brainpy._src.delay import (Delay, DelayAccess, delay_identifier,
+                                init_delay_by_return, register_delay_by_return)
 from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, ParamDescInit, ReturnInfo,
+from brainpy._src.mixin import (JointType, ParamDescriber, ReturnInfo,
                                 SupportAutoDelay, BindCondData, AlignPost)
 
 __all__ = [
@@ -13,6 +14,64 @@ __all__ = [
   'ProjAlignPreMg1', 'ProjAlignPreMg2',
   'ProjAlignPre1', 'ProjAlignPre2',
 ]
+
+
+def get_post_repr(out_label, syn, out):
+  return f'{out_label} // {syn.identifier} // {out.identifier}'
+
+
+def add_inp_fun(out_label, proj_name, out, post):
+  # synapse and output initialization
+  if out_label is None:
+    out_name = proj_name
+  else:
+    out_name = f'{out_label} // {proj_name}'
+  post.add_inp_fun(out_name, out)
+
+
+def align_post_init_bef_update(out_label, syn_desc, out_desc, post, proj_name):
+  # synapse and output initialization
+  _post_repr = get_post_repr(out_label, syn_desc, out_desc)
+  if not post.has_bef_update(_post_repr):
+    syn_cls = syn_desc()
+    out_cls = out_desc()
+
+    # synapse and output initialization
+    if out_label is None:
+      out_name = proj_name
+    else:
+      out_name = f'{out_label} // {proj_name}'
+    post.add_inp_fun(out_name, out_cls)
+    post.add_bef_update(_post_repr, _AlignPost(syn_cls, out_cls))
+  syn = post.get_bef_update(_post_repr).syn
+  out = post.get_bef_update(_post_repr).out
+  return syn, out
+
+
+def align_pre2_add_bef_update(syn_desc, delay, delay_cls, proj_name=None):
+  _syn_id = f'Delay({str(delay)}) // {syn_desc.identifier}'
+  if not delay_cls.has_bef_update(_syn_id):
+    # delay
+    delay_access = DelayAccess(delay_cls, delay, delay_entry=proj_name)
+    # synapse
+    syn_cls = syn_desc()
+    # add to "after_updates"
+    delay_cls.add_bef_update(_syn_id, _AlignPreMg(delay_access, syn_cls))
+  syn = delay_cls.get_bef_update(_syn_id).syn
+  return syn
+
+
+def align_pre1_add_bef_update(syn_desc, pre):
+  _syn_id = f'{syn_desc.identifier} // Delay'
+  if not pre.has_aft_update(_syn_id):
+    # "syn_cls" needs an instance of "ProjAutoDelay"
+    syn_cls: SupportAutoDelay = syn_desc()
+    delay_cls = init_delay_by_return(syn_cls.return_info())
+    # add to "after_updates"
+    pre.add_aft_update(_syn_id, _AlignPre(syn_cls, delay_cls))
+  delay_cls: Delay = pre.get_aft_update(_syn_id).delay
+  syn = pre.get_aft_update(_syn_id).syn
+  return delay_cls, syn
 
 
 class _AlignPre(DynamicalSystem):
@@ -141,9 +200,6 @@ class VanillaProj(Projection):
     self.refs['out'].bind_cond(current)
     return current
 
-  def reset_state(self, *args, **kwargs):
-    pass
-
 
 class ProjAlignPostMg1(Projection):
   r"""Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
@@ -197,8 +253,8 @@ class ProjAlignPostMg1(Projection):
   def __init__(
       self,
       comm: DynamicalSystem,
-      syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
-      out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
+      syn: ParamDescriber[JointType[DynamicalSystem, AlignPost]],
+      out: ParamDescriber[JointType[DynamicalSystem, BindCondData]],
       post: DynamicalSystem,
       out_label: Optional[str] = None,
       name: Optional[str] = None,
@@ -208,36 +264,24 @@ class ProjAlignPostMg1(Projection):
 
     # synaptic models
     check.is_instance(comm, DynamicalSystem)
-    check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AlignPost]])
-    check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
+    check.is_instance(syn, ParamDescriber[JointType[DynamicalSystem, AlignPost]])
+    check.is_instance(out, ParamDescriber[JointType[DynamicalSystem, BindCondData]])
     check.is_instance(post, DynamicalSystem)
     self.comm = comm
 
     # synapse and output initialization
-    self._post_repr = f'{out_label} // {syn.identifier} // {out.identifier}'
-    if not post.has_bef_update(self._post_repr):
-      syn_cls = syn()
-      out_cls = out()
-      if out_label is None:
-        out_name = self.name
-      else:
-        out_name = f'{out_label} // {self.name}'
-      post.add_inp_fun(out_name, out_cls)
-      post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
+    syn, out = align_post_init_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
 
     # references
     self.refs = dict(post=post)  # invisible to ``self.nodes()``
-    self.refs['syn'] = post.get_bef_update(self._post_repr).syn
-    self.refs['out'] = post.get_bef_update(self._post_repr).out
+    self.refs['syn'] = syn
+    self.refs['out'] = out
     self.refs['comm'] = comm  # unify the access
 
   def update(self, x):
     current = self.comm(x)
     self.refs['syn'].add_current(current)  # synapse post current
     return current
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPostMg2(Projection):
@@ -315,8 +359,8 @@ class ProjAlignPostMg2(Projection):
       pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
       comm: DynamicalSystem,
-      syn: ParamDescInit[JointType[DynamicalSystem, AlignPost]],
-      out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
+      syn: ParamDescriber[JointType[DynamicalSystem, AlignPost]],
+      out: ParamDescriber[JointType[DynamicalSystem, BindCondData]],
       post: DynamicalSystem,
       out_label: Optional[str] = None,
       name: Optional[str] = None,
@@ -327,36 +371,22 @@ class ProjAlignPostMg2(Projection):
     # synaptic models
     check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
     check.is_instance(comm, DynamicalSystem)
-    check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, AlignPost]])
-    check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
+    check.is_instance(syn, ParamDescriber[JointType[DynamicalSystem, AlignPost]])
+    check.is_instance(out, ParamDescriber[JointType[DynamicalSystem, BindCondData]])
     check.is_instance(post, DynamicalSystem)
     self.comm = comm
 
     # delay initialization
-    if not pre.has_aft_update(delay_identifier):
-      # pre should support "ProjAutoDelay"
-      delay_cls = init_delay_by_return(pre.return_info())
-      # add to "after_updates"
-      pre.add_aft_update(delay_identifier, delay_cls)
-    delay_cls: Delay = pre.get_aft_update(delay_identifier)
+    delay_cls = register_delay_by_return(pre)
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
-    self._post_repr = f'{out_label} // {syn.identifier} // {out.identifier}'
-    if not post.has_bef_update(self._post_repr):
-      syn_cls = syn()
-      out_cls = out()
-      if out_label is None:
-        out_name = self.name
-      else:
-        out_name = f'{out_label} // {self.name}'
-      post.add_inp_fun(out_name, out_cls)
-      post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
+    syn, out = align_post_init_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
 
     # references
     self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
-    self.refs['syn'] = post.get_bef_update(self._post_repr).syn  # invisible to ``self.node()``
-    self.refs['out'] = post.get_bef_update(self._post_repr).out  # invisible to ``self.node()``
+    self.refs['syn'] = syn  # invisible to ``self.node()``
+    self.refs['out'] = out  # invisible to ``self.node()``
     # unify the access
     self.refs['comm'] = comm
     self.refs['delay'] = pre.get_aft_update(delay_identifier)
@@ -366,9 +396,6 @@ class ProjAlignPostMg2(Projection):
     current = self.comm(x)
     self.refs['syn'].add_current(current)  # synapse post current
     return current
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPost1(Projection):
@@ -433,31 +460,26 @@ class ProjAlignPost1(Projection):
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
     check.is_instance(post, DynamicalSystem)
     self.comm = comm
+    self.syn = syn
+    self.out = out
 
     # synapse and output initialization
-    if out_label is None:
-      out_name = self.name
-    else:
-      out_name = f'{out_label} // {self.name}'
-    post.add_inp_fun(out_name, out)
-    post.add_bef_update(self.name, _AlignPost(syn, out))
+    add_inp_fun(out_label, self.name, out, post)
 
     # reference
     self.refs = dict()
     # invisible to ``self.nodes()``
     self.refs['post'] = post
-    self.refs['syn'] = post.get_bef_update(self.name).syn
-    self.refs['out'] = post.get_bef_update(self.name).out
+    self.refs['syn'] = syn
+    self.refs['out'] = out
     # unify the access
     self.refs['comm'] = comm
 
   def update(self, x):
     current = self.comm(x)
-    self.refs['syn'].add_current(current)
+    g = self.syn(self.comm(x))
+    self.refs['out'].bind_cond(g)  # synapse post current
     return current
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPost2(Projection):
@@ -550,20 +572,11 @@ class ProjAlignPost2(Projection):
     self.syn = syn
 
     # delay initialization
-    if not pre.has_aft_update(delay_identifier):
-      # pre should support "ProjAutoDelay"
-      delay_cls = init_delay_by_return(pre.return_info())
-      # add to "after_updates"
-      pre.add_aft_update(delay_identifier, delay_cls)
-    delay_cls: Delay = pre.get_aft_update(delay_identifier)
+    delay_cls = register_delay_by_return(pre)
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
-    if out_label is None:
-      out_name = self.name
-    else:
-      out_name = f'{out_label} // {self.name}'
-    post.add_inp_fun(out_name, out)
+    add_inp_fun(out_label, self.name, out, post)
 
     # references
     self.refs = dict()
@@ -572,18 +585,15 @@ class ProjAlignPost2(Projection):
     self.refs['post'] = post
     self.refs['out'] = out
     # unify the access
-    self.refs['delay'] = pre.get_aft_update(delay_identifier)
+    self.refs['delay'] = delay_cls
     self.refs['comm'] = comm
     self.refs['syn'] = syn
 
   def update(self):
-    x = self.refs['pre'].get_aft_update(delay_identifier).at(self.name)
+    x = self.refs['delay'].at(self.name)
     g = self.syn(self.comm(x))
     self.refs['out'].bind_cond(g)  # synapse post current
     return g
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPreMg1(Projection):
@@ -655,7 +665,7 @@ class ProjAlignPreMg1(Projection):
   def __init__(
       self,
       pre: DynamicalSystem,
-      syn: ParamDescInit[JointType[DynamicalSystem, SupportAutoDelay]],
+      syn: ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]],
       delay: Union[None, int, float],
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
@@ -668,29 +678,18 @@ class ProjAlignPreMg1(Projection):
 
     # synaptic models
     check.is_instance(pre, DynamicalSystem)
-    check.is_instance(syn, ParamDescInit[JointType[DynamicalSystem, SupportAutoDelay]])
+    check.is_instance(syn, ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
     check.is_instance(post, DynamicalSystem)
     self.comm = comm
 
     # synapse and delay initialization
-    self._syn_id = f'{syn.identifier} // Delay'
-    if not pre.has_aft_update(self._syn_id):
-      # "syn_cls" needs an instance of "ProjAutoDelay"
-      syn_cls: SupportAutoDelay = syn()
-      delay_cls = init_delay_by_return(syn_cls.return_info())
-      # add to "after_updates"
-      pre.add_aft_update(self._syn_id, _AlignPre(syn_cls, delay_cls))
-    delay_cls: Delay = pre.get_aft_update(self._syn_id).delay
+    delay_cls, syn_cls = align_pre1_add_bef_update(syn, pre)
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
-    if out_label is None:
-      out_name = self.name
-    else:
-      out_name = f'{out_label} // {self.name}'
-    post.add_inp_fun(out_name, out)
+    add_inp_fun(out_label, self.name, out, post)
 
     # references
     self.refs = dict()
@@ -699,7 +698,7 @@ class ProjAlignPreMg1(Projection):
     self.refs['post'] = post
     self.refs['out'] = out
     self.refs['delay'] = delay_cls
-    self.refs['syn'] = pre.get_aft_update(self._syn_id).syn
+    self.refs['syn'] = syn_cls
     # unify the access
     self.refs['comm'] = comm
 
@@ -709,9 +708,6 @@ class ProjAlignPreMg1(Projection):
     current = self.comm(x)
     self.refs['out'].bind_cond(current)
     return current
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPreMg2(Projection):
@@ -784,7 +780,7 @@ class ProjAlignPreMg2(Projection):
       self,
       pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
-      syn: ParamDescInit[DynamicalSystem],
+      syn: ParamDescriber[DynamicalSystem],
       comm: DynamicalSystem,
       out: JointType[DynamicalSystem, BindCondData],
       post: DynamicalSystem,
@@ -796,41 +792,27 @@ class ProjAlignPreMg2(Projection):
 
     # synaptic models
     check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
-    check.is_instance(syn, ParamDescInit[DynamicalSystem])
+    check.is_instance(syn, ParamDescriber[DynamicalSystem])
     check.is_instance(comm, DynamicalSystem)
     check.is_instance(out, JointType[DynamicalSystem, BindCondData])
     check.is_instance(post, DynamicalSystem)
     self.comm = comm
 
     # delay initialization
-    if not pre.has_aft_update(delay_identifier):
-      delay_ins = init_delay_by_return(pre.return_info())
-      pre.add_aft_update(delay_identifier, delay_ins)
-    delay_cls = pre.get_aft_update(delay_identifier)
+    delay_cls = register_delay_by_return(pre)
 
     # synapse initialization
-    self._syn_id = f'Delay({str(delay)}) // {syn.identifier}'
-    if not delay_cls.has_bef_update(self._syn_id):
-      # delay
-      delay_access = DelayAccess(delay_cls, delay)
-      # synapse
-      syn_cls = syn()
-      # add to "after_updates"
-      delay_cls.add_bef_update(self._syn_id, _AlignPreMg(delay_access, syn_cls))
+    syn_cls = align_pre2_add_bef_update(syn, delay, delay_cls, self.name)
 
     # output initialization
-    if out_label is None:
-      out_name = self.name
-    else:
-      out_name = f'{out_label} // {self.name}'
-    post.add_inp_fun(out_name, out)
+    add_inp_fun(out_label, self.name, out, post)
 
     # references
     self.refs = dict()
     # invisible to `self.nodes()`
     self.refs['pre'] = pre
     self.refs['post'] = post
-    self.refs['syn'] = delay_cls.get_bef_update(self._syn_id).syn
+    self.refs['syn'] = syn_cls
     self.refs['out'] = out
     # unify the access
     self.refs['comm'] = comm
@@ -840,9 +822,6 @@ class ProjAlignPreMg2(Projection):
     current = self.comm(x)
     self.refs['out'].bind_cond(current)
     return current
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPre1(Projection):
@@ -939,11 +918,7 @@ class ProjAlignPre1(Projection):
     pre.add_aft_update(self.name, _AlignPre(syn, delay_cls))
 
     # output initialization
-    if out_label is None:
-      out_name = self.name
-    else:
-      out_name = f'{out_label} // {self.name}'
-    post.add_inp_fun(out_name, out)
+    add_inp_fun(out_label, self.name, out, post)
 
     # references
     self.refs = dict()
@@ -962,9 +937,6 @@ class ProjAlignPre1(Projection):
     current = self.comm(x)
     self.refs['out'].bind_cond(current)
     return current
-
-  def reset_state(self, *args, **kwargs):
-    pass
 
 
 class ProjAlignPre2(Projection):
@@ -1057,18 +1029,11 @@ class ProjAlignPre2(Projection):
     self.syn = syn
 
     # delay initialization
-    if not pre.has_aft_update(delay_identifier):
-      delay_ins = init_delay_by_return(pre.return_info())
-      pre.add_aft_update(delay_identifier, delay_ins)
-    delay_cls = pre.get_aft_update(delay_identifier)
+    delay_cls = register_delay_by_return(pre)
     delay_cls.register_entry(self.name, delay)
 
     # output initialization
-    if out_label is None:
-      out_name = self.name
-    else:
-      out_name = f'{out_label} // {self.name}'
-    post.add_inp_fun(out_name, out)
+    add_inp_fun(out_label, self.name, out, post)
 
     # references
     self.refs = dict()
@@ -1076,7 +1041,7 @@ class ProjAlignPre2(Projection):
     self.refs['pre'] = pre
     self.refs['post'] = post
     self.refs['out'] = out
-    self.refs['delay'] = pre.get_aft_update(delay_identifier)
+    self.refs['delay'] = delay_cls
     # unify the access
     self.refs['syn'] = syn
     self.refs['comm'] = comm
@@ -1086,6 +1051,3 @@ class ProjAlignPre2(Projection):
     g = self.comm(self.syn(spk))
     self.refs['out'].bind_cond(g)
     return g
-
-  def reset_state(self, *args, **kwargs):
-    pass

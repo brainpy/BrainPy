@@ -556,6 +556,9 @@ class Projection(DynamicalSystem):
     """Empty function of clearing inputs."""
     pass
 
+  def reset_state(self, *args, **kwargs):
+    pass
+
 
 class Dynamic(DynamicalSystem):
   """Base class to model dynamics.
