@@ -29,7 +29,7 @@ def add_inp_fun(out_label, proj_name, out, post):
   post.add_inp_fun(out_name, out)
 
 
-def align_post_init_bef_update(out_label, syn_desc, out_desc, post, proj_name):
+def align_post_add_bef_update(out_label, syn_desc, out_desc, post, proj_name):
   # synapse and output initialization
   _post_repr = get_post_repr(out_label, syn_desc, out_desc)
   if not post.has_bef_update(_post_repr):
@@ -270,7 +270,7 @@ class ProjAlignPostMg1(Projection):
     self.comm = comm
 
     # synapse and output initialization
-    syn, out = align_post_init_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
+    syn, out = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
 
     # references
     self.refs = dict(post=post)  # invisible to ``self.nodes()``
@@ -381,7 +381,7 @@ class ProjAlignPostMg2(Projection):
     delay_cls.register_entry(self.name, delay)
 
     # synapse and output initialization
-    syn, out = align_post_init_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
+    syn, out = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
 
     # references
     self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``

@@ -8,7 +8,7 @@ from brainpy._src.initialize import parameter
 from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay,
                                 BindCondData, AlignPost, SupportSTDP)
 from brainpy.types import ArrayType
-from .aligns import (_get_return, align_post_init_bef_update,
+from .aligns import (_get_return, align_post_add_bef_update,
                      align_pre2_add_bef_update, add_inp_fun)
 
 __all__ = [
@@ -103,7 +103,7 @@ class STDP_Song2000(Projection):
       return pre_spike, post_spike, g, Apre, Apost, current, W
 
     indices = bm.arange(0, duration, bm.dt)
-    pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post], jit=True)
+    pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post])
 
   Args:
     tau_s: float, ArrayType, Callable. The time constant of :math:`A_{pre}`.
@@ -155,25 +155,20 @@ class STDP_Song2000(Projection):
     delay_cls = register_delay_by_return(pre)
     delay_cls.register_entry(self.name, delay)
 
+    # synapse and output initialization
     if issubclass(syn.cls, AlignPost):
-      # synapse and output initialization
-      syn, out = align_post_init_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
-      # references
-      self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
-      self.refs['delay'] = delay_cls
-      self.refs['syn'] = syn  # invisible to ``self.node()``
-      self.refs['out'] = out  # invisible to ``self.node()``
-
+      syn_cls, out_cls = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post,
+                                                   proj_name=self.name)
     else:
-      # synapse initialization
-      syn = align_pre2_add_bef_update(syn, delay, delay_cls, self.name)
-      # output initialization
-      add_inp_fun(out_label, self.name, out(), post)
-      # references
-      self.refs = dict(pre=pre, post=post)  # invisible to `self.nodes()`
-      self.refs['delay'] = delay_cls
-      self.refs['syn'] = syn
-      self.refs['out'] = out
+      syn_cls = align_pre2_add_bef_update(syn, delay, delay_cls, self.name)
+      out_cls = out()
+      add_inp_fun(out_label, self.name, out_cls, post)
+
+    # references
+    self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
+    self.refs['delay'] = delay_cls
+    self.refs['syn'] = syn_cls  # invisible to ``self.node()``
+    self.refs['out'] = out_cls  # invisible to ``self.node()``
 
     # tracing pre-synaptic spikes using Exponential model
     self.refs['pre_trace'] = _init_trace_by_align_pre2(pre, delay, Expon.desc(pre.num, tau=tau_s))
