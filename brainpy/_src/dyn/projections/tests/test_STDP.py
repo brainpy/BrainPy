@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import os
-os.environ['JAX_TRACEBACK_FILTERING'] = 'off'
+import matplotlib.pyplot as plt
+import numpy as np
 from absl.testing import parameterized
 
 import brainpy as bp
@@ -20,8 +20,9 @@ class Test_STDP(parameterized.TestCase):
         self.syn = bp.dyn.STDP_Song2000(
           pre=self.pre,
           delay=1.,
-          comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
-                                     weight=lambda s: bm.Variable(bm.random.rand(*s) * 0.1)),
+          # comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+          #                            weight=bp.init.Uniform(-0.1, 0.1)),
+          comm=bp.dnn.AllToAll(self.pre.num, self.post.num, weight=bp.init.Uniform(-0.1, 0.1)),
           syn=bp.dyn.Expon.desc(self.post.varshape, tau=5.),
           out=bp.dyn.COBA.desc(E=0.),
           post=self.post,
@@ -39,7 +40,7 @@ class Test_STDP(parameterized.TestCase):
         Apre = self.syn.refs['pre_trace'].g
         Apost = self.syn.refs['post_trace'].g
         current = self.post.sum_inputs(self.post.V)
-        return self.pre.spike, self.post.spike, conductance, Apre, Apost, current, self.syn.comm.weight
+        return self.pre.spike, self.post.spike, conductance, Apre, Apost, current, self.syn.comm.weight.flatten()
 
     duration = 300.
     I_pre = bp.inputs.section_input([0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0],
@@ -53,7 +54,14 @@ class Test_STDP(parameterized.TestCase):
       pre_spike, post_spike, g, Apre, Apost, current, W = net.step_run(i, I_pre, I_post)
       return pre_spike, post_spike, g, Apre, Apost, current, W
 
-    indices = bm.arange(0, duration, bm.dt)
-    bm.for_loop(run, [indices, I_pre, I_post], jit=True)
-    bm.clear_buffer_memory()
+    indices = np.arange(int(duration / bm.dt))
+    pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post])
 
+    fig, gs = bp.visualize.get_figure(4, 1, 3, 10)
+    bp.visualize.line_plot(indices, g, ax=fig.add_subplot(gs[0, 0]))
+    bp.visualize.line_plot(indices, Apre, ax=fig.add_subplot(gs[1, 0]))
+    bp.visualize.line_plot(indices, Apost, ax=fig.add_subplot(gs[2, 0]))
+    bp.visualize.line_plot(indices, W, ax=fig.add_subplot(gs[3, 0]))
+    plt.show()
+
+    bm.clear_buffer_memory()
