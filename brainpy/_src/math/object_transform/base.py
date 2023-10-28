@@ -721,8 +721,8 @@ class NodeDict(dict):
 
   def __init__(self, *args, check_unique: bool = False, **kwargs):
     super().__init__()
-    self.update(*args, **kwargs)
     self.check_unique = check_unique
+    self.update(*args, **kwargs)
 
   def update(self, *args, **kwargs) -> 'NodeDict':
     for arg in args:
