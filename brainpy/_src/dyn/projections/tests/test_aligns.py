@@ -10,7 +10,7 @@ neu_pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
 
 def test_ProjAlignPreMg1():
   class EICOBA_PreAlign(bp.DynamicalSystem):
-    def __init__(self, scale=1., inp=20.):
+    def __init__(self, scale=1., inp=20., delay=None):
       super().__init__()
 
       self.inp = inp
@@ -22,7 +22,7 @@ def test_ProjAlignPreMg1():
       self.E2I = bp.dyn.ProjAlignPreMg1(
         pre=self.E,
         syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
-        delay=None,
+        delay=delay,
         comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=self.E.num, post=self.I.num), 0.6),
         out=bp.dyn.COBA(E=0.),
         post=self.I,
@@ -30,7 +30,7 @@ def test_ProjAlignPreMg1():
       self.E2E = bp.dyn.ProjAlignPreMg1(
         pre=self.E,
         syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
-        delay=None,
+        delay=delay,
         comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=self.E.num, post=self.E.num), 0.6),
         out=bp.dyn.COBA(E=0.),
         post=self.E,
@@ -38,7 +38,7 @@ def test_ProjAlignPreMg1():
       self.I2E = bp.dyn.ProjAlignPreMg1(
         pre=self.I,
         syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
-        delay=None,
+        delay=delay,
         comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=self.I.num, post=self.E.num), 6.7),
         out=bp.dyn.COBA(E=-80.),
         post=self.E,
@@ -46,7 +46,7 @@ def test_ProjAlignPreMg1():
       self.I2I = bp.dyn.ProjAlignPreMg1(
         pre=self.I,
         syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
-        delay=None,
+        delay=delay,
         comm=bp.dnn.CSRLinear(bp.conn.FixedProb(prob, pre=self.I.num, post=self.I.num), 6.7),
         out=bp.dyn.COBA(E=-80.),
         post=self.I,
@@ -65,13 +65,19 @@ def test_ProjAlignPreMg1():
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
   bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+
+  net = EICOBA_PreAlign(0.5, delay=1.)
+  indices = np.arange(400)
+  spks = bm.for_loop(net.step_run, indices)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+
   plt.close()
   bm.clear_buffer_memory()
 
 
 def test_ProjAlignPostMg2():
   class EICOBA_PostAlign(bp.DynamicalSystem):
-    def __init__(self, scale, inp=20., ltc=True):
+    def __init__(self, scale, inp=20., ltc=True, delay=None):
       super().__init__()
       self.inp = inp
 
@@ -86,7 +92,7 @@ def test_ProjAlignPostMg2():
 
       self.E2E = bp.dyn.ProjAlignPostMg2(
         pre=self.E,
-        delay=None,
+        delay=delay,
         comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(prob, pre=self.E.num, post=self.E.num), 0.6),
         syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
         out=bp.dyn.COBA.desc(E=0.),
@@ -94,7 +100,7 @@ def test_ProjAlignPostMg2():
       )
       self.E2I = bp.dyn.ProjAlignPostMg2(
         pre=self.E,
-        delay=None,
+        delay=delay,
         comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(prob, pre=self.E.num, post=self.I.num), 0.6),
         syn=bp.dyn.Expon.desc(self.I.varshape, tau=5.),
         out=bp.dyn.COBA.desc(E=0.),
@@ -102,7 +108,7 @@ def test_ProjAlignPostMg2():
       )
       self.I2E = bp.dyn.ProjAlignPostMg2(
         pre=self.I,
-        delay=None,
+        delay=delay,
         comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(prob, pre=self.I.num, post=self.E.num), 6.7),
         syn=bp.dyn.Expon.desc(self.E.varshape, tau=10.),
         out=bp.dyn.COBA.desc(E=-80.),
@@ -110,7 +116,7 @@ def test_ProjAlignPostMg2():
       )
       self.I2I = bp.dyn.ProjAlignPostMg2(
         pre=self.I,
-        delay=None,
+        delay=delay,
         comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(prob, pre=self.I.num, post=self.I.num), 6.7),
         syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
         out=bp.dyn.COBA.desc(E=-80.),
@@ -127,6 +133,11 @@ def test_ProjAlignPostMg2():
       return self.E.spike.value
 
   net = EICOBA_PostAlign(0.5)
+  indices = np.arange(400)
+  spks = bm.for_loop(net.step_run, indices)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+
+  net = EICOBA_PostAlign(0.5, delay=1.)
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
   bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
@@ -178,7 +189,7 @@ def test_ProjAlignPost1():
 
 def test_ProjAlignPost2():
   class EINet(bp.DynSysGroup):
-    def __init__(self, scale):
+    def __init__(self, scale, delay=None):
       super().__init__()
       ne, ni = int(3200 * scale), int(800 * scale)
       p = 80 / (ne + ni)
@@ -188,25 +199,25 @@ def test_ProjAlignPost2():
       self.I = bp.dyn.LifRefLTC(ni, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.E2E = bp.dyn.ProjAlignPost2(pre=self.E,
-                                       delay=0.1,
+                                       delay=delay,
                                        comm=bp.dnn.EventJitFPHomoLinear(ne, ne, prob=p, weight=0.6),
                                        syn=bp.dyn.Expon(size=ne, tau=5.),
                                        out=bp.dyn.COBA(E=0.),
                                        post=self.E)
       self.E2I = bp.dyn.ProjAlignPost2(pre=self.E,
-                                       delay=0.1,
+                                       delay=delay,
                                        comm=bp.dnn.EventJitFPHomoLinear(ne, ni, prob=p, weight=0.6),
                                        syn=bp.dyn.Expon(size=ni, tau=5.),
                                        out=bp.dyn.COBA(E=0.),
                                        post=self.I)
       self.I2E = bp.dyn.ProjAlignPost2(pre=self.I,
-                                       delay=0.1,
+                                       delay=delay,
                                        comm=bp.dnn.EventJitFPHomoLinear(ni, ne, prob=p, weight=6.7),
                                        syn=bp.dyn.Expon(size=ne, tau=10.),
                                        out=bp.dyn.COBA(E=-80.),
                                        post=self.E)
       self.I2I = bp.dyn.ProjAlignPost2(pre=self.I,
-                                       delay=0.1,
+                                       delay=delay,
                                        comm=bp.dnn.EventJitFPHomoLinear(ni, ni, prob=p, weight=6.7),
                                        syn=bp.dyn.Expon(size=ni, tau=10.),
                                        out=bp.dyn.COBA(E=-80.),
@@ -221,10 +232,16 @@ def test_ProjAlignPost2():
       self.I(inp)
       return self.E.spike
 
-  model = EINet(0.5)
+  model = EINet(0.5, delay=1.)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=True)
+
+  model = EINet(0.5, delay=None)
+  indices = bm.arange(400)
+  spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
+  bp.visualize.raster_plot(indices, spks, show=True)
+
   bm.clear_buffer_memory()
   plt.close()
 
@@ -267,7 +284,7 @@ def test_VanillaProj():
 
 def test_ProjAlignPreMg1_v2():
   class EINet(bp.DynSysGroup):
-    def __init__(self, scale=1.):
+    def __init__(self, scale=1., delay=None):
       super().__init__()
       ne, ni = int(3200 * scale), int(800 * scale)
       p = 80 / (4000 * scale)
@@ -277,25 +294,25 @@ def test_ProjAlignPreMg1_v2():
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.E2E = bp.dyn.ProjAlignPreMg1(pre=self.E,
                                         syn=bp.dyn.Expon.desc(size=ne, tau=5.),
-                                        delay=0.1,
+                                        delay=delay,
                                         comm=bp.dnn.JitFPHomoLinear(ne, ne, prob=p, weight=0.6),
                                         out=bp.dyn.COBA(E=0.),
                                         post=self.E)
       self.E2I = bp.dyn.ProjAlignPreMg1(pre=self.E,
                                         syn=bp.dyn.Expon.desc(size=ne, tau=5.),
-                                        delay=0.1,
+                                        delay=delay,
                                         comm=bp.dnn.JitFPHomoLinear(ne, ni, prob=p, weight=0.6),
                                         out=bp.dyn.COBA(E=0.),
                                         post=self.I)
       self.I2E = bp.dyn.ProjAlignPreMg1(pre=self.I,
                                         syn=bp.dyn.Expon.desc(size=ni, tau=10.),
-                                        delay=0.1,
+                                        delay=delay,
                                         comm=bp.dnn.JitFPHomoLinear(ni, ne, prob=p, weight=6.7),
                                         out=bp.dyn.COBA(E=-80.),
                                         post=self.E)
       self.I2I = bp.dyn.ProjAlignPreMg1(pre=self.I,
                                         syn=bp.dyn.Expon.desc(size=ni, tau=10.),
-                                        delay=0.1,
+                                        delay=delay,
                                         comm=bp.dnn.JitFPHomoLinear(ni, ni, prob=p, weight=6.7),
                                         out=bp.dyn.COBA(E=-80.),
                                         post=self.I)
@@ -313,13 +330,19 @@ def test_ProjAlignPreMg1_v2():
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=True)
+
+  model = EINet(delay=1.)
+  indices = bm.arange(400)
+  spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
+  bp.visualize.raster_plot(indices, spks, show=True)
+
   bm.clear_buffer_memory()
   plt.close()
 
 
 def test_ProjAlignPreMg2():
   class EINet(bp.DynSysGroup):
-    def __init__(self, scale=1.):
+    def __init__(self, scale=1., delay=None):
       super().__init__()
       ne, ni = int(3200 * scale), int(800 * scale)
       p = 80 / (4000 * scale)
@@ -328,25 +351,25 @@ def test_ProjAlignPreMg2():
       self.I = bp.dyn.LifRefLTC(ni, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.E2E = bp.dyn.ProjAlignPreMg2(pre=self.E,
-                                        delay=0.1,
+                                        delay=delay,
                                         syn=bp.dyn.Expon.desc(size=ne, tau=5.),
                                         comm=bp.dnn.JitFPHomoLinear(ne, ne, prob=p, weight=0.6),
                                         out=bp.dyn.COBA(E=0.),
                                         post=self.E)
       self.E2I = bp.dyn.ProjAlignPreMg2(pre=self.E,
-                                        delay=0.1,
+                                        delay=delay,
                                         syn=bp.dyn.Expon.desc(size=ne, tau=5.),
                                         comm=bp.dnn.JitFPHomoLinear(ne, ni, prob=p, weight=0.6),
                                         out=bp.dyn.COBA(E=0.),
                                         post=self.I)
       self.I2E = bp.dyn.ProjAlignPreMg2(pre=self.I,
-                                        delay=0.1,
+                                        delay=delay,
                                         syn=bp.dyn.Expon.desc(size=ni, tau=10.),
                                         comm=bp.dnn.JitFPHomoLinear(ni, ne, prob=p, weight=6.7),
                                         out=bp.dyn.COBA(E=-80.),
                                         post=self.E)
       self.I2I = bp.dyn.ProjAlignPreMg2(pre=self.I,
-                                        delay=0.1,
+                                        delay=delay,
                                         syn=bp.dyn.Expon.desc(size=ni, tau=10.),
                                         comm=bp.dnn.JitFPHomoLinear(ni, ni, prob=p, weight=6.7),
                                         out=bp.dyn.COBA(E=-80.),
@@ -361,10 +384,16 @@ def test_ProjAlignPreMg2():
       self.I(inp)
       return self.E.spike
 
-  model = EINet()
+  model = EINet(scale=0.2, delay=None)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=True)
+
+  model = EINet(scale=0.2, delay=1.)
+  indices = bm.arange(400)
+  spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
+  bp.visualize.raster_plot(indices, spks, show=True)
+
   bm.clear_buffer_memory()
   plt.close()
 

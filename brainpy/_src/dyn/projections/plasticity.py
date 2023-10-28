@@ -106,10 +106,11 @@ class STDP_Song2000(Projection):
     pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post])
 
   Args:
-    tau_s: float, ArrayType, Callable. The time constant of :math:`A_{pre}`.
-    tau_t: float, ArrayType, Callable. The time constant of :math:`A_{post}`.
-    A1: float, ArrayType, Callable. The increment of :math:`A_{pre}` produced by a spike.
-    A2: float, ArrayType, Callable. The increment of :math:`A_{post}` produced by a spike.
+    tau_s: float. The time constant of :math:`A_{pre}`.
+    tau_t: float. The time constant of :math:`A_{post}`.
+    A1: float. The increment of :math:`A_{pre}` produced by a spike. Must be a positive value.
+    A2: float. The increment of :math:`A_{post}` produced by a spike. Must be a positive value.
+    W_max: float. The maximum weight.
     pre: DynamicalSystem. The pre-synaptic neuron group. 
     delay: int, float. The pre spike delay length. (ms)
     syn: DynamicalSystem. The synapse model.
@@ -133,6 +134,7 @@ class STDP_Song2000(Projection):
       tau_t: Union[float, ArrayType, Callable] = 33.7,
       A1: Union[float, ArrayType, Callable] = 0.96,
       A2: Union[float, ArrayType, Callable] = 0.53,
+      W_max: Optional[float] = None,
       # others
       out_label: Optional[str] = None,
       name: Optional[str] = None,
@@ -176,6 +178,7 @@ class STDP_Song2000(Projection):
     self.refs['post_trace'] = _init_trace_by_align_pre2(post, None, Expon.desc(post.num, tau=tau_t))
 
     # synapse parameters
+    self.W_max = W_max
     self.tau_s = parameter(tau_s, sizes=self.pre_num)
     self.tau_t = parameter(tau_t, sizes=self.post_num)
     self.A1 = parameter(A1, sizes=self.pre_num)
@@ -201,7 +204,7 @@ class STDP_Song2000(Projection):
     Apre = self.refs['pre_trace'].g
     Apost = self.refs['post_trace'].g
     delta_w = - bm.outer(pre_spike, Apost * self.A2) + bm.outer(Apre * self.A1, post_spike)
-    self.comm.update_STDP(delta_w)
+    self.comm.update_STDP(delta_w, constraints=self._weight_clip)
 
     # currents
     current = self.comm(x)
@@ -210,3 +213,7 @@ class STDP_Song2000(Projection):
     else:
       self.refs['out'].bind_cond(current)  # align pre
     return current
+
+  def _weight_clip(self, w):
+    return w if self.W_max is None else bm.minimum(w, self.W_max)
+

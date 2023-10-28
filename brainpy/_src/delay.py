@@ -467,11 +467,12 @@ class DelayAccess(DynamicalSystem):
     super().__init__(mode=delay.mode)
     self.refs = {'delay': delay}
     assert isinstance(delay, Delay)
-    delay.register_entry(delay_entry or self.name, time)
+    self._delay_entry = delay_entry or self.name
+    delay.register_entry(self._delay_entry, time)
     self.indices = indices
 
   def update(self):
-    return self.refs['delay'].at(self.name, *self.indices)
+    return self.refs['delay'].at(self._delay_entry, *self.indices)
 
   def reset_state(self, *args, **kwargs):
     pass
