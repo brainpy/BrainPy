@@ -17,6 +17,9 @@ from brainpy._src.initialize.decay_inits import (
 
 
 from brainpy._src.initialize.random_inits import (
+  calculate_gain,
+)
+from brainpy._src.initialize.random_inits import (
   Normal as Normal,
   Uniform as Uniform,
   VarianceScaling as VarianceScaling,

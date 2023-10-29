@@ -1,21 +1,38 @@
 from typing import Optional, Callable, Union
 
 from brainpy import math as bm, check
-from brainpy._src.delay import DelayAccess, delay_identifier, init_delay_by_return
+from brainpy._src.delay import register_delay_by_return
 from brainpy._src.dyn.synapses.abstract_models import Expon
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.initialize import parameter
-from brainpy._src.mixin import (JointType, ParamDescInit, SupportAutoDelay, BindCondData, AlignPost, SupportSTDP)
+from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay,
+                                BindCondData, AlignPost, SupportSTDP)
 from brainpy.types import ArrayType
-from .aligns import _AlignPost, _AlignPreMg, _get_return
+from .aligns import (_get_return, align_post_add_bef_update,
+                     align_pre2_add_bef_update, add_inp_fun)
 
 __all__ = [
   'STDP_Song2000',
 ]
 
 
+def _init_trace_by_align_pre2(
+    target: DynamicalSystem,
+    delay: Union[None, int, float],
+    syn: ParamDescriber[DynamicalSystem],
+):
+  """Calculate the trace of the target by reusing the existing connections."""
+  check.is_instance(target, DynamicalSystem)
+  check.is_instance(syn, ParamDescriber[DynamicalSystem])
+  # delay initialization
+  delay_cls = register_delay_by_return(target)
+  # synapse initialization
+  syn = align_pre2_add_bef_update(syn, delay, delay_cls)
+  return syn
+
+
 class STDP_Song2000(Projection):
-  r"""Synaptic output with spike-time-dependent plasticity.
+  r"""Spike-time-dependent plasticity proposed by (Song, et. al, 2000).
 
   This model filters the synaptic currents according to the variables: :math:`w`.
 
@@ -86,28 +103,38 @@ class STDP_Song2000(Projection):
       return pre_spike, post_spike, g, Apre, Apost, current, W
 
     indices = bm.arange(0, duration, bm.dt)
-    pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post], jit=True)
+    pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post])
 
   Args:
-    tau_s: float, ArrayType, Callable. The time constant of :math:`A_{pre}`.
-    tau_t: float, ArrayType, Callable. The time constant of :math:`A_{post}`.
-    A1: float, ArrayType, Callable. The increment of :math:`A_{pre}` produced by a spike.
-    A2: float, ArrayType, Callable. The increment of :math:`A_{post}` produced by a spike.
+    tau_s: float. The time constant of :math:`A_{pre}`.
+    tau_t: float. The time constant of :math:`A_{post}`.
+    A1: float. The increment of :math:`A_{pre}` produced by a spike. Must be a positive value.
+    A2: float. The increment of :math:`A_{post}` produced by a spike. Must be a positive value.
+    W_max: float. The maximum weight.
+    pre: DynamicalSystem. The pre-synaptic neuron group. 
+    delay: int, float. The pre spike delay length. (ms)
+    syn: DynamicalSystem. The synapse model.
+    comm: DynamicalSystem. The communication model, for example, dense or sparse connection layers.
+    out: DynamicalSystem. The synaptic current output models.
+    post: DynamicalSystem. The post-synaptic neuron group. 
+    out_label: str. The output label. 
+    name: str. The model name.
   """
 
   def __init__(
       self,
       pre: JointType[DynamicalSystem, SupportAutoDelay],
       delay: Union[None, int, float],
-      syn: ParamDescInit[DynamicalSystem],
+      syn: ParamDescriber[DynamicalSystem],
       comm: JointType[DynamicalSystem, SupportSTDP],
-      out: ParamDescInit[JointType[DynamicalSystem, BindCondData]],
+      out: ParamDescriber[JointType[DynamicalSystem, BindCondData]],
       post: DynamicalSystem,
       # synapse parameters
       tau_s: Union[float, ArrayType, Callable] = 16.8,
       tau_t: Union[float, ArrayType, Callable] = 33.7,
       A1: Union[float, ArrayType, Callable] = 0.96,
       A2: Union[float, ArrayType, Callable] = 0.53,
+      W_max: Optional[float] = None,
       # others
       out_label: Optional[str] = None,
       name: Optional[str] = None,
@@ -117,9 +144,9 @@ class STDP_Song2000(Projection):
 
     # synaptic models
     check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
-    check.is_instance(syn, ParamDescInit[DynamicalSystem])
+    check.is_instance(syn, ParamDescriber[DynamicalSystem])
     check.is_instance(comm, JointType[DynamicalSystem, SupportSTDP])
-    check.is_instance(out, ParamDescInit[JointType[DynamicalSystem, BindCondData]])
+    check.is_instance(out, ParamDescriber[JointType[DynamicalSystem, BindCondData]])
     check.is_instance(post, DynamicalSystem)
     self.pre_num = pre.num
     self.post_num = post.num
@@ -127,102 +154,57 @@ class STDP_Song2000(Projection):
     self.syn = syn
 
     # delay initialization
-    if not pre.has_aft_update(delay_identifier):
-      delay_ins = init_delay_by_return(pre.return_info())
-      pre.add_aft_update(delay_identifier, delay_ins)
-    delay_cls = pre.get_aft_update(delay_identifier)
+    delay_cls = register_delay_by_return(pre)
     delay_cls.register_entry(self.name, delay)
 
+    # synapse and output initialization
     if issubclass(syn.cls, AlignPost):
-      # synapse and output initialization
-      self._post_repr = f'{out_label} // {syn.identifier} // {out.identifier}'
-      if not post.has_bef_update(self._post_repr):
-        syn_cls = syn()
-        out_cls = out()
-        out_name = self.name if out_label is None else f'{out_label} // {self.name}'
-        post.add_inp_fun(out_name, out_cls)
-        post.add_bef_update(self._post_repr, _AlignPost(syn_cls, out_cls))
-      # references
-      self.refs = dict(pre=pre, post=post, out=out)  # invisible to ``self.nodes()``
-      self.refs['delay'] = pre.get_aft_update(delay_identifier)
-      self.refs['syn'] = post.get_bef_update(self._post_repr).syn  # invisible to ``self.node()``
-      self.refs['out'] = post.get_bef_update(self._post_repr).out  # invisible to ``self.node()``
-
+      syn_cls, out_cls = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post,
+                                                   proj_name=self.name)
     else:
-      # synapse initialization
-      self._syn_id = f'Delay({str(delay)}) // {syn.identifier}'
-      if not delay_cls.has_bef_update(self._syn_id):
-        delay_access = DelayAccess(delay_cls, delay)
-        syn_cls = syn()
-        delay_cls.add_bef_update(self._syn_id, _AlignPreMg(delay_access, syn_cls))
-      # output initialization
-      out_name = self.name if out_label is None else f'{out_label} // {self.name}'
-      post.add_inp_fun(out_name, out)
-      # references
-      self.refs = dict(pre=pre, post=post)  # invisible to `self.nodes()`
-      self.refs['delay'] = delay_cls.get_bef_update(self._syn_id)
-      self.refs['syn'] = delay_cls.get_bef_update(self._syn_id).syn
-      self.refs['out'] = out
+      syn_cls = align_pre2_add_bef_update(syn, delay, delay_cls, self.name)
+      out_cls = out()
+      add_inp_fun(out_label, self.name, out_cls, post)
 
-    # trace initialization
-    self.refs['pre_trace'] = self._init_trace(pre, delay, Expon.desc(pre.num, tau=tau_s))
-    self.refs['post_trace'] = self._init_trace(post, None, Expon.desc(post.num, tau=tau_t))
+    # references
+    self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
+    self.refs['delay'] = delay_cls
+    self.refs['syn'] = syn_cls  # invisible to ``self.node()``
+    self.refs['out'] = out_cls  # invisible to ``self.node()``
+
+    # tracing pre-synaptic spikes using Exponential model
+    self.refs['pre_trace'] = _init_trace_by_align_pre2(pre, delay, Expon.desc(pre.num, tau=tau_s))
+    # tracing post-synaptic spikes using Exponential model
+    self.refs['post_trace'] = _init_trace_by_align_pre2(post, None, Expon.desc(post.num, tau=tau_t))
 
     # synapse parameters
+    self.W_max = W_max
     self.tau_s = parameter(tau_s, sizes=self.pre_num)
     self.tau_t = parameter(tau_t, sizes=self.post_num)
     self.A1 = parameter(A1, sizes=self.pre_num)
     self.A2 = parameter(A2, sizes=self.post_num)
 
-  def reset_state(self, *args, **kwargs):
-    pass
-
-  def _init_trace(
-      self,
-      target: DynamicalSystem,
-      delay: Union[None, int, float],
-      syn: ParamDescInit[DynamicalSystem],
-  ):
-    """Calculate the trace of the target."""
-    check.is_instance(target, DynamicalSystem)
-    check.is_instance(syn, ParamDescInit[DynamicalSystem])
-
-    # delay initialization
-    if not target.has_aft_update(delay_identifier):
-      delay_ins = init_delay_by_return(target.return_info())
-      target.add_aft_update(delay_identifier, delay_ins)
-    delay_cls = target.get_aft_update(delay_identifier)
-    delay_cls.register_entry(target.name, delay)
-
-    # synapse initialization
-    _syn_id = f'Delay({str(delay)}) // {syn.identifier}'
-    if not delay_cls.has_bef_update(_syn_id):
-      # delay
-      delay_access = DelayAccess(delay_cls, delay)
-      # synapse
-      syn_cls = syn()
-      # add to "after_updates"
-      delay_cls.add_bef_update(_syn_id, _AlignPreMg(delay_access, syn_cls))
-
-    return delay_cls.get_bef_update(_syn_id).syn
-
   def update(self):
-    # pre spikes, and pre-synaptic variables
+    # pre-synaptic spikes
+    pre_spike = self.refs['delay'].at(self.name)  # spike
+    # pre-synaptic variables
     if issubclass(self.syn.cls, AlignPost):
-      pre_spike = self.refs['delay'].at(self.name)
+      # For AlignPost, we need "pre spikes @ comm matrix" for computing post-synaptic conductance
       x = pre_spike
     else:
-      pre_spike = self.refs['delay'].access()
-      x = _get_return(self.refs['syn'].return_info())
+      # For AlignPre, we need the "pre synapse variable @ comm matrix" for computing post conductance
+      x = _get_return(self.refs['syn'].return_info())  # pre-synaptic variable
 
     # post spikes
+    if not hasattr(self.refs['post'], 'spike'):
+      raise AttributeError(f'{self} needs a "spike" variable for the post-synaptic neuron group.')
     post_spike = self.refs['post'].spike
 
     # weight updates
     Apre = self.refs['pre_trace'].g
     Apost = self.refs['post_trace'].g
     delta_w = - bm.outer(pre_spike, Apost * self.A2) + bm.outer(Apre * self.A1, post_spike)
-    self.comm.update_STDP(delta_w)
+    self.comm.update_STDP(delta_w, constraints=self._weight_clip)
 
     # currents
     current = self.comm(x)
@@ -231,3 +213,7 @@ class STDP_Song2000(Projection):
     else:
       self.refs['out'].bind_cond(current)  # align pre
     return current
+
+  def _weight_clip(self, w):
+    return w if self.W_max is None else bm.minimum(w, self.W_max)
+

@@ -6,7 +6,12 @@ from typing import Union, Callable, Dict, Sequence, Any, Optional
 
 import jax
 import numpy as np
-from jax import linear_util, dtypes, vmap, numpy as jnp, core
+if jax.__version__ >= '0.4.16':
+  from jax.extend import linear_util
+else:
+  from jax import linear_util
+
+from jax import dtypes, vmap, numpy as jnp, core
 from jax._src.api import (_vjp, _jvp)
 from jax.api_util import argnums_partial
 from jax.interpreters import xla
