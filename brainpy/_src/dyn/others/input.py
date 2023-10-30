@@ -228,9 +228,5 @@ class PoissonGroup(NeuDyn):
   def return_info(self):
     return self.spike
 
-  def reset_state(self, batch_size=None, **kwargs):
-    self.spike = variable_(partial(jnp.zeros, dtype=self.spk_type),
-                           self.varshape,
-                           batch_size,
-                           axis_names=self.sharding,
-                           batch_axis_name=bm.sharding.BATCH_AXIS)
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.spike = self.init_variable(partial(jnp.zeros, dtype=self.spk_type), batch_or_mode)

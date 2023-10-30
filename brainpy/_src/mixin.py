@@ -490,6 +490,12 @@ class SupportSTDP(MixIn):
   ):
     raise NotImplementedError
 
+  def stdp_update_on_pre(self, pre_spike, trace, *args, **kwargs):
+    raise NotImplementedError
+
+  def stdp_update_on_post(self, post_spike, trace, *args, **kwargs):
+    raise NotImplementedError
+
 
 T = TypeVar('T')
 

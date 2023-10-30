@@ -14,7 +14,7 @@ from jax.lib import xla_client
 
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
-from brainpy._src.math.op_registers import register_general_batching
+from brainpy._src.math.op_register import register_general_batching
 from brainpy.errors import GPUOperatorNotFound, MathError
 
 try:
