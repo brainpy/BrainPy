@@ -10,7 +10,7 @@ from jax.interpreters import batching
 from jax.lib import xla_client
 
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.op_registers import register_op_with_numba
+from brainpy._src.math.op_register import register_op_with_numba
 from brainpy.errors import GPUOperatorNotFound
 from brainpy._src.math.ndarray import Array
 

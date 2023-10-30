@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.math.op_registers import (
+from brainpy._src.math.op_register import (
   CustomOpByNumba,
-  XLACustomOp,
   compile_cpu_signature_with_numba,
 )
+
+
+from brainpy._src.math.op_register.base import XLACustomOp
 
 
 
