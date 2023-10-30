@@ -21,8 +21,8 @@ class Test_STDP(parameterized.TestCase):
           pre=self.pre,
           delay=1.,
           # comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
-          #                            weight=bp.init.Uniform(-0.1, 0.1)),
-          comm=bp.dnn.AllToAll(self.pre.num, self.post.num, weight=bp.init.Uniform(-0.1, 0.1)),
+          #                            weight=bp.init.Uniform(0., 0.1)),
+          comm=bp.dnn.AllToAll(self.pre.num, self.post.num, weight=bp.init.Uniform(.1, 0.1)),
           syn=bp.dyn.Expon.desc(self.post.varshape, tau=5.),
           out=bp.dyn.COBA.desc(E=0.),
           post=self.post,
@@ -30,6 +30,8 @@ class Test_STDP(parameterized.TestCase):
           tau_t=33.7,
           A1=0.96,
           A2=0.53,
+          W_min=0.,
+          W_max=1.
         )
 
       def update(self, I_pre, I_post):

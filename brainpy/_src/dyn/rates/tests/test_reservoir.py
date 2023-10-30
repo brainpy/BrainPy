@@ -15,7 +15,7 @@ class Test_Reservoir(parameterized.TestCase):
     def test_Reservoir(self, mode):
         bm.random.seed()
         input = bm.random.randn(10, 3)
-        layer = bp.syn.Reservoir(input_shape=3,
+        layer = bp.dyn.Reservoir(input_shape=3,
                                  num_out=5,
                                  mode=mode)
         if mode in [bm.NonBatchingMode()]:
