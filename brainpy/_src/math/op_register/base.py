@@ -8,10 +8,15 @@ from numba.core.dispatcher import Dispatcher
 
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
-from .numba_based import register_numba_cpu_translation_rule
+# if jax.__version__ >= '0.4.16':
+#   from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
+# else:
+#   from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
+from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
 from .taichi_based import (register_taichi_cpu_translation_rule,
                            register_taichi_gpu_translation_rule)
 from .utils import register_general_batching
+
 
 __all__ = [
   'XLACustomOp',
