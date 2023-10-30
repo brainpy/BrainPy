@@ -57,12 +57,10 @@ def _formalize_key(key):
 def _size2shape(size):
   if size is None:
     return ()
-  elif isinstance(size, int):
-    return (size,)
   elif isinstance(size, (tuple, list)):
     return tuple(size)
   else:
-    raise ValueError(f'Must be a list/tuple of int, but got {size}')
+    return (size, )
 
 
 def _check_shape(name, shape, *param_shapes):

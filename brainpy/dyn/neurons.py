@@ -1,5 +1,9 @@
 
 
+from brainpy._src.dyn.neurons.base import (
+  GradNeuDyn,
+)
+
 from brainpy._src.dyn.neurons.lif import (
   Lif,
   LifLTC,

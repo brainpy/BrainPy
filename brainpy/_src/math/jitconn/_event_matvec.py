@@ -18,7 +18,7 @@ from brainpy._src.math.jitconn._matvec import (mv_prob_homo_p,
                                                mv_prob_uniform,
                                                mv_prob_normal)
 from brainpy._src.math.ndarray import _get_dtype
-from brainpy._src.math.op_registers import register_general_batching
+from brainpy._src.math.op_register import register_general_batching
 from brainpy.errors import GPUOperatorNotFound
 
 try:

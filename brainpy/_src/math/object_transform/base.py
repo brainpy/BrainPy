@@ -478,7 +478,7 @@ class BrainPyObject(object):
       check_name_uniqueness(name=name, obj=self)
       return name
 
-  def __save_state__(self, **kwargs) -> Dict[str, Variable]:
+  def __save_state__(self, **kwargs) -> Dict:
     """Save states. """
     return self.vars(include_self=True, level=0).unique().dict()
 
@@ -719,11 +719,12 @@ class NodeDict(dict):
   #     raise TypeError(f'Element should be {BrainPyObject.__name__}, but got {type(elem)}.')
   #   return elem
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args, check_unique: bool = False, **kwargs):
     super().__init__()
+    self.check_unique = check_unique
     self.update(*args, **kwargs)
 
-  def update(self, *args, **kwargs) -> 'VarDict':
+  def update(self, *args, **kwargs) -> 'NodeDict':
     for arg in args:
       if isinstance(arg, dict):
         for k, v in arg.items():
@@ -735,7 +736,11 @@ class NodeDict(dict):
       self[k] = v
     return self
 
-  def __setitem__(self, key, value) -> 'VarDict':
+  def __setitem__(self, key, value) -> 'NodeDict':
+    if self.check_unique:
+      exist = self.get(key, None)
+      if id(exist) != id(value):
+        raise KeyError(f'Duplicate usage of key "{key}". "{key}" has been used for {value}.')
     super().__setitem__(key, value)
     return self
 

@@ -3,6 +3,7 @@
 
 from typing import Dict, Optional, Union, Callable
 
+import numba
 import jax
 import numpy as np
 import jax.numpy as jnp
@@ -227,6 +228,45 @@ class Identity(Layer):
     return x
 
 
+def event_mm(pre_spike, post_inc, weight, w_min, w_max):
+  return weight
+
+
+@numba.njit
+def event_mm_imp(outs, ins):
+  pre_spike, post_inc, weight, w_min, w_max = ins
+  w_min = w_min[()]
+  w_max = w_max[()]
+  outs = outs
+  outs.fill(weight)
+  for i in range(pre_spike.shape[0]):
+    if pre_spike[i]:
+      outs[i] = np.clip(outs[i] + post_inc, w_min, w_max)
+
+
+event_left_mm = bm.CustomOpByNumba(event_mm, event_mm_imp, multiple_results=False)
+
+
+def event_mm2(post_spike, pre_inc, weight, w_min, w_max):
+  return weight
+
+
+@numba.njit
+def event_mm_imp2(outs, ins):
+  post_spike, pre_inc, weight, w_min, w_max = ins
+  w_min = w_min[()]
+  w_max = w_max[()]
+  outs = outs
+  outs.fill(weight)
+  for j in range(post_spike.shape[0]):
+    if post_spike[j]:
+      outs[:, j] = np.clip(outs[:, j] + pre_inc, w_min, w_max)
+
+
+event_right_mm = bm.CustomOpByNumba(event_mm2, event_mm_imp2, multiple_results=False)
+
+
+
 class AllToAll(Layer, SupportSTDP):
   """Synaptic matrix multiplication with All2All connections.
 
@@ -289,20 +329,15 @@ class AllToAll(Layer, SupportSTDP):
         post_val = pre_val @ self.weight
     return post_val
 
-  def update_STDP(self, dW, constraints=None):
-    if isinstance(self.weight, float):
-      raise ValueError(f'Cannot update the weight of a constant node.')
-    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
-      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
-    if self.weight.shape != dW.shape:
-      raise ValueError(f'The shape of delta_weight {dW.shape} '
-                       f'should be the same as the shape of weight {self.weight.shape}.')
+  def stdp_update_on_pre(self, pre_spike, trace, w_min=None, w_max=None):
     if not isinstance(self.weight, bm.Variable):
       self.tracing_variable('weight', self.weight, self.weight.shape)
-    self.weight += dW
-    if constraints is not None:
-      self.weight.value = constraints(self.weight)
+    self.weight.value = event_left_mm(pre_spike, trace, self.weight, w_min, w_max)
 
+  def stdp_update_on_post(self, post_spike, trace, w_min=None, w_max=None):
+    if not isinstance(self.weight, bm.Variable):
+      self.tracing_variable('weight', self.weight, self.weight.shape)
+    self.weight.value = event_right_mm(post_spike, trace, self.weight, w_min, w_max)
 
 
 class OneToOne(Layer, SupportSTDP):
@@ -337,21 +372,6 @@ class OneToOne(Layer, SupportSTDP):
 
   def update(self, pre_val):
     return pre_val * self.weight
-
-  def update_STDP(self, dW, constraints=None):
-    if isinstance(self.weight, float):
-      raise ValueError(f'Cannot update the weight of a constant node.')
-    if not isinstance(dW, (bm.ndarray, jnp.ndarray, np.ndarray)):
-      raise ValueError(f'"delta_weight" must be a array, but got {type(dW)}')
-    dW = dW.sum(axis=0)
-    if self.weight.shape != dW.shape:
-      raise ValueError(f'The shape of delta_weight {dW.shape} '
-                       f'should be the same as the shape of weight {self.weight.shape}.')
-    if not isinstance(self.weight, bm.Variable):
-      self.tracing_variable('weight', self.weight, self.weight.shape)
-    self.weight += dW
-    if constraints is not None:
-      self.weight.value = constraints(self.weight)
 
 
 class MaskedLinear(Layer, SupportSTDP):

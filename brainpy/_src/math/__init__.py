@@ -49,7 +49,7 @@ from .others import *
 from . import random, linalg, fft
 
 # operators
-from .op_registers import *
+from .op_register import *
 from .pre_syn_post import *
 from .surrogate._compt import *
 from . import surrogate, event, sparse, jitconn

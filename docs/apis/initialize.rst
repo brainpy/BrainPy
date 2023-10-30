@@ -8,6 +8,8 @@
    :local:
    :depth: 1
 
+
+
 Basic Initialization Classes
 ----------------------------
 
@@ -65,4 +67,13 @@ Decay Initializers
    GaussianDecay
    DOGDecay
 
+
+Helper Functions
+----------------
+
+
+.. autosummary::
+   :toctree: generated/
+
+   calculate_gain
 

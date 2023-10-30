@@ -13,8 +13,8 @@ class TestPickle(unittest.TestCase):
 
     self.pre = bp.neurons.LIF(10)
     self.post = bp.neurons.LIF(20)
-    self.syn = bp.TwoEndConn(self.pre, self.post, bp.conn.FixedProb(0.2))
-    self.net = bp.Network(self.pre, self.post, self.syn)
+    self.syn = bp.synapses.TwoEndConn(self.pre, self.post, bp.conn.FixedProb(0.2))
+    self.net = bp.DynSysGroup(self.pre, self.post, self.syn)
 
   def test_net(self):
     self.skipTest('Currently do not support')

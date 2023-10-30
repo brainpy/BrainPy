@@ -25,7 +25,7 @@ delay_identifier, init_delay_by_return = None, None
 __all__ = [
   'MixIn',
   'ParamDesc',
-  'ParamDescInit',
+  'ParamDescriber',
   'DelayRegister',
   'AlignPost',
   'Container',
@@ -74,11 +74,11 @@ class ParamDesc(MixIn):
   not_desc_params: Optional[Sequence[str]] = None
 
   @classmethod
-  def desc(cls, *args, **kwargs) -> 'ParamDescInit':
-    return ParamDescInit(cls, *args, **kwargs)
+  def desc(cls, *args, **kwargs) -> 'ParamDescriber':
+    return ParamDescriber(cls, *args, **kwargs)
 
 
-class ParamDescInit(object):
+class ParamDescriber(object):
   """Delayed initialization for parameter describers.
   """
 
@@ -115,7 +115,7 @@ class ParamDescInit(object):
     return self.__call__(*args, **kwargs)
 
   def __instancecheck__(self, instance):
-    if not isinstance(instance, ParamDescInit):
+    if not isinstance(instance, ParamDescriber):
       return False
     if not issubclass(instance.cls, self.cls):
       return False
@@ -123,7 +123,7 @@ class ParamDescInit(object):
 
   @classmethod
   def __class_getitem__(cls, item: type):
-    return ParamDescInit(item)
+    return ParamDescriber(item)
 
   @property
   def identifier(self):
@@ -488,6 +488,12 @@ class SupportSTDP(MixIn):
       dW: Union[bm.Array, jax.Array],
       constraints: Optional[Callable] = None,
   ):
+    raise NotImplementedError
+
+  def stdp_update_on_pre(self, pre_spike, trace, *args, **kwargs):
+    raise NotImplementedError
+
+  def stdp_update_on_post(self, post_spike, trace, *args, **kwargs):
     raise NotImplementedError
 
 
