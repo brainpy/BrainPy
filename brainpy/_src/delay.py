@@ -389,7 +389,11 @@ class VarDelay(Delay):
     else:
       batch_axis = self.target.batch_axis + 1
 
-    f = jax.jit(jnp.zeros, static_argnums=0, static_argnames='dtype', out_shardings=self.sharding)
+    if self.sharding is None:
+      f = jnp.zeros
+    else:
+      f = jax.jit(jnp.zeros, static_argnums=0, static_argnames='dtype', out_shardings=self.sharding)
+
     data = f((length,) + self.target.shape, dtype=self.target.dtype)
     if self.data is None:
       self.data = bm.Variable(data, batch_axis=batch_axis)
