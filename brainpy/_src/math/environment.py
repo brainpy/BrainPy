@@ -583,7 +583,7 @@ def set_membrane_scaling(scaling: scales.Scaling):
   scaling: Scaling
     The instance of :py:class:`~.Scaling`.
   """
-  if not isinstance(scales, scales.Scaling):
+  if not isinstance(scaling, scales.Scaling):
     raise TypeError(f'Must be instance of brainpy.math.Scaling. '
                     f'But we got {type(scaling)}: {scaling}')
   global bm

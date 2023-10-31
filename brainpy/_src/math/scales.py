@@ -21,7 +21,7 @@ class Scaling(object):
     V_min, V_max = V_range
     scaled_V_min, scaled_V_max = scaled_V_range
     scale = (V_max - V_min) / (scaled_V_max - scaled_V_min)
-    bias = V_min - scaled_V_min * scale
+    bias = scaled_V_min * scale - V_min
     return cls(scale=scale, bias=bias)
 
   def offset_scaling(self, x, bias=None, scale=None):
