@@ -16,10 +16,10 @@ from brainpy._src.math.object_transform.base import BrainPyObject
 # else:
 #   from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
 from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
-from .taichi_based import (register_taichi_cpu_translation_rule,
-                           register_taichi_gpu_translation_rule,
-                           encode_md5,
-                           preprocess_kernel_call_cpu,)
+from .taichi_aot_based import (register_taichi_cpu_translation_rule,
+                               register_taichi_gpu_translation_rule,
+                               encode_md5,
+                               preprocess_kernel_call_cpu, )
 from .utils import register_general_batching
 
 

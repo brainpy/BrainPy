@@ -8,6 +8,9 @@ from jax.lib import xla_client
 from jaxlib.hlo_helpers import custom_call
 from numba import types, carray, cfunc
 
+from .utils import _shape_to_layout
+
+
 __all__ = [
   'register_numba_xla_cpu_translation_rule',
   'register_numba_mlir_cpu_translation_rule',
@@ -157,5 +160,3 @@ def register_numba_mlir_cpu_translation_rule(primitive, cpu_kernel, debug=False)
   mlir.register_lowering(primitive, rule, platform='cpu')
 
 
-def _shape_to_layout(shape):
-  return tuple(range(len(shape) - 1, -1, -1))

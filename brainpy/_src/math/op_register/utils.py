@@ -37,5 +37,6 @@ def register_general_batching(prim):
   batching.primitive_batchers[prim] = partial(_general_batching_rule, prim)
 
 
-
+def _shape_to_layout(shape):
+  return tuple(range(len(shape) - 1, -1, -1))
 

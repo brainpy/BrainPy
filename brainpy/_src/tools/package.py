@@ -4,15 +4,18 @@ import numpy as np
 
 try:
   import numba
-  from numba import njit
 except (ImportError, ModuleNotFoundError):
-  njit = numba = None
+  numba = None
 
 try:
   import brainpylib
 except (ImportError, ModuleNotFoundError):
   brainpylib = None
 
+try:
+  import taichi as ti
+except (ImportError, ModuleNotFoundError):
+  ti = None
 
 __all__ = [
   'import_numba',
@@ -23,6 +26,19 @@ __all__ = [
   'SUPPORT_NUMBA',
 ]
 
+
+def import_taichi():
+  if ti is None:
+    raise ModuleNotFoundError(
+      'Taichi is needed. Please install taichi through:\n\n'
+      '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
+    )
+  if ti.__version__ < (1, 7, 0):
+    raise RuntimeError(
+      'We need taichi>=1.7.0. Currently you can install taichi>=1.7.0 through taichi-nightly:\n\n'
+      '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
+    )
+  return ti
 
 
 def import_numba():
@@ -39,17 +55,17 @@ def import_brainpylib():
   return brainpylib
 
 
-SUPPORT_NUMBA = njit is not None
+SUPPORT_NUMBA = numba is not None
 
 
 def numba_jit(f=None, **kwargs):
   if f is None:
-    return lambda f: (f if (njit is None) else njit(f, **kwargs))
+    return lambda f: (f if (numba is None) else numba.njit(f, **kwargs))
   else:
-    if njit is None:
+    if numba is None:
       return f
     else:
-      return njit(f)
+      return numba.njit(f)
 
 
 @numba_jit
@@ -58,7 +74,7 @@ def _seed(seed):
 
 
 def numba_seed(seed):
-  if njit is not None and seed is not None:
+  if numba is not None and seed is not None:
     _seed(seed)
 
 

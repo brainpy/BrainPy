@@ -1,30 +1,24 @@
 import hashlib
 import inspect
+import os
 import pathlib
 import sqlite3
-import os
 from functools import partial, reduce
 from typing import Any
 
-import brainpy.math as bm
-import jaxlib.xla_extension
-import jax.core
 import jax.numpy as jnp
 import numpy as np
 import taichi as ti
-from brainpy._src.math.interoperability import as_jax
 from jax.interpreters import xla
 from jax.lib import xla_client
 
-try: 
-  from brainpylib import cpu_ops
-except:
-  cpu_ops = None
+import brainpy.math as bm
+from .utils import _shape_to_layout
 
-try:
-  from brainpylib import gpu_ops
-except:
-  gpu_ops = None
+taichi_path = ti.__path__[0]
+taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
+os.environ['TAICHI_C_API_INSTALL_DIR'] = taichi_c_api_install_dir
+os.environ['TI_LIB_DIR'] = os.path.join(taichi_c_api_install_dir, 'runtime')
 
 
 ### UTILS ###
@@ -33,45 +27,48 @@ except:
 def get_home_dir():
   return str(pathlib.Path.home())
 
+
 # encode a string with md5
 def encode_md5(source: str) -> str:
-    # create md5 object
-    md5 = hashlib.md5()
+  # create md5 object
+  md5 = hashlib.md5()
 
-    # encode source
-    source_encode = source.encode(encoding='utf-8')
+  # encode source
+  source_encode = source.encode(encoding='utf-8')
 
-    # update md5 object
-    md5.update(source_encode)
+  # update md5 object
+  md5.update(source_encode)
 
-    return md5.hexdigest()
+  return md5.hexdigest()
+
 
 ### VARIABLES ###
 home_path = get_home_dir()
 db_path = os.path.join(home_path, '.brainpy', 'kernels.db')
 kernels_aot_path = os.path.join(home_path, '.brainpy', 'kernels')
 
+
 ### DATABASE ###
 
 # initialize the database
 def init_database():
   if not os.path.exists(os.path.join(home_path, '.brainpy')):
-    os.mkdir(os.path.join(home_path, '.brainpy'))
-    print('Create .brainpy directory')
+    os.makedirs(os.path.join(home_path, '.brainpy'))
   if os.path.exists(db_path):
     if os.path.exists(kernels_aot_path):
       return
     else:
-      os.mkdir(kernels_aot_path)
+      os.makedirs(kernels_aot_path)
   else:
     create_database()
+
 
 # create the database
 def create_database():
   # remove the old database
   if os.path.exists(db_path):
     os.remove(db_path)
-  
+
   # create the new database
   conn = sqlite3.connect(db_path)
 
@@ -84,6 +81,7 @@ def create_database():
             ''')
   conn.commit()
   conn.close()
+
 
 # insert a kernel into the database
 def insert(source_md5_encode: str):
@@ -98,6 +96,7 @@ def insert(source_md5_encode: str):
   conn.commit()
   conn.close()
 
+
 # check if a kernel exists in the database
 def check_kernel_exist(source_md5_encode: str) -> bool:
   # connect to the database
@@ -108,7 +107,7 @@ def check_kernel_exist(source_md5_encode: str) -> bool:
   c.execute('''
     SELECT * FROM kernels WHERE source_md5_encode = ?
     ''', (source_md5_encode,))
-  
+
   # get result
   result = c.fetchone()
   conn.close()
@@ -126,35 +125,27 @@ def check_kernel_exist(source_md5_encode: str) -> bool:
     else:
       return False
 
+
 ### KERNEL AOT BUILD ###
 
 # jnp dtype to taichi type
 type_map4template = {
-        jnp.dtype("bool"): bool,
-        jnp.dtype("int8"): ti.int8,
-        jnp.dtype("int16"): ti.int16,
-        jnp.dtype("int32"): ti.int32,
-        jnp.dtype("int64"): ti.int64,
-        jnp.dtype("uint8"): ti.uint8,
-        jnp.dtype("uint16"): ti.uint16,
-        jnp.dtype("uint32"): ti.uint32,
-        jnp.dtype("uint64"): ti.uint64,
-        jnp.dtype("float16"): ti.float16,
-        jnp.dtype("float32"): ti.float32,
-        jnp.dtype("float64"): ti.float64,
+  jnp.dtype("bool"): bool,
+  jnp.dtype("int8"): ti.int8,
+  jnp.dtype("int16"): ti.int16,
+  jnp.dtype("int32"): ti.int32,
+  jnp.dtype("int64"): ti.int64,
+  jnp.dtype("uint8"): ti.uint8,
+  jnp.dtype("uint16"): ti.uint16,
+  jnp.dtype("uint32"): ti.uint32,
+  jnp.dtype("uint64"): ti.uint64,
+  jnp.dtype("float16"): ti.float16,
+  jnp.dtype("float32"): ti.float32,
+  jnp.dtype("float64"): ti.float64,
 }
 
-# def jnp_array2taichi_field(obj: Any) -> Any:
-#   if isinstance(obj, jnp.ndarray):
-#     return ti.field(dtype=type_map4template[obj.dtype], shape=obj.shape)
-#   elif isinstance(obj, jax.core.ShapedArray):
-#     return ti.field(dtype=type_map4template[obj.dtype], shape=obj.shape)
-#   elif isinstance(obj, jaxlib.xla_extension.XlaOp):
-#     return ti.field(dtype=type_map4template[obj.dtype], shape=obj.shape)
-#   else:
-#     raise TypeError(f"{obj} is not a jnp.ndarray")
-    
-def jnp_array2taichi_field(dtype, shape) -> Any:
+
+def _array_to_field(dtype, shape) -> Any:
   return ti.field(dtype=type_map4template[dtype], shape=shape)
 
 
@@ -166,7 +157,7 @@ def build_kernel(
     outs: dict,
     device: str
 ):
-  #init arch
+  # init arch
   arch = None
   if device == 'cpu':
     arch = ti.x64
@@ -178,19 +169,16 @@ def build_kernel(
   # check arch is available
   if ti.lang.impl.current_cfg().arch != arch:
     raise RuntimeError(f"Arch {arch} is not available")
-  
+
   # replace the name of the func
   kernel.__name__ = f'taichi_kernel_{device}'
-
-  # init kernel
-  # kernel = ti.kernel(kernel)
 
   # init template_args_dict
   template_args_dict = {}
   for key, value in ins.items():
-    template_args_dict[key] = jnp_array2taichi_field(value[0], value[1])
+    template_args_dict[key] = _array_to_field(value[0], value[1])
   for key, value in outs.items():
-    template_args_dict[key] = jnp_array2taichi_field(value[0], value[1])
+    template_args_dict[key] = _array_to_field(value[0], value[1])
 
   # make aot dir
   kernel_path = os.path.join(kernels_aot_path, source_md5_encode)
@@ -201,50 +189,52 @@ def build_kernel(
   mod.add_kernel(kernel, template_args=template_args_dict)
   mod.save(kernel_path)
 
+
 ### KERNEL CALL PREPROCESS ###
 
 # convert type to number
 type_number_map = {
-    int: 0,
-    float: 1,
-    bool: 2,
-    ti.int32: 0,
-    ti.float32: 1,
-    ti.u8: 3,
-    ti.u16: 4,
-    ti.u32: 5,
-    ti.u64: 6,
-    ti.i8: 7,
-    ti.i16: 8,
-    ti.i64: 9,
-    ti.f16: 10,
-    ti.f64: 11,
-    np.dtype('int32'): 0,
-    np.dtype('float32'): 1,
-    np.dtype('bool'): 2,
-    np.dtype('uint8'): 3,
-    np.dtype('uint16'): 4,
-    np.dtype('uint32'): 5,
-    np.dtype('uint64'): 6,
-    np.dtype('int8'): 7,
-    np.dtype('int16'): 8,
-    np.dtype('int64'): 9,
-    np.dtype('float16'): 10,
-    np.dtype('float64'): 11,
+  int: 0,
+  float: 1,
+  bool: 2,
+  ti.int32: 0,
+  ti.float32: 1,
+  ti.u8: 3,
+  ti.u16: 4,
+  ti.u32: 5,
+  ti.u64: 6,
+  ti.i8: 7,
+  ti.i16: 8,
+  ti.i64: 9,
+  ti.f16: 10,
+  ti.f64: 11,
+  np.dtype('int32'): 0,
+  np.dtype('float32'): 1,
+  np.dtype('bool'): 2,
+  np.dtype('uint8'): 3,
+  np.dtype('uint16'): 4,
+  np.dtype('uint32'): 5,
+  np.dtype('uint64'): 6,
+  np.dtype('int8'): 7,
+  np.dtype('int16'): 8,
+  np.dtype('int64'): 9,
+  np.dtype('float16'): 10,
+  np.dtype('float64'): 11,
 }
+
 
 # preprocess kernel call cpu
 def preprocess_kernel_call_cpu(
     source_md5_encode: str,
     ins: list,
     outs: list,
-)-> list:
+) -> list:
   ins_list = []
   max_dim_count = 0
   for value in ins:
     if value.ndim > max_dim_count:
       max_dim_count = value.ndim
-  
+
   for value in outs:
     if value.ndim > max_dim_count:
       max_dim_count = value.ndim
@@ -284,67 +274,14 @@ def preprocess_kernel_call_cpu(
 
   return ins_list
 
-# def preprocess_kernel_call_cpu(
-#     source_md5_encode: str,
-#     ins: dict,
-#     outs: dict,
-# )-> list:
-#   ins_list = []
-#   max_dim_count = 0
-#   for value in ins.values():
-#     if len(value[1]) > max_dim_count:
-#       max_dim_count = len(value[1])
-  
-#   for value in outs.values():
-#     if len(value[1]) > max_dim_count:
-#       max_dim_count = len(value[1])
-
-#   # kernel_path
-#   kernel_path = os.path.join(kernels_aot_path, source_md5_encode)
-#   kernel_path = bytes(kernels_aot_path, encoding='utf-8') + b'\0'
-#   kernel_path = jnp.array(list(kernel_path), dtype=jnp.uint8)
-
-#   # other args
-#   in_out_num = jnp.array([len(ins), len(outs), kernel_path.size], dtype=jnp.uint32)
-#   in_out_type_list = jnp.zeros((len(ins) + len(outs),), dtype=jnp.uint8)
-#   in_out_dim_count_list = jnp.zeros((len(ins) + len(outs),), dtype=jnp.uint8)
-#   in_out_elem_count_list = jnp.zeros((len(ins) + len(outs),), dtype=jnp.uint32)
-#   in_out_shape_list = jnp.zeros((len(ins) + len(outs), max_dim_count), dtype=jnp.uint32)
-
-#   for i, value in enumerate(ins.values()):
-#     in_out_type_list = in_out_type_list.at[i].set(type_number_map[value[0]])
-#     in_out_dim_count_list = in_out_dim_count_list.at[i].set(len(value[1]))
-#     in_out_elem_count_list = in_out_elem_count_list.at[i].set(reduce(lambda x, y: x * y, value[1]))
-#     for j, dim in enumerate(value[1]):
-#       in_out_shape_list = in_out_shape_list.at[i, j].set(dim)
-
-#   for i, value in enumerate(outs.values()):
-#     in_out_type_list = in_out_type_list.at[i + len(ins)].set(type_number_map[value[0]])
-#     in_out_dim_count_list = in_out_dim_count_list.at[i + len(ins)].set(len(value[1]))
-#     in_out_elem_count_list = in_out_elem_count_list.at[i + len(ins)].set(reduce(lambda x, y: x * y, value[1]))
-#     for j, dim in enumerate(value[1]):
-#       in_out_shape_list = in_out_shape_list.at[i + len(ins), j].set(dim)
-
-#   ins_list.append(in_out_num)
-#   ins_list.append(in_out_type_list)
-#   ins_list.append(in_out_dim_count_list)
-#   ins_list.append(in_out_elem_count_list)
-#   ins_list.append(in_out_shape_list)
-#   ins_list.append(kernel_path)
-
-#   return ins_list
 
 def preprocess_kernel_call_gpu(
     source_md5_encode: str,
     ins: dict,
     outs: dict,
-)-> bytes:
-  
+) -> bytes:
   if len(ins) + len(outs) > 8:
-            raise ValueError('The number of ins and outs must be less than 8!')
-        # set ins's array to jax by using as_jax
-  ins_list = []
-
+    raise ValueError('The number of ins and outs must be less than 8!')
   kernel_path = os.path.join(kernels_aot_path, source_md5_encode)
 
   # other args
@@ -375,13 +312,13 @@ def preprocess_kernel_call_gpu(
   in_out_elem_count_list_str = ",".join(str(i) for i in in_out_elem_count_list)
   in_out_shape_list_str = ",".join(str(i) for i in in_out_shape_list)
 
-  opaque = bytes(in_out_num_str, encoding='utf-8') + b';' + \
-           bytes(in_out_type_list_str, encoding='utf-8') + b';' + \
-           bytes(in_out_dim_count_list_str, encoding='utf-8') + b';' + \
-           bytes(in_out_elem_count_list_str, encoding='utf-8') + b';' + \
-           bytes(in_out_shape_list_str, encoding='utf-8') + b';' + \
-           bytes(kernel_path, encoding='utf-8')
-  
+  opaque = (bytes(in_out_num_str, encoding='utf-8') + b';' +
+            bytes(in_out_type_list_str, encoding='utf-8') + b';' +
+            bytes(in_out_dim_count_list_str, encoding='utf-8') + b';' +
+            bytes(in_out_elem_count_list_str, encoding='utf-8') + b';' +
+            bytes(in_out_shape_list_str, encoding='utf-8') + b';' +
+            bytes(kernel_path, encoding='utf-8'))
+
   return opaque
 
 
@@ -400,7 +337,6 @@ def _taichi_cpu_translation_rule(prim, kernel, c, *ins):
   ins_dict = {}
   outs_dict = {}
   in_num = len(ins) - 6
-  out_num = len(outs)
 
   params = inspect.signature(kernel).parameters
   for i, (name, _) in enumerate(params.items()):
@@ -409,36 +345,29 @@ def _taichi_cpu_translation_rule(prim, kernel, c, *ins):
     else:
       outs_dict[name] = (output_dtypes[i - in_num], output_shapes[i - in_num])
 
-  source_md5_encode = encode_md5('cpu' + inspect.getsource(kernel) + \
-                                 str([(value[0], value[1]) for value in ins_dict.values()]) + \
+  source_md5_encode = encode_md5('cpu' + inspect.getsource(kernel) +
+                                 str([(value[0], value[1]) for value in ins_dict.values()]) +
                                  str([(value[0], value[1]) for value in outs_dict.values()]))
 
-  if(not check_kernel_exist(source_md5_encode)):
+  if not check_kernel_exist(source_md5_encode):
     try:
       build_kernel(source_md5_encode, kernel, ins_dict, outs_dict, 'cpu')
-    except:
-      raise RuntimeError('Failed to build kernel')
-    
-  # ins_list = preprocess_kernel_call_cpu(source_md5_encode, ins_dict, outs_dict)
+    except Exception as e:
+      raise RuntimeError('Failed to build kernel') from e
 
-  # convert the array in ins_list to XlaOp
-  # for i in range(len(ins_list)):
-  #   ins_list[i] = c.
-
-  fn = b'taichi_kernel_call_cpu'
-  operands = ins
-  operands_shapes_with_layout = tuple(c.get_shape(value) for value in operands)
+  operands_shapes_with_layout = tuple(c.get_shape(value) for value in ins)
   shape_with_layout = xla_client.Shape.tuple_shape(
-    [xla_client.Shape.array_shape(value.dtype, value.shape, tuple(range(value.ndim))) for value in outs]
+    [xla_client.Shape.array_shape(value.dtype, value.shape, _shape_to_layout(value.shape)) for value in outs]
   )
 
   return xla_client.ops.CustomCallWithLayout(
     c,
-    fn,
-    operands=operands,
+    b'taichi_kernel_call_cpu',
+    operands=ins,
     operand_shapes_with_layout=operands_shapes_with_layout,
     shape_with_layout=shape_with_layout,
   )
+
 
 def _taichi_gpu_translation_rule(prim, kernel, c, *ins):
   outs = prim.abstract_eval()[0]
@@ -450,56 +379,41 @@ def _taichi_gpu_translation_rule(prim, kernel, c, *ins):
   input_shapes = tuple(inp.dimensions() for inp in input_layouts)
 
   init_database()
-  # find the path of taichi in python site_packages
-  taichi_path = ti.__path__[0]
-  taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
 
-  os.environ.update({
-    'TAICHI_C_API_INSTALL_DIR': taichi_c_api_install_dir,
-    'TI_LIB_DIR': os.path.join(taichi_c_api_install_dir, 'runtime')
-  })
-
-  
   # create ins, outs dict from kernel's args
-  ins_dict = {}
-  outs_dict = {}
   in_num = len(ins)
-  out_num = len(outs)
-
   params = inspect.signature(kernel).parameters
-  for i, (name, _) in enumerate(params.items()):
-    if i < in_num:
-      ins_dict[name] = (input_dtypes[i], input_shapes[i])
-    else:
-      outs_dict[name] = (output_dtypes[i - in_num], output_shapes[i - in_num])
-  source_md5_encode = encode_md5('gpu' + inspect.getsource(kernel) + \
-                                 str([(value[0], value[1]) for value in ins_dict.values()]) + \
+  names = tuple(params.keys())
+  in_names = names[:in_num]
+  out_names = names[in_num:]
+  ins_dict = {key: (dtype, shape) for key, shape, dtype in zip(in_names, input_shapes, input_dtypes)}
+  outs_dict = {key: (dtype, shape) for key, shape, dtype in zip(out_names, output_shapes, output_dtypes)}
+  source_md5_encode = encode_md5('gpu' + inspect.getsource(kernel) +
+                                 str([(value[0], value[1]) for value in ins_dict.values()]) +
                                  str([(value[0], value[1]) for value in outs_dict.values()]))
 
-  if(not check_kernel_exist(source_md5_encode)):
+  if not check_kernel_exist(source_md5_encode):
     try:
       build_kernel(source_md5_encode, kernel, ins_dict, outs_dict, 'gpu')
-    except:
-      raise RuntimeError('Failed to build kernel')
-    
+    except Exception as e:
+      raise RuntimeError('Failed to build Taichi GPU kernel') from e
+
   opaque = preprocess_kernel_call_gpu(source_md5_encode, ins_dict, outs_dict)
 
-  fn = b'taichi_kernel_call_gpu'
-
-  operands = ins
-  operands_shapes_with_layout = tuple(c.get_shape(value) for value in operands)
+  operands_shapes_with_layout = tuple(c.get_shape(value) for value in ins)
   shape_with_layout = xla_client.Shape.tuple_shape(
-    [xla_client.Shape.array_shape(value.dtype, value.shape, tuple(range(value.ndim))) for value in outs]
+    [xla_client.Shape.array_shape(value.dtype, value.shape, _shape_to_layout(value.shape)) for value in outs]
   )
 
   return xla_client.ops.CustomCallWithLayout(
     c,
-    fn,
-    operands=operands,
+    b'taichi_kernel_call_gpu',
+    operands=ins,
     operand_shapes_with_layout=operands_shapes_with_layout,
     shape_with_layout=shape_with_layout,
     opaque=opaque,
   )
+
 
 def register_taichi_cpu_translation_rule(primitive, cpu_kernel):
   xla.backend_specific_translations['cpu'][primitive] = partial(_taichi_cpu_translation_rule,
