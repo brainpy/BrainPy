@@ -10,21 +10,17 @@ taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
 os.environ['TAICHI_C_API_INSTALL_DIR'] = taichi_c_api_install_dir
 os.environ['TI_LIB_DIR'] = os.path.join(taichi_c_api_install_dir, 'runtime')
 
-
+# link DLL
 if platform.system() == 'Windows':
   try:
     ctypes.CDLL(taichi_c_api_install_dir + '/bin/taichi_c_api.dll')
   except OSError:
-    raise OSError(
-      f'Please install taichi first. '
-    )
-else:
+    raise OSError(f'Does not found {taichi_c_api_install_dir + "/bin/taichi_c_api.dll"}')
+elif platform.system() == 'Linux':
   try:
     ctypes.CDLL(taichi_c_api_install_dir + '/lib/libtaichi_c_api.so')
   except OSError:
-    raise OSError(
-      f'Please install taichi first. '
-    )
+    raise OSError(f'Does not found {taichi_c_api_install_dir + "/lib/taichi_c_api.dll"}')
 
 # Register the CPU XLA custom calls
 try:
