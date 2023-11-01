@@ -3,3 +3,4 @@ jax
 tqdm
 msgpack
 numba
+taichi-nightly -i https://pypi.taichi.graphics/simple/
