@@ -7,6 +7,7 @@ jaxlib
 matplotlib>=3.4
 scipy>=1.1.0
 numba
+taichi
 
 # document requirements
 pandoc

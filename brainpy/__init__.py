@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.5.post6"
+__version__ = "2.4.6"
 _minimal_brainpylib_version = '0.1.10'
 
 # fundamental supporting modules
@@ -11,15 +11,6 @@ try:
   del jaxlib
 except ModuleNotFoundError:
   raise ModuleNotFoundError(tools.jaxlib_install_info) from None
-
-
-try:
-  import brainpylib
-  if brainpylib.__version__ < _minimal_brainpylib_version:
-    raise SystemError(f'This version of brainpy ({__version__}) needs brainpylib >= {_minimal_brainpylib_version}.')
-  del brainpylib
-except ModuleNotFoundError:
-  pass
 
 #  Part: Math Foundation  #
 # ----------------------- #
