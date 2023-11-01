@@ -7,7 +7,7 @@ jaxlib
 matplotlib>=3.4
 scipy>=1.1.0
 numba
-taichi-nightly -i https://pypi.taichi.graphics/simple/
+taichi
 
 # document requirements
 pandoc

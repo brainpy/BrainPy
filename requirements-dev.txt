@@ -6,7 +6,7 @@ jaxlib
 matplotlib>=3.4
 msgpack
 tqdm
-taichi-nightly -i https://pypi.taichi.graphics/simple/
+taichi
 
 # test requirements
 pytest
