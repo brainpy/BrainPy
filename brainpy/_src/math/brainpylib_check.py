@@ -1,4 +1,15 @@
 from jax.lib import xla_client
+import taichi as ti
+import os
+
+
+taichi_path = ti.__path__[0]
+taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
+import ctypes
+try:
+  ctypes.CDLL(taichi_c_api_install_dir + '/lib/libtaichi_c_api.so')
+except OSError:
+  print('taichi aot custom call, Only support linux now.')
 
 # Register the CPU XLA custom calls
 try:
