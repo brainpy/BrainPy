@@ -15,12 +15,6 @@ from jax.lib import xla_client
 import brainpy.math as bm
 from .utils import _shape_to_layout
 
-taichi_path = ti.__path__[0]
-taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
-os.environ['TAICHI_C_API_INSTALL_DIR'] = taichi_c_api_install_dir
-os.environ['TI_LIB_DIR'] = os.path.join(taichi_c_api_install_dir, 'runtime')
-
-
 ### UTILS ###
 
 # get the path of home directory on Linux, Windows, Mac
