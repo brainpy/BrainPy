@@ -1,11 +1,11 @@
-from jax.lib import xla_client
-import taichi as ti
+import ctypes
 import os
 
+import taichi as ti
+from jax.lib import xla_client
 
 taichi_path = ti.__path__[0]
 taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
-import ctypes
 try:
   ctypes.CDLL(taichi_c_api_install_dir + '/lib/libtaichi_c_api.so')
 except OSError:
@@ -15,7 +15,6 @@ except OSError:
 try:
   import brainpylib
   from brainpylib import cpu_ops
-
   for _name, _value in cpu_ops.registrations().items():
     xla_client.register_custom_call_target(_name, _value, platform="cpu")
 except ImportError:
@@ -25,7 +24,6 @@ except ImportError:
 # Register the GPU XLA custom calls
 try:
   from brainpylib import gpu_ops
-
   for _name, _value in gpu_ops.registrations().items():
     xla_client.register_custom_call_target(_name, _value, platform="gpu")
 except ImportError:
