@@ -12,10 +12,6 @@ try:
 except (ImportError, ModuleNotFoundError):
   brainpylib = None
 
-try:
-  import taichi as ti
-except (ImportError, ModuleNotFoundError):
-  ti = None
 
 __all__ = [
   'import_numba',
@@ -25,20 +21,6 @@ __all__ = [
   'numba_range',
   'SUPPORT_NUMBA',
 ]
-
-
-def import_taichi():
-  if ti is None:
-    raise ModuleNotFoundError(
-      'Taichi is needed. Please install taichi through:\n\n'
-      '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
-    )
-  if ti.__version__ < (1, 7, 0):
-    raise RuntimeError(
-      'We need taichi>=1.7.0. Currently you can install taichi>=1.7.0 through taichi-nightly:\n\n'
-      '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
-    )
-  return ti
 
 
 def import_numba():

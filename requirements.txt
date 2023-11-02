@@ -3,4 +3,3 @@ jax
 tqdm
 msgpack
 numba
-taichi

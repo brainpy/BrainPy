@@ -6,14 +6,14 @@ import sqlite3
 from functools import partial, reduce
 from typing import Any
 
-import jax.numpy as jnp
 import numpy as np
-import taichi as ti
 from jax.interpreters import xla
 from jax.lib import xla_client
 
 import brainpy.math as bm
 from .utils import _shape_to_layout
+from ..brainpylib_check import import_taichi
+
 
 ### UTILS ###
 
@@ -122,25 +122,25 @@ def check_kernel_exist(source_md5_encode: str) -> bool:
 
 ### KERNEL AOT BUILD ###
 
-# jnp dtype to taichi type
-type_map4template = {
-  jnp.dtype("bool"): bool,
-  jnp.dtype("int8"): ti.int8,
-  jnp.dtype("int16"): ti.int16,
-  jnp.dtype("int32"): ti.int32,
-  jnp.dtype("int64"): ti.int64,
-  jnp.dtype("uint8"): ti.uint8,
-  jnp.dtype("uint16"): ti.uint16,
-  jnp.dtype("uint32"): ti.uint32,
-  jnp.dtype("uint64"): ti.uint64,
-  jnp.dtype("float16"): ti.float16,
-  jnp.dtype("float32"): ti.float32,
-  jnp.dtype("float64"): ti.float64,
-}
-
 
 def _array_to_field(dtype, shape) -> Any:
-  return ti.field(dtype=type_map4template[dtype], shape=shape)
+  ti = import_taichi()
+  if dtype == np.bool_:
+    dtype = bool
+  elif dtype == np.int8: dtype= ti.int8
+  elif dtype == np.int16: dtype= ti.int16
+  elif dtype == np.int32: dtype= ti.int32
+  elif dtype == np.int64: dtype= ti.int64
+  elif dtype == np.uint8: dtype= ti.uint8
+  elif dtype == np.uint16: dtype= ti.uint16
+  elif dtype == np.uint32: dtype= ti.uint32
+  elif dtype == np.uint64: dtype= ti.uint64
+  elif dtype == np.float16: dtype= ti.float16
+  elif dtype == np.float32: dtype= ti.float32
+  elif dtype == np.float64: dtype= ti.float64
+  else:
+    raise TypeError
+  return ti.field(dtype=dtype, shape=shape)
 
 
 # build aot kernel
@@ -151,6 +151,8 @@ def build_kernel(
     outs: dict,
     device: str
 ):
+  ti = import_taichi()
+
   # init arch
   arch = None
   if device == 'cpu':
@@ -191,17 +193,6 @@ type_number_map = {
   int: 0,
   float: 1,
   bool: 2,
-  ti.int32: 0,
-  ti.float32: 1,
-  ti.u8: 3,
-  ti.u16: 4,
-  ti.u32: 5,
-  ti.u64: 6,
-  ti.i8: 7,
-  ti.i16: 8,
-  ti.i64: 9,
-  ti.f16: 10,
-  ti.f64: 11,
   np.dtype('int32'): 0,
   np.dtype('float32'): 1,
   np.dtype('bool'): 2,
