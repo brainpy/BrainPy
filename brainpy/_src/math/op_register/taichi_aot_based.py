@@ -2,6 +2,7 @@ import hashlib
 import inspect
 import os
 import pathlib
+import re
 import sqlite3
 from functools import partial, reduce
 from typing import Any
@@ -34,6 +35,31 @@ def encode_md5(source: str) -> str:
   md5.update(source_encode)
 
   return md5.hexdigest()
+
+# get source with dependencies
+def get_source_with_dependencies(func, visited=None):
+    if visited is None:
+        visited = set()
+
+    source = inspect.getsource(func)
+    
+    if func in visited:
+        return ''
+
+    visited.add(func)
+
+    module = inspect.getmodule(func)
+
+    dependent_funcs = re.findall(r'(\w+)\(', source)
+
+    # 递归地获取所有依赖的函数的源代码
+    for func_name in dependent_funcs:
+        # 使用 getattr 来从模块中获取函数
+        dependent_func = getattr(module, func_name, None)
+        if callable(dependent_func):
+            source += get_source_with_dependencies(dependent_func, visited)
+
+    return source
 
 
 ### VARIABLES ###
@@ -330,7 +356,7 @@ def _taichi_cpu_translation_rule(prim, kernel, c, *ins):
     else:
       outs_dict[name] = (output_dtypes[i - in_num], output_shapes[i - in_num])
 
-  source_md5_encode = encode_md5('cpu' + inspect.getsource(kernel) +
+  source_md5_encode = encode_md5('cpu' + get_source_with_dependencies(kernel) +
                                  str([(value[0], value[1]) for value in ins_dict.values()]) +
                                  str([(value[0], value[1]) for value in outs_dict.values()]))
 
@@ -373,7 +399,7 @@ def _taichi_gpu_translation_rule(prim, kernel, c, *ins):
   out_names = names[in_num:]
   ins_dict = {key: (dtype, shape) for key, shape, dtype in zip(in_names, input_shapes, input_dtypes)}
   outs_dict = {key: (dtype, shape) for key, shape, dtype in zip(out_names, output_shapes, output_dtypes)}
-  source_md5_encode = encode_md5('gpu' + inspect.getsource(kernel) +
+  source_md5_encode = encode_md5('gpu' + get_source_with_dependencies(kernel) +
                                  str([(value[0], value[1]) for value in ins_dict.values()]) +
                                  str([(value[0], value[1]) for value in outs_dict.values()]))
 
