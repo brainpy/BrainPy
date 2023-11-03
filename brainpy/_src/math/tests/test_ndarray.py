@@ -111,3 +111,14 @@ class TestVariableView(unittest.TestCase):
     )
 
     self.assertTrue(view.sum() == bm.sum(bm.arange(5) + 10))
+
+
+class TestArrayPriority(unittest.TestCase):
+  def test1(self):
+    a = bm.Array(bm.zeros(10))
+    assert isinstance(a + bm.ones(1).value, bm.Array)
+    assert isinstance(a + np.ones(1), bm.Array)
+    assert isinstance(a * np.ones(1), bm.Array)
+    assert isinstance(np.ones(1) + a, bm.Array)
+    assert isinstance(np.ones(1) * a, bm.Array)
+
