@@ -52,9 +52,7 @@ def get_source_with_dependencies(func, visited=None):
 
     dependent_funcs = re.findall(r'(\w+)\(', source)
 
-    # 递归地获取所有依赖的函数的源代码
     for func_name in dependent_funcs:
-        # 使用 getattr 来从模块中获取函数
         dependent_func = getattr(module, func_name, None)
         if callable(dependent_func):
             source += get_source_with_dependencies(dependent_func, visited)
