@@ -77,7 +77,7 @@ class IFLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -99,7 +99,7 @@ class IFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
 
@@ -124,7 +124,7 @@ class IFLTC(GradNeuDyn):
 
   def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -206,7 +206,7 @@ class LifLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -230,7 +230,7 @@ class LifLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
 
@@ -257,7 +257,7 @@ class LifLTC(GradNeuDyn):
 
   def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -399,7 +399,7 @@ class LifRefLTC(LifLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       detach_spk: bool = False,
       spk_reset: str = 'soft',
       method: str = 'exp_auto',
@@ -429,7 +429,7 @@ class LifRefLTC(LifLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
@@ -673,7 +673,7 @@ class ExpIFLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -699,7 +699,7 @@ class ExpIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
 
@@ -730,7 +730,7 @@ class ExpIFLTC(GradNeuDyn):
 
   def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -1001,7 +1001,7 @@ class ExpIFRefLTC(ExpIFLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       detach_spk: bool = False,
       spk_reset: str = 'soft',
       method: str = 'exp_auto',
@@ -1033,7 +1033,7 @@ class ExpIFRefLTC(ExpIFLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
@@ -1343,7 +1343,7 @@ class AdExIFLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -1373,7 +1373,7 @@ class AdExIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
     # parameters
@@ -1416,7 +1416,7 @@ class AdExIFLTC(GradNeuDyn):
   def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.w = self.std_scaling(self.init_variable(self._w_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -1672,7 +1672,7 @@ class AdExIFRefLTC(AdExIFLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -1708,7 +1708,7 @@ class AdExIFRefLTC(AdExIFLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
@@ -1991,7 +1991,7 @@ class QuaIFLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -2017,7 +2017,7 @@ class QuaIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
     # parameters
@@ -2046,7 +2046,7 @@ class QuaIFLTC(GradNeuDyn):
 
   def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -2255,7 +2255,7 @@ class QuaIFRefLTC(QuaIFLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -2287,7 +2287,7 @@ class QuaIFRefLTC(QuaIFLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
@@ -2554,7 +2554,7 @@ class AdQuaIFLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -2583,7 +2583,7 @@ class AdQuaIFLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
     # parameters
@@ -2624,7 +2624,7 @@ class AdQuaIFLTC(GradNeuDyn):
   def reset_state(self, batch_size=None, **kwargs):
     self.V = self.offset_scaling(self.init_variable(self._V_initializer, batch_size))
     self.w = self.std_scaling(self.init_variable(self._w_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -2856,7 +2856,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -2891,7 +2891,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
@@ -3201,7 +3201,7 @@ class GifLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -3237,7 +3237,7 @@ class GifLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
     # parameters
@@ -3291,7 +3291,7 @@ class GifLTC(GradNeuDyn):
     self.V_th = self.offset_scaling(self.init_variable(self._Vth_initializer, batch_size))
     self.I1 = self.std_scaling(self.init_variable(self._I1_initializer, batch_size))
     self.I2 = self.std_scaling(self.init_variable(self._I2_initializer, batch_size))
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -3581,7 +3581,7 @@ class GifRefLTC(GifLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -3623,7 +3623,7 @@ class GifRefLTC(GifLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
@@ -3952,7 +3952,7 @@ class IzhikevichLTC(GradNeuDyn):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -3982,7 +3982,7 @@ class IzhikevichLTC(GradNeuDyn):
                      spk_fun=spk_fun,
                      detach_spk=detach_spk,
                      method=method,
-                     spk_type=spk_type,
+                     spk_dtype=spk_dtype,
                      spk_reset=spk_reset,
                      scaling=scaling)
     # parameters
@@ -4031,7 +4031,7 @@ class IzhikevichLTC(GradNeuDyn):
     self.V = self.offset_scaling(self.V)
     self.u = self.offset_scaling(self.init_variable(self._u_initializer, batch_size), bias=self.b * self.scaling.bias,
                                  scale=self.scaling.scale)
-    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_type), batch_size)
+    self.spike = self.init_variable(partial(bm.zeros, dtype=self.spk_dtype), batch_size)
 
   def update(self, x=None):
     t = share.load('t')
@@ -4266,7 +4266,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
       keep_size: bool = False,
       mode: Optional[bm.Mode] = None,
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
       method: str = 'exp_auto',
@@ -4302,7 +4302,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
       sharding=sharding,
       spk_fun=spk_fun,
       detach_spk=detach_spk,
-      spk_type=spk_type,
+      spk_dtype=spk_dtype,
       spk_reset=spk_reset,
 
       init_var=False,
