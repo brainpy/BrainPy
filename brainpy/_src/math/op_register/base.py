@@ -22,7 +22,6 @@ from .taichi_aot_based import (register_taichi_cpu_translation_rule,
                                preprocess_kernel_call_cpu, )
 from .utils import register_general_batching
 
-
 __all__ = [
   'XLACustomOp',
 ]
@@ -92,7 +91,7 @@ class XLACustomOp(BrainPyObject):
       name: str = None,
   ):
     super().__init__(name)
-    
+
     # set cpu_kernel and gpu_kernel
     self.cpu_kernel = cpu_kernel
     self.gpu_kernel = gpu_kernel
@@ -105,7 +104,7 @@ class XLACustomOp(BrainPyObject):
     if outs is not None:
       outs = tuple([_transform_to_shapedarray(o) for o in outs])
     self.outs = outs
-    self.primitive.def_abstract_eval(self._abstract_eval)
+    self.primitive.def_abstract_eval(_abstract_eval)
     self.primitive.def_impl(partial(xla.apply_primitive, self.primitive))
 
     # cpu function
@@ -142,15 +141,11 @@ class XLACustomOp(BrainPyObject):
     if transpose_translation is not None:
       ad.primitive_transposes[self.primitive] = transpose_translation
 
-  def _abstract_eval(self, *args, **kwargs):
-    if self.outs is None:
-      raise ValueError('"self.outs" must be defined, but got None.')
-    return self.outs
-
   def __call__(self, *ins, outs: Optional[Sequence[ShapeDtype]] = None):
-    # _set_taichi_envir()
-    if outs is not None:
-      self.outs = tuple([_transform_to_shapedarray(o) for o in outs])
+    if outs is None:
+      outs = self.outs
+    assert outs is not None
+    outs = tuple([_transform_to_shapedarray(o) for o in outs])
     cpu_kernel = getattr(self, "cpu_kernel", None)
     if hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
       source_md5_encode = encode_md5('cpu' + inspect.getsource(cpu_kernel) + \
@@ -160,7 +155,7 @@ class XLACustomOp(BrainPyObject):
       new_ins.extend(ins)
       ins = new_ins
     ins = jax.tree_util.tree_map(_transform_to_array, ins, is_leaf=_is_bp_array)
-    return self.primitive.bind(*ins)
+    return self.primitive.bind(*ins, outs=outs)
 
   def def_abstract_eval(self, fun):
     """Define the abstract evaluation function.
@@ -213,6 +208,11 @@ class XLACustomOp(BrainPyObject):
     mlir.register_lowering(self.primitive, fun, platform)
 
 
+def _abstract_eval(*args, **kwargs):
+  return [jax.core.ShapedArray(out_shape.shape, out_shape.dtype)
+          for out_shape in kwargs['outs']]
+
+
 def _is_bp_array(a):
   return isinstance(a, Array)
 
@@ -229,6 +229,7 @@ def _transform_to_array(a):
 def _transform_to_shapedarray(a):
   return jax.core.ShapedArray(a.shape, a.dtype)
 
+
 def _set_taichi_envir():
   # find the path of taichi in python site_packages
   taichi_path = ti.__path__[0]
@@ -238,4 +239,3 @@ def _set_taichi_envir():
     'TAICHI_C_API_INSTALL_DIR': taichi_c_api_install_dir,
     'TI_LIB_DIR': taichi_lib_dir
   })
-

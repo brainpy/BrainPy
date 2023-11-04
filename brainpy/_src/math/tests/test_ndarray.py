@@ -121,4 +121,9 @@ class TestArrayPriority(unittest.TestCase):
     assert isinstance(a * np.ones(1), bm.Array)
     assert isinstance(np.ones(1) + a, bm.Array)
     assert isinstance(np.ones(1) * a, bm.Array)
+    b = bm.Variable(bm.zeros(10))
+    assert isinstance(b + bm.ones(1).value, bm.Array)
+    assert isinstance(b + np.ones(1), bm.Array)
+    assert isinstance(np.ones(1) + b, bm.Array)
+    assert isinstance(np.ones(1) * b, bm.Array)
 
