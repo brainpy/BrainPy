@@ -19,7 +19,8 @@ from .numba_based import register_numba_xla_cpu_translation_rule as register_num
 from .taichi_aot_based import (register_taichi_cpu_translation_rule,
                                register_taichi_gpu_translation_rule,
                                encode_md5,
-                               preprocess_kernel_call_cpu, )
+                               preprocess_kernel_call_cpu,
+                               get_source_with_dependencies)
 from .utils import register_general_batching
 
 __all__ = [
@@ -148,7 +149,7 @@ class XLACustomOp(BrainPyObject):
     outs = tuple([_transform_to_shapedarray(o) for o in outs])
     cpu_kernel = getattr(self, "cpu_kernel", None)
     if hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
-      source_md5_encode = encode_md5('cpu' + inspect.getsource(cpu_kernel) + \
+      source_md5_encode = encode_md5('cpu' + get_source_with_dependencies(cpu_kernel) + \
                                      str([(value.dtype, value.shape) for value in ins]) + \
                                      str([(value.dtype, value.shape) for value in outs]))
       new_ins = preprocess_kernel_call_cpu(source_md5_encode, ins, outs)

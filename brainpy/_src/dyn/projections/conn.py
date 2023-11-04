@@ -94,7 +94,7 @@ class SynConn(Projection):
       if not isinstance(attr, str):
         raise TypeError(f'Must be string. But got {attr}.')
       if not hasattr(self.post, attr):
-        raise ValueError(f'{self} need "pre" neuron group has attribute "{attr}".')
+        raise ValueError(f'{self} need "post" neuron group has attribute "{attr}".')
 
   def update(self, *args, **kwargs):
     """The function to specify the updating rule.
