@@ -38,7 +38,7 @@ potential therapeutic interventions.
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
+   :template: ion_template.rst
 
    mix_ions
    Ion
