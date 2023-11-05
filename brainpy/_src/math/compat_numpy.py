@@ -27,7 +27,7 @@ __all__ = [
   'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'round',
   'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod',
   'sum', 'diff', 'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum',
-  'cumprod', 'cumsum', 'ediff1d', 'cross', 'trapz', 'isfinite', 'isinf',
+  'cumprod', 'cumsum', 'ediff1d', 'cross', 'isfinite', 'isinf',
   'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
   'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign', 'heaviside',
   'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip', 'angle',
@@ -381,7 +381,10 @@ nanprod = _compatible_with_brainpy_array(jnp.nanprod)
 nansum = _compatible_with_brainpy_array(jnp.nansum)
 ediff1d = _compatible_with_brainpy_array(jnp.ediff1d)
 cross = _compatible_with_brainpy_array(jnp.cross)
-trapz = _compatible_with_brainpy_array(jax.scipy.integrate.trapezoid)
+if jax.__version__ >= '0.4.18':
+  trapz = _compatible_with_brainpy_array(jax.scipy.integrate.trapezoid)
+else:
+  trapz = _compatible_with_brainpy_array(jnp.trapz)
 isfinite = _compatible_with_brainpy_array(jnp.isfinite)
 isinf = _compatible_with_brainpy_array(jnp.isinf)
 isnan = _compatible_with_brainpy_array(jnp.isnan)

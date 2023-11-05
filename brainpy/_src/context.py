@@ -22,6 +22,7 @@ class _ShareContext:
     # -------------
 
     self._arguments = DotDict()
+    self._category = dict()
 
   @property
   def dt(self):
@@ -94,6 +95,20 @@ class _ShareContext:
   def clear(self) -> None:
     """Clear all shared data in this computation context."""
     self._arguments.clear()
+
+  def save_category(self, category, **kwargs):
+    if category not in self._category:
+      self._category[category] = dict()
+    self._category[category].update(**kwargs)
+
+  def clear_category(self, category=None):
+    if category is None:
+      self._category.clear()
+    else:
+      self._category.pop(category)
+
+  def get_category(self, category):
+    return self._category[category]
 
 
 share = _ShareContext()
