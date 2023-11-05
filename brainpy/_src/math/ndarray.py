@@ -1518,6 +1518,8 @@ class Array(object):
   def double(self): return jnp.asarray(self.value, dtype=jnp.float64)
 
 
+setattr(Array, "__array_priority__", 100)
+
 JaxArray = Array
 ndarray = Array
 

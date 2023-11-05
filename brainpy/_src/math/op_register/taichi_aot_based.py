@@ -378,8 +378,8 @@ def _taichi_cpu_translation_rule(prim, kernel, c, *ins):
   )
 
 
-def _taichi_gpu_translation_rule(prim, kernel, c, *ins):
-  outs = prim.abstract_eval()[0]
+def _taichi_gpu_translation_rule(kernel, c, *ins, **kwargs):
+  outs = kwargs['outs']
 
   output_shapes = tuple(out.shape for out in outs)
   output_dtypes = tuple(out.dtype for out in outs)
@@ -425,10 +425,8 @@ def _taichi_gpu_translation_rule(prim, kernel, c, *ins):
 
 
 def register_taichi_cpu_translation_rule(primitive, cpu_kernel):
-  xla.backend_specific_translations['cpu'][primitive] = partial(_taichi_cpu_translation_rule,
-                                                                primitive, cpu_kernel)
+  xla.backend_specific_translations['cpu'][primitive] = partial(_taichi_cpu_translation_rule, cpu_kernel)
 
 
 def register_taichi_gpu_translation_rule(primitive, gpu_kernel):
-  xla.backend_specific_translations['gpu'][primitive] = partial(_taichi_gpu_translation_rule,
-                                                                primitive, gpu_kernel)
+  xla.backend_specific_translations['gpu'][primitive] = partial(_taichi_gpu_translation_rule, gpu_kernel)

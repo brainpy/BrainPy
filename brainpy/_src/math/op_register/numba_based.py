@@ -66,8 +66,8 @@ def _cpu_signature(
   return target_name
 
 
-def _numba_xla_cpu_translation_rule(prim, kernel, debug: bool, c, *ins):
-  outs = prim.abstract_eval()[0]
+def _numba_xla_cpu_translation_rule(kernel, debug: bool, c, *ins, **kwargs):
+  outs = kwargs['outs']
 
   # output information
   output_shapes = tuple(out.shape for out in outs)
@@ -101,12 +101,11 @@ def _numba_xla_cpu_translation_rule(prim, kernel, debug: bool, c, *ins):
 
 def register_numba_xla_cpu_translation_rule(primitive, cpu_kernel, debug=False):
   xla.backend_specific_translations['cpu'][primitive] = partial(_numba_xla_cpu_translation_rule,
-                                                                primitive,
                                                                 cpu_kernel,
                                                                 debug)
 
 
-def _numba_mlir_cpu_translation_rule(kernel, debug: bool, ctx, *ins):
+def _numba_mlir_cpu_translation_rule(kernel, debug: bool, ctx, *ins, **kwargs):
   # output information
   outs = ctx.avals_out
   output_shapes = tuple([out.shape for out in outs])

@@ -29,7 +29,7 @@ class GradNeuDyn(NeuDyn):
       scaling: Optional[bm.Scaling] = None,
 
       spk_fun: Callable = bm.surrogate.InvSquareGrad(),
-      spk_type: Any = None,
+      spk_dtype: Any = None,
       spk_reset: str = 'soft',
       detach_spk: bool = False,
   ):
@@ -43,18 +43,18 @@ class GradNeuDyn(NeuDyn):
     self.spk_reset = spk_reset
     self.spk_fun = is_callable(spk_fun)
     self.detach_spk = detach_spk
-    self._spk_type = spk_type
+    self._spk_dtype = spk_dtype
     if scaling is None:
       self.scaling = bm.get_membrane_scaling()
     else:
       self.scaling = scaling
 
   @property
-  def spk_type(self):
-    if self._spk_type is None:
+  def spk_dtype(self):
+    if self._spk_dtype is None:
       return bm.float_ if isinstance(self.mode, bm.TrainingMode) else bm.bool_
     else:
-      return self._spk_type
+      return self._spk_dtype
 
   def offset_scaling(self, x, bias=None, scale=None):
     s = self.scaling.offset_scaling(x, bias=bias, scale=scale)
