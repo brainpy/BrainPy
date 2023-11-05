@@ -227,3 +227,4 @@ def _transform_to_array(a):
 def _transform_to_shapedarray(a):
   return jax.core.ShapedArray(a.shape, a.dtype)
 
+
