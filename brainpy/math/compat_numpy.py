@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy._src.math.compat_numpy import (
+  trapz as trapz,
   fill_diagonal as fill_diagonal,
   empty as empty,
   empty_like as empty_like,
@@ -95,7 +96,6 @@ from brainpy._src.math.compat_numpy import (
   cumsum as cumsum,
   ediff1d as ediff1d,
   cross as cross,
-  trapz as trapz,
   isfinite as isfinite,
   isinf as isinf,
   isnan as isnan,

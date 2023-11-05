@@ -1,11 +1,8 @@
-import inspect
-import os
 from functools import partial
 from typing import Callable, Sequence, Tuple, Protocol, Optional
 
 import jax
 import numpy as np
-import taichi as ti
 from jax.interpreters import xla, batching, ad, mlir
 from numba.core.dispatcher import Dispatcher
 
@@ -230,13 +227,3 @@ def _transform_to_array(a):
 def _transform_to_shapedarray(a):
   return jax.core.ShapedArray(a.shape, a.dtype)
 
-
-def _set_taichi_envir():
-  # find the path of taichi in python site_packages
-  taichi_path = ti.__path__[0]
-  taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
-  taichi_lib_dir = os.path.join(taichi_path, '_lib', 'runtime')
-  os.environ.update({
-    'TAICHI_C_API_INSTALL_DIR': taichi_c_api_install_dir,
-    'TI_LIB_DIR': taichi_lib_dir
-  })
