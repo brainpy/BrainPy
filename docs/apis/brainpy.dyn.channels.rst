@@ -36,7 +36,7 @@ Base Classes
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
+   :template: ion_template.rst
 
    IonChannel
 
@@ -48,7 +48,7 @@ Calcium Channels
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
+   :template: ion_template.rst
 
    CalciumChannel
    ICaN_IS2008
@@ -65,7 +65,7 @@ Potassium Channels
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
+   :template: ion_template.rst
 
    PotassiumChannel
    IKDR_Ba2002v2
@@ -95,7 +95,7 @@ Sodium Channels
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
+   :template: ion_template.rst
 
    SodiumChannel
    INa_Ba2002
@@ -112,7 +112,7 @@ Other Channels
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
+   :template: ion_template.rst
 
    Ih_HM1992
    Ih_De1996
