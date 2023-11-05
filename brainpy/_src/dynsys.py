@@ -733,13 +733,13 @@ class DynView(Dynamic):
       self.slice_vars[k] = bm.VariableView(v, index)
 
     # sub-nodes
-    nodes = target.nodes(method='relative', level=1, include_self=False).subset(DynamicalSystem)
-    for k, node in nodes.items():
-      if isinstance(node, Dynamic):
-        node = DynView(node, self.index)
-      else:
-        node = DynView(node, self.index)
-      setattr(self, k, node)
+    # nodes = target.nodes(method='relative', level=0, include_self=True).subset(DynamicalSystem)
+    # for k, node in nodes.items():
+    #   if isinstance(node, Dynamic):
+    #     node = DynView(node, self.index)
+    #   else:
+    #     node = DynView(node, self.index)
+    #   setattr(self, k, node)
 
     # initialization
     # get size
