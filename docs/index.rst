@@ -104,7 +104,7 @@ Installation
 
        .. code-block:: bash
 
-          pip install -U "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+          pip install -U "jax[cuda11_local]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
           pip install -U brainpy brainpylib-cu11x  # only on linux
 
@@ -112,7 +112,7 @@ Installation
 
        .. code-block:: bash
 
-          pip install -U "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+          pip install --upgrade "jax[cuda12_local]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
           pip install -U brainpy brainpylib-cu12x  # only on linux
 
