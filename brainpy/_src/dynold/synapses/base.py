@@ -296,7 +296,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
                      mode=mode)
 
     # delay
-    self.delay_step = self.register_delay(f"{self.pre.name}.spike", delay_step, self.pre.spike)
+    self.delay_step = self.pre.register_delay("spike", delay_step, self.pre.spike)
 
     # synaptic dynamics
     self.syn = syn
@@ -317,7 +317,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
 
   def update(self, pre_spike=None, stop_spike_gradient: bool = False):
     if pre_spike is None:
-      pre_spike = self.get_delay_data(f"{self.pre.name}.spike", self.delay_step)
+      pre_spike = self.pre.get_delay_data("spike", self.delay_step)
     if stop_spike_gradient:
       pre_spike = jax.lax.stop_gradient(pre_spike)
     if self.stp is not None:

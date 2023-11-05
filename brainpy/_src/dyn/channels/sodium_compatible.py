@@ -65,9 +65,9 @@ class _INa_p3q_markov(IonChannel):
       mode: bm.Mode = None,
   ):
     super().__init__(size=size,
-                                          keep_size=keep_size,
-                                          name=name,
-                                          mode=mode)
+                     keep_size=keep_size,
+                     name=name,
+                     mode=mode)
 
     # parameters
     self.E = parameter(E, self.varshape, allow_none=False)
@@ -174,13 +174,13 @@ class INa_Ba2002(_INa_p3q_markov):
       mode: bm.Mode = None,
   ):
     super().__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     method=method,
-                                     phi=3 ** ((T - 36) / 10),
-                                     g_max=g_max,
-                                     E=E,
-                                     mode=mode)
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     phi=3 ** ((T - 36) / 10),
+                     g_max=g_max,
+                     E=E,
+                     mode=mode)
     self.T = parameter(T, self.varshape, allow_none=False)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
@@ -261,13 +261,13 @@ class INa_TM1991(_INa_p3q_markov):
       mode: bm.Mode = None,
   ):
     super().__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     method=method,
-                                     E=E,
-                                     phi=phi,
-                                     g_max=g_max,
-                                     mode=mode)
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     E=E,
+                     phi=phi,
+                     g_max=g_max,
+                     mode=mode)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
@@ -348,13 +348,13 @@ class INa_HH1952(_INa_p3q_markov):
       mode: bm.Mode = None,
   ):
     super().__init__(size,
-                                     keep_size=keep_size,
-                                     name=name,
-                                     method=method,
-                                     E=E,
-                                     phi=phi,
-                                     g_max=g_max,
-                                     mode=mode)
+                     keep_size=keep_size,
+                     name=name,
+                     method=method,
+                     E=E,
+                     phi=phi,
+                     g_max=g_max,
+                     mode=mode)
     self.V_sh = parameter(V_sh, self.varshape, allow_none=False)
 
   def f_p_alpha(self, V):
