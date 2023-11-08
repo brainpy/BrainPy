@@ -16,7 +16,6 @@ Operators for Pre-Syn-Post Conversion
    pre2post_mean
    pre2post_event_sum
    pre2post_csr_event_sum
-   pre2post_coo_event_sum
    pre2syn
    syn2post_sum
    syn2post

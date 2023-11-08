@@ -7,7 +7,6 @@ from jax import vmap, jit, ops as jops
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math import event
 from brainpy.errors import MathError
-from brainpy._src import tools
 
 __all__ = [
   # pre-to-post
@@ -20,7 +19,6 @@ __all__ = [
   # pre-to-post event operator
   'pre2post_event_sum',
   'pre2post_csr_event_sum',
-  'pre2post_coo_event_sum',
 
   # pre-to-syn
   'pre2syn',
@@ -102,39 +100,6 @@ def pre2post_event_sum(events,
 
 
 pre2post_csr_event_sum = pre2post_event_sum
-
-
-def pre2post_coo_event_sum(events,
-                           pre_ids,
-                           post_ids,
-                           post_num: int,
-                           values=1.):
-  """The pre-to-post synaptic computation with event-driven summation.
-
-  Parameters
-  ----------
-  events: ArrayType
-    The events, must be bool.
-  pre_ids: ArrayType
-    Pre-synaptic ids.
-  post_ids: ArrayType
-    Post-synaptic ids.
-  post_num: int
-    The number of post-synaptic group.
-  values: float, ArrayType
-    The value to make summation.
-
-  Returns
-  -------
-  out: ArrayType
-    A tensor with the shape of ``post_num``.
-  """
-  events = as_jax(events)
-  post_ids = as_jax(post_ids)
-  pre_ids = as_jax(pre_ids)
-  values = as_jax(values)
-  bl = tools.import_brainpylib()
-  return bl.compat.coo_event_sum(events, pre_ids, post_ids, post_num, values)
 
 
 def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
