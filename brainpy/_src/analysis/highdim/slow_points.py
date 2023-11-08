@@ -17,6 +17,7 @@ from brainpy import optim, losses
 from brainpy._src.analysis import utils, base, constants
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.context import share
+from brainpy._src.helpers import clear_input
 from brainpy._src.runners import check_and_format_inputs, _f_ops
 from brainpy.errors import AnalyzerError, UnsupportedError
 from brainpy.types import ArrayType
@@ -756,7 +757,7 @@ class SlowPointFinder(base.DSAnalyzer):
         v.value = self.excluded_data[k]
 
       # add inputs
-      target.clear_input()
+      clear_input(target)
       self._step_func_input()
 
       # call update functions

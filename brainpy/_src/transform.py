@@ -9,6 +9,7 @@ from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 from brainpy import tools, math as bm
 from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.helpers import clear_input
 from brainpy.check import is_float, is_integer
 from brainpy.types import PyTree
 
@@ -285,6 +286,6 @@ class LoopOverTime(DynamicalSystem):
     outs = self.target(x)
     if self.out_vars is not None:
       outs = (outs, tree_map(bm.as_jax, self.out_vars))
-    self.target.clear_input()
+    clear_input(self.target)
     return outs
 

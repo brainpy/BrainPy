@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import functools
 import inspect
 import time
@@ -17,6 +18,7 @@ from brainpy import math as bm, tools
 from brainpy._src.context import share
 from brainpy._src.deprecations import _input_deprecate_msg
 from brainpy._src.dynsys import DynamicalSystem
+from brainpy._src.helpers import clear_input
 from brainpy._src.running.runner import Runner
 from brainpy.errors import RunningError
 from brainpy.types import Output, Monitor
@@ -632,7 +634,7 @@ class DSRunner(Runner):
     if self.progress_bar:
       id_tap(lambda *arg: self._pbar.update(), ())
     # share.clear_shargs()
-    self.target.clear_input()
+    clear_input(self.target)
 
     if self._memory_efficient:
       id_tap(self._step_mon_on_cpu, mon)

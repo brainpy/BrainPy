@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 __version__ = "2.4.6"
-_minimal_brainpylib_version = '0.1.10'
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
@@ -78,6 +77,8 @@ NeuGroup = NeuGroupNS = dyn.NeuDyn
 
 # shared parameters
 from brainpy._src.context import (share as share)
+from brainpy._src.helpers import (reset_state as reset_state,
+                                  clear_input as clear_input)
 
 
 #  Part: Running  #

@@ -11,6 +11,7 @@ from brainpy import math as bm, tools
 from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.mixin import SupportOnline
+from brainpy._src.helpers import clear_input
 from brainpy._src.runners import _call_fun_with_share
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.types import ArrayType, Output
@@ -236,7 +237,7 @@ class OnlineTrainer(DSTrainer):
     share.save(t=i * self.dt, dt=self.dt, i=i, **shared_args)
 
     # input step
-    self.target.clear_input()
+    clear_input(self.target)
     self._step_func_input()
 
     # update step

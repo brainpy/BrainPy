@@ -149,12 +149,8 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       include_self: bool. Reset states including the node self. Please turn on this if the node has
         implemented its ".reset_state()" function.
     """
-    global IonChaDyn
-    if IonChaDyn is None:
-      from brainpy._src.dyn.base import IonChaDyn
-    child_nodes = self.nodes(include_self=include_self).subset(DynamicalSystem).not_subset(IonChaDyn).unique()
-    for node in child_nodes.values():
-      node.reset_state(*args, **kwargs)
+    from brainpy._src.helpers import reset_state
+    reset_state(self, *args, **kwargs)
 
   def reset_state(self, *args, **kwargs):
     """Reset function which resets local states in this model.
@@ -164,23 +160,24 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
-    raise APIChangedError(
-      '''
-    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed.
-    
-    1. If you are resetting all states in a network by calling ".reset_state()", please use ".reset()" function. 
-       ".reset_state()" only defines the resetting of local states in a local node (excluded its children nodes). 
-    
-    2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
-    
-      '''
-    )
+    pass
+
+    # raise APIChangedError(
+    #   '''
+    # From version >= 2.4.6, the policy of ``.reset_state()`` has been changed.
+    #
+    # 1. If you are resetting all states in a network by calling "net.reset_state()", please use
+    #    "bp.reset_state(net)" function. ".reset_state()" only defines the resetting of local states
+    #    in a local node (excluded its children nodes).
+    #
+    # 2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
+    #
+    #   '''
+    # )
 
   def clear_input(self, *args, **kwargs):
     """Clear the input at the current time step."""
-    nodes = self.nodes(level=1, include_self=False).subset(DynamicalSystem).unique().not_subset(DynView)
-    for node in nodes.values():
-      node.clear_input()
+    pass
 
   def step_run(self, i, *args, **kwargs):
     """The step run function.

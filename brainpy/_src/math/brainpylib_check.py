@@ -4,14 +4,40 @@ import ctypes
 
 from jax.lib import xla_client
 
-
-try:
-  import taichi as ti
-except (ImportError, ModuleNotFoundError):
-  ti = None
+ti = None
+has_import_ti = False
 
 
 def import_taichi():
+  global ti, has_import_ti
+  if not has_import_ti:
+    try:
+      import taichi as ti
+
+      taichi_path = ti.__path__[0]
+      taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
+      os.environ['TAICHI_C_API_INSTALL_DIR'] = taichi_c_api_install_dir
+      os.environ['TI_LIB_DIR'] = os.path.join(taichi_c_api_install_dir, 'runtime')
+
+      # link DLL
+      if platform.system() == 'Windows':
+        try:
+          ctypes.CDLL(taichi_c_api_install_dir + '/bin/taichi_c_api.dll')
+        except OSError:
+          raise OSError(f'Can not find {taichi_c_api_install_dir + "/bin/taichi_c_api.dll"}')
+      elif platform.system() == 'Linux':
+        try:
+          ctypes.CDLL(taichi_c_api_install_dir + '/lib/libtaichi_c_api.so')
+        except OSError:
+          raise OSError(f'Can not find {taichi_c_api_install_dir + "/lib/taichi_c_api.dll"}')
+
+      has_import_ti = True
+    except ModuleNotFoundError:
+      raise ModuleNotFoundError(
+        'Taichi is needed. Please install taichi through:\n\n'
+        '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
+      )
+
   if ti is None:
     raise ModuleNotFoundError(
       'Taichi is needed. Please install taichi through:\n\n'
@@ -24,27 +50,6 @@ def import_taichi():
     )
   return ti
 
-
-if ti is None:
-  is_taichi_installed = False
-else:
-  is_taichi_installed = True
-  taichi_path = ti.__path__[0]
-  taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
-  os.environ['TAICHI_C_API_INSTALL_DIR'] = taichi_c_api_install_dir
-  os.environ['TI_LIB_DIR'] = os.path.join(taichi_c_api_install_dir, 'runtime')
-
-  # link DLL
-  if platform.system() == 'Windows':
-    try:
-      ctypes.CDLL(taichi_c_api_install_dir + '/bin/taichi_c_api.dll')
-    except OSError:
-      raise OSError(f'Can not find {taichi_c_api_install_dir + "/bin/taichi_c_api.dll"}')
-  elif platform.system() == 'Linux':
-    try:
-      ctypes.CDLL(taichi_c_api_install_dir + '/lib/libtaichi_c_api.so')
-    except OSError:
-      raise OSError(f'Can not find {taichi_c_api_install_dir + "/lib/taichi_c_api.dll"}')
 
 # Register the CPU XLA custom calls
 try:
