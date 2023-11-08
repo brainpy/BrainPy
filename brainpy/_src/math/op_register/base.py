@@ -16,7 +16,7 @@ from .numba_based import register_numba_xla_cpu_translation_rule as register_num
 from .taichi_aot_based import (register_taichi_cpu_translation_rule,
                                register_taichi_gpu_translation_rule,
                                encode_md5,
-                               preprocess_kernel_call_cpu,
+                               _preprocess_kernel_call_cpu,
                                get_source_with_dependencies)
 from .utils import register_general_batching
 
@@ -144,14 +144,6 @@ class XLACustomOp(BrainPyObject):
       outs = self.outs
     assert outs is not None
     outs = tuple([_transform_to_shapedarray(o) for o in outs])
-    cpu_kernel = getattr(self, "cpu_kernel", None)
-    if hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
-      source_md5_encode = encode_md5('cpu' + get_source_with_dependencies(cpu_kernel) + \
-                                     str([(value.dtype, value.shape) for value in ins]) + \
-                                     str([(value.dtype, value.shape) for value in outs]))
-      new_ins = preprocess_kernel_call_cpu(source_md5_encode, ins, outs)
-      new_ins.extend(ins)
-      ins = new_ins
     ins = jax.tree_util.tree_map(_transform_to_array, ins, is_leaf=_is_bp_array)
     return self.primitive.bind(*ins, outs=outs)
 
