@@ -14,12 +14,14 @@ import brainpy.math as bm
 from brainpy import optim
 from brainpy import tools
 from brainpy._src.context import share
+from brainpy._src.helpers import clear_input
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.running import constants as c
 from brainpy.errors import UnsupportedError, NoLongerSupportError
 from brainpy.types import ArrayType, Output
 from ._utils import msg
 from .base import DSTrainer
+
 
 __all__ = [
   'BPTT',
@@ -548,7 +550,7 @@ class BPFF(BPTrainer):
     share.save(dt=self.dt)
 
     # input step
-    self.target.clear_input()
+    clear_input(self.target)
     self._step_func_input()
 
     # dynamics update step
