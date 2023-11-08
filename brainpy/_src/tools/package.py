@@ -7,11 +7,6 @@ try:
 except (ImportError, ModuleNotFoundError):
   numba = None
 
-try:
-  import brainpylib
-except (ImportError, ModuleNotFoundError):
-  brainpylib = None
-
 
 __all__ = [
   'import_numba',

@@ -11,13 +11,10 @@ from jax.lib import xla_client
 
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import register_op_with_numba
-from brainpy.errors import GPUOperatorNotFound
 from brainpy._src.math.ndarray import Array
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops
+from brainpy.errors import GPUOperatorNotFound
 
-try:
-  from brainpylib import gpu_ops
-except ImportError:
-  gpu_ops = None
 
 __all__ = [
   'info'
@@ -79,6 +76,7 @@ def _batch_event_info_batching_rule(args, axes):
 
 
 def _event_info_gpu_translation(c, events):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(event_info_p.name)
 

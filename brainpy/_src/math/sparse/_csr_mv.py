@@ -18,12 +18,8 @@ from brainpy._src.math.ndarray import Array
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy._src.math.sparse._utils import csr_to_coo
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops
 from brainpy.errors import GPUOperatorNotFound
-
-try:
-    from brainpylib import gpu_ops
-except ImportError:
-    gpu_ops = None
 
 __all__ = [
     'csrmv',
@@ -256,6 +252,7 @@ mlir.register_lowering(_csrmv_cusparse_p, _csrmv_cusparse_gpu_lowering, platform
 
 
 def _csr_matvec_scalar_gpu_translation(c, data, indices, indptr, vector, *, shape, transpose):
+    gpu_ops = import_brainpylib_gpu_ops()
     if gpu_ops is None:
         raise GPUOperatorNotFound(_csrmv_scalar_p.name)
     if transpose:
@@ -326,6 +323,7 @@ register_general_batching(_csrmv_scalar_p)
 
 
 def _csr_matvec_vector_gpu_translation(c, data, indices, indptr, vector, *, shape, transpose):
+    gpu_ops = import_brainpylib_gpu_ops()
     if gpu_ops is None:
         raise GPUOperatorNotFound(_csrmv_vector_p.name)
     if transpose:
@@ -396,6 +394,7 @@ register_general_batching(_csrmv_vector_p)
 
 
 def _csr_matvec_adaptive_gpu_translation(c, data, indices, indptr, row_blocks, vector, *, shape, transpose):
+    gpu_ops = import_brainpylib_gpu_ops()
     if gpu_ops is None:
         raise GPUOperatorNotFound(_csrmv_adaptive_p.name)
     if transpose:

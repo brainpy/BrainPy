@@ -12,7 +12,7 @@ from jax.interpreters import xla
 from jax.lib import xla_client
 
 from .utils import _shape_to_layout
-from ..brainpylib_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, import_brainpylib_cpu_ops, import_brainpylib_gpu_ops
 
 
 ### UTILS ###
@@ -313,12 +313,16 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
       raise RuntimeError(f'Failed to build kernel:\n\n {codes}') from e
 
   # returns
-  if platform == 'gpu':
+  if platform in ['gpu', 'cuda']:
+    import_brainpylib_gpu_ops()
     opaque = preprocess_kernel_call_gpu(source_md5_encode, ins_dict, outs_dict)
     return opaque
-  else:
+  elif platform == 'cpu':
+    import_brainpylib_cpu_ops()
     in_out_info = _preprocess_kernel_call_cpu(source_md5_encode, abs_ins, abs_outs)
     return in_out_info
+  else:
+    raise ValueError(f'Unknown platform: {platform}')
 
 
 def _taichi_cpu_translation_rule(kernel, c, *ins, **kwargs):

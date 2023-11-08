@@ -12,14 +12,10 @@ from jax.interpreters import ad, xla
 from jax.lib import xla_client
 
 from brainpy._src.math.interoperability import as_jax
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy.errors import GPUOperatorNotFound
-
-try:
-  from brainpylib import gpu_ops
-except ImportError:
-  gpu_ops = None
 
 __all__ = [
   'bcsrmm',
@@ -357,6 +353,7 @@ def _bcsrmm_cutlass_cpu_translation(
 
 
 def _bcsrmm_cutlass_gpu_translation(c, A_data, B_data, B_indices, B_ptr, *, m, k, n, block_size_k, block_size_n):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(_bcsrmm_cutlass_p.name)
 
@@ -426,6 +423,7 @@ def _blocksparse_matmat_back_abstract(
 def _blocksparse_matmat_back_gpu_translation(
     c, A_data, B_data, blocks, *, m, n, k, transpose, block_size_k, block_size_n, blocks_len
 ):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(_bcsrmm_cutlass_back_p.name)
   matrix_info = c.get_shape(A_data)

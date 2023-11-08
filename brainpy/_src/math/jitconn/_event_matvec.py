@@ -10,6 +10,7 @@ from jax.core import ShapedArray, Primitive
 from jax.interpreters import xla, ad
 from jax.lib import xla_client
 
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops, import_brainpylib_cpu_ops
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.jitconn._matvec import (mv_prob_homo_p,
                                                mv_prob_uniform_p,
@@ -20,11 +21,6 @@ from brainpy._src.math.jitconn._matvec import (mv_prob_homo_p,
 from brainpy._src.math.ndarray import _get_dtype
 from brainpy._src.math.op_register import register_general_batching
 from brainpy.errors import GPUOperatorNotFound
-
-try:
-  from brainpylib import gpu_ops
-except ImportError:
-  gpu_ops = None
 
 __all__ = [
   'event_mv_prob_homo',
@@ -167,6 +163,7 @@ def _event_matvec_prob_homo_abstract(
 def _event_matvec_prob_homo_cpu_translation(
     c, events, weight, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  import_brainpylib_cpu_ops()
   n_row, n_col = (shape[1], shape[0]) if transpose else shape
   out_dtype, event_type, type_name = _get_types(c.get_shape(events))
 
@@ -201,6 +198,7 @@ def _event_matvec_prob_homo_cpu_translation(
 def _event_matvec_prob_homo_gpu_translation(
     c, events, weight, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(event_mv_prob_homo_p.name)
 
@@ -349,6 +347,7 @@ def _event_matvec_prob_uniform_abstract(
 def _event_matvec_prob_uniform_cpu_translation(
     c, events, w_low, w_high, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  import_brainpylib_cpu_ops()
   n_row, n_col = (shape[1], shape[0]) if transpose else shape
 
   out_dtype, event_type, type_name = _get_types(c.get_shape(events))
@@ -385,6 +384,7 @@ def _event_matvec_prob_uniform_cpu_translation(
 def _event_matvec_prob_uniform_gpu_translation(
     c, events, w_low, w_high, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(event_mv_prob_uniform_p.name)
 
@@ -541,6 +541,7 @@ def _get_types(event_shape):
 def _event_matvec_prob_normal_cpu_translation(
     c, events, w_mu, w_sigma, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  import_brainpylib_cpu_ops()
   n_row, n_col = (shape[1], shape[0]) if transpose else shape
 
   out_dtype, event_type, type_name = _get_types(c.get_shape(events))
@@ -577,6 +578,7 @@ def _event_matvec_prob_normal_cpu_translation(
 def _event_matvec_prob_normal_gpu_translation(
     c, events, w_mu, w_sigma, clen, seed, *, shape, transpose, outdim_parallel
 ):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(event_mv_prob_normal_p.name)
 

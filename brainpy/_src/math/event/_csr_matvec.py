@@ -27,12 +27,8 @@ from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy._src.math.sparse._csr_mv import csrmv as normal_csrmv
 from brainpy._src.math.sparse._utils import csr_to_coo
+from brainpy._src.dependency_check import (import_brainpylib_gpu_ops)
 from brainpy.errors import GPUOperatorNotFound
-
-try:
-  from brainpylib import gpu_ops
-except ImportError:
-  gpu_ops = None
 
 __all__ = [
   'csrmv'
@@ -455,6 +451,7 @@ def _event_csr_matvec_cpu_translation(c, values, indices, indptr, events, *, sha
 
 
 def _event_csr_matvec_gpu_translation(c, data, indices, indptr, vector, *, shape, transpose):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(event_csr_matvec_p.name)
 
