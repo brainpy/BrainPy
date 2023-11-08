@@ -4,6 +4,9 @@ import ctypes
 
 from jax.lib import xla_client
 
+_minimal_brainpylib_version = '0.1.10'
+_minimal_taichi_version = (1, 7, 0)
+
 ti = None
 has_import_ti = False
 
@@ -12,12 +15,11 @@ def import_taichi():
   global ti, has_import_ti
   if not has_import_ti:
     try:
-      import taichi as ti
-
+      import taichi as ti  # noqa
       taichi_path = ti.__path__[0]
       taichi_c_api_install_dir = os.path.join(taichi_path, '_lib', 'c_api')
-      os.environ['TAICHI_C_API_INSTALL_DIR'] = taichi_c_api_install_dir
-      os.environ['TI_LIB_DIR'] = os.path.join(taichi_c_api_install_dir, 'runtime')
+      os.environ.update({'TAICHI_C_API_INSTALL_DIR': taichi_c_api_install_dir,
+                         'TI_LIB_DIR': os.path.join(taichi_c_api_install_dir, 'runtime')})
 
       # link DLL
       if platform.system() == 'Windows':
@@ -43,9 +45,10 @@ def import_taichi():
       'Taichi is needed. Please install taichi through:\n\n'
       '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
     )
-  if ti.__version__ < (1, 7, 0):
+  if ti.__version__ < _minimal_taichi_version:
     raise RuntimeError(
-      'We need taichi>=1.7.0. Currently you can install taichi>=1.7.0 through taichi-nightly:\n\n'
+      f'We need taichi>={".".join(_minimal_taichi_version)}. '
+      f'Currently you can install taichi>={".".join(_minimal_taichi_version)} through taichi-nightly:\n\n'
       '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
     )
   return ti
@@ -72,7 +75,6 @@ except ImportError:
   gpu_ops = None
 
 # check brainpy and brainpylib version consistency
-_minimal_brainpylib_version = '0.1.10'
 if brainpylib is not None:
   if brainpylib.__version__ < _minimal_brainpylib_version:
     raise SystemError(f'This version of brainpy needs brainpylib >= {_minimal_brainpylib_version}.')
