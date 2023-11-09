@@ -7,7 +7,6 @@ from brainpy._src.math.pre_syn_post import (
 
   pre2post_event_sum,
   pre2post_csr_event_sum,
-  pre2post_coo_event_sum,
 
   pre2syn,
 

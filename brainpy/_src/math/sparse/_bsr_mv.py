@@ -12,12 +12,8 @@ from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy._src.math.sparse._utils import csr_to_coo
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops
 from brainpy.errors import GPUOperatorNotFound
-
-try:
-  from brainpylib import gpu_ops
-except ImportError:
-  gpu_ops = None
 
 __all__ = [
   'cusparse_bcsr_matvec'
@@ -120,6 +116,7 @@ def _cusparse_bcsr_matvec_vector_cpu_translation(c, data, indices, indptr, vecto
 
 
 def _cusparse_bcsr_matvec_vector_gpu_translation(c, data, indices, indptr, vector, *, blocksize, shape, nnzb):
+  gpu_ops = import_brainpylib_gpu_ops()
   if gpu_ops is None:
     raise GPUOperatorNotFound(cusparse_bcsr_matvec_vector_p.name)
 

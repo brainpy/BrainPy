@@ -6,14 +6,7 @@ import unittest
 import brainpy.math as bm
 from jax import vmap
 
-
-
-import brainpylib as bl
 import pytest
-
-if bl.__version__ < '0.1.9':
-  pytest.skip('Need brainpylib>=0.1.9', allow_module_level=True)
-
 
 
 class Test_event_info(unittest.TestCase):

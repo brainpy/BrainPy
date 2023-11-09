@@ -30,8 +30,6 @@ Details in the following.
 #
 
 
-from . import brainpylib_check
-
 # data structure
 from .ndarray import *
 from .delayvars import *
@@ -62,4 +60,3 @@ from .modes import *
 from .environment import *
 from .scales import *
 
-del brainpylib_check

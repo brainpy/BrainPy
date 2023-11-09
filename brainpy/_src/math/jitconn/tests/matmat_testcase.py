@@ -5,8 +5,6 @@ import jax
 import jax.numpy as jnp
 from absl.testing import parameterized
 
-import brainpylib as bl
-
 shapes = [(100, 200),
           (200, 200),
           (10, 1000),
@@ -56,14 +54,14 @@ class Test_matmat_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     matrix = bm.as_jax(rng.random((m, shape[0])))
 
-    r1 = bl.jitconn_ops.matmat_prob_conn_uniform_weight(matrix,
+    r1 = bm.jitconn.matmat_prob_conn_uniform_weight(matrix,
                                                         w_low=w_low,
                                                         w_high=w_high,
                                                         conn_prob=prob,
                                                         shape=shape,
                                                         seed=seed,
                                                         version='v1')
-    r2 = bl.jitconn_ops.matmat_prob_conn_uniform_weight(matrix,
+    r2 = bm.jitconn.matmat_prob_conn_uniform_weight(matrix,
                                                         w_low=w_low,
                                                         w_high=w_high,
                                                         conn_prob=prob,
@@ -72,7 +70,7 @@ class Test_matmat_prob_conn(parameterized.TestCase):
                                                         version='v1')
     self.assertTrue(jnp.allclose(r1, r2))
 
-    f = jax.vmap(lambda a: bl.jitconn_ops.matvec_prob_conn_uniform_weight(
+    f = jax.vmap(lambda a: bm.jitconn.matvec_prob_conn_uniform_weight(
       a, w_low=w_low, w_high=w_high, conn_prob=prob, shape=shape, seed=seed, transpose=True))
     r3 = f(matrix)
     self.assertTrue(jnp.allclose(r1, r3))
@@ -116,13 +114,13 @@ class Test_matmat_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     matrix = bm.as_jax(rng.random((m, shape[0])))
 
-    r1 = bl.jitconn_ops.matmat_prob_conn_normal_weight(matrix,
+    r1 = bm.jitconn.matmat_prob_conn_normal_weight(matrix,
                                                        w_mu=w_mu,
                                                        w_sigma=w_sigma,
                                                        conn_prob=prob,
                                                        shape=shape,
                                                        seed=seed)
-    r2 = bl.jitconn_ops.matmat_prob_conn_normal_weight(matrix,
+    r2 = bm.jitconn.matmat_prob_conn_normal_weight(matrix,
                                                        w_mu=w_mu,
                                                        w_sigma=w_sigma,
                                                        conn_prob=prob,
@@ -131,7 +129,7 @@ class Test_matmat_prob_conn(parameterized.TestCase):
     self.assertTrue(jnp.allclose(r1, r2))
 
     f = jax.vmap(
-      lambda a: bl.jitconn_ops.matvec_prob_conn_normal_weight(
+      lambda a: bm.jitconn.matvec_prob_conn_normal_weight(
         a, w_mu=w_mu, w_sigma=w_sigma, conn_prob=prob, shape=shape, seed=seed, transpose=True)
     )
     r3 = f(matrix)

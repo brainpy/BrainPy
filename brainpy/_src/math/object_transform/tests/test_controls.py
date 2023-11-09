@@ -298,6 +298,35 @@ class TestWhile(unittest.TestCase):
     print(b)
     print()
 
+  def test5(self):
+    bm.random.seed()
+
+    a = bm.Variable(bm.zeros(1))
+    b = bm.Variable(bm.ones(1))
+    c = bm.Variable(bm.ones(1))
+
+    def cond(x, y):
+      a.value += 1
+      return bm.all(a.value < 6.)
+
+    def body(x, y):
+      a.value += x
+      b.value *= y
+      return x + 1, y + 1
+
+    @bm.jit
+    def run(a, b):
+      x, y = bm.while_loop(body, cond, operands=(a, b))
+      return c + x
+
+    run(0., 1.)
+
+    # self.assertTrue(bm.allclose(a, 5.))
+    # self.assertTrue(bm.allclose(b, 1.))
+    # print(a)
+    # print(b)
+    # print()
+
 
 class TestDebugAndCompile(parameterized.TestCase):
   def test_cond1(self):
