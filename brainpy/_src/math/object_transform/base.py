@@ -478,6 +478,14 @@ class BrainPyObject(object):
       check_name_uniqueness(name=name, obj=self)
       return name
 
+  def save_state(self, **kwargs) -> Dict:
+    """Save states as a dictionary. """
+    return self.__save_state__(**kwargs)
+
+  def load_state(self, state_dict: Dict, **kwargs) -> Optional[Tuple[Sequence[str], Sequence[str]]]:
+    """Load states from a dictionary."""
+    return self.__load_state__(state_dict, **kwargs)
+
   def __save_state__(self, **kwargs) -> Dict:
     """Save states. """
     return self.vars(include_self=True, level=0).unique().dict()
@@ -502,7 +510,7 @@ class BrainPyObject(object):
       A dictionary containing a whole state of the module.
     """
     nodes = self.nodes()  # retrieve all nodes
-    return {key: node.__save_state__(**kwargs) for key, node in nodes.items()}
+    return {key: node.save_state(**kwargs) for key, node in nodes.items()}
 
   def load_state_dict(
       self,
@@ -544,7 +552,7 @@ class BrainPyObject(object):
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        r = node.__load_state__(state_dict[name], **kwargs)
+        r = node.load_state(state_dict[name], **kwargs)
         if r is not None:
           missing, unexpected = r
           missing_keys.extend([f'{name}.{key}' for key in missing])

@@ -8,6 +8,7 @@
    :local:
    :depth: 1
 
+
 Numerical Differential Integration
 ----------------------------------
 
@@ -77,5 +78,9 @@ Dynamical System Helpers
    :template: classtemplate.rst
 
    LoopOverTime
+   reset_state
+   save_state
+   load_state
+   clear_input
 
 

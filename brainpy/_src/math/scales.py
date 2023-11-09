@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+from typing import Sequence, Union
+
 __all__ = [
   'Scaling',
   'IdScaling',
@@ -13,11 +15,20 @@ class Scaling(object):
     self.bias = bias
 
   @classmethod
-  def transform(cls, V_range:list, scaled_V_range:list):
-    '''
-    V_range: [V_min, V_max]
-    scaled_V_range: [scaled_V_min, scaled_V_max]
-    '''
+  def transform(
+      cls,
+      V_range: Sequence[Union[float, int]],
+      scaled_V_range: Sequence[Union[float, int]] = (0., 1.)
+  ) -> 'Scaling':
+    """Transform the membrane potential range to a ``Scaling`` instance.
+
+    Args:
+      V_range:   [V_min, V_max]
+      scaled_V_range:  [scaled_V_min, scaled_V_max]
+
+    Returns:
+      The instanced scaling object.
+    """
     V_min, V_max = V_range
     scaled_V_min, scaled_V_max = scaled_V_range
     scale = (V_max - V_min) / (scaled_V_max - scaled_V_min)
