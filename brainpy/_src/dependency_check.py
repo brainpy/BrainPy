@@ -12,28 +12,21 @@ _minimal_brainpylib_version = '0.1.10'
 _minimal_taichi_version = (1, 7, 0)
 
 taichi = None
-has_import_ti = False
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
 
 def import_taichi():
-  global taichi, has_import_ti
-  if not has_import_ti:
+  global taichi
+  if taichi is None:
     try:
       import taichi as taichi  # noqa
-      has_import_ti = True
     except ModuleNotFoundError:
       raise ModuleNotFoundError(
         'Taichi is needed. Please install taichi through:\n\n'
         '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
       )
 
-  if taichi is None:
-    raise ModuleNotFoundError(
-      'Taichi is needed. Please install taichi through:\n\n'
-      '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
-    )
   if taichi.__version__ < _minimal_taichi_version:
     raise RuntimeError(
       f'We need taichi>={_minimal_taichi_version}. '
