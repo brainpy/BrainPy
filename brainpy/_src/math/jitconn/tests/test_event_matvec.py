@@ -13,7 +13,6 @@ is_manual_test = False
 if platform.system() == 'Windows' and not is_manual_test:
   pytest.skip('Under windows, brainpy.math package may need manual tests.', allow_module_level=True)
 
-
 shapes = [(100, 200),
           (10, 1000),
           (2, 1000),
@@ -33,9 +32,9 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     outdim_parallel=[True, False],
     shape=shapes,
     prob=[0.01, 0.1, 0.5],
-    homo_data= [-1., ],
+    homo_data=[-1., ],
     bool_event=[True, False],
-  seed = [1234],
+    seed=[1234],
   )
   def test_homo(self, shape, transpose, outdim_parallel, prob, homo_data, bool_event=True, seed=None, x64=False):
     print(f'_test_homo: '
@@ -96,14 +95,12 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
 
   @parameterized.product(
     transpose=[True, False],
-
-  x64= [True, False],
-    outdim_parallel= [True, False],
-    shape= shapes,
-    prob= [0.01, 0.1, 0.5],
-    bool_event= [True, False],
-
-  seed = [1234],
+    x64=[True, False],
+    outdim_parallel=[True, False],
+    shape=shapes,
+    prob=[0.01, 0.1, 0.5],
+    bool_event=[True, False],
+    seed=[1234],
   )
   def test_homo_vmap(self, shape, transpose, outdim_parallel, prob, bool_event=True, seed=None, x64=False):
     print(f'_test_homo_vmap: '

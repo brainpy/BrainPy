@@ -163,7 +163,7 @@ class STDP_Song2000(Projection):
       syn_cls, out_cls = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post,
                                                    proj_name=self.name)
     else:
-      syn_cls = align_pre2_add_bef_update(syn, delay, delay_cls, self.name)
+      syn_cls = align_pre2_add_bef_update(syn, delay, delay_cls, self.name + '-pre')
       out_cls = out()
       add_inp_fun(out_label, self.name, out_cls, post)
 
@@ -206,9 +206,9 @@ class STDP_Song2000(Projection):
 
     # weight updates
     Apost = self.refs['post_trace'].g
-    self.comm.stdp_update_on_pre(pre_spike, -Apost * self.A2, self.W_min, self.W_max)
+    self.comm.stdp_update(on_pre={"spike": pre_spike, "trace": -Apost * self.A2}, w_min=self.W_min, w_max=self.W_max)
     Apre = self.refs['pre_trace'].g
-    self.comm.stdp_update_on_post(post_spike, Apre * self.A1, self.W_min, self.W_max)
+    self.comm.stdp_update(on_post={"spike": post_spike, "trace": Apre * self.A1}, w_min=self.W_min, w_max=self.W_max)
 
     # synaptic currents
     current = self.comm(x)
