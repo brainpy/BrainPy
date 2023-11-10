@@ -78,6 +78,8 @@ NeuGroup = NeuGroupNS = dyn.NeuDyn
 # shared parameters
 from brainpy._src.context import (share as share)
 from brainpy._src.helpers import (reset_state as reset_state,
+                                  save_state as save_state,
+                                  load_state as load_state,
                                   clear_input as clear_input)
 
 

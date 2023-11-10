@@ -6,7 +6,6 @@ jaxlib
 matplotlib>=3.4
 msgpack
 tqdm
-taichi
 
 # test requirements
 pytest
