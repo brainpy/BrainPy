@@ -249,7 +249,10 @@ class VarDelay(Delay):
       Return the self.
     """
     if entry in self._registered_entries:
-      raise KeyError(f'Entry {entry} has been registered. You can use another key, or reuse the existing key. ')
+      raise KeyError(f'Entry {entry} has been registered. '
+                     f'The existing delay for the key {entry} is {self._registered_entries[entry]}. '
+                     f'The new delay for the key {entry} is {delay_time}. '
+                     f'You can use another key. ')
 
     if isinstance(delay_time, (np.ndarray, jax.Array)):
       assert delay_time.size == 1 and delay_time.ndim == 0

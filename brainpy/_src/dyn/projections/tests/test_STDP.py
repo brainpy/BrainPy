@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import matplotlib.pyplot as plt
+
 import numpy as np
 from absl.testing import parameterized
 
@@ -9,22 +9,67 @@ import brainpy.math as bm
 
 
 class Test_STDP(parameterized.TestCase):
-  def test_STDP(self):
+
+  @parameterized.product(
+    comm_method=['dense', 'csr', 'masked_linear', 'all2all', 'one2one'],
+    delay=[None, 0., 2.],
+    syn_model=['exp', 'dual_exp', 'ampa'],
+    out_model=['cuba', 'coba', 'mg']
+  )
+  def test_STDP(self, comm_method, delay, syn_model, out_model):
     bm.random.seed()
 
     class STDPNet(bp.DynamicalSystem):
       def __init__(self, num_pre, num_post):
         super().__init__()
-        self.pre = bp.dyn.LifRef(num_pre, name='neu1')
-        self.post = bp.dyn.LifRef(num_post, name='neu2')
+        self.pre = bp.dyn.LifRef(num_pre)
+        self.post = bp.dyn.LifRef(num_post)
+
+        if comm_method == 'all2all':
+          comm = bp.dnn.AllToAll(self.pre.num, self.post.num, weight=bp.init.Uniform(.1, 0.1))
+        elif comm_method == 'csr':
+          if syn_model == 'exp':
+            comm = bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+                                         weight=bp.init.Uniform(0., 0.1))
+          else:
+            comm = bp.dnn.CSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+                                    weight=bp.init.Uniform(0., 0.1))
+        elif comm_method == 'masked_linear':
+          comm = bp.dnn.MaskedLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+                                     weight=bp.init.Uniform(0., 0.1))
+        elif comm_method == 'dense':
+          comm = bp.dnn.Dense(self.pre.num, self.post.num, W_initializer=bp.init.Uniform(.1, 0.1))
+        elif comm_method == 'one2one':
+          comm = bp.dnn.OneToOne(self.pre.num, weight=bp.init.Uniform(.1, 0.1))
+        else:
+          raise ValueError
+
+        if syn_model == 'exp':
+          syn = bp.dyn.Expon.desc(self.post.varshape, tau=5.)
+        elif syn_model == 'dual_exp':
+          syn = bp.dyn.DualExpon.desc(self.post.varshape)
+        elif syn_model == 'dual_exp_v2':
+          syn = bp.dyn.DualExponV2.desc(self.post.varshape)
+        elif syn_model == 'ampa':
+          syn = bp.dyn.AMPA.desc(self.post.varshape)
+        else:
+          raise ValueError
+
+        if out_model == 'cuba':
+          out = bp.dyn.CUBA.desc()
+        elif out_model == 'coba':
+          out = bp.dyn.COBA.desc(E=0.)
+        elif out_model == 'mg':
+          out = bp.dyn.MgBlock.desc(E=0.)
+        else:
+          raise ValueError
+
         self.syn = bp.dyn.STDP_Song2000(
           pre=self.pre,
-          delay=1.,
-          # comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
-          #                            weight=bp.init.Uniform(0., 0.1)),
-          comm=bp.dnn.AllToAll(self.pre.num, self.post.num, weight=bp.init.Uniform(.1, 0.1)),
-          syn=bp.dyn.Expon.desc(self.post.varshape, tau=5.),
-          out=bp.dyn.COBA.desc(E=0.),
+          delay=delay,
+          comm=comm,
+          syn=syn,
+          out=out,
           post=self.post,
           tau_s=16.8,
           tau_t=33.7,
@@ -42,7 +87,11 @@ class Test_STDP(parameterized.TestCase):
         Apre = self.syn.refs['pre_trace'].g
         Apost = self.syn.refs['post_trace'].g
         current = self.post.sum_inputs(self.post.V)
-        return self.pre.spike, self.post.spike, conductance, Apre, Apost, current, self.syn.comm.weight.flatten()
+        if comm_method == 'dense':
+          w = self.syn.comm.W.flatten()
+        else:
+          w = self.syn.comm.weight.flatten()
+        return self.pre.spike, self.post.spike, conductance, Apre, Apost, current, w
 
     duration = 300.
     I_pre = bp.inputs.section_input([0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0],
@@ -59,11 +108,13 @@ class Test_STDP(parameterized.TestCase):
     indices = np.arange(int(duration / bm.dt))
     pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post])
 
-    fig, gs = bp.visualize.get_figure(4, 1, 3, 10)
-    bp.visualize.line_plot(indices, g, ax=fig.add_subplot(gs[0, 0]))
-    bp.visualize.line_plot(indices, Apre, ax=fig.add_subplot(gs[1, 0]))
-    bp.visualize.line_plot(indices, Apost, ax=fig.add_subplot(gs[2, 0]))
-    bp.visualize.line_plot(indices, W, ax=fig.add_subplot(gs[3, 0]))
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # fig, gs = bp.visualize.get_figure(4, 1, 3, 10)
+    # bp.visualize.line_plot(indices, g, ax=fig.add_subplot(gs[0, 0]))
+    # bp.visualize.line_plot(indices, Apre, ax=fig.add_subplot(gs[1, 0]))
+    # bp.visualize.line_plot(indices, Apost, ax=fig.add_subplot(gs[2, 0]))
+    # bp.visualize.line_plot(indices, W, ax=fig.add_subplot(gs[3, 0]))
+    # plt.show()
 
     bm.clear_buffer_memory()
+

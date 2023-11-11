@@ -483,17 +483,7 @@ class SupportSTDP(MixIn):
   """Support synaptic plasticity by modifying the weights.
   """
 
-  def update_STDP(
-      self,
-      dW: Union[bm.Array, jax.Array],
-      constraints: Optional[Callable] = None,
-  ):
-    raise NotImplementedError
-
-  def stdp_update_on_pre(self, pre_spike, trace, *args, **kwargs):
-    raise NotImplementedError
-
-  def stdp_update_on_post(self, post_spike, trace, *args, **kwargs):
+  def stdp_update(self, *args, on_pre=None, onn_post=None, **kwargs):
     raise NotImplementedError
 
 
