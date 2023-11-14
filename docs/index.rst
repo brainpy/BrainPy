@@ -116,7 +116,7 @@ Installation
 
           pip install -U brainpy brainpylib-cu12x  # only on linux
 
-For more information about supported accelerators and platforms, and for other installation details, please see installation section.
+For more information about supported accelerators and platforms, and for other installation details, please see `installation <quickstart/installation.html>`_ section.
 
 ----
 
