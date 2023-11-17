@@ -9,6 +9,7 @@ Specifically, these batch running functions include:
 - ``cpu_unordered_parallel``: Performs a parallel unordered map.
 """
 
+import sys
 from collections.abc import Sized
 from typing import (Any, Callable, Generator, Iterable, List,
                     Union, Optional, Sequence, Dict)
@@ -20,6 +21,8 @@ from brainpy.errors import PackageMissingError
 try:
   from pathos.helpers import cpu_count  # noqa
   from pathos.multiprocessing import ProcessPool  # noqa
+  import multiprocess.context as ctx  # noqa
+  ctx._force_start_method('spawn')
 except ModuleNotFoundError:
   cpu_count = None
   ProcessPool = None
@@ -63,6 +66,10 @@ def _parallel(
       A generator which will apply the function to each element of the given Iterables
       in parallel in order with a progress bar.
   """
+  if sys.platform == 'win32' and sys.version_info.minor >= 11:
+    raise NotImplementedError('Multiprocessing is not available in Python >=3.11 on Windows. '
+                              'Please use Linux or MacOS, or Windows with Python <= 3.10.')
+
   if ProcessPool is None or cpu_count is None:
     raise PackageMissingError(
       '''

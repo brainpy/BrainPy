@@ -3,9 +3,10 @@ numba
 brainpylib
 jax
 jaxlib
-matplotlib>=3.4
+matplotlib
 msgpack
 tqdm
+pathos
 
 # test requirements
 pytest
