@@ -102,10 +102,26 @@ If you want to install JAX with both CPU and NVidia GPU support, you must first 
 
     # CUDA 12 installation
     # Note: wheels only available on linux.
-    pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+    pip install --upgrade "jax[cuda12_local]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
     # CUDA 11 installation
     # Note: wheels only available on linux.
+    pip install --upgrade "jax[cuda11_local]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+In the event of a version mismatch error with JAX, such as encountering an error message like:
+
+.. code-block:: text
+
+    CUDA backend failed to initialize: Found CUDA version 12000, but JAX was built against version 12020, which is newer. The copy of CUDA that is installed must be at least as new as the version against which JAX was built. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)
+
+You will need to employ an alternative installation method that aligns with your environment's CUDA version. This can be achieved using the following commands:
+
+.. code-block:: bash
+
+    # CUDA 12 installation
+    pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+    # CUDA 11 installation
     pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 
@@ -217,6 +233,19 @@ For Nvidia GPU users, ``brainpylib`` only support Linux system and WSL2 subsyste
 
     # CUDA 11 installation
     pip install --upgrade brainpylib-cu11x
+
+Dependency 4: taichi
+------------------------
+Now BrainPy supports customized operators implemented in `taichi`_. You can install the latest version of `taichi`_ by:
+
+.. code-block:: bash
+
+    pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly
+
+.. _taichi: https://www.taichi-lang.org
+
+And you can try it in the `operator custom with taichi <../tutorial_advanced/operator_custom_with_taichi.html>`_ tutorial page
+Attention: customized operators is still in the experimental stage. If you meet any problems, please contact us through the issue page.
 
 Running BrainPy with docker
 ------------------------
