@@ -4,8 +4,8 @@ msgpack
 numba
 jax
 jaxlib
-matplotlib>=3.4
-scipy>=1.1.0
+matplotlib
+scipy
 numba
 
 # document requirements
