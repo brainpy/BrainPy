@@ -30,6 +30,7 @@ from brainpy._src.math.environment import (
   clear_buffer_memory as clear_buffer_memory,
   enable_gpu_memory_preallocation as enable_gpu_memory_preallocation,
   disable_gpu_memory_preallocation as disable_gpu_memory_preallocation,
+  gpu_memory_preallocation as gpu_memory_preallocation,
   ditype as ditype,
   dftype as dftype,
 )
