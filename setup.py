@@ -39,7 +39,6 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
 # installation packages
 packages = find_packages(exclude=['lib*', 'docs', 'tests'])
 
-
 # setup
 setup(
   name='brainpy',
@@ -51,12 +50,22 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.8',
-  install_requires=['numpy>=1.15', 'jax', 'tqdm', 'msgpack', 'numba'],
+  install_requires=['numpy>=1.15', 'jax>=0.4.13', 'tqdm', 'msgpack', 'numba'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
     "Documentation": "https://brainpy.readthedocs.io/",
     "Source Code": "https://github.com/brainpy/BrainPy",
+  },
+  dependency_links=[
+    'https://storage.googleapis.com/jax-releases/jax_cuda_releases.html',
+  ],
+  extras_require={
+    'cpu': ['jaxlib>=0.4.13', 'brainpylib'],
+    'cuda': ['jax[cuda]', 'brainpylib-cu11x'],
+    'cuda11': ['jax[cuda11_local]', 'brainpylib-cu11x'],
+    'cuda12': ['jax[cuda12_local]', 'brainpylib-cu12x'],
+    'tpu': ['jax[tpu]'],
   },
   keywords=('computational neuroscience, '
             'brain-inspired computation, '
