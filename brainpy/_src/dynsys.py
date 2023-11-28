@@ -2,8 +2,8 @@
 
 import collections
 import inspect
-import warnings
 import numbers
+import warnings
 from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
@@ -13,7 +13,7 @@ from brainpy._src.context import share
 from brainpy._src.deprecations import _update_deprecate_msg
 from brainpy._src.initialize import parameter, variable_
 from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, _get_delay_tool
-from brainpy.errors import NoImplementationError, UnsupportedError, APIChangedError
+from brainpy.errors import NoImplementationError, UnsupportedError
 from brainpy.types import ArrayType, Shape
 
 __all__ = [
@@ -27,9 +27,9 @@ __all__ = [
   'Dynamic', 'Projection',
 ]
 
-
 IonChaDyn = None
 SLICE_VARS = 'slice_vars'
+the_top_layer_reset_state = True
 
 
 def not_implemented(fun):
@@ -138,16 +138,12 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     """
     raise NotImplementedError('Must implement "update" function by subclass self.')
 
-  def reset(self, *args, include_self: bool = False, **kwargs):
+  def reset(self, *args, **kwargs):
     """Reset function which reset the whole variables in the model (including its children models).
 
     ``reset()`` function is a collective behavior which resets all states in this model.
 
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
-
-    Args::
-      include_self: bool. Reset states including the node self. Please turn on this if the node has
-        implemented its ".reset_state()" function.
     """
     from brainpy._src.helpers import reset_state
     reset_state(self, *args, **kwargs)
@@ -161,19 +157,6 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
     pass
-
-    # raise APIChangedError(
-    #   '''
-    # From version >= 2.4.6, the policy of ``.reset_state()`` has been changed.
-    #
-    # 1. If you are resetting all states in a network by calling "net.reset_state()", please use
-    #    "bp.reset_state(net)" function. ".reset_state()" only defines the resetting of local states
-    #    in a local node (excluded its children nodes).
-    #
-    # 2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
-    #
-    #   '''
-    # )
 
   def clear_input(self, *args, **kwargs):
     """Clear the input at the current time step."""
@@ -344,14 +327,37 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
           return ret
       return update_fun(*args, **kwargs)
 
+  def _compatible_reset_state(self, *args, **kwargs):
+    global the_top_layer_reset_state
+    the_top_layer_reset_state = False
+    try:
+      self.reset(*args, **kwargs)
+    finally:
+      the_top_layer_reset_state = True
+      warnings.warn(
+        '''
+    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.tech/docs/tutorial_toolbox/state_saving_and_loading.html for details.
+  
+    1. If you are resetting all states in a network by calling "net.reset_state(*args, **kwargs)", please use
+       "bp.reset_state(net, *args, **kwargs)" function, or "net.reset(*args, **kwargs)". 
+       ".reset_state()" only defines the resetting of local states in a local node (excluded its children nodes).
+  
+    2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
+
+        ''',
+        DeprecationWarning
+      )
+
   def _get_update_fun(self):
     return object.__getattribute__(self, 'update')
 
   def __getattribute__(self, item):
     if item == 'update':
       return self._compatible_update  # update function compatible with previous ``update()`` function
-    else:
-      return super().__getattribute__(item)
+    if item == 'reset_state':
+      if the_top_layer_reset_state:
+        return self._compatible_reset_state  # reset_state function compatible with previous ``reset_state()`` function
+    return super().__getattribute__(item)
 
   def __repr__(self):
     return f'{self.name}(mode={self.mode})'

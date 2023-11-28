@@ -9,6 +9,7 @@ import sys
 import warnings
 from typing import Any, Callable, TypeVar, cast
 
+import jax
 from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
@@ -682,7 +683,11 @@ def set_host_device_count(n):
   os.environ["XLA_FLAGS"] = " ".join(["--xla_force_host_platform_device_count={}".format(n)] + xla_flags)
 
 
-def clear_buffer_memory(platform=None):
+def clear_buffer_memory(
+    platform: str = None,
+    array: bool = True,
+    compilation: bool = False
+):
   """Clear all on-device buffers.
 
   This function will be very useful when you call models in a Python loop,
@@ -697,18 +702,47 @@ def clear_buffer_memory(platform=None):
   ----------
   platform: str
     The device to clear its memory.
+  array: bool
+    Clear all buffer array.
+  compilation: bool
+    Clear compilation cache.
+
   """
-  for buf in xla_bridge.get_backend(platform=platform).live_buffers():
-    buf.delete()
+  if array:
+    for buf in xla_bridge.get_backend(platform=platform).live_buffers():
+      buf.delete()
+  if compilation:
+    jax.clear_caches()
 
 
-def disable_gpu_memory_preallocation():
-  """Disable pre-allocating the GPU memory."""
+def disable_gpu_memory_preallocation(release_memory: bool = True):
+  """Disable pre-allocating the GPU memory.
+
+  This disables the preallocation behavior. JAX will instead allocate GPU memory as needed,
+  potentially decreasing the overall memory usage. However, this behavior is more prone to
+  GPU memory fragmentation, meaning a JAX program that uses most of the available GPU memory
+  may OOM with preallocation disabled.
+
+  Args:
+    release_memory: bool. Whether we release memory during the computation.
+  """
   os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
-  os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'
+  if release_memory:
+    os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'
 
 
 def enable_gpu_memory_preallocation():
   """Disable pre-allocating the GPU memory."""
   os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'true'
-  os.environ.pop('XLA_PYTHON_CLIENT_ALLOCATOR')
+  os.environ.pop('XLA_PYTHON_CLIENT_ALLOCATOR', None)
+
+
+def gpu_memory_preallocation(percent: float):
+  """GPU memory allocation.
+
+  If preallocation is enabled, this makes JAX preallocate ``percent`` of the total GPU memory,
+  instead of the default 75%. Lowering the amount preallocated can fix OOMs that occur when the JAX program starts.
+  """
+  assert 0. <= percent < 1., f'GPU memory preallocation must be in [0., 1.]. But we got {percent}.'
+  os.environ['XLA_PYTHON_CLIENT_MEM_FRACTION'] = str(percent)
+

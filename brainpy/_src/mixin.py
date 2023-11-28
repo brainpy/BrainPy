@@ -519,19 +519,6 @@ class _MetaUnionType(type):
     return all([issubclass(subclass, cls) for cls in self.__bases__])
 
 
-class UnionType2(MixIn):
-  """Union type for multiple types.
-
-  >>> import brainpy as bp
-  >>>
-  >>> isinstance(bp.dyn.Expon(1), JointType[bp.DynamicalSystem, bp.mixin.ParamDesc, bp.mixin.SupportAutoDelay])
-  """
-
-  @classmethod
-  def __class_getitem__(cls, types: Union[type, Sequence[type]]) -> type:
-    return _MetaUnionType('UnionType', types, {})
-
-
 if sys.version_info.minor > 8:
   class _JointGenericAlias(_UnionGenericAlias, _root=True):
     def __subclasscheck__(self, subclass):
