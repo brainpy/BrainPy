@@ -8,9 +8,8 @@ import jax
 import numba
 import numpy as np
 import taichi as ti
-from jax import core, dtypes
 from jax import numpy as jnp
-from jax.interpreters import ad, mlir, xla
+from jax.interpreters import ad, xla
 from jax.lib import xla_client
 from jaxlib import gpu_sparse
 
@@ -116,6 +115,51 @@ def _sparse_csr_matvec_gpu(values: ti.types.ndarray(ndim=1),
                 r += values[j] * vector[col_indices[j]]
             out[row_i] = r
 
+def _sparse_csr_matvec_jvp(
+        primals, tangents,
+):
+    values, col_indices, row_ptr, vector, shape, transpose = primals
+    values_dot, col_indices_dot, row_ptr_dot, vector_dot, shape_dot, transpose_dot = tangents
+
+    r = _event_csr_matvec_p(values,
+                            col_indices,
+                            row_ptr,
+                            vector,
+                            shape,
+                            transpose,
+                            outs=[jax.ShapeDtypeStruct(
+                                shape=(shape[1] if transpose else shape[0],), 
+                                dtype=values.dtype)])
+
+    assert type(values_dot) is ad.Zero
+    assert type(col_indices_dot) is ad.Zero
+    assert type(row_ptr_dot) is ad.Zero
+    assert type(vector_dot) is ad.Zero
+
+    if type(values_dot) is ad.Zero:
+        if type(vector_dot) is ad.Zero:
+            raise ValueError
+        dr = _event_csr_matvec_p(values,
+                                 col_indices,
+                                 row_ptr,
+                                 vector_dot,
+                                 shape,
+                                 transpose,
+                                 outs=[jax.ShapeDtypeStruct(
+                                     shape=(shape[1] if transpose else shape[0],), 
+                                     dtype=values.dtype)])
+    elif type(vector_dot) is ad.Zero:
+        dr = _event_csr_matvec_p(values_dot,
+                                 col_indices_dot,
+                                 row_ptr_dot,
+                                 vector,
+                                 shape,
+                                 transpose,
+                                 outs=[jax.ShapeDtypeStruct(
+                                    shape=(shape[1] if transpose else shape[0],), 
+                                    dtype=values.dtype)])
+    
+    return r, dr
 
 def csrmv_taichi(
         data: Union[float, jnp.ndarray, Array],
@@ -183,6 +227,8 @@ def csrmv_taichi(
     else:
         _event_csr_matvec_p = XLACustomOp(cpu_kernel=_sparse_csr_matvec_cpu, 
                                          gpu_kernel=_sparse_csr_matvec_gpu)
+        
+    _event_csr_matvec_p.def_jvp_rule(_sparse_csr_matvec_jvp)
 
     shape_list = jnp.array(shape)
     is_transpose = jnp.array(transpose)

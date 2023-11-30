@@ -14,7 +14,7 @@ from jax.lib import xla_client
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (XLACustomOp,
                                            register_general_batching)
-from brainpy._src.math.sparse._csr_mv import csrmv as normal_csrmv
+from brainpy._src.math.sparse._csr_mv_taichi import csrmv_taichi as normal_csrmv_taichi
 from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy._src.dependency_check import (import_brainpylib_cpu_ops,
                                            import_brainpylib_gpu_ops)
@@ -207,8 +207,8 @@ def _event_csr_matvec_gpu(values: ti.types.ndarray(),
 
 
 
-def _event_matvec_jvp(
-        primals, tangents,
+def _event_csr_matvec_jvp(
+        primals, tangents, *, outs
 ):
     values, indices, indptr, events, bool_param_list, shape_list = primals
     values_dot, indices_dot, indptr_dot, events_dot, bool_param_list_dot, shape_list_dot = tangents
@@ -222,15 +222,20 @@ def _event_matvec_jvp(
                            outs=[jax.ShapeDtypeStruct(shape=(shape_list[1] if bool_param_list[0] else shape_list[0],),
                                                       dtype=values.dtype)])
 
-    assert type(values_dot) is ad.Zero
     assert type(indices_dot) is ad.Zero
     assert type(indptr_dot) is ad.Zero
-    assert type(events_dot) is ad.Zero
+    assert type(bool_param_list_dot) is ad.Zero
+    assert type(shape_list_dot) is ad.Zero
 
     if type(values_dot) is ad.Zero:
         if type(events_dot) is ad.Zero:
             raise ValueError
-        # TODO: implement sparse csr matvec first
+        dr = normal_csrmv_taichi(values, 
+                            indices, 
+                            indptr, 
+                            events_dot, 
+                            shape=shape_list, 
+                            transpose=bool_param_list[0])
 
     elif type(events_dot) is ad.Zero:
         dr = _event_csr_matvec_p(values_dot,
@@ -245,6 +250,31 @@ def _event_matvec_jvp(
 
     return r, dr
 
+def _event_csr_matvec_transpose(ct,
+                                values,
+                                indices,
+                                indptr,
+                                events,
+                                bool_param_list,
+                                shape_list,
+                                *,
+                                outs):
+    if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
+        raise ValueError("Cannot transpose with respect to sparse indices.")
+    if ad.is_undefined_primal(events):
+        ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape_list, transpose = not bool_param_list[0])[0]
+        return values, indices, indptr, (ad.Zero(events) if type(ct[0]) is ad.Zero else ct_events)
+    else:
+        if type(ct[0]) is ad.Zero:
+            ct_values = ad.Zero(values)
+        else:
+            if values.aval.shape[0] == 1: # scalar
+                ct_values = csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape_list, transpose = bool_param_list[0])[0]
+                ct_values = jnp.inner(ct[0], ct_values)
+            else: # heterogeneous values
+                row, col = csr_to_coo(indices, indptr)
+                ct_values = events[row] * ct[0][col] if bool_param_list[0] else events[col] * ct[0][row]
+        return ct_values, indices, indptr, events
 
 def csrmv_taichi(
         data: Union[float, jax.Array],
@@ -333,6 +363,8 @@ def csrmv_taichi(
     else:
         _event_csr_matvec_p = XLACustomOp(cpu_kernel=_event_csr_matvec_cpu, 
                                          gpu_kernel=_event_csr_matvec_gpu)
+    _event_csr_matvec_p.def_jvp_rule(_event_csr_matvec_jvp)
+    _event_csr_matvec_p.def_transpose_rule(_event_csr_matvec_transpose)
 
     # computing
     return _event_csr_matvec_p(data,
