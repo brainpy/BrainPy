@@ -141,7 +141,7 @@ def _sparse_csr_matvec_jvp(
     return r, dr
 
 def _sparse_csr_matvec_transpose(
-    ct, data, indices, indptr, vector, *, outs, shape, transpose
+    ct, data, indices, indptr, vector, *, outs, transpose, shape, 
 ):
     if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
         raise ValueError("Cannot transpose with respect to sparse indices.")
@@ -237,7 +237,9 @@ def csrmv_taichi(
                 indices,
                 indptr,
                 vector,
-                outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)]
+                outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)],
+                transpose = transpose,
+                shape=shape
                 )
 
 # transpose
