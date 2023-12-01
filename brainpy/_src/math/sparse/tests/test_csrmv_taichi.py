@@ -239,7 +239,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     homo_data=[-1., 0., 1.]
   )
   def test_homo_grad(self, transpose, shape, homo_data):
-    print(f'test_homo_grad: transpose = {transpose} shape = {shape}, v = {v}')
+    print(f'test_homo_grad: transpose = {transpose} shape = {shape}, homo_data = {homo_data}')
     rng = bm.random.RandomState()
     conn = bp.conn.FixedProb(0.1)
 
