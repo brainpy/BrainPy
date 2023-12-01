@@ -61,7 +61,7 @@ def test_homo_grad(shape, transpose, homo_data):
 
     assert(bm.allclose(r1, r2))
 
-for transpose in transposes:
-   for shape in shapes:
-      for homo_data in homo_datas:
-         test_homo_grad(shape, transpose, homo_data)
+# for transpose in transposes:
+#    for shape in shapes:
+#       for homo_data in homo_datas:
+#          test_homo_grad(shape, transpose, homo_data)
