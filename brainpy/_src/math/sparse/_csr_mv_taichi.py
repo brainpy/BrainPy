@@ -41,7 +41,7 @@ def _sparse_csr_matvec_transpose_cpu(values: ti.types.ndarray(ndim=1),
         ti.loop_config(serialize=True)
         for row_i in range(row_ptr.shape[0] - 1):
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-                out[col_indices[j]] += values[j] * vector[row_i]
+                out[col_indices[j]] += vector[row_i] * values[j]
 
 @ti.kernel
 def _sparse_csr_matvec_cpu(values: ti.types.ndarray(ndim=1), 
