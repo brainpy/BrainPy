@@ -24,229 +24,221 @@ __all__ = [
     'csrmv_taichi'
 ]
 
-_event_csr_matvec_p = None
+@ti.kernel
+def _event_csr_matvec_transpose_bool_cpu(values: ti.types.ndarray(ndim=1),
+                                         indices: ti.types.ndarray(ndim=1),
+                                         indptr: ti.types.ndarray(ndim=1),
+                                         events: ti.types.ndarray(ndim=1),
+                                         out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            if events[row_i]:
+                for j in range(indptr[row_i], indptr[row_i + 1]):
+                    out[indices[j]] += value
+    
+    else:
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            if events[row_i]:
+                for j in range(indptr[row_i], indptr[row_i + 1]):
+                    out[indices[j]] += values[j]
+
 
 @ti.kernel
-def _event_csr_matvec_cpu_transpose(values: ti.types.ndarray(ndim=1),
-                                   indices: ti.types.ndarray(ndim=1),
-                                   indptr: ti.types.ndarray(ndim=1),
-                                   events: ti.types.ndarray(ndim=1),
-                                   bool_param_list: ti.types.ndarray(ndim=1),
-                                   shape_list: ti.types.ndarray(ndim=1),
-                                   out: ti.types.ndarray(ndim=1)):
-    is_event_type_bool_value = bool_param_list[1]
-    is_heter_value = bool_param_list[2]
-    if is_event_type_bool_value:  # type of events is boolean
-        if is_heter_value:  # heter
-            ti.loop_config(serialize=True)
-            for row_i in range(events.shape[0]):
-                if events[row_i]:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += values[j]
+def _event_csr_matvec_transpose_cpu(values: ti.types.ndarray(ndim=1),
+                                    indices: ti.types.ndarray(ndim=1),
+                                    indptr: ti.types.ndarray(ndim=1),
+                                    events: ti.types.ndarray(ndim=1),
+                                    out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            if events[row_i] > 0.:
+                for j in range(indptr[row_i], indptr[row_i + 1]):
+                    out[indices[j]] += value
+    
+    else:
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            if events[row_i] > 0.:
+                for j in range(indptr[row_i], indptr[row_i + 1]):
+                    out[indices[j]] += values[j]
 
-        else:  # homo
-            value = values[0]
-            ti.loop_config(serialize=True)
-            for row_i in range(events.shape[0]):
-                if events[row_i]:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += value
 
-    else:  # type of events is not boolean
-        if is_heter_value:  # heter
-            ti.loop_config(serialize=True)
-            for row_i in range(events.shape[0]):
-                if events[row_i] > 0.:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += values[j]
-
-        else:  # homo
-            value = values[0]
-            ti.loop_config(serialize=True)
-            for row_i in range(events.shape[0]):
-                if events[row_i] > 0.:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += value
-
+@ti.kernel
+def _event_csr_matvec_bool_cpu(values: ti.types.ndarray(ndim=1),
+                               indices: ti.types.ndarray(ndim=1),
+                               indptr: ti.types.ndarray(ndim=1),
+                               events: ti.types.ndarray(ndim=1),
+                               out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]]:
+                    r += value
+            out[row_i] = r
+    
+    else:
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]]:
+                    r += values[j]
+            out[row_i] = r
 
 @ti.kernel
 def _event_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
-                         indices: ti.types.ndarray(ndim=1),
-                         indptr: ti.types.ndarray(ndim=1),
-                         events: ti.types.ndarray(ndim=1),
-                         bool_param_list: ti.types.ndarray(ndim=1),
-                         shape_list: ti.types.ndarray(ndim=1),
-                         out: ti.types.ndarray(ndim=1)):
-    is_event_type_bool_value = bool_param_list[1]
-    is_heter_value = bool_param_list[2]
-    if is_event_type_bool_value:  # type of events is boolean
-        if is_heter_value:  # heter
-            ti.loop_config(serialize=True)
-            for row_i in range(shape_list[0]):
-                r = 0.
-                for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]]:
-                        r += values[j]
-                out[row_i] = r
+                               indices: ti.types.ndarray(ndim=1),
+                               indptr: ti.types.ndarray(ndim=1),
+                               events: ti.types.ndarray(ndim=1),
+                               out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]] > 0.:
+                    r += value
+            out[row_i] = r
+    
+    else:
+        ti.loop_config(serialize=True)
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]] > 0.:
+                    r += values[j]
+            out[row_i] = r
 
-        else:  # homo
-            value = values[0]
-            ti.loop_config(serialize=True)
-            for row_i in range(shape_list[0]):
-                r = 0.
+@ti.kernel
+def _event_csr_matvec_transpose_bool_gpu(values: ti.types.ndarray(ndim=1),
+                                         indices: ti.types.ndarray(ndim=1),
+                                         indptr: ti.types.ndarray(ndim=1),
+                                         events: ti.types.ndarray(ndim=1),
+                                         out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        for row_i in range(events.shape[0]):
+            if events[row_i]:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]]:
-                        r += value
-                out[row_i] = r
-
-    else:  # type of events is not boolean
-        if is_heter_value:  # heter
-            ti.loop_config(serialize=True)
-            for row_i in range(shape_list[0]):
-                r = 0.
+                    out[indices[j]] += value
+    
+    else:
+        for row_i in range(events.shape[0]):
+            if events[row_i]:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]] > 0.:
-                        r += values[j]
-                out[row_i] = r
-
-        else:  # homo
-            value = values[0]
-            ti.loop_config(serialize=True)
-            for row_i in range(shape_list[0]):
-                r = 0.
-                for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]] > 0.:
-                        r += value
-                out[row_i] = r
+                    out[indices[j]] += values[j]
 
 
 @ti.kernel
-def _event_csr_matvec_gpu_transpose(values: ti.types.ndarray(),
-                                   indices: ti.types.ndarray(),
-                                   indptr: ti.types.ndarray(),
-                                   events: ti.types.ndarray(),
-                                   bool_param_list: ti.types.ndarray(),
-                                   shape_list: ti.types.ndarray(ndim=1),
-                                   out: ti.types.ndarray()):
-    is_event_type_bool_value = bool_param_list[1]
-    is_heter_value = bool_param_list[2]
-    if is_event_type_bool_value:  # type of events is boolean
-        if is_heter_value:  # heter
-            for row_i in range(events):
-                if events[row_i]:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += values[j]
+def _event_csr_matvec_transpose_gpu(values: ti.types.ndarray(ndim=1),
+                                    indices: ti.types.ndarray(ndim=1),
+                                    indptr: ti.types.ndarray(ndim=1),
+                                    events: ti.types.ndarray(ndim=1),
+                                    out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        for row_i in range(events.shape[0]):
+            if events[row_i] > 0.:
+                for j in range(indptr[row_i], indptr[row_i + 1]):
+                    out[indices[j]] += value
+    
+    else:
+        for row_i in range(events.shape[0]):
+            if events[row_i] > 0.:
+                for j in range(indptr[row_i], indptr[row_i + 1]):
+                    out[indices[j]] += values[j]
 
-        else:  # homo
-            value = values[0]
-            for row_i in range(events):
-                if events[row_i]:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += value
-
-    else:  # type of events is not boolean
-        if is_heter_value:  # heter
-            for row_i in range(events):
-                if events[row_i] > 0.:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += values[j]
-
-        else:  # homo
-            value = values[0]
-            for row_i in range(events):
-                if events[row_i] > 0.:
-                    for j in range(indptr[row_i], indptr[row_i + 1]):
-                        out[indices[j]] += value
 
 @ti.kernel
-def _event_csr_matvec_gpu(values: ti.types.ndarray(),
-                         indices: ti.types.ndarray(),
-                         indptr: ti.types.ndarray(),
-                         events: ti.types.ndarray(),
-                         bool_param_list: ti.types.ndarray(),
-                         shape_list: ti.types.ndarray(ndim=1),
-                         out: ti.types.ndarray()):
-    is_event_type_bool_value = bool_param_list[1]
-    is_heter_value = bool_param_list[2]
-    if is_event_type_bool_value:  # type of events is boolean
-        if is_heter_value:  # heter
-            for row_i in range(shape_list[0]):
-                r = 0.
-                for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]]:
-                        r += values[j]
-                out[row_i] = r
+def _event_csr_matvec_bool_gpu(values: ti.types.ndarray(ndim=1),
+                               indices: ti.types.ndarray(ndim=1),
+                               indptr: ti.types.ndarray(ndim=1),
+                               events: ti.types.ndarray(ndim=1),
+                               out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]]:
+                    r += value
+            out[row_i] = r
+    
+    else:
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]]:
+                    r += values[j]
+            out[row_i] = r
 
-        else:  # homo
-            value = values[0]
-            for row_i in range(shape_list[0]):
-                r = 0.
-                for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]]:
-                        r += value
-                out[row_i] = r
-
-    else:  # type of events is not boolean
-        if is_heter_value:  # heter
-            for row_i in range(shape_list[0]):
-                r = 0.
-                for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]] > 0.:
-                        r += values[j]
-                out[row_i] = r
-
-        else:  # homo
-            value = values[0]
-            for row_i in range(shape_list[0]):
-                r = 0.
-                for j in range(indptr[row_i], indptr[row_i + 1]):
-                    if events[indices[j]] > 0.:
-                        r += value
-                out[row_i] = r
-
+@ti.kernel
+def _event_csr_matvec_gpu(values: ti.types.ndarray(ndim=1),
+                               indices: ti.types.ndarray(ndim=1),
+                               indptr: ti.types.ndarray(ndim=1),
+                               events: ti.types.ndarray(ndim=1),
+                               out: ti.types.ndarray(ndim=1)):
+    if values.shape[0] == 1:
+        value = values[0]
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]] > 0.:
+                    r += value
+            out[row_i] = r
+    
+    else:
+        for row_i in range(events.shape[0]):
+            r = 0.
+            for j in range(indptr[row_i], indptr[row_i + 1]):
+                if events[indices[j]] > 0.:
+                    r += values[j]
+            out[row_i] = r
 
 
 
 def _event_csr_matvec_jvp(
-        primals, tangents, *, outs
+        primals, tangents, *, outs, transpose, shape
 ):
-    values, indices, indptr, events, bool_param_list, shape_list = primals
-    values_dot, indices_dot, indptr_dot, events_dot, bool_param_list_dot, shape_list_dot = tangents
+    values, indices, indptr, events = primals
+    values_dot, indices_dot, indptr_dot, events_dot = tangents
 
-    r = _event_csr_matvec_p(values,
-                           indices,
-                           indptr,
-                           events,
-                           bool_param_list,
-                           shape_list,
-                           outs=[jax.ShapeDtypeStruct(shape=(shape_list[1] if bool_param_list[0] else shape_list[0],),
-                                                      dtype=values.dtype)])
+    r = csrmv_taichi(values,
+                     indices,
+                     indptr,
+                     events,
+                     shape=shape,
+                     transpose=transpose)
 
     assert type(indices_dot) is ad.Zero
     assert type(indptr_dot) is ad.Zero
-    assert type(bool_param_list_dot) is ad.Zero
-    assert type(shape_list_dot) is ad.Zero
 
     if type(values_dot) is ad.Zero:
         if type(events_dot) is ad.Zero:
             raise ValueError
         dr = normal_csrmv_taichi(values, 
-                            indices, 
-                            indptr, 
-                            events_dot, 
-                            shape=shape_list, 
-                            transpose=bool_param_list[0])
+                                 indices, 
+                                 indptr, 
+                                 events_dot, 
+                                 shape=shape, 
+                                 transpose=transpose)
 
     elif type(events_dot) is ad.Zero:
-        dr = _event_csr_matvec_p(values_dot,
-                                indices,
-                                indptr,
-                                events,
-                                bool_param_list,
-                                shape_list,
-                                outs=[jax.ShapeDtypeStruct(
-                                    shape=(shape_list[1] if bool_param_list[0] else shape_list[0],),
-                                    dtype=values.dtype)])
+        dr = csrmv_taichi(values_dot,
+                          indices,
+                          indptr,
+                          events,
+                          shape=shape,
+                          transpose=transpose,)
 
     return r, dr
 
@@ -255,25 +247,25 @@ def _event_csr_matvec_transpose(ct,
                                 indices,
                                 indptr,
                                 events,
-                                bool_param_list,
-                                shape_list,
                                 *,
-                                outs):
+                                outs, 
+                                transpose,
+                                shape):
     if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
         raise ValueError("Cannot transpose with respect to sparse indices.")
     if ad.is_undefined_primal(events):
-        ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape_list, transpose = not bool_param_list[0])[0]
+        ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape, transpose = transpose)[0]
         return values, indices, indptr, (ad.Zero(events) if type(ct[0]) is ad.Zero else ct_events)
     else:
         if type(ct[0]) is ad.Zero:
             ct_values = ad.Zero(values)
         else:
             if values.aval.shape[0] == 1: # scalar
-                ct_values = csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape_list, transpose = bool_param_list[0])[0]
+                ct_values = csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose =transpose)[0]
                 ct_values = jnp.inner(ct[0], ct_values)
             else: # heterogeneous values
                 row, col = csr_to_coo(indices, indptr)
-                ct_values = events[row] * ct[0][col] if bool_param_list[0] else events[col] * ct[0][row]
+                ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
         return ct_values, indices, indptr, events
 
 def csrmv_taichi(
@@ -354,23 +346,50 @@ def csrmv_taichi(
         return jnp.zeros(shape[1] if transpose else shape[0], dtype=data.dtype)
 
     bool_param_list = jnp.array([transpose, events.dtype == jnp.bool_, data.shape[0] > 1])
-    shape_list = jnp.array(shape)
 
-    global _event_csr_matvec_p
+    prim = None
+
     if transpose:
-        _event_csr_matvec_p = XLACustomOp(cpu_kernel=_event_csr_matvec_cpu_transpose,
-                                         gpu_kernel=_event_csr_matvec_gpu_transpose)
+        if events.dtype == jnp.bool_:
+            prim = _event_csr_matvec_transpose_bool_p
+        else:
+            prim = _event_csr_matvec_transpose_p
     else:
-        _event_csr_matvec_p = XLACustomOp(cpu_kernel=_event_csr_matvec_cpu, 
-                                         gpu_kernel=_event_csr_matvec_gpu)
-    _event_csr_matvec_p.def_jvp_rule(_event_csr_matvec_jvp)
-    _event_csr_matvec_p.def_transpose_rule(_event_csr_matvec_transpose)
+        if events.dtype == jnp.bool_:
+            prim = _event_csr_matvec_bool_p
+        else:
+            prim = _event_csr_matvec_p
 
     # computing
-    return _event_csr_matvec_p(data,
-                              indices,
-                              indptr,
-                              events,
-                              bool_param_list,
-                              shape_list,
-                              outs=[jax.ShapeDtypeStruct(shape=(shape[1] if transpose else shape[0],), dtype=data.dtype)])
+    return prim(data,
+                indices,
+                indptr,
+                events,
+                outs=[jax.ShapeDtypeStruct(shape=(shape[1] if transpose else shape[0],), dtype=data.dtype)],
+                transpose=transpose,
+                shape=shape)
+
+# transpose bool
+_event_csr_matvec_transpose_bool_p = XLACustomOp(cpu_kernel=_event_csr_matvec_transpose_bool_cpu,
+                                                gpu_kernel=_event_csr_matvec_transpose_bool_gpu)
+_event_csr_matvec_transpose_bool_p.def_jvp_rule(_event_csr_matvec_jvp)
+_event_csr_matvec_transpose_bool_p.def_transpose_rule(_event_csr_matvec_transpose)
+
+# transpose
+_event_csr_matvec_transpose_p = XLACustomOp(cpu_kernel=_event_csr_matvec_transpose_cpu,
+                                                gpu_kernel=_event_csr_matvec_transpose_gpu)
+_event_csr_matvec_transpose_p.def_jvp_rule(_event_csr_matvec_jvp)
+_event_csr_matvec_transpose_p.def_transpose_rule(_event_csr_matvec_transpose)
+
+# not transpose bool
+_event_csr_matvec_bool_p = XLACustomOp(cpu_kernel=_event_csr_matvec_bool_cpu, 
+                                  gpu_kernel=_event_csr_matvec_bool_gpu)
+_event_csr_matvec_bool_p.def_jvp_rule(_event_csr_matvec_jvp)
+_event_csr_matvec_bool_p.def_transpose_rule(_event_csr_matvec_transpose)
+
+# not transpose
+_event_csr_matvec_p = XLACustomOp(cpu_kernel=_event_csr_matvec_cpu, 
+                                  gpu_kernel=_event_csr_matvec_gpu)
+_event_csr_matvec_p.def_jvp_rule(_event_csr_matvec_jvp)
+_event_csr_matvec_p.def_transpose_rule(_event_csr_matvec_transpose)
+

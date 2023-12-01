@@ -139,13 +139,13 @@ class XLACustomOp(BrainPyObject):
     if transpose_translation is not None:
       ad.primitive_transposes[self.primitive] = transpose_translation
 
-  def __call__(self, *ins, outs: Optional[Sequence[ShapeDtype]] = None):
+  def __call__(self, *ins, outs: Optional[Sequence[ShapeDtype]] = None, **kwargs):
     if outs is None:
       outs = self.outs
     assert outs is not None
     outs = tuple([_transform_to_shapedarray(o) for o in outs])
     ins = jax.tree_util.tree_map(_transform_to_array, ins, is_leaf=_is_bp_array)
-    return self.primitive.bind(*ins, outs=outs)
+    return self.primitive.bind(*ins, outs=outs, **kwargs)
 
   def def_abstract_eval(self, fun):
     """Define the abstract evaluation function.

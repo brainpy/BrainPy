@@ -24,26 +24,22 @@ __all__ = [
     'csrmv_taichi',
 ]
 
-_event_csr_matvec_p = None
-
 @ti.kernel
 def _sparse_csr_matvec_cpu_transpose(values: ti.types.ndarray(ndim=1), 
                                      col_indices: ti.types.ndarray(ndim=1), 
                                      row_ptr: ti.types.ndarray(ndim=1), 
-                                     vector: ti.types.ndarray(ndim=1), 
-                                     shape: ti.types.ndarray(ndim=1),
-                                     transpose: ti.types.ndarray(ndim=1),
+                                     vector: ti.types.ndarray(ndim=1),
                                      out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
         ti.loop_config(serialize=True)
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 out[col_indices[j]] += value * vector[row_i]
     
     else:
         ti.loop_config(serialize=True)
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 out[col_indices[j]] += values[j] * vector[row_i]
 
@@ -51,14 +47,12 @@ def _sparse_csr_matvec_cpu_transpose(values: ti.types.ndarray(ndim=1),
 def _sparse_csr_matvec_cpu(values: ti.types.ndarray(ndim=1), 
                            col_indices: ti.types.ndarray(ndim=1), 
                            row_ptr: ti.types.ndarray(ndim=1), 
-                           vector: ti.types.ndarray(ndim=1), 
-                           shape: ti.types.ndarray(ndim=1),
-                           transpose: ti.types.ndarray(ndim=1),
+                           vector: ti.types.ndarray(ndim=1),
                            out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
         ti.loop_config(serialize=True)
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             r = 0.
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 r += value * vector[col_indices[j]]
@@ -66,7 +60,7 @@ def _sparse_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
     
     else:
         ti.loop_config(serialize=True)
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             r = 0.
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 r += values[j] * vector[col_indices[j]]
@@ -77,18 +71,16 @@ def _sparse_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
 def _sparse_csr_matvec_gpu_transpose(values: ti.types.ndarray(ndim=1), 
                                      col_indices: ti.types.ndarray(ndim=1), 
                                      row_ptr: ti.types.ndarray(ndim=1), 
-                                     vector: ti.types.ndarray(ndim=1), 
-                                     shape: ti.types.ndarray(ndim=1),
-                                     transpose: ti.types.ndarray(ndim=1),
+                                     vector: ti.types.ndarray(ndim=1),
                                      out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 out[col_indices[j]] += value * vector[row_i]
     
     else:
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 out[col_indices[j]] += values[j] * vector[row_i]
 
@@ -96,70 +88,84 @@ def _sparse_csr_matvec_gpu_transpose(values: ti.types.ndarray(ndim=1),
 def _sparse_csr_matvec_gpu(values: ti.types.ndarray(ndim=1), 
                            col_indices: ti.types.ndarray(ndim=1), 
                            row_ptr: ti.types.ndarray(ndim=1), 
-                           vector: ti.types.ndarray(ndim=1), 
-                           shape: ti.types.ndarray(ndim=1),
-                           transpose: ti.types.ndarray(ndim=1),
+                           vector: ti.types.ndarray(ndim=1),
                            out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             r = 0.
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 r += value * vector[col_indices[j]]
             out[row_i] = r
     
     else:
-        for row_i in range(shape[0]):
+        for row_i in range(vector.shape[0]):
             r = 0.
             for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
                 r += values[j] * vector[col_indices[j]]
             out[row_i] = r
 
 def _sparse_csr_matvec_jvp(
-        primals, tangents,
+        primals, tangents, *, outs, transpose, shape
 ):
-    values, col_indices, row_ptr, vector, shape, transpose = primals
-    values_dot, col_indices_dot, row_ptr_dot, vector_dot, shape_dot, transpose_dot = tangents
+    values, col_indices, row_ptr, vector = primals
+    values_dot, col_indices_dot, row_ptr_dot, vector_dot = tangents
 
-    r = _event_csr_matvec_p(values,
-                            col_indices,
-                            row_ptr,
-                            vector,
-                            shape,
-                            transpose,
-                            outs=[jax.ShapeDtypeStruct(
-                                shape=(shape[1] if transpose else shape[0],), 
-                                dtype=values.dtype)])
+    r = csrmv_taichi(values,
+                     col_indices,
+                     row_ptr,
+                     vector,
+                     shape=shape,
+                     transpose=transpose)
 
-    assert type(values_dot) is ad.Zero
     assert type(col_indices_dot) is ad.Zero
     assert type(row_ptr_dot) is ad.Zero
-    assert type(vector_dot) is ad.Zero
 
     if type(values_dot) is ad.Zero:
         if type(vector_dot) is ad.Zero:
             raise ValueError
-        dr = _event_csr_matvec_p(values,
-                                 col_indices,
-                                 row_ptr,
-                                 vector_dot,
-                                 shape,
-                                 transpose,
-                                 outs=[jax.ShapeDtypeStruct(
-                                     shape=(shape[1] if transpose else shape[0],), 
-                                     dtype=values.dtype)])
+        dr = csrmv_taichi(values,
+                          col_indices,
+                          row_ptr,
+                          vector_dot,
+                          shape=shape,
+                          transpose=transpose)
     elif type(vector_dot) is ad.Zero:
-        dr = _event_csr_matvec_p(values_dot,
-                                 col_indices_dot,
-                                 row_ptr_dot,
-                                 vector,
-                                 shape,
-                                 transpose,
-                                 outs=[jax.ShapeDtypeStruct(
-                                    shape=(shape[1] if transpose else shape[0],), 
-                                    dtype=values.dtype)])
+        dr = csrmv_taichi(values_dot,
+                          col_indices_dot,
+                          row_ptr_dot,
+                          vector,
+                          shape=shape,
+                          transpose=transpose)
     
     return r, dr
+
+def _sparse_csr_matvec_transpose(
+    ct, data, indices, indptr, vector, *, outs, shape, transpose
+):
+    if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
+        raise ValueError("Cannot transpose with respect to sparse indices.")
+    if ad.is_undefined_primal(vector):
+        ct_vector = csrmv_taichi(data,
+                                 indices,
+                                 indptr,
+                                 ct[0],
+                                 shape=shape,
+                                 transpose=not transpose)[0]
+        return data, indices, indptr, (ad.Zero(vector) if type(ct) is ad.Zero else ct_vector)
+
+    else:
+        if type(ct) is ad.Zero:
+            ct_data = ad.Zero
+        else:
+            if data.aval.shape[0] == 1: # scalar
+                ct_data = csrmv_taichi(jnp.ones(1), indices, indptr, vector, shape=shape, transpose=transpose)[0]
+                ct_data = jnp.inner(ct[0], ct_data)
+            else:
+                row, col =csr_to_coo(indices, indptr)
+                ct_data = vector[row] * ct[0][col] if transpose else vector[col] * ct[0][row]
+        
+        return ct_data, indices, indptr, vector
 
 def csrmv_taichi(
         data: Union[float, jnp.ndarray, Array],
@@ -220,24 +226,28 @@ def csrmv_taichi(
         raise ValueError('indptr should be a 1D vector with integer type.')
     out_shape = shape[1] if transpose else shape[0]
 
-    global _event_csr_matvec_p
+    prim = None
+
     if transpose:
-        _event_csr_matvec_p = XLACustomOp(cpu_kernel=_sparse_csr_matvec_cpu_transpose,
-                                         gpu_kernel=_sparse_csr_matvec_gpu_transpose)
+        prim = _event_csr_matvec_transpose_p
     else:
-        _event_csr_matvec_p = XLACustomOp(cpu_kernel=_sparse_csr_matvec_cpu, 
-                                         gpu_kernel=_sparse_csr_matvec_gpu)
-        
-    _event_csr_matvec_p.def_jvp_rule(_sparse_csr_matvec_jvp)
+        prim = _event_csr_matvec_p
 
-    shape_list = jnp.array(shape)
-    is_transpose = jnp.array(transpose)
+    return prim(data,
+                indices,
+                indptr,
+                vector,
+                outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)]
+                )
 
-    return _event_csr_matvec_p(data,
-                               indices,
-                               indptr,
-                               vector,
-                               shape_list,
-                               is_transpose,
-                               outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)]
-                               )
+# transpose
+_event_csr_matvec_transpose_p = XLACustomOp(cpu_kernel=_sparse_csr_matvec_cpu_transpose,
+                                            gpu_kernel=_sparse_csr_matvec_gpu_transpose)
+_event_csr_matvec_transpose_p.def_jvp_rule(_sparse_csr_matvec_jvp)
+_event_csr_matvec_transpose_p.def_transpose_rule(_sparse_csr_matvec_transpose)
+
+# no transpose
+_event_csr_matvec_p = XLACustomOp(cpu_kernel=_sparse_csr_matvec_cpu, 
+                                  gpu_kernel=_sparse_csr_matvec_gpu)
+_event_csr_matvec_p.def_jvp_rule(_sparse_csr_matvec_jvp)
+_event_csr_matvec_p.def_transpose_rule(_sparse_csr_matvec_transpose)
