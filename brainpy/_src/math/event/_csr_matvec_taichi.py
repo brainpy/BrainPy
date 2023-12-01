@@ -239,7 +239,14 @@ def _event_csr_matvec_jvp(
                           events,
                           shape=shape,
                           transpose=transpose,)
-
+    else:
+        dr = normal_csrmv_taichi(values_dot,
+                                 indices,
+                                 indptr,
+                                 events_dot,
+                                shape=shape,
+                                transpose=transpose)
+                                 
     return r, dr
 
 def _event_csr_matvec_transpose(ct,
@@ -254,14 +261,14 @@ def _event_csr_matvec_transpose(ct,
     if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
         raise ValueError("Cannot transpose with respect to sparse indices.")
     if ad.is_undefined_primal(events):
-        ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape, transpose = transpose)[0]
+        ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape, transpose=transpose)[0]
         return values, indices, indptr, (ad.Zero(events) if type(ct[0]) is ad.Zero else ct_events)
     else:
         if type(ct[0]) is ad.Zero:
             ct_values = ad.Zero(values)
         else:
             if values.aval.shape[0] == 1: # scalar
-                ct_values = csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose =transpose)[0]
+                ct_values = csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)[0]
                 ct_values = jnp.inner(ct[0], ct_values)
             else: # heterogeneous values
                 row, col = csr_to_coo(indices, indptr)
@@ -344,8 +351,6 @@ def csrmv_taichi(
     # if the shape of indices is (0,), then we return a zero vector
     if indices.shape[0] == 0:
         return jnp.zeros(shape[1] if transpose else shape[0], dtype=data.dtype)
-
-    bool_param_list = jnp.array([transpose, events.dtype == jnp.bool_, data.shape[0] > 1])
 
     prim = None
 
