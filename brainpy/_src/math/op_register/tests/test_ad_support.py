@@ -90,11 +90,11 @@ def _csrmv_cusparse_transpose(ct, data, indices, indptr, vector, *, shape, trans
 
 
 prim_trans = bm.XLACustomOp(_csr_matvec_transpose_numba_imp)
-bm.defjvp(prim_trans, _csrmv_jvp_mat, None, None, _csrmv_jvp_vec)
+prim_trans.defjvp(_csrmv_jvp_mat, None, None, _csrmv_jvp_vec)
 prim_trans.def_transpose_rule(_csrmv_cusparse_transpose)
 
 prim = bm.XLACustomOp(_csr_matvec_numba_imp)
-bm.defjvp(prim, _csrmv_jvp_mat, None, None, _csrmv_jvp_vec)
+prim.defjvp(_csrmv_jvp_mat, None, None, _csrmv_jvp_vec)
 prim.def_transpose_rule(_csrmv_cusparse_transpose)
 
 

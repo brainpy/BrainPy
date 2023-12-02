@@ -4,7 +4,6 @@ from functools import partial
 from jax import tree_util
 from jax.core import Primitive
 from jax.interpreters import ad
-from brainpy._src.math.op_register.base import XLACustomOp
 
 __all__ = [
   'defjvp',
@@ -21,8 +20,6 @@ def defjvp(primitive, *jvp_rules):
   Returns:
     The JVP gradients.
   """
-  if isinstance(primitive, XLACustomOp):
-    primitive = primitive.primitive
   assert isinstance(primitive, Primitive)
   if primitive.multiple_results:
     ad.primitive_jvps[primitive] = partial(_standard_jvp, jvp_rules, primitive)
