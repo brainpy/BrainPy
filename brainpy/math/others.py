@@ -9,3 +9,7 @@ from brainpy._src.math.others import (
 from brainpy._src.math.object_transform.naming import (
   clear_name_cache,
 )
+
+from brainpy._src.math.ad_support import (
+  defjvp as defjvp,
+)
