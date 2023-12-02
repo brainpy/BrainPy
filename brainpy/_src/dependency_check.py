@@ -15,9 +15,9 @@ taichi = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
-taichi_install_info = (f'We need taichi>={_minimal_taichi_version}. '
-                       f'Currently you can install taichi>={_minimal_taichi_version} through:\n\n'
-                       '> pip install taichi -U')
+taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
+                       f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
+                       '> pip install taichi==1.7.0 -U')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
@@ -34,7 +34,7 @@ def import_taichi():
       finally:
         sys.stdout = old_stdout
 
-  if taichi.__version__ < _minimal_taichi_version:
+  if taichi.__version__ != _minimal_taichi_version:
     raise RuntimeError(taichi_install_info)
   return taichi
 
