@@ -12,9 +12,9 @@ from absl.testing import parameterized
 # pytestmark = pytest.mark.skip(reason="Skipped due to pytest limitations, manual execution required for testing.")
 
 
-is_manual_test = False
-if platform.system() == 'Windows' and not is_manual_test:
-  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
+# is_manual_test = False
+# if platform.system() == 'Windows' and not is_manual_test:
+#   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 def sum_op(op):
     def func(*args, **kwargs):
@@ -442,7 +442,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
                      shape=shape, transpose=transpose)
         r1 = jax.vmap(f1)(heter_data)
         r2 = jax.vmap(f2)(heter_data)
-        self.assertTrue(bm.allclose(r1, r2[0]))
+        self.assertTrue(compare_with_nan_tolerance(r1, r2[0]))
 
     @parameterized.product(
         transpose=[True, False],

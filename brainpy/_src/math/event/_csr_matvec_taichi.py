@@ -240,13 +240,20 @@ def _event_csr_matvec_jvp(
                           shape=shape,
                           transpose=transpose,)
     else:
-        dr = normal_csrmv_taichi(values_dot,
-                                 indices,
-                                 indptr,
-                                 events_dot,
+        dw = csrmv_taichi(values_dot,
+                            indices,
+                            indptr,
+                            events,
+                            shape=shape,
+                            transpose=transpose,)
+        dv = normal_csrmv_taichi(values,
+                                indices,
+                                indptr,
+                                events_dot,
                                 shape=shape,
                                 transpose=transpose)
-                                 
+        dr = [dw[0] + dv[0]]
+        
     return r, dr
 
 def _event_csr_matvec_transpose(ct,
