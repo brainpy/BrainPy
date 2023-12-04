@@ -1,5 +1,4 @@
 numpy
 jax
 tqdm
-msgpack
 numba
