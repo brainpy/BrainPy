@@ -81,6 +81,7 @@ out = prim_lcg_rand(seed,
                     outs=[jax.ShapeDtypeStruct((n,), jnp.float32)])
 # show the distribution of out
 plt.hist(out, bins=100)
+plt.title("LCG random number generator")
 plt.savefig(file_path + "/lcg_rand.png")
 plt.close()
 
@@ -88,6 +89,7 @@ out = prim_uniform_int_distribution(seed, low_high, jnp.zeros((n,), dtype=jnp.fl
                                     outs=[jax.ShapeDtypeStruct((n,), jnp.int32)])
 # show the distribution of out
 plt.hist(out, bins=10)
+plt.title("Uniform int distribution (0, 10)")
 plt.savefig(file_path + "/uniform_int_distribution.png")
 plt.close()
 
@@ -95,12 +97,14 @@ out = prim_uniform_real_distribution(seed, low_high, jnp.zeros((n,), dtype=jnp.f
                                         outs=[jax.ShapeDtypeStruct((n,), jnp.float32)])
 # show the distribution of out
 plt.hist(out, bins=100)
+plt.title("Uniform real distribution (0, 10)")
 plt.savefig(file_path + "/uniform_real_distribution.png")
 plt.close()
 
 out = prim_normal_distribution(seed, mu_sigma, jnp.zeros((2 * n,), dtype=jnp.float32),
                                  outs=[jax.ShapeDtypeStruct((n,), jnp.float32)])
 # show the distribution of out
+plt.title("Normal distribution mu=0, sigma=1")
 plt.hist(out, bins=100)
 plt.savefig(file_path + "/normal_distribution.png")
 
