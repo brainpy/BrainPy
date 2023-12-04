@@ -8,6 +8,7 @@ from typing import Optional, Union
 
 import jax
 import numpy as np
+import taichi as ti
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
 from jax.experimental.host_callback import call
 from jax.tree_util import register_pytree_node_class
@@ -38,6 +39,10 @@ __all__ = [
 
   # pytorch compatibility
   'rand_like', 'randint_like', 'randn_like',
+
+  # taichi.func random generator implementation
+  'taichi_lcg_rand', 'taichi_uniform_int_distribution', 
+  'taichi_uniform_real_distribution', 'taichi_normal_distribution',
 ]
 
 
@@ -2410,3 +2415,87 @@ for __k in dir(RandomState):
     __r = globals().get(__k, None)
     if __r is not None and callable(__r):
       __t.__doc__ = __r.__doc__
+
+
+### taichi.func implementation ###
+
+@ti.func
+def _lcg_rand(state: ti.types.ndarray(ndim=1)):
+    # LCG constants
+    a = ti.u32(1664525)
+    c = ti.u32(1013904223)
+    state[0] = a * state[0] + c
+    return state[0]
+
+@ti.func
+def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1), out_sequence: ti.types.ndarray(ndim=1)):
+  """
+  Generate a sequence of random numbers using the LCG algorithm.
+  
+  Args:
+    seed (int): The seed value for the random number generator.
+    n (int): The number of random numbers to generate.
+    out_sequence (ti.ndarray): A field to store the generated sequence of random numbers.
+  
+  Returns:
+    sequence (ti.ndarray): A field containing the generated sequence of random numbers.
+  """
+  m = ti.u32(2**32 - 1)
+
+  for i in range(out_sequence.shape[0]):
+    out_sequence[i] = float(_lcg_rand(seed)) / m
+
+
+@ti.func
+def taichi_uniform_int_distribution(state: ti.f32, low: ti.i32, high: ti.i32):
+  """
+  Generate a random integer in the range [low, high).
+  
+  Args:
+    state (float): The state value for the random number generator.
+    low (int): The lower bound of the range.
+    high (int): The upper bound of the range.
+  
+  Returns:
+    int: A random integer in the range [low, high).
+  """
+  return ti.cast(ti.floor(state * (high - low) + low), ti.i32)
+
+@ti.func
+def taichi_uniform_real_distribution(state: ti.f32, low: ti.f32, high: ti.f32):
+  """
+  Generate a random real number in the range [low, high).
+  
+  Args:
+    state (float): The state value for the random number generator.
+    low (float): The lower bound of the range.
+    high (float): The upper bound of the range.
+  
+  Returns:
+    float: A random real number in the range [low, high).
+  """
+  return state * (high - low) + low
+
+@ti.func
+def taichi_normal_distribution(state1: ti.f32, state2: ti.f32, mu: ti.f32, sigma: ti.f32):
+    """
+    Generate a random number with normal distribution.
+    
+    Args:
+      state1 (float): The first state value for the random number generator, uniform in [0, 1).
+      state2 (float): The second state value for the random number generator, uniform in [0, 1).
+      mu (float): The mean of the normal distribution.
+      sigma (float): The standard deviation of the normal distribution.
+    
+    Returns:
+      float: A random number with normal distribution.
+    """
+    # Ensure state1 is not zero to avoid log(0)
+    epsilon = 1e-10
+    state1 = ti.max(state1, epsilon)
+
+    # Box-Muller transform
+    z = ti.sqrt(-2 * ti.log(state1)) * ti.sin(2 * ti.math.pi * state2)
+
+    # Return the value, scaled by sigma and shifted by mu
+    return mu + sigma * z

@@ -71,4 +71,9 @@ from brainpy._src.math.random import (
   randint_like as randint_like,
   randn_like as randn_like,
 
+  taichi_lcg_rand as taichi_lcg_rand, 
+  taichi_uniform_int_distribution as taichi_uniform_int_distribution, 
+  taichi_uniform_real_distribution as taichi_uniform_real_distribution, 
+  taichi_normal_distribution as taichi_normal_distribution,
+
 )

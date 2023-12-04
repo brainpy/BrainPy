@@ -279,9 +279,9 @@ vector_csr_matvec = partial(bm.sparse.csrmv, method='vector')
 # test_all()
 
 # PYTEST
-class Test_cusparse_csrmv(parameterized.TestCase):
+class Test_csrmv_taichi(parameterized.TestCase):
     def __init__(self, *args, platform='cpu', **kwargs):
-        super(Test_cusparse_csrmv, self).__init__(*args, **kwargs)
+        super(Test_csrmv_taichi, self).__init__(*args, **kwargs)
 
         print()
         bm.set_platform(platform)
@@ -312,7 +312,7 @@ class Test_cusparse_csrmv(parameterized.TestCase):
 
     @parameterized.product(
         transpose=[True, False],
-        shape=[(200, 200), (200, 100), (10, 1000), (2, 2000)],
+        shape=[(200, 200), (200, 100), (100, 1000), (2, 2000)],
         v=[-1., 0., 1.]
     )
     def test_homo_vmap(self, transpose, shape, v):
