@@ -11,14 +11,19 @@ __all__ = [
 
 
 def defjvp(primitive, *jvp_rules):
-  """Define JVP rule when the primitive
+  """Define JVP rules for any JAX primitive.
+
+  This function is similar to ``jax.interpreters.ad.defjvp``.
+  However, the JAX one only supports primitive with ``multiple_results=False``.
+  ``brainpy.math.defjvp`` enables to define the independent JVP rule for
+  each input parameter no matter ``multiple_results=False/True``.
+
+  For examples, please see ``test_ad_support.py``.
+
 
   Args:
     primitive: Primitive, XLACustomOp.
     *jvp_rules: The JVP translation rule for each primal.
-
-  Returns:
-    The JVP gradients.
   """
   assert isinstance(primitive, Primitive)
   if primitive.multiple_results:
