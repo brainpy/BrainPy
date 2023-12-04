@@ -8,19 +8,11 @@ jaxlib_install_info = '''
 
 BrainPy needs jaxlib, please install it. 
 
-1. If you are using Windows system, install jaxlib through
+1. If you are using brainpy on CPU platform, please install jaxlib through
 
-   >>> pip install jaxlib -f https://whls.blob.core.windows.net/unstable/index.html
+   >>> pip install jaxlib 
 
-2. If you are using macOS platform, install jaxlib through
-
-   >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_releases.html
-
-3. If you are using Linux platform, install jaxlib through
-
-   >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_releases.html
-
-4. If you are using Linux + CUDA platform, install jaxlib through
+2. If you are using Linux + CUDA platform, install jaxlib through
 
    >>> pip install jaxlib -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
