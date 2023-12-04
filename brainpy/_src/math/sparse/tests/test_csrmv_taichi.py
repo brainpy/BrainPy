@@ -18,6 +18,8 @@ from absl.testing import parameterized
 
 # bm.set_platform('gpu')
 
+seed = 1234
+
 def sum_op(op):
     def func(*args, **kwargs):
         r = op(*args, **kwargs)
@@ -291,14 +293,14 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     )
     def test_homo(self, transpose, shape, homo_data):
         print(f'test_homo: transpose = {transpose} shape = {shape}, homo_data = {homo_data}')
-        conn = bp.conn.FixedProb(0.1)
+        conn = bp.conn.FixedProb(0.3)
 
         # matrix
         indices, indptr = conn(*shape).require('pre2post')
         indices = bm.as_jax(indices)
         indptr = bm.as_jax(indptr)
         # vector
-        rng = bm.random.RandomState(123)
+        rng = bm.random.RandomState(seed=seed)
         vector = rng.random(shape[0] if transpose else shape[1])
         vector = bm.as_jax(vector)
 
@@ -315,8 +317,8 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     )
     def test_homo_vmap(self, transpose, shape, v):
         print(f'test_homo_vmap: transpose = {transpose} shape = {shape}, v = {v}')
-        rng = bm.random.RandomState()
-        conn = bp.conn.FixedProb(0.1)
+        rng = bm.random.RandomState(seed=seed)
+        conn = bp.conn.FixedProb(0.3)
 
         indices, indptr = conn(*shape).require('pre2post')
         indices = bm.as_jax(indices)
@@ -345,8 +347,8 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     )
     def test_homo_grad(self, transpose, shape, homo_data):
         print(f'test_homo_grad: transpose = {transpose} shape = {shape}, homo_data = {homo_data}')
-        rng = bm.random.RandomState()
-        conn = bp.conn.FixedProb(0.1)
+        rng = bm.random.RandomState(seed=seed)
+        conn = bp.conn.FixedProb(0.3)
 
         indices, indptr = conn(*shape).require('pre2post')
         indices = bm.as_jax(indices)
@@ -399,8 +401,8 @@ class Test_cusparse_csrmv(parameterized.TestCase):
     )
     def test_heter(self, transpose, shape):
         print(f'test_homo: transpose = {transpose} shape = {shape}')
-        rng = bm.random.RandomState()
-        conn = bp.conn.FixedProb(0.1)
+        rng = bm.random.RandomState(seed=seed)
+        conn = bp.conn.FixedProb(0.3)
 
         indices, indptr = conn(*shape).require('pre2post')
         indices = bm.as_jax(indices)
@@ -415,6 +417,9 @@ class Test_cusparse_csrmv(parameterized.TestCase):
         r1 = vector_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
         r2 = bm.sparse.csrmv_taichi(heter_data, indices, indptr, vector, shape=shape)
 
+        print(r1)
+        print(r2[0])
+
         self.assertTrue(compare_with_nan_tolerance(r1, r2[0]))
 
         bm.clear_buffer_memory()
@@ -424,8 +429,8 @@ class Test_cusparse_csrmv(parameterized.TestCase):
         shape=[(200, 200), (200, 100), (10, 1000), (2, 2000)]
     )
     def test_heter_vmap(self, transpose, shape):
-        rng = bm.random.RandomState()
-        conn = bp.conn.FixedProb(0.1)
+        rng = bm.random.RandomState(seed=seed)
+        conn = bp.conn.FixedProb(0.3)
 
         indices, indptr = conn(*shape).require('pre2post')
         indices = bm.as_jax(indices)
@@ -451,8 +456,8 @@ class Test_cusparse_csrmv(parameterized.TestCase):
         shape=[(200, 200), (200, 100), (10, 1000), (2, 2000)]
     )
     def test_heter_grad(self, transpose, shape):
-        rng = bm.random.RandomState()
-        conn = bp.conn.FixedProb(0.1)
+        rng = bm.random.RandomState(seed=seed)
+        conn = bp.conn.FixedProb(0.3)
 
         indices, indptr = conn(*shape).require('pre2post')
         indices = bm.as_jax(indices)

@@ -21,6 +21,8 @@ import pytest
 
 # bm.set_platform('cpu')
 
+seed = 1234
+
 def sum_op(op):
     def func(*args, **kwargs):
         r = op(*args, **kwargs)
@@ -254,7 +256,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     )
     def test_homo(self, transpose, shape, homo_data):
         print(f'test_homo: shape = {shape}, transpose = {transpose}, homo_data = {homo_data}')
-        rng = bm.random.RandomState()
+        rng = bm.random.RandomState(seed=seed)
         indices, indptr = bp.conn.FixedProb(0.4)(*shape).require('pre2post')
         events = rng.random(shape[0] if transpose else shape[1]) < 0.1
         heter_data = bm.ones(indices.shape) * homo_data
@@ -277,7 +279,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     def test_homo_vmap(self, shape, transpose, homo_data):
         print(f'test_homo_vamp: shape = {shape}, transpose = {transpose}, homo_data = {homo_data}')
 
-        rng = bm.random.RandomState()
+        rng = bm.random.RandomState(seed=seed)
         indices, indptr = bp.conn.FixedProb(0.4)(*shape).require('pre2post')
 
         # vmap 'data'
@@ -319,7 +321,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     def test_homo_grad(self, shape, transpose, homo_data):
         print(f'test_homo_grad: shape = {shape}, transpose = {transpose}, homo_data = {homo_data}')
 
-        rng = bm.random.RandomState()
+        rng = bm.random.RandomState(seed=seed)
         indices, indptr = bp.conn.FixedProb(0.4)(*shape).require('pre2post')
         indices = bm.as_jax(indices)
         indptr = bm.as_jax(indptr)
@@ -351,7 +353,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     )
     def test_heter(self, shape, transpose):
         print(f'test_heter: shape = {shape}, transpose = {transpose}')
-        rng = bm.random.RandomState()
+        rng = bm.random.RandomState(seed=seed)
         indices, indptr = bp.conn.FixedProb(0.4)(*shape).require('pre2post')
         indices = bm.as_jax(indices)
         indptr = bm.as_jax(indptr)
@@ -377,7 +379,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     def test_heter_vmap(self, shape, transpose):
         print(f'test_heter_vamp: shape = {shape}, transpose = {transpose}')
 
-        rng = bm.random.RandomState()
+        rng = bm.random.RandomState(seed=seed)
         indices, indptr = bp.conn.FixedProb(0.4)(*shape).require('pre2post')
         indices = bm.as_jax(indices)
         indptr = bm.as_jax(indptr)
@@ -422,7 +424,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     def test_heter_grad(self, shape, transpose):
         print(f'test_heter_grad: shape = {shape}, transpose = {transpose}')
 
-        rng = bm.random.RandomState()
+        rng = bm.random.RandomState(seed=seed)
         indices, indptr = bp.conn.FixedProb(0.4)(*shape).require('pre2post')
         indices = bm.as_jax(indices)
         indptr = bm.as_jax(indptr)
