@@ -19,20 +19,22 @@ import pytest
 # if platform.system() == 'Windows' and not is_manual_test:
 #   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
-# def sum_op(op):
-#     def func(*args, **kwargs):
-#         r = op(*args, **kwargs)
-#         return r.sum()
+# bm.set_platform('cpu')
 
-#     return func
+def sum_op(op):
+    def func(*args, **kwargs):
+        r = op(*args, **kwargs)
+        return r.sum()
+
+    return func
 
 
-# def sum_op2(op):
-#     def func(*args, **kwargs):
-#         r = op(*args, **kwargs)[0]
-#         return r.sum()
+def sum_op2(op):
+    def func(*args, **kwargs):
+        r = op(*args, **kwargs)[0]
+        return r.sum()
 
-#     return func
+    return func
 
 
 # ### MANUAL TESTS ###

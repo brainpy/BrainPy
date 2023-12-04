@@ -24,6 +24,8 @@ __all__ = [
     'csrmv_taichi'
 ]
 
+
+
 @ti.kernel
 def _event_csr_matvec_transpose_bool_cpu(values: ti.types.ndarray(ndim=1),
                                          indices: ti.types.ndarray(ndim=1),
@@ -33,14 +35,14 @@ def _event_csr_matvec_transpose_bool_cpu(values: ti.types.ndarray(ndim=1),
     if values.shape[0] == 1:
         value = values[0]
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i]:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += value
     
     else:
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i]:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += values[j]
@@ -55,14 +57,14 @@ def _event_csr_matvec_transpose_cpu(values: ti.types.ndarray(ndim=1),
     if values.shape[0] == 1:
         value = values[0]
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i] > 0.:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += value
     
     else:
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i] > 0.:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += values[j]
@@ -77,7 +79,7 @@ def _event_csr_matvec_bool_cpu(values: ti.types.ndarray(ndim=1),
     if values.shape[0] == 1:
         value = values[0]
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]]:
@@ -86,7 +88,7 @@ def _event_csr_matvec_bool_cpu(values: ti.types.ndarray(ndim=1),
     
     else:
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]]:
@@ -102,7 +104,7 @@ def _event_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
     if values.shape[0] == 1:
         value = values[0]
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]] > 0.:
@@ -111,7 +113,7 @@ def _event_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
     
     else:
         ti.loop_config(serialize=True)
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]] > 0.:
@@ -126,13 +128,13 @@ def _event_csr_matvec_transpose_bool_gpu(values: ti.types.ndarray(ndim=1),
                                          out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i]:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += value
     
     else:
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i]:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += values[j]
@@ -146,13 +148,13 @@ def _event_csr_matvec_transpose_gpu(values: ti.types.ndarray(ndim=1),
                                     out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i] > 0.:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += value
     
     else:
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             if events[row_i] > 0.:
                 for j in range(indptr[row_i], indptr[row_i + 1]):
                     out[indices[j]] += values[j]
@@ -166,7 +168,7 @@ def _event_csr_matvec_bool_gpu(values: ti.types.ndarray(ndim=1),
                                out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]]:
@@ -174,7 +176,7 @@ def _event_csr_matvec_bool_gpu(values: ti.types.ndarray(ndim=1),
             out[row_i] = r
     
     else:
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]]:
@@ -189,7 +191,7 @@ def _event_csr_matvec_gpu(values: ti.types.ndarray(ndim=1),
                                out: ti.types.ndarray(ndim=1)):
     if values.shape[0] == 1:
         value = values[0]
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]] > 0.:
@@ -197,7 +199,7 @@ def _event_csr_matvec_gpu(values: ti.types.ndarray(ndim=1),
             out[row_i] = r
     
     else:
-        for row_i in range(events.shape[0]):
+        for row_i in range(indptr.shape[0] - 1):
             r = 0.
             for j in range(indptr[row_i], indptr[row_i + 1]):
                 if events[indices[j]] > 0.:

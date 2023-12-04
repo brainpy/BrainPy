@@ -16,6 +16,8 @@ from absl.testing import parameterized
 # if platform.system() == 'Windows' and not is_manual_test:
 #   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
+# bm.set_platform('gpu')
+
 def sum_op(op):
     def func(*args, **kwargs):
         r = op(*args, **kwargs)
