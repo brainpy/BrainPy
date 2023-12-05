@@ -8,6 +8,7 @@ import jax
 import brainpy as bp
 import brainpy.math as bm
 import platform
+import sys
 from absl.testing import parameterized
 
 import pytest
@@ -15,9 +16,9 @@ import pytest
 
 # pytestmark = pytest.mark.skip(reason="Skipped due to pytest limitations, manual execution required for testing.")
 
-# is_manual_test = False
-# if platform.system() == 'Windows' and not is_manual_test:
-#   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
+is_manual_test = False
+if sys.platform.startswith('darwin') and not is_manual_test:
+  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 # bm.set_platform('cpu')
 

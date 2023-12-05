@@ -22,43 +22,41 @@ bm.set_platform('cpu')
 @ti.kernel
 def test_taichi_lcg_rand(seed: ti.types.ndarray(ndim=1),
                          out: ti.types.ndarray(ndim=1)):
-    rand(seed, out)
+    for i in range(out.shape[0]):
+        out[i] = rand(seed)
 
 @ti.kernel
 def test_taichi_uniform_int_distribution(seed: ti.types.ndarray(ndim=1),
                                          low_high: ti.types.ndarray(ndim=1),
-                                         random_sequence: ti.types.ndarray(ndim=1),
                                          out: ti.types.ndarray(ndim=1)):
     low = low_high[0]
     high = low_high[1]
     n = out.shape[0]
-    rand(seed, random_sequence)
     for i in range(n):
-        out[i] = randint(random_sequence[i], low, high)
+        out[i] = randint(rand(seed), low, high)
 
 @ti.kernel
 def test_taichi_uniform_real_distribution(seed: ti.types.ndarray(ndim=1),
                                           low_high: ti.types.ndarray(ndim=1),
-                                          random_sequence: ti.types.ndarray(ndim=1),
                                           out: ti.types.ndarray(ndim=1)):
     low = low_high[0]
     high = low_high[1]
     n = out.shape[0]
-    rand(seed, random_sequence)
     for i in range(n):
-        out[i] = uniform(random_sequence[i], low, high)
+        out[i] = uniform(rand(seed), low, high)
 
 @ti.kernel
 def test_taichi_normal_distribution(seed: ti.types.ndarray(ndim=1),
                                     mu_sigma: ti.types.ndarray(ndim=1),
-                                    random_sequence: ti.types.ndarray(ndim=1),
                                     out: ti.types.ndarray(ndim=1)):
     mu = mu_sigma[0]
     sigma = mu_sigma[1]
     n = out.shape[0]
-    rand(seed, random_sequence)
+    
     for i in range(n):
-        out[i] = normal(random_sequence[2 * i], random_sequence[2 * i + 1] , mu, sigma)
+        r1 = rand(seed)
+        r2 = rand(seed)
+        out[i] = normal(r1, r2 , mu, sigma)
 
 
 n = 100000
@@ -85,7 +83,7 @@ plt.title("LCG random number generator")
 plt.savefig(file_path + "/lcg_rand.png")
 plt.close()
 
-out = prim_uniform_int_distribution(seed, low_high, jnp.zeros((n,), dtype=jnp.float32),
+out = prim_uniform_int_distribution(seed, low_high,
                                     outs=[jax.ShapeDtypeStruct((n,), jnp.int32)])
 # show the distribution of out
 plt.hist(out, bins=10)
@@ -93,7 +91,7 @@ plt.title("Uniform int distribution (0, 10)")
 plt.savefig(file_path + "/uniform_int_distribution.png")
 plt.close()
 
-out = prim_uniform_real_distribution(seed, low_high, jnp.zeros((n,), dtype=jnp.float32),
+out = prim_uniform_real_distribution(seed, low_high,
                                         outs=[jax.ShapeDtypeStruct((n,), jnp.float32)])
 # show the distribution of out
 plt.hist(out, bins=100)
@@ -101,7 +99,7 @@ plt.title("Uniform real distribution (0, 10)")
 plt.savefig(file_path + "/uniform_real_distribution.png")
 plt.close()
 
-out = prim_normal_distribution(seed, mu_sigma, jnp.zeros((2 * n,), dtype=jnp.float32),
+out = prim_normal_distribution(seed, mu_sigma,
                                  outs=[jax.ShapeDtypeStruct((n,), jnp.float32)])
 # show the distribution of out
 plt.title("Normal distribution mu=0, sigma=1")

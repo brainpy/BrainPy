@@ -2428,7 +2428,7 @@ def _lcg_rand(state: ti.types.ndarray(ndim=1)):
     return state[0]
 
 @ti.func
-def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1), out_sequence: ti.types.ndarray(ndim=1)):
+def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1)):
   """
   Generate a sequence of random numbers using the LCG algorithm.
   
@@ -2442,8 +2442,7 @@ def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1), out_sequence: ti.types.ndarr
   """
   m = ti.u32(2**32 - 1)
 
-  for i in range(out_sequence.shape[0]):
-    out_sequence[i] = float(_lcg_rand(seed)) / m
+  return float(_lcg_rand(seed)) / m
 
 
 @ti.func
