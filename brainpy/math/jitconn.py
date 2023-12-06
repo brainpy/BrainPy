@@ -6,5 +6,9 @@ from brainpy._src.math.jitconn import (
   mv_prob_homo as mv_prob_homo,
   mv_prob_uniform as mv_prob_uniform,
   mv_prob_normal as mv_prob_normal,
+
+  mv_prob_homo_taichi as mv_prob_homo_taichi,
+  mv_prob_uniform_taichi as mv_prob_uniform_taichi,
+  mv_prob_normal_taichi as mv_prob_normal_taichi
 )
 

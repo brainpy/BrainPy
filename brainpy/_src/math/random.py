@@ -2430,15 +2430,13 @@ def _lcg_rand(state: ti.types.ndarray(ndim=1)):
 @ti.func
 def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1)):
   """
-  Generate a sequence of random numbers using the LCG algorithm.
-  
-  Args:
-    seed (int): The seed value for the random number generator.
-    n (int): The number of random numbers to generate.
-    out_sequence (ti.ndarray): A field to store the generated sequence of random numbers.
-  
+  Generate a random number using the Taichi LCG algorithm.
+
+  Parameters:
+    seed (ti.types.ndarray): The seed value for the random number generator.
+
   Returns:
-    sequence (ti.ndarray): A field containing the generated sequence of random numbers.
+    float: A random number between 0 and 1.
   """
   m = ti.u32(2**32 - 1)
 
@@ -2448,15 +2446,15 @@ def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1)):
 @ti.func
 def taichi_uniform_int_distribution(state: ti.f32, low: ti.i32, high: ti.i32):
   """
-  Generate a random integer in the range [low, high).
-  
-  Args:
-    state (float): The state value for the random number generator.
-    low (int): The lower bound of the range.
-    high (int): The upper bound of the range.
-  
+  Generates a uniformly distributed random integer between `low` and `high` (inclusive).
+
+  Parameters:
+    state (ti.f32): The state value used for random number generation.
+    low (ti.i32): The lower bound of the range.
+    high (ti.i32): The upper bound of the range.
+
   Returns:
-    int: A random integer in the range [low, high).
+    ti.i32: A random integer between `low` and `high`.
   """
   return ti.cast(ti.floor(state * (high - low) + low), ti.i32)
 
