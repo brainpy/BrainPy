@@ -22,8 +22,11 @@ import jax
 import numpy as np
 from jax import monitoring
 from jax import process_index
-from jax.experimental.array_serialization import get_tensorstore_spec, GlobalAsyncCheckpointManager  # noqa
 from jax.experimental.multihost_utils import sync_global_devices
+try:
+  from jax.experimental.array_serialization import get_tensorstore_spec, GlobalAsyncCheckpointManager  # noqa
+except:
+  get_tensorstore_spec = GlobalAsyncCheckpointManager = None
 
 try:
   import msgpack
