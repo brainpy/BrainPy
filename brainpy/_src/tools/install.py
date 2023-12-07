@@ -21,10 +21,3 @@ Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3
 For more detail installation instructions, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
 
 '''
-
-
-brainpylib_install = '''
-
-'''
-
-

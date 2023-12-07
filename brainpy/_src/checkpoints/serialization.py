@@ -19,21 +19,19 @@ from contextlib import contextmanager
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import jax
-import msgpack
 import numpy as np
+from jax import monitoring
 from jax import process_index
 from jax.experimental.multihost_utils import sync_global_devices
-
-try:
-  from jax import monitoring
-except (ModuleNotFoundError, ImportError):
-  monitoring = None
-
 try:
   from jax.experimental.array_serialization import get_tensorstore_spec, GlobalAsyncCheckpointManager  # noqa
-except (ModuleNotFoundError, ImportError):
-  get_tensorstore_spec = None
-  GlobalAsyncCheckpointManager = None
+except:
+  get_tensorstore_spec = GlobalAsyncCheckpointManager = None
+
+try:
+  import msgpack
+except ModuleNotFoundError:
+  msgpack = None
 
 from brainpy._src.math.ndarray import Array
 from brainpy.errors import (AlreadyExistsError,
@@ -114,6 +112,12 @@ def _record_path(name):
     yield
   finally:
     _error_context.path.pop()
+
+
+def check_msgpack():
+  if msgpack is None:
+    raise ModuleNotFoundError('\nbrainpy.checkpoints needs "msgpack" package. Please install msgpack via:\n'
+                              '> pip install msgpack')
 
 
 def current_path():
@@ -1126,6 +1130,7 @@ def save(
   out: str
     Filename of saved checkpoint.
   """
+  check_msgpack()
   start_time = time.time()
   # Make sure all saves are finished before the logic of checking and removing
   # outdated checkpoints happens.
@@ -1257,6 +1262,7 @@ def save_pytree(
   out: str
     Filename of saved checkpoint.
   """
+  check_msgpack()
   if verbose:
     print(f'Saving checkpoint into {filename}')
   start_time = time.time()
@@ -1344,6 +1350,7 @@ def multiprocess_save(
   out: str
     Filename of saved checkpoint.
   """
+  check_msgpack()
   start_time = time.time()
   # Make sure all saves are finished before the logic of checking and removing
   # outdated checkpoints happens.
@@ -1488,6 +1495,7 @@ def load(
     returned. This is to match the behavior of the case where a directory path
     is specified but the directory has not yet been created.
   """
+  check_msgpack()
   start_time = time.time()
 
   ckpt_dir = os.fspath(ckpt_dir)  # Pathlib -> str
@@ -1582,6 +1590,7 @@ def load_pytree(
     returned. This is to match the behavior of the case where a directory path
     is specified but the directory has not yet been created.
   """
+  check_msgpack()
   start_time = time.time()
   if not os.path.exists(filename):
     raise ValueError(f'Checkpoint not found: {filename}')

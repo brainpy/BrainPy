@@ -2,89 +2,10 @@ BrainPy documentation
 =====================
 
 `BrainPy`_ is a highly flexible and extensible framework targeting on the
-general-purpose Brain Dynamics Programming (BDP). Among its key ingredients, BrainPy supports:
+general-purpose Brain Dynamics Programming (BDP).
 
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
-
-Features
-^^^^^^^^^
-
-.. grid::
-
-   .. grid-item::
-      :columns: 12 12 12 6
-
-      .. card:: OO Transformations
-         :class-card: sd-border-0
-         :shadow: none
-         :class-title: sd-fs-5
-
-         .. div:: sd-font-normal
-
-            BrainPy supports object-oriented transformations, including
-            JIT compilation, Autograd.
-
-   .. grid-item::
-      :columns: 12 12 12 6
-
-      .. card:: Numerical Integrators
-         :class-card: sd-border-0
-         :shadow: none
-         :class-title: sd-fs-5
-
-         .. div:: sd-font-normal
-
-            BrainPy provides various numerical integration methods for ODEs, SDEs, DDEs, FDEs, etc.
-
-   .. grid-item::
-      :columns: 12 12 12 6
-
-      .. card:: Model Building
-         :class-card: sd-border-0
-         :shadow: none
-         :class-title: sd-fs-5
-
-         .. div:: sd-font-normal
-
-            BrainPy provides a modular and composable programming interface for building dynamics.
-
-   .. grid-item::
-      :columns: 12 12 12 6
-
-      .. card:: Model Simulation
-         :class-card: sd-border-0
-         :shadow: none
-         :class-title: sd-fs-5
-
-         .. div:: sd-font-normal
-
-            BrainPy supports dynamics simulation for various brain objects with parallel supports.
-
-
-   .. grid-item::
-      :columns: 12 12 12 6
-
-      .. card:: Model Training
-         :class-card: sd-border-0
-         :shadow: none
-         :class-title: sd-fs-5
-
-         .. div:: sd-font-normal
-
-            BrainPy supports dynamics training with various machine learning algorithms, like FORCE learning, ridge regression, back-propagation, etc.
-
-   .. grid-item::
-      :columns: 12 12 12 6
-
-      .. card:: Model Analysis
-         :class-card: sd-border-0
-         :shadow: none
-         :class-title: sd-fs-5
-
-         .. div:: sd-font-normal
-
-            BrainPy supports dynamics analysis for low- and high-dimensional systems, including phase plane, bifurcation, linearization, and fixed/slow point analysis.
 
 ----
 
@@ -96,23 +17,17 @@ Installation
 
        .. code-block:: bash
 
-          pip install -U "jax[cpu]"
-
           pip install -U brainpy brainpylib  # windows, linux, macos
 
     .. tab-item:: GPU (CUDA-11x)
 
        .. code-block:: bash
 
-          pip install -U "jax[cuda11_local]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-
           pip install -U brainpy brainpylib-cu11x  # only on linux
 
     .. tab-item:: GPU (CUDA-12x)
 
        .. code-block:: bash
-
-          pip install --upgrade "jax[cuda12_local]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
           pip install -U brainpy brainpylib-cu12x  # only on linux
 
