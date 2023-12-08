@@ -42,6 +42,7 @@ __all__ = [
   # taichi.func random generator implementation
   'taichi_lcg_rand', 'taichi_uniform_int_distribution', 
   'taichi_uniform_real_distribution', 'taichi_normal_distribution',
+  'taichi_lfsr88',
 ]
 
 
@@ -2423,9 +2424,7 @@ try:
   @ti.func
   def _lcg_rand(state: ti.types.ndarray(ndim=1)):
       # LCG constants
-      a = ti.u32(1664525)
-      c = ti.u32(1013904223)
-      state[0] = a * state[0] + c
+      state[0] = ti.u32(1664525) * state[0] + ti.u32(1013904223)
       return state[0]
 
   @ti.func
@@ -2439,9 +2438,42 @@ try:
     Returns:
       float: A random number between 0 and 1.
     """
-    m = ti.u32(2**32 - 1)
 
-    return float(_lcg_rand(seed)) / m
+    return float(_lcg_rand(seed)) / ti.u32(2**32 - 1)
+  
+  @ti.func
+  def taichi_lfsr88(s1: ti.u32, s2: ti.u32, s3: ti.u32, b: ti.u32):
+    """
+    32-bits Random number generator U[0,1): lfsr88
+    Author: Pierre L'Ecuyer,
+    Source: 
+    https://github.com/cmcqueen/simplerandom/blob/main/c/lecuyer/lfsr88.c
+    /**** VERY IMPORTANT **** :
+      The initial seeds s1, s2, s3  MUST be larger than
+      1, 7, and 15 respectively.
+    */
+    ```cpp
+    double taus88_double ()
+    {                   /* Generates numbers between 0 and 1. */
+    b = (((s1 << 13) ^ s1) >> 19);
+    s1 = (((s1 & 4294967294) << 12) ^ b);
+    b = (((s2 << 2) ^ s2) >> 25);
+    s2 = (((s2 & 4294967288) << 4) ^ b);
+    b = (((s3 << 3) ^ s3) >> 11);
+    s3 = (((s3 & 4294967280) << 17) ^ b);
+    return ((s1 ^ s2 ^ s3) * 2.3283064365386963e-10);
+    }
+    ```
+
+    """
+    b = (((s1 << 13) ^ s1) >> 19);
+    s1 = (((s1 & ti.u32(4294967294)) << 12) ^ b)
+    b = (((s2 << 2) ^ s2) >> 25)
+    s2 = (((s2 & ti.u32(4294967288)) << 4) ^ b)
+    b = (((s3 << 3) ^ s3) >> 11)
+    s3 = (((s3 & ti.u32(4294967280)) << 17) ^ b)
+    return s1, s2, s3, b, ((s1 ^ s2 ^ s3) * ti.f32(2.3283064365386963e-10))
+    
 
 
   @ti.func
