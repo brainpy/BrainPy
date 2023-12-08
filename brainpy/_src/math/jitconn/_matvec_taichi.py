@@ -31,7 +31,7 @@ __all__ = [
 @ti.func
 def _dist1(seed: ti.types.ndarray(ndim=1),
            clen: ti.i32
-):
+) -> ti.i32:
     return uniform_int_distribution(random_generator(seed), 1, clen)
 
 @ti.kernel
@@ -90,7 +90,7 @@ def _mv_prob_homo_cpu(
     clen_value = clen[0]
     ti.loop_config(serialize=True)
     for i_row in range(num_row):
-        r = 0
+        r = 0.
         i_col = _dist1(seed, clen_value)
         while (i_col < num_col):
             r += vector[i_col]
@@ -111,7 +111,7 @@ def _mv_prob_homo_gpu(
     weight_value = weight[0]
     clen_value = clen[0]
     for i_row in range(num_row):
-        r = 0
+        r = 0.
         i_col = _dist1(seed, clen_value)
         while (i_col < num_col):
             r += vector[i_col]
@@ -318,7 +318,8 @@ _mv_prob_homo_p.def_transpose_rule(_mv_prob_homo_transpose)
 @ti.func
 def _dist2(seed: ti.types.ndarray(ndim=1),
            w_min: ti.f32,
-           w_max: ti.f32):
+           w_max: ti.f32
+) -> ti.f32:
     return uniform_real_distribution(random_generator(seed), w_min, w_max)
 
 @ti.kernel
@@ -382,7 +383,7 @@ def _mv_prob_uniform_cpu(
     w_max_value = w_max[0]
     ti.loop_config(serialize=True)
     for i_row in range(num_row):
-        r = 0
+        r = 0.
         i_col = _dist1(seed, clen_value)
         while (i_col < num_col):
             r += _dist2(seed, w_min_value, w_max_value) * vector[i_col]
@@ -405,7 +406,7 @@ def _mv_prob_uniform_gpu(
     w_min_value = w_min[0]
     w_max_value = w_max[0]
     for i_row in range(num_row):
-        r = 0
+        r = 0.
         i_col = _dist1(seed, clen_value)
         while (i_col < num_col):
             r += _dist2(seed, w_min_value, w_max_value) * vector[i_col]
@@ -596,7 +597,8 @@ _mv_prob_uniform_p.def_transpose_rule(_mv_prob_uniform_transpose)
 @ti.func
 def _dist3(seed: ti.types.ndarray(ndim=1),
            w_mu: ti.f32,
-           w_sigma: ti.f32):
+           w_sigma: ti.f32
+) -> ti.f32:
     s1 = random_generator(seed)
     s2 = random_generator(seed)
     return normal_distribution(s1, s2, w_mu, w_sigma)
@@ -664,7 +666,7 @@ def _mv_prob_normal_cpu(
     
     ti.loop_config(serialize=True)
     for i_row in range(num_row):
-        r = 0
+        r = 0.
         i_col = _dist1(seed, clen_value)
         while (i_col < num_col):
             r += _dist3(seed, w_mu_value, w_sigma_value) * vector[i_col]
@@ -688,7 +690,7 @@ def _mv_prob_normal_gpu(
     w_sigma_value = w_sigma[0]
     
     for i_row in range(num_row):
-        r = 0
+        r = 0.
         i_col = _dist1(seed, clen_value)
         while (i_col < num_col):
             r += _dist3(seed, w_mu_value, w_sigma_value) * vector[i_col]

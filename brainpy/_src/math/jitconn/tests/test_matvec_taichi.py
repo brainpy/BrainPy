@@ -97,43 +97,6 @@ shapes = [(100, 200),
 
 #     bm.clear_buffer_memory()
 
-# def test_homo_grad(shape, transpose, outdim_parallel, prob, seed=None):
-#     print(f'_test_homo_grad: '
-#           f'shape = {shape}, '
-#           f'transpose = {transpose}, '
-#           f'outdim_parallel = {outdim_parallel}, '
-#           f'prob={prob}')
-
-#     rng = bm.random.RandomState()
-#     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1])) < 0.5
-#     events = events.astype(float)
-
-#     # r1 = jax.grad(sum_op2(bm.jitconn.mv_prob_homo_taichi))(
-#     #   events, 1., prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
-#     # )
-
-#     # r2 = jax.grad(sum_op2(bm.jitconn.mv_prob_homo_taichi))(
-#     #   events, 2., prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
-#     # )
-
-#     f1 = jax.grad(
-#       lambda event, data: bm.jitconn.mv_prob_homo_taichi(
-#         event, data,
-#         conn_prob=prob,
-#         shape=shape,
-#         seed=seed,
-#         outdim_parallel=outdim_parallel,
-#         transpose=transpose
-#       )[0].sum(),
-#       argnums=0
-#     )
-#     r1 = f1(events, 1.)
-#     r2 = f1(events, 2.)
-
-#     assert (jnp.allclose(r1 * 2., r2))
-
-#     bm.clear_buffer_memory()
-
 # def test_uniform(shape, transpose, outdim_parallel, prob, w_low, w_high, seed=None):
 #     print(f'test_uniform: '
 #           f'shape = {shape}, '
@@ -185,8 +148,39 @@ shapes = [(100, 200),
 
 # test_homo(shape=(100, 200), transpose=True, outdim_parallel=True, prob=0.1, homo_data=1., seed=1234)
 # test_homo_vmap(shape=(100, 200), transpose=True, outdim_parallel=True, prob=0.1, seed=1234)
-# test_homo_grad(shape=(100, 200), transpose=True, outdim_parallel=True, prob=0.1, seed=1234)
+
 # test_uniform(shape=(100, 200), transpose=True, outdim_parallel=False, prob=0.1, w_low=-1., w_high=0., seed=1234)
+
+# def test_homo_grad(shape, transpose, outdim_parallel, prob, seed=None):
+#     print(f'_test_homo_grad: '
+#           f'shape = {shape}, '
+#           f'transpose = {transpose}, '
+#           f'outdim_parallel = {outdim_parallel}, '
+#           f'prob={prob}')
+
+#     rng = bm.random.RandomState()
+#     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1])) < 0.5
+#     events = events.astype(float)
+
+#     f1 = jax.grad(
+#       lambda event, data: bm.jitconn.mv_prob_homo_taichi(
+#         event, data,
+#         conn_prob=prob,
+#         shape=shape,
+#         seed=seed,
+#         outdim_parallel=outdim_parallel,
+#         transpose=transpose
+#       )[0].sum(),
+#       argnums=0
+#     )
+#     r1 = f1(events, 1.)
+#     r2 = f1(events, 2.)
+    
+#     print(r1 *2 - r2)
+#     assert (jnp.allclose(r1 * 2., r2))
+
+#     bm.clear_buffer_memory()
+
 
 # def test_normal_grad(shape, transpose, outdim_parallel, prob, seed=None):
 #     print(f'_test_normal_grad: '
@@ -249,8 +243,9 @@ shapes = [(100, 200),
 
 #     bm.clear_buffer_memory()
 
-# test_normal_grad(shape=(100, 200), transpose=True, outdim_parallel=False, prob=0.1, seed=1234)
-# test_uniform_grad(shape=(100, 200), transpose=True, outdim_parallel=True, prob=0.1, seed=1234)
+# test_homo_grad(shape=(100, 200), transpose=True, outdim_parallel=True, prob=0.1, seed=1234)
+# test_normal_grad(shape=(100, 200), transpose=True, outdim_parallel=True, prob=0.1, seed=1234)
+# test_uniform_grad(shape=(100, 200), transpose=True, outdim_parallel=False, prob=0.1, seed=1234)
 
 
 class Test_matvec_prob_conn(parameterized.TestCase):
