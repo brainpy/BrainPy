@@ -203,7 +203,7 @@ def _event_csr_matvec_gpu(values: ti.types.ndarray(ndim=1),
 
 
 def _event_csr_matvec_jvp_values(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
-  return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
+  return csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
 
 
 def _event_csr_matvec_jvp_events(evt_dot, values, indices, indptr, events, *, outs, transpose, shape):

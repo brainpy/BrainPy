@@ -1,26 +1,21 @@
 # -*- coding: utf-8 -*-
 
 
-from functools import partial
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional
 
 import jax
 import numpy as np
 import taichi as ti
-from jax import numpy as jnp, dtypes
-from jax.core import ShapedArray, Primitive
-from jax.interpreters import xla, ad
-from jax.lib import xla_client
+from jax import numpy as jnp
+from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_brainpylib_gpu_ops, import_brainpylib_cpu_ops
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import Array, _get_dtype
+from brainpy._src.math.ndarray import _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.random import (taichi_lcg_rand as random_generator,
                                       taichi_uniform_int_distribution as uniform_int_distribution,
                                       taichi_uniform_real_distribution as uniform_real_distribution,
-                                      taichi_normal_distribution as normal_distribution,)
-from brainpy.errors import GPUOperatorNotFound
+                                      taichi_normal_distribution as normal_distribution, )
 
 __all__ = [
   'event_mv_prob_homo_taichi',
