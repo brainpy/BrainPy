@@ -114,7 +114,7 @@ class Delta(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method=comp_method, sparse_data='csr')
 
     # register delay
-    self.delay_step = self.pre.register_delay("spike", delay_step, self.pre.spike)
+    self.pre.register_local_delay("spike", self.name, delay_step)
 
   def reset_state(self, batch_size=None):
     self.output.reset_state(batch_size)
@@ -124,7 +124,7 @@ class Delta(TwoEndConn):
   def update(self, pre_spike=None):
     # pre-synaptic spikes
     if pre_spike is None:
-      pre_spike = self.pre.get_delay_data("spike", self.delay_step)
+      pre_spike = self.pre.get_local_delay("spike", self.name)
     pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
       pre_spike = jax.lax.stop_gradient(pre_spike)
@@ -317,7 +317,7 @@ class Exponential(TwoEndConn):
     self.g = self.syn.g
 
     # delay
-    self.delay_step = self.pre.register_delay("spike", delay_step, self.pre.spike)
+    self.pre.register_local_delay("spike", self.name, delay_step)
 
   def reset_state(self, batch_size=None):
     self.syn.reset_state(batch_size)
@@ -328,7 +328,7 @@ class Exponential(TwoEndConn):
   def update(self, pre_spike=None):
     # delays
     if pre_spike is None:
-      pre_spike = self.pre.get_delay_data("spike", self.delay_step)
+      pre_spike = self.pre.get_local_delay("spike", self.name)
     pre_spike = bm.as_jax(pre_spike)
     if self.stop_spike_gradient:
       pre_spike = jax.lax.stop_gradient(pre_spike)
