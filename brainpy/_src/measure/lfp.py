@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 
-def unitary_LFP(times, spikes, spike_type='exc',
+def unitary_LFP(times, spikes, spike_type,
                 xmax=0.2, ymax=0.2, va=200., lambda_=0.2,
                 sig_i=2.1, sig_e=2.1 * 1.5, location='soma layer', seed=None):
   """A kernel-based method to calculate unitary local field potentials (uLFP)

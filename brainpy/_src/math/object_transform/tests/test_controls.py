@@ -208,6 +208,28 @@ class TestIfElse(unittest.TestCase):
 
     self.assertTrue(f2().size == 200)
 
+  def test_grad1(self):
+    def F2(x):
+      return bm.ifelse(conditions=(x >= 10,),
+                       branches=[lambda x: x,
+                                 lambda x: x ** 2, ],
+                       operands=x)
+
+    self.assertTrue(bm.grad(F2)(9.0) == 18.)
+    self.assertTrue(bm.grad(F2)(11.0) == 1.)
+
+
+  def test_grad2(self):
+    def F3(x):
+      return bm.ifelse(conditions=(x >= 10, x >= 0),
+                       branches=[lambda x: x,
+                                 lambda x: x ** 2,
+                                 lambda x: x ** 4, ],
+                       operands=x)
+
+    self.assertTrue(bm.grad(F3)(9.0) == 18.)
+    self.assertTrue(bm.grad(F3)(11.0) == 1.)
+
 
 class TestWhile(unittest.TestCase):
   def test1(self):
@@ -481,3 +503,6 @@ cond ...
     file.seek(0)
     out6 = file.read().strip()
     self.assertTrue(out5 == out6)
+
+
+

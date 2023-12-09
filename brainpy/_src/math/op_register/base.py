@@ -14,11 +14,10 @@ from brainpy._src.math.object_transform.base import BrainPyObject
 #   from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
 from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
 from .taichi_aot_based import (register_taichi_cpu_translation_rule,
-                               register_taichi_gpu_translation_rule,
-                               encode_md5,
-                               _preprocess_kernel_call_cpu,
-                               get_source_with_dependencies)
+                               register_taichi_gpu_translation_rule,)
 from .utils import register_general_batching
+from brainpy._src.math.op_register.ad_support import defjvp
+
 
 __all__ = [
   'XLACustomOp',
@@ -170,6 +169,14 @@ class XLACustomOp(BrainPyObject):
       fun: The JVP rule.
     """
     ad.primitive_jvps[self.primitive] = fun
+
+  def defjvp(self, *jvp_rules):
+    """Define the JVP rule. Similar to ``jax.interpreters.ad.defjvp``, but supports the Primitive with multiple results.
+
+    Args:
+      jvp_rules: The JVP rules.
+    """
+    defjvp(self.primitive, *jvp_rules)
 
   def def_transpose_rule(self, fun):
     """Define the transpose rule.

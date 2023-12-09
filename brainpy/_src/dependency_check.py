@@ -1,12 +1,12 @@
+import os
+import sys
 from jax.lib import xla_client
-
 
 __all__ = [
   'import_taichi',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
 ]
-
 
 _minimal_brainpylib_version = '0.1.10'
 _minimal_taichi_version = (1, 7, 0)
@@ -15,24 +15,27 @@ taichi = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
+taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
+                       f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
+                       '> pip install taichi==1.7.0 -U')
+os.environ["TI_LOG_LEVEL"] = "error"
+
 
 def import_taichi():
   global taichi
   if taichi is None:
-    try:
-      import taichi as taichi  # noqa
-    except ModuleNotFoundError:
-      raise ModuleNotFoundError(
-        'Taichi is needed. Please install taichi through:\n\n'
-        '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
-      )
+    with open(os.devnull, 'w') as devnull:
+      old_stdout = sys.stdout
+      sys.stdout = devnull
+      try:
+        import taichi as taichi  # noqa
+      except ModuleNotFoundError:
+        raise ModuleNotFoundError(taichi_install_info)
+      finally:
+        sys.stdout = old_stdout
 
-  if taichi.__version__ < _minimal_taichi_version:
-    raise RuntimeError(
-      f'We need taichi>={_minimal_taichi_version}. '
-      f'Currently you can install taichi>={_minimal_taichi_version} through taichi-nightly:\n\n'
-      '> pip install -i https://pypi.taichi.graphics/simple/ taichi-nightly'
-    )
+  if taichi.__version__ != _minimal_taichi_version:
+    raise RuntimeError(taichi_install_info)
   return taichi
 
 
@@ -82,6 +85,3 @@ def import_brainpylib_gpu_ops():
                         'See https://brainpy.readthedocs.io for installation instructions.')
 
   return brainpylib_gpu_ops
-
-
-

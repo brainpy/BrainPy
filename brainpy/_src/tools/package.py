@@ -9,19 +9,12 @@ except (ImportError, ModuleNotFoundError):
 
 
 __all__ = [
-  'import_numba',
   'numba_jit',
   'numba_seed',
   'numba_range',
   'SUPPORT_NUMBA',
 ]
 
-
-def import_numba():
-  if numba is None:
-    raise ModuleNotFoundError('Numba is needed. Please install numba through:\n\n'
-                              '> pip install numba')
-  return numba
 
 
 SUPPORT_NUMBA = numba is not None

@@ -6,8 +6,7 @@ from brainpy._src.math.op_register import (
   compile_cpu_signature_with_numba,
 )
 
-
 from brainpy._src.math.op_register.base import XLACustomOp
-
+from brainpy._src.math.op_register.ad_support import defjvp
 
 

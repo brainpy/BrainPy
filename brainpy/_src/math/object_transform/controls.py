@@ -678,8 +678,7 @@ def ifelse(
               raise TypeError(msg)
           cache_stack(tuple(branches), dyn_vars)
         if current_transform_number():
-          return _if_else_return2(conditions, rets)
-
+          return rets[0]
       branches = [_cond_transform_fun(fun, dyn_vars) for fun in branches]
 
     code_scope = {'conditions': conditions, 'branches': branches}
