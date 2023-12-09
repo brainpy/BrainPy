@@ -17,7 +17,7 @@ brainpylib_gpu_ops = None
 
 taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
                        f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
-                       '> pip install taichi==1.7.0 -U')
+                       '> pip install taichi==1.7.0')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 

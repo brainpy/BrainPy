@@ -5,17 +5,19 @@ from typing import Tuple, Optional
 
 import jax
 import numpy as np
-import taichi as ti
 from jax import numpy as jnp
 from jax.interpreters import ad
 
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
-from brainpy._src.math.random import (taichi_lcg_rand as random_generator,
-                                      taichi_uniform_int_distribution as uniform_int_distribution,
-                                      taichi_uniform_real_distribution as uniform_real_distribution,
-                                      taichi_normal_distribution as normal_distribution, )
+from brainpy._src.math.taichi_random import (taichi_lcg_rand as random_generator,
+                                             taichi_uniform_int_distribution as uniform_int_distribution,
+                                             taichi_uniform_real_distribution as uniform_real_distribution,
+                                             taichi_normal_distribution as normal_distribution, )
+
+ti = import_taichi()
 
 __all__ = [
   'event_mv_prob_homo_taichi',
@@ -23,11 +25,14 @@ __all__ = [
   'event_mv_prob_normal_taichi',
 ]
 
+
 @ti.func
-def _dist1(seed: ti.types.ndarray(ndim=1),
-           clen: ti.i32
+def _dist1(
+    seed: ti.types.ndarray(ndim=1),
+    clen: ti.i32
 ) -> ti.i32:
-    return uniform_int_distribution(random_generator(seed), 1, clen)
+  return uniform_int_distribution(random_generator(seed), 1, clen)
+
 
 @ti.kernel
 def _event_mv_prob_homo_outdim_parallel_bool_cpu(
@@ -38,18 +43,19 @@ def _event_mv_prob_homo_outdim_parallel_bool_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    ti.loop_config(serialize=True)
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event:
-                out[i_row] += weight_value
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += weight_value
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_homo_outdim_parallel_bool_gpu(
@@ -60,17 +66,18 @@ def _event_mv_prob_homo_outdim_parallel_bool_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event:
-                out[i_row] += weight_value
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += weight_value
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_homo_bool_cpu(
@@ -81,20 +88,21 @@ def _event_mv_prob_homo_bool_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    ti.loop_config(serialize=True)
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event:
-                r += weight_value
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        r += weight_value
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _event_mv_prob_homo_bool_gpu(
@@ -105,19 +113,20 @@ def _event_mv_prob_homo_bool_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event:
-                r += weight_value
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        r += weight_value
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _event_mv_prob_homo_outdim_parallel_cpu(
@@ -128,18 +137,19 @@ def _event_mv_prob_homo_outdim_parallel_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    ti.loop_config(serialize=True)
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event > 0.:
-                out[i_row] += weight_value
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += weight_value
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_homo_outdim_parallel_gpu(
@@ -150,17 +160,18 @@ def _event_mv_prob_homo_outdim_parallel_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event > 0.:
-                out[i_row] += weight_value
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += weight_value
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_homo_cpu(
@@ -171,20 +182,21 @@ def _event_mv_prob_homo_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    ti.loop_config(serialize=True)
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event > 0.:
-                r += weight_value
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event > 0.:
+        r += weight_value
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _event_mv_prob_homo_gpu(
@@ -195,83 +207,85 @@ def _event_mv_prob_homo_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    weight_value = weight[0]
-    clen_value = clen[0]
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event > 0.:
-                r += weight_value
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event > 0.:
+        r += weight_value
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
 
 
 def _event_mv_prob_homo_jvp(
     primals, tangents, *, outs, shape, transpose, outdim_parallel, conn_prob
 ):
-    events, weight, clen, seed, shape_value = primals
-    events_dot, weight_dot, clen_dot, seed_dot, shape_value_dot = tangents
-    r = event_mv_prob_homo_taichi(events,
-                            weight,
-                            conn_prob,
-                            seed,
-                            shape=shape,
-                            transpose=transpose,
-                            outdim_parallel=outdim_parallel)
-    
-    assert type(clen_dot) is ad.Zero
-    assert type(seed_dot) is ad.Zero
-    assert type(shape_value_dot) is ad.Zero
+  events, weight, clen, seed, shape_value = primals
+  events_dot, weight_dot, clen_dot, seed_dot, shape_value_dot = tangents
+  r = event_mv_prob_homo_taichi(events,
+                                weight,
+                                conn_prob,
+                                seed,
+                                shape=shape,
+                                transpose=transpose,
+                                outdim_parallel=outdim_parallel)
 
-    if type(weight_dot) is ad.Zero:
-        if type(events_dot) is ad.Zero:
-            raise ValueError
-        r_dot = event_mv_prob_homo_taichi(events_dot,
-                                    weight,
-                                    conn_prob,
-                                    seed,
-                                    shape=shape,
-                                    transpose=transpose,
-                                    outdim_parallel=outdim_parallel)
-    elif type(events_dot) is ad.Zero:
-        r_dot = event_mv_prob_homo_taichi(events,
-                                    weight_dot,
-                                    conn_prob,
-                                    seed,
-                                    shape=shape,
-                                    transpose=transpose,
-                                    outdim_parallel=outdim_parallel)
-    else:
-        r_dot = event_mv_prob_homo_taichi(events_dot,
-                                    weight_dot,
-                                    conn_prob,
-                                    seed,
-                                    shape=shape,
-                                    transpose=transpose,
-                                    outdim_parallel=outdim_parallel)
-    
-    return r, r_dot
+  assert type(clen_dot) is ad.Zero
+  assert type(seed_dot) is ad.Zero
+  assert type(shape_value_dot) is ad.Zero
+
+  if type(weight_dot) is ad.Zero:
+    if type(events_dot) is ad.Zero:
+      raise ValueError
+    r_dot = event_mv_prob_homo_taichi(events_dot,
+                                      weight,
+                                      conn_prob,
+                                      seed,
+                                      shape=shape,
+                                      transpose=transpose,
+                                      outdim_parallel=outdim_parallel)
+  elif type(events_dot) is ad.Zero:
+    r_dot = event_mv_prob_homo_taichi(events,
+                                      weight_dot,
+                                      conn_prob,
+                                      seed,
+                                      shape=shape,
+                                      transpose=transpose,
+                                      outdim_parallel=outdim_parallel)
+  else:
+    r_dot = event_mv_prob_homo_taichi(events_dot,
+                                      weight_dot,
+                                      conn_prob,
+                                      seed,
+                                      shape=shape,
+                                      transpose=transpose,
+                                      outdim_parallel=outdim_parallel)
+
+  return r, r_dot
+
 
 def _event_mv_prob_homo_transpose(
     ct, events, weight, clen, seed, shape_value, *, outs, shape, transpose, outdim_parallel, conn_prob
 ):
-    assert type(weight) is not ad.UndefinedPrimal
-    assert type(clen) is not ad.UndefinedPrimal
-    assert type(seed) is not ad.UndefinedPrimal
-    assert type(shape_value) is not ad.UndefinedPrimal
-    assert type(events) is ad.UndefinedPrimal
-    r = event_mv_prob_homo_taichi(ct[0],
-                            weight,
-                            conn_prob,
-                            seed,
-                            shape=shape,
-                            transpose=not transpose,
-                            outdim_parallel=not outdim_parallel)[0]
-    return r, weight, clen, seed, shape_value
+  assert type(weight) is not ad.UndefinedPrimal
+  assert type(clen) is not ad.UndefinedPrimal
+  assert type(seed) is not ad.UndefinedPrimal
+  assert type(shape_value) is not ad.UndefinedPrimal
+  assert type(events) is ad.UndefinedPrimal
+  r = event_mv_prob_homo_taichi(ct[0],
+                                weight,
+                                conn_prob,
+                                seed,
+                                shape=shape,
+                                transpose=not transpose,
+                                outdim_parallel=not outdim_parallel)[0]
+  return r, weight, clen, seed, shape_value
+
 
 def event_mv_prob_homo_taichi(
     events: jax.Array,
@@ -283,144 +297,145 @@ def event_mv_prob_homo_taichi(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-    r"""Perform the :math:`y=M@v` operation,
-    where :math:`M` is just-in-time randomly generated with a scalar `weight` at each position.
+  r"""Perform the :math:`y=M@v` operation,
+  where :math:`M` is just-in-time randomly generated with a scalar `weight` at each position.
 
-    This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-    on CPU and GPU devices.
+  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
+  on CPU and GPU devices.
 
-    .. warning::
+  .. warning::
 
-        This API may change in the future.
+      This API may change in the future.
 
-    In this operation, :math:`M` is the random matrix with a connection probability
-    `conn_prob`, and at each connection the value is the same scalar `weight`.
+  In this operation, :math:`M` is the random matrix with a connection probability
+  `conn_prob`, and at each connection the value is the same scalar `weight`.
 
-    When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
+  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
 
-    .. note::
+  .. note::
 
-        Note that the just-in-time generated :math:`M` (`transpose=False`) is
-        different from the generated :math:`M^T` (`transpose=True`).
+      Note that the just-in-time generated :math:`M` (`transpose=False`) is
+      different from the generated :math:`M^T` (`transpose=True`).
 
-        If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-        the speed compared with ``outdim_parallel=False``.
+      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
+      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
+      the speed compared with ``outdim_parallel=False``.
 
-    Parameters
-    ----------
-    events: Array, ndarray
-        The events.
-    weight: float
-        The value of the random matrix.
-    conn_prob: float
-        The connection probability.
-    shape: tuple of int
-        The matrix shape.
-    seed: int
-        The random number generation seed.
-    transpose: bool
-        Transpose the random matrix or not.
-    outdim_parallel: bool
-        Perform the parallel random generations along the out dimension or not.
-        It can be used to set the just-in-time generated :math:M^T: is the same
-        as the just-in-time generated :math:`M` when ``transpose=True``.
+  Parameters
+  ----------
+  events: Array, ndarray
+      The events.
+  weight: float
+      The value of the random matrix.
+  conn_prob: float
+      The connection probability.
+  shape: tuple of int
+      The matrix shape.
+  seed: int
+      The random number generation seed.
+  transpose: bool
+      Transpose the random matrix or not.
+  outdim_parallel: bool
+      Perform the parallel random generations along the out dimension or not.
+      It can be used to set the just-in-time generated :math:M^T: is the same
+      as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns
-    -------
-    out: Array, ndarray
-        The output of :math:`y = M @ v`.
-    """
-    events = as_jax(events)
-    weight = jnp.atleast_1d(as_jax(weight))
-    conn_prob_value = conn_prob
-    conn_prob = jnp.atleast_1d(as_jax(conn_prob))
-    clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
-    with jax.ensure_compile_time_eval():
-        if seed is None:
-            seed = int(np.random.randint(0, int(1e8)))
-    seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.uint32))
+  Returns
+  -------
+  out: Array, ndarray
+      The output of :math:`y = M @ v`.
+  """
+  events = as_jax(events)
+  weight = jnp.atleast_1d(as_jax(weight))
+  conn_prob_value = conn_prob
+  conn_prob = jnp.atleast_1d(as_jax(conn_prob))
+  clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
+  with jax.ensure_compile_time_eval():
+    if seed is None:
+      seed = int(np.random.randint(0, int(1e8)))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.uint32))
 
-    shape_value = (shape[1], shape[0]) if transpose else shape
-    out_shape = (shape_value[0], )
-    shape_value = jnp.asarray(shape_value)
+  shape_value = (shape[1], shape[0]) if transpose else shape
+  out_shape = (shape_value[0],)
+  shape_value = jnp.asarray(shape_value)
 
-    assert _get_dtype(events) in [jnp.bool_, jnp.float16, jnp.float32, jnp.float64]
-    assert _get_dtype(weight) in [jnp.float16, jnp.float32, jnp.float64], '"weight" must be float valued.'
-    assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-    assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(events) in [jnp.bool_, jnp.float16, jnp.float32, jnp.float64]
+  assert _get_dtype(weight) in [jnp.float16, jnp.float32, jnp.float64], '"weight" must be float valued.'
+  assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
 
-    if events.ndim != 1:
-        raise ValueError('events should be a 1D vector.')
-    if len(shape) != 2:
-        raise ValueError('shape should be a length-2 tuple.')
-    if seed.ndim != 1:
-        raise ValueError('seed must be a 1D scalar.')
-    if clen.ndim != 1:
-        raise ValueError('conn_prob must be a 1D scalar.')
-    if weight.ndim != 1:
-        raise ValueError('weight must be a 1D scalar.')
+  if events.ndim != 1:
+    raise ValueError('events should be a 1D vector.')
+  if len(shape) != 2:
+    raise ValueError('shape should be a length-2 tuple.')
+  if seed.ndim != 1:
+    raise ValueError('seed must be a 1D scalar.')
+  if clen.ndim != 1:
+    raise ValueError('conn_prob must be a 1D scalar.')
+  if weight.ndim != 1:
+    raise ValueError('weight must be a 1D scalar.')
 
-    if len(shape) != 2:
-        raise ValueError('shape should be a length-2 tuple.')
-    if not isinstance(outdim_parallel, bool):
-        raise ValueError('outdim_parallel must be boolean value.')
-    if not isinstance(transpose, bool):
-        raise ValueError('transpose must be boolean value.')
-    if transpose:
-        if events.shape[0] != shape[0]:
-            raise ValueError(f'Shape mismatch, vec ({events.shape[0]},) @ mat {shape}.')
+  if len(shape) != 2:
+    raise ValueError('shape should be a length-2 tuple.')
+  if not isinstance(outdim_parallel, bool):
+    raise ValueError('outdim_parallel must be boolean value.')
+  if not isinstance(transpose, bool):
+    raise ValueError('transpose must be boolean value.')
+  if transpose:
+    if events.shape[0] != shape[0]:
+      raise ValueError(f'Shape mismatch, vec ({events.shape[0]},) @ mat {shape}.')
+  else:
+    if events.shape[0] != shape[1]:
+      raise ValueError(f'Shape mismatch, mat {shape} @ vec ({events.shape[0]},).')
+
+  # weight = jnp.asarray(weight, dtype=_get_dtype(weight))
+  seed = jnp.asarray(seed, dtype=jnp.uint32)
+
+  prim = None
+  if outdim_parallel:
+    if events.dtype == jnp.bool_:
+      prim = _event_mv_prob_homo_outdim_parallel_bool_p
     else:
-        if events.shape[0] != shape[1]:
-            raise ValueError(f'Shape mismatch, mat {shape} @ vec ({events.shape[0]},).')
-    
-    # weight = jnp.asarray(weight, dtype=_get_dtype(weight))
-    seed = jnp.asarray(seed, dtype=jnp.uint32)
-
-    prim = None
-    if outdim_parallel:
-        if events.dtype == jnp.bool_:
-            prim = _event_mv_prob_homo_outdim_parallel_bool_p
-        else:
-            prim = _event_mv_prob_homo_outdim_parallel_p
+      prim = _event_mv_prob_homo_outdim_parallel_p
+  else:
+    if events.dtype == jnp.bool_:
+      prim = _event_mv_prob_homo_bool_p
     else:
-        if events.dtype == jnp.bool_:
-            prim = _event_mv_prob_homo_bool_p
-        else:
-            prim = _event_mv_prob_homo_p
-    
-    return prim(events,
-                weight,
-                clen,
-                seed,
-                shape_value,
-                outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=weight.dtype)],
-                shape=shape,
-                transpose=transpose,
-                outdim_parallel=outdim_parallel,
-                conn_prob=conn_prob_value)
+      prim = _event_mv_prob_homo_p
+
+  return prim(events,
+              weight,
+              clen,
+              seed,
+              shape_value,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=weight.dtype)],
+              shape=shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel,
+              conn_prob=conn_prob_value)
+
 
 # outdim_parallel = True, events.dtype = jnp.bool_
 _event_mv_prob_homo_outdim_parallel_bool_p = XLACustomOp(cpu_kernel=_event_mv_prob_homo_outdim_parallel_bool_cpu,
-                                              gpu_kernel=_event_mv_prob_homo_outdim_parallel_bool_gpu)
+                                                         gpu_kernel=_event_mv_prob_homo_outdim_parallel_bool_gpu)
 _event_mv_prob_homo_outdim_parallel_bool_p.def_jvp_rule(_event_mv_prob_homo_jvp)
 _event_mv_prob_homo_outdim_parallel_bool_p.def_transpose_rule(_event_mv_prob_homo_transpose)
 
 # outdim_parallel = False, events.dtype = jnp.bool_
 _event_mv_prob_homo_bool_p = XLACustomOp(cpu_kernel=_event_mv_prob_homo_bool_cpu,
-                              gpu_kernel=_event_mv_prob_homo_bool_gpu)
+                                         gpu_kernel=_event_mv_prob_homo_bool_gpu)
 _event_mv_prob_homo_bool_p.def_jvp_rule(_event_mv_prob_homo_jvp)
 _event_mv_prob_homo_bool_p.def_transpose_rule(_event_mv_prob_homo_transpose)
 
 # outdim_parallel = True, events.dtype != jnp.bool_
 _event_mv_prob_homo_outdim_parallel_p = XLACustomOp(cpu_kernel=_event_mv_prob_homo_outdim_parallel_cpu,
-                                              gpu_kernel=_event_mv_prob_homo_outdim_parallel_gpu)
+                                                    gpu_kernel=_event_mv_prob_homo_outdim_parallel_gpu)
 _event_mv_prob_homo_outdim_parallel_p.def_jvp_rule(_event_mv_prob_homo_jvp)
 _event_mv_prob_homo_outdim_parallel_p.def_transpose_rule(_event_mv_prob_homo_transpose)
 
 # outdim_parallel = False, events.dtype != jnp.bool_
 _event_mv_prob_homo_p = XLACustomOp(cpu_kernel=_event_mv_prob_homo_cpu,
-                              gpu_kernel=_event_mv_prob_homo_gpu)
+                                    gpu_kernel=_event_mv_prob_homo_gpu)
 _event_mv_prob_homo_p.def_jvp_rule(_event_mv_prob_homo_jvp)
 _event_mv_prob_homo_p.def_transpose_rule(_event_mv_prob_homo_transpose)
 
@@ -429,8 +444,9 @@ _event_mv_prob_homo_p.def_transpose_rule(_event_mv_prob_homo_transpose)
 def _dist2(seed: ti.types.ndarray(ndim=1),
            w_min: ti.f32,
            w_max: ti.f32
-) -> ti.f32:
-    return uniform_real_distribution(random_generator(seed), w_min, w_max)
+           ) -> ti.f32:
+  return uniform_real_distribution(random_generator(seed), w_min, w_max)
+
 
 @ti.kernel
 def _event_mv_prob_uniform_outdim_parallel_bool_cpu(
@@ -442,20 +458,21 @@ def _event_mv_prob_uniform_outdim_parallel_bool_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
 
-    ti.loop_config(serialize=True)
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event:
-                out[i_row] += _dist2(seed, w_min_value, w_max_value)
-            i_row += _dist1(seed, clen_value)
+  ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += _dist2(seed, w_min_value, w_max_value)
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_uniform_outdim_parallel_bool_gpu(
@@ -467,19 +484,20 @@ def _event_mv_prob_uniform_outdim_parallel_bool_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
 
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event:
-                out[i_row] += _dist2(seed, w_min_value, w_max_value)
-            i_row += _dist1(seed, clen_value)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += _dist2(seed, w_min_value, w_max_value)
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _mv_prob_uniform_bool_cpu(
@@ -491,21 +509,22 @@ def _mv_prob_uniform_bool_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
-    ti.loop_config(serialize=True)
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event:
-                r += _dist2(seed, w_min_value, w_max_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        r += _dist2(seed, w_min_value, w_max_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _mv_prob_uniform_bool_gpu(
@@ -517,20 +536,21 @@ def _mv_prob_uniform_bool_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event:
-                r += _dist2(seed, w_min_value, w_max_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        r += _dist2(seed, w_min_value, w_max_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _event_mv_prob_uniform_outdim_parallel_cpu(
@@ -542,20 +562,21 @@ def _event_mv_prob_uniform_outdim_parallel_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
 
-    ti.loop_config(serialize=True)
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event > 0.:
-                out[i_row] += _dist2(seed, w_min_value, w_max_value)
-            i_row += _dist1(seed, clen_value)
+  ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += _dist2(seed, w_min_value, w_max_value)
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_uniform_outdim_parallel_gpu(
@@ -567,19 +588,20 @@ def _event_mv_prob_uniform_outdim_parallel_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
 
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event > 0.:
-                out[i_row] += _dist2(seed, w_min_value, w_max_value)
-            i_row += _dist1(seed, clen_value)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += _dist2(seed, w_min_value, w_max_value)
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _mv_prob_uniform_cpu(
@@ -591,21 +613,22 @@ def _mv_prob_uniform_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
-    ti.loop_config(serialize=True)
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event > 0.:
-                r += _dist2(seed, w_min_value, w_max_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event > 0.:
+        r += _dist2(seed, w_min_value, w_max_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _mv_prob_uniform_gpu(
@@ -617,42 +640,28 @@ def _mv_prob_uniform_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_min_value = w_min[0]
-    w_max_value = w_max[0]
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event > 0.:
-                r += _dist2(seed, w_min_value, w_max_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event > 0.:
+        r += _dist2(seed, w_min_value, w_max_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 def _event_mv_prob_uniform_jvp(
     primals, tangents, *, outs, shape, transpose, outdim_parallel, conn_prob
 ):
-    events, w_low, w_high, clen, seed, shape_value = primals
-    events_dot, w_low_dot, w_high_dot, clen_dot, seed_dot, shape_value_dot = tangents
-    r = event_mv_prob_uniform_taichi(events,
-                               w_low,
-                               w_high,
-                               conn_prob,
-                               seed,
-                               shape=shape,
-                               transpose=transpose,
-                               outdim_parallel=outdim_parallel)
-    
-    assert type(w_low_dot) is ad.Zero
-    assert type(w_high_dot) is ad.Zero
-    assert type(clen_dot) is ad.Zero
-    assert type(seed_dot) is ad.Zero
-    assert type(shape_value_dot) is ad.Zero
-    
-    r_dot = event_mv_prob_uniform_taichi(events_dot,
+  events, w_low, w_high, clen, seed, shape_value = primals
+  events_dot, w_low_dot, w_high_dot, clen_dot, seed_dot, shape_value_dot = tangents
+  r = event_mv_prob_uniform_taichi(events,
                                    w_low,
                                    w_high,
                                    conn_prob,
@@ -660,27 +669,43 @@ def _event_mv_prob_uniform_jvp(
                                    shape=shape,
                                    transpose=transpose,
                                    outdim_parallel=outdim_parallel)
-    return r, r_dot
+
+  assert type(w_low_dot) is ad.Zero
+  assert type(w_high_dot) is ad.Zero
+  assert type(clen_dot) is ad.Zero
+  assert type(seed_dot) is ad.Zero
+  assert type(shape_value_dot) is ad.Zero
+
+  r_dot = event_mv_prob_uniform_taichi(events_dot,
+                                       w_low,
+                                       w_high,
+                                       conn_prob,
+                                       seed,
+                                       shape=shape,
+                                       transpose=transpose,
+                                       outdim_parallel=outdim_parallel)
+  return r, r_dot
+
 
 def _event_mv_prob_uniform_transpose(
     ct, events, w_low, w_high, clen, seed, shape_value, *, outs, shape, transpose, outdim_parallel, conn_prob
 ):
-    assert type(events) is ad.UndefinedPrimal
-    assert type(w_low) is not ad.UndefinedPrimal
-    assert type(w_high) is not ad.UndefinedPrimal
-    assert type(clen) is not ad.UndefinedPrimal
-    assert type(seed) is not ad.UndefinedPrimal
-    assert type(shape_value) is not ad.UndefinedPrimal
+  assert type(events) is ad.UndefinedPrimal
+  assert type(w_low) is not ad.UndefinedPrimal
+  assert type(w_high) is not ad.UndefinedPrimal
+  assert type(clen) is not ad.UndefinedPrimal
+  assert type(seed) is not ad.UndefinedPrimal
+  assert type(shape_value) is not ad.UndefinedPrimal
 
-    r = event_mv_prob_uniform_taichi(ct[0],
-                            w_low,
-                            w_high,
-                            conn_prob,
-                            seed,
-                            shape=shape,
-                            transpose=not transpose,
-                            outdim_parallel=not outdim_parallel)[0]
-    return r, w_low, w_high, clen, seed, shape_value
+  r = event_mv_prob_uniform_taichi(ct[0],
+                                   w_low,
+                                   w_high,
+                                   conn_prob,
+                                   seed,
+                                   shape=shape,
+                                   transpose=not transpose,
+                                   outdim_parallel=not outdim_parallel)[0]
+  return r, w_low, w_high, clen, seed, shape_value
 
 
 def event_mv_prob_uniform_taichi(
@@ -694,159 +719,162 @@ def event_mv_prob_uniform_taichi(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-    r"""Perform the :math:`y=M@v` operation,
-    where :math:`M` is just-in-time randomly generated with a uniform distribution for its value.
+  r"""Perform the :math:`y=M@v` operation,
+  where :math:`M` is just-in-time randomly generated with a uniform distribution for its value.
 
-    This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-    on CPU and GPU devices.
+  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
+  on CPU and GPU devices.
 
-    .. warning::
+  .. warning::
 
-        This API may change in the future.
+      This API may change in the future.
 
-    In this operation, :math:`M` is the random matrix with a connection probability
-    `conn_prob`, and at each connection the value is the same scalar `weight`.
+  In this operation, :math:`M` is the random matrix with a connection probability
+  `conn_prob`, and at each connection the value is the same scalar `weight`.
 
-    When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
+  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
 
-    .. note::
+  .. note::
 
-        Note that the just-in-time generated :math:`M` (`transpose=False`) is
-        different from the generated :math:`M^T` (`transpose=True`).
+      Note that the just-in-time generated :math:`M` (`transpose=False`) is
+      different from the generated :math:`M^T` (`transpose=True`).
 
-        If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-        the speed compared with ``outdim_parallel=False``.
+      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
+      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
+      the speed compared with ``outdim_parallel=False``.
 
-    Parameters
-    ----------
-    events: Array, ndarray
-        The events.
-    w_low: float
-        Lower boundary of the output interval.
-    w_high: float
-        Upper boundary of the output interval.
-    conn_prob: float
-        The connection probability.
-    shape: tuple of int
-        The matrix shape.
-    seed: int
-        The random number generation seed.
-    transpose: bool
-        Transpose the random matrix or not.
-    outdim_parallel: bool
-        Perform the parallel random generations along the out dimension or not.
-        It can be used to set the just-in-time generated :math:M^T: is the same
-        as the just-in-time generated :math:`M` when ``transpose=True``.
+  Parameters
+  ----------
+  events: Array, ndarray
+      The events.
+  w_low: float
+      Lower boundary of the output interval.
+  w_high: float
+      Upper boundary of the output interval.
+  conn_prob: float
+      The connection probability.
+  shape: tuple of int
+      The matrix shape.
+  seed: int
+      The random number generation seed.
+  transpose: bool
+      Transpose the random matrix or not.
+  outdim_parallel: bool
+      Perform the parallel random generations along the out dimension or not.
+      It can be used to set the just-in-time generated :math:M^T: is the same
+      as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns
-    -------
-    out: Array, ndarray
-        The output of :math:`y = M @ v`.
-    """
-    events = as_jax(events)
-    w_low = jnp.atleast_1d(as_jax(w_low))
-    w_high = jnp.atleast_1d(as_jax(w_high))
-    conn_prob_value = conn_prob
-    conn_prob = jnp.atleast_1d(as_jax(conn_prob))
-    clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
-    with jax.ensure_compile_time_eval():
-        if seed is None:
-            seed = int(np.random.randint(0, int(1e8)))
-    seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.uint32))
+  Returns
+  -------
+  out: Array, ndarray
+      The output of :math:`y = M @ v`.
+  """
+  events = as_jax(events)
+  w_low = jnp.atleast_1d(as_jax(w_low))
+  w_high = jnp.atleast_1d(as_jax(w_high))
+  conn_prob_value = conn_prob
+  conn_prob = jnp.atleast_1d(as_jax(conn_prob))
+  clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
+  with jax.ensure_compile_time_eval():
+    if seed is None:
+      seed = int(np.random.randint(0, int(1e8)))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.uint32))
 
-    shape_value = (shape[1], shape[0]) if transpose else shape
-    out_shape = (shape_value[0], )
-    shape_value = jnp.asarray(shape_value)
+  shape_value = (shape[1], shape[0]) if transpose else shape
+  out_shape = (shape_value[0],)
+  shape_value = jnp.asarray(shape_value)
 
-    assert _get_dtype(events) in [jnp.bool_, jnp.float16, jnp.float32, jnp.float64]
-    _w_low_dtype = _get_dtype(w_low)
-    _w_high_dtype = _get_dtype(w_low)
-    assert _w_low_dtype == _w_high_dtype, '"w_low" and "w_high" must be same typed.'
-    assert _w_low_dtype in [jnp.float16, jnp.float32, jnp.float64], '"w_low" must be float valued.'
-    assert _w_high_dtype in [jnp.float16, jnp.float32, jnp.float64], '"w_high" must be float valued.'
-    assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-    assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(events) in [jnp.bool_, jnp.float16, jnp.float32, jnp.float64]
+  _w_low_dtype = _get_dtype(w_low)
+  _w_high_dtype = _get_dtype(w_low)
+  assert _w_low_dtype == _w_high_dtype, '"w_low" and "w_high" must be same typed.'
+  assert _w_low_dtype in [jnp.float16, jnp.float32, jnp.float64], '"w_low" must be float valued.'
+  assert _w_high_dtype in [jnp.float16, jnp.float32, jnp.float64], '"w_high" must be float valued.'
+  assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
 
-    if events.ndim != 1:
-        raise ValueError('events should be a 1D vector.')
-    if len(shape) != 2:
-        raise ValueError('shape should be a length-2 tuple.')
-    if w_low.ndim != 1:
-        raise ValueError('w_low must be a 1D scalar.')
-    if w_high.ndim != 1:
-        raise ValueError('w_high must be a 1D scalar.')
-    if clen.ndim != 1:
-        raise ValueError('clen must be a 1D scalar.')
-    if seed.ndim != 1:
-        raise ValueError('seed must be a 1D scalar.')
+  if events.ndim != 1:
+    raise ValueError('events should be a 1D vector.')
+  if len(shape) != 2:
+    raise ValueError('shape should be a length-2 tuple.')
+  if w_low.ndim != 1:
+    raise ValueError('w_low must be a 1D scalar.')
+  if w_high.ndim != 1:
+    raise ValueError('w_high must be a 1D scalar.')
+  if clen.ndim != 1:
+    raise ValueError('clen must be a 1D scalar.')
+  if seed.ndim != 1:
+    raise ValueError('seed must be a 1D scalar.')
 
-    if not isinstance(transpose, bool):
-        raise ValueError('transpose must be a boolean value.')
-    if not isinstance(outdim_parallel, bool):
-        raise ValueError('outdim_parallel must be a boolean value.')
+  if not isinstance(transpose, bool):
+    raise ValueError('transpose must be a boolean value.')
+  if not isinstance(outdim_parallel, bool):
+    raise ValueError('outdim_parallel must be a boolean value.')
 
-    # w_low = jnp.asarray(w_low, dtype=_get_dtype(w_low))
-    # w_high = jnp.asarray(w_high, dtype=_get_dtype(w_high))
-    seed = jnp.asarray(seed, dtype=jnp.uint32)
+  # w_low = jnp.asarray(w_low, dtype=_get_dtype(w_low))
+  # w_high = jnp.asarray(w_high, dtype=_get_dtype(w_high))
+  seed = jnp.asarray(seed, dtype=jnp.uint32)
 
-    prim = None
+  prim = None
 
-    if outdim_parallel:
-        if events.dtype == jnp.bool_:
-            prim = _event_mv_prob_uniform_outdim_parallel_bool_p
-        else:
-            prim = _event_mv_prob_uniform_outdim_parallel_p
+  if outdim_parallel:
+    if events.dtype == jnp.bool_:
+      prim = _event_mv_prob_uniform_outdim_parallel_bool_p
     else:
-        if events.dtype == jnp.bool_:
-            prim = _event_mv_prob_uniform_bool_p
-        else:
-            prim = _event_mv_prob_uniform_p
+      prim = _event_mv_prob_uniform_outdim_parallel_p
+  else:
+    if events.dtype == jnp.bool_:
+      prim = _event_mv_prob_uniform_bool_p
+    else:
+      prim = _event_mv_prob_uniform_p
 
-    return prim(events,
-                w_low,
-                w_high,
-                clen,
-                seed,
-                shape_value,
-                outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=w_low.dtype)],
-                shape=shape,
-                transpose=transpose,
-                outdim_parallel=outdim_parallel,
-                conn_prob=conn_prob_value)
+  return prim(events,
+              w_low,
+              w_high,
+              clen,
+              seed,
+              shape_value,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=w_low.dtype)],
+              shape=shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel,
+              conn_prob=conn_prob_value)
+
 
 # outdim_parallel = True, events.dtype = jnp.bool_
 _event_mv_prob_uniform_outdim_parallel_bool_p = XLACustomOp(cpu_kernel=_event_mv_prob_uniform_outdim_parallel_bool_cpu,
-                                              gpu_kernel=_event_mv_prob_uniform_outdim_parallel_bool_gpu)
+                                                            gpu_kernel=_event_mv_prob_uniform_outdim_parallel_bool_gpu)
 _event_mv_prob_uniform_outdim_parallel_bool_p.def_jvp_rule(_event_mv_prob_uniform_jvp)
 _event_mv_prob_uniform_outdim_parallel_bool_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
 # outdim_parallel = False, events.dtype = jnp.bool_
 _event_mv_prob_uniform_bool_p = XLACustomOp(cpu_kernel=_mv_prob_uniform_bool_cpu,
-                              gpu_kernel=_mv_prob_uniform_bool_gpu)
+                                            gpu_kernel=_mv_prob_uniform_bool_gpu)
 _event_mv_prob_uniform_bool_p.def_jvp_rule(_event_mv_prob_uniform_jvp)
 _event_mv_prob_uniform_bool_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
 # outdim_parallel = True, events.dtype != jnp.bool_
 _event_mv_prob_uniform_outdim_parallel_p = XLACustomOp(cpu_kernel=_event_mv_prob_uniform_outdim_parallel_cpu,
-                                              gpu_kernel=_event_mv_prob_uniform_outdim_parallel_gpu)
+                                                       gpu_kernel=_event_mv_prob_uniform_outdim_parallel_gpu)
 _event_mv_prob_uniform_outdim_parallel_p.def_jvp_rule(_event_mv_prob_uniform_jvp)
 _event_mv_prob_uniform_outdim_parallel_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
 # outdim_parallel = False, events.dtype != jnp.bool_
 _event_mv_prob_uniform_p = XLACustomOp(cpu_kernel=_mv_prob_uniform_cpu,
-                              gpu_kernel=_mv_prob_uniform_gpu)
+                                       gpu_kernel=_mv_prob_uniform_gpu)
 _event_mv_prob_uniform_p.def_jvp_rule(_event_mv_prob_uniform_jvp)
 _event_mv_prob_uniform_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
+
 
 @ti.func
 def _dist3(seed: ti.types.ndarray(ndim=1),
            w_mu: ti.f32,
            w_sigma: ti.f32
-) -> ti.f32:
-    s1 = random_generator(seed)
-    s2 = random_generator(seed)
-    return normal_distribution(s1, s2, w_mu, w_sigma)
+           ) -> ti.f32:
+  s1 = random_generator(seed)
+  s2 = random_generator(seed)
+  return normal_distribution(s1, s2, w_mu, w_sigma)
+
 
 @ti.kernel
 def _event_mv_prob_normal_outdim_parallel_bool_cpu(
@@ -858,20 +886,21 @@ def _event_mv_prob_normal_outdim_parallel_bool_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    ti.loop_config(serialize=True)
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event:
-                out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_normal_outdim_parallel_bool_gpu(
@@ -883,19 +912,19 @@ def _event_mv_prob_normal_outdim_parallel_bool_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event:
-                out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
+      i_row += _dist1(seed, clen_value)
 
 
 @ti.kernel
@@ -908,22 +937,23 @@ def _mv_prob_normal_bool_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    ti.loop_config(serialize=True)
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event:
-                r += _dist3(seed, w_mu_value, w_sigma_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        r += _dist3(seed, w_mu_value, w_sigma_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _mv_prob_normal_bool_gpu(
@@ -935,21 +965,22 @@ def _mv_prob_normal_bool_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event:
-                r += _dist3(seed, w_mu_value, w_sigma_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        r += _dist3(seed, w_mu_value, w_sigma_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _event_mv_prob_normal_outdim_parallel_cpu(
@@ -961,20 +992,21 @@ def _event_mv_prob_normal_outdim_parallel_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    ti.loop_config(serialize=True)
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event > 0.:
-                out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
+      i_row += _dist1(seed, clen_value)
+
 
 @ti.kernel
 def _event_mv_prob_normal_outdim_parallel_gpu(
@@ -986,19 +1018,19 @@ def _event_mv_prob_normal_outdim_parallel_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    for i_col in range(num_col):
-        i_row = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_row < num_row:
-            if event > 0.:
-                out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
-            i_row += _dist1(seed, clen_value)
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  for i_col in range(num_col):
+    i_row = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += _dist3(seed, w_mu_value, w_sigma_value)
+      i_row += _dist1(seed, clen_value)
 
 
 @ti.kernel
@@ -1011,22 +1043,23 @@ def _mv_prob_normal_cpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    ti.loop_config(serialize=True)
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event > 0.:
-                r += _dist3(seed, w_mu_value, w_sigma_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event > 0.:
+        r += _dist3(seed, w_mu_value, w_sigma_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 @ti.kernel
 def _mv_prob_normal_gpu(
@@ -1038,71 +1071,73 @@ def _mv_prob_normal_gpu(
     shape: ti.types.ndarray(ndim=1),
     out: ti.types.ndarray(ndim=1)
 ):
-    num_row = shape[0]
-    num_col = shape[1]
-    clen_value = clen[0]
-    w_mu_value = w_mu[0]
-    w_sigma_value = w_sigma[0]
-    
-    for i_row in range(num_row):
-        r = 0.
-        i_col = _dist1(seed, clen_value)
-        event = events[i_col]
-        while i_col < num_col:
-            if event > 0.:
-                r += _dist3(seed, w_mu_value, w_sigma_value)
-            i_col += _dist1(seed, clen_value)
-        out[i_row] = r
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+
+  for i_row in range(num_row):
+    r = 0.
+    i_col = _dist1(seed, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event > 0.:
+        r += _dist3(seed, w_mu_value, w_sigma_value)
+      i_col += _dist1(seed, clen_value)
+    out[i_row] = r
+
 
 def _event_mv_prob_normal_jvp(
     primals, tangents, *, outs, shape, transpose, outdim_parallel, conn_prob
 ):
-    events, w_mu, w_sigma, clen, seed, shape_value = primals
-    events_dot, w_mu_dot, w_sigma_dot, clen_dot, seed_dot, shape_value_dot = tangents
-    r = event_mv_prob_normal_taichi(events,
-                              w_mu,
-                              w_sigma,
-                              conn_prob,
-                              seed,
-                              shape=shape,
-                              transpose=transpose,
-                              outdim_parallel=outdim_parallel)
-    
-    assert type(w_mu_dot) is ad.Zero
-    assert type(w_sigma_dot) is ad.Zero
-    assert type(clen_dot) is ad.Zero
-    assert type(seed_dot) is ad.Zero
-    assert type(shape_value_dot) is ad.Zero
-    
-    r_dot = event_mv_prob_normal_taichi(events_dot,
-                                   w_mu,
-                                   w_sigma,
-                                   conn_prob,
-                                   seed,
-                                   shape=shape,
-                                   transpose=transpose,
-                                   outdim_parallel=outdim_parallel)
-    return r, r_dot
+  events, w_mu, w_sigma, clen, seed, shape_value = primals
+  events_dot, w_mu_dot, w_sigma_dot, clen_dot, seed_dot, shape_value_dot = tangents
+  r = event_mv_prob_normal_taichi(events,
+                                  w_mu,
+                                  w_sigma,
+                                  conn_prob,
+                                  seed,
+                                  shape=shape,
+                                  transpose=transpose,
+                                  outdim_parallel=outdim_parallel)
+
+  assert type(w_mu_dot) is ad.Zero
+  assert type(w_sigma_dot) is ad.Zero
+  assert type(clen_dot) is ad.Zero
+  assert type(seed_dot) is ad.Zero
+  assert type(shape_value_dot) is ad.Zero
+
+  r_dot = event_mv_prob_normal_taichi(events_dot,
+                                      w_mu,
+                                      w_sigma,
+                                      conn_prob,
+                                      seed,
+                                      shape=shape,
+                                      transpose=transpose,
+                                      outdim_parallel=outdim_parallel)
+  return r, r_dot
+
 
 def _event_mv_prob_normal_transpose(
     ct, events, w_mu, w_sigma, clen, seed, shape_value, *, outs, shape, transpose, outdim_parallel, conn_prob
 ):
-    assert type(events) is ad.UndefinedPrimal
-    assert type(w_mu) is not ad.UndefinedPrimal
-    assert type(w_sigma) is not ad.UndefinedPrimal
-    assert type(clen) is not ad.UndefinedPrimal
-    assert type(seed) is not ad.UndefinedPrimal
-    assert type(shape_value) is not ad.UndefinedPrimal
+  assert type(events) is ad.UndefinedPrimal
+  assert type(w_mu) is not ad.UndefinedPrimal
+  assert type(w_sigma) is not ad.UndefinedPrimal
+  assert type(clen) is not ad.UndefinedPrimal
+  assert type(seed) is not ad.UndefinedPrimal
+  assert type(shape_value) is not ad.UndefinedPrimal
 
-    r = event_mv_prob_normal_taichi(ct[0],
-                            w_mu,
-                            w_sigma,
-                            conn_prob,
-                            seed,
-                            shape=shape,
-                            transpose=not transpose,
-                            outdim_parallel=not outdim_parallel)[0]
-    return r, w_mu, w_sigma, clen, seed, shape_value
+  r = event_mv_prob_normal_taichi(ct[0],
+                                  w_mu,
+                                  w_sigma,
+                                  conn_prob,
+                                  seed,
+                                  shape=shape,
+                                  transpose=not transpose,
+                                  outdim_parallel=not outdim_parallel)[0]
+  return r, w_mu, w_sigma, clen, seed, shape_value
 
 
 def event_mv_prob_normal_taichi(
@@ -1116,142 +1151,143 @@ def event_mv_prob_normal_taichi(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-    r"""Perform the :math:`y=M@v` operation,
-    where :math:`M` is just-in-time randomly generated with a normal distribution for its value.
+  r"""Perform the :math:`y=M@v` operation,
+  where :math:`M` is just-in-time randomly generated with a normal distribution for its value.
 
-    This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-    on CPU and GPU devices.
+  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
+  on CPU and GPU devices.
 
-    .. warning::
+  .. warning::
 
-        This API may change in the future.
+      This API may change in the future.
 
-    In this operation, :math:`M` is the random matrix with a connection probability
-    `conn_prob`, and at each connection the value is the same scalar `weight`.
+  In this operation, :math:`M` is the random matrix with a connection probability
+  `conn_prob`, and at each connection the value is the same scalar `weight`.
 
-    When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
+  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
 
-    .. note::
+  .. note::
 
-        Note that the just-in-time generated :math:`M` (`transpose=False`) is
-        different from the generated :math:`M^T` (`transpose=True`).
+      Note that the just-in-time generated :math:`M` (`transpose=False`) is
+      different from the generated :math:`M^T` (`transpose=True`).
 
-        If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-        the speed compared with ``outdim_parallel=False``.
+      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
+      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
+      the speed compared with ``outdim_parallel=False``.
 
-    Parameters
-    ----------
-    events: Array, ndarray
-        The events.
-    w_mu: float
-        Mean (centre) of the distribution.
-    w_sigma: float
-        Standard deviation (spread or “width”) of the distribution. Must be non-negative.
-    conn_prob: float
-        The connection probability.
-    shape: tuple of int
-        The matrix shape.
-    seed: int
-        The random number generation seed.
-    transpose: bool
-        Transpose the random matrix or not.
-    outdim_parallel: bool
-        Perform the parallel random generations along the out dimension or not.
-        It can be used to set the just-in-time generated :math:M^T: is the same
-        as the just-in-time generated :math:`M` when ``transpose=True``.
+  Parameters
+  ----------
+  events: Array, ndarray
+      The events.
+  w_mu: float
+      Mean (centre) of the distribution.
+  w_sigma: float
+      Standard deviation (spread or “width”) of the distribution. Must be non-negative.
+  conn_prob: float
+      The connection probability.
+  shape: tuple of int
+      The matrix shape.
+  seed: int
+      The random number generation seed.
+  transpose: bool
+      Transpose the random matrix or not.
+  outdim_parallel: bool
+      Perform the parallel random generations along the out dimension or not.
+      It can be used to set the just-in-time generated :math:M^T: is the same
+      as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns
-    -------
-    out: Array, ndarray
-        The output of :math:`y = M @ v`.
-    """
-    events = as_jax(events)
-    w_mu = jnp.atleast_1d(as_jax(w_mu))
-    w_sigma = jnp.atleast_1d(as_jax(w_sigma))
-    conn_prob_value = conn_prob
-    conn_prob = jnp.atleast_1d(as_jax(conn_prob))
-    clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
-    with jax.ensure_compile_time_eval():
-        if seed is None:
-            seed = int(np.random.randint(0, int(1e8)))
-    seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.uint32))
+  Returns
+  -------
+  out: Array, ndarray
+      The output of :math:`y = M @ v`.
+  """
+  events = as_jax(events)
+  w_mu = jnp.atleast_1d(as_jax(w_mu))
+  w_sigma = jnp.atleast_1d(as_jax(w_sigma))
+  conn_prob_value = conn_prob
+  conn_prob = jnp.atleast_1d(as_jax(conn_prob))
+  clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
+  with jax.ensure_compile_time_eval():
+    if seed is None:
+      seed = int(np.random.randint(0, int(1e8)))
+  seed = jnp.atleast_1d(as_jax(seed, dtype=jnp.uint32))
 
-    assert _get_dtype(events) in [jnp.bool_, jnp.float16, jnp.float32, jnp.float64]
-    _w_mu_dtype = _get_dtype(w_mu)
-    _w_sigma_dtype = _get_dtype(w_sigma)
-    assert _w_mu_dtype == _w_sigma_dtype, '"w_mu" and "w_sigma" must be same typed.'
-    assert _w_mu_dtype in [jnp.float16, jnp.float32, jnp.float64], '"w_mu" must be float valued.'
-    assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-    assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(events) in [jnp.bool_, jnp.float16, jnp.float32, jnp.float64]
+  _w_mu_dtype = _get_dtype(w_mu)
+  _w_sigma_dtype = _get_dtype(w_sigma)
+  assert _w_mu_dtype == _w_sigma_dtype, '"w_mu" and "w_sigma" must be same typed.'
+  assert _w_mu_dtype in [jnp.float16, jnp.float32, jnp.float64], '"w_mu" must be float valued.'
+  assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
 
-    if w_mu.ndim != 1:
-        raise ValueError('w_mu should be a 1D scalar.')
-    if w_sigma.ndim != 1:
-        raise ValueError('w_sigma should be a 1D scalar.')
-    if clen.ndim != 1:
-        raise ValueError('clen should be a 1D scalar.')
-    if events.ndim != 1:
-        raise ValueError('events should be a 1D vector.')
-    if seed.ndim != 1:
-        raise ValueError('seed must be a 1D scalar.')
+  if w_mu.ndim != 1:
+    raise ValueError('w_mu should be a 1D scalar.')
+  if w_sigma.ndim != 1:
+    raise ValueError('w_sigma should be a 1D scalar.')
+  if clen.ndim != 1:
+    raise ValueError('clen should be a 1D scalar.')
+  if events.ndim != 1:
+    raise ValueError('events should be a 1D vector.')
+  if seed.ndim != 1:
+    raise ValueError('seed must be a 1D scalar.')
 
-    if len(shape) != 2:
-        raise ValueError('shape should be a length-2 tuple.')
-    if not isinstance(transpose, bool):
-        raise ValueError('transpose must be a boolean value.')
-    if not isinstance(outdim_parallel, bool):
-        raise ValueError('outdim_parallel must be a boolean value.')
-    
-    shape_value = (shape[1], shape[0]) if transpose else shape
-    out_shape = (shape_value[0], )
-    shape_value = jnp.asarray(shape_value)
+  if len(shape) != 2:
+    raise ValueError('shape should be a length-2 tuple.')
+  if not isinstance(transpose, bool):
+    raise ValueError('transpose must be a boolean value.')
+  if not isinstance(outdim_parallel, bool):
+    raise ValueError('outdim_parallel must be a boolean value.')
 
-    prim = None
-    
-    if outdim_parallel:
-        if events.dtype == jnp.bool_:
-            prim = _event_mv_prob_normal_outdim_parallel_bool_p
-        else:
-            prim = _event_mv_prob_normal_outdim_parallel_p
+  shape_value = (shape[1], shape[0]) if transpose else shape
+  out_shape = (shape_value[0],)
+  shape_value = jnp.asarray(shape_value)
+
+  prim = None
+
+  if outdim_parallel:
+    if events.dtype == jnp.bool_:
+      prim = _event_mv_prob_normal_outdim_parallel_bool_p
     else:
-        if events.dtype == jnp.bool_:
-            prim = _event_mv_prob_normal_bool_p
-        else:
-            prim = _event_mv_prob_normal_p
-    
-    return prim(events,
-                w_mu,
-                w_sigma,
-                clen,
-                seed,
-                shape_value,
-                outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=w_mu.dtype)],
-                shape=shape,
-                transpose=transpose,
-                outdim_parallel=outdim_parallel,
-                conn_prob=conn_prob_value)
+      prim = _event_mv_prob_normal_outdim_parallel_p
+  else:
+    if events.dtype == jnp.bool_:
+      prim = _event_mv_prob_normal_bool_p
+    else:
+      prim = _event_mv_prob_normal_p
+
+  return prim(events,
+              w_mu,
+              w_sigma,
+              clen,
+              seed,
+              shape_value,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=w_mu.dtype)],
+              shape=shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel,
+              conn_prob=conn_prob_value)
+
 
 # outdim_parallel = True, events.dtype = jnp.bool_
 _event_mv_prob_normal_outdim_parallel_bool_p = XLACustomOp(cpu_kernel=_event_mv_prob_normal_outdim_parallel_bool_cpu,
-                                              gpu_kernel=_event_mv_prob_normal_outdim_parallel_bool_gpu)
+                                                           gpu_kernel=_event_mv_prob_normal_outdim_parallel_bool_gpu)
 _event_mv_prob_normal_outdim_parallel_bool_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_outdim_parallel_bool_p.def_transpose_rule(_event_mv_prob_normal_transpose)
 
 # outdim_parallel = False, events.dtype = jnp.bool_
 _event_mv_prob_normal_bool_p = XLACustomOp(cpu_kernel=_mv_prob_normal_bool_cpu,
-                              gpu_kernel=_mv_prob_normal_bool_gpu)
+                                           gpu_kernel=_mv_prob_normal_bool_gpu)
 _event_mv_prob_normal_bool_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_bool_p.def_transpose_rule(_event_mv_prob_normal_transpose)
 
 # outdim_parallel = True, events.dtype != jnp.bool_
 _event_mv_prob_normal_outdim_parallel_p = XLACustomOp(cpu_kernel=_event_mv_prob_normal_outdim_parallel_cpu,
-                                              gpu_kernel=_event_mv_prob_normal_outdim_parallel_gpu)
+                                                      gpu_kernel=_event_mv_prob_normal_outdim_parallel_gpu)
 _event_mv_prob_normal_outdim_parallel_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_outdim_parallel_p.def_transpose_rule(_event_mv_prob_normal_transpose)
 
 # outdim_parallel = False, events.dtype != jnp.bool_
 _event_mv_prob_normal_p = XLACustomOp(cpu_kernel=_mv_prob_normal_cpu,
-                              gpu_kernel=_mv_prob_normal_gpu)
+                                      gpu_kernel=_mv_prob_normal_gpu)
 _event_mv_prob_normal_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_p.def_transpose_rule(_event_mv_prob_normal_transpose)

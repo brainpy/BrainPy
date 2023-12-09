@@ -5,13 +5,15 @@ from typing import Union, Tuple
 import jax
 import jax.numpy as jnp
 import numpy as np
-import taichi as ti
 from jax.interpreters import ad
 
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.sparse._csr_mv_taichi import csrmv_taichi as normal_csrmv_taichi
 from brainpy._src.math.sparse._utils import csr_to_coo
+
+ti = import_taichi()
 
 __all__ = [
   'csrmv_taichi'

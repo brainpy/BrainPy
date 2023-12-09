@@ -4,14 +4,16 @@
 from typing import Union, Tuple
 
 import jax
-import taichi as ti
 from jax import numpy as jnp
 from jax.interpreters import ad
 
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.sparse._utils import csr_to_coo
+
+ti = import_taichi()
 
 __all__ = [
   'csrmv_taichi',
@@ -116,12 +118,7 @@ def _sparse_csr_matvec_transpose(
   if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
     raise ValueError("Cannot transpose with respect to sparse indices.")
   if ad.is_undefined_primal(vector):
-    ct_vector = csrmv_taichi(data,
-                             indices,
-                             indptr,
-                             ct[0],
-                             shape=shape,
-                             transpose=not transpose)[0]
+    ct_vector = csrmv_taichi(data, indices, indptr, ct[0], shape=shape, transpose=not transpose)[0]
     return data, indices, indptr, (ad.Zero(vector) if type(ct[0]) is ad.Zero else ct_vector)
 
   else:
