@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
+import sys
 from functools import partial
 
 import jax
+import pytest
+from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
-import platform
-import sys
-from absl.testing import parameterized
-
-import pytest
-
 
 # pytestmark = pytest.mark.skip(reason="Skipped due to pytest limitations, manual execution required for testing.")
 
