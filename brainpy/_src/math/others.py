@@ -1,20 +1,24 @@
 # -*- coding: utf-8 -*-
 
 
+from functools import partial
 from typing import Optional
 
+import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from brainpy import check, tools
-from .environment import get_dt, get_int
-from .ndarray import Array
 from .compat_numpy import fill_diagonal
+from .environment import get_dt, get_int
+from .interoperability import as_jax
+from .ndarray import Array, _as_jax_array_
 
 __all__ = [
   'shared_args_over_time',
   'remove_diag',
   'clip_by_norm',
+  'exprel',
 ]
 
 
@@ -82,3 +86,43 @@ def clip_by_norm(t, clip_norm, axis=None):
     return l * clip_norm / jnp.maximum(jnp.sqrt(jnp.sum(l * l, axis=axis, keepdims=True)), clip_norm)
 
   return tree_map(f, t)
+
+
+def _exprel(x, threshold):
+  def true_f(x):
+    x2 = x * x
+    return 1 + x + x2 / 2.0 + x2 * x / 6.0 + x2 * x2 / 24.0 + x2 * x2 * x / 120.0
+
+  def false_f(x):
+    return (jnp.exp(x) - 1) / x
+
+  return jax.lax.cond(jnp.abs(x) < threshold, true_f, false_f, x)
+
+
+def exprel(x, threshold: float = None):
+  """Relative error exponential, ``(exp(x) - 1)/x``.
+
+  When ``x`` is near zero, ``exp(x)`` is near 1, so the numerical calculation of ``exp(x) - 1`` can
+  suffer from catastrophic loss of precision. ``exprel(x)`` is implemented to avoid the loss of
+  precision that occurs when ``x`` is near zero.
+
+  Args:
+    x: ndarray. Input array. ``x`` must contain real numbers.
+    threshold: float.
+
+  Returns:
+    ``(exp(x) - 1)/x``, computed element-wise.
+  """
+  if threshold is None:
+    if x.dtype != jnp.float64:
+      threshold = 1e-8
+    else:
+      threshold = 1e-5
+  x = as_jax(x)
+  if jnp.isscalar(x):
+    return _exprel(x, threshold)
+  else:
+    x = _as_jax_array_(x)
+    s = x.shape
+    x = x.flatten()
+    return jax.vmap(partial(_exprel, threshold=threshold))(x).reshape(s)
