@@ -348,7 +348,8 @@ class HHLTC(NeuDyn):
       self.reset_state(self.mode)
 
   # m channel
-  m_alpha = lambda self, V: 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
+  # m_alpha = lambda self, V: 0.1 * (V + 40) / (1 - bm.exp(-(V + 40) / 10))
+  m_alpha = lambda self, V: 1. / bm.exprel(-(V + 40) / 10)
   m_beta = lambda self, V: 4.0 * bm.exp(-(V + 65) / 18)
   m_inf = lambda self, V: self.m_alpha(V) / (self.m_alpha(V) + self.m_beta(V))
   dm = lambda self, m, t, V: self.m_alpha(V) * (1 - m) - self.m_beta(V) * m
@@ -360,7 +361,8 @@ class HHLTC(NeuDyn):
   dh = lambda self, h, t, V: self.h_alpha(V) * (1 - h) - self.h_beta(V) * h
 
   # n channel
-  n_alpha = lambda self, V: 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
+  # n_alpha = lambda self, V: 0.01 * (V + 55) / (1 - bm.exp(-(V + 55) / 10))
+  n_alpha = lambda self, V: 0.1 / bm.exprel(-(V + 55) / 10)
   n_beta = lambda self, V: 0.125 * bm.exp(-(V + 65) / 80)
   n_inf = lambda self, V: self.n_alpha(V) / (self.n_alpha(V) + self.n_beta(V))
   dn = lambda self, n, t, V: self.n_alpha(V) * (1 - n) - self.n_beta(V) * n
@@ -383,8 +385,9 @@ class HHLTC(NeuDyn):
 
   def dV(self, V, t, m, h, n, I):
     I = self.sum_inputs(V, init=I)
-    I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
-    I_K = (self.gK * n ** 4.0) * (V - self.EK)
+    I_Na = (self.gNa * m * m * m * h) * (V - self.ENa)
+    n2 = n * n
+    I_K = (self.gK * n2 * n2) * (V - self.EK)
     I_leak = self.gL * (V - self.EL)
     dVdt = (- I_Na - I_K - I_leak + I) / self.C
     return dVdt
@@ -516,8 +519,9 @@ class HH(HHLTC):
   """
 
   def dV(self, V, t, m, h, n, I):
-    I_Na = (self.gNa * m ** 3.0 * h) * (V - self.ENa)
-    I_K = (self.gK * n ** 4.0) * (V - self.EK)
+    I_Na = (self.gNa * m * m * m * h) * (V - self.ENa)
+    n2 = n * n
+    I_K = (self.gK * n2 * n2) * (V - self.EK)
     I_leak = self.gL * (V - self.EL)
     dVdt = (- I_Na - I_K - I_leak + I) / self.C
     return dVdt
@@ -680,9 +684,7 @@ class MorrisLecarLTC(NeuDyn):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
-
     V, W = self.integral(self.V, self.W, t, x, dt)
-
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.W.value = W
@@ -930,7 +932,8 @@ class WangBuzsakiHHLTC(NeuDyn):
     self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
 
   def m_inf(self, V):
-    alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+    # alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+    alpha = 1. / bm.exprel(-0.1 * (V + 35))
     beta = 4. * bm.exp(-(V + 60.) / 18.)
     return alpha / (alpha + beta)
 
@@ -941,7 +944,8 @@ class WangBuzsakiHHLTC(NeuDyn):
     return self.phi * dhdt
 
   def dn(self, n, t, V):
-    alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+    # alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+    alpha = 1. / bm.exprel(-0.1 * (V + 34))
     beta = 0.125 * bm.exp(-(V + 44) / 80)
     dndt = alpha * (1 - n) - beta * n
     return self.phi * dndt

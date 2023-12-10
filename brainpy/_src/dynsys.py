@@ -336,7 +336,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       the_top_layer_reset_state = True
       warnings.warn(
         '''
-    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.tech/docs/tutorial_toolbox/state_saving_and_loading.html for details.
+    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_saving_and_loading.html for details.
   
     1. If you are resetting all states in a network by calling "net.reset_state(*args, **kwargs)", please use
        "bp.reset_state(net, *args, **kwargs)" function, or "net.reset(*args, **kwargs)". 

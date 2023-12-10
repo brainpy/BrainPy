@@ -626,8 +626,7 @@ class ExponentialEuler(SDEIntegrator):
         assert len(args) > 0
         dt = kwargs.pop('dt', self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
-        linear = bm.as_jax(linear)
-        phi = jnp.where(linear == 0., jnp.ones_like(linear), (jnp.exp(dt * linear) - 1) / (dt * linear))
+        phi = bm.as_jax(bm.exprel(dt * linear))
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]
