@@ -259,7 +259,7 @@ def test_event_ell_gpu(s, p, values_type, events_type):
 bm.set_platform('cpu')
 block_dim = 64
 # init dataframe
-df = pd.DataFrame(columns=['s', 'p', 'backend', 'values type', 'events type'
+df = pd.DataFrame(columns=['s', 'p', 'backend', 'values type', 'events type',
                            'taichi aot time1(ms)', 'taichi aot time2(ms)', 'taichi aot time3(ms)', 'taichi aot time4(ms)', 'taichi aot time5(ms)',
                            'brainpy time1(ms)', 'brainpy time2(ms)', 'brainpy time3(ms)', 'brainpy time4(ms)', 'brainpy time5(ms)',
                            'speedup'])
