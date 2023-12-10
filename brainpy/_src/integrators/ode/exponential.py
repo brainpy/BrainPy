@@ -105,8 +105,6 @@ tableau as follows:
 .. [2] Hochbruck, M., & Ostermann, A. (2010). Exponential integrators. Acta Numerica, 19, 209-286.
 """
 
-import logging
-
 from functools import wraps
 from brainpy import errors
 from brainpy._src import math as bm
@@ -360,9 +358,7 @@ class ExponentialEuler(ODEIntegrator):
         assert len(args) > 0
         dt = kwargs.pop(C.DT, self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
-        phi = bm.where(linear == 0.,
-                       bm.ones_like(linear),
-                       (bm.exp(dt * linear) - 1) / (dt * linear))
+        phi = bm.exprel(dt * linear)
         return args[0] + dt * phi * derivative
 
       return [(integral, vars, pars), ]

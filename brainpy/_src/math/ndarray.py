@@ -79,7 +79,7 @@ class Array(object):
 
   """
 
-  __slots__ = ('_value', '_keep_sharding')
+  __slots__ = ('_value', )
 
   def __init__(self, value, dtype: Any = None):
     # array value
@@ -132,7 +132,7 @@ class Array(object):
     if value.dtype != self_value.dtype:
       raise MathError(f"The dtype of the original data is {self_value.dtype}, "
                       f"while we got {value.dtype}.")
-    self._value = value.value if isinstance(value, Array) else value
+    self._value = value
 
   def update(self, value):
     """Update the value of this Array.
@@ -1549,11 +1549,12 @@ class ShardedArray(Array):
     Returns:
       The stored data.
     """
+    v = self._value
     # keep sharding constraints
-    if self._keep_sharding and hasattr(self._value, 'sharding') and (self._value.sharding is not None):
-        return jax.lax.with_sharding_constraint(self._value, self._value.sharding)
+    if self._keep_sharding and hasattr(v, 'sharding') and (v.sharding is not None):
+        return jax.lax.with_sharding_constraint(v, v.sharding)
     # return the value
-    return self._value
+    return v
 
   @value.setter
   def value(self, value):
@@ -1574,6 +1575,6 @@ class ShardedArray(Array):
     if value.dtype != self_value.dtype:
       raise MathError(f"The dtype of the original data is {self_value.dtype}, "
                       f"while we got {value.dtype}.")
-    self._value = value.value if isinstance(value, Array) else value
+    self._value = value
 
 
