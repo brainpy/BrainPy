@@ -136,7 +136,7 @@ def cpu_ordered_parallel(
   >>>
   >>> def simulate(inp):
   >>>   inp = bm.as_jax(inp)
-  >>>   hh = bp.neurons.HH(1)
+  >>>   hh = bp.dyn.HH(1)
   >>>   runner = bp.DSRunner(hh, inputs=['input', inp],
   >>>                        monitors=['V', 'spike'],
   >>>                        progress_bar=False)
@@ -194,7 +194,7 @@ def cpu_unordered_parallel(
   >>>
   >>> def simulate(inp):
   >>>   inp = bm.as_jax(inp)
-  >>>   hh = bp.neurons.HH(1)
+  >>>   hh = bp.dyn.HH(1)
   >>>   runner = bp.DSRunner(hh, inputs=['input', inp],
   >>>                        monitors=['V', 'spike'],
   >>>                        progress_bar=False)
