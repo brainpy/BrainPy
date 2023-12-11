@@ -335,23 +335,23 @@ def csrmv_taichi(
 
   if transpose:
     if events.dtype == jnp.bool_:
-      if events.shape[0] == 1:
+      if data.shape[0] == 1:
         prim = _event_csrmv_transpose_bool_homo_p
       else:
         prim = _event_csrmv_transpose_bool_heter_p
     else:
-      if events.shape[0] == 1:
+      if data.shape[0] == 1:
         prim = _event_csrmv_transpose_homo_p
       else:
         prim = _event_csrmv_transpose_heter_p
   else:
     if events.dtype == jnp.bool_:
-      if events.shape[0] == 1:
+      if data.shape[0] == 1:
         prim = _event_csrmv_bool_homo_p
       else:
         prim = _event_csrmv_bool_heter_p
     else:
-      if events.shape[0] == 1:
+      if data.shape[0] == 1:
         prim = _event_csrmv_homo_p
       else:
         prim = _event_csrmv_heter_p

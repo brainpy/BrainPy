@@ -248,7 +248,7 @@ def test_event_ell_gpu(s, p, values_type, events_type):
   print('brainpylib_gpu_4: ', brainpy_time4, 'ms')
   print('brainpylib_gpu_5: ', brainpy_time5, 'ms')
 
-  # assert(jnp.allclose(result1[0], result2))
+  assert(jnp.allclose(result1[0], result2))
 
   speedup = (brainpy_time1 + brainpy_time2 + brainpy_time3 + brainpy_time4 + brainpy_time5) / \
             (taichi_aot_time1 + taichi_aot_time2 + taichi_aot_time3 + taichi_aot_time4 + taichi_aot_time5) - 1
@@ -256,8 +256,6 @@ def test_event_ell_gpu(s, p, values_type, events_type):
   return taichi_aot_time1, taichi_aot_time2, taichi_aot_time3, taichi_aot_time4, taichi_aot_time5,\
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, speedup
 
-bm.set_platform('cpu')
-block_dim = 64
 # init dataframe
 df = pd.DataFrame(columns=['s', 'p', 'backend', 'values type', 'events type',
                            'taichi aot time1(ms)', 'taichi aot time2(ms)', 'taichi aot time3(ms)', 'taichi aot time4(ms)', 'taichi aot time5(ms)',
