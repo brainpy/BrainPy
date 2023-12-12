@@ -96,7 +96,7 @@ If you want to install a CPU-only version of `jax` and `jaxlib`, you can run
     pip install --upgrade "jax[cpu]"
 
 If you want to install JAX with both CPU and NVidia GPU support, you must first install
-`CUDA`_ and `CuDNN`_, if they have not already been installed. Next, run
+`CUDA`_ and `CuDNN`_, if they have already been installed. Next, run
 
 .. code-block:: bash
 
