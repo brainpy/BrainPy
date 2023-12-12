@@ -250,8 +250,8 @@ def test_event_ell_gpu(s, p, values_type, events_type, transpose):
   return taichi_aot_time1, taichi_aot_time2, taichi_aot_time3, taichi_aot_time4, taichi_aot_time5,\
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, speedup
 
-bm.set_platform('cpu')
-block_dim = 64
+PATH = os.path.dirname(os.path.abspath(__file__))
+
 # init dataframe
 df = pd.DataFrame(columns=['s', 'p', 'backend', 'values type', 'events type', 'transpose',
                            'taichi aot time1(ms)', 'taichi aot time2(ms)', 'taichi aot time3(ms)', 'taichi aot time4(ms)', 'taichi aot time5(ms)',
@@ -270,7 +270,7 @@ if (bm.get_platform() == 'cpu'):
               df.loc[df.shape[0]] = [_s, _p, 'cpu', _values_type, _events_type, _transpose,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
-  df.to_csv('event_csrmv_cpu.csv', index=False)
+  df.to_csv(f'{PATH}/event_csrmv_cpu.csv', index=False)
 
 if (bm.get_platform() == 'gpu'):
   for _s in s:
@@ -284,7 +284,7 @@ if (bm.get_platform() == 'gpu'):
               df.loc[df.shape[0]] = [_s, _p, 'gpu', _values_type, _events_type, transpose,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
-  df.to_csv('event_csrmv_gpu.csv', index=False)
+  df.to_csv(f'{PATH}/event_csrmv_gpu.csv', index=False)
 
 # if (bm.get_platform() == 'gpu'):
 #   for _s in s:
