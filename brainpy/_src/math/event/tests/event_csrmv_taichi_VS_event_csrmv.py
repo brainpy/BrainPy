@@ -278,10 +278,10 @@ if (bm.get_platform() == 'cpu'):
               for _transpose in transpose:
                 taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup = test_event_ell_cpu(_s, _p, _values_type, _events_type, _transpose)
-              # append to dataframe
-              df.loc[df.shape[0]] = [_s, _p, 'cpu', _values_type, _events_type, _transpose,
-                                    taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
-                                    brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
+                # append to dataframe
+                df.loc[df.shape[0]] = [_s, _p, 'cpu', _values_type, _events_type, _transpose,
+                                      taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
+                                      brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
   df.to_csv(f'{PATH}/event_csrmv_cpu.csv', index=False)
 
 if (bm.get_platform() == 'gpu'):
@@ -292,10 +292,10 @@ if (bm.get_platform() == 'gpu'):
               for _transpose in transpose:
                 taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup = test_event_ell_gpu(_s, _p, _values_type, _events_type, _transpose)
-              # append to dataframe
-              df.loc[df.shape[0]] = [_s, _p, 'gpu', _values_type, _events_type, transpose,
-                                    taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
-                                    brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
+                # append to dataframe
+                df.loc[df.shape[0]] = [_s, _p, 'gpu', _values_type, _events_type, _transpose,
+                                      taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
+                                      brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
   df.to_csv(f'{PATH}/event_csrmv_gpu.csv', index=False)
 
 # if (bm.get_platform() == 'gpu'):
