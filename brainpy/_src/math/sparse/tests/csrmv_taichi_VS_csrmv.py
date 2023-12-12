@@ -18,11 +18,12 @@ s = [1000, 2500, 5000, 10000, 25000, 50000]
 p = [0.1, 0.2, 0.3, 0.4, 0.5]
 values_type = ['homo', 'heter']
 events_type = ['float']
+transpose = [True, False]
 
 print(bm.get_platform())
 
 
-def test_event_ell_cpu(s, p, values_type, events_type):
+def test_event_ell_cpu(s, p, values_type, events_type, transpose):
   print('s: ', s, 'p: ', p)
   k = int(s * p)
   rng = bm.random.RandomState(seed=1234)
@@ -43,33 +44,33 @@ def test_event_ell_cpu(s, p, values_type, events_type):
 
   # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
 
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time9 = time.time()
 
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
 #   print(result1[0])
 #   print(result2)
 #   print(groundtruth - result1[0])
@@ -81,26 +82,26 @@ def test_event_ell_cpu(s, p, values_type, events_type):
   # assert bm.allclose(result1[0], result2)
 
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time21 = time.time()
 
   taichi_aot_time1 = (time1 - time0) * 1000
@@ -132,7 +133,7 @@ def test_event_ell_cpu(s, p, values_type, events_type):
   return taichi_aot_time1, taichi_aot_time2, taichi_aot_time3, taichi_aot_time4, taichi_aot_time5,\
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, speedup
 
-def test_event_ell_gpu(s, p, values_type, events_type):
+def test_event_ell_gpu(s, p, values_type, events_type, transpose):
   print('s: ', s, 'p: ', p)
   k = int(s * p)
   bm.random.seed(1234)
@@ -155,33 +156,33 @@ def test_event_ell_gpu(s, p, values_type, events_type):
 
 
 
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   time9 = time.time()
 
-  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=True))
+  result2 = jax.block_until_ready(bm.sparse.csrmv(weight, csr_indices, csr_indptr, vector, shape=(s, s), transpose=transpose))
   # print('--------------------result1[0]------------------')
   # print(result1[0])
   # print('--------------------result2------------------')
@@ -252,7 +253,7 @@ def test_event_ell_gpu(s, p, values_type, events_type):
 bm.set_platform('cpu')
 block_dim = 64
 # init dataframe
-df = pd.DataFrame(columns=['s', 'p', 'backend', 'values type', 'events type',
+df = pd.DataFrame(columns=['s', 'p', 'backend', 'values type', 'events type', 'transpose',
                            'taichi aot time1(ms)', 'taichi aot time2(ms)', 'taichi aot time3(ms)', 'taichi aot time4(ms)', 'taichi aot time5(ms)',
                            'brainpy time1(ms)', 'brainpy time2(ms)', 'brainpy time3(ms)', 'brainpy time4(ms)', 'brainpy time5(ms)',
                            'speedup'])
@@ -262,10 +263,11 @@ if (bm.get_platform() == 'cpu'):
       for _p in p:
           for _values_type in values_type:
              for _events_type in events_type:
-              taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
-                  brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup = test_event_ell_cpu(_s, _p, _values_type, _events_type)
+              for _transpose in transpose:
+                taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
+                    brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup = test_event_ell_cpu(_s, _p, _values_type, _events_type, _transpose)
               # append to dataframe
-              df.loc[df.shape[0]] = [_s, _p, 'cpu', _values_type, _events_type,
+              df.loc[df.shape[0]] = [_s, _p, 'cpu', _values_type, _events_type, _transpose,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
   df.to_csv('event_csrmv_cpu.csv', index=False)
@@ -275,10 +277,11 @@ if (bm.get_platform() == 'gpu'):
       for _p in p:
           for _values_type in values_type:
              for _events_type in events_type:
-              taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
-                  brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup = test_event_ell_gpu(_s, _p, _values_type, _events_type)
+              for _transpose in transpose:
+                taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
+                    brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup = test_event_ell_gpu(_s, _p, _values_type, _events_type, _transpose)
               # append to dataframe
-              df.loc[df.shape[0]] = [_s, _p, 'gpu', _values_type, _events_type,
+              df.loc[df.shape[0]] = [_s, _p, 'gpu', _values_type, _events_type, transpose,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
   df.to_csv('event_csrmv_gpu.csv', index=False)
