@@ -12,9 +12,10 @@ import numpy as np
 import pandas as pd
 import taichi as ti
 
-bm.set_platform('cpu')
+bm.set_platform('gpu')
 
-s = [1000, 2500, 5000, 10000, 25000, 50000]
+s = [1000, 5000, 10000, 15000, 20000, 25000, 30000]
+
 p = [0.1, 0.2, 0.3, 0.4, 0.5]
 values_type = ['homo', 
                'heter']

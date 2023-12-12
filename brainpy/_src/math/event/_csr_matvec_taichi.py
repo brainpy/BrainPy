@@ -73,7 +73,7 @@ def _event_csr_matvec_bool_cpu(values: ti.types.ndarray(ndim=1),
                                out: ti.types.ndarray(ndim=1)):
   if values.shape[0] == 1:
     value = values[0]
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for row_i in range(indptr.shape[0] - 1):
       r = 0.
       for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -82,7 +82,7 @@ def _event_csr_matvec_bool_cpu(values: ti.types.ndarray(ndim=1),
       out[row_i] = r
 
   else:
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for row_i in range(indptr.shape[0] - 1):
       r = 0.
       for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -99,7 +99,7 @@ def _event_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
                           out: ti.types.ndarray(ndim=1)):
   if values.shape[0] == 1:
     value = values[0]
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for row_i in range(indptr.shape[0] - 1):
       r = 0.
       for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -108,7 +108,7 @@ def _event_csr_matvec_cpu(values: ti.types.ndarray(ndim=1),
       out[row_i] = r
 
   else:
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for row_i in range(indptr.shape[0] - 1):
       r = 0.
       for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -130,10 +130,10 @@ def _event_csr_matvec_transpose_bool_homo_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     if events[row_i]:
       j = indptr[row_i] + index
-      end_index = indptr[row_i + 1] 
+      end_index = indptr[row_i + 1]
       while j < end_index:
         out[indices[j]] += value
         j += 32
@@ -152,10 +152,10 @@ def _event_csr_matvec_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     if events[row_i] > 0.:
       j = indptr[row_i] + index
-      end_index = indptr[row_i + 1] 
+      end_index = indptr[row_i + 1]
       while j < end_index:
         out[indices[j]] += value
         j += 32
@@ -175,14 +175,15 @@ def _event_csr_matvec_bool_homo_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     r = 0.
     j = indptr[row_i] + index
     end_index = indptr[row_i + 1]
     while j < end_index:
       if events[indices[j]]:
         r += value
-    out[row_i] = r
+      j += 32
+    out[row_i] += r
   # for row_i in range(indptr.shape[0] - 1):
   #   r = 0.
   #   for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -200,14 +201,15 @@ def _event_csr_matvec_homo_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     r = 0.
     j = indptr[row_i] + index
     end_index = indptr[row_i + 1]
     while j < end_index:
       if events[indices[j]] > 0.:
         r += value
-    out[row_i] = r
+      j += 32
+    out[row_i] += r
   # for row_i in range(indptr.shape[0] - 1):
   #   r = 0.
   #   for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -226,10 +228,10 @@ def _event_csr_matvec_transpose_bool_heter_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     if events[row_i]:
       j = indptr[row_i] + index
-      end_index = indptr[row_i + 1] 
+      end_index = indptr[row_i + 1]
       while j < end_index:
         out[indices[j]] += values[j]
         j += 32
@@ -248,10 +250,10 @@ def _event_csr_matvec_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     if events[row_i] > 0.:
       j = indptr[row_i] + index
-      end_index = indptr[row_i + 1] 
+      end_index = indptr[row_i + 1]
       while j < end_index:
         out[indices[j]] += values[j]
         j += 32
@@ -270,14 +272,15 @@ def _event_csr_matvec_bool_heter_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     r = 0.
     j = indptr[row_i] + index
     end_index = indptr[row_i + 1]
     while j < end_index:
       if events[indices[j]]:
         r += values[j]
-    out[row_i] = r
+      j += 32
+    out[row_i] += r
   # for row_i in range(indptr.shape[0] - 1):
   #   r = 0.
   #   for j in range(indptr[row_i], indptr[row_i + 1]):
@@ -294,14 +297,15 @@ def _event_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
   total_rows = indptr.shape[0] - 1
   for i in range(total_rows * 32):
     row_i = i >> 5
-    index = i & 32
+    index = i & 31
     r = 0.
     j = indptr[row_i] + index
     end_index = indptr[row_i + 1]
     while j < end_index:
       if events[indices[j]] > 0.:
         r += values[j]
-    out[row_i] = r
+      j += 32
+    out[row_i] += r
   # for row_i in range(indptr.shape[0] - 1):
   #   r = 0.
   #   for j in range(indptr[row_i], indptr[row_i + 1]):
