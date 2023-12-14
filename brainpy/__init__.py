@@ -77,7 +77,8 @@ NeuGroup = NeuGroupNS = dyn.NeuDyn
 
 # common tools
 from brainpy._src.context import (share as share)
-from brainpy._src.helpers import (reset_state as reset_state,
+from brainpy._src.helpers import (reset_level as reset_level,
+                                  reset_state as reset_state,
                                   save_state as save_state,
                                   load_state as load_state,
                                   clear_input as clear_input)

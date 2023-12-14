@@ -1,16 +1,45 @@
-from typing import Dict
+from typing import Dict, Callable
 
+from brainpy._src import dynsys
 from brainpy._src.dyn.base import IonChaDyn
 from brainpy._src.dynsys import DynamicalSystem, DynView
 from brainpy._src.math.object_transform.base import StateLoadResult
 
-
 __all__ = [
+  'reset_level',
   'reset_state',
   'load_state',
   'save_state',
   'clear_input',
 ]
+
+
+_max_level = 10
+
+
+def reset_level(level: int = 0):
+  """The decorator for indicating the resetting level.
+
+  The function takes an optional integer argument level with a default value of 0.
+
+  The lower the level, the earlier the function is called.
+
+  >>> import brainpy as bp
+  >>> bp.reset_level(0)
+  >>> bp.reset_level(-1)
+  >>> bp.reset_level(-2)
+
+  """
+  if level < 0:
+    level = _max_level + level
+  if level < 0 or level >= _max_level:
+    raise ValueError(f'"reset_level" must be an integer in [0, 10). but we got {level}')
+
+  def wrap(fun: Callable):
+    fun.reset_level = level
+    return fun
+
+  return wrap
 
 
 def reset_state(target: DynamicalSystem, *args, **kwargs):
@@ -20,11 +49,23 @@ def reset_state(target: DynamicalSystem, *args, **kwargs):
 
   Args:
     target: The target DynamicalSystem.
-    *args:
-    **kwargs:
   """
-  for node in target.nodes().subset(DynamicalSystem).not_subset(DynView).not_subset(IonChaDyn).unique().values():
-    node.reset_state(*args, **kwargs)
+  nodes = list(target.nodes().subset(DynamicalSystem).not_subset(DynView).not_subset(IonChaDyn).unique().values())
+  # assign the 'reset_level' to each reset state function
+  for node in nodes:
+    if not hasattr(node.reset_state, 'reset_level'):
+      node.reset_state.reset_level = 0
+
+  dynsys.the_top_layer_reset_state = False
+  try:
+    # reset the node's states
+    for l in range(_max_level):
+      for node in nodes:
+        if node.reset_state.reset_level == l:
+          node.reset_state(*args, **kwargs)
+
+  finally:
+    dynsys.the_top_layer_reset_state = True
 
 
 def clear_input(target: DynamicalSystem, *args, **kwargs):
