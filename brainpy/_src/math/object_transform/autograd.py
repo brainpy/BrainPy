@@ -44,6 +44,7 @@ from .variables import (
 __all__ = [
   'grad',  # gradient of scalar function
   'vector_grad',  # gradient of vector/matrix/...
+  'functional_vector_grad',
   'jacobian', 'jacrev', 'jacfwd',  # gradient of jacobian
   'hessian',  # gradient of hessian
 ]
@@ -769,7 +770,7 @@ def hessian(
                 return_value=return_value)
 
 
-def _vector_grad(func, argnums=0, return_value=False, has_aux=False):
+def functional_vector_grad(func, argnums=0, return_value=False, has_aux=False):
   _check_callable(func)
 
   @wraps(func)
@@ -866,7 +867,7 @@ def vector_grad(
 
   if func is None:
     return lambda f: GradientTransform(target=f,
-                                       transform=_vector_grad,
+                                       transform=functional_vector_grad,
                                        grad_vars=grad_vars,
                                        dyn_vars=dyn_vars,
                                        child_objs=child_objs,
@@ -875,7 +876,7 @@ def vector_grad(
                                        has_aux=False if has_aux is None else has_aux)
   else:
     return GradientTransform(target=func,
-                             transform=_vector_grad,
+                             transform=functional_vector_grad,
                              grad_vars=grad_vars,
                              dyn_vars=dyn_vars,
                              child_objs=child_objs,

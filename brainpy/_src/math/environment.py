@@ -709,7 +709,7 @@ def clear_buffer_memory(
 
   """
   if array:
-    for buf in xla_bridge.get_backend(platform=platform).live_buffers():
+    for buf in xla_bridge.get_backend(platform).live_buffers():
       buf.delete()
   if compilation:
     jax.clear_caches()
