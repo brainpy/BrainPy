@@ -50,17 +50,22 @@ def reset_state(target: DynamicalSystem, *args, **kwargs):
   Args:
     target: The target DynamicalSystem.
   """
-  nodes = list(target.nodes().subset(DynamicalSystem).not_subset(DynView).not_subset(IonChaDyn).unique().values())
-  # assign the 'reset_level' to each reset state function
-  for node in nodes:
-    if not hasattr(node.reset_state, 'reset_level'):
-      node.reset_state.reset_level = 0
-
   dynsys.the_top_layer_reset_state = False
+
   try:
+    nodes = list(target.nodes().subset(DynamicalSystem).not_subset(DynView).not_subset(IonChaDyn).unique().values())
+    nodes_with_level = []
+
+    # reset node whose `reset_state` has no `reset_level`
+    for node in nodes:
+      if not hasattr(node.reset_state, 'reset_level'):
+        node.reset_state(*args, **kwargs)
+      else:
+        nodes_with_level.append(node)
+
     # reset the node's states
     for l in range(_max_level):
-      for node in nodes:
+      for node in nodes_with_level:
         if node.reset_state.reset_level == l:
           node.reset_state(*args, **kwargs)
 
