@@ -45,12 +45,13 @@ def _mv_prob_homo_outdim_parallel_cpu(
     num_col = shape[1]
     weight_value = weight[0]
     clen_value = clen[0]
+    seed_value = seed[0]
 
     ti.loop_config(serialize=True)
     for i_col in range(num_col):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         result = ti.f32(0.)
 
@@ -76,22 +77,27 @@ def _mv_prob_homo_outdim_parallel_gpu(
     num_col = shape[1]
     weight_value = weight[0]
     clen_value = clen[0]
+    seed_value = seed[0]
+    avg_num_uniform = ti.i32((clen_value + 1) /2)
 
-    for i_col in range(num_col):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+    for i in range(num_col * 32):
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         result = ti.f32(0.)
-
+        
+        i_col = i >> 5
+        index = i & 31
+        
         s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        i_row = uniform_int_distribution(result, 1, clen_value)
+        i_row = uniform_int_distribution(result, 1, clen_value) + avg_num_uniform * index
         v = vector[i_col] * weight_value
         while i_row < num_row:
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
             out[i_row] += uniform_int_distribution(result, 1, clen_value) * v
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-            i_row += uniform_int_distribution(result, 1, clen_value)
+            i_row += uniform_int_distribution(result, 1, clen_value) * 32
 
 
 @ti.kernel
@@ -107,12 +113,13 @@ def _mv_prob_homo_cpu(
     num_col = shape[1]
     weight_value = weight[0]
     clen_value = clen[0]
-
+    seed_value = seed[0]
+    
     ti.loop_config(serialize=True)
     for i_row in range(num_row):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         r = 0.
         result = ti.f32(0.)
@@ -138,22 +145,27 @@ def _mv_prob_homo_gpu(
     num_col = shape[1]
     weight_value = weight[0]
     clen_value = clen[0]
+    seed_value = seed[0]
+    avg_num_uniform = ti.i32((clen_value + 1) /2)
 
-    for i_row in range(num_row):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+    for i in range(num_row * 32):
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         r = 0.
         result = ti.f32(0.)
+        
+        i_row = i >> 5
+        index = i & 31
 
         s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        i_col = uniform_int_distribution(result, 1, clen_value)
+        i_col = uniform_int_distribution(result, 1, clen_value) + avg_num_uniform * index
         while i_col < num_col:
             r += vector[i_col]
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-            i_col += uniform_int_distribution(result, 1, clen_value)
-        out[i_row] = r * weight_value
+            i_col += uniform_int_distribution(result, 1, clen_value) * 32
+        out[i_row] += r * weight_value
 
 def _mv_prob_homo_jvp(
     primals, tangents, *, outs, shape, transpose, outdim_parallel, conn_prob
@@ -374,12 +386,13 @@ def _mv_prob_uniform_outdim_parallel_cpu(
     clen_value = clen[0]
     w_min_value = w_min[0]
     w_max_value = w_max[0]
+    seed_value = seed[0]
 
     ti.loop_config(serialize=True)
     for i_col in range(num_col):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         result = ti.f32(0.)
 
@@ -406,21 +419,26 @@ def _mv_prob_uniform_outdim_parallel_gpu(
     clen_value = clen[0]
     w_min_value = w_min[0]
     w_max_value = w_max[0]
+    seed_value = seed[0]
+    avg_num_uniform = ti.i32((clen_value + 1) /2)
 
-    for i_col in range(num_col):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+    for i in range(num_col * 32):
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         result = ti.f32(0.)
+        
+        i_col = i >> 5
+        index = i & 31
 
         s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        i_row = uniform_int_distribution(result, 1, clen_value)
+        i_row = uniform_int_distribution(result, 1, clen_value) + avg_num_uniform * index
         while i_row < num_row:
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
             out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value) * vector[i_col]
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-            i_row += uniform_int_distribution(result, 1, clen_value)
+            i_row += uniform_int_distribution(result, 1, clen_value) * 32
 
 @ti.kernel
 def _mv_prob_uniform_cpu(
@@ -437,11 +455,13 @@ def _mv_prob_uniform_cpu(
     clen_value = clen[0]
     w_min_value = w_min[0]
     w_max_value = w_max[0]
+    seed_value = seed[0]
+    
     ti.loop_config(serialize=True)
     for i_row in range(num_row):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         result = ti.f32(0.)
         r = 0.
@@ -470,23 +490,28 @@ def _mv_prob_uniform_gpu(
     clen_value = clen[0]
     w_min_value = w_min[0]
     w_max_value = w_max[0]
+    seed_value = seed[0]
+    avg_num_uniform = ti.i32((clen_value + 1) /2)
 
-    for i_row in range(num_row):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+    for i in range(num_row * 32):
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         result = ti.f32(0.)
         r = 0.
+        
+        i_row = i >> 5
+        index = i & 31
 
         s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        i_col = uniform_int_distribution(result, 1, clen_value)
+        i_col = uniform_int_distribution(result, 1, clen_value) + avg_num_uniform * index
         while i_col < num_col:
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
             r += uniform_real_distribution(result, w_min_value, w_max_value) * vector[i_col]
             s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-            i_col += uniform_int_distribution(result, 1, clen_value)
-        out[i_row] = r
+            i_col += uniform_int_distribution(result, 1, clen_value) * 32
+        out[i_row] += r
 
 def _mv_prob_uniform_jvp(
     primals, tangents, *, outs, shape, transpose, outdim_parallel, conn_prob
@@ -703,12 +728,13 @@ def _mv_prob_normal_outdim_parallel_cpu(
     clen_value = clen[0]
     w_mu_value = w_mu[0]
     w_sigma_value = w_sigma[0]
+    seed_value = seed[0]
     
     ti.loop_config(serialize=True)
     for i_col in range(num_col):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         r = 0.
         result1 = ti.f32(0.)
@@ -720,7 +746,7 @@ def _mv_prob_normal_outdim_parallel_cpu(
             s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
             s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
             out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value) * vector[i_col]
-            s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
+            s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
             i_row += uniform_int_distribution(result1, 1, clen_value)
 
 @ti.kernel
@@ -738,24 +764,29 @@ def _mv_prob_normal_outdim_parallel_gpu(
     clen_value = clen[0]
     w_mu_value = w_mu[0]
     w_sigma_value = w_sigma[0]
+    seed_value = seed[0]
+    avg_num_uniform = ti.i32((clen_value + 1) /2)
     
-    for i_col in range(num_col):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+    for i in range(num_col * 32):
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         r = 0.
         result1 = ti.f32(0.)
         result2 = ti.f32(0.)
+        
+        i_col = i >> 5
+        index = i & 31
 
         s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-        i_row = uniform_int_distribution(result1, 1, clen_value)
+        i_row = uniform_int_distribution(result1, 1, clen_value) + avg_num_uniform * index
         while i_row < num_row:
             s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
             s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
             out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value) * vector[i_col]
-            s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-            i_row += uniform_int_distribution(result1, 1, clen_value)
+            s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+            i_row += uniform_int_distribution(result1, 1, clen_value) * 32
 
 @ti.kernel
 def _mv_prob_normal_cpu(
@@ -772,12 +803,13 @@ def _mv_prob_normal_cpu(
     clen_value = clen[0]
     w_mu_value = w_mu[0]
     w_sigma_value = w_sigma[0]
+    seed_value = seed[0]
     
     ti.loop_config(serialize=True)
     for i_row in range(num_row):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         r = 0.
         result1 = ti.f32(0.)
@@ -789,7 +821,7 @@ def _mv_prob_normal_cpu(
             s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
             s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
             r += normal_distribution(result1, result2, w_mu_value, w_sigma_value) * vector[i_col]
-            s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
+            s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
             i_col += uniform_int_distribution(result1, 1, clen_value)
         out[i_row] = r
 
@@ -808,25 +840,30 @@ def _mv_prob_normal_gpu(
     clen_value = clen[0]
     w_mu_value = w_mu[0]
     w_sigma_value = w_sigma[0]
+    seed_value = seed[0]
+    avg_num_uniform = ti.i32((clen_value + 1) /2)
     
-    for i_row in range(num_row):
-        s1 = seed[0] + 1 + ti.global_thread_idx()
-        s2 = seed[0] + 7
-        s3 = seed[0] + 15
+    for i in range(num_row * 32):
+        s1 = seed_value + 1 + ti.global_thread_idx()
+        s2 = seed_value + 7
+        s3 = seed_value + 15
         b = ti.u32(0)
         r = 0.
         result1 = ti.f32(0.)
         result2 = ti.f32(0.)
+        
+        i_row = i >> 5
+        index = i & 31
 
         s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-        i_col = uniform_int_distribution(result1, 1, clen_value)
+        i_col = uniform_int_distribution(result1, 1, clen_value) + avg_num_uniform * index
         while i_col < num_col:
             s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
             s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
             r += normal_distribution(result1, result2, w_mu_value, w_sigma_value) * vector[i_col]
-            s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-            i_col += uniform_int_distribution(result1, 1, clen_value)
-        out[i_row] = r
+            s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+            i_col += uniform_int_distribution(result1, 1, clen_value) * 32
+        out[i_row] += r
 
 def _mv_prob_normal_jvp(
     primals, tangents, *, outs, shape, transpose, outdim_parallel, conn_prob
