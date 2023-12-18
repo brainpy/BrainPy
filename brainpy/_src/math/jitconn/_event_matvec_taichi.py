@@ -35,71 +35,6 @@ __all__ = [
 
 
 @ti.kernel
-def _event_mv_prob_homo_outdim_parallel_bool_cpu(
-    events: ti.types.ndarray(ndim=1),
-    weight: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  weight_value = weight[0]
-  clen_value = clen[0]
-  seed_value = seed[0]
-  
-  ti.loop_config(serialize=True)
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event:
-        out[i_row] += weight_value
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_row += uniform_int_distribution(result, 1, clen_value)
-
-
-@ti.kernel
-def _event_mv_prob_homo_outdim_parallel_bool_gpu(
-    events: ti.types.ndarray(ndim=1),
-    weight: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  weight_value = weight[0]
-  clen_value = clen[0]
-  seed_value = seed[0]
-  
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event:
-        out[i_row] += weight_value
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_row += uniform_int_distribution(result, 1, clen_value)
-
-
-@ti.kernel
 def _event_mv_prob_homo_bool_cpu(
     events: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
@@ -114,24 +49,22 @@ def _event_mv_prob_homo_bool_cpu(
   clen_value = clen[0]
   seed_value = seed[0]
   
-  ti.loop_config(serialize=True)
-  for i_row in range(num_row):
+  # ti.loop_config(serialize=True)
+  for i_col in range(num_col):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
     s3 = seed_value + 15
     b = ti.u32(0)
     result = ti.f32(0.)
-    r = 0.
     
     s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_col = uniform_int_distribution(result, 1, clen_value)
+    i_row = uniform_int_distribution(result, 1, clen_value)
     event = events[i_col]
-    while i_col < num_col:
+    while i_row < num_row:
       if event:
-        r += weight_value
+        out[i_row] += weight_value
       s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_col += uniform_int_distribution(result, 1, clen_value)
-    out[i_row] = r
+      i_row += uniform_int_distribution(result, 1, clen_value)
 
 
 @ti.kernel
@@ -149,6 +82,39 @@ def _event_mv_prob_homo_bool_gpu(
   clen_value = clen[0]
   seed_value = seed[0]
   
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        out[i_row] += weight_value
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_row += uniform_int_distribution(result, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_homo_outdim_parallel_bool_cpu(
+    events: ti.types.ndarray(ndim=1),
+    weight: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  seed_value = seed[0]
+  
+  # ti.loop_config(serialize=True)
   for i_row in range(num_row):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
@@ -169,7 +135,7 @@ def _event_mv_prob_homo_bool_gpu(
 
 
 @ti.kernel
-def _event_mv_prob_homo_outdim_parallel_cpu(
+def _event_mv_prob_homo_outdim_parallel_bool_gpu(
     events: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
     clen: ti.types.ndarray(ndim=1),
@@ -182,55 +148,24 @@ def _event_mv_prob_homo_outdim_parallel_cpu(
   weight_value = weight[0]
   clen_value = clen[0]
   seed_value = seed[0]
-
-  ti.loop_config(serialize=True)
-  for i_col in range(num_col):
+  
+  for i_row in range(num_row):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
     s3 = seed_value + 15
     b = ti.u32(0)
     result = ti.f32(0.)
+    r = 0.
     
     s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result, 1, clen_value)
+    i_col = uniform_int_distribution(result, 1, clen_value)
     event = events[i_col]
-    while i_row < num_row:
-      if event > 0.:
-        out[i_row] += weight_value
+    while i_col < num_col:
+      if event:
+        r += weight_value
       s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_row += uniform_int_distribution(result, 1, clen_value)
-
-
-@ti.kernel
-def _event_mv_prob_homo_outdim_parallel_gpu(
-    events: ti.types.ndarray(ndim=1),
-    weight: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  weight_value = weight[0]
-  clen_value = clen[0]
-  seed_value = seed[0]
-
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event > 0.:
-        out[i_row] += weight_value
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_row += uniform_int_distribution(result, 1, clen_value)
+      i_col += uniform_int_distribution(result, 1, clen_value)
+    out[i_row] = r
 
 
 @ti.kernel
@@ -248,7 +183,72 @@ def _event_mv_prob_homo_cpu(
   clen_value = clen[0]
   seed_value = seed[0]
 
-  ti.loop_config(serialize=True)
+  # ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += weight_value
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_row += uniform_int_distribution(result, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_homo_gpu(
+    events: ti.types.ndarray(ndim=1),
+    weight: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  seed_value = seed[0]
+
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        out[i_row] += weight_value
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_row += uniform_int_distribution(result, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_homo_outdim_parallel_cpu(
+    events: ti.types.ndarray(ndim=1),
+    weight: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  weight_value = weight[0]
+  clen_value = clen[0]
+  seed_value = seed[0]
+
+  # ti.loop_config(serialize=True)
   for i_row in range(num_row):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
@@ -269,7 +269,7 @@ def _event_mv_prob_homo_cpu(
 
 
 @ti.kernel
-def _event_mv_prob_homo_gpu(
+def _event_mv_prob_homo_outdim_parallel_gpu(
     events: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
     clen: ti.types.ndarray(ndim=1),
@@ -529,7 +529,7 @@ _event_mv_prob_homo_p.def_transpose_rule(_event_mv_prob_homo_transpose)
 
 
 @ti.kernel
-def _event_mv_prob_uniform_outdim_parallel_bool_cpu(
+def _event_mv_prob_uniform_bool_cpu(
     events: ti.types.ndarray(ndim=1),
     w_min: ti.types.ndarray(ndim=1),
     w_max: ti.types.ndarray(ndim=1),
@@ -545,7 +545,7 @@ def _event_mv_prob_uniform_outdim_parallel_bool_cpu(
   w_max_value = w_max[0]
   seed_value = seed[0]
 
-  ti.loop_config(serialize=True)
+  # ti.loop_config(serialize=True)
   for i_col in range(num_col):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
@@ -562,6 +562,80 @@ def _event_mv_prob_uniform_outdim_parallel_bool_cpu(
         out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value)
       s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
       i_row += uniform_int_distribution(result, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_uniform_bool_gpu(
+    events: ti.types.ndarray(ndim=1),
+    w_min: ti.types.ndarray(ndim=1),
+    w_max: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  seed_value = seed[0]
+
+
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+        out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value)
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_row += uniform_int_distribution(result, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_uniform_outdim_parallel_bool_cpu(
+    events: ti.types.ndarray(ndim=1),
+    w_min: ti.types.ndarray(ndim=1),
+    w_max: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  seed_value = seed[0]
+
+  # ti.loop_config(serialize=True)
+  for i_row in range(num_row):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    r = 0.
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_col = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+        r += uniform_real_distribution(result, w_min_value, w_max_value)
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_col += uniform_int_distribution(result, 1, clen_value)
+    out[i_row] = r
 
 
 @ti.kernel
@@ -581,6 +655,80 @@ def _event_mv_prob_uniform_outdim_parallel_bool_gpu(
   w_max_value = w_max[0]
   seed_value = seed[0]
 
+  for i_row in range(num_row):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    r = 0.
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_col = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+        r += uniform_real_distribution(result, w_min_value, w_max_value)
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_col += uniform_int_distribution(result, 1, clen_value)
+    out[i_row] = r
+
+
+@ti.kernel
+def _event_mv_prob_uniform_cpu(
+    events: ti.types.ndarray(ndim=1),
+    w_min: ti.types.ndarray(ndim=1),
+    w_max: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  seed_value = seed[0]
+
+
+  # ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result = ti.f32(0.)
+    
+    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event > 0.:
+        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+        out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value)
+      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
+      i_row += uniform_int_distribution(result, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_uniform_gpu(
+    events: ti.types.ndarray(ndim=1),
+    w_min: ti.types.ndarray(ndim=1),
+    w_max: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_min_value = w_min[0]
+  w_max_value = w_max[0]
+  seed_value = seed[0]
+
 
   for i_col in range(num_col):
     s1 = seed_value + 1 + ti.global_thread_idx()
@@ -593,86 +741,11 @@ def _event_mv_prob_uniform_outdim_parallel_bool_gpu(
     i_row = uniform_int_distribution(result, 1, clen_value)
     event = events[i_col]
     while i_row < num_row:
-      if event:
+      if event > 0.:
         s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
         out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value)
       s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
       i_row += uniform_int_distribution(result, 1, clen_value)
-
-
-@ti.kernel
-def _mv_prob_uniform_bool_cpu(
-    events: ti.types.ndarray(ndim=1),
-    w_min: ti.types.ndarray(ndim=1),
-    w_max: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_min_value = w_min[0]
-  w_max_value = w_max[0]
-  seed_value = seed[0]
-
-  ti.loop_config(serialize=True)
-  for i_row in range(num_row):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    r = 0.
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_col = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_col < num_col:
-      if event:
-        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        r += uniform_real_distribution(result, w_min_value, w_max_value)
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_col += uniform_int_distribution(result, 1, clen_value)
-    out[i_row] = r
-
-
-@ti.kernel
-def _mv_prob_uniform_bool_gpu(
-    events: ti.types.ndarray(ndim=1),
-    w_min: ti.types.ndarray(ndim=1),
-    w_max: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_min_value = w_min[0]
-  w_max_value = w_max[0]
-  seed_value = seed[0]
-
-  for i_row in range(num_row):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    r = 0.
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_col = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_col < num_col:
-      if event:
-        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        r += uniform_real_distribution(result, w_min_value, w_max_value)
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_col += uniform_int_distribution(result, 1, clen_value)
-    out[i_row] = r
 
 
 @ti.kernel
@@ -692,80 +765,7 @@ def _event_mv_prob_uniform_outdim_parallel_cpu(
   w_max_value = w_max[0]
   seed_value = seed[0]
 
-
-  ti.loop_config(serialize=True)
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event > 0.:
-        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value)
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_row += uniform_int_distribution(result, 1, clen_value)
-
-
-@ti.kernel
-def _event_mv_prob_uniform_outdim_parallel_gpu(
-    events: ti.types.ndarray(ndim=1),
-    w_min: ti.types.ndarray(ndim=1),
-    w_max: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_min_value = w_min[0]
-  w_max_value = w_max[0]
-  seed_value = seed[0]
-
-
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result = ti.f32(0.)
-    
-    s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event > 0.:
-        s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-        out[i_row] += uniform_real_distribution(result, w_min_value, w_max_value)
-      s1, s2, s3, b, result = random_generator(s1, s2, s3, b)
-      i_row += uniform_int_distribution(result, 1, clen_value)
-
-
-@ti.kernel
-def _mv_prob_uniform_cpu(
-    events: ti.types.ndarray(ndim=1),
-    w_min: ti.types.ndarray(ndim=1),
-    w_max: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_min_value = w_min[0]
-  w_max_value = w_max[0]
-  seed_value = seed[0]
-
-  ti.loop_config(serialize=True)
+  # ti.loop_config(serialize=True)
   for i_row in range(num_row):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
@@ -787,7 +787,7 @@ def _mv_prob_uniform_cpu(
 
 
 @ti.kernel
-def _mv_prob_uniform_gpu(
+def _event_mv_prob_uniform_outdim_parallel_gpu(
     events: ti.types.ndarray(ndim=1),
     w_min: ti.types.ndarray(ndim=1),
     w_max: ti.types.ndarray(ndim=1),
@@ -1015,8 +1015,8 @@ _event_mv_prob_uniform_outdim_parallel_bool_p.def_jvp_rule(_event_mv_prob_unifor
 _event_mv_prob_uniform_outdim_parallel_bool_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
 # outdim_parallel = False, events.dtype = jnp.bool_
-_event_mv_prob_uniform_bool_p = XLACustomOp(cpu_kernel=_mv_prob_uniform_bool_cpu,
-                                            gpu_kernel=_mv_prob_uniform_bool_gpu)
+_event_mv_prob_uniform_bool_p = XLACustomOp(cpu_kernel=_event_mv_prob_uniform_bool_cpu,
+                                            gpu_kernel=_event_mv_prob_uniform_bool_gpu)
 _event_mv_prob_uniform_bool_p.def_jvp_rule(_event_mv_prob_uniform_jvp)
 _event_mv_prob_uniform_bool_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
@@ -1027,8 +1027,8 @@ _event_mv_prob_uniform_outdim_parallel_p.def_jvp_rule(_event_mv_prob_uniform_jvp
 _event_mv_prob_uniform_outdim_parallel_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
 # outdim_parallel = False, events.dtype != jnp.bool_
-_event_mv_prob_uniform_p = XLACustomOp(cpu_kernel=_mv_prob_uniform_cpu,
-                                       gpu_kernel=_mv_prob_uniform_gpu)
+_event_mv_prob_uniform_p = XLACustomOp(cpu_kernel=_event_mv_prob_uniform_cpu,
+                                       gpu_kernel=_event_mv_prob_uniform_gpu)
 _event_mv_prob_uniform_p.def_jvp_rule(_event_mv_prob_uniform_jvp)
 _event_mv_prob_uniform_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 
@@ -1041,6 +1041,79 @@ _event_mv_prob_uniform_p.def_transpose_rule(_event_mv_prob_uniform_transpose)
 #   s1 = random_generator(seed)
 #   s2 = random_generator(seed)
 #   return normal_distribution(s1, s2, w_mu, w_sigma)
+
+
+@ti.kernel
+def _event_mv_prob_normal_bool_cpu(
+    events: ti.types.ndarray(ndim=1),
+    w_mu: ti.types.ndarray(ndim=1),
+    w_sigma: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+  seed_value = seed[0]
+
+  # ti.loop_config(serialize=True)
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result1 = ti.f32(0.)
+    result2 = ti.f32(0.)
+    
+    s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result1, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+        s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
+        out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
+      i_row += uniform_int_distribution(result1, 1, clen_value)
+
+
+@ti.kernel
+def _event_mv_prob_normal_bool_gpu(
+    events: ti.types.ndarray(ndim=1),
+    w_mu: ti.types.ndarray(ndim=1),
+    w_sigma: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+  seed_value = seed[0]
+
+  for i_col in range(num_col):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result1 = ti.f32(0.)
+    result2 = ti.f32(0.)
+    
+    s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+    i_row = uniform_int_distribution(result1, 1, clen_value)
+    event = events[i_col]
+    while i_row < num_row:
+      if event:
+        s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+        s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
+        out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
+      i_row += uniform_int_distribution(result1, 1, clen_value)
 
 
 @ti.kernel
@@ -1060,24 +1133,26 @@ def _event_mv_prob_normal_outdim_parallel_bool_cpu(
   w_sigma_value = w_sigma[0]
   seed_value = seed[0]
 
-  ti.loop_config(serialize=True)
-  for i_col in range(num_col):
+  # ti.loop_config(serialize=True)
+  for i_row in range(num_row):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
     s3 = seed_value + 15
     b = ti.u32(0)
     result1 = ti.f32(0.)
     result2 = ti.f32(0.)
+    r = 0.
     
     s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result1, 1, clen_value)
+    i_col = uniform_int_distribution(result1, 1, clen_value)
     event = events[i_col]
-    while i_row < num_row:
+    while i_col < num_col:
       if event:
         s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
         s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-        out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
-      i_row += uniform_int_distribution(result1, 1, clen_value)
+        r += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
+      i_col += uniform_int_distribution(result1, 1, clen_value)
+    out[i_row] = r
 
 
 @ti.kernel
@@ -1097,6 +1172,45 @@ def _event_mv_prob_normal_outdim_parallel_bool_gpu(
   w_sigma_value = w_sigma[0]
   seed_value = seed[0]
 
+  for i_row in range(num_row):
+    s1 = seed_value + 1 + ti.global_thread_idx()
+    s2 = seed_value + 7
+    s3 = seed_value + 15
+    b = ti.u32(0)
+    result1 = ti.f32(0.)
+    result2 = ti.f32(0.)
+    r = 0.
+    
+    s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+    i_col = uniform_int_distribution(result1, 1, clen_value)
+    event = events[i_col]
+    while i_col < num_col:
+      if event:
+        s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
+        s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
+        r += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
+      i_col += uniform_int_distribution(result1, 1, clen_value)
+    out[i_row] = r
+
+
+@ti.kernel
+def _event_mv_prob_normal_cpu(
+    events: ti.types.ndarray(ndim=1),
+    w_mu: ti.types.ndarray(ndim=1),
+    w_sigma: ti.types.ndarray(ndim=1),
+    clen: ti.types.ndarray(ndim=1),
+    seed: ti.types.ndarray(ndim=1),
+    shape: ti.types.ndarray(ndim=1),
+    out: ti.types.ndarray(ndim=1)
+):
+  num_row = shape[0]
+  num_col = shape[1]
+  clen_value = clen[0]
+  w_mu_value = w_mu[0]
+  w_sigma_value = w_sigma[0]
+  seed_value = seed[0]
+
+  # ti.loop_config(serialize=True)
   for i_col in range(num_col):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
@@ -1109,7 +1223,7 @@ def _event_mv_prob_normal_outdim_parallel_bool_gpu(
     i_row = uniform_int_distribution(result1, 1, clen_value)
     event = events[i_col]
     while i_row < num_row:
-      if event:
+      if event > 0.:
         s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
         s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
         out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
@@ -1117,7 +1231,7 @@ def _event_mv_prob_normal_outdim_parallel_bool_gpu(
 
 
 @ti.kernel
-def _mv_prob_normal_bool_cpu(
+def _event_mv_prob_normal_gpu(
     events: ti.types.ndarray(ndim=1),
     w_mu: ti.types.ndarray(ndim=1),
     w_sigma: ti.types.ndarray(ndim=1),
@@ -1133,64 +1247,23 @@ def _mv_prob_normal_bool_cpu(
   w_sigma_value = w_sigma[0]
   seed_value = seed[0]
 
-  ti.loop_config(serialize=True)
-  for i_row in range(num_row):
+  for i_col in range(num_col):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
     s3 = seed_value + 15
     b = ti.u32(0)
     result1 = ti.f32(0.)
     result2 = ti.f32(0.)
-    r = 0.
     
     s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-    i_col = uniform_int_distribution(result1, 1, clen_value)
+    i_row = uniform_int_distribution(result1, 1, clen_value)
     event = events[i_col]
-    while i_col < num_col:
-      if event:
+    while i_row < num_row:
+      if event > 0.:
         s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
         s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-        r += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
-      i_col += uniform_int_distribution(result1, 1, clen_value)
-    out[i_row] = r
-
-
-@ti.kernel
-def _mv_prob_normal_bool_gpu(
-    events: ti.types.ndarray(ndim=1),
-    w_mu: ti.types.ndarray(ndim=1),
-    w_sigma: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_mu_value = w_mu[0]
-  w_sigma_value = w_sigma[0]
-  seed_value = seed[0]
-
-  for i_row in range(num_row):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result1 = ti.f32(0.)
-    result2 = ti.f32(0.)
-    r = 0.
-    
-    s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-    i_col = uniform_int_distribution(result1, 1, clen_value)
-    event = events[i_col]
-    while i_col < num_col:
-      if event:
-        s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-        s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-        r += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
-      i_col += uniform_int_distribution(result1, 1, clen_value)
-    out[i_row] = r
+        out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
+      i_row += uniform_int_distribution(result1, 1, clen_value)
 
 
 @ti.kernel
@@ -1210,80 +1283,7 @@ def _event_mv_prob_normal_outdim_parallel_cpu(
   w_sigma_value = w_sigma[0]
   seed_value = seed[0]
 
-  ti.loop_config(serialize=True)
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result1 = ti.f32(0.)
-    result2 = ti.f32(0.)
-    
-    s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result1, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event > 0.:
-        s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-        s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-        out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
-      i_row += uniform_int_distribution(result1, 1, clen_value)
-
-
-@ti.kernel
-def _event_mv_prob_normal_outdim_parallel_gpu(
-    events: ti.types.ndarray(ndim=1),
-    w_mu: ti.types.ndarray(ndim=1),
-    w_sigma: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_mu_value = w_mu[0]
-  w_sigma_value = w_sigma[0]
-  seed_value = seed[0]
-
-  for i_col in range(num_col):
-    s1 = seed_value + 1 + ti.global_thread_idx()
-    s2 = seed_value + 7
-    s3 = seed_value + 15
-    b = ti.u32(0)
-    result1 = ti.f32(0.)
-    result2 = ti.f32(0.)
-    
-    s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-    i_row = uniform_int_distribution(result1, 1, clen_value)
-    event = events[i_col]
-    while i_row < num_row:
-      if event > 0.:
-        s1, s2, s3, b, result1 = random_generator(s1, s2, s3, b)
-        s1, s2, s3, b, result2 = random_generator(s1, s2, s3, b)
-        out[i_row] += normal_distribution(result1, result2, w_mu_value, w_sigma_value)
-      i_row += uniform_int_distribution(result1, 1, clen_value)
-
-
-@ti.kernel
-def _mv_prob_normal_cpu(
-    events: ti.types.ndarray(ndim=1),
-    w_mu: ti.types.ndarray(ndim=1),
-    w_sigma: ti.types.ndarray(ndim=1),
-    clen: ti.types.ndarray(ndim=1),
-    seed: ti.types.ndarray(ndim=1),
-    shape: ti.types.ndarray(ndim=1),
-    out: ti.types.ndarray(ndim=1)
-):
-  num_row = shape[0]
-  num_col = shape[1]
-  clen_value = clen[0]
-  w_mu_value = w_mu[0]
-  w_sigma_value = w_sigma[0]
-  seed_value = seed[0]
-
-  ti.loop_config(serialize=True)
+  # ti.loop_config(serialize=True)
   for i_row in range(num_row):
     s1 = seed_value + 1 + ti.global_thread_idx()
     s2 = seed_value + 7
@@ -1306,7 +1306,7 @@ def _mv_prob_normal_cpu(
 
 
 @ti.kernel
-def _mv_prob_normal_gpu(
+def _event_mv_prob_normal_outdim_parallel_gpu(
     events: ti.types.ndarray(ndim=1),
     w_mu: ti.types.ndarray(ndim=1),
     w_sigma: ti.types.ndarray(ndim=1),
@@ -1530,8 +1530,8 @@ _event_mv_prob_normal_outdim_parallel_bool_p.def_jvp_rule(_event_mv_prob_normal_
 _event_mv_prob_normal_outdim_parallel_bool_p.def_transpose_rule(_event_mv_prob_normal_transpose)
 
 # outdim_parallel = False, events.dtype = jnp.bool_
-_event_mv_prob_normal_bool_p = XLACustomOp(cpu_kernel=_mv_prob_normal_bool_cpu,
-                                           gpu_kernel=_mv_prob_normal_bool_gpu)
+_event_mv_prob_normal_bool_p = XLACustomOp(cpu_kernel=_event_mv_prob_normal_bool_cpu,
+                                           gpu_kernel=_event_mv_prob_normal_bool_gpu)
 _event_mv_prob_normal_bool_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_bool_p.def_transpose_rule(_event_mv_prob_normal_transpose)
 
@@ -1542,7 +1542,7 @@ _event_mv_prob_normal_outdim_parallel_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_outdim_parallel_p.def_transpose_rule(_event_mv_prob_normal_transpose)
 
 # outdim_parallel = False, events.dtype != jnp.bool_
-_event_mv_prob_normal_p = XLACustomOp(cpu_kernel=_mv_prob_normal_cpu,
-                                      gpu_kernel=_mv_prob_normal_gpu)
+_event_mv_prob_normal_p = XLACustomOp(cpu_kernel=_event_mv_prob_normal_cpu,
+                                      gpu_kernel=_event_mv_prob_normal_gpu)
 _event_mv_prob_normal_p.def_jvp_rule(_event_mv_prob_normal_jvp)
 _event_mv_prob_normal_p.def_transpose_rule(_event_mv_prob_normal_transpose)

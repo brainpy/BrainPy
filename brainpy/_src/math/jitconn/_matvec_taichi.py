@@ -33,7 +33,7 @@ __all__ = [
 #     return uniform_int_distribution(random_generator(seed), 1, clen)
 
 @ti.kernel
-def _mv_prob_homo_outdim_parallel_cpu(
+def _mv_prob_homo_cpu(
     vector: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
     clen: ti.types.ndarray(ndim=1),
@@ -47,7 +47,7 @@ def _mv_prob_homo_outdim_parallel_cpu(
     clen_value = clen[0]
     seed_value = seed[0]
 
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for i_col in range(num_col):
         s1 = seed_value + 1 + ti.global_thread_idx()
         s2 = seed_value + 7
@@ -65,7 +65,7 @@ def _mv_prob_homo_outdim_parallel_cpu(
             i_row += uniform_int_distribution(result, 1, clen_value)
 
 @ti.kernel
-def _mv_prob_homo_outdim_parallel_gpu(
+def _mv_prob_homo_gpu(
     vector: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
     clen: ti.types.ndarray(ndim=1),
@@ -101,7 +101,7 @@ def _mv_prob_homo_outdim_parallel_gpu(
 
 
 @ti.kernel
-def _mv_prob_homo_cpu(
+def _mv_prob_homo_outdim_parallel_cpu(
     vector: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
     clen: ti.types.ndarray(ndim=1),
@@ -115,7 +115,7 @@ def _mv_prob_homo_cpu(
     clen_value = clen[0]
     seed_value = seed[0]
     
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for i_row in range(num_row):
         s1 = seed_value + 1 + ti.global_thread_idx()
         s2 = seed_value + 7
@@ -133,7 +133,7 @@ def _mv_prob_homo_cpu(
         out[i_row] = r * weight_value
 
 @ti.kernel
-def _mv_prob_homo_gpu(
+def _mv_prob_homo_outdim_parallel_gpu(
     vector: ti.types.ndarray(ndim=1),
     weight: ti.types.ndarray(ndim=1),
     clen: ti.types.ndarray(ndim=1),
@@ -372,7 +372,7 @@ _mv_prob_homo_p.def_transpose_rule(_mv_prob_homo_transpose)
 #     return uniform_real_distribution(random_generator(seed), w_min, w_max)
 
 @ti.kernel
-def _mv_prob_uniform_outdim_parallel_cpu(
+def _mv_prob_uniform_cpu(
     vector: ti.types.ndarray(ndim=1),
     w_min: ti.types.ndarray(ndim=1),
     w_max: ti.types.ndarray(ndim=1),
@@ -388,7 +388,7 @@ def _mv_prob_uniform_outdim_parallel_cpu(
     w_max_value = w_max[0]
     seed_value = seed[0]
 
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for i_col in range(num_col):
         s1 = seed_value + 1 + ti.global_thread_idx()
         s2 = seed_value + 7
@@ -405,7 +405,7 @@ def _mv_prob_uniform_outdim_parallel_cpu(
             i_row += uniform_int_distribution(result, 1, clen_value)
 
 @ti.kernel
-def _mv_prob_uniform_outdim_parallel_gpu(
+def _mv_prob_uniform_gpu(
     vector: ti.types.ndarray(ndim=1),
     w_min: ti.types.ndarray(ndim=1),
     w_max: ti.types.ndarray(ndim=1),
@@ -441,7 +441,7 @@ def _mv_prob_uniform_outdim_parallel_gpu(
             i_row += uniform_int_distribution(result, 1, clen_value) * 32
 
 @ti.kernel
-def _mv_prob_uniform_cpu(
+def _mv_prob_uniform_outdim_parallel_cpu(
     vector: ti.types.ndarray(ndim=1),
     w_min: ti.types.ndarray(ndim=1),
     w_max: ti.types.ndarray(ndim=1),
@@ -457,7 +457,7 @@ def _mv_prob_uniform_cpu(
     w_max_value = w_max[0]
     seed_value = seed[0]
     
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for i_row in range(num_row):
         s1 = seed_value + 1 + ti.global_thread_idx()
         s2 = seed_value + 7
@@ -476,7 +476,7 @@ def _mv_prob_uniform_cpu(
         out[i_row] = r
 
 @ti.kernel
-def _mv_prob_uniform_gpu(
+def _mv_prob_uniform_outdim_parallel_gpu(
     vector: ti.types.ndarray(ndim=1),
     w_min: ti.types.ndarray(ndim=1),
     w_max: ti.types.ndarray(ndim=1),
@@ -714,7 +714,7 @@ _mv_prob_uniform_p.def_transpose_rule(_mv_prob_uniform_transpose)
 #     return normal_distribution(s1, s2, w_mu, w_sigma)
 
 @ti.kernel
-def _mv_prob_normal_outdim_parallel_cpu(
+def _mv_prob_normal_cpu(
     vector: ti.types.ndarray(ndim=1),
     w_mu: ti.types.ndarray(ndim=1),
     w_sigma: ti.types.ndarray(ndim=1),
@@ -730,7 +730,7 @@ def _mv_prob_normal_outdim_parallel_cpu(
     w_sigma_value = w_sigma[0]
     seed_value = seed[0]
     
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for i_col in range(num_col):
         s1 = seed_value + 1 + ti.global_thread_idx()
         s2 = seed_value + 7
@@ -750,7 +750,7 @@ def _mv_prob_normal_outdim_parallel_cpu(
             i_row += uniform_int_distribution(result1, 1, clen_value)
 
 @ti.kernel
-def _mv_prob_normal_outdim_parallel_gpu(
+def _mv_prob_normal_gpu(
     vector: ti.types.ndarray(ndim=1),
     w_mu: ti.types.ndarray(ndim=1),
     w_sigma: ti.types.ndarray(ndim=1),
@@ -789,7 +789,7 @@ def _mv_prob_normal_outdim_parallel_gpu(
             i_row += uniform_int_distribution(result1, 1, clen_value) * 32
 
 @ti.kernel
-def _mv_prob_normal_cpu(
+def _mv_prob_normal_outdim_parallel_cpu(
     vector: ti.types.ndarray(ndim=1),
     w_mu: ti.types.ndarray(ndim=1),
     w_sigma: ti.types.ndarray(ndim=1),
@@ -805,7 +805,7 @@ def _mv_prob_normal_cpu(
     w_sigma_value = w_sigma[0]
     seed_value = seed[0]
     
-    ti.loop_config(serialize=True)
+    # ti.loop_config(serialize=True)
     for i_row in range(num_row):
         s1 = seed_value + 1 + ti.global_thread_idx()
         s2 = seed_value + 7
@@ -826,7 +826,7 @@ def _mv_prob_normal_cpu(
         out[i_row] = r
 
 @ti.kernel
-def _mv_prob_normal_gpu(
+def _mv_prob_normal_outdim_parallel_gpu(
     vector: ti.types.ndarray(ndim=1),
     w_mu: ti.types.ndarray(ndim=1),
     w_sigma: ti.types.ndarray(ndim=1),
