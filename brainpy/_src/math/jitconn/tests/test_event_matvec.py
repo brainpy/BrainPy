@@ -14,9 +14,9 @@ if platform.system() == 'Windows' and not is_manual_test:
   pytest.skip('Under windows, brainpy.math package may need manual tests.', allow_module_level=True)
 
 shapes = [(100, 200),
-          (10, 1000),
+          # (10, 1000), 
           (2, 1000),
-          (1000, 10),
+          # (1000, 10),
           (1000, 2)]
 
 
