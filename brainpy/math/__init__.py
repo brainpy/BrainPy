@@ -31,6 +31,7 @@ from .others import *
 from . import fft
 from . import linalg
 from . import random
+from . import taichi_random
 
 # others
 from . import sharding

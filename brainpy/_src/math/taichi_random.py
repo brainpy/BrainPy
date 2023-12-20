@@ -6,8 +6,9 @@ __all__ = [
   # taichi.func random generator implementation
   'taichi_lcg_rand', 'taichi_uniform_int_distribution',
   'taichi_uniform_real_distribution', 'taichi_normal_distribution',
-  'taichi_lfsr88',
+  'taichi_lfsr88', 'RandomGenerator',
 ]
+
 
 
 @ti.func
@@ -33,7 +34,7 @@ def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1)):
 
 
 @ti.func
-def taichi_lfsr88(s1: ti.u32, s2: ti.u32, s3: ti.u32, b: ti.u32):
+def taichi_lfsr88(seeds):
   """
   32-bits Random number generator U[0,1): lfsr88
   Author: Pierre L'Ecuyer,
@@ -55,15 +56,14 @@ def taichi_lfsr88(s1: ti.u32, s2: ti.u32, s3: ti.u32, b: ti.u32):
   return ((s1 ^ s2 ^ s3) * 2.3283064365386963e-10);
   }
   ```
-
   """
-  b = (((s1 << 13) ^ s1) >> 19);
-  s1 = (((s1 & ti.u32(4294967294)) << 12) ^ b)
-  b = (((s2 << 2) ^ s2) >> 25)
-  s2 = (((s2 & ti.u32(4294967288)) << 4) ^ b)
-  b = (((s3 << 3) ^ s3) >> 11)
-  s3 = (((s3 & ti.u32(4294967280)) << 17) ^ b)
-  return s1, s2, s3, b, ((s1 ^ s2 ^ s3) * ti.f32(2.3283064365386963e-10))
+  b = ti.cast((((seeds[0] << 13) ^ seeds[0]) >> 19), ti.u32);
+  s1 = (((seeds[0] & ti.u32(4294967294)) << 12) ^ b)
+  b = (((seeds[1] << 2) ^ seeds[1]) >> 25)
+  s2 = (((seeds[1] & ti.u32(4294967288)) << 4) ^ b)
+  b = (((seeds[2] << 3) ^ seeds[2]) >> 11)
+  s3 = (((seeds[2] & ti.u32(4294967280)) << 17) ^ b)
+  return ti.math.uvec4(s1, s2, s3, b), ((s1 ^ s2 ^ s3) * ti.f32(2.3283064365386963e-10))
 
 
 @ti.func
