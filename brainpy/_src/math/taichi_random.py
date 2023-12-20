@@ -6,7 +6,7 @@ __all__ = [
   # taichi.func random generator implementation
   'taichi_lcg_rand', 'taichi_uniform_int_distribution',
   'taichi_uniform_real_distribution', 'taichi_normal_distribution',
-  'taichi_lfsr88', 'RandomGenerator',
+  'taichi_lfsr88',
 ]
 
 

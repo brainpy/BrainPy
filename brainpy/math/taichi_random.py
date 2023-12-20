@@ -6,5 +6,4 @@ from brainpy._src.math.taichi_random import (
     taichi_uniform_int_distribution as taichi_uniform_int_distribution,
     taichi_uniform_real_distribution as taichi_uniform_real_distribution,
     taichi_normal_distribution as taichi_normal_distribution,
-    RandomGenerator as RandomGenerator,
 )
