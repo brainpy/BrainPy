@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
 import functools
-from typing import Union, Sequence, Any, Dict, Callable, Optional
 import numbers
+from typing import Union, Sequence, Any, Dict, Callable, Optional
 
 import jax
 import jax.numpy as jnp
 from jax.errors import UnexpectedTracerError
+from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_flatten, tree_unflatten
 from tqdm.auto import tqdm
-from jax.experimental.host_callback import id_tap
 
 from brainpy import errors, tools
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import (Array, )
-from .tools import (
-  evaluate_dyn_vars,
-  evaluate_dyn_vars_with_cache,
-  dynvar_deprecation,
-  node_deprecation,
-  abstract
-)
 from .base import BrainPyObject, ObjectTransform
 from .naming import (
   get_unique_name,
   get_stack_cache,
   cache_stack
+)
+from .tools import (
+  evaluate_dyn_vars,
+  dynvar_deprecation,
+  node_deprecation,
+  abstract
 )
 from .variables import (
   Variable,
@@ -41,6 +40,7 @@ __all__ = [
   'cond',
   'ifelse',
   'for_loop',
+  'scan',
   'while_loop',
 ]
 
@@ -855,9 +855,9 @@ def for_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
-  num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
   bar = None
   if progress_bar:
+    num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
     bar = tqdm(total=num_total)
 
   if jit is None:  # jax disable jit
@@ -896,6 +896,119 @@ def for_loop(
   if progress_bar:
     bar.close()
   return out_vals
+
+
+def _get_scan_transform(
+    body_fun: Callable,
+    dyn_vars: VariableStack,
+    bar: tqdm,
+    progress_bar: bool,
+    remat: bool,
+    reverse: bool,
+    unroll: int,
+):
+  def fun2scan(carry, x):
+    dyn_vars_data, carry = carry
+    for k in dyn_vars.keys():
+      dyn_vars[k]._value = dyn_vars_data[k]
+    carry, results = body_fun(carry, x)
+    if progress_bar:
+      id_tap(lambda *arg: bar.update(), ())
+    return (dyn_vars.dict_data(), carry), results
+
+  if remat:
+    fun2scan = jax.checkpoint(fun2scan)
+
+  def call(init, operands):
+    return jax.lax.scan(f=fun2scan,
+                        init=(dyn_vars.dict_data(), init),
+                        xs=operands,
+                        reverse=reverse,
+                        unroll=unroll)
+
+  return call
+
+
+def scan(
+    body_fun: Callable,
+    init: Any,
+    operands: Any,
+    reverse: bool = False,
+    unroll: int = 1,
+    remat: bool = False,
+    progress_bar: bool = False,
+):
+  """``scan`` control flow with :py:class:`~.Variable`.
+
+  .. versionadded:: 2.4.7
+
+  All returns in body function will be gathered
+  as the return of the whole loop.
+
+  Parameters
+  ----------
+  body_fun: callable
+    A Python function to be scanned. This function accepts one argument and returns one output.
+    The argument denotes a slice of ``operands`` along its leading axis, and that
+    output represents a slice of the return value.
+  init: Any
+    An initial loop carry value of type ``c``, which can be a scalar, array, or any pytree
+    (nested Python tuple/list/dict) thereof, representing the initial loop carry value.
+    This value must have the same structure as the first element of the pair returned
+    by ``body_fun``.
+  operands: Any
+    The value over which to scan along the leading axis,
+    where ``operands`` can be an array or any pytree (nested Python
+    tuple/list/dict) thereof with consistent leading axis sizes.
+    If body function `body_func` receives multiple arguments,
+    `operands` should be a tuple/list whose length is equal to the
+    number of arguments.
+  remat: bool
+    Make ``fun`` recompute internal linearization points when differentiated.
+  reverse: bool
+    Optional boolean specifying whether to run the scan iteration
+    forward (the default) or in reverse, equivalent to reversing the leading
+    axes of the arrays in both ``xs`` and in ``ys``.
+  unroll: int
+    Optional positive int specifying, in the underlying operation of the
+    scan primitive, how many scan iterations to unroll within a single
+    iteration of a loop.
+  progress_bar: bool
+    Whether we use the progress bar to report the running progress.
+
+    .. versionadded:: 2.4.2
+
+  Returns
+  -------
+  outs: Any
+    The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
+  """
+  bar = None
+  if progress_bar:
+    num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
+    bar = tqdm(total=num_total)
+
+  dyn_vars = get_stack_cache(body_fun)
+  if dyn_vars is None:
+    with new_transform('scan'):
+      with VariableStack() as dyn_vars:
+        transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
+        if current_transform_number() > 1:
+          rets = transform(init, operands)
+        else:
+          rets = jax.eval_shape(transform, init, operands)
+    cache_stack(body_fun, dyn_vars)  # cache
+    if current_transform_number():
+      return rets[1]
+    del rets
+
+  transform = _get_scan_transform(body_fun, dyn_vars, bar, progress_bar, remat, reverse, unroll)
+  (dyn_vals, carry), out_vals = transform(init, operands)
+  for key in dyn_vars.keys():
+    dyn_vars[key]._value = dyn_vals[key]
+  if progress_bar:
+    bar.close()
+  return carry, out_vals
 
 
 def _get_while_transform(cond_fun, body_fun, dyn_vars):

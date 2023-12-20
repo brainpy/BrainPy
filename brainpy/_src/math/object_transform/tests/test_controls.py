@@ -132,6 +132,22 @@ class TestLoop(parameterized.TestCase):
     self.assertTrue(bm.allclose(cls.a, 10.))
 
 
+class TestScan(unittest.TestCase):
+  def test1(self):
+    a = bm.Variable(1)
+
+    def f(carray, x):
+      carray += x
+      a.value += 1.
+      return carray, a
+
+    carry, outs = bm.scan(f, bm.zeros(2), bm.arange(10))
+    self.assertTrue(bm.allclose(carry, 45.))
+    expected = bm.arange(1, 11).astype(outs.dtype)
+    expected = bm.expand_dims(expected, axis=-1)
+    self.assertTrue(bm.allclose(outs, expected))
+
+
 class TestCond(unittest.TestCase):
   def test1(self):
     bm.random.seed(1)
