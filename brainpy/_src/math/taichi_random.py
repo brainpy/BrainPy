@@ -6,7 +6,7 @@ __all__ = [
   # taichi.func random generator implementation
   'taichi_lcg_rand', 'taichi_uniform_int_distribution',
   'taichi_uniform_real_distribution', 'taichi_normal_distribution',
-  'taichi_lfsr88', 'init_lfsr88_seeds', 'taichi_xorwow', 'init_xorwow_seeds'
+  'taichi_lfsr88', 'taichi_lfsr88_init',
 ]
 
 
@@ -66,39 +66,17 @@ def taichi_lfsr88(seeds):
   return ti.math.uvec4(s1, s2, s3, b), ((s1 ^ s2 ^ s3) * ti.f32(2.3283064365386963e-10))
 
 @ti.func
-def init_lfsr88_seeds(seed: int):
+def taichi_lfsr88_init(seed: ti.u32):
   """
-  Get the seeds for the lfsr88 random number generator.
+  Initialize the seeds for the LFSR88 random number generator.
 
-  Parameters:
+  Args:
     seed (int): The seed value for the random number generator.
 
   Returns:
-    ti.math.uvec4: The seeds for the lfsr88 random number generator.
+    ti.math.uvec4: The seeds for the LFSR88 random number generator.
   """
   return ti.math.uvec4(seed + 1, seed + 7, seed + 15, ti.u32(0))
-
-@ti.func
-def taichi_xorwow(seeds1, seeds2):
-  t = (seeds1[0]) ^ (seeds1[0] >> ti.u32(2))
-  v = (seeds1[1] ^ (seeds1[1] << ti.u32(2))) ^ (t ^ (t << ti.u32(1)))
-  
-  d = seeds2[2] + ti.u32(362437)
-  return ti.math.uvec3(seeds1[1], seeds1[2], seeds2[0]), ti.math.uvec3(seeds2[0], v, d), ((v + d) * ti.f32(2.3283064365386963e-10))
-
-@ti.func
-def init_xorwow_seeds(seed: int):
-  """
-  Get the seeds for the xorwow random number generator.
-
-  Parameters:
-    seed (int): The seed value for the random number generator.
-
-  Returns:
-    ti.math.uvec4: The seeds for the xorwow random number generator.
-  """
-  return ti.math.uvec3(seed, 362436069, 521288629), ti.math.uvec3(88675123, 5783321, 6615241)
-
 
 @ti.func
 def taichi_uniform_int_distribution(state: ti.f32, low: ti.i32, high: ti.i32):
