@@ -886,7 +886,7 @@ class Izhikevich(lif.IzhikevichRef):
       self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
-  def reset_state(self, batch_size=None):
+  def reset_state(self, batch_size=None, **kwargs):
     super().reset_state(batch_size)
     if self.input_var:
       self.input = variable_(bm.zeros, self.varshape, batch_size)
@@ -1023,7 +1023,7 @@ class HindmarshRose(NeuDyn):
 
       # parameters for training
       mode: bm.Mode = None,
-      spike_fun: Callable = bm.surrogate.inv_square_grad,
+      spike_fun: Callable = bm.surrogate.inv_square_grad2,
   ):
     # initialization
     super(HindmarshRose, self).__init__(size=size,
