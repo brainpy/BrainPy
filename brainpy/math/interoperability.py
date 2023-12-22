@@ -6,5 +6,6 @@ from brainpy._src.math.interoperability import (
   as_ndarray as as_ndarray,
   as_numpy as as_numpy,
   as_variable as as_variable,
+  is_bp_array as is_bp_array,
 )
 

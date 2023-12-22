@@ -7,12 +7,18 @@ from .ndarray import Array
 
 
 __all__ = [
-  'as_device_array', 'as_jax', 'as_ndarray', 'as_numpy', 'as_variable',
+  'as_device_array', 'as_jax', 'as_ndarray', 'as_numpy', 'as_variable', 'is_bp_array'
 ]
 
 
 def _as_jax_array_(obj):
   return obj.value if isinstance(obj, Array) else obj
+
+
+def is_bp_array(x):
+  """Check if the input is a ``brainpy.math.Array``.
+  """
+  return isinstance(x, Array)
 
 
 def as_device_array(tensor, dtype=None):
