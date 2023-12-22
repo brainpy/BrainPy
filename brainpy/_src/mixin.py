@@ -428,11 +428,15 @@ class SupportInputProj(MixIn):
     return init
 
 
-class SupportAutoDelay(MixIn):
+class SupportReturnInfo(MixIn):
   """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
 
   def return_info(self) -> Union[bm.Variable, ReturnInfo]:
     raise NotImplementedError('Must implement the "return_info()" function.')
+
+
+class SupportAutoDelay(SupportReturnInfo):
+  pass
 
 
 class SupportOnline(MixIn):
