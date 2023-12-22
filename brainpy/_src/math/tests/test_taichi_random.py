@@ -14,9 +14,7 @@ from brainpy._src.math.taichi_random import (taichi_lcg_rand as rand,
                                              taichi_uniform_real_distribution as uniform,
                                              taichi_normal_distribution as normal,
                                              taichi_lfsr88,
-                                             init_lfsr88_seeds,
-                                             taichi_xorwow,
-                                             init_xorwow_seeds)
+                                             taichi_lfsr88_init,)
 
 bm.set_platform('cpu')
 
@@ -25,18 +23,9 @@ def test_taichi_random():
   @ti.kernel
   def test_taichi_lfsr88(seed: ti.types.ndarray(ndim=1, dtype=ti.u32),
                          out: ti.types.ndarray(ndim=1, dtype=ti.f32)):
-    seeds = init_lfsr88_seeds(seed[0])
+    seeds = taichi_lfsr88_init(seed[0])
     for i in range(out.shape[0]):
       seeds, result = taichi_lfsr88(seeds)
-      out[i] = result
-      
-  @ti.kernel
-  def test_taichi_xorwow(seed: ti.types.ndarray(ndim=1, dtype=ti.u32),
-                         out: ti.types.ndarray(ndim=1, dtype=ti.f32)):
-    seeds1, seeds2 = init_xorwow_seeds(seed[0])
-    # print(seeds1, seeds2)
-    for i in range(out.shape[0]):
-      seeds1, seeds2, result = taichi_xorwow(seeds1, seeds2)
       out[i] = result
 
   @ti.kernel
@@ -49,7 +38,7 @@ def test_taichi_random():
   def test_taichi_uniform_int_distribution(seed: ti.types.ndarray(ndim=1),
                                            low_high: ti.types.ndarray(ndim=1),
                                            out: ti.types.ndarray(ndim=1)):
-    seeds = init_lfsr88_seeds(seed[0])
+    seeds = taichi_lfsr88_init(seed[0])
     low = low_high[0]
     high = low_high[1]
     for i in range(out.shape[0]):
@@ -60,7 +49,7 @@ def test_taichi_random():
   def test_taichi_uniform_real_distribution(seed: ti.types.ndarray(ndim=1),
                                             low_high: ti.types.ndarray(ndim=1),
                                             out: ti.types.ndarray(ndim=1)):
-    seeds = init_lfsr88_seeds(seed[0])
+    seeds = taichi_lfsr88_init(seed[0])
     low = low_high[0]
     high = low_high[1]
     for i in range(out.shape[0]):
@@ -71,7 +60,7 @@ def test_taichi_random():
   def test_taichi_normal_distribution(seed: ti.types.ndarray(ndim=1),
                                       mu_sigma: ti.types.ndarray(ndim=1),
                                       out: ti.types.ndarray(ndim=1)):
-    seeds = init_lfsr88_seeds(seed[0])
+    seeds = taichi_lfsr88_init(seed[0])
     mu = mu_sigma[0]
     sigma = mu_sigma[1]
 
@@ -88,8 +77,6 @@ def test_taichi_random():
   prim_lfsr88 = bm.XLACustomOp(cpu_kernel=test_taichi_lfsr88,
                                gpu_kernel=test_taichi_lfsr88)
   
-  prim_xorwow = bm.XLACustomOp(cpu_kernel=test_taichi_xorwow,
-                                gpu_kernel=test_taichi_xorwow)
 
   prim_lcg_rand = bm.XLACustomOp(cpu_kernel=test_taichi_lcg_rand,
                                  gpu_kernel=test_taichi_lcg_rand)
@@ -107,13 +94,6 @@ def test_taichi_random():
   plt.hist(out, bins=100)
   plt.title("LFSR88 random number generator")
   plt.savefig(file_path + "/lfsr88.png")
-  plt.close()
-  
-  out = prim_xorwow(seed, outs=[jax.ShapeDtypeStruct((n,), jnp.float32)])
-  # show the distribution of out
-  plt.hist(out, bins=100)
-  plt.title("XORWOW random number generator")
-  plt.savefig(file_path + "/xorwow.png")
   plt.close()
 
   out = prim_lcg_rand(seed,
