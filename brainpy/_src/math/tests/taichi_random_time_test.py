@@ -13,11 +13,7 @@ from brainpy._src.math.taichi_random import (taichi_lcg_rand as rand,
                                              taichi_lfsr88,
                                              init_lfsr88_seeds,
                                              taichi_xorwow,
-                                             init_xorwow_seeds,
-                                             taichi_lfsr88_0,
-                                             taichi_xorwow_0,
-                                             init_lfsr88_seeds_0,
-                                             init_xorwow_seeds_0,)
+                                             init_xorwow_seeds)
 
 bm.set_platform('gpu')
 
