@@ -9,12 +9,7 @@ import brainpy.math as bm
 import taichi as ti
 import matplotlib.pyplot as plt
 import os
-from brainpy._src.math.taichi_support import (taichi_lcg_rand as rand,
-                                              taichi_uniform_int_distribution as randint,
-                                              taichi_uniform_real_distribution as uniform,
-                                              taichi_normal_distribution as normal,
-                                              taichi_lfsr88,
-                                              taichi_lfsr88_init, )
+
 
 bm.set_platform('cpu')
 
@@ -23,51 +18,47 @@ def test_taichi_random():
   @ti.kernel
   def test_taichi_lfsr88(seed: ti.types.ndarray(ndim=1, dtype=ti.u32),
                          out: ti.types.ndarray(ndim=1, dtype=ti.f32)):
-    seeds = taichi_lfsr88_init(seed[0])
+    key = bm.tifunc.lfsr88_key(seed[0])
     for i in range(out.shape[0]):
-      seeds, result = taichi_lfsr88(seeds)
+      key, result = bm.tifunc.lfsr88_rand(key)
       out[i] = result
 
   @ti.kernel
   def test_taichi_lcg_rand(seed: ti.types.ndarray(ndim=1),
                            out: ti.types.ndarray(ndim=1)):
     for i in range(out.shape[0]):
-      out[i] = rand(seed)
+      out[i] = bm.tifunc.taichi_lcg_rand(seed)
 
   @ti.kernel
   def test_taichi_uniform_int_distribution(seed: ti.types.ndarray(ndim=1),
                                            low_high: ti.types.ndarray(ndim=1),
                                            out: ti.types.ndarray(ndim=1)):
-    seeds = taichi_lfsr88_init(seed[0])
+    key = bm.tifunc.lfsr88_key(seed[0])
     low = low_high[0]
     high = low_high[1]
     for i in range(out.shape[0]):
-      seeds, result = taichi_lfsr88(seeds)
-      out[i] = randint(result, low, high)
+      key, out[i] = bm.tifunc.lfsr88_randint(key, low, high)
 
   @ti.kernel
   def test_taichi_uniform_real_distribution(seed: ti.types.ndarray(ndim=1),
                                             low_high: ti.types.ndarray(ndim=1),
                                             out: ti.types.ndarray(ndim=1)):
-    seeds = taichi_lfsr88_init(seed[0])
+    key = bm.tifunc.lfsr88_key(seed[0])
     low = low_high[0]
     high = low_high[1]
     for i in range(out.shape[0]):
-      seeds, result = taichi_lfsr88(seeds)
-      out[i] = uniform(result, low, high)
+      key, out[i] = bm.tifunc.lfsr88_uniform(key, low, high)
 
   @ti.kernel
   def test_taichi_normal_distribution(seed: ti.types.ndarray(ndim=1),
                                       mu_sigma: ti.types.ndarray(ndim=1),
                                       out: ti.types.ndarray(ndim=1)):
-    seeds = taichi_lfsr88_init(seed[0])
+    key = bm.tifunc.lfsr88_key(seed[0])
     mu = mu_sigma[0]
     sigma = mu_sigma[1]
 
     for i in range(out.shape[0]):
-      seeds, result1 = taichi_lfsr88(seeds)
-      seeds, result2 = taichi_lfsr88(seeds)
-      out[i] = normal(result1, result2, mu, sigma)
+      key, out[i] = bm.tifunc.lfsr88_normal(key, mu, sigma)
 
   n = 100000
   seed = jnp.array([1234, ], dtype=jnp.uint32)
