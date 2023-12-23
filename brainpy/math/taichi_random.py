@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.math.taichi_random import (
+from brainpy._src.math.taichi_support import (
     taichi_lcg_rand as taichi_lcg_rand,
     taichi_lfsr88 as taichi_lfsr88,
     taichi_lfsr88_init as taichi_lfsr88_init,

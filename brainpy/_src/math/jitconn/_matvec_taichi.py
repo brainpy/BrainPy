@@ -12,11 +12,11 @@ from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
-from brainpy._src.math.taichi_random import (taichi_uniform_int_distribution as uniform_int_distribution,
-                                             taichi_uniform_real_distribution as uniform_real_distribution,
-                                             taichi_normal_distribution as normal_distribution,
-                                             taichi_lfsr88 as random_generator,
-                                             taichi_lfsr88_init as random_generator_init,)
+from brainpy._src.math.taichi_support import (taichi_uniform_int_distribution as uniform_int_distribution,
+                                              taichi_uniform_real_distribution as uniform_real_distribution,
+                                              taichi_normal_distribution as normal_distribution,
+                                              taichi_lfsr88 as random_generator,
+                                              taichi_lfsr88_init as random_generator_init, )
 
 ti = import_taichi()
 

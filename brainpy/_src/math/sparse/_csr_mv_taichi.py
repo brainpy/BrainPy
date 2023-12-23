@@ -19,39 +19,43 @@ __all__ = [
   'csrmv_taichi',
 ]
 
-### CPU
-'''
-According to the benchmarks, all transpose kernels should be serialized.
-'''
+
+# -------------
+# CPU operators
+# -------------
+
+
 @ti.kernel
 def _sparse_csr_matvec_transpose_homo_cpu(values: ti.types.ndarray(ndim=1),
-                                     col_indices: ti.types.ndarray(ndim=1),
-                                     row_ptr: ti.types.ndarray(ndim=1),
-                                     vector: ti.types.ndarray(ndim=1),
-                                     out: ti.types.ndarray(ndim=1)):
+                                          col_indices: ti.types.ndarray(ndim=1),
+                                          row_ptr: ti.types.ndarray(ndim=1),
+                                          vector: ti.types.ndarray(ndim=1),
+                                          out: ti.types.ndarray(ndim=1)):
   value = values[0]
   ti.loop_config(serialize=True)
   for row_i in range(row_ptr.shape[0] - 1):
     for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
       out[col_indices[j]] += value * vector[row_i]
 
+
 @ti.kernel
 def _sparse_csr_matvec_transpose_heter_cpu(values: ti.types.ndarray(ndim=1),
-                                     col_indices: ti.types.ndarray(ndim=1),
-                                     row_ptr: ti.types.ndarray(ndim=1),
-                                     vector: ti.types.ndarray(ndim=1),
-                                     out: ti.types.ndarray(ndim=1)):
+                                           col_indices: ti.types.ndarray(ndim=1),
+                                           row_ptr: ti.types.ndarray(ndim=1),
+                                           vector: ti.types.ndarray(ndim=1),
+                                           out: ti.types.ndarray(ndim=1)):
   ti.loop_config(serialize=True)
   for row_i in range(row_ptr.shape[0] - 1):
     for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
       out[col_indices[j]] += vector[row_i] * values[j]
 
+
 @ti.kernel
 def _sparse_csr_matvec_homo_cpu(values: ti.types.ndarray(ndim=1),
-                           col_indices: ti.types.ndarray(ndim=1),
-                           row_ptr: ti.types.ndarray(ndim=1),
-                           vector: ti.types.ndarray(ndim=1),
-                           out: ti.types.ndarray(ndim=1)):
+                                col_indices: ti.types.ndarray(ndim=1),
+                                row_ptr: ti.types.ndarray(ndim=1),
+                                vector: ti.types.ndarray(ndim=1),
+                                out: ti.types.ndarray(ndim=1)):
   value = values[0]
   # ti.loop_config(serialize=True)
   for row_i in range(row_ptr.shape[0] - 1):
@@ -60,12 +64,13 @@ def _sparse_csr_matvec_homo_cpu(values: ti.types.ndarray(ndim=1),
       r += value * vector[col_indices[j]]
     out[row_i] = r
 
+
 @ti.kernel
 def _sparse_csr_matvec_heter_cpu(values: ti.types.ndarray(ndim=1),
-                           col_indices: ti.types.ndarray(ndim=1),
-                           row_ptr: ti.types.ndarray(ndim=1),
-                           vector: ti.types.ndarray(ndim=1),
-                           out: ti.types.ndarray(ndim=1)):
+                                 col_indices: ti.types.ndarray(ndim=1),
+                                 row_ptr: ti.types.ndarray(ndim=1),
+                                 vector: ti.types.ndarray(ndim=1),
+                                 out: ti.types.ndarray(ndim=1)):
   # ti.loop_config(serialize=True)
   for row_i in range(row_ptr.shape[0] - 1):
     r = 0.
@@ -73,18 +78,20 @@ def _sparse_csr_matvec_heter_cpu(values: ti.types.ndarray(ndim=1),
       r += values[j] * vector[col_indices[j]]
     out[row_i] = r
 
-### GPU
-# homo
+
+# -------------
+# GPU operators
+# -------------
+
 
 @ti.kernel
 def _sparse_csr_matvec_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
-                                     col_indices: ti.types.ndarray(ndim=1),
-                                     row_ptr: ti.types.ndarray(ndim=1),
-                                     vector: ti.types.ndarray(ndim=1),
-                                     out: ti.types.ndarray(ndim=1)):
+                                          col_indices: ti.types.ndarray(ndim=1),
+                                          row_ptr: ti.types.ndarray(ndim=1),
+                                          vector: ti.types.ndarray(ndim=1),
+                                          out: ti.types.ndarray(ndim=1)):
   value = values[0]
-  total_rows = row_ptr.shape[0] - 1
-  for i in range(total_rows * 32):
+  for i in range((row_ptr.shape[0] - 1) * 32):
     row_i = i >> 5
     index = i & 31
     j = row_ptr[row_i] + index
@@ -92,20 +99,16 @@ def _sparse_csr_matvec_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
     while j < end_index:
       out[col_indices[j]] += value * vector[row_i]
       j += 32
-  # for row_i in range(row_ptr.shape[0] - 1):
-  #   for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-  #     out[col_indices[j]] += value * vector[row_i]
 
 
 @ti.kernel
 def _sparse_csr_matvec_homo_gpu(values: ti.types.ndarray(ndim=1),
-                           col_indices: ti.types.ndarray(ndim=1),
-                           row_ptr: ti.types.ndarray(ndim=1),
-                           vector: ti.types.ndarray(ndim=1),
-                           out: ti.types.ndarray(ndim=1)):
+                                col_indices: ti.types.ndarray(ndim=1),
+                                row_ptr: ti.types.ndarray(ndim=1),
+                                vector: ti.types.ndarray(ndim=1),
+                                out: ti.types.ndarray(ndim=1)):
   value = values[0]
-  total_rows = row_ptr.shape[0] - 1
-  for i in range(total_rows * 32):
+  for i in range((row_ptr.shape[0] - 1) * 32):
     row_i = i >> 5
     index = i & 31
     r = 0.
@@ -114,22 +117,16 @@ def _sparse_csr_matvec_homo_gpu(values: ti.types.ndarray(ndim=1),
     while j < end_index:
       r += value * vector[col_indices[j]]
       j += 32
-  # for row_i in range(row_ptr.shape[0] - 1):
-  #   r = 0.
-  #   for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-  #     r += value * vector[col_indices[j]]
-  #   out[row_i] = r
+    out[row_i] += r
 
-# heter
 
 @ti.kernel
 def _sparse_csr_matvec_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
-                                     col_indices: ti.types.ndarray(ndim=1),
-                                     row_ptr: ti.types.ndarray(ndim=1),
-                                     vector: ti.types.ndarray(ndim=1),
-                                     out: ti.types.ndarray(ndim=1)):
-  total_rows = row_ptr.shape[0] - 1
-  for i in range(total_rows * 32):
+                                           col_indices: ti.types.ndarray(ndim=1),
+                                           row_ptr: ti.types.ndarray(ndim=1),
+                                           vector: ti.types.ndarray(ndim=1),
+                                           out: ti.types.ndarray(ndim=1)):
+  for i in range((row_ptr.shape[0] - 1) * 32):
     row_i = i >> 5
     index = i & 31
     j = row_ptr[row_i] + index
@@ -137,19 +134,15 @@ def _sparse_csr_matvec_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
     while j < end_index:
       out[col_indices[j]] += values[j] * vector[row_i]
       j += 32
-  # for row_i in range(row_ptr.shape[0] - 1):
-  #   for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-  #     out[col_indices[j]] += values[j] * vector[row_i]
 
 
 @ti.kernel
 def _sparse_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
-                           col_indices: ti.types.ndarray(ndim=1),
-                           row_ptr: ti.types.ndarray(ndim=1),
-                           vector: ti.types.ndarray(ndim=1),
-                           out: ti.types.ndarray(ndim=1)):
-  total_rows = row_ptr.shape[0] - 1
-  for i in range(total_rows * 32):
+                                 col_indices: ti.types.ndarray(ndim=1),
+                                 row_ptr: ti.types.ndarray(ndim=1),
+                                 vector: ti.types.ndarray(ndim=1),
+                                 out: ti.types.ndarray(ndim=1)):
+  for i in range((row_ptr.shape[0] - 1) * 32):
     row_i = i >> 5
     index = i & 31
     r = 0.
@@ -158,11 +151,7 @@ def _sparse_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
     while j < end_index:
       r += values[j] * vector[col_indices[j]]
       j += 32
-  # for row_i in range(row_ptr.shape[0] - 1):
-  #   r = 0.
-  #   for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-  #     r += values[j] * vector[col_indices[j]]
-  #   out[row_i] = r
+    out[row_i] += r
 
 
 def _sparse_csr_matvec_jvp_values(val_dot, values, col_indices, row_ptr, vector, *, outs, transpose, shape):
@@ -284,17 +273,16 @@ def _define_op(cpu_kernel, gpu_kernel):
 
 # transpose homo
 _csr_matvec_transpose_homo_p = _define_op(cpu_kernel=_sparse_csr_matvec_transpose_homo_cpu,
-                                     gpu_kernel=_sparse_csr_matvec_transpose_homo_gpu)
+                                          gpu_kernel=_sparse_csr_matvec_transpose_homo_gpu)
 
 # no transpose homo
 _csr_matvec_homo_p = _define_op(cpu_kernel=_sparse_csr_matvec_homo_cpu,
-                           gpu_kernel=_sparse_csr_matvec_homo_gpu)
+                                gpu_kernel=_sparse_csr_matvec_homo_gpu)
 
 # transpose heter
 _csr_matvec_transpose_heter_p = _define_op(cpu_kernel=_sparse_csr_matvec_transpose_heter_cpu,
-                                     gpu_kernel=_sparse_csr_matvec_transpose_heter_gpu)
+                                           gpu_kernel=_sparse_csr_matvec_transpose_heter_gpu)
 
 # no transpose heter
 _csr_matvec_heter_p = _define_op(cpu_kernel=_sparse_csr_matvec_heter_cpu,
-                           gpu_kernel=_sparse_csr_matvec_heter_gpu)
-
+                                 gpu_kernel=_sparse_csr_matvec_heter_gpu)

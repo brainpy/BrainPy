@@ -44,7 +44,7 @@ from .interoperability import *
 from .compat_numpy import *
 from .compat_tensorflow import *
 from .others import *
-from . import random, linalg, fft, taichi_random
+from . import random, linalg, fft, taichi_support
 
 # operators
 from .op_register import *

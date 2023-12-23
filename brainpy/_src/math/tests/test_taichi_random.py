@@ -9,12 +9,12 @@ import brainpy.math as bm
 import taichi as ti
 import matplotlib.pyplot as plt
 import os
-from brainpy._src.math.taichi_random import (taichi_lcg_rand as rand,
-                                             taichi_uniform_int_distribution as randint,
-                                             taichi_uniform_real_distribution as uniform,
-                                             taichi_normal_distribution as normal,
-                                             taichi_lfsr88,
-                                             taichi_lfsr88_init,)
+from brainpy._src.math.taichi_support import (taichi_lcg_rand as rand,
+                                              taichi_uniform_int_distribution as randint,
+                                              taichi_uniform_real_distribution as uniform,
+                                              taichi_normal_distribution as normal,
+                                              taichi_lfsr88,
+                                              taichi_lfsr88_init, )
 
 bm.set_platform('cpu')
 

@@ -3,12 +3,15 @@ from brainpy._src.dependency_check import import_taichi
 ti = import_taichi()
 
 __all__ = [
+
+  # taichi function for other utilities
+  'warp_reduce_sum',
+
   # taichi.func random generator implementation
   'taichi_lcg_rand', 'taichi_uniform_int_distribution',
   'taichi_uniform_real_distribution', 'taichi_normal_distribution',
   'taichi_lfsr88', 'taichi_lfsr88_init',
 ]
-
 
 
 @ti.func
@@ -65,6 +68,7 @@ def taichi_lfsr88(seeds):
   s3 = (((seeds[2] & ti.u32(4294967280)) << 17) ^ b)
   return ti.math.uvec4(s1, s2, s3, b), ((s1 ^ s2 ^ s3) * ti.f32(2.3283064365386963e-10))
 
+
 @ti.func
 def taichi_lfsr88_init(seed: ti.u32):
   """
@@ -77,6 +81,7 @@ def taichi_lfsr88_init(seed: ti.u32):
     ti.math.uvec4: The seeds for the LFSR88 random number generator.
   """
   return ti.math.uvec4(seed + 1, seed + 7, seed + 15, ti.u32(0))
+
 
 @ti.func
 def taichi_uniform_int_distribution(state: ti.f32, low: ti.i32, high: ti.i32):
@@ -133,3 +138,37 @@ def taichi_normal_distribution(state1: ti.f32, state2: ti.f32, mu: ti.f32, sigma
 
   # Return the value, scaled by sigma and shifted by mu
   return mu + sigma * z
+
+
+@ti.func
+def warp_reduce_sum_all(val):
+  """
+  Warp reduce sum.
+
+  Args:
+    val (float): The value to be reduced.
+
+  Returns:
+    float: The reduced value.
+  """
+  for i in ti.static(range(1, 32)):
+    val += ti.static(ti.simt.warp.shfl_xor(val, i))
+  return val
+
+
+@ti.func
+def warp_reduce_sum(val):
+  """
+  Warp reduce sum.
+
+  Args:
+    val (float): The value to be reduced.
+
+  Returns:
+    float: The reduced value.
+  """
+  for offset in ti.static((16, 8, 4, 2, 1)):
+    val += ti.simt.warp.shfl_down_f32(ti.u32(0xFFFFFFFF), val, offset)
+  return val
+
+
