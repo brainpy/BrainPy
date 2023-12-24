@@ -31,6 +31,8 @@ from .others import *
 from . import fft
 from . import linalg
 from . import random
+
+# taichi operations
 from . import tifunc
 
 # others
@@ -38,27 +40,6 @@ from . import sharding
 
 import jax.numpy as jnp
 from jax import config
-
-mode = NonBatchingMode()
-'''Default computation mode.'''
-
-membrane_scaling = IdScaling()
-'''Default membrane_scaling.'''
-
-dt = 0.1
-'''Default time step.'''
-
-bool_ = jnp.bool_
-'''Default bool data type.'''
-
-int_ = jnp.int64 if config.read('jax_enable_x64') else jnp.int32
-'''Default integer data type.'''
-
-float_ = jnp.float64 if config.read('jax_enable_x64') else jnp.float32
-'''Default float data type.'''
-
-complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
-'''Default complex data type.'''
 
 del jnp, config
 
@@ -69,6 +50,7 @@ from brainpy._src.math.surrogate._compt import (
   spike_with_mg_grad as spike_with_mg_grad,
 )
 
+from brainpy._src.math import defaults
 from brainpy._src.deprecations import deprecation_getattr
 __deprecations = {
   "sparse_matmul": ("brainpy.math.sparse_matmul is deprecated. Use brainpy.math.sparse.seg_matmul instead.",
@@ -115,5 +97,5 @@ __deprecations = {
                  "Use brainpy.math.event.info instead.",
                  event.info),
 }
-__getattr__ = deprecation_getattr(__name__, __deprecations)
-del deprecation_getattr
+__getattr__ = deprecation_getattr(__name__, __deprecations, defaults.redirects)
+del deprecation_getattr, defaults
