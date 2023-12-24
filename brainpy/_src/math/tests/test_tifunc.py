@@ -117,3 +117,6 @@ def test_taichi_random():
   plt.title("Normal distribution mu=0, sigma=1")
   plt.hist(out, bins=100)
   plt.savefig(file_path + "/normal_distribution.png")
+
+
+# TODO; test default types

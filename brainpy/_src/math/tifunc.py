@@ -1,4 +1,5 @@
 from brainpy._src.dependency_check import import_taichi
+from . import defaults
 
 ti = import_taichi()
 
@@ -86,7 +87,7 @@ def lfsr88_next_key(key: ti.types.vector(4, ti.u32)) -> ti.types.vector(4, ti.u3
 
 
 @ti.func
-def lfsr88_normal(key: ti.types.vector(4, ti.u32), mu, sigma, dtype=ti.f32, epsilon=1e-10):
+def lfsr88_normal(key: ti.types.vector(4, ti.u32), mu, sigma, epsilon=1e-10):
   """
   Generate a random number of the normal distribution ``N(mu, sigma)`` using the LFSR88 algorithm.
 
@@ -94,22 +95,20 @@ def lfsr88_normal(key: ti.types.vector(4, ti.u32), mu, sigma, dtype=ti.f32, epsi
     key: The state value for the random number generator.
     mu: The mean of the normal distribution.
     sigma: The standard deviation of the normal distribution.
-    dtype: The data type of the random number.
     epsilon: The epsilon value to avoid log(0).
   """
 
-  key, r = lfsr88_randn(key, dtype, epsilon)
+  key, r = lfsr88_randn(key, epsilon)
   return key, mu + sigma * r
 
 
 @ti.func
-def lfsr88_randn(key: ti.types.vector(4, ti.u32), dtype=ti.f32, epsilon=1e-10):
+def lfsr88_randn(key: ti.types.vector(4, ti.u32), epsilon=1e-10):
   """
   Generate a random number with the standard normal distribution using the LFSR88 algorithm.
 
   Args:
     key: The state value for the random number generator.
-    dtype: The data type of the random number.
     epsilon: The epsilon value to avoid log(0).
 
   References:
@@ -118,24 +117,24 @@ def lfsr88_randn(key: ti.types.vector(4, ti.u32), dtype=ti.f32, epsilon=1e-10):
 
   """
 
-  key, u1 = lfsr88_rand(key, dtype)
-  key, u2 = lfsr88_rand(key, dtype)
+  key, u1 = lfsr88_rand(key)
+  key, u2 = lfsr88_rand(key)
 
   # Ensure state1 is not zero to avoid log(0)
-  u1 = dtype(ti.max(u1, epsilon))
+  u1 = ti.cast(ti.max(u1, epsilon), defaults.ti_float)
 
   # Normalize the uniform samples
-  mag = dtype(ti.sqrt(-2.0 * ti.log(u1)))
+  mag = ti.cast(ti.sqrt(-2.0 * ti.log(u1)), defaults.ti_float)
 
   # Box-Muller transform
   # z1 = mag * ti.cos(2 * ti.math.pi * u2)
-  z2 = dtype(mag * ti.sin(2 * ti.math.pi * u2))
+  z2 = ti.cast(mag * ti.sin(2 * ti.math.pi * u2), defaults.ti_float)
 
   return key, z2
 
 
 @ti.func
-def lfsr88_random_integers(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.i32):
+def lfsr88_random_integers(key: ti.types.vector(4, ti.u32), low, high):
   """
   Generates a uniformly distributed random integer between `low` and `high` (inclusive) using the LFSR88 algorithm.
 
@@ -143,10 +142,9 @@ def lfsr88_random_integers(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.
     key: The state value used for random number generation.
     low: The lower bound of the range.
     high: The upper bound of the range.
-    dtype: The data type of the random number.
   """
   key = lfsr88_next_key(key)
-  return key, dtype((key[0] ^ key[1] ^ key[2]) % (high + 1 - low) + low)
+  return key, ti.cast((key[0] ^ key[1] ^ key[2]) % (high + 1 - low) + low, defaults.ti_int)
 
 
 @ti.func
@@ -156,7 +154,7 @@ def lfsr88_randint(key: ti.types.vector(4, ti.u32), dtype=ti.u32):
 
 
 @ti.func
-def lfsr88_uniform(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.f32):
+def lfsr88_uniform(key: ti.types.vector(4, ti.u32), low, high):
   """
   Generates a uniformly distributed random float between `low` and `high` (inclusive) using the LFSR88 algorithm.
 
@@ -164,24 +162,22 @@ def lfsr88_uniform(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.f32):
     key: The state value used for random number generation.
     low: The lower bound of the range.
     high: The upper bound of the range.
-    dtype: The data type of the random number.
   """
   key = lfsr88_next_key(key)
-  r = (key[0] ^ key[1] ^ key[2]) * dtype(2.3283064365386963e-10)
-  return key, r * (high - low) + low
+  r = (key[0] ^ key[1] ^ key[2]) * ti.cast(2.3283064365386963e-10, defaults.ti_float)
+  return key, ti.cast(r * (high - low) + low, defaults.ti_float)
 
 
 @ti.func
-def lfsr88_rand(key: ti.types.vector(4, ti.u32), dtype=ti.f32):
+def lfsr88_rand(key: ti.types.vector(4, ti.u32)):
   """
   Generates a uniformly distributed random float between 0 and 1 using the LFSR88 algorithm.
 
   Args:
     key: The state value used for random number generation.
-    dtype: The data type of the random number.
   """
   key = lfsr88_next_key(key)
-  return key, (key[0] ^ key[1] ^ key[2]) * dtype(2.3283064365386963e-10)
+  return key, (key[0] ^ key[1] ^ key[2]) * ti.cast(2.3283064365386963e-10, defaults.ti_float)
 
 
 ##############################################
@@ -238,7 +234,7 @@ def lfsr113_next_key(key: ti.types.vector(4, ti.u32)) -> ti.types.vector(4, ti.u
 
 
 @ti.func
-def lfsr113_normal(key: ti.types.vector(4, ti.u32), mu, sigma, dtype=ti.f32, epsilon=1e-10):
+def lfsr113_normal(key: ti.types.vector(4, ti.u32), mu, sigma, epsilon=1e-10):
   """
   Generate a random number of the normal distribution ``N(mu, sigma)`` using the LFSR113 algorithm.
 
@@ -246,22 +242,20 @@ def lfsr113_normal(key: ti.types.vector(4, ti.u32), mu, sigma, dtype=ti.f32, eps
     key: The state value for the random number generator.
     mu: The mean of the normal distribution.
     sigma: The standard deviation of the normal distribution.
-    dtype: The data type of the random number.
     epsilon: The epsilon value to avoid log(0).
   """
 
-  key, r = lfsr113_randn(key, dtype, epsilon)
-  return key, mu + sigma * r
+  key, r = lfsr113_randn(key, epsilon)
+  return key, ti.cast(mu + sigma * r, defaults.ti_float)
 
 
 @ti.func
-def lfsr113_randn(key: ti.types.vector(4, ti.u32), dtype=ti.f32, epsilon=1e-10):
+def lfsr113_randn(key: ti.types.vector(4, ti.u32), epsilon=1e-10):
   """
   Generate a random number with standard normal distribution using the LFSR113 algorithm.
 
   Args:
     key: The state value for the random number generator.
-    dtype: The data type of the random number.
     epsilon: The epsilon value to avoid log(0).
 
   References:
@@ -270,24 +264,24 @@ def lfsr113_randn(key: ti.types.vector(4, ti.u32), dtype=ti.f32, epsilon=1e-10):
 
   """
 
-  key, u1 = lfsr113_rand(key, dtype)
-  key, u2 = lfsr113_rand(key, dtype)
+  key, u1 = lfsr113_rand(key)
+  key, u2 = lfsr113_rand(key)
 
   # Ensure state1 is not zero to avoid log(0)
-  u1 = dtype(ti.max(u1, epsilon))
+  u1 = ti.cast(ti.max(u1, epsilon), defaults.ti_float)
 
   # Normalize the uniform samples
-  mag = dtype(ti.sqrt(-2.0 * ti.log(u1)))
+  mag = ti.cast(ti.sqrt(-2.0 * ti.log(u1)), defaults.ti_float)
 
   # Box-Muller transform
   # z1 = mag * ti.cos(2 * ti.math.pi * u2)
-  z2 = dtype(mag * ti.sin(2 * ti.math.pi * u2))
+  z2 = ti.cast(mag * ti.sin(2 * ti.math.pi * u2), defaults.ti_float)
 
   return key, z2
 
 
 @ti.func
-def lfsr113_random_integers(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.i32):
+def lfsr113_random_integers(key: ti.types.vector(4, ti.u32), low, high):
   """
   Generates a uniformly distributed random integer between `low` and `high` (inclusive) using the LFSR113 algorithm.
 
@@ -295,20 +289,19 @@ def lfsr113_random_integers(key: ti.types.vector(4, ti.u32), low, high, dtype=ti
     key: The state value used for random number generation.
     low: The lower bound of the range.
     high: The upper bound of the range.
-    dtype: The data type of the random number.
   """
   key = lfsr113_next_key(key)
-  return key, dtype((key[0] ^ key[1] ^ key[2] ^ key[3]) % (high + 1 - low) + low)
+  return key, ti.cast((key[0] ^ key[1] ^ key[2] ^ key[3]) % (high + 1 - low) + low, defaults.ti_int)
 
 
 @ti.func
-def lfsr113_randint(key: ti.types.vector(4, ti.u32), dtype=ti.u32):
+def lfsr113_randint(key: ti.types.vector(4, ti.u32)):
   key = lfsr113_next_key(key)
-  return key, dtype(key[0] ^ key[1] ^ key[2] ^ key[3])
+  return key, ti.cast(key[0] ^ key[1] ^ key[2] ^ key[3], defaults.ti_int)
 
 
 @ti.func
-def lfsr113_uniform(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.f32):
+def lfsr113_uniform(key: ti.types.vector(4, ti.u32), low, high):
   """
   Generates a uniformly distributed random float between `low` and `high` (inclusive) using the LFSR113 algorithm.
 
@@ -316,24 +309,22 @@ def lfsr113_uniform(key: ti.types.vector(4, ti.u32), low, high, dtype=ti.f32):
     key: The state value used for random number generation.
     low: The lower bound of the range.
     high: The upper bound of the range.
-    dtype: The data type of the random number.
   """
   key = lfsr88_next_key(key)
-  r = (key[0] ^ key[1] ^ key[2] ^ key[3]) * dtype(2.3283064365386963e-10)
-  return key, r * (high - low) + low
+  r = (key[0] ^ key[1] ^ key[2] ^ key[3]) * ti.cast(2.3283064365386963e-10, defaults.ti_float)
+  return key, ti.cast(r * (high - low) + low, defaults.ti_float)
 
 
 @ti.func
-def lfsr113_rand(key: ti.types.vector(4, ti.u32), dtype=ti.f32):
+def lfsr113_rand(key: ti.types.vector(4, ti.u32)):
   """
   Generates a uniformly distributed random float between 0 and 1 using the LFSR113 algorithm.
 
   Args:
     key: The state value used for random number generation.
-    dtype: The data type of the random number.
   """
   key = lfsr113_next_key(key)
-  return key, (key[0] ^ key[1] ^ key[2] ^ key[3]) * dtype(2.3283064365386963e-10)
+  return key, (key[0] ^ key[1] ^ key[2] ^ key[3]) * ti.cast(2.3283064365386963e-10, defaults.ti_float)
 
 
 ###########################

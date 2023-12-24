@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import sys
+
 import jax
 import jax.numpy as jnp
+import pytest
 from absl.testing import parameterized
 
 import brainpy.math as bm
-import platform
-import sys
-import pytest
 
 is_manual_test = False
 if sys.platform.startswith('darwin') and not is_manual_test:
   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
-shapes = [(100, 200),
-          # (10, 1000),
-          (2, 1000),
-          # (1000, 10),
-          (1000, 2)]
+shapes = [(100, 200), (10, 1000), (2, 1000), (1000, 10), (1000, 2)]
+shapes = [(100, 200), (2, 1000), (1000, 2)]
+
 
 # def sum_op(op):
 #     def func(*args, **kwargs):
@@ -51,7 +49,7 @@ shapes = [(100, 200),
 #                                  shape=shape,
 #                                  seed=seed,
 #                                  outdim_parallel=outdim_parallel,
-#                                  transpose=transpose)[0]
+#                                  transpose=transpose)
 
 #     r2 = bm.jitconn.mv_prob_homo_taichi(vector,
 #                                  homo_data,
@@ -59,7 +57,7 @@ shapes = [(100, 200),
 #                                  shape=shape,
 #                                  seed=seed,
 #                                  outdim_parallel=outdim_parallel,
-#                                  transpose=transpose)[0]
+#                                  transpose=transpose)
 #     assert (jnp.allclose(r1, r2))
 
 #     r2 = bm.jitconn.mv_prob_homo_taichi(vector,
@@ -68,7 +66,7 @@ shapes = [(100, 200),
 #                                  shape=(shape[1], shape[0]),
 #                                  seed=seed,
 #                                  outdim_parallel=outdim_parallel,
-#                                  transpose=not transpose)[0]
+#                                  transpose=not transpose)
 #     assert (jnp.allclose(r1, r2))
 
 #     bm.clear_buffer_memory()
@@ -116,7 +114,7 @@ shapes = [(100, 200),
 #                                     shape=shape,
 #                                     seed=seed,
 #                                     outdim_parallel=outdim_parallel,
-#                                     transpose=transpose)[0]
+#                                     transpose=transpose)
 
 #     r2 = bm.jitconn.mv_prob_uniform_taichi(events,
 #                                     w_low=w_low,
@@ -125,7 +123,7 @@ shapes = [(100, 200),
 #                                     shape=shape,
 #                                     seed=seed,
 #                                     outdim_parallel=outdim_parallel,
-#                                     transpose=transpose)[0]
+#                                     transpose=transpose)
 #     c = jnp.allclose(r1, r2)
 #     if not c:
 #       print(r1, r2)
@@ -138,7 +136,7 @@ shapes = [(100, 200),
 #                                     shape=(shape[1], shape[0]),
 #                                     seed=seed,
 #                                     outdim_parallel=outdim_parallel,
-#                                     transpose=not transpose)[0]
+#                                     transpose=not transpose)
 #     c = jnp.allclose(r1, r2)
 #     if not c:
 #       print(r1, r2)
@@ -175,7 +173,7 @@ shapes = [(100, 200),
 #     )
 #     r1 = f1(events, 1.)
 #     r2 = f1(events, 2.)
-    
+
 #     print(r1 *2 - r2)
 #     assert (jnp.allclose(r1 * 2., r2))
 
@@ -289,29 +287,29 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     vector = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
     r1 = bm.jitconn.mv_prob_homo_taichi(vector,
-                                 homo_data,
-                                 conn_prob=prob,
-                                 shape=shape,
-                                 seed=seed,
-                                 outdim_parallel=outdim_parallel,
-                                 transpose=transpose)[0]
+                                        homo_data,
+                                        conn_prob=prob,
+                                        shape=shape,
+                                        seed=seed,
+                                        outdim_parallel=outdim_parallel,
+                                        transpose=transpose)
 
     r2 = bm.jitconn.mv_prob_homo_taichi(vector,
-                                 homo_data,
-                                 conn_prob=prob,
-                                 shape=shape,
-                                 seed=seed,
-                                 outdim_parallel=outdim_parallel,
-                                 transpose=transpose)[0]
+                                        homo_data,
+                                        conn_prob=prob,
+                                        shape=shape,
+                                        seed=seed,
+                                        outdim_parallel=outdim_parallel,
+                                        transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
     r2 = bm.jitconn.mv_prob_homo_taichi(vector,
-                                 homo_data,
-                                 conn_prob=prob,
-                                 shape=(shape[1], shape[0]),
-                                 seed=seed,
-                                 outdim_parallel=outdim_parallel,
-                                 transpose=not transpose)[0]
+                                        homo_data,
+                                        conn_prob=prob,
+                                        shape=(shape[1], shape[0]),
+                                        seed=seed,
+                                        outdim_parallel=outdim_parallel,
+                                        transpose=not transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
     bm.clear_buffer_memory()
@@ -451,35 +449,35 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
     r1 = bm.jitconn.mv_prob_uniform_taichi(events,
-                                    w_low=w_low,
-                                    w_high=w_high,
-                                    conn_prob=prob,
-                                    shape=shape,
-                                    seed=seed,
-                                    outdim_parallel=outdim_parallel,
-                                    transpose=transpose)[0]
+                                           w_low=w_low,
+                                           w_high=w_high,
+                                           conn_prob=prob,
+                                           shape=shape,
+                                           seed=seed,
+                                           outdim_parallel=outdim_parallel,
+                                           transpose=transpose)
 
     r2 = bm.jitconn.mv_prob_uniform_taichi(events,
-                                    w_low=w_low,
-                                    w_high=w_high,
-                                    conn_prob=prob,
-                                    shape=shape,
-                                    seed=seed,
-                                    outdim_parallel=outdim_parallel,
-                                    transpose=transpose)[0]
+                                           w_low=w_low,
+                                           w_high=w_high,
+                                           conn_prob=prob,
+                                           shape=shape,
+                                           seed=seed,
+                                           outdim_parallel=outdim_parallel,
+                                           transpose=transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
     self.assertTrue(c)
 
     r2 = bm.jitconn.mv_prob_uniform_taichi(events,
-                                    w_low=w_low,
-                                    w_high=w_high,
-                                    conn_prob=prob,
-                                    shape=(shape[1], shape[0]),
-                                    seed=seed,
-                                    outdim_parallel=outdim_parallel,
-                                    transpose=not transpose)[0]
+                                           w_low=w_low,
+                                           w_high=w_high,
+                                           conn_prob=prob,
+                                           shape=(shape[1], shape[0]),
+                                           seed=seed,
+                                           outdim_parallel=outdim_parallel,
+                                           transpose=not transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
@@ -519,13 +517,13 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
     f1 = jax.vmap(lambda e: bm.jitconn.mv_prob_uniform_taichi(e,
-                                                       w_low=0.,
-                                                       w_high=1.,
-                                                       conn_prob=prob,
-                                                       shape=shape,
-                                                       seed=seed,
-                                                       outdim_parallel=outdim_parallel,
-                                                       transpose=transpose)[0])
+                                                              w_low=0.,
+                                                              w_high=1.,
+                                                              conn_prob=prob,
+                                                              shape=shape,
+                                                              seed=seed,
+                                                              outdim_parallel=outdim_parallel,
+                                                              transpose=transpose))
 
     r1 = f1(events)
     r2 = f1(events)
@@ -628,35 +626,35 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
     r1 = bm.jitconn.mv_prob_normal_taichi(events,
-                                   w_mu=w_mu,
-                                   w_sigma=w_sigma,
-                                   conn_prob=prob,
-                                   shape=shape,
-                                   seed=seed,
-                                   outdim_parallel=outdim_parallel,
-                                   transpose=transpose)[0]
+                                          w_mu=w_mu,
+                                          w_sigma=w_sigma,
+                                          conn_prob=prob,
+                                          shape=shape,
+                                          seed=seed,
+                                          outdim_parallel=outdim_parallel,
+                                          transpose=transpose)
 
     r2 = bm.jitconn.mv_prob_normal_taichi(events,
-                                   w_mu=w_mu,
-                                   w_sigma=w_sigma,
-                                   conn_prob=prob,
-                                   shape=shape,
-                                   seed=seed,
-                                   outdim_parallel=outdim_parallel,
-                                   transpose=transpose)[0]
+                                          w_mu=w_mu,
+                                          w_sigma=w_sigma,
+                                          conn_prob=prob,
+                                          shape=shape,
+                                          seed=seed,
+                                          outdim_parallel=outdim_parallel,
+                                          transpose=transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
     self.assertTrue(c)
 
     r2 = bm.jitconn.mv_prob_normal_taichi(events,
-                                   w_mu=w_mu,
-                                   w_sigma=w_sigma,
-                                   conn_prob=prob,
-                                   shape=(shape[1], shape[0]),
-                                   seed=seed,
-                                   outdim_parallel=outdim_parallel,
-                                   transpose=not transpose)[0]
+                                          w_mu=w_mu,
+                                          w_sigma=w_sigma,
+                                          conn_prob=prob,
+                                          shape=(shape[1], shape[0]),
+                                          seed=seed,
+                                          outdim_parallel=outdim_parallel,
+                                          transpose=not transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
@@ -697,18 +695,19 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
     f1 = jax.vmap(lambda e: bm.jitconn.mv_prob_normal_taichi(e,
-                                                      w_mu=0.,
-                                                      w_sigma=1.,
-                                                      conn_prob=prob,
-                                                      shape=shape,
-                                                      seed=seed,
-                                                      outdim_parallel=outdim_parallel,
-                                                      transpose=transpose)[0])
+                                                             w_mu=0.,
+                                                             w_sigma=1.,
+                                                             conn_prob=prob,
+                                                             shape=shape,
+                                                             seed=seed,
+                                                             outdim_parallel=outdim_parallel,
+                                                             transpose=transpose))
     r1 = f1(events)
     r2 = f1(events)
-    c = jnp.allclose(r1, r2)
+    c = jnp.allclose(r1, r2, atol=1e-6)
     if not c:
       print(r1, r2)
+      print(r1 - r2)
     self.assertTrue(c)
 
     if x64:

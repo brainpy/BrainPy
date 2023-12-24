@@ -12,7 +12,6 @@ from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.sparse._csr_mv_taichi import csrmv_taichi as normal_csrmv_taichi
 from brainpy._src.math.sparse._utils import csr_to_coo
-from brainpy._src.math.taichi_support import warp_reduce_sum
 
 ti = import_taichi()
 
@@ -197,7 +196,7 @@ def _event_csr_matvec_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
 # should be improved, since the atomic_add for each thread is not
 # very efficient. Instead, the warp-level reduction primitive
 # should be used.
-# see ``warp_reduce_sum()`` function in taichi_support.py.
+# see ``warp_reduce_sum()`` function in tifunc.py.
 # However, currently Taichi does not support general warp-level primitives.
 
 
@@ -218,7 +217,7 @@ def _event_csr_matvec_bool_homo_gpu(values: ti.types.ndarray(ndim=1),
       if events[indices[j]]:
         r += value
       j += 32
-    out[row_i] += r
+    out[row_i] += r  # TODO: warp-level primitive
 
 
 @ti.kernel
@@ -238,7 +237,7 @@ def _event_csr_matvec_homo_gpu(values: ti.types.ndarray(ndim=1),
       if events[indices[j]] != 0.:
         r += value
       j += 32
-    out[row_i] += r
+    out[row_i] += r  # TODO: warp-level primitive
 
 
 @ti.kernel
@@ -291,7 +290,7 @@ def _event_csr_matvec_bool_heter_gpu(values: ti.types.ndarray(ndim=1),
       if events[indices[j]]:
         r += values[j]
       j += 32
-    out[row_i] += r
+    out[row_i] += r   # TODO: warp-level primitive
 
 
 @ti.kernel
@@ -310,7 +309,7 @@ def _event_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
       if events[indices[j]] != 0.:
         r += values[j]
       j += 32
-    out[row_i] += r
+    out[row_i] += r   # TODO: warp-level primitive
 
 
 def _event_csr_matvec_jvp_values(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
