@@ -18,6 +18,7 @@ from brainpy._src.losses.comparison import (
   log_cosh_loss as log_cosh_loss,
   ctc_loss_with_forward_probs as ctc_loss_with_forward_probs,
   ctc_loss as ctc_loss,
+  multi_margin_loss as multi_margin_loss,
 )
 
 from brainpy._src.losses.comparison import (
