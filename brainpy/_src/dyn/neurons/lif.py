@@ -5,12 +5,12 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy._src.context import share
+from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
+from brainpy._src.dyn.neurons.base import GradNeuDyn
 from brainpy._src.initialize import ZeroInit, OneInit
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
-from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
-from brainpy._src.dyn.neurons.base import GradNeuDyn
 
 __all__ = [
   'IF',
@@ -119,7 +119,7 @@ class IFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None, **kwargs):
@@ -132,7 +132,7 @@ class IFLTC(GradNeuDyn):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    self.V.value = self.integral(self.V.value, t, x, dt)
+    self.V.value = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     return self.V.value
 
@@ -146,7 +146,7 @@ class IF(IFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -252,7 +252,7 @@ class LifLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     return (-V + self.V_rest + self.R * I) / self.tau
 
   def reset_state(self, batch_size=None, **kwargs):
@@ -265,7 +265,7 @@ class LifLTC(GradNeuDyn):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V = self.integral(self.V.value, t, x, dt)
+    V = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -337,7 +337,7 @@ class Lif(LifLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -464,7 +464,7 @@ class LifRefLTC(LifLTC):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V = self.integral(self.V.value, t, x, dt)
+    V = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -552,7 +552,7 @@ class LifRef(LifRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -723,7 +723,7 @@ class ExpIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
     return dvdt
@@ -738,7 +738,7 @@ class ExpIFLTC(GradNeuDyn):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V = self.integral(self.V.value, t, x, dt)
+    V = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -880,7 +880,7 @@ class ExpIF(ExpIFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -994,6 +994,7 @@ class ExpIFRefLTC(ExpIFLTC):
     %s
 
   """
+
   def __init__(
       self,
       size: Shape,
@@ -1076,7 +1077,7 @@ class ExpIFRefLTC(ExpIFLTC):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V = self.integral(self.V.value, t, x, dt)
+    V = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -1221,6 +1222,7 @@ class ExpIFRef(ExpIFRefLTC):
     %s
     %s
   """
+
   def derivative(self, V, t, I):
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
@@ -1228,7 +1230,7 @@ class ExpIFRef(ExpIFRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -1400,7 +1402,7 @@ class AdExIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def dV(self, V, t, w, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     exp = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dVdt = (- V + self.V_rest + exp - self.R * w + self.R * I) / self.tau
     return dVdt
@@ -1425,6 +1427,7 @@ class AdExIFLTC(GradNeuDyn):
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -1559,7 +1562,7 @@ class AdExIF(AdExIFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -1757,6 +1760,7 @@ class AdExIFRefLTC(AdExIFLTC):
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -1901,7 +1905,7 @@ class AdExIFRef(AdExIFRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -2040,7 +2044,7 @@ class QuaIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def derivative(self, V, t, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
     return dVdt
 
@@ -2054,7 +2058,7 @@ class QuaIFLTC(GradNeuDyn):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V = self.integral(self.V.value, t, x, dt)
+    V = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -2166,7 +2170,7 @@ class QuaIF(QuaIFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -2330,7 +2334,7 @@ class QuaIFRefLTC(QuaIFLTC):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V = self.integral(self.V.value, t, x, dt)
+    V = self.integral(self.V.value, t, x, dt) + self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -2444,14 +2448,13 @@ class QuaIFRef(QuaIFRefLTC):
     %s
   """
 
-
   def derivative(self, V, t, I):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
     return dVdt
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -2609,7 +2612,7 @@ class AdQuaIFLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def dV(self, V, t, w, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) - w + I) / self.tau
     return dVdt
 
@@ -2633,6 +2636,7 @@ class AdQuaIFLTC(GradNeuDyn):
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -2756,7 +2760,7 @@ class AdQuaIF(AdQuaIFLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -2939,6 +2943,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -3072,7 +3077,7 @@ class AdQuaIFRef(AdQuaIFRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -3279,7 +3284,7 @@ class GifLTC(GradNeuDyn):
     return self.a * (V - self.V_rest) - self.b * (V_th - self.V_th_inf)
 
   def dV(self, V, t, I1, I2, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
 
   @property
@@ -3300,6 +3305,7 @@ class GifLTC(GradNeuDyn):
 
     # integrate membrane potential
     I1, I2, V_th, V = self.integral(self.I1.value, self.I2.value, self.V_th.value, self.V.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -3452,7 +3458,7 @@ class Gif(GifLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -3573,7 +3579,6 @@ class GifRefLTC(GifLTC):
     %s
 """
 
-
   def __init__(
       self,
       size: Shape,
@@ -3680,6 +3685,7 @@ class GifRefLTC(GifLTC):
 
     # integrate membrane potential
     I1, I2, V_th, V = self.integral(self.I1.value, self.I2.value, self.V_th.value, self.V.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -3840,13 +3846,12 @@ class GifRef(GifRefLTC):
     %s
 """
 
-
   def dV(self, V, t, I1, I2, I):
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -4012,7 +4017,7 @@ class IzhikevichLTC(GradNeuDyn):
       self.reset_state(self.mode)
 
   def dV(self, V, t, u, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     dVdt = self.p1 * V * V + self.p2 * V + self.p3 - u + I
     return dVdt
 
@@ -4040,6 +4045,7 @@ class IzhikevichLTC(GradNeuDyn):
 
     # integrate membrane potential
     V, u = self.integral(self.V.value, self.u.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -4161,7 +4167,7 @@ class Izhikevich(IzhikevichLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -4351,6 +4357,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
 
     # integrate membrane potential
     V, u = self.integral(self.V.value, self.u.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -4485,11 +4492,11 @@ class IzhikevichRef(IzhikevichRefLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
-Izhikevich.__doc__ = Izhikevich.__doc__ %(pneu_doc, dpneu_doc)
-IzhikevichRefLTC.__doc__ = IzhikevichRefLTC.__doc__ %(pneu_doc, dpneu_doc, ref_doc)
-IzhikevichRef.__doc__ = IzhikevichRef.__doc__ %(pneu_doc, dpneu_doc, ref_doc)
-IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ %()
+Izhikevich.__doc__ = Izhikevich.__doc__ % (pneu_doc, dpneu_doc)
+IzhikevichRefLTC.__doc__ = IzhikevichRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
+IzhikevichRef.__doc__ = IzhikevichRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
+IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % ()

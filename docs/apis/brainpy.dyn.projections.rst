@@ -6,27 +6,23 @@ Synaptic Projections
 
 
 
-Reduced Projections
--------------------
+Projections for Align-Post Reduction
+------------------------------------
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
    :template: classtemplate.rst
 
-   ProjAlignPostMg1
-   ProjAlignPostMg2
-   ProjAlignPost1
-   ProjAlignPost2
-   ProjAlignPreMg1
-   ProjAlignPreMg2
-   ProjAlignPre1
-   ProjAlignPre2
+   HalfProjAlignPostMg
+   FullProjAlignPostMg
+   HalfProjAlignPost
+   FullProjAlignPost
 
 
 
-Projections
------------
+Projections for Align-Pre Reduction
+------------------------------------
 
 .. autosummary::
    :toctree: generated/
@@ -34,7 +30,23 @@ Projections
    :template: classtemplate.rst
 
    VanillaProj
-   SynConn
+   FullProjAlignPreSDMg
+   FullProjAlignPreDSMg
+   FullProjAlignPreSD
+   FullProjAlignPreDS
+
+
+
+Projections for Delta synapses
+------------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   HalfProjDelta
+   FullProjDelta
 
 
 
@@ -46,6 +58,18 @@ Inputs
    :nosignatures:
    :template: classtemplate.rst
 
-
    PoissonInput
    InputVar
+
+
+
+Others
+------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   SynConn
+

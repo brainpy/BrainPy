@@ -61,7 +61,7 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
   where :math:`\alpha_{x}` and :math:`\beta_{x}` are rate constants.
 
   .. versionadded:: 2.1.9
-     Model the conductance-based neuron model.
+     Modeling the conductance-based neuron model.
 
   Parameters
   ----------
@@ -117,7 +117,7 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
 
   def derivative(self, V, t, I):
     # synapses
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     # channels
     for ch in self.nodes(level=1, include_self=False).subset(IonChaDyn).unique().values():
       I = I + ch.current(V)
@@ -140,7 +140,7 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
     x = x * (1e-3 / self.A)
 
     # integral
-    V = self.integral(self.V.value, share['t'], x, share['dt'])
+    V = self.integral(self.V.value, share['t'], x, share['dt']) + self.sum_delta_inputs()
 
     # check whether the children channels have the correct parents.
     channels = self.nodes(level=1, include_self=False).subset(IonChaDyn).unique()
@@ -176,7 +176,7 @@ class CondNeuGroup(CondNeuGroupLTC):
   def update(self, x=None):
     # inputs
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -384,7 +384,7 @@ class HHLTC(NeuDyn):
     self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_size)
 
   def dV(self, V, t, m, h, n, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     I_Na = (self.gNa * m * m * m * h) * (V - self.ENa)
     n2 = n * n
     I_K = (self.gK * n2 * n2) * (V - self.EK)
@@ -402,6 +402,7 @@ class HHLTC(NeuDyn):
     x = 0. if x is None else x
 
     V, m, h, n = self.integral(self.V.value, self.m.value, self.h.value, self.n.value, t, x, dt)
+    V  += self.sum_delta_inputs()
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.m.value = m
@@ -532,7 +533,7 @@ class HH(HHLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -662,7 +663,7 @@ class MorrisLecarLTC(NeuDyn):
     self.spike = self.init_variable(partial(bm.zeros, dtype=bool), batch_or_mode)
 
   def dV(self, V, t, W, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     M_inf = (1 / 2) * (1 + bm.tanh((V - self.V1) / self.V2))
     I_Ca = self.g_Ca * M_inf * (V - self.V_Ca)
     I_K = self.g_K * W * (V - self.V_K)
@@ -685,6 +686,7 @@ class MorrisLecarLTC(NeuDyn):
     dt = share.load('dt')
     x = 0. if x is None else x
     V, W = self.integral(self.V, self.W, t, x, dt)
+    V  += self.sum_delta_inputs()
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.W.value = W
@@ -761,7 +763,7 @@ class MorrisLecar(MorrisLecarLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)
 
 
@@ -951,7 +953,7 @@ class WangBuzsakiHHLTC(NeuDyn):
     return self.phi * dndt
 
   def dV(self, V, t, h, n, I):
-    I = self.sum_inputs(V, init=I)
+    I = self.sum_current_inputs(V, init=I)
     INa = self.gNa * self.m_inf(V) ** 3 * h * (V - self.ENa)
     IK = self.gK * n ** 4 * (V - self.EK)
     IL = self.gL * (V - self.EL)
@@ -968,6 +970,7 @@ class WangBuzsakiHHLTC(NeuDyn):
     x = 0. if x is None else x
 
     V, h, n = self.integral(self.V, self.h, self.n, t, x, dt)
+    V +=  self.sum_delta_inputs()
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.h.value = h
@@ -1091,5 +1094,5 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
 
   def update(self, x=None):
     x = 0. if x is None else x
-    x = self.sum_inputs(self.V.value, init=x)
+    x = self.sum_current_inputs(self.V.value, init=x)
     return super().update(x)

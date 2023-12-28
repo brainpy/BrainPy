@@ -77,7 +77,7 @@ class Leaky(NeuDyn):
     dt = share.load('dt')
     self.x.value = self.integral(self.x.value, t, dt)
     if inp is None: inp = 0.
-    inp = self.sum_inputs(self.x.value, init=inp)
+    inp = self.sum_current_inputs(self.x.value, init=inp)
     self.x += inp
     return self.x.value
 

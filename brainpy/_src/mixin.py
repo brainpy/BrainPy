@@ -21,7 +21,6 @@ else:
 DynamicalSystem = None
 delay_identifier, init_delay_by_return = None, None
 
-
 __all__ = [
   'MixIn',
   'ParamDesc',
@@ -51,7 +50,6 @@ def _get_dynsys():
   global DynamicalSystem
   if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
   return DynamicalSystem
-
 
 
 class MixIn(object):
@@ -378,54 +376,118 @@ class DelayRegister(MixIn):
 class SupportInputProj(MixIn):
   """The :py:class:`~.MixIn` that receives the input projections.
 
-  Note that the subclass should define a ``cur_inputs`` attribute.
+  Note that the subclass should define a ``cur_inputs`` attribute. Otherwise,
+  the input function utilities cannot be used.
 
   """
-  cur_inputs: bm.node_dict
+  current_inputs: bm.node_dict
+  delta_inputs: bm.node_dict
 
-  def add_inp_fun(self, key: Any, fun: Callable):
+  def add_inp_fun(self, key: str, fun: Callable, label: Optional[str] = None, category: str = 'current'):
     """Add an input function.
 
     Args:
-      key: The dict key.
-      fun: The function to generate inputs.
+      key: str. The dict key.
+      fun: Callable. The function to generate inputs.
+      label: str. The input label.
+      category: str. The input category, should be ``current`` (the current) or
+         ``delta`` (the delta synapse, indicating the delta function).
     """
     if not callable(fun):
       raise TypeError('Must be a function.')
-    if key in self.cur_inputs:
-      raise ValueError(f'Key "{key}" has been defined and used.')
-    self.cur_inputs[key] = fun
 
-  def get_inp_fun(self, key):
+    key = self._input_label_repr(key, label)
+    if category == 'current':
+      if key in self.current_inputs:
+        raise ValueError(f'Key "{key}" has been defined and used.')
+      self.current_inputs[key] = fun
+    elif category == 'delta':
+      if key in self.delta_inputs:
+        raise ValueError(f'Key "{key}" has been defined and used.')
+      self.delta_inputs[key] = fun
+    else:
+      raise NotImplementedError(f'Unknown category: {category}. Only support "current" and "delta".')
+
+  def get_inp_fun(self, key: str):
     """Get the input function.
 
     Args:
-      key: The key.
+      key: str. The key.
 
     Returns:
       The input function which generates currents.
     """
-    return self.cur_inputs.get(key)
+    if key in self.current_inputs:
+      return self.current_inputs[key]
+    elif key in self.delta_inputs:
+      return self.delta_inputs[key]
+    else:
+      raise ValueError(f'Unknown key: {key}')
 
-  def sum_inputs(self, *args, init=0., label=None, **kwargs):
-    """Summarize all inputs by the defined input functions ``.cur_inputs``.
+  def sum_current_inputs(self, *args, init: Any = 0., label: Optional[str] = None, **kwargs):
+    """Summarize all current inputs by the defined input functions ``.current_inputs``.
 
     Args:
       *args: The arguments for input functions.
       init: The initial input data.
+      label: str. The input label.
       **kwargs: The arguments for input functions.
 
     Returns:
       The total currents.
     """
     if label is None:
-      for key, out in self.cur_inputs.items():
+      for key, out in self.current_inputs.items():
         init = init + out(*args, **kwargs)
     else:
-      for key, out in self.cur_inputs.items():
-        if key.startswith(label + ' // '):
+      label_repr = self._input_label_start(label)
+      for key, out in self.current_inputs.items():
+        if key.startswith(label_repr):
           init = init + out(*args, **kwargs)
     return init
+
+  def sum_delta_inputs(self, *args, init: Any = 0., label: Optional[str] = None, **kwargs):
+    """Summarize all delta inputs by the defined input functions ``.delta_inputs``.
+
+    Args:
+      *args: The arguments for input functions.
+      init: The initial input data.
+      label: str. The input label.
+      **kwargs: The arguments for input functions.
+
+    Returns:
+      The total currents.
+    """
+    if label is None:
+      for key, out in self.delta_inputs.items():
+        init = init + out(*args, **kwargs)
+    else:
+      label_repr = self._input_label_start(label)
+      for key, out in self.delta_inputs.items():
+        if key.startswith(label_repr):
+          init = init + out(*args, **kwargs)
+    return init
+
+  @classmethod
+  def _input_label_start(cls, label: str):
+    # unify the input label repr.
+    return f'{label} // '
+
+  @classmethod
+  def _input_label_repr(cls, name: str, label: Optional[str] = None):
+    # unify the input label repr.
+    return name if label is None else (cls._input_label_start(label) + str(name))
+
+  # deprecated #
+  # ---------- #
+
+  @property
+  def cur_inputs(self):
+    return self.current_inputs
+
+  def sum_inputs(self, *args, **kwargs):
+    warnings.warn('Please use ".sum_current_inputs()" instead. ".sum_inputs()" will be removed.', UserWarning)
+    return self.sum_current_inputs(*args, **kwargs)
 
 
 class SupportReturnInfo(MixIn):
