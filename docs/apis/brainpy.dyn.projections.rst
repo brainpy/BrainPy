@@ -6,8 +6,8 @@ Synaptic Projections
 
 
 
-Reduced Projections
--------------------
+Projections for Align-Post Reduction
+------------------------------------
 
 .. autosummary::
    :toctree: generated/
@@ -18,6 +18,18 @@ Reduced Projections
    FullProjAlignPostMg
    HalfProjAlignPost
    FullProjAlignPost
+
+
+
+Projections for Align-Pre Reduction
+------------------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   VanillaProj
    FullProjAlignPreSDMg
    FullProjAlignPreDSMg
    FullProjAlignPreSD
@@ -25,8 +37,8 @@ Reduced Projections
 
 
 
-Projections
------------
+Projections for Delta synapses
+------------------------------
 
 .. autosummary::
    :toctree: generated/
@@ -35,8 +47,6 @@ Projections
 
    HalfProjDelta
    FullProjDelta
-   VanillaProj
-   SynConn
 
 
 
@@ -48,6 +58,18 @@ Inputs
    :nosignatures:
    :template: classtemplate.rst
 
-
    PoissonInput
    InputVar
+
+
+
+Others
+------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   SynConn
+

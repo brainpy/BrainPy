@@ -4,7 +4,7 @@ from brainpy import math as bm, check
 from brainpy._src.delay import (Delay, DelayAccess, init_delay_by_return, register_delay_by_return)
 from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData)
-from .base import _get_return
+from .utils import _get_return
 
 __all__ = [
   'FullProjAlignPreSDMg', 'FullProjAlignPreDSMg',
@@ -68,7 +68,22 @@ class _AlignPre(DynamicalSystem):
 
 
 class FullProjAlignPreSDMg(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
+  """Full-chain synaptic projection with the align-pre reduction and synapse+delay updating and merging.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``syn`` -> ``delay`` -> ``comm`` -> ``out`` -> ``post``.
+
+  The ``align-pre`` means that the synaptic variables have the same dimension as the pre-synaptic neuron group.
+
+  The ``synapse+delay updating`` means that the projection first computes the synapse states, then delivers the
+  synapse states to the delay model, and finally computes the synaptic current.
+
+  The ``merging`` means that the same delay model is shared by all synapses, and the synapse model with same
+  parameters (such like time constants) will also share the same synaptic variables.
+
+  Neither ``FullProjAlignPreSDMg`` nor ``FullProjAlignPreDSMg``facilitates the event-driven computation.
+  This is because the ``comm`` is computed after the synapse state, which is a floating-point number, rather
+  than the spiking. To facilitate the event-driven computation, please use align post projections.
 
   To simulate an E/I balanced network model:
 
@@ -182,7 +197,24 @@ class FullProjAlignPreSDMg(Projection):
 
 
 class FullProjAlignPreDSMg(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
+  """Full-chain synaptic projection with the align-pre reduction and delay+synapse updating and merging.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``delay`` -> ``syn`` -> ``comm`` -> ``out`` -> ``post``.
+  Note here, compared to ``FullProjAlignPreSDMg``, the ``delay`` and ``syn`` are exchanged.
+
+  The ``align-pre`` means that the synaptic variables have the same dimension as the pre-synaptic neuron group.
+
+  The ``delay+synapse updating`` means that the projection first delivers the pre neuron output (usually the
+  spiking)  to the delay model, then computes the synapse states, and finally computes the synaptic current.
+
+  The ``merging`` means that the same delay model is shared by all synapses, and the synapse model with same
+  parameters (such like time constants) will also share the same synaptic variables.
+
+  Neither ``FullProjAlignPreDSMg`` nor ``FullProjAlignPreSDMg`` facilitates the event-driven computation.
+  This is because the ``comm`` is computed after the synapse state, which is a floating-point number, rather
+  than the spiking. To facilitate the event-driven computation, please use align post projections.
+
 
   To simulate an E/I balanced network model:
 
@@ -296,7 +328,20 @@ class FullProjAlignPreDSMg(Projection):
 
 
 class FullProjAlignPreSD(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
+  """Full-chain synaptic projection with the align-pre reduction and synapse+delay updating.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``syn`` -> ``delay`` -> ``comm`` -> ``out`` -> ``post``.
+
+  The ``align-pre`` means that the synaptic variables have the same dimension as the pre-synaptic neuron group.
+
+  The ``synapse+delay updating`` means that the projection first computes the synapse states, then delivers the
+  synapse states to the delay model, and finally computes the synaptic current.
+
+  Neither ``FullProjAlignPreSD`` nor ``FullProjAlignPreDS``facilitates the event-driven computation.
+  This is because the ``comm`` is computed after the synapse state, which is a floating-point number, rather
+  than the spiking. To facilitate the event-driven computation, please use align post projections.
+
 
   To simulate an E/I balanced network model:
 
@@ -411,7 +456,21 @@ class FullProjAlignPreSD(Projection):
 
 
 class FullProjAlignPreDS(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of presynaptic neuron group.
+  """Full-chain synaptic projection with the align-pre reduction and delay+synapse updating.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``syn`` -> ``delay`` -> ``comm`` -> ``out`` -> ``post``.
+  Note here, compared to ``FullProjAlignPreSD``, the ``delay`` and ``syn`` are exchanged.
+
+  The ``align-pre`` means that the synaptic variables have the same dimension as the pre-synaptic neuron group.
+
+  The ``delay+synapse updating`` means that the projection first delivers the pre neuron output (usually the
+  spiking)  to the delay model, then computes the synapse states, and finally computes the synaptic current.
+
+  Neither ``FullProjAlignPreDS`` nor ``FullProjAlignPreSD`` facilitates the event-driven computation.
+  This is because the ``comm`` is computed after the synapse state, which is a floating-point number, rather
+  than the spiking. To facilitate the event-driven computation, please use align post projections.
+
 
   To simulate an E/I balanced network model:
 

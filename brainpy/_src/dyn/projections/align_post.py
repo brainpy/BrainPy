@@ -48,7 +48,19 @@ class _AlignPost(DynamicalSystem):
 
 
 class HalfProjAlignPostMg(Projection):
-  r"""Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
+  r"""Defining the half part of synaptic projection with the align-post reduction and the automatic synapse merging.
+
+  The ``half-part`` means that the model only needs to provide half information needed for a projection,
+  including ``comm`` -> ``syn`` -> ``out`` -> ``post``. Therefore, the model's ``update`` function needs
+  the manual providing of the spiking input.
+
+  The ``align-post`` means that the synaptic variables have the same dimension as the post-synaptic neuron group.
+
+  The ``merging`` means that the same delay model is shared by all synapses, and the synapse model with same
+  parameters (such like time constants) will also share the same synaptic variables.
+
+  All align-post projection models prefer to use the event-driven computation mode. This means that the
+  ``comm`` model should be the event-driven model.
 
   **Code Examples**
 
@@ -131,7 +143,22 @@ class HalfProjAlignPostMg(Projection):
 
 
 class FullProjAlignPostMg(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
+  """Full-chain synaptic projection with the align-post reduction and the automatic synapse merging.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``delay`` -> ``comm`` -> ``syn`` -> ``out`` -> ``post``.
+
+  The ``align-post`` means that the synaptic variables have the same dimension as the post-synaptic neuron group.
+
+  The ``merging`` means that the same delay model is shared by all synapses, and the synapse model with same
+  parameters (such like time constants) will also share the same synaptic variables.
+
+  All align-post projection models prefer to use the event-driven computation mode. This means that the
+  ``comm`` model should be the event-driven model.
+
+  Moreover, it's worth noting that ``FullProjAlignPostMg`` has a different updating order with all align-pre
+  projection models. The updating order of align-post projections is ``spikes`` -> ``comm`` -> ``syn`` -> ``out``.
+  While, the updating order of all align-pre projection models is usually ``spikes`` -> ``syn`` -> ``comm`` -> ``out``.
 
   **Code Examples**
 
@@ -245,7 +272,16 @@ class FullProjAlignPostMg(Projection):
 
 
 class HalfProjAlignPost(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
+  """Defining the half-part of synaptic projection with the align-post reduction.
+
+  The ``half-part`` means that the model only needs to provide half information needed for a projection,
+  including ``comm`` -> ``syn`` -> ``out`` -> ``post``. Therefore, the model's ``update`` function needs
+  the manual providing of the spiking input.
+
+  The ``align-post`` means that the synaptic variables have the same dimension as the post-synaptic neuron group.
+
+  All align-post projection models prefer to use the event-driven computation mode. This means that the
+  ``comm`` model should be the event-driven model.
 
   To simulate an E/I balanced network:
 
@@ -329,7 +365,19 @@ class HalfProjAlignPost(Projection):
 
 
 class FullProjAlignPost(Projection):
-  """Synaptic projection which defines the synaptic computation with the dimension of postsynaptic neuron group.
+  """Full-chain synaptic projection with the align-post reduction.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``delay`` -> ``comm`` -> ``syn`` -> ``out`` -> ``post``.
+
+  The ``align-post`` means that the synaptic variables have the same dimension as the post-synaptic neuron group.
+
+  All align-post projection models prefer to use the event-driven computation mode. This means that the
+  ``comm`` model should be the event-driven model.
+
+  Moreover, it's worth noting that ``FullProjAlignPost`` has a different updating order with all align-pre
+  projection models. The updating order of align-post projections is ``spikes`` -> ``comm`` -> ``syn`` -> ``out``.
+  While, the updating order of all align-pre projection models is usually ``spikes`` -> ``syn`` -> ``comm`` -> ``out``.
 
   To simulate and define an E/I balanced network model:
 

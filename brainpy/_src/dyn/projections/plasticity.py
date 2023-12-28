@@ -9,7 +9,7 @@ from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay,
 from brainpy.types import ArrayType
 from .align_post import (align_post_add_bef_update, )
 from .align_pre import (align_pre2_add_bef_update, )
-from .base import (_get_return, )
+from .utils import (_get_return, )
 
 __all__ = [
   'STDP_Song2000',
