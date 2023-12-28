@@ -42,7 +42,6 @@ Phenomenological synapse models
    :nosignatures:
    :template: classtemplate.rst
 
-   Delta
    Expon
    Alpha
    DualExpon

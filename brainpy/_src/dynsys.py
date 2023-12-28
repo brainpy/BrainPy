@@ -91,7 +91,8 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     # Attribute for "SupportInputProj"
     # each instance of "SupportInputProj" should have a "cur_inputs" attribute
-    self.cur_inputs = bm.node_dict()
+    self.current_inputs = bm.node_dict()
+    self.delta_inputs = bm.node_dict()
 
     # the before- / after-updates used for computing
     # added after the version of 2.4.3

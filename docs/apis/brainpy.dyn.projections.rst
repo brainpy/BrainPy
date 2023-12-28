@@ -14,14 +14,14 @@ Reduced Projections
    :nosignatures:
    :template: classtemplate.rst
 
-   ProjAlignPostMg1
-   ProjAlignPostMg2
-   ProjAlignPost1
-   ProjAlignPost2
-   ProjAlignPreMg1
-   ProjAlignPreMg2
-   ProjAlignPre1
-   ProjAlignPre2
+   HalfProjAlignPostMg
+   FullProjAlignPostMg
+   HalfProjAlignPost
+   FullProjAlignPost
+   FullProjAlignPreSDMg
+   FullProjAlignPreDSMg
+   FullProjAlignPreSD
+   FullProjAlignPreDS
 
 
 
@@ -33,6 +33,8 @@ Projections
    :nosignatures:
    :template: classtemplate.rst
 
+   HalfProjDelta
+   FullProjDelta
    VanillaProj
    SynConn
 

@@ -18,7 +18,7 @@ class AMPA(bp.Projection):
       raise ValueError
     syn = bp.dyn.Expon.desc(post.num, tau=tau)
     out = bp.dyn.COBA.desc(E=E)
-    self.proj = bp.dyn.ProjAlignPostMg2(
+    self.proj = bp.dyn.FullProjAlignPostMg(
       pre=pre, delay=delay, comm=comm,
       syn=syn, out=out, post=post
     )
@@ -35,7 +35,7 @@ class NMDA(bp.Projection):
       raise ValueError
     syn = bp.dyn.NMDA.desc(pre.num, a=0.5, tau_decay=100., tau_rise=2.)
     out = bp.dyn.MgBlock(E=0., cc_Mg=1.0)
-    self.proj = bp.dyn.ProjAlignPreMg2(
+    self.proj = bp.dyn.FullProjAlignPreDSMg(
       pre=pre, delay=delay, syn=syn,
       comm=comm, out=out, post=post
     )

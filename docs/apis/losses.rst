@@ -33,6 +33,14 @@ Comparison
    log_cosh_loss
    ctc_loss_with_forward_probs
    ctc_loss
+   multi_margin_loss
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
    CrossEntropyLoss
    NLLLoss
    L1Loss

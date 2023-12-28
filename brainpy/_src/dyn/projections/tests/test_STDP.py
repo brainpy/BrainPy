@@ -86,7 +86,7 @@ class Test_STDP(parameterized.TestCase):
         conductance = self.syn.refs['syn'].g
         Apre = self.syn.refs['pre_trace'].g
         Apost = self.syn.refs['post_trace'].g
-        current = self.post.sum_inputs(self.post.V)
+        current = self.post.sum_current_inputs(self.post.V)
         if comm_method == 'dense':
           w = self.syn.comm.W.flatten()
         else:

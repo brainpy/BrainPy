@@ -13,7 +13,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
     self.E = bp.dyn.LifRefLTC(num_exc, **neu_pars)
     self.I = bp.dyn.LifRefLTC(num_inh, **neu_pars)
 
-    self.E2I = bp.dyn.ProjAlignPreMg1(
+    self.E2I = bp.dyn.FullProjAlignPreSDMg(
       pre=self.E,
       syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
       delay=None,
@@ -21,7 +21,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA(E=0.),
       post=self.I,
     )
-    self.E2E = bp.dyn.ProjAlignPreMg1(
+    self.E2E = bp.dyn.FullProjAlignPreSDMg(
       pre=self.E,
       syn=bp.dyn.Expon.desc(self.E.varshape, tau=5.),
       delay=None,
@@ -29,7 +29,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA(E=0.),
       post=self.E,
     )
-    self.I2E = bp.dyn.ProjAlignPreMg1(
+    self.I2E = bp.dyn.FullProjAlignPreSDMg(
       pre=self.I,
       syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
       delay=None,
@@ -37,7 +37,7 @@ class EICOBA_PreAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA(E=-80.),
       post=self.E,
     )
-    self.I2I = bp.dyn.ProjAlignPreMg1(
+    self.I2I = bp.dyn.FullProjAlignPreSDMg(
       pre=self.I,
       syn=bp.dyn.Expon.desc(self.I.varshape, tau=10.),
       delay=0.,
@@ -67,7 +67,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       self.E = bp.dyn.LifRef(num_exc, **neu_pars)
       self.I = bp.dyn.LifRef(num_inh, **neu_pars)
 
-    self.E2E = bp.dyn.ProjAlignPostMg2(
+    self.E2E = bp.dyn.FullProjAlignPostMg(
       pre=self.E,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.E.num, post=self.E.num), 0.6),
@@ -75,7 +75,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA.desc(E=0.),
       post=self.E,
     )
-    self.E2I = bp.dyn.ProjAlignPostMg2(
+    self.E2I = bp.dyn.FullProjAlignPostMg(
       pre=self.E,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.E.num, post=self.I.num), 0.6),
@@ -83,7 +83,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA.desc(E=0.),
       post=self.I,
     )
-    self.I2E = bp.dyn.ProjAlignPostMg2(
+    self.I2E = bp.dyn.FullProjAlignPostMg(
       pre=self.I,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.I.num, post=self.E.num), 6.7),
@@ -91,7 +91,7 @@ class EICOBA_PostAlign(bp.DynamicalSystem):
       out=bp.dyn.COBA.desc(E=-80.),
       post=self.E,
     )
-    self.I2I = bp.dyn.ProjAlignPostMg2(
+    self.I2I = bp.dyn.FullProjAlignPostMg(
       pre=self.I,
       delay=None,
       comm=bp.dnn.EventCSRLinear(bp.conn.FixedProb(0.02, pre=self.I.num, post=self.I.num), 6.7),

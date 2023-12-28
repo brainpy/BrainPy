@@ -11,7 +11,7 @@ from jax.experimental.maps import xmap
 class ExpJIT(bp.Projection):
   def __init__(self, pre_num, post, prob, g_max, tau=5., E=0.):
     super().__init__()
-    self.proj = bp.dyn.ProjAlignPostMg1(
+    self.proj = bp.dyn.HalfProjAlignPostMg(
       comm=bp.dnn.EventJitFPHomoLinear(pre_num, post.num, prob=prob, weight=g_max),
       syn=bp.dyn.Expon.desc(size=post.num, tau=tau, sharding=[bm.sharding.NEU_AXIS]),
       out=bp.dyn.COBA.desc(E=E),
@@ -40,7 +40,7 @@ class EINet1(bp.DynSysGroup):
 class ExpMasked(bp.Projection):
   def __init__(self, pre_num, post, prob, g_max, tau=5., E=0.):
     super().__init__()
-    self.proj = bp.dyn.ProjAlignPostMg1(
+    self.proj = bp.dyn.HalfProjAlignPostMg(
       comm=bp.dnn.MaskedLinear(bp.conn.FixedProb(prob, pre=pre_num, post=post.num), weight=g_max,
                                sharding=[None, bm.sharding.NEU_AXIS]),
       syn=bp.dyn.Expon.desc(size=post.num, tau=tau, sharding=[bm.sharding.NEU_AXIS]),
@@ -111,7 +111,7 @@ class PCSR(bp.dnn.Layer):
 class ExpMasked2(bp.Projection):
   def __init__(self, pre_num, post, prob, g_max, tau=5., E=0.):
     super().__init__()
-    self.proj = bp.dyn.ProjAlignPostMg1(
+    self.proj = bp.dyn.HalfProjAlignPostMg(
       comm=PCSR(bp.conn.FixedProb(prob, pre=pre_num, post=post.num), weight=g_max, num_shard=4),
       syn=bp.dyn.Expon.desc(size=post.num, tau=tau, sharding=[bm.sharding.NEU_AXIS]),
       out=bp.dyn.COBA.desc(E=E),

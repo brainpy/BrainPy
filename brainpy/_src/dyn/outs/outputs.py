@@ -82,7 +82,7 @@ class CUBA(SynOut):
     super().__init__(name=name, scaling=scaling)
 
   def update(self, conductance, potential=None):
-    return self.std_scaling(conductance)
+    return conductance
 
 
 class MgBlock(SynOut):
@@ -138,5 +138,5 @@ class MgBlock(SynOut):
     self.beta = init.parameter(beta, np.shape(beta), sharding=sharding)
 
   def update(self, conductance, potential):
-    return conductance *\
-      (self.E - potential) / (1 + self.cc_Mg / self.beta * bm.exp(self.alpha * (self.V_offset - potential)))
+    norm = (1 + self.cc_Mg / self.beta * bm.exp(self.alpha * (self.V_offset - potential)))
+    return conductance * (self.E - potential) / norm

@@ -10,7 +10,6 @@ from brainpy._src.mixin import AlignPost, ReturnInfo
 from brainpy.types import ArrayType
 
 __all__ = [
-  'Delta',
   'Expon',
   'DualExpon',
   'DualExponV2',
@@ -19,69 +18,6 @@ __all__ = [
   'STD',
   'STP',
 ]
-
-
-class Delta(SynDyn, AlignPost):
-  r"""Delta synapse model.
-
-  **Model Descriptions**
-
-  The single exponential decay synapse model assumes the release of neurotransmitter,
-  its diffusion across the cleft, the receptor binding, and channel opening all happen
-  very quickly, so that the channels instantaneously jump from the closed to the open state.
-  Therefore, its expression is given by
-
-  .. math::
-
-      g_{\mathrm{syn}}(t)=g_{\mathrm{max}} e^{-\left(t-t_{0}\right) / \tau}
-
-  where :math:`\tau_{delay}` is the time constant of the synaptic state decay,
-  :math:`t_0` is the time of the pre-synaptic spike,
-  :math:`g_{\mathrm{max}}` is the maximal conductance.
-
-  Accordingly, the differential form of the exponential synapse is given by
-
-  .. math::
-
-      \begin{aligned}
-       & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
-       \end{aligned}
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-          "The Synapse." Principles of Computational Modelling in Neuroscience.
-          Cambridge: Cambridge UP, 2011. 172-95. Print.
-
-  """
-
-  def __init__(
-      self,
-      size: Union[int, Sequence[int]],
-      keep_size: bool = False,
-      sharding: Optional[Sequence[str]] = None,
-      name: Optional[str] = None,
-      mode: Optional[bm.Mode] = None,
-  ):
-    super().__init__(name=name,
-                     mode=mode,
-                     size=size,
-                     keep_size=keep_size,
-                     sharding=sharding)
-
-    self.reset_state(self.mode)
-
-  def reset_state(self, batch_or_mode=None, **kwargs):
-    self.g = self.init_variable(bm.zeros, batch_or_mode)
-
-  def update(self, x=None):
-    if x is not None:
-      self.g.value += x
-    return self.g.value
-
-  def add_current(self, x):
-    self.g.value += x
-
-  def return_info(self):
-    return self.g
 
 
 class Expon(SynDyn, AlignPost):

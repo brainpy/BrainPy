@@ -9,14 +9,14 @@ def model1():
       self.N = bp.dyn.LifRefLTC(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
-      self.E = bp.dyn.ProjAlignPost1(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
-                                     syn=bp.dyn.Expon(size=4000, tau=5.),
-                                     out=bp.dyn.COBA(E=0.),
-                                     post=self.N)
-      self.I = bp.dyn.ProjAlignPost1(comm=bp.dnn.EventJitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
-                                     syn=bp.dyn.Expon(size=4000, tau=10.),
-                                     out=bp.dyn.COBA(E=-80.),
-                                     post=self.N)
+      self.E = bp.dyn.HalfProjAlignPost(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
+                                        syn=bp.dyn.Expon(size=4000, tau=5.),
+                                        out=bp.dyn.COBA(E=0.),
+                                        post=self.N)
+      self.I = bp.dyn.HalfProjAlignPost(comm=bp.dnn.EventJitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
+                                        syn=bp.dyn.Expon(size=4000, tau=10.),
+                                        out=bp.dyn.COBA(E=-80.),
+                                        post=self.N)
 
     def update(self, input):
       spk = self.delay.at('I')
@@ -40,30 +40,30 @@ def model2():
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.I = bp.dyn.LifRefLTC(ni, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 2.))
-      self.E2E = bp.dyn.ProjAlignPost2(pre=self.E,
-                                       delay=0.1,
-                                       comm=bp.dnn.EventJitFPHomoLinear(ne, ne, prob=0.02, weight=0.6),
-                                       syn=bp.dyn.Expon(size=ne, tau=5.),
-                                       out=bp.dyn.COBA(E=0.),
-                                       post=self.E)
-      self.E2I = bp.dyn.ProjAlignPost2(pre=self.E,
-                                       delay=0.1,
-                                       comm=bp.dnn.EventJitFPHomoLinear(ne, ni, prob=0.02, weight=0.6),
-                                       syn=bp.dyn.Expon(size=ni, tau=5.),
-                                       out=bp.dyn.COBA(E=0.),
-                                       post=self.I)
-      self.I2E = bp.dyn.ProjAlignPost2(pre=self.I,
-                                       delay=0.1,
-                                       comm=bp.dnn.EventJitFPHomoLinear(ni, ne, prob=0.02, weight=6.7),
-                                       syn=bp.dyn.Expon(size=ne, tau=10.),
-                                       out=bp.dyn.COBA(E=-80.),
-                                       post=self.E)
-      self.I2I = bp.dyn.ProjAlignPost2(pre=self.I,
-                                       delay=0.1,
-                                       comm=bp.dnn.EventJitFPHomoLinear(ni, ni, prob=0.02, weight=6.7),
-                                       syn=bp.dyn.Expon(size=ni, tau=10.),
-                                       out=bp.dyn.COBA(E=-80.),
-                                       post=self.I)
+      self.E2E = bp.dyn.FullProjAlignPost(pre=self.E,
+                                          delay=0.1,
+                                          comm=bp.dnn.EventJitFPHomoLinear(ne, ne, prob=0.02, weight=0.6),
+                                          syn=bp.dyn.Expon(size=ne, tau=5.),
+                                          out=bp.dyn.COBA(E=0.),
+                                          post=self.E)
+      self.E2I = bp.dyn.FullProjAlignPost(pre=self.E,
+                                          delay=0.1,
+                                          comm=bp.dnn.EventJitFPHomoLinear(ne, ni, prob=0.02, weight=0.6),
+                                          syn=bp.dyn.Expon(size=ni, tau=5.),
+                                          out=bp.dyn.COBA(E=0.),
+                                          post=self.I)
+      self.I2E = bp.dyn.FullProjAlignPost(pre=self.I,
+                                          delay=0.1,
+                                          comm=bp.dnn.EventJitFPHomoLinear(ni, ne, prob=0.02, weight=6.7),
+                                          syn=bp.dyn.Expon(size=ne, tau=10.),
+                                          out=bp.dyn.COBA(E=-80.),
+                                          post=self.E)
+      self.I2I = bp.dyn.FullProjAlignPost(pre=self.I,
+                                          delay=0.1,
+                                          comm=bp.dnn.EventJitFPHomoLinear(ni, ni, prob=0.02, weight=6.7),
+                                          syn=bp.dyn.Expon(size=ni, tau=10.),
+                                          out=bp.dyn.COBA(E=-80.),
+                                          post=self.I)
 
     def update(self, inp):
       self.E2E()
@@ -118,30 +118,30 @@ def model4():
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.I = bp.dyn.LifRefLTC(ni, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 2.))
-      self.E2E = bp.dyn.ProjAlignPreMg1(pre=self.E,
-                                        syn=bp.dyn.Expon.desc(size=ne, tau=5.),
-                                        delay=0.1,
-                                        comm=bp.dnn.JitFPHomoLinear(ne, ne, prob=0.02, weight=0.6),
-                                        out=bp.dyn.COBA(E=0.),
-                                        post=self.E)
-      self.E2I = bp.dyn.ProjAlignPreMg1(pre=self.E,
-                                        syn=bp.dyn.Expon.desc(size=ne, tau=5.),
-                                        delay=0.1,
-                                        comm=bp.dnn.JitFPHomoLinear(ne, ni, prob=0.02, weight=0.6),
-                                        out=bp.dyn.COBA(E=0.),
-                                        post=self.I)
-      self.I2E = bp.dyn.ProjAlignPreMg1(pre=self.I,
-                                        syn=bp.dyn.Expon.desc(size=ni, tau=10.),
-                                        delay=0.1,
-                                        comm=bp.dnn.JitFPHomoLinear(ni, ne, prob=0.02, weight=6.7),
-                                        out=bp.dyn.COBA(E=-80.),
-                                        post=self.E)
-      self.I2I = bp.dyn.ProjAlignPreMg1(pre=self.I,
-                                        syn=bp.dyn.Expon.desc(size=ni, tau=10.),
-                                        delay=0.1,
-                                        comm=bp.dnn.JitFPHomoLinear(ni, ni, prob=0.02, weight=6.7),
-                                        out=bp.dyn.COBA(E=-80.),
-                                        post=self.I)
+      self.E2E = bp.dyn.FullProjAlignPreSDMg(pre=self.E,
+                                             syn=bp.dyn.Expon.desc(size=ne, tau=5.),
+                                             delay=0.1,
+                                             comm=bp.dnn.JitFPHomoLinear(ne, ne, prob=0.02, weight=0.6),
+                                             out=bp.dyn.COBA(E=0.),
+                                             post=self.E)
+      self.E2I = bp.dyn.FullProjAlignPreSDMg(pre=self.E,
+                                             syn=bp.dyn.Expon.desc(size=ne, tau=5.),
+                                             delay=0.1,
+                                             comm=bp.dnn.JitFPHomoLinear(ne, ni, prob=0.02, weight=0.6),
+                                             out=bp.dyn.COBA(E=0.),
+                                             post=self.I)
+      self.I2E = bp.dyn.FullProjAlignPreSDMg(pre=self.I,
+                                             syn=bp.dyn.Expon.desc(size=ni, tau=10.),
+                                             delay=0.1,
+                                             comm=bp.dnn.JitFPHomoLinear(ni, ne, prob=0.02, weight=6.7),
+                                             out=bp.dyn.COBA(E=-80.),
+                                             post=self.E)
+      self.I2I = bp.dyn.FullProjAlignPreSDMg(pre=self.I,
+                                             syn=bp.dyn.Expon.desc(size=ni, tau=10.),
+                                             delay=0.1,
+                                             comm=bp.dnn.JitFPHomoLinear(ni, ni, prob=0.02, weight=6.7),
+                                             out=bp.dyn.COBA(E=-80.),
+                                             post=self.I)
 
     def update(self, inp):
       self.E2E()
@@ -167,30 +167,30 @@ def model5():
                                 V_initializer=bp.init.Normal(-55., 2.))
       self.I = bp.dyn.LifRefLTC(ni, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 2.))
-      self.E2E = bp.dyn.ProjAlignPreMg2(pre=self.E,
-                                        delay=0.1,
-                                        syn=bp.dyn.Expon.desc(size=ne, tau=5.),
-                                        comm=bp.dnn.JitFPHomoLinear(ne, ne, prob=0.02, weight=0.6),
-                                        out=bp.dyn.COBA(E=0.),
-                                        post=self.E)
-      self.E2I = bp.dyn.ProjAlignPreMg2(pre=self.E,
-                                        delay=0.1,
-                                        syn=bp.dyn.Expon.desc(size=ne, tau=5.),
-                                        comm=bp.dnn.JitFPHomoLinear(ne, ni, prob=0.02, weight=0.6),
-                                        out=bp.dyn.COBA(E=0.),
-                                        post=self.I)
-      self.I2E = bp.dyn.ProjAlignPreMg2(pre=self.I,
-                                        delay=0.1,
-                                        syn=bp.dyn.Expon.desc(size=ni, tau=10.),
-                                        comm=bp.dnn.JitFPHomoLinear(ni, ne, prob=0.02, weight=6.7),
-                                        out=bp.dyn.COBA(E=-80.),
-                                        post=self.E)
-      self.I2I = bp.dyn.ProjAlignPreMg2(pre=self.I,
-                                        delay=0.1,
-                                        syn=bp.dyn.Expon.desc(size=ni, tau=10.),
-                                        comm=bp.dnn.JitFPHomoLinear(ni, ni, prob=0.02, weight=6.7),
-                                        out=bp.dyn.COBA(E=-80.),
-                                        post=self.I)
+      self.E2E = bp.dyn.FullProjAlignPreDSMg(pre=self.E,
+                                             delay=0.1,
+                                             syn=bp.dyn.Expon.desc(size=ne, tau=5.),
+                                             comm=bp.dnn.JitFPHomoLinear(ne, ne, prob=0.02, weight=0.6),
+                                             out=bp.dyn.COBA(E=0.),
+                                             post=self.E)
+      self.E2I = bp.dyn.FullProjAlignPreDSMg(pre=self.E,
+                                             delay=0.1,
+                                             syn=bp.dyn.Expon.desc(size=ne, tau=5.),
+                                             comm=bp.dnn.JitFPHomoLinear(ne, ni, prob=0.02, weight=0.6),
+                                             out=bp.dyn.COBA(E=0.),
+                                             post=self.I)
+      self.I2E = bp.dyn.FullProjAlignPreDSMg(pre=self.I,
+                                             delay=0.1,
+                                             syn=bp.dyn.Expon.desc(size=ni, tau=10.),
+                                             comm=bp.dnn.JitFPHomoLinear(ni, ne, prob=0.02, weight=6.7),
+                                             out=bp.dyn.COBA(E=-80.),
+                                             post=self.E)
+      self.I2I = bp.dyn.FullProjAlignPreDSMg(pre=self.I,
+                                             delay=0.1,
+                                             syn=bp.dyn.Expon.desc(size=ni, tau=10.),
+                                             comm=bp.dnn.JitFPHomoLinear(ni, ni, prob=0.02, weight=6.7),
+                                             out=bp.dyn.COBA(E=-80.),
+                                             post=self.I)
 
     def update(self, inp):
       self.E2E()

@@ -6,7 +6,7 @@ import jax
 from brainpy import math as bm
 from brainpy._src.connect import TwoEndConnector, One2One, All2All
 from brainpy._src.dnn import linear
-from brainpy._src.dyn import projections
+from brainpy._src.dyn.projections.conn import SynConn
 from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.initialize import parameter
@@ -29,7 +29,7 @@ class _SynapseComponent(DynamicalSystem):
   synaptic long-term plasticity, and others. """
 
   '''Master of this component.'''
-  master: projections.SynConn
+  master: SynConn
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
@@ -50,9 +50,9 @@ class _SynapseComponent(DynamicalSystem):
   def reset_state(self, batch_size=None):
     pass
 
-  def register_master(self, master: projections.SynConn):
-    if not isinstance(master, projections.SynConn):
-      raise TypeError(f'master must be instance of {projections.SynConn.__name__}, but we got {type(master)}')
+  def register_master(self, master: SynConn):
+    if not isinstance(master, SynConn):
+      raise TypeError(f'master must be instance of {SynConn.__name__}, but we got {type(master)}')
     if self.isregistered:
       raise ValueError(f'master has been registered, but we got another master going to be registered.')
     if hasattr(self, 'master') and self.master != master:
@@ -90,7 +90,7 @@ class _SynOut(_SynapseComponent, ParamDesc):
                         f'But we got {type(target_var)}')
     self.target_var: Optional[bm.Variable] = target_var
 
-  def register_master(self, master: projections.SynConn):
+  def register_master(self, master: SynConn):
     super().register_master(master)
 
     # initialize target variable to output
@@ -125,7 +125,7 @@ class _NullSynOut(_SynOut):
     return _NullSynOut()
 
 
-class TwoEndConn(projections.SynConn):
+class TwoEndConn(SynConn):
   """Base class to model synaptic connections.
 
   Parameters

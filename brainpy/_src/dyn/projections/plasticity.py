@@ -7,8 +7,9 @@ from brainpy._src.dynsys import DynamicalSystem, Projection
 from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay,
                                 BindCondData, AlignPost, SupportSTDP)
 from brainpy.types import ArrayType
-from .aligns import (_get_return, align_post_add_bef_update,
-                     align_pre2_add_bef_update, add_inp_fun)
+from .align_post import (align_post_add_bef_update, )
+from .align_pre import (align_pre2_add_bef_update, )
+from .base import (_get_return, )
 
 __all__ = [
   'STDP_Song2000',
@@ -165,7 +166,7 @@ class STDP_Song2000(Projection):
     else:
       syn_cls = align_pre2_add_bef_update(syn, delay, delay_cls, self.name + '-pre')
       out_cls = out()
-      add_inp_fun(out_label, self.name, out_cls, post)
+      post.add_inp_fun(self.name, out_cls, label=out_label)
 
     # references
     self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
