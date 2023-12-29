@@ -1,12 +1,11 @@
-numpy
 tqdm
-msgpack
-numba
 jax
 jaxlib
 matplotlib
+numpy
 scipy
 numba
+taichi
 
 # document requirements
 pandoc
