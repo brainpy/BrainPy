@@ -6,6 +6,22 @@ Operator Registration
    :depth: 1
 
 
+
+General Operator Customization Interface
+----------------------------------------
+
+.. currentmodule:: brainpy.math
+.. automodule:: brainpy.math
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
+   XLACustomOp
+
+
+
 CPU Operator Customization with Numba
 -------------------------------------
 
