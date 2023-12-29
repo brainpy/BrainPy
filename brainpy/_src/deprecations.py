@@ -41,7 +41,6 @@ Please use:
 '''
 
 
-
 def _deprecate(msg):
   warnings.simplefilter('always', DeprecationWarning)  # turn off filter
   warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
@@ -61,10 +60,10 @@ def deprecated(func):
   return new_func
 
 
-def deprecation_getattr(module, deprecations, redirects=None):
+def deprecation_getattr(module, deprecations, redirects=None, redirect_module=None):
   redirects = redirects or {}
 
-  def getattr(name):
+  def get_attr(name):
     if name in deprecations:
       message, fn = deprecations[name]
       if fn is None:
@@ -72,14 +71,14 @@ def deprecation_getattr(module, deprecations, redirects=None):
       _deprecate(message)
       return fn
     if name in redirects:
-      return redirects[name]
+      return getattr(redirect_module, name)
     raise AttributeError(f"module {module!r} has no attribute {name!r}")
 
-  return getattr
+  return get_attr
 
 
 def deprecation_getattr2(module, deprecations):
-  def getattr(name):
+  def get_attr(name):
     if name in deprecations:
       old_name, new_name, fn = deprecations[name]
       message = f"{old_name} is deprecated. "
@@ -91,4 +90,4 @@ def deprecation_getattr2(module, deprecations):
       return fn
     raise AttributeError(f"module {module!r} has no attribute {name!r}")
 
-  return getattr
+  return get_attr
