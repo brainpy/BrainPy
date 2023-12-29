@@ -81,7 +81,7 @@ class FullProjAlignPreSDMg(Projection):
   The ``merging`` means that the same delay model is shared by all synapses, and the synapse model with same
   parameters (such like time constants) will also share the same synaptic variables.
 
-  Neither ``FullProjAlignPreSDMg`` nor ``FullProjAlignPreDSMg``facilitates the event-driven computation.
+  Neither ``FullProjAlignPreSDMg`` nor ``FullProjAlignPreDSMg`` facilitates the event-driven computation.
   This is because the ``comm`` is computed after the synapse state, which is a floating-point number, rather
   than the spiking. To facilitate the event-driven computation, please use align post projections.
 
@@ -338,7 +338,7 @@ class FullProjAlignPreSD(Projection):
   The ``synapse+delay updating`` means that the projection first computes the synapse states, then delivers the
   synapse states to the delay model, and finally computes the synaptic current.
 
-  Neither ``FullProjAlignPreSD`` nor ``FullProjAlignPreDS``facilitates the event-driven computation.
+  Neither ``FullProjAlignPreSD`` nor ``FullProjAlignPreDS`` facilitates the event-driven computation.
   This is because the ``comm`` is computed after the synapse state, which is a floating-point number, rather
   than the spiking. To facilitate the event-driven computation, please use align post projections.
 
