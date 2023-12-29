@@ -24,6 +24,7 @@ dynamics programming. For more information and usage examples, please refer to t
    :maxdepth: 1
 
    brainpy.math.rst
+   brainpy.math.defaults.rst
    brainpy.math.delayvars.rst
    brainpy.math.oo_transform.rst
    brainpy.math.pre_syn_post.rst
