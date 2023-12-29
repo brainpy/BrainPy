@@ -20,7 +20,6 @@ def defjvp(primitive, *jvp_rules):
 
   For examples, please see ``test_ad_support.py``.
 
-
   Args:
     primitive: Primitive, XLACustomOp.
     *jvp_rules: The JVP translation rule for each primal.

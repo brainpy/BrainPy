@@ -89,7 +89,7 @@ class Test_event_csr_matvec(parameterized.TestCase):
                   (100000, 2)]
     for homo_data in [-1., 0., 1.]
   )
-  def test_homo_vamp(self, shape, transpose, homo_data):
+  def test_homo_vmap(self, shape, transpose, homo_data):
     print(f'test_homo_vamp: shape = {shape}, transpose = {transpose}, homo_data = {homo_data}')
 
     rng = bm.random.RandomState()
@@ -229,7 +229,7 @@ class Test_event_csr_matvec(parameterized.TestCase):
                   (1000, 10),
                   (100000, 2)]
   )
-  def test_heter_vamp(self, shape, transpose):
+  def test_heter_vmap(self, shape, transpose):
     print(f'test_heter_vamp: shape = {shape}, transpose = {transpose}')
 
     rng = bm.random.RandomState()

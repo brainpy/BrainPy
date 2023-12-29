@@ -70,5 +70,4 @@ from brainpy._src.math.random import (
   rand_like as rand_like,
   randint_like as randint_like,
   randn_like as randn_like,
-
 )

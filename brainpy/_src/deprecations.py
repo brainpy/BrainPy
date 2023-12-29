@@ -61,7 +61,9 @@ def deprecated(func):
   return new_func
 
 
-def deprecation_getattr(module, deprecations):
+def deprecation_getattr(module, deprecations, redirects=None):
+  redirects = redirects or {}
+
   def getattr(name):
     if name in deprecations:
       message, fn = deprecations[name]
@@ -69,6 +71,8 @@ def deprecation_getattr(module, deprecations):
         raise AttributeError(message)
       _deprecate(message)
       return fn
+    if name in redirects:
+      return redirects[name]
     raise AttributeError(f"module {module!r} has no attribute {name!r}")
 
   return getattr

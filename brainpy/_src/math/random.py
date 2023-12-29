@@ -2410,3 +2410,4 @@ for __k in dir(RandomState):
     __r = globals().get(__k, None)
     if __r is not None and callable(__r):
       __t.__doc__ = __r.__doc__
+

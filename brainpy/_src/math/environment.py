@@ -15,8 +15,10 @@ from jax.lib import xla_bridge
 
 from . import modes
 from . import scales
+from . import defaults
+from brainpy._src.dependency_check import import_taichi
 
-bm = None
+ti = import_taichi()
 
 __all__ = [
   # context manage for environment setting
@@ -389,9 +391,7 @@ def ditype():
   """
   # raise errors.NoLongerSupportError('\nGet default integer data type through `ditype()` has been deprecated. \n'
   #                                   'Use `brainpy.math.int_` instead.')
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.int_
+  return defaults.int_
 
 
 def dftype():
@@ -403,9 +403,7 @@ def dftype():
 
   # raise errors.NoLongerSupportError('\nGet default floating data type through `dftype()` has been deprecated. \n'
   #                                   'Use `brainpy.math.float_` instead.')
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.float_
+  return defaults.float_
 
 
 def set_float(dtype: type):
@@ -416,11 +414,17 @@ def set_float(dtype: type):
   dtype: type
     The float type.
   """
-  if dtype not in [jnp.float16, jnp.float32, jnp.float64, ]:
-    raise TypeError(f'Float data type {dtype} is not supported.')
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['float_'] = dtype
+  if dtype in [jnp.float16, 'float16', 'f16']:
+    defaults.__dict__['float_'] = jnp.float16
+    defaults.__dict__['ti_float'] = ti.float16
+  elif dtype in [jnp.float32, 'float32', 'f32']:
+    defaults.__dict__['float_'] = jnp.float32
+    defaults.__dict__['ti_float'] = ti.float32
+  elif dtype in [jnp.float64, 'float64', 'f64']:
+    defaults.__dict__['float_'] = jnp.float64
+    defaults.__dict__['ti_float'] = ti.float64
+  else:
+    raise NotImplementedError
 
 
 def get_float():
@@ -431,9 +435,7 @@ def get_float():
   dftype: type
     The default float data type.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.float_
+  return defaults.float_
 
 
 def set_int(dtype: type):
@@ -444,12 +446,20 @@ def set_int(dtype: type):
   dtype: type
     The integer type.
   """
-  if dtype not in [jnp.int8, jnp.int16, jnp.int32, jnp.int64,
-                   jnp.uint8, jnp.uint16, jnp.uint32, jnp.uint64, ]:
-    raise TypeError(f'Integer data type {dtype} is not supported.')
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['int_'] = dtype
+  if dtype in [jnp.int8, 'int8', 'i8']:
+    defaults.__dict__['int_'] = jnp.int8
+    defaults.__dict__['ti_int'] = ti.int8
+  elif dtype in [jnp.int16, 'int16', 'i16']:
+    defaults.__dict__['int_'] = jnp.int16
+    defaults.__dict__['ti_int'] = ti.int16
+  elif dtype in [jnp.int32, 'int32', 'i32']:
+    defaults.__dict__['int_'] = jnp.int32
+    defaults.__dict__['ti_int'] = ti.int32
+  elif dtype in [jnp.int64, 'int64', 'i64']:
+    defaults.__dict__['int_'] = jnp.int64
+    defaults.__dict__['ti_int'] = ti.int64
+  else:
+    raise NotImplementedError
 
 
 def get_int():
@@ -460,9 +470,7 @@ def get_int():
   dftype: type
     The default int data type.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.int_
+  return defaults.int_
 
 
 def set_bool(dtype: type):
@@ -473,9 +481,7 @@ def set_bool(dtype: type):
   dtype: type
     The bool type.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['bool_'] = dtype
+  defaults.__dict__['bool_'] = dtype
 
 
 def get_bool():
@@ -486,9 +492,7 @@ def get_bool():
   dftype: type
     The default bool data type.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.bool_
+  return defaults.bool_
 
 
 def set_complex(dtype: type):
@@ -499,9 +503,7 @@ def set_complex(dtype: type):
   dtype: type
     The complex type.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['complex_'] = dtype
+  defaults.__dict__['complex_'] = dtype
 
 
 def get_complex():
@@ -512,9 +514,7 @@ def get_complex():
   dftype: type
     The default complex data type.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.complex_
+  return defaults.complex_
 
 
 # numerical precision
@@ -529,9 +529,7 @@ def set_dt(dt):
       Numerical integration precision.
   """
   assert isinstance(dt, float), f'"dt" must a float, but we got {dt}'
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['dt'] = dt
+  defaults.__dict__['dt'] = dt
 
 
 def get_dt():
@@ -542,9 +540,7 @@ def get_dt():
   dt : float
       Numerical integration precision.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.dt
+  return defaults.dt
 
 
 def set_mode(mode: modes.Mode):
@@ -558,9 +554,7 @@ def set_mode(mode: modes.Mode):
   if not isinstance(mode, modes.Mode):
     raise TypeError(f'Must be instance of brainpy.math.Mode. '
                     f'But we got {type(mode)}: {mode}')
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['mode'] = mode
+  defaults.__dict__['mode'] = mode
 
 
 def get_mode() -> modes.Mode:
@@ -571,9 +565,7 @@ def get_mode() -> modes.Mode:
   mode: Mode
     The default computing mode.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.mode
+  return defaults.mode
 
 
 def set_membrane_scaling(membrane_scaling: scales.Scaling):
@@ -587,9 +579,7 @@ def set_membrane_scaling(membrane_scaling: scales.Scaling):
   if not isinstance(membrane_scaling, scales.Scaling):
     raise TypeError(f'Must be instance of brainpy.math.Scaling. '
                     f'But we got {type(membrane_scaling)}: {membrane_scaling}')
-  global bm
-  if bm is None: from brainpy import math as bm
-  bm.__dict__['membrane_scaling'] = membrane_scaling
+  defaults.__dict__['membrane_scaling'] = membrane_scaling
 
 
 def get_membrane_scaling() -> scales.Scaling:
@@ -600,9 +590,7 @@ def get_membrane_scaling() -> scales.Scaling:
   membrane_scaling: Scaling
     The default computing membrane_scaling.
   """
-  global bm
-  if bm is None: from brainpy import math as bm
-  return bm.membrane_scaling
+  return defaults.membrane_scaling
 
 
 def enable_x64(x64=None):
