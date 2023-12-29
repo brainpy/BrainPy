@@ -61,7 +61,7 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
   where :math:`\alpha_{x}` and :math:`\beta_{x}` are rate constants.
 
   .. versionadded:: 2.1.9
-     Model the conductance-based neuron model.
+     Modeling the conductance-based neuron model.
 
   Parameters
   ----------

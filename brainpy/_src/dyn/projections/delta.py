@@ -23,7 +23,13 @@ class _Delta:
 
 
 class HalfProjDelta(Projection):
-  """Delta synaptic projection.
+  """Defining the half-part of the synaptic projection for the Delta synapse model.
+
+  The synaptic projection requires the input is the spiking data, otherwise
+  the synapse is not the Delta synapse model.
+
+  The ``half-part`` means that the model only includes ``comm`` -> ``syn`` -> ``out`` -> ``post``.
+  Therefore, the model's ``update`` function needs the manual providing of the spiking input.
 
   **Model Descriptions**
 
@@ -103,7 +109,13 @@ class HalfProjDelta(Projection):
 
 
 class FullProjDelta(Projection):
-  """Delta synaptic projection.
+  """Full-chain of the synaptic projection for the Delta synapse model.
+
+  The synaptic projection requires the input is the spiking data, otherwise
+  the synapse is not the Delta synapse model.
+
+  The ``full-chain`` means that the model needs to provide all information needed for a projection,
+  including ``pre`` -> ``delay`` -> ``comm`` -> ``post``.
 
   **Model Descriptions**
 
@@ -121,36 +133,31 @@ class FullProjDelta(Projection):
 
   **Code Examples**
 
-  To simulate an E/I balanced network model:
-
   .. code-block::
 
-      class EINet(bp.DynSysGroup):
+      import brainpy as bp
+      import brainpy.math as bm
+
+
+      class Net(bp.DynamicalSystem):
         def __init__(self):
           super().__init__()
-          self.N = bp.dyn.LifRef(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
-                                 V_initializer=bp.init.Normal(-55., 2.))
-          self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
-          self.syn1 = bp.dyn.Expon(size=3200, tau=5.)
-          self.syn2 = bp.dyn.Expon(size=800, tau=10.)
-          self.E = bp.dyn.VanillaProj(comm=bp.dnn.JitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
-                                      out=bp.dyn.COBA(E=0.),
-                                      post=self.N)
-          self.I = bp.dyn.VanillaProj(comm=bp.dnn.JitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
-                                      out=bp.dyn.COBA(E=-80.),
-                                      post=self.N)
 
-        def update(self, input):
-          spk = self.delay.at('I')
-          self.E(self.syn1(spk[:3200]))
-          self.I(self.syn2(spk[3200:]))
-          self.delay(self.N(input))
-          return self.N.spike.value
+          self.pre = bp.dyn.PoissonGroup(10, 100.)
+          self.post = bp.dyn.LifRef(1)
+          self.syn = bp.dyn.FullProjDelta(self.pre, 0., bp.dnn.Linear(10, 1, bp.init.OneInit(2.)), self.post)
 
-      model = EINet()
-      indices = bm.arange(1000)
-      spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-      bp.visualize.raster_plot(indices, spks, show=True)
+        def update(self):
+          self.syn()
+          self.pre()
+          self.post()
+          return self.post.V.value
+
+
+      net = Net()
+      indices = bm.arange(1000).to_numpy()
+      vs = bm.for_loop(net.step_run, indices, progress_bar=True)
+      bp.visualize.line_plot(indices, vs, show=True)
 
 
   Args:

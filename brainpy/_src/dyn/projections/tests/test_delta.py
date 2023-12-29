@@ -22,7 +22,7 @@ def test1():
   net = NetForHalfProj()
   indices = bm.arange(1000).to_numpy()
   vs = bm.for_loop(net.step_run, indices, progress_bar=True)
-  bp.visualize.line_plot(indices, vs, show=True)
+  bp.visualize.line_plot(indices, vs, show=False)
   plt.close('all')
 
 
@@ -45,7 +45,7 @@ def test2():
   net = NetForFullProj()
   indices = bm.arange(1000).to_numpy()
   vs = bm.for_loop(net.step_run, indices, progress_bar=True)
-  bp.visualize.line_plot(indices, vs, show=True)
+  bp.visualize.line_plot(indices, vs, show=False)
   plt.close('all')
 
 

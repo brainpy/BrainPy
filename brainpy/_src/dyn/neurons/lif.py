@@ -5,12 +5,12 @@ from jax.lax import stop_gradient
 
 import brainpy.math as bm
 from brainpy._src.context import share
+from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
+from brainpy._src.dyn.neurons.base import GradNeuDyn
 from brainpy._src.initialize import ZeroInit, OneInit
 from brainpy._src.integrators import odeint, JointEq
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
-from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
-from brainpy._src.dyn.neurons.base import GradNeuDyn
 
 __all__ = [
   'IF',
@@ -994,6 +994,7 @@ class ExpIFRefLTC(ExpIFLTC):
     %s
 
   """
+
   def __init__(
       self,
       size: Shape,
@@ -1221,6 +1222,7 @@ class ExpIFRef(ExpIFRefLTC):
     %s
     %s
   """
+
   def derivative(self, V, t, I):
     exp_v = self.delta_T * bm.exp((V - self.V_T) / self.delta_T)
     dvdt = (- (V - self.V_rest) + exp_v + self.R * I) / self.tau
@@ -1424,7 +1426,8 @@ class AdExIFLTC(GradNeuDyn):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V, w = self.integral(self.V.value, self.w.value, t, x, dt) + self.sum_delta_inputs()
+    V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -1756,7 +1759,8 @@ class AdExIFRefLTC(AdExIFLTC):
     x = 0. if x is None else x
 
     # integrate membrane potential
-    V, w = self.integral(self.V.value, self.w.value, t, x, dt) + self.sum_delta_inputs()
+    V, w = self.integral(self.V.value, self.w.value, t, x, dt)
+    V += self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -2444,7 +2448,6 @@ class QuaIFRef(QuaIFRefLTC):
     %s
   """
 
-
   def derivative(self, V, t, I):
     dVdt = (self.c * (V - self.V_rest) * (V - self.V_c) + self.R * I) / self.tau
     return dVdt
@@ -2633,7 +2636,7 @@ class AdQuaIFLTC(GradNeuDyn):
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
-    V = V + self.sum_delta_inputs()
+    V += self.sum_delta_inputs()
 
     # spike, spiking time, and membrane potential reset
     if isinstance(self.mode, bm.TrainingMode):
@@ -2940,7 +2943,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
 
     # integrate membrane potential
     V, w = self.integral(self.V.value, self.w.value, t, x, dt)
-    V +=  self.sum_delta_inputs()
+    V += self.sum_delta_inputs()
 
     # refractory
     refractory = (t - self.t_last_spike) <= self.tau_ref
@@ -3576,7 +3579,6 @@ class GifRefLTC(GifLTC):
     %s
 """
 
-
   def __init__(
       self,
       size: Shape,
@@ -3843,7 +3845,6 @@ class GifRef(GifRefLTC):
     %s
     %s
 """
-
 
   def dV(self, V, t, I1, I2, I):
     return (- (V - self.V_rest) + self.R * (I + I1 + I2)) / self.tau
@@ -4495,7 +4496,7 @@ class IzhikevichRef(IzhikevichRefLTC):
     return super().update(x)
 
 
-Izhikevich.__doc__ = Izhikevich.__doc__ %(pneu_doc, dpneu_doc)
-IzhikevichRefLTC.__doc__ = IzhikevichRefLTC.__doc__ %(pneu_doc, dpneu_doc, ref_doc)
-IzhikevichRef.__doc__ = IzhikevichRef.__doc__ %(pneu_doc, dpneu_doc, ref_doc)
-IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ %()
+Izhikevich.__doc__ = Izhikevich.__doc__ % (pneu_doc, dpneu_doc)
+IzhikevichRefLTC.__doc__ = IzhikevichRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
+IzhikevichRef.__doc__ = IzhikevichRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
+IzhikevichLTC.__doc__ = IzhikevichLTC.__doc__ % ()
