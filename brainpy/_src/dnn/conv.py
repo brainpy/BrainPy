@@ -4,10 +4,10 @@ from typing import Union, Tuple, Optional, Sequence, Callable
 
 from jax import lax
 
-from brainpy import math as bm, tools, check
+from brainpy import math as bm, tools
+from brainpy._src.dnn.base import Layer
 from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
 from brainpy.types import ArrayType
-from brainpy._src.dnn.base import Layer
 
 __all__ = [
   'Conv1d', 'Conv2d', 'Conv3d',
@@ -488,9 +488,7 @@ class _GeneralConvTranspose(Layer):
       mode: bm.Mode = None,
       name: str = None,
   ):
-    super(_GeneralConvTranspose, self).__init__(name=name, mode=mode)
-
-    assert self.mode.is_parent_of(bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
+    super().__init__(name=name, mode=mode)
 
     self.num_spatial_dims = num_spatial_dims
     self.in_channels = in_channels
@@ -586,22 +584,17 @@ class ConvTranspose1d(_GeneralConvTranspose):
     """Initializes the module.
 
     Args:
-      output_channels: Number of output channels.
-      kernel_shape: The shape of the kernel. Either an integer or a sequence of
+      in_channels: Number of input channels.
+      out_channels: Number of output channels.
+      kernel_size: The shape of the kernel. Either an integer or a sequence of
         length 1.
       stride: Optional stride for the kernel. Either an integer or a sequence of
         length 1. Defaults to 1.
-      output_shape: Output shape of the spatial dimensions of a transpose
-        convolution. Can be either an integer or an iterable of integers. If a
-        `None` value is given, a default shape is automatically calculated.
       padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
         Defaults to ``SAME``. See:
         https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
-      with_bias: Whether to add a bias. By default, true.
-      w_init: Optional weight initialization. By default, truncated normal.
-      b_init: Optional bias initialization. By default, zeros.
-      data_format: The data format of the input. Either ``NWC`` or ``NCW``. By
-        default, ``NWC``.
+      w_initializer: Optional weight initialization. By default, truncated normal.
+      b_initializer: Optional bias initialization. By default, zeros.
       mask: Optional mask of the weights.
       name: The name of the module.
     """
@@ -648,6 +641,7 @@ class ConvTranspose2d(_GeneralConvTranspose):
     """Initializes the module.
 
     Args:
+      in_channels: Number of input channels.
       out_channels: Number of output channels.
       kernel_size: The shape of the kernel. Either an integer or a sequence of
         length 2.
@@ -704,22 +698,17 @@ class ConvTranspose3d(_GeneralConvTranspose):
     """Initializes the module.
 
     Args:
-      output_channels: Number of output channels.
-      kernel_shape: The shape of the kernel. Either an integer or a sequence of
+      in_channels: Number of input channels.
+      out_channels: Number of output channels.
+      kernel_size: The shape of the kernel. Either an integer or a sequence of
         length 3.
       stride: Optional stride for the kernel. Either an integer or a sequence of
         length 3. Defaults to 1.
-      output_shape: Output shape of the spatial dimensions of a transpose
-        convolution. Can be either an integer or an iterable of integers. If a
-        `None` value is given, a default shape is automatically calculated.
       padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
         Defaults to ``SAME``. See:
         https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
-      with_bias: Whether to add a bias. By default, true.
-      w_init: Optional weight initialization. By default, truncated normal.
-      b_init: Optional bias initialization. By default, zeros.
-      data_format: The data format of the input. Either ``NDHWC`` or ``NCDHW``.
-        By default, ``NDHWC``.
+      w_initializer: Optional weight initialization. By default, truncated normal.
+      b_initializer: Optional bias initialization. By default, zeros.
       mask: Optional mask of the weights.
       name: The name of the module.
     """
