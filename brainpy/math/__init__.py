@@ -97,5 +97,6 @@ __deprecations = {
                  "Use brainpy.math.event.info instead.",
                  event.info),
 }
-__getattr__ = deprecation_getattr(__name__, __deprecations, defaults.redirects)
+
+__getattr__ = deprecation_getattr(__name__, __deprecations, redirects=defaults.__all__, redirect_module=defaults)
 del deprecation_getattr, defaults

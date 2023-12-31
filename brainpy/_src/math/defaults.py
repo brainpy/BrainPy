@@ -36,13 +36,3 @@ ti_float = ti.float64 if config.read('jax_enable_x64') else ti.float32
 # '''Default complex data type.'''
 complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
 
-# redirects
-redirects = {'mode': mode,
-             'membrane_scaling': membrane_scaling,
-             'dt': dt,
-             'bool_': bool_,
-             'int_': int_,
-             'ti_int': ti_int,
-             'float_': float_,
-             'ti_float': ti_float,
-             'complex_': complex_}
