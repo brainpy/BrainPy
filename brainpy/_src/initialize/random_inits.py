@@ -227,7 +227,7 @@ class VarianceScaling(_InterLayerInitializer):
     variance = (self.scale / denominator).astype(dtype)
     if self.distribution == "truncated_normal":
       stddev = (jnp.sqrt(variance) / .87962566103423978).astype(dtype)
-      res = self.rng.truncated_normal(-2, 2, shape, dtype) * stddev
+      res = self.rng.truncated_normal(-2, 2, shape).astype(dtype) * stddev
     elif self.distribution == "normal":
       res = self.rng.randn(*shape) * jnp.sqrt(variance).astype(dtype)
     elif self.distribution == "uniform":
