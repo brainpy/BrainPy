@@ -41,7 +41,7 @@ __all__ = [
   'is_all_objs',
   'jit_error',
   'jit_error_checking',
-  'jit_error2',
+  'jit_error_checking_no_args',
 
   'serialize_kwargs',
 ]
@@ -349,13 +349,13 @@ def is_float(
     if not isinstance(value, (float, np.floating)):
       raise ValueError(f'{name} must be a float, but got {type(value)}')
   if min_bound is not None:
-    jit_error2(value < min_bound,
-               ValueError(f"{name} must be a float bigger than {min_bound}, "
+    jit_error_checking_no_args(value < min_bound,
+                               ValueError(f"{name} must be a float bigger than {min_bound}, "
                           f"while we got {value}"))
 
   if max_bound is not None:
-    jit_error2(value > max_bound,
-               ValueError(f"{name} must be a float smaller than {max_bound}, "
+    jit_error_checking_no_args(value > max_bound,
+                               ValueError(f"{name} must be a float smaller than {max_bound}, "
                           f"while we got {value}"))
   return value
 
@@ -387,12 +387,12 @@ def is_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none
     else:
       raise ValueError(f'{name} must be an int, but got {value}')
   if min_bound is not None:
-    jit_error2(jnp.any(value < min_bound),
-               ValueError(f"{name} must be an int bigger than {min_bound}, "
+    jit_error_checking_no_args(jnp.any(value < min_bound),
+                               ValueError(f"{name} must be an int bigger than {min_bound}, "
                           f"while we got {value}"))
   if max_bound is not None:
-    jit_error2(jnp.any(value > max_bound),
-               ValueError(f"{name} must be an int smaller than {max_bound}, "
+    jit_error_checking_no_args(jnp.any(value > max_bound),
+                               ValueError(f"{name} must be an int smaller than {max_bound}, "
                           f"while we got {value}"))
   return value
 
@@ -596,7 +596,7 @@ def jit_error(pred, err_fun, err_arg=None):
 
   Parameters
   ----------
-  pred: bool
+  pred: bool, Array
     The boolean prediction.
   err_fun: callable
     The error function, which raise errors.
@@ -610,7 +610,7 @@ def jit_error(pred, err_fun, err_arg=None):
 jit_error_checking = jit_error
 
 
-def jit_error2(pred: bool, err: Exception):
+def jit_error_checking_no_args(pred: bool, err: Exception):
   """Check errors in a jit function.
 
   Parameters
