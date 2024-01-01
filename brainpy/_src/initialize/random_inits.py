@@ -164,8 +164,7 @@ class TruncatedNormal(_InterLayerInitializer):
     return bm.asarray(weights, dtype=dtype)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(loc={self.loc}, scale={self.scale}, 
-      lower={self.lower}, upper={self.upper}, rng={self.rng})'
+    return f'{self.__class__.__name__}(loc={self.loc}, scale={self.scale}, lower={self.lower}, upper={self.upper}, rng={self.rng})'
   
 
 class Gamma(_InterLayerInitializer):
