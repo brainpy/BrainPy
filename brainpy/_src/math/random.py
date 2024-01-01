@@ -791,24 +791,27 @@ class RandomState(Variable):
     r = jr.uniform(key, shape=_size2shape(size), minval=low, maxval=high)
     return _return(r)
 
-  def truncated_normal(self, lower, upper, size=None, scale=None, key=None):
-    lower = _as_jax_array(lower)
-    lower = _check_py_seq(lower)
-    upper = _as_jax_array(upper)
-    upper = _check_py_seq(upper)
-    scale = _as_jax_array(scale)
-    scale = _check_py_seq(scale)
+  def truncated_normal(self, lower, upper, size=None, scale=1, loc=0, key=None):
+    lower = _check_py_seq(_as_jax_array(lower))
+    upper = _check_py_seq(_as_jax_array(upper))
+    loc = _check_py_seq(_as_jax_array(loc))
+    scale = _check_py_seq(_as_jax_array(scale))
+    lower = (lower - loc) / scale
+    upper = (upper - loc) / scale
+
     if size is None:
       size = lax.broadcast_shapes(jnp.shape(lower),
                                   jnp.shape(upper),
+                                  jnp.shape(loc),
                                   jnp.shape(scale))
     key = self.split_key() if key is None else _formalize_key(key)
     rands = jr.truncated_normal(key,
                                 lower=lower,
                                 upper=upper,
                                 shape=_size2shape(size))
-    if scale is not None:
-      rands = rands * scale
+    rands = rands * scale
+    rands += loc
+
     return _return(rands)
 
   def _check_p(self, p):
@@ -1910,7 +1913,7 @@ def uniform(low=0.0, high=1.0, size=None, key=None):
   return DEFAULT.uniform(low, high, size, key=key)
 
 
-def truncated_normal(lower, upper, size=None, scale=None, key=None):
+def truncated_normal(lower, upper, loc=0, size=None, scale=None, key=None):
   """Sample truncated standard normal random values with given shape and dtype.
 
   Parameters
@@ -1921,6 +1924,10 @@ def truncated_normal(lower, upper, size=None, scale=None, key=None):
   upper : float, ndarray
     A float or array of floats representing the  upper bound for
     truncation. Must be broadcast-compatible with ``lower``.
+  loc : float, ndarray
+    Mean ("centre") of the distribution before truncating. Note that 
+    the mean of the truncated distribution will not be exactly equal 
+    to ``loc``.
   size : optional, list of int, tuple of int
     A tuple of nonnegative integers specifying the result
     shape. Must be broadcast-compatible with ``lower`` and ``upper``. The
@@ -1937,7 +1944,7 @@ def truncated_normal(lower, upper, size=None, scale=None, key=None):
     ``shape`` is not None, or else by broadcasting ``lower`` and ``upper``.
     Returns values in the open interval ``(lower, upper)``.
   """
-  return DEFAULT.truncated_normal(lower, upper, size, scale, key=key)
+  return DEFAULT.truncated_normal(lower, upper, size, scale, loc=loc, key=key)
 
 
 def bernoulli(p=0.5, size=None, key=None):
