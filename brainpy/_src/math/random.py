@@ -1564,7 +1564,6 @@ def randn(*dn, key=None):
   --------
   standard_normal : Similar, but takes a tuple as its argument.
   normal : Also accepts mu and sigma arguments.
-  random.Generator.standard_normal: which should be used for new code.
 
   Notes
   -----
@@ -1770,10 +1769,6 @@ def permutation(x, axis: int = 0, independent: bool = False, key=None):
   out : ndarray
       Permuted sequence or array range.
 
-  See Also
-  --------
-  random.Generator.permutation: which should be used for new code.
-
   Examples
   --------
   >>> import brainpy.math as bm
@@ -1808,10 +1803,6 @@ def shuffle(x, axis=0, key=None):
   Returns
   -------
   None
-
-  See Also
-  --------
-  random.Generator.shuffle: which should be used for new code.
 
   Examples
   --------
@@ -1867,10 +1858,6 @@ def beta(a, b, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized beta distribution.
-
-  See Also
-  --------
-  random.Generator.beta: which should be used for new code.
   """
   return DEFAULT.beta(a, b, size=size, key=key)
 
@@ -1893,11 +1880,6 @@ def exponential(scale=None, size=None, key=None):
   the size of raindrops measured over many rainstorms [1]_, or the time
   between page requests to Wikipedia [2]_.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.exponential`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   scale : float or array_like of floats
@@ -1913,10 +1895,6 @@ def exponential(scale=None, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized exponential distribution.
-
-  See Also
-  --------
-  random.Generator.exponential: which should be used for new code.
 
   References
   ----------
@@ -1938,11 +1916,6 @@ def gamma(shape, scale=None, size=None, key=None):
   `shape` (sometimes designated "k") and `scale` (sometimes designated
   "theta"), where both parameters are > 0.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.gamma`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   shape : float or array_like of floats
@@ -1961,11 +1934,6 @@ def gamma(shape, scale=None, size=None, key=None):
   out : ndarray or scalar
       Drawn samples from the parameterized gamma distribution.
 
-  See Also
-  --------
-  scipy.stats.gamma : probability density function, distribution or
-      cumulative density function, etc.
-  random.Generator.gamma: which should be used for new code.
 
   Notes
   -----
@@ -1999,11 +1967,6 @@ def gumbel(loc=None, scale=None, size=None, key=None):
   Draw samples from a Gumbel distribution with specified location and
   scale.  For more information on the Gumbel distribution, see
   Notes and References below.
-
-  .. note::
-      New code should use the `~numpy.random.Generator.gumbel`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
 
   Parameters
   ----------
@@ -2076,11 +2039,6 @@ def laplace(loc=None, scale=None, size=None, key=None):
   difference between two independent, identically distributed exponential
   random variables.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.laplace`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   loc : float or array_like of floats, optional
@@ -2098,10 +2056,6 @@ def laplace(loc=None, scale=None, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized Laplace distribution.
-
-  See Also
-  --------
-  random.Generator.laplace: which should be used for new code.
 
   Notes
   -----
@@ -2162,11 +2116,6 @@ def logistic(loc=None, scale=None, size=None, key=None):
   Samples are drawn from a logistic distribution with specified
   parameters, loc (location or mean, also median), and scale (>0).
 
-  .. note::
-      New code should use the `~numpy.random.Generator.logistic`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   loc : float or array_like of floats, optional
@@ -2184,12 +2133,6 @@ def logistic(loc=None, scale=None, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized logistic distribution.
-
-  See Also
-  --------
-  scipy.stats.logistic : probability density function, distribution or
-      cumulative density function, etc.
-  random.Generator.logistic: which should be used for new code.
 
   Notes
   -----
@@ -2250,11 +2193,6 @@ def normal(loc=None, scale=None, size=None, key=None):
   by a large number of tiny, random disturbances, each with its own
   unique distribution [2]_.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.normal`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   loc : float or array_like of floats
@@ -2272,12 +2210,6 @@ def normal(loc=None, scale=None, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized normal distribution.
-
-  See Also
-  --------
-  scipy.stats.norm : probability density function, distribution or
-      cumulative density function, etc.
-  random.Generator.normal: which should be used for new code.
 
   Notes
   -----
@@ -2361,11 +2293,6 @@ def pareto(a, size=None, key=None):
   20 percent of the range, while the other 20 percent fill the
   remaining 80 percent of the range.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.pareto`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   a : float or array_like of floats
@@ -2387,7 +2314,6 @@ def pareto(a, size=None, key=None):
       cumulative density function, etc.
   scipy.stats.genpareto : probability density function, distribution or
       cumulative density function, etc.
-  random.Generator.pareto: which should be used for new code.
 
   Notes
   -----
@@ -2444,11 +2370,6 @@ def poisson(lam=1.0, size=None, key=None):
   The Poisson distribution is the limit of the binomial distribution
   for large N.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.poisson`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   lam : float or array_like of floats
@@ -2465,10 +2386,6 @@ def poisson(lam=1.0, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized Poisson distribution.
-
-  See Also
-  --------
-  random.Generator.poisson: which should be used for new code.
 
   Notes
   -----
@@ -2519,12 +2436,6 @@ def standard_cauchy(size=None, key=None):
 
   Also known as the Lorentz distribution.
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.standard_cauchy`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   size : int or tuple of ints, optional
@@ -2536,10 +2447,6 @@ def standard_cauchy(size=None, key=None):
   -------
   samples : ndarray or scalar
       The drawn samples.
-
-  See Also
-  --------
-  random.Generator.standard_cauchy: which should be used for new code.
 
   Notes
   -----
@@ -2592,12 +2499,6 @@ def standard_exponential(size=None, key=None):
   `standard_exponential` is identical to the exponential distribution
   with a scale parameter of 1.
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.standard_exponential`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   size : int or tuple of ints, optional
@@ -2609,10 +2510,6 @@ def standard_exponential(size=None, key=None):
   -------
   out : float or ndarray
       Drawn samples.
-
-  See Also
-  --------
-  random.Generator.standard_exponential: which should be used for new code.
 
   Examples
   --------
@@ -2629,12 +2526,6 @@ def standard_gamma(shape, size=None, key=None):
 
   Samples are drawn from a Gamma distribution with specified parameters,
   shape (sometimes designated "k") and scale=1.
-
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.standard_gamma`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
 
   Parameters
   ----------
@@ -2655,7 +2546,6 @@ def standard_gamma(shape, size=None, key=None):
   --------
   scipy.stats.gamma : probability density function, distribution or
       cumulative density function, etc.
-  random.Generator.standard_gamma: which should be used for new code.
 
   Notes
   -----
@@ -2703,12 +2593,6 @@ def standard_normal(size=None, key=None):
   r"""
   Draw samples from a standard Normal distribution (mean=0, stdev=1).
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.standard_normal`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   size : int or tuple of ints, optional
@@ -2727,7 +2611,6 @@ def standard_normal(size=None, key=None):
   normal :
       Equivalent function with additional ``loc`` and ``scale`` arguments
       for setting the mean and standard deviation.
-  random.Generator.standard_normal: which should be used for new code.
 
   Notes
   -----
@@ -2771,11 +2654,6 @@ def standard_t(df, size=None, key=None):
   large, the result resembles that of the standard normal
   distribution (`standard_normal`).
 
-  .. note::
-      New code should use the `~numpy.random.Generator.standard_t`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   df : float or array_like of floats
@@ -2790,10 +2668,6 @@ def standard_t(df, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized standard Student's t distribution.
-
-  See Also
-  --------
-  random.Generator.standard_t: which should be used for new code.
 
   Notes
   -----
@@ -2880,11 +2754,6 @@ def uniform(low=0.0, high=1.0, size=None, key=None):
   any value within the given interval is equally likely to be drawn
   by `uniform`.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.uniform`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   low : float or array_like of floats, optional
@@ -2917,7 +2786,6 @@ def uniform(low=0.0, high=1.0, size=None, key=None):
   rand : Convenience function that accepts dimensions as input, e.g.,
          ``rand(2,2)`` would generate a 2-by-2 array of floats,
          uniformly distributed over ``[0, 1)``.
-  random.Generator.uniform: which should be used for new code.
 
   Notes
   -----
@@ -3053,11 +2921,6 @@ def lognormal(mean=None, sigma=None, size=None, key=None):
   deviation are not the values for the distribution itself, but of the
   underlying normal distribution it is derived from.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.lognormal`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   mean : float or array_like of floats, optional
@@ -3080,7 +2943,6 @@ def lognormal(mean=None, sigma=None, size=None, key=None):
   --------
   scipy.stats.lognorm : probability density function, distribution,
       cumulative density function, etc.
-  random.Generator.lognormal: which should be used for new code.
 
   Notes
   -----
@@ -3164,11 +3026,6 @@ def binomial(n, p, size=None, key=None):
   n an integer >= 0 and p is in the interval [0,1]. (n may be
   input as a float, but it is truncated to an integer in use)
 
-  .. note::
-      New code should use the `~numpy.random.Generator.binomial`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   n : int or array_like of ints
@@ -3192,7 +3049,6 @@ def binomial(n, p, size=None, key=None):
   --------
   scipy.stats.binom : probability density function, distribution or
       cumulative density function, etc.
-  random.Generator.binomial: which should be used for new code.
 
   Notes
   -----
@@ -3255,11 +3111,6 @@ def chisquare(df, size=None, key=None):
   resulting distribution is chi-square (see Notes).  This distribution
   is often used in hypothesis testing.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.chisquare`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   df : float or array_like of floats
@@ -3280,10 +3131,6 @@ def chisquare(df, size=None, key=None):
   ValueError
       When `df` <= 0 or when an inappropriate `size` (e.g. ``size=-1``)
       is given.
-
-  See Also
-  --------
-  random.Generator.chisquare: which should be used for new code.
 
   Notes
   -----
@@ -3328,11 +3175,6 @@ def dirichlet(alpha, size=None, key=None):
   is a conjugate prior of a multinomial distribution in Bayesian
   inference.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.dirichlet`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   alpha : sequence of floats, length k
@@ -3352,10 +3194,6 @@ def dirichlet(alpha, size=None, key=None):
   ------
   ValueError
       If any value in ``alpha`` is less than or equal to zero
-
-  See Also
-  --------
-  random.Generator.dirichlet: which should be used for new code.
 
   Notes
   -----
@@ -3420,11 +3258,6 @@ def geometric(p, size=None, key=None):
 
   where `p` is the probability of success of an individual trial.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.geometric`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   p : float or array_like of floats
@@ -3439,10 +3272,6 @@ def geometric(p, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized geometric distribution.
-
-  See Also
-  --------
-  random.Generator.geometric: which should be used for new code.
 
   Examples
   --------
@@ -3473,11 +3302,6 @@ def f(dfnum, dfden, size=None, key=None):
   that arises in ANOVA tests, and is the ratio of two chi-square
   variates.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.f`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   dfnum : float or array_like of floats
@@ -3499,7 +3323,6 @@ def f(dfnum, dfden, size=None, key=None):
   --------
   scipy.stats.f : probability density function, distribution or
       cumulative density function, etc.
-  random.Generator.f: which should be used for new code.
 
   Notes
   -----
@@ -3557,12 +3380,6 @@ def hypergeometric(ngood, nbad, nsample, size=None, key=None):
   a bad selection), and `nsample` (number of items sampled, which is less
   than or equal to the sum ``ngood + nbad``).
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.hypergeometric`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   ngood : int or array_like of ints
@@ -3590,7 +3407,6 @@ def hypergeometric(ngood, nbad, nsample, size=None, key=None):
   --------
   scipy.stats.hypergeom : probability density function, distribution or
       cumulative density function, etc.
-  random.Generator.hypergeometric: which should be used for new code.
 
   Notes
   -----
@@ -3653,11 +3469,6 @@ def logseries(p, size=None, key=None):
   Samples are drawn from a log series distribution with specified
   shape parameter, 0 <= ``p`` < 1.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.logseries`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   p : float or array_like of floats
@@ -3677,7 +3488,6 @@ def logseries(p, size=None, key=None):
   --------
   scipy.stats.logser : probability density function, distribution or
       cumulative density function, etc.
-  random.Generator.logseries: which should be used for new code.
 
   Notes
   -----
@@ -3739,11 +3549,6 @@ def multinomial(n, pvals, size=None, key=None):
   ``X_i = [X_0, X_1, ..., X_p]``, represent the number of times the
   outcome was ``i``.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.multinomial`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   n : int
@@ -3766,10 +3571,6 @@ def multinomial(n, pvals, size=None, key=None):
 
       In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
       value drawn from the distribution.
-
-  See Also
-  --------
-  random.Generator.multinomial: which should be used for new code.
 
   Examples
   --------
@@ -3823,12 +3624,6 @@ def multivariate_normal(mean, cov, size=None, method: str = 'cholesky', key=None
   (average or "center") and variance (standard deviation, or "width,"
   squared) of the one-dimensional normal distribution.
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.multivariate_normal`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   mean : 1-D array_like, of length N
@@ -3855,10 +3650,6 @@ def multivariate_normal(mean, cov, size=None, method: str = 'cholesky', key=None
 
       In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
       value drawn from the distribution.
-
-  See Also
-  --------
-  random.Generator.multivariate_normal: which should be used for new code.
 
   Notes
   -----
@@ -3955,12 +3746,6 @@ def negative_binomial(n, p, size=None, key=None):
   parameters, `n` successes and `p` probability of success where `n`
   is > 0 and `p` is in the interval [0, 1].
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.negative_binomial`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   n : float or array_like of floats
@@ -3979,10 +3764,6 @@ def negative_binomial(n, p, size=None, key=None):
       Drawn samples from the parameterized negative binomial distribution,
       where each sample is equal to N, the number of failures that
       occurred before a total of n successes was reached.
-
-  See Also
-  --------
-  random.Generator.negative_binomial: which should be used for new code.
 
   Notes
   -----
@@ -4035,19 +3816,10 @@ def noncentral_chisquare(df, nonc, size=None, key=None):
   The noncentral :math:`\chi^2` distribution is a generalization of
   the :math:`\chi^2` distribution.
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.noncentral_chisquare`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   df : float or array_like of floats
       Degrees of freedom, must be > 0.
-
-      .. versionchanged:: 1.10.0
-         Earlier NumPy versions required dfnum > 1.
   nonc : float or array_like of floats
       Non-centrality, must be non-negative.
   size : int or tuple of ints, optional
@@ -4060,10 +3832,6 @@ def noncentral_chisquare(df, nonc, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized noncentral chi-square distribution.
-
-  See Also
-  --------
-  random.Generator.noncentral_chisquare: which should be used for new code.
 
   Notes
   -----
@@ -4121,19 +3889,10 @@ def noncentral_f(dfnum, dfden, nonc, size=None, key=None):
   freedom in denominator), where both parameters > 1.
   `nonc` is the non-centrality parameter.
 
-  .. note::
-      New code should use the
-      `~numpy.random.Generator.noncentral_f`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   dfnum : float or array_like of floats
       Numerator degrees of freedom, must be > 0.
-
-      .. versionchanged:: 1.14.0
-         Earlier NumPy versions required dfnum > 1.
   dfden : float or array_like of floats
       Denominator degrees of freedom, must be > 0.
   nonc : float or array_like of floats
@@ -4150,10 +3909,6 @@ def noncentral_f(dfnum, dfden, nonc, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized noncentral Fisher distribution.
-
-  See Also
-  --------
-  random.Generator.noncentral_f: which should be used for new code.
 
   Notes
   -----
@@ -4201,11 +3956,6 @@ def power(a, size=None, key=None):
 
   Also known as the power function distribution.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.power`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   a : float or array_like of floats
@@ -4225,10 +3975,6 @@ def power(a, size=None, key=None):
   ------
   ValueError
       If a <= 0.
-
-  See Also
-  --------
-  random.Generator.power: which should be used for new code.
 
   Notes
   -----
@@ -4305,11 +4051,6 @@ def rayleigh(scale=1.0, size=None, key=None):
   The :math:`\chi` and Weibull distributions are generalizations of the
   Rayleigh.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.rayleigh`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   scale : float or array_like of floats, optional
@@ -4324,10 +4065,6 @@ def rayleigh(scale=1.0, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized Rayleigh distribution.
-
-  See Also
-  --------
-  random.Generator.rayleigh: which should be used for new code.
 
   Notes
   -----
@@ -4380,20 +4117,8 @@ def triangular(size=None, key=None):
   limit right. Unlike the other distributions, these parameters
   directly define the shape of the pdf.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.triangular`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
-  left : float or array_like of floats
-      Lower limit.
-  mode : float or array_like of floats
-      The value where the peak of the distribution occurs.
-      The value must fulfill the condition ``left <= mode <= right``.
-  right : float or array_like of floats
-      Upper limit, must be larger than `left`.
   size : int or tuple of ints, optional
       Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
       ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -4405,10 +4130,6 @@ def triangular(size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized triangular distribution.
-
-  See Also
-  --------
-  random.Generator.triangular: which should be used for new code.
 
   Notes
   -----
@@ -4454,11 +4175,6 @@ def vonmises(mu, kappa, size=None, key=None):
   circle.  It may be thought of as the circular analogue of the normal
   distribution.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.vonmises`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   mu : float or array_like of floats
@@ -4480,7 +4196,6 @@ def vonmises(mu, kappa, size=None, key=None):
   --------
   scipy.stats.vonmises : probability density function, distribution, or
       cumulative density function, etc.
-  random.Generator.vonmises: which should be used for new code.
 
   Notes
   -----
@@ -4539,11 +4254,6 @@ def wald(mean, scale, size=None, key=None):
   because there is an inverse relationship between the time to cover a
   unit distance and distance covered in unit time.
 
-  .. note::
-      New code should use the `~numpy.random.Generator.wald`
-      method of a `~numpy.random.Generator` instance instead;
-      please see the :ref:`random-quick-start`.
-
   Parameters
   ----------
   mean : float or array_like of floats
@@ -4560,10 +4270,6 @@ def wald(mean, scale, size=None, key=None):
   -------
   out : ndarray or scalar
       Drawn samples from the parameterized Wald distribution.
-
-  See Also
-  --------
-  random.Generator.wald: which should be used for new code.
 
   Notes
   -----
@@ -4743,7 +4449,6 @@ def zipf(a, size=None, key=None):
   --------
   scipy.stats.zipf : probability density function, distribution, or
       cumulative density function, etc.
-  random.Generator.zipf: which should be used for new code.
 
   Notes
   -----
