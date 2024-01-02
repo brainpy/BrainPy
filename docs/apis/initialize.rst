@@ -45,6 +45,7 @@ Random Initializers
 
    Normal
    Uniform
+   TruncatedNormal
    VarianceScaling
    KaimingUniform
    KaimingNormal
