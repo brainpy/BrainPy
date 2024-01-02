@@ -2858,6 +2858,10 @@ def truncated_normal(lower, upper, size=None, loc=0., scale=1., dtype=float, key
   upper : float, ndarray
     A float or array of floats representing the  upper bound for
     truncation. Must be broadcast-compatible with ``lower``.
+  loc : float, ndarray
+    Mean ("centre") of the distribution before truncating. Note that 
+    the mean of the truncated distribution will not be exactly equal 
+    to ``loc``.
   size : optional, list of int, tuple of int
     A tuple of nonnegative integers specifying the result
     shape. Must be broadcast-compatible with ``lower`` and ``upper``. The
