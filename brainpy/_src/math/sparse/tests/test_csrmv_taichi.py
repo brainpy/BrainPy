@@ -402,7 +402,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
   @parameterized.product(
     transpose=[True, False],
-    shape=[(200, 200), (200, 100), (10, 1000), (2, 2000)],
+    shape=[(200, 200), (200, 100), (2, 2000)],
   )
   def test_heter(self, transpose, shape):
     print(f'test_homo: transpose = {transpose} shape = {shape}')

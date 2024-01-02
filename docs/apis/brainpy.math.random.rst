@@ -4,10 +4,15 @@
 .. currentmodule:: brainpy.math.random
 .. automodule:: brainpy.math.random
 
+
+
+Random Sampling Functions
+-------------------------
+
+
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   :template: classtemplate.rst
 
    seed
    split_key
@@ -70,6 +75,17 @@
    rand_like
    randint_like
    randn_like
+
+
+Random Generator
+-------------------------
+
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+   :template: classtemplate.rst
+
    RandomState
    Generator
    DEFAULT
