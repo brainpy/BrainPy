@@ -320,7 +320,7 @@ def softplus(x, beta=1, threshold=20):
 
   """
   x = x.value if isinstance(x, Array) else x
-  return jnp.where(x > threshold, x * beta, 1 / beta * jnp.logaddexp(beta * x, 0))
+  return jnp.where(x > threshold, x, 1 / beta * jnp.logaddexp(beta * x, 0))
 
 
 def log_sigmoid(x):
