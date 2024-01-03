@@ -494,7 +494,7 @@ class Alpha(SynDyn):
   .. math::
 
       \begin{aligned}
-      &\tau \frac{d g}{d t}=-\frac{g}{\tau}+h \\
+      &\frac{d g}{d t}=-\frac{g}{\tau}+\frac{h}{\tau} \\
       &\frac{d h}{d t}=-\frac{h}{\tau}+\delta\left(t_{0}-t\right)
       \end{aligned}
 
