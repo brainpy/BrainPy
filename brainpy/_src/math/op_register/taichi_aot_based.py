@@ -2,6 +2,7 @@ import hashlib
 import inspect
 import os
 import pathlib
+import platform
 import re
 from functools import partial, reduce
 from typing import Any, Sequence
@@ -59,10 +60,20 @@ def get_source_with_dependencies(func, visited=None):
 
   return source
 
+# check if Metal is supported
+def is_metal_supported():
+    # first check if we are on macOS
+    if platform.system() != 'Darwin':
+        return False
+
+    if platform.processor() != 'arm':
+        return False
+    return True
 
 ### VARIABLES ###
 home_path = get_home_dir()
 kernels_aot_path = os.path.join(home_path, '.brainpy', 'kernels')
+is_metal_device = is_metal_supported()
 
 
 # check if a kernel exists in the database
@@ -124,7 +135,11 @@ def _build_kernel(
   # init arch
   arch = None
   if device == 'cpu':
-    arch = ti.x64
+    if is_metal_device:
+      arch = ti.arm64
+      device == 'arm64'
+    else:
+      arch = ti.x64
   elif device == 'gpu':
     arch = ti.cuda
 
@@ -328,9 +343,14 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
 def _taichi_cpu_translation_rule(kernel, c, *ins, **kwargs):
   in_out_info = _compile_kernel(kernel, c, 'cpu', *ins, **kwargs)
   ins = [xla_client.ops.Constant(c, v) for v in in_out_info] + list(ins)
+  if is_metal_supported:
+    fn = b'taichi_kernel_aot_call_cpu_arm64'
+  else:
+    fn = b'taichi_kernel_aot_call_cpu'
+
   return xla_client.ops.CustomCallWithLayout(
     c,
-    b'taichi_kernel_aot_call_cpu',
+    fn,
     operands=ins,
     operand_shapes_with_layout=tuple(c.get_shape(value) for value in ins),
     shape_with_layout=xla_client.Shape.tuple_shape(
