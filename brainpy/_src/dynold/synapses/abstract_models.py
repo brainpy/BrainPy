@@ -498,7 +498,7 @@ class DualExponential(_TwoEndConnAlignPre):
     return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
 
 
-class Alpha(DualExponential):
+class Alpha(_TwoEndConnAlignPre):
   r"""Alpha synapse model.
 
   **Model Descriptions**
@@ -593,20 +593,40 @@ class Alpha(DualExponential):
       mode: bm.Mode = None,
       stop_spike_gradient: bool = False,
   ):
-    super(Alpha, self).__init__(pre=pre,
-                                post=post,
-                                conn=conn,
-                                comp_method=comp_method,
-                                delay_step=delay_step,
-                                g_max=g_max,
-                                tau_decay=tau_decay,
-                                tau_rise=tau_decay,
-                                method=method,
-                                output=output,
-                                stp=stp,
-                                name=name,
-                                mode=mode,
-                                stop_spike_gradient=stop_spike_gradient)
+    # parameters
+    self.stop_spike_gradient = stop_spike_gradient
+    self.comp_method = comp_method
+    self.tau_decay = tau_decay
+    if bm.size(self.tau_decay) != 1:
+      raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. '
+                       f'But we got {self.tau_decay}')
+
+    syn = synapses.Alpha(pre.size,
+                         pre.keep_size,
+                         mode=mode,
+                         tau_decay=tau_decay,
+                         method=method)
+
+    super().__init__(pre=pre,
+                     post=post,
+                     syn=syn,
+                     conn=conn,
+                     comp_method=comp_method,
+                     delay_step=delay_step,
+                     g_max=g_max,
+                     output=output,
+                     stp=stp,
+                     name=name,
+                     mode=mode,)
+
+    self.check_post_attrs('input')
+    # copy the references
+    self.g = syn.g
+    self.h = syn.h
+
+  def update(self, pre_spike=None):
+    return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
+
 
 
 class NMDA(_TwoEndConnAlignPre):
