@@ -298,7 +298,7 @@ def leaky_relu(x, negative_slope=1e-2):
   return jnp.where(x >= 0, x, negative_slope * x)
 
 
-def softplus(x, beta=1, threshold=20):
+def softplus(x, beta=1, threshold=40):
   r"""Softplus activation function.
 
   Computes the element-wise function
@@ -316,7 +316,7 @@ def softplus(x, beta=1, threshold=20):
   ----------
   x: The input array.
   beta: the :math:`\beta` value for the Softplus formulation. Default: 1
-  threshold: values above this revert to a linear function. Default: 20
+  threshold: values above this revert to a linear function. Default: 40
 
   """
   x = x.value if isinstance(x, Array) else x

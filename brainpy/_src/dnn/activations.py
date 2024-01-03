@@ -825,7 +825,7 @@ class Softplus(Layer):
 
   Args:
       beta: the :math:`\beta` value for the Softplus formulation. Default: 1
-      threshold: values above this revert to a linear function. Default: 20
+      threshold: values above this revert to a linear function. Default: 40
 
   Shape:
       - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
@@ -843,7 +843,7 @@ class Softplus(Layer):
   beta: int
   threshold: int
 
-  def __init__(self, beta: int = 1, threshold: int = 20) -> None:
+  def __init__(self, beta: int = 1, threshold: int = 40) -> None:
     super().__init__()
     self.beta = beta
     self.threshold = threshold
