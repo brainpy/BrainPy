@@ -492,7 +492,7 @@ class DualExponV2(SynDyn, AlignPost):
 DualExponV2.__doc__ = DualExponV2.__doc__ % (pneu_doc,)
 
 
-class Alpha(DualExpon):
+class Alpha(SynDyn):
   r"""Alpha synapse model.
 
   **Model Descriptions**
@@ -509,7 +509,7 @@ class Alpha(DualExpon):
   .. math::
 
       \begin{aligned}
-      &\frac{d g}{d t}=-\frac{g}{\tau}+h \\
+      &\frac{d g}{d t}=-\frac{g}{\tau}+\frac{h}{\tau} \\
       &\frac{d h}{d t}=-\frac{h}{\tau}+\delta\left(t_{0}-t\right)
       \end{aligned}
 
@@ -600,15 +600,40 @@ class Alpha(DualExpon):
       tau_decay: Union[float, ArrayType, Callable] = 10.0,
   ):
     super().__init__(
-      tau_decay=tau_decay,
-      tau_rise=tau_decay,
-      method=method,
       name=name,
       mode=mode,
       size=size,
       keep_size=keep_size,
       sharding=sharding
     )
+
+    # parameters
+    self.tau_decay = self.init_param(tau_decay)
+
+    # integrator
+    self.integral = odeint(JointEq(self.dg, self.dh), method=method)
+
+    self.reset_state(self.mode)
+
+  def reset_state(self, batch_or_mode=None, **kwargs):
+    self.h = self.init_variable(bm.zeros, batch_or_mode)
+    self.g = self.init_variable(bm.zeros, batch_or_mode)
+
+  def dh(self, h, t):
+    return -h / self.tau_decay
+
+  def dg(self, g, t, h):
+    return -g / self.tau_decay + h / self.tau_decay
+
+  def update(self, x):
+    # update synaptic variables
+    self.g.value, self.h.value = self.integral(self.g.value, self.h.value, share['t'], dt=share['dt'])
+    self.h += x
+    return self.g.value
+
+  def return_info(self):
+    return self.g
+
 
 
 Alpha.__doc__ = Alpha.__doc__ % (pneu_doc,)
