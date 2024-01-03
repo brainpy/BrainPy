@@ -262,6 +262,7 @@ class DualExpon(SynDyn):
   Args:
     tau_decay: float, ArrayArray, Callable. The time constant of the synaptic decay phase. [ms]
     tau_rise: float, ArrayArray, Callable. The time constant of the synaptic rise phase. [ms]
+    normalize: bool. Normalize the raise and decay time constants so that the maximum conductance is 1. Default False.
     %s
   """
 
@@ -277,6 +278,7 @@ class DualExpon(SynDyn):
       # synapse parameters
       tau_decay: Union[float, ArrayType, Callable] = 10.0,
       tau_rise: Union[float, ArrayType, Callable] = 1.,
+      normalize: bool = False,
   ):
     super().__init__(name=name,
                      mode=mode,
@@ -285,8 +287,15 @@ class DualExpon(SynDyn):
                      sharding=sharding)
 
     # parameters
+    self.normalize = normalize
     self.tau_rise = self.init_param(tau_rise)
     self.tau_decay = self.init_param(tau_decay)
+    if normalize:
+      self.a = ((1 / self.tau_rise - 1 / self.tau_decay) /
+                (self.tau_decay / self.tau_rise * (bm.exp(-self.tau_rise / (self.tau_decay - self.tau_rise)) -
+                                                   bm.exp(-self.tau_decay / (self.tau_decay - self.tau_rise)))))
+    else:
+      self.a = 1.
 
     # integrator
     self.integral = odeint(JointEq(self.dg, self.dh), method=method)
@@ -306,7 +315,7 @@ class DualExpon(SynDyn):
   def update(self, x):
     # update synaptic variables
     self.g.value, self.h.value = self.integral(self.g.value, self.h.value, share['t'], dt=share['dt'])
-    self.h += x
+    self.h += self.a * x
     return self.g.value
 
   def return_info(self):
@@ -422,6 +431,7 @@ class DualExponV2(SynDyn, AlignPost):
   Args:
     tau_decay: float, ArrayArray, Callable. The time constant of the synaptic decay phase. [ms]
     tau_rise: float, ArrayArray, Callable. The time constant of the synaptic rise phase. [ms]
+    normalize: bool. Normalize the raise and decay time constants so that the maximum conductance is 1. Default True.
     %s
   """
 
@@ -437,6 +447,7 @@ class DualExponV2(SynDyn, AlignPost):
       # synapse parameters
       tau_decay: Union[float, ArrayType, Callable] = 10.0,
       tau_rise: Union[float, ArrayType, Callable] = 1.,
+      normalize: bool = True,
   ):
     super().__init__(name=name,
                      mode=mode,
@@ -445,9 +456,13 @@ class DualExponV2(SynDyn, AlignPost):
                      sharding=sharding)
 
     # parameters
+    self.normalize = normalize
     self.tau_rise = self.init_param(tau_rise)
     self.tau_decay = self.init_param(tau_decay)
-    self.coeff = self.tau_rise * self.tau_decay / (self.tau_decay - self.tau_rise)
+    if normalize:
+      self.a = self.tau_rise * self.tau_decay / (self.tau_decay - self.tau_rise)
+    else:
+      self.a = 1.
 
     # integrator
     self.integral = odeint(lambda g, t, tau: -g / tau, method=method)
@@ -463,7 +478,7 @@ class DualExponV2(SynDyn, AlignPost):
     self.g_decay.value = self.integral(self.g_decay.value, share['t'], self.tau_decay, share['dt'])
     if x is not None:
       self.add_current(x)
-    return self.coeff * (self.g_decay - self.g_rise)
+    return self.a * (self.g_decay - self.g_rise)
 
   def add_current(self, inp):
     self.g_rise += inp
@@ -471,7 +486,7 @@ class DualExponV2(SynDyn, AlignPost):
 
   def return_info(self):
     return ReturnInfo(self.varshape, self.sharding, self.mode,
-                      lambda shape: self.coeff * (self.g_decay - self.g_rise))
+                      lambda shape: self.a * (self.g_decay - self.g_rise))
 
 
 DualExponV2.__doc__ = DualExponV2.__doc__ % (pneu_doc,)

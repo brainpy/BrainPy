@@ -32,7 +32,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install taichi-nightly -i https://pypi.taichi.graphics/simple/
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
           pip uninstall brainpy -y
           python setup.py install
@@ -80,7 +79,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install taichi-nightly -i https://pypi.taichi.graphics/simple/
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
         pip uninstall brainpy -y
         python setup.py install
@@ -130,7 +128,6 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install numpy>=1.21.0
-        pip install taichi-nightly -i https://pypi.taichi.graphics/simple/
         python -m pip install -r requirements-dev.txt
         python -m pip install tqdm brainpylib
         pip uninstall brainpy -y
