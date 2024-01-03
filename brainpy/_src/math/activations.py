@@ -298,7 +298,7 @@ def leaky_relu(x, negative_slope=1e-2):
   return jnp.where(x >= 0, x, negative_slope * x)
 
 
-def softplus(x, beta=1, threshold=20):
+def softplus(x, beta: float = 1., threshold: float = 20.):
   r"""Softplus activation function.
 
   Computes the element-wise function
@@ -315,12 +315,12 @@ def softplus(x, beta=1, threshold=20):
   Parameters
   ----------
   x: The input array.
-  beta: the :math:`\beta` value for the Softplus formulation. Default: 1
-  threshold: values above this revert to a linear function. Default: 20
+  beta: the :math:`\beta` value for the Softplus formulation. Default: 1.
+  threshold: values above this revert to a linear function. Default: 20.
 
   """
   x = x.value if isinstance(x, Array) else x
-  return jnp.where(x > threshold, x * beta, 1 / beta * jnp.logaddexp(beta * x, 0))
+  return jnp.where(x > threshold / beta, x, 1 / beta * jnp.logaddexp(beta * x, 0))
 
 
 def log_sigmoid(x):
