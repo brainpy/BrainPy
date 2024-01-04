@@ -86,18 +86,6 @@ def clip_by_norm(t, clip_norm, axis=None):
   return tree_map(f, t)
 
 
-def _exprel(x, threshold):
-  def true_f(x):
-    x2 = x * x
-    return 1. + x / 2. + x2 / 6. + x2 * x / 24.0  # + x2 * x2 / 120.
-
-  def false_f(x):
-    return (jnp.exp(x) - 1) / x
-
-  # return jax.lax.cond(jnp.abs(x) < threshold, true_f, false_f, x)
-  return jnp.where(jnp.abs(x) <= threshold, 1. + x / 2. + x * x / 6., (jnp.exp(x) - 1) / x)
-
-
 def exprel(x, threshold: float = None):
   """Relative error exponential, ``(exp(x) - 1)/x``.
 
@@ -118,4 +106,4 @@ def exprel(x, threshold: float = None):
       threshold = 1e-8
     else:
       threshold = 1e-5
-  return _exprel(x, threshold)
+  return jnp.where(jnp.abs(x) <= threshold, 1. + x / 2. + x * x / 6., (jnp.exp(x) - 1) / x)
