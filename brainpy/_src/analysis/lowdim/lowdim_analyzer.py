@@ -3,17 +3,18 @@
 import warnings
 from functools import partial
 
-import numpy as np
 import jax
+import numpy as np
 from jax import numpy as jnp
 from jax import vmap
 from jax.scipy.optimize import minimize
 
-from brainpy import errors, tools
 import brainpy._src.math as bm
-from brainpy._src.math.object_transform.base import Collector
+from brainpy import errors, tools
 from brainpy._src.analysis import constants as C, utils
 from brainpy._src.analysis.base import DSAnalyzer
+from brainpy._src.math.object_transform.base import Collector
+from brainpy._src.optimizers.brentq import jax_brentq, ECONVERGED
 
 pyplot = None
 
@@ -316,7 +317,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
   def F_fixed_point_opt(self):
     if C.F_fixed_point_opt not in self.analyzed_results:
       def f(start_and_end, *args):
-        return utils.jax_brentq(self.F_fx)(start_and_end[0], start_and_end[1], args)
+        return jax_brentq(utils.f_without_jaxarray_return(self.F_fx))(
+          start_and_end[0], start_and_end[1], args
+        )
 
       self.analyzed_results[C.F_fixed_point_opt] = f
     return self.analyzed_results[C.F_fixed_point_opt]
@@ -387,7 +390,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     # optimize the fixed points
     res = self.F_vmap_fp_opt(X, *args)
     losses = self.F_vmap_fp_aux(res['root'], *args)
-    valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_aux)
+    valid_or_not = jnp.logical_and(res['status'] == ECONVERGED, losses <= tol_aux)
     ids = np.asarray(jnp.where(valid_or_not)[0])
     fps = np.asarray(res['root'])[ids]
     args = tuple(a[ids] for a in args)
@@ -569,10 +572,14 @@ class Num2DAnalyzer(Num1DAnalyzer):
       if self._can_convert_to_one_eq():
         if self.convert_type() == C.x_by_y:
           def f(start_and_end, *args):
-            return utils.jax_brentq(self.F_y_convert[1])(start_and_end[0], start_and_end[1], args)
+            return jax_brentq(utils.f_without_jaxarray_return(self.F_y_convert[1]))(
+              start_and_end[0], start_and_end[1], args
+            )
         else:
           def f(start_and_end, *args):
-            return utils.jax_brentq(self.F_x_convert[1])(start_and_end[0], start_and_end[1], args)
+            return jax_brentq(utils.f_without_jaxarray_return(self.F_x_convert[1]))(
+              start_and_end[0], start_and_end[1], args
+            )
         self.analyzed_results[C.F_fixed_point_opt] = f
 
       else:
@@ -718,8 +725,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
         # auxiliary functions
         f2 = lambda y, x, *pars: self.F_fx(x, y, *pars)
         vmap_f2 = jax.jit(vmap(f2), device=self.jit_device)
-        vmap_brentq_f2 = jax.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
-        vmap_brentq_f1 = jax.jit(vmap(utils.jax_brentq(self.F_fx)), device=self.jit_device)
+        vmap_brentq_f2 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(f2))), device=self.jit_device)
+        vmap_brentq_f1 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(self.F_fx))), device=self.jit_device)
 
         # num segments
         for _j, Ps in enumerate(par_seg):
@@ -812,8 +819,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
         # auxiliary functions
         f2 = lambda y, x, *pars: self.F_fy(x, y, *pars)
         vmap_f2 = jax.jit(vmap(f2), device=self.jit_device)
-        vmap_brentq_f2 = jax.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
-        vmap_brentq_f1 = jax.jit(vmap(utils.jax_brentq(self.F_fy)), device=self.jit_device)
+        vmap_brentq_f2 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(f2))), device=self.jit_device)
+        vmap_brentq_f1 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(self.F_fy))), device=self.jit_device)
 
         for j, Ps in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
