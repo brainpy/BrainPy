@@ -343,7 +343,7 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
 def _taichi_cpu_translation_rule(kernel, c, *ins, **kwargs):
   in_out_info = _compile_kernel(kernel, c, 'cpu', *ins, **kwargs)
   ins = [xla_client.ops.Constant(c, v) for v in in_out_info] + list(ins)
-  if is_metal_supported:
+  if is_metal_device:
     fn = b'taichi_kernel_aot_call_cpu_arm64'
   else:
     fn = b'taichi_kernel_aot_call_cpu'
