@@ -22,6 +22,7 @@ from brainpy._src.initialize.random_inits import (
 from brainpy._src.initialize.random_inits import (
   Normal as Normal,
   Uniform as Uniform,
+  TruncatedNormal as TruncatedNormal,
   VarianceScaling as VarianceScaling,
   KaimingUniform as KaimingUniform,
   KaimingNormal as KaimingNormal,
