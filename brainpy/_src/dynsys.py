@@ -149,6 +149,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     from brainpy._src.helpers import reset_state
     reset_state(self, *args, **kwargs)
 
+  @not_implemented
   def reset_state(self, *args, **kwargs):
     """Reset function which resets local states in this model.
 
@@ -332,22 +333,25 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     global the_top_layer_reset_state
     the_top_layer_reset_state = False
     try:
-      self.reset(*args, **kwargs)
+      if hasattr(self.reset_state, '_not_implemented'):
+        self.reset(*args, **kwargs)
+        warnings.warn(
+          '''
+      From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_saving_and_loading.html for details.
+
+      1. If you are resetting all states in a network by calling "net.reset_state(*args, **kwargs)", please use
+         "bp.reset_state(net, *args, **kwargs)" function, or "net.reset(*args, **kwargs)". 
+         ".reset_state()" only defines the resetting of local states in a local node (excluded its children nodes).
+
+      2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
+
+          ''',
+          DeprecationWarning
+        )
+      else:
+        self.reset_state(*args, **kwargs)
     finally:
       the_top_layer_reset_state = True
-      warnings.warn(
-        '''
-    From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_saving_and_loading.html for details.
-  
-    1. If you are resetting all states in a network by calling "net.reset_state(*args, **kwargs)", please use
-       "bp.reset_state(net, *args, **kwargs)" function, or "net.reset(*args, **kwargs)". 
-       ".reset_state()" only defines the resetting of local states in a local node (excluded its children nodes).
-  
-    2. If you does not customize "reset_state()" function for a local node, please implement it in your subclass.
-
-        ''',
-        DeprecationWarning
-      )
 
   def _get_update_fun(self):
     return object.__getattribute__(self, 'update')
