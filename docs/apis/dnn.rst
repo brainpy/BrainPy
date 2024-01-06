@@ -17,8 +17,6 @@ Non-linear Activations
    :template: classtemplate.rst
 
    Activation
-   Flatten
-   FunAsLayer
    Threshold
    ReLU
    RReLU
@@ -150,18 +148,16 @@ Interoperation with Flax
    ToFlax
 
 
-Other Layers
-------------
+Utility Layers
+--------------
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
    :template: classtemplate.rst
 
-   Layer
    Dropout
-   Activation
    Flatten
+   Unflatten
    FunAsLayer
-
 
