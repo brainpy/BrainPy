@@ -149,6 +149,8 @@ class Unflatten(Layer):
         if not isinstance(elem, int):
           raise TypeError("unflattened_size must be tuple of ints, " +
                           "but found element of type {} at pos {}".format(type(elem).__name__, idx))
+    else:
+      raise TypeError("unflattened_size must be tuple or list, but found type {}".format(type(sizes).__name__))
 
   def update(self, x):
     return bm.unflatten(x, self.dim, self.sizes)
