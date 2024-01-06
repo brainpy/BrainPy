@@ -115,7 +115,7 @@ class Unflatten(Layer):
 
   Args:
       dim: int, Dimension to be unflattened.
-      size: Sequence of int. New shape of the unflattened dimension.
+      sizes: Sequence of int. New shape of the unflattened dimension.
 
   Examples:
       >>> import brainpy as bp
@@ -139,22 +139,22 @@ class Unflatten(Layer):
       (2, 2, 5, 5)
   """
 
-  def __init__(self, dim: int, size: Sequence[int], mode: bm.Mode = None, name: str = None) -> None:
+  def __init__(self, dim: int, sizes: Sequence[int], mode: bm.Mode = None, name: str = None) -> None:
     super().__init__(mode=mode, name=name)
 
     self.dim = dim
-    self.size = size
-    if isinstance(size, (tuple, list)):
-      for idx, elem in enumerate(size):
+    self.sizes = sizes
+    if isinstance(sizes, (tuple, list)):
+      for idx, elem in enumerate(sizes):
         if not isinstance(elem, int):
           raise TypeError("unflattened_size must be tuple of ints, " +
                           "but found element of type {} at pos {}".format(type(elem).__name__, idx))
 
   def update(self, x):
-    return bm.unflatten(x, self.dim, self.size)
+    return bm.unflatten(x, self.dim, self.sizes)
 
   def __repr__(self):
-    return f'{self.__class__.__name__}(dim={self.dim}, unflattened_size={self.size})'
+    return f'{self.__class__.__name__}(dim={self.dim}, sizes={self.sizes})'
 
 
 class FunAsLayer(Layer):
