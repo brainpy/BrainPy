@@ -1,37 +1,25 @@
 # -*- coding: utf-8 -*-
 
-import inspect
-from functools import partial, wraps
-from typing import Union, Callable, Dict, Sequence, Any, Optional
+from functools import wraps
+from typing import Union, Callable, Dict, Sequence, Any, Optional, Tuple
 
 import jax
-import numpy as np
+from jax import numpy as jnp
+from jax._src.api import _vjp
+from jax.api_util import argnums_partial
+from jax.tree_util import (tree_flatten, tree_unflatten, tree_map, tree_structure)
 
 if jax.__version__ >= '0.4.16':
   from jax.extend import linear_util
 else:
   from jax import linear_util
 
-from jax import dtypes, vmap, numpy as jnp, core
-from jax._src.api import (_vjp, _jvp)
-from jax.api_util import argnums_partial
-from jax.interpreters import xla
-from jax.tree_util import (tree_flatten, tree_unflatten,
-                           tree_map, tree_transpose,
-                           tree_structure)
-from jax.util import safe_map
-
 from brainpy import tools, check
 from brainpy._src.math.ndarray import Array, _as_jax_array_
-from .tools import (dynvar_deprecation,
-                    node_deprecation,
-                    get_stack_cache,
-                    cache_stack)
-from .base import (BrainPyObject, ObjectTransform)
-from .variables import (Variable,
-                        VariableStack,
-                        current_transform_number,
-                        new_transform)
+from brainpy._src.math.compat_numpy import zeros
+from .base import (ObjectTransform)
+from .tools import (get_stack_cache, cache_stack)
+from .variables import (Variable, VariableStack, current_transform_number, new_transform)
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -48,31 +36,23 @@ class GradientTransform(ObjectTransform):
 
   def __init__(
       self,
-      target: Callable,
+      fun: Callable,
       transform: Callable,
 
-      # variables and nodes
-      grad_vars: Any,
-      dyn_vars: Dict[str, Variable],
-      child_objs: Dict[str, Variable],
-
       # gradient setting
-      argnums: Optional[Union[int, Sequence[int]]],
+      grad_vars: Any,
+      argnums: Union[int, Sequence[int]],
       return_value: bool,
       has_aux: bool,
-      transform_setting: Optional[Dict[str, Any]] = None,
 
       # other
       name: str = None,
+      **transform_kwargs
   ):
     super().__init__(name=name)
 
     # gradient variables
-    self._grad_vars, self._grad_tree = tree_flatten(grad_vars, is_leaf=lambda a: isinstance(a, Array))
-
-    # register variables and nodes
-    self.register_implicit_vars(dyn_vars, self._grad_vars)
-    self.register_implicit_nodes(child_objs)
+    self._grad_vars, self._grad_tree = tree_flatten(grad_vars, is_leaf=_isleaf)
 
     # parameters
     if argnums is None and len(self._grad_vars) == 0:
@@ -92,68 +72,58 @@ class GradientTransform(ObjectTransform):
     self._return_value = return_value
     self._has_aux = has_aux
 
-    # target
-    self.target = target
+    # target function
+    self.fun = fun
 
-    # transform
-    self._eval_dyn_vars = False
-    self._grad_transform = transform
+    # target transform
     self._dyn_vars = VariableStack()
+    self._eval_dyn_vars = False
     self._transform = None
-    self._grad_setting = dict() if transform_setting is None else transform_setting
     if self._has_aux:
-      self._transform = self._grad_transform(
+      self._transform = transform(
         self._f_grad_with_aux_to_transform,
         argnums=self._argnums,
         has_aux=True,
-        **self._grad_setting
+        **transform_kwargs
       )
     else:
-      self._transform = self._grad_transform(
+      self._transform = transform(
         self._f_grad_without_aux_to_transform,
         argnums=self._argnums,
         has_aux=True,
-        **self._grad_setting
+        **transform_kwargs
       )
 
-  def _f_grad_with_aux_to_transform(self,
-                                    grad_values: tuple,
-                                    dyn_values: dict,
-                                    *args,
-                                    **kwargs):
-    for k in dyn_values.keys():
-      self._dyn_vars[k]._value = dyn_values[k]
-    for v, d in zip(self._grad_vars, grad_values):
+  def _f_grad_with_aux_to_transform(self, grad_vals: tuple, dyn_vals: dict, *args, **kwargs):
+    for k in dyn_vals.keys():
+      self._dyn_vars[k]._value = dyn_vals[k]
+    for v, d in zip(self._grad_vars, grad_vals):
       v._value = d
     # Users should return the auxiliary data like::
     # >>> # 1. example of return one data
     # >>> return scalar_loss, data
     # >>> # 2. example of return multiple data
     # >>> return scalar_loss, (data1, data2, ...)
-    outputs = self.target(*args, **kwargs)
+    outputs = self.fun(*args, **kwargs)
     # outputs: [0] is the value for gradient,
     #          [1] is other values for return
     output0 = tree_map(lambda a: (a.value if isinstance(a, Array) else a), outputs[0])
     return output0, (outputs, [v.value for v in self._grad_vars], self._dyn_vars.dict_data())
 
-  def _f_grad_without_aux_to_transform(self,
-                                       grad_values: tuple,
-                                       dyn_values: dict,
-                                       *args,
-                                       **kwargs):
-    for k in dyn_values.keys():
-      self._dyn_vars[k]._value = dyn_values[k]
-    for v, d in zip(self._grad_vars, grad_values):
+  def _f_grad_without_aux_to_transform(self, grad_vals: tuple, dyn_vals: dict, *args, **kwargs):
+    for k in dyn_vals.keys():
+      self._dyn_vars[k]._value = dyn_vals[k]
+    for v, d in zip(self._grad_vars, grad_vals):
       v._value = d
     # Users should return the scalar value like this::
     # >>> return scalar_loss
-    output = self.target(*args, **kwargs)
+    output = self.fun(*args, **kwargs)
     output0 = tree_map(lambda a: (a.value if isinstance(a, Array) else a), output)
     return output0, (output, [v.value for v in self._grad_vars], self._dyn_vars.dict_data())
 
   def __repr__(self):
     name = self.__class__.__name__
-    f = tools.repr_object(self.target)
+    f = tools.repr_object(self.fun)
     f = tools.repr_context(f, " " * (len(name) + 6))
     format_ref = (f'{name}({self.name}, target={f}, \n' +
                   f'{" " * len(name)} num_of_grad_vars={len(self._grad_vars)}, \n'
@@ -201,7 +171,7 @@ class GradientTransform(ObjectTransform):
       return self._return(rets)
 
     elif not self._eval_dyn_vars:  # evaluate dynamical variables
-      stack = get_stack_cache(self.target)
+      stack = get_stack_cache(self.fun)
       if stack is None:
         with new_transform(self):
           with VariableStack() as stack:
@@ -220,7 +190,7 @@ class GradientTransform(ObjectTransform):
                 *args,
                 **kwargs
               )
-          cache_stack(self.target, stack)
+          cache_stack(self.fun, stack)
 
         self._dyn_vars = stack
         self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
@@ -252,24 +222,16 @@ def _make_grad(
     reduce_axes: Optional[Sequence[str]] = (),
     has_aux: Optional[bool] = None,
     return_value: Optional[bool] = False,
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ):
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-
-  return GradientTransform(target=func,
+  return GradientTransform(fun=func,
                            transform=jax.grad,
                            grad_vars=grad_vars,
-                           dyn_vars=dyn_vars,
-                           child_objs=child_objs,
                            argnums=argnums,
                            return_value=return_value,
                            has_aux=False if has_aux is None else has_aux,
-                           transform_setting=dict(holomorphic=holomorphic,
-                                                  allow_int=allow_int,
-                                                  reduce_axes=reduce_axes))
+                           holomorphic=holomorphic,
+                           allow_int=allow_int,
+                           reduce_axes=reduce_axes)
 
 
 def grad(
@@ -281,10 +243,6 @@ def grad(
     reduce_axes: Optional[Sequence[str]] = (),
     has_aux: Optional[bool] = None,
     return_value: Optional[bool] = False,
-
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> Union[Callable, GradientTransform]:
   """Automatic gradient computation for functions or class objects.
 
@@ -391,19 +349,6 @@ def grad(
     is a named batch axis, ``grad(f, reduce_axes=('batch',))`` will create a
     function that computes the total gradient while ``grad(f)`` will create
     one that computes the per-example gradient.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``dyn_vars``. This function is capable of automatically
-       collecting the dynamical variables used in the target ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``child_objs``. This function is capable of automatically
-       collecting the children objects used in the target ``func``.
 
   Returns
   -------
@@ -415,14 +360,10 @@ def grad(
     same shapes and types as the corresponding arguments. If ``has_aux`` is True
     then a pair of (gradient, auxiliary_data) is returned.
   """
-  dynvar_deprecation(dyn_vars)
-  node_deprecation(child_objs)
 
   if func is None:
     return lambda f: _make_grad(f,
                                 grad_vars=grad_vars,
-                                dyn_vars=dyn_vars,
-                                child_objs=child_objs,
                                 argnums=argnums,
                                 holomorphic=holomorphic,
                                 allow_int=allow_int,
@@ -432,8 +373,6 @@ def grad(
   else:
     return _make_grad(func=func,
                       grad_vars=grad_vars,
-                      dyn_vars=dyn_vars,
-                      child_objs=child_objs,
                       argnums=argnums,
                       holomorphic=holomorphic,
                       allow_int=allow_int,
@@ -442,49 +381,62 @@ def grad(
                       return_value=return_value)
 
 
-def _unravel_array_into_pytree(pytree, axis, arr, is_leaf=None):
-  leaves, treedef = tree_flatten(pytree, is_leaf=is_leaf)
-  axis = axis % arr.ndim
-  shapes = [arr.shape[:axis] + np.shape(l) + arr.shape[axis + 1:] for l in leaves]
-  parts = jnp.split(_as_jax_array_(arr), np.cumsum(safe_map(np.size, leaves[:-1])), axis)
-  reshaped_parts = [x.reshape(shape) for x, shape in zip(parts, shapes)]
-  return tree_unflatten(treedef, reshaped_parts, )
-
-
-def _std_basis(pytree):
-  leaves, _ = tree_flatten(pytree)
-  ndim = sum(safe_map(np.size, leaves))
-  dtype = dtypes.result_type(*leaves)
-  flat_basis = jax.numpy.eye(ndim, dtype=dtype)
-  return _unravel_array_into_pytree(pytree, 1, flat_basis)
-
-
 def _isleaf(x):
   return isinstance(x, Array)
 
 
-def _jacrev(fun, argnums=0, holomorphic=False, allow_int=False, has_aux=False, return_value=False):
-  _check_callable(fun)
+def tree_as_jax(x):
+  return tree_map(_as_jax_array_, x, is_leaf=_isleaf)
 
+
+def _warp_fun_force_aux(fun: Callable, has_aux: bool):
   @wraps(fun)
-  def jacfun(*args, **kwargs):
-    f = linear_util.wrap_init(fun, kwargs)
-    f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
-    tree_map(partial(_check_input_dtype_jacrev, holomorphic, allow_int), dyn_args)
+  def new_fun(*args, **kwargs):
     if has_aux:
-      y, pullback, aux = _vjp(f_partial, *dyn_args, has_aux=True)
+      y, aux = fun(*args, **kwargs)
+      y, aux = tree_as_jax((y, aux))
+      return y, (y, aux)
     else:
-      y, pullback = _vjp(f_partial, *dyn_args, has_aux=False)
-    tree_map(partial(_check_output_dtype_jacrev, holomorphic), y)
-    jac = vmap(pullback)(_std_basis(y))
-    jac = jac[0] if isinstance(argnums, int) else jac
-    example_args = dyn_args[0] if isinstance(argnums, int) else dyn_args
-    jac_tree = tree_map(partial(_unravel_array_into_pytree, y, 0, is_leaf=_isleaf), jac, is_leaf=_isleaf)
-    jac = tree_transpose(tree_structure(example_args), tree_flatten(y, is_leaf=_isleaf)[1], jac_tree)
-    if return_value:
-      return (jac, y, aux) if has_aux else (jac, y)
+      y = fun(*args, **kwargs)
+      y = tree_as_jax(y)
+      return y, y
+
+  return new_fun
+
+
+def _warp_fun_force_return_jax(fun: Callable):
+  @wraps(fun)
+  def new_fun(*args, **kwargs):
+    return tree_as_jax(fun(*args, **kwargs))
+
+  return new_fun
+
+
+def _jacrev(
+    fun: Callable,
+    argnums: Union[int, Sequence[int]] = 0,
+    holomorphic: bool = False,
+    allow_int: bool = False,
+    has_aux: bool = False,
+    return_value: bool = False
+):
+  """
+  Jacobian of ``fun`` using reverse-mode autodiff.
+
+  Compared to ``jax.jacrev``, this function supports returning value ("return_value").
+  """
+  fun = _warp_fun_force_aux(fun, has_aux)
+  fun_jac = jax.jacrev(fun, argnums=argnums, holomorphic=holomorphic, allow_int=allow_int, has_aux=True)
+
+  @wraps(fun_jac)
+  def jacfun(*args, **kwargs):
+    args, kwargs = tree_as_jax((args, kwargs))
+    if has_aux:
+      jac, (y, aux) = fun_jac(*args, **kwargs)
+      return (jac, y, aux) if return_value else (jac, aux)
     else:
-      return (jac, aux) if has_aux else jac
+      jac, y = fun_jac(*args, **kwargs)
+      return (jac, y) if return_value else jac
 
   return jacfun
 
@@ -497,10 +449,6 @@ def jacrev(
     return_value: bool = False,
     holomorphic: bool = False,
     allow_int: bool = False,
-
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Extending automatic Jacobian (reverse-mode) of ``func`` to classes.
 
@@ -549,64 +497,49 @@ def jacrev(
     Whether to allow differentiating with
     respect to integer valued inputs. The gradient of an integer input will
     have a trivial vector-space dtype (float0). Default False.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``dyn_vars``. This function is capable of automatically
-       collecting the dynamical variables used in the target ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``child_objs``. This function is capable of automatically
-       collecting the children objects used in the target ``func``.
 
   Returns
   -------
   fun: GradientTransform
     The transformed object.
   """
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-
-  return GradientTransform(target=func,
+  return GradientTransform(fun=func,
                            transform=_jacrev,
                            grad_vars=grad_vars,
-                           dyn_vars=dyn_vars,
-                           child_objs=child_objs,
                            argnums=argnums,
                            return_value=return_value,
                            has_aux=False if has_aux is None else has_aux,
-                           transform_setting=dict(holomorphic=holomorphic,
-                                                  allow_int=allow_int))
+                           holomorphic=holomorphic,
+                           allow_int=allow_int)
 
 
 jacobian = jacrev
 
 
-def _jacfwd(fun, argnums=0, holomorphic=False, has_aux=False, return_value=False):
-  _check_callable(fun)
+def _jacfwd(
+    fun: Callable,
+    argnums: Union[int, Sequence[int]] = 0,
+    holomorphic: bool = False,
+    has_aux: bool = False,
+    return_value: bool = False
+):
+  """
+  Jacobian of ``fun`` using forward-mode autodiff.
 
-  @wraps(fun)
+  Compared to ``jax.jacfwd``, this function supports returning value ("return_value").
+  """
+  fun = _warp_fun_force_aux(fun, has_aux)
+  fun_jac = jax.jacfwd(fun, argnums=argnums, holomorphic=holomorphic, has_aux=True)
+
+  @wraps(fun_jac)
   def jacfun(*args, **kwargs):
-    f = linear_util.wrap_init(fun, kwargs)
-    f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
-    tree_map(partial(_check_input_dtype_jacfwd, holomorphic), dyn_args)
+    args, kwargs = tree_as_jax((args, kwargs))
     if has_aux:
-      pushfwd = partial(_jvp, f_partial, dyn_args, has_aux=True)
-      y, jac, aux = vmap(pushfwd, out_axes=(None, -1, None))(_std_basis(dyn_args))
+      jac, (y, aux) = fun_jac(*args, **kwargs)
+      return (jac, y, aux) if return_value else (jac, aux)
     else:
-      pushfwd = partial(_jvp, f_partial, dyn_args)
-      y, jac = vmap(pushfwd, out_axes=(None, -1))(_std_basis(dyn_args))
-    tree_map(partial(_check_output_dtype_jacfwd, holomorphic), y)
-    example_args = dyn_args[0] if isinstance(argnums, int) else dyn_args
-    jac = tree_map(partial(_unravel_array_into_pytree, example_args, -1, is_leaf=_isleaf), jac, is_leaf=_isleaf)
-    if return_value:
-      return (jac, y, aux) if has_aux else (jac, y)
-    else:
-      return (jac, aux) if has_aux else jac
+      jac, y = fun_jac(*args, **kwargs)
+      return (jac, y) if return_value else jac
 
   return jacfun
 
@@ -618,10 +551,6 @@ def jacfwd(
     has_aux: Optional[bool] = None,
     return_value: bool = False,
     holomorphic: bool = False,
-
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Extending automatic Jacobian (forward-mode) of ``func`` to classes.
 
@@ -663,37 +592,19 @@ def jacfwd(
     positional argument(s) to differentiate with respect to (default ``0``).
   holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
     holomorphic. Default False.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``dyn_vars``. This function is capable of automatically
-       collecting the dynamical variables used in the target ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``child_objs``. This function is capable of automatically
-       collecting the children objects used in the target ``func``.
 
   Returns
   -------
   obj: GradientTransform
     The transformed object.
   """
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
-
-  return GradientTransform(target=func,
+  return GradientTransform(fun=func,
                            transform=_jacfwd,
                            grad_vars=grad_vars,
-                           dyn_vars=dyn_vars,
-                           child_objs=child_objs,
                            argnums=argnums,
                            return_value=return_value,
                            has_aux=False if has_aux is None else has_aux,
-                           transform_setting=dict(holomorphic=holomorphic))
+                           holomorphic=holomorphic)
 
 
 def hessian(
@@ -702,10 +613,6 @@ def hessian(
     argnums: Optional[Union[int, Sequence[int]]] = None,
     return_value: bool = False,
     holomorphic=False,
-
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Hessian of ``func`` as a dense array.
 
@@ -724,53 +631,43 @@ def hessian(
     Indicates whether ``fun`` is promised to be holomorphic. Default False.
   return_value : bool
     Whether return the hessian values.
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``dyn_vars``. This function is capable of automatically
-       collecting the dynamical variables used in the target ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``child_objs``. This function is capable of automatically
-       collecting the children objects used in the target ``func``.
 
   Returns
   -------
   obj: ObjectTransform
     The transformed object.
   """
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
   return jacfwd(jacrev(func,
-                       dyn_vars=dyn_vars,
-                       child_objs=child_objs,
                        grad_vars=grad_vars,
                        argnums=argnums,
                        holomorphic=holomorphic),
-                dyn_vars=dyn_vars,
-                child_objs=child_objs,
                 grad_vars=grad_vars,
                 argnums=argnums,
                 holomorphic=holomorphic,
                 return_value=return_value)
 
 
-def functional_vector_grad(func, argnums=0, return_value=False, has_aux=False):
-  _check_callable(func)
+def functional_vector_grad(
+    func: Callable,
+    argnums: Union[int, Sequence[int]] = 0,
+    return_value: bool = False,
+    has_aux: bool = False,
+    reduce_axes: Tuple = ()
+):
+  """
+  Vector-Jacobian product of ``func`` using reverse-mode autodiff.
+  """
+  func = _warp_fun_force_return_jax(func)
 
   @wraps(func)
   def grad_fun(*args, **kwargs):
-    f = linear_util.wrap_init(func, kwargs)
-    f_partial, dyn_args = argnums_partial(f, argnums, args, require_static_args_hashable=False)
+    f_partial, dyn_args = argnums_partial(linear_util.wrap_init(func, kwargs), argnums, args,
+                                          require_static_args_hashable=False)
     if has_aux:
-      y, vjp_fn, aux = _vjp(f_partial, *dyn_args, has_aux=True)
+      y, vjp_fn, aux = _vjp(f_partial, *dyn_args, has_aux=True, reduce_axes=reduce_axes)
     else:
-      y, vjp_fn = _vjp(f_partial, *dyn_args, has_aux=False)
+      y, vjp_fn = _vjp(f_partial, *dyn_args, has_aux=False, reduce_axes=reduce_axes)
     leaves, tree = tree_flatten(y)
     tangents = tree_unflatten(tree, [jnp.ones(l.shape, dtype=l.dtype) for l in leaves])
     grads = vjp_fn(tangents)
@@ -790,10 +687,6 @@ def vector_grad(
     argnums: Optional[Union[int, Sequence[int]]] = None,
     return_value: bool = False,
     has_aux: Optional[bool] = None,
-
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> Union[Callable, ObjectTransform]:
   """Take vector-valued gradients for function ``func``.
 
@@ -818,7 +711,6 @@ def vector_grad(
     - "has_aux=False" + "return_value=True" => ``((var_grads, arg_grads), loss_value)``.
     - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
-
   Parameters
   ----------
   func: Callable
@@ -833,148 +725,50 @@ def vector_grad(
     Whether return the loss value.
   argnums: Optional, integer or sequence of integers. Specifies which
     positional argument(s) to differentiate with respect to (default ``0``).
-  dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-    The dynamically changed variables used in ``func``.
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``dyn_vars``. This function is capable of automatically
-       collecting the dynamical variables used in the target ``func``.
-  child_objs: optional, BrainPyObject, sequnce, dict
-
-    .. versionadded:: 2.3.1
-
-    .. deprecated:: 2.4.0
-       No longer need to provide ``child_objs``. This function is capable of automatically
-       collecting the children objects used in the target ``func``.
 
   Returns
   -------
   func : GradientTransform
     The vector gradient function.
   """
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
   if func is None:
-    return lambda f: GradientTransform(target=f,
+    return lambda f: GradientTransform(fun=f,
                                        transform=functional_vector_grad,
                                        grad_vars=grad_vars,
-                                       dyn_vars=dyn_vars,
-                                       child_objs=child_objs,
                                        argnums=argnums,
                                        return_value=return_value,
                                        has_aux=False if has_aux is None else has_aux)
   else:
-    return GradientTransform(target=func,
+    return GradientTransform(fun=func,
                              transform=functional_vector_grad,
                              grad_vars=grad_vars,
-                             dyn_vars=dyn_vars,
-                             child_objs=child_objs,
                              argnums=argnums,
                              return_value=return_value,
                              has_aux=False if has_aux is None else has_aux)
 
 
-def _check_callable(fun):
-  # In Python 3.10+, the only thing stopping us from supporting staticmethods
-  # is that we can't take weak references to them, which the C++ JIT requires.
-  if isinstance(fun, staticmethod):
-    raise TypeError(f"staticmethod arguments are not supported, got {fun}")
-  if not callable(fun):
-    raise TypeError(f"Expected a callable value, got {fun}")
-  if _isgeneratorfunction(fun):
-    raise TypeError(f"Expected a function, got a generator function: {fun}")
+def vjp_for_exp_euler(func: Callable):
+  """
+  Vector-Jacobian product of ``func`` using reverse-mode autodiff.
+  """
+  func = _warp_fun_force_return_jax(func)
+
+  @wraps(func)
+  def grad_fun(*dyn_args):
+    ys, y_vjp = jax.vjp(func, *dyn_args)
+    tree = tree_structure(ys)
+    out_tangents = []
+    for i in range(len(dyn_args)):
+      raw_tangents = tuple([jnp.ones(l.shape, dtype=l.dtype) if j == i else jnp.zeros(l.shape, dtype=l.dtype)
+                            for j, l in enumerate(dyn_args)])
+      out_tangents.append(y_vjp(tree_unflatten(tree, raw_tangents))[i])
+    return tree_unflatten(tree, tuple(out_tangents)), ys, tree_unflatten(tree, dyn_args)
+
+  return grad_fun
 
 
-def _isgeneratorfunction(fun):
-  # re-implemented here because of https://bugs.python.org/issue33261
-  while inspect.ismethod(fun):
-    fun = fun.__func__
-  while isinstance(fun, partial):
-    fun = fun.func
-  return inspect.isfunction(fun) and bool(fun.__code__.co_flags & inspect.CO_GENERATOR)
-
-
-def _check_arg(arg):
-  if not (isinstance(arg, core.Tracer) or _valid_jaxtype(arg)):
-    raise TypeError(f"Argument '{arg}' of type {type(arg)} is not a valid JAX type.")
-
-
-def _valid_jaxtype(arg):
-  try:
-    xla.abstractify(arg)  # faster than core.get_aval
-  except TypeError:
-    return core.valid_jaxtype(arg)
-  else:
-    return True
-
-
-def _check_output_dtype_revderiv(name, holomorphic, x):
-  aval = core.get_aval(x)
-  # if jnp.issubdtype(aval.dtype, dtypes.extended):
-  #   raise TypeError(f"{name} with output element type {aval.dtype.name}")
-  if holomorphic:
-    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
-      raise TypeError(f"{name} with holomorphic=True requires outputs with complex dtype, "
-                      f"but got {aval.dtype.name}.")
-  elif dtypes.issubdtype(aval.dtype, np.complexfloating):
-    raise TypeError(f"{name} requires real-valued outputs (output dtype that is "
-                    f"a sub-dtype of np.floating), but got {aval.dtype.name}. "
-                    "For holomorphic differentiation, pass holomorphic=True. "
-                    "For differentiation of non-holomorphic functions involving complex "
-                    "outputs, use jax.vjp directly.")
-  elif not dtypes.issubdtype(aval.dtype, np.floating):
-    raise TypeError(f"{name} requires real-valued outputs (output dtype that is "
-                    f"a sub-dtype of np.floating), but got {aval.dtype.name}. "
-                    "For differentiation of functions with integer outputs, use "
-                    "jax.vjp directly.")
-
-
-def _check_input_dtype_revderiv(name, holomorphic, allow_int, x):
-  _check_arg(x)
-  aval = core.get_aval(x)
-  # if jnp.issubdtype(aval.dtype, dtypes.extended):
-  #   raise TypeError(f"{name} with input element type {aval.dtype.name}")
-  if holomorphic:
-    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
-      raise TypeError(f"{name} with holomorphic=True requires inputs with complex dtype, "
-                      f"but got {aval.dtype.name}.")
-  if (dtypes.issubdtype(aval.dtype, np.integer) or
-      dtypes.issubdtype(aval.dtype, np.bool_)):
-    if not allow_int:
-      raise TypeError(f"{name} requires real- or complex-valued inputs (input dtype "
-                      f"that is a sub-dtype of np.inexact), but got {aval.dtype.name}. "
-                      "If you want to use Boolean- or integer-valued inputs, use vjp "
-                      "or set allow_int to True.")
-  elif not dtypes.issubdtype(aval.dtype, np.inexact):
-    raise TypeError(f"{name} requires numerical-valued inputs (input dtype that is a "
-                    f"sub-dtype of np.bool_ or np.number), but got {aval.dtype.name}.")
-
-
-_check_output_dtype_jacrev = partial(_check_output_dtype_revderiv, "jacrev")
-_check_input_dtype_jacrev = partial(_check_input_dtype_revderiv, "jacrev")
-
-
-def _check_output_dtype_jacfwd(holomorphic, x):
-  aval = core.get_aval(x)
-  if holomorphic:
-    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
-      raise TypeError("jacfwd with holomorphic=True requires outputs with complex dtype, "
-                      f"but got {aval.dtype.name}.")
-
-
-def _check_input_dtype_jacfwd(holomorphic: bool, x: Any) -> None:
-  _check_arg(x)
-  aval = core.get_aval(x)
-  # if jnp.issubdtype(aval.dtype, dtypes.extended):
-  #   raise TypeError(f"jacfwd with input element type {aval.dtype.name}")
-  if holomorphic:
-    if not dtypes.issubdtype(aval.dtype, np.complexfloating):
-      raise TypeError("jacfwd with holomorphic=True requires inputs with complex "
-                      f"dtype, but got {aval.dtype.name}.")
-  elif not dtypes.issubdtype(aval.dtype, np.floating):
-    raise TypeError("jacfwd requires real-valued inputs (input dtype that is "
-                    f"a sub-dtype of np.floating), but got {aval.dtype.name}. "
-                    "For holomorphic differentiation, pass holomorphic=True. "
-                    "For differentiation of non-holomorphic functions involving "
-                    "complex inputs or integer inputs, use jax.jvp directly.")
+def _init_tangents(leaf, n_copy, index):
+  ret = zeros((n_copy,) + leaf.shape, dtype=leaf.dtype)
+  ret[index] = 1.
+  return ret.value
