@@ -75,7 +75,7 @@ class Flatten(Layer):
 
   def __init__(
       self,
-      start_dim: int = 1,
+      start_dim: int = 0,
       end_dim: int = -1,
       name: Optional[str] = None,
       mode: bm.Mode = None,
@@ -86,11 +86,11 @@ class Flatten(Layer):
     self.end_dim = end_dim
 
   def update(self, x):
-    # if isinstance(self.mode, bm.BatchingMode):
-    #   return x.reshape((x.shape[0], -1))
-    # else:
-    #   return x.flatten()
-    return bm.flatten(x, self.start_dim, self.end_dim)
+    if self.mode.is_child_of(bm.BatchingMode):
+      start_dim = (self.start_dim + 1) if self.start_dim >= 0 else (x.ndim + self.start_dim + 1)
+    else:
+      start_dim = self.start_dim if self.start_dim >= 0 else x.ndim + self.start_dim
+    return bm.flatten(x, start_dim, self.end_dim)
 
   def __repr__(self) -> str:
     return f'{self.__class__.__name__}(start_dim={self.start_dim}, end_dim={self.end_dim})'
@@ -153,7 +153,8 @@ class Unflatten(Layer):
       raise TypeError("unflattened_size must be tuple or list, but found type {}".format(type(sizes).__name__))
 
   def update(self, x):
-    return bm.unflatten(x, self.dim, self.sizes)
+    dim = self.dim + 1 if self.mode.is_batch_mode() else self.dim
+    return bm.unflatten(x, dim, self.sizes)
 
   def __repr__(self):
     return f'{self.__class__.__name__}(dim={self.dim}, sizes={self.sizes})'

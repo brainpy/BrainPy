@@ -29,7 +29,7 @@ class TestFunction(parameterized.TestCase):
 
     output = layer.update(input)
 
-    expected_shape = (10, 60)
+    expected_shape = (600,)
     self.assertEqual(output.shape, expected_shape)
     bm.clear_buffer_memory()
 
