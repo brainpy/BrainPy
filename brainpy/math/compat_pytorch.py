@@ -3,6 +3,7 @@ from brainpy._src.math.compat_pytorch import (
   Tensor as Tensor,
 
   flatten as flatten,
+  unflatten as unflatten,
   cat as cat,
   unsqueeze as unsqueeze,
   abs as abs,

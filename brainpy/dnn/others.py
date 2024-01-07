@@ -9,5 +9,6 @@ from brainpy._src.dnn.dropout import (
 from brainpy._src.dnn.function import (
   Activation,
   Flatten,
+  Unflatten,
   FunAsLayer,
 )
