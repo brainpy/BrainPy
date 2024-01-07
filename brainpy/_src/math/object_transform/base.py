@@ -328,7 +328,7 @@ class BrainPyObject(object):
     nodes = self.nodes(method=method, level=level, include_self=include_self)
     gather = ArrayCollector()
     for node_path, node in nodes.items():
-      for k in dir(node):
+      for k in node.__dict__.keys():
         if k in node._excluded_vars:
           continue
         v = getattr(node, k)
