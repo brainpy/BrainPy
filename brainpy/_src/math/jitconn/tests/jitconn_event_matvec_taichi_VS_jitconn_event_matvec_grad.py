@@ -13,6 +13,7 @@ import pandas as pd
 import taichi as ti
 
 bm.set_platform('gpu')
+# bm.disable_gpu_memory_preallocation()
 
 seed = 1234
 
@@ -51,6 +52,49 @@ w_sigma = 0.1
 
 print(bm.get_platform())
 
+def sum_op(op):
+  def func(*args, **kwargs):
+    r = op(*args, **kwargs)[0]
+    return r.sum()
+
+  return func
+
+@partial(jax.jit, static_argnums=(4, 5, 6))
+def jitconn_event_matvec_homo_taichi_grad(vector, homo_data, conn_prob, seed, shape, transpose, outdim_parallel):
+  return jax.grad(sum_op(bm.jitconn.event_mv_prob_homo_taichi), argnums=0)(
+    vector.astype(float), homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
+  )
+  
+@partial(jax.jit, static_argnums=(4, 5, 6))
+def jitconn_event_matvec_homo_grad(vector, homo_data, conn_prob, seed, shape, transpose, outdim_parallel):
+  return jax.grad(sum_op(bm.jitconn.event_mv_prob_homo), argnums=0)(
+    vector.astype(float), homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
+  )
+  
+@partial(jax.jit, static_argnums=(5, 6, 7))
+def jitconn_event_matvec_uniform_taichi_grad(vector, w_low, w_high, conn_prob, seed, shape, transpose, outdim_parallel):
+  return jax.grad(sum_op(bm.jitconn.event_mv_prob_uniform_taichi), argnums=0)(
+    vector.astype(float), w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
+  )
+  
+@partial(jax.jit, static_argnums=(5, 6, 7))
+def jitconn_event_matvec_uniform_grad(vector, w_low, w_high, conn_prob, seed, shape, transpose, outdim_parallel):
+  return jax.grad(sum_op(bm.jitconn.event_mv_prob_uniform), argnums=0)(
+    vector.astype(float), w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
+  )
+  
+@partial(jax.jit, static_argnums=(5, 6, 7))
+def jitconn_event_matvec_normal_taichi_grad(vector, w_mu, w_sigma, conn_prob, seed, shape, transpose, outdim_parallel):
+  return jax.grad(sum_op(bm.jitconn.event_mv_prob_normal_taichi), argnums=0)(
+    vector.astype(float), w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
+  )
+  
+@partial(jax.jit, static_argnums=(5, 6, 7))
+def jitconn_event_matvec_normal_grad(vector, w_mu, w_sigma, conn_prob, seed, shape, transpose, outdim_parallel):
+  return jax.grad(sum_op(bm.jitconn.event_mv_prob_normal), argnums=0)(
+    vector.astype(float), w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel
+  )
+
 def test_jitconn_matvec_homo_cpu(shape, transpose, outdim_parallel, bool_event):
   rng = bm.random.RandomState(seed=seed)
   events = bm.as_jax(rng.random(shape[0] if transpose else shape[1])) < 0.1
@@ -59,64 +103,55 @@ def test_jitconn_matvec_homo_cpu(shape, transpose, outdim_parallel, bool_event):
 
   # groundtruth = bm.as_jax(events, dtype=float) @ bm.as_jax(dense)
 
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time9 = time.time()
 
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
-  
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
 
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time21 = time.time()
 
   taichi_aot_time1 = (time1 - time0) * 1000
@@ -156,64 +191,55 @@ def test_jitconn_matvec_uniform_cpu(shape, transpose, outdim_parallel, bool_even
 
   # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
 
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time9 = time.time()
 
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
-  
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
 
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time21 = time.time()
 
   taichi_aot_time1 = (time1 - time0) * 1000
@@ -251,65 +277,56 @@ def test_jitconn_matvec_normal_cpu(shape, transpose, outdim_parallel, bool_event
   if not bool_event:
       events = events.astype(float)
   # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
-
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time9 = time.time()
 
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
-
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time21 = time.time()
 
   taichi_aot_time1 = (time1 - time0) * 1000
@@ -348,65 +365,72 @@ def test_jitconn_matvec_homo_gpu(shape, transpose, outdim_parallel, bool_event):
       events = events.astype(float)
   # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
 
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  print('start')
+  
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   # time.sleep(2)
+  
+  # bm.clear_buffer_memory()
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time1 = time.time()
   # time.sleep(2)
+  
+  # bm.clear_buffer_memory()
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time3 = time.time()
   # time.sleep(2)
+  
+  # bm.clear_buffer_memory()
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time5 = time.time()
   # time.sleep(2)
+  
+  # bm.clear_buffer_memory()
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time7 = time.time()
+  
+  # bm.clear_buffer_memory()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo_taichi(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_homo_taichi_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time9 = time.time()
-
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
   
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
+  print('taichi finished')
+
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
 
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_homo(events, homo_data, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_homo_grad(events, homo_data, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time21 = time.time()
+  
+  print('brainpylib finished')
 
   taichi_aot_time1 = (time1 - time0) * 1000
   taichi_aot_time2 = (time3 - time2) * 1000
@@ -433,6 +457,8 @@ def test_jitconn_matvec_homo_gpu(shape, transpose, outdim_parallel, bool_event):
 
   speedup = (brainpy_time1 + brainpy_time2 + brainpy_time3 + brainpy_time4 + brainpy_time5) / \
             (taichi_aot_time1 + taichi_aot_time2 + taichi_aot_time3 + taichi_aot_time4 + taichi_aot_time5) - 1
+  
+  bm.clear_buffer_memory()
 
   return taichi_aot_time1, taichi_aot_time2, taichi_aot_time3, taichi_aot_time4, taichi_aot_time5,\
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, speedup
@@ -444,65 +470,62 @@ def test_jitconn_matvec_uniform_gpu(shape, transpose, outdim_parallel, bool_even
       events = events.astype(float)
   # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
 
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  print('start')
+  
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform_taichi(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_uniform_taichi_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time9 = time.time()
-
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
   
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
+  print('taichi finished')
+
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
 
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_uniform(events, w_low=w_low, w_high=w_high, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_uniform_grad(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time21 = time.time()
+  
+  print('brainpylib finished')
 
   taichi_aot_time1 = (time1 - time0) * 1000
   taichi_aot_time2 = (time3 - time2) * 1000
@@ -526,10 +549,12 @@ def test_jitconn_matvec_uniform_gpu(shape, transpose, outdim_parallel, bool_even
   print('brainpylib_gpu_4: ', brainpy_time4, 'ms')
   print('brainpylib_gpu_5: ', brainpy_time5, 'ms')
   # assert(jnp.allclose(result1[0], result2))
-
+  
   speedup = (brainpy_time1 + brainpy_time2 + brainpy_time3 + brainpy_time4 + brainpy_time5) / \
             (taichi_aot_time1 + taichi_aot_time2 + taichi_aot_time3 + taichi_aot_time4 + taichi_aot_time5) - 1
 
+  bm.clear_buffer_memory()
+  
   return taichi_aot_time1, taichi_aot_time2, taichi_aot_time3, taichi_aot_time4, taichi_aot_time5,\
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, speedup
 
@@ -540,64 +565,55 @@ def test_jitconn_matvec_normal_gpu(shape, transpose, outdim_parallel, bool_event
       events = events.astype(float)
   # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
 
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   # time.sleep(2)
 
   time0 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time1 = time.time()
   # time.sleep(2)
 
   time2 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time3 = time.time()
   # time.sleep(2)
 
   time4 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time5 = time.time()
   # time.sleep(2)
 
   time6 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time7 = time.time()
 
   time8 = time.time()
-  result1 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal_taichi(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result1 = jax.block_until_ready(jitconn_event_matvec_normal_taichi_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time9 = time.time()
 
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
-  
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
 
   time12 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time13 = time.time()
   # time.sleep(2)
 
   time14 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time15 = time.time()
   # time.sleep(2)
 
   time16 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time17 = time.time()
   # time.sleep(2)
 
   time18 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time19 = time.time()
 
   time20 = time.time()
-  result2 = jax.block_until_ready(bm.jitconn.event_mv_prob_normal(events, w_mu=w_mu, w_sigma=w_sigma, conn_prob=conn_prob, shape=shape, seed=seed, outdim_parallel=outdim_parallel, transpose=transpose))
+  result2 = jax.block_until_ready(jitconn_event_matvec_normal_grad(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel))
   time21 = time.time()
 
   taichi_aot_time1 = (time1 - time0) * 1000
@@ -626,6 +642,8 @@ def test_jitconn_matvec_normal_gpu(shape, transpose, outdim_parallel, bool_event
   speedup = (brainpy_time1 + brainpy_time2 + brainpy_time3 + brainpy_time4 + brainpy_time5) / \
             (taichi_aot_time1 + taichi_aot_time2 + taichi_aot_time3 + taichi_aot_time4 + taichi_aot_time5) - 1
 
+  bm.clear_buffer_memory()
+  
   return taichi_aot_time1, taichi_aot_time2, taichi_aot_time3, taichi_aot_time4, taichi_aot_time5,\
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, speedup
 
@@ -675,7 +693,7 @@ if (bm.get_platform() == 'cpu'):
               df.loc[df.shape[0]] = [shape1, shape2, 'cpu', _type, _transpose, _outdim_parallel, _bool_event,
                                   taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                   brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
-  df.to_csv(f'{PATH}/jitconn_event_matvec_cpu.csv', index=False)
+  df.to_csv(f'{PATH}/jitconn_event_matvec_grad_cpu.csv', index=False)
 
 if (bm.get_platform() == 'gpu'):
   for shape1 in shape:
@@ -690,7 +708,7 @@ if (bm.get_platform() == 'gpu'):
               df.loc[df.shape[0]] = [shape1, shape2, 'gpu', _type, _transpose, _outdim_parallel, _bool_event,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, speedup]
-  df.to_csv(f'{PATH}/jitconn_event_matvec_gpu.csv', index=False)
+  df.to_csv(f'{PATH}/jitconn_event_matvec_grad_gpu.csv', index=False)
 
 # if (bm.get_platform() == 'gpu'):
 #   for _s in s:

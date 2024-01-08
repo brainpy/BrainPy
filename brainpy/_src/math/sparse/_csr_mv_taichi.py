@@ -61,8 +61,8 @@ def _sparse_csr_matvec_homo_cpu(values: ti.types.ndarray(ndim=1),
   for row_i in range(row_ptr.shape[0] - 1):
     r = 0.
     for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-      r += value * vector[col_indices[j]]
-    out[row_i] = r
+      r += vector[col_indices[j]]
+    out[row_i] = r * value
 
 
 @ti.kernel
@@ -115,9 +115,9 @@ def _sparse_csr_matvec_homo_gpu(values: ti.types.ndarray(ndim=1),
     j = row_ptr[row_i] + index
     end_index = row_ptr[row_i + 1]
     while j < end_index:
-      r += value * vector[col_indices[j]]
+      r += vector[col_indices[j]]
       j += 32
-    out[row_i] += r  # TODO: warp-level primitive
+    out[row_i] += value * r
 
 
 @ti.kernel
