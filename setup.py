@@ -3,6 +3,7 @@
 import io
 import os
 import re
+import time
 
 from setuptools import find_packages
 from setuptools import setup
@@ -26,6 +27,7 @@ try:
 except ModuleNotFoundError:
   pass
 
+
 # version
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
@@ -42,7 +44,7 @@ packages = find_packages(exclude=['lib*', 'docs', 'tests'])
 # setup
 setup(
   name='brainpy',
-  version=version,
+  version=version + '.post{}'.format(time.strftime("%Y%m%d", time.localtime())),
   description='BrainPy: Brain Dynamics Programming in Python',
   long_description=README,
   long_description_content_type="text/markdown",
