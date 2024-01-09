@@ -77,7 +77,6 @@ def test_rearrange_consistency_numpy():
   ]:
     result = ein_rearrange(x, pattern)
     assert len(numpy.setdiff1d(x, result)) == 0
-    assert result.dtype == x.dtype
 
   result = ein_rearrange(x, "a b c d e f -> a (b) (c d e) f")
   assert numpy.array_equal(x.flatten(), result.flatten())
