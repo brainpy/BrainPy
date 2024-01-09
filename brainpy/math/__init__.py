@@ -8,6 +8,7 @@ from .datatypes import *
 from .compat_numpy import *
 from .compat_tensorflow import *
 from .compat_pytorch import *
+from .einops import *
 
 # functions
 from .activations import *
