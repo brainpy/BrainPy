@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import taichi as ti
 
-bm.set_platform('gpu')
+bm.set_platform('cpu')
 
 s = [1000, 5000, 10000, 20000, 25000, 30000]
 p = [0.1, 0.2, 0.3, 0.4, 0.5]
@@ -46,7 +46,7 @@ print(bm.get_platform())
 
 def test_event_csrmv_cpu(shape, values_type, events_type, transpose):
   rng = bm.random.RandomState(seed=1234)
-  indices, indptr = bp.conn.FixedProb(0.3)(*shape).require('pre2post')
+  indices, indptr = bp.conn.FixedProb(0.05)(*shape).require('pre2post')
   vector = rng.random(shape[0] if transpose else shape[1]) < 0.1
   weight = 1.
   
@@ -151,7 +151,7 @@ def test_event_csrmv_cpu(shape, values_type, events_type, transpose):
 
 def test_event_csrmv_gpu(shape, values_type, events_type, transpose):
   rng = bm.random.RandomState(seed=1234)
-  indices, indptr = bp.conn.FixedProb(0.3)(*shape).require('pre2post')
+  indices, indptr = bp.conn.FixedProb(0.05)(*shape).require('pre2post')
   vector = rng.random(shape[0] if transpose else shape[1]) < 0.1
   weight = 1.
   

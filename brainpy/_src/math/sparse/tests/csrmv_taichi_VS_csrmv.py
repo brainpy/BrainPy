@@ -42,7 +42,7 @@ print(bm.get_platform())
 
 def test_sparse_csrmv_cpu(shape, values_type, events_type, transpose):
   rng = bm.random.RandomState(seed=1234)
-  indices, indptr = bp.conn.FixedProb(0.3)(*shape).require('pre2post')
+  indices, indptr = bp.conn.FixedProb(0.05)(*shape).require('pre2post')
   vector = rng.random(shape[0] if transpose else shape[1]) < 0.1
   weight = 1.
   
@@ -134,7 +134,7 @@ def test_sparse_csrmv_cpu(shape, values_type, events_type, transpose):
   print('brainpylib_cpu_3: ', brainpy_time3, 'ms')
   print('brainpylib_cpu_4: ', brainpy_time4, 'ms')
   print('brainpylib_cpu_5: ', brainpy_time5, 'ms')
-  assert(jnp.allclose(result1[0], result2))
+  assert(bm.allclose(result1[0], result2))
 
   speedup = (brainpy_time1 + brainpy_time2 + brainpy_time3 + brainpy_time4 + brainpy_time5) / \
             (taichi_aot_time1 + taichi_aot_time2 + taichi_aot_time3 + taichi_aot_time4 + taichi_aot_time5) - 1
@@ -144,20 +144,30 @@ def test_sparse_csrmv_cpu(shape, values_type, events_type, transpose):
 
 def test_sparse_csrmv_gpu(shape, values_type, events_type, transpose):
   rng = bm.random.RandomState(seed=1234)
-  indices, indptr = bp.conn.FixedProb(0.3)(*shape).require('pre2post')
+  indices, indptr = bp.conn.FixedProb(0.05, seed=1234)(*shape).require('pre2post')
+  
   vector = rng.random(shape[0] if transpose else shape[1]) < 0.1
   weight = 1.
   
+  heter_data = bm.ones(indices.shape) * weight
+  
+  # dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
+  
+  # if transpose:
+  #   groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense, dtype=float)
+  # else:
+  #   groundtruth = bm.as_jax(dense, dtype=float) @ bm.as_jax(vector, dtype=float)
+  
+  # groundtruth = groundtruth * weight
+  
+  
   if values_type == 'heter':
-    heter_data = bm.ones(indices.shape) * weight
     weight = heter_data
-
-  # groundtruth = bm.as_jax(vector, dtype=float) @ bm.as_jax(dense)
-
-
 
   result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   # time.sleep(2)
+  
+  # assert(bm.allclose(result1[0], groundtruth))
 
   time0 = time.time()
   result1 = jax.block_until_ready(bm.sparse.csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
@@ -183,16 +193,7 @@ def test_sparse_csrmv_gpu(shape, values_type, events_type, transpose):
   time9 = time.time()
 
   result2 = jax.block_until_ready(bm.sparse.csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-#   print(result1[0])
-#   print(result2)
-#   print(groundtruth - result1[0])
-#   print(groundtruth - result2)
   
-  # print(result1[0] - result2)
-  # print(bm.allclose(groundtruth, result1[0]))
-  # print(bm.allclose(groundtruth, result2))
-  # assert bm.allclose(result1[0], result2)
-
   time12 = time.time()
   result2 = jax.block_until_ready(bm.sparse.csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time13 = time.time()
@@ -238,8 +239,12 @@ def test_sparse_csrmv_gpu(shape, values_type, events_type, transpose):
   print('brainpylib_gpu_3: ', brainpy_time3, 'ms')
   print('brainpylib_gpu_4: ', brainpy_time4, 'ms')
   print('brainpylib_gpu_5: ', brainpy_time5, 'ms')
+  
+  # print('------------------------------------------------------')
+  # print(result1[0])
+  # print('------------------------------------------------------')
+  # print(result2)
 
-  # assert(jnp.allclose(result1[0], result2))
 
   speedup = (brainpy_time1 + brainpy_time2 + brainpy_time3 + brainpy_time4 + brainpy_time5) / \
             (taichi_aot_time1 + taichi_aot_time2 + taichi_aot_time3 + taichi_aot_time4 + taichi_aot_time5) - 1
