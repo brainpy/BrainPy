@@ -14,7 +14,7 @@ import taichi as ti
 
 bm.set_platform('cpu')
 
-s = [1000, 5000, 10000, 15000, 20000, 25000, 30000]
+s = [1000, 5000, 10000, 20000, 25000, 30000]
 p = [0.1, 0.2, 0.3, 0.4, 0.5]
 
 shape = [
@@ -27,16 +27,20 @@ shape = [
         50000
 ]
 
+
+
 values_type = [
                'homo', 
                'heter'
-              ]
-events_type = ['float']
+               ]
+events_type = [
+               'bool', 
+               'float',
+               ]
 transpose = [
              True, 
              False
-             ]
-method = 'cusparse'
+            ]
 
 ITERATION = 100
 if bm.get_platform() == 'cpu':
@@ -44,21 +48,39 @@ if bm.get_platform() == 'cpu':
 
 print(bm.get_platform())
 
+def sum_op(op):
+  def func(*args, **kwargs):
+    r = op(*args, **kwargs)
+    return r.sum()
+
+  return func
+
+
+def sum_op2(op):
+  def func(*args, **kwargs):
+    r = op(*args, **kwargs)[0]
+    return r.sum()
+
+  return func
+
 @partial(jax.jit, static_argnums=(4, 5))
-def csrmv_taichi(weight, indices, indptr, vector, shape, transpose):
+def event_csrmv_taichi_grad(weight, indices, indptr, vector, shape, transpose):
   r = 0
   for i in range(ITERATION):
-    r += bm.sparse.csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose)[0]
-  return r
-  
-@partial(jax.jit, static_argnums=(4, 5))
-def csrmv(weight, indices, indptr, vector, shape, transpose):
-  r = 0
-  for i in range(ITERATION):
-    r += bm.sparse.csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose)
+    r += jax.grad(sum_op2(bm.event.csrmv_taichi), argnums=3)(
+      weight, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
   return r
 
-def test_sparse_csrmv(shape, values_type, events_type, transpose):
+@partial(jax.jit, static_argnums=(4, 5))
+def event_csrmv_grad(weight, indices, indptr, vector, shape, transpose):
+  r = 0
+  for i in range(ITERATION):
+    r += jax.grad(sum_op(bm.event.csrmv), argnums=3)(
+      weight, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+  return r
+
+
+def test_event_csrmv(shape, values_type, events_type, transpose):
   rng = bm.random.RandomState(seed=1234)
   indices, indptr = bp.conn.FixedProb(0.05, seed=1234, allow_multi_conn=True)(*shape).require('pre2post')
   vector = rng.random(shape[0] if transpose else shape[1]) < 0.1
@@ -71,97 +93,97 @@ def test_sparse_csrmv(shape, values_type, events_type, transpose):
     heter_data = bm.ones(indices.shape) * weight
     weight = heter_data
 
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
 
   time0 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time1 = time.time()
 
   time2 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time3 = time.time()
 
   time4 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time5 = time.time()
 
   time6 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time7 = time.time()
 
   time8 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time9 = time.time()
   
   time10 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time11 = time.time()
   
   time12 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time13 = time.time()
   
   time14 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time15 = time.time()
   
   time16 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time17 = time.time()
   
   time18 = time.time()
-  result = jax.block_until_ready(csrmv_taichi(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_taichi_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time19 = time.time()
   
 
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
 
   time20 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time21 = time.time()
 
   time22 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time23 = time.time()
 
   time24 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time25 = time.time()
 
   time26 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time27 = time.time()
 
   time28 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time29 = time.time()
   
   time30 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time31 = time.time()
   
   time32 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time33 = time.time()
   
   time34 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time35 = time.time()
   
   time36 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time37 = time.time()
   
   time38 = time.time()
-  result = jax.block_until_ready(csrmv(weight, indices, indptr, vector, shape=shape, transpose=transpose))
+  result = jax.block_until_ready(event_csrmv_grad(weight, indices, indptr, vector, shape=shape, transpose=transpose))
   time39 = time.time()
 
   taichi_aot_time1 = (time1 - time0) * 1000
@@ -202,7 +224,6 @@ def test_sparse_csrmv(shape, values_type, events_type, transpose):
       brainpy_time1, brainpy_time2, brainpy_time3, brainpy_time4, brainpy_time5, \
       brainpy_time6, brainpy_time7, brainpy_time8, brainpy_time9, brainpy_time10
 
-
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 # init dataframe
@@ -222,14 +243,14 @@ if (bm.get_platform() == 'cpu'):
               taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
                 taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10,\
                   brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, \
-                  brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_sparse_csrmv((shape1, shape2), _values_type, _events_type, _transpose)
+                  brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_event_csrmv((shape1, shape2), _values_type, _events_type, _transpose)
               # append to dataframe
               df.loc[df.shape[0]] = [(shape1, shape2), 0.5 , shape1, shape2, 'cpu', _values_type, _events_type, _transpose,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, 
                                     brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10]
-  df.to_csv(f'{PATH}/csrmv_cpu.csv', index=False)
+  df.to_csv(f'{PATH}/event_csrmv_grad_cpu.csv', index=False)
 
 if (bm.get_platform() == 'gpu'):
   for shape1 in shape:
@@ -240,11 +261,11 @@ if (bm.get_platform() == 'gpu'):
               taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,\
                 taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10,\
                   brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, \
-                  brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_sparse_csrmv((shape1, shape2), _values_type, _events_type, _transpose)
+                  brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_event_csrmv((shape1, shape2), _values_type, _events_type, _transpose)
               # append to dataframe
               df.loc[df.shape[0]] = [(shape1, shape2), 0.5 , shape1, shape2, 'gpu', _values_type, _events_type, _transpose,
                                     taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5,
                                     taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10,
                                     brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, 
                                     brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10]
-  df.to_csv(f'{PATH}/csrmv_gpu.csv', index=False)
+  df.to_csv(f'{PATH}/event_csrmv_grad_gpu.csv', index=False)
