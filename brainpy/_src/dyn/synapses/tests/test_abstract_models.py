@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import brainpy as bp
 import brainpy.math as bm
 
-show = True
+show = False
 
 
 class TestDualExpon(unittest.TestCase):
