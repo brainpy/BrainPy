@@ -7,6 +7,7 @@ import jax
 import brainpy.math as bm
 from brainpy._src.connect import TwoEndConnector, All2All, One2One
 from brainpy._src.dnn import linear
+from brainpy._src.dyn import _docs
 from brainpy._src.dyn import synapses
 from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.dynold.synouts import MgBlock, CUBA
@@ -175,32 +176,7 @@ class Delta(TwoEndConn):
 class Exponential(TwoEndConn):
   r"""Exponential decay synapse model.
 
-  **Model Descriptions**
-
-  The single exponential decay synapse model assumes the release of neurotransmitter,
-  its diffusion across the cleft, the receptor binding, and channel opening all happen
-  very quickly, so that the channels instantaneously jump from the closed to the open state.
-  Therefore, its expression is given by
-
-  .. math::
-
-      g_{\mathrm{syn}}(t)=g_{\mathrm{max}} e^{-\left(t-t_{0}\right) / \tau}
-
-  where :math:`\tau_{delay}` is the time constant of the synaptic state decay,
-  :math:`t_0` is the time of the pre-synaptic spike,
-  :math:`g_{\mathrm{max}}` is the maximal conductance.
-
-  Accordingly, the differential form of the exponential synapse is given by
-
-  .. math::
-
-      \begin{aligned}
-       & g_{\mathrm{syn}}(t) = g_{max} g * \mathrm{STP} \\
-       & \frac{d g}{d t} = -\frac{g}{\tau_{decay}}+\sum_{k} \delta(t-t_{j}^{k}).
-       \end{aligned}
-
-  where :math:`\mathrm{STP}` is used to model the short-term plasticity effect.
-
+  %s
 
   **Model Examples**
 
@@ -256,12 +232,6 @@ class Exponential(TwoEndConn):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-          "The Synapse." Principles of Computational Modelling in Neuroscience.
-          Cambridge: Cambridge UP, 2011. 172-95. Print.
 
   """
 
@@ -346,36 +316,13 @@ class Exponential(TwoEndConn):
     return self.output(g)
 
 
+Exponential.__doc__ = Exponential.__doc__ % (_docs.exp_syn_doc,)
+
+
 class DualExponential(_TwoEndConnAlignPre):
   r"""Dual exponential synapse model.
 
-  **Model Descriptions**
-
-  The dual exponential synapse model [1]_, also named as *difference of two exponentials* model,
-  is given by:
-
-  .. math::
-
-    g_{\mathrm{syn}}(t)=g_{\mathrm{max}} \frac{\tau_{1} \tau_{2}}{
-        \tau_{1}-\tau_{2}}\left(\exp \left(-\frac{t-t_{0}}{\tau_{1}}\right)
-        -\exp \left(-\frac{t-t_{0}}{\tau_{2}}\right)\right)
-
-  where :math:`\tau_1` is the time constant of the decay phase, :math:`\tau_2`
-  is the time constant of the rise phase, :math:`t_0` is the time of the pre-synaptic
-  spike, :math:`g_{\mathrm{max}}` is the maximal conductance.
-
-  However, in practice, this formula is hard to implement. The equivalent solution is
-  two coupled linear differential equations [2]_:
-
-  .. math::
-
-      \begin{aligned}
-      &g_{\mathrm{syn}}(t)=g_{\mathrm{max}} g * \mathrm{STP} \\
-      &\frac{d g}{d t}=-\frac{g}{\tau_{\mathrm{decay}}}+h \\
-      &\frac{d h}{d t}=-\frac{h}{\tau_{\text {rise }}}+ \delta\left(t_{0}-t\right),
-      \end{aligned}
-
-  where :math:`\mathrm{STP}` is used to model the short-term plasticity effect of synapses.
+  %s
 
   **Model Examples**
 
@@ -427,15 +374,6 @@ class DualExponential(_TwoEndConnAlignPre):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-         "The Synapse." Principles of Computational Modelling in Neuroscience.
-         Cambridge: Cambridge UP, 2011. 172-95. Print.
-  .. [2] Roth, A., & Van Rossum, M. C. W. (2009). Modeling Synapses. Computational
-         Modeling Methods for Neuroscientists.
-
   """
 
   def __init__(
@@ -450,6 +388,7 @@ class DualExponential(_TwoEndConnAlignPre):
       tau_decay: Union[float, ArrayType] = 10.0,
       tau_rise: Union[float, ArrayType] = 1.,
       delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+      A: Optional[Union[float, ArrayType, Callable]] = None,
       method: str = 'exp_auto',
 
       # other parameters
@@ -472,6 +411,7 @@ class DualExponential(_TwoEndConnAlignPre):
 
     syn = synapses.DualExpon(pre.size,
                              pre.keep_size,
+                             A=A,
                              mode=mode,
                              tau_decay=tau_decay,
                              tau_rise=tau_rise,
@@ -498,27 +438,13 @@ class DualExponential(_TwoEndConnAlignPre):
     return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
 
 
+DualExponential.__doc__ = DualExponential.__doc__ % (_docs.dual_exp_syn_doc,)
+
+
 class Alpha(_TwoEndConnAlignPre):
   r"""Alpha synapse model.
 
-  **Model Descriptions**
-
-  The analytical expression of alpha synapse is given by:
-
-  .. math::
-
-      g_{syn}(t)= g_{max} \frac{t-t_{s}}{\tau} \exp \left(-\frac{t-t_{s}}{\tau}\right).
-
-  While, this equation is hard to implement. So, let's try to convert it into the
-  differential forms:
-
-  .. math::
-
-      \begin{aligned}
-      &g_{\mathrm{syn}}(t)= g_{\mathrm{max}} g \\
-      &\frac{d g}{d t}=-\frac{g}{\tau}+\frac{h}{\tau} \\
-      &\frac{d h}{d t}=-\frac{h}{\tau}+\delta\left(t_{0}-t\right)
-      \end{aligned}
+  %s
 
   **Model Examples**
 
@@ -567,12 +493,6 @@ class Alpha(_TwoEndConnAlignPre):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
-
-  .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
-          "The Synapse." Principles of Computational Modelling in Neuroscience.
-          Cambridge: Cambridge UP, 2011. 172-95. Print.
   """
 
   def __init__(
@@ -617,7 +537,7 @@ class Alpha(_TwoEndConnAlignPre):
                      output=output,
                      stp=stp,
                      name=name,
-                     mode=mode,)
+                     mode=mode, )
 
     self.check_post_attrs('input')
     # copy the references
@@ -627,6 +547,8 @@ class Alpha(_TwoEndConnAlignPre):
   def update(self, pre_spike=None):
     return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
 
+
+Alpha.__doc__ = Alpha.__doc__ % (_docs.alpha_syn_doc,)
 
 
 class NMDA(_TwoEndConnAlignPre):

@@ -104,4 +104,6 @@ We also welcome your contributions
 - [ ] pipeline parallelization on multiple devices for sparse spiking network models
 - [ ] multi-compartment modeling
 - [ ] measurements, analysis, and visualization methods for large-scale spiking data
+- [ ] Online learning methods for large-scale spiking network models
+- [ ] Classical plasticity rules for large-scale spiking network models
 
