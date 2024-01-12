@@ -117,7 +117,9 @@ def _array_to_field(dtype, shape) -> Any:
   elif dtype == np.float64:
     dtype = ti.float64
   else:
-    raise TypeError
+    raise NotImplementedError(f'Currently we do not support dtype {dtype} in Taichi. '
+                              f'If you think it is necessary, please open an issue at '
+                              f'https://github.com/brainpy/BrainPy/issues/new')
   return ti.field(dtype=dtype, shape=shape)
 
 
