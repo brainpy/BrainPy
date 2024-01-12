@@ -12,8 +12,8 @@ import numpy as np
 from jax.interpreters import xla
 from jax.lib import xla_client
 
-from .utils import _shape_to_layout
 from brainpy._src.dependency_check import import_taichi, import_brainpylib_cpu_ops, import_brainpylib_gpu_ops
+from .utils import _shape_to_layout
 
 
 ### UTILS ###
@@ -37,38 +37,37 @@ def encode_md5(source: str) -> str:
   return md5.hexdigest()
 
 
+# TODO
+# not a very good way
 # get source with dependencies
 def get_source_with_dependencies(func, visited=None):
   if visited is None:
     visited = set()
 
   source = inspect.getsource(func)
-
   if func in visited:
     return ''
 
   visited.add(func)
-
   module = inspect.getmodule(func)
-
   dependent_funcs = re.findall(r'(\w+)\(', source)
 
   for func_name in dependent_funcs:
     dependent_func = getattr(module, func_name, None)
     if callable(dependent_func):
       source += get_source_with_dependencies(dependent_func, visited)
-
   return source
+
 
 # check if Metal is supported
 def is_metal_supported():
-    # first check if we are on macOS
-    if platform.system() != 'Darwin':
-        return False
+  # first check if we are on macOS
+  if platform.system() != 'Darwin':
+    return False
+  if platform.processor() != 'arm':
+    return False
+  return True
 
-    if platform.processor() != 'arm':
-        return False
-    return True
 
 ### VARIABLES ###
 home_path = get_home_dir()
@@ -133,15 +132,16 @@ def _build_kernel(
   ti = import_taichi()
 
   # init arch
-  arch = None
   if device == 'cpu':
     if is_metal_device:
       arch = ti.arm64
-      device == 'arm64'
+      device = 'arm64'
     else:
       arch = ti.x64
   elif device == 'gpu':
     arch = ti.cuda
+  else:
+    raise ValueError(f'Unknown device: {device}')
 
   ti.init(arch=arch)
 
@@ -343,7 +343,6 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
 def _taichi_cpu_translation_rule(kernel, c, *ins, **kwargs):
   in_out_info = _compile_kernel(kernel, c, 'cpu', *ins, **kwargs)
   ins = [xla_client.ops.Constant(c, v) for v in in_out_info] + list(ins)
-  fn = None
   if is_metal_device:
     fn = b'taichi_kernel_aot_call_cpu_arm64'
   else:
