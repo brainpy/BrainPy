@@ -86,7 +86,7 @@ if flax is not None:
         raise NotImplementedError
 
       _state_vars = self.model.vars().unique().not_subset(bm.TrainVar)
-      self.model.reset_state(batch_size=batch_dims)
+      self.model.reset(batch_size=batch_dims)
       return [_state_vars.dict(), 0, 0.]
 
     def setup(self):
