@@ -189,6 +189,12 @@ class STDP_Song2000(Projection):
     self.A1 = A1
     self.A2 = A2
 
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+  syn = property(lambda self: self.refs['syn'])
+  delay = property(lambda self: self.refs['delay'])
+  out = property(lambda self: self.refs['out'])
+
   def update(self):
     # pre-synaptic spikes
     pre_spike = self.refs['delay'].at(self.name)  # spike

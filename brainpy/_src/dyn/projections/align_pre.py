@@ -195,6 +195,12 @@ class FullProjAlignPreSDMg(Projection):
     self.refs['out'].bind_cond(current)
     return current
 
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+  syn = property(lambda self: self.refs['syn'])
+  delay = property(lambda self: self.refs['delay'])
+  out = property(lambda self: self.refs['out'])
+
 
 class FullProjAlignPreDSMg(Projection):
   """Full-chain synaptic projection with the align-pre reduction and delay+synapse updating and merging.
@@ -326,6 +332,11 @@ class FullProjAlignPreDSMg(Projection):
     self.refs['out'].bind_cond(current)
     return current
 
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+  syn = property(lambda self: self.refs['syn'])
+  out = property(lambda self: self.refs['out'])
+
 
 class FullProjAlignPreSD(Projection):
   """Full-chain synaptic projection with the align-pre reduction and synapse+delay updating.
@@ -454,6 +465,12 @@ class FullProjAlignPreSD(Projection):
     self.refs['out'].bind_cond(current)
     return current
 
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+  syn = property(lambda self: self.refs['syn'])
+  delay = property(lambda self: self.refs['delay'])
+  out = property(lambda self: self.refs['out'])
+
 
 class FullProjAlignPreDS(Projection):
   """Full-chain synaptic projection with the align-pre reduction and delay+synapse updating.
@@ -581,3 +598,9 @@ class FullProjAlignPreDS(Projection):
     g = self.comm(self.syn(spk))
     self.refs['out'].bind_cond(g)
     return g
+
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+  delay = property(lambda self: self.refs['delay'])
+  out = property(lambda self: self.refs['out'])
+
