@@ -4,6 +4,7 @@ import os
 import pathlib
 import platform
 import re
+import shutil
 from functools import partial, reduce
 from typing import Any, Sequence
 
@@ -48,19 +49,19 @@ def check_kernels_count() -> int:
   return kernels_count
 
 # clean caches
-def clean_caches(kernels_name: list[str]):
+def clean_caches(kernels_name: list[str]=None):
   if kernels_name is None:
     if not os.path.exists(kernels_aot_path):
       raise FileNotFoundError("The kernels cache folder does not exist. \
                               Please define a kernel using `taichi.kernel` \
                               and customize the operator using `bm.XLACustomOp` \
                               before calling the operator.")
-    os.removedirs(kernels_aot_path)
+    shutil.rmtree(kernels_aot_path)
     print('Clean all kernel\'s cache successfully')
     return
   for kernel_name in kernels_name:
     try:
-      os.removedirs(os.path.join(kernels_aot_path, kernel_name))
+      shutil.rmtree(os.path.join(kernels_aot_path, kernel_name))
     except FileNotFoundError:
       raise FileNotFoundError(f'Kernel {kernel_name} does not exist.')
   print('Clean kernel\'s cache successfully')
