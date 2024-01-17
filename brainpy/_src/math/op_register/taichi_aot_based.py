@@ -4,6 +4,7 @@ import os
 import pathlib
 import platform
 import re
+import shutil
 from functools import partial, reduce
 from typing import Any, Sequence
 
@@ -36,6 +37,34 @@ def encode_md5(source: str) -> str:
 
   return md5.hexdigest()
 
+# check kernels count
+def check_kernels_count() -> int:
+  if not os.path.exists(kernels_aot_path):
+    return 0
+  kernels_count = 0
+  dir1 = os.listdir(kernels_aot_path)
+  for i in dir1:
+    dir2 = os.listdir(os.path.join(kernels_aot_path, i))
+    kernels_count += len(dir2)
+  return kernels_count
+
+# clean caches
+def clean_caches(kernels_name: list[str]=None):
+  if kernels_name is None:
+    if not os.path.exists(kernels_aot_path):
+      raise FileNotFoundError("The kernels cache folder does not exist. \
+                              Please define a kernel using `taichi.kernel` \
+                              and customize the operator using `bm.XLACustomOp` \
+                              before calling the operator.")
+    shutil.rmtree(kernels_aot_path)
+    print('Clean all kernel\'s cache successfully')
+    return
+  for kernel_name in kernels_name:
+    try:
+      shutil.rmtree(os.path.join(kernels_aot_path, kernel_name))
+    except FileNotFoundError:
+      raise FileNotFoundError(f'Kernel {kernel_name} does not exist.')
+  print('Clean kernel\'s cache successfully')
 
 # TODO
 # not a very good way
@@ -151,6 +180,9 @@ def _build_kernel(
   if ti.lang.impl.current_cfg().arch != arch:
     raise RuntimeError(f"Arch {arch} is not available")
 
+  # get kernel name
+  kernel_name = kernel.__name__
+
   # replace the name of the func
   kernel.__name__ = f'taichi_kernel_{device}'
 
@@ -169,6 +201,9 @@ def _build_kernel(
   mod = ti.aot.Module(arch)
   mod.add_kernel(kernel, template_args=template_args_dict)
   mod.save(kernel_path)
+
+  # rename kernel name
+  kernel.__name__ = kernel_name
 
 
 ### KERNEL CALL PREPROCESS ###
@@ -246,7 +281,7 @@ def _preprocess_kernel_call_cpu(
   return in_out_info
 
 
-def preprocess_kernel_call_gpu(
+def _preprocess_kernel_call_gpu(
     source_md5_encode: str,
     ins: dict,
     outs: dict,
@@ -312,7 +347,7 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
 
   # kernel to code
   codes = _kernel_to_code(kernel, abs_ins, abs_outs, platform)
-  source_md5_encode = encode_md5(codes)
+  source_md5_encode = kernel.__name__ + '/' + encode_md5(codes)
 
   # create ins, outs dict from kernel's args
   in_num = len(ins)
@@ -332,7 +367,7 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
   # returns
   if platform in ['gpu', 'cuda']:
     import_brainpylib_gpu_ops()
-    opaque = preprocess_kernel_call_gpu(source_md5_encode, ins_dict, outs_dict)
+    opaque = _preprocess_kernel_call_gpu(source_md5_encode, ins_dict, outs_dict)
     return opaque
   elif platform == 'cpu':
     import_brainpylib_cpu_ops()
