@@ -15,7 +15,6 @@ from brainpy._src.math.object_transform.base import BrainPyObject
 from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
 from .taichi_aot_based import (register_taichi_cpu_translation_rule,
                                register_taichi_gpu_translation_rule,
-                               check_kernels_count,
                                clean_caches)
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
@@ -140,9 +139,6 @@ class XLACustomOp(BrainPyObject):
     if transpose_translation is not None:
       ad.primitive_transposes[self.primitive] = transpose_translation
 
-    # check cache size and clean cache (the size of 3000 kernels is about 100MB)
-    if check_kernels_count() > 3000:
-      clean_caches()
 
   def __call__(self, *ins, outs: Optional[Sequence[ShapeDtype]] = None, **kwargs):
     if outs is None:
