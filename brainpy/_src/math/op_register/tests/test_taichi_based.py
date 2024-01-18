@@ -8,8 +8,8 @@ import brainpy.math as bm
 
 bm.set_platform('cpu')
 
-if not platform.platform().startswith('Windows'):
-  pytest.skip(allow_module_level=True)
+# if not platform.platform().startswith('Windows'):
+#   pytest.skip(allow_module_level=True)
 
 
 # @ti.kernel
