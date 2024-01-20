@@ -64,7 +64,7 @@ class DelayCoupling(Projection):
     self.output_var = var_to_output
 
     # Connection matrix
-    self.conn_mat = bm.asarray(conn_mat)
+    self.conn_mat = conn_mat
     if self.conn_mat.shape != required_shape:
       raise ValueError(f'we expect the structural connection matrix has the shape of '
                        f'(pre.num, post.num), i.e., {required_shape}, '

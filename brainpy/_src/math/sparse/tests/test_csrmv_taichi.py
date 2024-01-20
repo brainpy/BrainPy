@@ -1,21 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import sys
 from functools import partial
 
 import jax
-import pytest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
-
-# pytestmark = pytest.mark.skip(reason="Skipped due to pytest limitations, manual execution required for testing.")
-
-
-is_manual_test = False
-if sys.platform.startswith('darwin') and not is_manual_test:
-  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 # bm.set_platform('gpu')
 

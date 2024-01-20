@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import sys
 
 import jax
 import jax.numpy as jnp
-import pytest
 from absl.testing import parameterized
 
 import brainpy.math as bm
-
-is_manual_test = False
-if sys.platform.startswith('darwin') and not is_manual_test:
-  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 shapes = [(100, 200), (10, 1000), (2, 1000), (1000, 10), (1000, 2)]
 shapes = [(100, 200), (2, 1000), (1000, 2)]
