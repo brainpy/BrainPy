@@ -10,7 +10,7 @@ from jax.interpreters import ad
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
-from brainpy._src.math.sparse._csr_mv_taichi import csrmv_taichi as normal_csrmv_taichi
+from brainpy._src.math.sparse._csr_mv_taichi import raw_csrmv_taichi as normal_csrmv_taichi
 from brainpy._src.math.sparse._utils import csr_to_coo
 
 ti = import_taichi()
@@ -333,13 +333,53 @@ def _event_csr_matvec_transpose(
       ct_values = ad.Zero(values)
     else:
       if values.aval.shape[0] == 1:  # scalar
-        ct_values = csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)[0]
+        ct_values = raw_csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)[0]
         ct_values = jnp.inner(ct[0], ct_values)
       else:  # heterogeneous values
         row, col = csr_to_coo(indices, indptr)
         ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
     return ct_values, indices, indptr, events
 
+def raw_csrmv_taichi(
+    data: Union[float, jax.Array],
+    indices: jax.Array,
+    indptr: jax.Array,
+    events: jax.Array,
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False
+):
+  if transpose:
+    if events.dtype == jnp.bool_:
+      if data.shape[0] == 1:
+        prim = _event_csrmv_transpose_bool_homo_p
+      else:
+        prim = _event_csrmv_transpose_bool_heter_p
+    else:
+      if data.shape[0] == 1:
+        prim = _event_csrmv_transpose_homo_p
+      else:
+        prim = _event_csrmv_transpose_heter_p
+  else:
+    if events.dtype == jnp.bool_:
+      if data.shape[0] == 1:
+        prim = _event_csrmv_bool_homo_p
+      else:
+        prim = _event_csrmv_bool_heter_p
+    else:
+      if data.shape[0] == 1:
+        prim = _event_csrmv_homo_p
+      else:
+        prim = _event_csrmv_heter_p
+
+  # computing
+  return prim(data,
+              indices,
+              indptr,
+              events,
+              outs=[jax.ShapeDtypeStruct(shape=(shape[1] if transpose else shape[0],), dtype=data.dtype)],
+              transpose=transpose,
+              shape=shape)
 
 def csrmv_taichi(
     data: Union[float, jax.Array],
@@ -419,37 +459,7 @@ def csrmv_taichi(
   if indices.shape[0] == 0:
     return jnp.zeros(shape[1] if transpose else shape[0], dtype=data.dtype)
 
-  if transpose:
-    if events.dtype == jnp.bool_:
-      if data.shape[0] == 1:
-        prim = _event_csrmv_transpose_bool_homo_p
-      else:
-        prim = _event_csrmv_transpose_bool_heter_p
-    else:
-      if data.shape[0] == 1:
-        prim = _event_csrmv_transpose_homo_p
-      else:
-        prim = _event_csrmv_transpose_heter_p
-  else:
-    if events.dtype == jnp.bool_:
-      if data.shape[0] == 1:
-        prim = _event_csrmv_bool_homo_p
-      else:
-        prim = _event_csrmv_bool_heter_p
-    else:
-      if data.shape[0] == 1:
-        prim = _event_csrmv_homo_p
-      else:
-        prim = _event_csrmv_heter_p
-
-  # computing
-  return prim(data,
-              indices,
-              indptr,
-              events,
-              outs=[jax.ShapeDtypeStruct(shape=(shape[1] if transpose else shape[0],), dtype=data.dtype)],
-              transpose=transpose,
-              shape=shape)
+  return raw_csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)[0]
 
 
 def _define_op(cpu_kernel, gpu_kernel):

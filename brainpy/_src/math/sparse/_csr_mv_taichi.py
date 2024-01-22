@@ -155,11 +155,11 @@ def _sparse_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
 
 
 def _sparse_csr_matvec_jvp_values(val_dot, values, col_indices, row_ptr, vector, *, outs, transpose, shape):
-  return csrmv_taichi(val_dot, col_indices, row_ptr, vector, shape=shape, transpose=transpose)
+  return raw_csrmv_taichi(val_dot, col_indices, row_ptr, vector, shape=shape, transpose=transpose)
 
 
 def _sparse_csr_matvec_jvp_vector(vec_dot, values, col_indices, row_ptr, vector, *, outs, transpose, shape):
-  return csrmv_taichi(values, col_indices, row_ptr, vec_dot, shape=shape, transpose=transpose)
+  return raw_csrmv_taichi(values, col_indices, row_ptr, vec_dot, shape=shape, transpose=transpose)
 
 
 def _sparse_csr_matvec_transpose(
@@ -168,7 +168,7 @@ def _sparse_csr_matvec_transpose(
   if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
     raise ValueError("Cannot transpose with respect to sparse indices.")
   if ad.is_undefined_primal(vector):
-    ct_vector = csrmv_taichi(data, indices, indptr, ct[0], shape=shape, transpose=not transpose)[0]
+    ct_vector = raw_csrmv_taichi(data, indices, indptr, ct[0], shape=shape, transpose=not transpose)[0]
     return data, indices, indptr, (ad.Zero(vector) if type(ct[0]) is ad.Zero else ct_vector)
 
   else:
@@ -176,13 +176,42 @@ def _sparse_csr_matvec_transpose(
       ct_data = ad.Zero(data)
     else:
       if data.aval.shape[0] == 1:  # scalar
-        ct_data = csrmv_taichi(jnp.ones(1), indices, indptr, vector, shape=shape, transpose=transpose)[0]
+        ct_data = raw_csrmv_taichi(jnp.ones(1), indices, indptr, vector, shape=shape, transpose=transpose)[0]
         ct_data = jnp.inner(ct[0], ct_data)
       else:
         row, col = csr_to_coo(indices, indptr)
         ct_data = vector[row] * ct[0][col] if transpose else vector[col] * ct[0][row]
 
     return ct_data, indices, indptr, vector
+
+def raw_csrmv_taichi(
+    data: Union[float, jnp.ndarray, Array],
+    indices: Union[jnp.ndarray, Array],
+    indptr: Union[jnp.ndarray, Array],
+    vector: Union[jnp.ndarray, Array],
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False,
+):
+  out_shape = shape[1] if transpose else shape[0]
+  if transpose:
+    if data.shape[0] == 1:
+      prim = _csr_matvec_transpose_homo_p
+    else:
+      prim = _csr_matvec_transpose_heter_p
+  else:
+    if data.shape[0] == 1:
+      prim = _csr_matvec_homo_p
+    else:
+      prim = _csr_matvec_heter_p
+
+  return prim(data,
+              indices,
+              indptr,
+              vector,
+              outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)],
+              transpose=transpose,
+              shape=shape)
 
 
 def csrmv_taichi(
@@ -242,26 +271,9 @@ def csrmv_taichi(
     raise ValueError('indices should be a 1D vector with integer type.')
   if not jnp.issubdtype(indptr.dtype, jnp.integer):
     raise ValueError('indptr should be a 1D vector with integer type.')
-  out_shape = shape[1] if transpose else shape[0]
-
-  if transpose:
-    if data.shape[0] == 1:
-      prim = _csr_matvec_transpose_homo_p
-    else:
-      prim = _csr_matvec_transpose_heter_p
-  else:
-    if data.shape[0] == 1:
-      prim = _csr_matvec_homo_p
-    else:
-      prim = _csr_matvec_heter_p
-
-  return prim(data,
-              indices,
-              indptr,
-              vector,
-              outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)],
-              transpose=transpose,
-              shape=shape)
+  
+  return raw_csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)[0]
+  
 
 
 def _define_op(cpu_kernel, gpu_kernel):

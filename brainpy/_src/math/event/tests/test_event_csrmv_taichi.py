@@ -20,14 +20,6 @@ def sum_op(op):
   return func
 
 
-def sum_op2(op):
-  def func(*args, **kwargs):
-    r = op(*args, **kwargs)[0]
-    return r.sum()
-
-  return func
-
-
 class Test_event_csr_matvec_taichi(parameterized.TestCase):
   def __init__(self, *args, platform='cpu', **kwargs):
     super(Test_event_csr_matvec_taichi, self).__init__(*args, **kwargs)
@@ -53,7 +45,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     r1 = bm.event.csrmv(homo_data, indices, indptr, events, shape=shape, transpose=transpose)
     r2 = bm.event.csrmv_taichi(homo_data, indices, indptr, events, shape=shape, transpose=transpose)
 
-    assert (bm.allclose(r1, r2[0]))
+    assert (bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
 
@@ -78,7 +70,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     f2 = jax.vmap(partial(bm.event.csrmv_taichi, indices=indices, indptr=indptr, events=events,
                           shape=shape, transpose=transpose))
     vmap_data = bm.as_jax([homo_data] * 10)
-    self.assertTrue(bm.allclose(f1(vmap_data), f2(vmap_data)[0]))
+    self.assertTrue(bm.allclose(f1(vmap_data), f2(vmap_data)))
 
     # vmap 'events'
     f3 = jax.vmap(partial(bm.event.csrmv, homo_data, indices, indptr,
@@ -86,7 +78,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     f4 = jax.vmap(partial(bm.event.csrmv_taichi, homo_data, indices, indptr,
                           shape=shape, transpose=transpose))
     vmap_data = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1]))) < 0.1
-    self.assertTrue(bm.allclose(f3(vmap_data), f4(vmap_data)[0]))
+    self.assertTrue(bm.allclose(f3(vmap_data), f4(vmap_data)))
 
     # vmap 'data' and 'events'
     f5 = jax.vmap(lambda dd, ee: bm.event.csrmv(dd, indices, indptr, ee, shape=shape, transpose=transpose))
@@ -95,7 +87,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     vmap_data1 = bm.as_jax([homo_data] * 10)
     vmap_data2 = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1]))) < 0.2
     self.assertTrue(bm.allclose(f5(vmap_data1, vmap_data2),
-                                f6(vmap_data1, vmap_data2)[0]))
+                                f6(vmap_data1, vmap_data2)))
 
     bm.clear_buffer_memory()
 
@@ -120,14 +112,14 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     # grad 'data'
     r1 = jax.grad(sum_op(bm.event.csrmv))(
       homo_data, indices, indptr, events, shape=shape, transpose=transpose)
-    r2 = jax.grad(sum_op2(bm.event.csrmv_taichi))(
+    r2 = jax.grad(sum_op(bm.event.csrmv_taichi))(
       homo_data, indices, indptr, events, shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r1, r2))
 
     # grad 'events'
     r3 = jax.grad(sum_op(bm.event.csrmv), argnums=3)(
       homo_data, indices, indptr, events.astype(float), shape=shape, transpose=transpose)
-    r4 = jax.grad(sum_op2(bm.event.csrmv_taichi), argnums=3)(
+    r4 = jax.grad(sum_op(bm.event.csrmv_taichi), argnums=3)(
       homo_data, indices, indptr, events.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r3, r4))
 
@@ -154,7 +146,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     r2 = bm.event.csrmv_taichi(heter_data, indices, indptr, events,
                                shape=shape, transpose=transpose)
 
-    assert (bm.allclose(r1, r2[0]))
+    assert (bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
 
@@ -180,7 +172,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     f2 = jax.vmap(partial(bm.event.csrmv_taichi, indices=indices, indptr=indptr, events=events,
                           shape=shape, transpose=transpose))
     vmap_data = bm.as_jax(rng.random((10, indices.shape[0])))
-    self.assertTrue(bm.allclose(f1(vmap_data), f2(vmap_data)[0]))
+    self.assertTrue(bm.allclose(f1(vmap_data), f2(vmap_data)))
 
     # vmap 'events'
     data = bm.as_jax(rng.random(indices.shape))
@@ -189,7 +181,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     f4 = jax.vmap(partial(bm.event.csrmv_taichi, data, indices, indptr,
                           shape=shape, transpose=transpose))
     vmap_data = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1]))) < 0.1
-    self.assertTrue(bm.allclose(f3(vmap_data), f4(vmap_data)[0]))
+    self.assertTrue(bm.allclose(f3(vmap_data), f4(vmap_data)))
 
     # vmap 'data' and 'events'
     f5 = jax.vmap(lambda dd, ee: bm.event.csrmv(dd, indices, indptr, ee,
@@ -199,7 +191,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     vmap_data1 = bm.as_jax(rng.random((10, indices.shape[0])))
     vmap_data2 = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1]))) < 0.2
     self.assertTrue(bm.allclose(f5(vmap_data1, vmap_data2),
-                                f6(vmap_data1, vmap_data2)[0]))
+                                f6(vmap_data1, vmap_data2)))
 
     bm.clear_buffer_memory()
 
@@ -225,20 +217,20 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
     data = bm.as_jax(rng.random(indices.shape))
     r1 = jax.grad(sum_op(bm.event.csrmv))(
       data, indices, indptr, events, shape=shape, transpose=transpose)
-    r2 = jax.grad(sum_op2(bm.event.csrmv_taichi))(
+    r2 = jax.grad(sum_op(bm.event.csrmv_taichi))(
       data, indices, indptr, events, shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r1, r2))
 
     # grad 'events'
     r3 = jax.grad(sum_op(bm.event.csrmv), argnums=3)(
       data, indices, indptr, events.astype(float), shape=shape, transpose=transpose)
-    r4 = jax.grad(sum_op2(bm.event.csrmv_taichi), argnums=3)(
+    r4 = jax.grad(sum_op(bm.event.csrmv_taichi), argnums=3)(
       data, indices, indptr, events.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r3, r4))
 
     r5 = jax.grad(sum_op(bm.event.csrmv), argnums=(0, 3))(
       data, indices, indptr, events.astype(float), shape=shape, transpose=transpose)
-    r6 = jax.grad(sum_op2(bm.event.csrmv_taichi), argnums=(0, 3))(
+    r6 = jax.grad(sum_op(bm.event.csrmv_taichi), argnums=(0, 3))(
       data, indices, indptr, events.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r5[0], r6[0]))
     self.assertTrue(bm.allclose(r5[1], r6[1]))
