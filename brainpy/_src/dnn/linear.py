@@ -1378,7 +1378,7 @@ class CSRLinear_taichi(_CSRLayer_taichi):
     if x.ndim == 1:
       return bm.sparse.csrmv_taichi(self.weight, self.indices, self.indptr, x,
                              shape=(self.conn.pre_num, self.conn.post_num),
-                             transpose=self.transpose)[0]
+                             transpose=self.transpose)
     elif x.ndim > 1:
       shapes = x.shape[:-1]
       x = bm.flatten(x, end_dim=-2)
@@ -1390,7 +1390,7 @@ class CSRLinear_taichi(_CSRLayer_taichi):
   def _batch_csrmv(self, x):
     return bm.sparse.csrmv_taichi(self.weight, self.indices, self.indptr, x,
                            shape=(self.conn.pre_num, self.conn.post_num),
-                           transpose=self.transpose)[0]
+                           transpose=self.transpose)
 
 class EventCSRLinear_taichi(_CSRLayer_taichi):
   r"""Synaptic matrix multiplication with event CSR sparse computation(taichi customized operator).
@@ -1427,7 +1427,7 @@ class EventCSRLinear_taichi(_CSRLayer_taichi):
     if x.ndim == 1:
       return bm.event.csrmv_taichi(self.weight, self.indices, self.indptr, x,
                             shape=(self.conn.pre_num, self.conn.post_num),
-                            transpose=self.transpose)[0]
+                            transpose=self.transpose)
     elif x.ndim > 1:
       shapes = x.shape[:-1]
       x = bm.flatten(x, end_dim=-2)
@@ -1439,7 +1439,7 @@ class EventCSRLinear_taichi(_CSRLayer_taichi):
   def _batch_csrmv(self, x):
     return bm.event.csrmv_taichi(self.weight, self.indices, self.indptr, x,
                           shape=(self.conn.pre_num, self.conn.post_num),
-                          transpose=self.transpose)[0]
+                          transpose=self.transpose)
 
 @ti.kernel
 def _cpu_csr_on_pre_update_taichi(w: ti.types.ndarray(ndim=1), 
