@@ -1086,7 +1086,7 @@ class EventJitFPHomoLinear(Layer):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
   ):
     super().__init__(name=name, mode=mode)
 
@@ -1167,7 +1167,7 @@ class EventJitFPUniformLinear(Layer):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
   ):
     super().__init__(name=name, mode=mode)
 
@@ -1245,7 +1245,7 @@ class EventJitFPNormalLinear(Layer):
       seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
@@ -1788,7 +1788,7 @@ class EventJitFPHomoLinear_taichi(Layer):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
   ):
     super().__init__(name=name, mode=mode)
 
@@ -1869,7 +1869,7 @@ class EventJitFPUniformLinear_taichi(Layer):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
   ):
     super().__init__(name=name, mode=mode)
 
@@ -1947,7 +1947,7 @@ class EventJitFPNormalLinear_taichi(Layer):
       seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):
