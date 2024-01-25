@@ -271,6 +271,10 @@ def csrmv_taichi(
     raise ValueError('indices should be a 1D vector with integer type.')
   if not jnp.issubdtype(indptr.dtype, jnp.integer):
     raise ValueError('indptr should be a 1D vector with integer type.')
+
+  # if the shape of indices is (0,), then we return a zero vector
+  if indices.shape[0] == 0:
+    return jnp.zeros(shape[1] if transpose else shape[0], dtype=data.dtype)
   
   return raw_csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)[0]
   
