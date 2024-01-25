@@ -819,7 +819,7 @@ class BcscMM(Layer):
 
 
 class JitFPHomoLinear(Layer):
-  r"""Synaptic matrix multiplication with the just-in-time connectivity(taichi customized operator).
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
 
@@ -898,7 +898,7 @@ class JitFPHomoLinear(Layer):
 
 
 class JitFPUniformLinear(Layer):
-  r"""Synaptic matrix multiplication with the just-in-time connectivity(taichi customized operator).
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
 
@@ -978,7 +978,7 @@ class JitFPUniformLinear(Layer):
 
 
 class JitFPNormalLinear(Layer):
-  r"""Synaptic matrix multiplication with the just-in-time connectivity(taichi customized operator).
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
 
@@ -1058,7 +1058,7 @@ class JitFPNormalLinear(Layer):
 
 
 class EventJitFPHomoLinear(Layer):
-  r"""Synaptic matrix multiplication with the just-in-time connectivity(taichi customized operator).
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
 
@@ -1137,7 +1137,7 @@ class EventJitFPHomoLinear(Layer):
 
 
 class EventJitFPUniformLinear(Layer):
-  r"""Synaptic matrix multiplication with the just-in-time connectivity(taichi customized operator).
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
 
@@ -1217,7 +1217,7 @@ class EventJitFPUniformLinear(Layer):
 
 
 class EventJitFPNormalLinear(Layer):
-  r"""Synaptic matrix multiplication with the just-in-time connectivity(taichi customized operator).
+  r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
 
