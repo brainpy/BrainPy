@@ -14,12 +14,4 @@ from brainpy._src.dnn.linear import (
   EventJitFPHomoLinear as EventJitFPHomoLinear,
   EventJitFPNormalLinear as EventJitFPNormalLinear,
   EventJitFPUniformLinear as EventJitFPUniformLinear,
-  CSRLinear_taichi as CSRLinear_taichi,
-  EventCSRLinear_taichi as EventCSRLinear_taichi,
-  JitFPHomoLinear_taichi as JitFPHomoLinear_taichi,
-  JitFPUniformLinear_taichi as JitFPUniformLinear_taichi,
-  JitFPNormalLinear_taichi as JitFPNormalLinear_taichi,
-  EventJitFPHomoLinear_taichi as EventJitFPHomoLinear_taichi,
-  EventJitFPNormalLinear_taichi as EventJitFPNormalLinear_taichi,
-  EventJitFPUniformLinear_taichi as EventJitFPUniformLinear_taichi,
 )
