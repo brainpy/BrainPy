@@ -361,7 +361,7 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
     try:
       _build_kernel(source_md5_encode, kernel, ins_dict, outs_dict, platform)
     except Exception as e:
-      os.removedirs(os.path.join(kernels_aot_path, source_md5_encode))
+      os.removedirs(os.path.join(kernels_aot_path, kernel.__name__, source_md5_encode))
       raise RuntimeError(f'Failed to build kernel:\n\n {codes}') from e
 
   # returns

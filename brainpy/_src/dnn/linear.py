@@ -642,24 +642,17 @@ class EventCSRLinear(_CSRLayer):
                           shape=(self.conn.pre_num, self.conn.post_num),
                           transpose=self.transpose)
 
-@ti.kernel
-def _cpu_csr_on_pre_update(w: ti.types.ndarray(ndim=1), 
-                                  indices: ti.types.ndarray(ndim=1), 
-                                  indptr: ti.types.ndarray(ndim=1), 
-                                  spike: ti.types.ndarray(ndim=1), 
-                                  trace: ti.types.ndarray(ndim=1), 
-                                  w_min: ti.types.ndarray(ndim=1), 
-                                  w_max: ti.types.ndarray(ndim=1), 
-                                  out_w: ti.types.ndarray(ndim=1)):
-  w_value = w[0]
-  out_w[:] = w_value
-  w_min_value = w_min[0]
-  w_max_value = w_max[0]
-  for i in range(spike.shape[0]):  # pre id
+@numba.njit(nogil=True, fastmath=True, parallel=False)
+def _cpu_csr_on_pre_update(w, indices, indptr, spike, trace, w_min, w_max, out_w):
+  out_w[:] = w
+  w_min = w_min[()]
+  w_max = w_max[()]
+  for i in numba.prange(spike.shape[0]):  # pre id
     if spike[i]:
       for k in range(indptr[i], indptr[i + 1]):  # synapse id
         j = indices[k]  # post id
-        out_w[k] = ti.min(ti.max(out_w[k] + trace[j], w_min_value), w_max_value)
+        # out_w[k] = np.clip(out_w[k] + trace[j], w_min, w_max)
+        out_w[k] = np.minimum(np.maximum(out_w[k] + trace[j], w_min), w_max)
 
 csr_on_pre_update_prim = bm.XLACustomOp(_cpu_csr_on_pre_update)
 
@@ -669,33 +662,21 @@ def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
     w_min = -np.inf
   if w_max is None:
     w_max = np.inf
-  w = jax.Array(w)
-  w_min = jax.Array(w_min)
-  w_max = jax.Array(w_max)
   return csr_on_pre_update_prim(w, indices, indptr, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
-@ti.kernel
-def _cpu_csc_on_pre_update(w: ti.types.ndarray(ndim=1), 
-                                  post_ids: ti.types.ndarray(ndim=1), 
-                                  indptr: ti.types.ndarray(ndim=1), 
-                                  w_ids: ti.types.ndarray(ndim=1), 
-                                  spike: ti.types.ndarray(ndim=1), 
-                                  trace: ti.types.ndarray(ndim=1), 
-                                  w_min: ti.types.ndarray(ndim=1), 
-                                  w_max: ti.types.ndarray(ndim=1), 
-                                  out_w: ti.types.ndarray(ndim=1)):
-  w_value = w[0]
-  out_w[:] = w_value
-  w_min_value = w_min[0]
-  w_max_value = w_max[0]
-
-  for i in range(spike.shape[0]):  # post id
+@numba.njit(nogil=True, fastmath=True, parallel=False)
+def _cpu_csc_on_pre_update(w, post_ids, indptr, w_ids, spike, trace, w_min, w_max, out_w):
+  out_w[:] = w
+  w_min = w_min[()]
+  w_max = w_max[()]
+  for i in numba.prange(spike.shape[0]):  # post id
     if spike[i]:
       for k in range(indptr[i], indptr[i + 1]):
         j = post_ids[k]  # pre id
         l = w_ids[k]  # syn id
-        out_w[l] = ti.min(ti.max(out_w[l] + trace[j], w_min_value), w_max_value)
+        out_w[l] = np.minimum(np.maximum(out_w[l] + trace[j], w_min), w_max)
+
 
 csc_on_pre_update_prim = bm.XLACustomOp(_cpu_csc_on_pre_update)
 
@@ -705,9 +686,6 @@ def csc_on_post_update(w, post_ids, indptr, w_ids, spike, trace, w_min=None, w_m
     w_min = -np.inf
   if w_max is None:
     w_max = np.inf
-  w = jax.Array(w)
-  w_min = jax.Array(w_min)
-  w_max = jax.Array(w_max)
   return csc_on_pre_update_prim(w, post_ids, indptr, w_ids, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
