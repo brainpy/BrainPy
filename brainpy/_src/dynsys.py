@@ -30,6 +30,8 @@ __all__ = [
 IonChaDyn = None
 SLICE_VARS = 'slice_vars'
 the_top_layer_reset_state = True
+clear_input = None
+reset_state = None
 
 
 def not_implemented(fun):
@@ -146,7 +148,9 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
     """
-    from brainpy._src.helpers import reset_state
+    global reset_state
+    if reset_state is None:
+      from brainpy._src.helpers import reset_state
     reset_state(self, *args, **kwargs)
 
   @not_implemented
@@ -178,8 +182,13 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     Returns:
       out: The update function returns.
     """
+    global clear_input
+    if clear_input is None:
+      from brainpy._src.helpers import clear_input
     share.save(i=i, t=i * bm.dt)
-    return self.update(*args, **kwargs)
+    out = self.update(*args, **kwargs)
+    clear_input(self)
+    return out
 
   @bm.cls_jit(inline=True)
   def jit_step_run(self, i, *args, **kwargs):
