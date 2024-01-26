@@ -4,11 +4,13 @@
 import numbers
 from typing import Dict, Optional, Union, Callable
 
+from brainpy._src.dependency_check import import_taichi
 import jax
 import jax.numpy as jnp
 import numba
 import numpy as np
-import taichi as ti
+
+ti = import_taichi()
 
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
