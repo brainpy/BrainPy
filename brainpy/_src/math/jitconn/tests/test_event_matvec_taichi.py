@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -10,6 +10,12 @@ import brainpy.math as bm
 shapes = [(100, 200), (10, 1000), (2, 1000), (1000, 10), (1000, 2)]
 shapes = [(100, 200), (2, 1000), (1000, 2)]
 
+brainpylib_mv_prob_homo = partial(bm.jitconn.event_mv_prob_homo, method='brainpylib')
+taichi_mv_prob_homo = partial(bm.jitconn.event_mv_prob_homo, method='taichi')
+brainpylib_mv_prob_uniform = partial(bm.jitconn.event_mv_prob_uniform, method='brainpylib')
+taichi_mv_prob_uniform = partial(bm.jitconn.event_mv_prob_uniform, method='taichi')
+brainpylib_mv_prob_normal = partial(bm.jitconn.event_mv_prob_normal, method='brainpylib')
+taichi_mv_prob_normal = partial(bm.jitconn.event_mv_prob_normal, method='taichi')
 
 class Test_event_matvec_prob_conn(parameterized.TestCase):
   def __init__(self, *args, platform='cpu', **kwargs):
@@ -44,7 +50,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    r1 = bm.jitconn.event_mv_prob_homo_taichi(events,
+    r1 = taichi_mv_prob_homo(events,
                                               homo_data,
                                               conn_prob=prob,
                                               shape=shape,
@@ -53,7 +59,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                               transpose=transpose)
     r1 = jax.block_until_ready(r1)
 
-    r2 = bm.jitconn.event_mv_prob_homo_taichi(events,
+    r2 = taichi_mv_prob_homo(events,
                                               homo_data,
                                               conn_prob=prob,
                                               shape=shape,
@@ -63,7 +69,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r2 = jax.block_until_ready(r2)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = bm.jitconn.event_mv_prob_homo_taichi(events,
+    r3 = taichi_mv_prob_homo(events,
                                               homo_data,
                                               conn_prob=prob,
                                               shape=(shape[1], shape[0]),
@@ -111,7 +117,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     weights = bm.as_jax(rng.random(10))
 
     f1 = jax.vmap(
-      lambda event, data: bm.jitconn.event_mv_prob_homo_taichi(
+      lambda event, data: taichi_mv_prob_homo(
         event, data, conn_prob=prob, shape=shape, seed=seed,
         transpose=transpose, outdim_parallel=outdim_parallel
       )[0]
@@ -155,7 +161,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda event, data: bm.jitconn.event_mv_prob_homo_taichi(
+      lambda event, data: taichi_mv_prob_homo(
         event, data, conn_prob=prob, shape=shape, seed=seed,
         outdim_parallel=outdim_parallel, transpose=transpose)[0].sum(),
       argnums=0
@@ -221,7 +227,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    r1 = bm.jitconn.event_mv_prob_uniform_taichi(events,
+    r1 = taichi_mv_prob_uniform(events,
                                                  w_low=w_low,
                                                  w_high=w_high,
                                                  conn_prob=prob,
@@ -231,7 +237,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                  transpose=transpose)
     r1 = jax.block_until_ready(r1)
 
-    r2 = bm.jitconn.event_mv_prob_uniform_taichi(events,
+    r2 = taichi_mv_prob_uniform(events,
                                                  w_low=w_low,
                                                  w_high=w_high,
                                                  conn_prob=prob,
@@ -242,7 +248,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r2 = jax.block_until_ready(r2)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = bm.jitconn.event_mv_prob_uniform_taichi(events,
+    r3 = taichi_mv_prob_uniform(events,
                                                  w_low=w_low,
                                                  w_high=w_high,
                                                  conn_prob=prob,
@@ -292,7 +298,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
       events = events.astype(float)
 
     f1 = jax.vmap(
-      lambda e: bm.jitconn.event_mv_prob_uniform_taichi(e,
+      lambda e: taichi_mv_prob_uniform(e,
                                                         w_low=0.,
                                                         w_high=1.,
                                                         conn_prob=prob,
@@ -342,7 +348,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e, w_high: bm.jitconn.event_mv_prob_uniform_taichi(
+      lambda e, w_high: taichi_mv_prob_uniform(
         e,
         w_low=0.,
         w_high=w_high,
@@ -403,7 +409,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    r1 = bm.jitconn.event_mv_prob_normal_taichi(events,
+    r1 = taichi_mv_prob_normal(events,
                                                 w_mu=w_mu,
                                                 w_sigma=w_sigma,
                                                 conn_prob=prob,
@@ -413,7 +419,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                 transpose=transpose)
     r1 = jax.block_until_ready(r1)
 
-    r2 = bm.jitconn.event_mv_prob_normal_taichi(events,
+    r2 = taichi_mv_prob_normal(events,
                                                 w_mu=w_mu,
                                                 w_sigma=w_sigma,
                                                 conn_prob=prob,
@@ -424,7 +430,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r2 = jax.block_until_ready(r2)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = bm.jitconn.event_mv_prob_normal_taichi(events,
+    r3 = taichi_mv_prob_normal(events,
                                                 w_mu=w_mu,
                                                 w_sigma=w_sigma,
                                                 conn_prob=prob,
@@ -476,7 +482,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     if not bool_event:
       events = events.astype(float)
 
-    f1 = jax.vmap(lambda e: bm.jitconn.event_mv_prob_normal_taichi(e,
+    f1 = jax.vmap(lambda e: taichi_mv_prob_normal(e,
                                                                    w_mu=0.,
                                                                    w_sigma=1.,
                                                                    conn_prob=prob,
@@ -526,7 +532,7 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
 
     f1 = jax.jit(
       jax.grad(
-        lambda e, w_sigma: bm.jitconn.event_mv_prob_normal_taichi(
+        lambda e, w_sigma: taichi_mv_prob_normal(
           e,
           w_mu=0.,
           w_sigma=w_sigma,

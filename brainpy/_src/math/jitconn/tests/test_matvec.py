@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -18,6 +19,12 @@ shapes = [(100, 200),
           (1000, 10),
           (1000, 2)]
 
+brainpylib_mv_prob_homo = partial(bm.jitconn.mv_prob_homo, method='brainpylib')
+taichi_mv_prob_homo = partial(bm.jitconn.mv_prob_homo, method='taichi')
+brainpylib_mv_prob_uniform = partial(bm.jitconn.mv_prob_uniform, method='brainpylib')
+taichi_mv_prob_uniform = partial(bm.jitconn.mv_prob_uniform, method='taichi')
+brainpylib_mv_prob_normal = partial(bm.jitconn.mv_prob_normal, method='brainpylib')
+taichi_mv_prob_normal = partial(bm.jitconn.mv_prob_normal, method='taichi')
 
 class Test_matvec_prob_conn(parameterized.TestCase):
   def __init__(self, *args, platform='cpu', **kwargs):
@@ -59,7 +66,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     vector = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = bm.jitconn.mv_prob_homo(vector,
+    r1 = brainpylib_mv_prob_homo(vector,
                                  homo_data,
                                  conn_prob=prob,
                                  shape=shape,
@@ -67,7 +74,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                  outdim_parallel=outdim_parallel,
                                  transpose=transpose)
 
-    r2 = bm.jitconn.mv_prob_homo(vector,
+    r2 = brainpylib_mv_prob_homo(vector,
                                  homo_data,
                                  conn_prob=prob,
                                  shape=shape,
@@ -76,7 +83,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                  transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r2 = bm.jitconn.mv_prob_homo(vector,
+    r2 = brainpylib_mv_prob_homo(vector,
                                  homo_data,
                                  conn_prob=prob,
                                  shape=(shape[1], shape[0]),
@@ -121,7 +128,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     weights = bm.as_jax(rng.random(10))
 
     f1 = jax.vmap(
-      lambda event, data: bm.jitconn.mv_prob_homo(
+      lambda event, data: brainpylib_mv_prob_homo(
         event, data,
         conn_prob=prob, shape=shape, seed=seed,
         outdim_parallel=outdim_parallel, transpose=transpose
@@ -166,7 +173,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda event, data: bm.jitconn.mv_prob_homo(
+      lambda event, data: brainpylib_mv_prob_homo(
         event, data,
         conn_prob=prob,
         shape=shape,
@@ -223,7 +230,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = bm.jitconn.mv_prob_uniform(events,
+    r1 = brainpylib_mv_prob_uniform(events,
                                     w_low=w_low,
                                     w_high=w_high,
                                     conn_prob=prob,
@@ -232,7 +239,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                     outdim_parallel=outdim_parallel,
                                     transpose=transpose)
 
-    r2 = bm.jitconn.mv_prob_uniform(events,
+    r2 = brainpylib_mv_prob_uniform(events,
                                     w_low=w_low,
                                     w_high=w_high,
                                     conn_prob=prob,
@@ -245,7 +252,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
       print(r1, r2)
     self.assertTrue(c)
 
-    r2 = bm.jitconn.mv_prob_uniform(events,
+    r2 = brainpylib_mv_prob_uniform(events,
                                     w_low=w_low,
                                     w_high=w_high,
                                     conn_prob=prob,
@@ -291,7 +298,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
-    f1 = jax.vmap(lambda e: bm.jitconn.mv_prob_uniform(e,
+    f1 = jax.vmap(lambda e: brainpylib_mv_prob_uniform(e,
                                                        w_low=0.,
                                                        w_high=1.,
                                                        conn_prob=prob,
@@ -340,7 +347,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
     f1 = jax.grad(
-      lambda e, w_low, w_high: bm.jitconn.mv_prob_uniform(
+      lambda e, w_low, w_high: brainpylib_mv_prob_uniform(
         e,
         w_low=w_low,
         w_high=w_high,
@@ -400,7 +407,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = bm.jitconn.mv_prob_normal(events,
+    r1 = brainpylib_mv_prob_uniform(events,
                                    w_mu=w_mu,
                                    w_sigma=w_sigma,
                                    conn_prob=prob,
@@ -409,7 +416,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                    outdim_parallel=outdim_parallel,
                                    transpose=transpose)
 
-    r2 = bm.jitconn.mv_prob_normal(events,
+    r2 = brainpylib_mv_prob_uniform(events,
                                    w_mu=w_mu,
                                    w_sigma=w_sigma,
                                    conn_prob=prob,
@@ -422,7 +429,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
       print(r1, r2)
     self.assertTrue(c)
 
-    r2 = bm.jitconn.mv_prob_normal(events,
+    r2 = brainpylib_mv_prob_uniform(events,
                                    w_mu=w_mu,
                                    w_sigma=w_sigma,
                                    conn_prob=prob,
@@ -469,7 +476,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
-    f1 = jax.vmap(lambda e: bm.jitconn.mv_prob_normal(e,
+    f1 = jax.vmap(lambda e: brainpylib_mv_prob_uniform(e,
                                                       w_mu=0.,
                                                       w_sigma=1.,
                                                       conn_prob=prob,
@@ -521,7 +528,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e, w_sigma: bm.jitconn.mv_prob_normal(
+      lambda e, w_sigma: brainpylib_mv_prob_uniform(
         e,
         w_mu=0.,
         w_sigma=w_sigma,
