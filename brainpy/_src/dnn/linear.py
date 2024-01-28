@@ -625,7 +625,7 @@ class EventCSRLinear(_CSRLayer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.event.csrmv_taichi(self.weight, self.indices, self.indptr, x,
+      return bm.event.csrmv(self.weight, self.indices, self.indptr, x,
                             shape=(self.conn.pre_num, self.conn.post_num),
                             transpose=self.transpose)
     elif x.ndim > 1:

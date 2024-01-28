@@ -28,7 +28,7 @@ from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching,
                                            XLACustomOp)
-from brainpy._src.math.sparse._csr_mv import csrmv as normal_csrmv
+from brainpy._src.math.sparse._csr_mv import csrmv_brainpylib as normal_csrmv
 from brainpy._src.math.sparse._csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
 from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy._src.dependency_check import (import_brainpylib_gpu_ops)
@@ -589,15 +589,15 @@ def _event_csr_matvec_batching_rule(args, axes, *, shape, transpose):
   return r, 0
 
 
-def _event_csr_matvec_jvp_values(values_dot, values, indices, indptr, events, *, shape, transpose):
-  return csrmv_brainpylib(values_dot, indices, indptr, events, shape=shape, transpose=transpose)
+def _event_csr_matvec_jvp_values_brainpylib(values_dot, values, indices, indptr, events, *, shape, transpose):
+  return normal_csrmv(values_dot, indices, indptr, events, shape=shape, transpose=transpose)
 
 
-def _event_csr_matvec_jvp_events(events_dot, values, indices, indptr, events, *, shape, transpose):
+def _event_csr_matvec_jvp_events_brainpylib(events_dot, values, indices, indptr, events, *, shape, transpose):
   return normal_csrmv(values, indices, indptr, events_dot, shape=shape, transpose=transpose)
 
 
-def _event_csr_matvec_transpose(ct, values, indices, indptr, events, *, shape, transpose):
+def _event_csr_matvec_transpose_brainpylib(ct, values, indices, indptr, events, *, shape, transpose):
   if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
     raise ValueError("Cannot transpose with respect to sparse indices.")
   if ad.is_undefined_primal(events):
@@ -621,8 +621,8 @@ event_csr_matvec_p.def_abstract_eval(_event_csr_matvec_abstract)
 event_csr_matvec_p.def_impl(partial(xla.apply_primitive, event_csr_matvec_p))
 xla.backend_specific_translations['cpu'][event_csr_matvec_p] = _event_csr_matvec_cpu_translation
 xla.backend_specific_translations['gpu'][event_csr_matvec_p] = _event_csr_matvec_gpu_translation
-ad.defjvp(event_csr_matvec_p, _event_csr_matvec_jvp_values, None, None, _event_csr_matvec_jvp_events)
-ad.primitive_transposes[event_csr_matvec_p] = _event_csr_matvec_transpose
+ad.defjvp(event_csr_matvec_p, _event_csr_matvec_jvp_values_brainpylib, None, None, _event_csr_matvec_jvp_events_brainpylib)
+ad.primitive_transposes[event_csr_matvec_p] = _event_csr_matvec_transpose_brainpylib
 register_general_batching(event_csr_matvec_p)
 # batching.primitive_batchers[event_csr_matvec_p] = _event_csr_matvec_batching_rule
 
@@ -1041,11 +1041,37 @@ def raw_csrmv_taichi(
               transpose=transpose,
               shape=shape)
 
+def _event_csr_matvec_jvp_values_taichi(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
+  return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
 
+
+def _event_csr_matvec_jvp_events_taichi(evt_dot, values, indices, indptr, events, *, outs, transpose, shape):
+  return normal_csrmv_taichi(values, indices, indptr, evt_dot, shape=shape, transpose=transpose)
+
+
+def _event_csr_matvec_transpose_taichi(
+    ct, values, indices, indptr, events, *, outs, transpose, shape
+):
+  if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
+    raise ValueError("Cannot transpose with respect to sparse indices.")
+  if ad.is_undefined_primal(events):
+    ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape, transpose=transpose)[0]
+    return values, indices, indptr, (ad.Zero(events) if type(ct[0]) is ad.Zero else ct_events)
+  else:
+    if type(ct[0]) is ad.Zero:
+      ct_values = ad.Zero(values)
+    else:
+      if values.aval.shape[0] == 1:  # scalar
+        ct_values = raw_csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)[0]
+        ct_values = jnp.inner(ct[0], ct_values)
+      else:  # heterogeneous values
+        row, col = csr_to_coo(indices, indptr)
+        ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
+    return ct_values, indices, indptr, events
 def _define_op(cpu_kernel, gpu_kernel):
   prim = XLACustomOp(cpu_kernel=cpu_kernel, gpu_kernel=gpu_kernel)
-  prim.defjvp(_event_csr_matvec_jvp_values, None, None, _event_csr_matvec_jvp_events)
-  prim.def_transpose_rule(_event_csr_matvec_transpose)
+  prim.defjvp(_event_csr_matvec_jvp_values_taichi, None, None, _event_csr_matvec_jvp_events_taichi)
+  prim.def_transpose_rule(_event_csr_matvec_transpose_taichi)
   return prim
 
 
@@ -1079,30 +1105,3 @@ _event_csrmv_heter_p = _define_op(_event_csr_matvec_heter_cpu, _event_csr_matvec
 
 
 
-def _event_csr_matvec_jvp_values(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
-  return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
-
-
-def _event_csr_matvec_jvp_events(evt_dot, values, indices, indptr, events, *, outs, transpose, shape):
-  return normal_csrmv_taichi(values, indices, indptr, evt_dot, shape=shape, transpose=transpose)
-
-
-def _event_csr_matvec_transpose(
-    ct, values, indices, indptr, events, *, outs, transpose, shape
-):
-  if ad.is_undefined_primal(indices) or ad.is_undefined_primal(indptr):
-    raise ValueError("Cannot transpose with respect to sparse indices.")
-  if ad.is_undefined_primal(events):
-    ct_events = normal_csrmv_taichi(values, indices, indptr, ct[0], shape=shape, transpose=transpose)[0]
-    return values, indices, indptr, (ad.Zero(events) if type(ct[0]) is ad.Zero else ct_events)
-  else:
-    if type(ct[0]) is ad.Zero:
-      ct_values = ad.Zero(values)
-    else:
-      if values.aval.shape[0] == 1:  # scalar
-        ct_values = raw_csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)[0]
-        ct_values = jnp.inner(ct[0], ct_values)
-      else:  # heterogeneous values
-        row, col = csr_to_coo(indices, indptr)
-        ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
-    return ct_values, indices, indptr, events

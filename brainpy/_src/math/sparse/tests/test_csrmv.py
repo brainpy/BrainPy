@@ -10,8 +10,8 @@ import brainpy as bp
 import brainpy.math as bm
 
 is_manual_test = False
-if platform.system() == 'Windows' and not is_manual_test:
-  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
+# if platform.system() == 'Windows' and not is_manual_test:
+#   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 cusparse_csr_matvec = partial(bm.sparse.csrmv, method='cusparse')
 scalar_csr_matvec = partial(bm.sparse.csrmv, method='scalar')
