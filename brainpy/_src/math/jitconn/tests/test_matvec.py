@@ -407,7 +407,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = brainpylib_mv_prob_uniform(events,
+    r1 = brainpylib_mv_prob_normal(events,
                                    w_mu=w_mu,
                                    w_sigma=w_sigma,
                                    conn_prob=prob,
@@ -416,7 +416,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                    outdim_parallel=outdim_parallel,
                                    transpose=transpose)
 
-    r2 = brainpylib_mv_prob_uniform(events,
+    r2 = brainpylib_mv_prob_normal(events,
                                    w_mu=w_mu,
                                    w_sigma=w_sigma,
                                    conn_prob=prob,
@@ -429,7 +429,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
       print(r1, r2)
     self.assertTrue(c)
 
-    r2 = brainpylib_mv_prob_uniform(events,
+    r2 = brainpylib_mv_prob_normal(events,
                                    w_mu=w_mu,
                                    w_sigma=w_sigma,
                                    conn_prob=prob,
@@ -476,7 +476,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
-    f1 = jax.vmap(lambda e: brainpylib_mv_prob_uniform(e,
+    f1 = jax.vmap(lambda e: brainpylib_mv_prob_normal(e,
                                                       w_mu=0.,
                                                       w_sigma=1.,
                                                       conn_prob=prob,
@@ -528,7 +528,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e, w_sigma: brainpylib_mv_prob_uniform(
+      lambda e, w_sigma: brainpylib_mv_prob_normal(
         e,
         w_mu=0.,
         w_sigma=w_sigma,
@@ -541,6 +541,8 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     )
     r1 = f1(events, 1.)
     r2 = f1(events, 2.)
+    print('r1:', r1)
+    print('r2:', r2)
     self.assertTrue(bm.allclose(r1 * 2., r2))
 
     if x64:

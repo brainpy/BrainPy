@@ -95,7 +95,7 @@ def event_mv_prob_uniform(
   if method == 'taichi':
     return event_mv_prob_uniform_taichi(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   elif method == 'brainpylib':
-    return event_mv_prob_uniform_brainpylib(events, w_low, w_high, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    return event_mv_prob_uniform_brainpylib(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   else:
     raise ValueError(f'Unknown method {method}.')
 
@@ -126,7 +126,7 @@ def event_mv_prob_normal(
   if method == 'taichi':
     return event_mv_prob_uniform_taichi(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   elif method == 'brainpylib':
-    return event_mv_prob_uniform_brainpylib(events, w_mu, w_sigma, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    return event_mv_prob_uniform_brainpylib(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   else:
     raise ValueError(f'Unknown method {method}.')
 

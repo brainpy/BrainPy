@@ -179,7 +179,7 @@ def mv_prob_uniform(
   if method == 'taichi':
     return mv_prob_uniform_taichi(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   elif method == 'brainpylib':
-    return mv_prob_uniform_brainpylib(vector, w_low, w_high, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    return mv_prob_uniform_brainpylib(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   else:
     raise ValueError(f'Unknown method {method}.')
 
@@ -258,7 +258,7 @@ def mv_prob_normal(
   if method == 'taichi':
     return mv_prob_uniform_taichi(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   elif method == 'brainpylib':
-    return mv_prob_uniform_brainpylib(vector, w_mu, w_sigma, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    return mv_prob_uniform_brainpylib(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   else:
     raise ValueError(f'Unknown method {method}.')
 
