@@ -50,6 +50,7 @@ def event_mv_prob_homo(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
+    method: str = None,
 ) -> jax.Array:
   if method is None:
     if bm.get_platform() == 'cpu':
@@ -80,6 +81,7 @@ def event_mv_prob_uniform(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
+    method: str = None,
 ) -> jax.Array:
   if method is None:
     if bm.get_platform() == 'cpu':
@@ -110,6 +112,7 @@ def event_mv_prob_normal(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
+    method: str = None,
 ) -> jax.Array:
   if method is None:
     if bm.get_platform() == 'cpu':

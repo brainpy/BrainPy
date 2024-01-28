@@ -115,6 +115,7 @@ def mv_prob_uniform(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
+    method: str = None,
 ) -> jax.Array:
   r"""Perform the :math:`y=M@v` operation,
   where :math:`M` is just-in-time randomly generated with a uniform distribution for its value.
@@ -193,6 +194,7 @@ def mv_prob_normal(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
+    method: str = None,
 ) -> jax.Array:
   r"""Perform the :math:`y=M@v` operation,
   where :math:`M` is just-in-time randomly generated with a normal distribution for its value.

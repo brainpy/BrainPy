@@ -590,7 +590,7 @@ def _event_csr_matvec_batching_rule(args, axes, *, shape, transpose):
 
 
 def _event_csr_matvec_jvp_values(values_dot, values, indices, indptr, events, *, shape, transpose):
-  return csrmv(values_dot, indices, indptr, events, shape=shape, transpose=transpose)
+  return csrmv_brainpylib(values_dot, indices, indptr, events, shape=shape, transpose=transpose)
 
 
 def _event_csr_matvec_jvp_events(events_dot, values, indices, indptr, events, *, shape, transpose):
@@ -608,7 +608,7 @@ def _event_csr_matvec_transpose(ct, values, indices, indptr, events, *, shape, t
       ct_values = ad.Zero(values)
     else:
       if values.aval.shape[0] == 1:  # scalar
-        ct_values = csrmv(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)
+        ct_values = csrmv_brainpylib(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)
         ct_values = jnp.inner(ct, ct_values)
       else:  # heterogeneous values
         row, col = csr_to_coo(indices, indptr)

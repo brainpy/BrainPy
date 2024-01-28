@@ -13,8 +13,8 @@ import platform
 import pytest
 
 is_manual_test = False
-if platform.system() == 'Windows' and not is_manual_test:
-  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
+# if platform.system() == 'Windows' and not is_manual_test:
+#   pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
 
 brainpylib_csr_matvec = partial(bm.event.csrmv, method='brainpylib')
 taichi_csr_matvec = partial(bm.event.csrmv, method='taichi')
