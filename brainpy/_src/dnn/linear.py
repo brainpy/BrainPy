@@ -4,13 +4,10 @@
 import numbers
 from typing import Dict, Optional, Union, Callable
 
-from brainpy._src.dependency_check import import_taichi
 import jax
 import jax.numpy as jnp
 import numba
 import numpy as np
-
-ti = import_taichi()
 
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
@@ -579,7 +576,7 @@ class CSRLinear(_CSRLayer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.sparse.csrmv_taichi(self.weight, self.indices, self.indptr, x,
+      return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
                              shape=(self.conn.pre_num, self.conn.post_num),
                              transpose=self.transpose)
     elif x.ndim > 1:
@@ -591,7 +588,7 @@ class CSRLinear(_CSRLayer):
       raise ValueError
 
   def _batch_csrmv(self, x):
-    return bm.sparse.csrmv_taichi(self.weight, self.indices, self.indptr, x,
+    return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
                            shape=(self.conn.pre_num, self.conn.post_num),
                            transpose=self.transpose)
 
@@ -640,7 +637,7 @@ class EventCSRLinear(_CSRLayer):
       raise ValueError
 
   def _batch_csrmv(self, x):
-    return bm.event.csrmv_taichi(self.weight, self.indices, self.indptr, x,
+    return bm.event.csrmv(self.weight, self.indices, self.indptr, x,
                           shape=(self.conn.pre_num, self.conn.post_num),
                           transpose=self.transpose)
 
@@ -856,7 +853,7 @@ class JitFPHomoLinear(Layer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.jitconn.mv_prob_homo_taichi(x, self.weight, self.prob, self.seed,
+      return bm.jitconn.mv_prob_homo(x, self.weight, self.prob, self.seed,
                                      shape=(self.num_out, self.num_in),
                                      transpose=self.transpose,
                                      outdim_parallel=not self.atomic)
@@ -871,7 +868,7 @@ class JitFPHomoLinear(Layer):
       raise ValueError
 
   def _batch_mv(self, x):
-    return bm.jitconn.mv_prob_homo_taichi(x, self.weight, self.prob, self.seed,
+    return bm.jitconn.mv_prob_homo(x, self.weight, self.prob, self.seed,
                                    shape=(self.num_out, self.num_in),
                                    transpose=self.transpose,
                                    outdim_parallel=not self.atomic)
@@ -936,7 +933,7 @@ class JitFPUniformLinear(Layer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.jitconn.mv_prob_uniform_taichi(x, self.w_low, self.w_high, self.prob, self.seed,
+      return bm.jitconn.mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
                                         shape=(self.num_out, self.num_in),
                                         transpose=self.transpose,
                                         outdim_parallel=not self.atomic)
@@ -951,7 +948,7 @@ class JitFPUniformLinear(Layer):
       raise ValueError
 
   def _batch_mv(self, x):
-    return bm.jitconn.mv_prob_uniform_taichi(x, self.w_low, self.w_high, self.prob, self.seed,
+    return bm.jitconn.mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
                                       shape=(self.num_out, self.num_in),
                                       transpose=self.transpose,
                                       outdim_parallel=not self.atomic)
@@ -1016,7 +1013,7 @@ class JitFPNormalLinear(Layer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.jitconn.mv_prob_normal_taichi(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+      return bm.jitconn.mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
                                        shape=(self.num_out, self.num_in),
                                        transpose=self.transpose,
                                        outdim_parallel=not self.atomic)
@@ -1031,7 +1028,7 @@ class JitFPNormalLinear(Layer):
       raise ValueError
 
   def _batch_mv(self, x):
-    return bm.jitconn.mv_prob_normal_taichi(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+    return bm.jitconn.mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
                                      shape=(self.num_out, self.num_in),
                                      transpose=self.transpose,
                                      outdim_parallel=not self.atomic)
@@ -1095,7 +1092,7 @@ class EventJitFPHomoLinear(Layer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.jitconn.event_mv_prob_homo_taichi(x, self.weight, self.prob, self.seed,
+      return bm.jitconn.event_mv_prob_homo(x, self.weight, self.prob, self.seed,
                                            shape=(self.num_out, self.num_in),
                                            transpose=self.transpose,
                                            outdim_parallel=not self.atomic)
@@ -1110,7 +1107,7 @@ class EventJitFPHomoLinear(Layer):
       raise ValueError
 
   def _batch_mv(self, x):
-    return bm.jitconn.event_mv_prob_homo_taichi(x, self.weight, self.prob, self.seed,
+    return bm.jitconn.event_mv_prob_homo(x, self.weight, self.prob, self.seed,
                                          shape=(self.num_out, self.num_in),
                                          transpose=self.transpose,
                                          outdim_parallel=not self.atomic)
@@ -1175,7 +1172,7 @@ class EventJitFPUniformLinear(Layer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.jitconn.event_mv_prob_uniform_taichi(x, self.w_low, self.w_high, self.prob, self.seed,
+      return bm.jitconn.event_mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
                                               shape=(self.num_out, self.num_in),
                                               transpose=self.transpose,
                                               outdim_parallel=not self.atomic)
@@ -1190,7 +1187,7 @@ class EventJitFPUniformLinear(Layer):
       raise ValueError
 
   def _batch_mv(self, x):
-    return bm.jitconn.event_mv_prob_uniform_taichi(x, self.w_low, self.w_high, self.prob, self.seed,
+    return bm.jitconn.event_mv_prob_uniform(x, self.w_low, self.w_high, self.prob, self.seed,
                                             shape=(self.num_out, self.num_in),
                                             transpose=self.transpose,
                                             outdim_parallel=not self.atomic)
@@ -1255,7 +1252,7 @@ class EventJitFPNormalLinear(Layer):
 
   def update(self, x):
     if x.ndim == 1:
-      return bm.jitconn.event_mv_prob_normal_taichi(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+      return bm.jitconn.event_mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
                                              shape=(self.num_out, self.num_in),
                                              transpose=self.transpose,
                                              outdim_parallel=not self.atomic)
@@ -1270,7 +1267,7 @@ class EventJitFPNormalLinear(Layer):
       raise ValueError
 
   def _batch_mv(self, x):
-    return bm.jitconn.event_mv_prob_normal_taichi(x, self.w_mu, self.w_sigma, self.prob, self.seed,
+    return bm.jitconn.event_mv_prob_normal(x, self.w_mu, self.w_sigma, self.prob, self.seed,
                                            shape=(self.num_out, self.num_in),
                                            transpose=self.transpose,
                                            outdim_parallel=not self.atomic)
