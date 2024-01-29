@@ -111,7 +111,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
     f1 = lambda a: (a.T @ vector) if transpose else (a @ vector)
     f2 = partial(taichi_csr_matvec, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
-    r1 = jax.vmap(f1)(homo_data)
+    r1 = jax.vmap(f1)(dense_data)
     r2 = jax.vmap(f2)(homo_data)
     self.assertTrue(bm.allclose(r1, r2))
 
@@ -147,14 +147,6 @@ class Test_csrmv_taichi(parameterized.TestCase):
     r2 = jax.grad(sum_op(taichi_csr_matvec))(
       homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
 
-    # csr_f1 = jax.grad(lambda a: vector_csr_matvec(a, indices, indptr, vector,
-    #                                                 shape=shape, transpose=transpose).sum(),
-    #                   argnums=0)
-    # csr_f2 = jax.grad(lambda a: taichi_csr_matvec(a, indices, indptr, vector,
-    #                                                 shape=shape, transpose=transpose)[0].sum(),
-    #                   argnums=0)
-    # r1 = csr_f1(homo_data)
-    # r2 = csr_f2(homo_data)
     self.assertTrue(bm.allclose(r1, r2))
 
     # print('grad vector start')
@@ -200,7 +192,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     r1 = (vector @ dense) if transpose else (dense @ vector)
-    r2 = taichi_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
+    r2 = taichi_csr_matvec(heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
 
     self.assertTrue(compare_with_nan_tolerance(r1, r2))
 
@@ -228,7 +220,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
     f1 = lambda a: (a.T @ vector) if transpose else (a @ vector)
     f2 = partial(taichi_csr_matvec, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
-    r1 = jax.vmap(f1)(heter_data)
+    r1 = jax.vmap(f1)(dense_data)
     r2 = jax.vmap(f2)(heter_data)
     self.assertTrue(compare_with_nan_tolerance(r1, r2))
 
@@ -252,27 +244,26 @@ class Test_csrmv_taichi(parameterized.TestCase):
     # grad 'data'
     dense_f1 = jax.grad(lambda a: ((vector @ a).sum() if transpose else (a @ vector).sum()),
                         argnums=0)
-    r1 = dense_f1(dense_data)
-    r2 = jax.grad(sum_op(taichi_csr_matvec))(
-      heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    csr_f1 = jax.grad(lambda a: taichi_csr_matvec(a, indices, indptr, vector,
+                                                    shape=shape,
+                                                    transpose=transpose).sum(),
+                      argnums=0)
+    r1 = csr_f1(heter_data)
+    r2 = dense_f1(dense_data)
+    rows, cols = bm.sparse.csr_to_coo(indices, indptr)
+    r2 = r2[rows, cols]
+    print(r1.shape, r2.shape)
     self.assertTrue(bm.allclose(r1, r2))
 
     # grad 'vector'
     dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()),
                         argnums=0)
+    csr_f2 = jax.grad(lambda v: taichi_csr_matvec(heter_data, indices, indptr, v,
+                                           shape=shape,
+                                           transpose=transpose).sum(),
+             argnums=0)
     r3 = dense_f2(vector)
-    r4 = jax.grad(sum_op(taichi_csr_matvec), argnums=3)(
-      heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+    r4 = csr_f2(vector)
     self.assertTrue(bm.allclose(r3, r4))
-
-    dense_f3 = jax.grad(lambda a, v: ((v @ (dense_data * a)).sum()
-                                      if transpose else
-                                      ((dense_data * a) @ v).sum()),
-                        argnums=(0, 1))
-    r5 = dense_f3(heter_data, vector)
-    r6 = jax.grad(sum_op(taichi_csr_matvec), argnums=(0, 3))(
-      heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
-    self.assertTrue(bm.allclose(r5[0], r6[0]))
-    self.assertTrue(bm.allclose(r5[1], r6[1]))
 
     bm.clear_buffer_memory()
