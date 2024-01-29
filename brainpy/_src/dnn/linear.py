@@ -570,7 +570,7 @@ class CSRLinear(_CSRLayer):
       sharding: Optional[Sharding] = None,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
-      method: str = 'cusparse',
+      method: str = None,
       transpose: bool = True,
   ):
     super().__init__(name=name, mode=mode, conn=conn, weight=weight, sharding=sharding, transpose=transpose)
@@ -580,8 +580,7 @@ class CSRLinear(_CSRLayer):
     if x.ndim == 1:
       return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
                              shape=(self.conn.pre_num, self.conn.post_num),
-                             transpose=self.transpose,
-                             method=self.method)
+                             method=self.method, transpose=self.transpose)
     elif x.ndim > 1:
       shapes = x.shape[:-1]
       x = bm.flatten(x, end_dim=-2)
@@ -593,9 +592,7 @@ class CSRLinear(_CSRLayer):
   def _batch_csrmv(self, x):
     return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
                            shape=(self.conn.pre_num, self.conn.post_num),
-                           transpose=self.transpose,
-                           method=self.method)
-
+                           method=self.method, transpose=self.transpose)
 
 class EventCSRLinear(_CSRLayer):
   r"""Synaptic matrix multiplication with event CSR sparse computation.
@@ -646,7 +643,6 @@ class EventCSRLinear(_CSRLayer):
                           shape=(self.conn.pre_num, self.conn.post_num),
                           transpose=self.transpose)
 
-
 @numba.njit(nogil=True, fastmath=True, parallel=False)
 def _cpu_csr_on_pre_update(w, indices, indptr, spike, trace, w_min, w_max, out_w):
   out_w[:] = w
@@ -659,7 +655,6 @@ def _cpu_csr_on_pre_update(w, indices, indptr, spike, trace, w_min, w_max, out_w
         # out_w[k] = np.clip(out_w[k] + trace[j], w_min, w_max)
         out_w[k] = np.minimum(np.maximum(out_w[k] + trace[j], w_min), w_max)
 
-
 csr_on_pre_update_prim = bm.XLACustomOp(_cpu_csr_on_pre_update)
 
 
@@ -670,7 +665,6 @@ def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
     w_max = np.inf
   return csr_on_pre_update_prim(w, indices, indptr, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
-
 
 @numba.njit(nogil=True, fastmath=True, parallel=False)
 def _cpu_csc_on_pre_update(w, post_ids, indptr, w_ids, spike, trace, w_min, w_max, out_w):
@@ -695,6 +689,7 @@ def csc_on_post_update(w, post_ids, indptr, w_ids, spike, trace, w_min=None, w_m
     w_max = np.inf
   return csc_on_pre_update_prim(w, post_ids, indptr, w_ids, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
+
 
 
 class CSCLinear(Layer):
@@ -1080,7 +1075,7 @@ class EventJitFPHomoLinear(Layer):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
   ):
     super().__init__(name=name, mode=mode)
 
@@ -1161,7 +1156,7 @@ class EventJitFPUniformLinear(Layer):
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
   ):
     super().__init__(name=name, mode=mode)
 
@@ -1239,7 +1234,7 @@ class EventJitFPNormalLinear(Layer):
       seed: Optional[int] = None,
       sharding: Optional[Sharding] = None,
       transpose: bool = False,
-      atomic: bool = False,
+      atomic: bool = True,
       mode: Optional[bm.Mode] = None,
       name: Optional[str] = None,
   ):

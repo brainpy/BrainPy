@@ -213,6 +213,5 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(y2.shape == shape + (200,))
     bm.clear_buffer_memory()
 
-
 if __name__ == '__main__':
   absltest.main()

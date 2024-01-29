@@ -347,7 +347,7 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
 
   # kernel to code
   codes = _kernel_to_code(kernel, abs_ins, abs_outs, platform)
-  source_md5_encode = kernel.__name__ + '/' + encode_md5(codes)
+  source_md5_encode = os.path.join(kernel.__name__, encode_md5(codes))
 
   # create ins, outs dict from kernel's args
   in_num = len(ins)
@@ -361,7 +361,10 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
     try:
       _build_kernel(source_md5_encode, kernel, ins_dict, outs_dict, platform)
     except Exception as e:
-      os.removedirs(os.path.join(kernels_aot_path, source_md5_encode))
+      try:
+        os.removedirs(os.path.join(kernels_aot_path, source_md5_encode))
+      except Exception:
+          raise RuntimeError(f'Failed to preprocess info to build kernel:\n\n {codes}') from e
       raise RuntimeError(f'Failed to build kernel:\n\n {codes}') from e
 
   # returns

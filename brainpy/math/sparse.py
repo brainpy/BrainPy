@@ -1,6 +1,5 @@
 from brainpy._src.math.sparse import (
   csrmv,
-  csrmv_taichi,
   coomv,
 
   seg_matmul,
