@@ -6,9 +6,19 @@ import jax.numpy as jnp
 from absl.testing import parameterized
 
 import brainpy.math as bm
+import platform
+import pytest
 
-shapes = [(100, 200), (10, 1000), (2, 1000), (1000, 10), (1000, 2)]
-shapes = [(100, 200), (2, 1000), (1000, 2)]
+pytest.skip('Old implementation.', allow_module_level=True)
+is_manual_test = False
+if platform.system() == 'Windows' and not is_manual_test:
+  pytest.skip('brainpy.math package may need manual tests.', allow_module_level=True)
+
+shapes = [(100, 200),
+          (10, 1000),
+          (2, 1000),
+          (1000, 10),
+          (1000, 2)]
 
 brainpylib_mv_prob_homo = partial(bm.jitconn.mv_prob_homo, method='brainpylib')
 taichi_mv_prob_homo = partial(bm.jitconn.mv_prob_homo, method='taichi')
@@ -57,32 +67,34 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     vector = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = taichi_mv_prob_homo(vector,
-                                        homo_data,
-                                        conn_prob=prob,
-                                        shape=shape,
-                                        seed=seed,
-                                        outdim_parallel=outdim_parallel,
-                                        transpose=transpose)
+    r1 = brainpylib_mv_prob_homo(vector,
+                                 homo_data,
+                                 conn_prob=prob,
+                                 shape=shape,
+                                 seed=seed,
+                                 outdim_parallel=outdim_parallel,
+                                 transpose=transpose)
 
-    r2 = taichi_mv_prob_homo(vector,
-                                        homo_data,
-                                        conn_prob=prob,
-                                        shape=shape,
-                                        seed=seed,
-                                        outdim_parallel=outdim_parallel,
-                                        transpose=transpose)
+    r2 = brainpylib_mv_prob_homo(vector,
+                                 homo_data,
+                                 conn_prob=prob,
+                                 shape=shape,
+                                 seed=seed,
+                                 outdim_parallel=outdim_parallel,
+                                 transpose=transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r2 = taichi_mv_prob_homo(vector,
-                                        homo_data,
-                                        conn_prob=prob,
-                                        shape=(shape[1], shape[0]),
-                                        seed=seed,
-                                        outdim_parallel=outdim_parallel,
-                                        transpose=not transpose)
+    r2 = brainpylib_mv_prob_homo(vector,
+                                 homo_data,
+                                 conn_prob=prob,
+                                 shape=(shape[1], shape[0]),
+                                 seed=seed,
+                                 outdim_parallel=outdim_parallel,
+                                 transpose=not transpose)
     self.assertTrue(jnp.allclose(r1, r2))
 
+    if x64:
+      bm.disable_x64()
     bm.clear_buffer_memory()
 
   @parameterized.named_parameters(
@@ -117,11 +129,11 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     weights = bm.as_jax(rng.random(10))
 
     f1 = jax.vmap(
-      lambda event, data: taichi_mv_prob_homo(
+      lambda event, data: brainpylib_mv_prob_homo(
         event, data,
         conn_prob=prob, shape=shape, seed=seed,
         outdim_parallel=outdim_parallel, transpose=transpose
-      )[0]
+      )
     )
     r1 = f1(events, weights)
     r2 = f1(events, weights)
@@ -162,14 +174,14 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda event, data: taichi_mv_prob_homo(
+      lambda event, data: brainpylib_mv_prob_homo(
         event, data,
         conn_prob=prob,
         shape=shape,
         seed=seed,
         outdim_parallel=outdim_parallel,
         transpose=transpose
-      )[0].sum(),
+      ).sum(),
       argnums=0
     )
     r1 = f1(events, 1.)
@@ -219,36 +231,36 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = taichi_mv_prob_uniform(events,
-                                           w_low=w_low,
-                                           w_high=w_high,
-                                           conn_prob=prob,
-                                           shape=shape,
-                                           seed=seed,
-                                           outdim_parallel=outdim_parallel,
-                                           transpose=transpose)
+    r1 = brainpylib_mv_prob_uniform(events,
+                                    w_low=w_low,
+                                    w_high=w_high,
+                                    conn_prob=prob,
+                                    shape=shape,
+                                    seed=seed,
+                                    outdim_parallel=outdim_parallel,
+                                    transpose=transpose)
 
-    r2 = taichi_mv_prob_uniform(events,
-                                           w_low=w_low,
-                                           w_high=w_high,
-                                           conn_prob=prob,
-                                           shape=shape,
-                                           seed=seed,
-                                           outdim_parallel=outdim_parallel,
-                                           transpose=transpose)
+    r2 = brainpylib_mv_prob_uniform(events,
+                                    w_low=w_low,
+                                    w_high=w_high,
+                                    conn_prob=prob,
+                                    shape=shape,
+                                    seed=seed,
+                                    outdim_parallel=outdim_parallel,
+                                    transpose=transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
     self.assertTrue(c)
 
-    r2 = taichi_mv_prob_uniform(events,
-                                           w_low=w_low,
-                                           w_high=w_high,
-                                           conn_prob=prob,
-                                           shape=(shape[1], shape[0]),
-                                           seed=seed,
-                                           outdim_parallel=outdim_parallel,
-                                           transpose=not transpose)
+    r2 = brainpylib_mv_prob_uniform(events,
+                                    w_low=w_low,
+                                    w_high=w_high,
+                                    conn_prob=prob,
+                                    shape=(shape[1], shape[0]),
+                                    seed=seed,
+                                    outdim_parallel=outdim_parallel,
+                                    transpose=not transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
@@ -287,14 +299,14 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
-    f1 = jax.vmap(lambda e: taichi_mv_prob_uniform(e,
-                                                              w_low=0.,
-                                                              w_high=1.,
-                                                              conn_prob=prob,
-                                                              shape=shape,
-                                                              seed=seed,
-                                                              outdim_parallel=outdim_parallel,
-                                                              transpose=transpose))
+    f1 = jax.vmap(lambda e: brainpylib_mv_prob_uniform(e,
+                                                       w_low=0.,
+                                                       w_high=1.,
+                                                       conn_prob=prob,
+                                                       shape=shape,
+                                                       seed=seed,
+                                                       outdim_parallel=outdim_parallel,
+                                                       transpose=transpose))
 
     r1 = f1(events)
     r2 = f1(events)
@@ -336,7 +348,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
     f1 = jax.grad(
-      lambda e, w_low, w_high: taichi_mv_prob_uniform(
+      lambda e, w_low, w_high: brainpylib_mv_prob_uniform(
         e,
         w_low=w_low,
         w_high=w_high,
@@ -345,7 +357,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         seed=seed,
         outdim_parallel=outdim_parallel,
         transpose=transpose
-      )[0].sum()
+      ).sum()
     )
 
     r1 = f1(events, 0., 1.)
@@ -396,36 +408,36 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 
-    r1 = taichi_mv_prob_normal(events,
-                                          w_mu=w_mu,
-                                          w_sigma=w_sigma,
-                                          conn_prob=prob,
-                                          shape=shape,
-                                          seed=seed,
-                                          outdim_parallel=outdim_parallel,
-                                          transpose=transpose)
+    r1 = brainpylib_mv_prob_normal(events,
+                                   w_mu=w_mu,
+                                   w_sigma=w_sigma,
+                                   conn_prob=prob,
+                                   shape=shape,
+                                   seed=seed,
+                                   outdim_parallel=outdim_parallel,
+                                   transpose=transpose)
 
-    r2 = taichi_mv_prob_normal(events,
-                                          w_mu=w_mu,
-                                          w_sigma=w_sigma,
-                                          conn_prob=prob,
-                                          shape=shape,
-                                          seed=seed,
-                                          outdim_parallel=outdim_parallel,
-                                          transpose=transpose)
+    r2 = brainpylib_mv_prob_normal(events,
+                                   w_mu=w_mu,
+                                   w_sigma=w_sigma,
+                                   conn_prob=prob,
+                                   shape=shape,
+                                   seed=seed,
+                                   outdim_parallel=outdim_parallel,
+                                   transpose=transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
     self.assertTrue(c)
 
-    r2 = taichi_mv_prob_normal(events,
-                                          w_mu=w_mu,
-                                          w_sigma=w_sigma,
-                                          conn_prob=prob,
-                                          shape=(shape[1], shape[0]),
-                                          seed=seed,
-                                          outdim_parallel=outdim_parallel,
-                                          transpose=not transpose)
+    r2 = brainpylib_mv_prob_normal(events,
+                                   w_mu=w_mu,
+                                   w_sigma=w_sigma,
+                                   conn_prob=prob,
+                                   shape=(shape[1], shape[0]),
+                                   seed=seed,
+                                   outdim_parallel=outdim_parallel,
+                                   transpose=not transpose)
     c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
@@ -465,20 +477,19 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     rng = bm.random.RandomState()
     events = bm.as_jax(rng.random((10, shape[0] if transpose else shape[1])))
 
-    f1 = jax.vmap(lambda e: taichi_mv_prob_normal(e,
-                                                             w_mu=0.,
-                                                             w_sigma=1.,
-                                                             conn_prob=prob,
-                                                             shape=shape,
-                                                             seed=seed,
-                                                             outdim_parallel=outdim_parallel,
-                                                             transpose=transpose))
+    f1 = jax.vmap(lambda e: brainpylib_mv_prob_normal(e,
+                                                      w_mu=0.,
+                                                      w_sigma=1.,
+                                                      conn_prob=prob,
+                                                      shape=shape,
+                                                      seed=seed,
+                                                      outdim_parallel=outdim_parallel,
+                                                      transpose=transpose))
     r1 = f1(events)
     r2 = f1(events)
-    c = jnp.allclose(r1, r2, atol=1e-6)
+    c = jnp.allclose(r1, r2)
     if not c:
       print(r1, r2)
-      print(r1 - r2)
     self.assertTrue(c)
 
     if x64:
@@ -518,7 +529,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
     events = events.astype(float)
 
     f1 = jax.grad(
-      lambda e, w_sigma: taichi_mv_prob_normal(
+      lambda e, w_sigma: brainpylib_mv_prob_normal(
         e,
         w_mu=0.,
         w_sigma=w_sigma,
@@ -527,10 +538,12 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         seed=seed,
         outdim_parallel=outdim_parallel,
         transpose=transpose
-      )[0].sum()
+      ).sum()
     )
     r1 = f1(events, 1.)
     r2 = f1(events, 2.)
+    print('r1:', r1)
+    print('r2:', r2)
     self.assertTrue(bm.allclose(r1 * 2., r2))
 
     if x64:
