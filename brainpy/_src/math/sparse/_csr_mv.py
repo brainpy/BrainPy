@@ -81,8 +81,9 @@ def csrmv(
   else:
     return csrmv_brainpylib(data, indices, indptr, vector, shape=shape, transpose=transpose, method=method)
 
+
 ### BRAINPYLIB ###
-  
+
 def csrmv_brainpylib(
     data: Union[float, jnp.ndarray, Array],
     indices: Union[jnp.ndarray, Array],
@@ -163,6 +164,7 @@ def csrmv_brainpylib(
 
   else:
     raise ValueError(f'Only support methods: cusparse, scalar, vector, and adaptive. But we got {method}.')
+
 
 def _csrmv_abstract(data, indices, indptr, vector, *, shape, transpose):
   if data.dtype not in [jnp.float32, jnp.float64]:
@@ -587,7 +589,7 @@ def csrmv_taichi(
   # if the shape of indices is (0,), then we return a zero vector
   if indices.shape[0] == 0:
     return jnp.zeros(shape[1] if transpose else shape[0], dtype=data.dtype)
-  
+
   return raw_csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)[0]
 
 
@@ -755,6 +757,7 @@ def _sparse_csr_matvec_transpose(
 
     return ct_data, indices, indptr, vector
 
+
 def raw_csrmv_taichi(
     data: Union[float, jnp.ndarray, Array],
     indices: Union[jnp.ndarray, Array],
@@ -783,7 +786,7 @@ def raw_csrmv_taichi(
               outs=[jax.ShapeDtypeStruct((out_shape,), dtype=data.dtype)],
               transpose=transpose,
               shape=shape)
-  
+
 
 def _define_op(cpu_kernel, gpu_kernel):
   prim = XLACustomOp(cpu_kernel=cpu_kernel, gpu_kernel=gpu_kernel)

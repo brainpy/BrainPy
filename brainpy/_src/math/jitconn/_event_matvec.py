@@ -3,7 +3,6 @@
 from functools import partial
 from typing import Tuple, Optional
 
-import brainpy.math as bm
 import jax
 import numpy as np
 from jax import numpy as jnp, dtypes
@@ -19,12 +18,12 @@ from brainpy._src.math.jitconn._matvec import (mv_prob_homo_p,
                                                mv_prob_homo,
                                                mv_prob_uniform,
                                                mv_prob_normal,
-                                               _general_checking, 
-                                               raw_mv_prob_homo, 
-                                               raw_mv_prob_uniform, 
+                                               _general_checking,
+                                               raw_mv_prob_homo,
+                                               raw_mv_prob_uniform,
                                                raw_mv_prob_normal,
-                                               _mv_prob_homo_transpose, 
-                                               _mv_prob_uniform_transpose, 
+                                               _mv_prob_homo_transpose,
+                                               _mv_prob_uniform_transpose,
                                                _mv_prob_normal_transpose,
                                                _reverse)
 from brainpy._src.math.ndarray import _get_dtype
@@ -51,7 +50,9 @@ def event_mv_prob_homo(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return event_mv_prob_homo_taichi(events, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+  return event_mv_prob_homo_taichi(events, weight, conn_prob, seed, shape=shape, transpose=transpose,
+                                   outdim_parallel=outdim_parallel)
+
 
 event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
 
@@ -67,7 +68,9 @@ def event_mv_prob_uniform(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return event_mv_prob_uniform_taichi(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+  return event_mv_prob_uniform_taichi(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose,
+                                      outdim_parallel=outdim_parallel)
+
 
 event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
 
@@ -83,7 +86,9 @@ def event_mv_prob_normal(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return event_mv_prob_uniform_taichi(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+  return event_mv_prob_uniform_taichi(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose,
+                                      outdim_parallel=outdim_parallel)
+
 
 ### BRAINPYLIB ###
 
@@ -179,6 +184,7 @@ def event_mv_prob_normal_brainpylib(
                                      shape=shape,
                                      transpose=transpose,
                                      outdim_parallel=outdim_parallel)[0]
+
 
 event_mv_prob_normal_brainpylib.__doc__ = mv_prob_normal.__doc__
 
@@ -872,6 +878,7 @@ def event_mv_prob_uniform_taichi(
   return raw_event_mv_prob_uniform(events, w_low, w_high, conn_len, seed, shape=shape,
                                    transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
+
 def event_mv_prob_normal_taichi(
     events: jax.Array,
     w_mu: float,
@@ -946,6 +953,7 @@ def event_mv_prob_normal_taichi(
   seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.uint32))
   return raw_event_mv_prob_normal(events, w_mu, w_sigma, conn_len, seed, shape=shape,
                                   transpose=transpose, outdim_parallel=outdim_parallel)[0]
+
 
 # -------------
 # CPU function
@@ -1075,8 +1083,10 @@ def _event_mv_prob_homo_outdim_parallel_bool_gpu(
       i_col += inc
     out[i_row] += r  # TODO: warp-level reduction
 
+
 def _reverse(shape):
   return shape[::-1]
+
 
 # -------------
 # CPU function

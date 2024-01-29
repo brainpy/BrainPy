@@ -10,11 +10,9 @@ Key points for the operator customization:
 
 """
 
-
 from functools import partial
 from typing import Union, Tuple
 
-import brainpy.math as bm
 import jax
 import jax.numpy as jnp
 import numba
@@ -23,6 +21,7 @@ from jax.core import ShapedArray, Primitive
 from jax.interpreters import ad, xla
 from jax.lib import xla_client
 
+from brainpy._src.dependency_check import (import_brainpylib_gpu_ops)
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
@@ -31,7 +30,6 @@ from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
 from brainpy._src.math.sparse._csr_mv import csrmv_brainpylib as normal_csrmv
 from brainpy._src.math.sparse._csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
 from brainpy._src.math.sparse._utils import csr_to_coo
-from brainpy._src.dependency_check import (import_brainpylib_gpu_ops)
 from brainpy.errors import GPUOperatorNotFound
 
 __all__ = [
@@ -158,6 +156,7 @@ def csrmv_brainpylib(
 
   # computing
   return event_csr_matvec_p.bind(data, indices, indptr, events, shape=shape, transpose=transpose)
+
 
 # ----------------------------------------------------------
 # event csr matvec
@@ -600,9 +599,12 @@ event_csr_matvec_p.def_abstract_eval(_event_csr_matvec_abstract)
 event_csr_matvec_p.def_impl(partial(xla.apply_primitive, event_csr_matvec_p))
 xla.backend_specific_translations['cpu'][event_csr_matvec_p] = _event_csr_matvec_cpu_translation
 xla.backend_specific_translations['gpu'][event_csr_matvec_p] = _event_csr_matvec_gpu_translation
-ad.defjvp(event_csr_matvec_p, _event_csr_matvec_jvp_values_brainpylib, None, None, _event_csr_matvec_jvp_events_brainpylib)
+ad.defjvp(event_csr_matvec_p, _event_csr_matvec_jvp_values_brainpylib, None, None,
+          _event_csr_matvec_jvp_events_brainpylib)
 ad.primitive_transposes[event_csr_matvec_p] = _event_csr_matvec_transpose_brainpylib
 register_general_batching(event_csr_matvec_p)
+
+
 # batching.primitive_batchers[event_csr_matvec_p] = _event_csr_matvec_batching_rule
 
 
@@ -687,6 +689,7 @@ def csrmv_taichi(
     return jnp.zeros(shape[1] if transpose else shape[0], dtype=data.dtype)
 
   return raw_csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)[0]
+
 
 # -------------
 # CPU operators
@@ -958,7 +961,7 @@ def _event_csr_matvec_bool_heter_gpu(values: ti.types.ndarray(ndim=1),
       if events[indices[j]]:
         r += values[j]
       j += 32
-    out[row_i] += r   # TODO: warp-level primitive
+    out[row_i] += r  # TODO: warp-level primitive
 
 
 @ti.kernel
@@ -977,7 +980,8 @@ def _event_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
       if events[indices[j]] != 0.:
         r += values[j]
       j += 32
-    out[row_i] += r   # TODO: warp-level primitive
+    out[row_i] += r  # TODO: warp-level primitive
+
 
 def raw_csrmv_taichi(
     data: Union[float, jax.Array],
@@ -1020,6 +1024,7 @@ def raw_csrmv_taichi(
               transpose=transpose,
               shape=shape)
 
+
 def _event_csr_matvec_jvp_values_taichi(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
   return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
 
@@ -1047,6 +1052,8 @@ def _event_csr_matvec_transpose_taichi(
         row, col = csr_to_coo(indices, indptr)
         ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
     return ct_values, indices, indptr, events
+
+
 def _define_op(cpu_kernel, gpu_kernel):
   prim = XLACustomOp(cpu_kernel=cpu_kernel, gpu_kernel=gpu_kernel)
   prim.defjvp(_event_csr_matvec_jvp_values_taichi, None, None, _event_csr_matvec_jvp_events_taichi)
@@ -1080,7 +1087,3 @@ _event_csrmv_bool_heter_p = _define_op(_event_csr_matvec_bool_heter_cpu, _event_
 
 # not transpose heter
 _event_csrmv_heter_p = _define_op(_event_csr_matvec_heter_cpu, _event_csr_matvec_heter_gpu)
-
-
-
-

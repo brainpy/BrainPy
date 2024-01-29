@@ -4,7 +4,6 @@
 from functools import partial
 from typing import Tuple, Optional, Union
 
-import brainpy.math as bm
 import jax
 import numpy as np
 from jax import numpy as jnp, dtypes
@@ -86,8 +85,8 @@ def mv_prob_homo(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return mv_prob_homo_taichi(vector, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  
+  return mv_prob_homo_taichi(vector, weight, conn_prob, seed, shape=shape, transpose=transpose,
+                             outdim_parallel=outdim_parallel)
 
 
 def mv_prob_uniform(
@@ -151,7 +150,8 @@ def mv_prob_uniform(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return mv_prob_uniform_taichi(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+  return mv_prob_uniform_taichi(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose,
+                                outdim_parallel=outdim_parallel)
 
 
 def mv_prob_normal(
@@ -215,7 +215,8 @@ def mv_prob_normal(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return mv_prob_uniform_taichi(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+  return mv_prob_uniform_taichi(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose,
+                                outdim_parallel=outdim_parallel)
 
 
 ### BRAINYPLIB ###
@@ -454,7 +455,6 @@ def mv_prob_normal_brainpylib(
                                shape=shape,
                                transpose=transpose,
                                outdim_parallel=outdim_parallel)[0]
-
 
 
 def _matvec_prob_homo_abstract(
@@ -1095,6 +1095,7 @@ def mv_prob_homo_taichi(
   return raw_mv_prob_homo(vector, weight, clen, seed, shape=shape,
                           transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
+
 def mv_prob_uniform_taichi(
     vector: jax.Array,
     w_low: float,
@@ -1170,6 +1171,7 @@ def mv_prob_uniform_taichi(
   return raw_mv_prob_uniform(vector, w_low, w_high, conn_len, seed, shape=shape,
                              transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
+
 def mv_prob_normal_taichi(
     vector: jax.Array,
     w_mu: float,
@@ -1244,6 +1246,7 @@ def mv_prob_normal_taichi(
   seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.uint32))
   return raw_mv_prob_normal(vector, w_mu, w_sigma, conn_len, seed, shape=shape,
                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
+
 
 def _reverse(shape):
   return shape[::-1]
