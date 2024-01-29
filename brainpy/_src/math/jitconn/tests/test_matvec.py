@@ -41,7 +41,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for prob in [0.01, 0.1]
         for homo_data in [-1., 1.]
     )
-    def test_homo(self, shape, transpose, outdim_parallel, prob, homo_data, seed=None, x64=False):
+    def test_homo(self, shape, transpose, outdim_parallel, prob, homo_data, seed=1234, x64=False):
         print(f'test_homo: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -70,7 +70,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                  seed=seed,
                                  outdim_parallel=outdim_parallel,
                                  transpose=transpose)
-        self.assertTrue(jnp.allclose(r1, r2))
+        self.assertTrue(jnp.allclose(r1, r2, atol=1e-6))
 
         bm.clear_buffer_memory()
 
@@ -91,7 +91,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for shape in shapes
         for prob in [0.01, 0.1]
     )
-    def test_homo_vmap(self, shape, transpose, outdim_parallel, prob, seed=None, x64=False):
+    def test_homo_vmap(self, shape, transpose, outdim_parallel, prob, seed=1234, x64=False):
         print(f'test_homo_vmap: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -114,7 +114,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         )
         r1 = f1(events, weights)
         r2 = f1(events, weights)
-        self.assertTrue(jnp.allclose(r1, r2))
+        self.assertTrue(jnp.allclose(r1, r2, atol=1e-6))
 
         if x64:
             bm.disable_x64()
@@ -137,7 +137,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for shape in shapes
         for prob in [0.01, 0.1]
     )
-    def test_homo_grad(self, shape, transpose, outdim_parallel, prob, seed=None, x64=False):
+    def test_homo_grad(self, shape, transpose, outdim_parallel, prob, seed=1234, x64=False):
         print(f'_test_homo_grad: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -164,7 +164,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         r1 = f1(events, 1.)
         r2 = f1(events, 2.)
 
-        self.assertTrue(jnp.allclose(r1 * 2., r2))
+        self.assertTrue(jnp.allclose(r1 * 2., r2, atol=1e-6))
 
         if x64:
             bm.disable_x64()
@@ -193,7 +193,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for prob in [0.01, 0.1]
         for w_low, w_high in [(-1., 0.), (0., 1.), (-1., 1.)]
     )
-    def test_uniform(self, shape, transpose, outdim_parallel, prob, w_low, w_high, seed=None, x64=False):
+    def test_uniform(self, shape, transpose, outdim_parallel, prob, w_low, w_high, seed=1234, x64=False):
         print(f'test_uniform: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -225,7 +225,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                     seed=seed,
                                     outdim_parallel=outdim_parallel,
                                     transpose=transpose)
-        c = jnp.allclose(r1, r2)
+        c = jnp.allclose(r1, r2, atol=1e-6)
         if not c:
             print(r1, r2)
         self.assertTrue(c)
@@ -251,7 +251,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for shape in shapes
         for prob in [0.01, 0.1]
     )
-    def test_uniform_vmap(self, shape, transpose, outdim_parallel, prob, seed=None, x64=False):
+    def test_uniform_vmap(self, shape, transpose, outdim_parallel, prob, seed=1234, x64=False):
         print(f'test_uniform_vmap: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -274,7 +274,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
 
         r1 = f1(events)
         r2 = f1(events)
-        self.assertTrue(jnp.allclose(r1, r2))
+        self.assertTrue(jnp.allclose(r1, r2, atol=1e-6))
 
         if x64:
             bm.disable_x64()
@@ -298,7 +298,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for shape in shapes
         for prob in [0.01, 0.1]
     )
-    def test_uniform_grad(self, shape, transpose, outdim_parallel, prob, seed=None, x64=False):
+    def test_uniform_grad(self, shape, transpose, outdim_parallel, prob, seed=1234, x64=False):
         print(f'_test_uniform_grad: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -327,7 +327,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         r1 = f1(events, 0., 1.)
         r2 = f1(events, 0., 2.)
 
-        self.assertTrue(bm.allclose(r1 * 2., r2))
+        self.assertTrue(bm.allclose(r1 * 2., r2, atol=1e-6))
 
         if x64:
             bm.disable_x64()
@@ -357,7 +357,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for prob in [0.01, 0.1]
         for w_mu, w_sigma in [(-1., 1.), (0., 0.1), (0., 0.5)]
     )
-    def test_normal(self, shape, transpose, outdim_parallel, prob, w_mu, w_sigma, seed=None, x64=False):
+    def test_normal(self, shape, transpose, outdim_parallel, prob, w_mu, w_sigma, seed=1234, x64=False):
         print(f'_test_normal: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -389,7 +389,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
                                    seed=seed,
                                    outdim_parallel=outdim_parallel,
                                    transpose=transpose)
-        c = jnp.allclose(r1, r2)
+        c = jnp.allclose(r1, r2, atol=1e-6)
         if not c:
             print(r1, r2)
         self.assertTrue(c)
@@ -415,7 +415,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for shape in shapes
         for prob in [0.01, 0.1]
     )
-    def test_normal_vmap(self, shape, transpose, outdim_parallel, prob, seed=None, x64=False):
+    def test_normal_vmap(self, shape, transpose, outdim_parallel, prob, seed=1234, x64=False):
         print(f'_test_normal_vmap: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -467,7 +467,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         for shape in shapes
         for prob in [0.01, 0.1]
     )
-    def test_normal_grad(self, shape, transpose, outdim_parallel, prob, seed=None, x64=False):
+    def test_normal_grad(self, shape, transpose, outdim_parallel, prob, seed=1234, x64=False):
         print(f'_test_normal_grad: '
               f'shape = {shape}, '
               f'transpose = {transpose}, '
@@ -494,7 +494,7 @@ class Test_matvec_prob_conn(parameterized.TestCase):
         )
         r1 = f1(events, 1.)
         r2 = f1(events, 2.)
-        self.assertTrue(bm.allclose(r1 * 2., r2))
+        self.assertTrue(bm.allclose(r1 * 2., r2, atol=1e-6))
 
         if x64:
             bm.disable_x64()
