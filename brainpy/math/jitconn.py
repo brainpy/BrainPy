@@ -13,6 +13,8 @@ from brainpy._src.math.jitconn import (
 
   mv_prob_homo_taichi as mv_prob_homo_taichi,
   mv_prob_uniform_taichi as mv_prob_uniform_taichi,
-  mv_prob_normal_taichi as mv_prob_normal_taichi
+  mv_prob_normal_taichi as mv_prob_normal_taichi,
+
+  event_mv_prob_homo_irregular as event_mv_prob_homo_irregular
 )
 
