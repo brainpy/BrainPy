@@ -10,12 +10,9 @@ import brainpy.math as bm
 shapes = [(100, 200), (10, 1000), (2, 1000), (1000, 10), (1000, 2)]
 shapes = [(100, 200), (2, 1000), (1000, 2)]
 
-brainpylib_mv_prob_homo = partial(bm.jitconn.event_mv_prob_homo, method='brainpylib')
-taichi_mv_prob_homo = partial(bm.jitconn.event_mv_prob_homo, method='taichi')
-brainpylib_mv_prob_uniform = partial(bm.jitconn.event_mv_prob_uniform, method='brainpylib')
-taichi_mv_prob_uniform = partial(bm.jitconn.event_mv_prob_uniform, method='taichi')
-brainpylib_mv_prob_normal = partial(bm.jitconn.event_mv_prob_normal, method='brainpylib')
-taichi_mv_prob_normal = partial(bm.jitconn.event_mv_prob_normal, method='taichi')
+taichi_mv_prob_homo = bm.jitconn.event_mv_prob_homo
+taichi_mv_prob_uniform = bm.jitconn.event_mv_prob_uniform
+taichi_mv_prob_normal = bm.jitconn.event_mv_prob_normal
 
 class Test_event_matvec_prob_conn(parameterized.TestCase):
   def __init__(self, *args, platform='cpu', **kwargs):
