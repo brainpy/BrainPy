@@ -265,9 +265,9 @@ class Test_csrmv_taichi(parameterized.TestCase):
       heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r3, r4))
 
-    dense_f3 = jax.grad(lambda a, v: ((v @ (dense * a)).sum()
+    dense_f3 = jax.grad(lambda a, v: ((v @ (dense_data * a)).sum()
                                       if transpose else
-                                      ((dense * a) @ v).sum()),
+                                      ((dense_data * a) @ v).sum()),
                         argnums=(0, 1))
     r5 = dense_f3(heter_data, vector)
     r6 = jax.grad(sum_op(taichi_csr_matvec), argnums=(0, 3))(
