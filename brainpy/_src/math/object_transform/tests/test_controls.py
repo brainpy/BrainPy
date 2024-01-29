@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
-import sys
 import tempfile
 import unittest
 from functools import partial
 
 import jax
-from jax import vmap
-
 from absl.testing import parameterized
-from jax._src import test_util as jtu
+from jax import vmap
 
 import brainpy as bp
 import brainpy.math as bm
@@ -147,6 +144,25 @@ class TestScan(unittest.TestCase):
     expected = bm.expand_dims(expected, axis=-1)
     self.assertTrue(bm.allclose(outs, expected))
 
+  def test2(self):
+    a = bm.Variable(1)
+
+    def f(carray, x):
+      carray += x
+      a.value += 1.
+      return carray, a
+
+    @bm.jit
+    def f_outer(carray, x):
+      carry, outs = bm.scan(f, carray, x, unroll=2)
+      return carry, outs
+
+    carry, outs = f_outer(bm.zeros(2), bm.arange(10))
+    self.assertTrue(bm.allclose(carry, 45.))
+    expected = bm.arange(1, 11).astype(outs.dtype)
+    expected = bm.expand_dims(expected, axis=-1)
+    self.assertTrue(bm.allclose(outs, expected))
+
 
 class TestCond(unittest.TestCase):
   def test1(self):
@@ -233,7 +249,6 @@ class TestIfElse(unittest.TestCase):
 
     self.assertTrue(bm.grad(F2)(9.0) == 18.)
     self.assertTrue(bm.grad(F2)(11.0) == 1.)
-
 
   def test_grad2(self):
     def F3(x):
@@ -519,6 +534,3 @@ cond ...
     file.seek(0)
     out6 = file.read().strip()
     self.assertTrue(out5 == out6)
-
-
-

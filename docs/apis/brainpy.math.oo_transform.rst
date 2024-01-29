@@ -60,6 +60,7 @@ Object-oriented Transformations
    ifelse
    for_loop
    while_loop
+   scan
    jit
    cls_jit
    to_object
