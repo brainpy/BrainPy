@@ -7,7 +7,6 @@ from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
-from .._csr_mv import csrmv_brainpylib as brainpylib_csr_matvec
 
 # bm.set_platform('gpu')
 
@@ -80,7 +79,10 @@ class Test_csrmv_taichi(parameterized.TestCase):
     vector = rng.random(shape[0] if transpose else shape[1])
     vector = bm.as_jax(vector)
 
-    r1 = brainpylib_csr_matvec(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    heter_data = bm.ones(indices.shape).value * homo_data
+
+    dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
+    r1 = (vector @ dense) if transpose else (dense @ vector)
     r2 = taichi_csr_matvec(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r1, r2))
 
@@ -106,12 +108,11 @@ class Test_csrmv_taichi(parameterized.TestCase):
     homo_data = bm.ones(10).value * v
     dense_data = jax.vmap(lambda a: bm.sparse.csr_to_dense(a, indices, indptr, shape=shape))(heter_data)
 
-    f1 = partial(brainpylib_csr_matvec, indices=indices, indptr=indptr, vector=vector,
-                 shape=shape, transpose=transpose)
+    f1 = lambda a: (a.T @ vector) if transpose else (a @ vector)
     f2 = partial(taichi_csr_matvec, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
     r1 = jax.vmap(f1)(homo_data)
-    r2 = jax.vmap(f1)(homo_data)
+    r2 = jax.vmap(f2)(homo_data)
     self.assertTrue(bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
@@ -138,8 +139,11 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
     # print('grad data start')
     # grad 'data'
-    r1 = jax.grad(sum_op(brainpylib_csr_matvec))(
-      homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    dense_f1 = jax.grad(lambda a: ((vector @ (dense * a)).sum()
+                                   if transpose else
+                                   ((dense * a) @ vector).sum()),
+                        argnums=0)
+    r1 = dense_f1(homo_data)
     r2 = jax.grad(sum_op(taichi_csr_matvec))(
       homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
 
@@ -155,15 +159,19 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
     # print('grad vector start')
     # grad 'vector'
-    r3 = jax.grad(sum_op(brainpylib_csr_matvec), argnums=3)(
-      homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+    dense_data = dense * homo_data
+    dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()))
+    r3 = dense_f2(vector)
     r4 = jax.grad(sum_op(taichi_csr_matvec), argnums=3)(
       homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
 
     self.assertTrue(bm.allclose(r3, r4))
 
-    r5 = jax.grad(sum_op(brainpylib_csr_matvec), argnums=(0, 3))(
-      homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+    dense_f3 = jax.grad(lambda a, v: ((v @ (dense * a)).sum()
+                                      if transpose else
+                                      ((dense * a) @ v).sum()),
+                        argnums=(0, 1))
+    r5 = dense_f3(homo_data, vector)
     r6 = jax.grad(sum_op(taichi_csr_matvec), argnums=(0, 3))(
       homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r5[0], r6[0]))
@@ -190,7 +198,8 @@ class Test_csrmv_taichi(parameterized.TestCase):
     vector = rng.random(shape[0] if transpose else shape[1])
     vector = bm.as_jax(vector)
 
-    r1 = brainpylib_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
+    dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
+    r1 = (vector @ dense) if transpose else (dense @ vector)
     r2 = taichi_csr_matvec(heter_data, indices, indptr, vector, shape=shape)
 
     self.assertTrue(compare_with_nan_tolerance(r1, r2))
@@ -216,8 +225,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
     dense_data = jax.vmap(lambda a: bm.sparse.csr_to_dense(a, indices, indptr,
                                                            shape=shape))(heter_data)
 
-    f1 = partial(brainpylib_csr_matvec, indices=indices, indptr=indptr, vector=vector,
-                 shape=shape, transpose=transpose)
+    f1 = lambda a: (a.T @ vector) if transpose else (a @ vector)
     f2 = partial(taichi_csr_matvec, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
     r1 = jax.vmap(f1)(heter_data)
@@ -242,21 +250,26 @@ class Test_csrmv_taichi(parameterized.TestCase):
     vector = bm.as_jax(vector)
 
     # grad 'data'
-    r1 = jax.grad(sum_op(brainpylib_csr_matvec))(
-      heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    dense_f1 = jax.grad(lambda a: ((vector @ a).sum() if transpose else (a @ vector).sum()),
+                        argnums=0)
+    r1 = dense_f1(dense_data)
     r2 = jax.grad(sum_op(taichi_csr_matvec))(
       heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r1, r2))
 
     # grad 'vector'
-    r3 = jax.grad(sum_op(brainpylib_csr_matvec), argnums=3)(
-      heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+    dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()),
+                        argnums=0)
+    r3 = dense_f2(vector)
     r4 = jax.grad(sum_op(taichi_csr_matvec), argnums=3)(
       heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r3, r4))
 
-    r5 = jax.grad(sum_op(brainpylib_csr_matvec), argnums=(0, 3))(
-      heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+    dense_f3 = jax.grad(lambda a, v: ((v @ (dense * a)).sum()
+                                      if transpose else
+                                      ((dense * a) @ v).sum()),
+                        argnums=(0, 1))
+    r5 = dense_f3(heter_data, vector)
     r6 = jax.grad(sum_op(taichi_csr_matvec), argnums=(0, 3))(
       heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r5[0], r6[0]))
