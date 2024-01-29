@@ -169,7 +169,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
 
     # vmap 'data'
     events = bm.as_jax(rng.random(shape[0] if transpose else shape[1])) < 0.1
-    f1 = jax.vmap(partial(bm.sparse.csrmv, indices=indices, indptr=indptr, events=events,
+    f1 = jax.vmap(partial(bm.sparse.csrmv, indices=indices, indptr=indptr,  vector=events,
                           shape=shape, transpose=transpose))
     f2 = jax.vmap(partial(taichi_csr_matvec, indices=indices, indptr=indptr, events=events,
                           shape=shape, transpose=transpose))
