@@ -940,6 +940,8 @@ def scan(
 ):
   """``scan`` control flow with :py:class:`~.Variable`.
 
+  Similar to ``jax.lax.scan``.
+
   .. versionadded:: 2.4.7
 
   All returns in body function will be gathered
@@ -999,7 +1001,7 @@ def scan(
           rets = jax.eval_shape(transform, init, operands)
     cache_stack(body_fun, dyn_vars)  # cache
     if current_transform_number():
-      return rets[1]
+      return rets[0][1], rets[1]
     del rets
 
   transform = _get_scan_transform(body_fun, dyn_vars, bar, progress_bar, remat, reverse, unroll)
