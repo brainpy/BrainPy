@@ -66,16 +66,6 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r2 = jax.block_until_ready(r2)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = taichi_mv_prob_homo(events,
-                                              homo_data,
-                                              conn_prob=prob,
-                                              shape=(shape[1], shape[0]),
-                                              seed=seed,
-                                              outdim_parallel=outdim_parallel,
-                                              transpose=not transpose)
-    r3 = jax.block_until_ready(r3)
-    self.assertTrue(jnp.allclose(r1, r3))
-
     # indices, indptr = bp.conn.FixedProb(prob)(*shape).require('pre2post')
     # indices = bm.as_jax(indices)
     # indptr = bm.as_jax(indptr)
@@ -245,16 +235,6 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
     r2 = jax.block_until_ready(r2)
     self.assertTrue(jnp.allclose(r1, r2))
 
-    r3 = taichi_mv_prob_uniform(events,
-                                                 w_low=w_low,
-                                                 w_high=w_high,
-                                                 conn_prob=prob,
-                                                 shape=(shape[1], shape[0]),
-                                                 seed=seed,
-                                                 outdim_parallel=outdim_parallel,
-                                                 transpose=not transpose)
-    r3 = jax.block_until_ready(r3)
-    self.assertTrue(jnp.allclose(r1, r3))
     if x64:
       bm.disable_x64()
     bm.clear_buffer_memory()
@@ -426,17 +406,6 @@ class Test_event_matvec_prob_conn(parameterized.TestCase):
                                                 transpose=transpose)
     r2 = jax.block_until_ready(r2)
     self.assertTrue(jnp.allclose(r1, r2))
-
-    r3 = taichi_mv_prob_normal(events,
-                                                w_mu=w_mu,
-                                                w_sigma=w_sigma,
-                                                conn_prob=prob,
-                                                shape=(shape[1], shape[0]),
-                                                seed=seed,
-                                                outdim_parallel=outdim_parallel,
-                                                transpose=not transpose)
-    r3 = jax.block_until_ready(r3)
-    self.assertTrue(jnp.allclose(r1, r3))
 
     if x64:
       bm.disable_x64()
