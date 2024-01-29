@@ -49,7 +49,6 @@ def csrmv(
     *,
     shape: Tuple[int, int],
     transpose: bool = False,
-    method: str = None
 ) -> jax.Array:
   """Product of a sparse CSR matrix and a dense event vector.
 
@@ -74,14 +73,6 @@ def csrmv(
     before computing.
     If ``transpose=True``, the operator will compute based on the
     event-driven property of the ``events`` vector.
-  method: str
-    The method used to compute Matrix-Vector Multiplication. For cpu platform,
-    the default method is ``taichi``. For gpu platform, the default method is
-    ``brainpylib``. 
-    The candidate methods are:
-
-    - ``taichi``: using Taichi kernel.
-    - ``brainpylib``: using brainpylib operators.
 
   Returns
   -------
@@ -89,19 +80,7 @@ def csrmv(
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      method = 'brainpylib'
-  
-  if method == 'taichi':
-    return csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
-  elif method == 'brainpylib':
-    return csrmv_brainpylib(data, indices, indptr, events, shape=shape, transpose=transpose)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
 
 
 ### BRAINPYLIB ###

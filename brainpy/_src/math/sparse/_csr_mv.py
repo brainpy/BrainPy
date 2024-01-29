@@ -64,8 +64,7 @@ def csrmv(
     The method used to compute Matrix-Vector Multiplication. Default is ``taichi``. 
     The candidate methods are:
 
-    - ``taichi``: using Taichi kernel.
-    - ``brainpylib``: using cuSPARSE library.
+    - ``None``: default using Taichi kernel.
     - ``cusparse``: using cuSPARSE library.
     - ``scalar``:
     - ``vector``:
@@ -78,15 +77,9 @@ def csrmv(
     the matrix vector product.
   """
   if method is None:
-    method = 'taichi'
-    
-  if method == 'taichi':
     return csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)
-  elif method == 'brainpylib':
-    return csrmv_brainpylib(data, indices, indptr, vector, shape=shape, transpose=transpose, method='cusparse')
   else:
     return csrmv_brainpylib(data, indices, indptr, vector, shape=shape, transpose=transpose, method=method)
-
 
 ### BRAINPYLIB ###
   

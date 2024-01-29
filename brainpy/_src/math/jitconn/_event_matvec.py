@@ -50,23 +50,8 @@ def event_mv_prob_homo(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
-    method: str = None,
 ) -> jax.Array:
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      if outdim_parallel:
-        method = 'brainpylib'
-      else:
-        method = 'taichi'
-  
-  if method == 'taichi':
-    return event_mv_prob_homo_taichi(events, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  elif method == 'brainpylib':
-    return event_mv_prob_homo_brainpylib(events, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return event_mv_prob_homo_taichi(events, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
 
 event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
 
@@ -81,23 +66,8 @@ def event_mv_prob_uniform(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
-    method: str = None,
 ) -> jax.Array:
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      if outdim_parallel:
-        method = 'brainpylib'
-      else:
-        method = 'taichi'
-  
-  if method == 'taichi':
-    return event_mv_prob_uniform_taichi(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  elif method == 'brainpylib':
-    return event_mv_prob_uniform_brainpylib(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return event_mv_prob_uniform_taichi(events, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
 
 event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
 
@@ -112,23 +82,8 @@ def event_mv_prob_normal(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
-    method: str = None,
 ) -> jax.Array:
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      if outdim_parallel:
-        method = 'brainpylib'
-      else:
-        method = 'taichi'
-  
-  if method == 'taichi':
-    return event_mv_prob_uniform_taichi(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  elif method == 'brainpylib':
-    return event_mv_prob_uniform_brainpylib(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return event_mv_prob_uniform_taichi(events, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
 
 ### BRAINPYLIB ###
 

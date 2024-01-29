@@ -37,7 +37,6 @@ def mv_prob_homo(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
-    method: str = None,
 ) -> jax.Array:
   r"""Perform the :math:`y=M@v` operation,
   where :math:`M` is just-in-time randomly generated with a scalar `weight` at each position.
@@ -87,21 +86,7 @@ def mv_prob_homo(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      if outdim_parallel:
-        method = 'brainpylib'
-      else:
-        method = 'taichi'
-  
-  if method == 'taichi':
-    return mv_prob_homo_taichi(vector, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  elif method == 'brainpylib':
-    return mv_prob_homo_brainpylib(vector, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return mv_prob_homo_taichi(vector, weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
   
 
 
@@ -115,7 +100,6 @@ def mv_prob_uniform(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
-    method: str = None,
 ) -> jax.Array:
   r"""Perform the :math:`y=M@v` operation,
   where :math:`M` is just-in-time randomly generated with a uniform distribution for its value.
@@ -167,21 +151,7 @@ def mv_prob_uniform(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      if outdim_parallel:
-        method = 'brainpylib'
-      else:
-        method = 'taichi'
-  
-  if method == 'taichi':
-    return mv_prob_uniform_taichi(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  elif method == 'brainpylib':
-    return mv_prob_uniform_brainpylib(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return mv_prob_uniform_taichi(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
 
 
 def mv_prob_normal(
@@ -194,7 +164,6 @@ def mv_prob_normal(
     shape: Tuple[int, int],
     transpose: bool = False,
     outdim_parallel: bool = True,
-    method: str = None,
 ) -> jax.Array:
   r"""Perform the :math:`y=M@v` operation,
   where :math:`M` is just-in-time randomly generated with a normal distribution for its value.
@@ -246,21 +215,7 @@ def mv_prob_normal(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  if method is None:
-    if bm.get_platform() == 'cpu':
-      method = 'taichi'
-    elif bm.get_platform() == 'gpu':
-      if outdim_parallel:
-        method = 'brainpylib'
-      else:
-        method = 'taichi'
-  
-  if method == 'taichi':
-    return mv_prob_uniform_taichi(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  elif method == 'brainpylib':
-    return mv_prob_uniform_brainpylib(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
-  else:
-    raise ValueError(f'Unknown method {method}.')
+  return mv_prob_uniform_taichi(vector, w_mu, w_sigma, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
 
 
 ### BRAINYPLIB ###
