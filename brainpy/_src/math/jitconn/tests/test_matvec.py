@@ -4,9 +4,6 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 from absl.testing import parameterized
-from .._matvec import (mv_prob_homo_brainpylib as brainpylib_mv_prob_homo,
-                       mv_prob_uniform_brainpylib as brainpylib_mv_prob_uniform,
-                       mv_prob_normal_brainpylib as brainpylib_mv_prob_normal,)
 
 import brainpy.math as bm
 
