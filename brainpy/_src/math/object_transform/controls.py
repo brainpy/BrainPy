@@ -422,11 +422,26 @@ def make_cond(
   return ControlObject(call, dyn_vars, repr_fun={'true_fun': true_fun, 'false_fun': false_fun})
 
 
+def _warp(f):
+  @functools.wraps(f)
+  def new_f(*args, **kwargs):
+    return jax.tree_map(_as_jax_array_, f(*args, **kwargs), is_leaf=lambda a: isinstance(a, Array))
+
+  return new_f
+
+
+def _warp_data(data):
+  def new_f(*args, **kwargs):
+    return jax.tree_map(_as_jax_array_, data, is_leaf=lambda a: isinstance(a, Array))
+
+  return new_f
+
+
 def _check_f(f):
   if callable(f):
-    return f
+    return _warp(f)
   else:
-    return (lambda *args, **kwargs: f)
+    return _warp_data(f)
 
 
 def _check_sequence(a):
@@ -558,7 +573,7 @@ def _if_else_return2(conditions, branches):
     return branches[-1]
 
 
-def all_equal(iterator):
+def _all_equal(iterator):
   iterator = iter(iterator)
   try:
     first = next(iterator)
@@ -672,7 +687,7 @@ def ifelse(
             else:
               rets = [jax.eval_shape(branch, *operands) for branch in branches]
             trees = [jax.tree_util.tree_structure(ret) for ret in rets]
-            if not all_equal(trees):
+            if not _all_equal(trees):
               msg = 'All returns in branches should have the same tree structure. But we got:\n'
               for tree in trees:
                 msg += f'- {tree}\n'
