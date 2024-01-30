@@ -422,6 +422,7 @@ def make_cond(
   return ControlObject(call, dyn_vars, repr_fun={'true_fun': true_fun, 'false_fun': false_fun})
 
 
+@functools.cache
 def _warp(f):
   @functools.wraps(f)
   def new_f(*args, **kwargs):
