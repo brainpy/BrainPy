@@ -1,5 +1,7 @@
+import contextlib
 import hashlib
 import inspect
+import io
 import os
 import pathlib
 import platform
@@ -173,8 +175,8 @@ def _build_kernel(
     arch = ti.cuda
   else:
     raise ValueError(f'Unknown device: {device}')
-
-  ti.init(arch=arch)
+  with contextlib.redirect_stdout(io.StringIO()):
+    ti.init(arch=arch)
 
   # check arch is available
   if ti.lang.impl.current_cfg().arch != arch:
