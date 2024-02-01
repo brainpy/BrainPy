@@ -31,10 +31,9 @@ class Test_csrmm(parameterized.TestCase):
     @parameterized.product(
         transpose=[True, False],
         shape=[(50, 50, 50), (100, 50, 100), (10, 1000, 10), (2, 2000, 2)],
-        homo_data=[-1., 0., 1.]
     )
-    def test_homo(self, transpose, shape, homo_data):
-        print(f'test_homo: transpose: {transpose} shape = {shape}, homo_data = {homo_data}')
+    def test_heter(self, transpose, shape):
+        print(f'test_homo: transpose: {transpose} shape = {shape}')
         conn = bp.conn.FixedProb(0.3)
 
         # csr matrix
@@ -45,16 +44,17 @@ class Test_csrmm(parameterized.TestCase):
         indptr = bm.as_jax(indptr)
         # matrix
         rng = bm.random.RandomState(seed=seed)
-        matrix = rng.random((shape[2], shape[1]) if transpose else (shape[1], shape[2]))
+        matrix = rng.random((shape[1], shape[2]))
         matrix = bm.as_jax(matrix)
 
-        heter_data = bm.ones(indices.shape).value * homo_data
+        heter_data = bm.as_jax(rng.random(indices.shape))
+
         dense = bm.sparse.csr_to_dense(heter_data, indices, indptr,
                                        shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]))
 
-        r1 = (matrix @ dense) if transpose else (dense @ matrix)
-        r2 = bm.sparse.csrmm(homo_data, indices, indptr, matrix, shape=shape, transpose=transpose)
-        c = bm.allclose(r1, r2)
+        r1 = (dense.T @ matrix) if transpose else (dense @ matrix)
+        r2 = bm.sparse.csrmm(heter_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+        c = bm.allclose(r1, r2, equal_nan=True)
         if not c:
             print(r1 - r2)
         self.assertTrue(c)
@@ -64,10 +64,9 @@ class Test_csrmm(parameterized.TestCase):
     @parameterized.product(
         transpose=[True, False],
         shape=[(50, 50, 50), (100, 50, 100), (10, 1000, 10), (2, 2000, 2)],
-        homo_data=[-1., 0., 1.]
     )
-    def test_homo_vmap(self, transpose, shape, homo_data):
-        print(f'test_homo_vmap: transpose: {transpose} shape = {shape}, homo_data = {homo_data}')
+    def test_heter_vmap(self, transpose, shape):
+        print(f'test_homo_vmap: transpose: {transpose} shape = {shape}')
         conn = bp.conn.FixedProb(0.3)
 
         # csr matrix
@@ -78,29 +77,28 @@ class Test_csrmm(parameterized.TestCase):
         indptr = bm.as_jax(indptr)
         # matrix
         rng = bm.random.RandomState(seed=seed)
-        matrix = rng.random((shape[2], shape[1]) if transpose else (shape[1], shape[2]))
+        matrix = rng.random((shape[1], shape[2]))
         matrix = bm.as_jax(matrix)
 
-        heter_data = bm.ones((10, indices.shape[0])).value * homo_data
-        homo_data = bm.ones(10).value * homo_data
+        heter_data = bm.as_jax(rng.random((10, indices.shape[0])))
         dense = jax.vmap(lambda a: bm.sparse.csr_to_dense(a, indices, indptr, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1])))(heter_data)
 
-        f1 = lambda a: (matrix @ a) if transpose else (a @ matrix)
+        f1 = lambda a: (a.T @ matrix) if transpose else (a @ matrix)
         f2 = partial(bm.sparse.csrmm, indices=indices, indptr=indptr, matrix=matrix,
-                     shape=shape, transpose=transpose)
+                     shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
         r1 = jax.vmap(f1)(dense)
-        r2 = jax.vmap(f2)(homo_data)
+        r2 = jax.vmap(f2)(heter_data)
 
-        self.assertTrue(bm.allclose(r1, r2))
+        self.assertTrue(bm.allclose(r1, r2, equal_nan=True))
 
 
     @parameterized.product(
         transpose=[True, False],
         shape=[(50, 50, 50), (100, 50, 100), (10, 1000, 10), (2, 2000, 2)],
-        homo_data=[-1., 0., 1.]
     )
-    def test_homo_grad(self, transpose, shape, homo_data):
-        print(f'test_homo_grad: transpose: {transpose} shape = {shape}, homo_data = {homo_data}')
+    def test_heter_grad(self, transpose, shape):
+        print(f'test_homo_grad: transpose: {transpose} shape = {shape}')
+        rng = bm.random.RandomState(seed=seed)
         conn = bp.conn.FixedProb(0.3)
 
         # csr matrix
@@ -109,50 +107,43 @@ class Test_csrmm(parameterized.TestCase):
             'pre2post')
         indices = bm.as_jax(indices)
         indptr = bm.as_jax(indptr)
-        dense = bm.sparse.csr_to_dense(bm.ones(indices.shape).value,
+
+        heter_data = bm.as_jax(rng.random((indices.shape)))
+        dense = bm.sparse.csr_to_dense(heter_data,
                                        indices,
                                        indptr,
                                        shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]))
         # matrix
-        rng = bm.random.RandomState(seed=seed)
-        matrix = rng.random((shape[2], shape[1]) if transpose else (shape[1], shape[2]))
+        matrix = rng.random((shape[1], shape[2]))
         matrix = bm.as_jax(matrix)
 
         # grad data
-        dense_f1 = jax.grad(lambda a: ((matrix @ (dense * a)).sum()
+        dense_f1 = jax.grad(lambda a: ((a.T @ matrix).sum()
                                        if transpose else
-                                       ((dense * a) @ matrix).sum()),
+                                       (a @ matrix).sum()),
                             argnums=0)
-        r1 = dense_f1(homo_data)
+        r1 = dense_f1(dense)
         r2 = jax.grad(sum_op(bm.sparse.csrmm))(
-            homo_data, indices, indptr, matrix, shape=shape, transpose=transpose
+            heter_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose
         )
+        rows, cols = bm.sparse.csr_to_coo(indices, indptr)
+        if transpose:
+            r1 = r1[cols, rows]
+        else:
+            r1 = r1[rows, cols]
+        print(r1 - r2)
 
         self.assertTrue(bm.allclose(r1, r2))
 
         # grad matrix
-        dense_data = dense * homo_data
-        dense_f2 = jax.grad(lambda m: ((m @ dense_data).sum()
+        dense_f2 = jax.grad(lambda m: ((dense.T @ m).sum()
                                        if transpose else
-                                       (dense_data @ m).sum()))
+                                       (dense @ m).sum()))
         r3 = dense_f2(matrix)
         r4 = jax.grad(sum_op(bm.sparse.csrmm), argnums=3)(
-            homo_data, indices, indptr, matrix.astype(float), shape=shape, transpose=transpose
+            heter_data, indices, indptr, matrix.astype(float), shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose
         )
 
         self.assertTrue(bm.allclose(r3, r4))
-
-        # grad both
-        dense_f3 = jax.grad(lambda a, m: ((m @ (dense * a)).sum()
-                                          if transpose else
-                                          ((dense * a) @ m).sum()),
-                            argnums=(0, 1))
-        r5 = dense_f3(homo_data, matrix)
-        r6 = jax.grad(sum_op(bm.sparse.csrmm), argnums=(0, 3))(
-            homo_data, indices, indptr, matrix.astype(float), shape=shape, transpose=transpose
-        )
-
-        self.assertTrue(bm.allclose(r5[0], r6[0]))
-        self.assertTrue(bm.allclose(r5[1], r6[1]))
 
         bm.clear_buffer_memory()

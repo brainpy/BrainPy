@@ -35,12 +35,39 @@ def csrmm(
         indptr: Union[jnp.ndarray, Array],
         matrix: Union[jnp.ndarray, Array],
         *,
-        shape: Tuple[int, int, int],
+        shape: Tuple[int, int],
         transpose: bool = False,
 ):
-    print('data: ', data)
-    data = jnp.atleast_1d(as_jax(data))
-    print('data: ', data)
+    """Product of CSR sparse matrix and a dense matrix.
+
+    Args:
+        data : array of shape ``(nse,)``.
+        indices : array of shape ``(nse,)``
+        indptr : array of shape ``(shape[0] + 1,)`` and dtype ``indices.dtype``
+        B : array of shape ``(shape[0] if transpose else shape[1], cols)`` and
+        dtype ``data.dtype``
+        shape : length-2 tuple representing the matrix shape
+        transpose : boolean specifying whether to transpose the sparse matrix
+        before computing.
+
+    Returns:
+        C : array of shape ``(shape[1] if transpose else shape[0], cols)``
+        representing the matrix-matrix product product.
+    """
+    return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)[0]
+
+
+def raw_csrmm_taichi(
+        data: Union[float, jnp.ndarray, Array],
+        indices: Union[jnp.ndarray, Array],
+        indptr: Union[jnp.ndarray, Array],
+        matrix: Union[jnp.ndarray, Array],
+        *,
+        shape: Tuple[int, int],
+        transpose: bool = False,
+):
+    assert len(shape) == 2
+
     indices = as_jax(indices)
     indptr = as_jax(indptr)
     matrix = as_jax(matrix)
@@ -53,43 +80,29 @@ def csrmm(
                         f'But we got {data.dtype} != {matrix.dtype}.')
     assert data.ndim == indices.ndim == indptr.ndim == 1
     assert matrix.ndim == 2
+    assert data.shape == indices.shape
+    assert indptr.shape[0] == shape[0] + 1
     if not jnp.issubdtype(indices.dtype, jnp.integer):
         raise ValueError('indices should be a 1D vector with integer type.')
     if not jnp.issubdtype(indptr.dtype, jnp.integer):
         raise ValueError('indptr should be a 1D vector with integer type.')
 
-    # if the shape of indices is (0,), then we return a zero vector
+    out_shape = shape[1] if transpose else shape[0]
+    result_shape = (out_shape, matrix.shape[1])
+    # if the shape of indices is (0,), then we return a zero matrix
     if indices.shape[0] == 0:
-        return jnp.zeros((shape[2], shape[0]) if transpose else (shape[2], shape[1]), dtype=data.dtype)
+        return [jnp.zeros(result_shape, dtype=data.dtype),]
 
-    return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)[0]
-
-
-def raw_csrmm_taichi(
-        data: Union[float, jnp.ndarray, Array],
-        indices: Union[jnp.ndarray, Array],
-        indptr: Union[jnp.ndarray, Array],
-        matrix: Union[jnp.ndarray, Array],
-        *,
-        shape: Tuple[int, int, int],
-        transpose: bool = False,
-):
-    out_shape = (shape[2], shape[0]) if transpose else (shape[2], shape[0])
-    if transpose:
-        if data.shape[0] == 1:
-            prim = _csr_matmat_transpose_homo_p
-        else:
-            prim = _csr_matmat_transpose_heter_p
+    assert matrix.shape[0] == (shape[0] if transpose else shape[1])
+    if transpose: 
+        prim = _csr_matmat_transpose_heter_p
     else:
-        if data.shape[0] == 1:
-            prim = _csr_matmat_homo_p
-        else:
-            prim = _csr_matmat_heter_p
+        prim = _csr_matmat_heter_p
     return prim(data,
                 indices,
                 indptr,
                 matrix,
-                outs=[jax.ShapeDtypeStruct(out_shape, dtype=data.dtype)],
+                outs=[jax.ShapeDtypeStruct(result_shape, dtype=data.dtype)],
                 transpose=transpose,
                 shape=shape)
 
@@ -97,43 +110,21 @@ def raw_csrmm_taichi(
 # CPU kernels
 
 @ti.kernel
-def _csr_matmat_transpose_homo_cpu(values: ti.types.ndarray(ndim=1),
-                                   col_indices: ti.types.ndarray(ndim=1),
-                                   row_ptr: ti.types.ndarray(ndim=1),
-                                   matrix: ti.types.ndarray(ndim=2),
-                                   out: ti.types.ndarray(ndim=2)):
-    value = values[0]
-    for row_i in range(row_ptr.shape[0] - 1):
-        for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-            for k in range(matrix.shape[0]):
-                out[k, col_indices[j]] += value * matrix[k, row_i]
-
-
-@ti.kernel
 def _csr_matmat_transpose_heter_cpu(values: ti.types.ndarray(ndim=1),
                                     col_indices: ti.types.ndarray(ndim=1),
                                     row_ptr: ti.types.ndarray(ndim=1),
                                     matrix: ti.types.ndarray(ndim=2),
                                     out: ti.types.ndarray(ndim=2)):
-    for row_i in range(row_ptr.shape[0] - 1):
-        for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-            for k in range(matrix.shape[0]):
-                out[k, col_indices[j]] += values[j] * matrix[k, row_i]
-
-
-@ti.kernel
-def _csr_matmat_homo_cpu(values: ti.types.ndarray(ndim=1),
-                         col_indices: ti.types.ndarray(ndim=1),
-                         row_ptr: ti.types.ndarray(ndim=1),
-                         matrix: ti.types.ndarray(ndim=2),
-                         out: ti.types.ndarray(ndim=2)):
-    value = values[0]
-    for row_i in range(row_ptr.shape[0] - 1):
-        for col_k in range(matrix.shape[1]):
+    for col_i in range(out.shape[1]):
+        for row_k in range(out.shape[0]):
             r = 0.
-            for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-                r += matrix[col_indices[j], col_k]
-            out[row_i, col_k] = r * value
+            for row_j in range(matrix.shape[0]):
+                val = 0.
+                for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
+                    if col_indices[j] == row_k:
+                        val = values[j]
+                r += val * matrix[row_j, col_i]
+            out[row_k, col_i] = r
 
 
 @ti.kernel
@@ -153,19 +144,6 @@ def _csr_matmat_heter_cpu(values: ti.types.ndarray(ndim=1),
 # GPU kernels
 
 @ti.kernel
-def _csr_matmat_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
-                                   col_indices: ti.types.ndarray(ndim=1),
-                                   row_ptr: ti.types.ndarray(ndim=1),
-                                   matrix: ti.types.ndarray(ndim=2),
-                                   out: ti.types.ndarray(ndim=2)):
-    value = values[0]
-    for row_i in range(row_ptr.shape[0] - 1):
-        for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-            for k in range(matrix.shape[0]):
-                out[k, col_indices[j]] += value * matrix[k, row_i]
-
-
-@ti.kernel
 def _csr_matmat_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
                                     col_indices: ti.types.ndarray(ndim=1),
                                     row_ptr: ti.types.ndarray(ndim=1),
@@ -175,21 +153,6 @@ def _csr_matmat_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
         for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
             for k in range(matrix.shape[0]):
                 out[k, col_indices[j]] += values[j] * matrix[k, row_i]
-
-
-@ti.kernel
-def _csr_matmat_homo_gpu(values: ti.types.ndarray(ndim=1),
-                         col_indices: ti.types.ndarray(ndim=1),
-                         row_ptr: ti.types.ndarray(ndim=1),
-                         matrix: ti.types.ndarray(ndim=2),
-                         out: ti.types.ndarray(ndim=2)):
-    value = values[0]
-    for row_i in range(row_ptr.shape[0] - 1):
-        for col_k in range(matrix.shape[1]):
-            r = 0.
-            for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-                r += matrix[col_indices[j], col_k]
-            out[row_i, col_k] = r * value
 
 
 @ti.kernel
@@ -221,24 +184,12 @@ def _csr_matmat_transpose(
         raise ValueError("Cannot transpose with respect to sparse indices.")
     if ad.is_undefined_primal(matrix):
         ct_matrix = raw_csrmm_taichi(data, indices, indptr, ct[0], shape=shape, transpose=not transpose)[0]
-        return data, indices, indptr, (ad.Zero(matrix) if type(ct[0]) is ad.Zero else ct_matrix)
+        return data, indices, indptr, ct_matrix
 
     else:
-        if type(ct[0]) is ad.Zero:
-            ct_data = ad.Zero(data)
-        else:
-            if data.aval.shape[0] == 1:  # scalar
-                ct_data = raw_csrmm_taichi(jnp.ones(1), indices, indptr, matrix, shape=shape, transpose=transpose)[0]
-                ct_data = jnp.inner(ct[0], ct_data)
-            else:
-                row, col = csr_to_coo(indices, indptr)
-                ct_data = jnp.zeros_like(data)
-                for i, j in zip(row, col):
-                    if transpose:
-                        ct_data[i] += jnp.sum(ct[0][:, j] * matrix[:, i])
-                    else:
-                        ct_data[i] += jnp.sum(ct[0][j, :] * matrix[i, :])
-        return ct_data, indices, indptr, matrix
+        matrix = jnp.asarray(matrix)
+        row, col = csr_to_coo(indices, indptr)
+        return (ct[0][row] * matrix[col]).sum(1), indices, indptr, matrix
 
 
 def _define_op(cpu_kernel, gpu_kernel):
@@ -247,14 +198,6 @@ def _define_op(cpu_kernel, gpu_kernel):
     prim.def_transpose_rule(_csr_matmat_transpose)
     return prim
 
-
-# transpose homo
-_csr_matmat_transpose_homo_p = _define_op(cpu_kernel=_csr_matmat_transpose_homo_cpu,
-                                          gpu_kernel=_csr_matmat_transpose_homo_gpu)
-
-# no transpose homo
-_csr_matmat_homo_p = _define_op(cpu_kernel=_csr_matmat_homo_cpu,
-                                gpu_kernel=_csr_matmat_homo_gpu)
 
 # transpose heter
 _csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter_cpu,
