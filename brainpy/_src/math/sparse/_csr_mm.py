@@ -149,10 +149,16 @@ def _csr_matmat_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
                                     row_ptr: ti.types.ndarray(ndim=1),
                                     matrix: ti.types.ndarray(ndim=2),
                                     out: ti.types.ndarray(ndim=2)):
-    for row_i in range(row_ptr.shape[0] - 1):
-        for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-            for k in range(matrix.shape[0]):
-                out[k, col_indices[j]] += values[j] * matrix[k, row_i]
+    for col_i in range(out.shape[1]):
+        for row_k in range(out.shape[0]):
+            r = 0.
+            for row_j in range(matrix.shape[0]):
+                val = 0.
+                for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
+                    if col_indices[j] == row_k:
+                        val = values[j]
+                r += val * matrix[row_j, col_i]
+            out[row_k, col_i] = r
 
 
 @ti.kernel
