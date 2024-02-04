@@ -20,7 +20,7 @@ from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching,
                                            XLACustomOp)
 from brainpy._src.math.sparse._utils import csr_to_coo
-from brainpy._src.math.sparse._csr_mm import raw_csrmm_taichi as normal_csrmv
+from brainpy._src.math.sparse._csr_mm import raw_csrmm_taichi as normal_csrmm
 from brainpy.errors import GPUOperatorNotFound
 
 ti = import_taichi()
@@ -391,11 +391,11 @@ def _event_csr_matmat_bool_homo_gpu(values: ti.types.ndarray(ndim=1),
 
 
 def _event_csr_matmat_jvp_values(val_dot, values, col_indices, row_ptr, matrix, *, outs, transpose, shape):
-    return raw_event_csrmm_taichi(val_dot, col_indices, row_ptr, matrix, shape=shape, transpose=transpose)
+    return normal_csrmm(val_dot, col_indices, row_ptr, matrix, shape=shape, transpose=transpose)
 
 
 def _event_csr_matmat_jvp_matrix(mat_dot, values, col_indices, row_ptr, matrix, *, outs, transpose, shape):
-    return raw_event_csrmm_taichi(values, col_indices, row_ptr, mat_dot, shape=shape, transpose=transpose)
+    return normal_csrmm(values, col_indices, row_ptr, mat_dot, shape=shape, transpose=transpose)
 
 
 def _event_csr_matmat_transpose(
