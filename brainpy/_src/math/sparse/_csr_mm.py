@@ -30,7 +30,7 @@ __all__ = [
 
 
 def csrmm(
-        data: Union[jnp.ndarray, Array],
+        data: Union[float, jnp.ndarray, Array],
         indices: Union[jnp.ndarray, Array],
         indptr: Union[jnp.ndarray, Array],
         matrix: Union[jnp.ndarray, Array],
@@ -72,6 +72,8 @@ def raw_csrmm_taichi(
     indptr = as_jax(indptr)
     matrix = as_jax(matrix)
 
+    data = jnp.atleast_1d(data)
+
     if matrix.dtype == jnp.bool_:
         matrix = as_jax(matrix, dtype=data.dtype)
 
@@ -80,7 +82,11 @@ def raw_csrmm_taichi(
                         f'But we got {data.dtype} != {matrix.dtype}.')
     assert data.ndim == indices.ndim == indptr.ndim == 1
     assert matrix.ndim == 2
-    assert data.shape == indices.shape or data.shape[0] == 1
+    data = jnp.atleast_1d(data)
+    if np.ndim(data) == 1:
+        if data.shape[0] not in [1, indices.shape[0]]:
+            raise ValueError('The size of data should be 1 or be consistent with indices.'
+                            f'But we got {data.shape} != {indices.shape}, {data.shape} != 1.')
     assert indptr.shape[0] == shape[0] + 1
     if not jnp.issubdtype(indices.dtype, jnp.integer):
         raise ValueError('indices should be a 1D vector with integer type.')
@@ -256,12 +262,20 @@ def _csr_matmat_transpose(
         raise ValueError("Cannot transpose with respect to sparse indices.")
     if ad.is_undefined_primal(matrix):
         ct_matrix = raw_csrmm_taichi(data, indices, indptr, ct[0], shape=shape, transpose=not transpose)[0]
-        return data, indices, indptr, ct_matrix
+        return data, indices, indptr, (ad.Zero(matrix) if type(ct[0]) is ad.Zero else ct_matrix)
 
     else:
-        matrix = jnp.asarray(matrix)
-        row, col = csr_to_coo(indices, indptr)
-        return (ct[0][row] * matrix[col]).sum(1), indices, indptr, matrix
+        if type(ct[0]) is ad.Zero:
+            ct_data = ad.Zero(data)
+        else:
+            if data.aval.shape[0] == 1: # scalar
+                ct_data = raw_csrmm_taichi(jnp.ones(1), indices, indptr, matrix, shape=shape, transpose=transpose)[0]
+                ct_data = jnp.sum(ct[0] * ct_data)
+            else: # heter
+                matrix = jnp.asarray(matrix)
+                row, col = csr_to_coo(indices, indptr)
+                ct_data = (ct[0][row] * matrix[col]).sum(1)
+        return ct_data, indices, indptr, matrix
 
 
 def _define_op(cpu_kernel, gpu_kernel):
