@@ -54,7 +54,8 @@ class Test_csrmm(parameterized.TestCase):
                                        shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]))
 
         r1 = (dense.T @ matrix) if transpose else (dense @ matrix)
-        r2 = bm.event.csrmm(homo_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+        r2 = bm.event.csrmm(homo_data, indices, indptr, matrix,
+                            shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
         c = bm.allclose(r1, r2, equal_nan=True)
         if not c:
             print(r1 - r2)
@@ -106,7 +107,6 @@ class Test_csrmm(parameterized.TestCase):
 
         bm.clear_buffer_memory()
 
-
     @parameterized.product(
         transpose=[True, False],
         shape=[(50, 50, 50), (100, 50, 100), (10, 1000, 10), (2, 2000, 2)],
@@ -137,10 +137,11 @@ class Test_csrmm(parameterized.TestCase):
         dense_f1 = jax.grad(lambda a: (((dense.T * a) @ matrix).sum()
                                        if transpose else
                                        ((dense * a) @ matrix).sum()),
-                                       argnums=0)
+                            argnums=0)
         r1 = dense_f1(homo_data)
         r2 = jax.grad(sum_op(bm.event.csrmm))(
-            homo_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+            homo_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
+            transpose=transpose)
 
         self.assertTrue(bm.allclose(r1, r2))
 
@@ -148,10 +149,11 @@ class Test_csrmm(parameterized.TestCase):
         dense_f2 = jax.grad(lambda m: (((dense.T * homo_data) @ m).sum()
                                        if transpose else
                                        ((dense * homo_data) @ m).sum()),
-                                       argnums=0)
+                            argnums=0)
         r3 = dense_f2(matrix.astype(float))
         r4 = jax.grad(sum_op(bm.event.csrmm), argnums=3)(
-            homo_data, indices, indptr, matrix.astype(float), shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+            homo_data, indices, indptr, matrix.astype(float),
+            shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
 
         self.assertTrue(bm.allclose(r3, r4))
 
@@ -179,7 +181,7 @@ class Test_csrmm(parameterized.TestCase):
         heter_data = bm.as_jax(rng.random(indices.shape))
 
         r1 = bm.sparse.csrmm(heter_data, indices, indptr, matrix,
-                            shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+                             shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
         r2 = bm.event.csrmm(heter_data, indices, indptr, matrix,
                             shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
 
@@ -254,16 +256,20 @@ class Test_csrmm(parameterized.TestCase):
 
         # grad data
         r1 = jax.grad(sum_op(bm.sparse.csrmm))(
-            heter_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+            heter_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
+            transpose=transpose)
         r2 = jax.grad(sum_op(bm.event.csrmm))(
-            heter_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+            heter_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
+            transpose=transpose)
         self.assertTrue(bm.allclose(r1, r2))
 
         # grad events matrix
         r3 = jax.grad(sum_op(bm.sparse.csrmm), argnums=3)(
-            heter_data, indices, indptr, matrix.astype(float), shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+            heter_data, indices, indptr, matrix.astype(float),
+            shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
         r4 = jax.grad(sum_op(bm.event.csrmm), argnums=3)(
-            heter_data, indices, indptr, matrix.astype(float), shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+            heter_data, indices, indptr, matrix.astype(float),
+            shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
 
         self.assertTrue(bm.allclose(r3, r4))
 
