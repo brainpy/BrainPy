@@ -205,6 +205,23 @@ def asfarray(a, dtype=np.float_):
     dtype = np.float_
   return asarray(a, dtype=dtype)
 
+def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
+  del assume_unique
+  ar1_flat = ravel(ar1)
+  ar2_flat = ravel(ar2)
+  # Note: an algorithm based on searchsorted has better scaling, but in practice
+  # is very slow on accelerators because it relies on lax control flow. If XLA
+  # ever supports binary search natively, we should switch to this:
+  #   ar2_flat = jnp.sort(ar2_flat)
+  #   ind = jnp.searchsorted(ar2_flat, ar1_flat)
+  #   if invert:
+  #     return ar1_flat != ar2_flat[ind]
+  #   else:
+  #     return ar1_flat == ar2_flat[ind]
+  if invert:
+    return asarray((ar1_flat[:, None] != ar2_flat[None, :]).all(-1))
+  else:
+    return asarray((ar1_flat[:, None] == ar2_flat[None, :]).any(-1))
 
 # Others
 # ------
@@ -237,7 +254,6 @@ histogram2d = _compatible_with_brainpy_array(jnp.histogram2d)
 histogram_bin_edges = _compatible_with_brainpy_array(jnp.histogram_bin_edges)
 histogramdd = _compatible_with_brainpy_array(jnp.histogramdd)
 i0 = _compatible_with_brainpy_array(jnp.i0)
-in1d = _compatible_with_brainpy_array(jnp.in1d)
 indices = _compatible_with_brainpy_array(jnp.indices)
 insert = _compatible_with_brainpy_array(jnp.insert)
 intersect1d = _compatible_with_brainpy_array(jnp.intersect1d)
