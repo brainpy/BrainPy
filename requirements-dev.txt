@@ -1,7 +1,7 @@
 numpy
 numba
 brainpylib
-jax < 0.4.24
+jax < 0.4.25
 jaxlib < 0.4.24
 matplotlib
 msgpack
