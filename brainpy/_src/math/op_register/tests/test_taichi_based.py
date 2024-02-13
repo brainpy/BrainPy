@@ -30,8 +30,19 @@ def event_ell_cpu(indices: ti.types.ndarray(ndim=2),
       for j in range(num_cols):
         update_output(out, indices[i, j], weight_val)
 
+@ti.kernel
+def event_ell_gpu(indices: ti.types.ndarray(ndim=2),
+                  vector: ti.types.ndarray(ndim=1),
+                  weight: ti.types.ndarray(ndim=1),
+                  out: ti.types.ndarray(ndim=1)):
+  weight_val = get_weight(weight)
+  num_rows, num_cols = indices.shape
+  for i in range(num_rows):
+    if vector[i]:
+      for j in range(num_cols):
+        update_output(out, indices[i, j], weight_val)
 
-prim = bm.XLACustomOp(cpu_kernel=event_ell_cpu)
+prim = bm.XLACustomOp(cpu_kernel=event_ell_cpu, gpu_kernel=event_ell_gpu)
 
 
 def test_taichi_op_register():
@@ -47,4 +58,4 @@ def test_taichi_op_register():
   print(out)
   bm.clear_buffer_memory()
 
-# test_taichi_op_register()
+test_taichi_op_register()

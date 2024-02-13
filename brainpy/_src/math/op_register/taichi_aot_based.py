@@ -446,12 +446,18 @@ def _taichi_mlir_cpu_translation_rule(kernel, c, *ins, **kwargs):
   in_out_info = _compile_kernel(c.avals_in, kernel, 'cpu', **kwargs)
   ins = [mlir.ir_constant(v) for v in in_out_info] + list(ins)
   input_layouts = [_shape_to_layout(arr.shape) for arr in in_out_info] + [_shape_to_layout(a.shape) for a in c.avals_in]
-  if is_metal_device:
-    fn = 'taichi_kernel_aot_call_cpu_arm64'
-  else:
-    fn = 'taichi_kernel_aot_call_cpu'
   output_layouts = tuple([_shape_to_layout(out.shape) for out in c.avals_out])
   result_types = [mlir.aval_to_ir_type(out) for out in c.avals_out]
+  if is_metal_device:
+    if len(output_layouts) == 1:
+      fn = 'taichi_kernel_aot_call_cpu_arm64_single_result'
+    else:
+      fn = 'taichi_kernel_aot_call_cpu_arm64'
+  else:
+    if len(output_layouts) == 1:
+      fn = 'taichi_kernel_aot_call_cpu_single_result'
+    else:
+      fn = 'taichi_kernel_aot_call_cpu'
   return custom_call(
     call_target_name=fn,
     operands=ins,
