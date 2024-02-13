@@ -16,6 +16,10 @@ __all__ = [
   'register_numba_mlir_cpu_translation_rule',
 ]
 
+
+#                                         [void* pointer,
+#                                          const char *name,
+#                                          PyCapsule_Destructor destructor]
 ctypes.pythonapi.PyCapsule_New.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p]
 ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
 
@@ -100,6 +104,7 @@ def _numba_xla_cpu_translation_rule(kernel, debug: bool, c, *ins, **kwargs):
 
 
 def register_numba_xla_cpu_translation_rule(primitive, cpu_kernel, debug=False):
+  # do not support after jax >= 0.4.24
   xla.backend_specific_translations['cpu'][primitive] = partial(_numba_xla_cpu_translation_rule,
                                                                 cpu_kernel,
                                                                 debug)
@@ -124,38 +129,44 @@ def _numba_mlir_cpu_translation_rule(kernel, debug: bool, ctx, *ins, **kwargs):
                     output_shapes=output_shapes, output_dtypes=output_dtypes, carray=carray)
   args_in = [f'in{i} = carray(input_ptrs[{i}], input_shapes[{i}], dtype=input_dtypes[{i}])'
              for i in range(len(input_shapes))]
-  args_out = [f'out{i} = carray(output_ptrs[{i}], output_shapes[{i}], dtype=output_dtypes[{i}])'
-              for i in range(len(output_shapes))]
+  if len(output_shapes) > 1:
+    args_out = [f'out{i} = carray(output_ptrs[{i}], output_shapes[{i}], dtype=output_dtypes[{i}])'
+                for i in range(len(output_shapes))]
+    sig = types.void(types.CPointer(types.voidptr), types.CPointer(types.voidptr))
+  else:
+    args_out = [f'out0 = carray(output_ptrs, output_shapes[0], dtype=output_dtypes[0])']
+    sig = types.void(types.voidptr, types.CPointer(types.voidptr))
   args_call = [f'in{i}' for i in range(len(input_shapes))] + [f'out{i}' for i in range(len(output_shapes))]
   code_string = '''
-  def numba_cpu_custom_call_target(output_ptrs, input_ptrs):
+def numba_cpu_custom_call_target(output_ptrs, input_ptrs):
     {args_in}
     {args_out}
     func_to_call({args_call})
       '''.format(args_in="\n    ".join(args_in),
                  args_out="\n    ".join(args_out),
                  args_call=", ".join(args_call))
-  if debug: print(code_string)
+  if debug:
+    print(code_string)
   exec(compile(code_string.strip(), '', 'exec'), code_scope)
   new_f = code_scope['numba_cpu_custom_call_target']
 
   # register
-  xla_c_rule = cfunc(types.void(types.CPointer(types.voidptr), types.CPointer(types.voidptr)))(new_f)
+  xla_c_rule = cfunc(sig)(new_f)
   target_name = f'numba_custom_call_{str(xla_c_rule.address)}'
   capsule = ctypes.pythonapi.PyCapsule_New(xla_c_rule.address, b"xla._CUSTOM_CALL_TARGET", None)
   xla_client.register_custom_call_target(target_name, capsule, "cpu")
 
   # call
-  call = custom_call(call_target_name=target_name,
-                     operands=list(ins),
-                     operand_layouts=list(input_layouts),
-                     result_layouts=list(output_layouts),
-                     result_types=list(result_types)).results
-  return call
+  return custom_call(
+    call_target_name=target_name,
+    operands=ins,
+    operand_layouts=list(input_layouts),
+    result_layouts=list(output_layouts),
+    result_types=list(result_types),
+    has_side_effect=False,
+  ).results
 
 
 def register_numba_mlir_cpu_translation_rule(primitive, cpu_kernel, debug=False):
   rule = partial(_numba_mlir_cpu_translation_rule, cpu_kernel, debug)
   mlir.register_lowering(primitive, rule, platform='cpu')
-
-
