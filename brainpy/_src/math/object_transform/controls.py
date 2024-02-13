@@ -732,6 +732,7 @@ def _get_for_loop_transform(
     unroll: int,
     unroll_kwargs: tools.DotDict
 ):
+  @functools.wraps(body_fun)
   def fun2scan(carry, x):
     for k in dyn_vars.keys():
       dyn_vars[k]._value = carry[k]
@@ -912,6 +913,7 @@ def for_loop(
     dyn_vars[key]._value = dyn_vals[key]
   if progress_bar:
     bar.close()
+  del dyn_vals, dyn_vars
   return out_vals
 
 
