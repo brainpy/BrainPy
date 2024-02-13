@@ -58,4 +58,4 @@ def test_taichi_op_register():
   print(out)
   bm.clear_buffer_memory()
 
-test_taichi_op_register()
+# test_taichi_op_register()
