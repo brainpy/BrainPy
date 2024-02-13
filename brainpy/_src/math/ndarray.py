@@ -9,8 +9,10 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
-import brainpy.math
 from brainpy.errors import MathError
+
+bm = None
+
 
 __all__ = [
   'Array', 'ndarray', 'JaxArray',  # alias of Array
@@ -1039,7 +1041,9 @@ class Array(object):
 
   def as_variable(self):
     """As an instance of Variable."""
-    return brainpy.math.Variable(self)
+    global bm
+    if bm is None: from brainpy import math as bm
+    return bm.Variable(self)
 
   def __format__(self, specification):
     return self.value.__format__(specification)
@@ -1473,7 +1477,9 @@ class Array(object):
     return self
 
   def uniform_(self, low=0., high=1.):
-    self.value = brainpy.math.random.uniform(low, high, self.shape)
+    global bm
+    if bm is None: from brainpy import math as bm
+    self.value = bm.random.uniform(low, high, self.shape)
     return self
 
   def log_normal_(self, mean=1, std=2):
@@ -1489,14 +1495,18 @@ class Array(object):
       mean: the mean value.
       std: the standard deviation.
     """
-    self.value = brainpy.math.random.lognormal(mean, std, self.shape)
+    global bm
+    if bm is None: from brainpy import math as bm
+    self.value = bm.random.lognormal(mean, std, self.shape)
     return self
 
   def normal_(self, ):
     """
     Fills self tensor with elements samples from the normal distribution parameterized by mean and std.
     """
-    self.value = brainpy.math.random.randn(*self.shape)
+    global bm
+    if bm is None: from brainpy import math as bm
+    self.value = bm.random.randn(*self.shape)
     return self
 
   def cuda(self):
