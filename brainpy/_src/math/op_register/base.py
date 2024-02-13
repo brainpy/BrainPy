@@ -8,14 +8,12 @@ from numba.core.dispatcher import Dispatcher
 
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
-# if jax.__version__ >= '0.4.16':
-#   from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
-# else:
-#   from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
-from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
+if jax.__version__ >= '0.4.16':
+  from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
+else:
+  from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
 from .taichi_aot_based import (register_taichi_cpu_translation_rule,
-                               register_taichi_gpu_translation_rule,
-                               clean_caches)
+                               register_taichi_gpu_translation_rule)
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
 
@@ -138,7 +136,6 @@ class XLACustomOp(BrainPyObject):
     # transpose rule
     if transpose_translation is not None:
       ad.primitive_transposes[self.primitive] = transpose_translation
-
 
   def __call__(self, *ins, outs: Optional[Sequence[ShapeDtype]] = None, **kwargs):
     if outs is None:
