@@ -6,15 +6,13 @@ import jax
 import numba
 from jax import dtypes, numpy as jnp
 from jax.core import ShapedArray
-from jax.interpreters import batching
 from jax.lib import xla_client
 
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.op_register import register_op_with_numba
-from brainpy._src.math.ndarray import Array
 from brainpy._src.dependency_check import import_brainpylib_gpu_ops
+from brainpy._src.math.interoperability import as_jax
+from brainpy._src.math.ndarray import Array
+from brainpy._src.math.op_register.base import XLACustomOp
 from brainpy.errors import GPUOperatorNotFound
-
 
 __all__ = [
   'info'
@@ -121,17 +119,15 @@ def _event_info_gpu_translation(c, events):
   )
 
 
-# batch_event_info_p = register_op_with_numba(
-#   op_name='event_info',
-#   cpu_func=_batch_event_info,
-#   out_shapes=_batch_event_info_abstract,
-#   gpu_func_translation=_event_info_gpu_translation,
-#   multiple_results=True
-# )
-# batching.primitive_batchers[batch_event_info_p] = _batch_event_info_batching_rule
+batch_event_info_p = XLACustomOp(
+  name='batched_event_info',
+  cpu_kernel=_batch_event_info,
+  outs=_batch_event_info_abstract,
+)
+batch_event_info_p.def_batching_rule(_batch_event_info_batching_rule)
 
 
-def _event_info_abstract(events):
+def _event_info_abstract(events, **kwargs):
   assert events.ndim == 1
   # assert events.dtype == jnp.bool_
   event_ids = ShapedArray(dtype=dtypes.canonicalize_dtype(int), shape=events.shape)
@@ -156,14 +152,13 @@ def _event_info(outs, ins):
 
 def _event_info_batching_rule(args, axes):
   arg = jnp.moveaxis(args[0], axes[0], 0)
-  return (batch_event_info_p.bind(arg), (0, 0))
+  return (batch_event_info_p(arg), (0, 0))
 
 
-# event_info_p = register_op_with_numba(
-#   op_name='event_info',
-#   cpu_func=_event_info,
-#   out_shapes=_event_info_abstract,
-#   gpu_func_translation=_event_info_gpu_translation,
-#   multiple_results=True
-# )
-# batching.primitive_batchers[event_info_p] = _event_info_batching_rule
+event_info_p = XLACustomOp(
+  name='event_info',
+  cpu_kernel=_event_info,
+  outs=_event_info_abstract,
+  # gpu_func_translation=_event_info_gpu_translation,
+)
+event_info_p.def_batching_rule(_event_info_batching_rule)
