@@ -121,14 +121,14 @@ def _event_info_gpu_translation(c, events):
   )
 
 
-batch_event_info_p = register_op_with_numba(
-  op_name='event_info',
-  cpu_func=_batch_event_info,
-  out_shapes=_batch_event_info_abstract,
-  gpu_func_translation=_event_info_gpu_translation,
-  multiple_results=True
-)
-batching.primitive_batchers[batch_event_info_p] = _batch_event_info_batching_rule
+# batch_event_info_p = register_op_with_numba(
+#   op_name='event_info',
+#   cpu_func=_batch_event_info,
+#   out_shapes=_batch_event_info_abstract,
+#   gpu_func_translation=_event_info_gpu_translation,
+#   multiple_results=True
+# )
+# batching.primitive_batchers[batch_event_info_p] = _batch_event_info_batching_rule
 
 
 def _event_info_abstract(events):
@@ -159,11 +159,11 @@ def _event_info_batching_rule(args, axes):
   return (batch_event_info_p.bind(arg), (0, 0))
 
 
-event_info_p = register_op_with_numba(
-  op_name='event_info',
-  cpu_func=_event_info,
-  out_shapes=_event_info_abstract,
-  gpu_func_translation=_event_info_gpu_translation,
-  multiple_results=True
-)
-batching.primitive_batchers[event_info_p] = _event_info_batching_rule
+# event_info_p = register_op_with_numba(
+#   op_name='event_info',
+#   cpu_func=_event_info,
+#   out_shapes=_event_info_abstract,
+#   gpu_func_translation=_event_info_gpu_translation,
+#   multiple_results=True
+# )
+# batching.primitive_batchers[event_info_p] = _event_info_batching_rule
