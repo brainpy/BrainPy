@@ -69,7 +69,7 @@ setup(
   ],
   extras_require={
     'cpu': ['jaxlib>=0.4.13', 'brainpylib'],
-    'cuda': ['jax[cuda]', 'brainpylib-cu11x'],
+    'cuda': ['jax[cuda]', 'brainpylib-cu12x'],
     'cuda11': ['jax[cuda11_local]', 'brainpylib-cu11x'],
     'cuda12': ['jax[cuda12_local]', 'brainpylib-cu12x'],
     'tpu': ['jax[tpu]'],
