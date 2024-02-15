@@ -640,8 +640,8 @@ mv_prob_homo_p = Primitive('matvec_prob_homo')
 mv_prob_homo_p.multiple_results = True
 mv_prob_homo_p.def_abstract_eval(_matvec_prob_homo_abstract)
 mv_prob_homo_p.def_impl(partial(xla.apply_primitive, mv_prob_homo_p))
-xla.backend_specific_translations['cpu'][mv_prob_homo_p] = _matvec_prob_homo_cpu_translation
-xla.backend_specific_translations['gpu'][mv_prob_homo_p] = _matvec_prob_homo_gpu_translation
+# xla.backend_specific_translations['cpu'][mv_prob_homo_p] = _matvec_prob_homo_cpu_translation
+# xla.backend_specific_translations['gpu'][mv_prob_homo_p] = _matvec_prob_homo_gpu_translation
 register_general_batching(mv_prob_homo_p)
 ad.primitive_jvps[mv_prob_homo_p] = _matvec_prob_homo_jvp
 ad.primitive_transposes[mv_prob_homo_p] = _matvec_prob_homo_transpose
@@ -823,8 +823,8 @@ mv_prob_uniform_p = Primitive('matvec_prob_uniform')
 mv_prob_uniform_p.multiple_results = True
 mv_prob_uniform_p.def_abstract_eval(_matvec_prob_uniform_abstract)
 mv_prob_uniform_p.def_impl(partial(xla.apply_primitive, mv_prob_uniform_p))
-xla.backend_specific_translations['cpu'][mv_prob_uniform_p] = _matvec_prob_uniform_cpu_translation
-xla.backend_specific_translations['gpu'][mv_prob_uniform_p] = _matvec_prob_uniform_gpu_translation
+# xla.backend_specific_translations['cpu'][mv_prob_uniform_p] = _matvec_prob_uniform_cpu_translation
+# xla.backend_specific_translations['gpu'][mv_prob_uniform_p] = _matvec_prob_uniform_gpu_translation
 register_general_batching(mv_prob_uniform_p)
 ad.primitive_jvps[mv_prob_uniform_p] = _matvec_prob_uniform_jvp
 ad.primitive_transposes[mv_prob_uniform_p] = _matvec_prob_uniform_transpose
@@ -1009,8 +1009,8 @@ mv_prob_normal_p = Primitive('matvec_prob_normal')
 mv_prob_normal_p.multiple_results = True
 mv_prob_normal_p.def_abstract_eval(_matvec_prob_normal_abstract)
 mv_prob_normal_p.def_impl(partial(xla.apply_primitive, mv_prob_normal_p))
-xla.backend_specific_translations['cpu'][mv_prob_normal_p] = _matvec_prob_normal_cpu_translation
-xla.backend_specific_translations['gpu'][mv_prob_normal_p] = _matvec_prob_normal_gpu_translation
+# xla.backend_specific_translations['cpu'][mv_prob_normal_p] = _matvec_prob_normal_cpu_translation
+# xla.backend_specific_translations['gpu'][mv_prob_normal_p] = _matvec_prob_normal_gpu_translation
 register_general_batching(mv_prob_normal_p)
 ad.primitive_jvps[mv_prob_normal_p] = _matvec_prob_normal_jvp
 ad.primitive_transposes[mv_prob_normal_p] = _matvec_prob_normal_transpose

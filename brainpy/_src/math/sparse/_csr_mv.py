@@ -301,7 +301,7 @@ def _csrmv_cusparse_transpose(ct, data, indices, indptr, vector, *, shape, trans
 _csrmv_cusparse_p = core.Primitive('cusparse_csr_matvec')
 _csrmv_cusparse_p.def_abstract_eval(_csrmv_abstract)
 _csrmv_cusparse_p.def_impl(partial(xla.apply_primitive, _csrmv_cusparse_p))
-xla.backend_specific_translations['cpu'][_csrmv_cusparse_p] = _csrmv_cpu_translation
+# xla.backend_specific_translations['cpu'][_csrmv_cusparse_p] = _csrmv_cpu_translation
 ad.defjvp(_csrmv_cusparse_p,
           partial(_csrmv_jvp_mat, _csrmv_cusparse_p),
           None,
@@ -372,8 +372,8 @@ def _csrmv_scalar_transpose(ct, data, indices, indptr, vector, *, shape, transpo
 _csrmv_scalar_p = core.Primitive('csr_matvec_scalar')
 _csrmv_scalar_p.def_abstract_eval(_csrmv_abstract)
 _csrmv_scalar_p.def_impl(partial(xla.apply_primitive, _csrmv_scalar_p))
-xla.backend_specific_translations['cpu'][_csrmv_scalar_p] = _csrmv_cpu_translation
-xla.backend_specific_translations['gpu'][_csrmv_scalar_p] = _csr_matvec_scalar_gpu_translation
+# xla.backend_specific_translations['cpu'][_csrmv_scalar_p] = _csrmv_cpu_translation
+# xla.backend_specific_translations['gpu'][_csrmv_scalar_p] = _csr_matvec_scalar_gpu_translation
 ad.defjvp(_csrmv_scalar_p,
           partial(_csrmv_jvp_mat, _csrmv_scalar_p),
           None,
@@ -443,8 +443,8 @@ def _csrmv_vector_transpose(ct, data, indices, indptr, vector, *, shape, transpo
 _csrmv_vector_p = core.Primitive('csr_matvec_vector')
 _csrmv_vector_p.def_abstract_eval(_csrmv_abstract)
 _csrmv_vector_p.def_impl(partial(xla.apply_primitive, _csrmv_vector_p))
-xla.backend_specific_translations['cpu'][_csrmv_vector_p] = _csrmv_cpu_translation
-xla.backend_specific_translations['gpu'][_csrmv_vector_p] = _csr_matvec_vector_gpu_translation
+# xla.backend_specific_translations['cpu'][_csrmv_vector_p] = _csrmv_cpu_translation
+# xla.backend_specific_translations['gpu'][_csrmv_vector_p] = _csr_matvec_vector_gpu_translation
 ad.defjvp(_csrmv_vector_p,
           partial(_csrmv_jvp_mat, _csrmv_vector_p),
           None,
@@ -515,8 +515,8 @@ def _csrmv_adaptive_transpose(ct, data, indices, indptr, vector, *, shape, trans
 _csrmv_adaptive_p = core.Primitive('csr_matvec_adaptive')
 _csrmv_adaptive_p.def_abstract_eval(_csrmv_abstract)
 _csrmv_adaptive_p.def_impl(partial(xla.apply_primitive, _csrmv_adaptive_p))
-xla.backend_specific_translations['cpu'][_csrmv_adaptive_p] = _csrmv_cpu_translation
-xla.backend_specific_translations['gpu'][_csrmv_adaptive_p] = _csr_matvec_adaptive_gpu_translation
+# xla.backend_specific_translations['cpu'][_csrmv_adaptive_p] = _csrmv_cpu_translation
+# xla.backend_specific_translations['gpu'][_csrmv_adaptive_p] = _csr_matvec_adaptive_gpu_translation
 ad.defjvp(_csrmv_adaptive_p,
           partial(_csrmv_jvp_mat, _csrmv_adaptive_p),
           None,
