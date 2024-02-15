@@ -140,6 +140,7 @@ def _event_info_gpu_translation(c, events):
 batch_event_info_p = XLACustomOp(
   name='batched_event_info',
   cpu_kernel=_batch_event_info_taichi,
+  gpu_kernel=_batch_event_info_taichi,
   outs=_batch_event_info_abstract,
 )
 batch_event_info_p.def_batching_rule(_batch_event_info_batching_rule)
@@ -190,6 +191,7 @@ def _event_info_batching_rule(args, axes):
 event_info_p = XLACustomOp(
   name='event_info',
   cpu_kernel=_event_info_taichi,
+  gpu_kernel=_event_info_taichi,
   outs=_event_info_abstract,
   # gpu_func_translation=_event_info_gpu_translation,
 )

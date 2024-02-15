@@ -2,6 +2,7 @@ import jax.core
 import brainpy.math as bm
 import numba
 
+bm.set_platform('cpu')
 
 @numba.njit(fastmath=True)
 def numba_event_csrmv(weight, indices, vector, outs):
