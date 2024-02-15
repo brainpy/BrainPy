@@ -4,7 +4,6 @@ from typing import Tuple, Union
 
 import jax
 import numba
-import taichi
 from jax import dtypes, numpy as jnp
 from jax.core import ShapedArray
 from jax.lib import xla_client
@@ -67,19 +66,21 @@ def _batch_event_info(outs, ins):
         num += 1
     event_num[batch_idx] = num
 
+
 @ti.kernel
 def _batch_event_info_taichi(events: ti.types.ndarray(ndim=2),
                              event_ids: ti.types.ndarray(ndim=2),
                              event_num: ti.types.ndarray(ndim=1)):
-    for i, j in ti.grouped(ti.ndrange(event_ids.shape)):
-        event_ids[i, j] = -1
-    for batch_idx in range(event_ids.shape[0]):
-        num = 0
-        for i in range(event_ids.shape[1]):
-            if events[batch_idx, i]:
-                event_ids[batch_idx, num] = i
-                num += 1
-        event_num[batch_idx] = num
+  for i, j in ti.grouped(ti.ndrange(event_ids.shape)):
+    event_ids[i, j] = -1
+  for batch_idx in range(event_ids.shape[0]):
+    num = 0
+    for i in range(event_ids.shape[1]):
+      if events[batch_idx, i]:
+        event_ids[batch_idx, num] = i
+        num += 1
+    event_num[batch_idx] = num
+
 
 def _batch_event_info_batching_rule(args, axes):
   arg = jnp.moveaxis(args[0], axes[0], 0)
@@ -166,10 +167,11 @@ def _event_info(outs, ins):
       num += 1
   event_num[0] = num
 
+
 @ti.kernel
 def _event_info_taichi(events: ti.types.ndarray(ndim=1),
-                           event_ids: ti.types.ndarray(ndim=1),
-                           event_num: ti.types.ndarray(ndim=1)):
+                       event_ids: ti.types.ndarray(ndim=1),
+                       event_num: ti.types.ndarray(ndim=1)):
   for i in range(event_ids.shape[0]):
     event_ids[i] = -1
   num = 0
@@ -178,6 +180,7 @@ def _event_info_taichi(events: ti.types.ndarray(ndim=1),
       event_ids[num] = i
       num += 1
   event_num[0] = num
+
 
 def _event_info_batching_rule(args, axes):
   arg = jnp.moveaxis(args[0], axes[0], 0)
