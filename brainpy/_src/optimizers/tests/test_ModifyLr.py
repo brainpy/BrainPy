@@ -57,7 +57,7 @@ class test_ModifyLr(parameterized.TestCase):
     opt = bp.optim.Adam(lr=LearningRate, eps=1e-1)
     trainer = bp.BPTT(model, loss_fun=loss, optimizer=opt)
 
-    bm.clear_buffer_memory()
+    # bm.clear_buffer_memory()
 
   def test_modifylr(self):
     Scheduler_lr = bp.optim.ExponentialDecayLR(lr=0.025, decay_steps=1, decay_rate=0.99975)
@@ -65,12 +65,12 @@ class test_ModifyLr(parameterized.TestCase):
     opt1 = bp.optim.Adam(lr=Scheduler_lr, eps=1e-1)
     opt1.lr.lr = 0.01
     trainer1 = bp.BPTT(model, loss_fun=loss, optimizer=opt1)
-    bm.clear_buffer_memory()
+    # bm.clear_buffer_memory()
 
     opt2 = bp.optim.SGD(lr=Scheduler_lr)
     opt2.lr.set_value(0.01)
     trainer2 = bp.BPTT(model, loss_fun=loss, optimizer=opt2)
-    bm.clear_buffer_memory()
+    # bm.clear_buffer_memory()
 
 
 if __name__ == '__main__':
