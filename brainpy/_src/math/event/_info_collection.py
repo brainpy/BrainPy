@@ -140,6 +140,7 @@ def _event_info_gpu_translation(c, events):
 batch_event_info_p = XLACustomOp(
   name='batched_event_info',
   cpu_kernel=_batch_event_info_taichi,
+  gpu_kernel=_batch_event_info_taichi,
   outs=_batch_event_info_abstract,
 )
 batch_event_info_p.def_batching_rule(_batch_event_info_batching_rule)
@@ -154,7 +155,7 @@ def _event_info_abstract(events, **kwargs):
 
 
 # TODO: first parallel evaluate the sub-sections, then serially event the sub-results.
-@numba.jit(fastmath=True)
+@numba.njit(fastmath=True)
 def _event_info(outs, ins):
   event_ids, event_num = outs
   event_num.fill(0)
@@ -190,6 +191,7 @@ def _event_info_batching_rule(args, axes):
 event_info_p = XLACustomOp(
   name='event_info',
   cpu_kernel=_event_info_taichi,
+  gpu_kernel=_event_info_taichi,
   outs=_event_info_abstract,
   # gpu_func_translation=_event_info_gpu_translation,
 )

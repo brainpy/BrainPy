@@ -57,7 +57,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.8',
-  install_requires=['numpy>=1.15', 'jax>=0.4.13', 'tqdm', 'numba'],
+  install_requires=['numpy>=1.15', 'jax>=0.4.13', 'tqdm', 'numba', 'taichi==1.7.0'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
@@ -69,7 +69,7 @@ setup(
   ],
   extras_require={
     'cpu': ['jaxlib>=0.4.13', 'brainpylib'],
-    'cuda': ['jax[cuda]', 'brainpylib-cu11x'],
+    'cuda': ['jax[cuda]', 'brainpylib-cu12x'],
     'cuda11': ['jax[cuda11_local]', 'brainpylib-cu11x'],
     'cuda12': ['jax[cuda12_local]', 'brainpylib-cu12x'],
     'tpu': ['jax[tpu]'],

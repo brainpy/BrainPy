@@ -9,6 +9,8 @@ from jax.interpreters import ad
 import brainpy as bp
 import brainpy.math as bm
 
+bm.set_platform('cpu')
+
 
 def csrmv(data, indices, indptr, vector, *, shape: Tuple[int, int], transpose: bool = False, ):
   data = jnp.atleast_1d(bm.as_jax(data))

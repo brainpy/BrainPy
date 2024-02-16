@@ -1,7 +1,8 @@
+from absl.testing import absltest
+from absl.testing import parameterized
+
 import brainpy as bp
 import brainpy.math as bm
-from absl.testing import parameterized
-from absl.testing import absltest
 
 dt = 0.04
 num_step = int(1.0 / dt)
@@ -33,15 +34,10 @@ class RNN(bp.DynamicalSystem):
   def update(self, x):
     return self.out(self.rnn(x))
 
-
-with bm.training_environment():
-  model = RNN(1, 100)
-
-
-def loss(predictions, targets, l2_reg=2e-4):
-  mse = bp.losses.mean_squared_error(predictions, targets)
-  l2 = l2_reg * bp.losses.l2_norm(model.train_vars().unique().dict()) ** 2
-  return mse + l2
+  def loss(self, predictions, targets, l2_reg=2e-4):
+    mse = bp.losses.mean_squared_error(predictions, targets)
+    l2 = l2_reg * bp.losses.l2_norm(self.train_vars().unique().dict()) ** 2
+    return mse + l2
 
 
 class test_ModifyLr(parameterized.TestCase):
@@ -54,22 +50,28 @@ class test_ModifyLr(parameterized.TestCase):
     ]
   )
   def test_NewScheduler(self, LearningRate):
+    with bm.training_environment():
+      model = RNN(1, 100)
+
     opt = bp.optim.Adam(lr=LearningRate, eps=1e-1)
-    trainer = bp.BPTT(model, loss_fun=loss, optimizer=opt)
+    trainer = bp.BPTT(model, loss_fun=model.loss, optimizer=opt)
 
     bm.clear_buffer_memory()
 
   def test_modifylr(self):
+    with bm.training_environment():
+      model = RNN(1, 100)
+
     Scheduler_lr = bp.optim.ExponentialDecayLR(lr=0.025, decay_steps=1, decay_rate=0.99975)
 
     opt1 = bp.optim.Adam(lr=Scheduler_lr, eps=1e-1)
     opt1.lr.lr = 0.01
-    trainer1 = bp.BPTT(model, loss_fun=loss, optimizer=opt1)
+    trainer1 = bp.BPTT(model, loss_fun=model.loss, optimizer=opt1)
     bm.clear_buffer_memory()
 
     opt2 = bp.optim.SGD(lr=Scheduler_lr)
     opt2.lr.set_value(0.01)
-    trainer2 = bp.BPTT(model, loss_fun=loss, optimizer=opt2)
+    trainer2 = bp.BPTT(model, loss_fun=model.loss, optimizer=opt2)
     bm.clear_buffer_memory()
 
 
