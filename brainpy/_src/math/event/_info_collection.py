@@ -155,7 +155,7 @@ def _event_info_abstract(events, **kwargs):
 
 
 # TODO: first parallel evaluate the sub-sections, then serially event the sub-results.
-@numba.jit(fastmath=True)
+@numba.njit(fastmath=True)
 def _event_info(outs, ins):
   event_ids, event_num = outs
   event_num.fill(0)
