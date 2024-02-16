@@ -1234,7 +1234,7 @@ class RandomState(Variable):
       size = jnp.shape(a)
     r = call(lambda x: np.random.zipf(x, size),
              a,
-             result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+             result_shape=jax.ShapeDtypeStruct(size, jnp.int64))
     return _return(r)
 
   def power(self, a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Union[int, JAX_RAND_KEY]] = None):
@@ -1279,7 +1279,7 @@ class RandomState(Variable):
                                                 nbad=x['nbad'],
                                                 nsample=x['nsample'],
                                                 size=size),
-             d, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+             d, result_shape=jax.ShapeDtypeStruct(size, jnp.int64))
     return _return(r)
 
   def logseries(self, p, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1289,7 +1289,7 @@ class RandomState(Variable):
       size = jnp.shape(p)
     size = _size2shape(size)
     r = call(lambda p: np.random.logseries(p=p, size=size),
-             p, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+             p, result_shape=jax.ShapeDtypeStruct(size, jnp.int64))
     return _return(r)
 
   def noncentral_f(self, dfnum, dfden, nonc, size: Optional[Union[int, Sequence[int]]] = None,
