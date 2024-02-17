@@ -6,7 +6,7 @@ from typing import Callable
 from typing import Union, Sequence
 
 import numba
-from jax import core
+import jax
 from jax.interpreters import xla, batching, ad
 from jax.tree_util import tree_map
 from numba.core.dispatcher import Dispatcher
@@ -40,8 +40,8 @@ class CustomOpByNumba(BrainPyObject):
     The function to make the concrete computation. This function receives inputs,
     and returns outputs. For example:
 
-    >>> def con_compute(inp1, inp2, inp3, ...):
-    >>>   return out1, out2
+    >>> def con_compute(inp1, inp2, inp3, ..., out1, out2, ...):
+    >>>   pass
   """
 
   def __init__(
@@ -86,7 +86,7 @@ class CustomOpByNumba(BrainPyObject):
 def register_op_with_numba(
     op_name: str,
     cpu_func: Callable,
-    out_shapes: Union[Callable, core.ShapedArray, Sequence[core.ShapedArray]],
+    out_shapes: Union[Callable, jax.core.ShapedArray, Sequence[jax.core.ShapedArray]],
     gpu_func_translation: Callable = None,
     batching_translation: Callable = None,
     jvp_translation: Callable = None,
@@ -130,12 +130,19 @@ def register_op_with_numba(
     A JAX Primitive object.
   """
 
+  if jax.__version__ > '0.4.23':
+    raise RuntimeError(f'{CustomOpByNumba.__name__} and {register_op_with_numba.__name__} are '
+                       f'only supported in JAX version <= 0.4.23. \n'
+                       f'However, you can use brainpy.math.XLACustomOp to create a custom op with numba syntax. '
+                       f'For more information, please refer to the documentation: '
+                       f'https://brainpy.readthedocs.io/en/latest/tutorial_advanced/operator_custom_with_taichi.html.')
+
   if out_shapes is None:
     raise RuntimeError('out_shapes cannot be None. It can be a `ShapedArray` or '
                        'a sequence of `ShapedArray`. If it is a function, it takes as input the argument '
                        'shapes and dtypes and should return correct output shapes of `ShapedArray`.')
 
-  prim = core.Primitive(op_name)
+  prim = jax.core.Primitive(op_name)
   prim.multiple_results = multiple_results
 
   # user defined function
@@ -149,12 +156,12 @@ def register_op_with_numba(
     else:
       shapes = out_shapes
 
-    if isinstance(shapes, core.ShapedArray):
+    if isinstance(shapes, jax.core.ShapedArray):
       assert not multiple_results, "multiple_results is True, while the abstract evaluation returns only one data."
     elif isinstance(shapes, (tuple, list)):
       assert multiple_results, "multiple_results is False, while the abstract evaluation returns multiple data."
       for elem in shapes:
-        if not isinstance(elem, core.ShapedArray):
+        if not isinstance(elem, jax.core.ShapedArray):
           raise ValueError(f'Elements in "out_shapes" must be instances of '
                            f'jax.abstract_arrays.ShapedArray, but we got '
                            f'{type(elem)}: {elem}')

@@ -9,6 +9,7 @@ from jax import jit
 import brainpy as bp
 import brainpy.math as bm
 
+bm.set_platform('cpu')
 
 class TestCrossCorrelation(unittest.TestCase):
   def test_c(self):

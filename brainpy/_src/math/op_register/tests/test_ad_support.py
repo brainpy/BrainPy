@@ -9,6 +9,8 @@ from jax.interpreters import ad
 import brainpy as bp
 import brainpy.math as bm
 
+bm.set_platform('cpu')
+
 
 def csrmv(data, indices, indptr, vector, *, shape: Tuple[int, int], transpose: bool = False, ):
   data = jnp.atleast_1d(bm.as_jax(data))
@@ -117,7 +119,7 @@ def try_a_trial(transpose, shape):
   vector = rng.random(shape[0] if transpose else shape[1])
   vector = bm.as_jax(vector)
 
-  r5 = jax.grad(sum_op(lambda *args, **kwargs: bm.sparse.csrmv(*args, **kwargs, method='vector')), argnums=(0, 3))(
+  r5 = jax.grad(sum_op(lambda *args, **kwargs: bm.sparse.csrmv(*args, **kwargs)), argnums=(0, 3))(
     heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
   r6 = jax.grad(sum_op(lambda *args, **kwargs: csrmv(*args, **kwargs)[0]), argnums=(0, 3))(
     heter_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)

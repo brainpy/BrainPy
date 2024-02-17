@@ -2,3 +2,4 @@ numpy
 jax
 tqdm
 numba
+taichi==1.7.0

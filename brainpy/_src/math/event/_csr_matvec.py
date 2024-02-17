@@ -352,7 +352,7 @@ def _batch_event_csr_matvec_transpose(ct, values, indices, indptr, events, *,
 event_csr_matvec_batching_p = Primitive('event_csr_matvec_batching')
 event_csr_matvec_batching_p.def_abstract_eval(_batch_event_csr_matvec_abstract)
 event_csr_matvec_batching_p.def_impl(partial(xla.apply_primitive, event_csr_matvec_batching_p))
-xla.backend_specific_translations['cpu'][event_csr_matvec_batching_p] = _batch_event_csr_matvec_cpu_translation
+# xla.backend_specific_translations['cpu'][event_csr_matvec_batching_p] = _batch_event_csr_matvec_cpu_translation
 ad.defjvp(event_csr_matvec_batching_p, _batch_event_csr_matvec_jvp_values,
           None, None, _batch_event_csr_matvec_jvp_events)
 ad.primitive_transposes[event_csr_matvec_batching_p] = _batch_event_csr_matvec_transpose
@@ -597,8 +597,8 @@ def _event_csr_matvec_transpose_brainpylib(ct, values, indices, indptr, events, 
 event_csr_matvec_p = Primitive('event_csr_matvec')
 event_csr_matvec_p.def_abstract_eval(_event_csr_matvec_abstract)
 event_csr_matvec_p.def_impl(partial(xla.apply_primitive, event_csr_matvec_p))
-xla.backend_specific_translations['cpu'][event_csr_matvec_p] = _event_csr_matvec_cpu_translation
-xla.backend_specific_translations['gpu'][event_csr_matvec_p] = _event_csr_matvec_gpu_translation
+# xla.backend_specific_translations['cpu'][event_csr_matvec_p] = _event_csr_matvec_cpu_translation
+# xla.backend_specific_translations['gpu'][event_csr_matvec_p] = _event_csr_matvec_gpu_translation
 ad.defjvp(event_csr_matvec_p, _event_csr_matvec_jvp_values_brainpylib, None, None,
           _event_csr_matvec_jvp_events_brainpylib)
 ad.primitive_transposes[event_csr_matvec_p] = _event_csr_matvec_transpose_brainpylib

@@ -6,15 +6,16 @@ import jax
 import numba
 from jax import dtypes, numpy as jnp
 from jax.core import ShapedArray
-from jax.interpreters import batching
 from jax.lib import xla_client
 
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.op_register import register_op_with_numba
-from brainpy._src.math.ndarray import Array
 from brainpy._src.dependency_check import import_brainpylib_gpu_ops
+from brainpy._src.dependency_check import import_taichi
+from brainpy._src.math.interoperability import as_jax
+from brainpy._src.math.ndarray import Array
+from brainpy._src.math.op_register.base import XLACustomOp
 from brainpy.errors import GPUOperatorNotFound
 
+ti = import_taichi()
 
 __all__ = [
   'info'
@@ -40,7 +41,7 @@ def info(events: Union[Array, jax.Array]) -> Tuple[jax.Array, jax.Array]:
   events = as_jax(events)
   if events.ndim != 1:
     raise TypeError('Only support 1D boolean vector.')
-  return event_info_p.bind(events)
+  return event_info_p(events)
 
 
 def _batch_event_info_abstract(events):
@@ -66,11 +67,26 @@ def _batch_event_info(outs, ins):
     event_num[batch_idx] = num
 
 
+@ti.kernel
+def _batch_event_info_taichi(events: ti.types.ndarray(ndim=2),
+                             event_ids: ti.types.ndarray(ndim=2),
+                             event_num: ti.types.ndarray(ndim=1)):
+  for i, j in ti.grouped(ti.ndrange(event_ids.shape)):
+    event_ids[i, j] = -1
+  for batch_idx in range(event_ids.shape[0]):
+    num = 0
+    for i in range(event_ids.shape[1]):
+      if events[batch_idx, i]:
+        event_ids[batch_idx, num] = i
+        num += 1
+    event_num[batch_idx] = num
+
+
 def _batch_event_info_batching_rule(args, axes):
   arg = jnp.moveaxis(args[0], axes[0], 0)
   shape = arg.shape
   arg = jnp.reshape(arg, (shape[0] * shape[1], shape[2]))
-  event_ids, event_num = batch_event_info_p.bind(arg)
+  event_ids, event_num = batch_event_info_p(arg)
   return ((jnp.reshape(event_ids, shape), jnp.reshape(event_num, shape[:2])),
           (0, 0))
 
@@ -121,17 +137,16 @@ def _event_info_gpu_translation(c, events):
   )
 
 
-batch_event_info_p = register_op_with_numba(
-  op_name='event_info',
-  cpu_func=_batch_event_info,
-  out_shapes=_batch_event_info_abstract,
-  gpu_func_translation=_event_info_gpu_translation,
-  multiple_results=True
+batch_event_info_p = XLACustomOp(
+  name='batched_event_info',
+  cpu_kernel=_batch_event_info_taichi,
+  gpu_kernel=_batch_event_info_taichi,
+  outs=_batch_event_info_abstract,
 )
-batching.primitive_batchers[batch_event_info_p] = _batch_event_info_batching_rule
+batch_event_info_p.def_batching_rule(_batch_event_info_batching_rule)
 
 
-def _event_info_abstract(events):
+def _event_info_abstract(events, **kwargs):
   assert events.ndim == 1
   # assert events.dtype == jnp.bool_
   event_ids = ShapedArray(dtype=dtypes.canonicalize_dtype(int), shape=events.shape)
@@ -154,16 +169,30 @@ def _event_info(outs, ins):
   event_num[0] = num
 
 
+@ti.kernel
+def _event_info_taichi(events: ti.types.ndarray(ndim=1),
+                       event_ids: ti.types.ndarray(ndim=1),
+                       event_num: ti.types.ndarray(ndim=1)):
+  for i in range(event_ids.shape[0]):
+    event_ids[i] = -1
+  num = 0
+  for i in range(event_ids.shape[0]):
+    if events[i]:
+      event_ids[num] = i
+      num += 1
+  event_num[0] = num
+
+
 def _event_info_batching_rule(args, axes):
   arg = jnp.moveaxis(args[0], axes[0], 0)
-  return (batch_event_info_p.bind(arg), (0, 0))
+  return (batch_event_info_p(arg), (0, 0))
 
 
-event_info_p = register_op_with_numba(
-  op_name='event_info',
-  cpu_func=_event_info,
-  out_shapes=_event_info_abstract,
-  gpu_func_translation=_event_info_gpu_translation,
-  multiple_results=True
+event_info_p = XLACustomOp(
+  name='event_info',
+  cpu_kernel=_event_info_taichi,
+  gpu_kernel=_event_info_taichi,
+  outs=_event_info_abstract,
+  # gpu_func_translation=_event_info_gpu_translation,
 )
-batching.primitive_batchers[event_info_p] = _event_info_batching_rule
+event_info_p.def_batching_rule(_event_info_batching_rule)

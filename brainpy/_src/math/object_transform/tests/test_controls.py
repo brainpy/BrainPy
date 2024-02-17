@@ -163,6 +163,34 @@ class TestScan(unittest.TestCase):
     expected = bm.expand_dims(expected, axis=-1)
     self.assertTrue(bm.allclose(outs, expected))
 
+  def test_disable_jit(self):
+    def cumsum(res, el):
+      res = res + el
+      print(res)
+      return res, res  # ("carryover", "accumulated")
+
+    a = bm.array([1, 2, 3, 5, 7, 11, 13, 17]).value
+    result_init = 0
+    with jax.disable_jit():
+      final, result = jax.lax.scan(cumsum, result_init, a)
+
+    b = bm.array([1, 2, 3, 5, 7, 11, 13, 17])
+    result_init = 0
+    with jax.disable_jit():
+      final, result = bm.scan(cumsum, result_init, b)
+
+    bm.clear_buffer_memory()
+
+  def test_array_aware_of_bp_array(self):
+    def cumsum(res, el):
+      res = bm.asarray(res + el)
+      return res, res  # ("carryover", "accumulated")
+
+    b = bm.array([1, 2, 3, 5, 7, 11, 13, 17])
+    result_init = 0
+    with jax.disable_jit():
+      final, result = bm.scan(cumsum, result_init, b)
+
 
 class TestCond(unittest.TestCase):
   def test1(self):

@@ -404,8 +404,8 @@ _bcsrmm_cutlass_p = Primitive('bcsrmm_cutlass_pim')
 _bcsrmm_cutlass_p.multiple_results = True
 _bcsrmm_cutlass_p.def_abstract_eval(_bcsrmm_cutlass_abstract)
 _bcsrmm_cutlass_p.def_impl(partial(xla.apply_primitive, _bcsrmm_cutlass_p))
-xla.backend_specific_translations['cpu'][_bcsrmm_cutlass_p] = _bcsrmm_cutlass_cpu_translation
-xla.backend_specific_translations['gpu'][_bcsrmm_cutlass_p] = _bcsrmm_cutlass_gpu_translation
+# xla.backend_specific_translations['cpu'][_bcsrmm_cutlass_p] = _bcsrmm_cutlass_cpu_translation
+# xla.backend_specific_translations['gpu'][_bcsrmm_cutlass_p] = _bcsrmm_cutlass_gpu_translation
 ad.primitive_jvps[_bcsrmm_cutlass_p] = _bcsrmm_cutlass_jvp_transpose
 ad.primitive_transposes[_bcsrmm_cutlass_p] = _bcsrmm_cutlass_jvp_transpose
 register_general_batching(bcsrmm)
@@ -456,5 +456,5 @@ _bcsrmm_cutlass_back_p = Primitive('bcsrmm_cutlass_back_prim')
 _bcsrmm_cutlass_back_p.multiple_results = True
 _bcsrmm_cutlass_back_p.def_abstract_eval(_blocksparse_matmat_back_abstract)
 _bcsrmm_cutlass_back_p.def_impl(partial(xla.apply_primitive, _bcsrmm_cutlass_back_p))
-xla.backend_specific_translations['gpu'][_bcsrmm_cutlass_back_p] = _blocksparse_matmat_back_gpu_translation
+# xla.backend_specific_translations['gpu'][_bcsrmm_cutlass_back_p] = _blocksparse_matmat_back_gpu_translation
 register_general_batching(_bcsrmm_cutlass_back_p)

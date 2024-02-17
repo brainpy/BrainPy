@@ -1,5 +1,7 @@
+import contextlib
 import hashlib
 import inspect
+import io
 import os
 import pathlib
 import platform
@@ -10,10 +12,13 @@ from typing import Any, Sequence
 
 import jax.core
 import numpy as np
-from jax.interpreters import xla
+from jax.interpreters import xla, mlir
 from jax.lib import xla_client
+from jaxlib.hlo_helpers import custom_call
 
-from brainpy._src.dependency_check import import_taichi, import_brainpylib_cpu_ops, import_brainpylib_gpu_ops
+from brainpy._src.dependency_check import (import_taichi,
+                                           import_brainpylib_cpu_ops,
+                                           import_brainpylib_gpu_ops)
 from .utils import _shape_to_layout
 
 
@@ -173,8 +178,8 @@ def _build_kernel(
     arch = ti.cuda
   else:
     raise ValueError(f'Unknown device: {device}')
-
-  ti.init(arch=arch)
+  with contextlib.redirect_stdout(io.StringIO()):
+    ti.init(arch=arch)
 
   # check arch is available
   if ti.lang.impl.current_cfg().arch != arch:
@@ -328,9 +333,16 @@ def _preprocess_kernel_call_gpu(
   return opaque
 
 
+
+
+
 def _XlaOp_to_ShapedArray(c, xla_op):
   xla_op = c.get_shape(xla_op)
   return jax.core.ShapedArray(xla_op.dimensions(), xla_op.element_type())
+
+
+def _mlir_to_ShapedArray(c, op):
+  return op
 
 
 def _kernel_to_code(kernel, abs_ins, abs_outs, platform):
@@ -340,17 +352,16 @@ def _kernel_to_code(kernel, abs_ins, abs_outs, platform):
   return codes
 
 
-def _compile_kernel(kernel, c, platform, *ins, **kwargs):
+def _compile_kernel(abs_ins, kernel, platform: str, **kwargs):
   # input and output abstract information
   abs_outs = kwargs['outs']
-  abs_ins = [_XlaOp_to_ShapedArray(c, v) for v in ins]
 
   # kernel to code
   codes = _kernel_to_code(kernel, abs_ins, abs_outs, platform)
   source_md5_encode = os.path.join(kernel.__name__, encode_md5(codes))
 
   # create ins, outs dict from kernel's args
-  in_num = len(ins)
+  in_num = len(abs_ins)
   names = tuple(inspect.signature(kernel).parameters.keys())
   in_names, out_names = names[:in_num], names[in_num:]
   ins_dict = {key: (abs_ins[i].dtype, abs_ins[i].shape) for i, key in enumerate(in_names)}
@@ -380,8 +391,16 @@ def _compile_kernel(kernel, c, platform, *ins, **kwargs):
     raise ValueError(f'Unknown platform: {platform}')
 
 
-def _taichi_cpu_translation_rule(kernel, c, *ins, **kwargs):
-  in_out_info = _compile_kernel(kernel, c, 'cpu', *ins, **kwargs)
+def _get_abs_ins(c, ins):
+  abs_ins = []
+  for v in ins:
+    xla_op = c.get_shape(v)
+    abs_ins.append(jax.core.ShapedArray(xla_op.dimensions(), xla_op.element_type()))
+  return abs_ins
+
+
+def _taichi_xla_cpu_translation_rule(kernel, c, *ins, **kwargs):
+  in_out_info = _compile_kernel(_get_abs_ins(c, ins), kernel, 'cpu', **kwargs)
   ins = [xla_client.ops.Constant(c, v) for v in in_out_info] + list(ins)
   if is_metal_device:
     fn = b'taichi_kernel_aot_call_cpu_arm64'
@@ -400,8 +419,8 @@ def _taichi_cpu_translation_rule(kernel, c, *ins, **kwargs):
   )
 
 
-def _taichi_gpu_translation_rule(kernel, c, *ins, **kwargs):
-  opaque = _compile_kernel(kernel, c, 'gpu', *ins, **kwargs)
+def _taichi_xla_gpu_translation_rule(kernel, c, *ins, **kwargs):
+  opaque = _compile_kernel(_get_abs_ins(c, ins), kernel, 'gpu', **kwargs)
   return xla_client.ops.CustomCallWithLayout(
     c,
     b'taichi_kernel_aot_call_gpu',
@@ -415,9 +434,61 @@ def _taichi_gpu_translation_rule(kernel, c, *ins, **kwargs):
   )
 
 
-def register_taichi_cpu_translation_rule(primitive, cpu_kernel):
-  xla.backend_specific_translations['cpu'][primitive] = partial(_taichi_cpu_translation_rule, cpu_kernel)
+def register_taichi_aot_xla_cpu_translation_rule(primitive, cpu_kernel):
+  xla.backend_specific_translations['cpu'][primitive] = partial(_taichi_xla_cpu_translation_rule, cpu_kernel)
 
 
-def register_taichi_gpu_translation_rule(primitive, gpu_kernel):
-  xla.backend_specific_translations['gpu'][primitive] = partial(_taichi_gpu_translation_rule, gpu_kernel)
+def register_taichi_aot_xla_gpu_translation_rule(primitive, gpu_kernel):
+  xla.backend_specific_translations['gpu'][primitive] = partial(_taichi_xla_gpu_translation_rule, gpu_kernel)
+
+
+def _taichi_mlir_cpu_translation_rule(kernel, c, *ins, **kwargs):
+  in_out_info = _compile_kernel(c.avals_in, kernel, 'cpu', **kwargs)
+  ins = [mlir.ir_constant(v) for v in in_out_info] + list(ins)
+  input_layouts = [_shape_to_layout(arr.shape) for arr in in_out_info] + [_shape_to_layout(a.shape) for a in c.avals_in]
+  output_layouts = tuple([_shape_to_layout(out.shape) for out in c.avals_out])
+  result_types = [mlir.aval_to_ir_type(out) for out in c.avals_out]
+  if is_metal_device:
+    if len(output_layouts) == 1:
+      fn = 'taichi_kernel_aot_call_cpu_arm64_single_result'
+    else:
+      fn = 'taichi_kernel_aot_call_cpu_arm64'
+  else:
+    if len(output_layouts) == 1:
+      fn = 'taichi_kernel_aot_call_cpu_single_result'
+    else:
+      fn = 'taichi_kernel_aot_call_cpu'
+  return custom_call(
+    call_target_name=fn,
+    operands=ins,
+    operand_layouts=list(input_layouts),
+    result_layouts=list(output_layouts),
+    result_types=list(result_types),
+    has_side_effect=False,
+  ).results
+
+
+def _taichi_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
+  opaque = _compile_kernel(c.avals_in, kernel, 'gpu', **kwargs)
+  input_layouts = [_shape_to_layout(a.shape) for a in c.avals_in]
+  result_types = [mlir.aval_to_ir_type(out) for out in c.avals_out]
+  output_layouts = [_shape_to_layout(out.shape) for out in c.avals_out]
+  return custom_call(
+    call_target_name='taichi_kernel_aot_call_gpu',
+    operands=ins,
+    operand_layouts=list(input_layouts),
+    result_layouts=list(output_layouts),
+    result_types=list(result_types),
+    backend_config=opaque,
+    has_side_effect=False,
+  ).results
+
+
+def register_taichi_aot_mlir_cpu_translation_rule(primitive, cpu_kernel):
+  rule = partial(_taichi_mlir_cpu_translation_rule, cpu_kernel)
+  mlir.register_lowering(primitive, rule, platform='cpu')
+
+
+def register_taichi_aot_mlir_gpu_translation_rule(primitive, gpu_kernel):
+  rule = partial(_taichi_mlir_gpu_translation_rule, gpu_kernel)
+  mlir.register_lowering(primitive, rule, platform='gpu')
