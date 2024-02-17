@@ -12,7 +12,7 @@ from jax.experimental.sparse import csr
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import (XLACustomOp)
+from brainpy._src.math.op_register import (XLACustomOp, register_general_batching)
 from brainpy._src.math.sparse._utils import csr_to_coo
 
 ti = import_taichi()
@@ -47,7 +47,19 @@ def csrmm(
       C : array of shape ``(shape[1] if transpose else shape[0], cols)``
       representing the matrix-matrix product product.
   """
-  return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)[0]
+  data = jnp.atleast_1d(data)
+  out_shape = shape[1] if transpose else shape[0]
+  result_shape = (out_shape, matrix.shape[1])
+  # if the shape of indices is (0,), then we return a zero matrix
+
+  if data.shape[0] != 1:
+    if indices.shape[0] == 0:
+      return jnp.zeros(result_shape, dtype=data.dtype)
+    return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+  else:
+    if indices.shape[0] == 0:
+      return [jnp.zeros(result_shape, dtype=data.dtype), ]
+    return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)[0]
 
 
 def raw_csrmm_taichi(
@@ -65,8 +77,6 @@ def raw_csrmm_taichi(
   indptr = as_jax(indptr)
   matrix = as_jax(matrix)
 
-  data = jnp.atleast_1d(data)
-
   if matrix.dtype == jnp.bool_:
     matrix = as_jax(matrix, dtype=data.dtype)
 
@@ -75,7 +85,7 @@ def raw_csrmm_taichi(
                     f'But we got {data.dtype} != {matrix.dtype}.')
   assert data.ndim == indices.ndim == indptr.ndim == 1
   assert matrix.ndim == 2
-  data = jnp.atleast_1d(data)
+
   if np.ndim(data) == 1:
     if data.shape[0] not in [1, indices.shape[0]]:
       raise ValueError('The size of data should be 1 or be consistent with indices.'
@@ -88,9 +98,6 @@ def raw_csrmm_taichi(
 
   out_shape = shape[1] if transpose else shape[0]
   result_shape = (out_shape, matrix.shape[1])
-  # if the shape of indices is (0,), then we return a zero matrix
-  if indices.shape[0] == 0:
-    return [jnp.zeros(result_shape, dtype=data.dtype), ]
 
   assert matrix.shape[0] == (shape[0] if transpose else shape[1])
   if data.shape[0] != 1:
@@ -299,3 +306,4 @@ _csr_matmat_homo_p = _define_op(cpu_kernel=_csr_matmat_homo_cpu,
 
 # heter CUSPARSE
 _csr_matmat_heter_p = csr.csr_matmat_p
+register_general_batching(_csr_matmat_heter_p)

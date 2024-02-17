@@ -179,6 +179,8 @@ class Test_csrmm(parameterized.TestCase):
     r1 = (dense.T @ matrix) if transpose else (dense @ matrix)
     r2 = bm.sparse.csrmm(heter_data, indices, indptr, matrix,
                          shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
+    print(r2)
+    print(r1.shape, '-', r2.shape)
     c = bm.allclose(r1, r2, equal_nan=True)
     if not c:
       print(r1 - r2)
