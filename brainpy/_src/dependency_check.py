@@ -8,7 +8,7 @@ __all__ = [
   'import_brainpylib_gpu_ops',
 ]
 
-_minimal_brainpylib_version = '0.1.10'
+_minimal_brainpylib_version = '0.2.6'
 _minimal_taichi_version = (1, 7, 0)
 
 taichi = None
