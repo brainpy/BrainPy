@@ -24,15 +24,20 @@ bool_ = jnp.bool_
 # '''Default integer data type.'''
 int_ = jnp.int64 if config.read('jax_enable_x64') else jnp.int32
 
-# '''Default integer data type in Taichi.'''
-ti_int = ti.int64 if config.read('jax_enable_x64') else ti.int32
-
 # '''Default float data type.'''
 float_ = jnp.float64 if config.read('jax_enable_x64') else jnp.float32
-
-# '''Default float data type in Taichi.'''
-ti_float = ti.float64 if config.read('jax_enable_x64') else ti.float32
 
 # '''Default complex data type.'''
 complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
 
+
+if ti is not None:
+  # '''Default integer data type in Taichi.'''
+  ti_int = ti.int64 if config.read('jax_enable_x64') else ti.int32
+
+  # '''Default float data type in Taichi.'''
+  ti_float = ti.float64 if config.read('jax_enable_x64') else ti.float32
+
+else:
+  ti_int = None
+  ti_float = None

@@ -10,7 +10,6 @@ from numba import types, carray, cfunc
 
 from .utils import _shape_to_layout
 
-
 __all__ = [
   'register_numba_xla_cpu_translation_rule',
   'register_numba_mlir_cpu_translation_rule',

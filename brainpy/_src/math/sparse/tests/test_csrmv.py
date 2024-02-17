@@ -5,10 +5,14 @@ from functools import partial
 import jax
 from absl.testing import parameterized
 
+import pytest
 import brainpy as bp
 import brainpy.math as bm
 
-# bm.set_platform('gpu')
+from brainpy._src.dependency_check import import_taichi
+
+if import_taichi() is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 seed = 1234
 
