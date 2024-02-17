@@ -58,7 +58,7 @@ def csrmm(
     return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)
   else:
     if indices.shape[0] == 0:
-      return [jnp.zeros(result_shape, dtype=data.dtype), ]
+      return jnp.zeros(result_shape, dtype=data.dtype)
     return raw_csrmm_taichi(data, indices, indptr, matrix, shape=shape, transpose=transpose)[0]
 
 
@@ -100,6 +100,8 @@ def raw_csrmm_taichi(
   result_shape = (out_shape, matrix.shape[1])
 
   assert matrix.shape[0] == (shape[0] if transpose else shape[1])
+  if indices.shape[0] == 0:
+    return [jnp.zeros(result_shape, dtype=data.dtype), ]
   if data.shape[0] != 1:
     return _csr_matmat_heter_p.bind(data, indices, indptr, matrix, shape=shape, transpose=transpose)
   else:
