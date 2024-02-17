@@ -682,8 +682,7 @@ class CSRLinear(_CSRLayer):
   def update(self, x):
     if x.ndim == 1:
       return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
-                             shape=(self.conn.pre_num, self.conn.post_num),
-                             method=self.method, transpose=self.transpose)
+                             shape=(self.conn.pre_num, self.conn.post_num), transpose=self.transpose)
     elif x.ndim > 1:
       shapes = x.shape[:-1]
       x = bm.flatten(x, end_dim=-2)
@@ -694,8 +693,7 @@ class CSRLinear(_CSRLayer):
 
   def _batch_csrmv(self, x):
     return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
-                           shape=(self.conn.pre_num, self.conn.post_num),
-                           method=self.method, transpose=self.transpose)
+                           shape=(self.conn.pre_num, self.conn.post_num), transpose=self.transpose)
 
 class EventCSRLinear(_CSRLayer):
   r"""Synaptic matrix multiplication with event CSR sparse computation.

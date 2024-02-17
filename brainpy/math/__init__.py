@@ -79,9 +79,6 @@ __deprecations = {
   'cusparse_csr_matvec': ("brainpy.math.cusparse_csr_matvec is deprecated. "
                           "Use brainpy.math.sparse.csrmv instead.",
                           sparse.csrmv),
-  'cusparse_coo_matvec': ("brainpy.math.cusparse_coo_matvec is deprecated. "
-                          "Use brainpy.math.sparse.coomv instead.",
-                          sparse.coomv),
   'coo_to_csr': ("brainpy.math.coo_to_csr is deprecated. "
                  "Use brainpy.math.sparse.coo_to_csr instead.",
                  sparse.coo_to_csr),
@@ -94,9 +91,6 @@ __deprecations = {
   'event_csr_matvec': ("brainpy.math.event_csr_matvec is deprecated. "
                        "Use brainpy.math.event.csr_to_dense instead.",
                        event.csrmv),
-  'event_info': ("brainpy.math.event_info is deprecated. "
-                 "Use brainpy.math.event.info instead.",
-                 event.info),
 }
 
 __getattr__ = deprecation_getattr(__name__, __deprecations, redirects=defaults.__all__, redirect_module=defaults)

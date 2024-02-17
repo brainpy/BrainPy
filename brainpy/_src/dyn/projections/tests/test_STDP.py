@@ -7,7 +7,7 @@ from absl.testing import parameterized
 import brainpy as bp
 import brainpy.math as bm
 
-
+bm.set_platform('cpu')
 class Test_STDP(parameterized.TestCase):
 
   @parameterized.product(
