@@ -7,6 +7,7 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.interpreters import ad
+from jax.experimental.sparse import csr
 
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
@@ -92,16 +93,13 @@ def raw_csrmm_taichi(
     return [jnp.zeros(result_shape, dtype=data.dtype), ]
 
   assert matrix.shape[0] == (shape[0] if transpose else shape[1])
-  if transpose:
-    if data.shape[0] == 1:
+  if data.shape[0] != 1:
+    return _csr_matmat_heter_p.bind(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+  else:
+    if transpose:
       prim = _csr_matmat_transpose_homo_p
     else:
-      prim = _csr_matmat_transpose_heter_p
-  else:
-    if data.shape[0] == 1:
       prim = _csr_matmat_homo_p
-    else:
-      prim = _csr_matmat_heter_p
   return prim(data,
               indices,
               indptr,
@@ -283,13 +281,13 @@ def _define_op(cpu_kernel, gpu_kernel):
   return prim
 
 
-# transpose heter
-_csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter_cpu,
-                                           gpu_kernel=_csr_matmat_transpose_heter_gpu)
-
-# no transpose heter
-_csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter_cpu,
-                                 gpu_kernel=_csr_matmat_heter_gpu)
+# # transpose heter
+# _csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter_cpu,
+#                                            gpu_kernel=_csr_matmat_transpose_heter_gpu)
+#
+# # no transpose heter
+# _csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter_cpu,
+#                                  gpu_kernel=_csr_matmat_heter_gpu)
 
 # transpose homo
 _csr_matmat_transpose_homo_p = _define_op(cpu_kernel=_csr_matmat_transpose_homo_cpu,
@@ -298,3 +296,6 @@ _csr_matmat_transpose_homo_p = _define_op(cpu_kernel=_csr_matmat_transpose_homo_
 # no transpose homo
 _csr_matmat_homo_p = _define_op(cpu_kernel=_csr_matmat_homo_cpu,
                                 gpu_kernel=_csr_matmat_homo_gpu)
+
+# heter CUSPARSE
+_csr_matmat_heter_p = csr.csr_matmat_p
