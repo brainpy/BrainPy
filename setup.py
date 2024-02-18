@@ -31,7 +31,7 @@ except ModuleNotFoundError:
 
 # version
 here = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(here, 'brainpy', 'test_functions.py'), 'r') as f:
+with open(os.path.join(here, 'brainpy', '__init__.py'), 'r') as f:
   init_py = f.read()
 version = re.search('__version__ = "(.*)"', init_py).groups()[0]
 if len(sys.argv) > 2 and sys.argv[2] == '--python-tag=py3':
