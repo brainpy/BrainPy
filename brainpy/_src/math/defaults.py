@@ -36,3 +36,6 @@ ti_float = ti.float64 if config.read('jax_enable_x64') else ti.float32
 # '''Default complex data type.'''
 complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
 
+# register brainpy object as pytree
+bp_object_as_pytree = False
+

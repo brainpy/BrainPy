@@ -166,6 +166,7 @@ class environment(_DecoratorContextManager):
       float_: type = None,
       int_: type = None,
       bool_: type = None,
+      bp_object_as_pytree: bool = None,
   ) -> None:
     super().__init__()
 
@@ -201,6 +202,10 @@ class environment(_DecoratorContextManager):
       assert isinstance(complex_, type), '"complex_" must a type.'
       self.old_complex = get_complex()
 
+    if bp_object_as_pytree is not None:
+      assert isinstance(bp_object_as_pytree, bool), '"bp_object_as_pytree" must be a bool.'
+      self.old_bp_object_as_pytree = defaults.bp_object_as_pytree
+
     self.dt = dt
     self.mode = mode
     self.membrane_scaling = membrane_scaling
@@ -209,6 +214,7 @@ class environment(_DecoratorContextManager):
     self.float_ = float_
     self.int_ = int_
     self.bool_ = bool_
+    self.bp_object_as_pytree = bp_object_as_pytree
 
   def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
@@ -219,6 +225,7 @@ class environment(_DecoratorContextManager):
     if self.int_ is not None: set_int(self.int_)
     if self.complex_ is not None: set_complex(self.complex_)
     if self.bool_ is not None: set_bool(self.bool_)
+    if self.bp_object_as_pytree is not None: defaults.__dict__['bp_object_as_pytree'] = self.bp_object_as_pytree
     return self
 
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -230,6 +237,7 @@ class environment(_DecoratorContextManager):
     if self.float_ is not None:  set_float(self.old_float)
     if self.complex_ is not None:  set_complex(self.old_complex)
     if self.bool_ is not None:  set_bool(self.old_bool)
+    if self.bp_object_as_pytree is not None: defaults.__dict__['bp_object_as_pytree'] = self.old_bp_object_as_pytree
 
   def clone(self):
     return self.__class__(dt=self.dt,
@@ -239,7 +247,8 @@ class environment(_DecoratorContextManager):
                           bool_=self.bool_,
                           complex_=self.complex_,
                           float_=self.float_,
-                          int_=self.int_)
+                          int_=self.int_,
+                          bp_object_as_pytree=self.bp_object_as_pytree)
 
   def __eq__(self, other):
     return id(self) == id(other)
@@ -267,6 +276,7 @@ class training_environment(environment):
       bool_: type = None,
       batch_size: int = 1,
       membrane_scaling: scales.Scaling = None,
+      bp_object_as_pytree: bool = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -275,7 +285,8 @@ class training_environment(environment):
                      int_=int_,
                      bool_=bool_,
                      membrane_scaling=membrane_scaling,
-                     mode=modes.TrainingMode(batch_size))
+                     mode=modes.TrainingMode(batch_size),
+                     bp_object_as_pytree=bp_object_as_pytree)
 
 
 class batching_environment(environment):
@@ -301,6 +312,7 @@ class batching_environment(environment):
       bool_: type = None,
       batch_size: int = 1,
       membrane_scaling: scales.Scaling = None,
+      bp_object_as_pytree: bool = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -309,7 +321,8 @@ class batching_environment(environment):
                      int_=int_,
                      bool_=bool_,
                      mode=modes.BatchingMode(batch_size),
-                     membrane_scaling=membrane_scaling)
+                     membrane_scaling=membrane_scaling,
+                     bp_object_as_pytree=bp_object_as_pytree)
 
 
 def set(
@@ -321,6 +334,7 @@ def set(
     float_: type = None,
     int_: type = None,
     bool_: type = None,
+    bp_object_as_pytree: bool = None,
 ):
   """Set the default computation environment.
 
@@ -342,6 +356,8 @@ def set(
     The integer data type.
   bool_
     The bool data type.
+  bp_object_as_pytree: bool
+    Whether to register brainpy object as pytree.
   """
   if dt is not None:
     assert isinstance(dt, float), '"dt" must a float.'
@@ -374,6 +390,9 @@ def set(
   if complex_ is not None:
     assert isinstance(complex_, type), '"complex_" must a type.'
     set_complex(complex_)
+
+  if bp_object_as_pytree is not None:
+    defaults.__dict__['bp_object_as_pytree'] = bp_object_as_pytree
 
 
 set_environment = set
