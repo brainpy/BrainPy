@@ -208,7 +208,6 @@ def eval_shape(
       returns = f2(*args, **kwargs)
     else:
       returns = jax.eval_shape(f2, *args, **kwargs)
-      pass
   finally:
     fun_in_eval_shape.pop()
   return returns
