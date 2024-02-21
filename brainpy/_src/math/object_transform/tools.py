@@ -213,27 +213,31 @@ def eval_shape(
   return returns
 
 
-def eval_shape_of_multi_funcs(
-    funs: Sequence[Callable],
+def eval_shape_with_context(
+    fun: Callable,
     *args,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
+    return_context: bool = False,
     **kwargs
 ):
-  """Compute the shape/dtype of ``funs`` without any FLOPs.
+  """Compute the shape/dtype of ``fun`` without any FLOPs.
 
   Args:
-    funs: A set of callable functions.
+    fun: The callable function.
     *args: The positional arguments.
     **kwargs: The keyword arguments.
     static_argnums: The static argument indices.
     static_argnames: The static argument names.
+    return_context: Whether to return the variable stack.
 
   Returns:
     The variable stack and the functional returns.
   """
-  returns = []
-  for fun in funs:
-    ret = eval_shape(fun, *args, static_argnums=static_argnums, static_argnames=static_argnames, **kwargs)
-    returns.append(ret)
-  return returns
+  with VariableStack() as stack:
+    returns = eval_shape(fun, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
+  if return_context:
+    return stack, returns
+  else:
+    return returns
+

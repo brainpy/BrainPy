@@ -22,7 +22,7 @@ from .naming import (
 )
 from .tools import (
   eval_shape,
-  eval_shape_of_multi_funcs,
+  eval_shape_with_context,
   dynvar_deprecation,
   node_deprecation,
   abstract
@@ -541,7 +541,8 @@ def cond(
   if not jax.config.jax_disable_jit:
     if dyn_vars is None:
       with VariableStack() as dyn_vars:
-        rets = eval_shape_of_multi_funcs([true_fun, false_fun], *operands)
+        rets = eval_shape_with_context(true_fun, *operands)
+        _ = eval_shape_with_context(false_fun, *operands)
         cache_stack((true_fun, false_fun), dyn_vars)
       if not dyn_vars.is_first_stack():
         return rets[0]
@@ -676,7 +677,7 @@ def ifelse(
       dyn_vars = get_stack_cache(tuple(branches))
       if dyn_vars is None:
         with VariableStack() as dyn_vars:
-          rets = eval_shape_of_multi_funcs(branches, *operands)
+          rets = [eval_shape_with_context(fun, *operands) for fun in branches]
           trees = [jax.tree_util.tree_structure(ret) for ret in rets]
           if not _all_equal(trees):
             msg = 'All returns in branches should have the same tree structure. But we got:\n'
@@ -1122,10 +1123,11 @@ def while_loop(
   if not jax.config.jax_disable_jit:
     if stack is None:
       with VariableStack() as stack:
-        rets = eval_shape_of_multi_funcs([body_fun, cond_fun], *operands)
+        _ = eval_shape_with_context(cond_fun, *operands)
+        rets = eval_shape_with_context(body_fun, *operands)
         cache_stack((body_fun, cond_fun), stack)
       if not stack.is_first_stack():
-        return rets[1]
+        return rets
   stack = VariableStack() if stack is None else stack
   dyn_values, out = _get_while_transform(cond_fun, body_fun, stack)(operands)
   for k, v in stack.items():
