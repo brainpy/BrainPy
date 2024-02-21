@@ -870,23 +870,23 @@ def for_loop(
 
   if jit is None:  # jax disable jit
     jit = not jax.config.jax_disable_jit
-  dyn_vars = get_stack_cache((body_fun, unroll_kwargs))
+  stack = get_stack_cache((body_fun, unroll_kwargs))
   if jit:
-    if dyn_vars is None:
+    if stack is None:
       transform = _get_for_loop_transform(body_fun, VariableStack(), bar, progress_bar,
                                           remat, reverse, unroll, unroll_kwargs)
       # TODO: better cache mechanism?
-      with VariableStack() as dyn_vars:
+      with VariableStack() as stack:
         rets = eval_shape(transform, operands)
-        cache_stack((body_fun, unroll_kwargs), dyn_vars)  # cache
-      if not dyn_vars.is_first_stack():
+        cache_stack((body_fun, unroll_kwargs), stack)  # cache
+      if not stack.is_first_stack():
         return rets[1]
       del rets
   else:
-    dyn_vars = VariableStack()
+    stack = VariableStack()
 
   # TODO: cache mechanism?
-  transform = _get_for_loop_transform(body_fun, dyn_vars, bar,
+  transform = _get_for_loop_transform(body_fun, stack, bar,
                                       progress_bar, remat, reverse,
                                       unroll, unroll_kwargs)
   if jit:
@@ -894,11 +894,11 @@ def for_loop(
   else:
     with jax.disable_jit():
       dyn_vals, out_vals = transform(operands)
-  for key in dyn_vars.keys():
-    dyn_vars[key]._value = dyn_vals[key]
+  for key in stack.keys():
+    stack[key]._value = dyn_vals[key]
   if progress_bar:
     bar.close()
-  del dyn_vals, dyn_vars
+  del dyn_vals, stack
   return out_vals
 
 
@@ -996,22 +996,22 @@ def scan(
     num_total = min([op.shape[0] for op in jax.tree_util.tree_flatten(operands)[0]])
     bar = tqdm(total=num_total)
 
-  dyn_vars = get_stack_cache(body_fun)
+  stack = get_stack_cache(body_fun)
   if not jax.config.jax_disable_jit:
-    if dyn_vars is None:
+    if stack is None:
       transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
-      with VariableStack() as dyn_vars:
+      with VariableStack() as stack:
         rets = eval_shape(transform, init, operands)
-      cache_stack(body_fun, dyn_vars)  # cache
-      if not dyn_vars.is_first_stack():
+      cache_stack(body_fun, stack)  # cache
+      if not stack.is_first_stack():
         return rets[0][1], rets[1]
       del rets
 
-  dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
-  transform = _get_scan_transform(body_fun, dyn_vars, bar, progress_bar, remat, reverse, unroll)
+  stack = VariableStack() if stack is None else stack
+  transform = _get_scan_transform(body_fun, stack, bar, progress_bar, remat, reverse, unroll)
   (dyn_vals, carry), out_vals = transform(init, operands)
-  for key in dyn_vars.keys():
-    dyn_vars[key]._value = dyn_vals[key]
+  for key in stack.keys():
+    stack[key]._value = dyn_vals[key]
   if progress_bar:
     bar.close()
   return carry, out_vals
@@ -1118,16 +1118,16 @@ def while_loop(
   if not isinstance(operands, (list, tuple)):
     operands = (operands,)
 
-  dyn_vars = get_stack_cache((body_fun, cond_fun))
+  stack = get_stack_cache((body_fun, cond_fun))
   if not jax.config.jax_disable_jit:
-    if dyn_vars is None:
-      with VariableStack() as dyn_vars:
+    if stack is None:
+      with VariableStack() as stack:
         rets = eval_shape_of_multi_funcs([body_fun, cond_fun], *operands)
-        cache_stack((body_fun, cond_fun), dyn_vars)
-      if not dyn_vars.is_first_stack():
+        cache_stack((body_fun, cond_fun), stack)
+      if not stack.is_first_stack():
         return rets[1]
-  dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
-  dyn_values, out = _get_while_transform(cond_fun, body_fun, dyn_vars)(operands)
-  for k, v in dyn_vars.items():
+  stack = VariableStack() if stack is None else stack
+  dyn_values, out = _get_while_transform(cond_fun, body_fun, stack)(operands)
+  for k, v in stack.items():
     v._value = dyn_values[k]
   return out
