@@ -234,8 +234,7 @@ def eval_shape_of_multi_funcs(
     The variable stack and the functional returns.
   """
   returns = []
-  with VariableStack() as stack:
-    for fun in funs:
-      ret = eval_shape(fun, *args, static_argnums=static_argnums, static_argnames=static_argnames, **kwargs)
+  for fun in funs:
+    ret = eval_shape(fun, *args, static_argnums=static_argnums, static_argnames=static_argnames, **kwargs)
     returns.append(ret)
-  return stack, returns
+  return returns

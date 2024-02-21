@@ -18,10 +18,7 @@ from .naming import get_stack_cache, cache_stack
 from .tools import (dynvar_deprecation,
                     node_deprecation,
                     eval_shape)
-from .variables import (Variable,
-                        VariableStack,
-                        current_transform_number,
-                        new_transform)
+from .variables import (Variable, VariableStack)
 from ..ndarray import Array
 
 RandomState = None
@@ -146,37 +143,36 @@ class JITTransform(ObjectTransform):
     return changes, out
 
   def _get_transform(self, *args, **kwargs):
-    with new_transform(self):
-      with VariableStack() as self._dyn_vars:
-        rets = eval_shape(self.fun,
-                          *args,
-                          static_argnums=self._static_argnums,
-                          static_argnames=self._static_argnames,
-                          **kwargs)
-      # in_shardings
-      if self._in_shardings is None:
-        in_shardings = None
+    with VariableStack() as self._dyn_vars:
+      rets = eval_shape(self.fun,
+                        *args,
+                        static_argnums=self._static_argnums,
+                        static_argnames=self._static_argnames,
+                        **kwargs)
+    # in_shardings
+    if self._in_shardings is None:
+      in_shardings = None
+    else:
+      if isinstance(self._in_shardings, (tuple, list)):
+        in_shardings = tuple(self._in_shardings)
       else:
-        if isinstance(self._in_shardings, (tuple, list)):
-          in_shardings = tuple(self._in_shardings)
-        else:
-          in_shardings = (self._in_shardings,)
-        _dyn_vars_sharing = get_shardings(self._dyn_vars)
-        in_shardings = (_dyn_vars_sharing,) + in_shardings
+        in_shardings = (self._in_shardings,)
+      _dyn_vars_sharing = get_shardings(self._dyn_vars)
+      in_shardings = (_dyn_vars_sharing,) + in_shardings
 
-      # out_shardings
-      if self._out_shardings is None:
-        out_shardings = None
+    # out_shardings
+    if self._out_shardings is None:
+      out_shardings = None
+    else:
+      if isinstance(self._out_shardings, (tuple, list)):
+        out_shardings = tuple(self._out_shardings)
       else:
-        if isinstance(self._out_shardings, (tuple, list)):
-          out_shardings = tuple(self._out_shardings)
-        else:
-          out_shardings = (self._out_shardings,)
-        global RandomState
-        if RandomState is None:
-          from brainpy.math.random import RandomState
-        _dyn_vars_sharing = get_shardings(self._dyn_vars.subset_by_not_instance(RandomState))
-        out_shardings = (_dyn_vars_sharing,) + out_shardings
+        out_shardings = (self._out_shardings,)
+      global RandomState
+      if RandomState is None:
+        from brainpy.math.random import RandomState
+      _dyn_vars_sharing = get_shardings(self._dyn_vars.subset_by_not_instance(RandomState))
+      out_shardings = (_dyn_vars_sharing,) + out_shardings
 
       # jit
       self._transform = jax.jit(
@@ -199,7 +195,7 @@ class JITTransform(ObjectTransform):
     if self._transform is None:  # initialize the transformation
       rets = self._get_transform(*args, **kwargs)
       # if not the outermost transformation
-      if current_transform_number():
+      if not self._dyn_vars.is_first_stack():
         return rets
 
     # call the transformed function

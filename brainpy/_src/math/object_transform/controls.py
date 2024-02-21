@@ -27,12 +27,7 @@ from .tools import (
   node_deprecation,
   abstract
 )
-from .variables import (
-  Variable,
-  VariableStack,
-  new_transform,
-  current_transform_number,
-)
+from .variables import (Variable, VariableStack)
 
 __all__ = [
   'make_loop',
@@ -545,10 +540,10 @@ def cond(
   dyn_vars = get_stack_cache((true_fun, false_fun))
   if not jax.config.jax_disable_jit:
     if dyn_vars is None:
-      with new_transform('cond'):
-        dyn_vars, rets = eval_shape_of_multi_funcs([true_fun, false_fun], *operands)
+      with VariableStack() as dyn_vars:
+        rets = eval_shape_of_multi_funcs([true_fun, false_fun], *operands)
         cache_stack((true_fun, false_fun), dyn_vars)
-      if current_transform_number() > 0:
+      if not dyn_vars.is_first_stack():
         return rets[0]
   dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
@@ -680,8 +675,8 @@ def ifelse(
     else:
       dyn_vars = get_stack_cache(tuple(branches))
       if dyn_vars is None:
-        with new_transform('ifelse'):
-          dyn_vars, rets = eval_shape_of_multi_funcs(branches, *operands)
+        with VariableStack() as dyn_vars:
+          rets = eval_shape_of_multi_funcs(branches, *operands)
           trees = [jax.tree_util.tree_structure(ret) for ret in rets]
           if not _all_equal(trees):
             msg = 'All returns in branches should have the same tree structure. But we got:\n'
@@ -689,7 +684,7 @@ def ifelse(
               msg += f'- {tree}\n'
             raise TypeError(msg)
           cache_stack(tuple(branches), dyn_vars)
-        if current_transform_number():
+        if not dyn_vars.is_first_stack():
           return rets[0]
       branches = [_cond_transform_fun(fun, dyn_vars) for fun in branches]
 
@@ -878,14 +873,13 @@ def for_loop(
   dyn_vars = get_stack_cache((body_fun, unroll_kwargs))
   if jit:
     if dyn_vars is None:
+      transform = _get_for_loop_transform(body_fun, VariableStack(), bar, progress_bar,
+                                          remat, reverse, unroll, unroll_kwargs)
       # TODO: better cache mechanism?
-      with new_transform('for_loop'):
-        transform = _get_for_loop_transform(body_fun, VariableStack(), bar, progress_bar,
-                                            remat, reverse, unroll, unroll_kwargs)
-        with VariableStack() as dyn_vars:
-          rets = eval_shape(transform, operands)
-      cache_stack((body_fun, unroll_kwargs), dyn_vars)  # cache
-      if current_transform_number():
+      with VariableStack() as dyn_vars:
+        rets = eval_shape(transform, operands)
+        cache_stack((body_fun, unroll_kwargs), dyn_vars)  # cache
+      if not dyn_vars.is_first_stack():
         return rets[1]
       del rets
   else:
@@ -1005,12 +999,11 @@ def scan(
   dyn_vars = get_stack_cache(body_fun)
   if not jax.config.jax_disable_jit:
     if dyn_vars is None:
-      with new_transform('scan'):
-        transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
-        with VariableStack() as dyn_vars:
-          rets = eval_shape(transform, init, operands)
+      transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
+      with VariableStack() as dyn_vars:
+        rets = eval_shape(transform, init, operands)
       cache_stack(body_fun, dyn_vars)  # cache
-      if current_transform_number():
+      if not dyn_vars.is_first_stack():
         return rets[0][1], rets[1]
       del rets
 
@@ -1128,10 +1121,10 @@ def while_loop(
   dyn_vars = get_stack_cache((body_fun, cond_fun))
   if not jax.config.jax_disable_jit:
     if dyn_vars is None:
-      with new_transform('while_loop'):
-        dyn_vars, rets = eval_shape_of_multi_funcs([body_fun, cond_fun], *operands)
+      with VariableStack() as dyn_vars:
+        rets = eval_shape_of_multi_funcs([body_fun, cond_fun], *operands)
         cache_stack((body_fun, cond_fun), dyn_vars)
-      if current_transform_number():
+      if not dyn_vars.is_first_stack():
         return rets[1]
   dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, out = _get_while_transform(cond_fun, body_fun, dyn_vars)(operands)
