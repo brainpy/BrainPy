@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from unittest import TestCase
-from absl.testing import absltest
 import jax.numpy as jnp
-import brainpy.math as bm
+from absl.testing import absltest
 from absl.testing import parameterized
+
 import brainpy as bp
 import brainpy.math as bm
 
 
 class TestConv(parameterized.TestCase):
   def test_Conv2D_img(self):
-    bm.random.seed()
     img = jnp.zeros((2, 200, 198, 4))
     for k in range(4):
       x = 30 + 60 * k
@@ -24,6 +22,7 @@ class TestConv(parameterized.TestCase):
                              strides=(2, 1), padding='VALID', groups=4)
       out = net(img)
       print("out shape: ", out.shape)
+      self.assertEqual(out.shape, (2, 99, 196, 32))
       # print("First output channel:")
       # plt.figure(figsize=(10, 10))
       # plt.imshow(np.array(img)[0, :, :, 0])
@@ -31,7 +30,6 @@ class TestConv(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   def test_conv1D(self):
-    bm.random.seed()
     with bp.math.training_environment():
       model = bp.layers.Conv1d(in_channels=3, out_channels=32, kernel_size=(3,))
 
@@ -39,6 +37,7 @@ class TestConv(parameterized.TestCase):
 
       out = model(input)
       print("out shape: ", out.shape)
+      self.assertEqual(out.shape, (2, 5, 32))
       # print("First output channel:")
       # plt.figure(figsize=(10, 10))
       # plt.imshow(np.array(out)[0, :, :])
@@ -54,6 +53,7 @@ class TestConv(parameterized.TestCase):
 
       out = model(input)
       print("out shape: ", out.shape)
+      self.assertEqual(out.shape, (2, 5, 5, 32))
       # print("First output channel:")
       # plt.figure(figsize=(10, 10))
       # plt.imshow(np.array(out)[0, :, :, 31])
@@ -67,6 +67,7 @@ class TestConv(parameterized.TestCase):
       input = bp.math.ones((2, 5, 5, 5, 3))
       out = model(input)
       print("out shape: ", out.shape)
+      self.assertEqual(out.shape, (2, 5, 5, 5, 32))
     bm.clear_buffer_memory()
 
 
