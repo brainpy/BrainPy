@@ -169,9 +169,9 @@ def _partial_fun2(
 
   @wraps(fun)
   def new_fun(*dynargs, **dynkwargs):
-    return fun(*[dynargs[dyn_arg_ids[i]] if i in dyn_arg_ids else static_args[i]
-                 for i in range(num_args)],
-               **static_kwargs, **dynkwargs)
+    return fun(*[dynargs[dyn_arg_ids[id_]] if id_ in dyn_arg_ids else static_args[id_] for id_ in range(num_args)],
+               **static_kwargs,
+               **dynkwargs)
 
   return new_fun, dyn_args, dyn_kwargs
 
@@ -197,23 +197,21 @@ def eval_shape(
   """
   # reorganize the function
   if len(static_argnums) or len(static_argnames):
-    f2, args, kwargs = _partial_fun2(fun, args, kwargs,
-                                     static_argnums=static_argnums,
-                                     static_argnames=static_argnames)
+    f2, args, kwargs = _partial_fun2(fun, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
   else:
-    f2, args, kwargs = fun, args, kwargs
+    f2 = fun
 
   # evaluate the function
   fun_in_eval_shape.append(fun)
   try:
-    with VariableStack() as stack:
-      if len(fun_in_eval_shape) > 1:
-        returns = f2(*args, **kwargs)
-      else:
-        returns = jax.eval_shape(f2, *args, **kwargs)
+    if len(fun_in_eval_shape) > 1:
+      returns = f2(*args, **kwargs)
+    else:
+      returns = jax.eval_shape(f2, *args, **kwargs)
+      pass
   finally:
     fun_in_eval_shape.pop()
-  return stack, returns
+  return returns
 
 
 def eval_shape_of_multi_funcs(
@@ -226,7 +224,7 @@ def eval_shape_of_multi_funcs(
   """Compute the shape/dtype of ``funs`` without any FLOPs.
 
   Args:
-    fun: The callable function.
+    funs: A set of callable functions.
     *args: The positional arguments.
     **kwargs: The keyword arguments.
     static_argnums: The static argument indices.
@@ -235,9 +233,9 @@ def eval_shape_of_multi_funcs(
   Returns:
     The variable stack and the functional returns.
   """
-  stack, returns = VariableStack(), []
-  for fun in funs:
-    st, ret = eval_shape(fun, *args, static_argnums=static_argnums, static_argnames=static_argnames, **kwargs)
-    stack += st
+  returns = []
+  with VariableStack() as stack:
+    for fun in funs:
+      ret = eval_shape(fun, *args, static_argnums=static_argnums, static_argnames=static_argnames, **kwargs)
     returns.append(ret)
   return stack, returns

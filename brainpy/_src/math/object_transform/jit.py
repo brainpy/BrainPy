@@ -19,6 +19,7 @@ from .tools import (dynvar_deprecation,
                     node_deprecation,
                     eval_shape)
 from .variables import (Variable,
+                        VariableStack,
                         current_transform_number,
                         new_transform)
 from ..ndarray import Array
@@ -146,11 +147,12 @@ class JITTransform(ObjectTransform):
 
   def _get_transform(self, *args, **kwargs):
     with new_transform(self):
-      self._dyn_vars, rets = eval_shape(self.fun,
-                                        *args,
-                                        static_argnums=self._static_argnums,
-                                        static_argnames=self._static_argnames,
-                                        **kwargs)
+      with VariableStack() as self._dyn_vars:
+        rets = eval_shape(self.fun,
+                          *args,
+                          static_argnums=self._static_argnums,
+                          static_argnames=self._static_argnames,
+                          **kwargs)
       # in_shardings
       if self._in_shardings is None:
         in_shardings = None
@@ -467,7 +469,8 @@ def _make_jit_fun(
     cache = get_stack_cache(hash_v)  # TODO: better cache mechanism
     if cache is None:
       fun2 = partial(fun, self)
-      stack, _ = eval_shape(fun2, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
+      with VariableStack() as stack:
+        _ = eval_shape(fun2, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
       _transform = jax.jit(
         _make_transform(fun2, stack),
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),

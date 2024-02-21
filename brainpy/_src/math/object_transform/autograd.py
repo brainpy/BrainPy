@@ -205,11 +205,12 @@ class GradientTransform(ObjectTransform):
       stack = get_stack_cache(self.target)
       if stack is None:
         with new_transform(self):
-          stack, rets = eval_shape(self._transform,
-                                   [v.value for v in self._grad_vars],  # variables for gradients
-                                   self._dyn_vars.dict_data(),  # dynamical variables
-                                   *args,
-                                   **kwargs)
+          with VariableStack() as stack:
+            rets = eval_shape(self._transform,
+                              [v.value for v in self._grad_vars],  # variables for gradients
+                              {},  # dynamical variables
+                              *args,
+                              **kwargs)
           cache_stack(self.target, stack)
 
         self._dyn_vars = stack

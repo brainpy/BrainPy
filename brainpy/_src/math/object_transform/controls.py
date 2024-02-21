@@ -882,7 +882,8 @@ def for_loop(
       with new_transform('for_loop'):
         transform = _get_for_loop_transform(body_fun, VariableStack(), bar, progress_bar,
                                             remat, reverse, unroll, unroll_kwargs)
-        dyn_vars, rets = eval_shape(transform, operands)
+        with VariableStack() as dyn_vars:
+          rets = eval_shape(transform, operands)
       cache_stack((body_fun, unroll_kwargs), dyn_vars)  # cache
       if current_transform_number():
         return rets[1]
@@ -1006,7 +1007,8 @@ def scan(
     if dyn_vars is None:
       with new_transform('scan'):
         transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
-        dyn_vars, rets = eval_shape(transform, init, operands)
+        with VariableStack() as dyn_vars:
+          rets = eval_shape(transform, init, operands)
       cache_stack(body_fun, dyn_vars)  # cache
       if current_transform_number():
         return rets[0][1], rets[1]
