@@ -17,8 +17,7 @@ from .base import BrainPyObject, ObjectTransform
 from .naming import get_stack_cache, cache_stack
 from .tools import (dynvar_deprecation,
                     node_deprecation,
-                    eval_shape,
-                    _partial_fun)
+                    eval_shape)
 from .variables import (Variable,
                         current_transform_number,
                         new_transform)
@@ -468,12 +467,7 @@ def _make_jit_fun(
     cache = get_stack_cache(hash_v)  # TODO: better cache mechanism
     if cache is None:
       fun2 = partial(fun, self)
-      if len(static_argnums) or len(static_argnames):
-        fun3, args_, kwargs_ = _partial_fun(fun2, args, kwargs, static_argnums, static_argnames)
-      else:
-        args_, kwargs_, fun3 = args, kwargs, fun2
-      stack, _ = eval_shape(fun3, *args_, **kwargs_)
-      del args_, kwargs_
+      stack, _ = eval_shape(fun2, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
       _transform = jax.jit(
         _make_transform(fun2, stack),
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),

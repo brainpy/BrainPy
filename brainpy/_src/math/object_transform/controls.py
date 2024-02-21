@@ -23,7 +23,6 @@ from .naming import (
 from .tools import (
   eval_shape,
   eval_shape_of_multi_funcs,
-  evaluate_dyn_vars,
   dynvar_deprecation,
   node_deprecation,
   abstract

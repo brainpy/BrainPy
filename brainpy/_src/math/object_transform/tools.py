@@ -132,6 +132,50 @@ def evaluate_dyn_vars_with_cache(
   return stack
 
 
+def _partial_fun2(
+    fun: Callable,
+    args: tuple,
+    kwargs: dict,
+    static_argnums: Sequence[int] = (),
+    static_argnames: Sequence[str] = ()
+):
+  num_args = len(args)
+
+  # arguments
+  static_args = dict()
+  dyn_args = []
+  dyn_arg_ids = dict()
+  static_argnums = list(static_argnums)
+  dyn_i = 0
+  for i in range(num_args):
+    if i in static_argnums:
+      static_argnums.remove(i)
+      static_args[i] = args[i]
+    else:
+      dyn_args.append(args[i])
+      dyn_arg_ids[i] = dyn_i
+      dyn_i += 1
+  if len(static_argnums) > 0:
+    raise ValueError(f"Invalid static_argnums: {static_argnums}")
+
+  # keyword arguments
+  static_kwargs, dyn_kwargs = {}, {}
+  for k, arg in kwargs.items():
+    if k in static_argnames:
+      static_kwargs[k] = arg
+    else:
+      dyn_kwargs[k] = arg
+  del args, kwargs, static_argnums, static_argnames
+
+  @wraps(fun)
+  def new_fun(*dynargs, **dynkwargs):
+    return fun(*[dynargs[dyn_arg_ids[i]] if i in dyn_arg_ids else static_args[i]
+                 for i in range(num_args)],
+               **static_kwargs, **dynkwargs)
+
+  return new_fun, dyn_args, dyn_kwargs
+
+
 def eval_shape(
     fun: Callable,
     *args,
@@ -153,9 +197,9 @@ def eval_shape(
   """
   # reorganize the function
   if len(static_argnums) or len(static_argnames):
-    f2, args, kwargs = _partial_fun(fun, args, kwargs,
-                                    static_argnums=static_argnums,
-                                    static_argnames=static_argnames)
+    f2, args, kwargs = _partial_fun2(fun, args, kwargs,
+                                     static_argnums=static_argnums,
+                                     static_argnames=static_argnames)
   else:
     f2, args, kwargs = fun, args, kwargs
 
@@ -164,9 +208,9 @@ def eval_shape(
   try:
     with VariableStack() as stack:
       if len(fun_in_eval_shape) > 1:
-        returns = fun(*args, **kwargs)
+        returns = f2(*args, **kwargs)
       else:
-        returns = jax.eval_shape(fun, *args, **kwargs)
+        returns = jax.eval_shape(f2, *args, **kwargs)
   finally:
     fun_in_eval_shape.pop()
   return stack, returns
