@@ -143,8 +143,8 @@ def eval_shape(
 
   Args:
     fun: The callable function.
-    *args:
-    **kwargs:
+    *args: The positional arguments.
+    **kwargs: The keyword arguments.
     static_argnums: The static argument indices.
     static_argnames: The static argument names.
 
@@ -162,12 +162,38 @@ def eval_shape(
   # evaluate the function
   fun_in_eval_shape.append(fun)
   try:
-    with jax.ensure_compile_time_eval():
-      with VariableStack() as stack:
-        if len(fun_in_eval_shape) > 1:
-          returns = fun(*args, **kwargs)
-        else:
-          returns = jax.eval_shape(fun, *args, **kwargs)
+    with VariableStack() as stack:
+      if len(fun_in_eval_shape) > 1:
+        returns = fun(*args, **kwargs)
+      else:
+        returns = jax.eval_shape(fun, *args, **kwargs)
   finally:
     fun_in_eval_shape.pop()
+  return stack, returns
+
+
+def eval_shape_of_multi_funcs(
+    funs: Sequence[Callable],
+    *args,
+    static_argnums: Sequence[int] = (),
+    static_argnames: Sequence[str] = (),
+    **kwargs
+):
+  """Compute the shape/dtype of ``funs`` without any FLOPs.
+
+  Args:
+    fun: The callable function.
+    *args: The positional arguments.
+    **kwargs: The keyword arguments.
+    static_argnums: The static argument indices.
+    static_argnames: The static argument names.
+
+  Returns:
+    The variable stack and the functional returns.
+  """
+  stack, returns = VariableStack(), []
+  for fun in funs:
+    st, ret = eval_shape(fun, *args, static_argnums=static_argnums, static_argnames=static_argnames, **kwargs)
+    stack += st
+    returns.append(ret)
   return stack, returns

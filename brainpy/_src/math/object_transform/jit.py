@@ -11,23 +11,18 @@ from functools import partial, wraps
 from typing import Callable, Union, Optional, Sequence, Dict, Any, Iterable
 
 import jax
-from jax.sharding import Sharding
 
 from brainpy import tools, check
-from .tools import (dynvar_deprecation,
-                    node_deprecation,
-                    evaluate_dyn_vars_with_cache,
-                    evaluate_dyn_vars,
-                    _partial_fun)
 from .base import BrainPyObject, ObjectTransform
 from .naming import get_stack_cache, cache_stack
-from ..ndarray import Array
+from .tools import (dynvar_deprecation,
+                    node_deprecation,
+                    eval_shape,
+                    _partial_fun)
 from .variables import (Variable,
-                        VariableStack,
-                        outermost_transform,
-                        transform_stack,
                         current_transform_number,
                         new_transform)
+from ..ndarray import Array
 
 RandomState = None
 
@@ -152,15 +147,11 @@ class JITTransform(ObjectTransform):
 
   def _get_transform(self, *args, **kwargs):
     with new_transform(self):
-      self._dyn_vars, rets = evaluate_dyn_vars(
-        self.fun,
-        *args,
-        static_argnums=self._static_argnums,
-        static_argnames=self._static_argnames,
-        use_eval_shape=current_transform_number() <= 1,
-        **kwargs
-      )
-
+      self._dyn_vars, rets = eval_shape(self.fun,
+                                        *args,
+                                        static_argnums=self._static_argnums,
+                                        static_argnames=self._static_argnames,
+                                        **kwargs)
       # in_shardings
       if self._in_shardings is None:
         in_shardings = None
@@ -477,15 +468,12 @@ def _make_jit_fun(
     cache = get_stack_cache(hash_v)  # TODO: better cache mechanism
     if cache is None:
       fun2 = partial(fun, self)
-
-      with jax.ensure_compile_time_eval():
-        if len(static_argnums) or len(static_argnames):
-          fun3, args_, kwargs_ = _partial_fun(fun2, args, kwargs, static_argnums, static_argnames)
-        else:
-          args_, kwargs_, fun3 = args, kwargs, fun2
-        with VariableStack() as stack:
-          _ = jax.eval_shape(fun3, *args_, **kwargs_)
-        del args_, kwargs_
+      if len(static_argnums) or len(static_argnames):
+        fun3, args_, kwargs_ = _partial_fun(fun2, args, kwargs, static_argnums, static_argnames)
+      else:
+        args_, kwargs_, fun3 = args, kwargs, fun2
+      stack, _ = eval_shape(fun3, *args_, **kwargs_)
+      del args_, kwargs_
       _transform = jax.jit(
         _make_transform(fun2, stack),
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),
