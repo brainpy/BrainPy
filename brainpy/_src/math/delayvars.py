@@ -473,7 +473,7 @@ class LengthDelay(AbstractDelay):
 
     elif self.update_method == CONCAT_UPDATE:
       if self.num_delay_step >= 2:
-        self.data.value = concatenate([expand_dims(value, 0), self.data[1:]], axis=0)
+        self.data.value = concatenate([expand_dims(value, 0), self.data[:-1]], axis=0)
       else:
         self.data[:] = value
 
