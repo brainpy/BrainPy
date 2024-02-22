@@ -545,7 +545,7 @@ def cond(
         _ = eval_shape_with_context(false_fun, *operands)
         cache_stack((true_fun, false_fun), dyn_vars)
       if not dyn_vars.is_first_stack():
-        return rets[0]
+        return rets
   dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
   for k in dyn_values.keys():
