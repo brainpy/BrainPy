@@ -1,25 +1,18 @@
 # -*- coding: utf-8 -*-
 
 
-from functools import partial
 from typing import Union, Tuple
 
-import jax
-import numba
-import numpy as np
 import brainpy.math as bm
-from jax import core, dtypes
+import jax
 from jax import numpy as jnp
-from jax.interpreters import ad, mlir, xla
-from jax.lib import xla_client
 from jax.experimental.sparse import csr
-from jaxlib import gpu_sparse
+from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_brainpylib_gpu_ops, import_taichi
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
-                                           register_general_batching,
+from brainpy._src.math.op_register import (register_general_batching,
                                            XLACustomOp)
 from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy.errors import PackageMissingError
@@ -78,6 +71,7 @@ def csrmv(
     the matrix vector product.
   """
   return csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)
+
 
 ### TAICHI ###
 
@@ -145,6 +139,7 @@ def csrmv_taichi(
 
   return raw_csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)[0]
 
+
 def raw_csrmv_taichi(
     data: Union[float, jnp.ndarray, Array],
     indices: Union[jnp.ndarray, Array],
@@ -155,7 +150,7 @@ def raw_csrmv_taichi(
     transpose: bool = False,
 ):
   if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
+    raise PackageMissingError(name='taichi', purpose='customized operators')
   out_shape = shape[1] if transpose else shape[0]
   if data.shape[0] != 1:
     if bm.get_platform() == 'gpu':
@@ -200,10 +195,10 @@ if ti is not None:
 
   @ti.kernel
   def _sparse_csr_matvec_transpose_heter_cpu(values: ti.types.ndarray(ndim=1),
-                                            col_indices: ti.types.ndarray(ndim=1),
-                                            row_ptr: ti.types.ndarray(ndim=1),
-                                            vector: ti.types.ndarray(ndim=1),
-                                            out: ti.types.ndarray(ndim=1)):
+                                             col_indices: ti.types.ndarray(ndim=1),
+                                             row_ptr: ti.types.ndarray(ndim=1),
+                                             vector: ti.types.ndarray(ndim=1),
+                                             out: ti.types.ndarray(ndim=1)):
     ti.loop_config(serialize=True)
     for row_i in range(row_ptr.shape[0] - 1):
       for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
@@ -227,10 +222,10 @@ if ti is not None:
 
   @ti.kernel
   def _sparse_csr_matvec_heter_cpu(values: ti.types.ndarray(ndim=1),
-                                  col_indices: ti.types.ndarray(ndim=1),
-                                  row_ptr: ti.types.ndarray(ndim=1),
-                                  vector: ti.types.ndarray(ndim=1),
-                                  out: ti.types.ndarray(ndim=1)):
+                                   col_indices: ti.types.ndarray(ndim=1),
+                                   row_ptr: ti.types.ndarray(ndim=1),
+                                   vector: ti.types.ndarray(ndim=1),
+                                   out: ti.types.ndarray(ndim=1)):
     # ti.loop_config(serialize=True)
     for row_i in range(row_ptr.shape[0] - 1):
       r = 0.
@@ -242,7 +237,6 @@ if ti is not None:
   # -------------
   # GPU operators
   # -------------
-
 
   @ti.kernel
   def _sparse_csr_matvec_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
@@ -282,10 +276,10 @@ if ti is not None:
 
   @ti.kernel
   def _sparse_csr_matvec_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
-                                            col_indices: ti.types.ndarray(ndim=1),
-                                            row_ptr: ti.types.ndarray(ndim=1),
-                                            vector: ti.types.ndarray(ndim=1),
-                                            out: ti.types.ndarray(ndim=1)):
+                                             col_indices: ti.types.ndarray(ndim=1),
+                                             row_ptr: ti.types.ndarray(ndim=1),
+                                             vector: ti.types.ndarray(ndim=1),
+                                             out: ti.types.ndarray(ndim=1)):
     for i in range((row_ptr.shape[0] - 1) * 32):
       row_i = i >> 5
       index = i & 31
@@ -298,10 +292,10 @@ if ti is not None:
 
   @ti.kernel
   def _sparse_csr_matvec_heter_gpu(values: ti.types.ndarray(ndim=1),
-                                  col_indices: ti.types.ndarray(ndim=1),
-                                  row_ptr: ti.types.ndarray(ndim=1),
-                                  vector: ti.types.ndarray(ndim=1),
-                                  out: ti.types.ndarray(ndim=1)):
+                                   col_indices: ti.types.ndarray(ndim=1),
+                                   row_ptr: ti.types.ndarray(ndim=1),
+                                   vector: ti.types.ndarray(ndim=1),
+                                   out: ti.types.ndarray(ndim=1)):
     for i in range((row_ptr.shape[0] - 1) * 32):
       row_i = i >> 5
       index = i & 31
@@ -362,11 +356,11 @@ if ti is not None:
 
   # transpose heter
   _csr_matvec_transpose_heter_p = _define_op(cpu_kernel=_sparse_csr_matvec_transpose_heter_cpu,
-                                            gpu_kernel=_sparse_csr_matvec_transpose_heter_gpu)
+                                             gpu_kernel=_sparse_csr_matvec_transpose_heter_gpu)
 
   # no transpose heter
   _csr_matvec_heter_p = _define_op(cpu_kernel=_sparse_csr_matvec_heter_cpu,
-                                  gpu_kernel=_sparse_csr_matvec_heter_gpu)
+                                   gpu_kernel=_sparse_csr_matvec_heter_gpu)
 
   # heter cusparse
   _csr_matvec_cusparse_p = csr.csr_matvec_p

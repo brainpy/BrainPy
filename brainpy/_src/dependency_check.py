@@ -4,6 +4,9 @@ from jax.lib import xla_client
 
 __all__ = [
   'import_taichi',
+  'import_taichi_else_None',
+  'import_numba',
+  'import_numba_else_None',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
 ]
@@ -12,6 +15,7 @@ _minimal_brainpylib_version = '0.1.10'
 _minimal_taichi_version = (1, 7, 0)
 
 taichi = None
+numba = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
@@ -37,6 +41,46 @@ def import_taichi():
   if taichi.__version__ != _minimal_taichi_version:
     raise RuntimeError(taichi_install_info)
   return taichi
+
+
+def import_taichi_else_None():
+  global taichi
+  if taichi is None:
+    with open(os.devnull, 'w') as devnull:
+      old_stdout = sys.stdout
+      sys.stdout = devnull
+      try:
+        import taichi as taichi  # noqa
+      except:
+        return None
+      finally:
+        sys.stdout = old_stdout
+
+  if taichi.__version__ != _minimal_taichi_version:
+    raise RuntimeError(taichi_install_info)
+  return taichi
+
+
+def import_numba():
+  global numba
+  if numba is None:
+    try:
+      import numba as numba
+    except ModuleNotFoundError:
+      raise ModuleNotFoundError('We need numba. Please install numba by pip . \n'
+                                '> pip install numba'
+                                )
+  return numba
+
+
+def import_numba_else_None():
+  global numba
+  if numba is None:
+    try:
+      import numba as numba
+    except:
+      return None
+  return numba
 
 
 def is_brainpylib_gpu_installed():
