@@ -22,7 +22,6 @@ from .naming import (
 )
 from .tools import (
   eval_shape,
-  eval_shape_with_context,
   dynvar_deprecation,
   node_deprecation,
   abstract
@@ -540,8 +539,8 @@ def cond(
   dyn_vars = get_stack_cache((true_fun, false_fun))
   if not jax.config.jax_disable_jit and dyn_vars is None:
     with VariableStack() as dyn_vars:
-      rets = eval_shape_with_context(true_fun, *operands)
-      _ = eval_shape_with_context(false_fun, *operands)
+      rets = eval_shape(true_fun, *operands, with_stack=True)[1]
+      _ = eval_shape(false_fun, *operands, with_stack=True)
       cache_stack((true_fun, false_fun), dyn_vars)
     if not dyn_vars.is_first_stack():
       return rets
@@ -676,7 +675,7 @@ def ifelse(
       dyn_vars = get_stack_cache(tuple(branches))
       if dyn_vars is None:
         with VariableStack() as dyn_vars:
-          rets = [eval_shape_with_context(fun, *operands) for fun in branches]
+          rets = [eval_shape(fun, *operands, with_stack=True)[1] for fun in branches]
           trees = [jax.tree_util.tree_structure(ret) for ret in rets]
           if not _all_equal(trees):
             msg = 'All returns in branches should have the same tree structure. But we got:\n'
@@ -1109,7 +1108,6 @@ def while_loop(
        No longer need to provide ``child_objs``. This function is capable of automatically
        collecting the children objects used in the target ``func``.
 
-
   """
   dynvar_deprecation(dyn_vars)
   node_deprecation(child_objs)
@@ -1120,8 +1118,8 @@ def while_loop(
   stack = get_stack_cache((body_fun, cond_fun))
   if not jax.config.jax_disable_jit and stack is None:
     with VariableStack() as stack:
-      _ = eval_shape_with_context(cond_fun, *operands)
-      rets = eval_shape_with_context(body_fun, *operands)
+      _ = eval_shape(cond_fun, *operands, with_stack=True)
+      rets = eval_shape(body_fun, *operands, with_stack=True)[1]
       cache_stack((body_fun, cond_fun), stack)
     if not stack.is_first_stack():
       return rets

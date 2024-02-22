@@ -181,6 +181,7 @@ def eval_shape(
     *args,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
+    with_stack: bool = False,
     **kwargs
 ):
   """Compute the shape/dtype of ``fun`` without any FLOPs.
@@ -189,6 +190,7 @@ def eval_shape(
     fun: The callable function.
     *args: The positional arguments.
     **kwargs: The keyword arguments.
+    with_stack: Whether evaluate the function within a local variable stack.
     static_argnums: The static argument indices.
     static_argnames: The static argument names.
 
@@ -204,40 +206,22 @@ def eval_shape(
   # evaluate the function
   fun_in_eval_shape.append(fun)
   try:
-    if len(fun_in_eval_shape) > 1:
-      returns = f2(*args, **kwargs)
+    if with_stack:
+      with VariableStack() as stack:
+        if len(fun_in_eval_shape) > 1:
+          returns = f2(*args, **kwargs)
+        else:
+          returns = jax.eval_shape(f2, *args, **kwargs)
     else:
-      returns = jax.eval_shape(f2, *args, **kwargs)
+      stack = None
+      if len(fun_in_eval_shape) > 1:
+        returns = f2(*args, **kwargs)
+      else:
+        returns = jax.eval_shape(f2, *args, **kwargs)
   finally:
     fun_in_eval_shape.pop()
     del f2
-  return returns
-
-
-def eval_shape_with_context(
-    fun: Callable,
-    *args,
-    static_argnums: Sequence[int] = (),
-    static_argnames: Sequence[str] = (),
-    return_context: bool = False,
-    **kwargs
-):
-  """Compute the shape/dtype of ``fun`` without any FLOPs.
-
-  Args:
-    fun: The callable function.
-    *args: The positional arguments.
-    **kwargs: The keyword arguments.
-    static_argnums: The static argument indices.
-    static_argnames: The static argument names.
-    return_context: Whether to return the variable stack.
-
-  Returns:
-    The variable stack and the functional returns.
-  """
-  with VariableStack() as stack:
-    returns = eval_shape(fun, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
-  if return_context:
+  if with_stack:
     return stack, returns
   else:
     return returns
