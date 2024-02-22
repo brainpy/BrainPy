@@ -538,14 +538,13 @@ def cond(
   node_deprecation(child_objs)
 
   dyn_vars = get_stack_cache((true_fun, false_fun))
-  if not jax.config.jax_disable_jit:
-    if dyn_vars is None:
-      with VariableStack() as dyn_vars:
-        rets = eval_shape_with_context(true_fun, *operands)
-        _ = eval_shape_with_context(false_fun, *operands)
-        cache_stack((true_fun, false_fun), dyn_vars)
-      if not dyn_vars.is_first_stack():
-        return rets
+  if not jax.config.jax_disable_jit and dyn_vars is None:
+    with VariableStack() as dyn_vars:
+      rets = eval_shape_with_context(true_fun, *operands)
+      _ = eval_shape_with_context(false_fun, *operands)
+      cache_stack((true_fun, false_fun), dyn_vars)
+    if not dyn_vars.is_first_stack():
+      return rets
   dyn_vars = VariableStack() if dyn_vars is None else dyn_vars
   dyn_values, res = _get_cond_transform(dyn_vars, pred, true_fun, false_fun)(operands)
   for k in dyn_values.keys():
@@ -998,15 +997,14 @@ def scan(
     bar = tqdm(total=num_total)
 
   stack = get_stack_cache(body_fun)
-  if not jax.config.jax_disable_jit:
-    if stack is None:
-      transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
-      with VariableStack() as stack:
-        rets = eval_shape(transform, init, operands)
-      cache_stack(body_fun, stack)  # cache
-      if not stack.is_first_stack():
-        return rets[0][1], rets[1]
-      del rets
+  if not jax.config.jax_disable_jit and stack is None:
+    transform = _get_scan_transform(body_fun, VariableStack(), bar, progress_bar, remat, reverse, unroll)
+    with VariableStack() as stack:
+      rets = eval_shape(transform, init, operands)
+    cache_stack(body_fun, stack)  # cache
+    if not stack.is_first_stack():
+      return rets[0][1], rets[1]
+    del rets
 
   stack = VariableStack() if stack is None else stack
   transform = _get_scan_transform(body_fun, stack, bar, progress_bar, remat, reverse, unroll)
@@ -1120,14 +1118,13 @@ def while_loop(
     operands = (operands,)
 
   stack = get_stack_cache((body_fun, cond_fun))
-  if not jax.config.jax_disable_jit:
-    if stack is None:
-      with VariableStack() as stack:
-        _ = eval_shape_with_context(cond_fun, *operands)
-        rets = eval_shape_with_context(body_fun, *operands)
-        cache_stack((body_fun, cond_fun), stack)
-      if not stack.is_first_stack():
-        return rets
+  if not jax.config.jax_disable_jit and stack is None:
+    with VariableStack() as stack:
+      _ = eval_shape_with_context(cond_fun, *operands)
+      rets = eval_shape_with_context(body_fun, *operands)
+      cache_stack((body_fun, cond_fun), stack)
+    if not stack.is_first_stack():
+      return rets
   stack = VariableStack() if stack is None else stack
   dyn_values, out = _get_while_transform(cond_fun, body_fun, stack)(operands)
   for k, v in stack.items():
