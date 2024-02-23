@@ -13,7 +13,7 @@ from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
-from brainpy._src.dependency_check import import_numba_else_None, import_taichi, import_numba
+from brainpy._src.dependency_check import import_numba, import_taichi, check_numba_func, check_taichi_func
 from brainpy.check import is_initializer
 from brainpy.connect import csr2csc
 from brainpy.errors import MathError
@@ -21,7 +21,7 @@ from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 
 ti = import_taichi(error_if_not_found=False)
-numba = import_numba_else_None()
+numba = import_numba(error_if_not_found=False)
 
 __all__ = [
   'Dense', 'Linear',
@@ -269,7 +269,7 @@ if ti is not None:
           elif new_value > w_max0:
             out_w[i, j] = w_max0
           else:
-              out_w[i, j] = new_value
+            out_w[i, j] = new_value
 
 
   @ti.kernel
@@ -294,12 +294,13 @@ if ti is not None:
             out_w[i, j] = w_max0
           else:
             out_w[i, j] = new_value
-  
+
 
   dense_on_pre_prim = bm.XLACustomOp(cpu_kernel=_cpu_dense_on_pre,
                                      gpu_kernel=_gpu_dense_on_pre)
 
 
+@check_taichi_func
 def dense_on_pre(weight, spike, trace, w_min, w_max):
   if w_min is None:
     w_min = -np.inf
@@ -308,8 +309,6 @@ def dense_on_pre(weight, spike, trace, w_min, w_max):
   trace = jnp.atleast_1d(trace)
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
-  if dense_on_pre_prim is None:
-    import_taichi()
   return dense_on_pre_prim(weight, spike, trace, w_min, w_max,
                            outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
 
@@ -346,6 +345,7 @@ if ti is not None:
           else:
             out_w[j, i] = new_value
 
+
   @ti.kernel
   def _gpu_dense_on_post(weight: ti.types.ndarray(ndim=2),
                          spike: ti.types.ndarray(ndim=1),
@@ -369,10 +369,12 @@ if ti is not None:
           else:
             out_w[j, i] = new_value
 
+
   dense_on_post_prim = bm.XLACustomOp(cpu_kernel=_cpu_dense_on_post,
                                       gpu_kernel=_gpu_dense_on_post)
 
 
+@check_taichi_func
 def dense_on_post(weight, spike, trace, w_min, w_max):
   if w_min is None:
     w_min = -np.inf
@@ -638,7 +640,7 @@ class _CSRLayer(Layer, SupportSTDP):
       raise ValueError(f'The shape of weight should be the same as the shape of sparse weight {self.weight.shape}.')
     if not isinstance(self.weight, bm.Variable):
       self.tracing_variable('weight', self.weight, self.weight.shape)
-    if on_pre is not None:   # update on presynaptic spike
+    if on_pre is not None:  # update on presynaptic spike
       spike = on_pre['spike']
       trace = on_pre['trace']
       self.weight.value = csr_on_pre_update(self.weight.value, self.indices, self.indptr, spike, trace, w_min, w_max)
@@ -703,6 +705,7 @@ class CSRLinear(_CSRLayer):
     return bm.sparse.csrmv(self.weight, self.indices, self.indptr, x,
                            shape=(self.conn.pre_num, self.conn.post_num), transpose=self.transpose)
 
+
 class EventCSRLinear(_CSRLayer):
   r"""Synaptic matrix multiplication with event CSR sparse computation.
 
@@ -752,6 +755,7 @@ class EventCSRLinear(_CSRLayer):
                           shape=(self.conn.pre_num, self.conn.post_num),
                           transpose=self.transpose)
 
+
 # @numba.njit(nogil=True, fastmath=True, parallel=False)
 # def _cpu_csr_on_pre_update(w, indices, indptr, spike, trace, w_min, w_max, out_w):
 #   out_w[:] = w
@@ -785,6 +789,8 @@ if ti is not None:
         for k in range(indptr[i], indptr[i + 1]):
           j = indices[k]
           out_w[k] = min(max(out_w[k] + trace[j], w_min0), w_max0)
+
+
   @ti.kernel
   def _gpu_csr_on_pre_update(w: ti.types.ndarray(ndim=1),
                              indices: ti.types.ndarray(ndim=1),
@@ -810,6 +816,7 @@ if ti is not None:
                                           gpu_kernel=_gpu_csr_on_pre_update)
 
 
+@check_taichi_func
 def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
   if w_min is None:
     w_min = -np.inf
@@ -822,6 +829,7 @@ def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
     import_taichi()
   return csr_on_pre_update_prim(w, indices, indptr, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
+
 
 csc_on_pre_update_prim = None
 if numba is not None:
@@ -841,16 +849,14 @@ if numba is not None:
   csc_on_pre_update_prim = bm.XLACustomOp(_cpu_csc_on_pre_update)
 
 
+@check_numba_func
 def csc_on_post_update(w, post_ids, indptr, w_ids, spike, trace, w_min=None, w_max=None):
   if w_min is None:
     w_min = -np.inf
   if w_max is None:
     w_max = np.inf
-  if csc_on_pre_update_prim is None:
-    import_numba()
   return csc_on_pre_update_prim(w, post_ids, indptr, w_ids, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
-
 
 
 class CSCLinear(Layer):

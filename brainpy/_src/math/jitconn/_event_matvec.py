@@ -6,7 +6,7 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from brainpy._src.dependency_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, check_taichi_func
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.jitconn._matvec import (mv_prob_homo,
                                                mv_prob_uniform,
@@ -30,7 +30,7 @@ __all__ = [
   'event_mv_prob_normal',
 ]
 
-
+@check_taichi_func
 def event_mv_prob_homo(
     events: jax.Array,
     weight: float,
@@ -49,7 +49,7 @@ def event_mv_prob_homo(
 
 event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
 
-
+@check_taichi_func
 def event_mv_prob_uniform(
     events: jax.Array,
     w_low: float,
@@ -69,7 +69,7 @@ def event_mv_prob_uniform(
 
 event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
 
-
+@check_taichi_func
 def event_mv_prob_normal(
     events: jax.Array,
     w_mu: float,

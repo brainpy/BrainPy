@@ -17,7 +17,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, check_taichi_func
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.sparse._csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
@@ -30,7 +30,7 @@ __all__ = [
 
 ti = import_taichi(error_if_not_found=False)
 
-
+@check_taichi_func
 def csrmv(
     data: Union[float, jax.Array],
     indices: jax.Array,

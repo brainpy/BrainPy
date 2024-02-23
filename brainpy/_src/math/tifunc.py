@@ -1,50 +1,26 @@
-from brainpy._src.dependency_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, raise_taichi_not_found
 from . import defaults
 
 ti = import_taichi(error_if_not_found=False)
 
+__all__ = [
+  # taichi function for other utilities
+  'warp_reduce_sum',
+
+  # taichi functions for random number generator with LFSR88 algorithm
+  'lfsr88_key', 'lfsr88_next_key', 'lfsr88_normal', 'lfsr88_randn',
+  'lfsr88_random_integers', 'lfsr88_randint', 'lfsr88_uniform', 'lfsr88_rand',
+
+  # taichi functions for random number generator with LFSR113 algorithm
+  'lfsr113_key', 'lfsr113_next_key', 'lfsr113_normal', 'lfsr113_randn',
+  'lfsr113_random_integers', 'lfsr113_randint', 'lfsr113_uniform', 'lfsr113_rand',
+]
+
 if ti is not None:
-
-  __all__ = [
-    # taichi function for other utilities
-    'warp_reduce_sum',
-
-    # taichi functions for random number generator with LFSR88 algorithm
-    'lfsr88_key', 'lfsr88_next_key', 'lfsr88_normal', 'lfsr88_randn',
-    'lfsr88_random_integers', 'lfsr88_randint', 'lfsr88_uniform', 'lfsr88_rand',
-
-    # taichi functions for random number generator with LFSR113 algorithm
-    'lfsr113_key', 'lfsr113_next_key', 'lfsr113_normal', 'lfsr113_randn',
-    'lfsr113_random_integers', 'lfsr113_randint', 'lfsr113_uniform', 'lfsr113_rand',
-  ]
-
-
-  @ti.func
-  def _lcg_rand(state: ti.types.ndarray(ndim=1)):
-    # LCG constants
-    state[0] = ti.u32(1664525) * state[0] + ti.u32(1013904223)
-    return state[0]
-
-
-  @ti.func
-  def taichi_lcg_rand(seed: ti.types.ndarray(ndim=1)):
-    """
-    Generate a random number using the Taichi LCG algorithm.
-
-    Parameters:
-      seed (ti.types.ndarray): The seed value for the random number generator.
-
-    Returns:
-      float: A random number between 0 and 1.
-    """
-
-    return float(_lcg_rand(seed)) / ti.u32(2 ** 32 - 1)
-
 
   #############################################
   # Random Number Generator: LFSR88 algorithm #
   #############################################
-
 
   @ti.func
   def lfsr88_key(seed: ti.u32) -> ti.types.vector(4, ti.u32):
@@ -185,7 +161,6 @@ if ti is not None:
   ##############################################
   # Random Number Generator: LFSR113 algorithm #
   ##############################################
-
 
   @ti.func
   def lfsr113_key(seed: ti.u32) -> ti.types.vector(4, ti.u32):
@@ -333,7 +308,6 @@ if ti is not None:
   # Reductions: warp reduce #
   ###########################
 
-
   @ti.func
   def warp_reduce_sum_all(val):
     """
@@ -367,4 +341,5 @@ if ti is not None:
 
 
 else:
-  __all__ = []
+  for func in __all__:
+    globals()[func] = raise_taichi_not_found

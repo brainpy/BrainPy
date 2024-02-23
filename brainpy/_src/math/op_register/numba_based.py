@@ -6,15 +6,18 @@ from functools import partial
 from jax.interpreters import xla, mlir
 from jax.lib import xla_client
 from jaxlib.hlo_helpers import custom_call
-from numba import types, carray, cfunc
 
 from .utils import _shape_to_layout
+from brainpy._src.dependency_check import import_numba, check_numba_func
+
+numba = import_numba(error_if_not_found=False)
+if numba is not None:
+  from numba import types, carray, cfunc
 
 __all__ = [
   'register_numba_xla_cpu_translation_rule',
   'register_numba_mlir_cpu_translation_rule',
 ]
-
 
 #                                         [void* pointer,
 #                                          const char *name,
@@ -102,6 +105,7 @@ def _numba_xla_cpu_translation_rule(kernel, debug: bool, c, *ins, **kwargs):
   )
 
 
+@check_numba_func
 def register_numba_xla_cpu_translation_rule(primitive, cpu_kernel, debug=False):
   # do not support after jax >= 0.4.24
   xla.backend_specific_translations['cpu'][primitive] = partial(_numba_xla_cpu_translation_rule,
@@ -166,6 +170,7 @@ def numba_cpu_custom_call_target(output_ptrs, input_ptrs):
   ).results
 
 
+@check_numba_func
 def register_numba_mlir_cpu_translation_rule(primitive, cpu_kernel, debug=False):
   rule = partial(_numba_mlir_cpu_translation_rule, cpu_kernel, debug)
   mlir.register_lowering(primitive, rule, platform='cpu')

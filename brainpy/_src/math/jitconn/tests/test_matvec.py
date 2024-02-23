@@ -9,7 +9,7 @@ import pytest
 import brainpy.math as bm
 from brainpy._src.dependency_check import import_taichi
 
-if import_taichi() is None:
+if import_taichi(error_if_not_found=False) is None:
   pytest.skip('no taichi', allow_module_level=True)
 
 shapes = [(100, 200), (10, 1000), (2, 1000), (1000, 10), (1000, 2)]

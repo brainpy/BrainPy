@@ -1,3 +1,4 @@
+import functools
 import os
 import sys
 
@@ -5,8 +6,13 @@ from jax.lib import xla_client
 
 __all__ = [
   'import_taichi',
+  'raise_taichi_not_found',
+  'check_taichi_func',
+  'check_taichi_class',
   'import_numba',
-  'import_numba_else_None',
+  'raise_numba_not_found',
+  'check_numba_func',
+  'check_numba_class',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
 ]
@@ -22,6 +28,9 @@ brainpylib_gpu_ops = None
 taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
                        f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
                        '> pip install taichi==1.7.0')
+numba_install_info = ('We need numba. Please install numba by pip . \n'
+                      '> pip install numba'
+                      )
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
@@ -35,7 +44,7 @@ def import_taichi(error_if_not_found=True):
         import taichi as taichi  # noqa
       except ModuleNotFoundError:
         if error_if_not_found:
-          raise ModuleNotFoundError(taichi_install_info)
+          raise raise_taichi_not_found()
       finally:
         sys.stdout = old_stdout
 
@@ -46,44 +55,65 @@ def import_taichi(error_if_not_found=True):
   return taichi
 
 
-def import_taichi_else_None():
-  global taichi
-  if taichi is None:
-    with open(os.devnull, 'w') as devnull:
-      old_stdout = sys.stdout
-      sys.stdout = devnull
-      try:
-        import taichi as taichi  # noqa
-      except:
-        return None
-      finally:
-        sys.stdout = old_stdout
-
-  if taichi.__version__ != _minimal_taichi_version:
-    raise RuntimeError(taichi_install_info)
-  return taichi
+def raise_taichi_not_found():
+  raise ModuleNotFoundError(taichi_install_info)
 
 
-def import_numba():
+def check_taichi_func(func):
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if taichi is None:
+      raise_taichi_not_found()
+    return func(*args, **kwargs)
+
+  return wrapper
+
+
+def check_taichi_class(cls):
+  class Wrapper(cls):
+    def __init__(self, *args, **kwargs):
+      if taichi is None:
+        raise_taichi_not_found()
+      super().__init__(*args, **kwargs)
+
+  return Wrapper
+
+
+def import_numba(error_if_not_found=True):
   global numba
   if numba is None:
     try:
       import numba as numba
     except ModuleNotFoundError:
-      raise ModuleNotFoundError('We need numba. Please install numba by pip . \n'
-                                '> pip install numba'
-                                )
+      if error_if_not_found:
+        raise_numba_not_found()
+      else:
+        return None
   return numba
 
 
-def import_numba_else_None():
-  global numba
-  if numba is None:
-    try:
-      import numba as numba
-    except:
-      return None
-  return numba
+def raise_numba_not_found():
+  raise ModuleNotFoundError(numba_install_info)
+
+
+def check_numba_func(func):
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if numba is None:
+      raise_numba_not_found()
+    return func(*args, **kwargs)
+
+  return wrapper
+
+
+def check_numba_class(cls):
+  class Wrapper(cls):
+    def __init__(self, *args, **kwargs):
+      if numba is None:
+        raise_numba_not_found()
+      super().__init__(*args, **kwargs)
+
+  return Wrapper
 
 
 def is_brainpylib_gpu_installed():

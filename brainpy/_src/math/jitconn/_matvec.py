@@ -8,7 +8,7 @@ import numpy as np
 from jax import numpy as jnp
 from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, check_taichi_func
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
@@ -23,6 +23,48 @@ __all__ = [
 ]
 
 
+def _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
+  if vector.ndim != 1:
+    raise ValueError('vector should be a 1D vector.')
+  if len(shape) != 2:
+    raise ValueError('shape should be a length-2 tuple.')
+  if seed.ndim != 1:
+    raise ValueError('seed must be a 1D scalar.')
+  if clen.ndim != 1:
+    raise ValueError('conn_prob must be a 1D scalar.')
+
+  assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+
+  for weight in weights:
+    if weight.ndim != 1:
+      raise ValueError('weight must be a 1D scalar.')
+    assert _get_dtype(weight) in [jnp.float16, jnp.float32, jnp.float64], '"weight" must be float valued.'
+
+  if not isinstance(outdim_parallel, bool):
+    raise ValueError('outdim_parallel must be boolean value.')
+  if not isinstance(transpose, bool):
+    raise ValueError('transpose must be boolean value.')
+
+  if transpose:
+    out_shape = (shape[1],)
+    if vector.shape[0] != shape[0]:
+      raise ValueError(f'Shape mismatch, vec {vector.shape} @ mat {shape}.')
+    shape = _reverse(shape)
+  else:
+    if vector.shape[0] != shape[1]:
+      raise ValueError(f'Shape mismatch, mat {shape} @ vec ({vector.shape[0]},).')
+    out_shape = (shape[0],)
+
+  return shape, out_shape
+
+
+def _non_event_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
+  assert _get_dtype(vector) in [jnp.float16, jnp.float32, jnp.float64]
+  return _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights)
+
+
+@check_taichi_func
 def mv_prob_homo(
     vector: Union[Array, jax.Array],
     weight: float,
@@ -85,6 +127,7 @@ def mv_prob_homo(
                              outdim_parallel=outdim_parallel)
 
 
+@check_taichi_func
 def mv_prob_uniform(
     vector: jax.Array,
     w_low: float,
@@ -150,6 +193,7 @@ def mv_prob_uniform(
                                 outdim_parallel=outdim_parallel)
 
 
+@check_taichi_func
 def mv_prob_normal(
     vector: jax.Array,
     w_mu: float,
@@ -456,12 +500,157 @@ def mv_prob_normal_taichi(
                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
+def raw_mv_prob_homo(
+    vector: jax.Array,
+    weight: jax.Array,  # vector with size 1
+    clen: jax.Array,  # vector with size 1
+    seed: jax.Array,  # vector with size 1
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False,
+    outdim_parallel: bool = True,
+) -> jax.Array:
+  mat_shape, out_shape = _non_event_checking(vector, clen, seed, shape, outdim_parallel, transpose, weight)
+
+  if outdim_parallel:
+    prim = _mv_prob_homo_outdim_parallel_p
+  else:
+    prim = _mv_prob_homo_p
+
+  return prim(vector,
+              weight,
+              clen,
+              seed,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
+              shape=mat_shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel)
+
+
+def raw_mv_prob_uniform(
+    vector: jax.Array,
+    w_low: jax.Array,
+    w_high: jax.Array,
+    conn_len: jax.Array,
+    seed: jax.Array,
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False,
+    outdim_parallel: bool = True,
+) -> jax.Array:
+  mat_shape, out_shape = _non_event_checking(vector, conn_len, seed, shape, outdim_parallel, transpose, w_low, w_high)
+
+  if outdim_parallel:
+    prim = _mv_prob_uniform_outdim_parallel_p
+  else:
+    prim = _mv_prob_uniform_p
+
+  return prim(vector,
+              w_low,
+              w_high,
+              conn_len,
+              seed,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
+              shape=mat_shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel)
+
+
+def raw_mv_prob_normal(
+    vector: jax.Array,
+    w_mu: jax.Array,
+    w_sigma: jax.Array,
+    conn_len: jax.Array,
+    seed: jax.Array,
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False,
+    outdim_parallel: bool = True,
+) -> jax.Array:
+  mat_shape, out_shape = _non_event_checking(vector, conn_len, seed, shape, outdim_parallel, transpose, w_mu, w_sigma)
+
+  if outdim_parallel:
+    prim = _mv_prob_normal_outdim_parallel_p
+  else:
+    prim = _mv_prob_normal_p
+
+  return prim(vector,
+              w_mu,
+              w_sigma,
+              conn_len,
+              seed,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
+              shape=mat_shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel)
+
+
+def _mv_prob_homo_transpose(
+    ct, vector, weight, clen, seed, *, outs, shape, transpose, outdim_parallel
+):
+  shape = _reverse(shape) if transpose else shape
+  if ad.is_undefined_primal(vector):
+    if type(ct) is ad.Zero:
+      return ad.Zero(vector), weight, clen, seed
+    else:
+      dv = raw_mv_prob_homo(ct[0], weight, clen, seed, shape=shape,
+                            transpose=not transpose, outdim_parallel=not outdim_parallel)[0]
+      return dv, weight, clen, seed
+  elif ad.is_undefined_primal(weight):
+    if type(ct) is ad.Zero:
+      return vector, ad.Zero(weight), clen, seed
+    else:
+      row = raw_mv_prob_homo(ct[0], jnp.ones(1, dtype=ct[0].dtype), clen, seed,
+                             shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)[0]
+      dw = jnp.sum(row * vector, keepdims=True)
+      return vector, dw, clen, seed
+  else:
+    assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
+    assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
+
+
+def _mv_prob_uniform_transpose(
+    ct, vector, w_low, w_high, clen, seed, *, outs, shape, transpose, outdim_parallel
+):
+  shape = _reverse(shape) if transpose else shape
+  if ad.is_undefined_primal(vector):
+    if type(ct) is ad.Zero:
+      return ad.Zero(vector), w_low, w_high, clen, seed
+    else:
+      dv = raw_mv_prob_uniform(ct[0], w_low, w_high, clen, seed, shape=shape,
+                               transpose=not transpose, outdim_parallel=not outdim_parallel)[0]
+      return dv, w_low, w_high, clen, seed
+  else:
+    assert type(w_low) is not ad.UndefinedPrimal, 'Cannot differentiate through w_low.'
+    assert type(w_high) is not ad.UndefinedPrimal, 'Cannot differentiate through w_high.'
+    assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
+    assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
+
+
+def _mv_prob_normal_transpose(
+    ct, vector, w_mu, w_sigma, clen, seed, *, outs, shape, transpose, outdim_parallel
+):
+  shape = _reverse(shape) if transpose else shape
+  if ad.is_undefined_primal(vector):
+    if type(ct) is ad.Zero:
+      return ad.Zero(vector), w_mu, w_sigma, clen, seed
+    else:
+      dv = raw_mv_prob_normal(ct[0], w_mu, w_sigma, clen, seed, shape=shape,
+                              transpose=not transpose, outdim_parallel=not outdim_parallel)[0]
+      return dv, w_mu, w_sigma, clen, seed
+  else:
+    assert type(w_mu) is not ad.UndefinedPrimal, 'Cannot differentiate through w_mu.'
+    assert type(w_sigma) is not ad.UndefinedPrimal, 'Cannot differentiate through w_sigma.'
+    assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
+    assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
+
 def _reverse(shape):
   return shape[::-1]
 
 
 if ti is not None:
   from brainpy._src.math.tifunc import (lfsr88_key, lfsr88_random_integers, lfsr88_uniform, lfsr88_normal)
+
 
   @ti.kernel
   def _mv_prob_homo_cpu(
@@ -575,104 +764,17 @@ if ti is not None:
 
   def _mv_prob_homo_jvp_vector(v_dot, vector, weight, clen, seed, *, outs, shape, transpose, outdim_parallel):
     shape = _reverse(shape) if transpose else shape
-    return raw_mv_prob_homo(v_dot, weight, clen, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    return raw_mv_prob_homo(v_dot, weight, clen, seed, shape=shape, transpose=transpose,
+                            outdim_parallel=outdim_parallel)
 
 
   def _mv_prob_homo_jvp_weight(w_dot, vector, weight, clen, seed, *, outs, shape, transpose, outdim_parallel):
     shape = _reverse(shape) if transpose else shape
-    return raw_mv_prob_homo(vector, w_dot, clen, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    return raw_mv_prob_homo(vector, w_dot, clen, seed, shape=shape, transpose=transpose,
+                            outdim_parallel=outdim_parallel)
 
 
-  def _mv_prob_homo_transpose(
-      ct, vector, weight, clen, seed, *, outs, shape, transpose, outdim_parallel
-  ):
-    shape = _reverse(shape) if transpose else shape
-    if ad.is_undefined_primal(vector):
-      if type(ct) is ad.Zero:
-        return ad.Zero(vector), weight, clen, seed
-      else:
-        dv = raw_mv_prob_homo(ct[0], weight, clen, seed, shape=shape,
-                              transpose=not transpose, outdim_parallel=not outdim_parallel)[0]
-        return dv, weight, clen, seed
-    elif ad.is_undefined_primal(weight):
-      if type(ct) is ad.Zero:
-        return vector, ad.Zero(weight), clen, seed
-      else:
-        row = raw_mv_prob_homo(ct[0], jnp.ones(1, dtype=ct[0].dtype), clen, seed,
-                               shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)[0]
-        dw = jnp.sum(row * vector, keepdims=True)
-        return vector, dw, clen, seed
-    else:
-      assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
-      assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
 
-
-  def _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
-    if vector.ndim != 1:
-      raise ValueError('vector should be a 1D vector.')
-    if len(shape) != 2:
-      raise ValueError('shape should be a length-2 tuple.')
-    if seed.ndim != 1:
-      raise ValueError('seed must be a 1D scalar.')
-    if clen.ndim != 1:
-      raise ValueError('conn_prob must be a 1D scalar.')
-
-    assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-    assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-
-    for weight in weights:
-      if weight.ndim != 1:
-        raise ValueError('weight must be a 1D scalar.')
-      assert _get_dtype(weight) in [jnp.float16, jnp.float32, jnp.float64], '"weight" must be float valued.'
-
-    if not isinstance(outdim_parallel, bool):
-      raise ValueError('outdim_parallel must be boolean value.')
-    if not isinstance(transpose, bool):
-      raise ValueError('transpose must be boolean value.')
-
-    if transpose:
-      out_shape = (shape[1],)
-      if vector.shape[0] != shape[0]:
-        raise ValueError(f'Shape mismatch, vec {vector.shape} @ mat {shape}.')
-      shape = _reverse(shape)
-    else:
-      if vector.shape[0] != shape[1]:
-        raise ValueError(f'Shape mismatch, mat {shape} @ vec ({vector.shape[0]},).')
-      out_shape = (shape[0],)
-
-    return shape, out_shape
-
-
-  def _non_event_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
-    assert _get_dtype(vector) in [jnp.float16, jnp.float32, jnp.float64]
-    return _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights)
-
-
-  def raw_mv_prob_homo(
-      vector: jax.Array,
-      weight: jax.Array,  # vector with size 1
-      clen: jax.Array,  # vector with size 1
-      seed: jax.Array,  # vector with size 1
-      *,
-      shape: Tuple[int, int],
-      transpose: bool = False,
-      outdim_parallel: bool = True,
-  ) -> jax.Array:
-    mat_shape, out_shape = _non_event_checking(vector, clen, seed, shape, outdim_parallel, transpose, weight)
-
-    if outdim_parallel:
-      prim = _mv_prob_homo_outdim_parallel_p
-    else:
-      prim = _mv_prob_homo_p
-
-    return prim(vector,
-                weight,
-                clen,
-                seed,
-                outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
-                shape=mat_shape,
-                transpose=transpose,
-                outdim_parallel=outdim_parallel)
 
 
   def _define_mv_prob_homo_prim(cpu_kernel, gpu_kernel):
@@ -834,51 +936,7 @@ if ti is not None:
                                transpose=transpose, outdim_parallel=outdim_parallel)
 
 
-  def _mv_prob_uniform_transpose(
-      ct, vector, w_low, w_high, clen, seed, *, outs, shape, transpose, outdim_parallel
-  ):
-    shape = _reverse(shape) if transpose else shape
-    if ad.is_undefined_primal(vector):
-      if type(ct) is ad.Zero:
-        return ad.Zero(vector), w_low, w_high, clen, seed
-      else:
-        dv = raw_mv_prob_uniform(ct[0], w_low, w_high, clen, seed, shape=shape,
-                                 transpose=not transpose, outdim_parallel=not outdim_parallel)[0]
-        return dv, w_low, w_high, clen, seed
-    else:
-      assert type(w_low) is not ad.UndefinedPrimal, 'Cannot differentiate through w_low.'
-      assert type(w_high) is not ad.UndefinedPrimal, 'Cannot differentiate through w_high.'
-      assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
-      assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
 
-
-  def raw_mv_prob_uniform(
-      vector: jax.Array,
-      w_low: jax.Array,
-      w_high: jax.Array,
-      conn_len: jax.Array,
-      seed: jax.Array,
-      *,
-      shape: Tuple[int, int],
-      transpose: bool = False,
-      outdim_parallel: bool = True,
-  ) -> jax.Array:
-    mat_shape, out_shape = _non_event_checking(vector, conn_len, seed, shape, outdim_parallel, transpose, w_low, w_high)
-
-    if outdim_parallel:
-      prim = _mv_prob_uniform_outdim_parallel_p
-    else:
-      prim = _mv_prob_uniform_p
-
-    return prim(vector,
-                w_low,
-                w_high,
-                conn_len,
-                seed,
-                outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
-                shape=mat_shape,
-                transpose=transpose,
-                outdim_parallel=outdim_parallel)
 
 
   def _define_mv_prob_uniform_prim(cpu_kernel, gpu_kernel):
@@ -1045,51 +1103,7 @@ if ti is not None:
                               transpose=transpose, outdim_parallel=outdim_parallel)
 
 
-  def _mv_prob_normal_transpose(
-      ct, vector, w_mu, w_sigma, clen, seed, *, outs, shape, transpose, outdim_parallel
-  ):
-    shape = _reverse(shape) if transpose else shape
-    if ad.is_undefined_primal(vector):
-      if type(ct) is ad.Zero:
-        return ad.Zero(vector), w_mu, w_sigma, clen, seed
-      else:
-        dv = raw_mv_prob_normal(ct[0], w_mu, w_sigma, clen, seed, shape=shape,
-                                transpose=not transpose, outdim_parallel=not outdim_parallel)[0]
-        return dv, w_mu, w_sigma, clen, seed
-    else:
-      assert type(w_mu) is not ad.UndefinedPrimal, 'Cannot differentiate through w_mu.'
-      assert type(w_sigma) is not ad.UndefinedPrimal, 'Cannot differentiate through w_sigma.'
-      assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
-      assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
 
-
-  def raw_mv_prob_normal(
-      vector: jax.Array,
-      w_mu: jax.Array,
-      w_sigma: jax.Array,
-      conn_len: jax.Array,
-      seed: jax.Array,
-      *,
-      shape: Tuple[int, int],
-      transpose: bool = False,
-      outdim_parallel: bool = True,
-  ) -> jax.Array:
-    mat_shape, out_shape = _non_event_checking(vector, conn_len, seed, shape, outdim_parallel, transpose, w_mu, w_sigma)
-
-    if outdim_parallel:
-      prim = _mv_prob_normal_outdim_parallel_p
-    else:
-      prim = _mv_prob_normal_p
-
-    return prim(vector,
-                w_mu,
-                w_sigma,
-                conn_len,
-                seed,
-                outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
-                shape=mat_shape,
-                transpose=transpose,
-                outdim_parallel=outdim_parallel)
 
 
   def _define_mv_prob_normal_prim(cpu_kernel, gpu_kernel):

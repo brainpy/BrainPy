@@ -3,7 +3,11 @@ import jax
 import jax.numpy as jnp
 import platform
 import pytest
-import taichi
+
+from brainpy._src.dependency_check import import_taichi
+ti = import_taichi(error_if_not_found=False)
+if ti is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 if not platform.platform().startswith('Windows'):
   pytest.skip(allow_module_level=True)

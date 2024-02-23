@@ -9,10 +9,10 @@ import brainpy.math as bm
 from brainpy.errors import ConnectorError
 from brainpy.tools import numba_seed, numba_jit, numba_range, format_seed
 from brainpy._src.tools.package import SUPPORT_NUMBA
-from brainpy._src.dependency_check import import_numba_else_None
+from brainpy._src.dependency_check import import_numba
 from .base import *
 
-numba = import_numba_else_None()
+numba = import_numba(error_if_not_found=False)
 
 __all__ = [
   'FixedProb',
@@ -1350,13 +1350,13 @@ class ProbDist(TwoEndConnector):
     else:
       if numba is None:
         if n_dim == 1:
-          f = self._connect_1d_jit
+          f = self._connect_1d
         elif n_dim == 2:
-          f = self._connect_2d_jit
+          f = self._connect_2d
         elif n_dim == 3:
-          f = self._connect_3d_jit
+          f = self._connect_3d
         elif n_dim == 4:
-          f = self._connect_4d_jit
+          f = self._connect_4d
         else:
           raise NotImplementedError('Does not support the network dimension bigger than 4.')
       else:

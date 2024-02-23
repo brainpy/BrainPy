@@ -1,7 +1,12 @@
+import pytest
 import brainpy.math as bm
 from absl.testing import parameterized
 from absl.testing import absltest
 import brainpy as bp
+
+from brainpy._src.dependency_check import import_taichi
+if import_taichi(error_if_not_found=False) is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 
 class Test_Conv(parameterized.TestCase):

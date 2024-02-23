@@ -4,8 +4,9 @@ from typing import Callable, Sequence, Tuple, Protocol, Optional
 import jax
 import numpy as np
 from jax.interpreters import xla, batching, ad, mlir
-from numba.core.dispatcher import Dispatcher
 
+
+from brainpy._src.dependency_check import import_numba, check_numba_class, check_taichi_class
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
 
@@ -19,6 +20,10 @@ else:
                                  register_taichi_aot_xla_gpu_translation_rule as register_taichi_gpu_translation_rule)
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
+
+numba = import_numba(error_if_not_found=False)
+if numba is not None:
+  from numba.core.dispatcher import Dispatcher
 
 __all__ = [
   'XLACustomOp',
@@ -35,7 +40,8 @@ class ShapeDtype(Protocol):
   def dtype(self) -> np.dtype:
     ...
 
-
+@check_numba_class
+@check_taichi_class
 class XLACustomOp(BrainPyObject):
   """Creating a XLA custom call operator.
 
