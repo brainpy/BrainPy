@@ -1,13 +1,18 @@
+import pytest
 from typing import Tuple
 
 import jax
-import numba
 from jax import core
 from jax import numpy as jnp
 from jax.interpreters import ad
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy._src.dependency_check import import_numba
+
+numba = import_numba(error_if_not_found=False)
+if numba is None:
+  pytest.skip('no numba', allow_module_level=True)
 
 bm.set_platform('cpu')
 

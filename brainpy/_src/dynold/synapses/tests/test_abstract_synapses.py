@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 
-
+import pytest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
 from brainpy._src.dynold.synapses import abstract_models
+from brainpy._src.dependency_check import import_taichi
+
+if import_taichi(error_if_not_found=False) is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 
 class Test_Abstract_Synapse(parameterized.TestCase):
@@ -31,7 +35,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
 
     expected_shape = (100, 5)
     if isinstance(mode, bm.BatchingMode):
-      expected_shape = (mode.batch_size, ) + expected_shape
+      expected_shape = (mode.batch_size,) + expected_shape
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
@@ -59,7 +63,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
 
     expected_shape = (100, 5)
     if isinstance(mode, bm.BatchingMode):
-      expected_shape = (mode.batch_size, ) + expected_shape
+      expected_shape = (mode.batch_size,) + expected_shape
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
@@ -88,7 +92,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
 
     expected_shape = (100, 5)
     if isinstance(mode, bm.BatchingMode):
-      expected_shape = (mode.batch_size, ) + expected_shape
+      expected_shape = (mode.batch_size,) + expected_shape
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)

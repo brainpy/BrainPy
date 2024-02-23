@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 
-import warnings
 from functools import partial
 from typing import Callable
 from typing import Union, Sequence
 
-import numba
 import jax
 from jax.interpreters import xla, batching, ad
 from jax.tree_util import tree_map
-from numba.core.dispatcher import Dispatcher
 
+from brainpy._src.dependency_check import import_numba, check_numba_func, check_numba_class
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
+
+numba = import_numba(error_if_not_found=False)
+
 from .cpu_translation import _cpu_translation, compile_cpu_signature_with_numba
+
+if numba is not None:
+  from numba.core.dispatcher import Dispatcher
 
 __all__ = [
   'CustomOpByNumba',
@@ -22,6 +26,7 @@ __all__ = [
 ]
 
 
+@check_numba_class
 class CustomOpByNumba(BrainPyObject):
   """Creating a XLA custom call operator with Numba JIT on CPU backend.
 
@@ -83,6 +88,7 @@ class CustomOpByNumba(BrainPyObject):
     return res
 
 
+@check_numba_func
 def register_op_with_numba(
     op_name: str,
     cpu_func: Callable,
@@ -196,5 +202,3 @@ def register_op_with_numba(
     ad.primitive_transposes[prim] = transpose_translation
 
   return prim
-
-

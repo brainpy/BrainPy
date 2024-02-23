@@ -38,7 +38,16 @@ class AnalyzerError(BrainPyError):
 class PackageMissingError(BrainPyError):
   """The package missing error.
   """
-  pass
+
+  def __init__(self, name: str = None, purpose: str = None):
+
+    if name is None:
+      super().__init__()
+    else:
+      assert purpose, '"purpose" cannot be None when "name" is provided.'
+      msg = (f'"{name}" must be installed when the user wants to use {purpose}. \n'
+             f'Please install through "pip install {name}".')
+      super().__init__(msg)
 
 
 class BackendNotInstalled(BrainPyError):
@@ -236,9 +245,5 @@ Please install brainpylib GPU operators with linux + CUDA environment.
     ''')
 
 
-
-
 class SharedArgError(BrainPyError):
   pass
-
-

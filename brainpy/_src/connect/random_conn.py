@@ -4,13 +4,15 @@ from typing import Optional
 
 from jax import vmap, jit, numpy as jnp
 import numpy as np
-from numba import njit
 
 import brainpy.math as bm
 from brainpy.errors import ConnectorError
 from brainpy.tools import numba_seed, numba_jit, numba_range, format_seed
 from brainpy._src.tools.package import SUPPORT_NUMBA
+from brainpy._src.dependency_check import import_numba
 from .base import *
+
+numba = import_numba(error_if_not_found=False)
 
 __all__ = [
   'FixedProb',
@@ -343,12 +345,14 @@ class FixedPostNum(FixedNum):
     selected_pre_inptr = jnp.cumsum(jnp.concatenate([jnp.zeros(1), pre_nums]))
     return selected_post_ids.astype(get_idx_type()), selected_pre_inptr.astype(get_idx_type())
 
+
 @jit
 @partial(vmap, in_axes=(0, None, None))
 def gaussian_prob_dist_cal1(i_value, post_values, sigma):
   dists = jnp.abs(i_value - post_values)
   exp_dists = jnp.exp(-(jnp.sqrt(jnp.sum(dists ** 2, axis=0)) / sigma) ** 2 / 2)
   return bm.asarray(exp_dists)
+
 
 @jit
 @partial(vmap, in_axes=(0, None, None, None))
@@ -1119,29 +1123,117 @@ class ProbDist(TwoEndConnector):
     #           size += 1
     #   return all_pre_ids[:size], all_post_ids[:size]  # Return filled part of the arrays
 
-    @njit
-    def _connect_1d_jit(pre_pos, pre_size, post_size, n_dim):
-      all_post_ids = np.zeros(post_size[0], dtype=IDX_DTYPE)
-      all_pre_ids = np.zeros(post_size[0], dtype=IDX_DTYPE)
-      size = 0
+    if numba is not None:
+      from numba import njit
+      @njit
+      def _connect_1d_jit(pre_pos, pre_size, post_size, n_dim):
+        all_post_ids = np.zeros(post_size[0], dtype=IDX_DTYPE)
+        all_pre_ids = np.zeros(post_size[0], dtype=IDX_DTYPE)
+        size = 0
 
-      if rng.random() < pre_ratio:
-        normalized_pos = np.zeros(n_dim)
-        for i in range(n_dim):
-          pre_len = pre_size[i]
-          post_len = post_size[i]
-          normalized_pos[i] = pre_pos[i] * post_len / pre_len
-        for i in range(post_size[0]):
-          post_pos = np.asarray((i,))
-          d = np.abs(pre_pos[0] - post_pos[0])
-          if d <= dist:
-            if d == 0. and not include_self:
-              continue
-            if rng.random() <= prob:
-              all_post_ids[size] = pos2ind(post_pos, post_size)
-              all_pre_ids[size] = pos2ind(pre_pos, pre_size)
-              size += 1
-      return all_pre_ids[:size], all_post_ids[:size]
+        if rng.random() < pre_ratio:
+          normalized_pos = np.zeros(n_dim)
+          for i in range(n_dim):
+            pre_len = pre_size[i]
+            post_len = post_size[i]
+            normalized_pos[i] = pre_pos[i] * post_len / pre_len
+          for i in range(post_size[0]):
+            post_pos = np.asarray((i,))
+            d = np.abs(pre_pos[0] - post_pos[0])
+            if d <= dist:
+              if d == 0. and not include_self:
+                continue
+              if rng.random() <= prob:
+                all_post_ids[size] = pos2ind(post_pos, post_size)
+                all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                size += 1
+        return all_pre_ids[:size], all_post_ids[:size]
+
+      @njit
+      def _connect_2d_jit(pre_pos, pre_size, post_size, n_dim):
+        max_size = post_size[0] * post_size[1]
+        all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+        all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+        size = 0
+
+        if rng.random() < pre_ratio:
+          normalized_pos = np.zeros(n_dim)
+          for i in range(n_dim):
+            pre_len = pre_size[i]
+            post_len = post_size[i]
+            normalized_pos[i] = pre_pos[i] * post_len / pre_len
+          for i in range(post_size[0]):
+            for j in range(post_size[1]):
+              post_pos = np.asarray((i, j))
+              d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+              if d <= dist:
+                if d == 0. and not include_self:
+                  continue
+                if rng.random() <= prob:
+                  all_post_ids[size] = pos2ind(post_pos, post_size)
+                  all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                  size += 1
+        return all_pre_ids[:size], all_post_ids[:size]  # Return filled part of the arrays
+
+      @njit
+      def _connect_3d_jit(pre_pos, pre_size, post_size, n_dim):
+        max_size = post_size[0] * post_size[1] * post_size[2]
+        all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+        all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+        size = 0
+
+        if rng.random() < pre_ratio:
+          normalized_pos = np.zeros(n_dim)
+          for i in range(n_dim):
+            pre_len = pre_size[i]
+            post_len = post_size[i]
+            normalized_pos[i] = pre_pos[i] * post_len / pre_len
+          for i in range(post_size[0]):
+            for j in range(post_size[1]):
+              for k in range(post_size[2]):
+                post_pos = np.asarray((i, j, k))
+                d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+                if d <= dist:
+                  if d == 0. and not include_self:
+                    continue
+                  if rng.random() <= prob:
+                    all_post_ids[size] = pos2ind(post_pos, post_size)
+                    all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                    size += 1
+        return all_pre_ids[:size], all_post_ids[:size]
+
+      @njit
+      def _connect_4d_jit(pre_pos, pre_size, post_size, n_dim):
+        max_size = post_size[0] * post_size[1] * post_size[2] * post_size[3]
+        all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+        all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
+        size = 0
+
+        if rng.random() < pre_ratio:
+          normalized_pos = np.zeros(n_dim)
+          for i in range(n_dim):
+            pre_len = pre_size[i]
+            post_len = post_size[i]
+            normalized_pos[i] = pre_pos[i] * post_len / pre_len
+          for i in range(post_size[0]):
+            for j in range(post_size[1]):
+              for k in range(post_size[2]):
+                for l in range(post_size[3]):
+                  post_pos = np.asarray((i, j, k, l))
+                  d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
+                  if d <= dist:
+                    if d == 0. and not include_self:
+                      continue
+                    if rng.random() <= prob:
+                      all_post_ids[size] = pos2ind(post_pos, post_size)
+                      all_pre_ids[size] = pos2ind(pre_pos, pre_size)
+                      size += 1
+        return all_pre_ids[:size], all_post_ids[:size]
+
+      self._connect_1d_jit = _connect_1d_jit
+      self._connect_2d_jit = _connect_2d_jit
+      self._connect_3d_jit = _connect_3d_jit
+      self._connect_4d_jit = _connect_4d_jit
 
     def _connect_1d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
@@ -1162,32 +1254,6 @@ class ProbDist(TwoEndConnector):
               all_post_ids.append(pos2ind(post_pos, post_size))
               all_pre_ids.append(pos2ind(pre_pos, pre_size))
       return all_pre_ids, all_post_ids
-
-    @njit
-    def _connect_2d_jit(pre_pos, pre_size, post_size, n_dim):
-      max_size = post_size[0] * post_size[1]
-      all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
-      all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
-      size = 0
-
-      if rng.random() < pre_ratio:
-        normalized_pos = np.zeros(n_dim)
-        for i in range(n_dim):
-          pre_len = pre_size[i]
-          post_len = post_size[i]
-          normalized_pos[i] = pre_pos[i] * post_len / pre_len
-        for i in range(post_size[0]):
-          for j in range(post_size[1]):
-            post_pos = np.asarray((i, j))
-            d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
-            if d <= dist:
-              if d == 0. and not include_self:
-                continue
-              if rng.random() <= prob:
-                all_post_ids[size] = pos2ind(post_pos, post_size)
-                all_pre_ids[size] = pos2ind(pre_pos, pre_size)
-                size += 1
-      return all_pre_ids[:size], all_post_ids[:size]  # Return filled part of the arrays
 
     def _connect_2d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
@@ -1210,33 +1276,6 @@ class ProbDist(TwoEndConnector):
                 all_pre_ids.append(pos2ind(pre_pos, pre_size))
       return all_pre_ids, all_post_ids
 
-    @njit
-    def _connect_3d_jit(pre_pos, pre_size, post_size, n_dim):
-      max_size = post_size[0] * post_size[1] * post_size[2]
-      all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
-      all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
-      size = 0
-
-      if rng.random() < pre_ratio:
-        normalized_pos = np.zeros(n_dim)
-        for i in range(n_dim):
-          pre_len = pre_size[i]
-          post_len = post_size[i]
-          normalized_pos[i] = pre_pos[i] * post_len / pre_len
-        for i in range(post_size[0]):
-          for j in range(post_size[1]):
-            for k in range(post_size[2]):
-              post_pos = np.asarray((i, j, k))
-              d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
-              if d <= dist:
-                if d == 0. and not include_self:
-                  continue
-                if rng.random() <= prob:
-                  all_post_ids[size] = pos2ind(post_pos, post_size)
-                  all_pre_ids[size] = pos2ind(pre_pos, pre_size)
-                  size += 1
-      return all_pre_ids[:size], all_post_ids[:size]
-
     def _connect_3d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
       all_pre_ids = []
@@ -1258,34 +1297,6 @@ class ProbDist(TwoEndConnector):
                   all_post_ids.append(pos2ind(post_pos, post_size))
                   all_pre_ids.append(pos2ind(pre_pos, pre_size))
       return all_pre_ids, all_post_ids
-
-    @njit
-    def _connect_4d_jit(pre_pos, pre_size, post_size, n_dim):
-      max_size = post_size[0] * post_size[1] * post_size[2] * post_size[3]
-      all_post_ids = np.zeros(max_size, dtype=IDX_DTYPE)
-      all_pre_ids = np.zeros(max_size, dtype=IDX_DTYPE)
-      size = 0
-
-      if rng.random() < pre_ratio:
-        normalized_pos = np.zeros(n_dim)
-        for i in range(n_dim):
-          pre_len = pre_size[i]
-          post_len = post_size[i]
-          normalized_pos[i] = pre_pos[i] * post_len / pre_len
-        for i in range(post_size[0]):
-          for j in range(post_size[1]):
-            for k in range(post_size[2]):
-              for l in range(post_size[3]):
-                post_pos = np.asarray((i, j, k, l))
-                d = np.sqrt(np.sum(np.square(pre_pos - post_pos)))
-                if d <= dist:
-                  if d == 0. and not include_self:
-                    continue
-                  if rng.random() <= prob:
-                    all_post_ids[size] = pos2ind(post_pos, post_size)
-                    all_pre_ids[size] = pos2ind(pre_pos, pre_size)
-                    size += 1
-      return all_pre_ids[:size], all_post_ids[:size]
 
     def _connect_4d(pre_pos, pre_size, post_size, n_dim):
       all_post_ids = []
@@ -1315,12 +1326,6 @@ class ProbDist(TwoEndConnector):
     self._connect_3d = numba_jit(_connect_3d)
     self._connect_4d = numba_jit(_connect_4d)
 
-    self._connect_1d_jit = _connect_1d_jit
-    self._connect_2d_jit = _connect_2d_jit
-    self._connect_3d_jit = _connect_3d_jit
-    self._connect_4d_jit = _connect_4d_jit
-
-
   def build_coo(self, isOptimized=True):
     if len(self.pre_size) != len(self.post_size):
       raise ValueError('The dimensions of shapes of two objects to establish connections should '
@@ -1343,17 +1348,28 @@ class ProbDist(TwoEndConnector):
       else:
         raise NotImplementedError('Does not support the network dimension bigger than 4.')
     else:
-      if n_dim == 1:
-        f = self._connect_1d_jit
-      elif n_dim == 2:
-        f = self._connect_2d_jit
-      elif n_dim == 3:
-        f = self._connect_3d_jit
-      elif n_dim == 4:
-        f = self._connect_4d_jit
+      if numba is None:
+        if n_dim == 1:
+          f = self._connect_1d
+        elif n_dim == 2:
+          f = self._connect_2d
+        elif n_dim == 3:
+          f = self._connect_3d
+        elif n_dim == 4:
+          f = self._connect_4d
+        else:
+          raise NotImplementedError('Does not support the network dimension bigger than 4.')
       else:
-        raise NotImplementedError('Does not support the network dimension bigger than 4.')
-
+        if n_dim == 1:
+          f = self._connect_1d_jit
+        elif n_dim == 2:
+          f = self._connect_2d_jit
+        elif n_dim == 3:
+          f = self._connect_3d_jit
+        elif n_dim == 4:
+          f = self._connect_4d_jit
+        else:
+          raise NotImplementedError('Does not support the network dimension bigger than 4.')
 
 
     pre_size = np.asarray(self.pre_size)

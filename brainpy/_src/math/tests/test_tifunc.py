@@ -6,10 +6,14 @@ import pytest
 
 pytestmark = pytest.mark.skip(reason="Skipped due to MacOS limitation, manual execution required for testing.")
 import brainpy.math as bm
-import taichi as ti
 import matplotlib.pyplot as plt
 import os
 
+from brainpy._src.dependency_check import import_taichi
+
+ti = import_taichi(error_if_not_found=False)
+if ti is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 bm.set_platform('cpu')
 
@@ -67,7 +71,6 @@ def test_taichi_random():
 
   prim_lfsr88 = bm.XLACustomOp(cpu_kernel=test_taichi_lfsr88,
                                gpu_kernel=test_taichi_lfsr88)
-  
 
   prim_lcg_rand = bm.XLACustomOp(cpu_kernel=test_taichi_lcg_rand,
                                  gpu_kernel=test_taichi_lcg_rand)
@@ -117,6 +120,5 @@ def test_taichi_random():
   plt.title("Normal distribution mu=0, sigma=1")
   plt.hist(out, bins=100)
   plt.savefig(file_path + "/normal_distribution.png")
-
 
 # TODO; test default types
