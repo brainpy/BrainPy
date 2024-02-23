@@ -28,7 +28,7 @@ __all__ = [
   'csrmv'
 ]
 
-ti = import_taichi()
+ti = import_taichi(error_if_not_found=False)
 
 
 def csrmv(

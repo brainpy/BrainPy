@@ -1,7 +1,7 @@
-from brainpy._src.dependency_check import import_taichi_else_None
+from brainpy._src.dependency_check import import_taichi
 from . import defaults
 
-ti = import_taichi_else_None()
+ti = import_taichi(error_if_not_found=False)
 
 if ti is not None:
 

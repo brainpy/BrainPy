@@ -22,7 +22,7 @@ from brainpy._src.math.ndarray import _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy.errors import PackageMissingError
 
-ti = import_taichi()
+ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   'event_mv_prob_homo',

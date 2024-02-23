@@ -16,9 +16,9 @@ from jax.lib import xla_bridge
 from . import modes
 from . import scales
 from . import defaults
-from brainpy._src.dependency_check import import_taichi_else_None
+from brainpy._src.dependency_check import import_taichi
 
-ti = import_taichi_else_None()
+ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   # context manage for environment setting

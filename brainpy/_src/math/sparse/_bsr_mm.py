@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
-from typing import Union, Tuple
+from typing import Tuple
 
 import jax.lax
 import numba
@@ -11,8 +11,8 @@ from jax.core import Primitive, ShapedArray
 from jax.interpreters import ad, xla
 from jax.lib import xla_client
 
-from brainpy._src.math.interoperability import as_jax
 from brainpy._src.dependency_check import import_brainpylib_gpu_ops
+from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy.errors import GPUOperatorNotFound

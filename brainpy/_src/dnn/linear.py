@@ -13,14 +13,14 @@ from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
-from brainpy._src.dependency_check import import_taichi_else_None, import_numba_else_None, import_taichi, import_numba
+from brainpy._src.dependency_check import import_numba_else_None, import_taichi, import_numba
 from brainpy.check import is_initializer
 from brainpy.connect import csr2csc
 from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 
-ti = import_taichi_else_None()
+ti = import_taichi(error_if_not_found=False)
 numba = import_numba_else_None()
 
 __all__ = [

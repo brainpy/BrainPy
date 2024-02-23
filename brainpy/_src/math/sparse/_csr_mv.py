@@ -17,7 +17,7 @@ from brainpy._src.math.op_register import (register_general_batching,
 from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy.errors import PackageMissingError
 
-ti = import_taichi()
+ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   'csrmv',

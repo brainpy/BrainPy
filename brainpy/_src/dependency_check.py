@@ -1,10 +1,10 @@
 import os
 import sys
+
 from jax.lib import xla_client
 
 __all__ = [
   'import_taichi',
-  'import_taichi_else_None',
   'import_numba',
   'import_numba_else_None',
   'import_brainpylib_cpu_ops',
@@ -25,7 +25,7 @@ taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
-def import_taichi():
+def import_taichi(error_if_not_found=True):
   global taichi
   if taichi is None:
     with open(os.devnull, 'w') as devnull:
@@ -34,10 +34,13 @@ def import_taichi():
       try:
         import taichi as taichi  # noqa
       except ModuleNotFoundError:
-        raise ModuleNotFoundError(taichi_install_info)
+        if error_if_not_found:
+          raise ModuleNotFoundError(taichi_install_info)
       finally:
         sys.stdout = old_stdout
 
+  if taichi is None:
+    return None
   if taichi.__version__ != _minimal_taichi_version:
     raise RuntimeError(taichi_install_info)
   return taichi

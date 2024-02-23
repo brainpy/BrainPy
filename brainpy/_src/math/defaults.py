@@ -1,13 +1,13 @@
 import jax.numpy as jnp
 from jax import config
 
-from brainpy._src.dependency_check import import_taichi_else_None
+from brainpy._src.dependency_check import import_taichi
 from .modes import NonBatchingMode
 from .scales import IdScaling
 
 __all__ = ['mode', 'membrane_scaling', 'dt', 'bool_', 'int_', 'ti_int', 'float_', 'ti_float', 'complex_']
 
-ti = import_taichi_else_None()
+ti = import_taichi(error_if_not_found=False)
 
 # Default computation mode.
 mode = NonBatchingMode()
