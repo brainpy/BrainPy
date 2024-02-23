@@ -45,4 +45,9 @@ from brainpy._src.tools.install import (
 )
 
 
+from brainpy._src.tools.functions import (
+  compose as compose,
+  pipe as pipe,
+)
+
 

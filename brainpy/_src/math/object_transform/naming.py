@@ -41,7 +41,7 @@ def get_unique_name(type_: str):
   return name
 
 
-def clear_name_cache(ignore_warn=False):
+def clear_name_cache(ignore_warn=True):
   """Clear the cached names."""
   _name2id.clear()
   _typed_names.clear()
@@ -57,6 +57,7 @@ def cache_stack(func, stack):
 
 
 def clear_stack_cache():
+  """Clear the cached stack."""
   for k in tuple(_fun2stack.keys()):
     del _fun2stack[k]
 
