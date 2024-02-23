@@ -1,7 +1,8 @@
 import pytest
-import brainpy as bp
-from absl.testing import parameterized
 from absl.testing import absltest
+from absl.testing import parameterized
+
+import brainpy as bp
 import brainpy.math as bm
 
 from brainpy._src.dependency_check import import_taichi
