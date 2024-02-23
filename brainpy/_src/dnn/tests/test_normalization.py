@@ -1,8 +1,7 @@
-from absl.testing import absltest
-from absl.testing import parameterized
-
-import brainpy as bp
 import brainpy.math as bm
+from absl.testing import parameterized
+from absl.testing import absltest
+import brainpy as bp
 
 
 class Test_Normalization(parameterized.TestCase):
