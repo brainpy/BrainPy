@@ -792,13 +792,12 @@ def event_mv_prob_homo_taichi(
   """
   events = as_jax(events)
   if isinstance(weight, float): weight = as_jax(weight)
-  print(weight.shape)
-  print(weight)
+  if weight is None or (isinstance(weight, (np.ndarray, jnp.ndarray)) and not weight.size):
+    raise ValueError(f'Unexpected weight value or shape: {weight}')
   try:
     weight = jnp.atleast_1d(as_jax(weight))
   except:
-    print(f'weight_value:{weight}')
-    print(f'weight_shape:{weight.shape}')
+    raise ValueError(f'weight_value:{weight}')
   conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
   conn_len = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
   if seed is None:
