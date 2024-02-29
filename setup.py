@@ -56,7 +56,7 @@ setup(
   author='BrainPy Team',
   author_email='chao.brain@qq.com',
   packages=packages,
-  python_requires='>=3.8',
+  python_requires='>=3.9',
   install_requires=['numpy>=1.15', 'jax>=0.4.13', 'tqdm'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
@@ -69,9 +69,11 @@ setup(
   ],
   extras_require={
     'cpu': ['jaxlib>=0.4.13', 'brainpylib', 'numba', 'taichi==1.7.0'],
-    'cuda11': ['jax[cuda11_pip]', 'brainpylib-cu11x', 'numba', 'taichi==1.7.0'],
-    'cuda12': ['jax[cuda12_pip]', 'brainpylib-cu12x', 'numba', 'taichi==1.7.0'],
-    'tpu': ['jax[tpu]', 'numba', 'taichi==1.7.0'],
+    'cuda11': ['jaxlib[cuda11_pip]', 'brainpylib-cu11x', 'numba', 'taichi==1.7.0'],
+    'cuda12': ['jaxlib[cuda12_pip]', 'brainpylib-cu12x', 'numba', 'taichi==1.7.0'],
+    'tpu': ['jaxlib[tpu]', 'numba',],
+    'cpu_mini': ['jaxlib>=0.4.13'],
+    'cuda_mini': ['jaxlib[cuda12_pip]'],
   },
   keywords=('computational neuroscience, '
             'brain-inspired computation, '
@@ -88,6 +90,7 @@ setup(
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: Apache Software License',
     'Topic :: Scientific/Engineering :: Bio-Informatics',
