@@ -228,7 +228,7 @@ def vanalla_proj():
       )
 
     def update(self, input):
-      spk = self.delay.at('delay')
+      spk = self.delay.at('I')
       self.E(self.syn1(spk[:3200]))
       self.I(self.syn2(spk[3200:]))
       self.delay(self.N(input))

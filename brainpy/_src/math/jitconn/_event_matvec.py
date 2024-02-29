@@ -6,10 +6,11 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 
-from brainpy._src.dependency_check import import_taichi, check_taichi_func
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.jitconn._matvec import (mv_prob_homo,
                                                mv_prob_uniform,
+                                               mv_prob_normal,
                                                _general_checking,
                                                raw_mv_prob_homo,
                                                raw_mv_prob_uniform,
@@ -30,7 +31,7 @@ __all__ = [
   'event_mv_prob_normal',
 ]
 
-@check_taichi_func
+
 def event_mv_prob_homo(
     events: jax.Array,
     weight: float,
@@ -41,112 +42,8 @@ def event_mv_prob_homo(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return event_mv_prob_homo_taichi(events, weight, conn_prob, seed,
-                                   shape=shape,
-                                   transpose=transpose,
-                                   outdim_parallel=outdim_parallel)
-
-
-event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
-
-@check_taichi_func
-def event_mv_prob_uniform(
-    events: jax.Array,
-    w_low: float,
-    w_high: float,
-    conn_prob: float,
-    seed: Optional[int] = None,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-    outdim_parallel: bool = True,
-) -> jax.Array:
-  return event_mv_prob_uniform_taichi(events, w_low, w_high, conn_prob, seed,
-                                      shape=shape,
-                                      transpose=transpose,
-                                      outdim_parallel=outdim_parallel)
-
-
-event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
-
-@check_taichi_func
-def event_mv_prob_normal(
-    events: jax.Array,
-    w_mu: float,
-    w_sigma: float,
-    conn_prob: float,
-    seed: Optional[int] = None,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-    outdim_parallel: bool = True,
-) -> jax.Array:
-  return event_mv_prob_uniform_taichi(events, w_mu, w_sigma, conn_prob, seed,
-                                      shape=shape,
-                                      transpose=transpose,
-                                      outdim_parallel=outdim_parallel)
-
-
-def event_mv_prob_homo_taichi(
-    events: jax.Array,
-    weight: float,
-    conn_prob: float,
-    seed: Optional[int] = None,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-    outdim_parallel: bool = True,
-) -> jax.Array:
-  r"""Perform the :math:`y=M@v` operation,
-  where :math:`M` is just-in-time randomly generated with a scalar `weight` at each position.
-
-  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-  on CPU and GPU devices.
-
-  .. warning::
-
-      This API may change in the future.
-
-  In this operation, :math:`M` is the random matrix with a connection probability
-  `conn_prob`, and at each connection the value is the same scalar `weight`.
-
-  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
-
-  .. note::
-
-      Note that the just-in-time generated :math:`M` (`transpose=False`) is
-      different from the generated :math:`M^T` (`transpose=True`).
-
-      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-      the speed compared with ``outdim_parallel=False``.
-
-  Parameters
-  ----------
-  events: Array, ndarray
-      The events.
-  weight: float
-      The value of the random matrix.
-  conn_prob: float
-      The connection probability.
-  shape: tuple of int
-      The matrix shape.
-  seed: int
-      The random number generation seed.
-  transpose: bool
-      Transpose the random matrix or not.
-  outdim_parallel: bool
-      Perform the parallel random generations along the out dimension or not.
-      It can be used to set the just-in-time generated :math:M^T: is the same
-      as the just-in-time generated :math:`M` when ``transpose=True``.
-
-  Returns
-  -------
-  out: Array, ndarray
-      The output of :math:`y = M @ v`.
-  """
   if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
 
   events = as_jax(events)
   if isinstance(weight, float): weight = as_jax(weight)
@@ -163,7 +60,10 @@ def event_mv_prob_homo_taichi(
                                 outdim_parallel=outdim_parallel)[0]
 
 
-def event_mv_prob_uniform_taichi(
+event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
+
+
+def event_mv_prob_uniform(
     events: jax.Array,
     w_low: float,
     w_high: float,
@@ -174,58 +74,8 @@ def event_mv_prob_uniform_taichi(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  r"""Perform the :math:`y=M@v` operation,
-  where :math:`M` is just-in-time randomly generated with a uniform distribution for its value.
-
-  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-  on CPU and GPU devices.
-
-  .. warning::
-
-      This API may change in the future.
-
-  In this operation, :math:`M` is the random matrix with a connection probability
-  `conn_prob`, and at each connection the value is the same scalar `weight`.
-
-  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
-
-  .. note::
-
-      Note that the just-in-time generated :math:`M` (`transpose=False`) is
-      different from the generated :math:`M^T` (`transpose=True`).
-
-      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-      the speed compared with ``outdim_parallel=False``.
-
-  Parameters
-  ----------
-  events: Array, ndarray
-      The events.
-  w_low: float
-      Lower boundary of the output interval.
-  w_high: float
-      Upper boundary of the output interval.
-  conn_prob: float
-      The connection probability.
-  shape: tuple of int
-      The matrix shape.
-  seed: int
-      The random number generation seed.
-  transpose: bool
-      Transpose the random matrix or not.
-  outdim_parallel: bool
-      Perform the parallel random generations along the out dimension or not.
-      It can be used to set the just-in-time generated :math:M^T: is the same
-      as the just-in-time generated :math:`M` when ``transpose=True``.
-
-  Returns
-  -------
-  out: Array, ndarray
-      The output of :math:`y = M @ v`.
-  """
   if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
 
   events = as_jax(events)
   if isinstance(w_low, float): w_low = as_jax(w_low)
@@ -242,7 +92,10 @@ def event_mv_prob_uniform_taichi(
                                    transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
-def event_mv_prob_normal_taichi(
+event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
+
+
+def event_mv_prob_normal(
     events: jax.Array,
     w_mu: float,
     w_sigma: float,
@@ -253,58 +106,8 @@ def event_mv_prob_normal_taichi(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  r"""Perform the :math:`y=M@v` operation,
-  where :math:`M` is just-in-time randomly generated with a normal distribution for its value.
-
-  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-  on CPU and GPU devices.
-
-  .. warning::
-
-      This API may change in the future.
-
-  In this operation, :math:`M` is the random matrix with a connection probability
-  `conn_prob`, and at each connection the value is the same scalar `weight`.
-
-  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
-
-  .. note::
-
-      Note that the just-in-time generated :math:`M` (`transpose=False`) is
-      different from the generated :math:`M^T` (`transpose=True`).
-
-      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-      the speed compared with ``outdim_parallel=False``.
-
-  Parameters
-  ----------
-  events: Array, ndarray
-      The events.
-  w_mu: float
-      Mean (centre) of the distribution.
-  w_sigma: float
-      Standard deviation (spread or “width”) of the distribution. Must be non-negative.
-  conn_prob: float
-      The connection probability.
-  shape: tuple of int
-      The matrix shape.
-  seed: int
-      The random number generation seed.
-  transpose: bool
-      Transpose the random matrix or not.
-  outdim_parallel: bool
-      Perform the parallel random generations along the out dimension or not.
-      It can be used to set the just-in-time generated :math:M^T: is the same
-      as the just-in-time generated :math:`M` when ``transpose=True``.
-
-  Returns
-  -------
-  out: Array, ndarray
-      The output of :math:`y = M @ v`.
-  """
   if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
 
   events = as_jax(events)
   if isinstance(w_mu, float): w_mu = as_jax(w_mu)
@@ -321,8 +124,11 @@ def event_mv_prob_normal_taichi(
                                   transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
+event_mv_prob_normal.__doc__ = mv_prob_normal.__doc__
+
 if ti is not None:
   from brainpy._src.math.tifunc import (lfsr88_key, lfsr88_random_integers, lfsr88_uniform, lfsr88_normal)
+
 
   # -------------
   # CPU function

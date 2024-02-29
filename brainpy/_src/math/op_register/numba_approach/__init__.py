@@ -8,16 +8,14 @@ import jax
 from jax.interpreters import xla, batching, ad
 from jax.tree_util import tree_map
 
-from brainpy._src.dependency_check import import_numba, check_numba_func, check_numba_class
+from brainpy._src.dependency_check import import_numba
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
+from brainpy.errors import PackageMissingError
+from .cpu_translation import _cpu_translation, compile_cpu_signature_with_numba
 
 numba = import_numba(error_if_not_found=False)
 
-from .cpu_translation import _cpu_translation, compile_cpu_signature_with_numba
-
-if numba is not None:
-  from numba.core.dispatcher import Dispatcher
 
 __all__ = [
   'CustomOpByNumba',
@@ -26,7 +24,6 @@ __all__ = [
 ]
 
 
-@check_numba_class
 class CustomOpByNumba(BrainPyObject):
   """Creating a XLA custom call operator with Numba JIT on CPU backend.
 
@@ -88,7 +85,6 @@ class CustomOpByNumba(BrainPyObject):
     return res
 
 
-@check_numba_func
 def register_op_with_numba(
     op_name: str,
     cpu_func: Callable,
@@ -143,6 +139,9 @@ def register_op_with_numba(
                        f'For more information, please refer to the documentation: '
                        f'https://brainpy.readthedocs.io/en/latest/tutorial_advanced/operator_custom_with_taichi.html.')
 
+  if numba is None:
+    raise PackageMissingError.by_purpose('numba', 'custom op with numba')
+
   if out_shapes is None:
     raise RuntimeError('out_shapes cannot be None. It can be a `ShapedArray` or '
                        'a sequence of `ShapedArray`. If it is a function, it takes as input the argument '
@@ -152,6 +151,7 @@ def register_op_with_numba(
   prim.multiple_results = multiple_results
 
   # user defined function
+  from numba.core.dispatcher import Dispatcher
   if not isinstance(cpu_func, Dispatcher):
     cpu_func = numba.jit(fastmath=True, nopython=True)(cpu_func)
 

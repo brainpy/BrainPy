@@ -17,7 +17,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_taichi, check_taichi_func
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.sparse._csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
@@ -30,7 +30,6 @@ __all__ = [
 
 ti = import_taichi(error_if_not_found=False)
 
-@check_taichi_func
 def csrmv(
     data: Union[float, jax.Array],
     indices: jax.Array,
@@ -39,48 +38,6 @@ def csrmv(
     *,
     shape: Tuple[int, int],
     transpose: bool = False,
-) -> jax.Array:
-  """Product of a sparse CSR matrix and a dense event vector.
-
-  This function supports JAX transformations, including `jit()`, `grad()`,
-  `vmap()` and `pmap()`.
-
-  Parameters
-  ----------
-  data: ndarray, float
-    An array of shape ``(nse,)``.
-  indices: ndarray
-    An array of shape ``(nse,)``.
-  indptr: ndarray
-    An array of shape ``(shape[0] + 1,)`` and dtype ``indices.dtype``.
-  events: ndarray
-    An array of shape ``(shape[0] if transpose else shape[1],)``
-    and dtype ``data.dtype``.
-  shape: tuple
-    A length-2 tuple representing the matrix shape.
-  transpose: bool
-    A boolean specifying whether to transpose the sparse matrix
-    before computing.
-    If ``transpose=True``, the operator will compute based on the
-    event-driven property of the ``events`` vector.
-
-  Returns
-  -------
-  y : Array
-    The array of shape ``(shape[1] if transpose else shape[0],)`` representing
-    the matrix vector product.
-  """
-  return csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
-
-
-def csrmv_taichi(
-    data: Union[float, jax.Array],
-    indices: jax.Array,
-    indptr: jax.Array,
-    events: jax.Array,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False
 ) -> jax.Array:
   """Product of a sparse CSR matrix and a dense event vector.
 
@@ -164,7 +121,7 @@ def raw_csrmv_taichi(
     transpose: bool = False
 ):
   if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
+    raise PackageMissingError.by_purpose(name='taichi==1.7.0', purpose='customized operators')
 
   if transpose:
     if events.dtype == jnp.bool_:

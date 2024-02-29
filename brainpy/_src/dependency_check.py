@@ -1,4 +1,3 @@
-import functools
 import os
 import sys
 
@@ -7,12 +6,8 @@ from jax.lib import xla_client
 __all__ = [
   'import_taichi',
   'raise_taichi_not_found',
-  'check_taichi_func',
-  'check_taichi_class',
   'import_numba',
   'raise_numba_not_found',
-  'check_numba_func',
-  'check_numba_class',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
 ]
@@ -20,8 +15,8 @@ __all__ = [
 _minimal_brainpylib_version = '0.2.6'
 _minimal_taichi_version = (1, 7, 0)
 
-taichi = None
 numba = None
+taichi = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
@@ -29,8 +24,7 @@ taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
                        f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
                        '> pip install taichi==1.7.0')
 numba_install_info = ('We need numba. Please install numba by pip . \n'
-                      '> pip install numba'
-                      )
+                      '> pip install numba')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
@@ -55,28 +49,8 @@ def import_taichi(error_if_not_found=True):
   return taichi
 
 
-def raise_taichi_not_found():
+def raise_taichi_not_found(*args, **kwargs):
   raise ModuleNotFoundError(taichi_install_info)
-
-
-def check_taichi_func(func):
-  @functools.wraps(func)
-  def wrapper(*args, **kwargs):
-    if taichi is None:
-      raise_taichi_not_found()
-    return func(*args, **kwargs)
-
-  return wrapper
-
-
-def check_taichi_class(cls):
-  class Wrapper(cls):
-    def __init__(self, *args, **kwargs):
-      if taichi is None:
-        raise_taichi_not_found()
-      super().__init__(*args, **kwargs)
-
-  return Wrapper
 
 
 def import_numba(error_if_not_found=True):
@@ -94,26 +68,6 @@ def import_numba(error_if_not_found=True):
 
 def raise_numba_not_found():
   raise ModuleNotFoundError(numba_install_info)
-
-
-def check_numba_func(func):
-  @functools.wraps(func)
-  def wrapper(*args, **kwargs):
-    if numba is None:
-      raise_numba_not_found()
-    return func(*args, **kwargs)
-
-  return wrapper
-
-
-def check_numba_class(cls):
-  class Wrapper(cls):
-    def __init__(self, *args, **kwargs):
-      if numba is None:
-        raise_numba_not_found()
-      super().__init__(*args, **kwargs)
-
-  return Wrapper
 
 
 def is_brainpylib_gpu_installed():

@@ -39,15 +39,11 @@ class PackageMissingError(BrainPyError):
   """The package missing error.
   """
 
-  def __init__(self, name: str = None, purpose: str = None):
-
-    if name is None:
-      super().__init__()
-    else:
-      assert purpose, '"purpose" cannot be None when "name" is provided.'
-      msg = (f'"{name}" must be installed when the user wants to use {purpose}. \n'
-             f'Please install through "pip install {name}".')
-      super().__init__(msg)
+  @classmethod
+  def by_purpose(cls, name, purpose):
+    err = (f'"{name}" must be installed when the user wants to use {purpose}. \n'
+           f'Please install through "pip install {name}".')
+    return cls(err)
 
 
 class BackendNotInstalled(BrainPyError):

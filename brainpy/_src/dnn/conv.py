@@ -160,7 +160,7 @@ class _GeneralConv(Layer):
     nonbatching = False
     if x.ndim == self.num_spatial_dims + 1:
       nonbatching = True
-      x = bm.unsqueeze(x, 0)
+      x = x.unsqueeze(0)
     w = self.w.value
     if self.mask is not None:
       try:
@@ -189,9 +189,6 @@ class _GeneralConv(Layer):
 
 class Conv1d(_GeneralConv):
   """One-dimensional convolution.
-
-  The input should a 2d array with the shape of ``[H, C]``, or
-  a 3d array with the shape of ``[B, H, C]``, where ``H`` is the feature size.
 
   Parameters
   ----------
@@ -285,9 +282,6 @@ class Conv1d(_GeneralConv):
 class Conv2d(_GeneralConv):
   """Two-dimensional convolution.
 
-  The input should a 3d array with the shape of ``[H, W, C]``, or
-  a 4d array with the shape of ``[B, H, W, C]``.
-
   Parameters
   ----------
   in_channels: int
@@ -380,9 +374,6 @@ class Conv2d(_GeneralConv):
 
 class Conv3d(_GeneralConv):
   """Three-dimensional convolution.
-
-  The input should a 3d array with the shape of ``[H, W, D, C]``, or
-  a 4d array with the shape of ``[B, H, W, D, C]``.
 
   Parameters
   ----------

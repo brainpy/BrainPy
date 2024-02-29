@@ -3,17 +3,16 @@
 
 from typing import Union, Tuple
 
-import brainpy.math as bm
 import jax
 from jax import numpy as jnp
 from jax.experimental.sparse import csr
 from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_taichi, check_taichi_func
+import brainpy.math as bm
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import (register_general_batching,
-                                           XLACustomOp)
+from brainpy._src.math.op_register import (register_general_batching, XLACustomOp)
 from brainpy._src.math.sparse._utils import csr_to_coo
 from brainpy.errors import PackageMissingError
 
@@ -23,7 +22,7 @@ __all__ = [
   'csrmv',
 ]
 
-@check_taichi_func
+
 def csrmv(
     data: Union[float, jnp.ndarray, Array],
     indices: Union[jnp.ndarray, Array],
@@ -70,48 +69,6 @@ def csrmv(
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  return csrmv_taichi(data, indices, indptr, vector, shape=shape, transpose=transpose)
-
-
-### TAICHI ###
-
-def csrmv_taichi(
-    data: Union[float, jnp.ndarray, Array],
-    indices: Union[jnp.ndarray, Array],
-    indptr: Union[jnp.ndarray, Array],
-    vector: Union[jnp.ndarray, Array],
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-) -> jax.Array:
-  """Product of CSR sparse matrix and a dense vector using cuSPARSE algorithm.
-
-  This function supports JAX transformations, including `jit()`, `grad()`,
-  `vmap()` and `pmap()`.
-
-  Parameters
-  ----------
-  data: ndarray, float
-    An array of shape ``(nse,)``.
-  indices: ndarray
-    An array of shape ``(nse,)``.
-  indptr: ndarray
-    An array of shape ``(shape[0] + 1,)`` and dtype ``indices.dtype``.
-  vector: ndarray
-    An array of shape ``(shape[0] if transpose else shape[1],)``
-    and dtype ``data.dtype``.
-  shape: tuple of int
-    A length-2 tuple representing the matrix shape.
-  transpose: bool
-    A boolean specifying whether to transpose the sparse matrix
-    before computing.
-
-  Returns
-  -------
-  y : ndarry
-    The array of shape ``(shape[1] if transpose else shape[0],)`` representing
-    the matrix vector product.
-  """
 
   data = jnp.atleast_1d(as_jax(data))
   indices = as_jax(indices)
@@ -150,11 +107,11 @@ def raw_csrmv_taichi(
     transpose: bool = False,
 ):
   if ti is None:
-    raise PackageMissingError(name='taichi', purpose='customized operators')
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
   out_shape = shape[1] if transpose else shape[0]
   if data.shape[0] != 1:
     if bm.get_platform() == 'gpu':
-      return [_csr_matvec_cusparse_p.bind(data, indices, indptr, vector, shape=shape, transpose=transpose), ]
+      return [_csr_matvec_cusparse_p.bind(data, indices, indptr, vector, shape=shape, transpose=transpose)]
     else:
       if transpose:
         prim = _csr_matvec_transpose_heter_p
