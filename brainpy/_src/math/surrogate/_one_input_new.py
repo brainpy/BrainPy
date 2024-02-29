@@ -146,7 +146,7 @@ class Sigmoid(Surrogate):
     self.alpha = alpha
 
   def surrogate_fun(self, x):
-    return sci.special.expit(x)
+    return sci.special.expit(self.alpha * x)
 
   def surrogate_grad(self, x):
     sgax = sci.special.expit(x * self.alpha)
