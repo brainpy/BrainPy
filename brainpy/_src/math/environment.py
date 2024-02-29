@@ -676,9 +676,9 @@ def set_host_device_count(n):
 def clear_buffer_memory(
     platform: str = None,
     array: bool = True,
-    compilation: bool = False,
     transform: bool = True,
-    name: bool = True,
+    compilation: bool = False,
+    object_name: bool = False,
 ):
   """Clear all on-device buffers.
 
@@ -700,7 +700,7 @@ def clear_buffer_memory(
     Clear compilation cache. Default is False.
   transform: bool
     Clear transform cache. Default is True.
-  name: bool
+  object_name: bool
     Clear name cache. Default is True.
 
   """
@@ -711,7 +711,7 @@ def clear_buffer_memory(
     jax.clear_caches()
   if transform:
     naming.clear_stack_cache()
-  if name:
+  if object_name:
     naming.clear_name_cache()
   gc.collect()
 

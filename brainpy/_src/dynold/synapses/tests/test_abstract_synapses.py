@@ -24,9 +24,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
       net = bp.Network(pre=pre_neu, syn=syn, post=post_neu)
 
     # 运行模拟
-    runner = bp.DSRunner(net,
-                         monitors=['pre.V', 'syn.g', 'post.V'],
-                         inputs=('pre.input', 35.))
+    runner = bp.DSRunner(net, monitors=['pre.V', 'syn.g', 'post.V'], inputs=('pre.input', 35.))
     runner(10.)
 
     expected_shape = (100, 5)
