@@ -693,11 +693,11 @@ def clear_buffer_memory(
   platform: str
     The device to clear its memory.
   array: bool
-    Clear all buffer array.
+    Clear all buffer array. Default is True.
   compilation: bool
-    Clear compilation cache.
+    Clear compilation cache. Default is True.
   name: bool
-    Clear name cache.
+    Clear name cache. Default is True.
 
   """
   if array:
