@@ -29,6 +29,11 @@ os.environ["TI_LOG_LEVEL"] = "error"
 
 
 def import_taichi(error_if_not_found=True):
+  """Internal API to import taichi.
+
+  If taichi is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+  otherwise it will return None.
+  """
   global taichi
   if taichi is None:
     with open(os.devnull, 'w') as devnull:
@@ -54,6 +59,12 @@ def raise_taichi_not_found(*args, **kwargs):
 
 
 def import_numba(error_if_not_found=True):
+  """
+  Internal API to import numba.
+
+  If numba is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+  otherwise it will return None.
+  """
   global numba
   if numba is None:
     try:
@@ -75,6 +86,9 @@ def is_brainpylib_gpu_installed():
 
 
 def import_brainpylib_cpu_ops():
+  """
+  Internal API to import brainpylib cpu_ops.
+  """
   global brainpylib_cpu_ops
   if brainpylib_cpu_ops is None:
     try:
@@ -97,6 +111,9 @@ def import_brainpylib_cpu_ops():
 
 
 def import_brainpylib_gpu_ops():
+  """
+  Internal API to import brainpylib gpu_ops.
+  """
   global brainpylib_gpu_ops
   if brainpylib_gpu_ops is None:
     try:
