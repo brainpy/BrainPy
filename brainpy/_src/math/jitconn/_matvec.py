@@ -8,7 +8,7 @@ import numpy as np
 from jax import numpy as jnp
 from jax.interpreters import ad
 
-from brainpy._src.dependency_check import import_taichi, check_taichi_func
+from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
@@ -23,48 +23,6 @@ __all__ = [
 ]
 
 
-def _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
-  if vector.ndim != 1:
-    raise ValueError('vector should be a 1D vector.')
-  if len(shape) != 2:
-    raise ValueError('shape should be a length-2 tuple.')
-  if seed.ndim != 1:
-    raise ValueError('seed must be a 1D scalar.')
-  if clen.ndim != 1:
-    raise ValueError('conn_prob must be a 1D scalar.')
-
-  assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-  assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
-
-  for weight in weights:
-    if weight.ndim != 1:
-      raise ValueError('weight must be a 1D scalar.')
-    assert _get_dtype(weight) in [jnp.float16, jnp.float32, jnp.float64], '"weight" must be float valued.'
-
-  if not isinstance(outdim_parallel, bool):
-    raise ValueError('outdim_parallel must be boolean value.')
-  if not isinstance(transpose, bool):
-    raise ValueError('transpose must be boolean value.')
-
-  if transpose:
-    out_shape = (shape[1],)
-    if vector.shape[0] != shape[0]:
-      raise ValueError(f'Shape mismatch, vec {vector.shape} @ mat {shape}.')
-    shape = _reverse(shape)
-  else:
-    if vector.shape[0] != shape[1]:
-      raise ValueError(f'Shape mismatch, mat {shape} @ vec ({vector.shape[0]},).')
-    out_shape = (shape[0],)
-
-  return shape, out_shape
-
-
-def _non_event_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
-  assert _get_dtype(vector) in [jnp.float16, jnp.float32, jnp.float64]
-  return _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights)
-
-
-@check_taichi_func
 def mv_prob_homo(
     vector: Union[Array, jax.Array],
     weight: float,
@@ -123,11 +81,24 @@ def mv_prob_homo(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return mv_prob_homo_taichi(vector, weight, conn_prob, seed, shape=shape, transpose=transpose,
-                             outdim_parallel=outdim_parallel)
+  if ti is None:
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
+
+  vector = as_jax(vector)
+  if isinstance(weight, float):
+    weight = as_jax(weight, dtype=vector.dtype)
+  weight = jnp.atleast_1d(as_jax(weight))
+  conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
+  clen = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
+  if seed is None:
+    with jax.ensure_compile_time_eval():
+      seed = np.random.randint(0, int(1e8), 1)
+  seed = jnp.asarray(seed, dtype=jnp.uint32)
+  seed = jnp.atleast_1d(seed)
+  return raw_mv_prob_homo(vector, weight, clen, seed, shape=shape,
+                          transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
-@check_taichi_func
 def mv_prob_uniform(
     vector: jax.Array,
     w_low: float,
@@ -189,11 +160,24 @@ def mv_prob_uniform(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return mv_prob_uniform_taichi(vector, w_low, w_high, conn_prob, seed, shape=shape, transpose=transpose,
-                                outdim_parallel=outdim_parallel)
+  if ti is None:
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
+
+  vector = as_jax(vector)
+  if isinstance(w_low, float): w_low = as_jax(w_low, dtype=vector.dtype)
+  if isinstance(w_high, float): w_high = as_jax(w_high, dtype=vector.dtype)
+  w_low = jnp.atleast_1d(as_jax(w_low))
+  w_high = jnp.atleast_1d(as_jax(w_high))
+  conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
+  conn_len = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
+  if seed is None:
+    with jax.ensure_compile_time_eval():
+      seed = np.random.randint(0, int(1e8), 1)
+  seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.uint32))
+  return raw_mv_prob_uniform(vector, w_low, w_high, conn_len, seed, shape=shape,
+                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
-@check_taichi_func
 def mv_prob_normal(
     vector: jax.Array,
     w_mu: float,
@@ -255,235 +239,8 @@ def mv_prob_normal(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return mv_prob_uniform_taichi(vector, w_mu, w_sigma, conn_prob, seed,
-                                shape=shape, transpose=transpose,
-                                outdim_parallel=outdim_parallel)
-
-
-def mv_prob_homo_taichi(
-    vector: Union[Array, jax.Array],
-    weight: float,
-    conn_prob: float,
-    seed: Optional[int] = None,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-    outdim_parallel: bool = True,
-) -> jax.Array:
-  r"""Perform the :math:`y=M@v` operation,
-  where :math:`M` is just-in-time randomly generated with a scalar `weight` at each position.
-
-  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-  on CPU and GPU devices.
-
-  .. warning::
-
-      This API may change in the future.
-
-  In this operation, :math:`M` is the random matrix with a connection probability
-  `conn_prob`, and at each connection the value is the same scalar `weight`.
-
-  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
-
-  .. note::
-
-      Note that the just-in-time generated :math:`M` (`transpose=False`) is
-      different from the generated :math:`M^T` (`transpose=True`).
-
-      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-      the speed compared with ``outdim_parallel=False``.
-
-      Generally, the :math:`M` in ``f(outdim_parallel=True, transpose=False)`` is the same of
-      the :math:`M^T` used in ``f(outdim_parallel=False, transpose=True)``.
-
-      Similarly, the :math:`M^T` in ``f(outdim_parallel=True, transpose=True)`` is the same
-      of the :math:`M` used in ``f(outdim_parallel=False, transpose=False)``.
-
-  Parameters
-  ----------
-  vector: Array, ndarray
-      The vector.
-  weight: float
-      The value of the random matrix.
-  conn_prob: float
-      The connection probability.
-  shape: tuple of int
-      The matrix shape.
-  seed: int
-      The random number generation seed.
-  transpose: bool
-      Transpose the random matrix or not.
-  outdim_parallel: bool
-      Perform the parallel random generations along the out dimension or not.
-      It can be used to set the just-in-time generated :math:M^T: is the same
-      as the just-in-time generated :math:`M` when ``transpose=True``.
-
-  Returns
-  -------
-  out: Array, ndarray
-      The output of :math:`y = M @ v`.
-  """
   if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
-
-  vector = as_jax(vector)
-  if isinstance(weight, float):
-    weight = as_jax(weight, dtype=vector.dtype)
-  weight = jnp.atleast_1d(as_jax(weight))
-  conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
-  clen = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
-  if seed is None:
-    with jax.ensure_compile_time_eval():
-      seed = np.random.randint(0, int(1e8), 1)
-  seed = jnp.asarray(seed, dtype=jnp.uint32)
-  seed = jnp.atleast_1d(seed)
-  return raw_mv_prob_homo(vector, weight, clen, seed, shape=shape,
-                          transpose=transpose, outdim_parallel=outdim_parallel)[0]
-
-
-def mv_prob_uniform_taichi(
-    vector: jax.Array,
-    w_low: float,
-    w_high: float,
-    conn_prob: float,
-    seed: Optional[int] = None,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-    outdim_parallel: bool = True,
-) -> jax.Array:
-  r"""Perform the :math:`y=M@v` operation,
-  where :math:`M` is just-in-time randomly generated with a uniform distribution for its value.
-
-  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-  on CPU and GPU devices.
-
-  .. warning::
-
-      This API may change in the future.
-
-  In this operation, :math:`M` is the random matrix with a connection probability
-  `conn_prob`, and at each connection the value is the same scalar `weight`.
-
-  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
-
-  .. note::
-
-      Note that the just-in-time generated :math:`M` (`transpose=False`) is
-      different from the generated :math:`M^T` (`transpose=True`).
-
-      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-      the speed compared with ``outdim_parallel=False``.
-
-  Parameters
-  ----------
-  vector: Array, ndarray
-      The vector.
-  w_low: float
-      Lower boundary of the output interval.
-  w_high: float
-      Upper boundary of the output interval.
-  conn_prob: float
-      The connection probability.
-  shape: tuple of int
-      The matrix shape.
-  seed: int
-      The random number generation seed.
-  transpose: bool
-      Transpose the random matrix or not.
-  outdim_parallel: bool
-      Perform the parallel random generations along the out dimension or not.
-      It can be used to set the just-in-time generated :math:M^T: is the same
-      as the just-in-time generated :math:`M` when ``transpose=True``.
-
-  Returns
-  -------
-  out: Array, ndarray
-      The output of :math:`y = M @ v`.
-  """
-  if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
-
-  vector = as_jax(vector)
-  if isinstance(w_low, float): w_low = as_jax(w_low, dtype=vector.dtype)
-  if isinstance(w_high, float): w_high = as_jax(w_high, dtype=vector.dtype)
-  w_low = jnp.atleast_1d(as_jax(w_low))
-  w_high = jnp.atleast_1d(as_jax(w_high))
-  conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
-  conn_len = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
-  if seed is None:
-    with jax.ensure_compile_time_eval():
-      seed = np.random.randint(0, int(1e8), 1)
-  seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.uint32))
-  return raw_mv_prob_uniform(vector, w_low, w_high, conn_len, seed, shape=shape,
-                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
-
-
-def mv_prob_normal_taichi(
-    vector: jax.Array,
-    w_mu: float,
-    w_sigma: float,
-    conn_prob: float,
-    seed: Optional[int] = None,
-    *,
-    shape: Tuple[int, int],
-    transpose: bool = False,
-    outdim_parallel: bool = True,
-) -> jax.Array:
-  r"""Perform the :math:`y=M@v` operation,
-  where :math:`M` is just-in-time randomly generated with a normal distribution for its value.
-
-  This operator support ``jit()``, ``vmap()``, ``grad()`` and ``pmap()`` etc. transformations
-  on CPU and GPU devices.
-
-  .. warning::
-
-      This API may change in the future.
-
-  In this operation, :math:`M` is the random matrix with a connection probability
-  `conn_prob`, and at each connection the value is the same scalar `weight`.
-
-  When ``transpose=True``, we perform an operation of :math:`y=M^T@v`.
-
-  .. note::
-
-      Note that the just-in-time generated :math:`M` (`transpose=False`) is
-      different from the generated :math:`M^T` (`transpose=True`).
-
-      If you pursue the same :math:`M` and :math:`M^T` when performing the just-in-time
-      matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
-      the speed compared with ``outdim_parallel=False``.
-
-  Parameters
-  ----------
-  vector: Array, ndarray
-      The vector.
-  w_mu: float
-      Mean (centre) of the distribution.
-  w_sigma: float
-      Standard deviation (spread or “width”) of the distribution. Must be non-negative.
-  conn_prob: float
-      The connection probability.
-  shape: tuple of int
-      The matrix shape.
-  seed: int
-      The random number generation seed.
-  transpose: bool
-      Transpose the random matrix or not.
-  outdim_parallel: bool
-      Perform the parallel random generations along the out dimension or not.
-      It can be used to set the just-in-time generated :math:M^T: is the same
-      as the just-in-time generated :math:`M` when ``transpose=True``.
-
-  Returns
-  -------
-  out: Array, ndarray
-      The output of :math:`y = M @ v`.
-  """
-  if ti is None:
-    raise PackageMissingError(name='taichi==1.7.0', purpose='customized operators')
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
 
   vector = as_jax(vector)
   if isinstance(w_mu, float): w_mu = as_jax(w_mu, dtype=vector.dtype)
@@ -585,6 +342,47 @@ def raw_mv_prob_normal(
               outdim_parallel=outdim_parallel)
 
 
+def _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
+  if vector.ndim != 1:
+    raise ValueError('vector should be a 1D vector.')
+  if len(shape) != 2:
+    raise ValueError('shape should be a length-2 tuple.')
+  if seed.ndim != 1:
+    raise ValueError('seed must be a 1D scalar.')
+  if clen.ndim != 1:
+    raise ValueError('conn_prob must be a 1D scalar.')
+
+  assert _get_dtype(clen) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+  assert _get_dtype(seed) in [jnp.int16, jnp.int32, jnp.int64, jnp.uint16, jnp.uint32, jnp.uint64]
+
+  for weight in weights:
+    if weight.ndim != 1:
+      raise ValueError('weight must be a 1D scalar.')
+    assert _get_dtype(weight) in [jnp.float16, jnp.float32, jnp.float64], '"weight" must be float valued.'
+
+  if not isinstance(outdim_parallel, bool):
+    raise ValueError('outdim_parallel must be boolean value.')
+  if not isinstance(transpose, bool):
+    raise ValueError('transpose must be boolean value.')
+
+  if transpose:
+    out_shape = (shape[1],)
+    if vector.shape[0] != shape[0]:
+      raise ValueError(f'Shape mismatch, vec {vector.shape} @ mat {shape}.')
+    shape = _reverse(shape)
+  else:
+    if vector.shape[0] != shape[1]:
+      raise ValueError(f'Shape mismatch, mat {shape} @ vec ({vector.shape[0]},).')
+    out_shape = (shape[0],)
+
+  return shape, out_shape
+
+
+def _non_event_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights):
+  assert _get_dtype(vector) in [jnp.float16, jnp.float32, jnp.float64]
+  return _general_checking(vector, clen, seed, shape, outdim_parallel, transpose, *weights)
+
+
 def _mv_prob_homo_transpose(
     ct, vector, weight, clen, seed, *, outs, shape, transpose, outdim_parallel
 ):
@@ -643,6 +441,7 @@ def _mv_prob_normal_transpose(
     assert type(w_sigma) is not ad.UndefinedPrimal, 'Cannot differentiate through w_sigma.'
     assert type(clen) is not ad.UndefinedPrimal, 'Cannot differentiate through clen.'
     assert type(seed) is not ad.UndefinedPrimal, 'Cannot differentiate through seed.'
+
 
 def _reverse(shape):
   return shape[::-1]
@@ -772,9 +571,6 @@ if ti is not None:
     shape = _reverse(shape) if transpose else shape
     return raw_mv_prob_homo(vector, w_dot, clen, seed, shape=shape, transpose=transpose,
                             outdim_parallel=outdim_parallel)
-
-
-
 
 
   def _define_mv_prob_homo_prim(cpu_kernel, gpu_kernel):
@@ -934,9 +730,6 @@ if ti is not None:
     shape = _reverse(shape) if transpose else shape
     return raw_mv_prob_uniform(vector, w_low, w_dot, clen, seed, shape=shape,
                                transpose=transpose, outdim_parallel=outdim_parallel)
-
-
-
 
 
   def _define_mv_prob_uniform_prim(cpu_kernel, gpu_kernel):
@@ -1101,9 +894,6 @@ if ti is not None:
     shape = _reverse(shape) if transpose else shape
     return raw_mv_prob_normal(vector, w_mu, w_dot, clen, seed, shape=shape,
                               transpose=transpose, outdim_parallel=outdim_parallel)
-
-
-
 
 
   def _define_mv_prob_normal_prim(cpu_kernel, gpu_kernel):

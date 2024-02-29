@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import numpy as np
+import pytest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
-
 from brainpy._src.dependency_check import import_taichi
 
 if import_taichi(error_if_not_found=False) is None:
@@ -18,7 +17,7 @@ bm.set_platform('cpu')
 class Test_STDP(parameterized.TestCase):
 
   @parameterized.product(
-    comm_method=['dense', 'csr', 'masked_linear', 'all2all', 'one2one'],
+    comm_method=['csr', 'dense', 'masked_linear', 'all2all', 'one2one'],
     delay=[None, 0., 2.],
     syn_model=['exp', 'dual_exp', 'ampa'],
     out_model=['cuba', 'coba', 'mg']
@@ -102,9 +101,11 @@ class Test_STDP(parameterized.TestCase):
 
     duration = 300.
     I_pre = bp.inputs.section_input([0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0],
-                                    [5, 15, 15, 15, 15, 15, 100, 15, 15, 15, 15, 15, duration - 255])
+                                    [5, 15, 15, 15, 15, 15, 100, 15, 15, 15, 15, 15,
+                                     duration - 255])
     I_post = bp.inputs.section_input([0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0],
-                                     [10, 15, 15, 15, 15, 15, 90, 15, 15, 15, 15, 15, duration - 250])
+                                     [10, 15, 15, 15, 15, 15, 90, 15, 15, 15, 15, 15,
+                                      duration - 250])
 
     net = STDPNet(1, 1)
 

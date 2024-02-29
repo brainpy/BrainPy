@@ -10,13 +10,14 @@ from jax.core import Primitive, ShapedArray
 from jax.interpreters import ad, xla
 from jax.lib import xla_client
 
-from brainpy._src.dependency_check import import_brainpylib_gpu_ops, import_numba, check_numba_func
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops, import_numba
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy.errors import GPUOperatorNotFound
 
 numba = import_numba(error_if_not_found=False)
+
 __all__ = [
   'bcsrmm',
 ]
@@ -216,7 +217,6 @@ def blocksparse_matmat_multiply(dense_a,
     raise Exception('Invalid device: ', device)
 
 
-@check_numba_func
 def bcsrmm(
     A_data: jax.Array,
     B_data: jax.Array,
