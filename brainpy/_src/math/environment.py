@@ -16,6 +16,7 @@ from jax.lib import xla_bridge
 from . import modes
 from . import scales
 from . import defaults
+from .object_transform import naming
 from brainpy._src.dependency_check import import_taichi
 
 ti = import_taichi()
@@ -674,7 +675,8 @@ def set_host_device_count(n):
 def clear_buffer_memory(
     platform: str = None,
     array: bool = True,
-    compilation: bool = False
+    compilation: bool = True,
+    name: bool = True,
 ):
   """Clear all on-device buffers.
 
@@ -694,6 +696,8 @@ def clear_buffer_memory(
     Clear all buffer array.
   compilation: bool
     Clear compilation cache.
+  name: bool
+    Clear name cache.
 
   """
   if array:
@@ -701,6 +705,9 @@ def clear_buffer_memory(
       buf.delete()
   if compilation:
     jax.clear_caches()
+    naming.clear_stack_cache()
+  if name:
+    naming.clear_name_cache()
 
 
 def disable_gpu_memory_preallocation(release_memory: bool = True):
