@@ -103,8 +103,8 @@ def event_mv_prob_homo_brainpylib(
     outdim_parallel: bool = True,
 ) -> jax.Array:
   events = as_jax(events)
-  weight = jnp.atleast_1d(as_jax(weight))
-  conn_prob = jnp.atleast_1d(as_jax(conn_prob))
+  weight = jnp.atleast_1d(jnp.asarray(weight))
+  conn_prob = jnp.atleast_1d(jnp.asarray(conn_prob))
   clen = jnp.asarray(jnp.ceil(1 / conn_prob) * 2 - 1, dtype=jnp.int32)
   with jax.ensure_compile_time_eval():
     if seed is None:
@@ -791,8 +791,9 @@ def event_mv_prob_homo_taichi(
       The output of :math:`y = M @ v`.
   """
   events = as_jax(events)
-  if isinstance(weight, float): weight = as_jax(weight)
-  weight = jnp.atleast_1d(as_jax(weight))
+  weight = as_jax(weight)
+  if jnp.ndim(weight) < 1:
+    weight = jnp.expand_dims(weight, axis=0)
   conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
   conn_len = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
   if seed is None:
