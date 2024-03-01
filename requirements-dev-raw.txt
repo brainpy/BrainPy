@@ -1,4 +1,5 @@
 numpy
+brainpylib
 jax
 jaxlib
 matplotlib
