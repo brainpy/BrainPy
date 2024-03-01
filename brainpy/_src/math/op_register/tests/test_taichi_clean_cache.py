@@ -9,8 +9,8 @@ ti = import_taichi(error_if_not_found=False)
 if ti is None:
   pytest.skip('no taichi', allow_module_level=True)
 
-if not platform.platform().startswith('Windows'):
-  pytest.skip(allow_module_level=True)
+# if not platform.platform().startswith('Windows'):
+#   pytest.skip(allow_module_level=True)
 
 @ti.func
 def get_weight(weight: ti.types.ndarray(ndim=1)) -> ti.f32:

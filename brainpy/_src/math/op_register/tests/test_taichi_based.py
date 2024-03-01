@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import pytest
-pytest.skip('Old implementation.', allow_module_level=True)
+# pytest.skip('Old implementation.', allow_module_level=True)
 
 import brainpy.math as bm
 from brainpy._src.dependency_check import import_taichi
