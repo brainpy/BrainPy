@@ -3,9 +3,8 @@
 import warnings
 from typing import Tuple
 
-import jax
 import numpy as np
-from jax import core, numpy as jnp, dtypes
+from jax import core, numpy as jnp
 from jax.interpreters import mlir, ad
 from jaxlib import gpu_sparse
 
