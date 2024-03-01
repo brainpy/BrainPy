@@ -46,8 +46,9 @@ def event_mv_prob_homo(
     raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
 
   events = as_jax(events)
-  if isinstance(weight, float): weight = as_jax(weight)
-  weight = jnp.atleast_1d(as_jax(weight))
+  weight = as_jax(weight)
+  if jnp.ndim(weight) < 1:
+    weight = jnp.expand_dims(weight, axis=0)
   conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
   conn_len = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
   if seed is None:

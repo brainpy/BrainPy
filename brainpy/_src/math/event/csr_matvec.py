@@ -30,6 +30,7 @@ __all__ = [
 
 ti = import_taichi(error_if_not_found=False)
 
+
 def csrmv(
     data: Union[float, jax.Array],
     indices: jax.Array,

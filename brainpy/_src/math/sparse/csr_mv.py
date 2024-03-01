@@ -108,6 +108,7 @@ def raw_csrmv_taichi(
 ):
   if ti is None:
     raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
+
   out_shape = shape[1] if transpose else shape[0]
   if data.shape[0] != 1:
     if bm.get_platform() == 'gpu':

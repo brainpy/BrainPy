@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-
 from brainpy._src.math.surrogate._one_input_new import (
+  Surrogate,
+
   Sigmoid,
   sigmoid as sigmoid,
 

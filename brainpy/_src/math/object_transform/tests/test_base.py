@@ -231,3 +231,22 @@ class TestVarDict(unittest.TestCase):
     self.assertTrue(obj.vs['b'] == 12.)
     self.assertTrue(bm.allclose(obj.vs['c'], bm.ones(10) * 11.))
 
+
+class TestRegisterBPObjectAsPyTree(unittest.TestCase):
+  def test1(self):
+    bm.set(bp_object_as_pytree=True)
+
+    hh = bp.dyn.HH(1)
+    hh.reset()
+
+    tree = jax.tree_structure(hh)
+    leaves = jax.tree_leaves(hh)
+
+    print(tree)
+    print(leaves)
+    print(jax.tree_unflatten(tree, leaves))
+    print()
+
+
+
+
