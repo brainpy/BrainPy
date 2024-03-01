@@ -54,9 +54,6 @@ def compare_with_nan_tolerance(a, b, tol=1e-8):
   return bm.allclose(a_non_nan, b_non_nan, atol=tol)
 
 
-taichi_csr_matvec = bm.sparse.csrmv
-
-
 class Test_csrmv_taichi(parameterized.TestCase):
   def __init__(self, *args, platform='cpu', **kwargs):
     super(Test_csrmv_taichi, self).__init__(*args, **kwargs)
@@ -86,7 +83,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     r1 = (vector @ dense) if transpose else (dense @ vector)
-    r2 = taichi_csr_matvec(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    r2 = bm.sparse.csrmv(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
@@ -112,7 +109,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
     dense_data = jax.vmap(lambda a: bm.sparse.csr_to_dense(a, indices, indptr, shape=shape))(heter_data)
 
     f1 = lambda a: (a.T @ vector) if transpose else (a @ vector)
-    f2 = partial(taichi_csr_matvec, indices=indices, indptr=indptr, vector=vector,
+    f2 = partial(bm.sparse.csrmv, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
     r1 = jax.vmap(f1)(dense_data)
     r2 = jax.vmap(f2)(homo_data)
@@ -147,7 +144,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
                                    ((dense * a) @ vector).sum()),
                         argnums=0)
     r1 = dense_f1(homo_data)
-    r2 = jax.grad(sum_op(taichi_csr_matvec))(
+    r2 = jax.grad(sum_op(bm.sparse.csrmv))(
       homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
 
     self.assertTrue(bm.allclose(r1, r2))
@@ -157,7 +154,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
     dense_data = dense * homo_data
     dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()))
     r3 = dense_f2(vector)
-    r4 = jax.grad(sum_op(taichi_csr_matvec), argnums=3)(
+    r4 = jax.grad(sum_op(bm.sparse.csrmv), argnums=3)(
       homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
 
     self.assertTrue(bm.allclose(r3, r4))
@@ -167,7 +164,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
                                       ((dense * a) @ v).sum()),
                         argnums=(0, 1))
     r5 = dense_f3(homo_data, vector)
-    r6 = jax.grad(sum_op(taichi_csr_matvec), argnums=(0, 3))(
+    r6 = jax.grad(sum_op(bm.sparse.csrmv), argnums=(0, 3))(
       homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r5[0], r6[0]))
     self.assertTrue(bm.allclose(r5[1], r6[1]))
@@ -195,7 +192,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     r1 = (vector @ dense) if transpose else (dense @ vector)
-    r2 = taichi_csr_matvec(heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    r2 = bm.sparse.csrmv(heter_data, indices, indptr, vector, shape=shape, transpose=transpose)
 
     self.assertTrue(compare_with_nan_tolerance(r1, r2))
 
@@ -221,7 +218,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
                                                            shape=shape))(heter_data)
 
     f1 = lambda a: (a.T @ vector) if transpose else (a @ vector)
-    f2 = partial(taichi_csr_matvec, indices=indices, indptr=indptr, vector=vector,
+    f2 = partial(bm.sparse.csrmv, indices=indices, indptr=indptr, vector=vector,
                  shape=shape, transpose=transpose)
     r1 = jax.vmap(f1)(dense_data)
     r2 = jax.vmap(f2)(heter_data)
@@ -245,9 +242,8 @@ class Test_csrmv_taichi(parameterized.TestCase):
     vector = bm.as_jax(vector)
 
     # grad 'data'
-    dense_f1 = jax.grad(lambda a: ((vector @ a).sum() if transpose else (a @ vector).sum()),
-                        argnums=0)
-    csr_f1 = jax.grad(lambda a: taichi_csr_matvec(a, indices, indptr, vector,
+    dense_f1 = jax.grad(lambda a: ((vector @ a).sum() if transpose else (a @ vector).sum()), argnums=0)
+    csr_f1 = jax.grad(lambda a: bm.sparse.csrmv(a, indices, indptr, vector,
                                                   shape=shape,
                                                   transpose=transpose).sum(),
                       argnums=0)
@@ -259,9 +255,8 @@ class Test_csrmv_taichi(parameterized.TestCase):
     self.assertTrue(bm.allclose(r1, r2))
 
     # grad 'vector'
-    dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()),
-                        argnums=0)
-    csr_f2 = jax.grad(lambda v: taichi_csr_matvec(heter_data, indices, indptr, v,
+    dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()), argnums=0)
+    csr_f2 = jax.grad(lambda v: bm.sparse.csrmv(heter_data, indices, indptr, v,
                                                   shape=shape,
                                                   transpose=transpose).sum(),
                       argnums=0)

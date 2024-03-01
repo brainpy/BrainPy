@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
 import pytest
-# pytest.skip('Old implementation.', allow_module_level=True)
 
 import brainpy.math as bm
 from brainpy._src.dependency_check import import_taichi
@@ -55,7 +54,7 @@ prim = bm.XLACustomOp(cpu_kernel=event_ell_cpu, gpu_kernel=event_ell_gpu)
 
 def test_taichi_op_register():
   s = 1000
-  indices = bm.random.randint(0, s, (s, 1000))
+  indices = bm.random.randint(0, s, (s, 100))
   vector = bm.random.rand(s) < 0.1
   weight = bm.array([1.0])
 
