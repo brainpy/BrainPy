@@ -30,6 +30,9 @@ float_ = jnp.float64 if config.read('jax_enable_x64') else jnp.float32
 # '''Default complex data type.'''
 complex_ = jnp.complex128 if config.read('jax_enable_x64') else jnp.complex64
 
+# register brainpy object as pytree
+bp_object_as_pytree = False
+
 if ti is not None:
   # '''Default integer data type in Taichi.'''
   ti_int = ti.int64 if config.read('jax_enable_x64') else ti.int32
@@ -40,3 +43,4 @@ if ti is not None:
 else:
   ti_int = None
   ti_float = None
+
