@@ -1,6 +1,11 @@
+import pytest
 import jax.core
 import brainpy.math as bm
-import numba
+
+from brainpy._src.dependency_check import import_numba
+numba = import_numba(error_if_not_found=False)
+if numba is None:
+  pytest.skip('no numba', allow_module_level=True)
 
 bm.set_platform('cpu')
 
