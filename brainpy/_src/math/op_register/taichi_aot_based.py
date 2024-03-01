@@ -296,11 +296,12 @@ def _preprocess_kernel_call_gpu(
   kernel_path = os.path.join(kernels_aot_path, source_md5_encode)
 
   # other args
+  param_total_num = len(ins) + len(outs)
   in_out_num = [len(ins), len(outs)]
-  in_out_type_list = [0] * 8
-  in_out_dim_count_list = [0] * 8
-  in_out_elem_count_list = [0] * 8
-  in_out_shape_list = [0] * 64
+  in_out_type_list = [0] * param_total_num
+  in_out_dim_count_list = [0] * param_total_num
+  in_out_elem_count_list = [0] * param_total_num
+  in_out_shape_list = [0] * param_total_num * 8
 
   for i, value in enumerate(ins.values()):
     in_out_type_list[i] = type_number_map[value[0]]
