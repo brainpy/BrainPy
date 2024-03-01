@@ -1,9 +1,13 @@
 import os
 import sys
+
 from jax.lib import xla_client
 
 __all__ = [
   'import_taichi',
+  'raise_taichi_not_found',
+  'import_numba',
+  'raise_numba_not_found',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
 ]
@@ -11,6 +15,7 @@ __all__ = [
 _minimal_brainpylib_version = '0.2.6'
 _minimal_taichi_version = (1, 7, 0)
 
+numba = None
 taichi = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
@@ -18,10 +23,17 @@ brainpylib_gpu_ops = None
 taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
                        f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
                        '> pip install taichi==1.7.0')
+numba_install_info = ('We need numba. Please install numba by pip . \n'
+                      '> pip install numba')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
-def import_taichi():
+def import_taichi(error_if_not_found=True):
+  """Internal API to import taichi.
+
+  If taichi is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+  otherwise it will return None.
+  """
   global taichi
   if taichi is None:
     with open(os.devnull, 'w') as devnull:
@@ -30,13 +42,43 @@ def import_taichi():
       try:
         import taichi as taichi  # noqa
       except ModuleNotFoundError:
-        raise ModuleNotFoundError(taichi_install_info)
+        if error_if_not_found:
+          raise raise_taichi_not_found()
       finally:
         sys.stdout = old_stdout
 
+  if taichi is None:
+    return None
   if taichi.__version__ != _minimal_taichi_version:
     raise RuntimeError(taichi_install_info)
   return taichi
+
+
+def raise_taichi_not_found(*args, **kwargs):
+  raise ModuleNotFoundError(taichi_install_info)
+
+
+def import_numba(error_if_not_found=True):
+  """
+  Internal API to import numba.
+
+  If numba is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+  otherwise it will return None.
+  """
+  global numba
+  if numba is None:
+    try:
+      import numba as numba
+    except ModuleNotFoundError:
+      if error_if_not_found:
+        raise_numba_not_found()
+      else:
+        return None
+  return numba
+
+
+def raise_numba_not_found():
+  raise ModuleNotFoundError(numba_install_info)
 
 
 def is_brainpylib_gpu_installed():
@@ -44,6 +86,9 @@ def is_brainpylib_gpu_installed():
 
 
 def import_brainpylib_cpu_ops():
+  """
+  Internal API to import brainpylib cpu_ops.
+  """
   global brainpylib_cpu_ops
   if brainpylib_cpu_ops is None:
     try:
@@ -66,6 +111,9 @@ def import_brainpylib_cpu_ops():
 
 
 def import_brainpylib_gpu_ops():
+  """
+  Internal API to import brainpylib gpu_ops.
+  """
   global brainpylib_gpu_ops
   if brainpylib_gpu_ops is None:
     try:

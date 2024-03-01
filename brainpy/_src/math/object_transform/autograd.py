@@ -28,8 +28,10 @@ from .tools import (dynvar_deprecation,
                     get_stack_cache,
                     cache_stack)
 from .base import (BrainPyObject, ObjectTransform)
-from .variables import (Variable, VariableStack)
-from .tools import eval_shape
+from .variables import (Variable,
+                        VariableStack,
+                        current_transform_number,
+                        new_transform)
 
 __all__ = [
   'grad',  # gradient of scalar function
@@ -201,21 +203,36 @@ class GradientTransform(ObjectTransform):
     elif not self._eval_dyn_vars:  # evaluate dynamical variables
       stack = get_stack_cache(self.target)
       if stack is None:
-        with VariableStack() as stack:
-          rets = eval_shape(self._transform,
-                            [v.value for v in self._grad_vars],  # variables for gradients
-                            {},  # dynamical variables
-                            *args,
-                            **kwargs)
+        with new_transform(self):
+          with VariableStack() as stack:
+            if current_transform_number() > 1:
+              rets = self._transform(
+                [v.value for v in self._grad_vars],  # variables for gradients
+                {},  # dynamical variables
+                *args,
+                **kwargs
+              )
+            else:
+              rets = jax.eval_shape(
+                self._transform,
+                [v.value for v in self._grad_vars],  # variables for gradients
+                {},  # dynamical variables
+                *args,
+                **kwargs
+              )
           cache_stack(self.target, stack)
 
-      self._dyn_vars = stack
-      self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
-      self._eval_dyn_vars = True
+        self._dyn_vars = stack
+        self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
+        self._eval_dyn_vars = True
 
-      # if not the outermost transformation
-      if not stack.is_first_stack():
-        return self._return(rets)
+        # if not the outermost transformation
+        if current_transform_number():
+          return self._return(rets)
+      else:
+        self._dyn_vars = stack
+        self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
+        self._eval_dyn_vars = True
 
     rets = self._transform(
       [v.value for v in self._grad_vars],  # variables for gradients

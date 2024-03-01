@@ -77,5 +77,4 @@ Helpers for Object-oriented Transformations
    :template: classtemplate.rst
 
    eval_shape
-   VariableStack
 

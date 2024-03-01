@@ -2,6 +2,7 @@
 
 
 import functools
+import gc
 import inspect
 import os
 import re
@@ -16,9 +17,10 @@ from jax.lib import xla_bridge
 from . import modes
 from . import scales
 from . import defaults
+from .object_transform import naming
 from brainpy._src.dependency_check import import_taichi
 
-ti = import_taichi()
+ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   # context manage for environment setting
@@ -416,13 +418,16 @@ def set_float(dtype: type):
   """
   if dtype in [jnp.float16, 'float16', 'f16']:
     defaults.__dict__['float_'] = jnp.float16
-    defaults.__dict__['ti_float'] = ti.float16
+    if ti is not None:
+      defaults.__dict__['ti_float'] = ti.float16
   elif dtype in [jnp.float32, 'float32', 'f32']:
     defaults.__dict__['float_'] = jnp.float32
-    defaults.__dict__['ti_float'] = ti.float32
+    if ti is not None:
+      defaults.__dict__['ti_float'] = ti.float32
   elif dtype in [jnp.float64, 'float64', 'f64']:
     defaults.__dict__['float_'] = jnp.float64
-    defaults.__dict__['ti_float'] = ti.float64
+    if ti is not None:
+      defaults.__dict__['ti_float'] = ti.float64
   else:
     raise NotImplementedError
 
@@ -448,16 +453,20 @@ def set_int(dtype: type):
   """
   if dtype in [jnp.int8, 'int8', 'i8']:
     defaults.__dict__['int_'] = jnp.int8
-    defaults.__dict__['ti_int'] = ti.int8
+    if ti is not None:
+      defaults.__dict__['ti_int'] = ti.int8
   elif dtype in [jnp.int16, 'int16', 'i16']:
     defaults.__dict__['int_'] = jnp.int16
-    defaults.__dict__['ti_int'] = ti.int16
+    if ti is not None:
+      defaults.__dict__['ti_int'] = ti.int16
   elif dtype in [jnp.int32, 'int32', 'i32']:
     defaults.__dict__['int_'] = jnp.int32
-    defaults.__dict__['ti_int'] = ti.int32
+    if ti is not None:
+      defaults.__dict__['ti_int'] = ti.int32
   elif dtype in [jnp.int64, 'int64', 'i64']:
     defaults.__dict__['int_'] = jnp.int64
-    defaults.__dict__['ti_int'] = ti.int64
+    if ti is not None:
+      defaults.__dict__['ti_int'] = ti.int64
   else:
     raise NotImplementedError
 
@@ -674,7 +683,9 @@ def set_host_device_count(n):
 def clear_buffer_memory(
     platform: str = None,
     array: bool = True,
-    compilation: bool = False
+    transform: bool = True,
+    compilation: bool = False,
+    object_name: bool = False,
 ):
   """Clear all on-device buffers.
 
@@ -691,9 +702,13 @@ def clear_buffer_memory(
   platform: str
     The device to clear its memory.
   array: bool
-    Clear all buffer array.
+    Clear all buffer array. Default is True.
   compilation: bool
-    Clear compilation cache.
+    Clear compilation cache. Default is False.
+  transform: bool
+    Clear transform cache. Default is True.
+  object_name: bool
+    Clear name cache. Default is True.
 
   """
   if array:
@@ -701,6 +716,11 @@ def clear_buffer_memory(
       buf.delete()
   if compilation:
     jax.clear_caches()
+  if transform:
+    naming.clear_stack_cache()
+  if object_name:
+    naming.clear_name_cache()
+  gc.collect()
 
 
 def disable_gpu_memory_preallocation(release_memory: bool = True):
