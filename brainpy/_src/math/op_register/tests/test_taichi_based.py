@@ -1,8 +1,13 @@
+import pytest
 import jax
 import jax.numpy as jnp
-import taichi as ti
 
 import brainpy.math as bm
+
+from brainpy._src.dependency_check import import_taichi
+ti = import_taichi(error_if_not_found=False)
+if ti is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 bm.set_platform('cpu')
 

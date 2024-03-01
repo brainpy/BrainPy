@@ -1,8 +1,14 @@
+import pytest
 from absl.testing import absltest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
+
+from brainpy._src.dependency_check import import_taichi
+
+if import_taichi(error_if_not_found=False) is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 
 class TestLinear(parameterized.TestCase):
@@ -106,7 +112,6 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(y.shape == (100,))
     bm.clear_buffer_memory()
 
-
   @parameterized.product(
     conn=[
       bp.conn.FixedProb(0.1, pre=100, post=100),
@@ -114,9 +119,9 @@ class TestLinear(parameterized.TestCase):
       bp.conn.GaussianProb(0.1, pre=100, post=100),
     ]
   )
-  def test_EventCSRLinear(self,conn):
+  def test_EventCSRLinear(self, conn):
     bm.random.seed()
-    f=bp.layers.EventCSRLinear(conn,weight=bp.init.Normal())
+    f = bp.layers.EventCSRLinear(conn, weight=bp.init.Normal())
     x = bm.random.random((16, 100))
     y = f(x)
     self.assertTrue(y.shape == (16, 100))
@@ -124,7 +129,6 @@ class TestLinear(parameterized.TestCase):
     y = f(x)
     self.assertTrue(y.shape == (100,))
     bm.clear_buffer_memory()
-
 
   @parameterized.product(
     prob=[0.01, 0.05, 0.5],
@@ -213,6 +217,7 @@ class TestLinear(parameterized.TestCase):
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
     bm.clear_buffer_memory()
+
 
 if __name__ == '__main__':
   absltest.main()

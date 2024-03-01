@@ -1,13 +1,10 @@
 numpy
-brainpylib
 jax
 jaxlib
 matplotlib
 msgpack
 tqdm
 pathos
-taichi
-numba
 
 
 # test requirements

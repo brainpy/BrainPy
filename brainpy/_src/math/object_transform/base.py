@@ -6,6 +6,7 @@ These transformations include JAX's JIT, autograd, vectorization, parallelizatio
 """
 
 import numbers
+import os
 import warnings
 from collections import namedtuple
 from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
@@ -13,13 +14,14 @@ from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 import jax
 import numpy as np
 
-from brainpy._src.math.modes import Mode
+from brainpy import errors
 from brainpy._src.math.ndarray import (Array, )
 from brainpy._src.math.object_transform.collectors import (ArrayCollector, Collector)
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        check_name_uniqueness)
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
                                                           VarList, VarDict)
+from brainpy._src.math.modes import Mode
 from brainpy._src.math.sharding import BATCH_AXIS
 
 variable_ = None

@@ -50,6 +50,37 @@ jobs:
           cd brainpy
           pytest _src/
 
+  test_linux_with_taichi_numba:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.9", "3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install flake8 pytest taichi numba
+          if [ -f requirements-dev-raw.txt ]; then pip install -r requirements-dev-raw.txt; fi
+          pip uninstall brainpy -y
+          python setup.py install
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 brainpy/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Test with pytest
+        run: |
+          cd brainpy
+          pytest _src/
+
 
 #  test_linux_py37:
 #    runs-on: ubuntu-latest
@@ -103,6 +134,37 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+        pip uninstall brainpy -y
+        python setup.py install
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 brainpy/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 brainpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with pytest
+      run: |
+        cd brainpy
+        pytest _src/
+
+  test_macos_with_taichi_numba:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest taichi numba
+        if [ -f requirements-dev-raw.txt ]; then pip install -r requirements-dev-raw.txt; fi
         pip uninstall brainpy -y
         python setup.py install
     - name: Lint with flake8
