@@ -8,17 +8,17 @@ from jax import numpy as jnp
 
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.jitconn._matvec import (mv_prob_homo,
-                                               mv_prob_uniform,
-                                               mv_prob_normal,
-                                               _general_checking,
-                                               raw_mv_prob_homo,
-                                               raw_mv_prob_uniform,
-                                               raw_mv_prob_normal,
-                                               _mv_prob_homo_transpose,
-                                               _mv_prob_uniform_transpose,
-                                               _mv_prob_normal_transpose,
-                                               _reverse)
+from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
+                                              mv_prob_uniform,
+                                              mv_prob_normal,
+                                              _general_checking,
+                                              raw_mv_prob_homo,
+                                              raw_mv_prob_uniform,
+                                              raw_mv_prob_normal,
+                                              _mv_prob_homo_transpose,
+                                              _mv_prob_uniform_transpose,
+                                              _mv_prob_normal_transpose,
+                                              _reverse)
 from brainpy._src.math.ndarray import _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy.errors import PackageMissingError

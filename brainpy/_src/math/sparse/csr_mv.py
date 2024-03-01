@@ -13,7 +13,7 @@ from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.op_register import (register_general_batching, XLACustomOp)
-from brainpy._src.math.sparse._utils import csr_to_coo
+from brainpy._src.math.sparse.utils import csr_to_coo
 from brainpy.errors import PackageMissingError
 
 ti = import_taichi(error_if_not_found=False)
