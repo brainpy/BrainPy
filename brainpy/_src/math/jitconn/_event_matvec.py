@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from functools import partial
 from typing import Tuple, Optional
 
 import jax
 import numpy as np
 from jax import numpy as jnp
+from jax.core import Primitive
+from jax.interpreters import xla, ad
 
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
@@ -20,7 +23,7 @@ from brainpy._src.math.jitconn._matvec import (mv_prob_homo,
                                                _mv_prob_normal_transpose,
                                                _reverse)
 from brainpy._src.math.ndarray import _get_dtype
-from brainpy._src.math.op_register import XLACustomOp
+from brainpy._src.math.op_register import XLACustomOp, register_general_batching
 from brainpy.errors import PackageMissingError
 
 ti = import_taichi(error_if_not_found=False)
