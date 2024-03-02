@@ -1,2 +1,2 @@
-from ._csr_matvec import *
+from .csr_matvec import *
 

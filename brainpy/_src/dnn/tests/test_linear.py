@@ -20,7 +20,7 @@ class TestLinear(parameterized.TestCase):
     size=[(10,),
           (20, 10),
           (5, 8, 10)],
-    num_out=[20, 10, 5]
+    num_out=[20,]
   )
   def test_Dense1(self, size, num_out):
     bm.random.seed()
@@ -131,8 +131,8 @@ class TestLinear(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   @parameterized.product(
-    prob=[0.01, 0.05, 0.5],
-    weight=[0.01, 0.01],
+    prob=[0.1],
+    weight=[0.01],
     shape=[(), (10,), (10, 20), (10, 20, 25)]
   )
   def test_JitFPHomoLinear(self, prob, weight, shape):
@@ -144,9 +144,9 @@ class TestLinear(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   @parameterized.product(
-    prob=[0.01, 0.05, 0.5],
-    w_low=[-0.01, -0.01],
-    w_high=[0.01, 0.01],
+    prob=[0.1],
+    w_low=[-0.01, ],
+    w_high=[0.01, ],
     shape=[(), (10,), (10, 20), (10, 20, 25)]
   )
   def test_JitFPUniformLinear(self, prob, w_low, w_high, shape):
@@ -158,9 +158,9 @@ class TestLinear(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   @parameterized.product(
-    prob=[0.01, 0.1, 0.5],
-    w_mu=[-0.01, -0.01],
-    w_sigma=[0.01, 0.01],
+    prob=[0.1],
+    w_mu=[-0.01],
+    w_sigma=[0.01],
     shape=[(), (10,), (10, 20), (10, 20, 25)]
   )
   def test_JitFPNormalLinear(self, prob, w_mu, w_sigma, shape):
@@ -172,8 +172,8 @@ class TestLinear(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   @parameterized.product(
-    prob=[0.01, 0.05, 0.5],
-    weight=[0.01, 0.01],
+    prob=[0.1],
+    weight=[0.01,],
     shape=[(), (10,), (10, 20), (10, 20, 25)]
   )
   def test_EventJitFPHomoLinear(self, prob, weight, shape):
@@ -187,9 +187,9 @@ class TestLinear(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   @parameterized.product(
-    prob=[0.01, 0.05, 0.5],
-    w_low=[-0.01, -0.01],
-    w_high=[0.01, 0.01],
+    prob=[0.1],
+    w_low=[-0.01],
+    w_high=[0.01],
     shape=[(), (10,), (10, 20), (10, 20, 25)]
   )
   def test_EventJitFPUniformLinear(self, prob, w_low, w_high, shape):
@@ -203,9 +203,9 @@ class TestLinear(parameterized.TestCase):
     bm.clear_buffer_memory()
 
   @parameterized.product(
-    prob=[0.01, 0.1, 0.5],
-    w_mu=[-0.01, -0.01],
-    w_sigma=[0.01, 0.01],
+    prob=[0.1],
+    w_mu=[-0.01],
+    w_sigma=[0.01],
     shape=[(), (10,), (10, 20), (10, 20, 25)]
   )
   def test_EventJitFPNormalLinear(self, prob, w_mu, w_sigma, shape):

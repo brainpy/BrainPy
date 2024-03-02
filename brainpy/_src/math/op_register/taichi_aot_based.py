@@ -16,6 +16,7 @@ from jax.interpreters import xla, mlir
 from jax.lib import xla_client
 from jaxlib.hlo_helpers import custom_call
 
+from brainpy.errors import PackageMissingError
 from brainpy._src.dependency_check import (import_taichi,
                                            import_brainpylib_cpu_ops,
                                            import_brainpylib_gpu_ops)
@@ -485,10 +486,16 @@ def _taichi_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
 
 
 def register_taichi_aot_mlir_cpu_translation_rule(primitive, cpu_kernel):
+  if import_taichi(error_if_not_found=False) is None:
+    raise PackageMissingError.by_purpose("taichi", 'register taichi AOT based translation rule')
+
   rule = partial(_taichi_mlir_cpu_translation_rule, cpu_kernel)
   mlir.register_lowering(primitive, rule, platform='cpu')
 
 
 def register_taichi_aot_mlir_gpu_translation_rule(primitive, gpu_kernel):
+  if import_taichi(error_if_not_found=False) is None:
+    raise PackageMissingError.by_purpose("taichi", 'register taichi AOT based translation rule')
+
   rule = partial(_taichi_mlir_gpu_translation_rule, gpu_kernel)
   mlir.register_lowering(primitive, rule, platform='gpu')
