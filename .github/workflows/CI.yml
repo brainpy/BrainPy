@@ -20,7 +20,7 @@ on:
 
 jobs:
   test_linux:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
