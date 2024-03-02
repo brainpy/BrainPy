@@ -51,10 +51,10 @@ def test_taichi_clean_cache():
   print(out)
   bm.clear_buffer_memory()
 
-  print('kernels: ', bm.check_kernels_count())
+  print('kernels: ', bm.count_taichi_aot_kernels())
 
-  bm.clean_caches()
+  bm.clear_taichi_aot_caches()
 
-  print('kernels: ', bm.check_kernels_count())
+  print('kernels: ', bm.count_taichi_aot_kernels())
 
 # test_taichi_clean_cache()

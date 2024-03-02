@@ -22,6 +22,23 @@ General Operator Customization Interface
 
 
 
+CPU Operator Customization with Taichi
+-------------------------------------
+
+.. currentmodule:: brainpy.math
+.. automodule:: brainpy.math
+
+.. autosummary::
+   :toctree: generated/
+
+   clear_taichi_aot_caches
+   count_taichi_aot_kernels
+
+
+
+
+
+
 CPU Operator Customization with Numba
 -------------------------------------
 
@@ -34,7 +51,6 @@ CPU Operator Customization with Numba
    :template: classtemplate.rst
 
    CustomOpByNumba
-   XLACustomOp
 
 
 .. autosummary::
@@ -42,4 +58,18 @@ CPU Operator Customization with Numba
 
    register_op_with_numba
    compile_cpu_signature_with_numba
+
+
+
+Operator Autograd Customization
+-------------------------------
+
+.. currentmodule:: brainpy.math
+.. automodule:: brainpy.math
+
+.. autosummary::
+   :toctree: generated/
+
+   defjvp
+
 
