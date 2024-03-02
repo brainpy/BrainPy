@@ -14,7 +14,7 @@ if import_taichi(error_if_not_found=False) is None:
 
 import platform
 force_test = False  # turn on to force test on windows locally
-if platform.platform() == 'Windows' and not force_test:
+if platform.system() == 'Windows' and not force_test:
   pytest.skip('skip windows', allow_module_level=True)
 
 
