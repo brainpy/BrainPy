@@ -83,7 +83,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
 
     dense = bm.sparse.csr_to_dense(heter_data, indices, indptr, shape=shape)
     r1 = (vector @ dense) if transpose else (dense @ vector)
-    r2 = bm.sparse.csrmv(homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    r2 = bm.sparse.csrmv(bm.asarray([homo_data]), indices, indptr, vector, shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r1, r2))
 
     bm.clear_buffer_memory()
@@ -144,8 +144,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
                                    ((dense * a) @ vector).sum()),
                         argnums=0)
     r1 = dense_f1(homo_data)
-    r2 = jax.grad(sum_op(bm.sparse.csrmv))(
-      homo_data, indices, indptr, vector, shape=shape, transpose=transpose)
+    r2 = jax.grad(sum_op(bm.sparse.csrmv))(bm.asarray([homo_data]), indices, indptr, vector, shape=shape, transpose=transpose)
 
     self.assertTrue(bm.allclose(r1, r2))
 
@@ -155,7 +154,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
     dense_f2 = jax.grad(lambda v: ((v @ dense_data).sum() if transpose else (dense_data @ v).sum()))
     r3 = dense_f2(vector)
     r4 = jax.grad(sum_op(bm.sparse.csrmv), argnums=3)(
-      homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+      bm.asarray([homo_data]), indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
 
     self.assertTrue(bm.allclose(r3, r4))
 
@@ -165,7 +164,7 @@ class Test_csrmv_taichi(parameterized.TestCase):
                         argnums=(0, 1))
     r5 = dense_f3(homo_data, vector)
     r6 = jax.grad(sum_op(bm.sparse.csrmv), argnums=(0, 3))(
-      homo_data, indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
+      bm.asarray([homo_data]), indices, indptr, vector.astype(float), shape=shape, transpose=transpose)
     self.assertTrue(bm.allclose(r5[0], r6[0]))
     self.assertTrue(bm.allclose(r5[1], r6[1]))
 
