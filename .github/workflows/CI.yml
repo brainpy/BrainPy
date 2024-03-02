@@ -16,7 +16,9 @@ permissions:
   contents: read  # to fetch code
   actions: write  # to cancel previous workflows
 
-
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
 
 jobs:
   test_linux:
