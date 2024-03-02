@@ -169,6 +169,7 @@ class environment(_DecoratorContextManager):
       int_: type = None,
       bool_: type = None,
       bp_object_as_pytree: bool = None,
+      numpy_func_return: bool = None,
   ) -> None:
     super().__init__()
 
@@ -208,6 +209,10 @@ class environment(_DecoratorContextManager):
       assert isinstance(bp_object_as_pytree, bool), '"bp_object_as_pytree" must be a bool.'
       self.old_bp_object_as_pytree = defaults.bp_object_as_pytree
 
+    if numpy_func_return is not None:
+      assert isinstance(numpy_func_return, bool), '"numpy_func_return" must be a bool.'
+      self.old_numpy_func_return = defaults.numpy_func_return
+
     self.dt = dt
     self.mode = mode
     self.membrane_scaling = membrane_scaling
@@ -217,6 +222,7 @@ class environment(_DecoratorContextManager):
     self.int_ = int_
     self.bool_ = bool_
     self.bp_object_as_pytree = bp_object_as_pytree
+    self.numpy_func_return = numpy_func_return
 
   def __enter__(self) -> 'environment':
     if self.dt is not None: set_dt(self.dt)
@@ -228,6 +234,7 @@ class environment(_DecoratorContextManager):
     if self.complex_ is not None: set_complex(self.complex_)
     if self.bool_ is not None: set_bool(self.bool_)
     if self.bp_object_as_pytree is not None: defaults.__dict__['bp_object_as_pytree'] = self.bp_object_as_pytree
+    if self.numpy_func_return is not None: defaults.__dict__['numpy_func_return'] = self.numpy_func_return
     return self
 
   def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -240,6 +247,7 @@ class environment(_DecoratorContextManager):
     if self.complex_ is not None:  set_complex(self.old_complex)
     if self.bool_ is not None:  set_bool(self.old_bool)
     if self.bp_object_as_pytree is not None: defaults.__dict__['bp_object_as_pytree'] = self.old_bp_object_as_pytree
+    if self.numpy_func_return is not None: defaults.__dict__['numpy_func_return'] = self.old_numpy_func_return
 
   def clone(self):
     return self.__class__(dt=self.dt,
@@ -250,7 +258,8 @@ class environment(_DecoratorContextManager):
                           complex_=self.complex_,
                           float_=self.float_,
                           int_=self.int_,
-                          bp_object_as_pytree=self.bp_object_as_pytree)
+                          bp_object_as_pytree=self.bp_object_as_pytree,
+                          numpy_func_return=self.numpy_func_return)
 
   def __eq__(self, other):
     return id(self) == id(other)
@@ -279,6 +288,7 @@ class training_environment(environment):
       batch_size: int = 1,
       membrane_scaling: scales.Scaling = None,
       bp_object_as_pytree: bool = None,
+      numpy_func_return: bool = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -288,7 +298,8 @@ class training_environment(environment):
                      bool_=bool_,
                      membrane_scaling=membrane_scaling,
                      mode=modes.TrainingMode(batch_size),
-                     bp_object_as_pytree=bp_object_as_pytree)
+                     bp_object_as_pytree=bp_object_as_pytree,
+                     numpy_func_return=numpy_func_return)
 
 
 class batching_environment(environment):
@@ -315,6 +326,7 @@ class batching_environment(environment):
       batch_size: int = 1,
       membrane_scaling: scales.Scaling = None,
       bp_object_as_pytree: bool = None,
+      numpy_func_return: bool = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -324,7 +336,8 @@ class batching_environment(environment):
                      bool_=bool_,
                      mode=modes.BatchingMode(batch_size),
                      membrane_scaling=membrane_scaling,
-                     bp_object_as_pytree=bp_object_as_pytree)
+                     bp_object_as_pytree=bp_object_as_pytree,
+                     numpy_func_return=numpy_func_return)
 
 
 def set(
@@ -337,6 +350,7 @@ def set(
     int_: type = None,
     bool_: type = None,
     bp_object_as_pytree: bool = None,
+    numpy_func_return: bool = None,
 ):
   """Set the default computation environment.
 
@@ -360,6 +374,8 @@ def set(
     The bool data type.
   bp_object_as_pytree: bool
     Whether to register brainpy object as pytree.
+  numpy_func_return: bool
+    Whether to return brainpy array in all numpy functions.
   """
   if dt is not None:
     assert isinstance(dt, float), '"dt" must a float.'
@@ -395,6 +411,9 @@ def set(
 
   if bp_object_as_pytree is not None:
     defaults.__dict__['bp_object_as_pytree'] = bp_object_as_pytree
+
+  if numpy_func_return is not None:
+    defaults.__dict__['numpy_func_return'] = numpy_func_return
 
 
 set_environment = set
