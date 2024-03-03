@@ -106,8 +106,7 @@ class TestNodeList(unittest.TestCase):
       self.assertTrue(len(obj.nodes()) == 7)
 
       print(obj.nodes().keys())
-      print("obj.nodes(method='relative'): ",
-            obj.nodes(method='relative').keys())
+      print("obj.nodes(method='relative'): ", obj.nodes(method='relative').keys())
       # print(jax.tree_util.tree_structure(obj))
 
     with bm.environment(mode=bm.TrainingMode()):
@@ -116,8 +115,7 @@ class TestNodeList(unittest.TestCase):
       self.assertTrue(len(obj.nodes()) == 7)
 
       print(obj.nodes().keys())
-      print("obj.nodes(method='relative'): ",
-            obj.nodes(method='relative').keys())
+      print("obj.nodes(method='relative'): ", obj.nodes(method='relative').keys())
       # print(jax.tree_util.tree_structure(obj))
 
 
@@ -246,6 +244,50 @@ class TestRegisterBPObjectAsPyTree(unittest.TestCase):
     print(leaves)
     print(jax.tree_unflatten(tree, leaves))
     print()
+
+
+class TestStateSavingAndLoading(unittest.TestCase):
+  def test_load_states(self):
+    class Object(bp.DynamicalSystem):
+      def __init__(self):
+        super().__init__()
+
+        self.l1 = bp.layers.Dense(5, 10)
+        self.ls = bm.NodeList([bp.layers.Dense(10, 4),
+                               bp.layers.Activation(bm.tanh),
+                               bp.layers.Dropout(0.1),
+                               bp.layers.Dense(4, 5),
+                               bp.layers.Activation(bm.relu)])
+        self.lif = bp.dyn.LifRef(5)
+
+      def update(self, x):
+        x = self.l1(x)
+        for l in self.ls:
+          x = l(x)
+        return x
+
+    with bm.training_environment():
+      obj = Object()
+      variables = {k: dict(n.vars()) for k, n in obj.nodes(include_self=False).items()}
+      variables = {k: v for k, v in variables.items() if len(v) > 0}
+
+      all_states = obj.state_dict()
+      all_states = {k: v for k, v in all_states.items() if len(v) > 0}
+      print(set(all_states.keys()))
+      print(set(variables.keys()))
+
+      def not_close(x, y):
+        assert not bm.allclose(x, y)
+      def all_close(x, y):
+        assert bm.allclose(x, y)
+
+      jax.tree_map(all_close, all_states, variables, is_leaf=bm.is_bp_array)
+
+      random_state = jax.tree_map(bm.random.rand_like, all_states, is_leaf=bm.is_bp_array)
+      jax.tree_map(not_close, random_state, variables, is_leaf=bm.is_bp_array)
+
+      obj.load_state_dict(random_state)
+      jax.tree_map(all_close, random_state, variables, is_leaf=bm.is_bp_array)
 
 
 

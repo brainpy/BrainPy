@@ -103,6 +103,10 @@ _min = min
 _max = max
 
 
+def _return(a):
+  return Array(a)
+
+
 def fill_diagonal(a, val, inplace=True):
   if a.ndim < 2:
     raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
@@ -120,30 +124,30 @@ def fill_diagonal(a, val, inplace=True):
 
 
 def zeros(shape, dtype=None):
-  return Array(jnp.zeros(shape, dtype=dtype))
+  return _return(jnp.zeros(shape, dtype=dtype))
 
 
 def ones(shape, dtype=None):
-  return Array(jnp.ones(shape, dtype=dtype))
+  return _return(jnp.ones(shape, dtype=dtype))
 
 
 def empty(shape, dtype=None):
-  return Array(jnp.zeros(shape, dtype=dtype))
+  return _return(jnp.zeros(shape, dtype=dtype))
 
 
 def zeros_like(a, dtype=None, shape=None):
   a = _as_jax_array_(a)
-  return Array(jnp.zeros_like(a, dtype=dtype, shape=shape))
+  return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def ones_like(a, dtype=None, shape=None):
   a = _as_jax_array_(a)
-  return Array(jnp.ones_like(a, dtype=dtype, shape=shape))
+  return _return(jnp.ones_like(a, dtype=dtype, shape=shape))
 
 
 def empty_like(a, dtype=None, shape=None):
   a = _as_jax_array_(a)
-  return Array(jnp.zeros_like(a, dtype=dtype, shape=shape))
+  return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
@@ -155,7 +159,7 @@ def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
     leaves = [_as_jax_array_(l) for l in leaves]
     a = tree_unflatten(tree, leaves)
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
-  return Array(res)
+  return _return(res)
 
 
 def asarray(a, dtype=None, order=None):
@@ -167,13 +171,13 @@ def asarray(a, dtype=None, order=None):
     leaves = [_as_jax_array_(l) for l in leaves]
     arrays = tree_unflatten(tree, leaves)
     res = jnp.asarray(a=arrays, dtype=dtype, order=order)
-  return Array(res)
+  return _return(res)
 
 
 def arange(*args, **kwargs):
   args = [_as_jax_array_(a) for a in args]
   kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-  return Array(jnp.arange(*args, **kwargs))
+  return _return(jnp.arange(*args, **kwargs))
 
 
 def linspace(*args, **kwargs):
@@ -181,15 +185,15 @@ def linspace(*args, **kwargs):
   kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
   res = jnp.linspace(*args, **kwargs)
   if isinstance(res, tuple):
-    return Array(res[0]), res[1]
+    return _return(res[0]), res[1]
   else:
-    return Array(res)
+    return _return(res)
 
 
 def logspace(*args, **kwargs):
   args = [_as_jax_array_(a) for a in args]
   kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-  return Array(jnp.logspace(*args, **kwargs))
+  return _return(jnp.logspace(*args, **kwargs))
 
 
 def asanyarray(a, dtype=None, order=None):

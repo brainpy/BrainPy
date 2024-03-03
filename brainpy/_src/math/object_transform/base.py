@@ -557,7 +557,7 @@ class BrainPyObject(object):
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        r = node.load_state(state_dict[name], **kwargs)
+        r = node.load_state(state_dict[name] if name in state_dict else {}, **kwargs)
         if r is not None:
           missing, unexpected = r
           missing_keys.extend([f'{name}.{key}' for key in missing])
