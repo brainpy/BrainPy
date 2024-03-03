@@ -12,7 +12,6 @@ from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 
 import jax
 import numpy as np
-from jax._src.tree_util import _registry
 from jax.tree_util import register_pytree_node_class
 
 from brainpy._src.math.modes import Mode
@@ -27,6 +26,8 @@ from brainpy._src.math import defaults
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
+registered = set()
+
 
 __all__ = [
   'BrainPyObject', 'Base', 'FunAsObject', 'ObjectTransform',
@@ -91,8 +92,9 @@ class BrainPyObject(object):
     super().__init__()
 
     if defaults.bp_object_as_pytree:
-      if self.__class__ not in _registry:
+      if self.__class__ not in registered:
         register_pytree_node_class(self.__class__)
+        registered.add(self.__class__)
 
     # check whether the object has a unique name.
     self._name = None
