@@ -7,8 +7,8 @@ import brainpy.math as bm
 from brainpy._src.context import share
 from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
 from brainpy._src.dyn.neurons.base import GradNeuDyn
-from brainpy._src.initialize import ZeroInit, OneInit
-from brainpy._src.integrators import odeint, JointEq
+from brainpy._src.initialize import ZeroInit, OneInit, noise as init_noise
+from brainpy._src.integrators import odeint, sdeint, JointEq
 from brainpy.check import is_initializer
 from brainpy.types import Shape, ArrayType, Sharding
 
@@ -220,6 +220,9 @@ class LifLTC(GradNeuDyn):
       R: Union[float, ArrayType, Callable] = 1.,
       tau: Union[float, ArrayType, Callable] = 10.,
       V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # noise
+      noise: Optional[Union[float, ArrayType, Callable]] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -244,8 +247,14 @@ class LifLTC(GradNeuDyn):
     # initializers
     self._V_initializer = is_initializer(V_initializer)
 
+    # noise
+    self.noise = init_noise(noise, self.varshape)
+
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -418,6 +427,9 @@ class LifRefLTC(LifLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Optional[Union[float, ArrayType, Callable]] = None,
   ):
     # initialization
     super().__init__(
@@ -441,6 +453,8 @@ class LifRefLTC(LifLTC):
       R=R,
       tau=tau,
       V_initializer=V_initializer,
+
+      noise=noise,
     )
 
     # parameters
@@ -689,6 +703,9 @@ class ExpIFLTC(GradNeuDyn):
       R: Union[float, ArrayType, Callable] = 1.,
       tau: Union[float, ArrayType, Callable] = 10.,
       V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -715,8 +732,13 @@ class ExpIFLTC(GradNeuDyn):
     # initializers
     self._V_initializer = is_initializer(V_initializer)
 
+    # noise
+    self.noise = init_noise(noise, self.varshape)
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -1023,6 +1045,9 @@ class ExpIFRefLTC(ExpIFLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(
@@ -1048,6 +1073,7 @@ class ExpIFRefLTC(ExpIFLTC):
       R=R,
       tau=tau,
       V_initializer=V_initializer,
+      noise=noise,
     )
 
     # parameters
@@ -1365,6 +1391,9 @@ class AdExIFLTC(GradNeuDyn):
       R: Union[float, ArrayType, Callable] = 1.,
       V_initializer: Union[Callable, ArrayType] = ZeroInit(),
       w_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -1395,7 +1424,11 @@ class AdExIFLTC(GradNeuDyn):
     self._w_initializer = is_initializer(w_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -1700,6 +1733,9 @@ class AdExIFRefLTC(AdExIFLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(
@@ -1740,7 +1776,11 @@ class AdExIFRefLTC(AdExIFLTC):
     self._w_initializer = is_initializer(w_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -2011,6 +2051,9 @@ class QuaIFLTC(GradNeuDyn):
       R: Union[float, ArrayType, Callable] = 1.,
       tau: Union[float, ArrayType, Callable] = 10.,
       V_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -2037,7 +2080,11 @@ class QuaIFLTC(GradNeuDyn):
     self._V_initializer = is_initializer(V_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=1)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -2280,6 +2327,9 @@ class QuaIFRefLTC(QuaIFLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(
@@ -2315,7 +2365,11 @@ class QuaIFRefLTC(QuaIFLTC):
     self._V_initializer = is_initializer(V_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=1)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -2576,6 +2630,9 @@ class AdQuaIFLTC(GradNeuDyn):
       tau_w: Union[float, ArrayType, Callable] = 10.,
       V_initializer: Union[Callable, ArrayType] = ZeroInit(),
       w_initializer: Union[Callable, ArrayType] = ZeroInit(),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -2605,7 +2662,11 @@ class AdQuaIFLTC(GradNeuDyn):
     self._w_initializer = is_initializer(w_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -2884,6 +2945,9 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(
@@ -2923,7 +2987,11 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
     self._w_initializer = is_initializer(w_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -3232,6 +3300,9 @@ class GifLTC(GradNeuDyn):
       I1_initializer: Union[Callable, ArrayType] = ZeroInit(),
       I2_initializer: Union[Callable, ArrayType] = ZeroInit(),
       Vth_initializer: Union[Callable, ArrayType] = OneInit(-50.),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -3268,7 +3339,11 @@ class GifLTC(GradNeuDyn):
     self._Vth_initializer = is_initializer(Vth_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=4)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -3617,6 +3692,9 @@ class GifRefLTC(GifLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(
@@ -3665,7 +3743,11 @@ class GifRefLTC(GifLTC):
     self._Vth_initializer = is_initializer(Vth_initializer)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=4)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -3977,6 +4059,9 @@ class IzhikevichLTC(GradNeuDyn):
       R: Union[float, ArrayType, Callable] = 1.,
       V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
       u_initializer: Union[Callable, ArrayType] = None,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -4010,7 +4095,11 @@ class IzhikevichLTC(GradNeuDyn):
     self._u_initializer = is_initializer(u_initializer, allow_none=True)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
@@ -4297,6 +4386,9 @@ class IzhikevichRefLTC(IzhikevichLTC):
       # new neuron parameter
       tau_ref: Union[float, ArrayType, Callable] = 0.,
       ref_var: bool = False,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(
@@ -4337,7 +4429,11 @@ class IzhikevichRefLTC(IzhikevichLTC):
     self._u_initializer = is_initializer(u_initializer, allow_none=True)
 
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # variables
     if init_var:
