@@ -40,7 +40,8 @@ os.makedirs('apis/auto/', exist_ok=True)
 # sys.exit()
 
 changelogs = [
-  ('../changelog.rst', 'apis/auto/changelog.rst'),
+  ('../brainpy-changelog.md', 'apis/auto/brainpy-changelog.md'),
+  ('../brainpylib-changelog.md', 'apis/auto/brainpylib-changelog.md'),
 ]
 for source, dest in changelogs:
   if os.path.exists(dest):
