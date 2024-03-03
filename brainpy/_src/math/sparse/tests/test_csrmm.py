@@ -133,7 +133,7 @@ class Test_csrmm(parameterized.TestCase):
                         argnums=0)
     r1 = dense_f1(homo_data)
     r2 = jax.grad(sum_op(bm.sparse.csrmm))(
-      homo_data, indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
+      bm.asarray([homo_data]), indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
       transpose=transpose)
 
     self.assertTrue(bm.allclose(r1, r2))
@@ -145,7 +145,7 @@ class Test_csrmm(parameterized.TestCase):
                         argnums=0)
     r3 = dense_f2(matrix.astype(float))
     r4 = jax.grad(sum_op(bm.sparse.csrmm), argnums=3)(
-      homo_data, indices, indptr, matrix.astype(float),
+      bm.asarray([homo_data]), indices, indptr, matrix.astype(float),
       shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]), transpose=transpose)
 
     self.assertTrue(bm.allclose(r3, r4))
