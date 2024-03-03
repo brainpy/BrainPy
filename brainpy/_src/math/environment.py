@@ -169,7 +169,7 @@ class environment(_DecoratorContextManager):
       int_: type = None,
       bool_: type = None,
       bp_object_as_pytree: bool = None,
-      numpy_func_return: bool = None,
+      numpy_func_return: str = None,
   ) -> None:
     super().__init__()
 
@@ -210,7 +210,9 @@ class environment(_DecoratorContextManager):
       self.old_bp_object_as_pytree = defaults.bp_object_as_pytree
 
     if numpy_func_return is not None:
-      assert isinstance(numpy_func_return, bool), '"numpy_func_return" must be a bool.'
+      assert isinstance(numpy_func_return, str), '"numpy_func_return" must be a string.'
+      assert numpy_func_return in ['bp_array', 'jax_array'], \
+        f'"numpy_func_return" must be "bp_array" or "jax_array". Got {numpy_func_return}.'
       self.old_numpy_func_return = defaults.numpy_func_return
 
     self.dt = dt
@@ -288,7 +290,7 @@ class training_environment(environment):
       batch_size: int = 1,
       membrane_scaling: scales.Scaling = None,
       bp_object_as_pytree: bool = None,
-      numpy_func_return: bool = None,
+      numpy_func_return: str = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -326,7 +328,7 @@ class batching_environment(environment):
       batch_size: int = 1,
       membrane_scaling: scales.Scaling = None,
       bp_object_as_pytree: bool = None,
-      numpy_func_return: bool = None,
+      numpy_func_return: str = None,
   ):
     super().__init__(dt=dt,
                      x64=x64,
@@ -350,7 +352,7 @@ def set(
     int_: type = None,
     bool_: type = None,
     bp_object_as_pytree: bool = None,
-    numpy_func_return: bool = None,
+    numpy_func_return: str = None,
 ):
   """Set the default computation environment.
 
@@ -374,8 +376,8 @@ def set(
     The bool data type.
   bp_object_as_pytree: bool
     Whether to register brainpy object as pytree.
-  numpy_func_return: bool
-    Whether to return brainpy array in all numpy functions.
+  numpy_func_return: str
+    The array to return in all numpy functions. Support 'bp_array' and 'jax_array'.
   """
   if dt is not None:
     assert isinstance(dt, float), '"dt" must a float.'
@@ -413,6 +415,7 @@ def set(
     defaults.__dict__['bp_object_as_pytree'] = bp_object_as_pytree
 
   if numpy_func_return is not None:
+    assert numpy_func_return in ['bp_array', 'jax_array'], f'"numpy_func_return" must be "bp_array" or "jax_array".'
     defaults.__dict__['numpy_func_return'] = numpy_func_return
 
 
