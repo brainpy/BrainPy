@@ -2,7 +2,8 @@
 
 ## Version 0.3.0
 
-
+- Fix bugs on windows platform
+- remove all customized C++ and CUDA operators
 
 
 ## Version 0.2.8
