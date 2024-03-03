@@ -12,7 +12,7 @@ from brainpy._src.math.compat_pytorch import (
   arccos as arccos,
   acosh as acosh,
   arccosh as arccosh,
-  add as add,
+  # add as add,
   addcdiv as addcdiv,
   addcmul as addcmul,
   angle as angle,
