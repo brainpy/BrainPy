@@ -1,5 +1,5 @@
-Release notes (brainpy)
-#######################
+Release notes (``brainpy``)
+###########################
 
 
 

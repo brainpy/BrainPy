@@ -69,16 +69,15 @@ setup(
   ],
   extras_require={
     'cpu': ['jaxlib>=0.4.13', 'brainpylib', 'numba', 'taichi==1.7.0'],
-    'cuda11': ['jaxlib[cuda11_pip]', 'brainpylib-cu11x', 'numba', 'taichi==1.7.0'],
-    'cuda12': ['jaxlib[cuda12_pip]', 'brainpylib-cu12x', 'numba', 'taichi==1.7.0'],
+    'cuda11': ['jaxlib[cuda11_pip]', 'brainpylib', 'numba', 'taichi==1.7.0'],
+    'cuda12': ['jaxlib[cuda12_pip]', 'brainpylib', 'numba', 'taichi==1.7.0'],
     'tpu': ['jaxlib[tpu]', 'numba',],
     'cpu_mini': ['jaxlib>=0.4.13'],
-    'cuda_mini': ['jaxlib[cuda12_pip]'],
+    'cuda11_mini': ['jaxlib[cuda11_pip]'],
+    'cuda12_mini': ['jaxlib[cuda12_pip]'],
   },
   keywords=('computational neuroscience, '
             'brain-inspired computation, '
-            'dynamical systems, '
-            'differential equations, '
             'brain modeling, '
             'brain dynamics modeling, '
             'brain dynamics programming'),
