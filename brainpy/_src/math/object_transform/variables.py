@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from typing import Optional, Any, List, Callable, Sequence, Union, Dict, Tuple
 
 import jax
@@ -190,6 +189,14 @@ class VariableStack(dict):
 
   remove_var_by_id = remove_by_id
 
+  @classmethod
+  def num_of_stack(self):
+    return len(var_stack_list)
+
+  @classmethod
+  def is_first_stack(self):
+    return len(var_stack_list) == 0
+
   def __enter__(self) -> 'VariableStack':
     self.collect_values()  # recollect the original value of each variable
     var_stack_list.append(self)
@@ -210,42 +217,6 @@ class VariableStack(dict):
 
 
 var_stack_list: List[VariableStack] = []
-transform_stack: List[Callable] = []
-
-
-@contextmanager
-def new_transform(transform: Any):
-  transform_stack.append(transform)
-  try:
-    yield
-  finally:
-    transform_stack.pop()
-
-
-def outermost_stack():
-  if len(var_stack_list):
-    return var_stack_list[0]
-  else:
-    return None
-
-
-def outermost_transform():
-  if len(transform_stack):
-    return transform_stack[0]
-  else:
-    return None
-
-
-def current_transform_number():
-  return len(transform_stack)
-
-
-def _stack_add_read(var: 'Variable'):
-  pass
-
-
-def _stack_add_write(var: 'Variable'):
-  pass
 
 
 @register_pytree_node_class
