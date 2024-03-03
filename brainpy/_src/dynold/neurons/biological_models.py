@@ -196,15 +196,11 @@ class HH(hh.HH):
       self,
       *args,
       input_var: bool = True,
-      noise: Union[float, ArrayType, Initializer, Callable] = None,
       **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
 
-    self.noise = init_noise(noise, self.varshape, num_vars=4)
-    if self.noise is not None:
-      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -302,14 +298,10 @@ class MorrisLecar(hh.MorrisLecar):
       self,
       *args,
       input_var: bool = True,
-      noise: Union[float, ArrayType, Initializer, Callable] = None,
       **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
-    self.noise = init_noise(noise, self.varshape, num_vars=2)
-    if self.noise is not None:
-      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):
@@ -808,14 +800,11 @@ class WangBuzsakiModel(hh.WangBuzsakiHH):
       self,
       *args,
       input_var: bool = True,
-      noise: Union[float, ArrayType, Initializer, Callable] = None,
+
       **kwargs,
   ):
     self.input_var = input_var
     super().__init__(*args, **kwargs, init_var=False)
-    self.noise = init_noise(noise, self.varshape, num_vars=3)
-    if self.noise is not None:
-      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
     self.reset_state(self.mode)
 
   def reset_state(self, batch_size=None):

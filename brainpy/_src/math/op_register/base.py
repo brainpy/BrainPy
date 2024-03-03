@@ -4,8 +4,8 @@ from typing import Callable, Sequence, Tuple, Protocol, Optional
 import jax
 import numpy as np
 from jax.interpreters import xla, batching, ad, mlir
-from numba.core.dispatcher import Dispatcher
 
+from brainpy._src.dependency_check import import_numba
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
 
@@ -19,6 +19,8 @@ else:
                                  register_taichi_aot_xla_gpu_translation_rule as register_taichi_gpu_translation_rule)
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
+
+numba = import_numba(error_if_not_found=False)
 
 __all__ = [
   'XLACustomOp',
@@ -104,24 +106,30 @@ class XLACustomOp(BrainPyObject):
     self.primitive.def_impl(partial(xla.apply_primitive, self.primitive))
 
     # cpu function
+    cpu_checked = False
     if cpu_kernel is None:
-      pass
-    elif isinstance(cpu_kernel, Dispatcher):  # numba
-      register_numba_cpu_translation_rule(self.primitive, cpu_kernel)
-    elif hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
+      cpu_checked = True
+    if numba is not None:  # numba
+      from numba.core.dispatcher import Dispatcher
+      if isinstance(cpu_kernel, Dispatcher):
+        register_numba_cpu_translation_rule(self.primitive, cpu_kernel)
+        cpu_checked = True
+    if hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
       register_taichi_cpu_translation_rule(self.primitive, cpu_kernel)
-    else:
+      cpu_checked = True
+    if not cpu_checked:
       raise ValueError(f'"cpu_kernel" must be a numba jitted function or a taichi kernel function. '
                        f'But we got {cpu_kernel}')
 
     # gpu function
+    gpu_checked = False
     if gpu_kernel is None:
-      pass
-    elif hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
+      gpu_checked = True
+    if hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
       register_taichi_gpu_translation_rule(self.primitive, gpu_kernel)
-    else:
-      raise ValueError(f'"cpu_kernel" must be a taichi kernel function. '
-                       f'But we got {gpu_kernel}')
+      gpu_checked = True
+    if not gpu_checked:
+      raise ValueError(f'"cpu_kernel" must be a taichi kernel function. But we got {gpu_kernel}')
 
     # batching rule
     if batching_translation is None:

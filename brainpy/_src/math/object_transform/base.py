@@ -6,23 +6,24 @@ These transformations include JAX's JIT, autograd, vectorization, parallelizatio
 """
 
 import numbers
-import os
 import warnings
 from collections import namedtuple
 from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 
 import jax
 import numpy as np
+from jax._src.tree_util import _registry
+from jax.tree_util import register_pytree_node_class
 
-from brainpy import errors
+from brainpy._src.math.modes import Mode
 from brainpy._src.math.ndarray import (Array, )
 from brainpy._src.math.object_transform.collectors import (ArrayCollector, Collector)
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        check_name_uniqueness)
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
                                                           VarList, VarDict)
-from brainpy._src.math.modes import Mode
 from brainpy._src.math.sharding import BATCH_AXIS
+from brainpy._src.math import defaults
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
@@ -88,6 +89,10 @@ class BrainPyObject(object):
 
   def __init__(self, name=None):
     super().__init__()
+
+    if defaults.bp_object_as_pytree:
+      if self.__class__ not in _registry:
+        register_pytree_node_class(self.__class__)
 
     # check whether the object has a unique name.
     self._name = None
@@ -217,8 +222,8 @@ class BrainPyObject(object):
     static_names = []
     static_values = []
     for k, v in self.__dict__.items():
-      # if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, VarList, VarDict)):
-      if isinstance(v, (BrainPyObject, Variable)):
+      if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, VarList, VarDict)):
+      # if isinstance(v, (BrainPyObject, Variable)):
         dynamic_names.append(k)
         dynamic_values.append(v)
       else:
@@ -552,7 +557,7 @@ class BrainPyObject(object):
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        r = node.load_state(state_dict[name], **kwargs)
+        r = node.load_state(state_dict[name] if name in state_dict else {}, **kwargs)
         if r is not None:
           missing, unexpected = r
           missing_keys.extend([f'{name}.{key}' for key in missing])

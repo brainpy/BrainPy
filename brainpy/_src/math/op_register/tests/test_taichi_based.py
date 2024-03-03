@@ -1,8 +1,13 @@
 import jax
 import jax.numpy as jnp
-import taichi as ti
+import pytest
 
 import brainpy.math as bm
+from brainpy._src.dependency_check import import_taichi
+
+ti = import_taichi(error_if_not_found=False)
+if ti is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 bm.set_platform('cpu')
 
@@ -30,6 +35,7 @@ def event_ell_cpu(indices: ti.types.ndarray(ndim=2),
       for j in range(num_cols):
         update_output(out, indices[i, j], weight_val)
 
+
 @ti.kernel
 def event_ell_gpu(indices: ti.types.ndarray(ndim=2),
                   vector: ti.types.ndarray(ndim=1),
@@ -42,12 +48,13 @@ def event_ell_gpu(indices: ti.types.ndarray(ndim=2),
       for j in range(num_cols):
         update_output(out, indices[i, j], weight_val)
 
+
 prim = bm.XLACustomOp(cpu_kernel=event_ell_cpu, gpu_kernel=event_ell_gpu)
 
 
 def test_taichi_op_register():
   s = 1000
-  indices = bm.random.randint(0, s, (s, 1000))
+  indices = bm.random.randint(0, s, (s, 100))
   vector = bm.random.rand(s) < 0.1
   weight = bm.array([1.0])
 

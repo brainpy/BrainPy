@@ -25,29 +25,7 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 
 ## Installation
 
-BrainPy is based on Python (>=3.8) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. Install the latest version of BrainPy:
-
-```bash
-$ pip install brainpy -U
-```
-
-In addition, many customized operators in BrainPy are implemented in ``brainpylib``.
-Install the latest version of `brainpylib` by:
-
-```bash
-# CPU installation for Linux, macOS and Windows
-$ pip install --upgrade brainpylib
-```
-
-```bash
-# CUDA 12 installation for Linux only
-$ pip install --upgrade brainpylib-cu12x
-```
-
-```bash
-# CUDA 11 installation for Linux only
-$ pip install --upgrade brainpylib-cu11x
-```
+BrainPy is based on Python (>=3.8) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
 
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
 

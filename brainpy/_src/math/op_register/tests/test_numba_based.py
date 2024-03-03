@@ -1,8 +1,15 @@
 import jax.core
+import pytest
+
 import brainpy.math as bm
-import numba
+from brainpy._src.dependency_check import import_numba
+
+numba = import_numba(error_if_not_found=False)
+if numba is None:
+  pytest.skip('no numba', allow_module_level=True)
 
 bm.set_platform('cpu')
+
 
 @numba.njit(fastmath=True)
 def numba_event_csrmv(weight, indices, vector, outs):
@@ -28,5 +35,3 @@ def test_event_ELL():
   call(1000)
   call(100)
   bm.clear_buffer_memory()
-
-
