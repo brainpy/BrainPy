@@ -11,7 +11,7 @@ from brainpy import check, tools
 from .compat_numpy import fill_diagonal
 from .environment import get_dt, get_int
 from .interoperability import as_jax
-from .ndarray import Array
+from .ndarray import Array, _return
 
 __all__ = [
   'shared_args_over_time',
@@ -79,7 +79,7 @@ def remove_diag(arr):
   """
   if arr.ndim != 2:
     raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
-  eyes = Array(jnp.ones(arr.shape, dtype=bool))
+  eyes = _return(jnp.ones(arr.shape, dtype=bool))
   fill_diagonal(eyes, False)
   return jnp.reshape(arr[eyes.value], (arr.shape[0], arr.shape[1] - 1))
 

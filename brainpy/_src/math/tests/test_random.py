@@ -1,8 +1,10 @@
+import platform
 import unittest
 
 import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
+import pytest
 
 import brainpy.math as bm
 import brainpy.math.random as br
@@ -354,11 +356,13 @@ class TestRandom(unittest.TestCase):
     a = bm.random.hypergeometric(10, 10, 10, 20)
     self.assertTupleEqual(a.shape, (20,))
 
+  @pytest.mark.skipif(platform.system() == 'Windows', reason='Windows jaxlib error')
   def test_hypergeometric2(self):
     br.seed()
     a = bm.random.hypergeometric(8, [10, 4], [[5, 2], [5, 5]])
     self.assertTupleEqual(a.shape, (2, 2))
 
+  @pytest.mark.skipif(platform.system() == 'Windows', reason='Windows jaxlib error')
   def test_hypergeometric3(self):
     br.seed()
     a = bm.random.hypergeometric(8, [10, 4], [[5, 2], [5, 5]], size=(3, 2, 2))

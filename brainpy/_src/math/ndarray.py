@@ -10,6 +10,7 @@ from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 from brainpy.errors import MathError
+from . import defaults
 
 bm = None
 
@@ -41,8 +42,8 @@ def _check_input_array(array):
 
 
 def _return(a):
-  if isinstance(a, jax.Array) and a.ndim > 0:
-    return Array(a)
+  if defaults.numpy_func_return == 'bp_array' and isinstance(a, jax.Array) and a.ndim > 0:
+      return Array(a)
   return a
 
 
@@ -1087,7 +1088,7 @@ class Array(object):
 
     See :func:`brainpy.math.unsqueeze`
     """
-    return Array(jnp.expand_dims(self.value, dim))
+    return _return(jnp.expand_dims(self.value, dim))
 
   def expand_dims(self, axis: Union[int, Sequence[int]]) -> 'Array':
     """
@@ -1119,7 +1120,7 @@ class Array(object):
     self.expand_dims(axis)==self.expand_dims(axis[0]).expand_dims(axis[1])... expand_dims(axis[len(axis)-1])
 
     """
-    return Array(jnp.expand_dims(self.value, axis))
+    return _return(jnp.expand_dims(self.value, axis))
 
   def expand_as(self, array: Union['Array', jax.Array, np.ndarray]) -> 'Array':
     """
@@ -1136,9 +1137,7 @@ class Array(object):
         typically not contiguous. Furthermore, more than one element of a
         expanded array may refer to a single memory location.
     """
-    if not isinstance(array, Array):
-      array = Array(array)
-    return Array(jnp.broadcast_to(self.value, array.value.shape))
+    return _return(jnp.broadcast_to(self.value, array))
 
   def pow(self, index: int):
     return _return(self.value ** index)
@@ -1228,7 +1227,7 @@ class Array(object):
     return self.abs_()
 
   def mul(self, value):
-    return Array(self.value * value)
+    return _return(self.value * value)
 
   def mul_(self, value):
     """
@@ -1404,7 +1403,7 @@ class Array(object):
     return self
 
   def clone(self) -> 'Array':
-    return Array(self.value.copy())
+    return _return(self.value.copy())
 
   def copy_(self, src: Union['Array', jax.Array, np.ndarray]) -> 'Array':
     self.value = jnp.copy(_as_jax_array_(src))
@@ -1423,7 +1422,7 @@ class Array(object):
     fweights = _as_jax_array_(fweights)
     aweights = _as_jax_array_(aweights)
     r = jnp.cov(self.value, y, rowvar, bias, fweights, aweights)
-    return Array(r)
+    return _return(r)
 
   def expand(self, *sizes) -> 'Array':
     """
@@ -1459,7 +1458,7 @@ class Array(object):
         raise ValueError(
           f'The expanded size of the tensor ({sizes_list[base + i]}) must match the existing size ({v}) at non-singleton '
           f'dimension {i}.  Target sizes: {sizes}.  Tensor sizes: {self.shape}')
-    return Array(jnp.broadcast_to(self.value, sizes_list))
+    return _return(jnp.broadcast_to(self.value, sizes_list))
 
   def tree_flatten(self):
     return (self.value,), None

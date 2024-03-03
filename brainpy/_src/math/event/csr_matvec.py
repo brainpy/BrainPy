@@ -20,8 +20,8 @@ from jax.interpreters import ad
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
-from brainpy._src.math.sparse._csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
-from brainpy._src.math.sparse._utils import csr_to_coo
+from brainpy._src.math.sparse.csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
+from brainpy._src.math.sparse.utils import csr_to_coo
 from brainpy.errors import PackageMissingError
 
 __all__ = [
@@ -29,6 +29,7 @@ __all__ = [
 ]
 
 ti = import_taichi(error_if_not_found=False)
+
 
 def csrmv(
     data: Union[float, jax.Array],

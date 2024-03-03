@@ -44,13 +44,6 @@ from jax import config
 
 del jnp, config
 
-from brainpy._src.math.surrogate._compt import (
-  spike_with_sigmoid_grad as spike_with_sigmoid_grad,
-  spike_with_linear_grad as spike_with_linear_grad,
-  spike_with_gaussian_grad as spike_with_gaussian_grad,
-  spike_with_mg_grad as spike_with_mg_grad,
-)
-
 from brainpy._src.math import defaults
 from brainpy._src.deprecations import deprecation_getattr
 from brainpy._src.dependency_check import import_taichi, import_numba
