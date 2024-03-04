@@ -133,7 +133,7 @@ def _event_csr_matmat_transpose_heter_cpu(values: ti.types.ndarray(ndim=1),
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
             val = values[j]
-        r += val
+        r += val * matrix[row_j, col_i]
     out[row_k, col_i] = r
 
 
@@ -151,7 +151,7 @@ def _event_csr_matmat_transpose_bool_heter_cpu(values: ti.types.ndarray(ndim=1),
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
             val = values[j]
-        r += val
+        r += val * matrix[row_j, col_i]
     out[row_k, col_i] = r
 
 
@@ -196,9 +196,9 @@ def _event_csr_matmat_transpose_homo_cpu(values: ti.types.ndarray(ndim=1),
       if matrix[row_j, col_i] != 0.:
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
-            r += value * matrix[row_j, col_i]
+            r += matrix[row_j, col_i]
             break
-    out[row_k, col_i] = r
+    out[row_k, col_i] = r * value
 
 
 @ti.kernel
@@ -214,9 +214,9 @@ def _event_csr_matmat_transpose_bool_homo_cpu(values: ti.types.ndarray(ndim=1),
       if matrix[row_j, col_i]:
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
-            r += value * matrix[row_j, col_i]
+            r += matrix[row_j, col_i]
             break
-    out[row_k, col_i] = r
+    out[row_k, col_i] = r * value
 
 
 @ti.kernel
@@ -264,7 +264,7 @@ def _event_csr_matmat_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
         val = 0.
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
-            val = values[j]
+            val = values[j] * matrix[row_j, col_i]
         r += val
     out[row_k, col_i] = r
 
@@ -282,7 +282,7 @@ def _event_csr_matmat_transpose_bool_heter_gpu(values: ti.types.ndarray(ndim=1),
         val = 0.
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
-            val = values[j]
+            val = values[j] * matrix[row_j, col_i]
         r += val
     out[row_k, col_i] = r
 
@@ -328,9 +328,9 @@ def _event_csr_matmat_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
       if matrix[row_j, col_i] != 0.:
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
-            r += value * matrix[row_j, col_i]
+            r += matrix[row_j, col_i]
             break
-    out[row_k, col_i] = r
+    out[row_k, col_i] = r * value
 
 
 @ti.kernel
@@ -346,9 +346,9 @@ def _event_csr_matmat_transpose_bool_homo_gpu(values: ti.types.ndarray(ndim=1),
       if matrix[row_j, col_i]:
         for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
           if col_indices[j] == row_k:
-            r += value * matrix[row_j, col_i]
+            r += matrix[row_j, col_i]
             break
-    out[row_k, col_i] = r
+    out[row_k, col_i] = r * value
 
 
 @ti.kernel

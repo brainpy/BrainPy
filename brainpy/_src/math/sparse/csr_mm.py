@@ -162,9 +162,9 @@ def _csr_matmat_transpose_homo_cpu(values: ti.types.ndarray(ndim=1),
     for row_j in range(matrix.shape[0]):
       for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
         if col_indices[j] == row_k:
-          r += value * matrix[row_j, col_i]
+          r += matrix[row_j, col_i]
           break
-    out[row_k, col_i] = r
+    out[row_k, col_i] = r * value
 
 
 @ti.kernel
@@ -225,9 +225,9 @@ def _csr_matmat_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
     for row_j in range(matrix.shape[0]):
       for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
         if col_indices[j] == row_k:
-          r += value * matrix[row_j, col_i]
+          r += matrix[row_j, col_i]
           break
-    out[row_k, col_i] = r
+    out[row_k, col_i] = r * value
 
 
 @ti.kernel
