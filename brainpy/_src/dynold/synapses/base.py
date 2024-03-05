@@ -292,7 +292,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
                      mode=mode)
 
     # delay
-    self.pre.register_local_delay("spike", self.name, delay_step)
+    self.pre.register_local_delay("spike", self.name, delay_step=delay_step)
 
     # synaptic dynamics
     self.syn = syn

@@ -115,7 +115,7 @@ class Delta(TwoEndConn):
     self.g_max, self.conn_mask = self._init_weights(g_max, comp_method=comp_method, sparse_data='csr')
 
     # register delay
-    self.pre.register_local_delay("spike", self.name, delay_step)
+    self.pre.register_local_delay("spike", self.name, delay_step=delay_step)
 
   def update(self, pre_spike=None):
     # pre-synaptic spikes
@@ -278,7 +278,7 @@ class Exponential(TwoEndConn):
         raise ValueError(f'Does not support {comp_method}, only "sparse" or "dense".')
 
     # delay
-    self.pre.register_local_delay("spike", self.name, delay_step)
+    self.pre.register_local_delay("spike", self.name, delay_step=delay_step)
 
   @property
   def g(self):

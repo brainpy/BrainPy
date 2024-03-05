@@ -244,14 +244,16 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       self,
       var_name: str,
       delay_name: str,
-      delay: Union[numbers.Number, ArrayType] = None,
+      delay_time: Union[numbers.Number, ArrayType] = None,
+      delay_step: Union[numbers.Number, ArrayType] = None,
   ):
     """Register local relay at the given delay time.
 
     Args:
       var_name: str. The name of the delay target variable.
       delay_name: str. The name of the current delay data.
-      delay: The delay time.
+      delay_time: The delay time. Float.
+      delay_step: The delay step. Int. ``delay_step`` and ``delay_time`` are exclusive. ``delay_step = delay_time / dt``.
     """
     delay_identifier, init_delay_by_return = _get_delay_tool()
     delay_identifier = delay_identifier + var_name
@@ -262,7 +264,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     if not self.has_aft_update(delay_identifier):
       self.add_aft_update(delay_identifier, init_delay_by_return(target))
     delay_cls = self.get_aft_update(delay_identifier)
-    delay_cls.register_entry(delay_name, delay)
+    delay_cls.register_entry(delay_name, delay_time=delay_time, delay_step=delay_step)
 
   def get_local_delay(self, var_name, delay_name):
     """Get the delay at the given identifier (`name`).

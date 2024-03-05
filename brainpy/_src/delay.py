@@ -31,6 +31,20 @@ __all__ = [
 delay_identifier = '_*_delay_of_'
 
 
+def _get_delay(delay_time, delay_step):
+  if delay_time is None:
+    if delay_step is None:
+      return None, None
+    else:
+      assert isinstance(delay_step, int), '"delay_step" should be an integer.'
+      delay_time = delay_step * bm.get_dt()
+  else:
+    assert delay_step is None, '"delay_step" should be None if "delay_time" is given.'
+    assert isinstance(delay_time, (int, float))
+    delay_step = math.ceil(delay_time / bm.get_dt())
+  return delay_time, delay_step
+
+
 class Delay(DynamicalSystem, ParamDesc):
   """Base class for delay variables.
 
@@ -97,13 +111,15 @@ class Delay(DynamicalSystem, ParamDesc):
   def register_entry(
       self,
       entry: str,
-      delay_time: Optional[Union[float, bm.Array, Callable]],
+      delay_time: Optional[Union[float, bm.Array, Callable]] = None,
+      delay_step: Optional[int] = None
   ) -> 'Delay':
     """Register an entry to access the data.
 
     Args:
       entry: str. The entry to access the delay data.
       delay_time: The delay time of the entry (can be a float).
+      delay_step: The delay step of the entry (must be an int). ``delay_step = delay_time / dt``.
 
     Returns:
       Return the self.
@@ -237,13 +253,15 @@ class VarDelay(Delay):
   def register_entry(
       self,
       entry: str,
-      delay_time: Optional[Union[int, float]],
+      delay_time: Optional[Union[int, float]] = None,
+      delay_step: Optional[int] = None,
   ) -> 'Delay':
     """Register an entry to access the data.
 
     Args:
       entry: str. The entry to access the delay data.
       delay_time: The delay time of the entry (can be a float).
+      delay_step: The delay step of the entry (must be an int). ``delat_step = delay_time / dt``.
 
     Returns:
       Return the self.
@@ -258,12 +276,7 @@ class VarDelay(Delay):
       assert delay_time.size == 1 and delay_time.ndim == 0
       delay_time = delay_time.item()
 
-    if delay_time is None:
-      delay_step = None
-      delay_time = 0.
-    else:
-      assert isinstance(delay_time, (int, float))
-      delay_step = math.ceil(delay_time / bm.get_dt())
+    _, delay_step = _get_delay(delay_time, delay_step)
 
     # delay variable
     if delay_step is not None:
@@ -354,6 +367,8 @@ class VarDelay(Delay):
     """Update delay variable with the new data.
     """
     if self.data is not None:
+      # jax.debug.print('last value == target value {} ', jnp.allclose(latest_value, self.target.value))
+
       # get the latest target value
       if latest_value is None:
         latest_value = self.target.value
@@ -361,7 +376,7 @@ class VarDelay(Delay):
       # update the delay data at the rotation index
       if self.method == ROTATE_UPDATE:
         i = share.load('i')
-        idx = bm.as_jax((-i ) % self.max_length, dtype=jnp.int32)
+        idx = bm.as_jax(-i % self.max_length, dtype=jnp.int32)
         self.data[jax.lax.stop_gradient(idx)] = latest_value
 
       # update the delay data at the first position
@@ -371,6 +386,9 @@ class VarDelay(Delay):
           self.data.value = bm.concat([latest_value, self.data[:-1]], axis=0)
         else:
           self.data[0] = latest_value
+
+      else:
+        raise ValueError(f'Unknown updating method "{self.method}"')
 
   def reset_state(self, batch_size: int = None, **kwargs):
     """Reset the delay data.
