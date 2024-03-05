@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-delay_identifier = '_*_delay_*_'
+delay_identifier = '_*_delay_of_'
 
 
 class Delay(DynamicalSystem, ParamDesc):
@@ -361,14 +361,14 @@ class VarDelay(Delay):
       # update the delay data at the rotation index
       if self.method == ROTATE_UPDATE:
         i = share.load('i')
-        idx = bm.as_jax((-i - 1) % self.max_length, dtype=jnp.int32)
-        self.data[idx] = latest_value
+        idx = bm.as_jax((-i ) % self.max_length, dtype=jnp.int32)
+        self.data[jax.lax.stop_gradient(idx)] = latest_value
 
       # update the delay data at the first position
       elif self.method == CONCAT_UPDATE:
         if self.max_length > 1:
           latest_value = bm.expand_dims(latest_value, 0)
-          self.data.value = bm.concat([latest_value, self.data[1:]], axis=0)
+          self.data.value = bm.concat([latest_value, self.data[:-1]], axis=0)
         else:
           self.data[0] = latest_value
 
