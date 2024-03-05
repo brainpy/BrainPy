@@ -117,11 +117,6 @@ class Delta(TwoEndConn):
     # register delay
     self.pre.register_local_delay("spike", self.name, delay_step)
 
-  def reset_state(self, batch_size=None):
-    self.output.reset_state(batch_size)
-    if self.stp is not None:
-      self.stp.reset_state(batch_size)
-
   def update(self, pre_spike=None):
     # pre-synaptic spikes
     if pre_spike is None:
@@ -232,7 +227,6 @@ class Exponential(TwoEndConn):
   method: str
     The numerical integration methods.
 
-
   """
 
   def __init__(
@@ -283,17 +277,16 @@ class Exponential(TwoEndConn):
       else:
         raise ValueError(f'Does not support {comp_method}, only "sparse" or "dense".')
 
-    # variables
-    self.g = self.syn.g
-
     # delay
     self.pre.register_local_delay("spike", self.name, delay_step)
 
-  def reset_state(self, batch_size=None):
-    self.syn.reset_state(batch_size)
-    self.output.reset_state(batch_size)
-    if self.stp is not None:
-      self.stp.reset_state(batch_size)
+  @property
+  def g(self):
+    return self.syn.g
+
+  @g.setter
+  def g(self, value):
+    self.syn.g = value
 
   def update(self, pre_spike=None):
     # delays
