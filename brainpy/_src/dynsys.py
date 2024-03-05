@@ -257,12 +257,17 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     """
     delay_identifier, init_delay_by_return = _get_delay_tool()
     delay_identifier = delay_identifier + var_name
+    # check whether the "var_name" has been registered
     try:
       target = getattr(self, var_name)
     except AttributeError:
       raise AttributeError(f'This node {self} does not has attribute of "{var_name}".')
     if not self.has_aft_update(delay_identifier):
-      self.add_aft_update(delay_identifier, init_delay_by_return(target))
+      # add a model to receive the return of the target model
+      # moreover, the model should not receive the return of the update function
+      model = not_receive_update_output(init_delay_by_return(target))
+      # register the model
+      self.add_aft_update(delay_identifier, model)
     delay_cls = self.get_aft_update(delay_identifier)
     delay_cls.register_entry(delay_name, delay_time=delay_time, delay_step=delay_step)
 
@@ -407,14 +412,20 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     # ``before_updates``
     for model in self.before_updates.values():
-      model()
+      if hasattr(model, '_receive_update_input'):
+        model(*args, **kwargs)
+      else:
+        model()
 
     # update the model self
     ret = self.update(*args, **kwargs)
 
     # ``after_updates``
     for model in self.after_updates.values():
-      model(ret)
+      if hasattr(model, '_not_receive_update_output'):
+        model(ret)
+      else:
+        model()
     return ret
 
   def __rrshift__(self, other):
@@ -858,3 +869,75 @@ def _slice_to_num(slice_: slice, length: int):
     start += step
     num += 1
   return num
+
+
+def receive_update_output(cls: object):
+  """
+  The decorator to mark the object (as the after updates) to receive the output of the update function.
+
+  That is, the `aft_update` will receive the return of the update function::
+
+    ret = model.update(*args, **kwargs)
+    for fun in model.aft_updates:
+      fun(ret)
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  cls._not_receive_update_output = True
+  return cls
+
+
+def not_receive_update_output(cls: object):
+  """
+  The decorator to mark the object (as the after updates) to not receive the output of the update function.
+
+  That is, the `aft_update` will not receive the return of the update function::
+
+    ret = model.update(*args, **kwargs)
+    for fun in model.aft_updates:
+      fun()
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  if hasattr(cls, '_not_receive_update_output'):
+    delattr(cls, '_not_receive_update_output')
+  return cls
+
+
+def receive_update_input(cls: object):
+  """
+  The decorator to mark the object (as the before updates) to receive the input of the update function.
+
+  That is, the `bef_update` will receive the input of the update function::
+
+
+    for fun in model.bef_updates:
+      fun(*args, **kwargs)
+    model.update(*args, **kwargs)
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  cls._receive_update_input = True
+  return cls
+  
+
+def not_receive_update_input(cls: object):
+  """
+  The decorator to mark the object (as the before updates) to not receive the input of the update function.
+
+  That is, the `bef_update` will not receive the input of the update function::
+
+      for fun in model.bef_updates:
+        fun()
+      model.update()
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  if hasattr(cls, '_receive_update_input'):
+    delattr(cls, '_receive_update_input')
+  return cls
+  
+
+  
+
+
