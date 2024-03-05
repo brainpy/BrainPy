@@ -423,9 +423,9 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     # ``after_updates``
     for model in self.after_updates.values():
       if hasattr(model, '_not_receive_update_output'):
-        model(ret)
-      else:
         model()
+      else:
+        model(ret)
     return ret
 
   def __rrshift__(self, other):
@@ -883,7 +883,8 @@ def receive_update_output(cls: object):
 
   """
   # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
-  cls._not_receive_update_output = True
+  if hasattr(cls, '_not_receive_update_output'):
+    delattr(cls, '_not_receive_update_output')
   return cls
 
 
@@ -899,8 +900,7 @@ def not_receive_update_output(cls: object):
 
   """
   # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
-  if hasattr(cls, '_not_receive_update_output'):
-    delattr(cls, '_not_receive_update_output')
+  cls._not_receive_update_output = True
   return cls
 
 
