@@ -93,16 +93,40 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     # Attribute for "SupportInputProj"
     # each instance of "SupportInputProj" should have a "cur_inputs" attribute
-    self.current_inputs = bm.node_dict()
-    self.delta_inputs = bm.node_dict()
+    self._current_inputs: Optional[Dict[str, Callable]] = None
+    self._delta_inputs: Optional[Dict[str, Callable]] = None
 
     # the before- / after-updates used for computing
     # added after the version of 2.4.3
-    self.before_updates: Dict[str, Callable] = bm.node_dict()
-    self.after_updates: Dict[str, Callable] = bm.node_dict()
+    self._before_updates: Optional[Dict[str, Callable]] = None
+    self._after_updates: Optional[Dict[str, Callable]] = None
 
     # super initialization
     super().__init__(name=name)
+
+  @property
+  def current_inputs(self):
+    if self._current_inputs is None:
+      self._current_inputs = bm.node_dict()
+    return self._current_inputs
+
+  @property
+  def delta_inputs(self):
+    if self._delta_inputs is None:
+      self._delta_inputs = bm.node_dict()
+    return self._delta_inputs
+
+  @property
+  def before_updates(self):
+    if self._before_updates is None:
+      self._before_updates = bm.node_dict()
+    return self._before_updates
+
+  @property
+  def after_updates(self):
+    if self._after_updates is None:
+      self._after_updates = bm.node_dict()
+    return self._after_updates
 
   def add_bef_update(self, key: Any, fun: Callable):
     """Add the before update into this node"""
