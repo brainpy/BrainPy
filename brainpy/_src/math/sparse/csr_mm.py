@@ -5,11 +5,9 @@ from typing import Union, Tuple
 
 import jax
 import numpy as np
-import brainpy.math as bm
 from jax import numpy as jnp
-from jax.interpreters import ad
-from jax.core import Tracer
 from jax.experimental.sparse import csr
+from jax.interpreters import ad
 
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
@@ -95,15 +93,9 @@ def raw_csrmm_taichi(
   if indices.shape[0] == 0:
     return [jnp.zeros(result_shape, dtype=data.dtype), ]
   # homo -> taichi,
-  # heter(CPU) -> taichi, heter(GPU) -> cusparse
+  # heter -> cusparse
   if data.shape[0] != 1:
-    if bm.get_platform() == 'gpu':
-      return [_csr_matmat_cusparse_p.bind(data, indices, indptr, matrix, shape=shape, transpose=transpose), ]
-    else:
-      if transpose:
-        return [_csr_matmat_cusparse_p.bind(data, indices, indptr, matrix, shape=shape, transpose=transpose), ]
-      else:
-        prim = _csr_matmat_heter_p
+    return [_csr_matmat_cusparse_p.bind(data, indices, indptr, matrix, shape=shape, transpose=transpose), ]
   else:
     if transpose:
       prim = _csr_matmat_transpose_homo_p
@@ -118,31 +110,27 @@ def raw_csrmm_taichi(
               shape=shape)
 
 
-# CPU kernels
+# taichi kernels
 
 @ti.kernel
-def _csr_matmat_transpose_heter_cpu(values: ti.types.ndarray(ndim=1),
-                                    col_indices: ti.types.ndarray(ndim=1),
-                                    row_ptr: ti.types.ndarray(ndim=1),
-                                    matrix: ti.types.ndarray(ndim=2),
-                                    out: ti.types.ndarray(ndim=2)):
+def _csr_matmat_transpose_heter(values: ti.types.ndarray(ndim=1),
+                                col_indices: ti.types.ndarray(ndim=1),
+                                row_ptr: ti.types.ndarray(ndim=1),
+                                matrix: ti.types.ndarray(ndim=2),
+                                out: ti.types.ndarray(ndim=2)):
   for col_i, row_k in ti.ndrange(out.shape[1], out.shape[0]):
-    r = 0.
     for row_j in range(matrix.shape[0]):
-      val = 0.
       for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
         if col_indices[j] == row_k:
-          val = values[j]
-      r += val * matrix[row_j, col_i]
-    out[row_k, col_i] = r
+          out[row_k, col_i] += values[j] * matrix[row_j, col_i]
 
 
 @ti.kernel
-def _csr_matmat_heter_cpu(values: ti.types.ndarray(ndim=1),
-                          col_indices: ti.types.ndarray(ndim=1),
-                          row_ptr: ti.types.ndarray(ndim=1),
-                          matrix: ti.types.ndarray(ndim=2),
-                          out: ti.types.ndarray(ndim=2)):
+def _csr_matmat_heter(values: ti.types.ndarray(ndim=1),
+                      col_indices: ti.types.ndarray(ndim=1),
+                      row_ptr: ti.types.ndarray(ndim=1),
+                      matrix: ti.types.ndarray(ndim=2),
+                      out: ti.types.ndarray(ndim=2)):
   for row_i, col_k in ti.ndrange(out.shape[0], out.shape[1]):
     r = 0.
     for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
@@ -151,91 +139,25 @@ def _csr_matmat_heter_cpu(values: ti.types.ndarray(ndim=1),
 
 
 @ti.kernel
-def _csr_matmat_transpose_homo_cpu(values: ti.types.ndarray(ndim=1),
-                                   col_indices: ti.types.ndarray(ndim=1),
-                                   row_ptr: ti.types.ndarray(ndim=1),
-                                   matrix: ti.types.ndarray(ndim=2),
-                                   out: ti.types.ndarray(ndim=2)):
+def _csr_matmat_transpose_homo(values: ti.types.ndarray(ndim=1),
+                               col_indices: ti.types.ndarray(ndim=1),
+                               row_ptr: ti.types.ndarray(ndim=1),
+                               matrix: ti.types.ndarray(ndim=2),
+                               out: ti.types.ndarray(ndim=2)):
   value = values[0]
   for col_i, row_k in ti.ndrange(out.shape[1], out.shape[0]):
-    r = 0.
     for row_j in range(matrix.shape[0]):
       for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
         if col_indices[j] == row_k:
-          r += matrix[row_j, col_i]
-          break
-    out[row_k, col_i] = r * value
+          out[row_k, col_i] += value * matrix[row_j, col_i]
 
 
 @ti.kernel
-def _csr_matmat_homo_cpu(values: ti.types.ndarray(ndim=1),
-                         col_indices: ti.types.ndarray(ndim=1),
-                         row_ptr: ti.types.ndarray(ndim=1),
-                         matrix: ti.types.ndarray(ndim=2),
-                         out: ti.types.ndarray(ndim=2)):
-  value = values[0]
-  for row_i, col_k in ti.ndrange(out.shape[0], out.shape[1]):
-    r = 0.
-    for row_j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-      r += matrix[col_indices[row_j], col_k]
-    out[row_i, col_k] = r * value
-
-
-# GPU kernels
-
-@ti.kernel
-def _csr_matmat_transpose_heter_gpu(values: ti.types.ndarray(ndim=1),
-                                    col_indices: ti.types.ndarray(ndim=1),
-                                    row_ptr: ti.types.ndarray(ndim=1),
-                                    matrix: ti.types.ndarray(ndim=2),
-                                    out: ti.types.ndarray(ndim=2)):
-  for col_i, row_k in ti.ndrange(out.shape[1], out.shape[0]):
-    r = 0.
-    for row_j in range(matrix.shape[0]):
-      val = 0.
-      for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
-        if col_indices[j] == row_k:
-          val = values[j]
-      r += val * matrix[row_j, col_i]
-    out[row_k, col_i] = r
-
-
-@ti.kernel
-def _csr_matmat_heter_gpu(values: ti.types.ndarray(ndim=1),
-                          col_indices: ti.types.ndarray(ndim=1),
-                          row_ptr: ti.types.ndarray(ndim=1),
-                          matrix: ti.types.ndarray(ndim=2),
-                          out: ti.types.ndarray(ndim=2)):
-  for row_i, col_k in ti.ndrange(out.shape[0], out.shape[1]):
-    r = 0.
-    for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
-      r += values[j] * matrix[col_indices[j], col_k]
-    out[row_i, col_k] = r
-
-
-@ti.kernel
-def _csr_matmat_transpose_homo_gpu(values: ti.types.ndarray(ndim=1),
-                                   col_indices: ti.types.ndarray(ndim=1),
-                                   row_ptr: ti.types.ndarray(ndim=1),
-                                   matrix: ti.types.ndarray(ndim=2),
-                                   out: ti.types.ndarray(ndim=2)):
-  value = values[0]
-  for col_i, row_k in ti.ndrange(out.shape[1], out.shape[0]):
-    r = 0.
-    for row_j in range(matrix.shape[0]):
-      for j in range(row_ptr[row_j], row_ptr[row_j + 1]):
-        if col_indices[j] == row_k:
-          r += matrix[row_j, col_i]
-          break
-    out[row_k, col_i] = r * value
-
-
-@ti.kernel
-def _csr_matmat_homo_gpu(values: ti.types.ndarray(ndim=1),
-                         col_indices: ti.types.ndarray(ndim=1),
-                         row_ptr: ti.types.ndarray(ndim=1),
-                         matrix: ti.types.ndarray(ndim=2),
-                         out: ti.types.ndarray(ndim=2)):
+def _csr_matmat_homo(values: ti.types.ndarray(ndim=1),
+                     col_indices: ti.types.ndarray(ndim=1),
+                     row_ptr: ti.types.ndarray(ndim=1),
+                     matrix: ti.types.ndarray(ndim=2),
+                     out: ti.types.ndarray(ndim=2)):
   value = values[0]
   for row_i, col_k in ti.ndrange(out.shape[0], out.shape[1]):
     r = 0.
@@ -283,20 +205,20 @@ def _define_op(cpu_kernel, gpu_kernel):
 
 
 # transpose heter
-_csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter_cpu,
-                                           gpu_kernel=_csr_matmat_transpose_heter_gpu)
+_csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter,
+                                           gpu_kernel=_csr_matmat_transpose_heter)
 
 # no transpose heter
-_csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter_cpu,
-                                 gpu_kernel=_csr_matmat_heter_gpu)
+_csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter,
+                                 gpu_kernel=_csr_matmat_heter)
 
 # transpose homo
-_csr_matmat_transpose_homo_p = _define_op(cpu_kernel=_csr_matmat_transpose_homo_cpu,
-                                          gpu_kernel=_csr_matmat_transpose_homo_gpu)
+_csr_matmat_transpose_homo_p = _define_op(cpu_kernel=_csr_matmat_transpose_homo,
+                                          gpu_kernel=_csr_matmat_transpose_homo)
 
 # no transpose homo
-_csr_matmat_homo_p = _define_op(cpu_kernel=_csr_matmat_homo_cpu,
-                                gpu_kernel=_csr_matmat_homo_gpu)
+_csr_matmat_homo_p = _define_op(cpu_kernel=_csr_matmat_homo,
+                                gpu_kernel=_csr_matmat_homo)
 
 # heter CUSPARSE
 _csr_matmat_cusparse_p = csr.csr_matmat_p
