@@ -42,7 +42,7 @@ class TestDelayRegister(unittest.TestCase):
   def test2(self):
     bp.share.save(i=0)
     lif = bp.dyn.Lif(10)
-    lif.register_local_delay('spike', 'a', 10.)
+    lif.register_local_delay('spike', 'a', delay_time=10.)
     data = lif.get_local_delay('spike', 'a')
     self.assertTrue(bm.allclose(data, bm.zeros(10)))
 

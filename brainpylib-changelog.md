@@ -2,18 +2,20 @@
 
 ## Version 0.3.0
 
+- Support `brainpy>=2.5.0`
 - Fix bugs on windows platform
 - remove all customized C++ and CUDA operators
 
-
 ## Version 0.2.8
 
+- Support `brainpy>=2.5.0`
 - Fix bugs that the DLL cannot be loaded correctly when windows does not have a c++ environment,
 
 ## ~~Version 0.2.7(YANKED)~~
 
 ## Version 0.2.6
 
+- Support `brainpy>=2.5.0`
 - Fix bugs of taichi call function for single result
 
 ## Version 0.2.5

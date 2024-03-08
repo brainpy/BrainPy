@@ -93,16 +93,40 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     # Attribute for "SupportInputProj"
     # each instance of "SupportInputProj" should have a "cur_inputs" attribute
-    self.current_inputs = bm.node_dict()
-    self.delta_inputs = bm.node_dict()
+    self._current_inputs: Optional[Dict[str, Callable]] = None
+    self._delta_inputs: Optional[Dict[str, Callable]] = None
 
     # the before- / after-updates used for computing
     # added after the version of 2.4.3
-    self.before_updates: Dict[str, Callable] = bm.node_dict()
-    self.after_updates: Dict[str, Callable] = bm.node_dict()
+    self._before_updates: Optional[Dict[str, Callable]] = None
+    self._after_updates: Optional[Dict[str, Callable]] = None
 
     # super initialization
     super().__init__(name=name)
+
+  @property
+  def current_inputs(self):
+    if self._current_inputs is None:
+      self._current_inputs = bm.node_dict()
+    return self._current_inputs
+
+  @property
+  def delta_inputs(self):
+    if self._delta_inputs is None:
+      self._delta_inputs = bm.node_dict()
+    return self._delta_inputs
+
+  @property
+  def before_updates(self):
+    if self._before_updates is None:
+      self._before_updates = bm.node_dict()
+    return self._before_updates
+
+  @property
+  def after_updates(self):
+    if self._after_updates is None:
+      self._after_updates = bm.node_dict()
+    return self._after_updates
 
   def add_bef_update(self, key: Any, fun: Callable):
     """Add the before update into this node"""
@@ -220,25 +244,32 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
       self,
       var_name: str,
       delay_name: str,
-      delay: Union[numbers.Number, ArrayType] = None,
+      delay_time: Union[numbers.Number, ArrayType] = None,
+      delay_step: Union[numbers.Number, ArrayType] = None,
   ):
     """Register local relay at the given delay time.
 
     Args:
       var_name: str. The name of the delay target variable.
       delay_name: str. The name of the current delay data.
-      delay: The delay time.
+      delay_time: The delay time. Float.
+      delay_step: The delay step. Int. ``delay_step`` and ``delay_time`` are exclusive. ``delay_step = delay_time / dt``.
     """
     delay_identifier, init_delay_by_return = _get_delay_tool()
     delay_identifier = delay_identifier + var_name
+    # check whether the "var_name" has been registered
     try:
       target = getattr(self, var_name)
     except AttributeError:
       raise AttributeError(f'This node {self} does not has attribute of "{var_name}".')
     if not self.has_aft_update(delay_identifier):
-      self.add_aft_update(delay_identifier, init_delay_by_return(target))
+      # add a model to receive the return of the target model
+      # moreover, the model should not receive the return of the update function
+      model = not_receive_update_output(init_delay_by_return(target))
+      # register the model
+      self.add_aft_update(delay_identifier, model)
     delay_cls = self.get_aft_update(delay_identifier)
-    delay_cls.register_entry(delay_name, delay)
+    delay_cls.register_entry(delay_name, delay_time=delay_time, delay_step=delay_step)
 
   def get_local_delay(self, var_name, delay_name):
     """Get the delay at the given identifier (`name`).
@@ -381,14 +412,20 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
     # ``before_updates``
     for model in self.before_updates.values():
-      model()
+      if hasattr(model, '_receive_update_input'):
+        model(*args, **kwargs)
+      else:
+        model()
 
     # update the model self
     ret = self.update(*args, **kwargs)
 
     # ``after_updates``
     for model in self.after_updates.values():
-      model(ret)
+      if hasattr(model, '_not_receive_update_output'):
+        model()
+      else:
+        model(ret)
     return ret
 
   def __rrshift__(self, other):
@@ -832,3 +869,75 @@ def _slice_to_num(slice_: slice, length: int):
     start += step
     num += 1
   return num
+
+
+def receive_update_output(cls: object):
+  """
+  The decorator to mark the object (as the after updates) to receive the output of the update function.
+
+  That is, the `aft_update` will receive the return of the update function::
+
+    ret = model.update(*args, **kwargs)
+    for fun in model.aft_updates:
+      fun(ret)
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  if hasattr(cls, '_not_receive_update_output'):
+    delattr(cls, '_not_receive_update_output')
+  return cls
+
+
+def not_receive_update_output(cls: object):
+  """
+  The decorator to mark the object (as the after updates) to not receive the output of the update function.
+
+  That is, the `aft_update` will not receive the return of the update function::
+
+    ret = model.update(*args, **kwargs)
+    for fun in model.aft_updates:
+      fun()
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  cls._not_receive_update_output = True
+  return cls
+
+
+def receive_update_input(cls: object):
+  """
+  The decorator to mark the object (as the before updates) to receive the input of the update function.
+
+  That is, the `bef_update` will receive the input of the update function::
+
+
+    for fun in model.bef_updates:
+      fun(*args, **kwargs)
+    model.update(*args, **kwargs)
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  cls._receive_update_input = True
+  return cls
+  
+
+def not_receive_update_input(cls: object):
+  """
+  The decorator to mark the object (as the before updates) to not receive the input of the update function.
+
+  That is, the `bef_update` will not receive the input of the update function::
+
+      for fun in model.bef_updates:
+        fun()
+      model.update()
+
+  """
+  # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
+  if hasattr(cls, '_receive_update_input'):
+    delattr(cls, '_receive_update_input')
+  return cls
+  
+
+  
+
+
