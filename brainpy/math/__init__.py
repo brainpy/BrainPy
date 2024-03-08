@@ -37,7 +37,7 @@ from . import random
 from . import tifunc
 
 # others
-from . import sharding
+from . import sharding, units
 
 import jax.numpy as jnp
 from jax import config
