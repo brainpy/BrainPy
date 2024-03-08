@@ -17,6 +17,7 @@ Installation
 
        .. code-block:: bash
 
+          # python 3.9-3.11
           pip install -U brainpy[cpu]  # windows, linux, macos
 
     .. tab-item:: GPU (CUDA 11.0)

@@ -10,8 +10,8 @@ Installation
 Linux, and MacOS. It only relies on Python libraries.
 
 
-Minimum requirements (without dependencies)
--------------------------------------------
+Without dependencies
+--------------------
 
 To install brainpy with minimum requirements (has installed ``jax`` and ``jaxlib`` before), you can use:
 
@@ -22,6 +22,11 @@ To install brainpy with minimum requirements (has installed ``jax`` and ``jaxlib
 
 Minimum requirements (with dependencies)
 ----------------------------------------
+
+.. note::
+
+   Full features of brainpy currently is only available on Python 3.9 - 3.11.
+
 
 To install brainpy with minimum requirements (only depends on ``jax``), you can use:
 
