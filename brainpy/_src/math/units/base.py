@@ -631,7 +631,7 @@ def get_or_create_dimension(*args, **kwds):
   --------
   The following are all definitions of the dimensions of force
 
-  >>> from brian2 import *
+  >>> from brainpy.math.units import *
   >>> get_or_create_dimension(length=1, mass=1, time=-2)
   metre * kilogram * second ** -2
   >>> get_or_create_dimension(m=1, kg=1, s=-2)
@@ -852,7 +852,7 @@ def in_unit(x, u, precision=None):
 
   Examples
   --------
-  >>> from brian2 import *
+  >>> from brainpy.math.units import *
   >>> in_unit(3 * volt, mvolt)
   '3000. mV'
   >>> in_unit(123123 * msecond, second, 2)
@@ -898,7 +898,7 @@ def in_best_unit(x, precision=None):
 
   Examples
   --------
-  >>> from brian2.units import *
+  >>> from brainpy.math.units import *
   >>> in_best_unit(0.00123456 * volt)
   '1.23456 mV'
   >>> in_best_unit(0.00123456 * volt, 2)
@@ -943,7 +943,7 @@ def quantity_with_dimensions(floatval, dims):
 
   Examples
   --------
-  >>> from brian2 import *
+  >>> from brainpy.math.units import *
   >>> quantity_with_dimensions(0.001, volt.dim)
   1. * mvolt
 
@@ -1244,7 +1244,7 @@ class Quantity(np.ndarray):
     --------
     All of these define an equivalent `Quantity` object:
 
-    >>> from brian2 import *
+    >>> from brainpy.math.units import *
     >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
     2. * metre
     >>> Quantity.with_dimensions(2, length=1)
@@ -1321,8 +1321,8 @@ class Quantity(np.ndarray):
 
     Examples
     --------
-    >>> from brian2.units import *
-    >>> from brian2.units.stdunits import *
+    >>> from brainpy.math.units import *
+    >>> from brainpy.math.units.stdunits import *
     >>> x = 25.123456 * mV
     >>> x.in_unit(volt)
     '0.02512346 V'
@@ -1421,7 +1421,7 @@ class Quantity(np.ndarray):
 
     Examples
     --------
-    >>> from brian2.units import *
+    >>> from brainpy.math.units import *
 
     >>> x = 0.00123456 * volt
 
@@ -2456,7 +2456,7 @@ def check_units(**au):
 
   Examples
   --------
-  >>> from brian2.units import *
+  >>> from brainpy.math.units import *
   >>> @check_units(I=amp, R=ohm, wibble=metre, result=volt)
   ... def getvoltage(I, R, **k):
   ...     return I*R
@@ -2529,7 +2529,7 @@ def check_units(**au):
   >>> multiply_sum(3*nA, 4*mV, 5*nA)  # doctest: +IGNORE_EXCEPTION_DETAIL
   Traceback (most recent call last):
   ...
-  brian2.units.fundamentalunits.DimensionMismatchError: Function 'multiply_sum' expected the same arguments for arguments 'summand_1', 'summand_2', but argument 'summand_1' has unit V, while argument 'summand_2' has unit A.
+  DimensionMismatchError: Function 'multiply_sum' expected the same arguments for arguments 'summand_1', 'summand_2', but argument 'summand_1' has unit V, while argument 'summand_2' has unit A.
 
   Raises
   ------

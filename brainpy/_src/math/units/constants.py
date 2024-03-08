@@ -4,7 +4,7 @@ units are not imported by wildcard imports (e.g. `from brian2 import *`), they
 have to be imported explicitly. You can use ``import ... as ...`` to import them
 with shorter names, e.g.::
 
-    from brian2.units.constants import faraday_constant as F
+    from brainpy.math.units import faraday_constant as F
 
 The available constants are:
 

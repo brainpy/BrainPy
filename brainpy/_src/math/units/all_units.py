@@ -8009,7 +8009,7 @@ class _Celsius:
     "ambiguities when mixed with absolute temperatures defined"
     "in Kelvin. Directly use 'kelvin' when you are only"
     "interested in temperature differences, and add the"
-    "'zero_celsius' constant from the brian2.units.constants"
+    "'zero_celsius' constant from the brainpy._src.math.units.constants"
     "module if you want to convert a temperature from Celsius to"
     "Kelvin."
   )
