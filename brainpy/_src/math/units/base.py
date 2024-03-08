@@ -1461,11 +1461,11 @@ class Quantity(np.ndarray):
   def _binary_operation(
       self,
       other,
-      operation,
-      dim_operation=lambda a, b: a,
-      fail_for_mismatch=False,
-      operator_str=None,
-      inplace=False,
+      operation: Callable,
+      dim_operation: Callable = lambda a, b: a,
+      fail_for_mismatch: bool = False,
+      operator_str: str = None,
+      inplace: bool = False,
   ):
     """
     General implementation for binary operations.
