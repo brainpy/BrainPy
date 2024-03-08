@@ -12,7 +12,7 @@ from jax.interpreters import ad
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import (XLACustomOp)
+from brainpy._src.math.op_register import (XLACustomOp, register_general_batching)
 from brainpy.errors import PackageMissingError
 
 ti = import_taichi(error_if_not_found=False)
@@ -115,7 +115,6 @@ def raw_csrmm_taichi(
 
 # taichi kernels
 if ti is not None:
-
   # @ti.kernel
   # def _csr_matmat_transpose_heter(values: ti.types.ndarray(ndim=1),
   #                                 col_indices: ti.types.ndarray(ndim=1),
@@ -128,7 +127,6 @@ if ti is not None:
   #       for j in range(out.shape[1]):
   #         out[col, j] += values[row_i] * matrix[row_i, j]
   #
-  #
   # @ti.kernel
   # def _csr_matmat_heter(values: ti.types.ndarray(ndim=1),
   #                       col_indices: ti.types.ndarray(ndim=1),
@@ -140,6 +138,15 @@ if ti is not None:
   #     for j in range(row_ptr[row_i], row_ptr[row_i + 1]):
   #       r += values[j] * matrix[col_indices[j], col_k]
   #     out[row_i, col_k] = r
+  #
+  # # transpose heter
+  # _csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter,
+  #                                            gpu_kernel=_csr_matmat_transpose_heter)
+  #
+  # # no transpose heter
+  # _csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter,
+  #                                  gpu_kernel=_csr_matmat_heter)
+
 
   @ti.kernel
   def _csr_matmat_transpose_homo_cpu(col_indices: ti.types.ndarray(ndim=1),
@@ -148,8 +155,10 @@ if ti is not None:
                                      out: ti.types.ndarray(ndim=2)):
     # matrix: (k, n)
     # sparse matrix: (m, k)
-    for j in range(out.shape[1]):  # parallize along the n dimension
-      for row_i in range(row_ptr.shape[0] - 1):  # loop along the m dimension
+    n = out.shape[1]
+    m = row_ptr.shape[0] - 1
+    for j in range(n):  # parallize along the n dimension
+      for row_i in range(m):  # loop along the m dimension
         for i in range(row_ptr[row_i], row_ptr[row_i + 1]):
           out[col_indices[i], j] += matrix[row_i, j]
 
@@ -208,14 +217,6 @@ if ti is not None:
     return prim
 
 
-  # # transpose heter
-  # _csr_matmat_transpose_heter_p = _define_op(cpu_kernel=_csr_matmat_transpose_heter,
-  #                                            gpu_kernel=_csr_matmat_transpose_heter)
-  #
-  # # no transpose heter
-  # _csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter,
-  #                                  gpu_kernel=_csr_matmat_heter)
-
   # transpose homo
   _csr_matmat_transpose_homo_p = _define_op(cpu_kernel=_csr_matmat_transpose_homo_cpu,
                                             gpu_kernel=_csr_matmat_transpose_homo_gpu)
@@ -225,3 +226,4 @@ if ti is not None:
 
   # heter CUSPARSE
   _csr_matmat_cusparse_p = csr.csr_matmat_p
+  register_general_batching(_csr_matmat_cusparse_p)
