@@ -1,10 +1,9 @@
-numpy
+-r requirements.txt
+
 brainpylib
-jax
 jaxlib
 matplotlib
 msgpack
-tqdm
 pathos
 taichi
 numba

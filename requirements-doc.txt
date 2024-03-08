@@ -1,8 +1,7 @@
-tqdm
-jax
+-r requirements.txt
+
 jaxlib
 matplotlib
-numpy
 scipy
 numba
 taichi==1.7.0
