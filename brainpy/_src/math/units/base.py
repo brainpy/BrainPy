@@ -31,7 +31,7 @@ __all__ = [
   "have_same_dimensions",
   "in_unit",
   "in_best_unit",
-  "Quantity",
+  "UnitArray",
   "Unit",
   "register_new_unit",
   "check_units",
@@ -300,7 +300,7 @@ def wrap_function_keep_dimensions(func):
   """
 
   def f(x, *args, **kwds):  # pylint: disable=C0111
-    return Quantity(func(np.array(x, copy=False), *args, **kwds), dim=x.dim)
+    return UnitArray(func(np.array(x, copy=False), *args, **kwds), dim=x.dim)
 
   f._arg_units = [None]
   f._return_unit = lambda u: u
@@ -325,7 +325,7 @@ def wrap_function_change_dimensions(func, change_dim_func):
 
   def f(x, *args, **kwds):  # pylint: disable=C0111
     ar = np.array(x, copy=False)
-    return Quantity(func(ar, *args, **kwds), dim=change_dim_func(ar, x.dim))
+    return UnitArray(func(ar, *args, **kwds), dim=change_dim_func(ar, x.dim))
 
   f._arg_units = [None]
   f._return_unit = change_dim_func
@@ -781,7 +781,7 @@ def get_dimensions(obj):
     ] or isinstance(obj, (numbers.Number, np.number, np.ndarray)):
       return DIMENSIONLESS
     try:
-      return Quantity(obj).dim
+      return UnitArray(obj).dim
     except TypeError:
       raise TypeError(f"Object of type {type(obj)} does not have dimensions")
 
@@ -938,7 +938,7 @@ def quantity_with_dimensions(floatval, dims):
 
   Returns
   -------
-  q : `Quantity`
+  q : `UnitArray`
       A quantity with the given dimensions.
 
   Examples
@@ -951,10 +951,10 @@ def quantity_with_dimensions(floatval, dims):
   --------
   get_or_create_dimensions
   """
-  return Quantity(floatval, get_or_create_dimension(dims._dims))
+  return UnitArray(floatval, get_or_create_dimension(dims._dims))
 
 
-class Quantity(np.ndarray):
+class UnitArray(np.ndarray):
   """
   A number with an associated physical dimension. In most cases, it is not
   necessary to create a Quantity object by hand, instead use multiplication
@@ -1061,7 +1061,7 @@ class Quantity(np.ndarray):
       if not isinstance(arr, (np.ndarray, np.number, numbers.Number)):
         # check whether it is an iterable containing Quantity objects
         try:
-          is_quantity = [isinstance(x, Quantity) for x in _flatten(arr)]
+          is_quantity = [isinstance(x, UnitArray) for x in _flatten(arr)]
         except TypeError:
           # Not iterable
           is_quantity = [False]
@@ -1211,12 +1211,12 @@ class Quantity(np.ndarray):
     # a 1 * volt ** 2 quantitiy instead of volt ** 2. But this should
     # rarely be an issue. The alternative leads to more confusing
     # behaviour: np.float64(3) * mV would result in a dimensionless float64
-    result = array.view(Quantity)
+    result = array.view(UnitArray)
     result.dim = dim
     return result
 
   def __deepcopy__(self, memo):
-    return Quantity(self, copy=True)
+    return UnitArray(self, copy=True)
 
   # ==============================================================================
   # Quantity-specific functions (not existing in ndarray)
@@ -1237,7 +1237,7 @@ class Quantity(np.ndarray):
 
     Returns
     -------
-    q : `Quantity`
+    q : `UnitArray`
         A `Quantity` object with the given dim
 
     Examples
@@ -1245,9 +1245,9 @@ class Quantity(np.ndarray):
     All of these define an equivalent `Quantity` object:
 
     >>> from brainpy.math.units import *
-    >>> Quantity.with_dimensions(2, get_or_create_dimension(length=1))
+    >>> UnitArray.with_dimensions(2, get_or_create_dimension(length=1))
     2. * metre
-    >>> Quantity.with_dimensions(2, length=1)
+    >>> UnitArray.with_dimensions(2, length=1)
     2. * metre
     >>> 2 * metre
     2. * metre
@@ -1256,7 +1256,7 @@ class Quantity(np.ndarray):
       dimensions = args[0]
     else:
       dimensions = get_or_create_dimension(*args, **keywords)
-    return Quantity(value, dim=dimensions)
+    return UnitArray(value, dim=dimensions)
 
   ### ATTRIBUTES ###
   is_dimensionless = property(
@@ -1378,7 +1378,7 @@ class Quantity(np.ndarray):
 
     Returns
     -------
-        u : `Quantity` or `Unit`
+        u : `UnitArray` or `Unit`
             The best-fitting unit for the quantity `x`.
     """
     if self.is_dimensionless:
@@ -1389,7 +1389,7 @@ class Quantity(np.ndarray):
           return r[self]
         except KeyError:
           pass
-      return Quantity(1, self.dim)
+      return UnitArray(1, self.dim)
     else:
       return self.get_best_unit(
         standard_unit_register, user_unit_register, additional_unit_register
@@ -1447,11 +1447,11 @@ class Quantity(np.ndarray):
     """Overwritten to assure that single elements (i.e., indexed with a
     single integer or a tuple of integers) retain their unit.
     """
-    return Quantity(np.ndarray.__getitem__(self, key), self.dim)
+    return UnitArray(np.ndarray.__getitem__(self, key), self.dim)
 
   def item(self, *args):
     """Overwritten to assure that the returned element retains its unit."""
-    return Quantity(np.ndarray.item(self, *args), self.dim)
+    return UnitArray(np.ndarray.item(self, *args), self.dim)
 
   def __setitem__(self, key, value):
     fail_for_dimension_mismatch(self, value, "Inconsistent units in assignment")
@@ -1522,7 +1522,7 @@ class Quantity(np.ndarray):
 
     if inplace:
       if self.shape == ():
-        self_value = Quantity(self, copy=True)
+        self_value = UnitArray(self, copy=True)
       else:
         self_value = self
       operation(self_value, other)
@@ -1533,7 +1533,7 @@ class Quantity(np.ndarray):
       self_arr = np.array(self, copy=False)
       other_arr = np.array(other, copy=False)
       result = operation(self_arr, other_arr)
-      return Quantity(result, newdims)
+      return UnitArray(result, newdims)
 
   def __mul__(self, other):
     return self._binary_operation(other, operator.mul, operator.mul)
@@ -1601,12 +1601,12 @@ class Quantity(np.ndarray):
     # We allow operations with 0 even for dimension mismatches, e.g.
     # 0 - 3*mV is allowed. In this case, the 0 is not represented by a
     # Quantity object so we cannot simply call Quantity.__sub__
-    if (not isinstance(other, Quantity) or other.dim is DIMENSIONLESS) and np.all(
+    if (not isinstance(other, UnitArray) or other.dim is DIMENSIONLESS) and np.all(
         other == 0
     ):
       return self.__neg__()
     else:
-      return Quantity(other, copy=False, force_quantity=True).__sub__(self)
+      return UnitArray(other, copy=False, force_quantity=True).__sub__(self)
 
   def __isub__(self, other):
     return self._binary_operation(
@@ -1631,7 +1631,7 @@ class Quantity(np.ndarray):
         exponent=other,
       )
       other = np.array(other, copy=False)
-      return Quantity(np.array(self, copy=False) ** other, self.dim ** other)
+      return UnitArray(np.array(self, copy=False) ** other, self.dim ** other)
     else:
       return NotImplemented
 
@@ -1639,7 +1639,7 @@ class Quantity(np.ndarray):
     if self.is_dimensionless:
       if isinstance(other, np.ndarray) or isinstance(other, np.ndarray):
         new_array = np.array(other, copy=False) ** np.array(self, copy=False)
-        return Quantity(new_array, DIMENSIONLESS)
+        return UnitArray(new_array, DIMENSIONLESS)
       else:
         return NotImplemented
     else:
@@ -1671,13 +1671,13 @@ class Quantity(np.ndarray):
       return NotImplemented
 
   def __neg__(self):
-    return Quantity(-np.array(self, copy=False), self.dim)
+    return UnitArray(-np.array(self, copy=False), self.dim)
 
   def __pos__(self):
     return self
 
   def __abs__(self):
-    return Quantity(abs(np.array(self, copy=False)), self.dim)
+    return UnitArray(abs(np.array(self, copy=False)), self.dim)
 
   def tolist(self):
     """
@@ -1685,7 +1685,7 @@ class Quantity(np.ndarray):
 
     Returns
     -------
-    l : list of `Quantity`
+    l : list of `UnitArray`
         A (possibly nested) list equivalent to the original array.
     """
 
@@ -1696,7 +1696,7 @@ class Quantity(np.ndarray):
       """
       # No recursion needed for single values
       if not isinstance(seq, list):
-        return Quantity(seq, dim)
+        return UnitArray(seq, dim)
 
       def top_replace(s):
         """
@@ -1704,7 +1704,7 @@ class Quantity(np.ndarray):
         """
         for i in s:
           if not isinstance(i, list):
-            yield Quantity(i, dim)
+            yield UnitArray(i, dim)
           else:
             yield type(i)(top_replace(i))
 
@@ -1834,7 +1834,7 @@ class Quantity(np.ndarray):
   def clip(self, a_min, a_max, *args, **kwds):  # pylint: disable=C0111
     fail_for_dimension_mismatch(self, a_min, "clip")
     fail_for_dimension_mismatch(self, a_max, "clip")
-    return Quantity(
+    return UnitArray(
       np.clip(
         np.array(self, copy=False),
         np.array(a_min, copy=False),
@@ -1849,7 +1849,7 @@ class Quantity(np.ndarray):
   clip._do_not_run_doctests = True
 
   def dot(self, other, **kwds):  # pylint: disable=C0111
-    return Quantity(
+    return UnitArray(
       np.array(self).dot(np.array(other), **kwds),
       self.dim * get_dimensions(other),
     )
@@ -1879,7 +1879,7 @@ class Quantity(np.ndarray):
     # identical
     if dim_exponent.size > 1:
       dim_exponent = dim_exponent[0]
-    return Quantity(np.array(prod_result, copy=False), self.dim ** dim_exponent)
+    return UnitArray(np.array(prod_result, copy=False), self.dim ** dim_exponent)
 
   prod.__doc__ = np.ndarray.prod.__doc__
   prod._do_not_run_doctests = True
@@ -1890,16 +1890,16 @@ class Quantity(np.ndarray):
         "cumprod over array elements on quantities "
         "with dimensions is not possible."
       )
-    return Quantity(np.array(self, copy=False).cumprod(*args, **kwds))
+    return UnitArray(np.array(self, copy=False).cumprod(*args, **kwds))
 
   cumprod.__doc__ = np.ndarray.cumprod.__doc__
   cumprod._do_not_run_doctests = True
 
 
-Quantity.__module__ = "brainpy.math.units"
+UnitArray.__module__ = "brainpy.math.units"
 
 
-class Unit(Quantity):
+class Unit(UnitArray):
   r"""
    A physical unit.
 
@@ -2287,7 +2287,7 @@ class Unit(Quantity):
     if isinstance(other, Unit):
       return other.dim is self.dim and other.scale == self.scale
     else:
-      return Quantity.__eq__(self, other)
+      return UnitArray.__eq__(self, other)
 
   def __neq__(self, other):
     return not self.__eq__(other)
@@ -2562,13 +2562,13 @@ def check_units(**au):
       arg_names = f.__code__.co_varnames[0: f.__code__.co_argcount]
       for n, v in zip(arg_names, args[0: f.__code__.co_argcount]):
         if (
-            not isinstance(v, (Quantity, str, bool))
+            not isinstance(v, (UnitArray, str, bool))
             and v is not None
             and n in au
         ):
           try:
             # allow e.g. to pass a Python list of values
-            v = Quantity(v)
+            v = UnitArray(v)
           except TypeError:
             if have_same_dimensions(au[n], 1):
               raise TypeError(
