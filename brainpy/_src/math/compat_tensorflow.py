@@ -259,13 +259,13 @@ def segment_sum(data: Union[Array, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return Array(jax.ops.segment_sum(as_jax(data),
-                                   as_jax(segment_ids),
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size,
-                                   mode))
+  return _return(jax.ops.segment_sum(as_jax(data),
+                                     as_jax(segment_ids),
+                                     num_segments,
+                                     indices_are_sorted,
+                                     unique_indices,
+                                     bucket_size,
+                                     mode))
 
 
 def segment_prod(data: Union[Array, jnp.ndarray],
@@ -311,13 +311,13 @@ def segment_prod(data: Union[Array, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return Array(jax.ops.segment_prod(as_jax(data),
-                                    as_jax(segment_ids),
-                                    num_segments,
-                                    indices_are_sorted,
-                                    unique_indices,
-                                    bucket_size,
-                                    mode))
+  return _return(jax.ops.segment_prod(as_jax(data),
+                                      as_jax(segment_ids),
+                                      num_segments,
+                                      indices_are_sorted,
+                                      unique_indices,
+                                      bucket_size,
+                                      mode))
 
 
 def segment_max(data: Union[Array, jnp.ndarray],
@@ -363,13 +363,13 @@ def segment_max(data: Union[Array, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return Array(jax.ops.segment_max(as_jax(data),
-                                   as_jax(segment_ids),
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size,
-                                   mode))
+  return _return(jax.ops.segment_max(as_jax(data),
+                                     as_jax(segment_ids),
+                                     num_segments,
+                                     indices_are_sorted,
+                                     unique_indices,
+                                     bucket_size,
+                                     mode))
 
 
 def segment_min(data: Union[Array, jnp.ndarray],
@@ -415,13 +415,13 @@ def segment_min(data: Union[Array, jnp.ndarray],
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
   """
-  return Array(jax.ops.segment_min(as_jax(data),
-                                   as_jax(segment_ids),
-                                   num_segments,
-                                   indices_are_sorted,
-                                   unique_indices,
-                                   bucket_size,
-                                   mode))
+  return _return(jax.ops.segment_min(as_jax(data),
+                                     as_jax(segment_ids),
+                                     num_segments,
+                                     indices_are_sorted,
+                                     unique_indices,
+                                     bucket_size,
+                                     mode))
 
 
 def cast(x, dtype):

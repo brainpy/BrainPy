@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Optional
+from typing import Optional, Union
 
+import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from brainpy import check, tools
 from .compat_numpy import fill_diagonal
 from .environment import get_dt, get_int
-from .ndarray import Array
 from .interoperability import as_jax
+from .ndarray import Array, _return
 
 __all__ = [
   'shared_args_over_time',
   'remove_diag',
   'clip_by_norm',
   'exprel',
+  'is_float_type',
+  # 'reduce',
+  'add_axis',
+  'add_axes',
 ]
 
 
@@ -74,7 +79,7 @@ def remove_diag(arr):
   """
   if arr.ndim != 2:
     raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
-  eyes = Array(jnp.ones(arr.shape, dtype=bool))
+  eyes = _return(jnp.ones(arr.shape, dtype=bool))
   fill_diagonal(eyes, False)
   return jnp.reshape(arr[eyes.value], (arr.shape[0], arr.shape[1] - 1))
 
@@ -119,3 +124,21 @@ def exprel(x, threshold: float = None):
     else:
       threshold = 1e-5
   return _exprel(x, threshold)
+
+
+def is_float_type(x: Union[Array, jax.Array]):
+  return x.dtype in ("float16", "float32", "float64", "float128", "bfloat16")
+
+
+def add_axis(x: Union[Array, jax.Array], new_position: int):
+  x = as_jax(x)
+  return jnp.expand_dims(x, new_position)
+
+
+def add_axes(x: Union[Array, jax.Array], n_axes, pos2len):
+  x = as_jax(x)
+  repeats = [1] * n_axes
+  for axis_position, axis_length in pos2len.items():
+    x = add_axis(x, axis_position)
+    repeats[axis_position] = axis_length
+  return jnp.tile(x, repeats)

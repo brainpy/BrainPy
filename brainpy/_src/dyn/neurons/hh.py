@@ -315,6 +315,9 @@ class HHLTC(NeuDyn):
       m_initializer: Optional[Union[Callable, ArrayType]] = None,
       h_initializer: Optional[Union[Callable, ArrayType]] = None,
       n_initializer: Optional[Union[Callable, ArrayType]] = None,
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -340,8 +343,14 @@ class HHLTC(NeuDyn):
     self._n_initializer = is_initializer(n_initializer, allow_none=True)
     self._V_initializer = is_initializer(V_initializer)
 
+    # noise
+    self.noise = init_noise(noise, self.varshape, num_vars=4)
+
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is None:
+      self.integral = odeint(method=method, f=self.derivative)
+    else:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
 
     # model
     if init_var:
@@ -622,6 +631,9 @@ class MorrisLecarLTC(NeuDyn):
       V_th: Union[float, ArrayType, Callable] = 10.,
       W_initializer: Union[Callable, ArrayType] = OneInit(0.02),
       V_initializer: Union[Callable, ArrayType] = Uniform(-70., -60.),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -650,8 +662,13 @@ class MorrisLecarLTC(NeuDyn):
     self._W_initializer = is_initializer(W_initializer)
     self._V_initializer = is_initializer(V_initializer)
 
+    # noise
+    self.noise = init_noise(noise, self.varshape, num_vars=2)
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # model
     if init_var:
@@ -895,6 +912,9 @@ class WangBuzsakiHHLTC(NeuDyn):
       V_initializer: Union[Callable, ArrayType] = OneInit(-65.),
       h_initializer: Union[Callable, ArrayType] = OneInit(0.6),
       n_initializer: Union[Callable, ArrayType] = OneInit(0.32),
+
+      # noise
+      noise: Union[float, ArrayType, Callable] = None,
   ):
     # initialization
     super().__init__(size=size,
@@ -920,8 +940,13 @@ class WangBuzsakiHHLTC(NeuDyn):
     self._n_initializer = is_initializer(n_initializer)
     self._V_initializer = is_initializer(V_initializer)
 
+    # noise
+    self.noise = init_noise(noise, self.varshape, num_vars=3)
     # integral
-    self.integral = odeint(method=method, f=self.derivative)
+    if self.noise is not None:
+      self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+    else:
+      self.integral = odeint(method=method, f=self.derivative)
 
     # model
     if init_var:

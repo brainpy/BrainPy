@@ -83,7 +83,7 @@ def _format_shape(shape):
   if len(shape) == 0:
     raise ValueError('Please provide shape.')
   if len(shape) == 1:
-    if isinstance(shape, (tuple, list)):
+    if isinstance(shape[0], (tuple, list)):
       return shape[0]
     else:
       return shape

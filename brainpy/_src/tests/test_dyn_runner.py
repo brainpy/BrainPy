@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
-
+import pytest
 import unittest
 import brainpy as bp
 import brainpy.math as bm
+
+from brainpy._src.dependency_check import import_taichi
+
+if import_taichi(error_if_not_found=False) is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 
 class TestDSRunner(unittest.TestCase):
@@ -76,14 +81,8 @@ class TestDSRunner(unittest.TestCase):
                          inputs=[(net.E.input, 20.), (net.I.input, 20.)], jit=False).run(0.2)
 
 
-
 class TestMemoryEfficient(unittest.TestCase):
   pass
-
-
-
-
-
 
 # class TestMonitor(TestCase):
 #   def test_1d_array(self):

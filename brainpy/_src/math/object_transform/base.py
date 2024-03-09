@@ -6,26 +6,27 @@ These transformations include JAX's JIT, autograd, vectorization, parallelizatio
 """
 
 import numbers
-import os
 import warnings
 from collections import namedtuple
 from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 
 import jax
 import numpy as np
+from jax.tree_util import register_pytree_node_class
 
-from brainpy import errors
+from brainpy._src.math import defaults
+from brainpy._src.math.modes import Mode
 from brainpy._src.math.ndarray import (Array, )
 from brainpy._src.math.object_transform.collectors import (ArrayCollector, Collector)
 from brainpy._src.math.object_transform.naming import (get_unique_name,
                                                        check_name_uniqueness)
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
                                                           VarList, VarDict)
-from brainpy._src.math.modes import Mode
 from brainpy._src.math.sharding import BATCH_AXIS
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
+registered = set()
 
 __all__ = [
   'BrainPyObject', 'Base', 'FunAsObject', 'ObjectTransform',
@@ -89,6 +90,11 @@ class BrainPyObject(object):
   def __init__(self, name=None):
     super().__init__()
 
+    if defaults.bp_object_as_pytree:
+      if self.__class__ not in registered:
+        register_pytree_node_class(self.__class__)
+        registered.add(self.__class__)
+
     # check whether the object has a unique name.
     self._name = None
     self._name = self.unique_name(name=name)
@@ -96,11 +102,23 @@ class BrainPyObject(object):
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
-    self.implicit_vars: ArrayCollector = ArrayCollector()
+    self._implicit_vars: Optional[ArrayCollector] = None
 
     # Used to wrap the implicit children nodes
     # which cannot be accessed by self.xxx
-    self.implicit_nodes: Collector = Collector()
+    self._implicit_nodes: Optional[Collector] = None
+
+  @property
+  def implicit_vars(self):
+    if self._implicit_vars is None:
+      self._implicit_vars = ArrayCollector()
+    return self._implicit_vars
+
+  @property
+  def implicit_nodes(self):
+    if self._implicit_nodes is None:
+      self._implicit_nodes = Collector()
+    return self._implicit_nodes
 
   def setattr(self, key: str, value: Any) -> None:
     super().__setattr__(key, value)
@@ -217,8 +235,8 @@ class BrainPyObject(object):
     static_names = []
     static_values = []
     for k, v in self.__dict__.items():
-      # if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, VarList, VarDict)):
-      if isinstance(v, (BrainPyObject, Variable)):
+      if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, VarList, VarDict)):
+        # if isinstance(v, (BrainPyObject, Variable)):
         dynamic_names.append(k)
         dynamic_values.append(v)
       else:
@@ -328,7 +346,7 @@ class BrainPyObject(object):
     nodes = self.nodes(method=method, level=level, include_self=include_self)
     gather = ArrayCollector()
     for node_path, node in nodes.items():
-      for k in dir(node):
+      for k in node.__dict__.keys():
         if k in node._excluded_vars:
           continue
         v = getattr(node, k)
@@ -552,7 +570,7 @@ class BrainPyObject(object):
       missing_keys = []
       unexpected_keys = []
       for name, node in nodes.items():
-        r = node.load_state(state_dict[name], **kwargs)
+        r = node.load_state(state_dict[name] if name in state_dict else {}, **kwargs)
         if r is not None:
           missing, unexpected = r
           missing_keys.extend([f'{name}.{key}' for key in missing])

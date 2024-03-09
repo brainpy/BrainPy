@@ -4,20 +4,23 @@ from typing import Callable, Sequence, Tuple, Protocol, Optional
 import jax
 import numpy as np
 from jax.interpreters import xla, batching, ad, mlir
-from numba.core.dispatcher import Dispatcher
 
+from brainpy._src.dependency_check import import_numba
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
-# if jax.__version__ >= '0.4.16':
-#   from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
-# else:
-#   from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
-from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
-from .taichi_aot_based import (register_taichi_cpu_translation_rule,
-                               register_taichi_gpu_translation_rule,)
+
+if jax.__version__ >= '0.4.16':
+  from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
+  from .taichi_aot_based import (register_taichi_aot_mlir_cpu_translation_rule as register_taichi_cpu_translation_rule,
+                                 register_taichi_aot_mlir_gpu_translation_rule as register_taichi_gpu_translation_rule)
+else:
+  from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
+  from .taichi_aot_based import (register_taichi_aot_xla_cpu_translation_rule as register_taichi_cpu_translation_rule,
+                                 register_taichi_aot_xla_gpu_translation_rule as register_taichi_gpu_translation_rule)
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
 
+numba = import_numba(error_if_not_found=False)
 
 __all__ = [
   'XLACustomOp',
@@ -63,8 +66,8 @@ class XLACustomOp(BrainPyObject):
   >>>
   >>> # option 2
   >>> prim2 = XLACustomOp(cpu_kernel=numba_cpu_fun, gpu_kernel=taichi_gpu_fun,
-  >>>                     outs=[jax.ShapeDtypeStruct(1000, dtype=np.float32),
-  >>>                           jax.ShapeDtypeStruct(1000, dtype=np.float32)])
+  >>>                     outs=lambda a, b, **kwargs: [jax.ShapeDtypeStruct(a.shape, dtype=a.dtype),
+  >>>                                                  jax.ShapeDtypeStruct(b.shape, dtype=b.dtype)])
   >>> a3, b3 = prim2(np.random.random(1000), np.random.random(1000))
 
   Args:
@@ -73,7 +76,7 @@ class XLACustomOp(BrainPyObject):
     batching_translation: Callable. The batching translation rule of JAX.
     jvp_translation: Callable. The JVP translation rule of JAX.
     transpose_translation: Callable. The transpose translation rule of JAX.
-    outs: optional, sequence of `ShapeDtype`. The output information.
+    outs: optional. The output information.
     name: str. The primitive name.
   """
 
@@ -84,7 +87,7 @@ class XLACustomOp(BrainPyObject):
       batching_translation: Callable = None,
       jvp_translation: Callable = None,
       transpose_translation: Callable = None,
-      outs: Optional[Sequence[ShapeDtype]] = None,
+      outs: Optional[Callable] = None,
       name: str = None,
   ):
     super().__init__(name)
@@ -98,31 +101,35 @@ class XLACustomOp(BrainPyObject):
     self.primitive.multiple_results = True
 
     # abstract evaluation
-    if outs is not None:
-      outs = tuple([_transform_to_shapedarray(o) for o in outs])
     self.outs = outs
     self.primitive.def_abstract_eval(_abstract_eval)
     self.primitive.def_impl(partial(xla.apply_primitive, self.primitive))
 
     # cpu function
+    cpu_checked = False
     if cpu_kernel is None:
-      pass
-    elif isinstance(cpu_kernel, Dispatcher):  # numba
-      register_numba_cpu_translation_rule(self.primitive, cpu_kernel)
-    elif hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
+      cpu_checked = True
+    if numba is not None:  # numba
+      from numba.core.dispatcher import Dispatcher
+      if isinstance(cpu_kernel, Dispatcher):
+        register_numba_cpu_translation_rule(self.primitive, cpu_kernel)
+        cpu_checked = True
+    if hasattr(cpu_kernel, '_is_wrapped_kernel') and cpu_kernel._is_wrapped_kernel:  # taichi
       register_taichi_cpu_translation_rule(self.primitive, cpu_kernel)
-    else:
+      cpu_checked = True
+    if not cpu_checked:
       raise ValueError(f'"cpu_kernel" must be a numba jitted function or a taichi kernel function. '
                        f'But we got {cpu_kernel}')
 
     # gpu function
+    gpu_checked = False
     if gpu_kernel is None:
-      pass
-    elif hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
+      gpu_checked = True
+    if hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
       register_taichi_gpu_translation_rule(self.primitive, gpu_kernel)
-    else:
-      raise ValueError(f'"cpu_kernel" must be a taichi kernel function. '
-                       f'But we got {gpu_kernel}')
+      gpu_checked = True
+    if not gpu_checked:
+      raise ValueError(f'"cpu_kernel" must be a taichi kernel function. But we got {gpu_kernel}')
 
     # batching rule
     if batching_translation is None:
@@ -140,7 +147,9 @@ class XLACustomOp(BrainPyObject):
 
   def __call__(self, *ins, outs: Optional[Sequence[ShapeDtype]] = None, **kwargs):
     if outs is None:
-      outs = self.outs
+      if self.outs is None:
+        raise ValueError('The output information is not defined.')
+      outs = self.outs(*ins, **kwargs)
     assert outs is not None
     outs = tuple([_transform_to_shapedarray(o) for o in outs])
     ins = jax.tree_util.tree_map(_transform_to_array, ins, is_leaf=_is_bp_array)
@@ -225,5 +234,3 @@ def _transform_to_array(a):
 
 def _transform_to_shapedarray(a):
   return jax.core.ShapedArray(a.shape, a.dtype)
-
-

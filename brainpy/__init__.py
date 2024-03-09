@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "2.4.6.post5"
+
+__version__ = "2.5.0"
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
@@ -60,6 +61,10 @@ from brainpy._src.dynsys import (
   Sequential as Sequential,
   Dynamic as Dynamic,  # category
   Projection as Projection,
+  receive_update_input,  # decorators
+  receive_update_output,
+  not_receive_update_input,
+  not_receive_update_output,
 )
 DynamicalSystemNS = DynamicalSystem
 Network = DynSysGroup
@@ -82,7 +87,6 @@ from brainpy._src.helpers import (reset_level as reset_level,
                                   save_state as save_state,
                                   load_state as load_state,
                                   clear_input as clear_input)
-
 
 #  Part: Running  #
 # --------------- #

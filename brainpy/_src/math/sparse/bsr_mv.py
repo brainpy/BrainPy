@@ -11,7 +11,7 @@ from jax.lib import xla_client
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
-from brainpy._src.math.sparse._utils import csr_to_coo
+from brainpy._src.math.sparse.utils import csr_to_coo
 from brainpy._src.dependency_check import import_brainpylib_gpu_ops
 from brainpy.errors import GPUOperatorNotFound
 
@@ -202,8 +202,8 @@ def _cusparse_bcsr_transpose(ct, data, indices, indptr, vector, *, blocksize, sh
 cusparse_bcsr_matvec_vector_p = Primitive('cusparse_block_spmv')
 cusparse_bcsr_matvec_vector_p.def_abstract_eval(_cusparse_bcsr_matvec_abstract)
 cusparse_bcsr_matvec_vector_p.def_impl(partial(xla.apply_primitive, cusparse_bcsr_matvec_vector_p))
-xla.backend_specific_translations['gpu'][cusparse_bcsr_matvec_vector_p] = _cusparse_bcsr_matvec_vector_gpu_translation
-xla.backend_specific_translations['cpu'][cusparse_bcsr_matvec_vector_p] = _cusparse_bcsr_matvec_vector_cpu_translation
+# xla.backend_specific_translations['gpu'][cusparse_bcsr_matvec_vector_p] = _cusparse_bcsr_matvec_vector_gpu_translation
+# xla.backend_specific_translations['cpu'][cusparse_bcsr_matvec_vector_p] = _cusparse_bcsr_matvec_vector_cpu_translation
 ad.defjvp(cusparse_bcsr_matvec_vector_p, _cusparse_bcsr_matvec_jvp_values)
 ad.primitive_transposes[cusparse_bcsr_matvec_vector_p] = _cusparse_bcsr_transpose
 register_general_batching(cusparse_bcsr_matvec_vector_p)

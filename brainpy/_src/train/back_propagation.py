@@ -278,7 +278,7 @@ class BPTrainer(DSTrainer):
       for x, y in _training_data:
         # reset state
         if reset_state:
-          self.target.reset_state(self._get_input_batch_size(x))
+          self.target.reset(self._get_input_batch_size(x))
           self.reset_state()
 
         # training
@@ -356,7 +356,7 @@ class BPTrainer(DSTrainer):
         for x, y in _testing_data:
           # reset state
           if reset_state:
-            self.target.reset_state(self._get_input_batch_size(x))
+            self.target.reset(self._get_input_batch_size(x))
             self.reset_state()
 
           # testing
@@ -604,7 +604,7 @@ class BPFF(BPTrainer):
 
     # reset the model states
     if reset_state:
-      self.target.reset_state(self._get_input_batch_size(xs=inputs))
+      self.target.reset(self._get_input_batch_size(xs=inputs))
       self.reset_state()
     # init monitor
     for key in self._monitors.keys():

@@ -144,7 +144,7 @@ class Delay(DynamicalSystem):
         delay_type = 'homo'
       else:
         delay_type = 'heter'
-        delay_step = bm.Array(delay_step)
+        delay_step = delay_step
     elif callable(delay_step):
       delay_step = delay_step(self.delay_target_shape)
       delay_type = 'heter'

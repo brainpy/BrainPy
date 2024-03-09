@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from unittest import TestCase
-
-import jax.numpy as jnp
-import brainpy.math as bm
 from absl.testing import absltest
 from absl.testing import parameterized
+
 import brainpy as bp
+import brainpy.math as bm
 
 
 class TestFunction(parameterized.TestCase):
@@ -30,6 +28,15 @@ class TestFunction(parameterized.TestCase):
     output = layer.update(input)
 
     expected_shape = (600,)
+    self.assertEqual(output.shape, expected_shape)
+    bm.clear_buffer_memory()
+
+  def test_unflatten(self):
+    bm.random.seed()
+    layer = bp.dnn.Unflatten(1, (10, 6), mode=bm.NonBatchingMode())
+    input = bm.random.randn(5, 60)
+    output = layer.update(input)
+    expected_shape = (5, 10, 6)
     self.assertEqual(output.shape, expected_shape)
     bm.clear_buffer_memory()
 

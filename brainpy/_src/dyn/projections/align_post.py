@@ -141,6 +141,10 @@ class HalfProjAlignPostMg(Projection):
     self.refs['syn'].add_current(current)  # synapse post current
     return current
 
+  syn = property(lambda self: self.refs['syn'])
+  out = property(lambda self: self.refs['out'])
+  post = property(lambda self: self.refs['post'])
+
 
 class FullProjAlignPostMg(Projection):
   """Full-chain synaptic projection with the align-post reduction and the automatic synapse merging.
@@ -270,6 +274,12 @@ class FullProjAlignPostMg(Projection):
     self.refs['syn'].add_current(current)  # synapse post current
     return current
 
+  syn = property(lambda self: self.refs['syn'])
+  out = property(lambda self: self.refs['out'])
+  delay = property(lambda self: self.refs['delay'])
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+
 
 class HalfProjAlignPost(Projection):
   """Defining the half-part of synaptic projection with the align-post reduction.
@@ -362,6 +372,8 @@ class HalfProjAlignPost(Projection):
     g = self.syn(self.comm(x))
     self.refs['out'].bind_cond(g)  # synapse post current
     return current
+
+  post = property(lambda self: self.refs['post'])
 
 
 class FullProjAlignPost(Projection):
@@ -488,3 +500,8 @@ class FullProjAlignPost(Projection):
     g = self.syn(self.comm(x))
     self.refs['out'].bind_cond(g)  # synapse post current
     return g
+
+  delay = property(lambda self: self.refs['delay'])
+  pre = property(lambda self: self.refs['pre'])
+  post = property(lambda self: self.refs['post'])
+  out = property(lambda self: self.refs['out'])

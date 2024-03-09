@@ -11,7 +11,7 @@ from jax.lax import stop_gradient
 from brainpy import check
 from brainpy.check import is_float, is_integer, jit_error
 from brainpy.errors import UnsupportedError
-from .compat_numpy import vstack, broadcast_to
+from .compat_numpy import broadcast_to, expand_dims, concatenate
 from .environment import get_dt, get_float
 from .interoperability import as_jax
 from .ndarray import ndarray, Array
@@ -392,6 +392,7 @@ class LengthDelay(AbstractDelay):
                                      dtype=delay_target.dtype),
                            batch_axis=batch_axis)
     else:
+      self.data.value
       self.data._value = jnp.zeros((self.num_delay_step,) + delay_target.shape,
                                    dtype=delay_target.dtype)
 
@@ -472,7 +473,7 @@ class LengthDelay(AbstractDelay):
 
     elif self.update_method == CONCAT_UPDATE:
       if self.num_delay_step >= 2:
-        self.data.value = vstack([broadcast_to(value, self.data.shape[1:]), self.data[1:]])
+        self.data.value = concatenate([expand_dims(value, 0), self.data[:-1]], axis=0)
       else:
         self.data[:] = value
 

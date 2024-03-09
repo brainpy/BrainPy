@@ -161,7 +161,7 @@ class OnlineTrainer(DSTrainer):
     # reset the model states
     if reset_state:
       num_batch = self._get_input_batch_size(xs)
-      self.target.reset_state(num_batch)
+      self.target.reset(num_batch)
       self.reset_state()
 
     # format input/target data

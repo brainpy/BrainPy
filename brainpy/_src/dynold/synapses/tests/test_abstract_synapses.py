@@ -3,9 +3,14 @@
 
 from absl.testing import parameterized
 
+import pytest
 import brainpy as bp
 import brainpy.math as bm
 from brainpy._src.dynold.synapses import abstract_models
+from brainpy._src.dependency_check import import_taichi
+
+if import_taichi(error_if_not_found=False) is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 
 class Test_Abstract_Synapse(parameterized.TestCase):
@@ -24,9 +29,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
       net = bp.Network(pre=pre_neu, syn=syn, post=post_neu)
 
     # 运行模拟
-    runner = bp.DSRunner(net,
-                         monitors=['pre.V', 'syn.g', 'post.V'],
-                         inputs=('pre.input', 35.))
+    runner = bp.DSRunner(net, monitors=['pre.V', 'syn.g', 'post.V'], inputs=('pre.input', 35.))
     runner(10.)
 
     expected_shape = (100, 5)

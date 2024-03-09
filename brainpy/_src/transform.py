@@ -275,7 +275,6 @@ class LoopOverTime(DynamicalSystem):
     return results
 
   def reset_state(self, batch_size=None):
-    self.target.reset_state(batch_size)
     if self.i0 is not None:
       self.i0.value = bm.as_jax(self._i0)
     if self.t0 is not None:
