@@ -2,20 +2,20 @@ import os
 import time
 from functools import partial
 
+import numpy as np
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 import jax
 import jax.numpy as jnp
 import pandas as pd
+import taichi as ti
 from jax.experimental.sparse import csr
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy._src.dependency_check import import_taichi
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.op_register import XLACustomOp
 
-ti = import_taichi(error_if_not_found=False)
-
-bm.set_platform('cpu')
+bm.set_platform('gpu')
 
 size = [
   (100, 100, 100),
@@ -37,7 +37,7 @@ values_type = [
 ]
 events_type = ['float']
 transpose = [
-  True,
+  # True,
   False
 ]
 ITERATION = 10
@@ -92,17 +92,17 @@ def _csr_matmat_homo(col_indices: ti.types.ndarray(ndim=1),
 
 
 # transpose homo
-_csr_matmat_transpose_homo_p = XLACustomOp(cpu_kernel=_csr_matmat_transpose_homo_cpu,
-                                           gpu_kernel=_csr_matmat_transpose_homo_gpu)
+_csr_matmat_transpose_homo_p = bm.XLACustomOp(cpu_kernel=_csr_matmat_transpose_homo_cpu,
+                                              gpu_kernel=_csr_matmat_transpose_homo_gpu)
 
 # no transpose homo
-_csr_matmat_homo_p = XLACustomOp(cpu_kernel=_csr_matmat_homo, gpu_kernel=_csr_matmat_homo)
+_csr_matmat_homo_p = bm.XLACustomOp(cpu_kernel=_csr_matmat_homo, gpu_kernel=_csr_matmat_homo)
 
 
 def taichi_csrmm(weight, indices, indptr, matrix, shape, transpose):
-  indices = as_jax(indices)
-  indptr = as_jax(indptr)
-  matrix = as_jax(matrix)
+  indices = bm.as_jax(indices)
+  indptr = bm.as_jax(indptr)
+  matrix = bm.as_jax(matrix)
   weight = jnp.atleast_1d(weight)
   out_shape = shape[1] if transpose else shape[0]
   result_shape = (out_shape, matrix.shape[1])
@@ -120,9 +120,9 @@ def taichi_csrmm(weight, indices, indptr, matrix, shape, transpose):
 
 
 def jaxlib_csrmm(weight, indices, indptr, matrix, shape, transpose):
-  indices = as_jax(indices)
-  indptr = as_jax(indptr)
-  matrix = as_jax(matrix)
+  indices = bm.as_jax(indices)
+  indptr = bm.as_jax(indptr)
+  matrix = bm.as_jax(matrix)
   weight = jnp.atleast_1d(weight)
   return csr.csr_matmat_p.bind(weight, indices, indptr, matrix, shape=shape, transpose=transpose)
 
@@ -321,49 +321,35 @@ df = pd.DataFrame(
            'brainpy time1(ms)', 'brainpy time2(ms)', 'brainpy time3(ms)', 'brainpy time4(ms)', 'brainpy time5(ms)',
            'brainpy time6(ms)', 'brainpy time7(ms)', 'brainpy time8(ms)', 'brainpy time9(ms)', 'brainpy time10(ms)'])
 
-### RECTANGULAR MATRIX
-if (bm.get_platform() == 'cpu'):
-  for shape in size:
-    for _values_type in values_type:
-      for _events_type in events_type:
-        for _transpose in transpose:
-          taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5, \
-            taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10, \
-            brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, \
-            brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_sparse_csrmm(shape,
-                                                                                                                _values_type,
-                                                                                                                _events_type,
-                                                                                                                _transpose)
-          # append to dataframe
-          df.loc[df.shape[0]] = [shape, 0.5, shape[0], shape[1], shape[2], 'cpu', _values_type, _events_type,
-                                 _transpose,
-                                 taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4,
-                                 taichi_aot_time_5,
-                                 taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9,
-                                 taichi_aot_time_10,
-                                 brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5,
-                                 brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10]
-          df.to_csv(f'{PATH}/csrmm_cpu.csv', index=False)
+for shape in size:
+  for _values_type in values_type:
+    for _events_type in events_type:
+      for _transpose in transpose:
+        taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5, \
+          taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10, \
+          brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, \
+          brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_sparse_csrmm(shape,
+                                                                                                              _values_type,
+                                                                                                              _events_type,
+                                                                                                              _transpose)
+        # append to dataframe
+        df.loc[df.shape[0]] = [shape, 0.5, shape[0], shape[1], shape[2], 'gpu', _values_type, _events_type,
+                               _transpose,
+                               taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4,
+                               taichi_aot_time_5,
+                               taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9,
+                               taichi_aot_time_10,
+                               brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5,
+                               brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10]
 
-if (bm.get_platform() == 'gpu'):
-  for shape in size:
-    for _values_type in values_type:
-      for _events_type in events_type:
-        for _transpose in transpose:
-          taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4, taichi_aot_time_5, \
-            taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9, taichi_aot_time_10, \
-            brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5, \
-            brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10 = test_sparse_csrmm(shape,
-                                                                                                                _values_type,
-                                                                                                                _events_type,
-                                                                                                                _transpose)
-          # append to dataframe
-          df.loc[df.shape[0]] = [shape, 0.5, shape[0], shape[1], shape[2], 'gpu', _values_type, _events_type,
-                                 _transpose,
-                                 taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4,
-                                 taichi_aot_time_5,
-                                 taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9,
-                                 taichi_aot_time_10,
-                                 brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5,
-                                 brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10]
-          df.to_csv(f'{PATH}/csrmm_gpu.csv', index=False)
+        print(shape, _values_type, _events_type, _transpose)
+        a = np.asarray([taichi_aot_time_1, taichi_aot_time_2, taichi_aot_time_3, taichi_aot_time_4,
+                        taichi_aot_time_5,
+                        taichi_aot_time_6, taichi_aot_time_7, taichi_aot_time_8, taichi_aot_time_9,
+                        taichi_aot_time_10])
+        b = np.asarray([brainpy_time_1, brainpy_time_2, brainpy_time_3, brainpy_time_4, brainpy_time_5,
+                        brainpy_time_6, brainpy_time_7, brainpy_time_8, brainpy_time_9, brainpy_time_10])
+        print(a)
+        print(b)
+        print(a.sum() / b.sum())
+        df.to_csv(f'{PATH}/csrmm_{bm.get_platform()}.csv', index=False)
