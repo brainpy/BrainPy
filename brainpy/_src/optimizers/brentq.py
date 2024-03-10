@@ -313,3 +313,39 @@ def find_root_of_1d_numpy(f, f_points, args=(), tol=1e-8):
       idx += 1
 
   return roots
+
+
+
+def brentq_candidates(vmap_f, *values, args=()):
+  # change the position of meshgrid values
+  values = tuple((v.value if isinstance(v, bm.Array) else v) for v in values)
+  xs = values[0]
+  mesh_values = jnp.meshgrid(*values)
+  if jnp.ndim(mesh_values[0]) > 1:
+    mesh_values = tuple(jnp.moveaxis(m, 0, 1) for m in mesh_values)
+  mesh_values = tuple(m.flatten() for m in mesh_values)
+  # function outputs
+  signs = jnp.sign(vmap_f(*(mesh_values + args)))
+  # compute the selected values
+  signs = signs.reshape((xs.shape[0], -1))
+  par_len = signs.shape[1]
+  signs1 = signs.at[-1].set(1)  # discard the final row
+  signs2 = jnp.vstack((signs[1:], signs[:1])).at[-1].set(1)  # discard the first row
+  ids = jnp.where((signs1 * signs2).flatten() <= 0)[0]
+  x_starts = mesh_values[0][ids]
+  x_ends = mesh_values[0][ids + par_len]
+  other_vals = tuple(v[ids] for v in mesh_values[1:])
+  return x_starts, x_ends, other_vals
+
+
+
+
+
+def brentq_roots(vmap_f, starts, ends, *vmap_args, args=()):
+  all_args = vmap_args + args
+  res = vmap_f(starts, ends, all_args)
+  valid_idx = jnp.where(res['status'] == ECONVERGED)[0]
+  roots = res['root'][valid_idx]
+  vmap_args = tuple(a[valid_idx] for a in vmap_args)
+  return roots, vmap_args
+

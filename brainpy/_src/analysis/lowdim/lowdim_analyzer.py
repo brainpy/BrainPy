@@ -14,7 +14,7 @@ from brainpy import errors, tools
 from brainpy._src.analysis import constants as C, utils
 from brainpy._src.analysis.base import DSAnalyzer
 from brainpy._src.math.object_transform.base import Collector
-from brainpy._src.optimizers.brentq import jax_brentq, ECONVERGED
+from brainpy._src.optimizers.brentq import jax_brentq, ECONVERGED, brentq_candidates, brentq_roots
 
 pyplot = None
 
@@ -733,15 +733,15 @@ class Num2DAnalyzer(Num1DAnalyzer):
           if len(par_seg.arg_id_segments[0]) > 1:
             utils.output(f"{C.prefix}segment {_j} ...")
           if coords == self.x_var + '-' + self.y_var:
-            x0s, x1s, vps = utils.brentq_candidates(self.F_vmap_fx, *((xs, ys) + Ps))
-            x_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f1, x0s, x1s, *vps)
+            x0s, x1s, vps = brentq_candidates(self.F_vmap_fx, *((xs, ys) + Ps))
+            x_values_in_fx, out_args = brentq_roots(vmap_brentq_f1, x0s, x1s, *vps)
             y_values_in_fx = out_args[0]
             p_values_in_fx = out_args[1:]
             x_values_in_fx, y_values_in_fx, p_values_in_fx = \
               self._fp_filter(x_values_in_fx, y_values_in_fx, p_values_in_fx, fp_aux_filter)
           elif coords == self.y_var + '-' + self.x_var:
-            x0s, x1s, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
-            y_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f2, x0s, x1s, *vps)
+            x0s, x1s, vps = brentq_candidates(vmap_f2, *((ys, xs) + Ps))
+            y_values_in_fx, out_args = brentq_roots(vmap_brentq_f2, x0s, x1s, *vps)
             x_values_in_fx = out_args[0]
             p_values_in_fx = out_args[1:]
             x_values_in_fx, y_values_in_fx, p_values_in_fx = \
@@ -825,15 +825,15 @@ class Num2DAnalyzer(Num1DAnalyzer):
         for j, Ps in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
           if coords == self.x_var + '-' + self.y_var:
-            starts, ends, vps = utils.brentq_candidates(self.F_vmap_fy, *((xs, ys) + Ps))
-            x_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f1, starts, ends, *vps)
+            starts, ends, vps = brentq_candidates(self.F_vmap_fy, *((xs, ys) + Ps))
+            x_values_in_fy, out_args = brentq_roots(vmap_brentq_f1, starts, ends, *vps)
             y_values_in_fy = out_args[0]
             p_values_in_fy = out_args[1:]
             x_values_in_fy, y_values_in_fy, p_values_in_fy = \
               self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
           elif coords == self.y_var + '-' + self.x_var:
-            starts, ends, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
-            y_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f2, starts, ends, *vps)
+            starts, ends, vps = brentq_candidates(vmap_f2, *((ys, xs) + Ps))
+            y_values_in_fy, out_args = brentq_roots(vmap_brentq_f2, starts, ends, *vps)
             x_values_in_fy = out_args[0]
             p_values_in_fy = out_args[1:]
             x_values_in_fy, y_values_in_fy, p_values_in_fy = \
