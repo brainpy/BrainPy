@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from absl.testing import parameterized
 
 import brainpy.math as bm
-from brainpy._src.optimizers import scheduler
+from brainpy._src.optimizers import sgd_scheduler
 
 show = False
 

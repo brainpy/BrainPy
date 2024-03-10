@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import warnings
-from functools import partial
 from typing import Sequence, Union
 
 import jax
@@ -8,7 +7,6 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy.errors import MathError
 
 
@@ -25,7 +23,7 @@ def make_schedule(scalar_or_schedule):
     raise TypeError(type(scalar_or_schedule))
 
 
-class Scheduler(BrainPyObject):
+class Scheduler(bm.BrainPyObject):
   """The learning rate scheduler."""
 
   def __init__(self, lr: Union[float, bm.Variable], last_epoch: int = -1):

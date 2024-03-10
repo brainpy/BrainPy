@@ -4,10 +4,10 @@ import numpy as np
 
 from .base import Optimizer
 
-__all__ = ['SkBayesianOptimizer']
+__all__ = ['SkoptBayesOptimizer']
 
 
-class SkBayesianOptimizer(Optimizer):
+class SkoptBayesOptimizer(Optimizer):
   """
   SkoptOptimizer instance creates all the tools necessary for the user
   to use it with scikit-optimize library.

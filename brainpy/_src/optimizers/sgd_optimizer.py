@@ -5,13 +5,11 @@ from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
 from jax.lax import cond
-import brainpy as bp
 
 import brainpy.math as bm
 from brainpy import check
-from brainpy._src.math.object_transform.base import BrainPyObject, ArrayCollector
 from brainpy.errors import MathError
-from .scheduler import make_schedule, Scheduler
+from .sgd_scheduler import make_schedule, Scheduler
 
 __all__ = [
   'Optimizer',
@@ -28,7 +26,7 @@ __all__ = [
 ]
 
 
-class Optimizer(BrainPyObject):
+class Optimizer(bm.BrainPyObject):
   """Base Optimizer Class.
 
   Parameters
@@ -40,7 +38,7 @@ class Optimizer(BrainPyObject):
   lr: Scheduler  # learning rate
   '''Learning rate'''
 
-  vars_to_train: ArrayCollector  # variables to train
+  vars_to_train: bm.VarDict  # variables to train
   '''Variables to train.'''
 
   def __init__(
@@ -49,9 +47,9 @@ class Optimizer(BrainPyObject):
       train_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
       name: Optional[str] = None
   ):
-    super(Optimizer, self).__init__(name=name)
+    super().__init__(name=name)
     self.lr: Scheduler = make_schedule(lr)
-    self.vars_to_train = ArrayCollector()
+    self.vars_to_train = bm.var_dict()
     self.register_train_vars(train_vars)
 
   def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
@@ -72,8 +70,15 @@ class Optimizer(BrainPyObject):
   def update(self, grads: dict):
     raise NotImplementedError
 
+  def zero_grad(self):
+    """
+    Zero the gradients of all trainable variables.
+    """
+    for p in self.vars_to_train.values():
+      p.value = jnp.zeros_like(p.value)
 
-class CommonOpt(Optimizer):
+
+class _CommonOpt(Optimizer):
   def __init__(
       self,
       lr: Union[float, Scheduler, bm.Variable],
@@ -81,14 +86,11 @@ class CommonOpt(Optimizer):
       weight_decay: Optional[float] = None,
       name: Optional[str] = None
   ):
-    super(Optimizer, self).__init__(name=name)
-    self.lr: Scheduler = make_schedule(lr)
-    self.vars_to_train = ArrayCollector()
-    self.register_train_vars(train_vars)
+    super().__init__(name=name, lr=lr, train_vars=train_vars)
     self.weight_decay = check.is_float(weight_decay, min_bound=0., max_bound=1., allow_none=True)
 
 
-class SGD(CommonOpt):
+class SGD(_CommonOpt):
   r"""Stochastic gradient descent optimizer.
 
   SGD performs a parameter update for training examples :math:`x` and label
@@ -138,7 +140,7 @@ class SGD(CommonOpt):
     self.lr.step_call()
 
 
-class Momentum(CommonOpt):
+class Momentum(_CommonOpt):
   r"""Momentum optimizer.
 
   Momentum [1]_ is a method that helps accelerate SGD in the relevant direction
@@ -209,7 +211,7 @@ class Momentum(CommonOpt):
     self.lr.step_call()
 
 
-class MomentumNesterov(CommonOpt):
+class MomentumNesterov(_CommonOpt):
   r"""Nesterov accelerated gradient optimizer [2]_.
 
   .. math::
@@ -273,7 +275,7 @@ class MomentumNesterov(CommonOpt):
     self.lr.step_call()
 
 
-class Adagrad(CommonOpt):
+class Adagrad(_CommonOpt):
   r"""Optimizer that implements the Adagrad algorithm.
 
   Adagrad [3]_ is an optimizer with parameter-specific learning rates, which are
@@ -345,7 +347,7 @@ class Adagrad(CommonOpt):
     return f"{self.__class__.__name__}(lr={self.lr}, epsilon={self.epsilon})"
 
 
-class Adadelta(CommonOpt):
+class Adadelta(_CommonOpt):
   r"""Optimizer that implements the Adadelta algorithm.
 
   Adadelta [4]_ optimization is a stochastic gradient descent method that is based
@@ -437,7 +439,7 @@ class Adadelta(CommonOpt):
             f"epsilon={self.epsilon}, rho={self.rho})")
 
 
-class RMSProp(CommonOpt):
+class RMSProp(_CommonOpt):
   r"""Optimizer that implements the RMSprop algorithm.
 
   RMSprop [5]_ and Adadelta have both been developed independently around the same time
@@ -513,7 +515,7 @@ class RMSProp(CommonOpt):
             f"epsilon={self.epsilon}, rho={self.rho})")
 
 
-class Adam(CommonOpt):
+class Adam(_CommonOpt):
   """Optimizer that implements the Adam algorithm.
 
   Adam [6]_ - a stochastic gradient descent method (SGD) that computes
@@ -598,7 +600,7 @@ class Adam(CommonOpt):
     self.lr.step_call()
 
 
-class LARS(CommonOpt):
+class LARS(_CommonOpt):
   r"""Layer-wise adaptive rate scaling (LARS) optimizer [1]_.
 
   Layer-wise Adaptive Rate Scaling, or LARS, is a large batch
@@ -678,7 +680,7 @@ class LARS(CommonOpt):
     self.lr.step_call()
 
 
-class Adan(CommonOpt):
+class Adan(_CommonOpt):
   r"""Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models [1]_.
 
   .. math::
@@ -817,7 +819,7 @@ class Adan(CommonOpt):
     self.lr.step_call()
 
 
-class AdamW(CommonOpt):
+class AdamW(_CommonOpt):
   r"""Adam with weight decay regularization [1]_.
 
   AdamW uses weight decay to regularize learning towards small weights, as
@@ -977,7 +979,7 @@ class AdamW(CommonOpt):
     self.lr.step_call()
 
 
-class SM3(CommonOpt):
+class SM3(_CommonOpt):
   """SM3 algorithm [1]_.
 
   The 'Square-root of Minima of Sums of Maxima of Squared-gradients Method'
