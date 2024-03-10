@@ -37,6 +37,7 @@ def jax_brentq(fun):
   # else:
   #   rtol = 1.5 * jnp.finfo(jnp.float32).eps
 
+  @jax.jit
   def x(a, b, args=(), xtol=2e-14, maxiter=200):
     # Convert to float
     xpre = a * 1.0

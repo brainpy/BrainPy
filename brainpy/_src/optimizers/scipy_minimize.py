@@ -1,11 +1,12 @@
+import jax
 import jax.numpy as jnp
 import numpy as np
-import scipy.optimize as soptimize
-from jax import grad, jit
 from jax.flatten_util import ravel_pytree
 
-import brainpy._src.math as bm
+import brainpy.math as bm
 from brainpy import errors
+
+soptimize = None
 
 
 def scipy_minimize_with_jax(
@@ -128,9 +129,13 @@ def scipy_minimize_with_jax(
     See `scipy.optimize.OptimizeResult` for a description of other attributes.
 
   """
+  global soptimize
   if soptimize is None:
-    raise errors.PackageMissingError(f'"scipy" must be installed when user want to use '
-                                     f'function: {scipy_minimize_with_jax}')
+    try:
+      import scipy.optimize as soptimize
+    except ImportError:
+      raise errors.PackageMissingError(f'"scipy" must be installed when user want to use '
+                                       f'function: {scipy_minimize_with_jax}')
 
   # Use tree flatten and unflatten to convert params x0 from PyTrees to flat arrays
   x0_flat, unravel = ravel_pytree(x0)
@@ -144,7 +149,7 @@ def scipy_minimize_with_jax(
     return float(r)
 
   # Wrap the gradient in a similar manner
-  jac = jit(grad(fun))
+  jac = jax.jit(jax.grad(fun))
 
   def jac_wrapper(x_flat, *args):
     x = unravel(x_flat)
@@ -158,16 +163,18 @@ def scipy_minimize_with_jax(
       return callback(x, *args)
 
   # Minimize with scipy
-  results = soptimize.minimize(fun_wrapper,
-                               x0_flat,
-                               args=args,
-                               method=method,
-                               jac=jac_wrapper,
-                               callback=callback_wrapper,
-                               bounds=bounds,
-                               constraints=constraints,
-                               tol=tol,
-                               options=options)
+  results = soptimize.minimize(
+    fun_wrapper,
+    x0_flat,
+    args=args,
+    method=method,
+    jac=jac_wrapper,
+    callback=callback_wrapper,
+    bounds=bounds,
+    constraints=constraints,
+    tol=tol,
+    options=options
+  )
 
   # pack the output back into a PyTree
   results["x"] = unravel(results["x"])
