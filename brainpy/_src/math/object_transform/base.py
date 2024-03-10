@@ -12,9 +12,9 @@ from typing import Any, Tuple, Callable, Sequence, Dict, Union, Optional
 
 import jax
 import numpy as np
-from jax._src.tree_util import _registry
 from jax.tree_util import register_pytree_node_class
 
+from brainpy._src.math import defaults
 from brainpy._src.math.modes import Mode
 from brainpy._src.math.ndarray import (Array, )
 from brainpy._src.math.object_transform.collectors import (ArrayCollector, Collector)
@@ -23,10 +23,10 @@ from brainpy._src.math.object_transform.naming import (get_unique_name,
 from brainpy._src.math.object_transform.variables import (Variable, VariableView, TrainVar,
                                                           VarList, VarDict)
 from brainpy._src.math.sharding import BATCH_AXIS
-from brainpy._src.math import defaults
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
+registered = set()
 
 __all__ = [
   'BrainPyObject', 'Base', 'FunAsObject', 'ObjectTransform',
@@ -91,8 +91,9 @@ class BrainPyObject(object):
     super().__init__()
 
     if defaults.bp_object_as_pytree:
-      if self.__class__ not in _registry:
+      if self.__class__ not in registered:
         register_pytree_node_class(self.__class__)
+        registered.add(self.__class__)
 
     # check whether the object has a unique name.
     self._name = None
@@ -101,11 +102,23 @@ class BrainPyObject(object):
 
     # Used to wrap the implicit variables
     # which cannot be accessed by self.xxx
-    self.implicit_vars: ArrayCollector = ArrayCollector()
+    self._implicit_vars: Optional[ArrayCollector] = None
 
     # Used to wrap the implicit children nodes
     # which cannot be accessed by self.xxx
-    self.implicit_nodes: Collector = Collector()
+    self._implicit_nodes: Optional[Collector] = None
+
+  @property
+  def implicit_vars(self):
+    if self._implicit_vars is None:
+      self._implicit_vars = ArrayCollector()
+    return self._implicit_vars
+
+  @property
+  def implicit_nodes(self):
+    if self._implicit_nodes is None:
+      self._implicit_nodes = Collector()
+    return self._implicit_nodes
 
   def setattr(self, key: str, value: Any) -> None:
     super().__setattr__(key, value)
@@ -223,7 +236,7 @@ class BrainPyObject(object):
     static_values = []
     for k, v in self.__dict__.items():
       if isinstance(v, (BrainPyObject, Variable, NodeList, NodeDict, VarList, VarDict)):
-      # if isinstance(v, (BrainPyObject, Variable)):
+        # if isinstance(v, (BrainPyObject, Variable)):
         dynamic_names.append(k)
         dynamic_values.append(v)
       else:

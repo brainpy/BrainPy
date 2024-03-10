@@ -132,19 +132,65 @@ def evaluate_dyn_vars_with_cache(
   return stack
 
 
+def _partial_fun2(
+    fun: Callable,
+    args: tuple,
+    kwargs: dict,
+    static_argnums: Sequence[int] = (),
+    static_argnames: Sequence[str] = ()
+):
+  num_args = len(args)
+
+  # arguments
+  static_args = dict()
+  dyn_args = []
+  dyn_arg_ids = dict()
+  static_argnums = list(static_argnums)
+  dyn_i = 0
+  for i in range(num_args):
+    if i in static_argnums:
+      static_argnums.remove(i)
+      static_args[i] = args[i]
+    else:
+      dyn_args.append(args[i])
+      dyn_arg_ids[i] = dyn_i
+      dyn_i += 1
+  if len(static_argnums) > 0:
+    raise ValueError(f"Invalid static_argnums: {static_argnums}")
+
+  # keyword arguments
+  static_kwargs, dyn_kwargs = {}, {}
+  for k, arg in kwargs.items():
+    if k in static_argnames:
+      static_kwargs[k] = arg
+    else:
+      dyn_kwargs[k] = arg
+  del args, kwargs, static_argnums, static_argnames
+
+  @wraps(fun)
+  def new_fun(*dynargs, **dynkwargs):
+    return fun(*[dynargs[dyn_arg_ids[id_]] if id_ in dyn_arg_ids else static_args[id_] for id_ in range(num_args)],
+               **static_kwargs,
+               **dynkwargs)
+
+  return new_fun, dyn_args, dyn_kwargs
+
+
 def eval_shape(
     fun: Callable,
     *args,
     static_argnums: Sequence[int] = (),
     static_argnames: Sequence[str] = (),
+    with_stack: bool = False,
     **kwargs
 ):
   """Compute the shape/dtype of ``fun`` without any FLOPs.
 
   Args:
     fun: The callable function.
-    *args:
-    **kwargs:
+    *args: The positional arguments.
+    **kwargs: The keyword arguments.
+    with_stack: Whether evaluate the function within a local variable stack.
     static_argnums: The static argument indices.
     static_argnames: The static argument names.
 
@@ -153,21 +199,30 @@ def eval_shape(
   """
   # reorganize the function
   if len(static_argnums) or len(static_argnames):
-    f2, args, kwargs = _partial_fun(fun, args, kwargs,
-                                    static_argnums=static_argnums,
-                                    static_argnames=static_argnames)
+    f2, args, kwargs = _partial_fun2(fun, args, kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
   else:
-    f2, args, kwargs = fun, args, kwargs
+    f2 = fun
 
   # evaluate the function
   fun_in_eval_shape.append(fun)
   try:
-    with jax.ensure_compile_time_eval():
+    if with_stack:
       with VariableStack() as stack:
         if len(fun_in_eval_shape) > 1:
-          returns = fun(*args, **kwargs)
+          returns = f2(*args, **kwargs)
         else:
-          returns = jax.eval_shape(fun, *args, **kwargs)
+          returns = jax.eval_shape(f2, *args, **kwargs)
+    else:
+      stack = None
+      if len(fun_in_eval_shape) > 1:
+        returns = f2(*args, **kwargs)
+      else:
+        returns = jax.eval_shape(f2, *args, **kwargs)
   finally:
     fun_in_eval_shape.pop()
-  return stack, returns
+    del f2
+  if with_stack:
+    return stack, returns
+  else:
+    return returns
+

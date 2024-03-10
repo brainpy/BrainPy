@@ -10,8 +10,7 @@ from brainpy._src.dyn.projections.conn import SynConn
 from brainpy._src.dyn.base import NeuDyn
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.initialize import parameter
-from brainpy._src.mixin import (ParamDesc, JointType,
-                                SupportAutoDelay, BindCondData, ReturnInfo)
+from brainpy._src.mixin import (ParamDesc, JointType, SupportAutoDelay, BindCondData, ReturnInfo)
 from brainpy.errors import UnsupportedError
 from brainpy.types import ArrayType
 
@@ -46,9 +45,6 @@ class _SynapseComponent(DynamicalSystem):
     if not isinstance(val, bool):
       raise ValueError('Must be an instance of bool.')
     self._registered = val
-
-  def reset_state(self, batch_size=None):
-    pass
 
   def register_master(self, master: SynConn):
     if not isinstance(master, SynConn):
@@ -296,7 +292,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
                      mode=mode)
 
     # delay
-    self.pre.register_local_delay("spike", self.name, delay_step)
+    self.pre.register_local_delay("spike", self.name, delay_step=delay_step)
 
     # synaptic dynamics
     self.syn = syn
@@ -340,11 +336,5 @@ class _TwoEndConnAlignPre(TwoEndConn):
                   UserWarning)
     self.comm.weight = v
 
-  def reset_state(self, *args, **kwargs):
-    self.syn.reset(*args, **kwargs)
-    self.comm.reset(*args, **kwargs)
-    self.output.reset(*args, **kwargs)
-    if self.stp is not None:
-      self.stp.reset(*args, **kwargs)
 
 
