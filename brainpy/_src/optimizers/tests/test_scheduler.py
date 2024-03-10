@@ -18,8 +18,8 @@ class TestMultiStepLR(parameterized.TestCase):
   )
   def test2(self, last_epoch):
     bm.random.seed()
-    scheduler1 = scheduler.MultiStepLR(0.1, [10, 20], gamma=0.1, last_epoch=last_epoch)
-    scheduler2 = scheduler.MultiStepLR(0.1, [10, 20], gamma=0.1, last_epoch=last_epoch)
+    scheduler1 = sgd_scheduler.MultiStepLR(0.1, [10, 20], gamma=0.1, last_epoch=last_epoch)
+    scheduler2 = sgd_scheduler.MultiStepLR(0.1, [10, 20], gamma=0.1, last_epoch=last_epoch)
 
     for i in range(1, 25):
       lr1 = scheduler1(i + last_epoch)
@@ -38,8 +38,8 @@ class TestStepLR(parameterized.TestCase):
   )
   def test1(self, last_epoch):
     bm.random.seed()
-    scheduler1 = scheduler.StepLR(0.1, 10, gamma=0.1, last_epoch=last_epoch)
-    scheduler2 = scheduler.StepLR(0.1, 10, gamma=0.1, last_epoch=last_epoch)
+    scheduler1 = sgd_scheduler.StepLR(0.1, 10, gamma=0.1, last_epoch=last_epoch)
+    scheduler2 = sgd_scheduler.StepLR(0.1, 10, gamma=0.1, last_epoch=last_epoch)
     for i in range(1, 25):
       lr1 = scheduler1(i + last_epoch)
       lr2 = scheduler2()
@@ -54,7 +54,7 @@ class TestCosineAnnealingLR(unittest.TestCase):
     bm.random.seed()
     max_epoch = 50
     iters = 200
-    sch = scheduler.CosineAnnealingLR(0.1, T_max=5, eta_min=0, last_epoch=-1)
+    sch = sgd_scheduler.CosineAnnealingLR(0.1, T_max=5, eta_min=0, last_epoch=-1)
     all_lr1 = [[], []]
     all_lr2 = [[], []]
     for epoch in range(max_epoch):
@@ -81,11 +81,11 @@ class TestCosineAnnealingWarmRestarts(unittest.TestCase):
     bm.random.seed()
     max_epoch = 50
     iters = 200
-    sch = scheduler.CosineAnnealingWarmRestarts(0.1,
-                                                iters,
-                                                T_0=5,
-                                                T_mult=1,
-                                                last_call=-1)
+    sch = sgd_scheduler.CosineAnnealingWarmRestarts(0.1,
+                                                    iters,
+                                                    T_0=5,
+                                                    T_mult=1,
+                                                    last_call=-1)
     all_lr1 = []
     all_lr2 = []
     for epoch in range(max_epoch):
