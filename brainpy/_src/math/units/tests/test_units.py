@@ -14,7 +14,7 @@ from brainpy._src.math.units.base import (
   UFUNCS_INTEGERS,
   UFUNCS_LOGICAL,
   DimensionMismatchError,
-  UnitArray,
+  Quantity,
   Unit,
   check_units,
   fail_for_dimension_mismatch,
@@ -55,7 +55,7 @@ def assert_allclose(actual, desired, rtol=4.5e8, atol=0, **kwds):
 
 
 def assert_quantity(q, values, unit):
-  assert isinstance(q, UnitArray) or (
+  assert isinstance(q, Quantity) or (
       have_same_dimensions(unit, 1)
       and (values.shape == () or isinstance(q, np.ndarray))
   ), q
@@ -76,49 +76,49 @@ def test_construction():
   assert_quantity(q, 0.5, second)
   q = np.array([500, 1000]) * ms
   assert_quantity(q, np.array([0.5, 1]), second)
-  q = UnitArray(500)
+  q = Quantity(500)
   assert_quantity(q, 500, 1)
-  q = UnitArray(500, dim=second.dim)
+  q = Quantity(500, dim=second.dim)
   assert_quantity(q, 500, second)
-  q = UnitArray([0.5, 1], dim=second.dim)
+  q = Quantity([0.5, 1], dim=second.dim)
   assert_quantity(q, np.array([0.5, 1]), second)
-  q = UnitArray(np.array([0.5, 1]), dim=second.dim)
+  q = Quantity(np.array([0.5, 1]), dim=second.dim)
   assert_quantity(q, np.array([0.5, 1]), second)
-  q = UnitArray([500 * ms, 1 * second])
+  q = Quantity([500 * ms, 1 * second])
   assert_quantity(q, np.array([0.5, 1]), second)
-  q = UnitArray.with_dimensions(np.array([0.5, 1]), second=1)
+  q = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
   assert_quantity(q, np.array([0.5, 1]), second)
   q = [0.5, 1] * second
   assert_quantity(q, np.array([0.5, 1]), second)
 
   # dimensionless quantities
-  q = UnitArray([1, 2, 3])
+  q = Quantity([1, 2, 3])
   assert_quantity(q, np.array([1, 2, 3]), Unit(1))
-  q = UnitArray(np.array([1, 2, 3]))
+  q = Quantity(np.array([1, 2, 3]))
   assert_quantity(q, np.array([1, 2, 3]), Unit(1))
-  q = UnitArray([])
+  q = Quantity([])
   assert_quantity(q, np.array([]), Unit(1))
 
   # copying/referencing a quantity
-  q1 = UnitArray.with_dimensions(np.array([0.5, 1]), second=1)
-  q2 = UnitArray(q1)  # no copy
+  q1 = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
+  q2 = Quantity(q1)  # no copy
   assert_quantity(q2, np.asarray(q1), q1)
   q2[0] = 3 * second
   assert_equal(q1[0], 3 * second)
 
-  q1 = UnitArray.with_dimensions(np.array([0.5, 1]), second=1)
-  q2 = UnitArray(q1, copy=True)  # copy
+  q1 = Quantity.with_dimensions(np.array([0.5, 1]), second=1)
+  q2 = Quantity(q1, copy=True)  # copy
   assert_quantity(q2, np.asarray(q1), q1)
   q2[0] = 3 * second
   assert_equal(q1[0], 0.5 * second)
 
   # Illegal constructor calls
   with pytest.raises(TypeError):
-    UnitArray([500 * ms, 1])
+    Quantity([500 * ms, 1])
   with pytest.raises(TypeError):
-    UnitArray(["some", "nonsense"])
+    Quantity(["some", "nonsense"])
   with pytest.raises(DimensionMismatchError):
-    UnitArray([500 * ms, 1 * volt])
+    Quantity([500 * ms, 1 * volt])
 
 
 @pytest.mark.codegen_independent
@@ -938,7 +938,7 @@ def test_special_case_numpy_functions():
     where(cond, ar1, ar1 / ms)
 
   # Check setasflat (for numpy < 1.7)
-  if hasattr(UnitArray, "setasflat"):
+  if hasattr(Quantity, "setasflat"):
     a = np.arange(10) * mV
     b = np.ones(10).reshape(5, 2) * volt
     c = np.ones(10).reshape(5, 2) * second
@@ -1047,14 +1047,14 @@ def test_numpy_functions_dimensionless():
         result_array = eval(f"np.{ufunc}(np.array(value))")
         assert isinstance(
           result_unitless, (np.ndarray, np.number)
-        ) and not isinstance(result_unitless, UnitArray)
+        ) and not isinstance(result_unitless, Quantity)
         assert_equal(result_unitless, result_array)
       for ufunc in UFUNCS_DIMENSIONLESS_TWOARGS:
         result_unitless = eval(f"np.{ufunc}(value, value)")
         result_array = eval(f"np.{ufunc}(np.array(value), np.array(value))")
         assert isinstance(
           result_unitless, (np.ndarray, np.number)
-        ) and not isinstance(result_unitless, UnitArray)
+        ) and not isinstance(result_unitless, Quantity)
         assert_equal(result_unitless, result_array)
 
     for value, unitless_value in zip(unit_values, unitless_values):
@@ -1183,7 +1183,7 @@ def test_numpy_functions_logical():
           assert result == NotImplemented
         except (ValueError, TypeError):
           pass  # raised on numpy >= 0.10
-      assert not isinstance(result_units, UnitArray)
+      assert not isinstance(result_units, Quantity)
       assert_equal(result_units, result_array)
 
 
@@ -1247,7 +1247,7 @@ def test_list():
   values = [3 * mV, np.array([1, 2]) * mV, np.arange(12).reshape(4, 3) * mV]
   for value in values:
     l = value.tolist()
-    from_list = UnitArray(l)
+    from_list = Quantity(l)
     assert have_same_dimensions(from_list, value)
     assert_equal(from_list, value)
 
@@ -1417,7 +1417,7 @@ def test_inplace_on_scalars():
   # in the same way as for Python scalars
   for scalar in [3 * mV, 3 * mV / mV]:
     scalar_reference = scalar
-    scalar_copy = UnitArray(scalar, copy=True)
+    scalar_copy = Quantity(scalar, copy=True)
     scalar += scalar_copy
     assert_equal(scalar_copy, scalar_reference)
     scalar *= 1.5
@@ -1431,7 +1431,7 @@ def test_inplace_on_scalars():
   # For arrays, it should use reference semantics
   for vector in [[3] * mV, [3] * mV / mV]:
     vector_reference = vector
-    vector_copy = UnitArray(vector, copy=True)
+    vector_copy = Quantity(vector, copy=True)
     vector += vector_copy
     assert_equal(vector, vector_reference)
     vector *= 1.5
@@ -1458,10 +1458,10 @@ def test_units_vs_quantities():
   # Using the unconventional type(x) == y since we want to test that
   # e.g. meter**2 stays a Unit and does not become a Quantity however Unit
   # inherits from Quantity and therefore both would pass the isinstance test
-  assert type(2 / meter) == UnitArray
-  assert type(2 * meter) == UnitArray
-  assert type(meter + meter) == UnitArray
-  assert type(meter - meter) == UnitArray
+  assert type(2 / meter) == Quantity
+  assert type(2 * meter) == Quantity
+  assert type(meter + meter) == Quantity
+  assert type(meter - meter) == Quantity
 
 
 @pytest.mark.codegen_independent
