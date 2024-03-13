@@ -8,6 +8,8 @@ __all__ = [
   'raise_taichi_not_found',
   'import_numba',
   'raise_numba_not_found',
+  'import_cupy',
+  'raise_cupy_not_found',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
 ]
@@ -17,6 +19,7 @@ _minimal_taichi_version = (1, 7, 0)
 
 numba = None
 taichi = None
+cupy = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
@@ -25,6 +28,8 @@ taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
                        '> pip install taichi==1.7.0')
 numba_install_info = ('We need numba. Please install numba by pip . \n'
                       '> pip install numba')
+cupy_install_info = ('We need cupy. Please install cupy by pip . \n'
+                      '> pip install cupy')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
@@ -80,6 +85,27 @@ def import_numba(error_if_not_found=True):
 def raise_numba_not_found():
   raise ModuleNotFoundError(numba_install_info)
 
+
+def import_cupy(error_if_not_found=True):
+  """
+  Internal API to import cupy.
+
+  If cupy is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+  otherwise it will return None.
+  """
+  global cupy
+  if cupy is None:
+    try:
+      import cupy as cupy
+    except ModuleNotFoundError:
+      if error_if_not_found:
+        raise_cupy_not_found()
+      else:
+        return None
+  return cupy
+
+def raise_cupy_not_found():
+  raise ModuleNotFoundError(cupy_install_info)
 
 def is_brainpylib_gpu_installed():
   return False if brainpylib_gpu_ops is None else True

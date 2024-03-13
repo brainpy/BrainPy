@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Sequence, Tuple, Protocol, Optional
+from typing import Callable, Sequence, Tuple, Protocol, Optional, Union
 
 import jax
 import numpy as np
@@ -83,7 +83,7 @@ class XLACustomOp(BrainPyObject):
   def __init__(
       self,
       cpu_kernel: Callable = None,
-      gpu_kernel: Callable = None,
+      gpu_kernel: Union[Callable, str] = None,
       batching_translation: Callable = None,
       jvp_translation: Callable = None,
       transpose_translation: Callable = None,
@@ -125,7 +125,10 @@ class XLACustomOp(BrainPyObject):
     gpu_checked = False
     if gpu_kernel is None:
       gpu_checked = True
-    if hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
+    elif gpu_kernel is str: # cupy
+      # TODO: register cupy translation rule
+      gpu_checked = True
+    elif hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
       register_taichi_gpu_translation_rule(self.primitive, gpu_kernel)
       gpu_checked = True
     if not gpu_checked:
