@@ -29,7 +29,8 @@ taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
 numba_install_info = ('We need numba. Please install numba by pip . \n'
                       '> pip install numba')
 cupy_install_info = ('We need cupy. Please install cupy by pip . \n'
-                      '> pip install cupy')
+                      'For CUDA v11.2 ~ 11.8 > pip install cupy-cuda11x\n'
+                      'For CUDA v12.x        > pip install cupy-cuda12x\n')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
