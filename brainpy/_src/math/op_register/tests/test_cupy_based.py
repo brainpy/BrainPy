@@ -1,10 +1,13 @@
-import jax.numpy as jnp
 import jax
-import cupy as cp
-from time import time
+import jax.numpy as jnp
 
+import pytest
 import brainpy.math as bm
-from brainpy._src.math import as_jax
+from brainpy._src.dependency_check import import_cupy
+
+cp = import_cupy(error_if_not_found=False)
+if cp is None:
+  pytest.skip('no cupy', allow_module_level=True)
 
 bm.set_platform('gpu')
 
@@ -24,7 +27,7 @@ def test_cupy_based():
   }
   '''
   N = 10
-  x1 = bm.random.rand(N, N)
+  x1 = bm.ones((N, N))
   # x1_cp = cp.from_dlpack(jax.dlpack.to_dlpack(as_jax(x1)))
   x2 = bm.ones((N, N))
   # x2_cp = cp.from_dlpack(jax.dlpack.to_dlpack(as_jax(x2)))
@@ -38,9 +41,9 @@ def test_cupy_based():
 
   prim = bm.XLACustomOp(gpu_kernel=source_code)
 
-  n = jnp.asarray([N**2,], dtype=jnp.int32)
+  # n = jnp.asarray([N**2,], dtype=jnp.int32)
 
-  y = prim(x1, x2, n, grid=(N,), block=(N,), outs=[jax.ShapeDtypeStruct((N, N), dtype=jnp.float32)])
+  y = prim(x1, x2, N**2, grid=(N,), block=(N,), outs=[jax.ShapeDtypeStruct((N, N), dtype=jnp.float32)])[0]
 
   print(y)
   assert jnp.allclose(y, x1 + x2)
@@ -55,4 +58,4 @@ def test_cupy_based():
   # assert cp.allclose(y, x1 * x2)
 
 
-test_cupy_based()
+# test_cupy_based()

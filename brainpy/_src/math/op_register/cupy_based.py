@@ -129,9 +129,6 @@ def _cupy_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
   result_types = [mlir.aval_to_ir_type(out) for out in c.avals_out]
   output_layouts = [_shape_to_layout(a.shape) for a in c.avals_out]
 
-  # print ins
-  for i in ins:
-    print(i)
   return custom_call(
     call_target_name='cupy_kernel_call_gpu',
     operands=ins,
