@@ -127,7 +127,7 @@ class XLACustomOp(BrainPyObject):
     gpu_checked = False
     if gpu_kernel is None:
       gpu_checked = True
-    elif isinstance(gpu_kernel, str): # cupy
+    elif isinstance(gpu_kernel, str):  # cupy
       register_cupy_gpu_translation_rule(self.primitive, gpu_kernel)
       gpu_checked = True
     elif hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi

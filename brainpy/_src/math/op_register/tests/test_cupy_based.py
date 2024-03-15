@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
-
 import pytest
+
 import brainpy.math as bm
 from brainpy._src.dependency_check import import_cupy
 
@@ -43,7 +43,7 @@ def test_cupy_based():
 
   # n = jnp.asarray([N**2,], dtype=jnp.int32)
 
-  y = prim(x1, x2, N**2, grid=(N,), block=(N,), outs=[jax.ShapeDtypeStruct((N, N), dtype=jnp.float32)])[0]
+  y = prim(x1, x2, N ** 2, grid=(N,), block=(N,), outs=[jax.ShapeDtypeStruct((N, N), dtype=jnp.float32)])[0]
 
   print(y)
   assert jnp.allclose(y, x1 + x2)
@@ -56,6 +56,5 @@ def test_cupy_based():
   # assert cp.allclose(y, x1 + x2)
   # ker_times((N,), (N,), (x1, x2, y, N**2)) # y = x1 * x2
   # assert cp.allclose(y, x1 * x2)
-
 
 # test_cupy_based()

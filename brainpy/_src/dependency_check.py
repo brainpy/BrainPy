@@ -29,8 +29,8 @@ taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
 numba_install_info = ('We need numba. Please install numba by pip . \n'
                       '> pip install numba')
 cupy_install_info = ('We need cupy. Please install cupy by pip . \n'
-                      'For CUDA v11.2 ~ 11.8 > pip install cupy-cuda11x\n'
-                      'For CUDA v12.x        > pip install cupy-cuda12x\n')
+                     'For CUDA v11.2 ~ 11.8 > pip install cupy-cuda11x\n'
+                     'For CUDA v12.x        > pip install cupy-cuda12x\n')
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
@@ -105,8 +105,10 @@ def import_cupy(error_if_not_found=True):
         return None
   return cupy
 
+
 def raise_cupy_not_found():
   raise ModuleNotFoundError(cupy_install_info)
+
 
 def is_brainpylib_gpu_installed():
   return False if brainpylib_gpu_ops is None else True
