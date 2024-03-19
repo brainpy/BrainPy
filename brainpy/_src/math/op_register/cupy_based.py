@@ -80,16 +80,9 @@ def _cupy_raw_module_xla_gpu_translation_rule(kernel, c, *ins, **kwargs):
   if grid is None or block is None:
     raise ValueError('The grid and block should be specified for the cupy kernel.')
 
-  # compile
-  mod = cp.RawModule(code=kernel)
-  try:
-    kernel_func = mod.get_function('kernel')
-  except AttributeError:
-    raise ValueError('The \'kernel\' function is not found in the module.')
-
   # preprocess
   import_brainpylib_gpu_ops()
-  opaque = _preprocess_kernel_call_gpu(grid, block, kernel_func.kernel.ptr, shared_mem, *ins, outs=kwargs['outs'])
+  opaque = _preprocess_kernel_call_gpu(grid, block, kernel.kernel.ptr, shared_mem, *ins, outs=kwargs['outs'])
 
   # create custom call
   return xla_client.ops.CustomCallWithLayout(
@@ -116,16 +109,9 @@ def _cupy_raw_module_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
   if grid is None or block is None:
     raise ValueError('The grid and block should be specified for the cupy kernel.')
 
-  # compile
-  mod = cp.RawModule(code=kernel)
-  try:
-    kernel_func = mod.get_function('kernel')
-  except AttributeError:
-    raise ValueError('The \'kernel\' function is not found in the module.')
-
   # preprocess
   import_brainpylib_gpu_ops()
-  opaque = _preprocess_kernel_call_gpu(grid, block, kernel_func.kernel.ptr, shared_mem, *ins, outs=kwargs['outs'])
+  opaque = _preprocess_kernel_call_gpu(grid, block, kernel.kernel.ptr, shared_mem, *ins, outs=kwargs['outs'])
 
   input_layouts = [_shape_to_layout(a.shape) for a in c.avals_in]
   result_types = [mlir.aval_to_ir_type(out) for out in c.avals_out]

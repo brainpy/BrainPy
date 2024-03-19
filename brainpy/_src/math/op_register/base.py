@@ -46,34 +46,10 @@ class ShapeDtype(Protocol):
 class XLACustomOp(BrainPyObject):
   """Creating a XLA custom call operator.
 
-  >>> import numba as nb
-  >>> import taichi as ti
-  >>> import numpy as np
-  >>> import jax
-  >>>
-  >>> @nb.njit
-  >>> def numba_cpu_fun(a, b, out_a, out_b):
-  >>>     out_a[:] = a
-  >>>     out_b[:] = b
-  >>>
-  >>> @ti.kernel
-  >>>  def taichi_gpu_fun(a, b, out_a, out_b):
-  >>>    for i in range(a.size):
-  >>>      out_a[i] = a[i]
-  >>>    for i in range(b.size):
-  >>>      out_b[i] = b[i]
-  >>>
-  >>> # option 1
-  >>> prim = XLACustomOp(cpu_kernel=numba_cpu_fun, gpu_kernel=taichi_gpu_fun)
-  >>> a2, b2 = prim(np.random.random(1000), np.random.random(1000),
-  >>>               outs=[jax.ShapeDtypeStruct(1000, dtype=np.float32),
-  >>>                     jax.ShapeDtypeStruct(1000, dtype=np.float32)])
-  >>>
-  >>> # option 2
-  >>> prim2 = XLACustomOp(cpu_kernel=numba_cpu_fun, gpu_kernel=taichi_gpu_fun,
-  >>>                     outs=lambda a, b, **kwargs: [jax.ShapeDtypeStruct(a.shape, dtype=a.dtype),
-  >>>                                                  jax.ShapeDtypeStruct(b.shape, dtype=b.dtype)])
-  >>> a3, b3 = prim2(np.random.random(1000), np.random.random(1000))
+  For more information, please refer to the tutorials above:
+  Numba Custom Op: https://brainpy.tech/docs/tutorial_advanced/operator_custom_with_numba.html
+  Taichi Custom Op: https://brainpy.tech/docs/tutorial_advanced/operator_custom_with_taichi.html
+  CuPy Custom Op: https://brainpy.tech/docs/tutorial_advanced/operator_custom_with_cupy.html
 
   Args:
     cpu_kernel: Callable. The function defines the computation on CPU backend.
@@ -130,7 +106,7 @@ class XLACustomOp(BrainPyObject):
     gpu_checked = False
     if gpu_kernel is None:
       gpu_checked = True
-    elif isinstance(gpu_kernel, str):  # cupy RawModule
+    elif hasattr(gpu_kernel, 'kernel'):  # cupy RawModule
       register_cupy_raw_module_gpu_translation_rule(self.primitive, gpu_kernel)
       gpu_checked = True
     elif hasattr(gpu_kernel, '_mode'):  # cupy JIT Kernel
