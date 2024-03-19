@@ -8,11 +8,13 @@ from jax.lib import xla_client
 from jaxlib.hlo_helpers import custom_call
 
 from brainpy._src.dependency_check import (import_cupy,
+                                           import_cupy_jit,
                                            import_brainpylib_gpu_ops)
 from brainpy._src.math.op_register.utils import _shape_to_layout
 from brainpy.errors import PackageMissingError
 
 cp = import_cupy(error_if_not_found=False)
+cp_jit = import_cupy_jit(error_if_not_found=False)
 
 # convert type to number
 type_number_map = {
@@ -71,7 +73,7 @@ def _preprocess_kernel_call_gpu(
   return opaque
 
 
-def _cupy_xla_gpu_translation_rule(kernel, c, *ins, **kwargs):
+def _cupy_raw_module_xla_gpu_translation_rule(kernel, c, *ins, **kwargs):
   grid = kwargs.get('grid', None)
   block = kwargs.get('block', None)
   shared_mem = kwargs.get('shared_mem', 0)
@@ -103,11 +105,11 @@ def _cupy_xla_gpu_translation_rule(kernel, c, *ins, **kwargs):
   )
 
 
-def register_cupy_xla_gpu_translation_rule(primitive, gpu_kernel):
-  xla.backend_specific_translations['gpu'][primitive] = partial(_cupy_xla_gpu_translation_rule, gpu_kernel)
+def register_cupy_raw_module_xla_gpu_translation_rule(primitive, gpu_kernel):
+  xla.backend_specific_translations['gpu'][primitive] = partial(_cupy_raw_module_xla_gpu_translation_rule, gpu_kernel)
 
 
-def _cupy_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
+def _cupy_raw_module_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
   grid = kwargs.get('grid', None)
   block = kwargs.get('block', None)
   shared_mem = kwargs.get('shared_mem', 0)
@@ -140,9 +142,174 @@ def _cupy_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
   ).results
 
 
-def register_cupy_mlir_gpu_translation_rule(primitive, gpu_kernel):
+def register_cupy_raw_module_mlir_gpu_translation_rule(primitive, gpu_kernel):
   if cp is None:
     raise PackageMissingError("cupy", 'register cupy mlir gpu translation rule')
 
-  rule = partial(_cupy_mlir_gpu_translation_rule, gpu_kernel)
+  rule = partial(_cupy_raw_module_mlir_gpu_translation_rule, gpu_kernel)
+  mlir.register_lowering(primitive, rule, platform='gpu')
+
+
+def get_jit_kernel_xla(kernel, c, *ins, outs):
+  # check if compiled
+  in_types = []
+  for x in ins:
+    x = c.get_shape(x)
+    if len(x.dimensions()) != 0:
+      t = cp_jit._cuda_types.CArray(dtype=x.element_type(), ndim=len(x.dimensions()), is_c_contiguous=True,
+                                    index_32_bits=True)
+    else:
+      t = cp_jit._cuda_types.Scalar(dtype=x.element_type())
+    in_types.append(t)
+  for x in outs:
+    if x.ndim != 0:
+      t = cp_jit._cuda_types.CArray(dtype=x.dtype, ndim=x.ndim, is_c_contiguous=True, index_32_bits=True)
+    else:
+      t = cp_jit._cuda_types.Scalar(dtype=x.dtype)
+    in_types.append(t)
+  in_types = tuple(in_types)
+  device_id = cp.cuda.get_device_id()
+  kern, enable_cg = kernel._cache.get((in_types, device_id), (None, None))
+
+  if kern is None:
+    result = kernel._cached_codes.get(in_types)
+    if result is None:
+      result = cp_jit._compile.transpile(
+        kernel._func,
+        ['extern "C"', '__global__'],
+        'cuda',
+        in_types,
+        cp_jit._cuda_types.void,
+      )
+      kernel._cached_codes[in_types] = result
+    fname = result.func_name
+    enable_cg = result.enable_cooperative_groups
+    options = result.options
+    backend = result.backend
+    if backend == 'nvcc':
+      options += ('-DCUPY_JIT_NVCC',)
+    jitify = result.jitify
+    module = cp._core.core.compile_with_cache(
+      source=result.code,
+      options=options,
+      backend=backend,
+      jitify=jitify,
+    )
+    kern = module.get_function(fname)
+    kernel._cache[(in_types, device_id)] = (kern, enable_cg)
+
+  return kern
+
+
+def get_jit_kernel_mlir(kernel, c):
+  # check if compiled
+  in_types = []
+  for x in c.avals_in:
+    if x.ndim != 0:
+      t = cp_jit._cuda_types.CArray(dtype=x.dtype, ndim=x.ndim, is_c_contiguous=True, index_32_bits=True)
+    else:
+      t = cp_jit._cuda_types.Scalar(dtype=x.dtype)
+    in_types.append(t)
+  for x in c.avals_out:
+    if x.ndim != 0:
+      t = cp_jit._cuda_types.CArray(dtype=x.dtype, ndim=x.ndim, is_c_contiguous=True, index_32_bits=True)
+    else:
+      t = cp_jit._cuda_types.Scalar(dtype=x.dtype)
+    in_types.append(t)
+  in_types = tuple(in_types)
+  device_id = cp.cuda.get_device_id()
+  kern, enable_cg = kernel._cache.get((in_types, device_id), (None, None))
+
+  if kern is None:
+    result = kernel._cached_codes.get(in_types)
+    if result is None:
+      result = cp_jit._compile.transpile(
+        kernel._func,
+        ['extern "C"', '__global__'],
+        'cuda',
+        in_types,
+        cp_jit._cuda_types.void,
+      )
+      kernel._cached_codes[in_types] = result
+    fname = result.func_name
+    enable_cg = result.enable_cooperative_groups
+    options = result.options
+    backend = result.backend
+    if backend == 'nvcc':
+      options += ('-DCUPY_JIT_NVCC',)
+    jitify = result.jitify
+    module = cp._core.core.compile_with_cache(
+      source=result.code,
+      options=options,
+      backend=backend,
+      jitify=jitify,
+    )
+    kern = module.get_function(fname)
+    kernel._cache[(in_types, device_id)] = (kern, enable_cg)
+
+  return kern
+
+
+def _cupy_jit_kernel_xla_gpu_translation_rule(kernel, c, *ins, **kwargs):
+  kernel_func = get_jit_kernel_xla(kernel, c, *ins, outs=kwargs['outs'])
+  grid = kwargs.get('grid', None)
+  block = kwargs.get('block', None)
+  shared_mem = kwargs.get('shared_mem', 0)
+  if grid is None or block is None:
+    raise ValueError('The grid and block should be specified for the cupy kernel.')
+
+  # preprocess
+  import_brainpylib_gpu_ops()
+  opaque = _preprocess_kernel_call_gpu(grid, block, kernel_func.ptr, shared_mem, *ins, outs=kwargs['outs'])
+
+  # create custom call
+  return xla_client.ops.CustomCallWithLayout(
+    c,
+    b'cupy_kernel_call_gpu',
+    operands=ins,
+    operand_shapes_with_layout=tuple(c.get_shape(value) for value in ins),
+    shape_with_layout=xla_client.Shape.tuple_shape(
+      [xla_client.Shape.array_shape(value.dtype, value.shape, _shape_to_layout(value.shape))
+       for value in kwargs['outs']]
+    ),
+    opaque=opaque,
+  )
+
+
+def register_cupy_jit_kernel_xla_gpu_translation_rule(primitive, gpu_kernel):
+  xla.backend_specific_translations['gpu'][primitive] = partial(_cupy_jit_kernel_xla_gpu_translation_rule, gpu_kernel)
+
+
+def _cupy_jit_kernel_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
+  kernel_func = get_jit_kernel_mlir(kernel, c)
+  grid = kwargs.get('grid', None)
+  block = kwargs.get('block', None)
+  shared_mem = kwargs.get('shared_mem', 0)
+  if grid is None or block is None:
+    raise ValueError('The grid and block should be specified for the cupy kernel.')
+
+  # preprocess
+  import_brainpylib_gpu_ops()
+  opaque = _preprocess_kernel_call_gpu(grid, block, kernel_func.ptr, shared_mem, *ins, outs=kwargs['outs'])
+
+  input_layouts = [_shape_to_layout(a.shape) for a in c.avals_in]
+  result_types = [mlir.aval_to_ir_type(out) for out in c.avals_out]
+  output_layouts = [_shape_to_layout(a.shape) for a in c.avals_out]
+
+  return custom_call(
+    call_target_name='cupy_kernel_call_gpu',
+    operands=ins,
+    operand_layouts=list(input_layouts),
+    result_layouts=list(output_layouts),
+    result_types=list(result_types),
+    backend_config=opaque,
+    has_side_effect=False,
+  ).results
+
+
+def register_cupy_jit_kernel_mlir_gpu_translation_rule(primitive, gpu_kernel):
+  if cp is None:
+    raise PackageMissingError("cupy", 'register cupy mlir gpu translation rule')
+
+  rule = partial(_cupy_jit_kernel_mlir_gpu_translation_rule, gpu_kernel)
   mlir.register_lowering(primitive, rule, platform='gpu')

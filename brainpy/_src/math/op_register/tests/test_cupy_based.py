@@ -3,16 +3,18 @@ import jax.numpy as jnp
 import pytest
 
 import brainpy.math as bm
-from brainpy._src.dependency_check import import_cupy
+from brainpy._src.dependency_check import import_cupy, import_cupy_jit
 
 cp = import_cupy(error_if_not_found=False)
+cp_jit = import_cupy_jit(error_if_not_found=False)
 if cp is None:
   pytest.skip('no cupy', allow_module_level=True)
-
 bm.set_platform('gpu')
 
 
 def test_cupy_based():
+  # Raw Module
+
   source_code = r'''
   extern "C"{
   
@@ -28,33 +30,32 @@ def test_cupy_based():
   '''
   N = 10
   x1 = bm.ones((N, N))
-  # x1_cp = cp.from_dlpack(jax.dlpack.to_dlpack(as_jax(x1)))
   x2 = bm.ones((N, N))
-  # x2_cp = cp.from_dlpack(jax.dlpack.to_dlpack(as_jax(x2)))
-  y = bm.zeros((N, N))
-  # y_cp = cp.from_dlpack(jax.dlpack.to_dlpack(as_jax(y)))
-
-  # mod = cp.RawModule(code=source_code)
-  # kernel = mod.get_function('kernel')
-  # y = kernel((N,), (N,), (x1_cp, x2_cp, N**2, y_cp))
-  # print(y_cp)
-
-  prim = bm.XLACustomOp(gpu_kernel=source_code)
+  prim1 = bm.XLACustomOp(gpu_kernel=source_code)
 
   # n = jnp.asarray([N**2,], dtype=jnp.int32)
 
-  y = prim(x1, x2, N ** 2, grid=(N,), block=(N,), outs=[jax.ShapeDtypeStruct((N, N), dtype=jnp.float32)])[0]
+  y = prim1(x1, x2, N ** 2, grid=(N,), block=(N,), outs=[jax.ShapeDtypeStruct((N, N), dtype=jnp.float32)])[0]
 
   print(y)
   assert jnp.allclose(y, x1 + x2)
 
-  # N = 10
-  # x1 = cp.arange(N**2, dtype=cp.float32).reshape(N, N)
-  # x2 = cp.ones((N, N), dtype=cp.float32)
-  # y = cp.zeros((N, N), dtype=cp.float32)
-  # ker_sum((N,), (N,), (x1, x2, y, N**2))   # y = x1 + x2
-  # assert cp.allclose(y, x1 + x2)
-  # ker_times((N,), (N,), (x1, x2, y, N**2)) # y = x1 * x2
-  # assert cp.allclose(y, x1 * x2)
+  # JIT Kernel
+  @cp_jit.rawkernel()
+  def elementwise_copy(x, size, y):
+    tid = cp_jit.blockIdx.x * cp_jit.blockDim.x + cp_jit.threadIdx.x
+    ntid = cp_jit.gridDim.x * cp_jit.blockDim.x
+    for i in range(tid, size, ntid):
+      y[i] = x[i]
+
+  size = 100
+  x = bm.ones((size,))
+
+  prim2 = bm.XLACustomOp(gpu_kernel=elementwise_copy)
+
+  y = prim2(x, size, grid=(10,), block=(10,), outs=[jax.ShapeDtypeStruct((size,), dtype=jnp.float32)])[0]
+
+  print(y)
+  assert jnp.allclose(y, x)
 
 # test_cupy_based()

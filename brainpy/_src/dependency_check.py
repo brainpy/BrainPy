@@ -9,6 +9,7 @@ __all__ = [
   'import_numba',
   'raise_numba_not_found',
   'import_cupy',
+  'import_cupy_jit',
   'raise_cupy_not_found',
   'import_brainpylib_cpu_ops',
   'import_brainpylib_gpu_ops',
@@ -20,6 +21,7 @@ _minimal_taichi_version = (1, 7, 0)
 numba = None
 taichi = None
 cupy = None
+cupy_jit = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
@@ -104,6 +106,25 @@ def import_cupy(error_if_not_found=True):
       else:
         return None
   return cupy
+
+
+def import_cupy_jit(error_if_not_found=True):
+  """
+  Internal API to import cupy.
+
+  If cupy is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+  otherwise it will return None.
+  """
+  global cupy_jit
+  if cupy_jit is None:
+    try:
+      from cupyx import jit as cupy_jit
+    except ModuleNotFoundError:
+      if error_if_not_found:
+        raise_cupy_not_found()
+      else:
+        return None
+  return cupy_jit
 
 
 def raise_cupy_not_found():
