@@ -1,11 +1,11 @@
 from functools import partial
-from typing import Callable, Sequence, Tuple, Protocol, Optional
+from typing import Callable, Sequence, Tuple, Protocol, Optional, Union
 
 import jax
 import numpy as np
 from jax.interpreters import xla, batching, ad, mlir
 
-from brainpy._src.dependency_check import import_numba
+from brainpy._src.dependency_check import import_numba, import_cupy_jit
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
 
@@ -13,14 +13,19 @@ if jax.__version__ >= '0.4.16':
   from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
   from .taichi_aot_based import (register_taichi_aot_mlir_cpu_translation_rule as register_taichi_cpu_translation_rule,
                                  register_taichi_aot_mlir_gpu_translation_rule as register_taichi_gpu_translation_rule)
+  from .cupy_based import (register_cupy_raw_module_mlir_gpu_translation_rule as register_cupy_raw_module_gpu_translation_rule,
+                            register_cupy_jit_kernel_mlir_gpu_translation_rule as register_cupy_jit_kernel_gpu_translation_rule)
 else:
   from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
   from .taichi_aot_based import (register_taichi_aot_xla_cpu_translation_rule as register_taichi_cpu_translation_rule,
                                  register_taichi_aot_xla_gpu_translation_rule as register_taichi_gpu_translation_rule)
+  from .cupy_based import (register_cupy_raw_module_xla_gpu_translation_rule as register_cupy_raw_module_gpu_translation_rule,
+                            register_cupy_jit_kernel_xla_gpu_translation_rule as register_cupy_jit_kernel_gpu_translation_rule)
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
 
 numba = import_numba(error_if_not_found=False)
+cp_jit = import_cupy_jit(error_if_not_found=False)
 
 __all__ = [
   'XLACustomOp',
@@ -41,34 +46,10 @@ class ShapeDtype(Protocol):
 class XLACustomOp(BrainPyObject):
   """Creating a XLA custom call operator.
 
-  >>> import numba as nb
-  >>> import taichi as ti
-  >>> import numpy as np
-  >>> import jax
-  >>>
-  >>> @nb.njit
-  >>> def numba_cpu_fun(a, b, out_a, out_b):
-  >>>     out_a[:] = a
-  >>>     out_b[:] = b
-  >>>
-  >>> @ti.kernel
-  >>>  def taichi_gpu_fun(a, b, out_a, out_b):
-  >>>    for i in range(a.size):
-  >>>      out_a[i] = a[i]
-  >>>    for i in range(b.size):
-  >>>      out_b[i] = b[i]
-  >>>
-  >>> # option 1
-  >>> prim = XLACustomOp(cpu_kernel=numba_cpu_fun, gpu_kernel=taichi_gpu_fun)
-  >>> a2, b2 = prim(np.random.random(1000), np.random.random(1000),
-  >>>               outs=[jax.ShapeDtypeStruct(1000, dtype=np.float32),
-  >>>                     jax.ShapeDtypeStruct(1000, dtype=np.float32)])
-  >>>
-  >>> # option 2
-  >>> prim2 = XLACustomOp(cpu_kernel=numba_cpu_fun, gpu_kernel=taichi_gpu_fun,
-  >>>                     outs=lambda a, b, **kwargs: [jax.ShapeDtypeStruct(a.shape, dtype=a.dtype),
-  >>>                                                  jax.ShapeDtypeStruct(b.shape, dtype=b.dtype)])
-  >>> a3, b3 = prim2(np.random.random(1000), np.random.random(1000))
+  For more information, please refer to the tutorials above:
+  Numba Custom Op: https://brainpy.tech/docs/tutorial_advanced/operator_custom_with_numba.html
+  Taichi Custom Op: https://brainpy.tech/docs/tutorial_advanced/operator_custom_with_taichi.html
+  CuPy Custom Op: https://brainpy.tech/docs/tutorial_advanced/operator_custom_with_cupy.html
 
   Args:
     cpu_kernel: Callable. The function defines the computation on CPU backend.
@@ -83,7 +64,7 @@ class XLACustomOp(BrainPyObject):
   def __init__(
       self,
       cpu_kernel: Callable = None,
-      gpu_kernel: Callable = None,
+      gpu_kernel: Union[Callable, str] = None,
       batching_translation: Callable = None,
       jvp_translation: Callable = None,
       transpose_translation: Callable = None,
@@ -125,11 +106,17 @@ class XLACustomOp(BrainPyObject):
     gpu_checked = False
     if gpu_kernel is None:
       gpu_checked = True
-    if hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
+    elif hasattr(gpu_kernel, 'kernel'):  # cupy RawModule
+      register_cupy_raw_module_gpu_translation_rule(self.primitive, gpu_kernel)
+      gpu_checked = True
+    elif hasattr(gpu_kernel, '_mode'):  # cupy JIT Kernel
+      register_cupy_jit_kernel_gpu_translation_rule(self.primitive, gpu_kernel)
+      gpu_checked = True
+    elif hasattr(gpu_kernel, '_is_wrapped_kernel') and gpu_kernel._is_wrapped_kernel:  # taichi
       register_taichi_gpu_translation_rule(self.primitive, gpu_kernel)
       gpu_checked = True
     if not gpu_checked:
-      raise ValueError(f'"cpu_kernel" must be a taichi kernel function. But we got {gpu_kernel}')
+      raise ValueError(f'"gpu_kernel" must be a taichi kernel function, cupy raw module or cupy jit kernel. But we got {gpu_kernel}')
 
     # batching rule
     if batching_translation is None:
