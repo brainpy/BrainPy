@@ -3,17 +3,18 @@
 import warnings
 from functools import partial
 
-import numpy as np
 import jax
+import numpy as np
 from jax import numpy as jnp
 from jax import vmap
 from jax.scipy.optimize import minimize
 
-from brainpy import errors, tools
 import brainpy._src.math as bm
-from brainpy._src.math.object_transform.base import Collector
+from brainpy import errors, tools
 from brainpy._src.analysis import constants as C, utils
 from brainpy._src.analysis.base import DSAnalyzer
+from brainpy._src.math.object_transform.base import Collector
+from brainpy._src.optimizers.brentq import jax_brentq, ECONVERGED, brentq_candidates, brentq_roots
 
 pyplot = None
 
@@ -316,7 +317,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
   def F_fixed_point_opt(self):
     if C.F_fixed_point_opt not in self.analyzed_results:
       def f(start_and_end, *args):
-        return utils.jax_brentq(self.F_fx)(start_and_end[0], start_and_end[1], args)
+        return jax_brentq(utils.f_without_jaxarray_return(self.F_fx))(
+          start_and_end[0], start_and_end[1], args
+        )
 
       self.analyzed_results[C.F_fixed_point_opt] = f
     return self.analyzed_results[C.F_fixed_point_opt]
@@ -387,7 +390,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
     # optimize the fixed points
     res = self.F_vmap_fp_opt(X, *args)
     losses = self.F_vmap_fp_aux(res['root'], *args)
-    valid_or_not = jnp.logical_and(res['status'] == utils.ECONVERGED, losses <= tol_aux)
+    valid_or_not = jnp.logical_and(res['status'] == ECONVERGED, losses <= tol_aux)
     ids = np.asarray(jnp.where(valid_or_not)[0])
     fps = np.asarray(res['root'])[ids]
     args = tuple(a[ids] for a in args)
@@ -569,10 +572,14 @@ class Num2DAnalyzer(Num1DAnalyzer):
       if self._can_convert_to_one_eq():
         if self.convert_type() == C.x_by_y:
           def f(start_and_end, *args):
-            return utils.jax_brentq(self.F_y_convert[1])(start_and_end[0], start_and_end[1], args)
+            return jax_brentq(utils.f_without_jaxarray_return(self.F_y_convert[1]))(
+              start_and_end[0], start_and_end[1], args
+            )
         else:
           def f(start_and_end, *args):
-            return utils.jax_brentq(self.F_x_convert[1])(start_and_end[0], start_and_end[1], args)
+            return jax_brentq(utils.f_without_jaxarray_return(self.F_x_convert[1]))(
+              start_and_end[0], start_and_end[1], args
+            )
         self.analyzed_results[C.F_fixed_point_opt] = f
 
       else:
@@ -718,23 +725,23 @@ class Num2DAnalyzer(Num1DAnalyzer):
         # auxiliary functions
         f2 = lambda y, x, *pars: self.F_fx(x, y, *pars)
         vmap_f2 = jax.jit(vmap(f2), device=self.jit_device)
-        vmap_brentq_f2 = jax.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
-        vmap_brentq_f1 = jax.jit(vmap(utils.jax_brentq(self.F_fx)), device=self.jit_device)
+        vmap_brentq_f2 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(f2))), device=self.jit_device)
+        vmap_brentq_f1 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(self.F_fx))), device=self.jit_device)
 
         # num segments
         for _j, Ps in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1:
             utils.output(f"{C.prefix}segment {_j} ...")
           if coords == self.x_var + '-' + self.y_var:
-            x0s, x1s, vps = utils.brentq_candidates(self.F_vmap_fx, *((xs, ys) + Ps))
-            x_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f1, x0s, x1s, *vps)
+            x0s, x1s, vps = brentq_candidates(self.F_vmap_fx, *((xs, ys) + Ps))
+            x_values_in_fx, out_args = brentq_roots(vmap_brentq_f1, x0s, x1s, *vps)
             y_values_in_fx = out_args[0]
             p_values_in_fx = out_args[1:]
             x_values_in_fx, y_values_in_fx, p_values_in_fx = \
               self._fp_filter(x_values_in_fx, y_values_in_fx, p_values_in_fx, fp_aux_filter)
           elif coords == self.y_var + '-' + self.x_var:
-            x0s, x1s, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
-            y_values_in_fx, out_args = utils.brentq_roots2(vmap_brentq_f2, x0s, x1s, *vps)
+            x0s, x1s, vps = brentq_candidates(vmap_f2, *((ys, xs) + Ps))
+            y_values_in_fx, out_args = brentq_roots(vmap_brentq_f2, x0s, x1s, *vps)
             x_values_in_fx = out_args[0]
             p_values_in_fx = out_args[1:]
             x_values_in_fx, y_values_in_fx, p_values_in_fx = \
@@ -812,21 +819,21 @@ class Num2DAnalyzer(Num1DAnalyzer):
         # auxiliary functions
         f2 = lambda y, x, *pars: self.F_fy(x, y, *pars)
         vmap_f2 = jax.jit(vmap(f2), device=self.jit_device)
-        vmap_brentq_f2 = jax.jit(vmap(utils.jax_brentq(f2)), device=self.jit_device)
-        vmap_brentq_f1 = jax.jit(vmap(utils.jax_brentq(self.F_fy)), device=self.jit_device)
+        vmap_brentq_f2 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(f2))), device=self.jit_device)
+        vmap_brentq_f1 = jax.jit(vmap(jax_brentq(utils.f_without_jaxarray_return(self.F_fy))), device=self.jit_device)
 
         for j, Ps in enumerate(par_seg):
           if len(par_seg.arg_id_segments[0]) > 1: utils.output(f"{C.prefix}segment {j} ...")
           if coords == self.x_var + '-' + self.y_var:
-            starts, ends, vps = utils.brentq_candidates(self.F_vmap_fy, *((xs, ys) + Ps))
-            x_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f1, starts, ends, *vps)
+            starts, ends, vps = brentq_candidates(self.F_vmap_fy, *((xs, ys) + Ps))
+            x_values_in_fy, out_args = brentq_roots(vmap_brentq_f1, starts, ends, *vps)
             y_values_in_fy = out_args[0]
             p_values_in_fy = out_args[1:]
             x_values_in_fy, y_values_in_fy, p_values_in_fy = \
               self._fp_filter(x_values_in_fy, y_values_in_fy, p_values_in_fy, fp_aux_filter)
           elif coords == self.y_var + '-' + self.x_var:
-            starts, ends, vps = utils.brentq_candidates(vmap_f2, *((ys, xs) + Ps))
-            y_values_in_fy, out_args = utils.brentq_roots2(vmap_brentq_f2, starts, ends, *vps)
+            starts, ends, vps = brentq_candidates(vmap_f2, *((ys, xs) + Ps))
+            y_values_in_fy, out_args = brentq_roots(vmap_brentq_f2, starts, ends, *vps)
             x_values_in_fy = out_args[0]
             p_values_in_fy = out_args[1:]
             x_values_in_fy, y_values_in_fy, p_values_in_fy = \

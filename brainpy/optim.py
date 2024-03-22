@@ -5,10 +5,10 @@
 # ---------- #
 
 
-from brainpy._src.optimizers.optimizer import (
+from brainpy._src.optimizers.sgd_optimizer import (
   Optimizer as Optimizer,
 )
-from brainpy._src.optimizers.optimizer import (
+from brainpy._src.optimizers.sgd_optimizer import (
   SGD as SGD,
   Momentum as Momentum,
   MomentumNesterov as MomentumNesterov,
@@ -26,11 +26,11 @@ from brainpy._src.optimizers.optimizer import (
 # ---------- #
 
 
-from brainpy._src.optimizers.scheduler import (
+from brainpy._src.optimizers.sgd_scheduler import (
   make_schedule as make_schedule,
   Scheduler as Scheduler,
 )
-from brainpy._src.optimizers.scheduler import (
+from brainpy._src.optimizers.sgd_scheduler import (
   Constant as Constant,
   ExponentialDecay as ExponentialDecay,
   InverseTimeDecay as InverseTimeDecay,
@@ -41,7 +41,7 @@ from brainpy._src.optimizers.scheduler import (
   InverseTimeDecayLR as InverseTimeDecayLR,
   ExponentialDecayLR as ExponentialDecayLR
 )
-from brainpy._src.optimizers.scheduler import (
+from brainpy._src.optimizers.sgd_scheduler import (
   StepLR as StepLR,
   MultiStepLR as MultiStepLR,
   ExponentialLR as ExponentialLR,

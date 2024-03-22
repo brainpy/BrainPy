@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 
-from .optimizer import *
-from .scheduler import *
+from .sgd_optimizer import *
+from .sgd_scheduler import *
