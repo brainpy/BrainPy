@@ -8,7 +8,7 @@ import platform
 import re
 import shutil
 from functools import partial, reduce
-from typing import Any, Sequence
+from typing import Any, Sequence, Union
 
 import jax.core
 import numpy as np
@@ -19,10 +19,14 @@ from jaxlib.hlo_helpers import custom_call
 from brainpy._src.dependency_check import (import_taichi,
                                            import_brainpylib_cpu_ops,
                                            import_brainpylib_gpu_ops)
+from brainpy.errors import PackageMissingError
 from .utils import _shape_to_layout
 
 
-### UTILS ###
+taichi_cache_path = None
+
+
+# --- UTILS ###
 
 # get the path of home directory on Linux, Windows, Mac
 def get_home_dir():
@@ -42,8 +46,18 @@ def encode_md5(source: str) -> str:
 
   return md5.hexdigest()
 
+
 # check kernels count
-def check_kernels_count() -> int:
+def count_taichi_aot_kernels() -> int:
+  """
+  Count the number of AOT compiled kernels.
+
+  Returns
+  -------
+  kernels_count: int
+    The number of AOT compiled kernels.
+
+  """
   if not os.path.exists(kernels_aot_path):
     return 0
   kernels_count = 0
@@ -53,23 +67,37 @@ def check_kernels_count() -> int:
     kernels_count += len(dir2)
   return kernels_count
 
-# clean caches
-def clean_caches(kernels_name: list[str]=None):
-  if kernels_name is None:
-    if not os.path.exists(kernels_aot_path):
-      raise FileNotFoundError("The kernels cache folder does not exist. \
-                              Please define a kernel using `taichi.kernel` \
-                              and customize the operator using `bm.XLACustomOp` \
-                              before calling the operator.")
-    shutil.rmtree(kernels_aot_path)
-    print('Clean all kernel\'s cache successfully')
+
+def clear_taichi_aot_caches(kernels: Union[str, Sequence[str]] = None):
+  """
+  Clean the cache of the AOT compiled kernels.
+  
+  Parameters
+  ----------
+  kernels: str or list of str
+    The name of the kernel to be cleaned. If None, all the kernels will be cleaned.
+  """
+  if kernels is None:
+    global taichi_cache_path
+    if taichi_cache_path is None:
+      from taichi._lib.utils import import_ti_python_core
+      taichi_cache_path = import_ti_python_core().get_repo_dir()
+    # clean taichi cache
+    if os.path.exists(taichi_cache_path):
+      shutil.rmtree(taichi_cache_path)
+    # clean brainpy-taichi AOT cache
+    if os.path.exists(kernels_aot_path):
+      shutil.rmtree(kernels_aot_path)
     return
-  for kernel_name in kernels_name:
-    try:
+  if isinstance(kernels, str):
+    kernels = [kernels]
+  if not isinstance(kernels, list):
+    raise TypeError(f'kernels_name must be a list of str, but got {type(kernels)}')
+  # clear brainpy kernel cache
+  for kernel_name in kernels:
+    if os.path.exists(os.path.join(kernels_aot_path, kernel_name)):
       shutil.rmtree(os.path.join(kernels_aot_path, kernel_name))
-    except FileNotFoundError:
-      raise FileNotFoundError(f'Kernel {kernel_name} does not exist.')
-  print('Clean kernel\'s cache successfully')
+
 
 # TODO
 # not a very good way
@@ -103,7 +131,7 @@ def is_metal_supported():
   return True
 
 
-### VARIABLES ###
+# --- VARIABLES ###
 home_path = get_home_dir()
 kernels_aot_path = os.path.join(home_path, '.brainpy', 'kernels')
 is_metal_device = is_metal_supported()
@@ -121,7 +149,7 @@ def _check_kernel_exist(source_md5_encode: str) -> bool:
     return False
 
 
-### KERNEL AOT BUILD ###
+# --- KERNEL AOT BUILD ###
 
 
 def _array_to_field(dtype, shape) -> Any:
@@ -211,7 +239,7 @@ def _build_kernel(
   kernel.__name__ = kernel_name
 
 
-### KERNEL CALL PREPROCESS ###
+# --- KERNEL CALL PREPROCESS ###
 
 # convert type to number
 type_number_map = {
@@ -288,32 +316,33 @@ def _preprocess_kernel_call_cpu(
 
 def _preprocess_kernel_call_gpu(
     source_md5_encode: str,
-    ins: dict,
-    outs: dict,
+    ins: Sequence,
+    outs: Sequence,
 ) -> bytes:
-  if len(ins) + len(outs) > 8:
-    raise ValueError('The number of ins and outs must be less than 8!')
+  # if len(ins) + len(outs) > 8:
+  #   raise ValueError('The number of ins and outs must be less than 8!')
   kernel_path = os.path.join(kernels_aot_path, source_md5_encode)
 
   # other args
+  param_total_num = len(ins) + len(outs)
   in_out_num = [len(ins), len(outs)]
-  in_out_type_list = [0] * 8
-  in_out_dim_count_list = [0] * 8
-  in_out_elem_count_list = [0] * 8
-  in_out_shape_list = [0] * 64
+  in_out_type_list = [0] * param_total_num
+  in_out_dim_count_list = [0] * param_total_num
+  in_out_elem_count_list = [0] * param_total_num
+  in_out_shape_list = [0] * param_total_num * 8
 
-  for i, value in enumerate(ins.values()):
-    in_out_type_list[i] = type_number_map[value[0]]
-    in_out_dim_count_list[i] = len(value[1])
-    in_out_elem_count_list[i] = reduce(lambda x, y: x * y, value[1])
-    for j, dim in enumerate(value[1]):
+  for i, value in enumerate(ins):
+    in_out_type_list[i] = type_number_map[value.dtype]
+    in_out_dim_count_list[i] = value.ndim
+    in_out_elem_count_list[i] = value.size
+    for j, dim in enumerate(value.shape):
       in_out_shape_list[i * 8 + j] = dim
 
-  for i, value in enumerate(outs.values()):
-    in_out_type_list[i + len(ins)] = type_number_map[value[0]]
-    in_out_dim_count_list[i + len(ins)] = len(value[1])
-    in_out_elem_count_list[i + len(ins)] = reduce(lambda x, y: x * y, value[1])
-    for j, dim in enumerate(value[1]):
+  for i, value in enumerate(outs):
+    in_out_type_list[i + len(ins)] = type_number_map[value.dtype]
+    in_out_dim_count_list[i + len(ins)] = value.ndim
+    in_out_elem_count_list[i + len(ins)] = value.size
+    for j, dim in enumerate(value.shape):
       in_out_shape_list[(i + len(ins)) * 8 + j] = dim
 
   # covert to string
@@ -331,9 +360,6 @@ def _preprocess_kernel_call_gpu(
             bytes(kernel_path, encoding='utf-8'))
 
   return opaque
-
-
-
 
 
 def _XlaOp_to_ShapedArray(c, xla_op):
@@ -375,13 +401,13 @@ def _compile_kernel(abs_ins, kernel, platform: str, **kwargs):
       try:
         os.removedirs(os.path.join(kernels_aot_path, source_md5_encode))
       except Exception:
-          raise RuntimeError(f'Failed to preprocess info to build kernel:\n\n {codes}') from e
+        raise RuntimeError(f'Failed to preprocess info to build kernel:\n\n {codes}') from e
       raise RuntimeError(f'Failed to build kernel:\n\n {codes}') from e
 
   # returns
   if platform in ['gpu', 'cuda']:
     import_brainpylib_gpu_ops()
-    opaque = _preprocess_kernel_call_gpu(source_md5_encode, ins_dict, outs_dict)
+    opaque = _preprocess_kernel_call_gpu(source_md5_encode, abs_ins, abs_outs)
     return opaque
   elif platform == 'cpu':
     import_brainpylib_cpu_ops()
@@ -485,10 +511,16 @@ def _taichi_mlir_gpu_translation_rule(kernel, c, *ins, **kwargs):
 
 
 def register_taichi_aot_mlir_cpu_translation_rule(primitive, cpu_kernel):
+  if import_taichi(error_if_not_found=False) is None:
+    raise PackageMissingError.by_purpose("taichi", 'register taichi AOT based translation rule')
+
   rule = partial(_taichi_mlir_cpu_translation_rule, cpu_kernel)
   mlir.register_lowering(primitive, rule, platform='cpu')
 
 
 def register_taichi_aot_mlir_gpu_translation_rule(primitive, gpu_kernel):
+  if import_taichi(error_if_not_found=False) is None:
+    raise PackageMissingError.by_purpose("taichi", 'register taichi AOT based translation rule')
+
   rule = partial(_taichi_mlir_gpu_translation_rule, gpu_kernel)
   mlir.register_lowering(primitive, rule, platform='gpu')

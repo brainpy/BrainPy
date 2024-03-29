@@ -17,21 +17,29 @@ Installation
 
        .. code-block:: bash
 
-          pip install -U brainpy brainpylib  # windows, linux, macos
+          # python 3.9-3.11
+          pip install -U brainpy[cpu]  # windows, linux, macos
 
-    .. tab-item:: GPU (CUDA-11x)
-
-       .. code-block:: bash
-
-          pip install -U brainpy brainpylib-cu11x  # only on linux
-
-    .. tab-item:: GPU (CUDA-12x)
+    .. tab-item:: GPU (CUDA 11.0)
 
        .. code-block:: bash
 
-          pip install -U brainpy brainpylib-cu12x  # only on linux
+          pip install -U brainpy[cuda11] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
-For more information about supported accelerators and platforms, and for other installation details, please see `installation <quickstart/installation.html>`_ section.
+    .. tab-item:: GPU (CUDA 12.0)
+
+       .. code-block:: bash
+
+          pip install -U brainpy[cuda12] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+    .. tab-item:: TPU
+
+       .. code-block:: bash
+
+          pip install -U brainpy[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+
+
+For more information, please see `installation <quickstart/installation.html>`_ section.
 
 ----
 

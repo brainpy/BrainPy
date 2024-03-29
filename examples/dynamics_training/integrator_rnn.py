@@ -30,7 +30,7 @@ def train_data():
 class RNN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden):
     super(RNN, self).__init__()
-    self.rnn = bp.layers.RNNCell(num_in, num_hidden, train_state=True)
+    self.rnn = bp.dyn.RNNCell(num_in, num_hidden, train_state=True)
     self.out = bp.layers.Dense(num_hidden, 1)
 
   def update(self, x):
@@ -49,7 +49,7 @@ def loss(predictions, targets, l2_reg=2e-4):
 
 
 # define optimizer
-lr = bp.optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
+lr = bp.optim.ExponentialDecayLR(lr=0.025, decay_steps=1, decay_rate=0.99975)
 opt = bp.optim.Adam(lr=lr, eps=1e-1)
 
 # create a trainer

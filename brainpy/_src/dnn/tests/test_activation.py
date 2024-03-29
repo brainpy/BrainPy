@@ -1,6 +1,5 @@
 from absl.testing import absltest
 from absl.testing import parameterized
-
 import brainpy as bp
 import brainpy.math as bm
 

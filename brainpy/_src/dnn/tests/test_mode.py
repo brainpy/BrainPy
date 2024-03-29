@@ -1,8 +1,13 @@
+import pytest
 from absl.testing import absltest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy._src.dependency_check import import_taichi
+
+if import_taichi(error_if_not_found=False) is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 
 class Test_Conv(parameterized.TestCase):
@@ -56,7 +61,6 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=(5, 5),
                           mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
     bm.clear_buffer_memory()
 
   @parameterized.product(

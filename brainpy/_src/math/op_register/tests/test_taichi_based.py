@@ -1,15 +1,19 @@
 import jax
 import jax.numpy as jnp
-import taichi as ti
+import pytest
 
 import brainpy.math as bm
+from brainpy._src.dependency_check import import_taichi
+
+ti = import_taichi(error_if_not_found=False)
+if ti is None:
+  pytest.skip('no taichi', allow_module_level=True)
 
 bm.set_platform('cpu')
 
-
 @ti.func
-def get_weight(weight: ti.types.ndarray(ndim=1)) -> ti.f32:
-  return weight[0]
+def get_weight(weight: ti.types.ndarray(ndim=0)) -> ti.f32:
+  return weight[None]
 
 
 @ti.func
@@ -20,7 +24,7 @@ def update_output(out: ti.types.ndarray(ndim=1), index: ti.i32, weight_val: ti.f
 @ti.kernel
 def event_ell_cpu(indices: ti.types.ndarray(ndim=2),
                   vector: ti.types.ndarray(ndim=1),
-                  weight: ti.types.ndarray(ndim=1),
+                  weight: ti.types.ndarray(ndim=0),
                   out: ti.types.ndarray(ndim=1)):
   weight_val = get_weight(weight)
   num_rows, num_cols = indices.shape
@@ -33,7 +37,7 @@ def event_ell_cpu(indices: ti.types.ndarray(ndim=2),
 @ti.kernel
 def event_ell_gpu(indices: ti.types.ndarray(ndim=2),
                   vector: ti.types.ndarray(ndim=1),
-                  weight: ti.types.ndarray(ndim=1),
+                  weight: ti.types.ndarray(ndim=0),
                   out: ti.types.ndarray(ndim=1)):
   weight_val = get_weight(weight)
   num_rows, num_cols = indices.shape
@@ -49,13 +53,11 @@ def test_taichi_op_register():
   s = 1000
   indices = bm.random.randint(0, s, (s, 1000))
   vector = bm.random.rand(s) < 0.1
-  weight = bm.array([1.0])
 
-  out = prim(indices, vector, weight, outs=[jax.ShapeDtypeStruct((s,), dtype=jnp.float32)])
+  out = prim(indices, vector, 1.0, outs=[jax.ShapeDtypeStruct((s,), dtype=jnp.float32)])
 
-  out = prim(indices, vector, weight, outs=[jax.ShapeDtypeStruct((s,), dtype=jnp.float32)])
+  out = prim(indices, vector, 1.0, outs=[jax.ShapeDtypeStruct((s,), dtype=jnp.float32)])
 
   print(out)
-  bm.clear_buffer_memory()
 
 # test_taichi_op_register()

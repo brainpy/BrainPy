@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
-from typing import Union, Tuple
+from typing import Tuple
 
 import jax.lax
-import numba
 import numpy as np
 from jax import numpy as jnp
 from jax.core import Primitive, ShapedArray
 from jax.interpreters import ad, xla
 from jax.lib import xla_client
 
+from brainpy._src.dependency_check import import_brainpylib_gpu_ops, import_numba
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.dependency_check import import_brainpylib_gpu_ops
 from brainpy._src.math.op_register import (compile_cpu_signature_with_numba,
                                            register_general_batching)
 from brainpy.errors import GPUOperatorNotFound
+
+numba = import_numba(error_if_not_found=False)
 
 __all__ = [
   'bcsrmm',
@@ -264,52 +265,53 @@ def bcsrmm(
     raise ValueError
 
 
-@numba.njit(fastmath=True, parallel=True, nogil=True)
-def _bcsrmm_cutlass_imp_transpose(outs, ins):  # dense(m, k) @ bcsr(n, k) -> dense(n, m)
-  res_val = outs[0]
-  # B_data: (num_block, block_size_k, block_size_n)
-  A_data, B_data, B_indices, B_inptr, m, k, n, block_size_k, block_size_n = ins
-  block_size_k = block_size_k[()]
-  block_size_n = block_size_n[()]
-  n_block = n // block_size_n
+if numba is not None:
+  @numba.njit(fastmath=True, parallel=True, nogil=True)
+  def _bcsrmm_cutlass_imp_transpose(outs, ins):  # dense(m, k) @ bcsr(n, k) -> dense(n, m)
+    res_val = outs[0]
+    # B_data: (num_block, block_size_k, block_size_n)
+    A_data, B_data, B_indices, B_inptr, m, k, n, block_size_k, block_size_n = ins
+    block_size_k = block_size_k[()]
+    block_size_n = block_size_n[()]
+    n_block = n // block_size_n
 
-  for ni in numba.prange(n_block):
-    C_tmp = np.zeros((block_size_n, m), dtype=A_data.dtype)
-    start, end = B_inptr[ni], B_inptr[ni + 1]
-    ns = ni * block_size_n
-    ne = ns + block_size_n
-    for i in range(start, end):
-      ki = B_indices[i, 0]
-      ks = ki * block_size_k
-      ke = ki + block_size_k
-      bi = B_indices[i, 1]
-      C_tmp += np.matmul(B_data[bi], A_data[:, ks: ke].T)
-    res_val[ns: ne] = C_tmp
-  return res_val
+    for ni in numba.prange(n_block):
+      C_tmp = np.zeros((block_size_n, m), dtype=A_data.dtype)
+      start, end = B_inptr[ni], B_inptr[ni + 1]
+      ns = ni * block_size_n
+      ne = ns + block_size_n
+      for i in range(start, end):
+        ki = B_indices[i, 0]
+        ks = ki * block_size_k
+        ke = ki + block_size_k
+        bi = B_indices[i, 1]
+        C_tmp += np.matmul(B_data[bi], A_data[:, ks: ke].T)
+      res_val[ns: ne] = C_tmp
+    return res_val
 
 
-@numba.njit(fastmath=True, parallel=True, nogil=True)
-def _bcsrmm_cutlass_imp2(outs, ins):  # dense(m, k) @ bcsr(k, n) -> dense(n, m)
-  res_val = outs[0]
-  # B_data: (num_block, block_size_n, block_size_k)
-  A_data, B_data, B_indices, B_inptr, m, k, n, block_size_k, block_size_n = ins
-  block_size_k = block_size_k[()]
-  block_size_n = block_size_n[()]
-  n_block = n // block_size_n
+  @numba.njit(fastmath=True, parallel=True, nogil=True)
+  def _bcsrmm_cutlass_imp2(outs, ins):  # dense(m, k) @ bcsr(k, n) -> dense(n, m)
+    res_val = outs[0]
+    # B_data: (num_block, block_size_n, block_size_k)
+    A_data, B_data, B_indices, B_inptr, m, k, n, block_size_k, block_size_n = ins
+    block_size_k = block_size_k[()]
+    block_size_n = block_size_n[()]
+    n_block = n // block_size_n
 
-  for ni in numba.prange(n_block):
-    C_tmp = np.zeros((block_size_n, m), dtype=A_data.dtype)
-    start, end = B_inptr[ni], B_inptr[ni + 1]
-    ns = ni * block_size_n
-    ne = ns + block_size_n
-    for i in range(start, end):
-      ki = B_indices[i, 0]
-      ks = ki * block_size_k
-      ke = ki + block_size_k
-      bi = B_indices[i, 1]
-      C_tmp += np.matmul(B_data[bi], A_data[:, ks: ke].T)
-    res_val[ns: ne] = C_tmp
-  return res_val
+    for ni in numba.prange(n_block):
+      C_tmp = np.zeros((block_size_n, m), dtype=A_data.dtype)
+      start, end = B_inptr[ni], B_inptr[ni + 1]
+      ns = ni * block_size_n
+      ne = ns + block_size_n
+      for i in range(start, end):
+        ki = B_indices[i, 0]
+        ks = ki * block_size_k
+        ke = ki + block_size_k
+        bi = B_indices[i, 1]
+        C_tmp += np.matmul(B_data[bi], A_data[:, ks: ke].T)
+      res_val[ns: ne] = C_tmp
+    return res_val
 
 
 def _bcsrmm_cutlass_abstract(

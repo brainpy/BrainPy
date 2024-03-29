@@ -1232,9 +1232,10 @@ class RandomState(Variable):
     a = _check_py_seq(_as_jax_array(a))
     if size is None:
       size = jnp.shape(a)
-    r = call(lambda x: np.random.zipf(x, size),
+    dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
+    r = call(lambda x: np.random.zipf(x, size).astype(dtype),
              a,
-             result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+             result_shape=jax.ShapeDtypeStruct(size, dtype))
     return _return(r)
 
   def power(self, a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Union[int, JAX_RAND_KEY]] = None):
@@ -1242,8 +1243,10 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(a)
     size = _size2shape(size)
-    r = call(lambda a: np.random.power(a=a, size=size),
-             a, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+    dtype = jax.dtypes.canonicalize_dtype(jnp.float_)
+    r = call(lambda a: np.random.power(a=a, size=size).astype(dtype),
+             a,
+             result_shape=jax.ShapeDtypeStruct(size, dtype))
     return _return(r)
 
   def f(self, dfnum, dfden, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1256,11 +1259,12 @@ class RandomState(Variable):
       size = jnp.broadcast_shapes(jnp.shape(dfnum), jnp.shape(dfden))
     size = _size2shape(size)
     d = {'dfnum': dfnum, 'dfden': dfden}
+    dtype = jax.dtypes.canonicalize_dtype(jnp.float_)
     r = call(lambda x: np.random.f(dfnum=x['dfnum'],
                                    dfden=x['dfden'],
-                                   size=size),
+                                   size=size).astype(dtype),
              d,
-             result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+             result_shape=jax.ShapeDtypeStruct(size, dtype))
     return _return(r)
 
   def hypergeometric(self, ngood, nbad, nsample, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1274,12 +1278,14 @@ class RandomState(Variable):
                                   jnp.shape(nbad),
                                   jnp.shape(nsample))
     size = _size2shape(size)
+    dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
     d = {'ngood': ngood, 'nbad': nbad, 'nsample': nsample}
-    r = call(lambda x: np.random.hypergeometric(ngood=x['ngood'],
-                                                nbad=x['nbad'],
-                                                nsample=x['nsample'],
-                                                size=size),
-             d, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    r = call(lambda d: np.random.hypergeometric(ngood=d['ngood'],
+                                                nbad=d['nbad'],
+                                                nsample=d['nsample'],
+                                                size=size).astype(dtype),
+             d,
+             result_shape=jax.ShapeDtypeStruct(size, dtype))
     return _return(r)
 
   def logseries(self, p, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1288,8 +1294,10 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(p)
     size = _size2shape(size)
-    r = call(lambda p: np.random.logseries(p=p, size=size),
-             p, result_shape=jax.ShapeDtypeStruct(size, jnp.int_))
+    dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
+    r = call(lambda p: np.random.logseries(p=p, size=size).astype(dtype),
+             p,
+             result_shape=jax.ShapeDtypeStruct(size, dtype))
     return _return(r)
 
   def noncentral_f(self, dfnum, dfden, nonc, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1303,11 +1311,12 @@ class RandomState(Variable):
                                   jnp.shape(nonc))
     size = _size2shape(size)
     d = {'dfnum': dfnum, 'dfden': dfden, 'nonc': nonc}
+    dtype = jax.dtypes.canonicalize_dtype(jnp.float_)
     r = call(lambda x: np.random.noncentral_f(dfnum=x['dfnum'],
                                               dfden=x['dfden'],
                                               nonc=x['nonc'],
-                                              size=size),
-             d, result_shape=jax.ShapeDtypeStruct(size, jnp.float_))
+                                              size=size).astype(dtype),
+             d, result_shape=jax.ShapeDtypeStruct(size, dtype))
     return _return(r)
 
   # PyTorch compatibility #

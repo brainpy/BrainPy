@@ -213,7 +213,7 @@ def vanalla_proj():
       super().__init__()
       self.N = bp.dyn.LifRefLTC(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                                 V_initializer=bp.init.Normal(-55., 1.))
-      self.delay = bp.VarDelay(self.N.spike, entries={'delay': 2})
+      self.delay = bp.VarDelay(self.N.spike, entries={'delay': 0.})
       self.syn1 = bp.dyn.Expon(size=3200, tau=5.)
       self.syn2 = bp.dyn.Expon(size=800, tau=10.)
       self.E = bp.dyn.VanillaProj(

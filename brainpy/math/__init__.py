@@ -44,15 +44,13 @@ from jax import config
 
 del jnp, config
 
-from brainpy._src.math.surrogate._compt import (
-  spike_with_sigmoid_grad as spike_with_sigmoid_grad,
-  spike_with_linear_grad as spike_with_linear_grad,
-  spike_with_gaussian_grad as spike_with_gaussian_grad,
-  spike_with_mg_grad as spike_with_mg_grad,
-)
-
 from brainpy._src.math import defaults
 from brainpy._src.deprecations import deprecation_getattr
+from brainpy._src.dependency_check import import_taichi, import_numba
+
+import_taichi(error_if_not_found=False)
+import_numba(error_if_not_found=False)
+
 __deprecations = {
   "sparse_matmul": ("brainpy.math.sparse_matmul is deprecated. Use brainpy.math.sparse.seg_matmul instead.",
                     sparse.seg_matmul),
@@ -79,9 +77,6 @@ __deprecations = {
   'cusparse_csr_matvec': ("brainpy.math.cusparse_csr_matvec is deprecated. "
                           "Use brainpy.math.sparse.csrmv instead.",
                           sparse.csrmv),
-  'cusparse_coo_matvec': ("brainpy.math.cusparse_coo_matvec is deprecated. "
-                          "Use brainpy.math.sparse.coomv instead.",
-                          sparse.coomv),
   'coo_to_csr': ("brainpy.math.coo_to_csr is deprecated. "
                  "Use brainpy.math.sparse.coo_to_csr instead.",
                  sparse.coo_to_csr),
@@ -94,9 +89,6 @@ __deprecations = {
   'event_csr_matvec': ("brainpy.math.event_csr_matvec is deprecated. "
                        "Use brainpy.math.event.csr_to_dense instead.",
                        event.csrmv),
-  'event_info': ("brainpy.math.event_info is deprecated. "
-                 "Use brainpy.math.event.info instead.",
-                 event.info),
 }
 
 __getattr__ = deprecation_getattr(__name__, __deprecations, redirects=defaults.__all__, redirect_module=defaults)

@@ -106,6 +106,9 @@ tableau as follows:
 """
 
 from functools import wraps
+
+import jax.numpy as jnp
+
 from brainpy import errors
 from brainpy._src import math as bm
 from brainpy._src.integrators import constants as C, utils, joint_eq
@@ -356,6 +359,9 @@ class ExponentialEuler(ODEIntegrator):
       # integration function
       def integral(*args, **kwargs):
         assert len(args) > 0
+        if args[0].dtype not in [jnp.float32, jnp.float64, jnp.float16, jnp.bfloat16]:
+          raise ValueError('The input data type should be float32, float64, float16, or bfloat16 when using Exponential Euler method.'
+                           f'But we got {args[0].dtype}.')
         dt = kwargs.pop(C.DT, self.dt)
         linear, derivative = value_and_grad(*args, **kwargs)
         phi = bm.exprel(dt * linear)

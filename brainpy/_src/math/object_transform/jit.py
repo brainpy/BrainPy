@@ -88,6 +88,17 @@ def _seq_of_str(static_argnames):
   return static_argnames
 
 
+def _jit_call_take_care_of_rngs(transform, stack, *args, **kwargs):
+  # call the transformed function
+  rng_keys = stack.call_on_subset(_is_rng, _rng_split_key)
+  changes, out = transform(stack.dict_data(), *args, **kwargs)
+  for key, v in changes.items():
+    stack[key]._value = v
+  for key, v in rng_keys.items():
+    stack[key]._value = v
+  return out
+
+
 class JITTransform(ObjectTransform):
   """Object-oriented JIT transformation in BrainPy."""
 
@@ -134,13 +145,13 @@ class JITTransform(ObjectTransform):
     # OO transformation parameters
     self._transform = None
     self._dyn_vars = None
-
-  def _transform_function(self, variable_data: Dict, *args, **kwargs):
-    for key, v in self._dyn_vars.items():
-      v._value = variable_data[key]
-    out = self.fun(*args, **kwargs)
-    changes = self._dyn_vars.dict_data_of_subset(_is_not_rng)
-    return changes, out
+  #
+  # def _transform_function(self, variable_data: Dict, *args, **kwargs):
+  #   for key, v in self._dyn_vars.items():
+  #     v._value = variable_data[key]
+  #   out = self.fun(*args, **kwargs)
+  #   changes = self._dyn_vars.dict_data_of_subset(_is_not_rng)
+  #   return changes, out
 
   def _get_transform(self, *args, **kwargs):
     with VariableStack() as self._dyn_vars:
@@ -176,7 +187,7 @@ class JITTransform(ObjectTransform):
 
     # jit
     self._transform = jax.jit(
-      self._transform_function,
+      _make_transform(self.fun, self._dyn_vars),
       static_argnums=jax.tree_util.tree_map(lambda a: a + 1, self._static_argnums),
       static_argnames=self._static_argnames,
       donate_argnums=self._donate_argnums,
@@ -199,13 +210,7 @@ class JITTransform(ObjectTransform):
         return rets
 
     # call the transformed function
-    rng_keys = self._dyn_vars.call_on_subset(_is_rng, _rng_split_key)
-    changes, out = self._transform(self._dyn_vars.dict_data(), *args, **kwargs)
-    for key, v in changes.items():
-      self._dyn_vars[key]._value = v
-    for key, v in rng_keys.items():
-      self._dyn_vars[key]._value = v
-    return out
+    return _jit_call_take_care_of_rngs(self._transform, self._dyn_vars, *args, **kwargs)
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -302,7 +307,7 @@ def jit(
   Examples
   --------
 
-  You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.  
+  You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.
 
   >>> import brainpy as bp
   >>> class Hello(bp.BrainPyObject):
@@ -389,12 +394,12 @@ def cls_jit(
     **kwargs
 ) -> Callable:
   """Just-in-time compile a function and then the jitted function as the bound method for a class.
-  
+
   Examples
   --------
-  
+
   This transformation can be put on any class function. For example,
-  
+
   >>> import brainpy as bp
   >>> import brainpy.math as bm
   >>>
@@ -403,7 +408,7 @@ def cls_jit(
   >>>      super(SomeProgram, self).__init__()
   >>>      self.a = bm.zeros(2)
   >>>      self.b = bm.Variable(bm.ones(2))
-  >>> 
+  >>>
   >>>   @bm.cls_jit(inline=True)
   >>>   def __call__(self, *args, **kwargs):
   >>>      a = bm.random.uniform(size=2)
@@ -412,7 +417,7 @@ def cls_jit(
   >>>
   >>> program = SomeProgram()
   >>> program()
-  
+
   Parameters
   ----------
   {jit_pars}
@@ -466,7 +471,7 @@ def _make_jit_fun(
     if cache is None:
       fun2 = partial(fun, self)
       with VariableStack() as stack:
-        _ = eval_shape(fun2, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
+        out = eval_shape(fun2, *args, **kwargs, static_argnums=static_argnums, static_argnames=static_argnames)
       _transform = jax.jit(
         _make_transform(fun2, stack),
         static_argnums=jax.tree_util.tree_map(lambda a: a + 1, static_argnums),
@@ -478,25 +483,22 @@ def _make_jit_fun(
         **jit_kwargs
       )
       cache_stack(hash_v, (stack, _transform))  # cache "variable stack" and "transform function"
-
+      if not stack.is_first_stack():
+        return out
     else:
       stack, _transform = cache
-    del cache
-    out, changes = _transform(stack.dict_data(), *args, **kwargs)
-    for key, v in stack.items():
-      v._value = changes[key]
-    return out
+    return _jit_call_take_care_of_rngs(_transform, stack, *args, **kwargs)
 
   return call_fun
 
 
 def _make_transform(fun, stack):
   @wraps(fun)
-  def _transform_function(variable_data: dict, *args, **kwargs):
+  def _transform_function(variable_data: Dict, *args, **kwargs):
     for key, v in stack.items():
       v._value = variable_data[key]
     out = fun(*args, **kwargs)
-    changes = stack.dict_data()
-    return out, changes
+    changes = stack.dict_data_of_subset(_is_not_rng)
+    return changes, out
 
   return _transform_function

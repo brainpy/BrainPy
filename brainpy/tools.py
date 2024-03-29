@@ -43,11 +43,10 @@ from brainpy._src.tools.others import (
 from brainpy._src.tools.install import (
   jaxlib_install_info,
 )
-
-
 from brainpy._src.tools.functions import (
   compose as compose,
   pipe as pipe,
 )
+
 
 

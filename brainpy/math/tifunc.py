@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from brainpy._src.math.tifunc import (
-  taichi_lcg_rand,
 
   # warp reduction primitives
   warp_reduce_sum,

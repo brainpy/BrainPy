@@ -58,8 +58,6 @@ from brainpy._src.math.object_transform.function import (
 from brainpy._src.math.object_transform.tools import (
   eval_shape as eval_shape,
 )
-
 from brainpy._src.math.object_transform.variables import (
   VariableStack as VariableStack,
 )
-

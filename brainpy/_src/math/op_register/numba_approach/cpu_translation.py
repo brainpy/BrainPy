@@ -5,18 +5,24 @@ import ctypes
 from jax import dtypes, numpy as jnp
 from jax.core import ShapedArray
 from jax.lib import xla_client
-from numba import types, carray, cfunc
 
-__all__ = [
-  'compile_cpu_signature_with_numba'
-]
+from brainpy._src.dependency_check import import_numba
 
+numba = import_numba(error_if_not_found=False)
 ctypes.pythonapi.PyCapsule_New.argtypes = [
   ctypes.c_void_p,  # void* pointer
   ctypes.c_char_p,  # const char *name
   ctypes.c_void_p,  # PyCapsule_Destructor destructor
 ]
 ctypes.pythonapi.PyCapsule_New.restype = ctypes.py_object
+
+__all__ = [
+  '_cpu_translation',
+  'compile_cpu_signature_with_numba',
+]
+
+if numba is not None:
+  from numba import types, carray, cfunc
 
 
 def _cpu_translation(func, abs_eval_fn, multiple_results, c, *inputs, **info):

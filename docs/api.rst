@@ -4,7 +4,8 @@ API Documentation
 .. toctree::
    :maxdepth: 1
 
-   apis/auto/changelog.rst
+   apis/auto/brainpy-changelog.md
+   apis/auto/brainpylib-changelog.md
    apis/brainpy.rst
    apis/math.rst
    apis/dnn.rst
