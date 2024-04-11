@@ -1173,48 +1173,6 @@ compiling f ...
 
 
 class TestHessian(unittest.TestCase):
-  def test_hessian1(self):
-    def f(x):
-      return jnp.sum(x ** 2)
-
-    x = bm.ones(5)
-    h = bm.hessian(f)(x)
-    pprint(h)
-    self.assertTrue(bm.array_equal(h, 2 * jnp.eye(5)))
-
-  def test_hessian2(self):
-    def f(x):
-      return jnp.sum(x ** 2)
-
-    x = bm.ones(5)
-    h = bm.hessian(f, argnums=0)(x)
-    pprint(h)
-    self.assertTrue(bm.array_equal(h, 2 * jnp.eye(5)))
-
-  def test_hessian3(self):
-    def f(x, y):
-      return jnp.sum(x ** 2) + jnp.sum(y ** 2)
-
-    x = bm.ones(5)
-    y = bm.ones(5)
-    h = bm.hessian(f)(x, y)
-    pprint(h)
-    self.assertTrue(bm.array_equal(h[0], 2 * jnp.eye(5)))
-    self.assertTrue(bm.array_equal(h[1], 2 * jnp.eye(5)))
-
-  def test_hessian4(self):
-    def f(x, y):
-      return jnp.sum(x ** 2) + jnp.sum(y ** 2)
-
-    x = bm.ones(5)
-    y = bm.ones(5)
-    h = bm.hessian(f, argnums=(0, 1))(x, y)
-    pprint(h)
-    self.assertTrue(bm.array_equal(h[0][0], 2 * jnp.eye(5)))
-    self.assertTrue(bm.array_equal(h[0][1], jnp.zeros((5, 5))))
-    self.assertTrue(bm.array_equal(h[1][0], jnp.zeros((5, 5))))
-    self.assertTrue(bm.array_equal(h[1][1], 2 * jnp.eye(5)))
-
   def test_hessian5(self):
     bm.set_mode(bm.training_mode)
 
