@@ -8,6 +8,8 @@ tqdm
 pathos
 taichi
 numba
+braincore
+braintools
 
 
 # test requirements

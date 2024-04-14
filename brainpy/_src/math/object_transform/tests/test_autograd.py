@@ -1171,3 +1171,53 @@ compiling f ...
       self.assertTrue(file.read().strip() == expect_res.strip())
 
 
+
+class TestHessian(unittest.TestCase):
+  def test_hessian5(self):
+    bm.set_mode(bm.training_mode)
+
+    class RNN(bp.DynamicalSystem):
+      def __init__(self, num_in, num_hidden):
+        super(RNN, self).__init__()
+        self.rnn = bp.dyn.RNNCell(num_in, num_hidden, train_state=True)
+        self.out = bp.dnn.Dense(num_hidden, 1)
+
+      def update(self, x):
+        return self.out(self.rnn(x))
+
+    # define the loss function
+    def lossfunc(inputs, targets):
+      runner = bp.DSTrainer(model, progress_bar=False, numpy_mon_after_run=False)
+      predicts = runner.predict(inputs)
+      loss = bp.losses.mean_squared_error(predicts, targets)
+      return loss
+
+    model = RNN(1, 2)
+    data_x = bm.random.rand(1, 1000, 1)
+    data_y = data_x + bm.random.randn(1, 1000, 1)
+
+    bp.reset_state(model, 1)
+    losshess = bm.hessian(lossfunc, grad_vars=model.train_vars())
+    hess_matrix = losshess(data_x, data_y)
+
+    weights = model.train_vars().unique()
+
+    # define the loss function
+    def loss_func_for_jax(weight_vals, inputs, targets):
+      for k, v in weight_vals.items():
+        weights[k].value = v
+      runner = bp.DSTrainer(model, progress_bar=False, numpy_mon_after_run=False)
+      predicts = runner.predict(inputs)
+      loss = bp.losses.mean_squared_error(predicts, targets)
+      return loss
+
+    bp.reset_state(model, 1)
+    jax_hessian = jax.hessian(loss_func_for_jax, argnums=0)({k: v.value for k, v in weights.items()}, data_x, data_y)
+
+    for k, v in hess_matrix.items():
+      for kk, vv in v.items():
+        self.assertTrue(bm.allclose(vv, jax_hessian[k][kk], atol=1e-4))
+
+    bm.clear_buffer_memory()
+
+
