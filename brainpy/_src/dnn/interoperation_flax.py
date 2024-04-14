@@ -1,7 +1,7 @@
 
 import jax
 import dataclasses
-from typing import Dict
+from typing import Dict, Tuple
 from jax.tree_util import tree_flatten, tree_map, tree_unflatten
 
 from brainpy import math as bm
@@ -77,16 +77,16 @@ if flax is not None:
     model: DynamicalSystem
     train_params: Dict[str, jax.Array] = dataclasses.field(init=False)
 
-    def initialize_carry(self, rng, batch_dims, size=None, init_fn=None):
-      if len(batch_dims) == 0:
+    def initialize_carry(self, rng, input_shape: Tuple[int, ...]):
+      batch_dims = input_shape[:-1]
+      if len(batch_dims) == 1:
         batch_dims = 1
-      elif len(batch_dims) == 1:
-        batch_dims = batch_dims[0]
+      elif len(batch_dims) == 0:
+        batch_dims = None
       else:
-        raise NotImplementedError
-
+        raise ValueError(f'Invalid input shape: {input_shape}')
       _state_vars = self.model.vars().unique().not_subset(bm.TrainVar)
-      self.model.reset(batch_size=batch_dims)
+      self.model.reset(batch_dims)
       return [_state_vars.dict(), 0, 0.]
 
     def setup(self):
@@ -131,6 +131,9 @@ if flax is not None:
       # carray and output
       return [_state_vars.dict(), i + 1, t + share.dt], out
 
+    @property
+    def num_feature_axes(self) -> int:
+      return 1
 
 else:
   class ToFlaxRNNCell(object):
