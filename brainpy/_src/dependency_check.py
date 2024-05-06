@@ -57,7 +57,7 @@ def import_taichi(error_if_not_found=True):
 
   if taichi is None:
     return None
-  if taichi.__version__ != _minimal_taichi_version:
+  if taichi.__version__ < _minimal_taichi_version:
     raise RuntimeError(taichi_install_info)
   return taichi
 
