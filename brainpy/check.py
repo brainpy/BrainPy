@@ -351,12 +351,12 @@ def is_float(
   if min_bound is not None:
     jit_error_checking_no_args(value < min_bound,
                                ValueError(f"{name} must be a float bigger than {min_bound}, "
-                          f"while we got {value}"))
+                                          f"while we got {value}"))
 
   if max_bound is not None:
     jit_error_checking_no_args(value > max_bound,
                                ValueError(f"{name} must be a float smaller than {max_bound}, "
-                          f"while we got {value}"))
+                                          f"while we got {value}"))
   return value
 
 
@@ -389,11 +389,11 @@ def is_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none
   if min_bound is not None:
     jit_error_checking_no_args(jnp.any(value < min_bound),
                                ValueError(f"{name} must be an int bigger than {min_bound}, "
-                          f"while we got {value}"))
+                                          f"while we got {value}"))
   if max_bound is not None:
     jit_error_checking_no_args(jnp.any(value > max_bound),
                                ValueError(f"{name} must be an int smaller than {max_bound}, "
-                          f"while we got {value}"))
+                                          f"while we got {value}"))
   return value
 
 
@@ -570,7 +570,12 @@ def is_all_objs(targets: Any, out_as: str = 'tuple'):
 
 
 def _err_jit_true_branch(err_fun, x):
-  id_tap(err_fun, x)
+  if isinstance(x, (tuple, list)):
+    x_shape_dtype = tuple(jax.ShapeDtypeStruct(arr.shape, arr.dtype) for arr in x)
+  else:
+    x_shape_dtype = jax.ShapeDtypeStruct(x.shape, x.dtype)
+  jax.pure_callback(err_fun, x_shape_dtype, x)
+  # id_tap(err_fun, x)
   return
 
 
@@ -629,6 +634,6 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
     raise err
 
   cond(remove_vmap(as_jax(pred)),
-       lambda: id_tap(true_err_fun, None),
+       # lambda: id_tap(true_err_fun, None),
+       lambda: jax.pure_callback(true_err_fun, None),
        lambda: None)
-

@@ -2,6 +2,7 @@
 import functools
 from typing import Dict, Sequence, Union, Callable
 
+import jax
 import numpy as np
 import tqdm.auto
 from jax.experimental.host_callback import id_tap
@@ -22,7 +23,6 @@ __all__ = [
   'OnlineTrainer',
   'ForceTrainer',
 ]
-
 
 class OnlineTrainer(DSTrainer):
   """Online trainer for models with recurrent dynamics.
@@ -252,7 +252,8 @@ class OnlineTrainer(DSTrainer):
 
     # finally
     if self.progress_bar:
-      id_tap(lambda *arg: self._pbar.update(), ())
+      jax.pure_callback(lambda *arg: self._pbar.update(), ())
+      # id_tap(lambda *arg: self._pbar.update(), ())
     return out, monitors
 
   def _check_interface(self):

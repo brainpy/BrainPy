@@ -632,12 +632,19 @@ class DSRunner(Runner):
 
     # finally
     if self.progress_bar:
-      id_tap(lambda *arg: self._pbar.update(), ())
+      jax.pure_callback(lambda: self._pbar.update(), ())
+      # id_tap(lambda *arg: self._pbar.update(), ())
     # share.clear_shargs()
     clear_input(self.target)
 
     if self._memory_efficient:
-      id_tap(self._step_mon_on_cpu, mon)
+      mon_shape_dtype = jax.ShapeDtypeStruct(mon.shape, mon.dtype)
+      result = jax.pure_callback(
+        self._step_mon_on_cpu,
+        mon_shape_dtype,
+        mon,
+      )
+      # id_tap(self._step_mon_on_cpu, mon)
       return out, None
     else:
       return out, mon

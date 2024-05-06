@@ -727,7 +727,8 @@ def _get_for_loop_transform(
       dyn_vars[k]._value = carry[k]
     results = body_fun(*x, **unroll_kwargs)
     if progress_bar:
-      id_tap(lambda *arg: bar.update(), ())
+      jax.pure_callback(lambda *arg: bar.update(), ())
+      # id_tap(lambda *arg: bar.update(), ())
     return dyn_vars.dict_data(), results
 
   if remat:
@@ -916,7 +917,8 @@ def _get_scan_transform(
       dyn_vars[k]._value = dyn_vars_data[k]
     carry, results = body_fun(carry, x)
     if progress_bar:
-      id_tap(lambda *arg: bar.update(), ())
+      jax.pure_callback(lambda *arg: bar.update(), ())
+      # id_tap(lambda *arg: bar.update(), ())
     carry = jax.tree_map(_as_jax_array_, carry, is_leaf=lambda a: isinstance(a, Array))
     return (dyn_vars.dict_data(), carry), results
 
