@@ -57,8 +57,10 @@ def import_taichi(error_if_not_found=True):
 
   if taichi is None:
     return None
-  if taichi.__version__[0] >= _minimal_taichi_version[0] and taichi.__version__[1] >= _minimal_taichi_version[1] and \
-      taichi.__version__[2] >= _minimal_taichi_version[2]:
+  taichi_version = taichi.__version__[0] * 10000 + taichi.__version__[1] * 100 + taichi.__version__[2]
+  minimal_taichi_version = _minimal_taichi_version[0] * 10000 + _minimal_taichi_version[1] * 100 + \
+                           _minimal_taichi_version[2]
+  if taichi_version >= minimal_taichi_version:
     return taichi
   else:
     raise ModuleNotFoundError(taichi_install_info)
