@@ -5,7 +5,6 @@ from typing import Dict, Sequence, Union, Callable, Any
 import jax
 import numpy as np
 import tqdm.auto
-from jax.experimental.host_callback import id_tap
 
 import brainpy.math as bm
 from brainpy import tools
@@ -221,7 +220,6 @@ class OfflineTrainer(DSTrainer):
       node.offline_fit(targets, fit_record)
       if self.progress_bar:
         jax.pure_callback(lambda *args: self._pbar.update(), ())
-        # id_tap(lambda *args: self._pbar.update(), ())
 
   def _step_func_monitor(self):
     res = dict()

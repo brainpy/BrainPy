@@ -11,7 +11,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import tqdm.auto
-from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map, tree_flatten
 
 from brainpy import math as bm, tools
@@ -633,7 +632,6 @@ class DSRunner(Runner):
     # finally
     if self.progress_bar:
       jax.pure_callback(lambda: self._pbar.update(), ())
-      # id_tap(lambda *arg: self._pbar.update(), ())
     # share.clear_shargs()
     clear_input(self.target)
 
@@ -644,7 +642,6 @@ class DSRunner(Runner):
         mon_shape_dtype,
         mon,
       )
-      # id_tap(self._step_mon_on_cpu, mon)
       return out, None
     else:
       return out, mon

@@ -7,7 +7,6 @@ from typing import Union, Sequence, Any, Dict, Callable, Optional
 import jax
 import jax.numpy as jnp
 from jax.errors import UnexpectedTracerError
-from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_flatten, tree_unflatten
 from tqdm.auto import tqdm
 
@@ -421,14 +420,14 @@ def make_cond(
 def _warp(f):
   @functools.wraps(f)
   def new_f(*args, **kwargs):
-    return jax.tree_map(_as_jax_array_, f(*args, **kwargs), is_leaf=lambda a: isinstance(a, Array))
+    return jax.tree.map(_as_jax_array_, f(*args, **kwargs), is_leaf=lambda a: isinstance(a, Array))
 
   return new_f
 
 
 def _warp_data(data):
   def new_f(*args, **kwargs):
-    return jax.tree_map(_as_jax_array_, data, is_leaf=lambda a: isinstance(a, Array))
+    return jax.tree.map(_as_jax_array_, data, is_leaf=lambda a: isinstance(a, Array))
 
   return new_f
 
@@ -728,7 +727,6 @@ def _get_for_loop_transform(
     results = body_fun(*x, **unroll_kwargs)
     if progress_bar:
       jax.pure_callback(lambda *arg: bar.update(), ())
-      # id_tap(lambda *arg: bar.update(), ())
     return dyn_vars.dict_data(), results
 
   if remat:
@@ -918,15 +916,14 @@ def _get_scan_transform(
     carry, results = body_fun(carry, x)
     if progress_bar:
       jax.pure_callback(lambda *arg: bar.update(), ())
-      # id_tap(lambda *arg: bar.update(), ())
-    carry = jax.tree_map(_as_jax_array_, carry, is_leaf=lambda a: isinstance(a, Array))
+    carry = jax.tree.map(_as_jax_array_, carry, is_leaf=lambda a: isinstance(a, Array))
     return (dyn_vars.dict_data(), carry), results
 
   if remat:
     fun2scan = jax.checkpoint(fun2scan)
 
   def call(init, operands):
-    init = jax.tree_map(_as_jax_array_, init, is_leaf=lambda a: isinstance(a, Array))
+    init = jax.tree.map(_as_jax_array_, init, is_leaf=lambda a: isinstance(a, Array))
     return jax.lax.scan(f=fun2scan,
                         init=(dyn_vars.dict_data(), init),
                         xs=operands,

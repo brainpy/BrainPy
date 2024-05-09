@@ -5,7 +5,6 @@ from typing import Dict, Sequence, Union, Callable
 import jax
 import numpy as np
 import tqdm.auto
-from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
@@ -253,7 +252,6 @@ class OnlineTrainer(DSTrainer):
     # finally
     if self.progress_bar:
       jax.pure_callback(lambda *arg: self._pbar.update(), ())
-      # id_tap(lambda *arg: self._pbar.update(), ())
     return out, monitors
 
   def _check_interface(self):
