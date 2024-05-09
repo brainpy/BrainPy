@@ -111,7 +111,7 @@ class BPTrainer(DSTrainer):
 
     # optimizer
     if optimizer is None:
-      lr = optim.ExponentialDecay(lr=0.025, decay_steps=1, decay_rate=0.99975)
+      lr = optim.ExponentialDecayLR(lr=0.025, decay_steps=1, decay_rate=0.99975)
       optimizer = optim.Adam(lr=lr)
     self.optimizer: optim.Optimizer = optimizer
     if len(self.optimizer.vars_to_train) == 0:

@@ -222,7 +222,7 @@ def main():
   grad_fun = bm.grad(loss_fun, grad_vars=net.train_vars().unique(), has_aux=True, return_value=True)
 
   # optimizer
-  optimizer = bp.optim.Adam(bp.optim.ExponentialDecay(args.lr, 1, 0.9999),
+  optimizer = bp.optim.Adam(bp.optim.ExponentialDecayLR(args.lr, 1, 0.9999),
                             train_vars=net.train_vars().unique())
 
   @bm.jit

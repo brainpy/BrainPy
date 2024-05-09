@@ -151,7 +151,7 @@ finder.find_fps_with_gd_method(
   tolerance=1e-5,
   num_batch=200,
   num_opt=int(2e4),
-  optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecay(0.01, 2, 0.9999)),
+  optimizer=bp.optim.Adam(lr=bp.optim.ExponentialDecayLR(0.01, 2, 0.9999)),
 )
 finder.filter_loss(tolerance=1e-5)
 finder.keep_unique(tolerance=0.005)
