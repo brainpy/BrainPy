@@ -1233,7 +1233,7 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(a)
     dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
-    dtype = jax.pure_callback(lambda x: np.random.zipf(x, size).astype(dtype),
+    r = jax.pure_callback(lambda x: np.random.zipf(x, size).astype(dtype),
                               jax.ShapeDtypeStruct(size, dtype),
                               a)
     return _return(r)
@@ -1280,7 +1280,7 @@ class RandomState(Variable):
     size = _size2shape(size)
     dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
     d = {'ngood': ngood, 'nbad': nbad, 'nsample': nsample}
-    r = jax.pure_callback()(lambda d: np.random.hypergeometric(ngood=d['ngood'],
+    r = jax.pure_callback(lambda d: np.random.hypergeometric(ngood=d['ngood'],
                                                                nbad=d['nbad'],
                                                                nsample=d['nsample'],
                                                                size=size).astype(dtype),
