@@ -7,7 +7,6 @@ import jax
 import numpy as np
 import numpy as onp
 from jax import numpy as jnp
-from jax.experimental.host_callback import id_tap
 from jax.lax import cond
 
 conn = None
@@ -570,7 +569,11 @@ def is_all_objs(targets: Any, out_as: str = 'tuple'):
 
 
 def _err_jit_true_branch(err_fun, x):
-  id_tap(err_fun, x)
+  if isinstance(x, (tuple, list)):
+    x_shape_dtype = tuple(jax.ShapeDtypeStruct(arr.shape, arr.dtype) for arr in x)
+  else:
+    x_shape_dtype = jax.ShapeDtypeStruct(x.shape, x.dtype)
+  jax.pure_callback(err_fun, x_shape_dtype, x)
   return
 
 
@@ -629,6 +632,6 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
     raise err
 
   cond(remove_vmap(as_jax(pred)),
-       lambda: id_tap(true_err_fun, None),
+       lambda: jax.pure_callback(true_err_fun, None),
        lambda: None)
 
