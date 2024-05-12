@@ -884,12 +884,8 @@ def hessian(
     func: Callable,
     grad_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
     argnums: Optional[Union[int, Sequence[int]]] = None,
-    return_value: bool = False,
+    has_aux: Optional[bool] = None,
     holomorphic=False,
-
-    # deprecated
-    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
-    child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
 ) -> ObjectTransform:
   """Hessian of ``func`` as a dense array.
 
@@ -916,29 +912,14 @@ def hessian(
   obj: ObjectTransform
     The transformed object.
   """
-  child_objs = check.is_all_objs(child_objs, out_as='dict')
-  dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')
 
-  return jacfwd(jacrev(func,
-                       dyn_vars=dyn_vars,
-                       child_objs=child_objs,
-                       grad_vars=grad_vars,
-                       argnums=argnums,
-                       holomorphic=holomorphic),
-                dyn_vars=dyn_vars,
-                child_objs=child_objs,
-                grad_vars=grad_vars,
-                argnums=argnums,
-                holomorphic=holomorphic,
-                return_value=return_value)
-
-  # return GradientTransformPreserveTree(target=func,
-  #                                      transform=jax.hessian,
-  #                                      grad_vars=grad_vars,
-  #                                      argnums=argnums,
-  #                                      has_aux=False if has_aux is None else has_aux,
-  #                                      transform_setting=dict(holomorphic=holomorphic),
-  #                                      return_value=False)
+  return GradientTransformPreserveTree(target=func,
+                                       transform=jax.hessian,
+                                       grad_vars=grad_vars,
+                                       argnums=argnums,
+                                       has_aux=False if has_aux is None else has_aux,
+                                       transform_setting=dict(holomorphic=holomorphic),
+                                       return_value=False)
 
 
 def functional_vector_grad(func, argnums=0, return_value=False, has_aux=False):

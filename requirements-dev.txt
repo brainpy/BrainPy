@@ -8,6 +8,8 @@ tqdm
 pathos
 taichi==1.7.0
 numba
+braincore
+braintools
 
 
 # test requirements

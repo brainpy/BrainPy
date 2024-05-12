@@ -237,12 +237,15 @@ class TestRegisterBPObjectAsPyTree(unittest.TestCase):
     hh = bp.dyn.HH(1)
     hh.reset()
 
-    tree = jax.tree.structure(hh)
-    leaves = jax.tree.leaves(hh)
+    # tree = jax.tree.structure(hh)
+    # leaves = jax.tree.leaves(hh)
+    tree = jax.tree_structure(hh)
+    leaves = jax.tree_leaves(hh)
 
     print(tree)
     print(leaves)
-    print(jax.tree.unflatten(tree, leaves))
+    # print(jax.tree.unflatten(tree, leaves))
+    print(jax.tree_unflatten(tree, leaves))
     print()
 
 
@@ -278,17 +281,18 @@ class TestStateSavingAndLoading(unittest.TestCase):
 
       def not_close(x, y):
         assert not bm.allclose(x, y)
+
       def all_close(x, y):
         assert bm.allclose(x, y)
 
-      jax.tree.map(all_close, all_states, variables, is_leaf=bm.is_bp_array)
+      # jax.tree.map(all_close, all_states, variables, is_leaf=bm.is_bp_array)
+      jax.tree_map(all_close, all_states, variables, is_leaf=bm.is_bp_array)
 
-      random_state = jax.tree.map(bm.random.rand_like, all_states, is_leaf=bm.is_bp_array)
-      jax.tree.map(not_close, random_state, variables, is_leaf=bm.is_bp_array)
+      # random_state = jax.tree.map(bm.random.rand_like, all_states, is_leaf=bm.is_bp_array)
+      # jax.tree.map(not_close, random_state, variables, is_leaf=bm.is_bp_array)
+      random_state = jax.tree_map(bm.random.rand_like, all_states, is_leaf=bm.is_bp_array)
+      jax.tree_map(not_close, random_state, variables, is_leaf=bm.is_bp_array)
 
       obj.load_state_dict(random_state)
-      jax.tree.map(all_close, random_state, variables, is_leaf=bm.is_bp_array)
-
-
-
-
+      # jax.tree.map(all_close, random_state, variables, is_leaf=bm.is_bp_array)
+      jax.tree_map(all_close, random_state, variables, is_leaf=bm.is_bp_array)
