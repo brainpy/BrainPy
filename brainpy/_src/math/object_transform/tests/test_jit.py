@@ -52,7 +52,7 @@ class TestJIT(unittest.TestCase):
   def test_jit_with_static(self):
     a = bm.Variable(bm.ones(2))
 
-    @bm.jit(static_argnums=1)
+    @bm.jit(static_argnums=0)
     def f(b, c):
       a.value *= b
       a.value /= c
@@ -104,7 +104,7 @@ class TestClsJIT(unittest.TestCase):
         self.a = bm.zeros(2)
         self.b = bm.Variable(bm.ones(2))
 
-        self.call1 = bm.jit(self.call, static_argnums=0)
+        self.call1 = bm.jit(self.call, static_argnums=1)
         self.call2 = bm.jit(self.call, static_argnames=['fit'])
 
       def call(self, fit=True):
@@ -157,7 +157,7 @@ class TestClsJIT(unittest.TestCase):
       def __init__(self):
         self.a = bm.Variable(bm.ones(2))
 
-      @bm.cls_jit(static_argnums=1)
+      @bm.cls_jit(static_argnums=0)
       def f(self, b, c):
         self.a.value *= b
         self.a.value /= c
