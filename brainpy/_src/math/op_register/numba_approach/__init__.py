@@ -6,16 +6,15 @@ from typing import Union, Sequence
 
 import jax
 from jax.interpreters import xla, batching, ad, mlir
-from jax.lib import xla_client
+
 from jax.tree_util import tree_map
-from jaxlib.hlo_helpers import custom_call
 
 from brainpy._src.dependency_check import import_numba
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
-from brainpy._src.math.op_register.utils import _shape_to_layout
+
 from brainpy.errors import PackageMissingError
-from .cpu_translation import _cpu_translation, compile_cpu_signature_with_numba
+from .cpu_translation import _cpu_translation, compile_cpu_signature_with_numba, _numba_mlir_cpu_translation_rule
 
 numba = import_numba(error_if_not_found=False)
 if numba is not None:
@@ -224,62 +223,6 @@ def register_op_with_numba_xla(
   return prim
 
 
-def _numba_mlir_cpu_translation_rule(kernel, debug: bool, ctx, *ins, **kwargs):
-  # output information
-  outs = ctx.avals_out
-  output_shapes = tuple([out.shape for out in outs])
-  output_dtypes = tuple([out.dtype for out in outs])
-  output_layouts = tuple([_shape_to_layout(out.shape) for out in outs])
-  result_types = [mlir.aval_to_ir_type(out) for out in outs]
-
-  # input information
-  avals_in = ctx.avals_in
-  input_layouts = [_shape_to_layout(a.shape) for a in avals_in]
-  input_dtypes = tuple(inp.dtype for inp in avals_in)
-  input_shapes = tuple(inp.shape for inp in avals_in)
-
-  # compiling function
-  code_scope = dict(func_to_call=kernel, input_shapes=input_shapes, input_dtypes=input_dtypes,
-                    output_shapes=output_shapes, output_dtypes=output_dtypes, carray=carray)
-  args_in = [f'in{i} = carray(input_ptrs[{i}], input_shapes[{i}], dtype=input_dtypes[{i}])'
-             for i in range(len(input_shapes))]
-  if len(output_shapes) > 1:
-    args_out = [f'out{i} = carray(output_ptrs[{i}], output_shapes[{i}], dtype=output_dtypes[{i}])'
-                for i in range(len(output_shapes))]
-    sig = types.void(types.CPointer(types.voidptr), types.CPointer(types.voidptr))
-  else:
-    args_out = [f'out0 = carray(output_ptrs, output_shapes[0], dtype=output_dtypes[0])']
-    sig = types.void(types.voidptr, types.CPointer(types.voidptr))
-  args_call = [f'out{i}' for i in range(len(output_shapes))] + [f'in{i}' for i in range(len(input_shapes))]
-  code_string = '''
-  def numba_cpu_custom_call_target(output_ptrs, input_ptrs):
-      {args_out}
-      {args_in}
-      func_to_call({args_call})
-      '''.format(args_out="\n    ".join(args_out), args_in="\n    ".join(args_in), args_call=", ".join(args_call))
-
-  if debug:
-    print(code_string)
-  exec(compile(code_string.strip(), '', 'exec'), code_scope)
-  new_f = code_scope['numba_cpu_custom_call_target']
-
-  # register
-  xla_c_rule = cfunc(sig)(new_f)
-  target_name = f'numba_custom_call_{str(xla_c_rule.address)}'
-  capsule = ctypes.pythonapi.PyCapsule_New(xla_c_rule.address, b"xla._CUSTOM_CALL_TARGET", None)
-  xla_client.register_custom_call_target(target_name, capsule, "cpu")
-
-  # call
-  return custom_call(
-    call_target_name=target_name,
-    operands=ins,
-    operand_layouts=list(input_layouts),
-    result_layouts=list(output_layouts),
-    result_types=list(result_types),
-    has_side_effect=False,
-  ).results
-
-
 def register_op_with_numba_mlir(
     op_name: str,
     cpu_func: Callable,
@@ -329,8 +272,9 @@ def register_op_with_numba_mlir(
   prim.def_abstract_eval(abs_eval_rule)
   prim.def_impl(partial(xla.apply_primitive, prim))
 
-  def cpu_translation_rule(ctx, *ins, **kwargs):
-    return _numba_mlir_cpu_translation_rule(cpu_func, False, ctx, *ins, **kwargs)
+  cpu_translation_rule = partial(_numba_mlir_cpu_translation_rule,
+                                 cpu_func,
+                                 True)
 
   mlir.register_lowering(prim, cpu_translation_rule, platform='cpu')
 
