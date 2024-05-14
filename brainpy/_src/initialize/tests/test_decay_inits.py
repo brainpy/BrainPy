@@ -14,8 +14,8 @@ import brainpy.math as bm
 # visualization
 def mat_visualize(matrix, cmap=None):
   if cmap is None:
-    cmap = plt.cm.get_cmap('coolwarm')
-  plt.cm.get_cmap('coolwarm')
+    cmap = plt.colormaps.get_cmap('coolwarm')
+  plt.colormaps.get_cmap('coolwarm')
   im = plt.matshow(matrix, cmap=cmap)
   plt.colorbar(mappable=im, shrink=0.8, aspect=15)
   plt.show()

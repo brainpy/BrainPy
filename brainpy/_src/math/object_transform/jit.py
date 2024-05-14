@@ -491,9 +491,8 @@ def _make_jit_fun(
 
   return call_fun
 
-
 def _make_transform(fun, stack):
-  @wraps(fun)
+  # @wraps(fun)
   def _transform_function(variable_data: Dict, *args, **kwargs):
     for key, v in stack.items():
       v._value = variable_data[key]

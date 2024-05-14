@@ -157,7 +157,7 @@ class TestClsJIT(unittest.TestCase):
       def __init__(self):
         self.a = bm.Variable(bm.ones(2))
 
-      @bm.cls_jit(static_argnums=1)
+      @bm.cls_jit(static_argnums=0)
       def f(self, b, c):
         self.a.value *= b
         self.a.value /= c

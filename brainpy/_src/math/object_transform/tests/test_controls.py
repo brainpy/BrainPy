@@ -234,7 +234,7 @@ class TestIfElse(unittest.TestCase):
                        branches=[f1,
                                  lambda: 2, lambda: 3,
                                  lambda: 4, lambda: 5],
-                       dyn_vars=var_a,
+                       # dyn_vars=var_a,
                        show_code=True)
 
     self.assertTrue(f(11) == 1)

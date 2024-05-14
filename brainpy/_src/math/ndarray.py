@@ -660,7 +660,7 @@ class Array(object):
     """
     return _return(self.value.searchsorted(v=_as_jax_array_(v), side=side, sorter=sorter))
 
-  def sort(self, axis=-1, kind='quicksort', order=None):
+  def sort(self, axis=-1, stable=True, order=None):
     """Sort an array in-place.
 
     Parameters
@@ -668,11 +668,8 @@ class Array(object):
     axis : int, optional
         Axis along which to sort. Default is -1, which means sort along the
         last axis.
-    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}
-        Sorting algorithm. The default is 'quicksort'. Note that both 'stable'
-        and 'mergesort' use timsort under the covers and, in general, the
-        actual implementation will vary with datatype. The 'mergesort' option
-        is retained for backwards compatibility.
+    stable : bool, optional
+        Whether to use a stable sorting algorithm. The default is True.
     order : str or list of str, optional
         When `a` is an array with fields defined, this argument specifies
         which fields to compare first, second, etc.  A single field can
@@ -680,7 +677,8 @@ class Array(object):
         but unspecified fields will still be used, in the order in which
         they come up in the dtype, to break ties.
     """
-    self.value = self.value.sort(axis=axis, kind=kind, order=order)
+    self.value = self.value.sort(axis=axis, stable=stable, order=order)
+
 
   def squeeze(self, axis=None):
     """Remove axes of length one from ``a``."""

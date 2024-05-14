@@ -94,8 +94,8 @@ class TestExpEulerAuto(unittest.TestCase):
 
         return dVdt
 
-      def update(self, tdi):
-        t, dt = tdi.t, tdi.dt
+      def update(self):
+        t, dt = bp.share['t'], bp.share['dt']
         V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt=dt)
         self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
         self.V.value = V

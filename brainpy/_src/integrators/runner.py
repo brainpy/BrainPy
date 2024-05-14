@@ -9,7 +9,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import tqdm.auto
-from jax.experimental.host_callback import id_tap
 from jax.tree_util import tree_flatten
 
 from brainpy import math as bm
@@ -245,7 +244,7 @@ class IntegratorRunner(Runner):
 
     # progress bar
     if self.progress_bar:
-      id_tap(lambda *args: self._pbar.update(), ())
+      jax.pure_callback(lambda *args: self._pbar.update(), ())
 
     # return of function monitors
     shared = dict(t=t + self.dt, dt=self.dt, i=i)
