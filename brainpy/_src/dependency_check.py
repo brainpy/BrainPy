@@ -25,9 +25,9 @@ cupy_jit = None
 brainpylib_cpu_ops = None
 brainpylib_gpu_ops = None
 
-taichi_install_info = (f'We need taichi=={_minimal_taichi_version}. '
-                       f'Currently you can install taichi=={_minimal_taichi_version} through:\n\n'
-                       '> pip install taichi==1.7.0')
+taichi_install_info = (f'We need taichi>={_minimal_taichi_version}. '
+                       f'Currently you can install taichi=={_minimal_taichi_version} by pip . \n'
+                       '> pip install taichi -U')
 numba_install_info = ('We need numba. Please install numba by pip . \n'
                       '> pip install numba')
 cupy_install_info = ('We need cupy. Please install cupy by pip . \n'
