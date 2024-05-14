@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import ctypes
+import ctypes
 from functools import partial
 from typing import Callable
 from typing import Union, Sequence
@@ -8,6 +9,7 @@ import jax
 from jax.interpreters import xla, batching, ad, mlir
 
 from jax.tree_util import tree_map
+from jaxlib.hlo_helpers import custom_call
 
 from brainpy._src.dependency_check import import_numba
 from brainpy._src.math.ndarray import Array
@@ -19,12 +21,23 @@ from .cpu_translation import _cpu_translation, compile_cpu_signature_with_numba,
 numba = import_numba(error_if_not_found=False)
 if numba is not None:
   from numba import types, carray, cfunc
+if numba is not None:
+  from numba import types, carray, cfunc
 
 __all__ = [
   'CustomOpByNumba',
   'register_op_with_numba_xla',
+  'register_op_with_numba_xla',
   'compile_cpu_signature_with_numba',
 ]
+
+
+def _transform_to_shapedarray(a):
+  return jax.core.ShapedArray(a.shape, a.dtype)
+
+
+def convert_shapedarray_to_shapedtypestruct(shaped_array):
+  return jax.ShapeDtypeStruct(shape=shaped_array.shape, dtype=shaped_array.dtype)
 
 
 def _transform_to_shapedarray(a):
@@ -73,11 +86,35 @@ class CustomOpByNumba(BrainPyObject):
     if eval_shape is None:
       raise ValueError('Must provide "eval_shape" for abstract evaluation.')
     self.eval_shape = eval_shape
+    self.eval_shape = eval_shape
 
     # cpu function
     cpu_func = con_compute
 
     # register OP
+    if jax.__version__ > '0.4.23':
+      self.op_method = 'mlir'
+      self.op = register_op_with_numba_mlir(
+        self.name,
+        cpu_func=cpu_func,
+        out_shapes=eval_shape,
+        gpu_func_translation=None,
+        batching_translation=batching_translation,
+        jvp_translation=jvp_translation,
+        transpose_translation=transpose_translation,
+        multiple_results=multiple_results,
+      )
+    else:
+      self.op_method = 'xla'
+      self.op = register_op_with_numba_xla(
+        self.name,
+        cpu_func=cpu_func,
+        out_shapes=eval_shape,
+        batching_translation=batching_translation,
+        jvp_translation=jvp_translation,
+        transpose_translation=transpose_translation,
+        multiple_results=multiple_results,
+      )
     if jax.__version__ > '0.4.23':
       self.op_method = 'mlir'
       self.op = register_op_with_numba_mlir(
@@ -111,6 +148,7 @@ class CustomOpByNumba(BrainPyObject):
     return res
 
 
+def register_op_with_numba_xla(
 def register_op_with_numba_xla(
     op_name: str,
     cpu_func: Callable,

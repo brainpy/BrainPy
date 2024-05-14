@@ -239,10 +239,13 @@ class TestRegisterBPObjectAsPyTree(unittest.TestCase):
 
     tree = jax.tree.structure(hh)
     leaves = jax.tree.leaves(hh)
+    # tree = jax.tree.structure(hh)
+    # leaves = jax.tree.leaves(hh)
 
     print(tree)
     print(leaves)
     print(jax.tree.unflatten(tree, leaves))
+    # print(jax.tree.unflatten(tree, leaves))
     print()
 
 
@@ -282,12 +285,16 @@ class TestStateSavingAndLoading(unittest.TestCase):
         assert bm.allclose(x, y)
 
       jax.tree.map(all_close, all_states, variables, is_leaf=bm.is_bp_array)
+      # jax.tree.map(all_close, all_states, variables, is_leaf=bm.is_bp_array)
 
       random_state = jax.tree.map(bm.random.rand_like, all_states, is_leaf=bm.is_bp_array)
       jax.tree.map(not_close, random_state, variables, is_leaf=bm.is_bp_array)
+      # random_state = jax.tree.map(bm.random.rand_like, all_states, is_leaf=bm.is_bp_array)
+      # jax.tree.map(not_close, random_state, variables, is_leaf=bm.is_bp_array)
 
       obj.load_state_dict(random_state)
       jax.tree.map(all_close, random_state, variables, is_leaf=bm.is_bp_array)
+      # jax.tree.map(all_close, random_state, variables, is_leaf=bm.is_bp_array)
 
 
 

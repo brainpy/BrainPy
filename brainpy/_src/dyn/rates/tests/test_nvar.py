@@ -11,7 +11,7 @@ class Test_NVAR(parameterized.TestCase):
     def test_NVAR(self,mode):
         bm.random.seed()
         input=bm.random.randn(1,5)
-        layer=bp.dnn.NVAR(num_in=5,
+        layer=bp.dyn.NVAR(num_in=5,
                           delay=10,
                           mode=mode)
         if mode in [bm.NonBatchingMode()]:
