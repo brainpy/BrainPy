@@ -1,5 +1,6 @@
 import jax.core
 import pytest
+from jax.core import ShapedArray
 
 import brainpy.math as bm
 from brainpy._src.dependency_check import import_numba
@@ -35,3 +36,20 @@ def test_event_ELL():
   call(1000)
   call(100)
   bm.clear_buffer_memory()
+
+# CustomOpByNumba Test
+
+def eval_shape(a):
+  b = ShapedArray(a.shape, dtype=a.dtype)
+  return b
+
+@numba.njit(parallel=True)
+def con_compute(outs, ins):
+  b = outs
+  a = ins
+  b[:] = a + 1
+
+def test_CustomOpByNumba():
+  op = bm.CustomOpByNumba(eval_shape, con_compute, multiple_results=False)
+  print(op(bm.zeros(10)))
+  assert bm.allclose(op(bm.zeros(10)), bm.ones(10))
