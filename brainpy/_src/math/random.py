@@ -4,12 +4,14 @@ import warnings
 from collections import namedtuple
 from functools import partial
 from operator import index
-from typing import Optional, Union, Sequence
+from typing import Optional, Union, Sequence, Any
 
 import jax
 import numpy as np
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
 from jax._src.array import ArrayImpl
+from jax._src.core import _canonicalize_dimension, _invalid_shape_error
+from jax._src.typing import Shape
 from jax.tree_util import register_pytree_node_class
 
 from brainpy.check import jit_error_checking, jit_error_checking_no_args
@@ -33,7 +35,7 @@ __all__ = [
   'hypergeometric', 'logseries', 'multinomial', 'multivariate_normal',
   'negative_binomial', 'noncentral_chisquare', 'noncentral_f', 'power',
   'rayleigh', 'triangular', 'vonmises', 'wald', 'weibull', 'weibull_min',
-  'zipf', 'maxwell', 't', 'orthogonal', 'loggamma', 'categorical',
+  'zipf', 'maxwell', 't', 'orthogonal', 'loggamma', 'categorical', 'canonicalize_shape',
 
   # pytorch compatibility
   'rand_like', 'randint_like', 'randn_like',
@@ -435,6 +437,22 @@ def _loc_scale(loc, scale, value):
 
 def _check_py_seq(seq):
   return jnp.asarray(seq) if isinstance(seq, (tuple, list)) else seq
+
+
+def canonicalize_shape(shape: Shape, context: str = "") -> tuple[Any, ...]:
+  """Canonicalizes and checks for errors in a user-provided shape value.
+
+  Args:
+    shape: a Python value that represents a shape.
+
+  Returns:
+    A tuple of canonical dimension values.
+  """
+  try:
+    return tuple(map(_canonicalize_dimension, shape))
+  except TypeError:
+    pass
+  raise _invalid_shape_error(shape, context)
 
 
 @register_pytree_node_class
@@ -1097,7 +1115,7 @@ class RandomState(Variable):
 
   def maxwell(self, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Union[int, JAX_RAND_KEY]] = None):
     key = self.split_key() if key is None else _formalize_key(key)
-    shape = core.canonicalize_shape(_size2shape(size)) + (3,)
+    shape = canonicalize_shape(_size2shape(size)) + (3,)
     norm_rvs = jr.normal(key=key, shape=shape)
     r = jnp.linalg.norm(norm_rvs, axis=-1)
     return _return(r)

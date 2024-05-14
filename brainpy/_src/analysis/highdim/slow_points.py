@@ -329,7 +329,7 @@ class SlowPointFinder(base.DSAnalyzer):
     """
     # optimization settings
     if optimizer is None:
-      optimizer = optim.Adam(lr=optim.ExponentialDecay(0.2, 1, 0.9999),
+      optimizer = optim.Adam(lr=optim.ExponentialDecayLR(0.2, 1, 0.9999),
                              beta1=0.9, beta2=0.999, eps=1e-8)
     else:
       if not isinstance(optimizer, optim.Optimizer):

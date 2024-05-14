@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import brainpy as bp
 
 
-class GABAa_without_Variable(bp.TwoEndConn):
+class GABAa_without_Variable(bp.synapses.TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
                alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
     super(GABAa_without_Variable, self).__init__(pre=pre, post=post, **kwargs)
@@ -192,7 +192,7 @@ def test_neu_nodes_1():
   assert len(neu.nodes(method='relative', include_self=False)) == 1
 
 
-class GABAa_with_Variable(bp.TwoEndConn):
+class GABAa_with_Variable(bp.synapses.TwoEndConn):
   def __init__(self, pre, post, conn, delay=0., g_max=0.1, E=-75.,
                alpha=12., beta=0.1, T=1.0, T_duration=1.0, **kwargs):
     super(GABAa_with_Variable, self).__init__(pre=pre, post=post, **kwargs)

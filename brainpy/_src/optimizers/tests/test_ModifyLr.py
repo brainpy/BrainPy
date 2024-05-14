@@ -28,7 +28,7 @@ def train_data():
 class RNN(bp.DynamicalSystem):
   def __init__(self, num_in, num_hidden):
     super(RNN, self).__init__()
-    self.rnn = bp.dnn.RNNCell(num_in, num_hidden, train_state=True)
+    self.rnn = bp.dyn.RNNCell(num_in, num_hidden, train_state=True)
     self.out = bp.dnn.Dense(num_hidden, 1)
 
   def update(self, x):
