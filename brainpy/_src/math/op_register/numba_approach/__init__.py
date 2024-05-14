@@ -149,7 +149,6 @@ class CustomOpByNumba(BrainPyObject):
 
 
 def register_op_with_numba_xla(
-def register_op_with_numba_xla(
     op_name: str,
     cpu_func: Callable,
     out_shapes: Union[Callable, jax.core.ShapedArray, Sequence[jax.core.ShapedArray]],
