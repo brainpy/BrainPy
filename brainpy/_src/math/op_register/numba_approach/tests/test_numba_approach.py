@@ -31,14 +31,13 @@ def eval_shape2(a, b):
   d = ShapedArray(b.shape, dtype=b.dtype)
   return c, d
 
-
 def con_compute2(outs, ins):
-  # c = outs[0]  # take out all the outputs
-  # d = outs[1]
-  # a = ins[0]  # take out all the inputs
-  # b = ins[1]
-  c, d = outs
-  a, b = ins
+  c = outs[0]  # take out all the outputs
+  d = outs[1]
+  a = ins[0]  # take out all the inputs
+  b = ins[1]
+  # c, d = outs
+  # a, b = ins
   c[:] = a + 1
   d[:] = b * 2
 

@@ -276,7 +276,7 @@ def register_op_with_numba_mlir(
 
   cpu_translation_rule = partial(_numba_mlir_cpu_translation_rule,
                                  cpu_func,
-                                 True)
+                                 False)
 
   mlir.register_lowering(prim, cpu_translation_rule, platform='cpu')
 
