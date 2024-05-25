@@ -147,7 +147,6 @@ if ti is not None:
   # _csr_matmat_heter_p = _define_op(cpu_kernel=_csr_matmat_heter,
   #                                  gpu_kernel=_csr_matmat_heter)
 
-
   @ti.kernel
   def _csr_matmat_transpose_homo_cpu(col_indices: ti.types.ndarray(ndim=1),
                                      row_ptr: ti.types.ndarray(ndim=1),
@@ -203,10 +202,9 @@ if ti is not None:
     if ad.is_undefined_primal(col_indices) or ad.is_undefined_primal(row_ptr):
       raise ValueError("Cannot transpose with respect to sparse indices.")
     assert ad.is_undefined_primal(matrix)
-    ct_matrix = _csr_matmat_transpose_homo_p(col_indices, row_ptr, ct[0],
-                                             shape=shape,
-                                             transpose=not transpose,
-                                             outs=[jax.ShapeDtypeStruct(matrix.shape, matrix.dtype)])
+    ct_matrix = raw_csrmm_taichi(jnp.ones(1), col_indices, row_ptr, ct[0],
+                                 shape=shape,
+                                 transpose=not transpose)
     return col_indices, row_ptr, (ad.Zero(matrix) if type(ct[0]) is ad.Zero else ct_matrix[0])
 
 

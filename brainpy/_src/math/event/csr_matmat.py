@@ -7,13 +7,15 @@ import jax
 import numpy as np
 from jax import numpy as jnp
 from jax.interpreters import ad
+from jax.experimental.sparse import csr
 
 from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import (XLACustomOp)
+from brainpy._src.math.op_register import (XLACustomOp, register_general_batching)
 from brainpy._src.math.sparse.csr_mm import raw_csrmm_taichi as normal_csrmm
 from brainpy._src.math.sparse.utils import csr_to_coo
+from brainpy._src.math.defaults import float_
 
 ti = import_taichi()
 
@@ -86,23 +88,26 @@ def raw_event_csrmm_taichi(
     return [jnp.zeros(result_shape, dtype=data.dtype), ]
 
   assert matrix.shape[0] == (shape[0] if transpose else shape[1])
-  if transpose:
+
+  # homo -> taichi
+  # heter -> cusparse
+  if data.shape[0] != 1:
     if matrix.dtype == jnp.bool_:
-      if data.shape[0] == 1:
-        prim = _event_csr_matmat_transpose_bool_homo_p
-      else:
-        prim = _event_csr_matmat_transpose_bool_heter_p
-    else:
-      return normal_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+      # change dtype to float
+      matrix = matrix.astype(float_)
+    return [_csr_matmat_cusparse_p.bind(data, indices, indptr, matrix, shape=shape, transpose=transpose), ]
   else:
-    if matrix.dtype == jnp.bool_:
-      if data.shape[0] == 1:
+    if transpose:
+      if matrix.dtype == jnp.bool_:
+        prim = _event_csr_matmat_transpose_homo_p
+      else:
+        return normal_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+    else:
+      if matrix.dtype == jnp.bool_:
         prim = _event_csr_matmat_bool_homo_p
       else:
-        prim = _event_csr_matmat_bool_heter_p
-    else:
-      return normal_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
-  return prim(data,
+        return normal_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+    return prim(data,
               indices,
               indptr,
               matrix,
@@ -299,3 +304,7 @@ _event_csr_matmat_transpose_bool_homo_p = _define_op(cpu_kernel=_event_csr_matma
 # bool no transpose homo
 _event_csr_matmat_bool_homo_p = _define_op(cpu_kernel=_event_csr_matmat_bool_homo,
                                            gpu_kernel=_event_csr_matmat_bool_homo)
+
+# heter CUSPARSE
+_csr_matmat_cusparse_p = csr.csr_matmat_p
+register_general_batching(_csr_matmat_cusparse_p)
