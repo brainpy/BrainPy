@@ -32,6 +32,7 @@ Brain Dynamics Dedicated Operators
 
    tutorial_advanced/operator_custom_with_numba.ipynb
    tutorial_advanced/operator_custom_with_taichi.ipynb
+   tutorial_advanced/operator_custom_with_cupy.ipynb
 
 
 Developer Guides

@@ -4,13 +4,14 @@ import warnings
 from collections import namedtuple
 from functools import partial
 from operator import index
-from typing import Optional, Union, Sequence
+from typing import Optional, Union, Sequence, Any
 
 import jax
 import numpy as np
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
 from jax._src.array import ArrayImpl
-from jax.experimental.host_callback import call
+from jax._src.core import _canonicalize_dimension, _invalid_shape_error
+from jax._src.typing import Shape
 from jax.tree_util import register_pytree_node_class
 
 from brainpy.check import jit_error_checking, jit_error_checking_no_args
@@ -34,7 +35,7 @@ __all__ = [
   'hypergeometric', 'logseries', 'multinomial', 'multivariate_normal',
   'negative_binomial', 'noncentral_chisquare', 'noncentral_f', 'power',
   'rayleigh', 'triangular', 'vonmises', 'wald', 'weibull', 'weibull_min',
-  'zipf', 'maxwell', 't', 'orthogonal', 'loggamma', 'categorical',
+  'zipf', 'maxwell', 't', 'orthogonal', 'loggamma', 'categorical', 'canonicalize_shape',
 
   # pytorch compatibility
   'rand_like', 'randint_like', 'randn_like',
@@ -436,6 +437,22 @@ def _loc_scale(loc, scale, value):
 
 def _check_py_seq(seq):
   return jnp.asarray(seq) if isinstance(seq, (tuple, list)) else seq
+
+
+def canonicalize_shape(shape: Shape, context: str = "") -> tuple[Any, ...]:
+  """Canonicalizes and checks for errors in a user-provided shape value.
+
+  Args:
+    shape: a Python value that represents a shape.
+
+  Returns:
+    A tuple of canonical dimension values.
+  """
+  try:
+    return tuple(map(_canonicalize_dimension, shape))
+  except TypeError:
+    pass
+  raise _invalid_shape_error(shape, context)
 
 
 @register_pytree_node_class
@@ -1098,7 +1115,7 @@ class RandomState(Variable):
 
   def maxwell(self, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Union[int, JAX_RAND_KEY]] = None):
     key = self.split_key() if key is None else _formalize_key(key)
-    shape = core.canonicalize_shape(_size2shape(size)) + (3,)
+    shape = canonicalize_shape(_size2shape(size)) + (3,)
     norm_rvs = jr.normal(key=key, shape=shape)
     r = jnp.linalg.norm(norm_rvs, axis=-1)
     return _return(r)
@@ -1233,9 +1250,9 @@ class RandomState(Variable):
     if size is None:
       size = jnp.shape(a)
     dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
-    r = call(lambda x: np.random.zipf(x, size).astype(dtype),
-             a,
-             result_shape=jax.ShapeDtypeStruct(size, dtype))
+    r = jax.pure_callback(lambda x: np.random.zipf(x, size).astype(dtype),
+                          jax.ShapeDtypeStruct(size, dtype),
+                          a)
     return _return(r)
 
   def power(self, a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Union[int, JAX_RAND_KEY]] = None):
@@ -1244,9 +1261,9 @@ class RandomState(Variable):
       size = jnp.shape(a)
     size = _size2shape(size)
     dtype = jax.dtypes.canonicalize_dtype(jnp.float_)
-    r = call(lambda a: np.random.power(a=a, size=size).astype(dtype),
-             a,
-             result_shape=jax.ShapeDtypeStruct(size, dtype))
+    r = jax.pure_callback(lambda a: np.random.power(a=a, size=size).astype(dtype),
+                          jax.ShapeDtypeStruct(size, dtype),
+                          a)
     return _return(r)
 
   def f(self, dfnum, dfden, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1260,11 +1277,11 @@ class RandomState(Variable):
     size = _size2shape(size)
     d = {'dfnum': dfnum, 'dfden': dfden}
     dtype = jax.dtypes.canonicalize_dtype(jnp.float_)
-    r = call(lambda x: np.random.f(dfnum=x['dfnum'],
-                                   dfden=x['dfden'],
-                                   size=size).astype(dtype),
-             d,
-             result_shape=jax.ShapeDtypeStruct(size, dtype))
+    r = jax.pure_callback(lambda x: np.random.f(dfnum=x['dfnum'],
+                                                dfden=x['dfden'],
+                                                size=size).astype(dtype),
+                          jax.ShapeDtypeStruct(size, dtype),
+                          d)
     return _return(r)
 
   def hypergeometric(self, ngood, nbad, nsample, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1280,12 +1297,12 @@ class RandomState(Variable):
     size = _size2shape(size)
     dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
     d = {'ngood': ngood, 'nbad': nbad, 'nsample': nsample}
-    r = call(lambda d: np.random.hypergeometric(ngood=d['ngood'],
-                                                nbad=d['nbad'],
-                                                nsample=d['nsample'],
-                                                size=size).astype(dtype),
-             d,
-             result_shape=jax.ShapeDtypeStruct(size, dtype))
+    r = jax.pure_callback(lambda d: np.random.hypergeometric(ngood=d['ngood'],
+                                                             nbad=d['nbad'],
+                                                             nsample=d['nsample'],
+                                                             size=size).astype(dtype),
+                          jax.ShapeDtypeStruct(size, dtype),
+                          d)
     return _return(r)
 
   def logseries(self, p, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1295,9 +1312,9 @@ class RandomState(Variable):
       size = jnp.shape(p)
     size = _size2shape(size)
     dtype = jax.dtypes.canonicalize_dtype(jnp.int_)
-    r = call(lambda p: np.random.logseries(p=p, size=size).astype(dtype),
-             p,
-             result_shape=jax.ShapeDtypeStruct(size, dtype))
+    r = jax.pure_callback(lambda p: np.random.logseries(p=p, size=size).astype(dtype),
+                          jax.ShapeDtypeStruct(size, dtype),
+                          p)
     return _return(r)
 
   def noncentral_f(self, dfnum, dfden, nonc, size: Optional[Union[int, Sequence[int]]] = None,
@@ -1312,11 +1329,12 @@ class RandomState(Variable):
     size = _size2shape(size)
     d = {'dfnum': dfnum, 'dfden': dfden, 'nonc': nonc}
     dtype = jax.dtypes.canonicalize_dtype(jnp.float_)
-    r = call(lambda x: np.random.noncentral_f(dfnum=x['dfnum'],
-                                              dfden=x['dfden'],
-                                              nonc=x['nonc'],
-                                              size=size).astype(dtype),
-             d, result_shape=jax.ShapeDtypeStruct(size, dtype))
+    r = jax.pure_callback(lambda x: np.random.noncentral_f(dfnum=x['dfnum'],
+                                                           dfden=x['dfden'],
+                                                           nonc=x['nonc'],
+                                                           size=size).astype(dtype),
+                          jax.ShapeDtypeStruct(size, dtype),
+                          d)
     return _return(r)
 
   # PyTorch compatibility #
