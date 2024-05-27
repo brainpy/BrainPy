@@ -1058,6 +1058,12 @@ class JitFPHomoLinear(Layer):
                                    transpose=self.transpose,
                                    outdim_parallel=not self.atomic)
 
+  def get_connect_matrix(self):
+    return bm.jitconn.get_connect_matrix(self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
+
 
 class JitFPUniformLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
@@ -1137,6 +1143,12 @@ class JitFPUniformLinear(Layer):
                                       shape=(self.num_out, self.num_in),
                                       transpose=self.transpose,
                                       outdim_parallel=not self.atomic)
+
+  def get_connect_matrix(self):
+    return bm.jitconn.get_connect_matrix(self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
 
 
 class JitFPNormalLinear(Layer):
@@ -1218,6 +1230,12 @@ class JitFPNormalLinear(Layer):
                                      transpose=self.transpose,
                                      outdim_parallel=not self.atomic)
 
+  def get_connect_matrix(self):
+    return bm.jitconn.get_connect_matrix(self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
+
 
 class EventJitFPHomoLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
@@ -1293,6 +1311,12 @@ class EventJitFPHomoLinear(Layer):
 
   def _batch_mv(self, x):
     return bm.jitconn.event_mv_prob_homo(x, self.weight, self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
+
+  def get_connect_matrix(self):
+    return bm.jitconn.get_connect_matrix(self.prob, self.seed,
                                          shape=(self.num_out, self.num_in),
                                          transpose=self.transpose,
                                          outdim_parallel=not self.atomic)
@@ -1377,6 +1401,12 @@ class EventJitFPUniformLinear(Layer):
                                             transpose=self.transpose,
                                             outdim_parallel=not self.atomic)
 
+  def get_connect_matrix(self):
+    return bm.jitconn.get_connect_matrix(self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
+
 
 class EventJitFPNormalLinear(Layer):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
@@ -1456,3 +1486,9 @@ class EventJitFPNormalLinear(Layer):
                                            shape=(self.num_out, self.num_in),
                                            transpose=self.transpose,
                                            outdim_parallel=not self.atomic)
+
+  def get_connect_matrix(self):
+    return bm.jitconn.get_connect_matrix(self.prob, self.seed,
+                                         shape=(self.num_out, self.num_in),
+                                         transpose=self.transpose,
+                                         outdim_parallel=not self.atomic)
