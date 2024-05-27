@@ -131,10 +131,7 @@ def raw_csrmv_taichi(
       else:
         prim = _event_csrmv_transpose_bool_heter_p
     else:
-      if data.shape[0] == 1:
-        prim = _event_csrmv_transpose_homo_p
-      else:
-        prim = _event_csrmv_transpose_heter_p
+      return normal_csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
   else:
     if events.dtype == jnp.bool_:
       if data.shape[0] == 1:
@@ -142,10 +139,7 @@ def raw_csrmv_taichi(
       else:
         prim = _event_csrmv_bool_heter_p
     else:
-      if data.shape[0] == 1:
-        prim = _event_csrmv_homo_p
-      else:
-        prim = _event_csrmv_heter_p
+      return normal_csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
 
   # computing
   return prim(data,
