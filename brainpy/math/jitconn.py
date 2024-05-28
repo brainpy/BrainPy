@@ -7,6 +7,6 @@ from brainpy._src.math.jitconn import (
   mv_prob_uniform as mv_prob_uniform,
   mv_prob_normal as mv_prob_normal,
 
-  get_connect_matrix as get_connect_matrix,
+  get_conn_matrix as get_conn_matrix,
 )
 

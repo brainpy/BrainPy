@@ -32,10 +32,10 @@ class TestGetConnectMatrix(parameterized.TestCase):
     shape=shapes,
     prob=[0.1],
   )
-  def test_get_connect_matrix(self, transpose, outdim_parallel, shape, prob):
+  def test_get_conn_matrix(self, transpose, outdim_parallel, shape, prob):
     print(
       f'test_get_connect_matrix: transpose={transpose}, outdim_parallel={outdim_parallel}, shape={shape}, prob={prob}')
-    conn = bm.jitconn.get_connect_matrix(prob, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    conn = bm.jitconn.get_conn_matrix(prob, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
     shape = (shape[1], shape[0]) if transpose else shape
     assert conn.shape == shape
     assert conn.dtype == jnp.bool_

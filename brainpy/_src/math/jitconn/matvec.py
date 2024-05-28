@@ -20,7 +20,7 @@ __all__ = [
   'mv_prob_homo',
   'mv_prob_uniform',
   'mv_prob_normal',
-  'get_connect_matrix',
+  'get_conn_matrix',
 ]
 
 
@@ -258,7 +258,7 @@ def mv_prob_normal(
                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
-def get_connect_matrix(
+def get_conn_matrix(
     conn_prob: float,
     seed: Optional[int] = None,
     *,
