@@ -15,7 +15,7 @@ force_test = False  # turn on to force test on windows locally
 # if platform.system() == 'Windows' and not force_test:
 #   pytest.skip('skip windows', allow_module_level=True)
 
-shapes = [(10, 20), (1000, 10)]
+shapes = [(100, 200), (1000, 10)]
 
 SEED = 1234
 

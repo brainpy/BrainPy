@@ -4,6 +4,9 @@ from brainpy._src.math.sparse import (
 )
 from brainpy._src.math.sparse import (
   csrmv,
+  csrmm,
+
+  seg_matmul,
 
   csr_to_dense as csr_to_dense,
   csr_to_coo as csr_to_coo,
