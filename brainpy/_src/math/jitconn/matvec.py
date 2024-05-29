@@ -20,6 +20,7 @@ __all__ = [
   'mv_prob_homo',
   'mv_prob_uniform',
   'mv_prob_normal',
+  'get_conn_matrix',
 ]
 
 
@@ -257,6 +258,49 @@ def mv_prob_normal(
                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
+def get_conn_matrix(
+    conn_prob: float,
+    seed: Optional[int] = None,
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False,
+    outdim_parallel: bool = True,
+) -> jax.Array:
+  r"""Get the connection matrix :math:`M` with a connection probability `conn_prob`.
+
+  Parameters
+  ----------
+  conn_prob: float
+    The connection probability.
+  shape: tuple of int
+    The matrix shape.
+  seed: int
+    The random number generation seed.
+  transpose: bool
+    Transpose the random matrix or not.
+  outdim_parallel: bool
+    Perform the parallel random generations along the out dimension or not.
+    It can be used to set the just-in-time generated :math:M^T: is the same
+    as the just-in-time generated :math:`M` when ``transpose=True``.
+
+  Returns
+  -------
+  out: Array, ndarray
+    The connection matrix :math:`M`.
+  """
+  if ti is None:
+    raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
+
+  conn_len = jnp.ceil(1 / conn_prob) * 2 - 1
+  conn_len = jnp.asarray(jnp.atleast_1d(conn_len), dtype=jnp.int32)
+  if seed is None:
+    with jax.ensure_compile_time_eval():
+      seed = np.random.randint(0, int(1e8), 1)
+  seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.uint32))
+  return raw_get_connect_matrix(conn_len, seed, shape=shape,
+                                transpose=transpose, outdim_parallel=outdim_parallel)[0].astype(jnp.bool_)
+
+
 def raw_mv_prob_homo(
     vector: jax.Array,
     weight: jax.Array,  # vector with size 1
@@ -338,6 +382,28 @@ def raw_mv_prob_normal(
               seed,
               outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=vector.dtype)],
               shape=mat_shape,
+              transpose=transpose,
+              outdim_parallel=outdim_parallel)
+
+
+def raw_get_connect_matrix(
+    conn_len: jax.Array,
+    seed: jax.Array,
+    *,
+    shape: Tuple[int, int],
+    transpose: bool = False,
+    outdim_parallel: bool = True,
+) -> jax.Array:
+  out_shape = shape if not transpose else (shape[1], shape[0])
+  if outdim_parallel:
+    prim = _get_connect_matrix_outdim_parallel_p
+  else:
+    prim = _get_connect_matrix_p
+
+  return prim(conn_len,
+              seed,
+              outs=[jax.ShapeDtypeStruct(shape=out_shape, dtype=jnp.int32)],
+              shape=shape,
               transpose=transpose,
               outdim_parallel=outdim_parallel)
 
@@ -918,3 +984,48 @@ if ti is not None:
     cpu_kernel=_mv_prob_normal_cpu,
     gpu_kernel=_mv_prob_normal_gpu
   )
+
+
+  @ti.kernel
+  def _get_connect_matrix(
+      clen: ti.types.ndarray(),
+      seed: ti.types.ndarray(),
+      out: ti.types.ndarray(),
+  ):
+    num_row = out.shape[0]
+    num_col = out.shape[1]
+    clen0 = clen[0]
+    seed0 = seed[0]
+
+    for i_col in range(num_col):
+      key = lfsr88_key(seed0 + i_col)
+      key, i_row = lfsr88_random_integers(key, 0, clen0 - 1)
+      while i_row < num_row:
+        out[i_row, i_col] = 1
+        key, inc = lfsr88_random_integers(key, 1, clen0)
+        i_row += inc
+
+
+  @ti.kernel
+  def _get_connect_matrix_outdim_parallel(
+      clen: ti.types.ndarray(),
+      seed: ti.types.ndarray(),
+      out: ti.types.ndarray(),
+  ):
+    num_row = out.shape[0]
+    num_col = out.shape[1]
+    clen0 = clen[0]
+    seed0 = seed[0]
+
+    for i_row in range(num_row):
+      key = lfsr88_key(seed0 + i_row)
+      key, i_col = lfsr88_random_integers(key, 0, clen0 - 1)
+      while i_col < num_col:
+        out[i_row, i_col] = 1
+        key, inc = lfsr88_random_integers(key, 1, clen0)
+        i_col += inc
+
+
+  _get_connect_matrix_p = XLACustomOp(cpu_kernel=_get_connect_matrix, gpu_kernel=_get_connect_matrix)
+  _get_connect_matrix_outdim_parallel_p = XLACustomOp(cpu_kernel=_get_connect_matrix_outdim_parallel,
+                                                      gpu_kernel=_get_connect_matrix_outdim_parallel)

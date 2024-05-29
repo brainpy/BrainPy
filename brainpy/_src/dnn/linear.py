@@ -980,7 +980,15 @@ class BcscMM(Layer):
     self.sharding = sharding
 
 
-class JitFPHomoLinear(Layer):
+class JitFPLinear(Layer):
+  def get_conn_matrix(self):
+    return bm.jitconn.get_conn_matrix(self.prob, self.seed,
+                                      shape=(self.num_out, self.num_in),
+                                      transpose=self.transpose,
+                                      outdim_parallel=not self.atomic)
+
+
+class JitFPHomoLinear(JitFPLinear):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -1059,7 +1067,7 @@ class JitFPHomoLinear(Layer):
                                    outdim_parallel=not self.atomic)
 
 
-class JitFPUniformLinear(Layer):
+class JitFPUniformLinear(JitFPLinear):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -1139,7 +1147,7 @@ class JitFPUniformLinear(Layer):
                                       outdim_parallel=not self.atomic)
 
 
-class JitFPNormalLinear(Layer):
+class JitFPNormalLinear(JitFPLinear):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -1219,7 +1227,7 @@ class JitFPNormalLinear(Layer):
                                      outdim_parallel=not self.atomic)
 
 
-class EventJitFPHomoLinear(Layer):
+class EventJitFPHomoLinear(JitFPLinear):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -1298,7 +1306,7 @@ class EventJitFPHomoLinear(Layer):
                                          outdim_parallel=not self.atomic)
 
 
-class EventJitFPUniformLinear(Layer):
+class EventJitFPUniformLinear(JitFPLinear):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
@@ -1378,7 +1386,7 @@ class EventJitFPUniformLinear(Layer):
                                             outdim_parallel=not self.atomic)
 
 
-class EventJitFPNormalLinear(Layer):
+class EventJitFPNormalLinear(JitFPLinear):
   r"""Synaptic matrix multiplication with the just-in-time connectivity.
 
   It performs the computation of:
