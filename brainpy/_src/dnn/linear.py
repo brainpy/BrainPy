@@ -979,22 +979,25 @@ class BcscMM(Layer):
     self.conn = conn
     self.sharding = sharding
 
+class JitLinear(Layer):
+  def get_conn_matrix(self):
+    pass
 
-class JitFPHomoLayer(Layer):
+class JitFPHomoLayer(JitLinear):
   def get_conn_matrix(self):
     return bm.jitconn.get_conn_matrix(self.prob, self.seed,
                                       shape=(self.num_out, self.num_in),
                                       transpose=self.transpose,
                                       outdim_parallel=not self.atomic)
 
-class JitFPUniformLayer(Layer):
+class JitFPUniformLayer(JitLinear):
   def get_conn_matrix(self):
     return bm.jitconn.get_uniform_weight_matrix(self.w_low, self.w_high, self.prob, self.seed,
                                       shape=(self.num_out, self.num_in),
                                       transpose=self.transpose,
                                       outdim_parallel=not self.atomic)
 
-class JitFPNormalLayer(Layer):
+class JitFPNormalLayer(JitLinear):
   def get_conn_matrix(self):
     return bm.jitconn.get_normal_weight_matrix(self.w_mu, self.w_sigma, self.prob, self.seed,
                                       shape=(self.num_out, self.num_in),

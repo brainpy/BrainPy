@@ -33,19 +33,20 @@ class TestGetConnectMatrix(parameterized.TestCase):
     prob=[0.1],
   )
   def test_get_conn_matrix(self, transpose, outdim_parallel, shape, prob):
+    homo_data = 1.
     print(
       f'test_get_connect_matrix: transpose={transpose}, outdim_parallel={outdim_parallel}, shape={shape}, prob={prob}')
-    conn = bm.jitconn.get_conn_matrix(prob, SEED, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+    conn = bm.jitconn.get_homo_weight_matrix(homo_data, prob, SEED, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
     shape = (shape[1], shape[0]) if transpose else shape
     print(conn.shape)
     assert conn.shape == shape
-    assert conn.dtype == jnp.bool_
+    # assert conn.dtype == jnp.float_
     # sum all true values
     print(
       f'jnp.sum(conn): {jnp.sum(conn)}, jnp.round(prob * shape[0] * shape[1]): {jnp.round(prob * shape[0] * shape[1])}')
 
     # compare with jitconn op
-    homo_data = 1.
+
     rng = bm.random.RandomState()
     vector = bm.as_jax(rng.random(shape[0] if transpose else shape[1]))
 

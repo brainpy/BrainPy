@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
+import numbers
 from typing import Tuple, Optional, Union
 
 import jax
@@ -9,6 +8,7 @@ from jax import numpy as jnp
 from jax.interpreters import ad
 
 from brainpy._src.dependency_check import import_taichi
+from brainpy._src.math.defaults import float_
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
@@ -20,7 +20,7 @@ __all__ = [
   'mv_prob_homo',
   'mv_prob_uniform',
   'mv_prob_normal',
-  'get_conn_matrix',
+  'get_homo_weight_matrix',
   'get_uniform_weight_matrix',
   'get_normal_weight_matrix'
 ]
@@ -260,7 +260,8 @@ def mv_prob_normal(
                             transpose=transpose, outdim_parallel=outdim_parallel)[0]
 
 
-def get_conn_matrix(
+def get_homo_weight_matrix(
+    weight: float,
     conn_prob: float,
     seed: Optional[int] = None,
     *,
@@ -290,6 +291,10 @@ def get_conn_matrix(
   out: Array, ndarray
     The connection matrix :math:`M`.
   """
+  if isinstance(weight, numbers.Number):
+    weight = jnp.atleast_1d(jnp.asarray(weight, dtype=float_))
+  else:
+    raise ValueError(f'weight must be a number type, but get {type(weight)}')
   if ti is None:
     raise PackageMissingError.by_purpose('taichi', purpose='customized operators')
 
@@ -299,8 +304,9 @@ def get_conn_matrix(
     with jax.ensure_compile_time_eval():
       seed = np.random.randint(0, int(1e8), 1)
   seed = jnp.atleast_1d(jnp.asarray(seed, dtype=jnp.uint32))
-  r = raw_get_connect_matrix(conn_len, seed, shape=shape,
-                             transpose=transpose, outdim_parallel=outdim_parallel)[0].astype(jnp.bool_)
+  r = raw_get_homo_weight_matrix(conn_len, seed, shape=shape,
+                                 transpose=transpose, outdim_parallel=outdim_parallel)[0].astype(jnp.bool_)
+  r *= weight
   if transpose:
     return r.transpose()
   else:
@@ -501,7 +507,7 @@ def raw_mv_prob_normal(
               outdim_parallel=outdim_parallel)
 
 
-def raw_get_connect_matrix(
+def raw_get_homo_weight_matrix(
     conn_len: jax.Array,
     seed: jax.Array,
     *,

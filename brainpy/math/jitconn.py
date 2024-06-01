@@ -7,7 +7,7 @@ from brainpy._src.math.jitconn import (
   mv_prob_uniform as mv_prob_uniform,
   mv_prob_normal as mv_prob_normal,
 
-  get_conn_matrix as get_conn_matrix,
+  get_homo_weight_matrix as get_homo_weight_matrix,
   get_uniform_weight_matrix as get_uniform_weight_matrix,
   get_normal_weight_matrix as get_normal_weight_matrix,
 )
