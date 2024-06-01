@@ -985,7 +985,7 @@ class JitLinear(Layer):
 
 class JitFPHomoLayer(JitLinear):
   def get_conn_matrix(self):
-    return bm.jitconn.get_conn_matrix(self.prob, self.seed,
+    return bm.jitconn.get_uniform_weight_matrix(self.prob, self.seed,
                                       shape=(self.num_out, self.num_in),
                                       transpose=self.transpose,
                                       outdim_parallel=not self.atomic)
