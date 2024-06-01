@@ -111,7 +111,7 @@ class ODEIntegrator(Integrator):
       kwargs[self.arg_names[i]] = arg
 
     # integral
-    new_vars = self.integral(**kwargs)
+    new_vars = self._call_integral(**kwargs)
     if len(self.variables) == 1:
       dict_vars = {self.variables[0]: new_vars}
     else:

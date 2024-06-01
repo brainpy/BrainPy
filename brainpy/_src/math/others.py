@@ -6,6 +6,7 @@ from typing import Optional, Union
 import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
+import numpy as np
 
 from brainpy import check, tools
 from .compat_numpy import fill_diagonal
@@ -100,7 +101,8 @@ def _exprel(x, threshold):
     return (jnp.exp(x) - 1) / x
 
   # return jax.lax.cond(jnp.abs(x) < threshold, true_f, false_f, x)
-  return jnp.where(jnp.abs(x) <= threshold, 1. + x / 2. + x * x / 6., (jnp.exp(x) - 1) / x)
+  # return jnp.where(jnp.abs(x) <= threshold, 1. + x / 2. + x * x / 6., (jnp.exp(x) - 1) / x)
+  return jax.lax.select(jnp.abs(x) <= threshold, 1. + x / 2. + x * x / 6., (jnp.exp(x) - 1) / x)
 
 
 def exprel(x, threshold: float = None):
