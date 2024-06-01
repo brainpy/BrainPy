@@ -4,15 +4,14 @@ from typing import Tuple, Optional, Union
 
 import jax
 import numpy as np
-from jax import numpy as jnp
-from jax.interpreters import ad
-
 from brainpy._src.dependency_check import import_taichi
+from brainpy._src.math import defaults
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy.errors import PackageMissingError
-from brainpy._src.math import defauts
+from jax import numpy as jnp
+from jax.interpreters import ad
 
 ti = import_taichi(error_if_not_found=False)
 
@@ -292,7 +291,7 @@ def get_homo_weight_matrix(
     The connection matrix :math:`M`.
   """
   if isinstance(weight, numbers.Number):
-    weight = jnp.atleast_1d(jnp.asarray(weight, dtype=defauts.float_))
+    weight = jnp.atleast_1d(jnp.asarray(weight, dtype=defaults.float_))
   else:
     raise ValueError(f'weight must be a number type, but get {type(weight)}')
   if ti is None:

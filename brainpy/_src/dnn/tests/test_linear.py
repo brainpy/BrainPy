@@ -143,8 +143,9 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(y.shape == shape + (200,))
 
     conn_matrix = f.get_conn_matrix()
-    print(conn_matrix.shape)
-    self.assertTrue(conn_matrix.shape == (200, 100))
+    self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+    # print(conn_matrix.shape)
+    # self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -161,7 +162,7 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(y.shape == shape + (200,))
 
     conn_matrix = f.get_conn_matrix()
-    self.assertTrue(conn_matrix.shape == (200, 100))
+    self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -178,7 +179,7 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(y.shape == shape + (200,))
 
     conn_matrix = f.get_conn_matrix()
-    self.assertTrue(conn_matrix.shape == (200, 100))
+    self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -189,14 +190,15 @@ class TestLinear(parameterized.TestCase):
   def test_EventJitFPHomoLinear(self, prob, weight, shape):
     bm.random.seed()
     f = bp.dnn.EventJitFPHomoLinear(100, 200, prob, weight, seed=123)
-    y = f(bm.random.random(shape + (100,)) < 0.1)
+    x = bm.random.random(shape + (100,)) < 0.1
+    y = f(x)
     self.assertTrue(y.shape == shape + (200,))
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
 
     conn_matrix = f.get_conn_matrix()
-    self.assertTrue(conn_matrix.shape == (200, 100))
+    self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -208,14 +210,15 @@ class TestLinear(parameterized.TestCase):
   def test_EventJitFPUniformLinear(self, prob, w_low, w_high, shape):
     bm.random.seed()
     f = bp.dnn.EventJitFPUniformLinear(100, 200, prob, w_low, w_high, seed=123)
-    y = f(bm.random.random(shape + (100,)) < 0.1)
+    x = bm.random.random(shape + (100,)) < 0.1
+    y = f(x)
     self.assertTrue(y.shape == shape + (200,))
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
 
     conn_matrix = f.get_conn_matrix()
-    self.assertTrue(conn_matrix.shape == (200, 100))
+    self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -227,14 +230,15 @@ class TestLinear(parameterized.TestCase):
   def test_EventJitFPNormalLinear(self, prob, w_mu, w_sigma, shape):
     bm.random.seed()
     f = bp.dnn.EventJitFPNormalLinear(100, 200, prob, w_mu, w_sigma, seed=123)
-    y = f(bm.random.random(shape + (100,)) < 0.1)
+    x = bm.random.random(shape + (100,)) < 0.1
+    y = f(x)
     self.assertTrue(y.shape == shape + (200,))
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
 
     conn_matrix = f.get_conn_matrix()
-    self.assertTrue(conn_matrix.shape == (200, 100))
+    self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
     bm.clear_buffer_memory()
 
 
