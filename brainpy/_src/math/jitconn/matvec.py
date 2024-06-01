@@ -8,11 +8,11 @@ from jax import numpy as jnp
 from jax.interpreters import ad
 
 from brainpy._src.dependency_check import import_taichi
-from brainpy._src.math.defaults import float_
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array, _get_dtype
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy.errors import PackageMissingError
+from brainpy._src.math import defauts
 
 ti = import_taichi(error_if_not_found=False)
 
@@ -292,7 +292,7 @@ def get_homo_weight_matrix(
     The connection matrix :math:`M`.
   """
   if isinstance(weight, numbers.Number):
-    weight = jnp.atleast_1d(jnp.asarray(weight, dtype=float_))
+    weight = jnp.atleast_1d(jnp.asarray(weight, dtype=defauts.float_))
   else:
     raise ValueError(f'weight must be a number type, but get {type(weight)}')
   if ti is None:
@@ -1221,7 +1221,7 @@ if ti is not None:
       key, i_row = lfsr88_random_integers(key, 0, clen0 - 1)
       while i_row < num_row:
         key, raw_v = lfsr88_uniform(key, w_low0, w_high0)
-        out[i_row, i_col] += raw_v
+        out[i_row, i_col] = raw_v
         key, inc = lfsr88_random_integers(key, 1, clen0)
         i_row += inc
 
@@ -1246,7 +1246,7 @@ if ti is not None:
       key, i_col = lfsr88_random_integers(key, 0, clen0 - 1)
       while i_col < num_col:
         key, raw_v = lfsr88_uniform(key, w_low0, w_high0)
-        out[i_row, i_col] += raw_v
+        out[i_row, i_col] = raw_v
         key, inc = lfsr88_random_integers(key, 1, clen0)
         i_col += inc
 
@@ -1277,7 +1277,7 @@ if ti is not None:
       key, i_row = lfsr88_random_integers(key, 0, clen0 - 1)
       while i_row < num_row:
         key, raw_v = lfsr88_normal(key, w_mu0, w_sigma0)
-        out[i_row, i_col] += raw_v
+        out[i_row, i_col] = raw_v
         key, inc = lfsr88_random_integers(key, 1, clen0)
         i_row += inc
 
@@ -1302,7 +1302,7 @@ if ti is not None:
       key, i_col = lfsr88_random_integers(key, 0, clen0 - 1)
       while i_col < num_col:
         key, raw_v = lfsr88_normal(key, w_mu0, w_sigma0)
-        out[i_row, i_col] += raw_v
+        out[i_row, i_col] = raw_v
         key, inc = lfsr88_random_integers(key, 1, clen0)
         i_col += inc
 
