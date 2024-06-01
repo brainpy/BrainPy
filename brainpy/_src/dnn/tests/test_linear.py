@@ -141,6 +141,10 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(shape + (100,))
     y = f(x)
     self.assertTrue(y.shape == shape + (200,))
+
+    conn_matrix = f.get_conn_matrix()
+    print(conn_matrix.shape)
+    self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -155,6 +159,9 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(shape + (100,))
     y = f(x)
     self.assertTrue(y.shape == shape + (200,))
+
+    conn_matrix = f.get_conn_matrix()
+    self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -169,6 +176,9 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(shape + (100,))
     y = f(x)
     self.assertTrue(y.shape == shape + (200,))
+
+    conn_matrix = f.get_conn_matrix()
+    self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -184,6 +194,9 @@ class TestLinear(parameterized.TestCase):
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
+
+    conn_matrix = f.get_conn_matrix()
+    self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -200,6 +213,9 @@ class TestLinear(parameterized.TestCase):
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
+
+    conn_matrix = f.get_conn_matrix()
+    self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
   @parameterized.product(
@@ -216,6 +232,9 @@ class TestLinear(parameterized.TestCase):
 
     y2 = f(bm.as_jax(bm.random.random(shape + (100,)) < 0.1, dtype=float))
     self.assertTrue(y2.shape == shape + (200,))
+
+    conn_matrix = f.get_conn_matrix()
+    self.assertTrue(conn_matrix.shape == (200, 100))
     bm.clear_buffer_memory()
 
 
