@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 
 
-from typing import Dict, Sequence, Union
+from typing import Dict, Sequence, Union, Callable
+
+import jax
 
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy._src.math import TimeDelay, LengthDelay
 from brainpy.check import is_float, is_dict_data
 from brainpy.errors import DiffEqError
 from .constants import DT
+
+from ._jaxpr_to_source_code import jaxpr_to_python_code
+from contextlib import contextmanager
 
 __all__ = [
   'Integrator',
@@ -57,6 +62,9 @@ class Integrator(AbstractIntegrator):
           raise DiffEqError(f'"{key}" is not defined in the variables: {self.variables}')
         self._state_delays[key] = delay
     self.register_implicit_nodes(self._state_delays)
+
+    # math expression
+    self._math_expr = None
 
   @property
   def dt(self):
@@ -119,6 +127,18 @@ class Integrator(AbstractIntegrator):
   def state_delays(self, value):
     raise ValueError('Cannot set "state_delays" by users.')
 
+  def _call_integral(self, *args, **kwargs):
+    if _during_compile:
+      jaxpr, out_shapes = jax.make_jaxpr(self.integral, return_shape=True)(**kwargs)
+      outs = jax.core.eval_jaxpr(jaxpr.jaxpr, jaxpr.consts, *jax.tree.leaves(kwargs))
+      _, tree = jax.tree.flatten(out_shapes)
+      new_vars = tree.unflatten(outs)
+      self._math_expr = jaxpr_to_python_code(jaxpr.jaxpr)
+
+    else:
+      new_vars = self.integral(**kwargs)
+    return new_vars
+
   def __call__(self, *args, **kwargs):
     assert self.integral is not None, 'Please build the integrator first.'
 
@@ -127,7 +147,9 @@ class Integrator(AbstractIntegrator):
       kwargs[self.arg_names[i]] = arg
 
     # integral
-    new_vars = self.integral(**kwargs)
+    new_vars = self._call_integral(**kwargs)
+
+    # post-process
     if len(self.variables) == 1:
       dict_vars = {self.variables[0]: new_vars}
     else:
@@ -146,3 +168,31 @@ class Integrator(AbstractIntegrator):
                          f'While we got {delay}')
 
     return new_vars
+
+  def to_math_expr(self):
+    if self._math_expr is None:
+      raise ValueError('Please call ``brainpy.integrators.compile_integrators`` first.')
+    return self._math_expr
+
+
+_during_compile = False
+
+
+@contextmanager
+def _during_compile_context():
+  global _during_compile
+  try:
+    _during_compile = True
+    yield
+  finally:
+    _during_compile = False
+
+
+def compile_integrators(f: Callable, *args, **kwargs):
+  """
+  Compile integrators in the given function.
+  """
+  with _during_compile_context():
+    return f(*args, **kwargs)
+
+
