@@ -140,7 +140,8 @@ class Test_csrmm(parameterized.TestCase):
                         argnums=0)
     r1 = dense_f1(homo_data)
     r2 = jax.grad(sum_op(bm.event.csrmm))(
-      bm.asarray([homo_data]), indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
+      bm.asarray([homo_data]), indices, indptr, matrix,
+      shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
       transpose=transpose)
 
     self.assertTrue(bm.allclose(r1, r2))
