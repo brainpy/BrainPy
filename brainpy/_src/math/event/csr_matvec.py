@@ -441,6 +441,27 @@ if ti is not None:
         j += 32
       out[row_i] += r  # TODO: warp-level primitive
 
+  @ti.kernel
+  def _event_csr_matvec_dW(values: ti.types.ndarray(),
+                           indices: ti.types.ndarray(),
+                           indptr: ti.types.ndarray(),
+                           events: ti.types.ndarray(),
+                           out: ti.types.ndarray()):
+    for i in range(events.shape[0]):
+      if events[i] != 0.:
+        for j in range(indptr[i], indptr[i + 1]):
+          out[j] = values[indices[j]]
+
+  @ti.kernel
+  def _event_csr_matvec_dW_bool(values: ti.types.ndarray(),
+                                indices: ti.types.ndarray(),
+                                indptr: ti.types.ndarray(),
+                                events: ti.types.ndarray(),
+                                out: ti.types.ndarray()):
+    for i in range(events.shape[0]):
+      if events[i]:
+        for j in range(indptr[i], indptr[i + 1]):
+          out[j] = values[indices[j]]
 
   def _event_csr_matvec_jvp_values_taichi(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
     return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
@@ -466,8 +487,14 @@ if ti is not None:
           ct_values = raw_csrmv_taichi(jnp.ones(1), indices, indptr, events, shape=shape, transpose=transpose)[0]
           ct_values = jnp.inner(ct[0], ct_values)
         else:  # heterogeneous values
-          row, col = csr_to_coo(indices, indptr)
-          ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
+          # row, col = csr_to_coo(indices, indptr)
+          # ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
+          if events.dtype == jnp.bool_:
+            ct_values = _event_csr_matvec_dW_bool(ct[0], indices, indptr, events,
+                                                  outs=[jax.ShapeDtypeStruct((values.shape[0],), values.dtype)])[0]
+          else:
+            ct_values = _event_csr_matvec_dW(ct[0], indices, indptr, events,
+                                             outs=[jax.ShapeDtypeStruct((values.shape[0],), values.dtype)])[0]
       return ct_values, indices, indptr, events
 
 
@@ -509,3 +536,11 @@ if ti is not None:
   # not transpose heter
   _event_csrmv_heter_p = _define_op(_event_csr_matvec_heter_cpu,
                                     _event_csr_matvec_heter_gpu)
+
+  # compute dW
+  _event_csrmv_dW_p = XLACustomOp(cpu_kernel=_event_csr_matvec_dW,
+                                  gpu_kernel=_event_csr_matvec_dW)
+
+  # compute dW bool
+  _event_csrmv_dW_bool_p = XLACustomOp(cpu_kernel=_event_csr_matvec_dW_bool,
+                                       gpu_kernel=_event_csr_matvec_dW_bool)
