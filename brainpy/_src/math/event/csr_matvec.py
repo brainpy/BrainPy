@@ -441,6 +441,7 @@ if ti is not None:
         j += 32
       out[row_i] += r  # TODO: warp-level primitive
 
+
   @ti.kernel
   def _event_csr_matvec_dW(values: ti.types.ndarray(),
                            indices: ti.types.ndarray(),
@@ -452,6 +453,7 @@ if ti is not None:
         for j in range(indptr[i], indptr[i + 1]):
           out[j] = values[indices[j]]
 
+
   @ti.kernel
   def _event_csr_matvec_dW_bool(values: ti.types.ndarray(),
                                 indices: ti.types.ndarray(),
@@ -462,6 +464,7 @@ if ti is not None:
       if events[i]:
         for j in range(indptr[i], indptr[i + 1]):
           out[j] = values[indices[j]]
+
 
   def _event_csr_matvec_jvp_values_taichi(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
     return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
