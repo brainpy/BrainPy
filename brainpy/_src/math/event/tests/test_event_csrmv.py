@@ -16,8 +16,8 @@ if import_taichi(error_if_not_found=False) is None:
 
 import platform
 force_test = False  # turn on to force test on windows locally
-if platform.system() == 'Windows' and not force_test:
-  pytest.skip('skip windows', allow_module_level=True)
+# if platform.system() == 'Windows' and not force_test:
+#   pytest.skip('skip windows', allow_module_level=True)
 
 
 seed = 1234
@@ -218,6 +218,7 @@ class Test_event_csr_matvec_taichi(parameterized.TestCase):
       data, indices, indptr, events, shape=shape, transpose=transpose)
     r2 = jax.grad(sum_op(bm.event.csrmv))(
       data, indices, indptr, events, shape=shape, transpose=transpose)
+    print(r1 - r2)
     self.assertTrue(bm.allclose(r1, r2))
 
     # grad 'events'

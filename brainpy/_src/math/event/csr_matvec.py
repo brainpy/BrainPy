@@ -131,7 +131,10 @@ def raw_csrmv_taichi(
       else:
         prim = _event_csrmv_transpose_bool_heter_p
     else:
-      return normal_csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
+      if data.shape[0] == 1:
+        prim = _event_csrmv_transpose_homo_p
+      else:
+        prim = _event_csrmv_transpose_heter_p
   else:
     if events.dtype == jnp.bool_:
       if data.shape[0] == 1:
@@ -139,7 +142,10 @@ def raw_csrmv_taichi(
       else:
         prim = _event_csrmv_bool_heter_p
     else:
-      return normal_csrmv_taichi(data, indices, indptr, events, shape=shape, transpose=transpose)
+      if data.shape[0] == 1:
+        prim = _event_csrmv_homo_p
+      else:
+        prim = _event_csrmv_heter_p
 
   # computing
   return prim(data,
@@ -443,6 +449,30 @@ if ti is not None:
 
 
   @ti.kernel
+  def _event_csr_matvec_dW_transpose(values: ti.types.ndarray(),
+                                     indices: ti.types.ndarray(),
+                                     indptr: ti.types.ndarray(),
+                                     events: ti.types.ndarray(),
+                                     out: ti.types.ndarray()):
+    for i in range(events.shape[0]):
+      if events[i] != 0.:
+        for j in range(indptr[i], indptr[i + 1]):
+          out[j] = values[indices[j]]
+
+
+  @ti.kernel
+  def _event_csr_matvec_dW_bool_transpose(values: ti.types.ndarray(),
+                                          indices: ti.types.ndarray(),
+                                          indptr: ti.types.ndarray(),
+                                          events: ti.types.ndarray(),
+                                          out: ti.types.ndarray()):
+    for i in range(events.shape[0]):
+      if events[i]:
+        for j in range(indptr[i], indptr[i + 1]):
+          out[j] = values[indices[j]]
+
+
+  @ti.kernel
   def _event_csr_matvec_dW(values: ti.types.ndarray(),
                            indices: ti.types.ndarray(),
                            indptr: ti.types.ndarray(),
@@ -451,7 +481,7 @@ if ti is not None:
     for i in range(events.shape[0]):
       if events[i] != 0.:
         for j in range(indptr[i], indptr[i + 1]):
-          out[j] = values[indices[j]]
+          out[indices[j]] += values[j] * events[i]
 
 
   @ti.kernel
@@ -463,11 +493,11 @@ if ti is not None:
     for i in range(events.shape[0]):
       if events[i]:
         for j in range(indptr[i], indptr[i + 1]):
-          out[j] = values[indices[j]]
+          out[indices[j]] += values[j]
 
 
   def _event_csr_matvec_jvp_values_taichi(val_dot, values, indices, indptr, events, *, outs, transpose, shape):
-    return normal_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
+    return raw_csrmv_taichi(val_dot, indices, indptr, events, shape=shape, transpose=transpose)
 
 
   def _event_csr_matvec_jvp_events_taichi(evt_dot, values, indices, indptr, events, *, outs, transpose, shape):
@@ -492,12 +522,18 @@ if ti is not None:
         else:  # heterogeneous values
           # row, col = csr_to_coo(indices, indptr)
           # ct_values = events[row] * ct[0][col] if transpose else events[col] * ct[0][row]
-          if events.dtype == jnp.bool_:
-            ct_values = _event_csr_matvec_dW_bool(ct[0], indices, indptr, events,
-                                                  outs=[jax.ShapeDtypeStruct((values.shape[0],), values.dtype)])[0]
+          if transpose:
+            if events.dtype == jnp.bool_:
+              prim = _event_csrmv_dW_bool_p_transpose
+            else:
+              prim = _event_csrmv_dW_p_transpose
           else:
-            ct_values = _event_csr_matvec_dW(ct[0], indices, indptr, events,
-                                             outs=[jax.ShapeDtypeStruct((values.shape[0],), values.dtype)])[0]
+            if events.dtype == jnp.bool_:
+              prim = _event_csrmv_dW_bool_p
+            else:
+              prim = _event_csrmv_dW_p
+          ct_values = prim(ct[0], indices, indptr, events,
+                           outs=[jax.ShapeDtypeStruct((values.aval.shape[0],), values.aval.dtype)])[0]
       return ct_values, indices, indptr, events
 
 
@@ -540,10 +576,18 @@ if ti is not None:
   _event_csrmv_heter_p = _define_op(_event_csr_matvec_heter_cpu,
                                     _event_csr_matvec_heter_gpu)
 
+  # compute dW transpose
+  _event_csrmv_dW_p_transpose = XLACustomOp(cpu_kernel=_event_csr_matvec_dW_transpose,
+                                            gpu_kernel=_event_csr_matvec_dW_transpose)
+
+  # compute dW bool transpose
+  _event_csrmv_dW_bool_p_transpose = XLACustomOp(cpu_kernel=_event_csr_matvec_dW_bool_transpose,
+                                                 gpu_kernel=_event_csr_matvec_dW_bool_transpose)
+
   # compute dW
   _event_csrmv_dW_p = XLACustomOp(cpu_kernel=_event_csr_matvec_dW,
                                   gpu_kernel=_event_csr_matvec_dW)
 
   # compute dW bool
   _event_csrmv_dW_bool_p = XLACustomOp(cpu_kernel=_event_csr_matvec_dW_bool,
-                                       gpu_kernel=_event_csr_matvec_dW_bool)
+                                      gpu_kernel=_event_csr_matvec_dW_bool)

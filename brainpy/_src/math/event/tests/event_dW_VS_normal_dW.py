@@ -1,16 +1,14 @@
 # from jax_taichi import jax_taichi_call
 
+import os
 import time
 from functools import partial
-import os
+
+import jax
+import pandas as pd
 
 import brainpy as bp
 import brainpy.math as bm
-import jax
-import jax.numpy as jnp
-import numpy as np
-import pandas as pd
-import taichi as ti
 
 bm.set_platform('cpu')
 
@@ -80,7 +78,7 @@ def normal_csrmv_grad(weight, indices, indptr, vector, shape, transpose):
   return r
 
 
-def test_event_csrmv_dW(shape, values_type, events_type, transpose):
+def _test_event_csrmv_dW(shape, values_type, events_type, transpose):
   rng = bm.random.RandomState(1234)
   indices, indptr = bp.conn.FixedProb(p, seed=1234, allow_multi_conn=True)(*shape).require('pre2post')
   vector = rng.random(shape[0] if transpose else shape[1]) < 0.1
@@ -259,7 +257,7 @@ for shape1 in shape:
           event_time_1, event_time_2, event_time_3, event_time_4, event_time_5, \
             event_time_6, event_time_7, event_time_8, event_time_9, event_time_10, \
             normal_time_1, normal_time_2, normal_time_3, normal_time_4, normal_time_5, \
-            normal_time_6, normal_time_7, normal_time_8, normal_time_9, normal_time_10 = test_event_csrmv_dW(
+            normal_time_6, normal_time_7, normal_time_8, normal_time_9, normal_time_10 = _test_event_csrmv_dW(
             (shape1, shape2), _values_type, _events_type, _transpose)
           # append to dataframe
           df.loc[df.shape[0]] = [(shape1, shape2), 0.5, shape1, shape2, bm.get_platform(), _values_type, _events_type, _transpose,
