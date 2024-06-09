@@ -4,6 +4,7 @@ import platform
 from functools import partial
 
 import jax
+import pytest
 from absl.testing import parameterized
 
 import brainpy as bp
