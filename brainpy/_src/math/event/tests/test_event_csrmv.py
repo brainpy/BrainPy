@@ -15,10 +15,10 @@ if import_taichi(error_if_not_found=False) is None:
   pytest.skip('no taichi', allow_module_level=True)
 
 import platform
-force_test = False  # turn on to force test on windows locally
-# if platform.system() == 'Windows' and not force_test:
-#   pytest.skip('skip windows', allow_module_level=True)
 
+force_test = False  # turn on to force test on windows locally
+if platform.system() == 'Windows' and not force_test:
+  pytest.skip('skip windows', allow_module_level=True)
 
 seed = 1234
 

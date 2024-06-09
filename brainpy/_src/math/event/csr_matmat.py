@@ -6,16 +6,15 @@ from typing import Union, Tuple
 import jax
 import numpy as np
 from jax import numpy as jnp
-from jax.interpreters import ad
 from jax.experimental.sparse import csr
+from jax.interpreters import ad
 
 from brainpy._src.dependency_check import import_taichi
+from brainpy._src.math.defaults import float_
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.op_register import (XLACustomOp, register_general_batching)
 from brainpy._src.math.sparse.csr_mm import raw_csrmm_taichi as normal_csrmm
-from brainpy._src.math.sparse.utils import csr_to_coo
-from brainpy._src.math.defaults import float_
 
 ti = import_taichi()
 
@@ -265,7 +264,7 @@ def _event_csr_matmat_bool_sum(values: ti.types.ndarray(ndim=1),
 
 
 def _event_csr_matmat_jvp_values(val_dot, values, col_indices, row_ptr, matrix, *, outs, transpose, shape):
-  return normal_csrmm(val_dot, col_indices, row_ptr, matrix, shape=shape, transpose=transpose)
+  return raw_event_csrmm_taichi(val_dot, col_indices, row_ptr, matrix, shape=shape, transpose=transpose)
 
 
 def _event_csr_matmat_jvp_matrix(mat_dot, values, col_indices, row_ptr, matrix, *, outs, transpose, shape):
@@ -296,7 +295,7 @@ def _event_csr_matmat_transpose(
         else:
           prim = _event_csr_matmat_sum
         ct_data = prim(ct[0], indices, indptr, matrix,
-                       out=jax.ShapeDtypeStruct((data.shape[0], matrix.shape[1]), data.dtype))[0]
+                       out=jax.ShapeDtypeStruct((data.aval.shape[0], matrix.shape[1]), data.aval.dtype))[0]
         # row, col = csr_to_coo(indices, indptr)
         # ct_data = (ct[0][row] * matrix[col]).sum(1)
     return ct_data, indices, indptr, matrix

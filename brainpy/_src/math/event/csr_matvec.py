@@ -21,7 +21,6 @@ from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy._src.math.sparse.csr_mv import raw_csrmv_taichi as normal_csrmv_taichi
-from brainpy._src.math.sparse.utils import csr_to_coo
 from brainpy.errors import PackageMissingError
 
 __all__ = [
@@ -207,7 +206,7 @@ if ti is not None:
     for row_i in range(indptr.shape[0] - 1):
       if events[row_i] != 0.:
         for j in range(indptr[row_i], indptr[row_i + 1]):
-          out[indices[j]] += value
+          out[indices[j]] += value * events[row_i]
 
 
   @ti.kernel
@@ -220,7 +219,7 @@ if ti is not None:
     for row_i in range(indptr.shape[0] - 1):
       if events[row_i] != 0.:
         for j in range(indptr[row_i], indptr[row_i + 1]):
-          out[indices[j]] += values[j]
+          out[indices[j]] += values[j] * events[row_i]
 
 
   @ti.kernel
@@ -266,7 +265,7 @@ if ti is not None:
       r = 0.
       for j in range(indptr[row_i], indptr[row_i + 1]):
         if events[indices[j]] != 0.:
-          r += value
+          r += value * events[indices[j]]
       out[row_i] = r
 
 
@@ -281,7 +280,7 @@ if ti is not None:
       r = 0.
       for j in range(indptr[row_i], indptr[row_i + 1]):
         if events[indices[j]] != 0.:
-          r += values[j]
+          r += values[j] * events[indices[j]]
       out[row_i] = r
 
 
@@ -324,7 +323,7 @@ if ti is not None:
         j = indptr[row_i] + index
         end_index = indptr[row_i + 1]
         while j < end_index:
-          out[indices[j]] += value
+          out[indices[j]] += value * events[row_i]
           j += 32
 
 
@@ -371,7 +370,7 @@ if ti is not None:
       end_index = indptr[row_i + 1]
       while j < end_index:
         if events[indices[j]] != 0.:
-          r += value
+          r += value * events[indices[j]]
         j += 32
       out[row_i] += r  # TODO: warp-level primitive
 
@@ -406,7 +405,7 @@ if ti is not None:
         j = indptr[row_i] + index
         end_index = indptr[row_i + 1]
         while j < end_index:
-          out[indices[j]] += values[j]
+          out[indices[j]] += values[j] * events[row_i]
           j += 32
 
 
@@ -443,7 +442,7 @@ if ti is not None:
       end_index = indptr[row_i + 1]
       while j < end_index:
         if events[indices[j]] != 0.:
-          r += values[j]
+          r += values[j] * events[indices[j]]
         j += 32
       out[row_i] += r  # TODO: warp-level primitive
 
