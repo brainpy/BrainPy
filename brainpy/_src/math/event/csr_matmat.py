@@ -6,16 +6,15 @@ from typing import Union, Tuple
 import jax
 import numpy as np
 from jax import numpy as jnp
-from jax.interpreters import ad
 from jax.experimental.sparse import csr
+from jax.interpreters import ad
 
 from brainpy._src.dependency_check import import_taichi
+from brainpy._src.math.defaults import float_
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.op_register import (XLACustomOp, register_general_batching)
 from brainpy._src.math.sparse.csr_mm import raw_csrmm_taichi as normal_csrmm
-from brainpy._src.math.sparse.utils import csr_to_coo
-from brainpy._src.math.defaults import float_
 
 ti = import_taichi()
 
@@ -99,21 +98,21 @@ def raw_event_csrmm_taichi(
   else:
     if transpose:
       if matrix.dtype == jnp.bool_:
-        prim = _event_csr_matmat_transpose_homo_p
+        prim = _event_csr_matmat_transpose_bool_homo_p
       else:
-        return normal_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+        prim = _event_csr_matmat_transpose_homo_p
     else:
       if matrix.dtype == jnp.bool_:
         prim = _event_csr_matmat_bool_homo_p
       else:
-        return normal_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+        prim = _event_csr_matmat_homo_p
     return prim(data,
-              indices,
-              indptr,
-              matrix,
-              outs=[jax.ShapeDtypeStruct(result_shape, dtype=data.dtype)],
-              transpose=transpose,
-              shape=shape)
+                indices,
+                indptr,
+                matrix,
+                outs=[jax.ShapeDtypeStruct(result_shape, dtype=data.dtype)],
+                transpose=transpose,
+                shape=shape)
 
 
 # taichi kernels
@@ -234,8 +233,38 @@ def _event_csr_matmat_bool_homo(values: ti.types.ndarray(ndim=1),
     out[row_i, col_k] = r * value
 
 
+@ti.kernel
+def _event_csr_matmat_dw(dy: ti.types.ndarray(ndim=1),
+                         col_indices: ti.types.ndarray(ndim=1),
+                         row_ptr: ti.types.ndarray(ndim=1),
+                         matrix: ti.types.ndarray(ndim=2),
+                         dw: ti.types.ndarray(ndim=1)):
+  for row_i in ti.ndrange(dw.shape[0]):
+    temp_sum = 0.
+    for row_j in range(row_ptr[row_i], row_ptr[row_i + 1]):
+      for col_k in range(matrix.shape[1]):
+        if matrix[col_indices[row_j], col_k] != 0.:
+          temp_sum += dy[row_j] * matrix[col_indices[row_j], col_k]
+    dw[row_i] = temp_sum
+
+
+@ti.kernel
+def _event_csr_matmat_bool_dw(dy: ti.types.ndarray(ndim=1),
+                              col_indices: ti.types.ndarray(ndim=1),
+                              row_ptr: ti.types.ndarray(ndim=1),
+                              matrix: ti.types.ndarray(ndim=2),
+                              dw: ti.types.ndarray(ndim=1)):
+  for row_i in ti.ndrange(dw.shape[0]):
+    temp_sum = 0.
+    for row_j in range(row_ptr[row_i], row_ptr[row_i + 1]):
+      for col_k in range(matrix.shape[1]):
+        if matrix[col_indices[row_j], col_k]:
+          temp_sum += dy[row_j] * matrix[col_indices[row_j], col_k]
+    dw[row_i] = temp_sum
+
+
 def _event_csr_matmat_jvp_values(val_dot, values, col_indices, row_ptr, matrix, *, outs, transpose, shape):
-  return normal_csrmm(val_dot, col_indices, row_ptr, matrix, shape=shape, transpose=transpose)
+  return raw_event_csrmm_taichi(val_dot, col_indices, row_ptr, matrix, shape=shape, transpose=transpose)
 
 
 def _event_csr_matmat_jvp_matrix(mat_dot, values, col_indices, row_ptr, matrix, *, outs, transpose, shape):
@@ -261,8 +290,12 @@ def _event_csr_matmat_transpose(
         ct_data = jnp.sum(ct[0] * ct_data)
       else:  # heter
         matrix = jnp.asarray(matrix)
-        row, col = csr_to_coo(indices, indptr)
-        ct_data = (ct[0][row] * matrix[col]).sum(1)
+        if matrix.dtype == jnp.bool_:
+          prim = _event_csr_matmat_bool_dw
+        else:
+          prim = _event_csr_matmat_dw
+        ct_data = prim(ct[0], indices, indptr, matrix,
+                       out=jax.ShapeDtypeStruct((data.aval.shape[0], matrix.shape[1]), data.aval.dtype))[0]
     return ct_data, indices, indptr, matrix
 
 
@@ -304,6 +337,12 @@ _event_csr_matmat_transpose_bool_homo_p = _define_op(cpu_kernel=_event_csr_matma
 # bool no transpose homo
 _event_csr_matmat_bool_homo_p = _define_op(cpu_kernel=_event_csr_matmat_bool_homo,
                                            gpu_kernel=_event_csr_matmat_bool_homo)
+
+_event_csr_matmat_dw_p = XLACustomOp(cpu_kernel=_event_csr_matmat_dw,
+                                     gpu_kernel=_event_csr_matmat_dw)
+
+_event_csr_matmat_bool_dw_p = XLACustomOp(cpu_kernel=_event_csr_matmat_bool_dw,
+                                          gpu_kernel=_event_csr_matmat_bool_dw)
 
 # heter CUSPARSE
 _csr_matmat_cusparse_p = csr.csr_matmat_p

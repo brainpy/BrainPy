@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 
+import platform
 from functools import partial
 
 import jax
+import pytest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
 
 # bm.set_platform('gpu')
+force_test = False  # turn on to force test on windows locally
+if platform.system() == 'Windows' and not force_test:
+  pytest.skip('skip windows', allow_module_level=True)
 
 seed = 1234
 
@@ -140,7 +145,8 @@ class Test_csrmm(parameterized.TestCase):
                         argnums=0)
     r1 = dense_f1(homo_data)
     r2 = jax.grad(sum_op(bm.event.csrmm))(
-      bm.asarray([homo_data]), indices, indptr, matrix, shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
+      bm.asarray([homo_data]), indices, indptr, matrix,
+      shape=(shape[1], shape[0]) if transpose else (shape[0], shape[1]),
       transpose=transpose)
 
     self.assertTrue(bm.allclose(r1, r2))
