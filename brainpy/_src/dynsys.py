@@ -806,7 +806,7 @@ class DynView(Dynamic):
       else:
         # should be a list/tuple/array of int
         # do not check again
-        if not isinstance(idx, collections.Iterable):
+        if not isinstance(idx, collections.abc.Iterable):
           raise TypeError('Should be an iterable object of int.')
         size.append(len(idx))
     size += list(target.varshape[len(self.index):])
