@@ -92,7 +92,7 @@ __all__ = [
 
   # unique
   'array2string', 'asanyarray',
-  'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'disp', 'genfromtxt',
+  'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'genfromtxt',
   'loadtxt', 'info', 'issubclass_', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
   'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
 
@@ -724,8 +724,6 @@ def common_type(*arrays):
   else:
     return array_type[0][precision]
 
-
-disp = np.disp
 
 genfromtxt = lambda *args, **kwargs: asarray(np.genfromtxt(*args, **kwargs))
 loadtxt = lambda *args, **kwargs: asarray(np.loadtxt(*args, **kwargs))
