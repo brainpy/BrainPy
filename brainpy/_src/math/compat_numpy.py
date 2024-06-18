@@ -91,7 +91,7 @@ __all__ = [
   'ravel_multi_index', 'result_type', 'sort_complex', 'unpackbits', 'delete',
 
   # unique
-  'add_docstring', 'add_newdoc', 'add_newdoc_ufunc', 'array2string', 'asanyarray',
+  'array2string', 'asanyarray',
   'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'disp', 'genfromtxt',
   'loadtxt', 'info', 'issubclass_', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
   'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
@@ -676,11 +676,6 @@ unpackbits = _compatible_with_brainpy_array(jnp.unpackbits)
 
 # Unique APIs
 # -----------
-
-add_docstring = np.add_docstring
-add_newdoc = np.add_newdoc
-add_newdoc_ufunc = np.add_newdoc_ufunc
-
 
 def array2string(a, max_line_width=None, precision=None,
                  suppress_small=None, separator=' ', prefix="",
