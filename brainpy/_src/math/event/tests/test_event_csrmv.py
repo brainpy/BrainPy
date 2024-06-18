@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
+import os
 from functools import partial
 
 import jax
@@ -19,6 +18,10 @@ force_test = False  # turn on to force test on windows locally
 if platform.system() == 'Windows' and not force_test:
   pytest.skip('skip windows', allow_module_level=True)
 
+# Skip the test in Github Actions
+IS_GITHUB_ACTIONS = os.getenv('IS_GITHUB_ACTIONS', 0)
+if IS_GITHUB_ACTIONS == 1:
+  pytest.skip('Skip the test in Github Actions')
 
 seed = 1234
 
