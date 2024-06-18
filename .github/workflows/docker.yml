@@ -41,7 +41,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Docker Build & Push (version tag)
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ${{ matrix.context }}
         tags: ${{ matrix.base }}:${{ env.DOCKER_TAG_NAME }}
@@ -51,7 +51,7 @@ jobs:
     - name: Docker Build & Push (latest tag)
       if: |
           (github.event_name == 'release' && ! github.event.release.prerelease)
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ${{ matrix.context }}
         tags: ${{ matrix.base }}:latest
