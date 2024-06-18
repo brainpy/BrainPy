@@ -91,9 +91,8 @@ __all__ = [
   'ravel_multi_index', 'result_type', 'sort_complex', 'unpackbits', 'delete',
 
   # unique
-  'array2string', 'asanyarray',
-  'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'genfromtxt',
-  'loadtxt', 'info', 'issubclass_', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
+  'asanyarray', 'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'genfromtxt',
+  'loadtxt', 'info', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
   'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
 
 ]
@@ -677,18 +676,6 @@ unpackbits = _compatible_with_brainpy_array(jnp.unpackbits)
 # Unique APIs
 # -----------
 
-def array2string(a, max_line_width=None, precision=None,
-                 suppress_small=None, separator=' ', prefix="",
-                 style=np._NoValue, formatter=None, threshold=None,
-                 edgeitems=None, sign=None, floatmode=None, suffix="",
-                 legacy=None):
-  a = as_numpy(a)
-  return array2string(a, max_line_width=max_line_width, precision=precision,
-                      suppress_small=suppress_small, separator=separator, prefix=prefix,
-                      style=style, formatter=formatter, threshold=threshold,
-                      edgeitems=edgeitems, sign=sign, floatmode=floatmode, suffix=suffix,
-                      legacy=legacy)
-
 
 def asscalar(a):
   return a.item()
@@ -727,9 +714,7 @@ def common_type(*arrays):
 
 genfromtxt = lambda *args, **kwargs: asarray(np.genfromtxt(*args, **kwargs))
 loadtxt = lambda *args, **kwargs: asarray(np.loadtxt(*args, **kwargs))
-
 info = np.info
-issubclass_ = np.issubclass_
 
 
 def place(arr, mask, vals):
