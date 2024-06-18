@@ -19,8 +19,8 @@ if platform.system() == 'Windows' and not force_test:
   pytest.skip('skip windows', allow_module_level=True)
 
 # Skip the test in Github Actions
-IS_GITHUB_ACTIONS = os.getenv('IS_GITHUB_ACTIONS', 0)
-if IS_GITHUB_ACTIONS == 1:
+IS_GITHUB_ACTIONS = os.getenv('IS_GITHUB_ACTIONS', '0')
+if IS_GITHUB_ACTIONS == '1':
   pytest.skip('Skip the test in Github Actions')
 
 seed = 1234

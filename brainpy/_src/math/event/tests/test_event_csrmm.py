@@ -12,8 +12,8 @@ import brainpy.math as bm
 # bm.set_platform('gpu')
 
 # Skip the test in Github Actions
-IS_GITHUB_ACTIONS = os.getenv('IS_GITHUB_ACTIONS', 0)
-if IS_GITHUB_ACTIONS == 1:
+IS_GITHUB_ACTIONS = os.getenv('IS_GITHUB_ACTIONS', '0')
+if IS_GITHUB_ACTIONS == '1':
   pytest.skip('Skip the test in Github Actions')
 
 seed = 1234
