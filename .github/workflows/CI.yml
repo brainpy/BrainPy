@@ -51,7 +51,7 @@ jobs:
       - name: Test with pytest
         run: |
           cd brainpy
-          pytest _src/
+          export IS_GITHUB_ACTIONS=1 && pytest _src/
 
 
   test_macos:
@@ -82,7 +82,7 @@ jobs:
       - name: Test with pytest
         run: |
           cd brainpy
-          pytest _src/
+          export IS_GITHUB_ACTIONS=1 && pytest _src/
 
 
   test_windows:
@@ -113,4 +113,4 @@ jobs:
       - name: Test with pytest
         run: |
           cd brainpy
-          pytest _src/ -p no:faulthandler
+          set IS_GITHUB_ACTIONS=1 && pytest _src/

@@ -8,7 +8,6 @@ import jax.scipy as sci
 
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from .base import Surrogate
 
 __all__ = [
   'sigmoid',
@@ -30,6 +29,16 @@ __all__ = [
   'multi_gaussian_grad',
   'slayer_grad',
 ]
+
+
+class Surrogate(object):
+  """The base surrograte gradient function."""
+
+  def __call__(self, *args, **kwargs):
+    raise NotImplementedError
+
+  def __repr__(self):
+    return f'{self.__class__.__name__}()'
 
 
 class _OneInpSurrogate(Surrogate):

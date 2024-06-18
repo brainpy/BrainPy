@@ -10,7 +10,6 @@ from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .interoperability import *
 from .ndarray import Array
 
-
 __all__ = [
   'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
@@ -92,9 +91,8 @@ __all__ = [
   'ravel_multi_index', 'result_type', 'sort_complex', 'unpackbits', 'delete',
 
   # unique
-  'add_docstring', 'add_newdoc', 'add_newdoc_ufunc', 'array2string', 'asanyarray',
-  'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'disp', 'genfromtxt',
-  'loadtxt', 'info', 'issubclass_', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
+  'asanyarray', 'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'genfromtxt',
+  'loadtxt', 'info', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
   'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
 
 ]
@@ -204,10 +202,11 @@ def ascontiguousarray(a, dtype=None, order=None):
   return asarray(a, dtype=dtype, order=order)
 
 
-def asfarray(a, dtype=np.float_):
+def asfarray(a, dtype=None):
   if not np.issubdtype(dtype, np.inexact):
-    dtype = np.float_
+    dtype = np.float64
   return asarray(a, dtype=dtype)
+
 
 def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
   del assume_unique
@@ -226,6 +225,7 @@ def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
     return asarray((ar1_flat[:, None] != ar2_flat[None, :]).all(-1))
   else:
     return asarray((ar1_flat[:, None] == ar2_flat[None, :]).any(-1))
+
 
 # Others
 # ------
@@ -454,7 +454,6 @@ alltrue = all
 sometrue = any
 
 
-
 def shape(a):
   """
   Return the shape of an array.
@@ -648,7 +647,6 @@ dtype = jnp.dtype
 finfo = jnp.finfo
 iinfo = jnp.iinfo
 
-
 can_cast = _compatible_with_brainpy_array(jnp.can_cast)
 choose = _compatible_with_brainpy_array(jnp.choose)
 copy = _compatible_with_brainpy_array(jnp.copy)
@@ -677,23 +675,6 @@ unpackbits = _compatible_with_brainpy_array(jnp.unpackbits)
 
 # Unique APIs
 # -----------
-
-add_docstring = np.add_docstring
-add_newdoc = np.add_newdoc
-add_newdoc_ufunc = np.add_newdoc_ufunc
-
-
-def array2string(a, max_line_width=None, precision=None,
-                 suppress_small=None, separator=' ', prefix="",
-                 style=np._NoValue, formatter=None, threshold=None,
-                 edgeitems=None, sign=None, floatmode=None, suffix="",
-                 legacy=None):
-  a = as_numpy(a)
-  return array2string(a, max_line_width=max_line_width, precision=precision,
-                      suppress_small=suppress_small, separator=separator, prefix=prefix,
-                      style=style, formatter=formatter, threshold=threshold,
-                      edgeitems=edgeitems, sign=sign, floatmode=floatmode, suffix=suffix,
-                      legacy=legacy)
 
 
 def asscalar(a):
@@ -731,13 +712,9 @@ def common_type(*arrays):
     return array_type[0][precision]
 
 
-disp = np.disp
-
 genfromtxt = lambda *args, **kwargs: asarray(np.genfromtxt(*args, **kwargs))
 loadtxt = lambda *args, **kwargs: asarray(np.loadtxt(*args, **kwargs))
-
 info = np.info
-issubclass_ = np.issubclass_
 
 
 def place(arr, mask, vals):

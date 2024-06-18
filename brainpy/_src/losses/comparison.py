@@ -376,7 +376,8 @@ class NLLLoss(Loss):
 
 
 def nll_loss(input, target, reduction: str = 'mean'):
-  r"""The negative log likelihood loss.
+  r"""
+  The negative log likelihood loss.
 
   The negative log likelihood loss. It is useful to train a classification
   problem with `C` classes.

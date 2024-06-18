@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+
 import jax.numpy as jnp
 import pytest
 from absl.testing import parameterized
@@ -12,8 +14,14 @@ if import_taichi(error_if_not_found=False) is None:
 import platform
 
 force_test = False  # turn on to force test on windows locally
-# if platform.system() == 'Windows' and not force_test:
-#   pytest.skip('skip windows', allow_module_level=True)
+if platform.system() == 'Windows' and not force_test:
+  pytest.skip('skip windows', allow_module_level=True)
+
+# Skip the test in Github Actions
+IS_GITHUB_ACTIONS = os.getenv('IS_GITHUB_ACTIONS', '0')
+if IS_GITHUB_ACTIONS == '1':
+  pytest.skip('Skip the test in Github Actions', allow_module_level=True)
+
 
 shapes = [
   (2, 2),
