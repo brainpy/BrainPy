@@ -10,7 +10,6 @@ from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .interoperability import *
 from .ndarray import Array
 
-
 __all__ = [
   'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
   'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
@@ -204,10 +203,11 @@ def ascontiguousarray(a, dtype=None, order=None):
   return asarray(a, dtype=dtype, order=order)
 
 
-def asfarray(a, dtype=np.float_):
+def asfarray(a, dtype=None):
   if not np.issubdtype(dtype, np.inexact):
-    dtype = np.float_
+    dtype = np.float64
   return asarray(a, dtype=dtype)
+
 
 def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
   del assume_unique
@@ -226,6 +226,7 @@ def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
     return asarray((ar1_flat[:, None] != ar2_flat[None, :]).all(-1))
   else:
     return asarray((ar1_flat[:, None] == ar2_flat[None, :]).any(-1))
+
 
 # Others
 # ------
@@ -454,7 +455,6 @@ alltrue = all
 sometrue = any
 
 
-
 def shape(a):
   """
   Return the shape of an array.
@@ -647,7 +647,6 @@ trace = _compatible_with_brainpy_array(jnp.trace)
 dtype = jnp.dtype
 finfo = jnp.finfo
 iinfo = jnp.iinfo
-
 
 can_cast = _compatible_with_brainpy_array(jnp.can_cast)
 choose = _compatible_with_brainpy_array(jnp.choose)
