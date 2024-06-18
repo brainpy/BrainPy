@@ -12,6 +12,7 @@ from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 
 __all__ = [
+  'Surrogate',
   'Sigmoid',
   'sigmoid',
   'PiecewiseQuadratic',
@@ -61,7 +62,7 @@ def _heaviside_imp(x, dx):
 
 
 def _heaviside_batching(args, axes):
-  return heaviside_p.bind(*args), axes
+  return heaviside_p.bind(*args), [axes[0]]
 
 
 def _heaviside_jvp(primals, tangents):
