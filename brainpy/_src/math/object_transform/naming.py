@@ -25,7 +25,7 @@ def check_name_uniqueness(name, obj):
         f'In BrainPy, each object should have a unique name. '
         f'However, we detect that {obj} has a used name "{name}". \n'
         f'If you try to run multiple trials, you may need \n\n'
-        f'>>> brainpy.brainpy_object.clear_name_cache() \n\n'
+        f'>>> brainpy.math.clear_name_cache() \n\n'
         f'to clear all cached names. '
       )
   else:
