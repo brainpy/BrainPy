@@ -252,7 +252,7 @@ class OnlineTrainer(DSTrainer):
 
     # finally
     if self.progress_bar:
-      jax.pure_callback(lambda *arg: self._pbar.update(), ())
+      jax.debug.callback(lambda *args: self._pbar.update(), ())
     return out, monitors
 
   def _check_interface(self):

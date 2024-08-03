@@ -726,7 +726,7 @@ def _get_for_loop_transform(
       dyn_vars[k]._value = carry[k]
     results = body_fun(*x, **unroll_kwargs)
     if progress_bar:
-      jax.pure_callback(lambda *arg: bar.update(), ())
+      jax.debug.callback(lambda *args: bar.update(), ())
     return dyn_vars.dict_data(), results
 
   if remat:

@@ -219,7 +219,7 @@ class OfflineTrainer(DSTrainer):
       targets = target_data[node.name]
       node.offline_fit(targets, fit_record)
       if self.progress_bar:
-        jax.pure_callback(lambda *args: self._pbar.update(), ())
+        jax.debug.callback(lambda *args: self._pbar.update(), ())
 
   def _step_func_monitor(self):
     res = dict()

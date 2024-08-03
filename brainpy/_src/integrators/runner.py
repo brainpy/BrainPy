@@ -244,7 +244,7 @@ class IntegratorRunner(Runner):
 
     # progress bar
     if self.progress_bar:
-      jax.pure_callback(lambda *args: self._pbar.update(), ())
+      jax.debug.callback(lambda *args: self._pbar.update(), ())
 
     # return of function monitors
     shared = dict(t=t + self.dt, dt=self.dt, i=i)
