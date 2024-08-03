@@ -20,7 +20,8 @@ class Mode(object):
     return self.__class__.__name__
 
   def __eq__(self, other: 'Mode'):
-    assert isinstance(other, Mode)
+    if not isinstance(other, Mode):
+      return False
     return other.__class__ == self.__class__
 
   def is_one_of(self, *modes):

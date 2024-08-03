@@ -27,22 +27,9 @@ Base Connection Classes and Tools
    coo2csr
    coo2csc
    coo2mat
-   coo2mat_num
-   mat2mat_num
-   visualizeMat
-   MAT_DTYPE
-   IDX_DTYPE
    Connector
    TwoEndConnector
    OneEndConnector
-   CONN_MAT
-   PRE_IDS
-   POST_IDS
-   PRE2POST
-   POST2PRE
-   PRE2SYN
-   POST2SYN
-   SUPPORTED_SYN_STRUCTURE
 
 
 Custom Connections
