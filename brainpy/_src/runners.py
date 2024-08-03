@@ -631,7 +631,7 @@ class DSRunner(Runner):
 
     # finally
     if self.progress_bar:
-      jax.pure_callback(lambda: self._pbar.update(), ())
+      jax.debug.callback(lambda *args: self._pbar.update(), ())
     # share.clear_shargs()
     clear_input(self.target)
 
