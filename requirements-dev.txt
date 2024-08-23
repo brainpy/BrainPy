@@ -6,7 +6,7 @@ matplotlib
 msgpack
 tqdm
 pathos
-taichi==1.7.0
+taichi==1.7.2
 numba
 braincore
 braintools
