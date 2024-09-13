@@ -86,6 +86,17 @@ class TestPureFuncGrad(unittest.TestCase):
     assert aux[1] == bm.exp(0.1)
 
 
+  def test_grad_jit(self):
+    def call(a, b, c): return bm.sum(a + b + c)
+
+    bm.random.seed(1)
+    a = bm.ones(10)
+    b = bm.random.randn(10)
+    c = bm.random.uniform(size=10)
+    f_grad = bm.jit(bm.grad(call))
+    assert (f_grad(a, b, c) == 1.).all()
+
+
 class TestObjectFuncGrad(unittest.TestCase):
   def test_grad_ob1(self):
     class Test(bp.BrainPyObject):

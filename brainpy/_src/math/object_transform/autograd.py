@@ -213,16 +213,17 @@ class GradientTransform(ObjectTransform):
       self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
       self._eval_dyn_vars = True
 
-      # if not the outermost transformation
-      if not stack.is_first_stack():
-        return self._return(rets)
-
     rets = self._transform(
       [v.value for v in self._grad_vars],  # variables for gradients
       self._dyn_vars.dict_data(),  # dynamical variables
       *args,
       **kwargs
     )
+
+    # if not the outermost transformation
+    if not stack.is_first_stack():
+      return self._return(rets)
+
     return self._return(rets)
 
 
