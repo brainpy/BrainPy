@@ -94,7 +94,6 @@ class GradientTransform(ObjectTransform):
     self.target = target
 
     # transform
-    self._eval_dyn_vars = False
     self._grad_transform = transform
     self._dyn_vars = VariableStack()
     self._transform = None
@@ -198,20 +197,18 @@ class GradientTransform(ObjectTransform):
       )
       return self._return(rets)
 
-    elif not self._eval_dyn_vars:  # evaluate dynamical variables
-      stack = get_stack_cache(self.target)
-      if stack is None:
-        with VariableStack() as stack:
-          rets = eval_shape(self._transform,
-                            [v.value for v in self._grad_vars],  # variables for gradients
-                            {},  # dynamical variables
-                            *args,
-                            **kwargs)
-          cache_stack(self.target, stack)
-
+    # evaluate dynamical variables
+    stack = get_stack_cache(self.target)
+    if stack is None:
+      with VariableStack() as stack:
+        rets = eval_shape(self._transform,
+                          [v.value for v in self._grad_vars],  # variables for gradients
+                          {},  # dynamical variables
+                          *args,
+                          **kwargs)
+        cache_stack(self.target, stack)
       self._dyn_vars = stack
       self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
-      self._eval_dyn_vars = True
 
       # if not the outermost transformation
       if not stack.is_first_stack():
