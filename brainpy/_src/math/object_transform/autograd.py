@@ -210,9 +210,9 @@ class GradientTransform(ObjectTransform):
       self._dyn_vars = stack
       self._dyn_vars.remove_by_id(*[id(v) for v in self._grad_vars])
 
-    # if not the outermost transformation
-    if not stack.is_first_stack():
-      return self._return(rets)
+      # if not the outermost transformation
+      if not stack.is_first_stack():
+        return self._return(rets)
 
     rets = self._transform(
       [v.value for v in self._grad_vars],  # variables for gradients
