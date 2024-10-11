@@ -10,7 +10,7 @@ taichi==1.7.0
 # document requirements
 pandoc
 Jinja2
-sphinx>=5, <7.4.0
+sphinx>=5, <8.2.0
 myst-nb
 sphinx_thebe
 sphinx-autodoc-typehints
