@@ -193,8 +193,11 @@ class OfflineTrainer(DSTrainer):
     del monitor_data
 
     # close the progress bar
-    if self.progress_bar:
-      self._pbar.close()
+
+    # due to jax 0.4.32 enable the async dispatch(https://github.com/jax-ml/jax/blob/main/CHANGELOG.md#jax-0432-september-11-2024),
+    # we temporarily do not close the progress bar
+    # if self.progress_bar:
+    #   self._pbar.close()
 
     # final things
     for node in self.train_nodes:
