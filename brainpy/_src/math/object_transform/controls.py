@@ -894,8 +894,8 @@ def for_loop(
       dyn_vals, out_vals = transform(operands)
   for key in stack.keys():
     stack[key]._value = dyn_vals[key]
-  if progress_bar:
-    bar.close()
+  # if progress_bar:
+  #   bar.close()
   del dyn_vals, stack
   return out_vals
 
@@ -915,7 +915,7 @@ def _get_scan_transform(
       dyn_vars[k]._value = dyn_vars_data[k]
     carry, results = body_fun(carry, x)
     if progress_bar:
-      jax.pure_callback(lambda *arg: bar.update(), ())
+      jax.debug.callback(lambda *arg: bar.update(), ())
     carry = jax.tree.map(_as_jax_array_, carry, is_leaf=lambda a: isinstance(a, Array))
     return (dyn_vars.dict_data(), carry), results
 
