@@ -894,8 +894,8 @@ def for_loop(
       dyn_vals, out_vals = transform(operands)
   for key in stack.keys():
     stack[key]._value = dyn_vals[key]
-  # if progress_bar:
-  #   bar.close()
+  if progress_bar:
+    bar.close()
   del dyn_vals, stack
   return out_vals
 
