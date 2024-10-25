@@ -153,3 +153,8 @@ __getattr__ = deprecation_getattr2('brainpy', __deprecations)
 
 del deprecation_getattr2
 
+# jax config
+import os
+os.environ['XLA_FLAGS'] = '--xla_cpu_use_thunk_runtime=false'
+import jax
+jax.config.update('jax_cpu_enable_async_dispatch', False)
