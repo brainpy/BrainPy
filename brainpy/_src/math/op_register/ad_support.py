@@ -43,7 +43,7 @@ def _standard_jvp(jvp_rules, primitive: Primitive, primals, tangents, **params):
       assert tree_util.tree_structure(r) == tree
   return val_out, functools.reduce(_add_tangents,
                                    tangents_out,
-                                   tree_util.tree_map(lambda a: ad.Zero.from_value(a), val_out))
+                                   tree_util.tree_map(lambda a: ad.Zero.from_primal_value(a), val_out))
 
 
 def _add_tangents(xs, ys):
