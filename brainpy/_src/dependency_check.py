@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 _minimal_brainpylib_version = '0.2.6'
-_minimal_taichi_version = (1, 7, 0)
+_minimal_taichi_version = (1, 7, 2)
 
 numba = None
 taichi = None
