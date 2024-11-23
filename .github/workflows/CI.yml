@@ -79,6 +79,8 @@ jobs:
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
           pip uninstall brainpy -y
           python setup.py install
+          pip install jax==0.4.30
+          pip install jaxlib==0.4.30
       - name: Test with pytest
         run: |
           cd brainpy
