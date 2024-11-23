@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
+import platform
 
 import jax.numpy as jnp
+import pytest
 from absl.testing import absltest
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
 
+if platform.system() == 'Darwin':
+  pytest.skip('skip Mac OS', allow_module_level=True)
+  
 
 class TestConv(parameterized.TestCase):
   def test_Conv2D_img(self):
