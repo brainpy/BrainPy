@@ -1,5 +1,4 @@
 numpy
-brainpylib
 jax
 jaxlib
 matplotlib
@@ -8,7 +7,7 @@ tqdm
 pathos
 braintaichi
 numba
-braincore
+brainstate
 braintools
 
 
