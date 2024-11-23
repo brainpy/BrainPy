@@ -56,7 +56,7 @@ def pre2post_event_sum(events,
     for i in range(pre_num):
       if events[i]:
         for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] += values
+          post_val[post_ids[j]] += values
 
   When ``values`` is a vector (with the length of ``len(post_ids)``),
   this function is equivalent to
@@ -70,7 +70,7 @@ def pre2post_event_sum(events,
     for i in range(pre_num):
       if events[i]:
         for j in range(idnptr[i], idnptr[i+1]):
-          post_val[post_ids[i]] += values[j]
+          post_val[post_ids[j]] += values[j]
 
 
   Parameters
