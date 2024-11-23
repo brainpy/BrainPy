@@ -1,14 +1,11 @@
 import pytest
 from absl.testing import absltest
 from absl.testing import parameterized
+import jax.numpy as jnp
 
 import brainpy as bp
 import brainpy.math as bm
 
-from brainpy._src.dependency_check import import_taichi
-
-if import_taichi(error_if_not_found=False) is None:
-  pytest.skip('no taichi', allow_module_level=True)
 
 
 class TestLinear(parameterized.TestCase):
@@ -104,11 +101,11 @@ class TestLinear(parameterized.TestCase):
     bm.random.seed()
     f = bp.dnn.CSRLinear(conn, weight=bp.init.Normal())
     x = bm.random.random((16, 100))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (16, 100))
 
     x = bm.random.random((100,))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (100,))
     bm.clear_buffer_memory()
 
@@ -123,10 +120,10 @@ class TestLinear(parameterized.TestCase):
     bm.random.seed()
     f = bp.layers.EventCSRLinear(conn, weight=bp.init.Normal())
     x = bm.random.random((16, 100))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (16, 100))
     x = bm.random.random((100,))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (100,))
     bm.clear_buffer_memory()
 

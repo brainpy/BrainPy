@@ -9,20 +9,16 @@ from brainpy._src.dependency_check import import_numba, import_cupy_jit
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.object_transform.base import BrainPyObject
 
+is_version_right = False
 if jax.__version__ >= '0.4.16':
   from .numba_based import register_numba_mlir_cpu_translation_rule as register_numba_cpu_translation_rule
-  from .taichi_aot_based import (register_taichi_aot_mlir_cpu_translation_rule as register_taichi_cpu_translation_rule,
+  from braintaichi._primitive._mlir_translation_rule import (register_taichi_aot_mlir_cpu_translation_rule as register_taichi_cpu_translation_rule,
                                  register_taichi_aot_mlir_gpu_translation_rule as register_taichi_gpu_translation_rule)
   from .cupy_based import (
     register_cupy_raw_module_mlir_gpu_translation_rule as register_cupy_raw_module_gpu_translation_rule,
     register_cupy_jit_kernel_mlir_gpu_translation_rule as register_cupy_jit_kernel_gpu_translation_rule)
-else:
-  from .numba_based import register_numba_xla_cpu_translation_rule as register_numba_cpu_translation_rule
-  from .taichi_aot_based import (register_taichi_aot_xla_cpu_translation_rule as register_taichi_cpu_translation_rule,
-                                 register_taichi_aot_xla_gpu_translation_rule as register_taichi_gpu_translation_rule)
-  from .cupy_based import (
-    register_cupy_raw_module_xla_gpu_translation_rule as register_cupy_raw_module_gpu_translation_rule,
-    register_cupy_jit_kernel_xla_gpu_translation_rule as register_cupy_jit_kernel_gpu_translation_rule)
+  is_version_right = True
+
 from .utils import register_general_batching
 from brainpy._src.math.op_register.ad_support import defjvp
 
@@ -73,6 +69,8 @@ class XLACustomOp(BrainPyObject):
       outs: Optional[Callable] = None,
       name: str = None,
   ):
+    if not is_version_right:
+      raise ImportError('XLA Custom Op is only supported in JAX>=0.4.16')
     super().__init__(name)
 
     # set cpu_kernel and gpu_kernel

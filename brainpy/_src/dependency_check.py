@@ -6,6 +6,8 @@ from jax.lib import xla_client
 __all__ = [
   'import_taichi',
   'raise_taichi_not_found',
+  'import_braintaichi',
+  'raise_braintaichi_not_found',
   'import_numba',
   'raise_numba_not_found',
   'import_cupy',
@@ -16,10 +18,11 @@ __all__ = [
 ]
 
 _minimal_brainpylib_version = '0.2.6'
-_minimal_taichi_version = (1, 7, 0)
+_minimal_taichi_version = (1, 7, 2)
 
 numba = None
 taichi = None
+braintaichi = None
 cupy = None
 cupy_jit = None
 brainpylib_cpu_ops = None
@@ -33,6 +36,10 @@ numba_install_info = ('We need numba. Please install numba by pip . \n'
 cupy_install_info = ('We need cupy. Please install cupy by pip . \n'
                      'For CUDA v11.2 ~ 11.8 > pip install cupy-cuda11x\n'
                      'For CUDA v12.x        > pip install cupy-cuda12x\n')
+braintaichi_install_info = ('We need braintaichi. Please install braintaichi by pip . \n'
+                            '> pip install braintaichi -U')
+
+
 os.environ["TI_LOG_LEVEL"] = "error"
 
 
@@ -68,6 +75,26 @@ def import_taichi(error_if_not_found=True):
 
 def raise_taichi_not_found(*args, **kwargs):
   raise ModuleNotFoundError(taichi_install_info)
+
+def import_braintaichi(error_if_not_found=True):
+    """Internal API to import braintaichi.
+
+    If braintaichi is not found, it will raise a ModuleNotFoundError if error_if_not_found is True,
+    otherwise it will return None.
+    """
+    global braintaichi
+    if braintaichi is None:
+      try:
+        import braintaichi as braintaichi
+      except ModuleNotFoundError:
+        if error_if_not_found:
+          raise_braintaichi_not_found()
+        else:
+          return None
+    return braintaichi
+
+def raise_braintaichi_not_found():
+    raise ModuleNotFoundError(braintaichi_install_info)
 
 
 def import_numba(error_if_not_found=True):

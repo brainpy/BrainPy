@@ -33,8 +33,6 @@ from . import fft
 from . import linalg
 from . import random
 
-# taichi operations
-from . import tifunc
 
 # others
 from . import sharding

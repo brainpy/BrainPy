@@ -11,7 +11,7 @@ import numpy as np
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
-from brainpy._src.dependency_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, import_braintaichi
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.check import is_initializer
@@ -20,6 +20,7 @@ from brainpy.errors import MathError, PackageMissingError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 
+bti = import_braintaichi(error_if_not_found=False)
 ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
@@ -238,7 +239,7 @@ class Identity(Layer):
     return x
 
 
-if ti is not None:
+if ti is not None and bti is not None:
 
   # @numba.njit(nogil=True, fastmath=True, parallel=False)
   # def _cpu_dense_on_post(weight, spike, trace, w_min, w_max, out_w):
@@ -273,7 +274,7 @@ if ti is not None:
         out_w[i, j] = old_w[i, j]
 
 
-  dense_on_post_prim = bm.XLACustomOp(cpu_kernel=_dense_on_post, gpu_kernel=_dense_on_post)
+  dense_on_post_prim = bti.XLACustomOp(cpu_kernel=_dense_on_post, gpu_kernel=_dense_on_post)
 
 
   # @numba.njit(nogil=True, fastmath=True, parallel=False)
@@ -309,7 +310,7 @@ if ti is not None:
         out_w[i, j] = old_w[i, j]
 
 
-  dense_on_pre_prim = bm.XLACustomOp(cpu_kernel=_dense_on_pre, gpu_kernel=_dense_on_pre)
+  dense_on_pre_prim = bti.XLACustomOp(cpu_kernel=_dense_on_pre, gpu_kernel=_dense_on_pre)
 
 else:
   dense_on_pre_prim = None
@@ -326,6 +327,12 @@ def dense_on_pre(weight, spike, trace, w_min, w_max):
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  weight = bm.as_jax(weight)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return dense_on_pre_prim(weight, spike, trace, w_min, w_max,
                            outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
 
@@ -340,6 +347,12 @@ def dense_on_post(weight, spike, trace, w_min, w_max):
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  weight = bm.as_jax(weight)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return dense_on_post_prim(weight, spike, trace, w_min, w_max,
                             outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
 
@@ -735,7 +748,7 @@ if ti is not None:
           out_w[i_syn] = old_w[i_syn]
 
 
-  csr_on_pre_update_prim = bm.XLACustomOp(cpu_kernel=_csr_on_pre_update, gpu_kernel=_csr_on_pre_update)
+  csr_on_pre_update_prim = bti.XLACustomOp(cpu_kernel=_csr_on_pre_update, gpu_kernel=_csr_on_pre_update)
 
 
   @ti.kernel
@@ -759,7 +772,7 @@ if ti is not None:
         out_w[i_syn] = old_w[i_syn]
 
 
-  coo_on_pre_update_prim = bm.XLACustomOp(cpu_kernel=_coo_on_pre_update, gpu_kernel=_coo_on_pre_update)
+  coo_on_pre_update_prim = bti.XLACustomOp(cpu_kernel=_coo_on_pre_update, gpu_kernel=_coo_on_pre_update)
 
 
   @ti.kernel
@@ -783,7 +796,7 @@ if ti is not None:
         out_w[i_syn] = old_w[i_syn]
 
 
-  coo_on_post_update_prim = bm.XLACustomOp(cpu_kernel=_coo_on_post_update, gpu_kernel=_coo_on_post_update)
+  coo_on_post_update_prim = bti.XLACustomOp(cpu_kernel=_coo_on_post_update, gpu_kernel=_coo_on_post_update)
 
 
   # @numba.njit(nogil=True, fastmath=True, parallel=False)
@@ -824,7 +837,7 @@ if ti is not None:
           out_w[i_syn] = old_w[i_syn]
 
 
-  csc_on_post_update_prim = bm.XLACustomOp(cpu_kernel=_csc_on_post_update, gpu_kernel=_csc_on_post_update)
+  csc_on_post_update_prim = bti.XLACustomOp(cpu_kernel=_csc_on_post_update, gpu_kernel=_csc_on_post_update)
 
 
 else:
@@ -843,6 +856,14 @@ def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  w = bm.as_jax(w)
+  indices = bm.as_jax(indices)
+  indptr = bm.as_jax(indptr)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return csr_on_pre_update_prim(w, indices, indptr, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
@@ -857,6 +878,15 @@ def coo_on_pre_update(w, pre_ids, post_ids, spike, trace, w_min=None, w_max=None
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  w = bm.as_jax(w)
+  pre_ids = bm.as_jax(pre_ids)
+  post_ids = bm.as_jax(post_ids)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
+
   return coo_on_pre_update_prim(w, pre_ids, post_ids, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
@@ -871,6 +901,15 @@ def csc_on_post_update(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min=
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  w = bm.as_jax(w)
+  post_ids = bm.as_jax(post_ids)
+  indptr = bm.as_jax(indptr)
+  w_ids = bm.as_jax(w_ids)
+  post_spike = bm.as_jax(post_spike)
+  pre_trace = bm.as_jax(pre_trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return csc_on_post_update_prim(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min, w_max,
                                  outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 

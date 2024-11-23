@@ -5,7 +5,7 @@ matplotlib
 numpy
 scipy
 numba
-taichi==1.7.0
+braintaichi
 
 # document requirements
 pandoc
