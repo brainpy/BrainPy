@@ -110,6 +110,20 @@ Learn more
    APIs may be changed over time. Please always keeps
    in mind what BrainPy version you are using.
 
+.. note::
+   Starting from our experimental BrainPy package, a better and mature ecosystem for brain dynamics programming is emerging.
+   Please see the `Brain Dynamics Programming Ecosystem <https://ecosystem-for-brain-dynamics.readthedocs.io/>`_ for more details.
+
+   If you are heavily using BrainPy, please consider using `brainstate <https://brainstate.readthedocs.io>`_ for a more stable, efficient, concise, and powerful experience.
+
+   `brainstate <https://github.com/chaobrain/brainstate>`_ is and will be active maintained and developed by our team.
+   We highly recommend transferring your code to brainstate for a better performance.
+
+
+
+---
+
+
 
 .. toctree::
    :hidden:
