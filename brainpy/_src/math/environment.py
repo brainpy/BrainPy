@@ -18,9 +18,6 @@ from . import modes
 from . import scales
 from . import defaults
 from .object_transform import naming
-from brainpy._src.dependency_check import import_taichi
-
-ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   # context manage for environment setting
@@ -459,16 +456,10 @@ def set_float(dtype: type):
   """
   if dtype in [jnp.float16, 'float16', 'f16']:
     defaults.__dict__['float_'] = jnp.float16
-    if ti is not None:
-      defaults.__dict__['ti_float'] = ti.float16
   elif dtype in [jnp.float32, 'float32', 'f32']:
     defaults.__dict__['float_'] = jnp.float32
-    if ti is not None:
-      defaults.__dict__['ti_float'] = ti.float32
   elif dtype in [jnp.float64, 'float64', 'f64']:
     defaults.__dict__['float_'] = jnp.float64
-    if ti is not None:
-      defaults.__dict__['ti_float'] = ti.float64
   else:
     raise NotImplementedError
 
@@ -494,20 +485,12 @@ def set_int(dtype: type):
   """
   if dtype in [jnp.int8, 'int8', 'i8']:
     defaults.__dict__['int_'] = jnp.int8
-    if ti is not None:
-      defaults.__dict__['ti_int'] = ti.int8
   elif dtype in [jnp.int16, 'int16', 'i16']:
     defaults.__dict__['int_'] = jnp.int16
-    if ti is not None:
-      defaults.__dict__['ti_int'] = ti.int16
   elif dtype in [jnp.int32, 'int32', 'i32']:
     defaults.__dict__['int_'] = jnp.int32
-    if ti is not None:
-      defaults.__dict__['ti_int'] = ti.int32
   elif dtype in [jnp.int64, 'int64', 'i64']:
     defaults.__dict__['int_'] = jnp.int64
-    if ti is not None:
-      defaults.__dict__['ti_int'] = ti.int64
   else:
     raise NotImplementedError
 

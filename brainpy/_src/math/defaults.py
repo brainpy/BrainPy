@@ -1,13 +1,10 @@
 import jax.numpy as jnp
 from jax import config
 
-from brainpy._src.dependency_check import import_taichi
 from .modes import NonBatchingMode
 from .scales import IdScaling
 
-__all__ = ['mode', 'membrane_scaling', 'dt', 'bool_', 'int_', 'ti_int', 'float_', 'ti_float', 'complex_']
-
-ti = import_taichi(error_if_not_found=False)
+__all__ = ['mode', 'membrane_scaling', 'dt', 'bool_', 'int_', 'float_', 'complex_']
 
 # Default computation mode.
 mode = NonBatchingMode()
@@ -36,16 +33,3 @@ bp_object_as_pytree = False
 
 # default return array type
 numpy_func_return = 'bp_array'  # 'bp_array','jax_array'
-
-
-if ti is not None:
-  # Default integer data type in Taichi.
-  ti_int = ti.int64 if config.read('jax_enable_x64') else ti.int32
-
-  # Default float data type in Taichi.
-  ti_float = ti.float64 if config.read('jax_enable_x64') else ti.float32
-
-else:
-  ti_int = None
-  ti_float = None
-
