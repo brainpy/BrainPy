@@ -7,6 +7,7 @@ from typing import Dict, Optional, Union, Callable
 import jax
 import jax.numpy as jnp
 import numpy as np
+import braintaichi as bti
 
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
@@ -273,7 +274,7 @@ if ti is not None:
         out_w[i, j] = old_w[i, j]
 
 
-  dense_on_post_prim = bm.XLACustomOp(cpu_kernel=_dense_on_post, gpu_kernel=_dense_on_post)
+  dense_on_post_prim = bti.XLACustomOp(cpu_kernel=_dense_on_post, gpu_kernel=_dense_on_post)
 
 
   # @numba.njit(nogil=True, fastmath=True, parallel=False)
@@ -309,7 +310,7 @@ if ti is not None:
         out_w[i, j] = old_w[i, j]
 
 
-  dense_on_pre_prim = bm.XLACustomOp(cpu_kernel=_dense_on_pre, gpu_kernel=_dense_on_pre)
+  dense_on_pre_prim = bti.XLACustomOp(cpu_kernel=_dense_on_pre, gpu_kernel=_dense_on_pre)
 
 else:
   dense_on_pre_prim = None
@@ -735,7 +736,7 @@ if ti is not None:
           out_w[i_syn] = old_w[i_syn]
 
 
-  csr_on_pre_update_prim = bm.XLACustomOp(cpu_kernel=_csr_on_pre_update, gpu_kernel=_csr_on_pre_update)
+  csr_on_pre_update_prim = bti.XLACustomOp(cpu_kernel=_csr_on_pre_update, gpu_kernel=_csr_on_pre_update)
 
 
   @ti.kernel
@@ -759,7 +760,7 @@ if ti is not None:
         out_w[i_syn] = old_w[i_syn]
 
 
-  coo_on_pre_update_prim = bm.XLACustomOp(cpu_kernel=_coo_on_pre_update, gpu_kernel=_coo_on_pre_update)
+  coo_on_pre_update_prim = bti.XLACustomOp(cpu_kernel=_coo_on_pre_update, gpu_kernel=_coo_on_pre_update)
 
 
   @ti.kernel
@@ -783,7 +784,7 @@ if ti is not None:
         out_w[i_syn] = old_w[i_syn]
 
 
-  coo_on_post_update_prim = bm.XLACustomOp(cpu_kernel=_coo_on_post_update, gpu_kernel=_coo_on_post_update)
+  coo_on_post_update_prim = bti.XLACustomOp(cpu_kernel=_coo_on_post_update, gpu_kernel=_coo_on_post_update)
 
 
   # @numba.njit(nogil=True, fastmath=True, parallel=False)
@@ -824,7 +825,7 @@ if ti is not None:
           out_w[i_syn] = old_w[i_syn]
 
 
-  csc_on_post_update_prim = bm.XLACustomOp(cpu_kernel=_csc_on_post_update, gpu_kernel=_csc_on_post_update)
+  csc_on_post_update_prim = bti.XLACustomOp(cpu_kernel=_csc_on_post_update, gpu_kernel=_csc_on_post_update)
 
 
 else:

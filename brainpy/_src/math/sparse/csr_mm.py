@@ -6,10 +6,8 @@ from typing import Union, Tuple
 from braintaichi import csrmm as bt_csrmm
 from jax import numpy as jnp
 
-from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.ndarray import Array
 
-ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   'csrmm',

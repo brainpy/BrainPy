@@ -5,12 +5,10 @@ from typing import Tuple, Optional
 import jax
 from braintaichi import jitc_event_mv_prob_homo, jitc_event_mv_prob_uniform, jitc_event_mv_prob_normal
 
-from brainpy._src.dependency_check import import_taichi
 from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
 
-ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
   'event_mv_prob_homo',

@@ -5,10 +5,6 @@ import numpy as np
 import brainpy as bp
 import brainpy.math as bm
 
-from brainpy._src.dependency_check import import_taichi
-
-if import_taichi(error_if_not_found=False) is None:
-  pytest.skip('no taichi', allow_module_level=True)
 
 neu_pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                 V_initializer=bp.init.Normal(-55., 2.))

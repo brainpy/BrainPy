@@ -3,21 +3,10 @@
 
 from typing import Union, Tuple
 
-import jax
-import numpy as np
-from jax import numpy as jnp
-from jax.interpreters import ad
-from jax.experimental.sparse import csr
 from braintaichi import event_csrmm as bt_event_csrmm
+from jax import numpy as jnp
 
-from brainpy._src.dependency_check import import_taichi
-from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import (XLACustomOp, register_general_batching)
-from brainpy._src.math.sparse.utils import csr_to_coo
-from brainpy._src.math.defaults import float_
-
-ti = import_taichi()
 
 __all__ = [
   'csrmm',

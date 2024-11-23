@@ -15,13 +15,10 @@ from typing import Union, Tuple
 import jax
 from braintaichi import event_csrmv as bt_event_csrmv
 
-from brainpy._src.dependency_check import import_taichi
-
 __all__ = [
   'csrmv'
 ]
 
-ti = import_taichi(error_if_not_found=False)
 
 
 def csrmv(
