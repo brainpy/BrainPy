@@ -327,6 +327,12 @@ def dense_on_pre(weight, spike, trace, w_min, w_max):
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  weight = bm.as_jax(weight)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return dense_on_pre_prim(weight, spike, trace, w_min, w_max,
                            outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
 
@@ -341,6 +347,12 @@ def dense_on_post(weight, spike, trace, w_min, w_max):
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  weight = bm.as_jax(weight)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return dense_on_post_prim(weight, spike, trace, w_min, w_max,
                             outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
 
@@ -844,6 +856,14 @@ def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  w = bm.as_jax(w)
+  indices = bm.as_jax(indices)
+  indptr = bm.as_jax(indptr)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return csr_on_pre_update_prim(w, indices, indptr, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
@@ -858,6 +878,15 @@ def coo_on_pre_update(w, pre_ids, post_ids, spike, trace, w_min=None, w_max=None
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  w = bm.as_jax(w)
+  pre_ids = bm.as_jax(pre_ids)
+  post_ids = bm.as_jax(post_ids)
+  spike = bm.as_jax(spike)
+  trace = bm.as_jax(trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
+
   return coo_on_pre_update_prim(w, pre_ids, post_ids, spike, trace, w_min, w_max,
                                 outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
@@ -872,6 +901,15 @@ def csc_on_post_update(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min=
     w_max = np.inf
   w_min = jnp.atleast_1d(w_min)
   w_max = jnp.atleast_1d(w_max)
+
+  w = bm.as_jax(w)
+  post_ids = bm.as_jax(post_ids)
+  indptr = bm.as_jax(indptr)
+  w_ids = bm.as_jax(w_ids)
+  post_spike = bm.as_jax(post_spike)
+  pre_trace = bm.as_jax(pre_trace)
+  w_min = bm.as_jax(w_min)
+  w_max = bm.as_jax(w_max)
   return csc_on_post_update_prim(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min, w_max,
                                  outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 

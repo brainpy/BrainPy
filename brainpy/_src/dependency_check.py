@@ -84,13 +84,13 @@ def import_braintaichi(error_if_not_found=True):
     """
     global braintaichi
     if braintaichi is None:
-        try:
-          import braintaichi as braintaichi
-        except ModuleNotFoundError:
-          if error_if_not_found:
-              raise_braintaichi_not_found()
+      try:
+        import braintaichi as braintaichi
+      except ModuleNotFoundError:
+        if error_if_not_found:
+          raise_braintaichi_not_found()
         else:
-            return None
+          return None
     return braintaichi
 
 def raise_braintaichi_not_found():
