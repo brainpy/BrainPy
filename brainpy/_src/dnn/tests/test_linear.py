@@ -1,6 +1,7 @@
 import pytest
 from absl.testing import absltest
 from absl.testing import parameterized
+import jax.numpy as jnp
 
 import brainpy as bp
 import brainpy.math as bm
@@ -100,11 +101,11 @@ class TestLinear(parameterized.TestCase):
     bm.random.seed()
     f = bp.dnn.CSRLinear(conn, weight=bp.init.Normal())
     x = bm.random.random((16, 100))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (16, 100))
 
     x = bm.random.random((100,))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (100,))
     bm.clear_buffer_memory()
 
@@ -119,10 +120,10 @@ class TestLinear(parameterized.TestCase):
     bm.random.seed()
     f = bp.layers.EventCSRLinear(conn, weight=bp.init.Normal())
     x = bm.random.random((16, 100))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (16, 100))
     x = bm.random.random((100,))
-    y = f(x)
+    y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (100,))
     bm.clear_buffer_memory()
 
