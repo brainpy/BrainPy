@@ -43,10 +43,7 @@ del jnp, config
 
 from brainpy._src.math import defaults
 from brainpy._src.deprecations import deprecation_getattr
-from brainpy._src.dependency_check import import_taichi, import_numba
 
-import_taichi(error_if_not_found=False)
-import_numba(error_if_not_found=False)
 
 __deprecations = {
   "sparse_matmul": ("brainpy.math.sparse_matmul is deprecated. Use brainpy.math.sparse.seg_matmul instead.",
