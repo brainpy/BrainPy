@@ -1,21 +1,45 @@
 # -*- coding: utf-8 -*-
 
 import warnings
+from functools import partial
 from typing import Tuple
 
 import numpy as np
-from jax import core, numpy as jnp
-from jax.interpreters import mlir, ad
-from jaxlib import gpu_sparse
-
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.op_register import register_general_batching
+from jax import core, numpy as jnp
+from jax import lax
+from jax.interpreters import batching
+from jax.interpreters import mlir, ad
+from jax.tree_util import tree_flatten, tree_unflatten
+from jaxlib import gpu_sparse
 
 __all__ = [
   'coo_to_csr',
   'csr_to_coo',
   'csr_to_dense'
 ]
+
+def _general_batching_rule(prim, args, axes, **kwargs):
+  batch_axes, batch_args, non_batch_args = [], {}, {}
+  for ax_i, ax in enumerate(axes):
+    if ax is None:
+      non_batch_args[f'ax{ax_i}'] = args[ax_i]
+    else:
+      batch_args[f'ax{ax_i}'] = args[ax_i] if ax == 0 else jnp.moveaxis(args[ax_i], ax, 0)
+      batch_axes.append(ax_i)
+
+  def f(_, x):
+    pars = tuple([(x[f'ax{i}'] if i in batch_axes else non_batch_args[f'ax{i}'])
+                  for i in range(len(axes))])
+    return 0, prim.bind(*pars, **kwargs)
+
+  _, outs = lax.scan(f, 0, batch_args)
+  out_vals, out_tree = tree_flatten(outs)
+  out_dim = tree_unflatten(out_tree, (0,) * len(out_vals))
+  return outs, out_dim
+
+def _register_general_batching(prim):
+  batching.primitive_batchers[prim] = partial(_general_batching_rule, prim)
 
 
 def coo_to_csr(
@@ -153,6 +177,6 @@ csr_to_dense_p.def_abstract_eval(_csr_to_dense_abstract_eval)
 ad.defjvp(csr_to_dense_p, _csr_to_dense_jvp, None, None)
 ad.primitive_transposes[csr_to_dense_p] = _csr_to_dense_transpose
 mlir.register_lowering(csr_to_dense_p, _csr_to_dense_lowering)
-register_general_batching(csr_to_dense_p)
+_register_general_batching(csr_to_dense_p)
 if gpu_sparse.cuda_is_supported:
   mlir.register_lowering(csr_to_dense_p, _csr_to_dense_gpu_lowering, platform='cuda')
