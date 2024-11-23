@@ -4,9 +4,6 @@ from typing import Tuple, Optional, Union
 
 import jax
 import numpy as np
-from braintaichi import jitc_mv_prob_homo, jitc_mv_prob_uniform, jitc_mv_prob_normal, \
-  get_homo_weight_matrix as bt_get_homo_weight_matrix, get_uniform_weight_matrix as bt_get_uniform_weight_matrix, \
-  get_normal_weight_matrix as bt_get_normal_weight_matrix
 from jax import numpy as jnp
 
 from brainpy._src.math import defaults
@@ -14,6 +11,9 @@ from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
 from brainpy._src.math.op_register import XLACustomOp
 from brainpy.errors import PackageMissingError
+from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
+
+bti = import_braintaichi(error_if_not_found=False)
 
 __all__ = [
   'mv_prob_homo',
@@ -83,7 +83,10 @@ def mv_prob_homo(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return jitc_mv_prob_homo(vector, weight, conn_prob, seed, shape=shape,
+  if  bti is None:
+    raise_braintaichi_not_found()
+
+  return bti.jitc_mv_prob_homo(vector, weight, conn_prob, seed, shape=shape,
                           transpose=transpose, outdim_parallel=outdim_parallel)
 
 
@@ -148,7 +151,10 @@ def mv_prob_uniform(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return jitc_mv_prob_uniform(vector, w_low, w_high, conn_prob, seed, shape=shape,
+  if  bti is None:
+    raise_braintaichi_not_found()
+
+  return bti.jitc_mv_prob_uniform(vector, w_low, w_high, conn_prob, seed, shape=shape,
                              transpose=transpose, outdim_parallel=outdim_parallel)
 
 
@@ -213,7 +219,9 @@ def mv_prob_normal(
   out: Array, ndarray
     The output of :math:`y = M @ v`.
   """
-  return jitc_mv_prob_normal(vector, w_mu, w_sigma, conn_prob, seed, shape=shape,
+  if  bti is None:
+    raise_braintaichi_not_found()
+  return bti.jitc_mv_prob_normal(vector, w_mu, w_sigma, conn_prob, seed, shape=shape,
                             transpose=transpose, outdim_parallel=outdim_parallel)
 
 
@@ -248,7 +256,9 @@ def get_homo_weight_matrix(
   out: Array, ndarray
     The connection matrix :math:`M`.
   """
-  return bt_get_homo_weight_matrix(weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
+  if  bti is None:
+    raise_braintaichi_not_found()
+  return bti.get_homo_weight_matrix(weight, conn_prob, seed, shape=shape, transpose=transpose, outdim_parallel=outdim_parallel)
 
 
 def get_uniform_weight_matrix(
@@ -287,7 +297,9 @@ def get_uniform_weight_matrix(
   out: Array, ndarray
     The weight matrix :math:`M`.
   """
-  return bt_get_uniform_weight_matrix(w_low, w_high, conn_prob, seed, shape=shape,
+  if  bti is None:
+    raise_braintaichi_not_found()
+  return bti.get_uniform_weight_matrix(w_low, w_high, conn_prob, seed, shape=shape,
                                       transpose=transpose, outdim_parallel=outdim_parallel)
 
 
@@ -325,7 +337,9 @@ def get_normal_weight_matrix(
   out: Array, ndarray
     The weight matrix :math:`M`.
   """
-  return bt_get_normal_weight_matrix(w_mu, w_sigma, conn_prob, seed,
+  if  bti is None:
+    raise_braintaichi_not_found()
+  return bti.get_normal_weight_matrix(w_mu, w_sigma, conn_prob, seed,
                                      shape=shape,
                                      transpose=transpose, outdim_parallel=outdim_parallel)
 

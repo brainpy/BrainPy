@@ -3,12 +3,13 @@
 from typing import Tuple, Optional
 
 import jax
-from braintaichi import jitc_event_mv_prob_homo, jitc_event_mv_prob_uniform, jitc_event_mv_prob_normal
 
 from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
+from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
 
+bti = import_braintaichi(error_if_not_found=False)
 
 __all__ = [
   'event_mv_prob_homo',
@@ -27,7 +28,9 @@ def event_mv_prob_homo(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return jitc_event_mv_prob_homo(events, weight, conn_prob, seed,
+  if bti is None:
+    raise_braintaichi_not_found()
+  return bti.jitc_event_mv_prob_homo(events, weight, conn_prob, seed,
                                 shape=shape,
                                 transpose=transpose,
                                 outdim_parallel=outdim_parallel)
@@ -47,7 +50,9 @@ def event_mv_prob_uniform(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return jitc_event_mv_prob_uniform(events, w_low, w_high, conn_prob, seed, shape=shape,
+  if bti is None:
+    raise_braintaichi_not_found()
+  return bti.jitc_event_mv_prob_uniform(events, w_low, w_high, conn_prob, seed, shape=shape,
                                    transpose=transpose, outdim_parallel=outdim_parallel)
 
 
@@ -65,7 +70,9 @@ def event_mv_prob_normal(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-  return jitc_event_mv_prob_normal(events, w_mu, w_sigma, conn_prob, seed, shape=shape,
+  if bti is None:
+    raise_braintaichi_not_found()
+  return bti.jitc_event_mv_prob_normal(events, w_mu, w_sigma, conn_prob, seed, shape=shape,
                                   transpose=transpose, outdim_parallel=outdim_parallel)
 
 

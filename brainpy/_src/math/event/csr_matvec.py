@@ -13,7 +13,11 @@ Key points for the operator customization:
 from typing import Union, Tuple
 
 import jax
-from braintaichi import event_csrmv as bt_event_csrmv
+
+from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
+
+bti = import_braintaichi(error_if_not_found=False)
+
 
 __all__ = [
   'csrmv'
@@ -60,5 +64,7 @@ def csrmv(
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
+  if bti is None:
+    raise_braintaichi_not_found()
 
-  return bt_event_csrmv(data, indices, indptr, events, shape=shape, transpose=transpose)
+  return bti.event_csrmv(data, indices, indptr, events, shape=shape, transpose=transpose)

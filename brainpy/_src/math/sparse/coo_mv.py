@@ -3,10 +3,12 @@
 
 from typing import Union, Tuple
 
-from braintaichi import coomv as bt_coomv
 from jax import numpy as jnp
 
 from brainpy._src.math.ndarray import Array
+from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
+
+bti = import_braintaichi(error_if_not_found=False)
 
 __all__ = [
   'coomv',
@@ -59,8 +61,10 @@ def coomv(
     An array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
+  if bti is None:
+    raise_braintaichi_not_found()
 
-  return bt_coomv(
+  return bti.coomv(
     data=data,
     row=row,
     col=col,

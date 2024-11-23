@@ -7,12 +7,11 @@ from typing import Dict, Optional, Union, Callable
 import jax
 import jax.numpy as jnp
 import numpy as np
-import braintaichi as bti
 
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
-from brainpy._src.dependency_check import import_taichi
+from brainpy._src.dependency_check import import_taichi, import_braintaichi
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.check import is_initializer
@@ -21,6 +20,7 @@ from brainpy.errors import MathError, PackageMissingError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 
+bti = import_braintaichi(error_if_not_found=False)
 ti = import_taichi(error_if_not_found=False)
 
 __all__ = [
@@ -239,7 +239,7 @@ class Identity(Layer):
     return x
 
 
-if ti is not None:
+if ti is not None and bti is not None:
 
   # @numba.njit(nogil=True, fastmath=True, parallel=False)
   # def _cpu_dense_on_post(weight, spike, trace, w_min, w_max, out_w):

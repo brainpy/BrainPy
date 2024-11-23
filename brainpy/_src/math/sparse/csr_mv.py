@@ -3,11 +3,12 @@
 
 from typing import Union, Tuple
 
-from braintaichi import csrmv as bt_csrmv
 from jax import numpy as jnp
 
+from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
 from brainpy._src.math.ndarray import Array
 
+bti = import_braintaichi(error_if_not_found=False)
 
 __all__ = [
   'csrmv',
@@ -60,6 +61,8 @@ def csrmv(
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
+  if bti is None:
+    raise_braintaichi_not_found()
 
-  return bt_csrmv(data, indices, indptr, vector, shape=shape, transpose=transpose)
+  return bti.csrmv(data, indices, indptr, vector, shape=shape, transpose=transpose)
 
