@@ -4,14 +4,12 @@ from typing import Tuple, Optional, Union
 
 import jax
 import numpy as np
-from jax import numpy as jnp
-
+from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
 from brainpy._src.math import defaults
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.ndarray import Array
-from brainpy._src.math.op_register import XLACustomOp
 from brainpy.errors import PackageMissingError
-from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
+from jax import numpy as jnp
 
 bti = import_braintaichi(error_if_not_found=False)
 

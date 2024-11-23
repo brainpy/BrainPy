@@ -16,7 +16,6 @@ from . import activations
 
 # operators
 from .pre_syn_post import *
-from .op_register import *
 from . import surrogate, event, sparse, jitconn
 
 # Variable and Objects for object-oriented JAX transformations
