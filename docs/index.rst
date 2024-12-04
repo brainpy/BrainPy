@@ -20,13 +20,7 @@ Installation
           # python 3.9-3.11
           pip install -U brainpy[cpu]  # windows, linux, macos
 
-    .. tab-item:: GPU (CUDA 11.0)
-
-       .. code-block:: bash
-
-          pip install -U brainpy[cuda11] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-
-    .. tab-item:: GPU (CUDA 12.0)
+    .. tab-item:: GPU (CUDA 12)
 
        .. code-block:: bash
 
