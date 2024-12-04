@@ -68,12 +68,10 @@ setup(
     'https://storage.googleapis.com/jax-releases/jax_cuda_releases.html',
   ],
   extras_require={
-    'cpu': ['jaxlib>=0.4.13', 'brainpylib', 'numba', 'braintaichi'],
-    'cuda11': ['jaxlib[cuda11_pip]', 'brainpylib', 'numba', 'braintaichi'],
-    'cuda12': ['jaxlib[cuda12_pip]', 'brainpylib', 'numba', 'braintaichi'],
+    'cpu': ['jaxlib>=0.4.13', 'numba', 'braintaichi'],
+    'cuda12': ['jaxlib[cuda12_pip]', 'numba', 'braintaichi'],
     'tpu': ['jaxlib[tpu]', 'numba',],
     'cpu_mini': ['jaxlib>=0.4.13'],
-    'cuda11_mini': ['jaxlib[cuda11_pip]'],
     'cuda12_mini': ['jaxlib[cuda12_pip]'],
   },
   keywords=('computational neuroscience, '
