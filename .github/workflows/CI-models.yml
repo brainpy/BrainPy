@@ -132,7 +132,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install numpy>=1.21.0
         python -m pip install -r requirements-dev.txt
-        python -m pip install tqdm brainpylib
+        python -m pip install tqdm
         pip uninstall brainpy -y
         python setup.py install
     - name: Test with pytest
