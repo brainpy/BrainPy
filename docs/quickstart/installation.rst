@@ -36,7 +36,6 @@ To install brainpy with minimum requirements (only depends on ``jax``), you can 
 
     # or
 
-    pip install brainpy[cuda11_mini] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html  # for CUDA 11.0
     pip install brainpy[cuda12_mini] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html  # for CUDA 12.0
 
     # or
@@ -64,7 +63,6 @@ To install a GPU-only version of BrainPy, you can run
 .. code-block:: bash
 
     pip install brainpy[cuda12] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html  # for CUDA 12.0
-    pip install brainpy[cuda11] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html  # for CUDA 11.0
 
 
 
@@ -78,26 +76,4 @@ you can run the following in your cloud TPU VM:
 
     pip install brainpy[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html  # for google TPU
 
-
-
-``brainpylib``
---------------
-
-
-``brainpylib`` defines a set of useful operators for building and simulating spiking neural networks.
-
-
-To install the ``brainpylib`` package on CPU devices, you can run
-
-.. code-block:: bash
-
-    pip install brainpylib
-
-
-To install the ``brainpylib`` package on CUDA (Linux only), you can run
-
-
-.. code-block:: bash
-
-    pip install brainpylib
 
