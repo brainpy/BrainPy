@@ -12,7 +12,7 @@ import numpy as np
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
-from brainpy._src.dependency_check import import_taichi, import_braintaichi
+from brainpy._src.dependency_check import import_taichi, import_braintaichi, raise_braintaichi_not_found
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.check import is_initializer
@@ -241,7 +241,7 @@ class Identity(Layer):
         return x
 
 
-if ti is not None:
+if ti is not None and bti is not None:
 
     # @numba.njit(nogil=True, fastmath=True, parallel=False)
     # def _cpu_dense_on_post(weight, spike, trace, w_min, w_max, out_w):
@@ -321,7 +321,7 @@ else:
 
 def dense_on_pre(weight, spike, trace, w_min, w_max):
     if dense_on_pre_prim is None:
-        raise PackageMissingError.by_purpose('taichi', 'custom operators')
+        raise_braintaichi_not_found()
 
     if w_min is None:
         w_min = -np.inf
@@ -341,7 +341,7 @@ def dense_on_pre(weight, spike, trace, w_min, w_max):
 
 def dense_on_post(weight, spike, trace, w_min, w_max):
     if dense_on_post_prim is None:
-        raise PackageMissingError.by_purpose('taichi', 'custom operators')
+        raise_braintaichi_not_found()
 
     if w_min is None:
         w_min = -np.inf
@@ -728,7 +728,7 @@ class EventCSRLinear(_CSRLayer):
                               transpose=self.transpose)
 
 
-if ti is not None:
+if ti is not None and bti is not None:
     @ti.kernel
     def _csr_on_pre_update(
         old_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
@@ -852,7 +852,7 @@ else:
 
 def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
     if csr_on_pre_update_prim is None:
-        raise PackageMissingError.by_purpose('taichi', 'customized operators')
+        raise_braintaichi_not_found()
 
     if w_min is None:
         w_min = -np.inf
@@ -874,7 +874,7 @@ def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
 
 def coo_on_pre_update(w, pre_ids, post_ids, spike, trace, w_min=None, w_max=None):
     if coo_on_pre_update_prim is None:
-        raise PackageMissingError.by_purpose('taichi', 'customized operators')
+        raise_braintaichi_not_found()
 
     if w_min is None:
         w_min = -np.inf
@@ -897,7 +897,7 @@ def coo_on_pre_update(w, pre_ids, post_ids, spike, trace, w_min=None, w_max=None
 
 def csc_on_post_update(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min=None, w_max=None):
     if csc_on_post_update_prim is None:
-        raise PackageMissingError.by_purpose('taichi', 'customized operators')
+        raise_braintaichi_not_found()
 
     if w_min is None:
         w_min = -np.inf

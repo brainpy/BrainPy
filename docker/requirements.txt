@@ -6,10 +6,10 @@ jax
 jaxlib
 scipy>=1.1.0
 brainpy
-brainpylib
 brainpy_datasets
 h5py
 pathos
+braintaichi
 
 # test requirements
 pytest
