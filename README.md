@@ -22,21 +22,6 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Source on OpenI**: https://git.openi.org.cn/OpenI/BrainPy
 
 
----
-**NOTE**
-
-Starting from our experimental BrainPy package, a better and mature ecosystem for brain dynamics programming is emerging.
-Please see the [Brain Dynamics Programming Ecosystem](https://ecosystem-for-brain-dynamics.readthedocs.io/) for more details.
-
-
-If you are heavily using BrainPy, please consider using [brainstate](https://brainstate.readthedocs.io) for a more stable, efficient, concise, and powerful experience.
-
-
-[brainstate](https://github.com/chaobrain/brainstate) is and will be active maintained and developed by our team. We highly recommend transferring your code to [brainstate](https://brainstate.readthedocs.io) for a better performance.
-
----
-
-
 
 ## Installation
 
@@ -70,7 +55,6 @@ We provide a Binder environment for BrainPy. You can use the following button to
 ## Ecosystem
 
 
-- **[Brain Dynamics Programming Ecosystem](https://ecosystem-for-brain-dynamics.readthedocs.io/)**: An emerging and mature ecosystem for brain dynamics programming.
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
