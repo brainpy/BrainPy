@@ -62,7 +62,7 @@ class TestTracerError(unittest.TestCase):
 
   def test_tracing(self):
     print(self.f(1.))
-    with self.assertRaises(RuntimeError):
+    with self.assertRaises(jax.errors.UnexpectedTracerError):
       print(self.f(bm.ones(10)))
 
 
