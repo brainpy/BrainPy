@@ -98,7 +98,7 @@ class Array(object):
     self_value = self.value
     if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
       if len(self_value._trace.main.jaxpr_stack) == 0:
-        raise RuntimeError('This Array is modified during the transformation. '
+        raise jax.errors.UnexpectedTracerError('This Array is modified during the transformation. '
                            'BrainPy only supports transformations for Variable. '
                            'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
     return self_value
