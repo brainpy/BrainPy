@@ -36,8 +36,6 @@ class TestVar(unittest.TestCase):
 
     print()
     a = A()
-    temp = a.f1()
-    print(temp)
     self.assertTrue(bm.all(a.f1() == 2.))
     self.assertTrue(len(a.f1._dyn_vars) == 2)
     print(a.f2())
