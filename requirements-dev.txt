@@ -8,6 +8,7 @@ pathos
 braintaichi
 numba
 brainstate
+brainunit
 braintools
 setuptools
 
