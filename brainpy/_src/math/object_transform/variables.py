@@ -7,6 +7,8 @@ from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 from brainpy._src.math.ndarray import Array
+from brainstate import State
+from brainunit import Quantity
 from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy.errors import MathError
 
@@ -220,7 +222,7 @@ var_stack_list: List[VariableStack] = []
 
 
 @register_pytree_node_class
-class Variable(Array):
+class Variable(Array, State):
   """The pointer to specify the dynamical variable.
 
   Initializing an instance of ``Variable`` by two ways:
@@ -250,7 +252,8 @@ class Variable(Array):
       batch_axis: int = None,
       *,
       axis_names: Optional[Sequence[str]] = None,
-      ready_to_trace: bool = None
+      ready_to_trace: bool = None,
+      state_mode: bool = False,
   ):
     if isinstance(value_or_size, int):
       value = jnp.zeros(value_or_size, dtype=dtype)
@@ -259,7 +262,14 @@ class Variable(Array):
     else:
       value = value_or_size
 
-    super().__init__(value, dtype=dtype)
+    if isinstance(value, Quantity):
+      state_mode = True
+
+    if state_mode:
+      State.__init__(self, value, dtype=dtype)
+      self._value = value
+    else:
+      Array.__init__(self, value, dtype=dtype)
 
     # check batch axis
     if isinstance(value, Variable):
