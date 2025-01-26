@@ -6,7 +6,7 @@ import brainpy.math as bm
 from absl.testing import parameterized
 import pytest
 
-# pytest.skip("Skip the test due to the jax 0.5.0 version", allow_module_level=True)
+pytest.skip("Skip the test due to the jax 0.5.0 version", allow_module_level=True)
 
 
 class Test_Noise_Group(parameterized.TestCase):
