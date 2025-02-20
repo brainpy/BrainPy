@@ -10,7 +10,7 @@ braintaichi
 # document requirements
 pandoc
 Jinja2
-sphinx>=5, <8.2.0
+sphinx>=5, <8.3.0
 myst-nb
 sphinx_thebe
 sphinx-autodoc-typehints
