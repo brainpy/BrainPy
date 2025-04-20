@@ -1,6 +1,6 @@
 numpy
-jax
-jaxlib
+jax<0.6.0
+jaxlib<0.6.0
 absl-py<=2.1.0
 brainstate<=0.1.0.post20241210
 braintaichi<=0.0.4
