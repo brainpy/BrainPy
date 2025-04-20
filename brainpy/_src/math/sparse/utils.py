@@ -4,6 +4,8 @@ import warnings
 from functools import partial
 from typing import Tuple
 
+
+import jax
 import numpy as np
 from brainpy._src.math.interoperability import as_jax
 from jax import core, numpy as jnp
@@ -12,6 +14,10 @@ from jax.interpreters import batching
 from jax.interpreters import mlir, ad
 from jax.tree_util import tree_flatten, tree_unflatten
 from jaxlib import gpu_sparse
+if jax.__version__ >= '0.5.0':
+  from jax.extend.core import Primitive
+else:
+  from jax.core import Primitive
 
 __all__ = [
   'coo_to_csr',
@@ -171,7 +177,7 @@ def _csr_to_dense_transpose(ct, data, indices, indptr, *, shape):
   return _csr_extract(indices, indptr, ct), indices, indptr
 
 
-csr_to_dense_p = core.Primitive('csr_to_dense')
+csr_to_dense_p = Primitive('csr_to_dense')
 csr_to_dense_p.def_impl(_csr_to_dense_impl)
 csr_to_dense_p.def_abstract_eval(_csr_to_dense_abstract_eval)
 ad.defjvp(csr_to_dense_p, _csr_to_dense_jvp, None, None)

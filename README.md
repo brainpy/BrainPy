@@ -27,6 +27,8 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 
 BrainPy is based on Python (>=3.8) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
 
+BrainPy requires ``jax<0.6.0``. 
+
 For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
 
 

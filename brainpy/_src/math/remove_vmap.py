@@ -2,7 +2,12 @@
 
 
 import jax.numpy as jnp
-from jax.core import Primitive, ShapedArray
+import jax
+if jax.__version__ >= '0.5.0':
+  from jax.extend.core import Primitive
+else:
+  from jax.core import Primitive
+from jax.core import ShapedArray
 from jax.interpreters import batching, mlir, xla
 from .ndarray import Array
 

@@ -5,7 +5,11 @@ from typing import Union
 import jax
 import jax.numpy as jnp
 import jax.scipy as sci
-from jax.core import Primitive
+
+if jax.__version__ >= '0.5.0':
+  from jax.extend.core import Primitive
+else:
+  from jax.core import Primitive
 from jax.interpreters import batching, ad, mlir
 
 from brainpy._src.math.interoperability import as_jax
