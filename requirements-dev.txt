@@ -37,6 +37,6 @@ rich<=13.9.4
 scipy<=1.14.1
 setuptools<=75.6.0
 six<=1.17.0
-taichi<=1.7.2
+taichi<=1.7.3
 tqdm<=4.67.1
 typing-extensions<=4.12.2
