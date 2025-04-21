@@ -1,6 +1,6 @@
 numpy
-jax
-jaxlib
+jax<0.6.0
+jaxlib<0.6.0
 matplotlib
 msgpack
 tqdm
