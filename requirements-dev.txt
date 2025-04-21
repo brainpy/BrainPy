@@ -1,7 +1,7 @@
 numpy
 jax<0.6.0
 jaxlib<0.6.0
-absl-py<=2.1.0
+absl-py<=2.2.2
 brainstate<=0.1.0.post20241210
 braintaichi<=0.0.4
 braintools<=0.0.4.post20241215
