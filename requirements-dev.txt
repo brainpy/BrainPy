@@ -39,4 +39,4 @@ setuptools<=75.6.0
 six<=1.17.0
 taichi<=1.7.2
 tqdm<=4.67.1
-typing-extensions<=4.12.2
+typing-extensions<=4.13.2
