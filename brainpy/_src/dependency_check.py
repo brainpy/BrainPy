@@ -52,15 +52,11 @@ def import_braintaichi(error_if_not_found=True):
         if importlib.util.find_spec('braintaichi') is not None:
             try:
                 import braintaichi as braintaichi
-            except ModuleNotFoundError:
+            except ModuleNotFoundError as e:
                 if error_if_not_found:
-                    raise_braintaichi_not_found()
+                    raise e
                 else:
                     braintaichi = None
         else:
             braintaichi = None
     return braintaichi
-
-
-def raise_braintaichi_not_found():
-    raise ModuleNotFoundError(braintaichi_install_info)
