@@ -60,3 +60,7 @@ def import_braintaichi(error_if_not_found=True):
         else:
             braintaichi = None
     return braintaichi
+
+
+def raise_braintaichi_not_found():
+    raise ModuleNotFoundError(braintaichi_install_info)
