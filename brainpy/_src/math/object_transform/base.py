@@ -517,7 +517,7 @@ class BrainPyObject(object):
       variables[key].value = jax.numpy.asarray(state_dict[key])
     unexpected_keys = list(keys1 - keys2)
     missing_keys = list(keys2 - keys1)
-    return unexpected_keys, missing_keys
+    return missing_keys, unexpected_keys
 
   def state_dict(self, **kwargs) -> dict:
     """Returns a dictionary containing a whole state of the module.
