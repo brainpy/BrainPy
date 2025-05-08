@@ -56,7 +56,7 @@ setup(
   author='BrainPy Team',
   author_email='chao.brain@qq.com',
   packages=packages,
-  python_requires='>=3.9',
+  python_requires='>=3.10',
   install_requires=['numpy>=1.15', 'jax>=0.4.13,<0.6.0', 'tqdm'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
@@ -84,7 +84,6 @@ setup(
     'Operating System :: OS Independent',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
