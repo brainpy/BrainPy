@@ -57,7 +57,7 @@ setup(
   author_email='chao.brain@qq.com',
   packages=packages,
   python_requires='>=3.10',
-  install_requires=['numpy>=1.15', 'jax>=0.4.13,<0.6.0', 'tqdm'],
+  install_requires=['numpy>=1.15', 'jax>=0.4.13,<0.7.0', 'tqdm'],
   url='https://github.com/brainpy/BrainPy',
   project_urls={
     "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",

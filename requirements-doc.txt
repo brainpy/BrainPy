@@ -1,5 +1,5 @@
 tqdm
-jax<0.6.0
+jax<0.7.0
 jaxlib<0.6.0
 matplotlib
 numpy
