@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 
-__version__ = "2.6.0"
+__version__ = "2.6.1"
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
+import jax
+assert jax.__version_info__ < (0, 5, 0), 'brainpy only supports jax < 0.5.0, current jax version is {}'.format(jax.__version__)
 
 try:
   import jaxlib
