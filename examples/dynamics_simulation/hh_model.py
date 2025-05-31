@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
 import brainpy as bp
-from jax import pmap
 import brainpy.math as bm
 
 bm.set_host_device_count(20)

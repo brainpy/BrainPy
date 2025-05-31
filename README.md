@@ -19,6 +19,7 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Website (documentation and APIs)**: https://brainpy.readthedocs.io/en/latest
 - **Source**: https://github.com/brainpy/BrainPy
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
+- **Ecosystem**: https://brainmodeling.readthedocs.io/
 - **Source on OpenI**: https://git.openi.org.cn/OpenI/BrainPy
 
 
