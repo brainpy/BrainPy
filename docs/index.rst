@@ -98,6 +98,13 @@ Learn more
          :class-card: sd-text-black sd-bg-light
          :link: https://brainpy-examples.readthedocs.io/en/latest/index.html
 
+   .. grid-item::
+      :columns: 6 6 6 4
+
+      .. card:: :material-regular:`settings;2em` Ecosystem
+         :class-card: sd-text-black sd-bg-light
+         :link: https://brainmodeling.readthedocs.io
+
 
 .. note::
    BrainPy is still an experimental research project.
