@@ -4,6 +4,7 @@ from typing import Tuple, Optional
 
 import jax
 
+import numpy as np
 from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
@@ -27,6 +28,9 @@ def event_mv_prob_homo(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
+
     if isinstance(events, Array):
         events = events.value
     if isinstance(weight, Array):
@@ -54,6 +58,8 @@ def event_mv_prob_uniform(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(events, Array):
         events = events.value
     events = brainevent.EventArray(events)
@@ -83,6 +89,8 @@ def event_mv_prob_normal(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(events, Array):
         events = events.value
     events = brainevent.EventArray(events)

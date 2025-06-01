@@ -4,7 +4,7 @@ from typing import Tuple, Optional, Union
 import jax
 
 from brainpy._src.math.ndarray import Array
-
+import numpy as np
 import brainevent
 
 
@@ -76,6 +76,8 @@ def mv_prob_homo(
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(vector, Array):
         vector = vector.value
     if isinstance(weight, Array):
@@ -149,6 +151,8 @@ def mv_prob_uniform(
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(vector, Array):
         vector = vector.value
     if isinstance(w_low, Array):
@@ -224,6 +228,8 @@ def mv_prob_normal(
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(vector, Array):
         vector = vector.value
     if isinstance(w_mu, Array):
@@ -269,6 +275,8 @@ def get_homo_weight_matrix(
     out: Array, ndarray
       The connection matrix :math:`M`.
     """
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         csr = csr.T
@@ -311,6 +319,8 @@ def get_uniform_weight_matrix(
     out: Array, ndarray
       The weight matrix :math:`M`.
     """
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(w_low, Array):
         w_low = w_low.value
     if isinstance(w_high, Array):
@@ -356,6 +366,8 @@ def get_normal_weight_matrix(
     out: Array, ndarray
       The weight matrix :math:`M`.
     """
+    if seed is None:
+        seed = np.random.randint(0, 1000000000)
     if isinstance(w_mu, Array):
         w_mu = w_mu.value
     if isinstance(w_sigma, Array):
