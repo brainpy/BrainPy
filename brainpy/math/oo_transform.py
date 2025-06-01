@@ -33,9 +33,6 @@ from brainpy._src.math.object_transform.autograd import (
 )
 
 from brainpy._src.math.object_transform.controls import (
-  make_loop as make_loop,
-  make_while as make_while,
-  make_cond as make_cond,
   cond as cond,
   ifelse as ifelse,
   for_loop as for_loop,
