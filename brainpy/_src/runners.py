@@ -361,7 +361,7 @@ class DSRunner(Runner):
       self._inputs = check_and_format_inputs(host=target, inputs=inputs)
 
     # run function
-    self._jit_step_func_predict = bm.jit(self._step_func_predict, static_argnames=['shared_args'])
+    self._jit_step_func_predict = bm.jit(self._step_func_predict)
 
     # monitors
     self._memory_efficient = memory_efficient
@@ -655,7 +655,7 @@ class DSRunner(Runner):
 
       outs = None
       for i in range(indices.shape[0]):
-        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs), shared_args=shared_args)
+        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs))
         if outs is None:
           outs = tree_map(lambda a: [], out)
         outs = tree_map(lambda a, o: o.append(a), out, outs)
