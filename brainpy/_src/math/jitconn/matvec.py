@@ -3,10 +3,10 @@ from typing import Tuple, Optional, Union
 
 import jax
 
-from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
 from brainpy._src.math.ndarray import Array
 
-bti = import_braintaichi(error_if_not_found=False)
+import brainevent
+
 
 __all__ = [
     'mv_prob_homo',
@@ -76,11 +76,16 @@ def mv_prob_homo(
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
+    if isinstance(vector, Array):
+        vector = vector.value
+    if isinstance(weight, Array):
+        weight = weight.value
 
-    return bti.jitc_mv_prob_homo(vector, weight, conn_prob, seed, shape=shape,
-                                 transpose=transpose, outdim_parallel=outdim_parallel)
+    csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        return vector @ csr
+    else:
+        return csr @ vector
 
 
 def mv_prob_uniform(
@@ -144,11 +149,18 @@ def mv_prob_uniform(
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
+    if isinstance(vector, Array):
+        vector = vector.value
+    if isinstance(w_low, Array):
+        w_low = w_low.value
+    if isinstance(w_high, Array):
+        w_high = w_high.value
 
-    return bti.jitc_mv_prob_uniform(vector, w_low, w_high, conn_prob, seed, shape=shape,
-                                    transpose=transpose, outdim_parallel=outdim_parallel)
+    csr = brainevent.JITCUniformR((w_low, w_high, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        return vector @ csr
+    else:
+        return csr @ vector
 
 
 def mv_prob_normal(
@@ -212,10 +224,18 @@ def mv_prob_normal(
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.jitc_mv_prob_normal(vector, w_mu, w_sigma, conn_prob, seed, shape=shape,
-                                   transpose=transpose, outdim_parallel=outdim_parallel)
+    if isinstance(vector, Array):
+        vector = vector.value
+    if isinstance(w_mu, Array):
+        w_mu = w_mu.value
+    if isinstance(w_sigma, Array):
+        w_sigma = w_sigma.value
+
+    csr = brainevent.JITCNormalR((w_mu, w_sigma, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        return vector @ csr
+    else:
+        return csr @ vector
 
 
 def get_homo_weight_matrix(
@@ -249,10 +269,10 @@ def get_homo_weight_matrix(
     out: Array, ndarray
       The connection matrix :math:`M`.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.get_homo_weight_matrix(weight, conn_prob, seed, shape=shape, transpose=transpose,
-                                      outdim_parallel=outdim_parallel)
+    csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        csr = csr.T
+    return csr.todense()
 
 
 def get_uniform_weight_matrix(
@@ -291,10 +311,15 @@ def get_uniform_weight_matrix(
     out: Array, ndarray
       The weight matrix :math:`M`.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.get_uniform_weight_matrix(w_low, w_high, conn_prob, seed, shape=shape,
-                                         transpose=transpose, outdim_parallel=outdim_parallel)
+    if isinstance(w_low, Array):
+        w_low = w_low.value
+    if isinstance(w_high, Array):
+        w_high = w_high.value
+
+    csr = brainevent.JITCUniformR((w_low, w_high, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        csr = csr.T
+    return csr.todense()
 
 
 def get_normal_weight_matrix(
@@ -331,8 +356,12 @@ def get_normal_weight_matrix(
     out: Array, ndarray
       The weight matrix :math:`M`.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.get_normal_weight_matrix(w_mu, w_sigma, conn_prob, seed,
-                                        shape=shape,
-                                        transpose=transpose, outdim_parallel=outdim_parallel)
+    if isinstance(w_mu, Array):
+        w_mu = w_mu.value
+    if isinstance(w_sigma, Array):
+        w_sigma = w_sigma.value
+
+    csr = brainevent.JITCNormalR((w_mu, w_sigma, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        csr = csr.T
+    return csr.todense()

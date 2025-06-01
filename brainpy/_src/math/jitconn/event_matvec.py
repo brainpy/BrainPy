@@ -4,12 +4,11 @@ from typing import Tuple, Optional
 
 import jax
 
-from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
 from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
-
-bti = import_braintaichi(error_if_not_found=False)
+from brainpy._src.math.ndarray import Array
+import brainevent
 
 __all__ = [
     'event_mv_prob_homo',
@@ -28,12 +27,17 @@ def event_mv_prob_homo(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.jitc_event_mv_prob_homo(events, weight, conn_prob, seed,
-                                       shape=shape,
-                                       transpose=transpose,
-                                       outdim_parallel=outdim_parallel)
+    if isinstance(events, Array):
+        events = events.value
+    if isinstance(weight, Array):
+        weight = weight.value
+
+    events = brainevent.EventArray(events)
+    csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        return events @ csr
+    else:
+        return csr @ events
 
 
 event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
@@ -50,10 +54,19 @@ def event_mv_prob_uniform(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.jitc_event_mv_prob_uniform(events, w_low, w_high, conn_prob, seed, shape=shape,
-                                          transpose=transpose, outdim_parallel=outdim_parallel)
+    if isinstance(events, Array):
+        events = events.value
+    events = brainevent.EventArray(events)
+    if isinstance(w_low, Array):
+        w_low = w_low.value
+    if isinstance(w_high, Array):
+        w_high = w_high.value
+
+    csr = brainevent.JITCUniformR((w_low, w_high, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        return events @ csr
+    else:
+        return csr @ events
 
 
 event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
@@ -70,10 +83,19 @@ def event_mv_prob_normal(
     transpose: bool = False,
     outdim_parallel: bool = True,
 ) -> jax.Array:
-    if bti is None:
-        raise_braintaichi_not_found()
-    return bti.jitc_event_mv_prob_normal(events, w_mu, w_sigma, conn_prob, seed, shape=shape,
-                                         transpose=transpose, outdim_parallel=outdim_parallel)
+    if isinstance(events, Array):
+        events = events.value
+    events = brainevent.EventArray(events)
+    if isinstance(w_mu, Array):
+        w_mu = w_mu.value
+    if isinstance(w_sigma, Array):
+        w_sigma = w_sigma.value
+
+    csr = brainevent.JITCNormalR((w_mu, w_sigma, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    if transpose:
+        return events @ csr
+    else:
+        return csr @ events
 
 
 event_mv_prob_normal.__doc__ = mv_prob_normal.__doc__
