@@ -1,3 +1,6 @@
 numpy
-jax<0.6.0
+brainstate
+brainunit
+brainevent
+jax
 tqdm
