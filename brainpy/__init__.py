@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-__version__ = "2.6.1"
+__version__ = "2.6.2"
 
 # fundamental supporting modules
 from brainpy import errors, check, tools
-import jax
-assert jax.__version_info__ < (0, 5, 0), 'brainpy only supports jax < 0.5.0, current jax version is {}'.format(jax.__version__)
 
 try:
   import jaxlib
@@ -154,12 +152,3 @@ __deprecations = {
 __getattr__ = deprecation_getattr2('brainpy', __deprecations)
 
 del deprecation_getattr2
-
-try:
-    # jax config
-    import os
-    os.environ['XLA_FLAGS'] = '--xla_cpu_use_thunk_runtime=false'
-    import jax
-    jax.config.update('jax_cpu_enable_async_dispatch', False)
-except:
-    pass
