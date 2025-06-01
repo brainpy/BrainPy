@@ -63,46 +63,7 @@ def _get_dtype(v):
     dtype = canonicalize_dtype(type(v))
   return dtype
 
-
-@register_pytree_node_class
-class Array(object):
-  """Multiple-dimensional array in BrainPy.
-
-  Compared to ``jax.Array``, :py:class:`~.Array` has the following advantages:
-
-  - In-place updating is supported.
-
-  >>> import brainpy.math as bm
-  >>> a = bm.asarray([1, 2, 3.])
-  >>> a[0] = 10.
-
-  - Keep sharding constraints during computation.
-
-  - More dense array operations with PyTorch syntax.
-
-  """
-
-  __slots__ = ('_value', )
-
-  def __init__(self, value, dtype: Any = None):
-    # array value
-    if isinstance(value, Array):
-      value = value._value
-    elif isinstance(value, (tuple, list, np.ndarray)):
-      value = jnp.asarray(value)
-    if dtype is not None:
-      value = jnp.asarray(value, dtype=dtype)
-    self._value = value
-
-  def _check_tracer(self):
-    self_value = self.value
-    if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
-      if len(self_value._trace.main.jaxpr_stack) == 0:
-        raise jax.errors.UnexpectedTracerError('This Array is modified during the transformation. '
-                           'BrainPy only supports transformations for Variable. '
-                           'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
-    return self_value
-
+class Base:
   @property
   def sharding(self):
     return self._value.sharding
@@ -238,7 +199,7 @@ class Array(object):
       index = jnp.asarray(index)
 
     # update
-    self_value = self._check_tracer()
+    self_value = self.value
     self.value = self_value.at[index].set(value)
 
   # ---------- #
@@ -1525,6 +1486,47 @@ class Array(object):
   def double(self): return jnp.asarray(self.value, dtype=jnp.float64)
 
 
+
+@register_pytree_node_class
+class Array(Base):
+  """Multiple-dimensional array in BrainPy.
+
+  Compared to ``jax.Array``, :py:class:`~.Array` has the following advantages:
+
+  - In-place updating is supported.
+
+  >>> import brainpy.math as bm
+  >>> a = bm.asarray([1, 2, 3.])
+  >>> a[0] = 10.
+
+  - Keep sharding constraints during computation.
+
+  - More dense array operations with PyTorch syntax.
+
+  """
+
+  __slots__ = ('_value', )
+
+  def __init__(self, value, dtype: Any = None):
+    # array value
+    if isinstance(value, Array):
+      value = value._value
+    elif isinstance(value, (tuple, list, np.ndarray)):
+      value = jnp.asarray(value)
+    if dtype is not None:
+      value = jnp.asarray(value, dtype=dtype)
+    self._value = value
+
+  def _check_tracer(self):
+    self_value = self.value
+    if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
+      if len(self_value._trace.main.jaxpr_stack) == 0:
+        raise jax.errors.UnexpectedTracerError('This Array is modified during the transformation. '
+                           'BrainPy only supports transformations for Variable. '
+                           'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
+    return self_value
+
+
 setattr(Array, "__array_priority__", 100)
 
 JaxArray = Array
@@ -1583,5 +1585,4 @@ class ShardedArray(Array):
       raise MathError(f"The dtype of the original data is {self_value.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value
-
 
