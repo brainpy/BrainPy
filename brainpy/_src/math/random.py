@@ -8,8 +8,8 @@ from typing import Optional, Union, Sequence, Any
 
 import jax
 import numpy as np
+from brainstate._state import record_state_value_read
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
-from jax._src.array import ArrayImpl
 from jax._src.core import _canonicalize_dimension, _invalid_shape_error
 from jax._src.typing import Shape
 from jax.tree_util import register_pytree_node_class
@@ -457,13 +457,11 @@ def canonicalize_shape(shape: Shape, context: str = "") -> tuple[Any, ...]:
 @register_pytree_node_class
 class RandomState(Variable):
   """RandomState that track the random generator state. """
-  __slots__ = ()
 
   def __init__(
       self,
       seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
       seed: Optional[int] = None,
-      ready_to_trace: bool = True,
   ):
     """RandomState constructor.
 
@@ -498,21 +496,13 @@ class RandomState(Variable):
         raise ValueError('key must be an array with dtype uint32. '
                          f'But we got {seed_or_key}')
       key = seed_or_key
-    super(RandomState, self).__init__(key, ready_to_trace=ready_to_trace)
+    super(RandomState, self).__init__(key)
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
     i = print_code.index('(')
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
-
-  @property
-  def value(self):
-    if isinstance(self._value, ArrayImpl):
-      if self._value.is_deleted():
-        self.seed()
-    self._append_to_stack()
-    return self._value
 
   # ------------------- #
   # seed and random key #
@@ -555,6 +545,11 @@ class RandomState(Variable):
                          f'But we got {seed_or_key}')
       key = seed_or_key
     self._value = key
+
+  @property
+  def value(self):
+    record_state_value_read(self)
+    return self._read_value()
 
   def split_key(self):
     """Create a new seed from the current seed.
