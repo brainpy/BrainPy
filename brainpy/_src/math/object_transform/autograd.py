@@ -130,19 +130,6 @@ def grad(
       is a named batch axis, ``grad(f, reduce_axes=('batch',))`` will create a
       function that computes the total gradient while ``grad(f)`` will create
       one that computes the per-example gradient.
-    dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-      The dynamically changed variables used in ``func``.
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``dyn_vars``. This function is capable of automatically
-         collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, BrainPyObject, sequnce, dict
-
-      .. versionadded:: 2.3.1
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``child_objs``. This function is capable of automatically
-         collecting the children objects used in the target ``func``.
 
     Returns
     -------
@@ -164,14 +151,16 @@ def grad(
                               has_aux=has_aux,
                               return_value=return_value)
     else:
-        return brainstate.transform.grad(func,
-                                         grad_states=grad_vars,
-                                         argnums=argnums,
-                                         holomorphic=holomorphic,
-                                         allow_int=allow_int,
-                                         reduce_axes=reduce_axes,
-                                         has_aux=has_aux,
-                                         return_value=return_value)
+        return brainstate.transform.grad(
+            func,
+            grad_states=grad_vars,
+            argnums=argnums,
+            holomorphic=holomorphic,
+            allow_int=allow_int,
+            reduce_axes=reduce_axes,
+            has_aux=has_aux,
+            return_value=return_value
+        )
 
 
 def jacrev(
@@ -230,19 +219,6 @@ def jacrev(
       Whether to allow differentiating with
       respect to integer valued inputs. The gradient of an integer input will
       have a trivial vector-space dtype (float0). Default False.
-    dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-      The dynamically changed variables used in ``func``.
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``dyn_vars``. This function is capable of automatically
-         collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, BrainPyObject, sequnce, dict
-
-      .. versionadded:: 2.3.1
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``child_objs``. This function is capable of automatically
-         collecting the children objects used in the target ``func``.
 
     Returns
     -------
@@ -312,19 +288,6 @@ def jacfwd(
       positional argument(s) to differentiate with respect to (default ``0``).
     holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
       holomorphic. Default False.
-    dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-      The dynamically changed variables used in ``func``.
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``dyn_vars``. This function is capable of automatically
-         collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, BrainPyObject, sequnce, dict
-
-      .. versionadded:: 2.3.1
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``child_objs``. This function is capable of automatically
-         collecting the children objects used in the target ``func``.
 
     Returns
     -------
@@ -428,30 +391,19 @@ def vector_grad(
       Whether return the loss value.
     argnums: Optional, integer or sequence of integers. Specifies which
       positional argument(s) to differentiate with respect to (default ``0``).
-    dyn_vars : optional, ArrayType, sequence of ArrayType, dict
-      The dynamically changed variables used in ``func``.
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``dyn_vars``. This function is capable of automatically
-         collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, BrainPyObject, sequnce, dict
-
-      .. versionadded:: 2.3.1
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``child_objs``. This function is capable of automatically
-         collecting the children objects used in the target ``func``.
 
     Returns
     -------
     func : GradientTransform
       The vector gradient function.
     """
-    return brainstate.transform.vector_grad(func,
-                                            grad_states=grad_vars,
-                                            argnums=argnums,
-                                            return_value=return_value,
-                                            has_aux=has_aux)
+    return brainstate.transform.vector_grad(
+        func,
+        grad_states=grad_vars,
+        argnums=argnums,
+        return_value=return_value,
+        has_aux=has_aux
+    )
 
 
 functional_vector_grad = vector_grad

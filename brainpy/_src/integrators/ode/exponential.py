@@ -354,7 +354,6 @@ class ExponentialEuler(ODEIntegrator):
                                                          eq=str(eq)))
 
       # gradient function
-      value_and_grad = bm.vector_grad(eq, argnums=0, return_value=True)
 
       # integration function
       def integral(*args, **kwargs):
@@ -363,7 +362,7 @@ class ExponentialEuler(ODEIntegrator):
           raise ValueError('The input data type should be float32, float64, float16, or bfloat16 when using Exponential Euler method.'
                            f'But we got {args[0].dtype}.')
         dt = kwargs.pop(C.DT, self.dt)
-        linear, derivative = value_and_grad(*args, **kwargs)
+        linear, derivative = bm.vector_grad(eq, argnums=0, return_value=True)(*args, **kwargs)
         phi = bm.exprel(dt * linear)
         return args[0] + dt * phi * derivative
 
