@@ -86,7 +86,7 @@ class OfflineTrainer(DSTrainer):
     for node in self.train_nodes:
       node.offline_fit_by = fit_method
     # training function
-    self._jit_fun_train = bm.jit(self._fun_train, static_argnames=['shared_args'])
+    self._jit_fun_train = bm.jit(self._fun_train)
 
   def __repr__(self):
     name = self.__class__.__name__
@@ -189,7 +189,7 @@ class OfflineTrainer(DSTrainer):
       monitor_data[key] = self.mon.get(key)
     run_fun = self._jit_fun_train if self.jit['fit'] else self._fun_train
     shared_args['fit'] = True
-    run_fun(monitor_data, ys, shared_args=shared_args)
+    run_fun(monitor_data, ys)
     del monitor_data
 
     # close the progress bar

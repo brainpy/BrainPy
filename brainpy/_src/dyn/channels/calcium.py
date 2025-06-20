@@ -114,7 +114,7 @@ class _ICa_p2q_ss(CalciumChannel):
     return self.phi_q * (self.f_q_inf(V) - q) / self.f_q_tau(V)
 
   def update(self, V, C, E):
-    self.p.value, self.q.value = self.integral(self.p, self.q, share['t'], V, share['dt'])
+    self.p.value, self.q.value = self.integral(self.p.value, self.q.value, share['t'], V, share['dt'])
 
   def current(self, V, C, E):
     return self.g_max * self.p * self.p * self.q * (E - V)
@@ -207,7 +207,7 @@ class _ICa_p2q_markov(CalciumChannel):
     return self.phi_q * (self.f_q_alpha(V) * (1 - q) - self.f_q_beta(V) * q)
 
   def update(self, V, C, E):
-    self.p.value, self.q.value = self.integral(self.p, self.q, share['t'], V, share['dt'])
+    self.p.value, self.q.value = self.integral(self.p.value, self.q.value, share['t'], V, share['dt'])
 
   def current(self, V, C, E):
     return self.g_max * self.p * self.p * self.q * (E - V)

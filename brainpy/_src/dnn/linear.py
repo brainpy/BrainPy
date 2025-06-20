@@ -12,7 +12,6 @@ import numpy as np
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
-from brainpy._src.dependency_check import import_taichi, import_braintaichi, raise_braintaichi_not_found
 from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.check import is_initializer
@@ -21,9 +20,6 @@ from brainpy.errors import MathError, PackageMissingError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
 
-
-ti = import_taichi()
-bti = import_braintaichi()
 
 __all__ = [
     'Dense', 'Linear',
@@ -241,7 +237,7 @@ class Identity(Layer):
         return x
 
 
-if ti is not None and bti is not None:
+if False:
 
     # @numba.njit(nogil=True, fastmath=True, parallel=False)
     # def _cpu_dense_on_post(weight, spike, trace, w_min, w_max, out_w):
@@ -728,7 +724,7 @@ class EventCSRLinear(_CSRLayer):
                               transpose=self.transpose)
 
 
-if ti is not None and bti is not None:
+if False:
     @ti.kernel
     def _csr_on_pre_update(
         old_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)

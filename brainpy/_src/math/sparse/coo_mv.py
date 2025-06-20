@@ -6,9 +6,8 @@ from typing import Union, Tuple
 from jax import numpy as jnp
 
 from brainpy._src.math.ndarray import Array
-from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
+import brainevent
 
-bti = import_braintaichi(error_if_not_found=False)
 
 __all__ = [
   'coomv',
@@ -61,17 +60,16 @@ def coomv(
     An array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.
   """
-  if bti is None:
-    raise_braintaichi_not_found()
-
-  return bti.coomv(
-    data=data,
-    row=row,
-    col=col,
-    vector=vector,
-    shape=shape,
-    rows_sorted=rows_sorted,
-    cols_sorted=cols_sorted,
-    transpose=transpose,
-    method=method
-  )
+  if isinstance(data, Array):
+    data = data.value
+  if isinstance(row, Array):
+    row = row.value
+  if isinstance(col, Array):
+    col = col.value
+  if isinstance(vector, Array):
+    vector = vector.value
+  csr = brainevent.COO((data, row, col), shape=shape)
+  if transpose:
+    return vector @ csr
+  else:
+    return csr @ vector

@@ -99,7 +99,7 @@ class _INa_p3q_markov(IonChannel):
     return self.phi * (self.f_q_alpha(V) * (1. - q) - self.f_q_beta(V) * q)
 
   def update(self, V):
-    p, q = self.integral(self.p, self.q, share['t'], V, share['dt'])
+    p, q = self.integral(self.p.value, self.q.value, share['t'], V, share['dt'])
     self.p.value, self.q.value = p, q
 
   def current(self, V):

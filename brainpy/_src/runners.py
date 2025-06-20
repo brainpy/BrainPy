@@ -7,6 +7,7 @@ import warnings
 from collections.abc import Iterable
 from typing import Dict, Union, Sequence, Callable, Tuple, Optional, Any
 
+import brainstate.compile
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -361,7 +362,7 @@ class DSRunner(Runner):
       self._inputs = check_and_format_inputs(host=target, inputs=inputs)
 
     # run function
-    self._jit_step_func_predict = bm.jit(self._step_func_predict, static_argnames=['shared_args'])
+    self._jit_step_func_predict = bm.jit(self._step_func_predict)
 
     # monitors
     self._memory_efficient = memory_efficient
@@ -469,10 +470,6 @@ class DSRunner(Runner):
     for key in self._monitors.keys():
       self.mon[key] = []  # reshape the monitor items
 
-    # init progress bar
-    if self.progress_bar:
-      self._pbar = tqdm.auto.tqdm(total=num_step)
-      self._pbar.set_description(description, refresh=True)
 
     # running
     if eval_time:
@@ -485,9 +482,6 @@ class DSRunner(Runner):
     if eval_time:
       running_time = time.time() - t0
 
-    # close the progress bar
-    if self.progress_bar:
-      self._pbar.close()
 
     # post-running for monitors
     if self._memory_efficient:
@@ -629,9 +623,6 @@ class DSRunner(Runner):
     # monitor step
     mon = self._step_func_monitor()
 
-    # finally
-    if self.progress_bar:
-      jax.debug.callback(lambda *args: self._pbar.update(), ())
     # share.clear_shargs()
     clear_input(self.target)
 
@@ -655,7 +646,7 @@ class DSRunner(Runner):
 
       outs = None
       for i in range(indices.shape[0]):
-        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs), shared_args=shared_args)
+        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs))
         if outs is None:
           outs = tree_map(lambda a: [], out)
         outs = tree_map(lambda a, o: o.append(a), out, outs)
@@ -666,4 +657,5 @@ class DSRunner(Runner):
       return bm.for_loop(self._step_func_predict,
                          (indices, *inputs),
                          jit=self.jit['predict'],
-                         unroll_kwargs={'shared_args': shared_args})
+                         unroll_kwargs={'shared_args': shared_args},
+                         progress_bar=self.progress_bar)

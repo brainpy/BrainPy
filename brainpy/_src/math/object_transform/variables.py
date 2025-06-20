@@ -6,9 +6,13 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import Array, Base
 from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy.errors import MathError
+
+import brainstate
+from brainstate._state import record_state_value_read, record_state_value_write
+
 
 __all__ = [
   'Variable',
@@ -220,7 +224,7 @@ var_stack_list: List[VariableStack] = []
 
 
 @register_pytree_node_class
-class Variable(Array):
+class Variable(brainstate.State, Base):
   """The pointer to specify the dynamical variable.
 
   Initializing an instance of ``Variable`` by two ways:
@@ -241,8 +245,6 @@ class Variable(Array):
     axis_names: sequence of str. The name for each axis.
   """
 
-  __slots__ = ('_value', '_batch_axis', 'ready_to_trace', 'axis_names')
-
   def __init__(
       self,
       value_or_size: Any,
@@ -250,7 +252,6 @@ class Variable(Array):
       batch_axis: int = None,
       *,
       axis_names: Optional[Sequence[str]] = None,
-      ready_to_trace: bool = None
   ):
     if isinstance(value_or_size, int):
       value = jnp.zeros(value_or_size, dtype=dtype)
@@ -259,7 +260,9 @@ class Variable(Array):
     else:
       value = value_or_size
 
-    super().__init__(value, dtype=dtype)
+    if isinstance(value, Array):
+      value = value.value
+    super().__init__(value)
 
     # check batch axis
     if isinstance(value, Variable):
@@ -277,13 +280,6 @@ class Variable(Array):
                         f'but the batch axis is set to be {batch_axis}.')
 
     # ready to trace the variable
-    if ready_to_trace is None:
-      if len(var_stack_list) == 0:
-        self.ready_to_trace = True
-      else:
-        self.ready_to_trace = False
-    else:
-      self.ready_to_trace = ready_to_trace
     if axis_names is not None:
       if len(axis_names) + 1 == self.ndim:
         axis_names = list(axis_names)
@@ -321,8 +317,8 @@ class Variable(Array):
 
   @property
   def value(self):
-    self._append_to_stack()
-    return self._value
+    record_state_value_read(self)
+    return self._read_value()
 
   @value.setter
   def value(self, v):
@@ -341,19 +337,19 @@ class Variable(Array):
     if ext_dtype != int_dtype:
       raise MathError(f"The dtype of the original data is {int_dtype}, "
                       f"while we got {ext_dtype}.")
-    self._append_to_stack()
     if isinstance(v, Array):
       v = v.value
     elif isinstance(v, np.ndarray):
       v = jnp.asarray(v)
     else:
       v = v
-    self._value = v
 
-  def _append_to_stack(self):
-    if self.ready_to_trace:
-      for stack in var_stack_list:
-        stack.add(self)
+    if isinstance(v, brainstate.State):  # value checking
+        v = v.value
+    self._check_value_tree(v)  # check the tree structure
+    record_state_value_write(self)  # record the value by the stack (>= level)
+    self._been_writen = True  # set the flag
+    self._write_value(v)  # write the value
 
   def tree_flatten(self):
     """Flattens this variable.
@@ -376,12 +372,11 @@ class Variable(Array):
     Returns:
       The variable.
     """
-    return cls(*flat_contents, ready_to_trace=False)
+    return cls(*flat_contents)
 
   def clone(self) -> 'Variable':
     """Clone the variable. """
     r = type(self)(jnp.array(self.value, copy=True), batch_axis=self.batch_axis)
-    r.ready_to_trace = self.ready_to_trace
     return r
 
 
@@ -409,13 +404,11 @@ class TrainVar(Variable):
       batch_axis: int = None,
       *,
       axis_names: Optional[Sequence[str]] = None,
-      ready_to_trace: bool = True
   ):
     super().__init__(
       value_or_size,
       dtype=dtype,
       batch_axis=batch_axis,
-      ready_to_trace=ready_to_trace,
       axis_names=axis_names,
     )
 
@@ -432,13 +425,11 @@ class Parameter(Variable):
       batch_axis: int = None,
       *,
       axis_names: Optional[Sequence[str]] = None,
-      ready_to_trace: bool = True
   ):
     super().__init__(
       value_or_size,
       dtype=dtype,
       batch_axis=batch_axis,
-      ready_to_trace=ready_to_trace,
       axis_names=axis_names,
     )
 
@@ -482,7 +473,7 @@ class VariableView(Variable):
     self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
-    super().__init__(value.value, batch_axis=value.batch_axis, ready_to_trace=False)
+    super().__init__(value.value, batch_axis=value.batch_axis)
     self._value = value
 
   def __repr__(self) -> str:
