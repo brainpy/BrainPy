@@ -21,7 +21,6 @@ def grad(
     argnums: Optional[Union[int, Sequence[int]]] = None,
     holomorphic: Optional[bool] = False,
     allow_int: Optional[bool] = False,
-    reduce_axes: Optional[Sequence[str]] = (),
     has_aux: Optional[bool] = None,
     return_value: Optional[bool] = False,
 ) -> Union[Callable, Callable[..., Callable]]:
@@ -122,14 +121,6 @@ def grad(
       Whether to allow differentiating with
       respect to integer valued inputs. The gradient of an integer input will
       have a trivial vector-space dtype (float0). Default False.
-    reduce_axes: optional, tuple of int
-      tuple of axis names. If an axis is listed here, and
-      ``fun`` implicitly broadcasts a value over that axis, the backward pass
-      will perform a ``psum`` of the corresponding gradient. Otherwise, the
-      gradient will be per-example over named axes. For example, if ``'batch'``
-      is a named batch axis, ``grad(f, reduce_axes=('batch',))`` will create a
-      function that computes the total gradient while ``grad(f)`` will create
-      one that computes the per-example gradient.
 
     Returns
     -------
@@ -147,7 +138,6 @@ def grad(
                               argnums=argnums,
                               holomorphic=holomorphic,
                               allow_int=allow_int,
-                              reduce_axes=reduce_axes,
                               has_aux=has_aux,
                               return_value=return_value)
     else:
@@ -157,7 +147,6 @@ def grad(
             argnums=argnums,
             holomorphic=holomorphic,
             allow_int=allow_int,
-            reduce_axes=reduce_axes,
             has_aux=has_aux,
             return_value=return_value
         )
