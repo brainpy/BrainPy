@@ -308,12 +308,12 @@ def scan(
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
     return brainstate.transform.scan(
-        body_fun=body_fun,
+        f=body_fun,
         init=init,
         xs=operands,
         reverse=reverse,
         unroll=unroll,
-        progress_bar=brainstate.transform.ProgressBar() if progress_bar else None,
+        pbar=brainstate.transform.ProgressBar() if progress_bar else None,
     )
 
 
@@ -381,4 +381,4 @@ def while_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    return brainstate.transform.while_loop(lambda x: body_fun(*x), cond_fun(*x), operands)
+    return brainstate.transform.while_loop(lambda x: body_fun(*x), lambda x: cond_fun(*x), operands)
