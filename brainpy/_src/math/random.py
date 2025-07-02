@@ -546,8 +546,17 @@ class RandomState(Variable):
       key = seed_or_key
     self._value = key
 
+  def _ensure_value_exists(self):
+    """Ensure that the random state has a valid value, regenerate if needed."""
+    if not isinstance(self._value, np.ndarray) and self._value.is_deleted():
+      with jax.ensure_compile_time_eval():
+        seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+        self._value = seed_or_key
+
+
   @property
   def value(self):
+    self._ensure_value_exists()
     record_state_value_read(self)
     return self._read_value()
 
