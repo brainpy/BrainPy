@@ -63,7 +63,7 @@ def _get_dtype(v):
     dtype = canonicalize_dtype(type(v))
   return dtype
 
-class Base:
+class BaseArray:
   @property
   def sharding(self):
     return self._value.sharding
@@ -1488,7 +1488,7 @@ class Base:
 
 
 @register_pytree_node_class
-class Array(Base):
+class Array(BaseArray):
   """Multiple-dimensional array in BrainPy.
 
   Compared to ``jax.Array``, :py:class:`~.Array` has the following advantages:
