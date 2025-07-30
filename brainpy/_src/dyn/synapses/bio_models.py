@@ -174,7 +174,7 @@ class AMPA(SynDyn):
     dt = share.load('dt')
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
     TT = ((t - self.spike_arrival_time) < self.T_duration) * self.T
-    self.g.value = self.integral(self.g, t, TT, dt)
+    self.g.value = self.integral(self.g.value, t, TT, dt)
     return self.g.value
 
   def return_info(self):
@@ -493,7 +493,7 @@ class BioNMDA(SynDyn):
     dt = share.load('dt')
     self.spike_arrival_time.value = bm.where(pre_spike, t, self.spike_arrival_time)
     T = ((t - self.spike_arrival_time) < self.T_dur) * self.T
-    self.g.value, self.x.value = self.integral(self.g, self.x, t, T, dt)
+    self.g.value, self.x.value = self.integral(self.g.value, self.x.value, t, T, dt)
     return self.g.value
 
   def return_info(self):

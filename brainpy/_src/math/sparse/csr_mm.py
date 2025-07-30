@@ -6,7 +6,7 @@ from typing import Union, Tuple
 import brainevent
 from jax import numpy as jnp
 
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray as Array
 
 __all__ = [
     'csrmm',

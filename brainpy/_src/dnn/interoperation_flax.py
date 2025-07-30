@@ -25,14 +25,14 @@ __all__ = [
 
 
 def _as_jax(a):
-  if isinstance(a, bm.Array):
+  if isinstance(a, bm.BaseArray):
     return a.value
   else:
     return a
 
 
 def _is_bp(a):
-  return isinstance(a, bm.Array)
+  return isinstance(a, bm.BaseArray)
 
 
 class FromFlax(Layer):

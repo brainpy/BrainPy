@@ -179,7 +179,7 @@ class VariableStack(dict):
     """Get all data in the collected variables with a python list structure."""
     new_list = list()
     for elem in tuple(self.values()):
-      new_list.append(elem.value if isinstance(elem, Array) else elem)
+      new_list.append(elem.value if isinstance(elem, BaseArray) else elem)
     return new_list
 
   def remove_by_id(self, *ids, error_when_absent=False):
@@ -260,7 +260,7 @@ class Variable(brainstate.State, BaseArray):
     else:
       value = value_or_size
 
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     super().__init__(value)
 
@@ -337,7 +337,7 @@ class Variable(brainstate.State, BaseArray):
     if ext_dtype != int_dtype:
       raise MathError(f"The dtype of the original data is {int_dtype}, "
                       f"while we got {ext_dtype}.")
-    if isinstance(v, Array):
+    if isinstance(v, BaseArray):
       v = v.value
     elif isinstance(v, np.ndarray):
       v = jnp.asarray(v)
@@ -380,6 +380,7 @@ class Variable(brainstate.State, BaseArray):
     return r
 
 
+
 def _get_dtype(v):
   if hasattr(v, 'dtype'):
     dtype = v.dtype
@@ -389,7 +390,7 @@ def _get_dtype(v):
 
 
 def _as_jax_array_(obj):
-  return obj.value if isinstance(obj, Array) else obj
+  return obj.value if isinstance(obj, BaseArray) else obj
 
 
 @register_pytree_node_class
@@ -470,7 +471,7 @@ class VariableView(Variable):
       value: Variable,
       index: Any,
   ):
-    self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
+    self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, BaseArray))
     if not isinstance(value, Variable):
       raise ValueError('Must be instance of Variable.')
     super().__init__(value.value, batch_axis=value.batch_axis)
@@ -511,7 +512,7 @@ class VariableView(Variable):
     if v.dtype != self._value.dtype:
       raise MathError(f"The dtype of the original data is {self._value.dtype}, "
                       f"while we got {v.dtype}.")
-    self._value[self.index] = v.value if isinstance(v, Array) else v
+    self._value[self.index] = v.value if isinstance(v, BaseArray) else v
 
 
 @register_pytree_node_class

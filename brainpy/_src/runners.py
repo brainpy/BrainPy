@@ -42,7 +42,7 @@ def _call_fun_with_share(f, *args, **kwargs):
 
 
 def _is_brainpy_array(x):
-  return isinstance(x, bm.Array)
+  return isinstance(x, bm.BaseArray)
 
 
 def check_and_format_inputs(host, inputs):
@@ -491,7 +491,7 @@ class DSRunner(Runner):
     else:
       hists['ts'] = indices * self.dt + self.t0
       if self.numpy_mon_after_run:
-        hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
+        hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.BaseArray))
       else:
         hists['ts'] = bm.as_jax(hists['ts'])
       for key in hists.keys():
@@ -573,7 +573,7 @@ class DSRunner(Runner):
       return None
     if isinstance(self.target.mode, bm.NonBatchingMode):
       return None
-    if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
+    if isinstance(xs, (bm.BaseArray, jax.Array, np.ndarray)):
       return xs.shape[1] if self.data_first_axis == 'T' else xs.shape[0]
     leaves, _ = tree_flatten(xs, is_leaf=_is_brainpy_array)
     if self.data_first_axis == 'T':
@@ -590,10 +590,10 @@ class DSRunner(Runner):
     if duration is not None:
       return int(duration / self.dt)
     if xs is not None:
-      if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
+      if isinstance(xs, (bm.BaseArray, jax.Array, np.ndarray)):
         return xs.shape[0] if self.data_first_axis == 'T' else xs.shape[1]
       else:
-        leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
+        leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.BaseArray))
         if self.data_first_axis == 'T':
           num_steps = [x.shape[0] for x in leaves]
         else:

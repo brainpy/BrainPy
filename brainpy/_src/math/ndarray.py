@@ -16,7 +16,7 @@ bm = None
 
 
 __all__ = [
-  'Array', 'ndarray', 'JaxArray',  # alias of Array
+  'BaseArray', 'Array', 'ndarray', 'JaxArray',  # alias of Array
   'ShardedArray',
 ]
 
@@ -33,7 +33,7 @@ _all_slice = slice(None, None, None)
 
 
 def _check_input_array(array):
-  if isinstance(array, Array):
+  if isinstance(array, BaseArray):
     return array.value
   elif isinstance(array, np.ndarray):
     return jnp.asarray(array)
@@ -48,11 +48,11 @@ def _return(a):
 
 
 def _as_jax_array_(obj):
-  return obj.value if isinstance(obj, Array) else obj
+  return obj.value if isinstance(obj, BaseArray) else obj
 
 
 def _check_out(out):
-  if not isinstance(out, Array):
+  if not isinstance(out, BaseArray):
     raise TypeError(f'out must be an instance of brainpy Array. But got {type(out)}')
 
 
@@ -81,7 +81,7 @@ class BaseArray:
   def value(self, value):
     self_value = self._check_tracer()
 
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)
@@ -175,14 +175,14 @@ class BaseArray:
     if isinstance(index, slice) and (index == _all_slice):
       return self.value
     elif isinstance(index, tuple):
-      index = tuple((x.value if isinstance(x, Array) else x) for x in index)
-    elif isinstance(index, Array):
+      index = tuple((x.value if isinstance(x, BaseArray) else x) for x in index)
+    elif isinstance(index, BaseArray):
       index = index.value
     return self.value[index]
 
   def __setitem__(self, index, value):
     # value is Array
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     # value is numpy.ndarray
     elif isinstance(value, np.ndarray):
@@ -192,7 +192,7 @@ class BaseArray:
     if isinstance(index, tuple):
       index = tuple(_check_input_array(x) for x in index)
     # index is Array
-    elif isinstance(index, Array):
+    elif isinstance(index, BaseArray):
       index = index.value
     # index is numpy.ndarray
     elif isinstance(index, np.ndarray):
@@ -1509,7 +1509,7 @@ class Array(BaseArray):
 
   def __init__(self, value, dtype: Any = None):
     # array value
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value._value
     elif isinstance(value, (tuple, list, np.ndarray)):
       value = jnp.asarray(value)
@@ -1526,6 +1526,15 @@ class Array(BaseArray):
                            'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
     return self_value
 
+  # @classmethod
+  # def __instancecheck__(cls, subclass):
+  #   from brainpy.math import Variable
+  #   if issubclass(subclass, Variable):
+  #     return True
+  #   if isinstance(subclass, Array):
+  #     return True
+  #
+  #   return False
 
 setattr(Array, "__array_priority__", 100)
 
@@ -1569,7 +1578,7 @@ class ShardedArray(Array):
   def value(self, value):
     self_value = self._check_tracer()
 
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)

@@ -5,7 +5,7 @@ from typing import Union, Tuple
 
 from jax import numpy as jnp
 
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray as Array
 import brainevent
 
 

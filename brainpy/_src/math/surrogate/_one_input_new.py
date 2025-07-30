@@ -13,7 +13,7 @@ else:
 from jax.interpreters import batching, ad, mlir
 
 from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray as Array
 
 __all__ = [
   'Surrogate',

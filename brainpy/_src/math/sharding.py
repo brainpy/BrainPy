@@ -8,7 +8,7 @@ import jax
 import numpy as np
 from jax.sharding import PartitionSpec, Mesh, NamedSharding, Sharding
 
-from .ndarray import Array, ShardedArray
+from .ndarray import Array, ShardedArray, BaseArray
 
 __all__ = [
   'device_mesh',
@@ -42,7 +42,7 @@ _default_mesh: Optional[Mesh] = None
 
 
 def is_bp_array(x):
-  return isinstance(x, Array)
+  return isinstance(x, BaseArray)
 
 
 @contextmanager
@@ -79,7 +79,7 @@ def _device_put(x: Union[Array, jax.Array, np.ndarray],
   Returns:
     A copy of ``x`` that resides on ``device``.
   """
-  if isinstance(x, Array):
+  if isinstance(x, BaseArray):
     x.value = jax.device_put(x.value, device=device)
     return x
   else:
@@ -199,7 +199,7 @@ def partition(
 
 
 def _keep_constraint(x: Any):
-  if isinstance(x, Array):
+  if isinstance(x, BaseArray):
     x = x.value
   if isinstance(x, jax.Array):
     if hasattr(x, 'sharding'):

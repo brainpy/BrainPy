@@ -8,7 +8,7 @@ import numpy as np
 from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray as Array
 import brainevent
 
 __all__ = [

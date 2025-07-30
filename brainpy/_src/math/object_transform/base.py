@@ -591,7 +591,7 @@ class BrainPyObject(object):
       device: The device.
     """
     for key, var in self.state_dict().items():
-      if isinstance(var, Array):
+      if isinstance(var, BaseArray):
         var.value = jax.device_put(var.value, device=device)
       else:
         setattr(self, key, jax.device_put(var, device=device))
@@ -673,13 +673,13 @@ class FunAsObject(BrainPyObject):
 
 
 def _check_elem(elem):
-  if not isinstance(elem, (numbers.Number, jax.Array, Array, np.ndarray, BrainPyObject)):
+  if not isinstance(elem, (numbers.Number, jax.Array, BaseArray, np.ndarray, BrainPyObject)):
     raise TypeError(f'Element should be a numerical value or a BrainPyObject.')
   return elem
 
 
 def _check_num_elem(elem):
-  if not isinstance(elem, (numbers.Number, jax.Array, Array, np.ndarray)):
+  if not isinstance(elem, (numbers.Number, jax.Array, BaseArray, np.ndarray)):
     raise TypeError(f'Element should be a numerical value.')
   return elem
 

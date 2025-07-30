@@ -9,7 +9,10 @@ The JIT compilation tools for JAX backend.
 
 from typing import Callable, Union, Optional, Sequence, Any, Iterable
 
+import jax.tree
+
 import brainstate.transform
+from brainstate.compile._jit import Missing
 
 __all__ = [
     'jit',
@@ -62,7 +65,7 @@ _jit_par = '''
 
 
 def jit(
-    func: Callable = None,
+    func: Callable = Missing(),
 
     # original jax.jit parameters
     static_argnums: Union[int, Iterable[int], None] = None,
@@ -126,33 +129,22 @@ def jit(
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
     """
-    assert static_argnames is None, 'static_argnames is not supported yet.'
-
-    if func is None:
-        return lambda f: jit(fun=f,
-                             static_argnums=static_argnums,
-                             donate_argnums=donate_argnums,
-                             inline=inline,
-                             keep_unused=keep_unused,
-                             abstracted_axes=abstracted_axes,
-                             **kwargs)
-    else:
-        return brainstate.transform.jit(
-            func,
-            static_argnums=static_argnums,
-            donate_argnums=donate_argnums,
-            inline=inline,
-            keep_unused=keep_unused,
-            abstracted_axes=abstracted_axes,
-            **kwargs
-        )
+    return brainstate.transform.jit(
+        func,
+        static_argnums=static_argnums,
+        donate_argnums=donate_argnums,
+        inline=inline,
+        keep_unused=keep_unused,
+        abstracted_axes=abstracted_axes,
+        **kwargs
+    )
 
 
 jit.__doc__ = jit.__doc__.format(jit_par=_jit_par.strip())
 
 
 def cls_jit(
-    func: Callable = None,
+    func: Callable = Missing(),
     static_argnums: Union[int, Iterable[int], None] = None,
     static_argnames: Union[str, Iterable[str], None] = None,
     inline: bool = False,
@@ -194,6 +186,15 @@ def cls_jit(
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
     """
+    if static_argnums is None:
+        static_argnums = (0,)
+    elif isinstance(static_argnums, int):
+        static_argnums = (0, static_argnums + 1,)
+    elif isinstance(static_argnums, (tuple, list)):
+        static_argnums = (0,) + tuple(jax.tree.map(lambda x: x + 1, static_argnums))
+    else:
+        raise ValueError('static_argnums is not supported yet.')
+
     return jit(func=func,
                static_argnums=static_argnums,
                static_argnames=static_argnames,

@@ -102,7 +102,7 @@ class Delay(DynamicalSystem, ParamDesc):
 
     # delay data
     if init is not None:
-      assert isinstance(init, (numbers.Number, bm.Array, jax.Array, Callable))
+      assert isinstance(init, (numbers.Number, bm.BaseArray, jax.Array, Callable))
     self._init = init
 
     # other info
@@ -421,7 +421,7 @@ class VarDelay(Delay):
     else:
       self.data._value = data
     # update delay data
-    if isinstance(self._init, (bm.Array, jax.Array, numbers.Number)):
+    if isinstance(self._init, (bm.BaseArray, jax.Array, numbers.Number)):
       self.data[:] = self._init
     elif callable(self._init):
       self.data[:] = self._init((length,) + self.target.shape, dtype=self.target.dtype)
@@ -534,7 +534,7 @@ def init_delay_by_return(info: Union[bm.Variable, ReturnInfo], initial_delay_dat
     # init
     if isinstance(info.data, Callable):
       init = info.data(shape)
-    elif isinstance(info.data, (bm.Array, jax.Array)):
+    elif isinstance(info.data, (bm.BaseArray, jax.Array)):
       init = info.data
     else:
       raise TypeError

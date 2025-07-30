@@ -8,7 +8,7 @@ from jax.tree_util import tree_map
 
 from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .interoperability import *
-from .ndarray import Array
+from .ndarray import Array, BaseArray
 
 __all__ = [
   'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
@@ -108,11 +108,11 @@ def _return(a):
 def fill_diagonal(a, val, inplace=True):
   if a.ndim < 2:
     raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
-  if not isinstance(a, Array) and inplace:
+  if not isinstance(a, BaseArray) and inplace:
     raise ValueError('``fill_diagonal()`` is used in in-place updating, therefore '
                      'it requires a brainpy Array. If you want to disable '
                      'inplace updating, use ``fill_diagonal(inplace=False)``.')
-  val = val.value if isinstance(val, Array) else val
+  val = val.value if isinstance(val, BaseArray) else val
   i, j = jnp.diag_indices(_min(a.shape[-2:]))
   r = as_jax(a).at[..., i, j].set(val)
   if inplace:
@@ -153,7 +153,7 @@ def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
   try:
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
   except TypeError:
-    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
+    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
     leaves = [_as_jax_array_(l) for l in leaves]
     a = tree_unflatten(tree, leaves)
     res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
@@ -165,7 +165,7 @@ def asarray(a, dtype=None, order=None):
   try:
     res = jnp.asarray(a=a, dtype=dtype, order=order)
   except TypeError:
-    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
+    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
     leaves = [_as_jax_array_(l) for l in leaves]
     arrays = tree_unflatten(tree, leaves)
     res = jnp.asarray(a=arrays, dtype=dtype, order=order)
@@ -487,7 +487,7 @@ def shape(a):
   ()
 
   """
-  if isinstance(a, (Array, jax.Array, np.ndarray)):
+  if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
     return a.shape
   else:
     return np.shape(a)
@@ -526,7 +526,7 @@ def size(a, axis=None):
   >>> brainpy.math.size(a, 0)
   2
   """
-  if isinstance(a, (Array, jax.Array, np.ndarray)):
+  if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
     if axis is None:
       return a.size
     else:
@@ -718,7 +718,7 @@ info = np.info
 
 
 def place(arr, mask, vals):
-  if not isinstance(arr, Array):
+  if not isinstance(arr, BaseArray):
     raise ValueError(f'Must be an instance of brainpy Array, but we got {type(arr)}')
   arr[mask] = vals
 
@@ -727,13 +727,13 @@ polydiv = _compatible_with_brainpy_array(jnp.polydiv)
 
 
 def put(a, ind, v):
-  if not isinstance(a, Array):
+  if not isinstance(a, BaseArray):
     raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
   a[ind] = v
 
 
 def putmask(a, mask, values):
-  if not isinstance(a, Array):
+  if not isinstance(a, BaseArray):
     raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
   if a.shape != values.shape:
     raise ValueError('Only support the shapes of "a" and "values" are consistent.')
@@ -752,8 +752,8 @@ def savetxt(fname, X, fmt='%.18e', delimiter=' ', newline='\n', header='',
 
 
 def savez_compressed(file, *args, **kwds):
-  args = tuple([(as_numpy(a) if isinstance(a, (jnp.ndarray, Array)) else a) for a in args])
-  kwds = {k: (as_numpy(v) if isinstance(v, (jnp.ndarray, Array)) else v)
+  args = tuple([(as_numpy(a) if isinstance(a, (jnp.ndarray, BaseArray)) else a) for a in args])
+  kwds = {k: (as_numpy(v) if isinstance(v, (jnp.ndarray, BaseArray)) else v)
           for k, v in kwds.items()}
   np.savez_compressed(file, *args, **kwds)
 
@@ -763,7 +763,7 @@ typename = np.typename
 
 
 def copyto(dst, src):
-  if not isinstance(dst, Array):
+  if not isinstance(dst, BaseArray):
     raise ValueError('dst must be an instance of ArrayType.')
   dst[:] = src
 

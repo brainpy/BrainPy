@@ -359,9 +359,9 @@ class Num1DAnalyzer(LowDimAnalyzer):
     """
     # candidates: xs, a vector with the length of self.resolutions[self.x_var]
     # args: parameters, a list/tuple of vectors
-    candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
+    candidates = candidates.value if isinstance(candidates, bm.BaseArray) else candidates
     selected_ids = np.arange(len(candidates))
-    args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
+    args = tuple(a.value if isinstance(candidates, bm.BaseArray) else a for a in args)
     for a in args: assert len(a) == len(candidates)
     if num_seg is None:
       num_seg = len(self.resolutions[self.x_var])
@@ -557,7 +557,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
         return self.F_fx(*var_and_pars), self.F_fy(*var_and_pars)
 
       def call(*var_and_pars):
-        var_and_pars = tuple((vp.value if isinstance(vp, bm.Array) else vp) for vp in var_and_pars)
+        var_and_pars = tuple((vp.value if isinstance(vp, bm.BaseArray) else vp) for vp in var_and_pars)
         return jnp.array(jax.jit(f_jacobian, device=self.jit_device)(*var_and_pars))
 
       self.analyzed_results[C.F_jacobian] = call
@@ -879,7 +879,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       ps = tuple(p[ids[i]: ids[i] + arg_pre_len[i]] for i, p in enumerate(P))
       # change the position of meshgrid values
-      vps = tuple((v.value if isinstance(v, bm.Array) else v) for v in ((xs, ys) + ps))
+      vps = tuple((v.value if isinstance(v, bm.BaseArray) else v) for v in ((xs, ys) + ps))
       mesh_values = jnp.meshgrid(*vps)
       mesh_values = tuple(jnp.moveaxis(m, 0, 1) for m in mesh_values)
       mesh_values = tuple(m.flatten() for m in mesh_values)
@@ -934,9 +934,9 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
       # candidates: xs, a vector with the length of self.resolutions[self.x_var]
       # args: parameters, a list/tuple of vectors
-      candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
+      candidates = candidates.value if isinstance(candidates, bm.BaseArray) else candidates
       selected_ids = np.arange(len(candidates))
-      args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
+      args = tuple(a.value if isinstance(candidates, bm.BaseArray) else a for a in args)
       for a in args: assert len(a) == len(candidates)
 
       if self.convert_type() == C.x_by_y:

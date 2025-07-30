@@ -148,7 +148,8 @@ def grad(
             holomorphic=holomorphic,
             allow_int=allow_int,
             has_aux=has_aux,
-            return_value=return_value
+            return_value=return_value,
+            check_states=False,
         )
 
 
@@ -222,7 +223,8 @@ def jacrev(
         holomorphic=holomorphic,
         allow_int=allow_int,
         has_aux=has_aux,
-        return_value=return_value
+        return_value=return_value,
+        check_states=False,
     )
 
 
@@ -290,6 +292,7 @@ def jacfwd(
         holomorphic=holomorphic,
         has_aux=has_aux,
         return_value=return_value,
+        check_states=False,
     )
 
 
@@ -332,6 +335,7 @@ def hessian(
         argnums=argnums,
         holomorphic=holomorphic,
         has_aux=has_aux,
+        check_states=False,
     )
 
 
@@ -391,7 +395,8 @@ def vector_grad(
         grad_states=grad_vars,
         argnums=argnums,
         return_value=return_value,
-        has_aux=has_aux
+        has_aux=has_aux,
+        check_states=False,
     )
 
 

@@ -51,7 +51,7 @@ class SynConn(Projection):
     # ------------
     if isinstance(conn, TwoEndConnector):
       self.conn = conn(pre.size, post.size)
-    elif isinstance(conn, (bm.Array, np.ndarray, jax.Array)):
+    elif isinstance(conn, (bm.BaseArray, np.ndarray, jax.Array)):
       if (pre.num, post.num) != conn.shape:
         raise ValueError(f'"conn" is provided as a matrix, and it is expected '
                          f'to be an array with shape of (pre.num, post.num) = '

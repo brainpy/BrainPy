@@ -199,7 +199,7 @@ class LoopOverTime(DynamicalSystem):
                      'Input should be a Array PyTree with the shape '
                      'of (B, T, ...) or (T, B, ...) with `data_first_axis="T"`, '
                      'where B the batch size and T the time length.')
-      xs, tree = tree_flatten(duration_or_xs, lambda a: isinstance(a, bm.Array))
+      xs, tree = tree_flatten(duration_or_xs, lambda a: isinstance(a, bm.BaseArray))
       if self.target.mode.is_child_of(bm.BatchingMode):
         b_idx, t_idx = (1, 0) if self.data_first_axis == 'T' else (0, 1)
 

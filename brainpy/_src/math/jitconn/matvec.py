@@ -3,7 +3,7 @@ from typing import Tuple, Optional, Union
 
 import jax
 
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray as Array
 import numpy as np
 import brainevent
 
