@@ -6,7 +6,7 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
-from brainpy._src.math.ndarray import Array, Base
+from brainpy._src.math.ndarray import Array, BaseArray
 from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy.errors import MathError
 
@@ -224,7 +224,7 @@ var_stack_list: List[VariableStack] = []
 
 
 @register_pytree_node_class
-class Variable(brainstate.State, Base):
+class Variable(brainstate.State, BaseArray):
   """The pointer to specify the dynamical variable.
 
   Initializing an instance of ``Variable`` by two ways:

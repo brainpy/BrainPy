@@ -381,4 +381,4 @@ def while_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    return brainstate.transform.while_loop(body_fun, cond_fun, *operands)
+    return brainstate.transform.while_loop(lambda x: body_fun(*x), lambda x: cond_fun(*x), operands)
