@@ -551,6 +551,10 @@ class RandomState(Variable):
     record_state_value_read(self)
     return self._read_value()
 
+  # def check_if_deleted(self):
+  #   if self.value.is_deleted():
+  #     self.seed()
+
   def split_key(self):
     """Create a new seed from the current seed.
     """

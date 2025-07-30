@@ -308,12 +308,12 @@ def scan(
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
     return brainstate.transform.scan(
-        body_fun=body_fun,
+        body_fun,
         init=init,
         xs=operands,
         reverse=reverse,
         unroll=unroll,
-        progress_bar=brainstate.transform.ProgressBar() if progress_bar else None,
+        pbar=brainstate.transform.ProgressBar() if progress_bar else None,
     )
 
 
