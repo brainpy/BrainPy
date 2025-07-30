@@ -87,4 +87,4 @@ class TestRKMethods(unittest.TestCase):
             assert np.linalg.norm(mon_x - _baseline_x) / (duration / dt) < 0.1
             assert np.linalg.norm(mon_y - _baseline_y) / (duration / dt) < 0.1
             assert np.linalg.norm(mon_z - _baseline_z) / (duration / dt) < 0.1
-            bm.clear_buffer_memory()
+            

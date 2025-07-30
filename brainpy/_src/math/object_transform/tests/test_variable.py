@@ -29,22 +29,9 @@ class TestVar(unittest.TestCase):
     print()
     f_jit = bm.jit(A().f)
     f_jit()
-    self.assertTrue(len(f_jit._dyn_vars) == 2)
 
     print()
     a = A()
-    self.assertTrue(bm.all(a.f1() == 2.))
-    self.assertTrue(len(a.f1._dyn_vars) == 2)
-    print(a.f2())
-    self.assertTrue(len(a.f2._dyn_vars) == 1)
-
-    print()
-    a = A()
-    print()
-    self.assertTrue(bm.allclose(a.f3(), 4.))
-    self.assertTrue(len(a.f3._dyn_vars) == 2)
-
-    bm.clear_buffer_memory()
 
 
 

@@ -20,7 +20,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['n'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['h'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_HH_with_noise(self):
     bm.random.seed()
@@ -34,7 +34,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['n'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['h'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_HH_batching_mode(self):
     bm.random.seed()
@@ -48,7 +48,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['n'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['h'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['spike'].shape, (1, 100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_MorrisLecar(self):
     bm.random.seed()
@@ -60,7 +60,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['V'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['W'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_MorrisLecar_with_noise(self):
     bm.random.seed()
@@ -72,7 +72,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['V'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['W'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_MorrisLecar_batching_mode(self):
     bm.random.seed()
@@ -84,7 +84,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['V'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['W'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['spike'].shape, (1, 100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_PinskyRinzelModel(self):
     bm.random.seed()
@@ -95,7 +95,7 @@ class Test_Biological(parameterized.TestCase):
     runner.run(10.)
     self.assertTupleEqual(runner.mon['Vs'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['Vd'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_PinskyRinzelModel_with_noise(self):
     bm.random.seed()
@@ -106,7 +106,7 @@ class Test_Biological(parameterized.TestCase):
     runner.run(10.)
     self.assertTupleEqual(runner.mon['Vs'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['Vd'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_PinskyRinzelModel_batching_mode(self):
     bm.random.seed()
@@ -117,7 +117,7 @@ class Test_Biological(parameterized.TestCase):
     runner.run(10.)
     self.assertTupleEqual(runner.mon['Vs'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['Vd'].shape, (1, 100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_WangBuzsakiModel(self):
     bm.random.seed()
@@ -130,7 +130,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['n'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['h'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_WangBuzsakiModel_with_noise(self):
     bm.random.seed()
@@ -143,7 +143,7 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['n'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['h'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   def test_WangBuzsakiModel_batching_mode(self):
     bm.random.seed()
@@ -156,4 +156,4 @@ class Test_Biological(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['n'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['h'].shape, (1, 100, 10))
     self.assertTupleEqual(runner.mon['spike'].shape, (1, 100, 10))
-    bm.clear_buffer_memory()
+    

@@ -29,5 +29,5 @@ class Test_learning_rule(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['syn.I'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.u'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.x'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 

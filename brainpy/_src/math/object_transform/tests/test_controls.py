@@ -115,7 +115,7 @@ class TestScan(unittest.TestCase):
     with jax.disable_jit():
       final, result = bm.scan(cumsum, result_init, b)
 
-    bm.clear_buffer_memory()
+    
 
   def test_array_aware_of_bp_array(self):
     def cumsum(res, el):

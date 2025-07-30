@@ -75,7 +75,7 @@ def test_ProjAlignPreMg1():
   bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   plt.close()
-  bm.clear_buffer_memory()
+  
 
 
 def test_ProjAlignPostMg2():
@@ -151,7 +151,7 @@ def test_ProjAlignPostMg2():
   bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   plt.close()
-  bm.clear_buffer_memory()
+  
 
 
 def test_ProjAlignPost1():
@@ -186,7 +186,7 @@ def test_ProjAlignPost1():
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=show)
-  bm.clear_buffer_memory()
+  
   plt.close()
 
 
@@ -245,7 +245,7 @@ def test_ProjAlignPost2():
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=show)
 
-  bm.clear_buffer_memory()
+  
   plt.close()
 
 
@@ -281,7 +281,7 @@ def test_VanillaProj():
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=show)
-  bm.clear_buffer_memory()
+  
   plt.close()
 
 
@@ -339,7 +339,7 @@ def test_ProjAlignPreMg1_v2():
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=show)
 
-  bm.clear_buffer_memory()
+  
   plt.close()
 
 
@@ -397,7 +397,7 @@ def test_ProjAlignPreMg2():
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
   bp.visualize.raster_plot(indices, spks, show=show)
 
-  bm.clear_buffer_memory()
+  
   plt.close()
 
 
@@ -438,4 +438,4 @@ def test_vanalla_proj_v2():
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices, progress_bar=True)
   bp.visualize.raster_plot(indices, spks, show=show)
   plt.close()
-  bm.clear_buffer_memory()
+  

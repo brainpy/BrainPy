@@ -18,7 +18,7 @@ class TestFunction(unittest.TestCase):
     groundtruth = f(g(arr))
     self.assertTrue(bm.allclose(r1, r2))
     self.assertTrue(bm.allclose(r1, groundtruth))
-    bm.clear_buffer_memory()
+    
 
 
 

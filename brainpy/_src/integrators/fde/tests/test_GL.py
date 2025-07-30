@@ -33,6 +33,5 @@ class TestGLShortMemory(unittest.TestCase):
 
     plt.plot(runner.mon.x.flatten(), runner.mon.z.flatten())
     plt.show(block=block)
-    bp.math.clear_buffer_memory()
 
 

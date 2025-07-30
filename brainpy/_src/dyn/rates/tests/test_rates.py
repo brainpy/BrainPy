@@ -50,7 +50,7 @@ class TestPopulation(parameterized.TestCase):
     model = getattr(populations, neuron)(size=10)
     runner = bp.DSRunner(model, progress_bar=False)
     runner.run(10.)
-    bm.clear_buffer_memory()
+    
 
 class TestShape(parameterized.TestCase):
   def test_FHN_shape(self):
@@ -61,7 +61,7 @@ class TestShape(parameterized.TestCase):
                          progress_bar=False)
     runner.run(10.)
     self.assertTupleEqual(runner.mon.x.shape, (100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_FFHN_shape(self):
     bm.random.seed()
@@ -71,7 +71,7 @@ class TestShape(parameterized.TestCase):
                          progress_bar=False)
     runner.run(10.)
     self.assertTupleEqual(runner.mon.x.shape, (100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_QIF_shape(self):
     bm.random.seed()
@@ -81,7 +81,7 @@ class TestShape(parameterized.TestCase):
                          progress_bar=False)
     runner.run(10.)
     self.assertTupleEqual(runner.mon.x.shape, (100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_SLO_shape(self):
     bm.random.seed()
@@ -91,7 +91,7 @@ class TestShape(parameterized.TestCase):
                          progress_bar=False)
     runner.run(10.)
     self.assertTupleEqual(runner.mon.x.shape, (100, 10))
-    bm.clear_buffer_memory()
+    
 
   def test_TLM_shape(self):
     bm.random.seed()
@@ -101,5 +101,5 @@ class TestShape(parameterized.TestCase):
                          progress_bar=False)
     runner.run(10.)
     self.assertTupleEqual(runner.mon.e.shape, (100, 10))
-    bm.clear_buffer_memory()
+    
 

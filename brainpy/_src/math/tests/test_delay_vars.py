@@ -43,7 +43,7 @@ class TestTimeDelay(unittest.TestCase):
     self.assertTrue(jnp.allclose(delay(t0 - 0.2), jnp.ones(10) * 8))
 
     bm.disable_x64()
-    bm.clear_buffer_memory()
+    
 
   def test_dim2(self):
     t0 = 0.
@@ -53,7 +53,7 @@ class TestTimeDelay(unittest.TestCase):
     self.assertTrue(jnp.allclose(delay(t0 - 0.1), jnp.ones((10, 5)) * 9))
     self.assertTrue(jnp.allclose(delay(t0 - 0.15), jnp.ones((10, 5)) * 8.5))
     self.assertTrue(bm.allclose(delay(t0 - 0.23), bm.ones((10, 5)) * 7.7))
-    bm.clear_buffer_memory()
+    
 
   def test_dim3(self):
     t0 = 0.
@@ -64,7 +64,7 @@ class TestTimeDelay(unittest.TestCase):
     self.assertTrue(jnp.allclose(delay(t0 - 0.1), jnp.ones((10, 5, 3)) * 9))
     self.assertTrue(jnp.allclose(delay(t0 - 0.15), jnp.ones((10, 5, 3)) * 8.5))
     self.assertTrue(bm.allclose(delay(t0 - 0.23), bm.ones((10, 5, 3)) * 7.7))
-    bm.clear_buffer_memory()
+    
 
   def test1(self):
     print()

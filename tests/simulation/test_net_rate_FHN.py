@@ -52,4 +52,3 @@ class TestFHN(unittest.TestCase):
       plt.tight_layout()
       plt.show()
 
-    bm.clear_buffer_memory()

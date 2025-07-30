@@ -53,7 +53,7 @@ class TestIntegratorRunnerForODEs(TestCase):
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V')
     bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=show)
     plt.close()
-    bm.clear_buffer_memory()
+    
 
   def test_ode3(self):
     a, b, tau = 0.7, 0.8, 12.5
@@ -89,7 +89,7 @@ class TestIntegratorRunnerForODEs(TestCase):
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V-run2')
     bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w-run2', show=show)
     plt.close()
-    bm.clear_buffer_memory()
+    
 
   def test_ode_dyn_args(self):
     a, b, tau = 0.7, 0.8, 12.5

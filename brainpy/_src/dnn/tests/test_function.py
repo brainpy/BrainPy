@@ -18,7 +18,7 @@ class TestFunction(parameterized.TestCase):
 
     expected_shape = (20, 600)
     self.assertEqual(output.shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   def test_flatten_non_batching_mode(self):
     bm.random.seed()
@@ -29,7 +29,7 @@ class TestFunction(parameterized.TestCase):
 
     expected_shape = (600,)
     self.assertEqual(output.shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   def test_unflatten(self):
     bm.random.seed()
@@ -38,7 +38,7 @@ class TestFunction(parameterized.TestCase):
     output = layer.update(input)
     expected_shape = (5, 10, 6)
     self.assertEqual(output.shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
 
 if __name__ == '__main__':

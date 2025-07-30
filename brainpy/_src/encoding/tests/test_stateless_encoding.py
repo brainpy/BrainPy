@@ -16,7 +16,7 @@ class TestDiffEncoder(unittest.TestCase):
     excepted = bm.asarray([0., 1., 0., 0., 0.])
     self.assertTrue(bm.allclose(r, excepted))
 
-    bm.clear_buffer_memory()
+    
 
   def test_delta_off_spike(self):
     b = bm.array([1, 2, 0, 2, 2.9])
@@ -30,7 +30,7 @@ class TestDiffEncoder(unittest.TestCase):
     excepted = bm.asarray([0., 1., -1., 1., 0.])
     self.assertTrue(bm.allclose(r, excepted))
 
-    bm.clear_buffer_memory()
+    
 
 
 class TestLatencyEncoder(unittest.TestCase):

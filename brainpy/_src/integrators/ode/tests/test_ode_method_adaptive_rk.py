@@ -76,4 +76,3 @@ class TestAdaptiveRK(unittest.TestCase):
                        adaptive_rk.HeunEuler]:
             bm.random.seed()
             run_integrator(method, show=False)
-            bm.clear_buffer_memory()

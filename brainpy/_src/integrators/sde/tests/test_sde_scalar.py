@@ -57,7 +57,6 @@ def lorenz_system(method, **kwargs):
   ax.set_xlabel('z')
   plt.show(block=block)
   plt.close(fig)
-  bp.math.clear_buffer_memory()
 
 
 class TestScalarWienerIntegral(unittest.TestCase):

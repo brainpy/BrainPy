@@ -33,7 +33,7 @@ def try_taichi_op_register():
   out = prim(indices, vector, weight, outs=[jax.ShapeDtypeStruct((s,), dtype=jnp.float32)])
 
   # print(out)
-  bm.clear_buffer_memory()
+  
 
 
 # bm.clear_taichi_aot_caches()

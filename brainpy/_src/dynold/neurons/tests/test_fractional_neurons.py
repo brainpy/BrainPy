@@ -18,7 +18,6 @@ class Test_Fractional(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['w'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['y'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bp.math.clear_buffer_memory()
 
   def test_FractionalIzhikevich(self):
     bp.math.random.seed()
@@ -30,4 +29,3 @@ class Test_Fractional(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['V'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['u'].shape, (100, 1))
     self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bp.math.clear_buffer_memory()

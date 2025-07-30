@@ -573,7 +573,7 @@ def _err_jit_true_branch(err_fun, x):
     x_shape_dtype = tuple(jax.ShapeDtypeStruct(arr.shape, arr.dtype) for arr in x)
   else:
     x_shape_dtype = jax.ShapeDtypeStruct(x.shape, x.dtype)
-  jax.pure_callback(err_fun, x_shape_dtype, x)
+  jax.pure_callback(err_fun, x_shape_dtype, x, vmap_method='sequential')
   return
 
 

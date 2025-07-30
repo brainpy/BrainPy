@@ -126,5 +126,4 @@ class TestExpEulerAuto(unittest.TestCase):
     self.assertTrue(diff < 1e0)
 
     plt.close()
-    bm.clear_buffer_memory()
 

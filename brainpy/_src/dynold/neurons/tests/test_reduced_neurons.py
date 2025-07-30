@@ -28,7 +28,7 @@ class Test_Reduced(parameterized.TestCase):
       runner.run(10.)
       self.assertTupleEqual(runner.mon['V'].shape, (100, 1))
       self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.named_parameters(
     {'testcase_name': f'noise_of_{name}', 'neuron': name}
@@ -50,7 +50,7 @@ class Test_Reduced(parameterized.TestCase):
       runner.run(10.)
       self.assertTupleEqual(runner.mon['V'].shape, (100, 1))
       self.assertTupleEqual(runner.mon['spike'].shape, (100, 1))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.named_parameters(
     {'testcase_name': f'noise_of_{name}', 'neuron': name}
@@ -72,4 +72,4 @@ class Test_Reduced(parameterized.TestCase):
                            progress_bar=False)
       runner.run(10.)
       self.assertTupleEqual(runner.mon['V'].shape, (1, 100, 10))
-    bm.clear_buffer_memory()
+    

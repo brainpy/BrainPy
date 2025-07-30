@@ -125,4 +125,4 @@ class Test_STDP(parameterized.TestCase):
     # bp.visualize.line_plot(indices, W, ax=fig.add_subplot(gs[3, 0]))
     # plt.show()
 
-    bm.clear_buffer_memory()
+    

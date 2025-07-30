@@ -38,7 +38,7 @@ class TestExpEuler(unittest.TestCase):
     if show:
       plt.show()
     plt.close()
-    bm.clear_buffer_memory()
+    
 
 
   def test2(self):
@@ -65,7 +65,7 @@ class TestExpEuler(unittest.TestCase):
                                  dt=0.001, inits=[1., 1., 0.], jit=False)
     with self.assertRaises(ValueError):
       runner.run(100.)
-    bm.clear_buffer_memory()
+    
 
   def test3(self):
     p = 0.1
@@ -98,7 +98,7 @@ class TestExpEuler(unittest.TestCase):
     if show:
       plt.show()
     plt.close()
-    bm.clear_buffer_memory()
+    
 
 
 class TestMilstein(unittest.TestCase):
@@ -133,4 +133,4 @@ class TestMilstein(unittest.TestCase):
     if show:
       plt.show()
     plt.close()
-    bm.clear_buffer_memory()
+    
