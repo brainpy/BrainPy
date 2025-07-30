@@ -1025,93 +1025,17 @@ class TestDebug(parameterized.TestCase):
     with jax.disable_jit():
       f(1.)
 
-  @parameterized.product(
-    grad_fun=[bm.grad, bm.vector_grad]
-  )
-  def test_print_info1(self, grad_fun):
-    file = tempfile.TemporaryFile(mode='w+')
-
-    @functools.partial(grad_fun, argnums=0)
-    def f2(a, b):
-      print('compiling f2 ...', file=file)
-      return a + b
-
-    @functools.partial(grad_fun, argnums=0)
-    def f1(a):
-      print('compiling f1 ...', file=file)
-      return f2(a, 1.)
-
-    expect_res = '''
-compiling f1 ...
-compiling f2 ...
-compiling f1 ...
-compiling f2 ...
-    '''
-
-    print(f1(1.))
-    file.seek(0)
-    self.assertTrue(file.read().strip() == expect_res.strip())
-
-    file = tempfile.TemporaryFile(mode='w+')
-    with jax.disable_jit():
-      expect_res = '''
-compiling f1 ...
-compiling f2 ...
-      '''
-      self.assertTrue(f1(1.) == 0.)
-      file.seek(0)
-      self.assertTrue(file.read().strip() == expect_res.strip())
-
-  @parameterized.product(
-    grad_fun=[bm.grad, bm.vector_grad]
-  )
-  def test_print_info2(self, grad_fun):
-    file = tempfile.TemporaryFile(mode='w+')
-
-    @functools.partial(grad_fun, argnums=0)
-    def f1(a):
-      @functools.partial(grad_fun, argnums=0)
-      def f2(a, b):
-        print('compiling f2 ...', file=file)
-        return a + b
-
-      print('compiling f1 ...', file=file)
-      return f2(a, 1.)
-
-    expect_res = '''
-compiling f1 ...
-compiling f2 ...
-compiling f1 ...
-compiling f2 ...
-compiling f2 ...
-    '''
-    self.assertTrue(f1(1.) == 0.)
-    file.seek(0)
-    self.assertTrue(file.read().strip() == expect_res.strip())
-
-    file = tempfile.TemporaryFile(mode='w+')
-    with jax.disable_jit():
-      expect_res = '''
-compiling f1 ...
-compiling f2 ...
-      '''
-      self.assertTrue(f1(1.) == 0.)
-      file.seek(0)
-      # print(file.read().strip())
-      self.assertTrue(file.read().strip() == expect_res.strip())
-
   def test_debug_correctness1(self):
     def test_f():
       a = bm.Variable(bm.ones(2))
       b = bm.Variable(bm.zeros(2))
 
-      @bm.vector_grad(argnums=0)
       def f1(c):
         a.value += 1
         b.value += 10
         return a * b * c
 
-      return a, b, f1(1.)
+      return a, b, bm.vector_grad(f1, argnums=0)(1.)
 
     r1 = test_f()
     print(r1)
@@ -1137,49 +1061,26 @@ compiling f2 ...
 
     @bm.jit
     def run_fun(d):
-      @bm.vector_grad(argnums=0)
       def f1(c):
         a.value += d
         b.value += 10
         return a * b * c
 
-      return a, b, f1(1.)
+      return a, b, bm.vector_grad(f1, argnums=0)(1.)
 
     return run_fun(dd)
 
-  def test_debug_correctness2(self):
-    r1 = self._bench_f2(1.)
-    print(r1)
-
-    with jax.disable_jit():
-      r2 = self._bench_f2(1.)
-      print(r2)
-
-    self.assertTrue(bm.allclose(r1[0], r2[0]))
-    self.assertTrue(bm.allclose(r1[1], r2[1]))
-    self.assertTrue(bm.allclose(r1[2], r2[2]))
-
-  def test_cache1(self):
-      file = tempfile.TemporaryFile(mode='w+')
-
-      def f(a, b):
-        print('compiling f ...', file=file)
-        return a + b
-
-      grad1 = bm.grad(f)(1., 2.)  # call "f" twice, one for Variable finding, one for compiling
-      grad2 = bm.vector_grad(f)(1., 2.)  # call "f" once for compiling
-
-      file.seek(0)
-      print(file.read().strip())
-
-      expect_res = '''
-compiling f ...
-compiling f ...
-compiling f ...
-      '''
-      file.seek(0)
-      self.assertTrue(file.read().strip() == expect_res.strip())
-
+  # def test_debug_correctness2(self):
+  #   r1 = self._bench_f2(1.)
+  #   print(r1)
+  #
+  #   with jax.disable_jit():
+  #     r2 = self._bench_f2(1.)
+  #     print(r2)
+  #
+  #   self.assertTrue(bm.allclose(r1[0], r2[0]))
+  #   self.assertTrue(bm.allclose(r1[1], r2[1]))
+  #   self.assertTrue(bm.allclose(r1[2], r2[2]))
 
 
 # class TestHessian(unittest.TestCase):

@@ -133,6 +133,7 @@ def jit(
         func,
         static_argnums=static_argnums,
         donate_argnums=donate_argnums,
+        static_argnames=static_argnames,
         inline=inline,
         keep_unused=keep_unused,
         abstracted_axes=abstracted_axes,

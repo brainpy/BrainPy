@@ -193,9 +193,9 @@ class TestVarList(unittest.TestCase):
 
     f2()
     print(obj.vs)
-    self.assertTrue(obj.vs[0] == 11.)
-    self.assertTrue(obj.vs[1] == 12.)
-    self.assertTrue(bm.allclose(obj.vs[2], bm.ones(10) * 11.))
+    self.assertTrue(obj.vs[0].value == 11.)
+    self.assertTrue(obj.vs[1].value == 12.)
+    self.assertTrue(bm.allclose(obj.vs[2].value, bm.ones(10) * 11.))
 
 
 class TestVarDict(unittest.TestCase):
@@ -225,9 +225,9 @@ class TestVarDict(unittest.TestCase):
 
     f1()
     print(obj.vs)
-    self.assertTrue(obj.vs['a'] == 11.)
-    self.assertTrue(obj.vs['b'] == 12.)
-    self.assertTrue(bm.allclose(obj.vs['c'], bm.ones(10) * 11.))
+    self.assertTrue(obj.vs['a'].value == 11.)
+    self.assertTrue(obj.vs['b'].value == 12.)
+    self.assertTrue(bm.allclose(obj.vs['c'].value, bm.ones(10) * 11.))
 
 
 class TestRegisterBPObjectAsPyTree(unittest.TestCase):
