@@ -5,6 +5,7 @@ import numpy as np
 import brainpy as bp
 import brainpy.math as bm
 
+show = False
 
 neu_pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
                 V_initializer=bp.init.Normal(-55., 2.))
@@ -66,12 +67,12 @@ def test_ProjAlignPreMg1():
   net = EICOBA_PreAlign(0.5)
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
-  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   net = EICOBA_PreAlign(0.5, delay=1.)
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
-  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   plt.close()
   bm.clear_buffer_memory()
@@ -137,17 +138,17 @@ def test_ProjAlignPostMg2():
   net = EICOBA_PostAlign(0.5)
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
-  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   net = EICOBA_PostAlign(0.5, delay=1.)
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
-  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   net = EICOBA_PostAlign(0.5, ltc=False)
   indices = np.arange(400)
   spks = bm.for_loop(net.step_run, indices)
-  bp.visualize.raster_plot(indices * bm.dt, spks, show=True)
+  bp.visualize.raster_plot(indices * bm.dt, spks, show=show)
 
   plt.close()
   bm.clear_buffer_memory()
@@ -184,7 +185,7 @@ def test_ProjAlignPost1():
   model = EINet(0.5)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
   bm.clear_buffer_memory()
   plt.close()
 
@@ -237,12 +238,12 @@ def test_ProjAlignPost2():
   model = EINet(0.5, delay=1.)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
 
   model = EINet(0.5, delay=None)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
 
   bm.clear_buffer_memory()
   plt.close()
@@ -279,7 +280,7 @@ def test_VanillaProj():
   model = EINet()
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
   bm.clear_buffer_memory()
   plt.close()
 
@@ -331,12 +332,12 @@ def test_ProjAlignPreMg1_v2():
   model = EINet()
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
 
   model = EINet(delay=1.)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
 
   bm.clear_buffer_memory()
   plt.close()
@@ -389,12 +390,12 @@ def test_ProjAlignPreMg2():
   model = EINet(scale=0.2, delay=None)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
 
   model = EINet(scale=0.2, delay=1.)
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
 
   bm.clear_buffer_memory()
   plt.close()
@@ -435,6 +436,6 @@ def test_vanalla_proj_v2():
   model = EINet()
   indices = bm.arange(400)
   spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices, progress_bar=True)
-  bp.visualize.raster_plot(indices, spks, show=True)
+  bp.visualize.raster_plot(indices, spks, show=show)
   plt.close()
   bm.clear_buffer_memory()

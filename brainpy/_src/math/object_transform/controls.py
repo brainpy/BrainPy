@@ -3,9 +3,9 @@
 import numbers
 from typing import Union, Sequence, Any, Dict, Callable, Optional
 
-import brainstate
 import jax.numpy as jnp
 
+import brainstate
 from brainpy._src.math.ndarray import Array
 
 __all__ = [
@@ -381,4 +381,13 @@ def while_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    return brainstate.transform.while_loop(lambda x: body_fun(*x), lambda x: cond_fun(*x), operands)
+    operands = tuple(operands)
+
+    def body(x):
+        r = body_fun(*x)
+        if r is None:
+            return ()
+        else:
+            return r
+
+    return brainstate.transform.while_loop(lambda x: cond_fun(*x), body, operands)

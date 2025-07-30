@@ -1069,7 +1069,7 @@ class HindmarshRose(NeuDyn):
       x = self.input.value
     else:
       x = 0. if x is None else x
-    V, y, z = self.integral(self.V, self.y, self.z, t, x, dt=dt)
+    V, y, z = self.integral(self.V.value, self.y.value, self.z.value, t, x, dt=dt)
     if isinstance(self.mode, bm.TrainingMode):
       self.spike.value = self.spike_fun(V - self.V_th, self.V - self.V_th)
     else:
@@ -1371,7 +1371,7 @@ class ALIFBellec2020(NeuDyn):
       x = self.input.value
     else:
       x = 0. if x is None else x
-    V, a = self.integral(self.V, self.a, t, x, dt)
+    V, a = self.integral(self.V.value, self.a.value, t, x, dt)
 
     if self.tau_ref is not None:
       # refractory
@@ -1516,7 +1516,7 @@ class LIF_SFA_Bellec2020(NeuDyn):
     x = 0. if x is None else x
 
     # integral
-    V, a = self.integral(self.V, self.a, t, x, dt)
+    V, a = self.integral(self.V.value, self.a.value, t, x, dt)
 
     if self.tau_ref is not None:
       # refractory

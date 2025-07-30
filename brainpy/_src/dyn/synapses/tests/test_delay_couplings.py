@@ -22,7 +22,6 @@ class Test_delay_couplings(parameterized.TestCase):
                          inputs=('fhn1.input', 35.))
     runner(10.)
     self.assertTupleEqual(runner.mon['fhn1.x'].shape, (100, 80))
-    bm.clear_buffer_memory()
 
   def test_AdditiveCoupling(self):
     bm.random.seed()
@@ -38,4 +37,3 @@ class Test_delay_couplings(parameterized.TestCase):
                          inputs=('fhn2.input', 35.))
     runner(10.)
     self.assertTupleEqual(runner.mon['fhn2.x'].shape, (100, 80))
-    bm.clear_buffer_memory()

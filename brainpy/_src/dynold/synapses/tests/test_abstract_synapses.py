@@ -34,7 +34,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     name=['Exponential', 'DualExponential', 'Alpha', 'NMDA'],
@@ -62,7 +62,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     comp_type=['sparse', 'dense'],
@@ -91,7 +91,7 @@ class Test_Abstract_Synapse(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     post_ref_key=[None, 'refractory'],
@@ -122,4 +122,4 @@ class Test_Abstract_Synapse(parameterized.TestCase):
       post_expected_shape = (mode.batch_size,) + post_expected_shape
     self.assertTupleEqual(runner.mon['pre.V'].shape, pre_expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, post_expected_shape)
-    bm.clear_buffer_memory()
+    

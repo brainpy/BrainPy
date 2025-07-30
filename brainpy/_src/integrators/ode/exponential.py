@@ -353,8 +353,6 @@ class ExponentialEuler(ODEIntegrator):
                                                          vars=str(vars),
                                                          eq=str(eq)))
 
-      # gradient function
-
       # integration function
       def integral(*args, **kwargs):
         assert len(args) > 0

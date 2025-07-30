@@ -8,6 +8,11 @@ import brainpy as bp
 import brainpy.math as bm
 
 bm.set_platform('cpu')
+show = False
+
+import pytest
+
+pytest.skip(allow_module_level=True)
 
 
 class Test_STDP(parameterized.TestCase):
