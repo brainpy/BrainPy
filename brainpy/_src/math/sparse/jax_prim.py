@@ -22,15 +22,15 @@ def _matmul_with_left_sparse(
 
     Y = M_{\mathrm{sparse}} @ M_{\mathrm{dense}}
 
-  Parameters
-  ----------
+  Parameters::
+  
   sparse: dict
     The sparse matrix with shape of :math:`(N, M)`.
   dense: ArrayType
     The dense matrix with the shape of :math:`(M, K)`.
 
-  Returns
-  -------
+  Returns::
+  
   matrix
     A tensor the the shape of :math:`(N, K)`.
   """
@@ -62,15 +62,15 @@ def _matmul_with_right_sparse(
 
     Y = M_{\mathrm{dense}} @ M_{\mathrm{sparse}}
 
-  Parameters
-  ----------
+  Parameters::
+  
   dense: ArrayType
     The dense matrix with the shape of :math:`(N, M)`.
   sparse: dict
     The sparse matrix with shape of :math:`(M, K)`.
 
-  Returns
-  -------
+  Returns::
+  
   matrix
     A tensor the the shape of :math:`(N, K)`.
   """
@@ -104,9 +104,8 @@ def seg_matmul(A, B):
   where :math:`A` or :math:`B` is a sparse matrix.
   :math:`A` and :math:`B` cannot be both sparse.
 
-  Examples
-  --------
-
+  Examples::
+  
   >>> import brainpy.math as bm
 
   1. when the left matrix :math:`A` is a sparse matrix with the shape of :math:`(N, M)`,
@@ -138,15 +137,15 @@ def seg_matmul(A, B):
   ArrayType([[0.438388  , 1.4346815 , 0.        , 2.361964  ],
             [0.9171978 , 1.1214957 , 0.        , 0.90534496]],  dtype=float32)
 
-  Parameters
-  ----------
+  Parameters::
+  
   A: tensor, sequence
     The dense or sparse matrix with the shape of :math:`(N, M)`.
   B: tensor, sequence
     The dense or sparse matrix with the shape of :math:`(M, K)`.
 
-  Returns
-  -------
+  Returns::
+  
   results: ArrayType
     The tensor with the shape of :math:`(N, K)`.
   """

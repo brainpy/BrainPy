@@ -33,9 +33,8 @@ class LoopOverTime(DynamicalSystem):
   For more flexible customization, we recommend users to use :py:func:`~.for_loop`,
   or :py:class:`~.DSRunner`.
 
-  Examples
-  --------
-
+  Examples::
+  
   This model can be used for network training:
 
   >>> import brainpy as bp
@@ -84,8 +83,8 @@ class LoopOverTime(DynamicalSystem):
      >>> plt.show()
 
 
-  Parameters
-  ----------
+  Parameters::
+  
   target: DynamicalSystem
     The target to transform.
   no_state: bool
@@ -171,14 +170,14 @@ class LoopOverTime(DynamicalSystem):
   ):
     """Forward propagation along the time or inputs.
 
-    Parameters
-    ----------
+    Parameters::
+    
     duration_or_xs: float, PyTree
       If `float`, it indicates a running duration.
       If a PyTree, it is the given inputs.
 
-    Returns
-    -------
+    Returns::
+    
     out: PyTree
       The accumulated outputs over time.
     """

@@ -22,8 +22,8 @@ __all__ = [
 class DelayCoupling(Projection):
   """Delay coupling.
 
-  Parameters
-  ----------
+  Parameters::
+  
   delay_var: Variable
     The delay variable.
   var_to_output: Variable, sequence of Variable
@@ -121,9 +121,8 @@ class DiffusiveCoupling(DelayCoupling):
      target_var += coupling
 
 
-  Examples
-  --------
-
+  Examples::
+  
   >>> import brainpy as bp
   >>> from brainpy import rates
   >>> areas = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
@@ -132,8 +131,8 @@ class DiffusiveCoupling(DelayCoupling):
   >>>                                      initial_delay_data=bp.init.Uniform(0, 0.05))
   >>> net = bp.Network(areas, conn)
 
-  Parameters
-  ----------
+  Parameters::
+  
   coupling_var1: Variable
     The first coupling variable, used for delay.
   coupling_var2: Variable
@@ -227,8 +226,8 @@ class AdditiveCoupling(DelayCoupling):
      coupling = g * delayed_coupling_var
      target_var += coupling
 
-  Parameters
-  ----------
+  Parameters::
+  
   coupling_var: Variable
     The coupling variable, used for delay.
   var_to_output: Variable, sequence of Variable
