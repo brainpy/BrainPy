@@ -12,4 +12,5 @@ setuptools
 
 # test requirements
 pytest
+pytest-xdist  # for parallel test execution
 absl-py

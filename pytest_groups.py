@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 """
 Minimal isolated test runner for BrainPy - only isolates known problematic tests.
+
+Supports parallel execution via pytest-xdist for faster testing:
+
+Usage:
+  python pytest_groups.py                    # Auto-detect optimal worker count
+  PYTEST_WORKERS=4 python pytest_groups.py  # Use 4 workers
+  PYTEST_WORKERS=1 python pytest_groups.py  # Sequential execution
+
+Environment variables:
+  PYTEST_WORKERS: Number of workers ('auto' or integer, default: 'auto')  
+  IS_GITHUB_ACTIONS: Set to '1' in CI for cleaner output
+
+Note: Isolated tests always run sequentially to avoid state conflicts.
 """
 
 import subprocess
@@ -24,6 +37,10 @@ ISOLATED_TESTS = [
 # Files that contain problematic tests (need to be run separately)
 ISOLATED_FILES = [
     "brainpy/_src/math/object_transform/tests/test_base.py",  # causes state pollution
+    "brainpy/_src/dyn/neurons/tests/test_lif.py",  # NoneType * DynamicJaxprTracer in parallel
+    "brainpy/_src/integrators/sde/tests/test_normal.py",  # plt.show() blocking on macOS
+    "brainpy/_src/integrators/tests/test_integ_runner.py",  # plt.show() blocking on macOS
+    "brainpy/_src/analysis/lowdim/tests/test_phase_plane.py",  # plt.show() blocking on macOS
 ]
 
 # Additional files that need isolation in CI environments
@@ -43,7 +60,7 @@ def run_isolated_test(test_path):
     if is_github_actions:
         test_args.extend(["--maxfail=1", "-q"])
     
-    cmd = base_cmd + [test_path] + test_args
+    cmd = base_cmd + test_args + [test_path]
     result = subprocess.run(cmd)
     return result.returncode == 0
 
@@ -55,6 +72,12 @@ def main():
     is_github_actions = os.getenv('IS_GITHUB_ACTIONS') == '1'
     base_cmd = [sys.executable, "-m", "pytest"]
     test_args = ["-v", "--tb=short"]
+    
+    # Add parallel execution support
+    workers = os.getenv('PYTEST_WORKERS', 'auto')
+    if workers != '1':  # Skip parallel if explicitly set to 1
+        test_args.extend(["-n", workers])
+    
     if is_github_actions:
         test_args.extend(["--maxfail=5"])
     
@@ -80,52 +103,84 @@ def main():
     print("=" * 80)
     
     # Run main test suite (excluding problematic files)
-    print(f"\n{'Running main test suite...':<60} ", end="", flush=True)
+    print(f"\n{'Main test suite:':<60}")
+    print("-" * 80)
     
-    cmd = base_cmd + ["brainpy/_src/"] + test_args + ignore_patterns
+    cmd = base_cmd + test_args + ignore_patterns + ["brainpy/_src/"]
     main_start = time.time()
-    main_result = subprocess.run(cmd, capture_output=True, text=True)
-    main_time = time.time() - main_start
-    main_passed = main_result.returncode == 0
     
-    if main_passed:
-        print(f"PASSED ({main_time:.1f}s)")
-    else:
-        print(f"FAILED ({main_time:.1f}s)")
-        if not is_github_actions:
-            # Extract key info from pytest output
+    if is_github_actions:
+        # In CI, capture output to keep logs clean
+        main_result = subprocess.run(cmd, capture_output=True, text=True)
+        main_passed = main_result.returncode == 0
+        main_time = time.time() - main_start
+        
+        print(f"Main test suite: {'PASSED' if main_passed else 'FAILED'} ({main_time:.1f}s)")
+        
+        if not main_passed:
+            # Show failures in CI
             lines = main_result.stdout.split('\n')
-            failed_lines = [line for line in lines if 'FAILED' in line][:5]  # Show first 5 failures
+            failed_lines = [line for line in lines if 'FAILED' in line][:5]
             if failed_lines:
-                print("\n   Recent failures:")
+                print("Recent failures:")
                 for line in failed_lines:
-                    print(f"   {line}")
+                    print(f"  {line}")
+    else:
+        # Locally, show real-time progress
+        main_result = subprocess.run(cmd)
+        main_passed = main_result.returncode == 0
+        main_time = time.time() - main_start
+        
+        print(f"\nMain test suite: {'PASSED' if main_passed else 'FAILED'} ({main_time:.1f}s)")
     
     # Run isolated problematic files
     isolated_results = []
     for file_path in sorted(all_problematic_files):
         if os.path.exists(file_path):
             file_name = file_path.split("/")[-1]
-            print(f"{'Isolated: ' + file_name:<60} ", end="", flush=True)
+            print(f"\n{'Isolated: ' + file_name:<60}")
+            print("-" * 80)
             
-            cmd = base_cmd + [file_path] + test_args + ["-x"]
+            # For isolated tests, remove parallel args to avoid conflicts
+            iso_test_args = []
+            skip_next = False
+            for arg in test_args:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if arg == "-n":
+                    skip_next = True  # Skip the next argument (worker count)
+                    continue
+                iso_test_args.append(arg)
+            iso_test_args.append("-x")
+            
+            cmd = base_cmd + iso_test_args + [file_path]
             iso_start = time.time()
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            iso_time = time.time() - iso_start
-            passed = result.returncode == 0
-            isolated_results.append(passed)
             
-            if passed:
-                print(f"PASSED ({iso_time:.1f}s)")
-            else:
-                print(f"FAILED ({iso_time:.1f}s)")
-                if not is_github_actions:
+            if is_github_actions:
+                # In CI, capture output
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                passed = result.returncode == 0
+                iso_time = time.time() - iso_start
+                isolated_results.append(passed)
+                
+                print(f"Isolated {file_name}: {'PASSED' if passed else 'FAILED'} ({iso_time:.1f}s)")
+                
+                if not passed:
                     lines = result.stdout.split('\n')
                     failed_lines = [line for line in lines if 'FAILED' in line][:3]
                     if failed_lines:
-                        print("   Failures:")
+                        print("Failures:")
                         for line in failed_lines:
-                            print(f"   {line}")
+                            print(f"  {line}")
+            else:
+                # Locally, show real-time progress
+                result = subprocess.run(cmd)
+                passed = result.returncode == 0
+                iso_time = time.time() - iso_start
+                isolated_results.append(passed)
+                
+                print(f"\nIsolated {file_name}: {'PASSED' if passed else 'FAILED'} ({iso_time:.1f}s)")
         else:
             isolated_results.append(True)
     

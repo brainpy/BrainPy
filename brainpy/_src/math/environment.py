@@ -10,6 +10,7 @@ import sys
 import warnings
 from typing import Any, Callable, TypeVar, cast
 
+import brainstate.environ
 import jax
 from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
@@ -563,6 +564,7 @@ def set_dt(dt):
   """
   assert isinstance(dt, float), f'"dt" must a float, but we got {dt}'
   defaults.__dict__['dt'] = dt
+  brainstate.environ.set(dt=dt)
 
 
 def get_dt():
