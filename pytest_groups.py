@@ -6,6 +6,7 @@ Minimal isolated test runner for BrainPy - only isolates known problematic tests
 import subprocess
 import sys
 import os
+import time
 
 # Only the specific tests that cause state pollution issues
 ISOLATED_TESTS = [
@@ -42,14 +43,14 @@ def run_isolated_test(test_path):
 
 def main():
     """Run tests with minimal isolation - only isolate known problematic tests."""
-    print("Starting minimal isolated test runner for BrainPy...")
+    start_time = time.time()
     
     # GitHub Actions specific settings  
     is_github_actions = os.getenv('IS_GITHUB_ACTIONS') == '1'
     base_cmd = [sys.executable, "-m", "pytest"]
     test_args = ["-v", "--tb=short"]
     if is_github_actions:
-        test_args.extend(["--maxfail=5", "-q"])
+        test_args.extend(["--maxfail=5"])
     
     # Build ignore list - only ignore files that contain problematic tests
     ignore_patterns = []
@@ -64,47 +65,90 @@ def main():
     for file_path in all_problematic_files:
         ignore_patterns.append(f"--ignore={file_path}")
     
+    print("=" * 80)
+    print("BrainPy Test Suite (with state pollution isolation)")
+    print("=" * 80)
+    
     # Run main test suite (excluding problematic files)
-    print("\n" + "="*60)
-    print("RUNNING MAIN TEST SUITE (excluding problematic files)")
-    print("="*60)
+    print(f"\n{'🔄 Running main test suite...':<60} ", end="", flush=True)
     
     cmd = base_cmd + ["brainpy/_src/"] + test_args + ignore_patterns
-    main_result = subprocess.run(cmd)
+    main_start = time.time()
+    main_result = subprocess.run(cmd, capture_output=True, text=True)
+    main_time = time.time() - main_start
     main_passed = main_result.returncode == 0
     
-    # Run isolated problematic files
-    print("\n" + "="*60)
-    print("RUNNING ISOLATED PROBLEMATIC FILES")
-    print("="*60)
+    if main_passed:
+        print(f"✅ PASSED ({main_time:.1f}s)")
+    else:
+        print(f"❌ FAILED ({main_time:.1f}s)")
+        if not is_github_actions:
+            # Extract key info from pytest output
+            lines = main_result.stdout.split('\n')
+            failed_lines = [line for line in lines if 'FAILED' in line][:5]  # Show first 5 failures
+            if failed_lines:
+                print("\n   Recent failures:")
+                for line in failed_lines:
+                    print(f"   {line}")
     
+    # Run isolated problematic files
     isolated_results = []
     for file_path in sorted(all_problematic_files):
         if os.path.exists(file_path):
-            print(f"Running isolated file: {file_path}")
+            file_name = file_path.split("/")[-1]
+            print(f"{'🔄 Isolated: ' + file_name:<60} ", end="", flush=True)
+            
             cmd = base_cmd + [file_path] + test_args + ["-x"]
-            result = subprocess.run(cmd)
-            isolated_results.append(result.returncode == 0)
+            iso_start = time.time()
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            iso_time = time.time() - iso_start
+            passed = result.returncode == 0
+            isolated_results.append(passed)
+            
+            if passed:
+                print(f"✅ PASSED ({iso_time:.1f}s)")
+            else:
+                print(f"❌ FAILED ({iso_time:.1f}s)")
+                if not is_github_actions:
+                    lines = result.stdout.split('\n')
+                    failed_lines = [line for line in lines if 'FAILED' in line][:3]
+                    if failed_lines:
+                        print("   Failures:")
+                        for line in failed_lines:
+                            print(f"   {line}")
         else:
-            print(f"Skipping non-existent file: {file_path}")
             isolated_results.append(True)
     
-    # Summary
-    print("\n" + "="*60)
-    print("TEST SUMMARY")
-    print("="*60)
+    # Final summary in pytest style
+    total_time = time.time() - start_time
+    print("\n" + "=" * 80)
     
     all_passed = main_passed and all(isolated_results)
+    total_groups = 1 + len([f for f in all_problematic_files if os.path.exists(f)])
+    passed_groups = (1 if main_passed else 0) + sum(isolated_results)
+    failed_groups = total_groups - passed_groups
     
-    print(f"Main test suite: {'✓ PASSED' if main_passed else '✗ FAILED'}")
-    print(f"Isolated files: {'✓ PASSED' if all(isolated_results) else '✗ FAILED'} ({len([r for r in isolated_results if r])}/{len(isolated_results)})")
-    
-    if not all_passed:
-        print("\nSome tests failed. Re-run individually to debug.")
-        return 1
+    if all_passed:
+        print(f"{'=' * 25} ✅ {passed_groups} passed in {total_time:.1f}s {'=' * 25}")
     else:
-        print("\nAll tests passed!")
-        return 0
+        status_parts = []
+        if failed_groups > 0:
+            status_parts.append(f"❌ {failed_groups} failed")
+        if passed_groups > 0:
+            status_parts.append(f"✅ {passed_groups} passed")
+        
+        status = ", ".join(status_parts)
+        print(f"{'=' * 20} {status} in {total_time:.1f}s {'=' * 20}")
+        
+        if not all_passed:
+            print("\nFailed test groups:")
+            if not main_passed:
+                print("  • Main test suite")
+            for file_path, passed in zip(sorted(all_problematic_files), isolated_results):
+                if os.path.exists(file_path) and not passed:
+                    print(f"  • {file_path}")
+    
+    return 0 if all_passed else 1
 
 if __name__ == "__main__":
     exit_code = main()
