@@ -83,18 +83,17 @@ def stability_analysis(derivatives):
 
   The analysis is referred to [1]_.
 
-  Parameters
-  ----------
+  Parameters::
+
   derivatives : float, tuple, list, np.ndarray
       The derivative of the f.
 
-  Returns
-  -------
+  Returns::
+
   fp_type : str
       The type of the fixed point.
 
-  References
-  ----------
+  References::
 
   .. [1] http://www.egwald.ca/nonlineardynamics/twodimensionaldynamics.php
 

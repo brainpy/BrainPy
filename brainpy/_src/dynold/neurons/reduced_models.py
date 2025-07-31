@@ -49,8 +49,8 @@ class LeakyIntegrator(NeuDyn):
   membrane potential, :math:`\tau` is the time constant, and :math:`R` is the
   resistance.
 
-  Parameters
-  ----------
+  Parameters::
+
   size: sequence of int, int
     The size of the neuron group.
   V_rest: float, ArrayType, Initializer, callable
@@ -163,8 +163,8 @@ class LIF(lif.LifRef):
   - `(Brette, Romain. 2004) LIF phase locking <https://brainpy-examples.readthedocs.io/en/latest/neurons/Romain_2004_LIF_phase_locking.html>`_
 
 
-  Parameters
-  ----------
+  Parameters::
+
   size: sequence of int, int
     The size of the neuron group.
   V_rest: float, ArrayType, Initializer, callable
@@ -188,8 +188,7 @@ class LIF(lif.LifRef):
   name: str
     The group name.
 
-  References
-  ----------
+  References::
 
   .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
          neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
@@ -1270,8 +1269,8 @@ class ALIFBellec2020(NeuDyn):
      a \gets a + 1
 
 
-  References
-  ----------
+  References::
+
   .. [1] Bellec, Guillaume, et al. "A solution to the learning dilemma for
          recurrent networks of spiking neurons."
          Nature communications 11.1 (2020): 1-15.
@@ -1434,8 +1433,8 @@ class LIF_SFA_Bellec2020(NeuDyn):
      a \gets a + 1
 
 
-  References
-  ----------
+  References::
+
   .. [1] Bellec, Guillaume, et al. "A solution to the learning dilemma for
          recurrent networks of spiking neurons."
          Nature communications 11.1 (2020): 1-15.

@@ -355,13 +355,13 @@ def _multinomial(key, p, n, n_max, shape=()):
 def _von_mises_centered(key, concentration, shape, dtype=jnp.float64):
   """Compute centered von Mises samples using rejection sampling from [1]_ with wrapped Cauchy proposal.
 
-  Returns
-  -------
+  Returns::
+
   out: array_like
      centered samples from von Mises
 
-  References
-  ----------
+  References::
+
   .. [1] Luc Devroye "Non-Uniform Random Variate Generation", Springer-Verlag, 1986;
          Chapter 9, p. 473-476. http://www.nrbook.com/devroye/Devroye_files/chapter_nine.pdf
 
@@ -465,8 +465,8 @@ class RandomState(Variable):
   ):
     """RandomState constructor.
 
-    Parameters
-    ----------
+    Parameters::
+
     seed_or_key: int, Array, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
@@ -514,8 +514,8 @@ class RandomState(Variable):
   def seed(self, seed_or_key=None, seed=None):
     """Sets a new random seed.
 
-    Parameters
-    ----------
+    Parameters::
+
     seed_or_key: int, ArrayType, optional
       It can be an integer for initial seed of the random number generator,
       or it can be a JAX's PRNKey, which is an array with two elements and `uint32` dtype.
@@ -581,8 +581,8 @@ class RandomState(Variable):
     internally by `pmap` and `vmap` to ensure that random numbers
     are different in parallel threads.
 
-    Parameters
-    ----------
+    Parameters::
+
     n : int
       The number of seeds to generate.
     """
@@ -1094,8 +1094,8 @@ class RandomState(Variable):
                   key: Optional[Union[int, JAX_RAND_KEY]] = None):
     """Sample from a Weibull minimum distribution.
 
-    Parameters
-    ----------
+    Parameters::
+
     a: float, array_like
       The concentration parameter of the distribution.
     scale: float, array_like
@@ -1103,8 +1103,8 @@ class RandomState(Variable):
     size: optional, int, tuple of int
       The shape added to the parameters loc and scale broadcastable shape.
 
-    Returns
-    -------
+    Returns::
+
     out: array_like
       The sampling results.
     """
@@ -1408,8 +1408,8 @@ def split_keys(n):
 
   .. versionadded:: 2.4.5
 
-  Parameters
-  ----------
+  Parameters::
+
   n : int
     The number of seeds to generate.
   """
@@ -1442,8 +1442,8 @@ def default_rng(seed_or_key=None, clone: bool = True) -> RandomState:
 def seed(seed: int = None):
   """Sets a new random seed.
 
-  Parameters
-  ----------
+  Parameters::
+
   seed: int, optional
     The random seed.
   """
@@ -1467,23 +1467,23 @@ def rand(*dn, key: Optional[Union[int, JAX_RAND_KEY]] = None):
   random samples from a uniform distribution
   over ``[0, 1)``.
 
-  Parameters
-  ----------
+  Parameters::
+
   d0, d1, ..., dn : int, optional
       The dimensions of the returned array, must be non-negative.
       If no argument is given a single Python float is returned.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray, shape ``(d0, d1, ..., dn)``
       Random values.
 
-  See Also
-  --------
+  See Also::
+
   random
 
-  Examples
-  --------
+  Examples::
+
   >>> brainpy.math.random.rand(3,2)
   array([[ 0.14022471,  0.96360618],  #random
          [ 0.37601032,  0.25528411],  #random
@@ -1500,8 +1500,8 @@ def randint(low, high=None, size: Optional[Union[int, Sequence[int]]] = None, dt
   the specified dtype in the "half-open" interval [`low`, `high`). If
   `high` is None (the default), then results are from [0, `low`).
 
-  Parameters
-  ----------
+  Parameters::
+
   low : int or array-like of ints
       Lowest (signed) integers to be drawn from the distribution (unless
       ``high=None``, in which case this parameter is one above the
@@ -1518,21 +1518,21 @@ def randint(low, high=None, size: Optional[Union[int, Sequence[int]]] = None, dt
       Desired dtype of the result. Byteorder must be native.
       The default value is int.
 
-  Returns
-  -------
+  Returns::
+
   out : int or ndarray of ints
       `size`-shaped array of random integers from the appropriate
       distribution, or a single such random int if `size` not provided.
 
-  See Also
-  --------
+  See Also::
+
   random_integers : similar to `randint`, only for the closed
       interval [`low`, `high`], and 1 is the lowest value if `high` is
       omitted.
   Generator.integers: which should be used for new code.
 
-  Examples
-  --------
+  Examples::
+
   >>> import brainpy.math as bm
   >>> bm.random.randint(2, size=10)
   array([1, 0, 0, 0, 1, 1, 0, 0, 1, 0]) # random
@@ -1578,8 +1578,8 @@ def random_integers(low,
   type translates to the C long integer type and its precision
   is platform dependent.
 
-  Parameters
-  ----------
+  Parameters::
+
   low : int
       Lowest (signed) integer to be drawn from the distribution (unless
       ``high=None``, in which case this parameter is the *highest* such
@@ -1592,27 +1592,27 @@ def random_integers(low,
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       single value is returned.
 
-  Returns
-  -------
+  Returns::
+
   out : int or ndarray of ints
       `size`-shaped array of random integers from the appropriate
       distribution, or a single such random int if `size` not provided.
 
-  See Also
-  --------
+  See Also::
+
   randint : Similar to `random_integers`, only for the half-open
       interval [`low`, `high`), and 0 is the lowest value if `high` is
       omitted.
 
-  Notes
-  -----
+  Notes::
+
   To sample from N evenly spaced floating-point numbers between a and b,
   use::
 
     a + (b - a) * (bm.random.random_integers(N) - 1) / (N - 1.)
 
-  Examples
-  --------
+  Examples::
+
   >>> import brainpy.math as bm
   >>> bm.random.random_integers(5)
   4 # random
@@ -1666,32 +1666,32 @@ def randn(*dn, key: Optional[Union[int, JAX_RAND_KEY]] = None):
   distribution of mean 0 and variance 1. A single float randomly sampled
   from the distribution is returned if no argument is provided.
 
-  Parameters
-  ----------
+  Parameters::
+
   d0, d1, ..., dn : int, optional
       The dimensions of the returned array, must be non-negative.
       If no argument is given a single Python float is returned.
 
-  Returns
-  -------
+  Returns::
+
   Z : ndarray or float
       A ``(d0, d1, ..., dn)``-shaped array of floating-point samples from
       the standard normal distribution, or a single such float if
       no parameters were supplied.
 
-  See Also
-  --------
+  See Also::
+
   standard_normal : Similar, but takes a tuple as its argument.
   normal : Also accepts mu and sigma arguments.
 
-  Notes
-  -----
+  Notes::
+
   For random samples from :math:`N(\mu, \sigma^2)`, use:
 
   ``sigma * bm.random.randn(...) + mu``
 
-  Examples
-  --------
+  Examples::
+
   >>> import brainpy.math as bm
   >>> bm.random.randn()
   2.1923875335537315  # random
@@ -1728,25 +1728,25 @@ def random_sample(size: Optional[Union[int, Sequence[int]]] = None, key: Optiona
       New code should use the ``random`` method of a ``default_rng()``
       instance instead; please see the :ref:`random-quick-start`.
 
-  Parameters
-  ----------
+  Parameters::
+
   size : int or tuple of ints, optional
       Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       single value is returned.
 
-  Returns
-  -------
+  Returns::
+
   out : float or ndarray of floats
       Array of random floats of shape `size` (unless ``size=None``, in which
       case a single float is returned).
 
-  See Also
-  --------
+  See Also::
+
   Generator.random: which should be used for new code.
 
-  Examples
-  --------
+  Examples::
+
   >>> import brainpy.math as bm
   >>> bm.random.random_sample()
   0.47108547995356098 # random
@@ -1786,8 +1786,8 @@ def choice(a, size: Optional[Union[int, Sequence[int]]] = None, replace=True, p=
   r"""
   Generates a random sample from a given 1-D array
 
-  Parameters
-  ----------
+  Parameters::
+
   a : 1-D array-like or int
       If an ndarray, a random sample is generated from its elements.
       If an int, the random sample is generated as if it were ``np.arange(a)``
@@ -1803,13 +1803,13 @@ def choice(a, size: Optional[Union[int, Sequence[int]]] = None, replace=True, p=
       If not given, the sample assumes a uniform distribution over all
       entries in ``a``.
 
-  Returns
-  -------
+  Returns::
+
   samples : single item or ndarray
       The generated random samples
 
-  Raises
-  ------
+  Raises::
+
   ValueError
       If a is an int and less than zero, if a or p are not 1-dimensional,
       if a is an array-like of size 0, if p is not a vector of
@@ -1817,13 +1817,13 @@ def choice(a, size: Optional[Union[int, Sequence[int]]] = None, replace=True, p=
       replace=False and the sample size is greater than the population
       size
 
-  See Also
-  --------
+  See Also::
+
   randint, shuffle, permutation
   Generator.choice: which should be used in new code
 
-  Notes
-  -----
+  Notes::
+
   Setting user-specified probabilities through ``p`` uses a more general but less
   efficient sampler than the default. The general sampler produces a different sample
   than the optimized sampler even if each element of ``p`` is 1 / len(a).
@@ -1831,8 +1831,8 @@ def choice(a, size: Optional[Union[int, Sequence[int]]] = None, replace=True, p=
   Sampling random rows from a 2-D array is not possible with this function,
   but is possible with `Generator.choice` through its ``axis`` keyword.
 
-  Examples
-  --------
+  Examples::
+
   Generate a uniform random sample from np.arange(5) of size 3:
 
   >>> import brainpy.math as bm
@@ -1880,20 +1880,20 @@ def permutation(x,
   If `x` is a multi-dimensional array, it is only shuffled along its
   first index.
 
-  Parameters
-  ----------
+  Parameters::
+
   x : int or array_like
       If `x` is an integer, randomly permute ``np.arange(x)``.
       If `x` is an array, make a copy and shuffle the elements
       randomly.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray
       Permuted sequence or array range.
 
-  Examples
-  --------
+  Examples::
+
   >>> import brainpy.math as bm
   >>> bm.random.permutation(10)
   array([1, 7, 4, 3, 0, 9, 2, 5, 8, 6]) # random
@@ -1918,17 +1918,17 @@ def shuffle(x, axis=0, key: Optional[Union[int, JAX_RAND_KEY]] = None):
   multi-dimensional array. The order of sub-arrays is changed but
   their contents remains the same.
 
-  Parameters
-  ----------
+  Parameters::
+
   x : ndarray or MutableSequence
       The array, list or mutable sequence to be shuffled.
 
-  Returns
-  -------
+  Returns::
+
   None
 
-  Examples
-  --------
+  Examples::
+
   >>> import brainpy.math as bm
   >>> arr = np.arange(10)
   >>> bm.random.shuffle(arr)
@@ -1965,8 +1965,8 @@ def beta(a, b, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[U
 
   It is often seen in Bayesian inference and order statistics.
 
-  Parameters
-  ----------
+  Parameters::
+
   a : float or array_like of floats
       Alpha, positive (>0).
   b : float or array_like of floats
@@ -1977,8 +1977,8 @@ def beta(a, b, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[U
       a single value is returned if ``a`` and ``b`` are both scalars.
       Otherwise, ``np.broadcast(a, b).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized beta distribution.
   """
@@ -2004,8 +2004,8 @@ def exponential(scale=None, size: Optional[Union[int, Sequence[int]]] = None,
   the size of raindrops measured over many rainstorms [1]_, or the time
   between page requests to Wikipedia [2]_.
 
-  Parameters
-  ----------
+  Parameters::
+
   scale : float or array_like of floats
       The scale parameter, :math:`\beta = 1/\lambda`. Must be
       non-negative.
@@ -2015,13 +2015,13 @@ def exponential(scale=None, size: Optional[Union[int, Sequence[int]]] = None,
       a single value is returned if ``scale`` is a scalar.  Otherwise,
       ``np.array(scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized exponential distribution.
 
-  References
-  ----------
+  References::
+
   .. [1] Peyton Z. Peebles Jr., "Probability, Random Variables and
          Random Signal Principles", 4th ed, 2001, p. 57.
   .. [2] Wikipedia, "Poisson process",
@@ -2041,8 +2041,8 @@ def gamma(shape, scale=None, size: Optional[Union[int, Sequence[int]]] = None,
   `shape` (sometimes designated "k") and `scale` (sometimes designated
   "theta"), where both parameters are > 0.
 
-  Parameters
-  ----------
+  Parameters::
+
   shape : float or array_like of floats
       The shape of the gamma distribution. Must be non-negative.
   scale : float or array_like of floats, optional
@@ -2054,14 +2054,14 @@ def gamma(shape, scale=None, size: Optional[Union[int, Sequence[int]]] = None,
       a single value is returned if ``shape`` and ``scale`` are both scalars.
       Otherwise, ``np.broadcast(shape, scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized gamma distribution.
 
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Gamma distribution is
 
   .. math:: p(x) = x^{k-1}\frac{e^{-x/\theta}}{\theta^k\Gamma(k)},
@@ -2073,8 +2073,8 @@ def gamma(shape, scale=None, size: Optional[Union[int, Sequence[int]]] = None,
   electronic components, and arises naturally in processes for which the
   waiting times between Poisson distributed events are relevant.
 
-  References
-  ----------
+  References::
+
   .. [1] Weisstein, Eric W. "Gamma Distribution." From MathWorld--A
          Wolfram Web Resource.
          http://mathworld.wolfram.com/GammaDistribution.html
@@ -2094,8 +2094,8 @@ def gumbel(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = Non
   scale.  For more information on the Gumbel distribution, see
   Notes and References below.
 
-  Parameters
-  ----------
+  Parameters::
+
   loc : float or array_like of floats, optional
       The location of the mode of the distribution. Default is 0.
   scale : float or array_like of floats, optional
@@ -2107,13 +2107,13 @@ def gumbel(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = Non
       a single value is returned if ``loc`` and ``scale`` are both scalars.
       Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Gumbel distribution.
 
-  Notes
-  -----
+  Notes::
+
   The Gumbel (or Smallest Extreme Value (SEV) or the Smallest Extreme
   Value Type I) distribution is one of a class of Generalized Extreme
   Value (GEV) distributions used in modeling extreme value problems.
@@ -2144,8 +2144,8 @@ def gumbel(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = Non
   The function has a mean of :math:`\mu + 0.57721\beta` and a variance
   of :math:`\frac{\pi^2}{6}\beta^2`.
 
-  References
-  ----------
+  References::
+
   .. [1] Gumbel, E. J., "Statistics of Extremes,"
          New York: Columbia University Press, 1958.
   .. [2] Reiss, R.-D. and Thomas, M., "Statistical Analysis of Extreme
@@ -2166,8 +2166,8 @@ def laplace(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = No
   difference between two independent, identically distributed exponential
   random variables.
 
-  Parameters
-  ----------
+  Parameters::
+
   loc : float or array_like of floats, optional
       The position, :math:`\mu`, of the distribution peak. Default is 0.
   scale : float or array_like of floats, optional
@@ -2179,13 +2179,13 @@ def laplace(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = No
       a single value is returned if ``loc`` and ``scale`` are both scalars.
       Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Laplace distribution.
 
-  Notes
-  -----
+  Notes::
+
   It has the probability density function
 
   .. math:: f(x; \mu, \lambda) = \frac{1}{2\lambda}
@@ -2198,8 +2198,8 @@ def laplace(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = No
   sciences, this distribution seems to model the data better
   than the standard Gaussian distribution.
 
-  References
-  ----------
+  References::
+
   .. [1] Abramowitz, M. and Stegun, I. A. (Eds.). "Handbook of
          Mathematical Functions with Formulas, Graphs, and Mathematical
          Tables, 9th printing," New York: Dover, 1972.
@@ -2211,8 +2211,8 @@ def laplace(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = No
   .. [4] Wikipedia, "Laplace distribution",
          https://en.wikipedia.org/wiki/Laplace_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution
 
   >>> loc, scale = 0., 1.
@@ -2244,8 +2244,8 @@ def logistic(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = N
   Samples are drawn from a logistic distribution with specified
   parameters, loc (location or mean, also median), and scale (>0).
 
-  Parameters
-  ----------
+  Parameters::
+
   loc : float or array_like of floats, optional
       Parameter of the distribution. Default is 0.
   scale : float or array_like of floats, optional
@@ -2257,13 +2257,13 @@ def logistic(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = N
       a single value is returned if ``loc`` and ``scale`` are both scalars.
       Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized logistic distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Logistic distribution is
 
   .. math:: P(x) = P(x) = \frac{e^{-(x-\mu)/s}}{s(1+e^{-(x-\mu)/s})^2},
@@ -2276,8 +2276,8 @@ def logistic(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = N
   system, assuming the performance of each player is a logistically
   distributed random variable.
 
-  References
-  ----------
+  References::
+
   .. [1] Reiss, R.-D. and Thomas M. (2001), "Statistical Analysis of
          Extreme Values, from Insurance, Finance, Hydrology and Other
          Fields," Birkhauser Verlag, Basel, pp 132-133.
@@ -2287,8 +2287,8 @@ def logistic(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = N
   .. [3] Wikipedia, "Logistic-distribution",
          https://en.wikipedia.org/wiki/Logistic_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> loc, scale = 10, 1
@@ -2322,8 +2322,8 @@ def normal(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = Non
   by a large number of tiny, random disturbances, each with its own
   unique distribution [2]_.
 
-  Parameters
-  ----------
+  Parameters::
+
   loc : float or array_like of floats
       Mean ("centre") of the distribution.
   scale : float or array_like of floats
@@ -2335,13 +2335,13 @@ def normal(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = Non
       a single value is returned if ``loc`` and ``scale`` are both scalars.
       Otherwise, ``np.broadcast(loc, scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized normal distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Gaussian distribution is
 
   .. math:: p(x) = \frac{1}{\sqrt{ 2 \pi \sigma^2 }}
@@ -2357,16 +2357,16 @@ def normal(loc=None, scale=None, size: Optional[Union[int, Sequence[int]]] = Non
   normal is more likely to return samples lying close to the mean, rather
   than those far away.
 
-  References
-  ----------
+  References::
+
   .. [1] Wikipedia, "Normal distribution",
          https://en.wikipedia.org/wiki/Normal_distribution
   .. [2] P. R. Peebles Jr., "Central Limit Theorem" in "Probability,
          Random Variables and Random Signal Principles", 4th ed., 2001,
          pp. 51, 51, 125.
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> mu, sigma = 0, 0.1 # mean and standard deviation
@@ -2422,8 +2422,8 @@ def pareto(a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Un
   20 percent of the range, while the other 20 percent fill the
   remaining 80 percent of the range.
 
-  Parameters
-  ----------
+  Parameters::
+
   a : float or array_like of floats
       Shape of the distribution. Must be positive.
   size : int or tuple of ints, optional
@@ -2432,20 +2432,20 @@ def pareto(a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Un
       a single value is returned if ``a`` is a scalar.  Otherwise,
       ``np.array(a).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Pareto distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.lomax : probability density function, distribution or
       cumulative density function, etc.
   scipy.stats.genpareto : probability density function, distribution or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Pareto distribution is
 
   .. math:: p(x) = \frac{am^a}{x^{a+1}}
@@ -2463,8 +2463,8 @@ def pareto(a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Un
   projects in Sourceforge [1]_.  It is one of the so-called
   "fat-tailed" distributions.
 
-  References
-  ----------
+  References::
+
   .. [1] Francis Hunt and Paul Johnson, On the Pareto Distribution of
          Sourceforge projects.
   .. [2] Pareto, V. (1896). Course of Political Economy. Lausanne.
@@ -2473,8 +2473,8 @@ def pareto(a, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Un
   .. [4] Wikipedia, "Pareto distribution",
          https://en.wikipedia.org/wiki/Pareto_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> a, m = 3., 2.  # shape and mode
@@ -2499,8 +2499,8 @@ def poisson(lam=1.0, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
   The Poisson distribution is the limit of the binomial distribution
   for large N.
 
-  Parameters
-  ----------
+  Parameters::
+
   lam : float or array_like of floats
       Expected number of events occurring in a fixed-time interval,
       must be >= 0. A sequence must be broadcastable over the requested
@@ -2511,13 +2511,13 @@ def poisson(lam=1.0, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
       a single value is returned if ``lam`` is a scalar. Otherwise,
       ``np.array(lam).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Poisson distribution.
 
-  Notes
-  -----
+  Notes::
+
   The Poisson distribution
 
   .. math:: f(k; \lambda)=\frac{\lambda^k e^{-\lambda}}{k!}
@@ -2531,16 +2531,16 @@ def poisson(lam=1.0, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
   ValueError is raised when `lam` is within 10 sigma of the maximum
   representable value.
 
-  References
-  ----------
+  References::
+
   .. [1] Weisstein, Eric W. "Poisson Distribution."
          From MathWorld--A Wolfram Web Resource.
          http://mathworld.wolfram.com/PoissonDistribution.html
   .. [2] Wikipedia, "Poisson distribution",
          https://en.wikipedia.org/wiki/Poisson_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> import numpy as np
@@ -2565,20 +2565,20 @@ def standard_cauchy(size: Optional[Union[int, Sequence[int]]] = None, key: Optio
 
   Also known as the Lorentz distribution.
 
-  Parameters
-  ----------
+  Parameters::
+
   size : int or tuple of ints, optional
       Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       single value is returned.
 
-  Returns
-  -------
+  Returns::
+
   samples : ndarray or scalar
       The drawn samples.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function for the full Cauchy distribution is
 
   .. math:: P(x; x_0, \gamma) = \frac{1}{\pi \gamma \bigl[ 1+
@@ -2597,8 +2597,8 @@ def standard_cauchy(size: Optional[Union[int, Sequence[int]]] = None, key: Optio
   their sensitivity to a heavy-tailed distribution, since the Cauchy looks
   very much like a Gaussian distribution, but with heavier tails.
 
-  References
-  ----------
+  References::
+
   .. [1] NIST/SEMATECH e-Handbook of Statistical Methods, "Cauchy
         Distribution",
         https://www.itl.nist.gov/div898/handbook/eda/section3/eda3663.htm
@@ -2608,8 +2608,8 @@ def standard_cauchy(size: Optional[Union[int, Sequence[int]]] = None, key: Optio
   .. [3] Wikipedia, "Cauchy distribution"
         https://en.wikipedia.org/wiki/Cauchy_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples and plot the distribution:
 
   >>> import matplotlib.pyplot as plt
@@ -2629,20 +2629,20 @@ def standard_exponential(size: Optional[Union[int, Sequence[int]]] = None,
   `standard_exponential` is identical to the exponential distribution
   with a scale parameter of 1.
 
-  Parameters
-  ----------
+  Parameters::
+
   size : int or tuple of ints, optional
       Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       single value is returned.
 
-  Returns
-  -------
+  Returns::
+
   out : float or ndarray
       Drawn samples.
 
-  Examples
-  --------
+  Examples::
+
   Output a 3x8000 array:
 
   >>> n = bm.random.standard_exponential((3, 8000))
@@ -2658,8 +2658,8 @@ def standard_gamma(shape, size: Optional[Union[int, Sequence[int]]] = None,
   Samples are drawn from a Gamma distribution with specified parameters,
   shape (sometimes designated "k") and scale=1.
 
-  Parameters
-  ----------
+  Parameters::
+
   shape : float or array_like of floats
       Parameter, must be non-negative.
   size : int or tuple of ints, optional
@@ -2668,18 +2668,18 @@ def standard_gamma(shape, size: Optional[Union[int, Sequence[int]]] = None,
       a single value is returned if ``shape`` is a scalar.  Otherwise,
       ``np.array(shape).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized standard gamma distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.gamma : probability density function, distribution or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Gamma distribution is
 
   .. math:: p(x) = x^{k-1}\frac{e^{-x/\theta}}{\theta^k\Gamma(k)},
@@ -2691,16 +2691,16 @@ def standard_gamma(shape, size: Optional[Union[int, Sequence[int]]] = None,
   electronic components, and arises naturally in processes for which the
   waiting times between Poisson distributed events are relevant.
 
-  References
-  ----------
+  References::
+
   .. [1] Weisstein, Eric W. "Gamma Distribution." From MathWorld--A
          Wolfram Web Resource.
          http://mathworld.wolfram.com/GammaDistribution.html
   .. [2] Wikipedia, "Gamma distribution",
          https://en.wikipedia.org/wiki/Gamma_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> shape, scale = 2., 1. # mean and width
@@ -2724,35 +2724,35 @@ def standard_normal(size: Optional[Union[int, Sequence[int]]] = None, key: Optio
   r"""
   Draw samples from a standard Normal distribution (mean=0, stdev=1).
 
-  Parameters
-  ----------
+  Parameters::
+
   size : int or tuple of ints, optional
       Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       single value is returned.
 
-  Returns
-  -------
+  Returns::
+
   out : float or ndarray
       A floating-point array of shape ``size`` of drawn samples, or a
       single sample if ``size`` was not specified.
 
-  See Also
-  --------
+  See Also::
+
   normal :
       Equivalent function with additional ``loc`` and ``scale`` arguments
       for setting the mean and standard deviation.
 
-  Notes
-  -----
+  Notes::
+
   For random samples from the normal distribution with mean ``mu`` and
   standard deviation ``sigma``, use one of::
 
       mu + sigma * bm.random.standard_normal(size=...)
       bm.random.normal(mu, sigma, size=...)
 
-  Examples
-  --------
+  Examples::
+
   >>> bm.random.standard_normal()
   2.1923875335537315 #random
 
@@ -2785,8 +2785,8 @@ def standard_t(df, size: Optional[Union[int, Sequence[int]]] = None, key: Option
   large, the result resembles that of the standard normal
   distribution (`standard_normal`).
 
-  Parameters
-  ----------
+  Parameters::
+
   df : float or array_like of floats
       Degrees of freedom, must be > 0.
   size : int or tuple of ints, optional
@@ -2795,13 +2795,13 @@ def standard_t(df, size: Optional[Union[int, Sequence[int]]] = None, key: Option
       a single value is returned if ``df`` is a scalar.  Otherwise,
       ``np.array(df).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized standard Student's t distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function for the t distribution is
 
   .. math:: P(x, df) = \frac{\Gamma(\frac{df+1}{2})}{\sqrt{\pi df}
@@ -2817,15 +2817,15 @@ def standard_t(df, size: Optional[Union[int, Sequence[int]]] = None, key: Option
   in Dublin. Due to proprietary issues, he had to publish under
   a pseudonym, and so he used the name Student.
 
-  References
-  ----------
+  References::
+
   .. [1] Dalgaard, Peter, "Introductory Statistics With R",
          Springer, 2002.
   .. [2] Wikipedia, "Student's t-distribution"
          https://en.wikipedia.org/wiki/Student's_t-distribution
 
-  Examples
-  --------
+  Examples::
+
   From Dalgaard page 83 [1]_, suppose the daily energy intake for 11
   women in kilojoules (kJ) is:
 
@@ -2886,8 +2886,8 @@ def uniform(low=0.0, high=1.0, size: Optional[Union[int, Sequence[int]]] = None,
   any value within the given interval is equally likely to be drawn
   by `uniform`.
 
-  Parameters
-  ----------
+  Parameters::
+
   low : float or array_like of floats, optional
       Lower boundary of the output interval.  All values generated will be
       greater than or equal to low.  The default value is 0.
@@ -2903,13 +2903,13 @@ def uniform(low=0.0, high=1.0, size: Optional[Union[int, Sequence[int]]] = None,
       a single value is returned if ``low`` and ``high`` are both scalars.
       Otherwise, ``np.broadcast(low, high).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized uniform distribution.
 
-  See Also
-  --------
+  See Also::
+
   randint : Discrete uniform distribution, yielding integers.
   random_integers : Discrete uniform distribution over the closed
                     interval ``[low, high]``.
@@ -2919,8 +2919,8 @@ def uniform(low=0.0, high=1.0, size: Optional[Union[int, Sequence[int]]] = None,
          ``rand(2,2)`` would generate a 2-by-2 array of floats,
          uniformly distributed over ``[0, 1)``.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function of the uniform distribution is
 
   .. math:: p(x) = \frac{1}{b - a}
@@ -2940,8 +2940,8 @@ def uniform(low=0.0, high=1.0, size: Optional[Union[int, Sequence[int]]] = None,
   5.0
 
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> s = bm.random.uniform(-1,0,1000)
@@ -2971,8 +2971,8 @@ def truncated_normal(lower, upper, size: Optional[Union[int, Sequence[int]]] = N
   Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
 
 
-  Notes
-  -----
+  Notes::
+
   This distribution is the normal distribution centered on ``loc`` (default
   0), with standard deviation ``scale`` (default 1), and clipped at ``a``,
   ``b`` standard deviations to the left, right (respectively) from ``loc``.
@@ -2983,8 +2983,8 @@ def truncated_normal(lower, upper, size: Optional[Union[int, Sequence[int]]] = N
       a, b = (myclip_a - loc) / scale, (myclip_b - loc) / scale
 
 
-  Parameters
-  ----------
+  Parameters::
+
   lower : float, ndarray
     A float or array of floats representing the lower bound for
     truncation. Must be broadcast-compatible with ``upper``.
@@ -3013,8 +3013,8 @@ def truncated_normal(lower, upper, size: Optional[Union[int, Sequence[int]]] = N
     The key for random generator. Consistent with the jax's random
     paradigm.
 
-  Returns
-  -------
+  Returns::
+
   out : Array
     A random array with the specified dtype and shape given by ``shape`` if
     ``shape`` is not None, or else by broadcasting ``lower`` and ``upper``.
@@ -3029,8 +3029,8 @@ RandomState.truncated_normal.__doc__ = truncated_normal.__doc__
 def bernoulli(p=0.5, size: Optional[Union[int, Sequence[int]]] = None, key: Optional[Union[int, JAX_RAND_KEY]] = None):
   r"""Sample Bernoulli random values with given shape and mean.
 
-  Parameters
-  ----------
+  Parameters::
+
   p: float, array_like, optional
     A float or array of floats for the mean of the random
     variables. Must be broadcast-compatible with ``shape`` and the values
@@ -3040,8 +3040,8 @@ def bernoulli(p=0.5, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
     shape. Must be broadcast-compatible with ``p.shape``. The default (None)
     produces a result shape equal to ``p.shape``.
 
-  Returns
-  -------
+  Returns::
+
   out: array_like
     A random array with boolean dtype and shape given by ``shape`` if ``shape``
     is not None, or else ``p.shape``.
@@ -3059,8 +3059,8 @@ def lognormal(mean=None, sigma=None, size: Optional[Union[int, Sequence[int]]] =
   deviation are not the values for the distribution itself, but of the
   underlying normal distribution it is derived from.
 
-  Parameters
-  ----------
+  Parameters::
+
   mean : float or array_like of floats, optional
       Mean value of the underlying normal distribution. Default is 0.
   sigma : float or array_like of floats, optional
@@ -3072,18 +3072,18 @@ def lognormal(mean=None, sigma=None, size: Optional[Union[int, Sequence[int]]] =
       a single value is returned if ``mean`` and ``sigma`` are both scalars.
       Otherwise, ``np.broadcast(mean, sigma).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized log-normal distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.lognorm : probability density function, distribution,
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   A variable `x` has a log-normal distribution if `log(x)` is normally
   distributed.  The probability density function for the log-normal
   distribution is:
@@ -3099,8 +3099,8 @@ def lognormal(mean=None, sigma=None, size: Optional[Union[int, Sequence[int]]] =
   *sum* of a large number of independent, identically-distributed
   variables.
 
-  References
-  ----------
+  References::
+
   .. [1] Limpert, E., Stahel, W. A., and Abbt, M., "Log-normal
          Distributions across the Sciences: Keys and Clues,"
          BioScience, Vol. 51, No. 5, May, 2001.
@@ -3108,8 +3108,8 @@ def lognormal(mean=None, sigma=None, size: Optional[Union[int, Sequence[int]]] =
   .. [2] Reiss, R.D. and Thomas, M., "Statistical Analysis of Extreme
          Values," Basel: Birkhauser Verlag, 2001, pp. 31-32.
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> mu, sigma = 3., 1. # mean and standard deviation
@@ -3164,8 +3164,8 @@ def binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None, key: Option
   n an integer >= 0 and p is in the interval [0,1]. (n may be
   input as a float, but it is truncated to an integer in use)
 
-  Parameters
-  ----------
+  Parameters::
+
   n : int or array_like of ints
       Parameter of the distribution, >= 0. Floats are also accepted,
       but they will be truncated to integers.
@@ -3177,19 +3177,19 @@ def binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None, key: Option
       a single value is returned if ``n`` and ``p`` are both scalars.
       Otherwise, ``np.broadcast(n, p).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized binomial distribution, where
       each sample is equal to the number of successes over the n trials.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.binom : probability density function, distribution or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the binomial distribution is
 
   .. math:: P(N) = \binom{n}{N}p^N(1-p)^{n-N},
@@ -3205,8 +3205,8 @@ def binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None, key: Option
   handed, and 11 who are right handed. Then p = 4/15 = 27%. 0.27*15 = 4,
   so the binomial distribution should be used in this case.
 
-  References
-  ----------
+  References::
+
   .. [1] Dalgaard, Peter, "Introductory Statistics with R",
          Springer-Verlag, 2002.
   .. [2] Glantz, Stanton A. "Primer of Biostatistics.", McGraw-Hill,
@@ -3219,8 +3219,8 @@ def binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None, key: Option
   .. [5] Wikipedia, "Binomial distribution",
          https://en.wikipedia.org/wiki/Binomial_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> n, p = 10, .5  # number of trials, probability of each trial
@@ -3249,8 +3249,8 @@ def chisquare(df, size: Optional[Union[int, Sequence[int]]] = None, key: Optiona
   resulting distribution is chi-square (see Notes).  This distribution
   is often used in hypothesis testing.
 
-  Parameters
-  ----------
+  Parameters::
+
   df : float or array_like of floats
        Number of degrees of freedom, must be > 0.
   size : int or tuple of ints, optional
@@ -3259,19 +3259,19 @@ def chisquare(df, size: Optional[Union[int, Sequence[int]]] = None, key: Optiona
       a single value is returned if ``df`` is a scalar.  Otherwise,
       ``np.array(df).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized chi-square distribution.
 
-  Raises
-  ------
+  Raises::
+
   ValueError
       When `df` <= 0 or when an inappropriate `size` (e.g. ``size=-1``)
       is given.
 
-  Notes
-  -----
+  Notes::
+
   The variable obtained by summing the squares of `df` independent,
   standard normally distributed random variables:
 
@@ -3290,13 +3290,13 @@ def chisquare(df, size: Optional[Union[int, Sequence[int]]] = None, key: Optiona
 
   .. math:: \Gamma(x) = \int_0^{-\infty} t^{x - 1} e^{-t} dt.
 
-  References
-  ----------
+  References::
+
   .. [1] NIST "Engineering Statistics Handbook"
          https://www.itl.nist.gov/div898/handbook/eda/section3/eda3666.htm
 
-  Examples
-  --------
+  Examples::
+
   >>> bm.random.chisquare(2,4)
   array([ 1.89920014,  9.00867716,  3.13710533,  5.62318272]) # random
   """
@@ -3313,8 +3313,8 @@ def dirichlet(alpha, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
   is a conjugate prior of a multinomial distribution in Bayesian
   inference.
 
-  Parameters
-  ----------
+  Parameters::
+
   alpha : sequence of floats, length k
       Parameter of the distribution (length ``k`` for sample of
       length ``k``).
@@ -3323,18 +3323,18 @@ def dirichlet(alpha, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       vector of length ``k`` is returned.
 
-  Returns
-  -------
+  Returns::
+
   samples : ndarray,
       The drawn samples, of shape ``(size, k)``.
 
-  Raises
-  ------
+  Raises::
+
   ValueError
       If any value in ``alpha`` is less than or equal to zero
 
-  Notes
-  -----
+  Notes::
+
   The Dirichlet distribution is a distribution over vectors
   :math:`x` that fulfil the conditions :math:`x_i>0` and
   :math:`\sum_{i=1}^k x_i = 1`.
@@ -3353,16 +3353,16 @@ def dirichlet(alpha, size: Optional[Union[int, Sequence[int]]] = None, key: Opti
   distribution, then :math:`X = \frac{1}{\sum_{i=1}^k{Y_i}} Y`
   is Dirichlet-distributed
 
-  References
-  ----------
+  References::
+
   .. [1] David McKay, "Information Theory, Inference and Learning
          Algorithms," chapter 23,
          http://www.inference.org.uk/mackay/itila/
   .. [2] Wikipedia, "Dirichlet distribution",
          https://en.wikipedia.org/wiki/Dirichlet_distribution
 
-  Examples
-  --------
+  Examples::
+
   Taking an example cited in Wikipedia, this distribution can be used if
   one wanted to cut strings (each of initial length 1.0) into K pieces
   with different lengths, where each piece had, on average, a designated
@@ -3396,8 +3396,8 @@ def geometric(p, size: Optional[Union[int, Sequence[int]]] = None, key: Optional
 
   where `p` is the probability of success of an individual trial.
 
-  Parameters
-  ----------
+  Parameters::
+
   p : float or array_like of floats
       The probability of success of an individual trial.
   size : int or tuple of ints, optional
@@ -3406,13 +3406,13 @@ def geometric(p, size: Optional[Union[int, Sequence[int]]] = None, key: Optional
       a single value is returned if ``p`` is a scalar.  Otherwise,
       ``np.array(p).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized geometric distribution.
 
-  Examples
-  --------
+  Examples::
+
   Draw ten thousand values from the geometric distribution,
   with the probability of an individual success equal to 0.35:
 
@@ -3440,8 +3440,8 @@ def f(dfnum, dfden, size: Optional[Union[int, Sequence[int]]] = None, key: Optio
   that arises in ANOVA tests, and is the ratio of two chi-square
   variates.
 
-  Parameters
-  ----------
+  Parameters::
+
   dfnum : float or array_like of floats
       Degrees of freedom in numerator, must be > 0.
   dfden : float or array_like of float
@@ -3452,18 +3452,18 @@ def f(dfnum, dfden, size: Optional[Union[int, Sequence[int]]] = None, key: Optio
       a single value is returned if ``dfnum`` and ``dfden`` are both scalars.
       Otherwise, ``np.broadcast(dfnum, dfden).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Fisher distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.f : probability density function, distribution or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The F statistic is used to compare in-group variances to between-group
   variances. Calculating the distribution depends on the sampling, and
   so it is a function of the respective degrees of freedom in the
@@ -3472,15 +3472,15 @@ def f(dfnum, dfden, size: Optional[Union[int, Sequence[int]]] = None, key: Optio
   degrees of freedom, the sum of the number of samples in each group
   minus the number of groups.
 
-  References
-  ----------
+  References::
+
   .. [1] Glantz, Stanton A. "Primer of Biostatistics.", McGraw-Hill,
          Fifth Edition, 2002.
   .. [2] Wikipedia, "F-distribution",
          https://en.wikipedia.org/wiki/F-distribution
 
-  Examples
-  --------
+  Examples::
+
   An example from Glantz[1], pp 47-40:
 
   Two groups, children of diabetics (25 people) and children from people
@@ -3519,8 +3519,8 @@ def hypergeometric(ngood, nbad, nsample, size: Optional[Union[int, Sequence[int]
   a bad selection), and `nsample` (number of items sampled, which is less
   than or equal to the sum ``ngood + nbad``).
 
-  Parameters
-  ----------
+  Parameters::
+
   ngood : int or array_like of ints
       Number of ways to make a good selection.  Must be nonnegative.
   nbad : int or array_like of ints
@@ -3535,20 +3535,20 @@ def hypergeometric(ngood, nbad, nsample, size: Optional[Union[int, Sequence[int]
       are all scalars.  Otherwise, ``np.broadcast(ngood, nbad, nsample).size``
       samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized hypergeometric distribution. Each
       sample is the number of good items within a randomly selected subset of
       size `nsample` taken from a set of `ngood` good items and `nbad` bad items.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.hypergeom : probability density function, distribution or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Hypergeometric distribution is
 
   .. math:: P(x) = \frac{\binom{g}{x}\binom{b}{n-x}}{\binom{g+b}{n}},
@@ -3569,8 +3569,8 @@ def hypergeometric(ngood, nbad, nsample, size: Optional[Union[int, Sequence[int]
   replacement (or the sample space is infinite). As the sample space
   becomes large, this distribution approaches the binomial.
 
-  References
-  ----------
+  References::
+
   .. [1] Lentner, Marvin, "Elementary Applied Statistics", Bogden
          and Quigley, 1972.
   .. [2] Weisstein, Eric W. "Hypergeometric Distribution." From
@@ -3579,8 +3579,8 @@ def hypergeometric(ngood, nbad, nsample, size: Optional[Union[int, Sequence[int]
   .. [3] Wikipedia, "Hypergeometric distribution",
          https://en.wikipedia.org/wiki/Hypergeometric_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> ngood, nbad, nsamp = 100, 2, 10
@@ -3608,8 +3608,8 @@ def logseries(p, size: Optional[Union[int, Sequence[int]]] = None, key: Optional
   Samples are drawn from a log series distribution with specified
   shape parameter, 0 <= ``p`` < 1.
 
-  Parameters
-  ----------
+  Parameters::
+
   p : float or array_like of floats
       Shape parameter for the distribution.  Must be in the range [0, 1).
   size : int or tuple of ints, optional
@@ -3618,18 +3618,18 @@ def logseries(p, size: Optional[Union[int, Sequence[int]]] = None, key: Optional
       a single value is returned if ``p`` is a scalar.  Otherwise,
       ``np.array(p).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized logarithmic series distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.logser : probability density function, distribution or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Log Series distribution is
 
   .. math:: P(k) = \frac{-p^k}{k \ln(1-p)},
@@ -3641,8 +3641,8 @@ def logseries(p, size: Optional[Union[int, Sequence[int]]] = None, key: Optional
   Williams in 1943 [2].  It may also be used to model the numbers of
   occupants seen in cars [3].
 
-  References
-  ----------
+  References::
+
   .. [1] Buzas, Martin A.; Culver, Stephen J.,  Understanding regional
          species diversity through the log series distribution of
          occurrences: BIODIVERSITY RESEARCH Diversity & Distributions,
@@ -3656,8 +3656,8 @@ def logseries(p, size: Optional[Union[int, Sequence[int]]] = None, key: Optional
   .. [4] Wikipedia, "Logarithmic distribution",
          https://en.wikipedia.org/wiki/Logarithmic_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> a = .6
@@ -3689,8 +3689,8 @@ def multinomial(n, pvals, size: Optional[Union[int, Sequence[int]]] = None,
   ``X_i = [X_0, X_1, ..., X_p]``, represent the number of times the
   outcome was ``i``.
 
-  Parameters
-  ----------
+  Parameters::
+
   n : int
       Number of experiments.
   pvals : sequence of floats, length p
@@ -3703,8 +3703,8 @@ def multinomial(n, pvals, size: Optional[Union[int, Sequence[int]]] = None,
       ``m * n * k`` samples are drawn.  Default is None, in which case a
       single value is returned.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray
       The drawn samples, of shape *size*, if that was provided.  If not,
       the shape is ``(N,)``.
@@ -3712,8 +3712,8 @@ def multinomial(n, pvals, size: Optional[Union[int, Sequence[int]]] = None,
       In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
       value drawn from the distribution.
 
-  Examples
-  --------
+  Examples::
+
   Throw a dice 20 times:
 
   >>> bm.random.multinomial(20, [1/6.]*6, size=1)
@@ -3765,8 +3765,8 @@ def multivariate_normal(mean, cov, size: Optional[Union[int, Sequence[int]]] = N
   (average or "center") and variance (standard deviation, or "width,"
   squared) of the one-dimensional normal distribution.
 
-  Parameters
-  ----------
+  Parameters::
+
   mean : 1-D array_like, of length N
       Mean of the N-dimensional distribution.
   cov : 2-D array_like, of shape (N, N)
@@ -3783,8 +3783,8 @@ def multivariate_normal(mean, cov, size: Optional[Union[int, Sequence[int]]] = N
       Tolerance when checking the singular values in covariance matrix.
       cov is cast to double before the check.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray
       The drawn samples, of shape *size*, if that was provided.  If not,
       the shape is ``(N,)``.
@@ -3792,8 +3792,8 @@ def multivariate_normal(mean, cov, size: Optional[Union[int, Sequence[int]]] = N
       In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
       value drawn from the distribution.
 
-  Notes
-  -----
+  Notes::
+
   The mean is a coordinate in N-dimensional space, which represents the
   location where samples are most likely to be generated.  This is
   analogous to the peak of the bell curve for the one-dimensional or
@@ -3831,15 +3831,15 @@ def multivariate_normal(mean, cov, size: Optional[Union[int, Sequence[int]]] = N
   nonnegative-definite). Otherwise, the behavior of this method is
   undefined and backwards compatibility is not guaranteed.
 
-  References
-  ----------
+  References::
+
   .. [1] Papoulis, A., "Probability, Random Variables, and Stochastic
          Processes," 3rd ed., New York: McGraw-Hill, 1991.
   .. [2] Duda, R. O., Hart, P. E., and Stork, D. G., "Pattern
          Classification," 2nd ed., New York: Wiley, 2001.
 
-  Examples
-  --------
+  Examples::
+
   >>> mean = (1, 2)
   >>> cov = [[1, 0], [0, 1]]
   >>> x = bm.random.multivariate_normal(mean, cov, (3, 3))
@@ -3888,8 +3888,8 @@ def negative_binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None,
   parameters, `n` successes and `p` probability of success where `n`
   is > 0 and `p` is in the interval [0, 1].
 
-  Parameters
-  ----------
+  Parameters::
+
   n : float or array_like of floats
       Parameter of the distribution, > 0.
   p : float or array_like of floats
@@ -3900,15 +3900,15 @@ def negative_binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None,
       a single value is returned if ``n`` and ``p`` are both scalars.
       Otherwise, ``np.broadcast(n, p).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized negative binomial distribution,
       where each sample is equal to N, the number of failures that
       occurred before a total of n successes was reached.
 
-  Notes
-  -----
+  Notes::
+
   The probability mass function of the negative binomial distribution is
 
   .. math:: P(N;n,p) = \frac{\Gamma(N+n)}{N!\Gamma(n)}p^{n}(1-p)^{N},
@@ -3925,16 +3925,16 @@ def negative_binomial(n, p, size: Optional[Union[int, Sequence[int]]] = None,
   then the probability distribution of the number of non-"1"s that
   appear before the third "1" is a negative binomial distribution.
 
-  References
-  ----------
+  References::
+
   .. [1] Weisstein, Eric W. "Negative Binomial Distribution." From
          MathWorld--A Wolfram Web Resource.
          http://mathworld.wolfram.com/NegativeBinomialDistribution.html
   .. [2] Wikipedia, "Negative binomial distribution",
          https://en.wikipedia.org/wiki/Negative_binomial_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   A real world example. A company drills wild-cat oil
@@ -3959,8 +3959,8 @@ def noncentral_chisquare(df, nonc, size: Optional[Union[int, Sequence[int]]] = N
   The noncentral :math:`\chi^2` distribution is a generalization of
   the :math:`\chi^2` distribution.
 
-  Parameters
-  ----------
+  Parameters::
+
   df : float or array_like of floats
       Degrees of freedom, must be > 0.
   nonc : float or array_like of floats
@@ -3971,13 +3971,13 @@ def noncentral_chisquare(df, nonc, size: Optional[Union[int, Sequence[int]]] = N
       a single value is returned if ``df`` and ``nonc`` are both scalars.
       Otherwise, ``np.broadcast(df, nonc).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized noncentral chi-square distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function for the noncentral Chi-square
   distribution is
 
@@ -3987,13 +3987,13 @@ def noncentral_chisquare(df, nonc, size: Optional[Union[int, Sequence[int]]] = N
 
   where :math:`Y_{q}` is the Chi-square with q degrees of freedom.
 
-  References
-  ----------
+  References::
+
   .. [1] Wikipedia, "Noncentral chi-squared distribution"
          https://en.wikipedia.org/wiki/Noncentral_chi-squared_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw values from the distribution and plot the histogram
 
   >>> import matplotlib.pyplot as plt
@@ -4033,8 +4033,8 @@ def noncentral_f(dfnum, dfden, nonc, size: Optional[Union[int, Sequence[int]]] =
   freedom in denominator), where both parameters > 1.
   `nonc` is the non-centrality parameter.
 
-  Parameters
-  ----------
+  Parameters::
+
   dfnum : float or array_like of floats
       Numerator degrees of freedom, must be > 0.
   dfden : float or array_like of floats
@@ -4049,29 +4049,29 @@ def noncentral_f(dfnum, dfden, nonc, size: Optional[Union[int, Sequence[int]]] =
       are all scalars.  Otherwise, ``np.broadcast(dfnum, dfden, nonc).size``
       samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized noncentral Fisher distribution.
 
-  Notes
-  -----
+  Notes::
+
   When calculating the power of an experiment (power = probability of
   rejecting the null hypothesis when a specific alternative is true) the
   non-central F statistic becomes important.  When the null hypothesis is
   true, the F statistic follows a central F distribution. When the null
   hypothesis is not true, then it follows a non-central F statistic.
 
-  References
-  ----------
+  References::
+
   .. [1] Weisstein, Eric W. "Noncentral F-Distribution."
          From MathWorld--A Wolfram Web Resource.
          http://mathworld.wolfram.com/NoncentralF-Distribution.html
   .. [2] Wikipedia, "Noncentral F-distribution",
          https://en.wikipedia.org/wiki/Noncentral_F-distribution
 
-  Examples
-  --------
+  Examples::
+
   In a study, testing for a specific alternative to the null hypothesis
   requires use of the Noncentral F distribution. We need to calculate the
   area in the tail of the distribution that exceeds the value of the F
@@ -4102,8 +4102,8 @@ def power(a,
 
   Also known as the power function distribution.
 
-  Parameters
-  ----------
+  Parameters::
+
   a : float or array_like of floats
       Parameter of the distribution. Must be non-negative.
   size : int or tuple of ints, optional
@@ -4112,18 +4112,18 @@ def power(a,
       a single value is returned if ``a`` is a scalar.  Otherwise,
       ``np.array(a).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized power distribution.
 
-  Raises
-  ------
+  Raises::
+
   ValueError
       If a <= 0.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function is
 
   .. math:: P(x; a) = ax^{a-1}, 0 \le x \le 1, a>0.
@@ -4135,8 +4135,8 @@ def power(a,
   It is used, for example, in modeling the over-reporting of insurance
   claims.
 
-  References
-  ----------
+  References::
+
   .. [1] Christian Kleiber, Samuel Kotz, "Statistical size distributions
          in economics and actuarial sciences", Wiley, 2003.
   .. [2] Heckert, N. A. and Filliben, James J. "NIST Handbook 148:
@@ -4145,8 +4145,8 @@ def power(a,
          Handbook Series, June 2003.
          https://www.itl.nist.gov/div898/software/dataplot/refman2/auxillar/powpdf.pdf
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> a = 5. # shape
@@ -4199,8 +4199,8 @@ def rayleigh(scale=1.0,
   The :math:`\chi` and Weibull distributions are generalizations of the
   Rayleigh.
 
-  Parameters
-  ----------
+  Parameters::
+
   scale : float or array_like of floats, optional
       Scale, also equals the mode. Must be non-negative. Default is 1.
   size : int or tuple of ints, optional
@@ -4209,13 +4209,13 @@ def rayleigh(scale=1.0,
       a single value is returned if ``scale`` is a scalar.  Otherwise,
       ``np.array(scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Rayleigh distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function for the Rayleigh distribution is
 
   .. math:: P(x;scale) = \frac{x}{scale^2}e^{\frac{-x^2}{2 \cdotp scale^2}}
@@ -4225,15 +4225,15 @@ def rayleigh(scale=1.0,
   Gaussian distributions.  Then the wind speed would have a Rayleigh
   distribution.
 
-  References
-  ----------
+  References::
+
   .. [1] Brighton Webs Ltd., "Rayleigh Distribution,"
          https://web.archive.org/web/20090514091424/http://brighton-webs.co.uk:80/distributions/rayleigh.asp
   .. [2] Wikipedia, "Rayleigh distribution"
          https://en.wikipedia.org/wiki/Rayleigh_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw values from the distribution and plot the histogram
 
   >>> from matplotlib.pyplot import hist
@@ -4266,8 +4266,8 @@ def triangular(size: Optional[Union[int, Sequence[int]]] = None,
   limit right. Unlike the other distributions, these parameters
   directly define the shape of the pdf.
 
-  Parameters
-  ----------
+  Parameters::
+
   size : int or tuple of ints, optional
       Output shape.  If the given shape is, e.g., ``(m, n, k)``, then
       ``m * n * k`` samples are drawn.  If size is ``None`` (default),
@@ -4275,13 +4275,13 @@ def triangular(size: Optional[Union[int, Sequence[int]]] = None,
       are all scalars.  Otherwise, ``np.broadcast(left, mode, right).size``
       samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized triangular distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function for the triangular distribution is
 
   .. math:: P(x;l, m, r) = \begin{cases}
@@ -4295,13 +4295,13 @@ def triangular(size: Optional[Union[int, Sequence[int]]] = None,
   some knowledge of the limits and mode exists. Often it is used
   in simulations.
 
-  References
-  ----------
+  References::
+
   .. [1] Wikipedia, "Triangular distribution"
          https://en.wikipedia.org/wiki/Triangular_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw values from the distribution and plot the histogram:
 
   >>> import matplotlib.pyplot as plt
@@ -4327,8 +4327,8 @@ def vonmises(mu,
   circle.  It may be thought of as the circular analogue of the normal
   distribution.
 
-  Parameters
-  ----------
+  Parameters::
+
   mu : float or array_like of floats
       Mode ("center") of the distribution.
   kappa : float or array_like of floats
@@ -4339,18 +4339,18 @@ def vonmises(mu,
       a single value is returned if ``mu`` and ``kappa`` are both scalars.
       Otherwise, ``np.broadcast(mu, kappa).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized von Mises distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.vonmises : probability density function, distribution, or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the von Mises distribution is
 
   .. math:: p(x) = \frac{e^{\kappa cos(x-\mu)}}{2\pi I_0(\kappa)},
@@ -4364,16 +4364,16 @@ def vonmises(mu,
   probability theory, aerodynamics, fluid mechanics, and philosophy of
   science.
 
-  References
-  ----------
+  References::
+
   .. [1] Abramowitz, M. and Stegun, I. A. (Eds.). "Handbook of
          Mathematical Functions with Formulas, Graphs, and Mathematical
          Tables, 9th printing," New York: Dover, 1972.
   .. [2] von Mises, R., "Mathematical Theory of Probability
          and Statistics", New York: Academic Press, 1964.
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> mu, kappa = 0.0, 4.0 # mean and dispersion
@@ -4409,8 +4409,8 @@ def wald(mean,
   because there is an inverse relationship between the time to cover a
   unit distance and distance covered in unit time.
 
-  Parameters
-  ----------
+  Parameters::
+
   mean : float or array_like of floats
       Distribution mean, must be > 0.
   scale : float or array_like of floats
@@ -4421,13 +4421,13 @@ def wald(mean,
       a single value is returned if ``mean`` and ``scale`` are both scalars.
       Otherwise, ``np.broadcast(mean, scale).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Wald distribution.
 
-  Notes
-  -----
+  Notes::
+
   The probability density function for the Wald distribution is
 
   .. math:: P(x;mean,scale) = \sqrt{\frac{scale}{2\pi x^3}}e^
@@ -4438,8 +4438,8 @@ def wald(mean,
   competitor to the Weibull for use in reliability modeling and
   modeling stock returns and interest rate processes.
 
-  References
-  ----------
+  References::
+
   .. [1] Brighton Webs Ltd., Wald Distribution,
          https://web.archive.org/web/20090423014010/http://www.brighton-webs.co.uk:80/distributions/wald.asp
   .. [2] Chhikara, Raj S., and Folks, J. Leroy, "The Inverse Gaussian
@@ -4448,8 +4448,8 @@ def wald(mean,
   .. [3] Wikipedia, "Inverse Gaussian distribution"
          https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw values from the distribution and plot the histogram:
 
   >>> import matplotlib.pyplot as plt
@@ -4479,8 +4479,8 @@ def weibull(a,
       New code should use the ``weibull`` method of a ``default_rng()``
       instance instead; please see the :ref:`random-quick-start`.
 
-  Parameters
-  ----------
+  Parameters::
+
   a : float or array_like of floats
       Shape parameter of the distribution.  Must be nonnegative.
   size : int or tuple of ints, optional
@@ -4489,13 +4489,13 @@ def weibull(a,
       a single value is returned if ``a`` is a scalar.  Otherwise,
       ``np.array(a).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Weibull distribution.
 
-  Notes
-  -----
+  Notes::
+
   The Weibull (or Type III asymptotic extreme value distribution
   for smallest values, SEV Type III, or Rosin-Rammler
   distribution) is one of a class of Generalized Extreme Value
@@ -4515,8 +4515,8 @@ def weibull(a,
   When ``a = 1``, the Weibull distribution reduces to the exponential
   distribution.
 
-  References
-  ----------
+  References::
+
   .. [1] Waloddi Weibull, Royal Technical University, Stockholm,
          1939 "A Statistical Theory Of The Strength Of Materials",
          Ingeniorsvetenskapsakademiens Handlingar Nr 151, 1939,
@@ -4527,8 +4527,8 @@ def weibull(a,
   .. [3] Wikipedia, "Weibull distribution",
          https://en.wikipedia.org/wiki/Weibull_distribution
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> a = 5. # shape
@@ -4592,8 +4592,8 @@ def zipf(a,
       New code should use the ``zipf`` method of a ``default_rng()``
       instance instead; please see the :ref:`random-quick-start`.
 
-  Parameters
-  ----------
+  Parameters::
+
   a : float or array_like of floats
       Distribution parameter. Must be greater than 1.
   size : int or tuple of ints, optional
@@ -4602,18 +4602,18 @@ def zipf(a,
       a single value is returned if ``a`` is a scalar. Otherwise,
       ``np.array(a).size`` samples are drawn.
 
-  Returns
-  -------
+  Returns::
+
   out : ndarray or scalar
       Drawn samples from the parameterized Zipf distribution.
 
-  See Also
-  --------
+  See Also::
+
   scipy.stats.zipf : probability density function, distribution, or
       cumulative density function, etc.
 
-  Notes
-  -----
+  Notes::
+
   The probability density for the Zipf distribution is
 
   .. math:: p(k) = \frac{k^{-a}}{\zeta(a)},
@@ -4625,14 +4625,14 @@ def zipf(a,
   that the frequency of any word in a sample of a language is inversely
   proportional to its rank in the frequency table.
 
-  References
-  ----------
+  References::
+
   .. [1] Zipf, G. K., "Selected Studies of the Principle of Relative
          Frequency in Language," Cambridge, MA: Harvard Univ. Press,
          1932.
 
-  Examples
-  --------
+  Examples::
+
   Draw samples from the distribution:
 
   >>> a = 4.0
@@ -4686,16 +4686,16 @@ def t(df,
       key: Optional[Union[int, JAX_RAND_KEY]] = None):
   """Sample Student’s t random values.
 
-  Parameters
-  ----------
+  Parameters::
+
   df: float, array_like
     A float or array of floats broadcast-compatible with shape representing the parameter of the distribution.
   size: optional, int, tuple of int
     A tuple of non-negative integers specifying the result shape.
     Must be broadcast-compatible with `df`. The default (None) produces a result shape equal to `df.shape`.
 
-  Returns
-  -------
+  Returns::
+
   out: array_like
     The sampled value.
   """
@@ -4707,15 +4707,15 @@ def orthogonal(n: int,
                key: Optional[Union[int, JAX_RAND_KEY]] = None):
   """Sample uniformly from the orthogonal group `O(n)`.
 
-  Parameters
-  ----------
+  Parameters::
+
   n: int
      An integer indicating the resulting dimension.
   size: optional, int, tuple of int
     The batch dimensions of the result.
 
-  Returns
-  -------
+  Returns::
+
   out: Array
     The sampled results.
   """
@@ -4727,16 +4727,16 @@ def loggamma(a,
              key: Optional[Union[int, JAX_RAND_KEY]] = None):
   """Sample log-gamma random values.
 
-  Parameters
-  ----------
+  Parameters::
+
   a: float, array_like
     A float or array of floats broadcast-compatible with shape representing the parameter of the distribution.
   size: optional, int, tuple of int
     A tuple of nonnegative integers specifying the result shape.
     Must be broadcast-compatible with `a`. The default (None) produces a result shape equal to `a.shape`.
 
-  Returns
-  -------
+  Returns::
+
   out: array_like
     The sampled results.
   """

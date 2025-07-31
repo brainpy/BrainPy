@@ -79,8 +79,8 @@ class TimeDelay(AbstractDelay):
    [[-0.8]
     [-0.8]]]
 
-  Parameters
-  ----------
+  Parameters::
+
   delay_target: ArrayType
     The initial delay data.
   t0: float, int
@@ -111,8 +111,8 @@ class TimeDelay(AbstractDelay):
 
     .. versionadded:: 2.1.1
 
-  See Also
-  --------
+  See Also::
+
   LengthDelay
   """
 
@@ -183,8 +183,8 @@ class TimeDelay(AbstractDelay):
             before_t0=None):
     """Reset the delay variable.
 
-    Parameters
-    ----------
+    Parameters::
+
     delay_target: ArrayType
       The delay target.
     delay_len: float, int
@@ -281,8 +281,8 @@ CONCAT_UPDATE = 'concat'
 class LengthDelay(AbstractDelay):
   """Delay variable which has a fixed delay length.
 
-  Parameters
-  ----------
+  Parameters::
+
   delay_target: int, sequence of int
     The initial delay data.
   delay_len: int
@@ -318,8 +318,8 @@ class LengthDelay(AbstractDelay):
   update_method: str
     The method used for updating delay.
 
-  See Also
-  --------
+  See Also::
+
   TimeDelay
   """
 
@@ -426,8 +426,8 @@ class LengthDelay(AbstractDelay):
   def retrieve(self, delay_len, *indices):
     """Retrieve the delay data acoording to the delay length.
 
-    Parameters
-    ----------
+    Parameters::
+
     delay_len: int, ArrayType
       The delay length used to retrieve the data.
     """
@@ -456,8 +456,8 @@ class LengthDelay(AbstractDelay):
   def update(self, value: Union[numbers.Number, BaseArray, jax.Array] = None):
     """Update delay variable with the new data.
 
-    Parameters
-    ----------
+    Parameters::
+
     value: Any
       The value of the latest data, used to update this delay variable.
     """

@@ -31,8 +31,8 @@ class OnlineAlgorithm(BrainPyObject):
   def __call__(self, *args, **kwargs):
     """The training procedure.
 
-    Parameters
-    ----------
+    Parameters::
+
     identifier: str
       The variable name.
     target: ArrayType
@@ -42,8 +42,8 @@ class OnlineAlgorithm(BrainPyObject):
     output: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
-    Returns
-    -------
+    Returns::
+
     weight: ArrayType
       The weights after fit.
     """
@@ -55,8 +55,8 @@ class OnlineAlgorithm(BrainPyObject):
   def call(self, target, input, output, identifier: str=''):
     """The training procedure.
 
-    Parameters
-    ----------
+    Parameters::
+
     identifier: str
       The variable name.
     target: ArrayType
@@ -66,8 +66,8 @@ class OnlineAlgorithm(BrainPyObject):
     output: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
-    Returns
-    -------
+    Returns::
+
     weight: ArrayType
       The weights after fit.
     """
@@ -86,12 +86,12 @@ class RLS(OnlineAlgorithm):
   contrast to other algorithms such as the least mean squares
   (LMS) that aim to reduce the mean square error.
 
-  See Also
-  --------
+  See Also::
+
   LMS, ForceLearning
 
-  Parameters
-  ----------
+  Parameters::
+
   alpha: float
     The learning rate.
   name: str
@@ -153,8 +153,8 @@ class LMS(OnlineAlgorithm):
   based on the error at the current time. It was invented in 1960 by
   Stanford University professor Bernard Widrow and his first Ph.D. student, Ted Hoff.
 
-  Parameters
-  ----------
+  Parameters::
+
   alpha: float
     The learning rate.
   name: str
@@ -188,8 +188,8 @@ def get_supported_online_methods():
 def register_online_method(name: str, method: OnlineAlgorithm):
   """Register a new oneline learning method.
 
-  Parameters
-  ----------
+  Parameters::
+
   name: str
     The method name.
   method: callable

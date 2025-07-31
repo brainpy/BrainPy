@@ -22,8 +22,8 @@ class COBA(SynOut):
 
      I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
 
-  Parameters
-  ----------
+  Parameters::
+
   E: float, ArrayType, ndarray
     The reversal potential.
   sharding: sequence of str
@@ -33,8 +33,8 @@ class COBA(SynOut):
   scaling: brainpy.Scaling
     The scaling object.
 
-  See Also
-  --------
+  See Also::
+
   CUBA
   """
 
@@ -63,15 +63,15 @@ class CUBA(SynOut):
 
      I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
 
-  Parameters
-  ----------
+  Parameters::
+
   name: str
     The model name.
   scaling: brainpy.Scaling
     The scaling object.
 
-  See Also
-  --------
+  See Also::
+
   COBA
   """
   def __init__(
@@ -102,8 +102,8 @@ class MgBlock(SynOut):
 
   Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
 
-  Parameters
-  ----------
+  Parameters::
+
   E: float, ArrayType
     The reversal potential for the synaptic current. [mV]
   alpha: float, ArrayType

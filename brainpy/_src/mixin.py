@@ -321,8 +321,8 @@ class DelayRegister(MixIn):
   ):
     """Get delay data according to the provided delay steps.
 
-    Parameters
-    ----------
+    Parameters::
+
     identifier: str
       The delay variable name.
     delay_pos: str
@@ -330,8 +330,8 @@ class DelayRegister(MixIn):
     indices: optional, int, slice, ArrayType
       The indices of the delay.
 
-    Returns
-    -------
+    Returns::
+
     delay_data: ArrayType
       The delay data at the given time.
     """
@@ -347,8 +347,8 @@ class DelayRegister(MixIn):
     For example, in a network model,
 
 
-    Parameters
-    ----------
+    Parameters::
+
     nodes: sequence, dict
       The nodes to update their delay variables.
     """
@@ -358,8 +358,8 @@ class DelayRegister(MixIn):
   def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
     """Reset local delay variables.
 
-    Parameters
-    ----------
+    Parameters::
+
     nodes: sequence, dict
       The nodes to Reset their delay variables.
     """

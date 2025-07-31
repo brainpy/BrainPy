@@ -39,8 +39,8 @@ def cond(
     >>> a, b
     Variable([1., 1.], dtype=float32), Variable([0., 0.], dtype=float32)
 
-    Parameters
-    ----------
+    Parameters::
+
     pred: bool
       Boolean scalar type, indicating which branch function to apply.
     true_fun: callable, ArrayType, float, int, bool
@@ -66,8 +66,8 @@ def cond(
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
 
-    Returns
-    -------
+    Returns::
+
     res: Any
       The conditional results.
     """
@@ -83,8 +83,7 @@ def ifelse(
 ):
     """``If-else`` control flows looks like native Pythonic programming.
 
-    Examples
-    --------
+    Examples::
 
     >>> import brainpy.math as bm
     >>> def f(a):
@@ -103,8 +102,8 @@ def ifelse(
     >>> f(3)
     3
 
-    Parameters
-    ----------
+    Parameters::
+
     conditions: bool, sequence of bool
       The boolean conditions.
     branches: Any
@@ -129,8 +128,8 @@ def ifelse(
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
 
-    Returns
-    -------
+    Returns::
+
     res: Any
       The results of the control flow.
     """
@@ -235,8 +234,8 @@ def for_loop(
      [16.]
      [20.]]
 
-    Parameters
-    ----------
+    Parameters::
+
     body_fun: callable
       A Python function to be scanned. This function accepts one argument and returns one output.
       The argument denotes a slice of ``operands`` along its leading axis, and that
@@ -281,8 +280,8 @@ def for_loop(
     unroll_kwargs: dict
       The keyword arguments without unrolling.
 
-    Returns
-    -------
+    Returns::
+
     outs: Any
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
@@ -310,8 +309,8 @@ def scan(
     All returns in body function will be gathered
     as the return of the whole loop.
 
-    Parameters
-    ----------
+    Parameters::
+
     body_fun: callable
       A Python function to be scanned. This function accepts one argument and returns one output.
       The argument denotes a slice of ``operands`` along its leading axis, and that
@@ -343,8 +342,8 @@ def scan(
 
       .. versionadded:: 2.4.2
 
-    Returns
-    -------
+    Returns::
+
     outs: Any
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
@@ -397,8 +396,8 @@ def while_loop(
 
     .. versionadded:: 2.1.11
 
-    Parameters
-    ----------
+    Parameters::
+
     body_fun: callable
       A function which define the updating logic. It receives one argument for ``operands``, without returns.
     cond_fun: callable

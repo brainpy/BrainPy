@@ -48,15 +48,15 @@ def _is_brainpy_array(x):
 def check_and_format_inputs(host, inputs):
   """Check inputs and get the formatted inputs for the given population.
 
-  Parameters
-  ----------
+  Parameters::
+
   host : DynamicalSystem
     The host which contains all data.
   inputs : tuple, list
     The inputs of the population.
 
-  Returns
-  -------
+  Returns::
+
   formatted_inputs : tuple, list
       The formatted inputs of the population.
   """
@@ -198,8 +198,8 @@ def _f_ops(ops, var, data):
 class DSRunner(Runner):
   """The runner for :py:class:`~.DynamicalSystem`.
 
-  Parameters
-  ----------
+  Parameters::
+
   target : DynamicalSystem
     The target model to run.
 
@@ -400,8 +400,8 @@ class DSRunner(Runner):
     Moreover, it can automatically monitor the node variables, states, inputs,
     and its output.
 
-    Parameters
-    ----------
+    Parameters::
+
     duration: float
       The simulation time length.
       If you have provided ``inputs``, there is no longer need to provide ``duration``.
@@ -428,8 +428,8 @@ class DSRunner(Runner):
     shared_args: optional, dict
       The shared arguments across different layers.
 
-    Returns
-    -------
+    Returns::
+
     output: ArrayType, dict, sequence
       The model output.
     """
@@ -512,16 +512,16 @@ class DSRunner(Runner):
   def _predict(self, indices, *xs, shared_args=None) -> Union[Output, Monitor]:
     """Predict the output according to the inputs.
 
-    Parameters
-    ----------
+    Parameters::
+
     xs: sequence
       If `inputs` is not None, it should be a tensor with the shape of
       :math:`(num_time, ...)`.
     shared_args: optional, dict
       The shared keyword arguments.
 
-    Returns
-    -------
+    Returns::
+
     outputs, hists
       A tuple of pair of (outputs, hists).
     """

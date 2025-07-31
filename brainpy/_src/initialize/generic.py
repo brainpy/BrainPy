@@ -43,8 +43,8 @@ def parameter(
 ):
   """Initialize parameters.
 
-  Parameters
-  ----------
+  Parameters::
+
   param: callable, Initializer, bm.ndarray, jnp.ndarray, onp.ndarray, float, int, bool
     The initialization of the parameter.
     - If it is None, the created parameter will be None.
@@ -60,13 +60,13 @@ def parameter(
   sharding: Sharding
     The axes for automatic array sharding.
 
-  Returns
-  -------
+  Returns::
+
   param: ArrayType, float, int, bool, None
     The initialized parameter.
 
-  See Also
-  --------
+  See Also::
+
   variable_, noise, delay
   """
   if param is None:
@@ -112,8 +112,8 @@ def variable_(
 ):
   """Initialize a :math:`~.Variable` from a callable function or a data.
 
-  See Also
-  --------
+  See Also::
+
   variable
 
   """
@@ -135,8 +135,8 @@ def variable(
 ):
   """Initialize variables.
 
-  Parameters
-  ----------
+  Parameters::
+
   init: callable, ArrayType
     The data to be initialized as a ``Variable``.
   batch_or_mode: int, bool, Mode, optional
@@ -153,13 +153,13 @@ def variable(
   batch_axis_name: str
     The name for the batch axis. The name will be used if ``batch_size_or_mode`` is given.
 
-  Returns
-  -------
+  Returns::
+
   variable: bm.Variable
     The target ``Variable`` instance.
 
-  See Also
-  --------
+  See Also::
+
   variable_, parameter, noise, delay
 
   """
@@ -220,8 +220,8 @@ def noise(
 ) -> Optional[Callable]:
   """Initialize a noise function.
 
-  Parameters
-  ----------
+  Parameters::
+
   noises: Any
   size: Shape
     The size of the noise.
@@ -230,13 +230,13 @@ def noise(
   noise_idx: int
     The index of the current noise among all noise variables.
 
-  Returns
-  -------
+  Returns::
+
   noise_func: function, None
     The noise function.
 
-  See Also
-  --------
+  See Also::
+
   variable_, parameter, delay
 
   """
@@ -260,8 +260,8 @@ def delay(
 ):
   """Initialize delay variable.
 
-  Parameters
-  ----------
+  Parameters::
+
   delay_step: int, ndarray, ArrayType
     The number of delay steps. It can an integer of an array of integers.
   delay_target: ndarray, ArrayType
@@ -269,13 +269,13 @@ def delay(
   delay_data: optional, ndarray, ArrayType
     The initial delay data.
 
-  Returns
-  -------
+  Returns::
+
   info: tuple
     The triple of delay type, delay steps, and delay variable.
 
-  See Also
-  --------
+  See Also::
+
   variable_, parameter, noise
   """
   # check delay type

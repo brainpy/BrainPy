@@ -25,8 +25,8 @@ def f_names(f):
 class ODEIntegrator(Integrator):
   """Numerical Integrator for Ordinary Differential Equations (ODEs).
 
-  Parameters
-  ----------
+  Parameters::
+
   f : callable
     The derivative function.
   var_type: str

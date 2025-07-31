@@ -40,8 +40,8 @@ class RNNCell(Layer):
   The output is equal to the new state, :math:`h_t`.
 
 
-  Parameters
-  ----------
+  Parameters::
+
   num_in: int
     The dimension of the input vector
   num_out: int
@@ -149,8 +149,8 @@ class GRUCell(Layer):
 
   Warning: Backwards compatibility of GRU weights is currently unsupported.
 
-  Parameters
-  ----------
+  Parameters::
+
   num_in: int
     The dimension of the input vector
   num_out: int
@@ -167,8 +167,8 @@ class GRUCell(Layer):
     The activation function. It can be a string or a callable function.
     See ``brainpy.math.activations`` for more details.
 
-  References
-  ----------
+  References::
+
   .. [1] Chung, J., Gulcehre, C., Cho, K. and Bengio, Y., 2014. Empirical
          evaluation of gated recurrent neural networks on sequence modeling.
          arXiv preprint arXiv:1412.3555.
@@ -274,16 +274,15 @@ class LSTMCell(Layer):
 
   The output is equal to the new hidden, :math:`h_t`.
 
-  Notes
-  -----
+  Notes::
 
   Forget gate initialization: Following (Jozefowicz, et al., 2015) [2]_ we add 1.0
   to :math:`b_f` after initialization in order to reduce the scale of forgetting in
   the beginning of the training.
 
 
-  Parameters
-  ----------
+  Parameters::
+
   num_in: int
     The dimension of the input vector
   num_out: int
@@ -300,8 +299,7 @@ class LSTMCell(Layer):
     The activation function. It can be a string or a callable function.
     See ``brainpy.math.activations`` for more details.
 
-  References
-  ----------
+  References::
 
   .. [1] Zaremba, Wojciech, Ilya Sutskever, and Oriol Vinyals. "Recurrent neural
          network regularization." arXiv preprint arXiv:1409.2329 (2014).

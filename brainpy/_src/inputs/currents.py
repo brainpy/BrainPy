@@ -32,8 +32,8 @@ def section_input(values, durations, dt=None, return_length=False):
   >>> section_input(values=[0, 1],
   >>>               durations=[100, 100])
 
-  Parameters
-  ----------
+  Parameters::
+
   values : list, np.ndarray
       The current values for each period duration.
   durations : list, np.ndarray
@@ -43,8 +43,8 @@ def section_input(values, durations, dt=None, return_length=False):
   return_length : bool
       Return the final duration length.
 
-  Returns
-  -------
+  Returns::
+
   current_and_duration
   """
   if len(durations) != len(values):
@@ -87,16 +87,16 @@ def constant_input(I_and_duration, dt=None):
   >>> constant_input([(0, 100), (1, 100)])
   >>> constant_input([(bm.zeros(100), 100), (bm.random.rand(100), 100)])
 
-  Parameters
-  ----------
+  Parameters::
+
   I_and_duration : list
       This parameter receives the current size and the current
       duration pairs, like `[(Isize1, duration1), (Isize2, duration2)]`.
   dt : float
       Default is None.
 
-  Returns
-  -------
+  Returns::
+
   current_and_duration : tuple
       (The formatted current, total duration)
   """
@@ -147,8 +147,8 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   >>>             sp_sizes=0.5,  # can be a list to specify the current size at each point
   >>>             duration=400.)
 
-  Parameters
-  ----------
+  Parameters::
+
   sp_times : list, tuple
       The spike time-points. Must be an iterable object.
   sp_lens : int, float, list, tuple
@@ -160,8 +160,8 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
   dt : float
       The default is None.
 
-  Returns
-  -------
+  Returns::
+
   current : bm.ndarray
       The formatted input current.
   """
@@ -195,8 +195,8 @@ def spike_current(*args, **kwargs):
 def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   """Get the gradually changed input current.
 
-  Parameters
-  ----------
+  Parameters::
+
   c_start : float
       The minimum (or maximum) current size.
   c_end : float
@@ -210,8 +210,8 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
   dt : float, int, optional
       The numerical precision.
 
-  Returns
-  -------
+  Returns::
+
   current : bm.ndarray
     The formatted current
   """
@@ -242,8 +242,8 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
   """Stimulus sampled from a Wiener process, i.e.
   drawn from standard normal distribution N(0, sqrt(dt)).
 
-  Parameters
-  ----------
+  Parameters::
+
   duration: float
     The input duration.
   dt: float
@@ -277,8 +277,8 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
 
      dX = (mu - X)/\tau * dt + \sigma*dW
 
-  Parameters
-  ----------
+  Parameters::
+
   mean: float
     Drift of the OU process.
   sigma: float
@@ -322,8 +322,8 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
 def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, bias=False):
   """Sinusoidal input.
 
-  Parameters
-  ----------
+  Parameters::
+
   amplitude: float
     Amplitude of the sinusoid.
   frequency: float
@@ -384,8 +384,8 @@ def _square(t, duty=0.5):
 def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0., t_end=None):
   """Oscillatory square input.
 
-  Parameters
-  ----------
+  Parameters::
+
   amplitude: float
     Amplitude of the square oscillation.
   frequency: float

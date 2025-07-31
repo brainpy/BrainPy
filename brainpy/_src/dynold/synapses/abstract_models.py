@@ -62,8 +62,8 @@ class Delta(TwoEndConn):
   >>> plt.legend()
   >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   pre: NeuDyn
     The pre-synaptic neuron group.
   post: NeuDyn
@@ -205,8 +205,8 @@ class Exponential(TwoEndConn):
   >>> plt.legend()
   >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   pre: NeuGroup
     The pre-synaptic neuron group.
   post: NeuGroup
@@ -343,8 +343,8 @@ class DualExponential(_TwoEndConnAlignPre):
   >>> plt.legend()
   >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   pre: NeuDyn
     The pre-synaptic neuron group.
   post: NeuDyn
@@ -464,8 +464,8 @@ class Alpha(_TwoEndConnAlignPre):
   >>> plt.legend()
   >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   pre: NeuDyn
     The pre-synaptic neuron group.
   post: NeuDyn
@@ -626,8 +626,8 @@ class NMDA(_TwoEndConnAlignPre):
   >>> plt.legend()
   >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   pre: NeuDyn
     The pre-synaptic neuron group.
   post: NeuDyn
@@ -652,8 +652,7 @@ class NMDA(_TwoEndConnAlignPre):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
+  References::
 
   .. [1] Brunel N, Wang X J. Effects of neuromodulation in a
          cortical network model of object working memory dominated
