@@ -10,7 +10,7 @@ from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 from brainpy.errors import MathError
-from . import defaults
+from .defaults import defaults
 
 bm = None
 
@@ -102,6 +102,9 @@ class BaseArray:
     """Update the value of this Array.
     """
     self.value = value
+
+  def __hash__(self):
+    return hash(self.value)
 
   @property
   def dtype(self):

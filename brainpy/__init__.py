@@ -22,12 +22,12 @@ from brainpy import (
 # fundamental supporting modules
 from brainpy import errors, check, tools
 
-# math foundation
-from brainpy import math
-from .math import BrainPyObject
 
 #  Part: Math Foundation  #
 # ----------------------- #
+# math foundation
+from brainpy import math
+from .math import BrainPyObject
 
 # convenient alias
 conn = connect

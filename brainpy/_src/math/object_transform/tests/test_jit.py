@@ -1,209 +1,198 @@
 # -*- coding: utf-8 -*-
 
 
-import jax
-import tempfile
-
 import unittest
+
+import jax
+
 import brainpy as bp
 import brainpy.math as bm
 
 
 class TestJIT(unittest.TestCase):
-  def test_jaxarray_inside_jit1(self):
-    # Ensure clean state before test
-    bm.random.seed(123)
-    
-    class SomeProgram(bp.BrainPyObject):
-      def __init__(self):
-        super(SomeProgram, self).__init__()
-        self.a = bm.zeros(2)
-        self.b = bm.Variable(bm.ones(2))
+    def test_jaxarray_inside_jit1(self):
+        # Ensure clean state before test
+        bm.random.seed(123)
 
-      def __call__(self, *args, **kwargs):
-        a = bm.random.uniform(size=2)
-        a = a.at[0].set(1.)
-        self.b += a
-        return self.b.value
+        class SomeProgram(bp.BrainPyObject):
+            def __init__(self):
+                super(SomeProgram, self).__init__()
+                self.a = bm.zeros(2)
+                self.b = bm.Variable(bm.ones(2))
 
-    program = SomeProgram()
-    b_out = bm.jit(program)()
-    self.assertTrue(bm.array_equal(b_out, program.b))
+            def __call__(self, *args, **kwargs):
+                a = bm.random.uniform(size=2)
+                a = a.at[0].set(1.)
+                self.b += a
+                return self.b.value
 
-  def test_jaxarray_inside_jit1_disable(self):
-    # Ensure clean state before test
-    bm.random.seed(123)
-    
-    class SomeProgram(bp.BrainPyObject):
-      def __init__(self):
-        super(SomeProgram, self).__init__()
-        self.a = bm.zeros(2)
-        self.b = bm.Variable(bm.ones(2))
+        program = SomeProgram()
+        b_out = bm.jit(program)()
+        self.assertTrue(bm.array_equal(b_out, program.b))
 
-      def __call__(self, *args, **kwargs):
-        a = bm.random.uniform(size=2)
-        a = a.at[0].set(1.)
-        self.b += a
-        return self.b.value
+    def test_jaxarray_inside_jit1_disable(self):
+        # Ensure clean state before test
+        bm.random.seed(123)
 
-    program = SomeProgram()
-    with jax.disable_jit():
-      b_out = bm.jit(program)()
-      self.assertTrue(bm.array_equal(b_out, program.b))
-      print(b_out)
+        class SomeProgram(bp.BrainPyObject):
+            def __init__(self):
+                super(SomeProgram, self).__init__()
+                self.a = bm.zeros(2)
+                self.b = bm.Variable(bm.ones(2))
 
-  def test_jit_with_static(self):
-    a = bm.Variable(bm.ones(2))
+            def __call__(self, *args, **kwargs):
+                a = bm.random.uniform(size=2)
+                a = a.at[0].set(1.)
+                self.b += a
+                return self.b.value
 
-    @bm.jit(static_argnums=1)
-    def f(b, c):
-      a.value *= b
-      a.value /= c
+        program = SomeProgram()
+        with jax.disable_jit():
+            b_out = bm.jit(program)()
+            self.assertTrue(bm.array_equal(b_out, program.b))
+            print(b_out)
 
-    f(1., 2.)
-    self.assertTrue(bm.allclose(a.value, 0.5))
+    def test_jit_with_static(self):
+        a = bm.Variable(bm.ones(2))
 
-    @bm.jit(static_argnames=['c'])
-    def f2(b, c):
-      a.value *= b
-      a.value /= c
+        @bm.jit(static_argnums=1)
+        def f(b, c):
+            a.value *= b
+            a.value /= c
 
-    f2(2., c=1.)
-    self.assertTrue(bm.allclose(a.value, 1.))
+        f(1., 2.)
+        self.assertTrue(bm.allclose(a.value, 0.5))
+
+        @bm.jit(static_argnames=['c'])
+        def f2(b, c):
+            a.value *= b
+            a.value /= c
+
+        f2(2., c=1.)
+        self.assertTrue(bm.allclose(a.value, 1.))
 
 
 class TestClsJIT(unittest.TestCase):
 
-  def test_class_jit1(self):
-    # Ensure clean state before test
-    import jax
-    import gc
-    
-    # Clear all caches and state
-    jax.clear_caches()
-    gc.collect()
-    
-    # Reset random state
-    bm.random.seed(123)
-    
-    # Clear any existing brainstate context
-    try:
-        from brainstate._state import TRACE_CONTEXT
-        TRACE_CONTEXT.state_stack.clear()
-        TRACE_CONTEXT.new_state_catcher.clear()
-        TRACE_CONTEXT.tree_check = [False]
-        TRACE_CONTEXT.jax_tracer_check = [False]
-    except ImportError:
-        pass
-    
-    class SomeProgram(bp.BrainPyObject):
-      def __init__(self):
-        super(SomeProgram, self).__init__()
-        self.a = bm.zeros(2)
-        self.b = bm.Variable(bm.ones(2))
+    def test_class_jit1(self):
+        # Ensure clean state before test
+        import jax
+        import gc
 
-      @bm.cls_jit
-      def __call__(self):
-        a = bm.random.uniform(size=2)
-        a = a.at[0].set(1.)
-        self.b += a
-        return self.b.value
+        # Clear all caches and state
+        jax.clear_caches()
+        gc.collect()
 
-      @bm.cls_jit(inline=True)
-      def update(self, x):
-        self.b += x
+        # Reset random state
+        bm.random.seed(123)
 
-    program = SomeProgram()
-    new_b = program()
-    self.assertTrue(bm.allclose(new_b, program.b))
-    program.update(1.)
-    self.assertTrue(bm.allclose(new_b + 1., program.b))
+        class SomeProgram(bp.BrainPyObject):
+            def __init__(self):
+                super(SomeProgram, self).__init__()
+                self.a = bm.zeros(2)
+                self.b = bm.Variable(bm.ones(2))
 
-  def test_class_jit2(self):
-    # Ensure clean state before test
-    bm.random.seed(123)
-    
-    class SomeProgram(bp.BrainPyObject):
-      def __init__(self):
-        super(SomeProgram, self).__init__()
-        self.a = bm.zeros(2)
-        self.b = bm.Variable(bm.ones(2))
+            @bm.cls_jit
+            def __call__(self):
+                a = bm.random.uniform(size=2)
+                a = a.at[0].set(1.)
+                self.b += a
+                return self.b.value
 
-        self.call1 = bm.jit(self.call, static_argnums=0)
-        self.call2 = bm.jit(self.call, static_argnames=['fit'])
+            @bm.cls_jit(inline=True)
+            def update(self, x):
+                self.b += x
 
-      def call(self, fit=True):
-        a = bm.random.uniform(size=2)
-        if fit:
-          a = a.at[0].set(1.)
-        self.b += a
-        return self.b
+        program = SomeProgram()
+        new_b = program()
+        self.assertTrue(bm.allclose(new_b, program.b))
+        program.update(1.)
+        self.assertTrue(bm.allclose(new_b + 1., program.b))
 
-    program = SomeProgram()
-    new_b1 = program.call1(True)
-    new_b2 = program.call2(fit=False)
-    print()
-    print(new_b1, )
-    print(new_b2, )
-    with self.assertRaises(jax.errors.TracerBoolConversionError):
-      new_b3 = program.call2(False)
+    def test_class_jit2(self):
+        # Ensure clean state before test
+        bm.random.seed(123)
 
-  def test_class_jit1_with_disable(self):
-    # Ensure clean state before test
-    bm.random.seed(123)
-    
-    class SomeProgram(bp.BrainPyObject):
-      def __init__(self):
-        super(SomeProgram, self).__init__()
-        self.a = bm.zeros(2)
-        self.b = bm.Variable(bm.ones(2))
+        class SomeProgram(bp.BrainPyObject):
+            def __init__(self):
+                super(SomeProgram, self).__init__()
+                self.a = bm.zeros(2)
+                self.b = bm.Variable(bm.ones(2))
 
-      @bm.cls_jit
-      def __call__(self):
-        a = bm.random.uniform(size=2)
-        a = a.at[0].set(1.)
-        self.b += a
-        return self.b.value
+                self.call1 = bm.jit(self.call, static_argnums=0)
+                self.call2 = bm.jit(self.call, static_argnames=['fit'])
 
-      @bm.cls_jit(inline=True)
-      def update(self, x):
-        self.b += x
+            def call(self, fit=True):
+                a = bm.random.uniform(size=2)
+                if fit:
+                    a = a.at[0].set(1.)
+                self.b += a
+                return self.b.value
 
-    program = SomeProgram()
-    with jax.disable_jit():
-      new_b = program()
-      self.assertTrue(bm.allclose(new_b, program.b))
-    with jax.disable_jit():
-      program.update(1.)
-      self.assertTrue(bm.allclose(new_b + 1., program.b))
+        program = SomeProgram()
+        new_b1 = program.call1(True)
+        new_b2 = program.call2(fit=False)
+        print()
+        print(new_b1, )
+        print(new_b2, )
+        with self.assertRaises(jax.errors.TracerBoolConversionError):
+            new_b3 = program.call2(False)
 
-  def test_cls_jit_with_static(self):
-    class MyObj:
-      def __init__(self):
-        self.a = bm.Variable(bm.ones(2))
+    def test_class_jit1_with_disable(self):
+        # Ensure clean state before test
+        bm.random.seed(123)
 
-      @bm.cls_jit(static_argnums=0)
-      def f(self, b, c):
-        self.a.value *= b
-        self.a.value /= c
+        class SomeProgram(bp.BrainPyObject):
+            def __init__(self):
+                super(SomeProgram, self).__init__()
+                self.a = bm.zeros(2)
+                self.b = bm.Variable(bm.ones(2))
 
-    obj = MyObj()
-    obj.f(1., 2.)
-    self.assertTrue(bm.allclose(obj.a.value, 0.5))
+            @bm.cls_jit
+            def __call__(self):
+                a = bm.random.uniform(size=2)
+                a = a.at[0].set(1.)
+                self.b += a
+                return self.b.value
 
-    class MyObj2:
-      def __init__(self):
-        self.a = bm.Variable(bm.ones(2))
+            @bm.cls_jit(inline=True)
+            def update(self, x):
+                self.b += x
 
-      @bm.cls_jit(static_argnames=['c'])
-      def f(self, b, c):
-        self.a.value *= b
-        self.a.value /= c
+        program = SomeProgram()
+        with jax.disable_jit():
+            new_b = program()
+            self.assertTrue(bm.allclose(new_b, program.b))
+        with jax.disable_jit():
+            program.update(1.)
+            self.assertTrue(bm.allclose(new_b + 1., program.b))
 
-    obj = MyObj2()
-    obj.f(1., c=2.)
-    self.assertTrue(bm.allclose(obj.a.value, 0.5))
+    def test_cls_jit_with_static(self):
+        class MyObj:
+            def __init__(self):
+                self.a = bm.Variable(bm.ones(2))
 
+            @bm.cls_jit(static_argnums=0)
+            def f(self, b, c):
+                self.a.value *= b
+                self.a.value /= c
+
+        obj = MyObj()
+        obj.f(1., 2.)
+        self.assertTrue(bm.allclose(obj.a.value, 0.5))
+
+        class MyObj2:
+            def __init__(self):
+                self.a = bm.Variable(bm.ones(2))
+
+            @bm.cls_jit(static_argnames=['c'])
+            def f(self, b, c):
+                self.a.value *= b
+                self.a.value /= c
+
+        obj = MyObj2()
+        obj.f(1., c=2.)
+        self.assertTrue(bm.allclose(obj.a.value, 0.5))
 
 # class TestDebug(unittest.TestCase):
 #   def test_debug1(self):

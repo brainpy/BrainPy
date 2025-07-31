@@ -169,9 +169,6 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         # data checking
         if not isinstance(target, (bm.ndarray, jnp.ndarray)):
             raise MathError(f'"targets" must be a tensor, but got {type(target)}')
-        if fit_record is None:
-            # If no fit record is available, skip offline fitting
-            return
         xs = fit_record['input']
         ys = fit_record['output']
         if xs.ndim != 3:

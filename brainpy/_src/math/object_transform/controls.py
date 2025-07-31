@@ -424,36 +424,38 @@ def while_loop(
         operands = (operands,)
     operands = tuple(operands)
 
-    # Try brainstate's while_loop first, fallback to Python implementation if needed
-    try:
-        def body(x):
-            r = body_fun(*x)
-            if r is None:
-                return x
-            else:
-                return r
-
-        return brainstate.transform.while_loop(lambda x: cond_fun(*x), body, operands)
-        
-    except ValueError as e:
-        if "should not have any write states" in str(e):
-            # Check if we're in a JIT context by looking for tracers
-            import jax
-            
-            # Check if any operand is a tracer
-            in_jit_context = any(isinstance(op, jax.core.Tracer) for op in operands)
-            
-            if in_jit_context:
-                # Cannot use Python while loop in JIT context, re-raise the original error
-                raise e
-            else:
-                # Fallback to Python while loop when condition function modifies state
-                # and we're not in JIT context
-                val = operands
-                while cond_fun(*val):
-                    result = body_fun(*val)
-                    if result is not None:
-                        val = result
-                return val
+    def body(x):
+        r = body_fun(*x)
+        if r is None:
+            return x
         else:
-            raise e
+            return r
+
+    return brainstate.transform.while_loop(lambda x: cond_fun(*x), body, operands)
+
+    # # Try brainstate's while_loop first, fallback to Python implementation if needed
+    # try:
+    #
+    #
+    # except ValueError as e:
+    #     if "should not have any write states" in str(e):
+    #         # Check if we're in a JIT context by looking for tracers
+    #         import jax
+    #
+    #         # Check if any operand is a tracer
+    #         in_jit_context = any(isinstance(op, jax.core.Tracer) for op in operands)
+    #
+    #         if in_jit_context:
+    #             # Cannot use Python while loop in JIT context, re-raise the original error
+    #             raise e
+    #         else:
+    #             # Fallback to Python while loop when condition function modifies state
+    #             # and we're not in JIT context
+    #             val = operands
+    #             while cond_fun(*val):
+    #                 result = body_fun(*val)
+    #                 if result is not None:
+    #                     val = result
+    #             return val
+    #     else:
+    #         raise e
