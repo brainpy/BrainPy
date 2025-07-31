@@ -26,6 +26,12 @@ ISOLATED_FILES = [
     "brainpy/_src/math/object_transform/tests/test_base.py",  # causes state pollution
 ]
 
+# Additional files that need isolation in CI environments
+CI_ISOLATED_FILES = [
+    "brainpy/_src/math/object_transform/tests/test_autograd.py",  # unhashable Array type in CI
+    "brainpy/_src/math/object_transform/tests/test_controls.py",  # unhashable Array type in CI
+]
+
 def run_isolated_test(test_path):
     """Run a single problematic test in isolation."""
     print(f"Running isolated: {test_path}")
@@ -55,6 +61,10 @@ def main():
     # Build ignore list - only ignore files that contain problematic tests
     ignore_patterns = []
     all_problematic_files = set(ISOLATED_FILES)
+    
+    # In CI environments, also isolate CI-specific problematic files
+    if is_github_actions:
+        all_problematic_files.update(CI_ISOLATED_FILES)
     
     # Add files from isolated tests to ignore list
     for test in ISOLATED_TESTS:
