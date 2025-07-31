@@ -340,13 +340,13 @@ class SlowPointFinder(base.DSAnalyzer):
     num_candidate = self._check_candidates(candidates)
     if not (isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)) or isinstance(candidates, dict)):
       raise ValueError('Candidates must be instance of ArrayType or dict of ArrayType.')
-    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.Array))
+    fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.BaseArray))
     f_eval_loss = self._get_f_eval_loss()
 
     def f_loss():
       return f_eval_loss(tree_map(lambda a: bm.as_jax(a),
                                   fixed_points,
-                                  is_leaf=lambda x: isinstance(x, bm.Array))).mean()
+                                  is_leaf=lambda x: isinstance(x, bm.BaseArray))).mean()
 
     grad_f = bm.grad(f_loss, grad_vars=fixed_points, return_value=True)
     optimizer.register_train_vars(fixed_points if isinstance(fixed_points, dict) else {'a': fixed_points})
@@ -390,10 +390,10 @@ class SlowPointFinder(base.DSAnalyzer):
     self._opt_losses = jnp.concatenate(opt_losses)
     self._losses = f_eval_loss(tree_map(lambda a: bm.as_jax(a),
                                         fixed_points,
-                                        is_leaf=lambda x: isinstance(x, bm.Array)))
+                                        is_leaf=lambda x: isinstance(x, bm.BaseArray)))
     self._fixed_points = tree_map(lambda a: bm.as_jax(a),
                                   fixed_points,
-                                  is_leaf=lambda x: isinstance(x, bm.Array))
+                                  is_leaf=lambda x: isinstance(x, bm.BaseArray))
     self._selected_ids = jnp.arange(num_candidate)
 
     if isinstance(self.target, DynamicalSystem):
@@ -429,7 +429,7 @@ class SlowPointFinder(base.DSAnalyzer):
       print(f"Optimizing with {opt_solver} to find fixed points:")
 
     # optimizing
-    res = f_opt(tree_map(lambda a: bm.as_jax(a), candidates, is_leaf=lambda a: isinstance(a, bm.Array)))
+    res = f_opt(tree_map(lambda a: bm.as_jax(a), candidates, is_leaf=lambda a: isinstance(a, bm.BaseArray)))
 
     # results
     valid_ids = jnp.where(res.success)[0]
@@ -562,7 +562,7 @@ class SlowPointFinder(base.DSAnalyzer):
     """
     # check data
     info = np.asarray([(l.ndim, l.shape[0])
-                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.Array))[0]])
+                       for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.BaseArray))[0]])
     ndim = np.unique(info[:, 0])
     if len(ndim) != 1: raise ValueError(f'Get multiple dimension of the evaluated points. {ndim}')
     if ndim[0] == 1:

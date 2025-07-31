@@ -10,7 +10,7 @@ show = False
 
 class TestDualExpon(unittest.TestCase):
   def test_dual_expon(self):
-    # bm.set(dt=0.01)
+    bm.set(dt=0.01)
 
     class Net(bp.DynSysGroup):
       def __init__(self, tau_r, tau_d, n_spk):

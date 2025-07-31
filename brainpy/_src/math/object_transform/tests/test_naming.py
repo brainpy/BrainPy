@@ -28,4 +28,4 @@ class TestNaming(unittest.TestCase):
     bm.clear_name_cache(ignore_warn=True)
     lif = bp.dyn.LifRef(1, name='a')
     bm.clear_name_cache()
-    bm.clear_buffer_memory(array=True, compilation=True)
+    bm.clear_buffer_memory(array=False, compilation=True)

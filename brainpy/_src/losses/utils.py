@@ -9,7 +9,7 @@ _reduction_error = 'Only support reduction of "mean", "sum" and "none", but we g
 
 
 def _is_leaf(x):
-  return isinstance(x, bm.Array)
+  return isinstance(x, bm.BaseArray)
 
 
 def _reduce(outputs, reduction, axis=None):
@@ -26,7 +26,7 @@ def _reduce(outputs, reduction, axis=None):
 def _multi_return(r):
   if isinstance(r, jax.Array):
     return r
-  elif isinstance(r, bm.Array):
+  elif isinstance(r, bm.BaseArray):
     return r.value
   else:
     leaves = tree_flatten(r)[0]

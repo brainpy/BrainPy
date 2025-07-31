@@ -20,4 +20,4 @@ class Test_gap_junction(parameterized.TestCase):
                          inputs=('neu.input', 35.))
     runner(10.)
     self.assertTupleEqual(runner.mon['neu.V'].shape, (100, 2))
-    bm.clear_buffer_memory()
+    

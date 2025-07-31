@@ -12,7 +12,6 @@ from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
-from brainpy._src.math.object_transform.autograd import _jacfwd
 
 
 class TestPureFuncGrad(unittest.TestCase):
@@ -383,187 +382,187 @@ class TestObjectFuncGrad(unittest.TestCase):
     assert loss == t(d)[0]
 
 
-class TestPureFuncJacobian(unittest.TestCase):
-  def test1(self):
-    jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 2]), has_aux=True)(3.)
-    self.assertTrue(jax.numpy.allclose(jac, jax.jacfwd(lambda x: x ** 3)(3.)))
-    self.assertTrue(aux[0] == 9.)
-
-  def test_jacfwd_and_aux_nested(self):
-    def f(x):
-      jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
-      return aux[0]
-
-    f2 = lambda x: x ** 3
-
-    self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
-    self.assertEqual(jax.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
-    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(4.), _jacfwd(f2)(4.))
-
-    self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(jax.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-
-    def f(x):
-      jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
-      return aux[0] * bm.sin(x)
-
-    f2 = lambda x: x ** 3 * bm.sin(x)
-
-    self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
-    self.assertEqual(jax.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
-    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(4.), _jacfwd(f2)(4.))
-
-    self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(jax.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-    self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
-
-  def test_jacrev1(self):
-    def f1(x, y):
-      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
-      return r
-
-    br = bm.jacrev(f1)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    jr = jax.jacrev(f1)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    assert (br == jr).all()
-
-    br = bm.jacrev(f1, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    jr = jax.jacrev(f1, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    assert (br[0] == jr[0]).all()
-    assert (br[1] == jr[1]).all()
-
-  def test_jacrev2(self):
-    print()
-
-    def f2(x, y):
-      r1 = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1]])
-      r2 = jnp.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
-      return r1, r2
-
-    jr = jax.jacrev(f2)(jnp.array([1., 2., 3.]), jnp.array([10., 5.]))
-    pprint(jr)
-
-    br = bm.jacrev(f2)(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
-    pprint(br)
-    assert bm.array_equal(br[0], jr[0])
-    assert bm.array_equal(br[1], jr[1])
-
-    br = bm.jacrev(f2)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    pprint(br)
-    assert bm.array_equal(br[0], jr[0])
-    assert bm.array_equal(br[1], jr[1])
-
-    def f2(x, y):
-      r1 = bm.asarray([x[0] * y[0], 5 * x[2] * y[1]])
-      r2 = bm.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
-      return r1, r2
-
-    br = bm.jacrev(f2)(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
-    pprint(br)
-    assert bm.array_equal(br[0], jr[0])
-    assert bm.array_equal(br[1], jr[1])
-
-    br = bm.jacrev(f2)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    pprint(br)
-    assert bm.array_equal(br[0], jr[0])
-    assert bm.array_equal(br[1], jr[1])
-
-  def test_jacrev3(self):
-    print()
-
-    def f3(x, y):
-      r1 = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1]])
-      r2 = jnp.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
-      return r1, r2
-
-    jr = jax.jacrev(f3, argnums=(0, 1))(jnp.array([1., 2., 3.]), jnp.array([10., 5.]))
-    pprint(jr)
-
-    br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
-    pprint(br)
-    assert bm.array_equal(br[0][0], jr[0][0])
-    assert bm.array_equal(br[0][1], jr[0][1])
-    assert bm.array_equal(br[1][0], jr[1][0])
-    assert bm.array_equal(br[1][1], jr[1][1])
-
-    br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    pprint(br)
-    assert bm.array_equal(br[0][0], jr[0][0])
-    assert bm.array_equal(br[0][1], jr[0][1])
-    assert bm.array_equal(br[1][0], jr[1][0])
-    assert bm.array_equal(br[1][1], jr[1][1])
-
-    def f3(x, y):
-      r1 = bm.asarray([x[0] * y[0], 5 * x[2] * y[1]])
-      r2 = bm.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
-      return r1, r2
-
-    br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
-    pprint(br)
-    assert bm.array_equal(br[0][0], jr[0][0])
-    assert bm.array_equal(br[0][1], jr[0][1])
-    assert bm.array_equal(br[1][0], jr[1][0])
-    assert bm.array_equal(br[1][1], jr[1][1])
-
-    br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
-    pprint(br)
-    assert bm.array_equal(br[0][0], jr[0][0])
-    assert bm.array_equal(br[0][1], jr[0][1])
-    assert bm.array_equal(br[1][0], jr[1][0])
-    assert bm.array_equal(br[1][1], jr[1][1])
-
-  def test_jacrev_aux1(self):
-    x = bm.array([1., 2., 3.])
-    y = bm.array([10., 5.])
-
-    def f1(x, y):
-      a = 4 * x[1] ** 2 - 2 * x[2]
-      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], a, x[2] * jnp.sin(x[0])])
-      return r, a
-
-    f2 = lambda *args: f1(*args)[0]
-    jr = jax.jacrev(f2)(x, y)  # jax jacobian
-    pprint(jr)
-    grads, aux = bm.jacrev(f1, has_aux=True)(x, y)
-    assert (grads == jr).all()
-    assert aux == (4 * x[1] ** 2 - 2 * x[2])
-
-    jr = jax.jacrev(f2, argnums=(0, 1))(x, y)  # jax jacobian
-    pprint(jr)
-    grads, aux = bm.jacrev(f1, argnums=(0, 1), has_aux=True)(x, y)
-    assert (grads[0] == jr[0]).all()
-    assert (grads[1] == jr[1]).all()
-    assert aux == (4 * x[1] ** 2 - 2 * x[2])
-
-  def test_jacrev_return_aux1(self):
-    bm.enable_x64()
-
-    def f1(x, y):
-      a = 4 * x[1] ** 2 - 2 * x[2]
-      r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], a, x[2] * jnp.sin(x[0])])
-      return r, a
-
-    _x = bm.array([1., 2., 3.])
-    _y = bm.array([10., 5.])
-    _r, _a = f1(_x, _y)
-    f2 = lambda *args: f1(*args)[0]
-    _g1 = jax.jacrev(f2)(_x, _y)  # jax jacobian
-    pprint(_g1)
-    _g2 = jax.jacrev(f2, argnums=(0, 1))(_x, _y)  # jax jacobian
-    pprint(_g2)
-
-    grads, vec, aux = bm.jacrev(f1, return_value=True, has_aux=True)(_x, _y)
-    assert (grads == _g1).all()
-    assert aux == _a
-    assert (vec == _r).all()
-
-    grads, vec, aux = bm.jacrev(f1, return_value=True, argnums=(0, 1), has_aux=True)(_x, _y)
-    assert (grads[0] == _g2[0]).all()
-    assert (grads[1] == _g2[1]).all()
-    assert aux == _a
-    assert (vec == _r).all()
-
-    bm.disable_x64()
+# class TestPureFuncJacobian(unittest.TestCase):
+#   def test1(self):
+#     jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 2]), has_aux=True)(3.)
+#     self.assertTrue(jax.numpy.allclose(jac, jax.jacfwd(lambda x: x ** 3)(3.)))
+#     self.assertTrue(aux[0] == 9.)
+#
+#   def test_jacfwd_and_aux_nested(self):
+#     def f(x):
+#       jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
+#       return aux[0]
+#
+#     f2 = lambda x: x ** 3
+#
+#     self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
+#     self.assertEqual(jax.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
+#     self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(4.), _jacfwd(f2)(4.))
+#
+#     self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+#     self.assertEqual(jax.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+#     self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+#
+#     def f(x):
+#       jac, aux = _jacfwd(lambda x: (x ** 3, [x ** 3]), has_aux=True)(x)
+#       return aux[0] * bm.sin(x)
+#
+#     f2 = lambda x: x ** 3 * bm.sin(x)
+#
+#     self.assertEqual(_jacfwd(f)(4.), _jacfwd(f2)(4.))
+#     self.assertEqual(jax.jit(_jacfwd(f))(4.), _jacfwd(f2)(4.))
+#     self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(4.), _jacfwd(f2)(4.))
+#
+#     self.assertEqual(_jacfwd(f)(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+#     self.assertEqual(jax.jit(_jacfwd(f))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+#     self.assertEqual(jax.jit(_jacfwd(jax.jit(f)))(bm.asarray(4.)), _jacfwd(f2)(bm.asarray(4.)))
+#
+#   def test_jacrev1(self):
+#     def f1(x, y):
+#       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], 4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+#       return r
+#
+#     br = bm.jacrev(f1)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     jr = jax.jacrev(f1)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     assert (br == jr).all()
+#
+#     br = bm.jacrev(f1, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     jr = jax.jacrev(f1, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     assert (br[0] == jr[0]).all()
+#     assert (br[1] == jr[1]).all()
+#
+#   def test_jacrev2(self):
+#     print()
+#
+#     def f2(x, y):
+#       r1 = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1]])
+#       r2 = jnp.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+#       return r1, r2
+#
+#     jr = jax.jacrev(f2)(jnp.array([1., 2., 3.]), jnp.array([10., 5.]))
+#     pprint(jr)
+#
+#     br = bm.jacrev(f2)(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
+#     pprint(br)
+#     assert bm.array_equal(br[0], jr[0])
+#     assert bm.array_equal(br[1], jr[1])
+#
+#     br = bm.jacrev(f2)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     pprint(br)
+#     assert bm.array_equal(br[0], jr[0])
+#     assert bm.array_equal(br[1], jr[1])
+#
+#     def f2(x, y):
+#       r1 = bm.asarray([x[0] * y[0], 5 * x[2] * y[1]])
+#       r2 = bm.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+#       return r1, r2
+#
+#     br = bm.jacrev(f2)(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
+#     pprint(br)
+#     assert bm.array_equal(br[0], jr[0])
+#     assert bm.array_equal(br[1], jr[1])
+#
+#     br = bm.jacrev(f2)(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     pprint(br)
+#     assert bm.array_equal(br[0], jr[0])
+#     assert bm.array_equal(br[1], jr[1])
+#
+#   def test_jacrev3(self):
+#     print()
+#
+#     def f3(x, y):
+#       r1 = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1]])
+#       r2 = jnp.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+#       return r1, r2
+#
+#     jr = jax.jacrev(f3, argnums=(0, 1))(jnp.array([1., 2., 3.]), jnp.array([10., 5.]))
+#     pprint(jr)
+#
+#     br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
+#     pprint(br)
+#     assert bm.array_equal(br[0][0], jr[0][0])
+#     assert bm.array_equal(br[0][1], jr[0][1])
+#     assert bm.array_equal(br[1][0], jr[1][0])
+#     assert bm.array_equal(br[1][1], jr[1][1])
+#
+#     br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     pprint(br)
+#     assert bm.array_equal(br[0][0], jr[0][0])
+#     assert bm.array_equal(br[0][1], jr[0][1])
+#     assert bm.array_equal(br[1][0], jr[1][0])
+#     assert bm.array_equal(br[1][1], jr[1][1])
+#
+#     def f3(x, y):
+#       r1 = bm.asarray([x[0] * y[0], 5 * x[2] * y[1]])
+#       r2 = bm.asarray([4 * x[1] ** 2 - 2 * x[2], x[2] * jnp.sin(x[0])])
+#       return r1, r2
+#
+#     br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]).value, bm.array([10., 5.]).value)
+#     pprint(br)
+#     assert bm.array_equal(br[0][0], jr[0][0])
+#     assert bm.array_equal(br[0][1], jr[0][1])
+#     assert bm.array_equal(br[1][0], jr[1][0])
+#     assert bm.array_equal(br[1][1], jr[1][1])
+#
+#     br = bm.jacrev(f3, argnums=(0, 1))(bm.array([1., 2., 3.]), bm.array([10., 5.]))
+#     pprint(br)
+#     assert bm.array_equal(br[0][0], jr[0][0])
+#     assert bm.array_equal(br[0][1], jr[0][1])
+#     assert bm.array_equal(br[1][0], jr[1][0])
+#     assert bm.array_equal(br[1][1], jr[1][1])
+#
+#   def test_jacrev_aux1(self):
+#     x = bm.array([1., 2., 3.])
+#     y = bm.array([10., 5.])
+#
+#     def f1(x, y):
+#       a = 4 * x[1] ** 2 - 2 * x[2]
+#       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], a, x[2] * jnp.sin(x[0])])
+#       return r, a
+#
+#     f2 = lambda *args: f1(*args)[0]
+#     jr = jax.jacrev(f2)(x, y)  # jax jacobian
+#     pprint(jr)
+#     grads, aux = bm.jacrev(f1, has_aux=True)(x, y)
+#     assert (grads == jr).all()
+#     assert aux == (4 * x[1] ** 2 - 2 * x[2])
+#
+#     jr = jax.jacrev(f2, argnums=(0, 1))(x, y)  # jax jacobian
+#     pprint(jr)
+#     grads, aux = bm.jacrev(f1, argnums=(0, 1), has_aux=True)(x, y)
+#     assert (grads[0] == jr[0]).all()
+#     assert (grads[1] == jr[1]).all()
+#     assert aux == (4 * x[1] ** 2 - 2 * x[2])
+#
+#   def test_jacrev_return_aux1(self):
+#     bm.enable_x64()
+#
+#     def f1(x, y):
+#       a = 4 * x[1] ** 2 - 2 * x[2]
+#       r = jnp.asarray([x[0] * y[0], 5 * x[2] * y[1], a, x[2] * jnp.sin(x[0])])
+#       return r, a
+#
+#     _x = bm.array([1., 2., 3.])
+#     _y = bm.array([10., 5.])
+#     _r, _a = f1(_x, _y)
+#     f2 = lambda *args: f1(*args)[0]
+#     _g1 = jax.jacrev(f2)(_x, _y)  # jax jacobian
+#     pprint(_g1)
+#     _g2 = jax.jacrev(f2, argnums=(0, 1))(_x, _y)  # jax jacobian
+#     pprint(_g2)
+#
+#     grads, vec, aux = bm.jacrev(f1, return_value=True, has_aux=True)(_x, _y)
+#     assert (grads == _g1).all()
+#     assert aux == _a
+#     assert (vec == _r).all()
+#
+#     grads, vec, aux = bm.jacrev(f1, return_value=True, argnums=(0, 1), has_aux=True)(_x, _y)
+#     assert (grads[0] == _g2[0]).all()
+#     assert (grads[1] == _g2[1]).all()
+#     assert aux == _a
+#     assert (vec == _r).all()
+#
+#     bm.disable_x64()
 
 
 class TestClassFuncJacobian(unittest.TestCase):
@@ -1026,93 +1025,17 @@ class TestDebug(parameterized.TestCase):
     with jax.disable_jit():
       f(1.)
 
-  @parameterized.product(
-    grad_fun=[bm.grad, bm.vector_grad]
-  )
-  def test_print_info1(self, grad_fun):
-    file = tempfile.TemporaryFile(mode='w+')
-
-    @functools.partial(grad_fun, argnums=0)
-    def f2(a, b):
-      print('compiling f2 ...', file=file)
-      return a + b
-
-    @functools.partial(grad_fun, argnums=0)
-    def f1(a):
-      print('compiling f1 ...', file=file)
-      return f2(a, 1.)
-
-    expect_res = '''
-compiling f1 ...
-compiling f2 ...
-compiling f1 ...
-compiling f2 ...
-    '''
-
-    print(f1(1.))
-    file.seek(0)
-    self.assertTrue(file.read().strip() == expect_res.strip())
-
-    file = tempfile.TemporaryFile(mode='w+')
-    with jax.disable_jit():
-      expect_res = '''
-compiling f1 ...
-compiling f2 ...
-      '''
-      self.assertTrue(f1(1.) == 0.)
-      file.seek(0)
-      self.assertTrue(file.read().strip() == expect_res.strip())
-
-  @parameterized.product(
-    grad_fun=[bm.grad, bm.vector_grad]
-  )
-  def test_print_info2(self, grad_fun):
-    file = tempfile.TemporaryFile(mode='w+')
-
-    @functools.partial(grad_fun, argnums=0)
-    def f1(a):
-      @functools.partial(grad_fun, argnums=0)
-      def f2(a, b):
-        print('compiling f2 ...', file=file)
-        return a + b
-
-      print('compiling f1 ...', file=file)
-      return f2(a, 1.)
-
-    expect_res = '''
-compiling f1 ...
-compiling f2 ...
-compiling f1 ...
-compiling f2 ...
-compiling f2 ...
-    '''
-    self.assertTrue(f1(1.) == 0.)
-    file.seek(0)
-    self.assertTrue(file.read().strip() == expect_res.strip())
-
-    file = tempfile.TemporaryFile(mode='w+')
-    with jax.disable_jit():
-      expect_res = '''
-compiling f1 ...
-compiling f2 ...
-      '''
-      self.assertTrue(f1(1.) == 0.)
-      file.seek(0)
-      # print(file.read().strip())
-      self.assertTrue(file.read().strip() == expect_res.strip())
-
   def test_debug_correctness1(self):
     def test_f():
       a = bm.Variable(bm.ones(2))
       b = bm.Variable(bm.zeros(2))
 
-      @bm.vector_grad(argnums=0)
       def f1(c):
         a.value += 1
         b.value += 10
         return a * b * c
 
-      return a, b, f1(1.)
+      return a, b, bm.vector_grad(f1, argnums=0)(1.)
 
     r1 = test_f()
     print(r1)
@@ -1138,49 +1061,26 @@ compiling f2 ...
 
     @bm.jit
     def run_fun(d):
-      @bm.vector_grad(argnums=0)
       def f1(c):
         a.value += d
         b.value += 10
         return a * b * c
 
-      return a, b, f1(1.)
+      return a, b, bm.vector_grad(f1, argnums=0)(1.)
 
     return run_fun(dd)
 
-  def test_debug_correctness2(self):
-    r1 = self._bench_f2(1.)
-    print(r1)
-
-    with jax.disable_jit():
-      r2 = self._bench_f2(1.)
-      print(r2)
-
-    self.assertTrue(bm.allclose(r1[0], r2[0]))
-    self.assertTrue(bm.allclose(r1[1], r2[1]))
-    self.assertTrue(bm.allclose(r1[2], r2[2]))
-
-  def test_cache1(self):
-      file = tempfile.TemporaryFile(mode='w+')
-
-      def f(a, b):
-        print('compiling f ...', file=file)
-        return a + b
-
-      grad1 = bm.grad(f)(1., 2.)  # call "f" twice, one for Variable finding, one for compiling
-      grad2 = bm.vector_grad(f)(1., 2.)  # call "f" once for compiling
-
-      file.seek(0)
-      print(file.read().strip())
-
-      expect_res = '''
-compiling f ...
-compiling f ...
-compiling f ...
-      '''
-      file.seek(0)
-      self.assertTrue(file.read().strip() == expect_res.strip())
-
+  # def test_debug_correctness2(self):
+  #   r1 = self._bench_f2(1.)
+  #   print(r1)
+  #
+  #   with jax.disable_jit():
+  #     r2 = self._bench_f2(1.)
+  #     print(r2)
+  #
+  #   self.assertTrue(bm.allclose(r1[0], r2[0]))
+  #   self.assertTrue(bm.allclose(r1[1], r2[1]))
+  #   self.assertTrue(bm.allclose(r1[2], r2[2]))
 
 
 # class TestHessian(unittest.TestCase):

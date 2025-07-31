@@ -15,7 +15,7 @@ class Test_Normalization(parameterized.TestCase):
     bp.share.save(fit=fit)
     input = bm.random.randn(1, 3, 10)
     output = net(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     fit=[True, False]
@@ -26,7 +26,7 @@ class Test_Normalization(parameterized.TestCase):
     bp.share.save(fit=fit)
     input = bm.random.randn(1, 3, 4, 10)
     output = net(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     fit=[True, False]
@@ -37,7 +37,7 @@ class Test_Normalization(parameterized.TestCase):
     bp.share.save(fit=fit)
     input = bm.random.randn(1, 3, 4, 5, 10)
     output = net(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     normalized_shape=(10, [5, 10])
@@ -47,7 +47,7 @@ class Test_Normalization(parameterized.TestCase):
     net = bp.dnn.LayerNorm(normalized_shape, mode=bm.training_mode)
     input = bm.random.randn(20, 5, 10)
     output = net(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     num_groups=[1, 2, 3, 6]
@@ -57,14 +57,14 @@ class Test_Normalization(parameterized.TestCase):
     input = bm.random.randn(20, 10, 10, 6)
     net = bp.dnn.GroupNorm(num_groups=num_groups, num_channels=6, mode=bm.training_mode)
     output = net(input)
-    bm.clear_buffer_memory()
+    
 
   def test_InstanceNorm(self):
     bm.random.seed()
     input = bm.random.randn(20, 10, 10, 6)
     net = bp.dnn.InstanceNorm(num_channels=6, mode=bm.training_mode)
     output = net(input)
-    bm.clear_buffer_memory()
+    
 
 
 if __name__ == '__main__':

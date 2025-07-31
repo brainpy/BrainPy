@@ -14,7 +14,7 @@ __all__ = [
 
 def _inplace(inp, val, inplace):
   if inplace:
-    assert isinstance(inp, bm.Array), 'input must be instance of brainpy.math.Array if inplace=True'
+    assert isinstance(inp, bm.BaseArray), 'input must be instance of brainpy.math.Array if inplace=True'
     inp.value = val
     return inp
   else:

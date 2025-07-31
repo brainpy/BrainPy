@@ -72,8 +72,8 @@ def check_plot_durations(plot_durations, duration, initials):
 
 def get_sign(f, xs, ys):
   f = f_without_jaxarray_return(f)
-  xs = xs.value if isinstance(xs, bm.Array) else xs
-  ys = ys.value if isinstance(ys, bm.Array) else ys
+  xs = xs.value if isinstance(xs, bm.BaseArray) else xs
+  ys = ys.value if isinstance(ys, bm.BaseArray) else ys
   Y, X = jnp.meshgrid(ys, xs)
   return jnp.sign(f(X, Y))
 
@@ -81,7 +81,7 @@ def get_sign(f, xs, ys):
 def get_sign2(f, *xyz, args=()):
   in_axes = tuple(range(len(xyz))) + tuple([None] * len(args))
   f = jax.jit(jax.vmap(f_without_jaxarray_return(f), in_axes=in_axes))
-  xyz = tuple((v.value if isinstance(v, bm.Array) else v) for v in xyz)
+  xyz = tuple((v.value if isinstance(v, bm.BaseArray) else v) for v in xyz)
   XYZ = jnp.meshgrid(*xyz)
   XYZ = tuple(jnp.moveaxis(v, 1, 0).flatten() for v in XYZ)
   shape = (len(v) for v in xyz)
@@ -116,7 +116,7 @@ def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
     return candidates, keep_ids
   if num_fps <= 1:
     return candidates, keep_ids
-  candidates = tree_map(lambda a: np.asarray(a), candidates, is_leaf=lambda a: isinstance(a, bm.Array))
+  candidates = tree_map(lambda a: np.asarray(a), candidates, is_leaf=lambda a: isinstance(a, bm.BaseArray))
 
   # If point A and point B are within identical_tol of each other, and the
   # A is first in the list, we keep A.

@@ -5,15 +5,15 @@ from typing import Callable
 
 from jax.tree_util import tree_map
 
-from .ndarray import Array, _return
+from .ndarray import Array, _return, BaseArray
 
 
 def _as_jax_array_(obj):
-  return obj.value if isinstance(obj, Array) else obj
+  return obj.value if isinstance(obj, BaseArray) else obj
 
 
 def _is_leaf(a):
-  return isinstance(a, Array)
+  return isinstance(a, BaseArray)
 
 
 def _compatible_with_brainpy_array(
@@ -38,7 +38,7 @@ def _compatible_with_brainpy_array(
       # compatible with NumPy/PyTorch syntax
       if 'out' in kwargs:
         out = kwargs.pop('out')
-        if not isinstance(out, Array):
+        if not isinstance(out, BaseArray):
           raise TypeError(f'"out" must be an instance of brainpy Array. While we got {type(out)}')
       # format
       kwargs = tree_map(_as_jax_array_, kwargs, is_leaf=_is_leaf)

@@ -79,5 +79,5 @@ class OUProcess(NeuDyn):
   def update(self):
     t = share.load('t')
     dt = share.load('dt')
-    self.x.value = self.integral(self.x, t, dt)
+    self.x.value = self.integral(self.x.value, t, dt)
     return self.x.value

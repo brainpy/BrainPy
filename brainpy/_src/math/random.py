@@ -8,8 +8,8 @@ from typing import Optional, Union, Sequence, Any
 
 import jax
 import numpy as np
+from brainstate._state import record_state_value_read
 from jax import lax, jit, vmap, numpy as jnp, random as jr, core, dtypes
-from jax._src.array import ArrayImpl
 from jax._src.core import _canonicalize_dimension, _invalid_shape_error
 from jax._src.typing import Shape
 from jax.tree_util import register_pytree_node_class
@@ -17,7 +17,7 @@ from jax.tree_util import register_pytree_node_class
 from brainpy.check import jit_error_checking, jit_error_checking_no_args
 from .compat_numpy import shape
 from .environment import get_int
-from .ndarray import Array, _return
+from .ndarray import Array, _return, BaseArray
 from .object_transform.variables import Variable
 
 __all__ = [
@@ -47,7 +47,7 @@ JAX_RAND_KEY = jax.Array
 def _formalize_key(key):
   if isinstance(key, int):
     return jr.PRNGKey(key)
-  elif isinstance(key, (Array, jnp.ndarray, np.ndarray)):
+  elif isinstance(key, (BaseArray, jnp.ndarray, np.ndarray)):
     if key.dtype != jnp.uint32:
       raise TypeError('key must be a int or an array with two uint32.')
     if key.size != 2:
@@ -77,7 +77,7 @@ def _check_shape(name, shape, *param_shapes):
 
 
 def _as_jax_array(a):
-  return a.value if isinstance(a, Array) else a
+  return a.value if isinstance(a, BaseArray) else a
 
 
 def _is_python_scalar(x):
@@ -457,13 +457,11 @@ def canonicalize_shape(shape: Shape, context: str = "") -> tuple[Any, ...]:
 @register_pytree_node_class
 class RandomState(Variable):
   """RandomState that track the random generator state. """
-  __slots__ = ()
 
   def __init__(
       self,
       seed_or_key: Optional[Union[int, Array, jax.Array, np.ndarray]] = None,
       seed: Optional[int] = None,
-      ready_to_trace: bool = True,
   ):
     """RandomState constructor.
 
@@ -498,21 +496,13 @@ class RandomState(Variable):
         raise ValueError('key must be an array with dtype uint32. '
                          f'But we got {seed_or_key}')
       key = seed_or_key
-    super(RandomState, self).__init__(key, ready_to_trace=ready_to_trace)
+    super(RandomState, self).__init__(key)
 
   def __repr__(self) -> str:
     print_code = repr(self.value)
     i = print_code.index('(')
     name = self.__class__.__name__
     return f'{name}(key={print_code[i:]})'
-
-  @property
-  def value(self):
-    if isinstance(self._value, ArrayImpl):
-      if self._value.is_deleted():
-        self.seed()
-    self._append_to_stack()
-    return self._value
 
   # ------------------- #
   # seed and random key #
@@ -555,6 +545,27 @@ class RandomState(Variable):
                          f'But we got {seed_or_key}')
       key = seed_or_key
     self._value = key
+
+
+  def _ensure_value_exists(self):
+    """Ensure that the random state has a valid value, regenerate if needed."""
+    if not isinstance(self._value, np.ndarray):
+      with jax.ensure_compile_time_eval():
+        if not isinstance(self._value, jax.core.Tracer):
+          if self._value.is_deleted():
+            seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
+            self._value = seed_or_key
+
+
+  @property
+  def value(self):
+    self._ensure_value_exists()
+    record_state_value_read(self)
+    return self._read_value()
+
+  # def check_if_deleted(self):
+  #   if self.value.is_deleted():
+  #     self.seed()
 
   def split_key(self):
     """Create a new seed from the current seed.
@@ -669,14 +680,14 @@ class RandomState(Variable):
     return _return(r)
 
   def permutation(self, x, axis: int = 0, independent: bool = False, key: Optional[Union[int, JAX_RAND_KEY]] = None):
-    x = x.value if isinstance(x, Array) else x
+    x = x.value if isinstance(x, BaseArray) else x
     x = _check_py_seq(x)
     key = self.split_key() if key is None else _formalize_key(key)
     r = jr.permutation(key, x, axis=axis, independent=independent)
     return _return(r)
 
   def shuffle(self, x, axis=0, key: Optional[Union[int, JAX_RAND_KEY]] = None):
-    if not isinstance(x, Array):
+    if not isinstance(x, BaseArray):
       raise TypeError('This numpy operator needs in-place updating, therefore '
                       'inputs should be brainpy Array.')
     key = self.split_key() if key is None else _formalize_key(key)
@@ -685,8 +696,8 @@ class RandomState(Variable):
   def beta(self, a, b,
            size: Optional[Union[int, Sequence[int]]] = None,
            key: Optional[Union[int, JAX_RAND_KEY]] = None):
-    a = a.value if isinstance(a, Array) else a
-    b = b.value if isinstance(b, Array) else b
+    a = a.value if isinstance(a, BaseArray) else a
+    b = b.value if isinstance(b, BaseArray) else b
     a = _check_py_seq(a)
     b = _check_py_seq(b)
     if size is None:
@@ -942,8 +953,8 @@ class RandomState(Variable):
 
   def binomial(self, n, p, size: Optional[Union[int, Sequence[int]]] = None,
                key: Optional[Union[int, JAX_RAND_KEY]] = None):
-    n = _check_py_seq(n.value if isinstance(n, Array) else n)
-    p = _check_py_seq(p.value if isinstance(p, Array) else p)
+    n = _check_py_seq(n.value if isinstance(n, BaseArray) else n)
+    p = _check_py_seq(p.value if isinstance(p, BaseArray) else p)
     jit_error_checking(jnp.any(jnp.logical_and(p < 0, p > 1)), self._check_p, p)
     if size is None:
       size = jnp.broadcast_shapes(jnp.shape(n), jnp.shape(p))

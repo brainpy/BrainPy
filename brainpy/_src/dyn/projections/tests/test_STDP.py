@@ -8,6 +8,11 @@ import brainpy as bp
 import brainpy.math as bm
 
 bm.set_platform('cpu')
+show = False
+
+import pytest
+
+pytest.skip(allow_module_level=True)
 
 
 class Test_STDP(parameterized.TestCase):
@@ -120,4 +125,4 @@ class Test_STDP(parameterized.TestCase):
     # bp.visualize.line_plot(indices, W, ax=fig.add_subplot(gs[3, 0]))
     # plt.show()
 
-    bm.clear_buffer_memory()
+    

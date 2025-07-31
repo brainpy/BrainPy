@@ -96,7 +96,7 @@ class TestExpEulerAuto(unittest.TestCase):
 
       def update(self):
         t, dt = bp.share['t'], bp.share['dt']
-        V, h, n = self.integral(self.V, self.h, self.n, t, self.input, dt=dt)
+        V, h, n = self.integral(self.V.value, self.h.value, self.n.value, t, self.input.value, dt=dt)
         self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
         self.V.value = V
         self.h.value = h
@@ -126,5 +126,4 @@ class TestExpEulerAuto(unittest.TestCase):
     self.assertTrue(diff < 1e0)
 
     plt.close()
-    bm.clear_buffer_memory()
 

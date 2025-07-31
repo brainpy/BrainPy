@@ -581,7 +581,7 @@ class QIF(RateModel):
       input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
-    x, y = self.integral(self.x, self.y, t=t, x_ext=input_x, y_ext=input_y, dt=dt)
+    x, y = self.integral(self.x.value, self.y.value, t=t, x_ext=input_x, y_ext=input_y, dt=dt)
     self.x.value = x
     self.y.value = y
     return x
@@ -729,8 +729,8 @@ class StuartLandauOscillator(RateModel):
       input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
-    x, y = self.integral(self.x,
-                         self.y,
+    x, y = self.integral(self.x.value,
+                         self.y.value,
                          t=t,
                          x_ext=input_x,
                          y_ext=input_y,
@@ -908,7 +908,7 @@ class WilsonCowanModel(RateModel):
       input_y = inp_y if (inp_y is not None) else 0.
       if self.y_ou is not None: input_y += self.y_ou()
 
-    x, y = self.integral(self.x, self.y, t, x_ext=input_x, y_ext=input_y, dt=dt)
+    x, y = self.integral(self.x.value, self.y.value, t, x_ext=input_x, y_ext=input_y, dt=dt)
     self.x.value = x
     self.y.value = y
     return x

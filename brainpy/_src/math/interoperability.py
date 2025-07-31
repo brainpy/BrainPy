@@ -3,7 +3,7 @@
 import jax.numpy as jnp
 import numpy as np
 
-from .ndarray import Array
+from .ndarray import Array, BaseArray
 
 
 __all__ = [
@@ -15,13 +15,13 @@ __all__ = [
 
 
 def _as_jax_array_(obj):
-  return obj.value if isinstance(obj, Array) else obj
+  return obj.value if isinstance(obj, BaseArray) else obj
 
 
 def is_bp_array(x):
   """Check if the input is a ``brainpy.math.Array``.
   """
-  return isinstance(x, Array)
+  return isinstance(x, BaseArray)
 
 
 def as_device_array(tensor, dtype=None):
@@ -42,7 +42,7 @@ def as_device_array(tensor, dtype=None):
     Array interpretation of `tensor`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
-  if isinstance(tensor, Array):
+  if isinstance(tensor, BaseArray):
     return tensor.to_jax(dtype)
   elif isinstance(tensor, jnp.ndarray):
     return tensor if (dtype is None) else jnp.asarray(tensor, dtype=dtype)
@@ -73,7 +73,7 @@ def as_ndarray(tensor, dtype=None):
     Array interpretation of `tensor`.  No copy is performed if the input
     is already an ndarray with matching dtype.
   """
-  if isinstance(tensor, Array):
+  if isinstance(tensor, BaseArray):
     return tensor.to_numpy(dtype=dtype)
   else:
     return np.asarray(tensor, dtype=dtype)

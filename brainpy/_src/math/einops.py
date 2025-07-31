@@ -9,13 +9,13 @@ import numpy as np
 from . import compat_numpy as bnp
 from . import others as bnp2
 from .einops_parsing import ParsedExpression, _ellipsis, AnonymousAxis, EinopsError
-from .ndarray import Array
+from .ndarray import BaseArray
 
 __all__ = [
   'ein_reduce', 'ein_rearrange', 'ein_repeat', 'ein_shape',
 ]
 
-Tensor = Union[Array, jax.Array]
+Tensor = Union[BaseArray, jax.Array]
 ReductionCallable = Callable[[Tensor, Tuple[int, ...]], Tensor]
 Reduction = Union[str, ReductionCallable]
 
@@ -48,7 +48,7 @@ def _reduce_axes(tensor, reduction_type: Reduction, reduced_axes: List[int]):
     return __reduce(tensor, reduction_type, tuple(reduced_axes))
 
 
-def __reduce(x: Union[Array, jax.Array], operation: str, reduced_axes):
+def __reduce(x: Union[BaseArray, jax.Array], operation: str, reduced_axes):
   if operation == "min":
     return x.min(axis=reduced_axes)
   elif operation == "max":

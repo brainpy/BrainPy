@@ -5,7 +5,7 @@ from typing import Union, Dict, Sequence
 
 import numpy as np
 from jax.tree_util import register_pytree_node
-from jax.util import safe_zip
+from brainstate._compatible_import import safe_zip
 
 __all__ = [
   'DotDict',

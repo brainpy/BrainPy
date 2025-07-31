@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brainpy"
+description = "BrainPy: Brain Dynamics Programming in Python"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "BrainPy Team", email = "chao.brain@qq.com"}
+]
+license = {text = "GPL-3.0 license"}
+classifiers = [
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries",
+]
+keywords = [
+    "computational neuroscience",
+    "brain-inspired computation",
+    "brain modeling",
+    "brain dynamics modeling",
+    "brain dynamics programming"
+]
+dependencies = [
+    "numpy>=1.15",
+    "jax",
+    "tqdm",
+    "brainstate",
+    "brainunit",
+    "brainevent"
+]
+
+dynamic = ['version']
+
+
+[project.urls]
+"Bug Tracker" = "https://github.com/brainpy/BrainPy/issues"
+"Documentation" = "https://brainpy.readthedocs.io/"
+"Source Code" = "https://github.com/brainpy/BrainPy"
+
+[project.optional-dependencies]
+cpu = ["jax[cpu]", "brainstate[cpu]", "brainunit[cpu]", "brainevent[cpu]"]
+cuda12 = ["jax[cuda12]", "brainstate[cuda12]", "brainunit[cuda12]", "brainevent[cuda12]"]
+tpu = ["jax[tpu]", "brainstate[cuda12]", "brainunit[cuda12]", "brainevent[cuda12]"]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["lib*", "docs", "tests"]
+
+[tool.setuptools.dynamic]
+version = {attr = "brainpy.__version__"}

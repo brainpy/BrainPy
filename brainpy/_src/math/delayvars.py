@@ -14,7 +14,7 @@ from brainpy.errors import UnsupportedError
 from .compat_numpy import broadcast_to, expand_dims, concatenate
 from .environment import get_dt, get_float
 from .interoperability import as_jax
-from .ndarray import ndarray, Array
+from .ndarray import ndarray, BaseArray
 from .object_transform.base import BrainPyObject
 from .object_transform.controls import cond
 from .object_transform.variables import Variable
@@ -29,7 +29,7 @@ __all__ = [
 
 
 def _as_jax_array(arr):
-  return arr.value if isinstance(arr, Array) else arr
+  return arr.value if isinstance(arr, BaseArray) else arr
 
 
 class AbstractDelay(BrainPyObject):
@@ -129,8 +129,8 @@ class TimeDelay(AbstractDelay):
     super(TimeDelay, self).__init__(name=name)
 
     # shape
-    if not isinstance(delay_target, (jnp.ndarray, Array)):
-      raise ValueError(f'Must be an instance of Array or jax.numpy.ndarray. But we got {type(delay_target)}')
+    if not isinstance(delay_target, (jnp.ndarray, BaseArray)):
+      raise ValueError(f'Must be an instance of BaseArray or jax.numpy.ndarray. But we got {type(delay_target)}')
 
     # delay_len
     self.t0 = t0
@@ -453,7 +453,7 @@ class LengthDelay(AbstractDelay):
     # the delay data
     return self.data[indices]
 
-  def update(self, value: Union[numbers.Number, Array, jax.Array] = None):
+  def update(self, value: Union[numbers.Number, BaseArray, jax.Array] = None):
     """Update delay variable with the new data.
 
     Parameters

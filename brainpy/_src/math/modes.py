@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+import brainstate
+
 __all__ = [
   'Mode',
   'NonBatchingMode',
@@ -12,7 +14,7 @@ __all__ = [
 ]
 
 
-class Mode(object):
+class Mode(brainstate.mixin.Mode):
   """Base class for computation Mode
   """
 

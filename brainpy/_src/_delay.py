@@ -92,7 +92,7 @@ class Delay(DynamicalSystem):
 
     # delay data
     if before_t0 is not None:
-      assert isinstance(before_t0, (int, float, bool, bm.Array, jax.Array, Callable))
+      assert isinstance(before_t0, (int, float, bool, bm.BaseArray, jax.Array, Callable))
     self._before_t0 = before_t0
     if length > 0:
       self._init_data(length)
@@ -139,7 +139,7 @@ class Delay(DynamicalSystem):
       delay_type = 'none'
     elif isinstance(delay_step, int):
       delay_type = 'homo'
-    elif isinstance(delay_step, (bm.Array, jax.Array, np.ndarray)):
+    elif isinstance(delay_step, (bm.BaseArray, jax.Array, np.ndarray)):
       if delay_step.size == 1 and delay_step.ndim == 0:
         delay_type = 'homo'
       else:
@@ -296,7 +296,7 @@ class Delay(DynamicalSystem):
                             batch_axis=batch_axis)
     # update delay data
     self.data[0] = self.latest.value
-    if isinstance(self._before_t0, (bm.Array, jax.Array, float, int, bool)):
+    if isinstance(self._before_t0, (bm.BaseArray, jax.Array, float, int, bool)):
       self.data[1:] = self._before_t0
     elif callable(self._before_t0):
       self.data[1:] = self._before_t0((length,) + self.latest.shape, dtype=self.latest.dtype)

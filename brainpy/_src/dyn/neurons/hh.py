@@ -702,7 +702,7 @@ class MorrisLecarLTC(NeuDyn):
     t = share.load('t')
     dt = share.load('dt')
     x = 0. if x is None else x
-    V, W = self.integral(self.V, self.W, t, x, dt)
+    V, W = self.integral(self.V.value, self.W.value, t, x, dt)
     V  += self.sum_delta_inputs()
     spike = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
@@ -994,7 +994,7 @@ class WangBuzsakiHHLTC(NeuDyn):
     dt = share.load('dt')
     x = 0. if x is None else x
 
-    V, h, n = self.integral(self.V, self.h, self.n, t, x, dt)
+    V, h, n = self.integral(self.V.value, self.h.value, self.n.value, t, x, dt)
     V +=  self.sum_delta_inputs()
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V

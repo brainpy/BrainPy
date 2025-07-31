@@ -236,7 +236,7 @@ def is_initializer(
   """Check the initializer.
   """
   global Array
-  if Array is None: from brainpy._src.math.ndarray import Array
+  if Array is None: from brainpy._src.math.ndarray import BaseArray as Array
 
   global init
   if init is None:
@@ -269,7 +269,7 @@ def is_connector(
   """
   global Array
   if Array is None:
-    from brainpy._src.math.ndarray import Array
+    from brainpy._src.math.ndarray import BaseArray as Array
   global conn
   if conn is None: from brainpy import connect as conn
 
@@ -573,7 +573,7 @@ def _err_jit_true_branch(err_fun, x):
     x_shape_dtype = tuple(jax.ShapeDtypeStruct(arr.shape, arr.dtype) for arr in x)
   else:
     x_shape_dtype = jax.ShapeDtypeStruct(x.shape, x.dtype)
-  jax.pure_callback(err_fun, x_shape_dtype, x)
+  jax.pure_callback(err_fun, x_shape_dtype, x, vmap_method='sequential')
   return
 
 

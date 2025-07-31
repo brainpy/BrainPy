@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
 import unittest
+
+import brainpy as bp
 import brainpy.math as bm
 
 
@@ -61,10 +62,10 @@ class HH(bp.dyn.NeuDyn):
 
   def update(self, tdi):
     t, dt = tdi.t, tdi.dt
-    m = self.int_m(self.m, t, self.V, dt=dt)
-    h = self.int_h(self.h, t, self.V, dt=dt)
-    n = self.int_n(self.n, t, self.V, dt=dt)
-    V = self.int_V(self.V, t, self.m, self.h, self.n, self.input, dt=dt)
+    m = self.int_m(self.m.value, t, self.V.value, dt=dt)
+    h = self.int_h(self.h.value, t, self.V.value, dt=dt)
+    n = self.int_n(self.n.value, t, self.V.value, dt=dt)
+    V = self.int_V(self.V.value, t, self.m.value, self.h.value, self.n.value, self.input.value, dt=dt)
     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
     self.V.value = V
     self.h.value = h
@@ -106,7 +107,6 @@ class TestFixedPointsFinding(unittest.TestCase):
     rng = bm.random.RandomState(123)
     finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
     finder.find_fps_with_opt_solver(rng.random((100, 2)))
-    bm.clear_buffer_memory()
 
   def test_opt_solver_for_ds1(self):
     hh = HH(1)
@@ -120,7 +120,6 @@ class TestFixedPointsFinding(unittest.TestCase):
                                      'm': rng.random((100, 1)),
                                      'h': rng.random((100, 1)),
                                      'n': rng.random((100, 1))})
-    bm.clear_buffer_memory()
 
   def test_gd_method_for_func1(self):
     gamma = 0.641  # Saturation factor for gating variable
@@ -154,7 +153,6 @@ class TestFixedPointsFinding(unittest.TestCase):
     rng = bm.random.RandomState(123)
     finder = bp.analysis.SlowPointFinder(f_cell=step, f_type=bp.analysis.CONTINUOUS)
     finder.find_fps_with_gd_method(rng.random((100, 2)), num_opt=100)
-    bm.clear_buffer_memory()
 
   def test_gd_method_for_func2(self):
     hh = HH(1)
@@ -164,10 +162,10 @@ class TestFixedPointsFinding(unittest.TestCase):
     with self.assertRaises(ValueError):
       finder.find_fps_with_opt_solver(rng.random((100, 4)))
 
-    finder.find_fps_with_gd_method({'V': rng.random((100, 1)),
+    finder.find_fps_with_gd_method(
+      {'V': rng.random((100, 1)),
                                     'm': rng.random((100, 1)),
                                     'h': rng.random((100, 1)),
                                     'n': rng.random((100, 1))},
-                                   num_opt=100)
-    bm.clear_buffer_memory()
-
+      num_opt=100
+    )

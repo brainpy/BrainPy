@@ -33,7 +33,7 @@ try:
 except ModuleNotFoundError:
   msgpack = None
 
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray
 from brainpy.errors import (AlreadyExistsError,
                             MPACheckpointingRequiredError,
                             MPARestoreTargetRequiredError,
@@ -225,11 +225,11 @@ def _restore_list(xs, state_dict: Dict[str, Any]) -> List[Any]:
   return ys
 
 
-def _array_dict_state(x: Array) -> Dict[str, jax.Array]:
+def _array_dict_state(x: BaseArray) -> Dict[str, jax.Array]:
   return x.value
 
 
-def _restore_array(x, state_dict: jax.Array) -> Array:
+def _restore_array(x, state_dict: jax.Array) -> BaseArray:
   x.value = state_dict
   return x
 
@@ -276,7 +276,7 @@ def _restore_namedtuple(xs, state_dict: Dict[str, Any]):
   return type(xs)(**fields)
 
 
-register_serialization_state(Array, _array_dict_state, _restore_array)
+register_serialization_state(BaseArray, _array_dict_state, _restore_array)
 register_serialization_state(dict, _dict_state_dict, _restore_dict)
 # register_serialization_state(DotDict, _dict_state_dict, _restore_dict)
 # register_serialization_state(Collector, _dict_state_dict, _restore_dict)

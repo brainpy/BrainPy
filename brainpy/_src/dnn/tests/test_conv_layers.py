@@ -32,7 +32,7 @@ class TestConv(parameterized.TestCase):
       # plt.figure(figsize=(10, 10))
       # plt.imshow(np.array(img)[0, :, :, 0])
       # plt.show()
-    bm.clear_buffer_memory()
+    
 
   def test_conv1D(self):
     with bp.math.training_environment():
@@ -47,7 +47,7 @@ class TestConv(parameterized.TestCase):
       # plt.figure(figsize=(10, 10))
       # plt.imshow(np.array(out)[0, :, :])
       # plt.show()
-    bm.clear_buffer_memory()
+    
 
   def test_conv2D(self):
     bm.random.seed()
@@ -63,7 +63,7 @@ class TestConv(parameterized.TestCase):
       # plt.figure(figsize=(10, 10))
       # plt.imshow(np.array(out)[0, :, :, 31])
       # plt.show()
-    bm.clear_buffer_memory()
+    
 
   def test_conv3D(self):
     bm.random.seed()
@@ -73,7 +73,7 @@ class TestConv(parameterized.TestCase):
       out = model(input)
       print("out shape: ", out.shape)
       self.assertEqual(out.shape, (2, 5, 5, 5, 32))
-    bm.clear_buffer_memory()
+    
 
 
 class TestConvTranspose1d(parameterized.TestCase):
@@ -106,7 +106,7 @@ class TestConvTranspose1d(parameterized.TestCase):
       if not use_bias:
         correct_ans -= 1.
       self.assertTrue(bm.allclose(y, correct_ans))
-    bm.clear_buffer_memory()
+    
 
   def test_single_input_masked_conv_transpose(self):
     bm.random.seed()
@@ -136,7 +136,7 @@ class TestConvTranspose1d(parameterized.TestCase):
                               [7., 5., 3., 1.],
                               [4., 3., 2., 1.]]])
     self.assertTrue(bm.allclose(y, correct_ans))
-    bm.clear_buffer_memory()
+    
 
   def test_computation_padding_same(self):
     bm.random.seed()
@@ -159,7 +159,7 @@ class TestConvTranspose1d(parameterized.TestCase):
       if use_bias:
         expected_out += 1
       self.assertTrue(bm.allclose(out, expected_out, rtol=1e-5))
-    bm.clear_buffer_memory()
+    
 
 
 class TestConvTranspose2d(parameterized.TestCase):
@@ -179,7 +179,7 @@ class TestConvTranspose2d(parameterized.TestCase):
     self.assertEqual(conv_transpose_module.w.shape, (3, 3, 3, 4))
     y = conv_transpose_module(x)
     print(y.shape)
-    bm.clear_buffer_memory()
+    
 
   def test_single_input_masked_conv_transpose(self):
     bm.random.seed()
@@ -196,7 +196,7 @@ class TestConvTranspose2d(parameterized.TestCase):
     )
     y = conv_transpose_module(x)
     print(y.shape)
-    bm.clear_buffer_memory()
+    
 
   def test_computation_padding_same(self):
     bm.random.seed()
@@ -215,7 +215,7 @@ class TestConvTranspose2d(parameterized.TestCase):
       )
     y = conv_transpose_module(x)
     print(y.shape)
-    bm.clear_buffer_memory()
+    
 
 
 class TestConvTranspose3d(parameterized.TestCase):
@@ -234,7 +234,7 @@ class TestConvTranspose3d(parameterized.TestCase):
       )
     y = conv_transpose_module(x)
     print(y.shape)
-    bm.clear_buffer_memory()
+    
 
   def test_single_input_masked_conv_transpose(self):
     bm.random.seed()
@@ -251,7 +251,7 @@ class TestConvTranspose3d(parameterized.TestCase):
     )
     y = conv_transpose_module(x)
     print(y.shape)
-    bm.clear_buffer_memory()
+    
 
   def test_computation_padding_same(self):
     bm.random.seed()
@@ -269,7 +269,7 @@ class TestConvTranspose3d(parameterized.TestCase):
       )
     y = conv_transpose_module(x)
     print(y.shape)
-    bm.clear_buffer_memory()
+    
 
 
 if __name__ == '__main__':

@@ -720,7 +720,7 @@ class NMDA(SynDyn):
   def update(self, pre_spike):
     t = share.load('t')
     dt = share.load('dt')
-    self.g.value, self.x.value = self.integral(self.g, self.x, t, dt=dt)
+    self.g.value, self.x.value = self.integral(self.g.value, self.x.value, t, dt=dt)
     self.x += pre_spike
     return self.g.value
 

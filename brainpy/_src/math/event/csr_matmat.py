@@ -5,10 +5,9 @@ from typing import Union, Tuple
 
 from jax import numpy as jnp
 
-from brainpy._src.dependency_check import import_braintaichi, raise_braintaichi_not_found
-from brainpy._src.math.ndarray import Array
+from brainpy._src.math.ndarray import BaseArray as Array
 
-bti = import_braintaichi(error_if_not_found=False)
+import brainevent
 
 __all__ = [
     'csrmm',
@@ -40,7 +39,18 @@ def csrmm(
         C : array of shape ``(shape[1] if transpose else shape[0], cols)``
         representing the matrix-matrix product product.
     """
-    if bti is None:
-        raise_braintaichi_not_found()
+    if isinstance(data, Array):
+        data = data.value
+    if isinstance(indices, Array):
+        indices = indices.value
+    if isinstance(indptr, Array):
+        indptr = indptr.value
+    if isinstance(matrix, Array):
+        matrix = matrix.value
 
-    return bti.event_csrmm(data, indices, indptr, matrix, shape=shape, transpose=transpose)
+    matrix = brainevent.EventArray(matrix)
+    csr = brainevent.CSR((data, indices, indptr), shape=shape)
+    if transpose:
+        return matrix @ csr
+    else:
+        return csr @ matrix

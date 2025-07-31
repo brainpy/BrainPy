@@ -18,7 +18,7 @@ class TestDynamicalSystem(unittest.TestCase):
     runner = bp.DSRunner(net,)
     runner.run(10.)
 
-    bm.clear_buffer_memory()
+    
 
   def test_receive_update_output(self):
     def aft_update(inp):
@@ -29,7 +29,7 @@ class TestDynamicalSystem(unittest.TestCase):
     bp.share.save(i=0, t=0.)
     hh(1.)
 
-    bm.clear_buffer_memory()
+    
 
   def test_do_not_receive_update_output(self):
     def aft_update():
@@ -40,7 +40,7 @@ class TestDynamicalSystem(unittest.TestCase):
     bp.share.save(i=0, t=0.)
     hh(1.)
 
-    bm.clear_buffer_memory()
+    
 
   def test_not_receive_update_input(self):
     def bef_update():
@@ -51,7 +51,7 @@ class TestDynamicalSystem(unittest.TestCase):
     bp.share.save(i=0, t=0.)
     hh(1.)
 
-    bm.clear_buffer_memory()
+    
 
   def test_receive_update_input(self):
     def bef_update(inp):
@@ -62,7 +62,7 @@ class TestDynamicalSystem(unittest.TestCase):
     bp.share.save(i=0, t=0.)
     hh(1.)
 
-    bm.clear_buffer_memory()
+    
 
 
 

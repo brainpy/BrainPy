@@ -46,6 +46,6 @@ class TestNetDefinition(unittest.TestCase):
                           monitors={'E.spike': E.spike, 'I.spike': I.spike},
                           inputs=[(E.input, 20.), (I.input, 20.)])
 
-    bp.math.clear_buffer_memory()
+    
 
 

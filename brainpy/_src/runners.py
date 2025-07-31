@@ -7,6 +7,7 @@ import warnings
 from collections.abc import Iterable
 from typing import Dict, Union, Sequence, Callable, Tuple, Optional, Any
 
+import brainstate.compile
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -41,7 +42,7 @@ def _call_fun_with_share(f, *args, **kwargs):
 
 
 def _is_brainpy_array(x):
-  return isinstance(x, bm.Array)
+  return isinstance(x, bm.BaseArray)
 
 
 def check_and_format_inputs(host, inputs):
@@ -361,7 +362,7 @@ class DSRunner(Runner):
       self._inputs = check_and_format_inputs(host=target, inputs=inputs)
 
     # run function
-    self._jit_step_func_predict = bm.jit(self._step_func_predict, static_argnames=['shared_args'])
+    self._jit_step_func_predict = bm.jit(self._step_func_predict)
 
     # monitors
     self._memory_efficient = memory_efficient
@@ -469,10 +470,6 @@ class DSRunner(Runner):
     for key in self._monitors.keys():
       self.mon[key] = []  # reshape the monitor items
 
-    # init progress bar
-    if self.progress_bar:
-      self._pbar = tqdm.auto.tqdm(total=num_step)
-      self._pbar.set_description(description, refresh=True)
 
     # running
     if eval_time:
@@ -485,9 +482,6 @@ class DSRunner(Runner):
     if eval_time:
       running_time = time.time() - t0
 
-    # close the progress bar
-    if self.progress_bar:
-      self._pbar.close()
 
     # post-running for monitors
     if self._memory_efficient:
@@ -497,7 +491,7 @@ class DSRunner(Runner):
     else:
       hists['ts'] = indices * self.dt + self.t0
       if self.numpy_mon_after_run:
-        hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
+        hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.BaseArray))
       else:
         hists['ts'] = bm.as_jax(hists['ts'])
       for key in hists.keys():
@@ -579,7 +573,7 @@ class DSRunner(Runner):
       return None
     if isinstance(self.target.mode, bm.NonBatchingMode):
       return None
-    if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
+    if isinstance(xs, (bm.BaseArray, jax.Array, np.ndarray)):
       return xs.shape[1] if self.data_first_axis == 'T' else xs.shape[0]
     leaves, _ = tree_flatten(xs, is_leaf=_is_brainpy_array)
     if self.data_first_axis == 'T':
@@ -596,10 +590,10 @@ class DSRunner(Runner):
     if duration is not None:
       return int(duration / self.dt)
     if xs is not None:
-      if isinstance(xs, (bm.Array, jax.Array, np.ndarray)):
+      if isinstance(xs, (bm.BaseArray, jax.Array, np.ndarray)):
         return xs.shape[0] if self.data_first_axis == 'T' else xs.shape[1]
       else:
-        leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.Array))
+        leaves, _ = tree_flatten(xs, is_leaf=lambda x: isinstance(x, bm.BaseArray))
         if self.data_first_axis == 'T':
           num_steps = [x.shape[0] for x in leaves]
         else:
@@ -629,9 +623,6 @@ class DSRunner(Runner):
     # monitor step
     mon = self._step_func_monitor()
 
-    # finally
-    if self.progress_bar:
-      jax.debug.callback(lambda *args: self._pbar.update(), ())
     # share.clear_shargs()
     clear_input(self.target)
 
@@ -655,7 +646,7 @@ class DSRunner(Runner):
 
       outs = None
       for i in range(indices.shape[0]):
-        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs), shared_args=shared_args)
+        out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs))
         if outs is None:
           outs = tree_map(lambda a: [], out)
         outs = tree_map(lambda a, o: o.append(a), out, outs)
@@ -666,4 +657,5 @@ class DSRunner(Runner):
       return bm.for_loop(self._step_func_predict,
                          (indices, *inputs),
                          jit=self.jit['predict'],
-                         unroll_kwargs={'shared_args': shared_args})
+                         unroll_kwargs={'shared_args': shared_args},
+                         progress_bar=self.progress_bar)

@@ -18,7 +18,7 @@ class Test_Activation(parameterized.TestCase):
       threshold_layer(input)
     elif inplace == False:
       output = threshold_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -31,7 +31,7 @@ class Test_Activation(parameterized.TestCase):
       ReLU_layer(input)
     elif inplace == False:
       output = ReLU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -44,7 +44,7 @@ class Test_Activation(parameterized.TestCase):
       RReLU_layer(input)
     elif inplace == False:
       output = RReLU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -57,7 +57,7 @@ class Test_Activation(parameterized.TestCase):
       Hardtanh_layer(input)
     elif inplace == False:
       output = Hardtanh_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -70,14 +70,14 @@ class Test_Activation(parameterized.TestCase):
       ReLU6_layer(input)
     elif inplace == False:
       output = ReLU6_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Sigmoid(self):
     bm.random.seed()
     Sigmoid_layer = bp.dnn.Sigmoid()
     input = bm.random.randn(2)
     output = Sigmoid_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -90,14 +90,14 @@ class Test_Activation(parameterized.TestCase):
       Hardsigmoid_layer(input)
     elif inplace == False:
       output = Hardsigmoid_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Tanh(self):
     bm.random.seed()
     Tanh_layer = bp.dnn.Tanh()
     input = bm.random.randn(2)
     output = Tanh_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -110,7 +110,7 @@ class Test_Activation(parameterized.TestCase):
       SiLU_layer(input)
     elif inplace == False:
       output = SiLU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -123,7 +123,7 @@ class Test_Activation(parameterized.TestCase):
       Mish_layer(input)
     elif inplace == False:
       output = Mish_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -136,7 +136,7 @@ class Test_Activation(parameterized.TestCase):
       Hardswish_layer(input)
     elif inplace == False:
       output = Hardswish_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -149,7 +149,7 @@ class Test_Activation(parameterized.TestCase):
       ELU_layer(input)
     elif inplace == False:
       output = ELU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -162,7 +162,7 @@ class Test_Activation(parameterized.TestCase):
       CELU_layer(input)
     elif inplace == False:
       output = CELU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -175,14 +175,14 @@ class Test_Activation(parameterized.TestCase):
       SELU_layer(input)
     elif inplace == False:
       output = SELU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_GLU(self):
     bm.random.seed()
     GLU_layer = bp.dnn.GLU()
     input = bm.random.randn(4, 2)
     output = GLU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     approximate=['tanh', 'none']
@@ -192,14 +192,14 @@ class Test_Activation(parameterized.TestCase):
     GELU_layer = bp.dnn.GELU()
     input = bm.random.randn(2)
     output = GELU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Hardshrink(self):
     bm.random.seed()
     Hardshrink_layer = bp.dnn.Hardshrink(lambd=1)
     input = bm.random.randn(2)
     output = Hardshrink_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     inplace=[True, False]
@@ -212,14 +212,14 @@ class Test_Activation(parameterized.TestCase):
       LeakyReLU_layer(input)
     elif inplace == False:
       output = LeakyReLU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_LogSigmoid(self):
     bm.random.seed()
     LogSigmoid_layer = bp.dnn.LogSigmoid()
     input = bm.random.randn(2)
     output = LogSigmoid_layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     beta=[1, 2, 3],
@@ -230,63 +230,63 @@ class Test_Activation(parameterized.TestCase):
     Softplus_layer = bp.dnn.Softplus(beta=beta, threshold=threshold)
     input = bm.random.randn(2)
     output = Softplus_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Softshrink(self):
     bm.random.seed()
     Softshrink_layer = bp.dnn.Softshrink(lambd=1)
     input = bm.random.randn(2)
     output = Softshrink_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_PReLU(self):
     bm.random.seed()
     PReLU_layer = bp.dnn.PReLU(num_parameters=2, init=0.5)
     input = bm.random.randn(2)
     output = PReLU_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Softsign(self):
     bm.random.seed()
     Softsign_layer = bp.dnn.Softsign()
     input = bm.random.randn(2)
     output = Softsign_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Tanhshrink(self):
     bm.random.seed()
     Tanhshrink_layer = bp.dnn.Tanhshrink()
     input = bm.random.randn(2)
     output = Tanhshrink_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Softmin(self):
     bm.random.seed()
     Softmin_layer = bp.dnn.Softmin(dim=2)
     input = bm.random.randn(2, 3, 4)
     output = Softmin_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Softmax(self):
     bm.random.seed()
     Softmax_layer = bp.dnn.Softmax(dim=2)
     input = bm.random.randn(2, 3, 4)
     output = Softmax_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Softmax2d(self):
     bm.random.seed()
     Softmax2d_layer = bp.dnn.Softmax2d()
     input = bm.random.randn(2, 3, 12, 13)
     output = Softmax2d_layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_LogSoftmax(self):
     bm.random.seed()
     LogSoftmax_layer = bp.dnn.LogSoftmax(dim=2)
     input = bm.random.randn(2, 3, 4)
     output = LogSoftmax_layer(input)
-    bm.clear_buffer_memory()
+    
 
 
 if __name__ == '__main__':

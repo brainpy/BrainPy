@@ -1,11 +1,7 @@
-tqdm
-jax<0.6.0
-jaxlib<0.6.0
+-r requirements.txt
+
 matplotlib
-numpy
-scipy
 numba
-braintaichi
 
 # document requirements
 pandoc

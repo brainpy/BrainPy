@@ -20,7 +20,7 @@ class TestCrossCorrelation(unittest.TestCase):
     cc2 = f_cc(spikes)
     print(cc1, cc2)
     self.assertTrue(cc1 == cc2)
-    bm.clear_buffer_memory()
+    
 
   def test_cc(self):
     bm.random.seed()
@@ -32,35 +32,35 @@ class TestCrossCorrelation(unittest.TestCase):
     cc2 = bp.measure.cross_correlation(spikes, 1.)
     self.assertTrue(cc2 == 0.)
 
-    bm.clear_buffer_memory()
+    
 
   def test_cc2(self):
     bm.random.seed()
     spikes = bm.random.randint(0, 2, (1000, 10))
     print(bp.measure.cross_correlation(spikes, 1.))
     print(bp.measure.cross_correlation(spikes, 0.5))
-    bm.clear_buffer_memory()
+    
 
   def test_cc3(self):
     bm.random.seed()
     spikes = bm.random.random((1000, 100)) < 0.8
     print(bp.measure.cross_correlation(spikes, 1.))
     print(bp.measure.cross_correlation(spikes, 0.5))
-    bm.clear_buffer_memory()
+    
 
   def test_cc4(self):
     bm.random.seed()
     spikes = bm.random.random((1000, 100)) < 0.2
     print(bp.measure.cross_correlation(spikes, 1.))
     print(bp.measure.cross_correlation(spikes, 0.5))
-    bm.clear_buffer_memory()
+    
 
   def test_cc5(self):
     bm.random.seed()
     spikes = bm.random.random((1000, 100)) < 0.05
     print(bp.measure.cross_correlation(spikes, 1.))
     print(bp.measure.cross_correlation(spikes, 0.5))
-    bm.clear_buffer_memory()
+    
 
 
 class TestVoltageFluctuation(unittest.TestCase):
@@ -80,7 +80,7 @@ class TestVoltageFluctuation(unittest.TestCase):
     # self.assertTrue(r1 == r2)
 
     bm.disable_x64()
-    bm.clear_buffer_memory()
+    
 
 
 class TestFunctionalConnectivity(unittest.TestCase):
@@ -93,7 +93,7 @@ class TestFunctionalConnectivity(unittest.TestCase):
     r2 = jit_f(act)
 
     self.assertTrue(bm.allclose(r1, r2))
-    bm.clear_buffer_memory()
+    
 
 
 class TestMatrixCorrelation(unittest.TestCase):
@@ -106,6 +106,6 @@ class TestMatrixCorrelation(unittest.TestCase):
     jit_f = jit(partial(bp.measure.matrix_correlation, numpy=False))
     r2 = jit_f(A, B)
     self.assertTrue(bm.allclose(r1, r2))
-    bm.clear_buffer_memory()
+    
 
 

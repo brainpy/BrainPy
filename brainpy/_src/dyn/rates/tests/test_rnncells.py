@@ -20,7 +20,7 @@ class Test_Rnncells(parameterized.TestCase):
                            mode=mode
                            )
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_RNNCell_NonBatching(self):
     bm.random.seed()
@@ -29,7 +29,7 @@ class Test_Rnncells(parameterized.TestCase):
                            num_out=32,
                            mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -45,7 +45,7 @@ class Test_Rnncells(parameterized.TestCase):
                            num_out=64,
                            mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_GRUCell_NonBatching(self):
     bm.random.seed()
@@ -54,7 +54,7 @@ class Test_Rnncells(parameterized.TestCase):
                            num_out=12,
                            mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -71,7 +71,7 @@ class Test_Rnncells(parameterized.TestCase):
                             mode=mode)
 
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_LSTMCell_NonBatching(self):
     bm.random.seed()
@@ -80,7 +80,7 @@ class Test_Rnncells(parameterized.TestCase):
                             num_out=5,
                             mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -97,7 +97,7 @@ class Test_Rnncells(parameterized.TestCase):
                                   kernel_size=4,
                                   mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Conv1dLSTMCell_NonBatching(self):
     bm.random.seed()
@@ -108,7 +108,7 @@ class Test_Rnncells(parameterized.TestCase):
                                   kernel_size=5,
                                   mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -125,7 +125,7 @@ class Test_Rnncells(parameterized.TestCase):
                                   kernel_size=(4, 4),
                                   mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Conv2dLSTMCell_NonBatching(self):
     bm.random.seed()
@@ -136,7 +136,7 @@ class Test_Rnncells(parameterized.TestCase):
                                   kernel_size=5,
                                   mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -153,7 +153,7 @@ class Test_Rnncells(parameterized.TestCase):
                                   kernel_size=(4, 4, 4),
                                   mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Conv3dLSTMCell_NonBatching(self):
     bm.random.seed()
@@ -164,7 +164,7 @@ class Test_Rnncells(parameterized.TestCase):
                                   kernel_size=5,
                                   mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
 
 if __name__ == '__main__':

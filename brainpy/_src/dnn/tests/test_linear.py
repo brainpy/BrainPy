@@ -25,7 +25,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(size)
     y = f(x)
     self.assertTrue(y.shape == size[:-1] + (num_out,))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     size=[(10,),
@@ -38,7 +38,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random(size)
     y = f(x)
     self.assertTrue(y.shape == size)
-    bm.clear_buffer_memory()
+    
 
   def test_AllToAll1(self):
     bm.random.seed()
@@ -55,7 +55,7 @@ class TestLinear(parameterized.TestCase):
       y = f(x)
       expected = bm.sum(x, keepdims=True) * 0.1
       self.assertTrue(bm.allclose(y, expected))
-    bm.clear_buffer_memory()
+    
 
   def test_OneToOne(self):
     bm.random.seed()
@@ -72,7 +72,7 @@ class TestLinear(parameterized.TestCase):
       y = f(x)
       expected = x * 0.1
       self.assertTrue(bm.allclose(y, expected))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     conn=[
@@ -88,7 +88,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random((16, 100))
     y = f(x)
     self.assertTrue(y.shape == (16, 100))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     conn=[
@@ -107,7 +107,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random((100,))
     y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (100,))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     conn=[
@@ -125,7 +125,7 @@ class TestLinear(parameterized.TestCase):
     x = bm.random.random((100,))
     y = f(jnp.asarray(x))
     self.assertTrue(y.shape == (100,))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     prob=[0.1],
@@ -143,7 +143,7 @@ class TestLinear(parameterized.TestCase):
     self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
     # print(conn_matrix.shape)
     # self.assertTrue(conn_matrix.shape == (200, 100))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     prob=[0.1],
@@ -160,7 +160,7 @@ class TestLinear(parameterized.TestCase):
 
     conn_matrix = f.get_conn_matrix()
     self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     prob=[0.1],
@@ -177,7 +177,7 @@ class TestLinear(parameterized.TestCase):
 
     conn_matrix = f.get_conn_matrix()
     self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     prob=[0.1],
@@ -196,7 +196,7 @@ class TestLinear(parameterized.TestCase):
 
     conn_matrix = f.get_conn_matrix()
     self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     prob=[0.1],
@@ -216,7 +216,7 @@ class TestLinear(parameterized.TestCase):
 
     conn_matrix = f.get_conn_matrix()
     self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     prob=[0.1],
@@ -236,7 +236,7 @@ class TestLinear(parameterized.TestCase):
 
     conn_matrix = f.get_conn_matrix()
     self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
-    bm.clear_buffer_memory()
+    
 
 
 if __name__ == '__main__':

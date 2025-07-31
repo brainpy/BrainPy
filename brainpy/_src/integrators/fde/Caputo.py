@@ -389,7 +389,7 @@ class CaputoL1Schema(FDEIntegrator):
     # derivative values
     devs = self.f(**all_args)
     if len(self.variables) == 1:
-      if not isinstance(devs, (bm.Array, jax.Array)):
+      if not isinstance(devs, (bm.BaseArray, jax.Array)):
         raise ValueError('Derivative values must be a tensor when there '
                          'is only one variable in the equation.')
       devs = {self.variables[0]: devs}

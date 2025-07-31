@@ -82,7 +82,7 @@ class DelayCoupling(Projection):
       self.delay_steps = delay_steps
       self.delay_type = 'array'
       num_delay_step = self.delay_steps.max()
-    elif isinstance(delay_steps, (bm.Array, jnp.ndarray)):
+    elif isinstance(delay_steps, (bm.BaseArray, jnp.ndarray)):
       if delay_steps.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
         raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
       if delay_steps.ndim == 0:

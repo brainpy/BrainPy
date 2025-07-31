@@ -15,7 +15,6 @@ class Test_input_Group(parameterized.TestCase):
                          progress_bar=False)
     runner.run(30.)
     self.assertTupleEqual(runner.mon['spike'].shape, (300, 2))
-    bp.math.clear_buffer_memory()
 
   def test_PoissonGroup(self):
     bp.math.random.seed()
@@ -25,4 +24,3 @@ class Test_input_Group(parameterized.TestCase):
                          progress_bar=False)
     runner.run(30.)
     self.assertTupleEqual(runner.mon['spike'].shape, (300, 2))
-    bp.math.clear_buffer_memory()

@@ -21,4 +21,4 @@ class Test_Noise_Group(parameterized.TestCase):
     x = runner.mon['x']
     self.assertLessEqual(abs(x.mean()), 0.1)
     self.assertLessEqual(abs(x.std() - 0.1), 0.1)
-    bm.clear_buffer_memory()
+    

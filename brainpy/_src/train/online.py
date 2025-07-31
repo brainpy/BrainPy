@@ -172,10 +172,10 @@ class OnlineTrainer(DSTrainer):
     if self.data_first_axis == 'B':
       xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                     xs,
-                    is_leaf=lambda x: isinstance(x, bm.Array))
+                    is_leaf=lambda x: isinstance(x, bm.BaseArray))
       ys = tree_map(lambda y: bm.moveaxis(y, 0, 1),
                     ys,
-                    is_leaf=lambda y: isinstance(y, bm.Array))
+                    is_leaf=lambda y: isinstance(y, bm.BaseArray))
 
     # init monitor
     for key in self._monitors.keys():
@@ -196,7 +196,7 @@ class OnlineTrainer(DSTrainer):
 
     # post-running for monitors
     if self.numpy_mon_after_run:
-      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
+      hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.BaseArray))
     for key in hists.keys():
       self.mon[key] = hists[key]
     self.i0 += num_step
@@ -228,7 +228,7 @@ class OnlineTrainer(DSTrainer):
                         jit=self.jit['fit'])
     hists = tree_map(lambda x: bm.moveaxis(x, 0, 1),
                      hists,
-                     is_leaf=lambda x: isinstance(x, bm.Array))
+                     is_leaf=lambda x: isinstance(x, bm.BaseArray))
     return hists
 
   def _step_func_fit(self, i, xs: Sequence, ys: Dict, shared_args=None):

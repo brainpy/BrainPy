@@ -10,13 +10,13 @@ from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 from brainpy.errors import MathError
-from . import defaults
+from .defaults import defaults
 
 bm = None
 
 
 __all__ = [
-  'Array', 'ndarray', 'JaxArray',  # alias of Array
+  'BaseArray', 'Array', 'ndarray', 'JaxArray',  # alias of Array
   'ShardedArray',
 ]
 
@@ -33,7 +33,7 @@ _all_slice = slice(None, None, None)
 
 
 def _check_input_array(array):
-  if isinstance(array, Array):
+  if isinstance(array, BaseArray):
     return array.value
   elif isinstance(array, np.ndarray):
     return jnp.asarray(array)
@@ -48,11 +48,11 @@ def _return(a):
 
 
 def _as_jax_array_(obj):
-  return obj.value if isinstance(obj, Array) else obj
+  return obj.value if isinstance(obj, BaseArray) else obj
 
 
 def _check_out(out):
-  if not isinstance(out, Array):
+  if not isinstance(out, BaseArray):
     raise TypeError(f'out must be an instance of brainpy Array. But got {type(out)}')
 
 
@@ -63,46 +63,7 @@ def _get_dtype(v):
     dtype = canonicalize_dtype(type(v))
   return dtype
 
-
-@register_pytree_node_class
-class Array(object):
-  """Multiple-dimensional array in BrainPy.
-
-  Compared to ``jax.Array``, :py:class:`~.Array` has the following advantages:
-
-  - In-place updating is supported.
-
-  >>> import brainpy.math as bm
-  >>> a = bm.asarray([1, 2, 3.])
-  >>> a[0] = 10.
-
-  - Keep sharding constraints during computation.
-
-  - More dense array operations with PyTorch syntax.
-
-  """
-
-  __slots__ = ('_value', )
-
-  def __init__(self, value, dtype: Any = None):
-    # array value
-    if isinstance(value, Array):
-      value = value._value
-    elif isinstance(value, (tuple, list, np.ndarray)):
-      value = jnp.asarray(value)
-    if dtype is not None:
-      value = jnp.asarray(value, dtype=dtype)
-    self._value = value
-
-  def _check_tracer(self):
-    self_value = self.value
-    if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
-      if len(self_value._trace.main.jaxpr_stack) == 0:
-        raise jax.errors.UnexpectedTracerError('This Array is modified during the transformation. '
-                           'BrainPy only supports transformations for Variable. '
-                           'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
-    return self_value
-
+class BaseArray:
   @property
   def sharding(self):
     return self._value.sharding
@@ -120,7 +81,7 @@ class Array(object):
   def value(self, value):
     self_value = self._check_tracer()
 
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)
@@ -141,6 +102,9 @@ class Array(object):
     """Update the value of this Array.
     """
     self.value = value
+
+  def __hash__(self):
+    return hash(self.value)
 
   @property
   def dtype(self):
@@ -214,14 +178,14 @@ class Array(object):
     if isinstance(index, slice) and (index == _all_slice):
       return self.value
     elif isinstance(index, tuple):
-      index = tuple((x.value if isinstance(x, Array) else x) for x in index)
-    elif isinstance(index, Array):
+      index = tuple((x.value if isinstance(x, BaseArray) else x) for x in index)
+    elif isinstance(index, BaseArray):
       index = index.value
     return self.value[index]
 
   def __setitem__(self, index, value):
     # value is Array
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     # value is numpy.ndarray
     elif isinstance(value, np.ndarray):
@@ -231,14 +195,14 @@ class Array(object):
     if isinstance(index, tuple):
       index = tuple(_check_input_array(x) for x in index)
     # index is Array
-    elif isinstance(index, Array):
+    elif isinstance(index, BaseArray):
       index = index.value
     # index is numpy.ndarray
     elif isinstance(index, np.ndarray):
       index = jnp.asarray(index)
 
     # update
-    self_value = self._check_tracer()
+    self_value = self.value
     self.value = self_value.at[index].set(value)
 
   # ---------- #
@@ -1525,6 +1489,56 @@ class Array(object):
   def double(self): return jnp.asarray(self.value, dtype=jnp.float64)
 
 
+
+@register_pytree_node_class
+class Array(BaseArray):
+  """Multiple-dimensional array in BrainPy.
+
+  Compared to ``jax.Array``, :py:class:`~.Array` has the following advantages:
+
+  - In-place updating is supported.
+
+  >>> import brainpy.math as bm
+  >>> a = bm.asarray([1, 2, 3.])
+  >>> a[0] = 10.
+
+  - Keep sharding constraints during computation.
+
+  - More dense array operations with PyTorch syntax.
+
+  """
+
+  __slots__ = ('_value', )
+
+  def __init__(self, value, dtype: Any = None):
+    # array value
+    if isinstance(value, BaseArray):
+      value = value._value
+    elif isinstance(value, (tuple, list, np.ndarray)):
+      value = jnp.asarray(value)
+    if dtype is not None:
+      value = jnp.asarray(value, dtype=dtype)
+    self._value = value
+
+  def _check_tracer(self):
+    self_value = self.value
+    if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
+      if len(self_value._trace.main.jaxpr_stack) == 0:
+        raise jax.errors.UnexpectedTracerError('This Array is modified during the transformation. '
+                           'BrainPy only supports transformations for Variable. '
+                           'Please declare it as a Variable.') from jax.core.escaped_tracer_error(self_value, None)
+    return self_value
+
+  # @classmethod
+  # def __instancecheck__(cls, subclass):
+  #   from brainpy.math import Variable
+  #   if issubclass(subclass, Variable):
+  #     return True
+  #   if isinstance(subclass, Array):
+  #     return True
+  #
+  #   return False
+
 setattr(Array, "__array_priority__", 100)
 
 JaxArray = Array
@@ -1567,7 +1581,7 @@ class ShardedArray(Array):
   def value(self, value):
     self_value = self._check_tracer()
 
-    if isinstance(value, Array):
+    if isinstance(value, BaseArray):
       value = value.value
     elif isinstance(value, np.ndarray):
       value = jnp.asarray(value)
@@ -1583,5 +1597,4 @@ class ShardedArray(Array):
       raise MathError(f"The dtype of the original data is {self_value.dtype}, "
                       f"while we got {value.dtype}.")
     self._value = value
-
 

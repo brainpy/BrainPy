@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import brainpy as bp
 import brainpy.math as bm
 
+show = False
 
 class TestIntegratorRunnerForODEs(TestCase):
   def test_ode(self):
@@ -27,7 +28,7 @@ class TestIntegratorRunnerForODEs(TestCase):
     fig = plt.figure()
     fig.add_subplot(111, projection='3d')
     plt.plot(runner.mon.x[:, 0], runner.mon.y[:, 0], runner.mon.z[:, 0], )
-    plt.show()
+    if show:plt.show()
 
     runner = bp.IntegratorRunner(lorenz,
                                  monitors=['x', 'y', 'z'],
@@ -40,7 +41,6 @@ class TestIntegratorRunnerForODEs(TestCase):
       plt.show()
 
     plt.close()
-    bm.clear_buffer_memory()
 
   def test_ode2(self):
     a, b, tau = 0.7, 0.8, 12.5
@@ -51,9 +51,9 @@ class TestIntegratorRunnerForODEs(TestCase):
     runner = bp.IntegratorRunner(fhn, monitors=['V', 'w'], inits=[1., 1.])
     runner.run(100., args=dict(Iext=1.5))
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V')
-    bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=True)
+    bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=show)
     plt.close()
-    bm.clear_buffer_memory()
+    
 
   def test_ode3(self):
     a, b, tau = 0.7, 0.8, 12.5
@@ -67,9 +67,8 @@ class TestIntegratorRunnerForODEs(TestCase):
                                  inits=[1., 1.])
     runner.run(duration, dyn_args=dict(Iext=Iext))
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V')
-    bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=True)
+    bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w', show=show)
     plt.close()
-    bm.clear_buffer_memory()
 
   def test_ode_continuous_run(self):
     a, b, tau = 0.7, 0.8, 12.5
@@ -88,9 +87,9 @@ class TestIntegratorRunnerForODEs(TestCase):
     Iext, duration = bp.inputs.section_input([0.5], [200], return_length=True)
     runner.run(duration, dyn_args=dict(Iext=Iext))
     bp.visualize.line_plot(runner.mon.ts, runner.mon['V'], legend='V-run2')
-    bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w-run2', show=True)
+    bp.visualize.line_plot(runner.mon.ts, runner.mon['w'], legend='w-run2', show=show)
     plt.close()
-    bm.clear_buffer_memory()
+    
 
   def test_ode_dyn_args(self):
     a, b, tau = 0.7, 0.8, 12.5
@@ -108,4 +107,3 @@ class TestIntegratorRunnerForODEs(TestCase):
       runner.run(duration + 1, dyn_args=dict(Iext=Iext))
 
     plt.close()
-    bm.clear_buffer_memory()

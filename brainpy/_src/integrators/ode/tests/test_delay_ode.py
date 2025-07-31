@@ -88,7 +88,7 @@ class TestFirstOrderConstantDelay(parameterized.TestCase):
     # plt.show(block=block)
     # plt.close()
 
-    bm.clear_buffer_memory()
+    
 
 
 class TestNonConstantHist(parameterized.TestCase):
@@ -119,4 +119,4 @@ class TestNonConstantHist(parameterized.TestCase):
 
     # self.assertTrue((case1['x'] - self.ref1['x']).mean() < 1e-1)
     # self.assertTrue((case2['x'] - self.ref2['x']).mean() < 1e-1)
-    bm.clear_buffer_memory()
+    

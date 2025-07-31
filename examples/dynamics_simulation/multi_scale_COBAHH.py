@@ -205,7 +205,7 @@ def vmap_search(gc=3., I_size=0.2, I_duration=400., e_range=(0.1, 1.1, 0.1), i_r
     plt.savefig(fn_name)
     plt.close(fig)
 
-  bm.clear_buffer_memory()
+  
 
 
 # single_run(0.006, 0.1675, *bp.inputs.section_input([0, 0.8], [200., 400.], return_length=True))
@@ -237,7 +237,7 @@ def search_seeds():
                                return_length=True),
       seed=s
     )
-    bm.clear_buffer_memory()
+    
 
 
 def visualize(seed=20873, gc=1., gEE=0.0060, gEI=0.0060, gIE=.26800, gII=0.26800, ):

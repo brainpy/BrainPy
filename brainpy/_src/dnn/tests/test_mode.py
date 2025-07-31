@@ -21,7 +21,7 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=5,
                           mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Conv1d_NonBatching(self):
     bm.random.seed()
@@ -31,7 +31,7 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=5,
                           mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -47,7 +47,7 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=(5, 5),
                           mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Conv2_NonBatching(self):
     bm.random.seed()
@@ -57,7 +57,7 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=(5, 5),
                           mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -73,7 +73,7 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=(5, 5, 5),
                           mode=mode)
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_Conv3_NonBatching(self):
     bm.random.seed()
@@ -83,7 +83,7 @@ class Test_Conv(parameterized.TestCase):
                           kernel_size=(5, 5, 5),
                           mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -100,7 +100,7 @@ class Test_Conv(parameterized.TestCase):
                                    mode=mode
                                    )
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_ConvTranspose1d_NonBatching(self):
     bm.random.seed()
@@ -110,7 +110,7 @@ class Test_Conv(parameterized.TestCase):
                                    kernel_size=5,
                                    mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -127,7 +127,7 @@ class Test_Conv(parameterized.TestCase):
                                    mode=mode
                                    )
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_ConvTranspose2d_NonBatching(self):
     bm.random.seed()
@@ -137,7 +137,7 @@ class Test_Conv(parameterized.TestCase):
                                    kernel_size=(5, 5),
                                    mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     mode=[bm.TrainingMode(),
@@ -154,7 +154,7 @@ class Test_Conv(parameterized.TestCase):
                                    mode=mode
                                    )
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
   def test_ConvTranspose3d_NonBatching(self):
     bm.random.seed()
@@ -164,7 +164,7 @@ class Test_Conv(parameterized.TestCase):
                                    kernel_size=(5, 5, 5),
                                    mode=bm.NonBatchingMode())
     output = layer(input)
-    bm.clear_buffer_memory()
+    
 
 
 class TestPool(parameterized.TestCase):

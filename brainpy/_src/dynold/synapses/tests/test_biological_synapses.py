@@ -42,7 +42,7 @@ class Test_Biological_Synapse(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     synapse=biological_models,
@@ -70,7 +70,7 @@ class Test_Biological_Synapse(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
 
   @parameterized.product(
     synapse=biological_models,
@@ -101,4 +101,4 @@ class Test_Biological_Synapse(parameterized.TestCase):
     self.assertTupleEqual(runner.mon['pre.V'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['syn.g'].shape, expected_shape)
     self.assertTupleEqual(runner.mon['post.V'].shape, expected_shape)
-    bm.clear_buffer_memory()
+    
