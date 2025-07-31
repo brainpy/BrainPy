@@ -48,10 +48,9 @@ jobs:
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
           pip uninstall brainpy -y
           python setup.py install
-      - name: Test with pytest
+      - name: Test with pytest (grouped)
         run: |
-          cd brainpy
-          export IS_GITHUB_ACTIONS=1 && pytest _src/
+          export IS_GITHUB_ACTIONS=1 && python pytest_groups.py
 
 
   test_macos:
@@ -81,10 +80,9 @@ jobs:
           python setup.py install
 #          pip install jax==0.4.30
 #          pip install jaxlib==0.4.30
-      - name: Test with pytest
+      - name: Test with pytest (grouped)
         run: |
-          cd brainpy
-          export IS_GITHUB_ACTIONS=1 && pytest _src/
+          export IS_GITHUB_ACTIONS=1 && python pytest_groups.py
 
 
   test_windows:
@@ -112,7 +110,6 @@ jobs:
           python -m pip install -r requirements-dev.txt
           pip uninstall brainpy -y
           python setup.py install
-      - name: Test with pytest
+      - name: Test with pytest (grouped)
         run: |
-          cd brainpy
-          set IS_GITHUB_ACTIONS=1 && pytest _src/
+          set IS_GITHUB_ACTIONS=1 && python pytest_groups.py

@@ -11,6 +11,9 @@ import brainpy.math as bm
 
 class TestJIT(unittest.TestCase):
   def test_jaxarray_inside_jit1(self):
+    # Ensure clean state before test
+    bm.random.seed(123)
+    
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
@@ -23,12 +26,14 @@ class TestJIT(unittest.TestCase):
         self.b += a
         return self.b.value
 
-    bm.random.seed(123)
     program = SomeProgram()
     b_out = bm.jit(program)()
     self.assertTrue(bm.array_equal(b_out, program.b))
 
   def test_jaxarray_inside_jit1_disable(self):
+    # Ensure clean state before test
+    bm.random.seed(123)
+    
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
@@ -40,8 +45,6 @@ class TestJIT(unittest.TestCase):
         a = a.at[0].set(1.)
         self.b += a
         return self.b.value
-
-    bm.random.seed(123)
 
     program = SomeProgram()
     with jax.disable_jit():
@@ -72,6 +75,27 @@ class TestJIT(unittest.TestCase):
 class TestClsJIT(unittest.TestCase):
 
   def test_class_jit1(self):
+    # Ensure clean state before test
+    import jax
+    import gc
+    
+    # Clear all caches and state
+    jax.clear_caches()
+    gc.collect()
+    
+    # Reset random state
+    bm.random.seed(123)
+    
+    # Clear any existing brainstate context
+    try:
+        from brainstate._state import TRACE_CONTEXT
+        TRACE_CONTEXT.state_stack.clear()
+        TRACE_CONTEXT.new_state_catcher.clear()
+        TRACE_CONTEXT.tree_check = [False]
+        TRACE_CONTEXT.jax_tracer_check = [False]
+    except ImportError:
+        pass
+    
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
@@ -89,8 +113,6 @@ class TestClsJIT(unittest.TestCase):
       def update(self, x):
         self.b += x
 
-    bm.random.seed(123)
-
     program = SomeProgram()
     new_b = program()
     self.assertTrue(bm.allclose(new_b, program.b))
@@ -98,6 +120,9 @@ class TestClsJIT(unittest.TestCase):
     self.assertTrue(bm.allclose(new_b + 1., program.b))
 
   def test_class_jit2(self):
+    # Ensure clean state before test
+    bm.random.seed(123)
+    
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
@@ -114,7 +139,6 @@ class TestClsJIT(unittest.TestCase):
         self.b += a
         return self.b
 
-    bm.random.seed(123)
     program = SomeProgram()
     new_b1 = program.call1(True)
     new_b2 = program.call2(fit=False)
@@ -125,6 +149,9 @@ class TestClsJIT(unittest.TestCase):
       new_b3 = program.call2(False)
 
   def test_class_jit1_with_disable(self):
+    # Ensure clean state before test
+    bm.random.seed(123)
+    
     class SomeProgram(bp.BrainPyObject):
       def __init__(self):
         super(SomeProgram, self).__init__()
@@ -141,8 +168,6 @@ class TestClsJIT(unittest.TestCase):
       @bm.cls_jit(inline=True)
       def update(self, x):
         self.b += x
-
-    bm.random.seed(123)
 
     program = SomeProgram()
     with jax.disable_jit():
