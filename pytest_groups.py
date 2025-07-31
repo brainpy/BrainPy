@@ -110,7 +110,7 @@ def main():
     main_start = time.time()
     
     if is_github_actions:
-        # In CI, capture output to keep logs clean
+        # In CI, capture output but show detailed failures
         main_result = subprocess.run(cmd, capture_output=True, text=True)
         main_passed = main_result.returncode == 0
         main_time = time.time() - main_start
@@ -118,13 +118,35 @@ def main():
         print(f"Main test suite: {'PASSED' if main_passed else 'FAILED'} ({main_time:.1f}s)")
         
         if not main_passed:
-            # Show failures in CI
+            # Show detailed failures in CI
+            print("\n" + "="*80)
+            print("DETAILED FAILURE OUTPUT:")
+            print("="*80)
+            
+            # Show both stdout and stderr
+            if main_result.stdout:
+                print("STDOUT:")
+                print(main_result.stdout)
+                print("-" * 80)
+            
+            if main_result.stderr:
+                print("STDERR:")
+                print(main_result.stderr)
+                print("-" * 80)
+            
+            # Also show summary of failed tests
             lines = main_result.stdout.split('\n')
-            failed_lines = [line for line in lines if 'FAILED' in line][:5]
-            if failed_lines:
-                print("Recent failures:")
-                for line in failed_lines:
-                    print(f"  {line}")
+            failed_lines = [line for line in lines if 'FAILED' in line]
+            error_lines = [line for line in lines if 'ERROR' in line]
+            
+            if failed_lines or error_lines:
+                print("\nFAILURE SUMMARY:")
+                for line in failed_lines[:10]:  # Show more failures
+                    print(f"  FAILED: {line}")
+                for line in error_lines[:5]:
+                    print(f"  ERROR: {line}")
+            
+            print("="*80)
     else:
         # Locally, show real-time progress
         main_result = subprocess.run(cmd)
@@ -158,7 +180,7 @@ def main():
             iso_start = time.time()
             
             if is_github_actions:
-                # In CI, capture output
+                # In CI, capture output but show detailed failures
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 passed = result.returncode == 0
                 iso_time = time.time() - iso_start
@@ -167,12 +189,37 @@ def main():
                 print(f"Isolated {file_name}: {'PASSED' if passed else 'FAILED'} ({iso_time:.1f}s)")
                 
                 if not passed:
+                    print(f"\nDETAILED OUTPUT for {file_name}:")
+                    print("-" * 60)
+                    
+                    # Show stdout
+                    if result.stdout:
+                        print("STDOUT:")
+                        # Show last 50 lines to capture the actual error
+                        stdout_lines = result.stdout.split('\n')
+                        for line in stdout_lines[-50:]:
+                            if line.strip():
+                                print(f"  {line}")
+                        print("-" * 40)
+                    
+                    # Show stderr
+                    if result.stderr:
+                        print("STDERR:")
+                        stderr_lines = result.stderr.split('\n')
+                        for line in stderr_lines[-20:]:
+                            if line.strip():
+                                print(f"  {line}")
+                        print("-" * 40)
+                    
+                    # Extract specific failure info
                     lines = result.stdout.split('\n')
-                    failed_lines = [line for line in lines if 'FAILED' in line][:3]
+                    failed_lines = [line for line in lines if 'FAILED' in line or 'ERROR' in line]
                     if failed_lines:
-                        print("Failures:")
-                        for line in failed_lines:
+                        print("FAILURE SUMMARY:")
+                        for line in failed_lines[:5]:
                             print(f"  {line}")
+                    
+                    print("-" * 60)
             else:
                 # Locally, show real-time progress
                 result = subprocess.run(cmd)
