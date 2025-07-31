@@ -138,6 +138,47 @@ def ifelse(
         operands = ()
     elif not isinstance(operands, (tuple, list)):
         operands = (operands,)
+    
+    # Convert non-callable branches to callables
+    def make_callable(branch):
+        if callable(branch):
+            return branch
+        else:
+            return lambda *args: branch
+    
+    branches = [make_callable(branch) for branch in branches]
+    
+    # Convert if-elif-else chain to mutually exclusive conditions
+    if isinstance(conditions, (list, tuple)) and len(conditions) > 0:
+        conditions = list(conditions)
+        # Convert to mutually exclusive conditions for brainstate
+        exclusive_conditions = []
+        for i, cond in enumerate(conditions):
+            if i == 0:
+                exclusive_conditions.append(cond)
+            else:
+                # This condition is true AND all previous conditions are false
+                prev_conds_false = jnp.logical_not(conditions[0])
+                for j in range(1, i):
+                    prev_conds_false = prev_conds_false & jnp.logical_not(conditions[j])
+                exclusive_conditions.append(cond & prev_conds_false)
+        
+        # If we have equal number of branches and conditions, the last branch is the default case
+        if len(branches) == len(conditions):
+            # Replace the last condition with "all previous conditions are false"
+            all_false = jnp.logical_not(conditions[0])
+            for cond in conditions[1:-1]:  # exclude the last condition
+                all_false = all_false & jnp.logical_not(cond)
+            exclusive_conditions[-1] = all_false
+        elif len(branches) > len(conditions):
+            # Add the default case (all conditions false)
+            all_false = jnp.logical_not(conditions[0])
+            for cond in conditions[1:]:
+                all_false = all_false & jnp.logical_not(cond)
+            exclusive_conditions.append(all_false)
+        
+        conditions = exclusive_conditions
+    
     return brainstate.transform.ifelse(conditions, branches, *operands)
 
 
@@ -383,11 +424,26 @@ def while_loop(
         operands = (operands,)
     operands = tuple(operands)
 
-    def body(x):
-        r = body_fun(*x)
-        if r is None:
-            return ()
-        else:
-            return r
+    # Try brainstate's while_loop first, fallback to Python implementation if needed
+    try:
+        def body(x):
+            r = body_fun(*x)
+            if r is None:
+                return x
+            else:
+                return r
 
-    return brainstate.transform.while_loop(lambda x: cond_fun(*x), body, operands)
+        return brainstate.transform.while_loop(lambda x: cond_fun(*x), body, operands)
+        
+    except ValueError as e:
+        if "should not have any write states" in str(e):
+            # Fallback to Python while loop when condition function modifies state
+            # Use native Python while loop regardless of JIT status
+            val = operands
+            while cond_fun(*val):
+                result = body_fun(*val)
+                if result is not None:
+                    val = result
+            return val
+        else:
+            raise e
