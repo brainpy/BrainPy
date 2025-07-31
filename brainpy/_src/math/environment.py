@@ -353,8 +353,8 @@ def set(
 ):
     """Set the default computation environment.
 
-    Parameters::
-
+    Parameters
+    ----------
     mode: Mode
       The computing mode.
     membrane_scaling: Scaling
@@ -449,8 +449,8 @@ def dftype():
 def set_float(dtype: type):
     """Set global default float type.
 
-    Parameters::
-
+    Parameters
+    ----------
     dtype: type
       The float type.
     """
@@ -467,8 +467,8 @@ def set_float(dtype: type):
 def get_float():
     """Get the default float data type.
 
-    Returns::
-
+    Returns
+    -------
     dftype: type
       The default float data type.
     """
@@ -478,8 +478,8 @@ def get_float():
 def set_int(dtype: type):
     """Set global default integer type.
 
-    Parameters::
-
+    Parameters
+    ----------
     dtype: type
       The integer type.
     """
@@ -498,8 +498,8 @@ def set_int(dtype: type):
 def get_int():
     """Get the default int data type.
 
-    Returns::
-
+    Returns
+    -------
     dftype: type
       The default int data type.
     """
@@ -509,8 +509,8 @@ def get_int():
 def set_bool(dtype: type):
     """Set global default boolean type.
 
-    Parameters::
-
+    Parameters
+    ----------
     dtype: type
       The bool type.
     """
@@ -520,8 +520,8 @@ def set_bool(dtype: type):
 def get_bool():
     """Get the default boolean data type.
 
-    Returns::
-
+    Returns
+    -------
     dftype: type
       The default bool data type.
     """
@@ -531,8 +531,8 @@ def get_bool():
 def set_complex(dtype: type):
     """Set global default complex type.
 
-    Parameters::
-
+    Parameters
+    ----------
     dtype: type
       The complex type.
     """
@@ -542,8 +542,8 @@ def set_complex(dtype: type):
 def get_complex():
     """Get the default complex data type.
 
-    Returns::
-
+    Returns
+    -------
     dftype: type
       The default complex data type.
     """
@@ -556,8 +556,8 @@ def get_complex():
 def set_dt(dt):
     """Set the default numerical integrator precision.
 
-    Parameters::
-
+    Parameters
+    ----------
     dt : float
         Numerical integration precision.
     """
@@ -568,8 +568,8 @@ def set_dt(dt):
 def get_dt():
     """Get the numerical integrator precision.
 
-    Returns::
-
+    Returns
+    -------
     dt : float
         Numerical integration precision.
     """
@@ -579,8 +579,8 @@ def get_dt():
 def set_mode(mode: modes.Mode):
     """Set the default computing mode.
 
-    Parameters::
-
+    Parameters
+    ----------
     mode: Mode
       The instance of :py:class:`~.Mode`.
     """
@@ -593,8 +593,8 @@ def set_mode(mode: modes.Mode):
 def get_mode() -> modes.Mode:
     """Get the default computing mode.
 
-    References::
-
+    References
+    ----------
     mode: Mode
       The default computing mode.
     """
@@ -604,8 +604,8 @@ def get_mode() -> modes.Mode:
 def set_membrane_scaling(membrane_scaling: scales.Scaling):
     """Set the default computing membrane_scaling.
 
-    Parameters::
-
+    Parameters
+    ----------
     scaling: Scaling
       The instance of :py:class:`~.Scaling`.
     """
@@ -618,8 +618,8 @@ def set_membrane_scaling(membrane_scaling: scales.Scaling):
 def get_membrane_scaling() -> scales.Scaling:
     """Get the default computing membrane_scaling.
 
-    Returns::
-
+    Returns
+    -------
     membrane_scaling: Scaling
       The default computing membrane_scaling.
     """
@@ -672,8 +672,8 @@ def set_platform(platform: str):
 def get_platform() -> str:
     """Get the computing platform.
 
-    Returns::
-
+    Returns
+    -------
     platform: str
       Either 'cpu', 'gpu' or 'tpu'.
     """
@@ -721,8 +721,8 @@ def clear_buffer_memory(
        This operation may cause errors when you use a deleted buffer.
        Therefore, regenerate data always.
 
-    Parameters::
-
+    Parameters
+    ----------
     platform: str
       The device to clear its memory.
     array: bool

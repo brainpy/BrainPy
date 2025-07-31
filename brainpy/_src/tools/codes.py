@@ -106,20 +106,20 @@ def get_identifiers(expr, include_numbers=False):
   that matches a programming language variable like expression, which is
   here implemented as the regexp ``\\b[A-Za-z_][A-Za-z0-9_]*\\b``.
 
-  Parameters::
-
+  Parameters
+  ----------
   expr : str
       The string to analyze
   include_numbers : bool, optional
       Whether to include number literals in the output. Defaults to ``False``.
 
-  Returns::
-
+  Returns
+  -------
   identifiers : set
       A set of all the identifiers (and, optionally, numbers) in `expr`.
 
-  Examples::
-
+  Examples
+  --------
   >>> expr = '3-a*_b+c5+8+f(A - .3e-10, tau_2)*17'
   >>> ids = get_identifiers(expr)
   >>> print(sorted(list(ids)))
@@ -181,7 +181,8 @@ def word_replace(expr, substitutions, exclude_dot=True):
   word ``word`` appearing in ``expr`` is replaced by ``rep``. Here a 'word'
   means anything matching the regexp ``\\bword\\b``.
 
-  Examples::
+  Examples
+  --------
 
   >>> expr = 'a*_b+c5+8+f(A)'
   >>> print(word_replace(expr, {'a':'banana', 'f':'func'}))
@@ -209,13 +210,13 @@ def is_lambda_function(func):
   """Check whether the function is a ``lambda`` function. Comes from
   https://stackoverflow.com/questions/23852423/how-to-check-that-variable-is-a-lambda-function
 
-  Parameters::
-
+  Parameters
+  ----------
   func : callable function
       The function.
 
-  Returns::
-
+  Returns
+  -------
   bool
       True of False.
   """
@@ -238,11 +239,12 @@ def get_main_code(func, codes=None):
 
   For lambda function, return the
 
-  Parameters::
-
+  Parameters
+  ----------
   func : callable, Optional, int, float
 
-  Returns::
+  Returns
+  -------
 
   """
   if func is None:

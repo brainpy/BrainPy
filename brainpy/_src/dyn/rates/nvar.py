@@ -42,8 +42,8 @@ class NVAR(Layer):
   - it supports batch size,
   - it supports multiple orders,
 
-  Parameters::
-
+  Parameters
+  ----------
   delay: int
     The number of delay step.
   order: int, sequence of int
@@ -53,8 +53,8 @@ class NVAR(Layer):
   constant: optional, float
     The constant value.
 
-  References::
-
+  References
+  ----------
   .. [1] Gauthier, D.J., Bollt, E., Griffith, A. et al. Next generation
          reservoir computing. Nat Commun 12, 5564 (2021).
          https://doi.org/10.1038/s41467-021-25801-2
@@ -170,8 +170,8 @@ class NVAR(Layer):
   def get_feature_names(self, for_plot=False) -> List[str]:
     """Get output feature names for transformation.
 
-    Parameters::
-
+    Parameters
+    ----------
     for_plot: bool
       Use the feature names for plotting or not? (Default False)
     """

@@ -141,8 +141,8 @@ class Delay(DynamicalSystem, ParamDesc):
   def retrieve(self, delay_step, *indices):
     """Retrieve the delay data according to the delay length.
 
-    Parameters::
-
+    Parameters
+    ----------
     delay_step: int, ArrayType
       The delay length used to retrieve the data.
     """
@@ -331,8 +331,8 @@ class VarDelay(Delay):
   def retrieve(self, delay_step, *indices):
     """Retrieve the delay data according to the delay length.
 
-    Parameters::
-
+    Parameters
+    ----------
     delay_step: int, Array
       The delay length used to retrieve the data.
     """

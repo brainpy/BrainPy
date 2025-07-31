@@ -25,8 +25,8 @@ def fdeint(
 ):
   """Numerical integration for FDEs.
 
-  Parameters::
-
+  Parameters
+  ----------
   f : callable, function
     The derivative function.
   method : str
@@ -42,8 +42,8 @@ def fdeint(
   name: str
     The integrator name.
 
-  Returns::
-
+  Returns
+  -------
   integral : FDEIntegrator
       The numerical solver of `f`.
   """
@@ -61,8 +61,8 @@ def fdeint(
 def set_default_fdeint(method):
   """Set the default ODE numerical integrator method for differential equations.
 
-  Parameters::
-
+  Parameters
+  ----------
   method : str, callable
       Numerical integrator method.
   """
@@ -78,8 +78,8 @@ def set_default_fdeint(method):
 def get_default_fdeint():
   """Get the default ODE numerical integrator method.
 
-  Returns::
-
+  Returns
+  -------
   method : str
       The default numerical integrator method.
   """
@@ -89,8 +89,8 @@ def get_default_fdeint():
 def register_fde_integrator(name, integrator):
   """Register a new ODE integrator.
 
-  Parameters::
-
+  Parameters
+  ----------
   name: ste
     The integrator name.
   integrator: type

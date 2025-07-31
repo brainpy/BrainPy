@@ -29,8 +29,8 @@ class OnlineTrainer(DSTrainer):
 
   For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-  Parameters::
-
+  Parameters
+  ----------
   target: DynamicalSystem
     The target model to train.
 
@@ -113,8 +113,8 @@ class OnlineTrainer(DSTrainer):
     What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
     the `inputs_are_batching` is default `True`.
 
-    Parameters::
-
+    Parameters
+    ----------
     inputs: ArrayType
       The input values.
     reset_state: bool
@@ -124,8 +124,8 @@ class OnlineTrainer(DSTrainer):
     eval_time: bool
       Whether we evaluate the running time or not?
 
-    Returns::
-
+    Returns
+    -------
     output: ArrayType
       The running output.
     """
@@ -209,8 +209,8 @@ class OnlineTrainer(DSTrainer):
            shared_args: Dict = None):
     """Predict the output according to the inputs.
 
-    Parameters::
-
+    Parameters
+    ----------
     indices: ArrayType
       The running indices.
     ys: dict
@@ -218,8 +218,8 @@ class OnlineTrainer(DSTrainer):
     shared_args: optional, dict
       The shared keyword arguments.
 
-    Returns::
-
+    Returns
+    -------
     outputs, hists
       A tuple of pair of (outputs, hists).
     """

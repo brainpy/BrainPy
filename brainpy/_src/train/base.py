@@ -19,8 +19,8 @@ class DSTrainer(DSRunner):
 
   For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-  Parameters::
-
+  Parameters
+  ----------
   target: DynamicalSystem
     The training target.
 
@@ -68,8 +68,8 @@ class DSTrainer(DSRunner):
   ) -> Output:
     """Prediction function.
 
-    Parameters::
-
+    Parameters
+    ----------
     inputs: ArrayType, sequence of ArrayType, dict of ArrayType
       The input values.
     reset_state: bool
@@ -79,8 +79,8 @@ class DSTrainer(DSRunner):
     shared_args: dict
       The shared arguments across nodes.
 
-    Returns::
-
+    Returns
+    -------
     output: ArrayType, sequence of ArrayType, dict of ArrayType
       The running output.
     """

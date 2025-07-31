@@ -39,8 +39,8 @@ class FromFlax(Layer):
   """
   Transform a Flax module as a BrainPy :py:class:`~.DynamicalSystem`.
 
-  Parameters::
-
+  Parameters
+  ----------
   flax_module: Any
     The flax Module.
   module_args: Any

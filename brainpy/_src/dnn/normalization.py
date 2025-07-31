@@ -52,8 +52,8 @@ class BatchNorm(Layer):
       where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
       new observed value.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_features: int
     ``C`` from an expected input of size ``(..., C)``.
   axis: int, tuple, list
@@ -79,8 +79,8 @@ class BatchNorm(Layer):
     Specifies how devices are grouped. Valid
     only within ``jax.pmap`` collectives.
 
-  References::
-
+  References
+  ----------
   .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
   """
@@ -177,8 +177,8 @@ class BatchNorm1d(BatchNorm):
       where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
       new observed value.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_features: int
     ``C`` from an expected input of size ``(B, L, C)``.
   axis: int, tuple, list
@@ -204,8 +204,8 @@ class BatchNorm1d(BatchNorm):
     Specifies how devices are grouped. Valid
     only within ``jax.pmap`` collectives.
 
-  References::
-
+  References
+  ----------
   .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
   """
@@ -260,8 +260,8 @@ class BatchNorm2d(BatchNorm):
       where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
       new observed value.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_features: int
     ``C`` from an expected input of size ``(B, H, W, C)``.
   axis: int, tuple, list
@@ -287,8 +287,8 @@ class BatchNorm2d(BatchNorm):
     Specifies how devices are grouped. Valid
     only within ``jax.pmap`` collectives.
 
-  References::
-
+  References
+  ----------
   .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
   """
@@ -343,8 +343,8 @@ class BatchNorm3d(BatchNorm):
       where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
       new observed value.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_features: int
     ``C`` from an expected input of size ``(B, H, W, D, C)``.
   axis: int, tuple, list
@@ -370,8 +370,8 @@ class BatchNorm3d(BatchNorm):
     Specifies how devices are grouped. Valid
     only within ``jax.pmap`` collectives.
 
-  References::
-
+  References
+  ----------
   .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
   """
@@ -422,8 +422,8 @@ class LayerNorm(Layer):
   scale and bias to a whole example/whole channel, please use GroupNorm/
   InstanceNorm.
 
-  Parameters::
-
+  Parameters
+  ----------
   normalized_shape: int, sequence of int
     The input shape from an expected input of size
 
@@ -444,8 +444,8 @@ class LayerNorm(Layer):
     has learnable per-element affine parameters initialized to ones (for weights)
     and zeros (for biases). Default: ``True``.
 
-  Examples::
-
+  Examples
+  --------
   >>> import brainpy as bp
   >>> import brainpy.math as bm
   >>>
@@ -519,8 +519,8 @@ class GroupNorm(Layer):
   The shape of the data should be (b, d1, d2, ..., c), where `d` denotes the batch
   size and `c` denotes the feature (channel) size.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_groups: int
     The number of groups. It should be a factor of the number of channels.
   num_channels: int
@@ -536,8 +536,8 @@ class GroupNorm(Layer):
   scale_initializer: Initializer, ArrayType, Callable
     An initializer generating the original scaling matrix
 
-  Examples::
-
+  Examples
+  --------
   >>> import brainpy as bp
   >>> import brainpy.math as bm
   >>> input = bm.random.randn(20, 10, 10, 6)
@@ -598,8 +598,8 @@ class InstanceNorm(GroupNorm):
   This layer normalizes the data within each feature. It can be regarded as
   a group normalization layer in which `group_size` equals to 1.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_channels: int
     The number of channels expected in input.
   epsilon: float

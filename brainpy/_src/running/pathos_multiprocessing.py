@@ -43,8 +43,8 @@ def _parallel(
 ) -> Generator:
   """Perform a parallel map with a progress bar.
 
-  Parameters::
-
+  Parameters
+  ----------
   ordered: bool
     True for an ordered map, false for an unordered map.
   function: callable, function
@@ -60,8 +60,8 @@ def _parallel(
   tqdm_kwargs: Any
     The setting for the progress bar.
 
-  Returns::
-
+  Returns
+  -------
   results: Iterable
       A generator which will apply the function to each element of the given Iterables
       in parallel in order with a progress bar.
@@ -127,7 +127,8 @@ def cpu_ordered_parallel(
 ) -> List[Any]:
   """Performs a parallel ordered map with a progress bar.
 
-  Examples::
+  Examples
+  --------
 
   >>> import brainpy as bp
   >>> import brainpy.math as bm
@@ -147,8 +148,8 @@ def cpu_ordered_parallel(
   >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
   >>>   print(results)
 
-  Parameters::
-
+  Parameters
+  ----------
   func: callable, function
     The function to apply to each element of the given Iterables.
   arguments: sequence of Iterable, dict
@@ -162,8 +163,8 @@ def cpu_ordered_parallel(
   tqdm_kwargs: Any
     The setting for the progress bar.
 
-  Returns::
-
+  Returns
+  -------
   results: list
     A list which will apply the function to each element of the given tasks.
   """
@@ -185,8 +186,8 @@ def cpu_unordered_parallel(
 ) -> List[Any]:
   """Performs a parallel unordered map with a progress bar.
 
-  Examples::
-
+  Examples
+  --------
   >>> import brainpy as bp
   >>> import brainpy.math as bm
   >>> import numpy as np
@@ -205,8 +206,8 @@ def cpu_unordered_parallel(
   >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
   >>>   print(results)
 
-  Parameters::
-
+  Parameters
+  ----------
   func: callable, function
     The function to apply to each element of the given Iterables.
   arguments: sequence of Iterable, dict
@@ -220,8 +221,8 @@ def cpu_unordered_parallel(
   tqdm_kwargs: Any
     The setting for the progress bar.
 
-  Returns::
-
+  Returns
+  -------
   results: list
     A list which will apply the function to each element of the given tasks.
   """

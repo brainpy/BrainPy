@@ -52,8 +52,8 @@ def mv_prob_homo(
        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
        the speed compared with ``outdim_parallel=False``.
 
-    Parameters::
-
+    Parameters
+    ----------
     vector: Array, ndarray
       The vector.
     weight: float
@@ -71,8 +71,8 @@ def mv_prob_homo(
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
-
+    Returns
+    -------
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
@@ -125,8 +125,8 @@ def mv_prob_uniform(
        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
        the speed compared with ``outdim_parallel=False``.
 
-    Parameters::
-
+    Parameters
+    ----------
     vector: Array, ndarray
       The vector.
     w_low: float
@@ -146,8 +146,8 @@ def mv_prob_uniform(
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
-
+    Returns
+    -------
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
@@ -202,8 +202,8 @@ def mv_prob_normal(
        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
        the speed compared with ``outdim_parallel=False``.
 
-    Parameters::
-
+    Parameters
+    ----------
     vector: Array, ndarray
       The vector.
     w_mu: float
@@ -223,8 +223,8 @@ def mv_prob_normal(
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
-
+    Returns
+    -------
     out: Array, ndarray
       The output of :math:`y = M @ v`.
     """
@@ -255,8 +255,8 @@ def get_homo_weight_matrix(
 ) -> jax.Array:
     r"""Get the connection matrix :math:`M` with a connection probability `conn_prob`.
 
-    Parameters::
-
+    Parameters
+    ----------
     conn_prob: float
       The connection probability.
     shape: tuple of int
@@ -270,8 +270,8 @@ def get_homo_weight_matrix(
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
-
+    Returns
+    -------
     out: Array, ndarray
       The connection matrix :math:`M`.
     """
@@ -295,8 +295,8 @@ def get_uniform_weight_matrix(
 ) -> jax.Array:
     r"""Get the weight matrix :math:`M` with a uniform distribution for its value.
 
-    Parameters::
-
+    Parameters
+    ----------
     w_low: float
       Lower boundary of the output interval.
     w_high: float
@@ -314,8 +314,8 @@ def get_uniform_weight_matrix(
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
-
+    Returns
+    -------
     out: Array, ndarray
       The weight matrix :math:`M`.
     """
@@ -344,8 +344,8 @@ def get_normal_weight_matrix(
 ) -> jax.Array:
     r"""Get the weight matrix :math:`M` with a normal distribution for its value.
 
-    Parameters::
-
+    Parameters
+    ----------
     w_mu: float
       Mean (centre) of the distribution.
     w_sigma: float
@@ -361,8 +361,8 @@ def get_normal_weight_matrix(
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
-
+    Returns
+    -------
     out: Array, ndarray
       The weight matrix :math:`M`.
     """

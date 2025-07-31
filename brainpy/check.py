@@ -116,13 +116,14 @@ def is_shape_broadcastable(shapes, free_axes=(), return_format_shapes=False):
   See https://numpy.org/doc/stable/reference/generated/numpy.broadcast.html
   for more details.
 
-  Parameters::
-
+  Parameters
+  ----------
   shapes
   free_axes
   return_format_shapes
 
-  Returns::
+  Returns
+  -------
 
   """
   max_dim = max([len(shape) for shape in shapes])
@@ -321,8 +322,8 @@ def is_float(
 ) -> float:
   """Check float type.
 
-  Parameters::
-
+  Parameters
+  ----------
   value: Any
   name: optional, str
   min_bound: optional, float
@@ -361,8 +362,8 @@ def is_float(
 def is_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none=False):
   """Check integer type.
 
-  Parameters::
-
+  Parameters
+  ----------
   value: int, optional
   name: optional, str
   min_bound: optional, int
@@ -448,8 +449,8 @@ def is_subclass(
   - the instance of ``B`` or ``C`` will also success to pass the check.
   - the instance of ``A`` will success to pass the check too.
 
-  Parameters::
-
+  Parameters
+  ----------
   instance: Any
     The instance in the inheritance hierarchy tree.
   supported_types: type, list of type, tuple of type
@@ -496,8 +497,8 @@ def is_instance(
   - the instance of ``A`` or ``C`` or ``G`` will fail to pass the check.
   - the instance of ``B`` or ``D`` or ``E`` or ``F`` will success to pass the check.
 
-  Parameters::
-
+  Parameters
+  ----------
   instance: Any
     The instance in the inheritance hierarchy tree.
   supported_types: type, list of type, tuple of type
@@ -596,8 +597,8 @@ def _cond(err_fun, pred, err_arg):
 def jit_error(pred, err_fun, err_arg=None):
   """Check errors in a jit function.
 
-  Parameters::
-
+  Parameters
+  ----------
   pred: bool, Array
     The boolean prediction.
   err_fun: callable
@@ -615,8 +616,8 @@ jit_error_checking = jit_error
 def jit_error_checking_no_args(pred: bool, err: Exception):
   """Check errors in a jit function.
 
-  Parameters::
-
+  Parameters
+  ----------
   pred: bool
     The boolean prediction.
   err: Exception

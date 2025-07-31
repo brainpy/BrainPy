@@ -60,13 +60,14 @@ class FractionalFHR(FractionalNeuron):
   relatively fixed time of bursting duration. With the increasing of :math:`a`, the
   interburst intervals become shorter and periodic bursting changes to tonic spiking.
 
-  Examples::
+  Examples
+  --------
 
   - [(Mondal, et, al., 2019): Fractional-order FitzHugh-Rinzel bursting neuron model](https://brainpy-examples.readthedocs.io/en/latest/neurons/2019_Fractional_order_FHR_model.html)
 
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, sequence of int
     The size of the neuron group.
   alpha: float, tensor
@@ -74,8 +75,8 @@ class FractionalFHR(FractionalNeuron):
   num_memory: int
     The total number of the short memory.
 
-  References::
-
+  References
+  ----------
   .. [1] Mondal, A., Sharma, S.K., Upadhyay, R.K. *et al.* Firing activities of a fractional-order FitzHugh-Rinzel bursting neuron model and its coupled dynamics. *Sci Rep* **9,** 15721 (2019). https://doi.org/10.1038/s41598-019-52061-4
   """
 
@@ -222,13 +223,14 @@ class FractionalIzhikevich(FractionalNeuron):
   in mV. When the spike reaches its peak value, the membrane voltage :math:`v` and the
   recovery variable :math:`u` are reset according to the above condition.
 
-  Examples::
+  Examples
+  --------
 
   - [(Teka, et. al, 2018): Fractional-order Izhikevich neuron model](https://brainpy-examples.readthedocs.io/en/latest/neurons/2018_Fractional_Izhikevich_model.html)
 
 
-  References::
-
+  References
+  ----------
   .. [10] Teka, Wondimu W., Ranjit Kumar Upadhyay, and Argha Mondal. "Spiking and
           bursting patterns of fractional-order Izhikevich model." Communications
           in Nonlinear Science and Numerical Simulation 56 (2018): 161-176.

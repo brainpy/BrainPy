@@ -15,15 +15,15 @@ def raster_plot(sp_matrix, times):
   """Get spike raster plot which displays the spiking activity
   of a group of neurons over time.
 
-  Parameters::
-
+  Parameters
+  ----------
   sp_matrix : bnp.ndarray
       The matrix which record spiking activities.
   times : bnp.ndarray
       The time steps.
 
-  Returns::
-
+  Returns
+  -------
   raster_plot : tuple
       Include (neuron index, spike time).
   """
@@ -47,8 +47,8 @@ def firing_rate(spikes, width, dt=None, numpy=True):
 
       v_k = {n_k^{sp} \over T}
 
-  Parameters::
-
+  Parameters
+  ----------
   spikes : ndarray
     The spike matrix which record spiking activities.
   width : int, float
@@ -59,8 +59,8 @@ def firing_rate(spikes, width, dt=None, numpy=True):
     Whether we use numpy array as the functional output.
     If ``False``, this function can be JIT compiled.
 
-  Returns::
-
+  Returns
+  -------
   rate : ndarray
       The population rate in Hz, smoothed with the given window.
   """

@@ -12,8 +12,8 @@ __all__ = [
 def get_figure(row_num, col_num, row_len=3, col_len=6, name=None):
   """Get the constrained_layout figure.
 
-  Parameters::
-
+  Parameters
+  ----------
   row_num : int
       The row number of the figure.
   col_num : int
@@ -23,8 +23,8 @@ def get_figure(row_num, col_num, row_len=3, col_len=6, name=None):
   col_len : int, float
       The length of each column.
 
-  Returns::
-
+  Returns
+  -------
   fig_and_gs : tuple
       Figure and GridSpec.
   """

@@ -21,8 +21,8 @@ __all__ = [
 class Runner(BrainPyObject):
   """Base Runner.
 
-  Parameters::
-
+  Parameters
+  ----------
   target: Any
     The target model.
 

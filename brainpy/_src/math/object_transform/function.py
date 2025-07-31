@@ -41,8 +41,8 @@ def to_object(
 ):
   """Transform a Python function to :py:class:`~.BrainPyObject`.
 
-  Parameters::
-
+  Parameters
+  ----------
   f: function, callable
     The python function.
   child_objs: Callable, BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject
@@ -52,8 +52,8 @@ def to_object(
   name: str
     The name of the created ``BrainPyObject``.
 
-  Returns::
-
+  Returns
+  -------
   func: FunAsObject
     The instance of ``BrainPyObject``.
   """
@@ -81,8 +81,8 @@ def function(
   .. deprecated:: 2.3.0
      Using :py:func:`~.to_object` instead.
 
-  Parameters::
-
+  Parameters
+  ----------
   f: function, callable
     The python function.
   nodes: Callable, BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject
@@ -92,8 +92,8 @@ def function(
   name: str
     The name of the created ``BrainPyObject``.
 
-  Returns::
-
+  Returns
+  -------
   func: FunAsObject
     The instance of ``BrainPyObject``.
   """

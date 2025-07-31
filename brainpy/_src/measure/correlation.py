@@ -41,8 +41,8 @@ def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
      To JIT compile this function, users should make ``bin``, ``dt``, ``numpy`` static.
      For example, ``partial(brainpy.measure.cross_correlation, bin=10, numpy=False)``.
 
-  Parameters::
-
+  Parameters
+  ----------
   spikes : ndarray
       The history of spike states of the neuron group.
   bin : float, int
@@ -59,13 +59,13 @@ def cross_correlation(spikes, bin, dt=None, numpy=True, method='loop'):
 
     .. versionadded:: 2.2.3.4
 
-  Returns::
-
+  Returns
+  -------
   cc_index : float
       The cross correlation value which represents the synchronization index.
 
-  References::
-
+  References
+  ----------
   .. [1] Wang, Xiao-Jing, and György Buzsáki. "Gamma oscillation by synaptic
          inhibition in a hippocampal interneuronal network model." Journal of
          neuroscience 16.20 (1996): 6402-6413.
@@ -188,8 +188,8 @@ def matrix_correlation(x, y, numpy=True):
 
     The triangular matrix is offset by k = 1 in order to ignore the diagonal line
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ndarray
     First matrix.
   y: ndarray
@@ -198,8 +198,8 @@ def matrix_correlation(x, y, numpy=True):
     Whether we use numpy array as the functional output.
     If ``False``, this function can be JIT compiled.
 
-  Returns::
-
+  Returns
+  -------
   coef: ndarray
     Correlation coefficient
   """
@@ -222,16 +222,16 @@ def matrix_correlation(x, y, numpy=True):
 def functional_connectivity(activities, numpy=True):
   """Functional connectivity matrix of timeseries activities.
 
-  Parameters::
-
+  Parameters
+  ----------
   activities: ndarray
     The multidimensional array with the shape of ``(num_time, num_sample)``.
   numpy: bool
     Whether we use numpy array as the functional output.
     If ``False``, this function can be JIT compiled.
 
-  Returns::
-
+  Returns
+  -------
   connectivity_matrix: ndarray
     ``num_sample x num_sample`` functional connectivity matrix.
   """
@@ -247,8 +247,8 @@ def functional_connectivity(activities, numpy=True):
 def functional_connectivity_dynamics(activities, window_size=30, step_size=5):
   """Computes functional connectivity dynamics (FCD) matrix.
 
-  Parameters::
-
+  Parameters
+  ----------
   activities: ndarray
     The time series with shape of ``(num_time, num_sample)``.
   window_size: int
@@ -256,8 +256,8 @@ def functional_connectivity_dynamics(activities, window_size=30, step_size=5):
   step_size: int
     Step size between each rolling window, defaults to 5.
 
-  Returns::
-
+  Returns
+  -------
   fcd_matrix: ndarray
     FCD matrix.
   """
@@ -267,8 +267,8 @@ def functional_connectivity_dynamics(activities, window_size=30, step_size=5):
 def weighted_correlation(x, y, w, numpy=True):
   """Weighted Pearson correlation of two data series.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ndarray
     The data series 1.
   y: ndarray
@@ -279,8 +279,8 @@ def weighted_correlation(x, y, w, numpy=True):
     Whether we use numpy array as the functional output.
     If ``False``, this function can be JIT compiled.
 
-  Returns::
-
+  Returns
+  -------
   corr: ndarray
     Weighted correlation coefficient.
   """

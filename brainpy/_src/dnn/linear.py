@@ -42,8 +42,8 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
 
        y = x  \cdot weight + b
 
-    Parameters::
-
+    Parameters
+    ----------
     num_in: int
       The number of the input feature. A positive integer.
     num_out: int

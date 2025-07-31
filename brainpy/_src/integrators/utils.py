@@ -51,13 +51,13 @@ def get_args(f):
   >>> get_args(scope['f5'])
   (['a', 'b'], ['t', '*args'], ['a', 'b', 't', '*args'])
 
-  Parameters::
-
+  Parameters
+  ----------
   f : callable
       The function.
 
-  Returns::
-
+  Returns
+  -------
   args : tuple
       The variable names, the other arguments, and the original args.
   """

@@ -22,15 +22,15 @@ class COBA(SynOutNS):
 
      I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
 
-  Parameters::
-
+  Parameters
+  ----------
   E: float, ArrayType, ndarray
     The reversal potential.
   name: str
     The model name.
 
-  See Also::
-
+  See Also
+  --------
   CUBA
   """
 
@@ -51,14 +51,14 @@ class CUBA(SynOutNS):
 
      I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
 
-  Parameters::
-
+  Parameters
+  ----------
   name: str
     The model name.
 
 
-  See Also::
-
+  See Also
+  --------
   COBA
   """
 
@@ -86,8 +86,8 @@ class MgBlock(SynOutNS):
 
   Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
 
-  Parameters::
-
+  Parameters
+  ----------
   E: float, ArrayType
     The reversal potential for the synaptic current. [mV]
   alpha: float, ArrayType

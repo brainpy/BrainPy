@@ -60,8 +60,8 @@ class _ICa_p2q_ss(CalciumChannel):
   where :math:`\phi_p` and :math:`\phi_q` are temperature-dependent factors,
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, tuple of int
     The size of the simulation target.
   keep_size: bool
@@ -153,8 +153,8 @@ class _ICa_p2q_markov(CalciumChannel):
   where :math:`\phi_p` and :math:`\phi_q` are temperature-dependent factors,
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, tuple of int
     The size of the simulation target.
   keep_size: bool
@@ -252,8 +252,8 @@ class ICaN_IS2008(CalciumChannel):
 
   where :math:`\phi` is the temperature factor.
 
-  Parameters::
-
+  Parameters
+  ----------
   g_max : float
     The maximal conductance density (:math:`mS/cm^2`).
   E : float
@@ -261,7 +261,8 @@ class ICaN_IS2008(CalciumChannel):
   phi : float
     The temperature factor.
 
-  References::
+  References
+  ----------
 
   .. [1] Destexhe, Alain, et al. "A model of spindle rhythmicity in the isolated
          thalamic reticular nucleus." Journal of neurophysiology 72.2 (1994): 803-818.
@@ -339,8 +340,8 @@ class ICaT_HM1992(_ICa_p2q_ss):
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
-  Parameters::
-
+  Parameters
+  ----------
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
@@ -356,13 +357,14 @@ class ICaT_HM1992(_ICa_p2q_ss):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References::
+  References
+  ----------
 
   .. [1] Huguenard JR, McCormick DA (1992) Simulation of the currents involved in
          rhythmic oscillations in thalamic relay neurons. J Neurophysiol 68:1373–1383.
 
-  See Also::
-
+  See Also
+  --------
   ICa_p2q_form
   """
 
@@ -435,8 +437,8 @@ class ICaT_HP1992(_ICa_p2q_ss):
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
-  Parameters::
-
+  Parameters
+  ----------
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
@@ -452,14 +454,15 @@ class ICaT_HP1992(_ICa_p2q_ss):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References::
+  References
+  ----------
 
   .. [1] Huguenard JR, Prince DA (1992) A novel T-type current underlies
          prolonged Ca2+- dependent burst firing in GABAergic neurons of rat
          thalamic reticular nucleus. J Neurosci 12: 3804–3817.
 
-  See Also::
-
+  See Also
+  --------
   ICa_p2q_form
   """
 
@@ -535,8 +538,8 @@ class ICaHT_HM1992(_ICa_p2q_ss):
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
-  Parameters::
-
+  Parameters
+  ----------
   T : float, ArrayType
     The temperature.
   T_base_p : float, ArrayType
@@ -548,13 +551,13 @@ class ICaHT_HM1992(_ICa_p2q_ss):
   V_sh : float, ArrayType, Initializer, Callable
     The membrane potential shift.
 
-  References::
-
+  References
+  ----------
   .. [1] Huguenard JR, McCormick DA (1992) Simulation of the currents involved in
          rhythmic oscillations in thalamic relay neurons. J Neurophysiol 68:1373–1383.
 
-  See Also::
-
+  See Also
+  --------
   ICa_p2q_form
   """
 
@@ -627,8 +630,8 @@ class ICaHT_Re1993(_ICa_p2q_markov):
       \beta_{r} &=\frac{0.0065}{\exp [(-15-V+V_{sh}) / 28]+1},
       \end{aligned}
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, tuple of int
     The size of the simulation target.
   keep_size: bool
@@ -654,8 +657,8 @@ class ICaHT_Re1993(_ICa_p2q_markov):
     The temperature factor for channel :math:`q`.
     If `None`, :math:`\phi_q = \mathrm{T_base_q}^{\frac{T-23}{10}}`.
 
-  References::
-
+  References
+  ----------
   .. [1] Reuveni, I., et al. "Stepwise repolarization from Ca2+ plateaus
          in neocortical pyramidal cells: evidence for nonhomogeneous
          distribution of HVA Ca2+ channels in dendrites." Journal of
@@ -727,8 +730,8 @@ class ICaL_IS2008(_ICa_p2q_ss):
   are temperature-dependent factors (:math:`T` is the temperature in Celsius),
   :math:`E_{Ca}` is the reversal potential of Calcium channel.
 
-  Parameters::
-
+  Parameters
+  ----------
   T : float
     The temperature.
   T_base_p : float
@@ -740,14 +743,15 @@ class ICaL_IS2008(_ICa_p2q_ss):
   V_sh : float
     The membrane potential shift.
 
-  References::
+  References
+  ----------
 
   .. [1] Inoue, Tsuyoshi, and Ben W. Strowbridge. "Transient activity induces a long-lasting
          increase in the excitability of olfactory bulb interneurons." Journal of
          neurophysiology 99, no. 1 (2008): 187-199.
 
-  See Also::
-
+  See Also
+  --------
   ICa_p2q_form
   """
 

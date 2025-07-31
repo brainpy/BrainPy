@@ -225,8 +225,8 @@ def segment_sum(data: Union[Array, jnp.ndarray],
                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
   """``segment_sum`` operator for brainpy `Array` and `Variable`.
 
-  Parameters::
-
+  Parameters
+  ----------
   data: Array
     An array with the values to be reduced.
   segment_ids: Array
@@ -253,8 +253,8 @@ def segment_sum(data: Union[Array, jnp.ndarray],
     out-of-bounds indices should be handled. By default, values outside of the
     range [0, num_segments) are dropped and do not contribute to the sum.
 
-  Returns::
-
+  Returns
+  -------
   output: Array
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
@@ -277,8 +277,8 @@ def segment_prod(data: Union[Array, jnp.ndarray],
                  mode: Optional[lax.GatherScatterMode] = None) -> Array:
   """``segment_prod`` operator for brainpy `Array` and `Variable`.
 
-  Parameters::
-
+  Parameters
+  ----------
   data: Array
     An array with the values to be reduced.
   segment_ids: Array
@@ -305,8 +305,8 @@ def segment_prod(data: Union[Array, jnp.ndarray],
     out-of-bounds indices should be handled. By default, values outside of the
     range [0, num_segments) are dropped and do not contribute to the sum.
 
-  Returns::
-
+  Returns
+  -------
   output: Array
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
@@ -329,8 +329,8 @@ def segment_max(data: Union[Array, jnp.ndarray],
                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
   """``segment_max`` operator for brainpy `Array` and `Variable`.
 
-  Parameters::
-
+  Parameters
+  ----------
   data: Array
     An array with the values to be reduced.
   segment_ids: Array
@@ -357,8 +357,8 @@ def segment_max(data: Union[Array, jnp.ndarray],
     out-of-bounds indices should be handled. By default, values outside of the
     range [0, num_segments) are dropped and do not contribute to the sum.
 
-  Returns::
-
+  Returns
+  -------
   output: Array
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.
@@ -381,8 +381,8 @@ def segment_min(data: Union[Array, jnp.ndarray],
                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
   """``segment_min`` operator for brainpy `Array` and `Variable`.
 
-  Parameters::
-
+  Parameters
+  ----------
   data: Array
     An array with the values to be reduced.
   segment_ids: Array
@@ -409,8 +409,8 @@ def segment_min(data: Union[Array, jnp.ndarray],
     out-of-bounds indices should be handled. By default, values outside of the
     range [0, num_segments) are dropped and do not contribute to the sum.
 
-  Returns::
-
+  Returns
+  -------
   output: Array
     An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
     segment sums.

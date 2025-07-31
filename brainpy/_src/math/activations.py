@@ -91,8 +91,8 @@ def celu(x, alpha=1.0):
   `Continuously Differentiable Exponential Linear Units
   <https://arxiv.org/pdf/1704.07483.pdf>`_.
 
-  Parameters::
-
+  Parameters
+  ----------
   x : ArrayType
     The input array.
   alpha : ndarray, float
@@ -114,8 +114,8 @@ def elu(x, alpha=1.0):
       \alpha \left(\exp(x) - 1\right), & x \le 0
     \end{cases}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: JaxArray, jnp.ndarray
     The input array.
   alpha : scalar or Array
@@ -145,8 +145,8 @@ def gelu(x, approximate=True):
   For more information, see `Gaussian Error Linear Units (GELUs)
   <https://arxiv.org/abs/1606.08415>`_, section 2.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   approximate: bool
@@ -165,8 +165,8 @@ def gelu(x, approximate=True):
 def glu(x, axis=-1):
   r"""Gated linear unit activation function.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   axis: int
@@ -191,8 +191,8 @@ def hard_tanh(x, min_val=- 1.0, max_val=1.0):
       1, & 1 < x
     \end{cases}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   min_val: float
@@ -212,8 +212,8 @@ def hard_sigmoid(x):
   .. math::
     \mathrm{hard\_sigmoid}(x) = \frac{\mathrm{relu6}(x + 3)}{6}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -238,8 +238,8 @@ def hard_silu(x):
   .. math::
     \mathrm{hard\_silu}(x) = x \cdot \mathrm{hard\_sigmoid}(x)
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -287,8 +287,8 @@ def leaky_relu(x, negative_slope=1e-2):
 
   where :math:`\alpha` = :code:`negative_slope`.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   negative_slope : float
@@ -312,8 +312,8 @@ def softplus(x, beta: float = 1., threshold: float = 20.):
   For numerical stability the implementation reverts to the linear function
   when :math:`input \times \beta > threshold`.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: The input array.
   beta: the :math:`\beta` value for the Softplus formulation. Default: 1.
   threshold: values above this revert to a linear function. Default: 20.
@@ -331,8 +331,8 @@ def log_sigmoid(x):
   .. math::
     \mathrm{log\_sigmoid}(x) = \log(\mathrm{sigmoid}(x)) = -\log(1 + e^{-x})
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -371,8 +371,8 @@ def log_softmax(x, axis=-1):
     \mathrm{log\_softmax}(x) = \log \left( \frac{\exp(x_i)}{\sum_j \exp(x_j)}
     \right)
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   axis: int
@@ -504,8 +504,8 @@ def relu6(x):
   .. math::
     \mathrm{relu6}(x) = \min(\max(x, 0), 6)
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -580,8 +580,8 @@ def sigmoid(x):
   .. math::
     \mathrm{sigmoid}(x) = \frac{1}{1 + e^{-x}}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -597,8 +597,8 @@ def soft_sign(x):
   .. math::
     \mathrm{soft\_sign}(x) = \frac{x}{|x| + 1}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -615,8 +615,8 @@ def softmax(x, axis=-1):
   .. math ::
     \mathrm{softmax}(x) = \frac{\exp(x_i)}{\sum_j \exp(x_j)}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   axis: int
@@ -664,8 +664,8 @@ def silu(x):
   .. math::
     \mathrm{silu}(x) = x \cdot \mathrm{sigmoid}(x) = \frac{x}{1 + e^{-x}}
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """
@@ -713,8 +713,8 @@ def selu(x):
   `Self-Normalizing Neural Networks
   <https://papers.nips.cc/paper/6698-self-normalizing-neural-networks.pdf>`_.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: ArrayType
     The input array.
   """

@@ -39,15 +39,15 @@ class STD(_SynSTP):
   where :math:`U` is the fraction of resources used per action potential,
   :math:`\tau` is the time constant of recovery of the synaptic vesicles.
 
-  Parameters::
-
+  Parameters
+  ----------
   tau: float
     The time constant of recovery of the synaptic vesicles.
   U: float
     The fraction of resources used per action potential.
 
-  See Also::
-
+  See Also
+  --------
   STP
   """
 
@@ -121,8 +121,8 @@ class STP(_SynSTP):
   variables just before the arrival of the spike, and :math:`u^+`
   refers to the moment just after the spike.
 
-  Parameters::
-
+  Parameters
+  ----------
   tau_f: float
     The time constant of short-term facilitation.
   tau_d: float
@@ -132,8 +132,8 @@ class STP(_SynSTP):
   method: str
     The numerical integral method.
 
-  See Also::
-
+  See Also
+  --------
   STD
   """
 

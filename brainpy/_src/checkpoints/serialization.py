@@ -1102,8 +1102,8 @@ def save(
   commit will happen inside an async callback, which can be explicitly waited
   by calling `async_manager.wait_previous_save()`.
 
-  Parameters::
-
+  Parameters
+  ----------
   ckpt_dir: str, PathLike
     str or pathlib-like path to store checkpoint files in.
   target: Any
@@ -1125,8 +1125,8 @@ def save(
     thread. Only works for single host. Note that an ongoing save will still
     block subsequent saves, to make sure overwrite/keep logic works correctly.
 
-  Returns::
-
+  Returns
+  -------
   out: str
     Filename of saved checkpoint.
   """
@@ -1241,8 +1241,8 @@ def save_pytree(
   commit will happen inside an async callback, which can be explicitly waited
   by calling `async_manager.wait_previous_save()`.
 
-  Parameters::
-
+  Parameters
+  ----------
   filename: str
     str or pathlib-like path to store checkpoint files in.
   target: Any
@@ -1257,8 +1257,8 @@ def save_pytree(
   verbose: bool
     Whether output the print information.
 
-  Returns::
-
+  Returns
+  -------
   out: str
     Filename of saved checkpoint.
   """
@@ -1316,8 +1316,8 @@ def multiprocess_save(
   by calling `async_manager.wait_previous_save()` or
   `gda_manager.wait_until_finished()`.
 
-  Parameters::
-
+  Parameters
+  ----------
   ckpt_dir: str, PathLike
     str or pathlib-like path to store checkpoint files in.
   target: Any
@@ -1345,8 +1345,8 @@ def multiprocess_save(
     "_gda" asynchronously. Same as async_manager, this will block subsequent
     saves.
 
-  Returns::
-
+  Returns
+  -------
   out: str
     Filename of saved checkpoint.
   """
@@ -1410,15 +1410,15 @@ def _load_latest_fn(
 ) -> Optional[str]:
   """Retrieve the path of the latest checkpoint in a directory.
 
-  Parameters::
-
+  Parameters
+  ----------
   ckpt_dir: str
     directory of checkpoints to restore from.
   prefix: str
     name prefix of checkpoint files.
 
-  Returns::
-
+  Returns
+  -------
   out: PyTree, None
     The latest checkpoint path or None if no checkpoints were found.
   """
@@ -1459,8 +1459,8 @@ def load(
 
   *  ``ckpt_-1.0, ckpt_1.0, ckpt_1e5 --> ckpt_1e5``
 
-  Parameters::
-
+  Parameters
+  ----------
   ckpt_dir: str
     checkpoint file or directory of checkpoints to restore from.
   step: int, float
@@ -1486,8 +1486,8 @@ def load(
     a fully valid ``target`` and don't need all the MPAs in the checkpoint
     to be restored.
 
-  Returns::
-
+  Returns
+  -------
   out: Any
     Restored `target` updated from checkpoint file, or if no step specified and
     no checkpoint files present, returns the passed-in `target` unchanged.
@@ -1574,15 +1574,15 @@ def load_pytree(
 ) -> PyTree:
   """Load the checkpoint from the given checkpoint path.
 
-  Parameters::
-
+  Parameters
+  ----------
   filename: str
     checkpoint file or directory of checkpoints to restore from.
   parallel: bool
     whether to load seekable checkpoints in parallel, for speed.
 
-  Returns::
-
+  Returns
+  -------
   out: Any
     Restored `target` updated from checkpoint file, or if no step specified and
     no checkpoint files present, returns the passed-in `target` unchanged.

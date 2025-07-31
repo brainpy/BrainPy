@@ -31,8 +31,8 @@ __all__ = [
 class Pool(Layer):
   """Pooling functions are implemented using the ReduceWindow XLA op.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -133,8 +133,8 @@ class Pool(Layer):
 class MaxPool(Pool):
   """Pools the input by taking the maximum over a window.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -175,8 +175,8 @@ class MaxPool(Pool):
 class MinPool(Pool):
   """Pools the input by taking the minimum over a window.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -217,8 +217,8 @@ class MinPool(Pool):
 class AvgPool(Pool):
   """Pools the input by taking the average over a window.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -392,8 +392,8 @@ class MaxPool1d(_MaxPoolNd):
   """Applies a 1D max pooling over an input signal composed of several input
     planes.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -436,8 +436,8 @@ class MaxPool2d(_MaxPoolNd):
   """Applies a 1D max pooling over an input signal composed of several input
       planes.
 
-    Parameters::
-
+    Parameters
+    ----------
     kernel_size: int, sequence of int
       An integer, or a sequence of integers defining the window to reduce over.
     stride: int, sequence of int
@@ -479,8 +479,8 @@ class MaxPool3d(_MaxPoolNd):
   """Applies a 1D max pooling over an input signal composed of several input
       planes.
 
-    Parameters::
-
+    Parameters
+    ----------
     kernel_size: int, sequence of int
       An integer, or a sequence of integers defining the window to reduce over.
     stride: int, sequence of int
@@ -556,8 +556,8 @@ class AvgPool1d(_AvgPoolNd):
   """Applies a 1D average pooling over an input signal composed of several input
     planes.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -600,8 +600,8 @@ class AvgPool2d(_AvgPoolNd):
   """Applies a 2D average pooling over an input signal composed of several input
     planes.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -643,8 +643,8 @@ class AvgPool3d(_AvgPoolNd):
   """Applies a 3D average pooling over an input signal composed of several input
     planes.
 
-  Parameters::
-
+  Parameters
+  ----------
   kernel_size: int, sequence of int
     An integer, or a sequence of integers defining the window to reduce over.
   stride: int, sequence of int
@@ -718,8 +718,8 @@ def _generate_vmap(fun: Callable, map_axes: List[int]):
 class AdaptivePool(Layer):
   """General N dimensional adaptive down-sampling to a target shape.
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   num_spatial_dims: int
@@ -759,8 +759,8 @@ class AdaptivePool(Layer):
   def update(self, x):
     """Input-output mapping.
 
-    Parameters::
-
+    Parameters
+    ----------
     x: Array
       Inputs. Should be a JAX array of shape `(..., dim_1, dim_2, channels)`
       or `(..., dim_1, dim_2)`.
@@ -796,8 +796,8 @@ class AdaptivePool(Layer):
 class AdaptiveAvgPool1d(AdaptivePool):
   """Adaptive one-dimensional average down-sampling.
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   channel_axis: int, optional
@@ -826,8 +826,8 @@ class AdaptiveAvgPool2d(AdaptivePool):
   """Adaptive two-dimensional average down-sampling.
 
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   channel_axis: int, optional
@@ -856,8 +856,8 @@ class AdaptiveAvgPool3d(AdaptivePool):
   """Adaptive three-dimensional average down-sampling.
 
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   channel_axis: int, optional
@@ -885,8 +885,8 @@ class AdaptiveAvgPool3d(AdaptivePool):
 class AdaptiveMaxPool1d(AdaptivePool):
   """Adaptive one-dimensional maximum down-sampling.
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   channel_axis: int, optional
@@ -914,8 +914,8 @@ class AdaptiveMaxPool1d(AdaptivePool):
 class AdaptiveMaxPool2d(AdaptivePool):
   """Adaptive two-dimensional maximum down-sampling.
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   channel_axis: int, optional
@@ -943,8 +943,8 @@ class AdaptiveMaxPool2d(AdaptivePool):
 class AdaptiveMaxPool3d(AdaptivePool):
   """Adaptive three-dimensional maximum down-sampling.
 
-  Parameters::
-
+  Parameters
+  ----------
   target_shape: int, sequence of int
     The target output shape.
   channel_axis: int, optional

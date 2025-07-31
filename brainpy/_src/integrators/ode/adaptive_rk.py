@@ -106,8 +106,8 @@ class AdaptiveRKIntegrator(ODEIntegrator):
              & b_1^*    & b_2^*   & \dots & b_s^*\\
       \end{array}
 
-  Parameters::
-
+  Parameters
+  ----------
   f : callable
     The derivative function.
   show_code : bool
@@ -238,7 +238,8 @@ class RKF12(AdaptiveRKIntegrator):
           & 1 / 256 & 255 / 256 & 0
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] Fehlberg, E. (1969-07-01). "Low-order classical Runge-Kutta
           formulas with stepsize control and their application to some heat
@@ -282,7 +283,8 @@ class RKF45(AdaptiveRKIntegrator):
           & 25 / 216 & 0 & 1408 / 2565 & 2197 / 4104 & -1 / 5 & 0
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta%E2%80%93Fehlberg_method
   .. [2] Erwin Fehlberg (1969). Low-order classical Runge-Kutta formulas with step
@@ -335,7 +337,8 @@ class DormandPrince(AdaptiveRKIntegrator):
           & 5179 / 57600 & 0 & 7571 / 16695 & 393 / 640 & -92097 / 339200 & 187 / 2100 & 1 / 40
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] https://en.wikipedia.org/wiki/Dormand%E2%80%93Prince_method
   .. [2] Dormand, J. R.; Prince, P. J. (1980), "A family of embedded Runge-Kutta formulae",
@@ -386,7 +389,8 @@ class CashKarp(AdaptiveRKIntegrator):
           & 2825 / 27648 & 0 & 18575 / 48384 & 13525 / 55296 & 277 / 14336 & 1 / 4
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] https://en.wikipedia.org/wiki/Cash%E2%80%93Karp_method
   .. [2] J. R. Cash, A. H. Karp. "A variable order Runge-Kutta method for initial value
@@ -434,7 +438,8 @@ class BogackiShampine(AdaptiveRKIntegrator):
           & 7 / 24 & 1 / 4 & 1 / 3 & 1 / 8
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] https://en.wikipedia.org/wiki/Bogacki%E2%80%93Shampine_method
   .. [2] Bogacki, Przemysław; Shampine, Lawrence F. (1989), "A 3(2) pair of Runge–Kutta
@@ -493,7 +498,8 @@ class DOP853(AdaptiveRKIntegrator):
   DOP853 is an explicit Runge-Kutta method of order 8(5,3) due to Dormand & Prince
   (with stepsize control and dense output).
 
-  References::
+  References
+  ----------
 
   .. [1] E. Hairer, S.P. Norsett and G. Wanner, "Solving ordinary Differential Equations
          I. Nonstiff Problems", 2nd edition. Springer Series in Computational Mathematics,

@@ -11,8 +11,8 @@ __all__ = [
 def plot_style1(fontsize=22, axes_edgecolor='black', figsize='5,4', lw=1):
   """Plot style for publication.
 
-  Parameters::
-
+  Parameters
+  ----------
   fontsize : int
       The font size.
   axes_edgecolor : str

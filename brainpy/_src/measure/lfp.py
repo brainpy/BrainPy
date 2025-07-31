@@ -20,7 +20,8 @@ def unitary_LFP(times, spikes, spike_type,
      This method calculates LFP only from the neuronal spikes. It does not consider
      the subthreshold synaptic events, or the dendritic voltage-dependent ion channels.
 
-  Examples::
+  Examples
+  --------
 
   If you have spike data of excitatory and inhibtiory neurons, you can get the LFP
   by the following methods:
@@ -35,8 +36,8 @@ def unitary_LFP(times, spikes, spike_type,
   >>> lfp = bp.measure.unitary_LFP(times, exc_sps, 'exc')
   >>> lfp += bp.measure.unitary_LFP(times, inh_sps, 'inh')
 
-  Parameters::
-
+  Parameters
+  ----------
   times: ndarray
     The times of the recording points.
   spikes: ndarray
@@ -61,8 +62,8 @@ def unitary_LFP(times, spikes, spike_type,
   seed: int
     The random seed.
 
-  References::
-
+  References
+  ----------
   .. [1] Telenczuk, Bartosz, Maria Telenczuk, and Alain Destexhe. "A kernel-based
          method to calculate local field potentials from networks of spiking
          neurons." Journal of Neuroscience Methods 344 (2020): 108871.

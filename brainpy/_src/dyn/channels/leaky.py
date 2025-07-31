@@ -31,8 +31,8 @@ class LeakyChannel(IonChannel):
 class IL(LeakyChannel):
   """The leakage channel current.
 
-  Parameters::
-
+  Parameters
+  ----------
   g_max : float
     The leakage conductance.
   E : float

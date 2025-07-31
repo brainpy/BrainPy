@@ -54,14 +54,15 @@ class IAHP_De1994(IonChannel):
   :math:`\beta=0.03 \mathrm{~ms}^{-1}` yielded AHPs very similar to those RE cells
   recorded in vivo and in vitro.
 
-  Parameters::
-
+  Parameters
+  ----------
   g_max : float
     The maximal conductance density (:math:`mS/cm^2`).
   E : float
     The reversal potential (mV).
 
-  References::
+  References
+  ----------
 
   .. [1] Destexhe, Alain, et al. "A model of spindle rhythmicity in the isolated
          thalamic reticular nucleus." Journal of neurophysiology 72.2 (1994): 803-818.

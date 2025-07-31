@@ -124,8 +124,8 @@ class _NullSynOut(_SynOut):
 class TwoEndConn(SynConn):
   """Base class to model synaptic connections.
 
-  Parameters::
-
+  Parameters
+  ----------
   pre : NeuGroup
     Pre-synaptic neuron group.
   post : NeuGroup

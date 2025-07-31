@@ -32,15 +32,15 @@ def sdeint(
 ):
   """Numerical integration for SDEs.
 
-  Parameters::
-
+  Parameters
+  ----------
   f : callable, function
     The derivative function.
   method : str
     The shortcut name of the numerical integrator.
 
-  Returns::
-
+  Returns
+  -------
   integral : SDEIntegrator
       The numerical solver of `f`.
   """
@@ -89,8 +89,8 @@ def sdeint(
 def set_default_sdeint(method):
   """Set the default SDE numerical integrator method for differential equations.
 
-  Parameters::
-
+  Parameters
+  ----------
   method : str, callable
       Numerical integrator method.
   """
@@ -106,8 +106,8 @@ def set_default_sdeint(method):
 def get_default_sdeint():
   """Get the default SDE numerical integrator method.
 
-  Returns::
-
+  Returns
+  -------
   method : str
       The default numerical integrator method.
   """
@@ -117,8 +117,8 @@ def get_default_sdeint():
 def register_sde_integrator(name, integrator):
   """Register a new SDE integrator.
 
-  Parameters::
-
+  Parameters
+  ----------
   name: ste
   integrator: type
   """

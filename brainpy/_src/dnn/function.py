@@ -117,8 +117,7 @@ class Unflatten(Layer):
       dim: int, Dimension to be unflattened.
       sizes: Sequence of int. New shape of the unflattened dimension.
 
-  Examples::
-
+  Examples:
       >>> import brainpy as bp
       >>> import brainpy.math as bm
       >>> input = bm.random.randn(2, 50)

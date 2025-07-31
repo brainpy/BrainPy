@@ -25,7 +25,8 @@ __all__ = [
 class IntegratorRunner(Runner):
   """Structural runner for numerical integrators in brainpy.
 
-  Examples::
+  Examples
+  --------
 
   Example to run an ODE integrator,
 
@@ -99,8 +100,8 @@ class IntegratorRunner(Runner):
   ):
     """Initialization of structural runner for integrators.
 
-    Parameters::
-
+    Parameters
+    ----------
     target: Integrator
       The target to run.
     monitors: sequence of str
@@ -265,8 +266,8 @@ class IntegratorRunner(Runner):
   ):
     """The running function.
 
-    Parameters::
-
+    Parameters
+    ----------
     duration : float, int, tuple, list
       The running duration.
     start_t : float, optional

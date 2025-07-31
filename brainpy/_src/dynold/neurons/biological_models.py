@@ -147,8 +147,8 @@ class HH(hh.HH):
   >>> plt.yticks([])
   >>> plt.show()
 
-  Parameters::
-
+  Parameters
+  ----------
   size: sequence of int, int
     The size of the neuron group.
   ENa: float, ArrayType, Initializer, callable
@@ -180,7 +180,8 @@ class HH(hh.HH):
   name: str
     The group name.
 
-  References::
+  References
+  ----------
 
   .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
          of membrane current and its application to conduction and excitation
@@ -285,7 +286,8 @@ class MorrisLecar(hh.MorrisLecar):
   V_th          10             mV       The spike threshold.
   ============= ============== ======== =======================================================
 
-  References::
+  References
+  ----------
 
   .. [4] Lecar, Harold. "Morris-lecar model." Scholarpedia 2.10 (2007): 1333.
   .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
@@ -414,8 +416,8 @@ class PinskyRinzelModel(NeuDyn):
   Values for these parameters, and these function definitions, are taken from Traub et al, 1991.
 
 
-  Parameters::
-
+  Parameters
+  ----------
   size: sequence of int, int
     The size of the neuron group.
   gNa: float, ArrayType, Initializer, callable
@@ -459,8 +461,8 @@ class PinskyRinzelModel(NeuDyn):
   name: str
     The group name.
 
-  References::
-
+  References
+  ----------
   .. [7] Pinsky, Paul F., and John Rinzel. "Intrinsic and network
          rhythmogenesis in a reduced Traub model for CA3 neurons."
          Journal of computational neuroscience 1.1 (1994): 39-60.
@@ -753,8 +755,8 @@ class WangBuzsakiModel(hh.WangBuzsakiHH):
   :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
 
-  Parameters::
-
+  Parameters
+  ----------
   size: sequence of int, int
     The size of the neuron group.
   ENa: float, ArrayType, Initializer, callable
@@ -786,8 +788,8 @@ class WangBuzsakiModel(hh.WangBuzsakiHH):
   name: str
     The group name.
 
-  References::
-
+  References
+  ----------
   .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
          inhibition in a hippocampal interneuronal network model. Journal of
          neuroscience, 16(20), pp.6402-6413.

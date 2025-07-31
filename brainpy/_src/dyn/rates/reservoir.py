@@ -19,8 +19,8 @@ __all__ = [
 class Reservoir(Layer):
   r"""Reservoir node, a pool of leaky-integrator neurons with random recurrent connections [1]_.
 
-  Parameters::
-
+  Parameters
+  ----------
   input_shape: int, tuple of int
     The input shape.
   num_out: int
@@ -81,8 +81,8 @@ class Reservoir(Layer):
     distribution (see :py:class:`brainpy.math.random.RandomState`),
     by default "normal". 
 
-  References::
-
+  References
+  ----------
   .. [1] Lukoševičius, Mantas. "A practical guide to applying echo state networks."
          Neural networks: Tricks of the trade. Springer, Berlin, Heidelberg, 2012. 659-686.
   """

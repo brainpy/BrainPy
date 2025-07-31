@@ -102,8 +102,8 @@ class GABAa(AMPA):
   - `Gamma oscillation network model <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Wang_1996_gamma_oscillation.html>`_
 
 
-  Parameters::
-
+  Parameters
+  ----------
   pre: NeuDyn
     The pre-synaptic neuron group.
   post: NeuDyn
@@ -131,8 +131,8 @@ class GABAa(AMPA):
   method: str
     The numerical integration methods.
 
-  References::
-
+  References
+  ----------
   .. [1] Destexhe, Alain, and Denis Paré. "Impact of network activity
          on the integrative properties of neocortical pyramidal neurons
          in vivo." Journal of neurophysiology 81.4 (1999): 1531-1547.
@@ -253,8 +253,8 @@ class BioNMDA(_TwoEndConnAlignPre):
   >>> plt.legend()
   >>> plt.show()
 
-  Parameters::
-
+  Parameters
+  ----------
   pre: NeuDyn
     The pre-synaptic neuron group.
   post: NeuDyn
@@ -281,7 +281,8 @@ class BioNMDA(_TwoEndConnAlignPre):
   method: str
     The numerical integration methods.
 
-  References::
+  References
+  ----------
 
   .. [1] Devaney A J . Mathematical Foundations of Neuroscience[M].
          Springer New York, 2010: 162.

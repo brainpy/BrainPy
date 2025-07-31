@@ -86,7 +86,8 @@ def grad(
     >>> f_grad = bm.grad(f, grad_vars=f.x, argnums=(0, 1))
 
 
-    Examples::
+    Examples
+    --------
 
     Grad for a pure function:
 
@@ -95,8 +96,8 @@ def grad(
     >>> print(grad_tanh(0.2))
     0.961043
 
-    Parameters::
-
+    Parameters
+    ----------
     func : callable, function, BrainPyObject
       Function to be differentiated. Its arguments at positions specified by
       ``argnums`` should be arrays, scalars, or standard Python containers.
@@ -121,8 +122,8 @@ def grad(
       respect to integer valued inputs. The gradient of an integer input will
       have a trivial vector-space dtype (float0). Default False.
 
-    Returns::
-
+    Returns
+    -------
     func : GradientTransform
       A function with the same arguments as ``fun``, that evaluates the gradient
       of ``fun``. If ``argnums`` is an integer then the gradient has the same
@@ -187,8 +188,8 @@ def jacrev(
       - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
 
-    Parameters::
-
+    Parameters
+    ----------
     func: Function whose Jacobian is to be computed.
     grad_vars : optional, ArrayType, sequence of ArrayType, dict
       The variables in ``func`` to take their gradients.
@@ -209,8 +210,8 @@ def jacrev(
       respect to integer valued inputs. The gradient of an integer input will
       have a trivial vector-space dtype (float0). Default False.
 
-    Returns::
-
+    Returns
+    -------
     fun: GradientTransform
       The transformed object.
     """
@@ -263,8 +264,8 @@ def jacfwd(
       - "has_aux=False" + "return_value=True" => ``((var_grads, arg_grads), loss_value)``.
       - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
-    Parameters::
-
+    Parameters
+    ----------
     func: Function whose Jacobian is to be computed.
     grad_vars : optional, ArrayType, sequence of ArrayType, dict
       The variables in ``func`` to take their gradients.
@@ -279,8 +280,8 @@ def jacfwd(
     holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
       holomorphic. Default False.
 
-    Returns::
-
+    Returns
+    -------
     obj: GradientTransform
       The transformed object.
     """
@@ -304,8 +305,8 @@ def hessian(
 ):
     """Hessian of ``func`` as a dense array.
 
-    Parameters::
-
+    Parameters
+    ----------
     func : callable, function
       Function whose Hessian is to be computed.  Its arguments at positions
       specified by ``argnums`` should be arrays, scalars, or standard Python
@@ -322,8 +323,8 @@ def hessian(
       considered the output of the mathematical function to be differentiated
       and the second element is auxiliary data. Default False.
 
-    Returns::
-
+    Returns
+    -------
     obj: ObjectTransform
       The transformed object.
     """
@@ -369,8 +370,8 @@ def vector_grad(
       - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
 
-    Parameters::
-
+    Parameters
+    ----------
     func: Callable
       Function whose gradient is to be computed.
     grad_vars : optional, ArrayType, sequence of ArrayType, dict
@@ -384,8 +385,8 @@ def vector_grad(
     argnums: Optional, integer or sequence of integers. Specifies which
       positional argument(s) to differentiate with respect to (default ``0``).
 
-    Returns::
-
+    Returns
+    -------
     func : GradientTransform
       The vector gradient function.
     """

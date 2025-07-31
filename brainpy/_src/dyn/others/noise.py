@@ -27,8 +27,8 @@ class OUProcess(NeuDyn):
   where :math:`\theta >0` and :math:`\sigma >0` are parameters and :math:`W_{t}`
   denotes the Wiener process.
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, sequence of int
     The model size.
   mean: Parameter

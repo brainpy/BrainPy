@@ -62,8 +62,8 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
      - ``.update_local_delays()``
      - ``.reset_local_delays()``
 
-  Parameters::
-
+  Parameters
+  ----------
   name : optional, str
     The name of the dynamical system.
   mode: optional, Mode
@@ -431,7 +431,8 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
   def __rrshift__(self, other):
     """Support using right shift operator to call modules.
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>> x = bp.math.random.rand((10, 10))
@@ -514,7 +515,8 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
   On the other hand, the layers in a ``Sequential`` are connected
   in a cascading way.
 
-  Examples::
+  Examples
+  --------
 
   >>> import brainpy as bp
   >>> import brainpy.math as bm

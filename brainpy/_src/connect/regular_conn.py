@@ -185,8 +185,8 @@ class GridConn(OneEndConnector):
 class GridFour(GridConn):
   """The nearest four neighbors connection method.
 
-  Parameters::
-
+  Parameters
+  ----------
   periodic_boundary : bool
     Whether the neuron encode the value space with the periodic boundary.
     .. versionadded:: 2.2.3.2
@@ -223,8 +223,8 @@ grid_four = GridFour()
 class GridN(GridConn):
   """The nearest (2*N+1) * (2*N+1) neighbors conn method.
 
-  Parameters::
-
+  Parameters
+  ----------
   N : int
       Extend of the conn scope. For example:
       When N=1,
@@ -278,8 +278,8 @@ class GridN(GridConn):
 class GridEight(GridN):
   """The nearest eight neighbors conn method.
 
-  Parameters::
-
+  Parameters
+  ----------
   include_self : bool
     Whether create (i, i) conn ?
   periodic_boundary: bool

@@ -49,8 +49,8 @@ def flatten(input: Union[jax.Array, Array],
   .. note::
      Flattening a zero-dimensional tensor will return a one-dimensional view.
 
-  Parameters::
-
+  Parameters
+  ----------
   input: Array
     The input array.
   start_dim: int
@@ -58,8 +58,8 @@ def flatten(input: Union[jax.Array, Array],
   end_dim: int
     the last dim to flatten
 
-  Returns::
-
+  Returns
+  -------
   out: Array
   """
   input = _as_jax_array_(input)
@@ -116,15 +116,15 @@ def unsqueeze(x: Union[jax.Array, Array], dim: int) -> Array:
   A dim value within the range ``[-input.dim() - 1, input.dim() + 1)`` can be used.
   Negative dim will correspond to unsqueeze() applied at ``dim = dim + input.dim() + 1``.
 
-  Parameters::
-
+  Parameters
+  ----------
   x: Array
     The input Array
   dim: int
     The index at which to insert the singleton dimension
 
-  Returns::
-
+  Returns
+  -------
   out: Array
   """
   x = _as_jax_array_(x)

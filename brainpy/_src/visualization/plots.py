@@ -35,8 +35,8 @@ def line_plot(ts,
               **kwargs):
   """Show the specified value in the given object (Neurons or Synapses.)
 
-  Parameters::
-
+  Parameters
+  ----------
   ts : np.ndarray
       The time steps.
   val_matrix : np.ndarray
@@ -133,8 +133,8 @@ def raster_plot(ts,
                 **kwargs):
   """Show the rater plot of the spikes.
 
-  Parameters::
-
+  Parameters
+  ----------
   ts : np.ndarray
       The run times.
   sp_matrix : np.ndarray
@@ -211,8 +211,8 @@ def animate_2D(values,
                show=True):
   """Animate the potentials of the neuron group.
 
-  Parameters::
-
+  Parameters
+  ----------
   values : np.ndarray
       The membrane potentials of the neuron group.
   net_size : tuple
@@ -246,8 +246,8 @@ def animate_2D(values,
   show : bool
       Whether show the animation.
 
-  Returns::
-
+  Returns
+  -------
   anim : animation.FuncAnimation
       The created animation function.
   """
@@ -315,8 +315,8 @@ def animate_1D(dynamical_vars,
                **kwargs):
   """Animation of one-dimensional data.
 
-  Parameters::
-
+  Parameters
+  ----------
   dynamical_vars : dict, np.ndarray, list of np.ndarray, list of dict
       The dynamical variables which will be animated.
   static_vars : dict, np.ndarray, list of np.ndarray, list of dict
@@ -354,8 +354,8 @@ def animate_1D(dynamical_vars,
   show : bool
       Whether show the animation.
 
-  Returns::
-
+  Returns
+  -------
   figure : plt.figure
       The created figure instance.
   """

@@ -174,8 +174,8 @@ class Bifurcation2D(Num2DAnalyzer):
                        select_candidates='aux_rank', num_rank=100):
     """Make the bifurcation analysis.
 
-    Parameters::
-
+    Parameters
+    ----------
     with_plot: bool
       Whether plot the bifurcation figure.
     show: bool
@@ -211,8 +211,8 @@ class Bifurcation2D(Num2DAnalyzer):
       The number of candidates to be used to optimize the fixed points.
       rank to use.
 
-    Returns::
-
+    Returns
+    -------
     results : tuple
       Return a tuple of analyzed results:
 

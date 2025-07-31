@@ -25,8 +25,8 @@ class WeightedPhaseEncoder(Encoder):
   more information into the spikes. This is the major difference from
   a conventional rate coding scheme that assigns the same weight to every spike [1]_.
 
-  Parameters::
-
+  Parameters
+  ----------
   min_val: float
     The minimal value in the given data `x`, used to the data normalization.
   max_val: float
@@ -36,8 +36,8 @@ class WeightedPhaseEncoder(Encoder):
   weight_fun: Callable
     The function to generate weight at the phase :math:`i`.
 
-  References::
-
+  References
+  ----------
   .. [1] Kim, Jaehyun et al. “Deep neural networks with weighted spikes.” Neurocomputing 311 (2018): 373-386.
   """
 
@@ -58,15 +58,15 @@ class WeightedPhaseEncoder(Encoder):
   def __call__(self, x: ArrayType, num_step: int):
     """Encoding function.
 
-    Parameters::
-
+    Parameters
+    ----------
     x: ArrayType
       The input rate value.
     num_step: int
       The number of time steps.
 
-    Returns::
-
+    Returns
+    -------
     out: ArrayType
       The encoded spike train.
     """

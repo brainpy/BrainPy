@@ -38,8 +38,8 @@ class BPTrainer(DSTrainer):
 
   For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-  Parameters::
-
+  Parameters
+  ----------
   target: DynamicalSystem
     The target model to train.
   loss_fun: str, callable
@@ -187,8 +187,8 @@ class BPTrainer(DSTrainer):
   ):
     """Fit the target model according to the given training data.
 
-    Parameters::
-
+    Parameters
+    ----------
     train_data: callable, iterable
       It can be a callable function, or a tuple/list representing `(X, Y)` data.
       - Callable. This function should return a pair of `(X, Y)` data.
@@ -464,8 +464,8 @@ class BPTT(BPTrainer):
 
   For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-  Parameters::
-
+  Parameters
+  ----------
   target: DynamicalSystem
     The target model to train.
 
@@ -580,8 +580,8 @@ class BPFF(BPTrainer):
     Moreover, it can automatically monitor the node variables, states, inputs,
     feedbacks and its output.
 
-    Parameters::
-
+    Parameters
+    ----------
     inputs: ArrayType, dict
       The feedforward input data. It must be a 3-dimensional data
       which has the shape of `(num_sample, num_time, num_feature)`.
@@ -592,8 +592,8 @@ class BPFF(BPTrainer):
     eval_time: bool
       Evaluate the time used for running.
 
-    Returns::
-
+    Returns
+    -------
     output: ArrayType, dict
       The model output.
     """

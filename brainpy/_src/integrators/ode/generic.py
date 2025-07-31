@@ -31,7 +31,8 @@ def odeint(
 ):
   """Numerical integration for ODEs.
 
-  Examples::
+  Examples
+  --------
 
   .. plot::
     :include-source: True
@@ -56,8 +57,8 @@ def odeint(
     >>> plt.show()
 
 
-  Parameters::
-
+  Parameters
+  ----------
   f : callable, function
     The derivative function.
   method : str
@@ -77,8 +78,8 @@ def odeint(
   tol: float
     The tolerence to adapt new step size.
 
-  Returns::
-
+  Returns
+  -------
   integral : ODEIntegrator
       The numerical solver of `f`.
   """
@@ -110,8 +111,8 @@ def odeint(
 def set_default_odeint(method):
   """Set the default ODE numerical integrator method for differential equations.
 
-  Parameters::
-
+  Parameters
+  ----------
   method : str, callable
       Numerical integrator method.
   """
@@ -127,8 +128,8 @@ def set_default_odeint(method):
 def get_default_odeint():
   """Get the default ODE numerical integrator method.
 
-  Returns::
-
+  Returns
+  -------
   method : str
       The default numerical integrator method.
   """
@@ -138,8 +139,8 @@ def get_default_odeint():
 def register_ode_integrator(name, integrator):
   """Register a new ODE integrator.
 
-  Parameters::
-
+  Parameters
+  ----------
   name: ste
   integrator: type
   """

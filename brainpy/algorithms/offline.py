@@ -47,8 +47,8 @@ class OfflineAlgorithm(BrainPyObject):
   def __call__(self, targets, inputs, outputs=None):
     """The training procedure.
 
-    Parameters::
-
+    Parameters
+    ----------
     targets: ArrayType
       The 2d target data with the shape of `(num_batch, num_output)`.
     inputs: ArrayType
@@ -56,8 +56,8 @@ class OfflineAlgorithm(BrainPyObject):
     outputs: ArrayType
       The 2d output data with the shape of `(num_batch, num_output)`.
 
-    Returns::
-
+    Returns
+    -------
     weight: ArrayType
       The weights after fit.
     """
@@ -66,8 +66,8 @@ class OfflineAlgorithm(BrainPyObject):
   def call(self, targets, inputs, outputs=None) -> ArrayType:
     """The training procedure.
 
-    Parameters::
-
+    Parameters
+    ----------
     inputs: ArrayType
       The 3d input data with the shape of `(num_batch, num_time, num_input)`,
       or, the 2d input data with the shape of `(num_time, num_input)`.
@@ -80,8 +80,8 @@ class OfflineAlgorithm(BrainPyObject):
       The 3d output data with the shape of `(num_batch, num_time, num_output)`,
       or the 2d output data with the shape of `(num_time, num_output)`.
 
-    Returns::
-
+    Returns
+    -------
     weight: ArrayType
       The weights after fit.
     """
@@ -104,8 +104,8 @@ class RegressionAlgorithm(OfflineAlgorithm):
   """ Base regression model. Models the relationship between a scalar dependent variable y and the independent
   variables X.
 
-  Parameters::
-
+  Parameters
+  ----------
   max_iter: int
     The number of training iterations the algorithm will tune the weights for.
   learning_rate: float
@@ -165,8 +165,8 @@ class RegressionAlgorithm(OfflineAlgorithm):
 class LinearRegression(RegressionAlgorithm):
   """Training algorithm of least-square regression.
 
-  Parameters::
-
+  Parameters
+  ----------
   name: str
     The name of the algorithm.
   """
@@ -208,8 +208,8 @@ name2func['lstsq'] = LinearRegression
 class RidgeRegression(RegressionAlgorithm):
   """Training algorithm of ridge regression.
 
-  Parameters::
-
+  Parameters
+  ----------
   alpha: float
     The regularization coefficient.
 
@@ -274,8 +274,8 @@ name2func['ridge'] = RidgeRegression
 class LassoRegression(RegressionAlgorithm):
   """Lasso regression method for offline training.
 
-  Parameters::
-
+  Parameters
+  ----------
   alpha: float
     Constant that multiplies the L1 term. Defaults to 1.0.
     `alpha = 0` is equivalent to an ordinary least square.
@@ -329,8 +329,8 @@ name2func['lasso'] = LassoRegression
 class LogisticRegression(RegressionAlgorithm):
   """Logistic regression method for offline training.
 
-  Parameters::
-
+  Parameters
+  ----------
   learning_rate: float
       The step length that will be taken when following the negative gradient during
       training.
@@ -538,8 +538,8 @@ def get_supported_offline_methods():
 def register_offline_method(name: str, method: OfflineAlgorithm):
   """Register a new offline learning method.
 
-  Parameters::
-
+  Parameters
+  ----------
   name: str
     The method name.
   method: OfflineAlgorithm

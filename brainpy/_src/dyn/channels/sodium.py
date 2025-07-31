@@ -56,8 +56,8 @@ class _INa_p3q_markov_v2(SodiumChannel):
 
   where :math:`\phi` is a temperature-dependent factor.
 
-  Parameters::
-
+  Parameters
+  ----------
   g_max : float, ArrayType, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, ArrayType, Callable, Initializer
@@ -155,8 +155,8 @@ class INa_Ba2002v2(_INa_p3q_markov_v2):
   where :math:`\phi` is a temperature-dependent factor, which is given by
   :math:`\phi=3^{\frac{T-36}{10}}` (:math:`T` is the temperature in Celsius).
 
-  Parameters::
-
+  Parameters
+  ----------
   g_max : float, ArrayType, Callable, Initializer
     The maximal conductance density (:math:`mS/cm^2`).
   E : float, ArrayType, Callable, Initializer
@@ -166,13 +166,14 @@ class INa_Ba2002v2(_INa_p3q_markov_v2):
   V_sh : float, ArrayType, Callable, Initializer
     The shift of the membrane potential to spike.
 
-  References::
+  References
+  ----------
 
   .. [1] Bazhenov, Maxim, et al. "Model of thalamocortical slow-wave sleep oscillations
          and transitions to activated states." Journal of neuroscience 22.19 (2002): 8691-8704.
 
-  See Also::
-
+  See Also
+  --------
   INa_TM1991
   """
 
@@ -234,8 +235,8 @@ class INa_TM1991v2(_INa_p3q_markov_v2):
   where :math:`V_{sh}` is the membrane shift (default -63 mV), and
   :math:`\phi` is the temperature-dependent factor (default 1.).
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, tuple of int
     The size of the simulation target.
   keep_size: bool
@@ -251,13 +252,13 @@ class INa_TM1991v2(_INa_p3q_markov_v2):
   V_sh: float, ArrayType, Callable, Initializer
     The membrane shift.
 
-  References::
-
+  References
+  ----------
   .. [1] Traub, Roger D., and Richard Miles. Neuronal networks of the hippocampus.
          Vol. 777. Cambridge University Press, 1991.
 
-  See Also::
-
+  See Also
+  --------
   INa_Ba2002
   """
 
@@ -318,8 +319,8 @@ class INa_HH1952v2(_INa_p3q_markov_v2):
   where :math:`V_{sh}` is the membrane shift (default -45 mV), and
   :math:`\phi` is the temperature-dependent factor (default 1.).
 
-  Parameters::
-
+  Parameters
+  ----------
   size: int, tuple of int
     The size of the simulation target.
   keep_size: bool
@@ -335,14 +336,14 @@ class INa_HH1952v2(_INa_p3q_markov_v2):
   V_sh: float, ArrayType, Callable, Initializer
     The membrane shift.
 
-  References::
-
+  References
+  ----------
   .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description of
          membrane current and its application to conduction and excitation in
          nerve." The Journal of physiology 117.4 (1952): 500.
 
-  See Also::
-
+  See Also
+  --------
   IK_HH1952
   """
 

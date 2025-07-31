@@ -119,8 +119,8 @@ class ExplicitRKIntegrator(ODEIntegrator):
           \hline & b_{1} & b_{2} & \ldots & b_{s}
       \end{array}
 
-  Parameters::
-
+  Parameters
+  ----------
   f : callable
       The derivative function.
   show_code : bool
@@ -247,8 +247,8 @@ class Euler(ExplicitRKIntegrator):
   and accuracy limits its popularity mainly to use as a
   simple introductory example of a numeric solution method.
 
-  References::
-
+  References
+  ----------
   .. [1] W. H.; Flannery, B. P.; Teukolsky, S. A.; and Vetterling,
          W. T. Numerical Recipes in FORTRAN: The Art of Scientific
          Computing, 2nd ed. Cambridge, England: Cambridge University
@@ -346,7 +346,8 @@ class MidPoint(ExplicitRKIntegrator):
   Note that the red chord is not exactly parallel to the green segment (the true tangent),
   due to the error in estimating the value of :math:`y(t)` at the midpoint.
 
-  References::
+  References
+  ----------
 
   .. [1] Süli, Endre, and David F. Mayers. An Introduction to Numerical Analysis. no. 1, 2003.
   .. [2] https://en.wikipedia.org/wiki/Midpoint_method
@@ -414,7 +415,8 @@ class Heun2(ExplicitRKIntegrator):
       {\text{Slope}}_{\text{ideal}}=&{\frac {1}{2}}({\text{Slope}}_{\text{left}}+{\text{Slope}}_{\text{right}})
       \end{aligned}
 
-  References::
+  References
+  ----------
 
   .. [1] Süli, Endre, and David F. Mayers. An Introduction to Numerical Analysis. no. 1, 2003.
   """
@@ -568,7 +570,8 @@ class RK2(ExplicitRKIntegrator):
           \hline & 1 - {1 \over 2 * \beta} & {1 \over 2 * \beta}
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] Chapra, Steven C., and Raymond P. Canale. Numerical methods
          for engineers. Vol. 1221. New York: Mcgraw-hill, 2011.
@@ -684,7 +687,8 @@ class Ralston3(ExplicitRKIntegrator):
           \hline & 2 / 9 & 1 / 3 & 4 / 9
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] Ralston, Anthony (1962). "Runge-Kutta Methods with Minimum Error Bounds".
          Math. Comput. 16 (80): 431–437. doi:10.1090/S0025-5718-1962-0150954-0
@@ -775,8 +779,8 @@ class RK4(ExplicitRKIntegrator):
           \hline & 1 / 6 & 1 / 3 & 1 / 3 & 1 / 6
       \end{array}
 
-  References::
-
+  References
+  ----------
   .. [1] Lambert, J. D. and Lambert, D. Ch. 5 in Numerical Methods for Ordinary
          Differential Systems: The Initial Value Problem. New York: Wiley, 1991.
   .. [2] Press, W. H.; Flannery, B. P.; Teukolsky, S. A.; and Vetterling, W. T.
@@ -813,7 +817,8 @@ class Ralston4(ExplicitRKIntegrator):
           \hline & .17476028 & -.55148066 & 1.20553560 & .17118478
       \end{array}
 
-  References::
+  References
+  ----------
 
   .. [1] Ralston, Anthony (1962). "Runge-Kutta Methods with Minimum Error Bounds".
          Math. Comput. 16 (80): 431–437. doi:10.1090/S0025-5718-1962-0150954-0
@@ -855,7 +860,8 @@ class RK4Rule38(ExplicitRKIntegrator):
       \end{array}
 
 
-  References::
+  References
+  ----------
 
   .. [1] Hairer, Ernst; Nørsett, Syvert Paul; Wanner, Gerhard (1993),
          Solving ordinary differential equations I: Nonstiff problems,

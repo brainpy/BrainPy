@@ -27,8 +27,8 @@ def csrmv(
   This function supports JAX transformations, including `jit()`, `grad()`,
   `vmap()` and `pmap()`.
 
-  Parameters::
-
+  Parameters
+  ----------
   data: ndarray, float
     An array of shape ``(nse,)``.
   indices: ndarray
@@ -53,8 +53,8 @@ def csrmv(
     - ``vector``:
     - ``adaptive``:
 
-  Returns::
-
+  Returns
+  -------
   y : ndarry
     The array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.

@@ -101,8 +101,8 @@ def _compute_fans(shape, in_axis=-2, out_axis=-1):
 class Normal(_InterLayerInitializer):
   """Initialize weights with normal distribution.
 
-  Parameters::
-
+  Parameters
+  ----------
   scale : float
     The gain of the derivation of the normal distribution.
 
@@ -126,8 +126,8 @@ class Normal(_InterLayerInitializer):
 class TruncatedNormal(_InterLayerInitializer):
   """Initialize weights with truncated normal distribution.
 
-  Parameters::
-
+  Parameters
+  ----------
   loc : float, ndarray
     Mean ("centre") of the distribution before truncating. Note that 
     the mean of the truncated distribution will not be exactly equal 
@@ -170,8 +170,8 @@ class TruncatedNormal(_InterLayerInitializer):
 class Gamma(_InterLayerInitializer):
   """Initialize weights with Gamma distribution.
 
-  Parameters::
-
+  Parameters
+  ----------
   shape: float, Array
     Shape parameter.
   scale: float, Array
@@ -194,8 +194,8 @@ class Gamma(_InterLayerInitializer):
 class Exponential(_InterLayerInitializer):
   """Initialize weights with Gamma distribution.
 
-  Parameters::
-
+  Parameters
+  ----------
   scale: float, Array
     The gain of the derivation of the Exponential distribution.
 
@@ -215,8 +215,8 @@ class Exponential(_InterLayerInitializer):
 class Uniform(_InterLayerInitializer):
   """Initialize weights with uniform distribution.
 
-  Parameters::
-
+  Parameters
+  ----------
   min_val : float
     The lower limit of the uniform distribution.
   max_val : float

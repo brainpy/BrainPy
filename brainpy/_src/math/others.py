@@ -33,8 +33,8 @@ def shared_args_over_time(num_step: Optional[int] = None,
                           include_dt: bool = True):
   """Form a shared argument over time for the inference of a :py:class:`~.DynamicalSystem`.
 
-  Parameters::
-
+  Parameters
+  ----------
   num_step: int
     The number of time step. Provide either ``duration`` or ``num_step``.
   duration: float
@@ -46,8 +46,8 @@ def shared_args_over_time(num_step: Optional[int] = None,
   include_dt: bool
     Produce the time steps at every time step.
 
-  Returns::
-
+  Returns
+  -------
   shared: DotDict
     The shared arguments over the given time.
   """
@@ -68,13 +68,13 @@ def shared_args_over_time(num_step: Optional[int] = None,
 def remove_diag(arr):
   """Remove the diagonal of the matrix.
 
-  Parameters::
-
+  Parameters
+  ----------
   arr: ArrayType
     The matrix with the shape of `(M, N)`.
 
-  Returns::
-
+  Returns
+  -------
   arr: Array
     The matrix without diagonal which has the shape of `(M, N-1)`.
   """
