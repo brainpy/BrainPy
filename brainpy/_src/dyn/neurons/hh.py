@@ -63,8 +63,8 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
   .. versionadded:: 2.1.9
      Modeling the conductance-based neuron model.
 
-  Parameters
-  ----------
+  Parameters::
+
   size : int, sequence of int
     The network size of this neuron group.
   method: str
@@ -223,8 +223,7 @@ class HHLTC(NeuDyn):
   such as limit cycles, can be proven to exist.
 
 
-  References
-  ----------
+  References::
 
   .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
          of membrane current and its application to conduction and excitation
@@ -254,8 +253,8 @@ class HHLTC(NeuDyn):
 
 
 
-  Parameters
-  ----------
+  Parameters::
+
   size: sequence of int, int
     The size of the neuron group.
   ENa: float, ArrayType, Initializer, callable
@@ -456,8 +455,7 @@ class HH(HHLTC):
 
       &\beta_n(V) = 0.125 \exp(\frac{-(V + 65)} {80})
 
-  References
-  ----------
+  References::
 
   .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
          of membrane current and its application to conduction and excitation
@@ -493,8 +491,8 @@ class HH(HHLTC):
   The illustrated example of HH neuron model please see `this notebook <../neurons/HH_model.ipynb>`_.
 
 
-  Parameters
-  ----------
+  Parameters::
+
   size: sequence of int, int
     The size of the neuron group.
   ENa: float, ArrayType, Initializer, callable
@@ -595,8 +593,7 @@ class MorrisLecarLTC(NeuDyn):
   V_th          10             mV       The spike threshold.
   ============= ============== ======== =======================================================
 
-  References
-  ----------
+  References::
 
   .. [4] Lecar, Harold. "Morris-lecar model." Scholarpedia 2.10 (2007): 1333.
   .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
@@ -762,8 +759,7 @@ class MorrisLecar(MorrisLecarLTC):
   V_th          10             mV       The spike threshold.
   ============= ============== ======== =======================================================
 
-  References
-  ----------
+  References::
 
   .. [4] Lecar, Harold. "Morris-lecar model." Scholarpedia 2.10 (2007): 1333.
   .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
@@ -828,8 +824,8 @@ class WangBuzsakiHHLTC(NeuDyn):
   :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
 
-  References
-  ----------
+  References::
+
   .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
          inhibition in a hippocampal interneuronal network model. Journal of
          neuroscience, 16(20), pp.6402-6413.
@@ -853,8 +849,8 @@ class WangBuzsakiHHLTC(NeuDyn):
       plt.tight_layout()
       plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   size: sequence of int, int
     The size of the neuron group.
   ENa: float, ArrayType, Initializer, callable
@@ -1050,8 +1046,8 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
   :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
 
-  References
-  ----------
+  References::
+
   .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
          inhibition in a hippocampal interneuronal network model. Journal of
          neuroscience, 16(20), pp.6402-6413.
@@ -1075,8 +1071,8 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
       plt.tight_layout()
       plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   size: sequence of int, int
     The size of the neuron group.
   ENa: float, ArrayType, Initializer, callable

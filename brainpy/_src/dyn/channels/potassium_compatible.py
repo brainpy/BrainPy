@@ -43,8 +43,8 @@ class _IK_p4_markov(IonChannel):
 
   where :math:`\phi` is a temperature-dependent factor.
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The object size.
   keep_size: bool
@@ -131,8 +131,8 @@ class IKDR_Ba2002(_IK_p4_markov):
   where :math:`\phi` is a temperature-dependent factor, which is given by
   :math:`\phi=3^{\frac{T-36}{10}}` (:math:`T` is the temperature in Celsius).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The object size.
   keep_size: bool
@@ -153,8 +153,8 @@ class IKDR_Ba2002(_IK_p4_markov):
   name: str
     The object name.
 
-  References
-  ----------
+  References::
+
   .. [1] Bazhenov, Maxim, et al. "Model of thalamocortical slow-wave sleep oscillations
          and transitions to activated states." Journal of neuroscience 22.19 (2002): 8691-8704.
 
@@ -214,8 +214,8 @@ class IK_TM1991(_IK_p4_markov):
   where :math:`V_{sh}` is the membrane shift (default -63 mV), and
   :math:`\phi` is the temperature-dependent factor (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   g_max : float, ArrayType, Initializer, Callable
@@ -227,13 +227,13 @@ class IK_TM1991(_IK_p4_markov):
   name: str
     The object name.
 
-  References
-  ----------
+  References::
+
   .. [1] Traub, Roger D., and Richard Miles. Neuronal networks of the hippocampus.
          Vol. 777. Cambridge University Press, 1991.
 
-  See Also
-  --------
+  See Also::
+
   INa_TM1991
   """
 
@@ -284,8 +284,8 @@ class IK_HH1952(_IK_p4_markov):
   where :math:`V_{sh}` is the membrane shift (default -45 mV), and
   :math:`\phi` is the temperature-dependent factor (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   g_max : float, ArrayType, Initializer, Callable
@@ -297,14 +297,14 @@ class IK_HH1952(_IK_p4_markov):
   name: str
     The object name.
 
-  References
-  ----------
+  References::
+
   .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description of
          membrane current and its application to conduction and excitation in
          nerve." The Journal of physiology 117.4 (1952): 500.
 
-  See Also
-  --------
+  See Also::
+
   INa_HH1952
   """
 
@@ -353,8 +353,8 @@ class _IKA_p4q_ss(IonChannel):
 
   where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -370,8 +370,8 @@ class _IKA_p4q_ss(IonChannel):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References
-  ----------
+  References::
+
   .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
          currents involved in rhythmic oscillations in thalamic relay
          neurons." Journal of neurophysiology 68.4 (1992): 1373-1383.
@@ -462,8 +462,8 @@ class IKA1_HM1992(_IKA_p4q_ss):
 
   where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -481,8 +481,8 @@ class IKA1_HM1992(_IKA_p4q_ss):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References
-  ----------
+  References::
+
   .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
          currents involved in rhythmic oscillations in thalamic relay
          neurons." Journal of neurophysiology 68.4 (1992): 1373-1383.
@@ -490,8 +490,8 @@ class IKA1_HM1992(_IKA_p4q_ss):
          TEA-sensitive K current in acutely isolated rat thalamic relay
          neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
-  See Also
-  --------
+  See Also::
+
   IKA2_HM1992
   """
 
@@ -557,8 +557,8 @@ class IKA2_HM1992(_IKA_p4q_ss):
 
   where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -576,8 +576,8 @@ class IKA2_HM1992(_IKA_p4q_ss):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References
-  ----------
+  References::
+
   .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
          currents involved in rhythmic oscillations in thalamic relay
          neurons." Journal of neurophysiology 68.4 (1992): 1373-1383.
@@ -585,8 +585,8 @@ class IKA2_HM1992(_IKA_p4q_ss):
          TEA-sensitive K current in acutely isolated rat thalamic relay
          neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
-  See Also
-  --------
+  See Also::
+
   IKA1_HM1992
   """
 
@@ -647,8 +647,8 @@ class _IKK2_pq_ss(IonChannel):
 
   where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -664,8 +664,8 @@ class _IKK2_pq_ss(IonChannel):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References
-  ----------
+  References::
+
   .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
          currents involved in rhythmic oscillations in thalamic relay
          neurons." Journal of neurophysiology 68.4 (1992): 1373-1383.
@@ -756,8 +756,8 @@ class IKK2A_HM1992(_IKK2_pq_ss):
 
   where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -775,8 +775,8 @@ class IKK2A_HM1992(_IKK2_pq_ss):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References
-  ----------
+  References::
+
   .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
          currents involved in rhythmic oscillations in thalamic relay
          neurons." Journal of neurophysiology 68.4 (1992): 1373-1383.
@@ -847,8 +847,8 @@ class IKK2B_HM1992(_IKK2_pq_ss):
 
   where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -866,8 +866,8 @@ class IKK2B_HM1992(_IKK2_pq_ss):
   phi_q : optional, float, ArrayType, Callable, Initializer
     The temperature factor for channel :math:`q`.
 
-  References
-  ----------
+  References::
+
   .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
          currents involved in rhythmic oscillations in thalamic relay
          neurons." Journal of neurophysiology 68.4 (1992): 1373-1383.
@@ -937,8 +937,8 @@ class IKNI_Ya1989(IonChannel):
   where :math:`\bar{g}_{M}` was :math:`0.004 \mathrm{mS} / \mathrm{cm}^{2}` and
   :math:`\tau_{\max }=4 \mathrm{~s}`, unless stated otherwise.
 
-  Parameters
-  ----------
+  Parameters::
+
   size: int, sequence of int
     The geometry size.
   method: str
@@ -956,8 +956,8 @@ class IKNI_Ya1989(IonChannel):
   tau_max: float, ArrayType, Callable, Initializer
     The :math:`tau_{\max}` parameter.
 
-  References
-  ----------
+  References::
+
   .. [1] Yamada, Walter M. "Multiple channels and calcium dynamics." Methods in neuronal modeling (1989): 97-133.
 
   """
@@ -1021,8 +1021,8 @@ class IKNI_Ya1989(IonChannel):
 class IKL(IonChannel):
   """The potassium leak channel current.
 
-  Parameters
-  ----------
+  Parameters::
+
   g_max : float
     The potassium leakage conductance which is modulated by both
     acetylcholine and norepinephrine.

@@ -82,8 +82,7 @@ class SRK1W1(SDEIntegrator):
       \end{array}
 
 
-  References
-  ----------
+  References::
 
   .. [1] Rößler, Andreas. "Strong and weak approximation methods for stochastic differential
           equations—some recent developments." Recent developments in applied probability and
@@ -202,8 +201,7 @@ class SRK2W1(SDEIntegrator):
       \end{array}
 
 
-  References
-  ----------
+  References::
 
   .. [1] Rößler, Andreas. "Strong and weak approximation methods for stochastic differential
          equations—some recent developments." Recent developments in applied probability and

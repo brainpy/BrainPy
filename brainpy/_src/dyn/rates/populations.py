@@ -41,8 +41,8 @@ class FHN(RateModel):
      \frac{dx}{dt} = -\alpha V^3 + \beta V^2 + \gamma V - w + I_{ext}\\
      \tau \frac{dy}{dt} = (V - \delta  - \epsilon w)
 
-  Parameters
-  ----------
+  Parameters::
+
   size: Shape
     The model size.
   x_ou_mean: Parameter
@@ -59,8 +59,8 @@ class FHN(RateModel):
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
-  References
-  ----------
+  References::
+
   .. [1] Kostova, T., Ravindran, R., & Schonbek, M. (2004). FitzHugh–Nagumo
          revisited: Types of bifurcations, periodical forcing and stability
          regions by a Lyapunov functional. International journal of
@@ -239,8 +239,8 @@ class FeedbackFHN(RateModel):
                                         when negative, it is a inhibitory feedback.
   ============= ============== ======== ========================
 
-  Parameters
-  ----------
+  Parameters::
+
   x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
   y_ou_mean: Parameter
@@ -254,8 +254,8 @@ class FeedbackFHN(RateModel):
   y_ou_tau: Parameter
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
-  References
-  ----------
+  References::
+
   .. [4] Plant, Richard E. (1981). *A FitzHugh Differential-Difference
          Equation Modeling Recurrent Neural Feedback. SIAM Journal on
          Applied Mathematics, 40(1), 150–162.* doi:10.1137/0140012
@@ -435,8 +435,8 @@ class QIF(RateModel):
   J             15             \        the strength of the recurrent coupling inside the population
   ============= ============== ======== ========================
 
-  Parameters
-  ----------
+  Parameters::
+
   x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
   y_ou_mean: Parameter
@@ -451,8 +451,8 @@ class QIF(RateModel):
     The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
-  References
-  ----------
+  References::
+
   .. [5] E. Montbrió, D. Pazó, A. Roxin (2015) Macroscopic description for
          networks of spiking neurons. Physical Review X, 5:021028,
          https://doi.org/10.1103/PhysRevX.5.021028.
@@ -601,8 +601,8 @@ class StuartLandauOscillator(RateModel):
      \frac{dx}{dt} = (a - x^2 - y^2) * x - w*y + I^x_{ext} \\
      \frac{dy}{dt} = (a - x^2 - y^2) * y + w*x + I^y_{ext}
 
-  Parameters
-  ----------
+  Parameters::
+
   x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
   y_ou_mean: Parameter
@@ -751,8 +751,8 @@ class WilsonCowanModel(RateModel):
   """Wilson-Cowan population model.
 
 
-  Parameters
-  ----------
+  Parameters::
+
   x_ou_mean: Parameter
     The noise mean of the :math:`x` variable, [mV/ms]
   y_ou_mean: Parameter

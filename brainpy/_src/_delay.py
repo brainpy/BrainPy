@@ -34,8 +34,8 @@ class Delay(DynamicalSystem):
        delay = length-1        data
        delay = length          data ]
 
-  Parameters
-  ----------
+  Parameters::
+
   latest: Variable
     The initial delay data.
   length: int
@@ -221,8 +221,8 @@ class Delay(DynamicalSystem):
   def retrieve(self, delay_step, *indices):
     """Retrieve the delay data according to the delay length.
 
-    Parameters
-    ----------
+    Parameters::
+
     delay_step: int, ArrayType
       The delay length used to retrieve the data.
     """

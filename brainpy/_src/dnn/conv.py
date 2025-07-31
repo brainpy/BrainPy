@@ -39,8 +39,8 @@ def to_dimension_numbers(num_spatial_dims: int,
 class _GeneralConv(Layer):
   """Apply a convolution to the inputs.
 
-  Parameters
-  ----------
+  Parameters::
+
   num_spatial_dims: int
     The number of spatial dimensions of the input.
   in_channels: int
@@ -193,8 +193,8 @@ class Conv1d(_GeneralConv):
   The input should a 2d array with the shape of ``[H, C]``, or
   a 3d array with the shape of ``[B, H, C]``, where ``H`` is the feature size.
 
-  Parameters
-  ----------
+  Parameters::
+
   in_channels: int
     The number of input channels.
   out_channels: int
@@ -288,8 +288,8 @@ class Conv2d(_GeneralConv):
   The input should a 3d array with the shape of ``[H, W, C]``, or
   a 4d array with the shape of ``[B, H, W, C]``.
 
-  Parameters
-  ----------
+  Parameters::
+
   in_channels: int
     The number of input channels.
   out_channels: int
@@ -384,8 +384,8 @@ class Conv3d(_GeneralConv):
   The input should a 3d array with the shape of ``[H, W, D, C]``, or
   a 4d array with the shape of ``[B, H, W, D, C]``.
 
-  Parameters
-  ----------
+  Parameters::
+
   in_channels: int
     The number of input channels.
   out_channels: int

@@ -28,8 +28,8 @@ class OfflineTrainer(DSTrainer):
 
   For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-  Parameters
-  ----------
+  Parameters::
+
   target: DynamicalSystem
     The target model to train.
   fit_method: OfflineAlgorithm, Callable, dict, str
@@ -106,8 +106,8 @@ class OfflineTrainer(DSTrainer):
     What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
     the `inputs_are_batching` is default `True`.
 
-    Parameters
-    ----------
+    Parameters::
+
     inputs: ArrayType
       The input values.
     reset_state: bool
@@ -117,8 +117,8 @@ class OfflineTrainer(DSTrainer):
     shared_args: dict
       The shared arguments across nodes.
 
-    Returns
-    -------
+    Returns::
+
     output: ArrayType
       The running output.
     """
@@ -136,8 +136,8 @@ class OfflineTrainer(DSTrainer):
   ) -> Output:
     """Fit the target model according to the given training and testing data.
 
-    Parameters
-    ----------
+    Parameters::
+
     train_data: sequence of data
       It should be a pair of `(X, Y)` train set.
       - ``X``: should be a tensor or a dict of tensors with the shape of
@@ -261,8 +261,8 @@ class RidgeTrainer(OfflineTrainer):
 
   For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-  Parameters
-  ----------
+  Parameters::
+
   target: TrainingSystem, DynamicalSystem
     The target model.
   alpha: float

@@ -229,8 +229,8 @@ class BrainPyObject(object):
 
         .. versionadded:: 2.3.1
 
-        Returns
-        -------
+        Returns::
+
         res: tuple
           A tuple of dynamical values and static values.
         """
@@ -329,8 +329,8 @@ class BrainPyObject(object):
     ):
         """Collect all variables in this node and the children nodes.
 
-        Parameters
-        ----------
+        Parameters::
+
         method : str
           The method to access the variables.
         level: int
@@ -340,8 +340,8 @@ class BrainPyObject(object):
         exclude_types: tuple of type
           The type to exclude.
 
-        Returns
-        -------
+        Returns::
+
         gather : ArrayCollector
           The collection contained (the path, the variable).
         """
@@ -371,8 +371,8 @@ class BrainPyObject(object):
     def train_vars(self, method='absolute', level=-1, include_self=True):
         """The shortcut for retrieving all trainable variables.
 
-        Parameters
-        ----------
+        Parameters::
+
         method : str
           The method to access the variables. Support 'absolute' and 'relative'.
         level: int
@@ -380,8 +380,8 @@ class BrainPyObject(object):
         include_self: bool
           Whether include the TrainVar instances in the self.
 
-        Returns
-        -------
+        Returns::
+
         gather : ArrayCollector
           The collection contained (the path, the trainable variable).
         """
@@ -459,8 +459,8 @@ class BrainPyObject(object):
     def nodes(self, method='absolute', level=-1, include_self=True):
         """Collect all children nodes.
 
-        Parameters
-        ----------
+        Parameters::
+
         method : str
           The method to access the nodes.
         level: int
@@ -468,8 +468,8 @@ class BrainPyObject(object):
         include_self: bool
           Whether include the self.
 
-        Returns
-        -------
+        Returns::
+
         gather : Collector
           The collection contained (the path, the node).
         """
@@ -478,16 +478,16 @@ class BrainPyObject(object):
     def unique_name(self, name=None, type_=None):
         """Get the unique name for this object.
 
-        Parameters
-        ----------
+        Parameters::
+
         name : str, optional
           The expected name. If None, the default unique name will be returned.
           Otherwise, the provided name will be checked to guarantee its uniqueness.
         type_ : str, optional
           The name of this class, used for object naming.
 
-        Returns
-        -------
+        Returns::
+
         name : str
           The unique name for this object.
         """
@@ -526,8 +526,8 @@ class BrainPyObject(object):
     def state_dict(self, **kwargs) -> dict:
         """Returns a dictionary containing a whole state of the module.
 
-        Returns
-        -------
+        Returns::
+
         out: dict
           A dictionary containing a whole state of the module.
         """
@@ -544,8 +544,8 @@ class BrainPyObject(object):
         """Copy parameters and buffers from :attr:`state_dict` into
         this module and its descendants.
 
-        Parameters
-        ----------
+        Parameters::
+
         state_dict: dict
           A dict containing parameters and persistent buffers.
         warn: bool
@@ -553,8 +553,8 @@ class BrainPyObject(object):
         compatible: bool
           The version of API for compatibility.
 
-        Returns
-        -------
+        Returns::
+
         out: StateLoadResult
           ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
 
@@ -636,8 +636,8 @@ Base = BrainPyObject
 class FunAsObject(BrainPyObject):
     """Transform a Python function as a :py:class:`~.BrainPyObject`.
 
-    Parameters
-    ----------
+    Parameters::
+
     target : callable
       The function to wrap.
     child_objs : optional, BrainPyObject, sequence of BrainPyObject, dict

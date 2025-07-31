@@ -75,8 +75,8 @@ class Euler(SDEIntegrator):
       \end{aligned}
 
 
-  See Also
-  --------
+  See Also::
+
   Heun
 
   """
@@ -200,8 +200,8 @@ class Heun(Euler):
     \end{aligned}
 
 
-  See Also
-  --------
+  See Also::
+
   Euler
 
   """
@@ -520,14 +520,14 @@ class ExponentialEuler(SDEIntegrator):
 
   where :math:`\varphi(z)=\frac{e^{z}-1}{z}`.
 
-  References
-  ----------
+  References::
+
   .. [1] Erdoğan, Utku, and Gabriel J. Lord. "A new class of exponential integrators for stochastic
          differential equations with multiplicative noise." arXiv preprint arXiv:1608.07096 (2016).
 
 
-  See Also
-  --------
+  See Also::
+
   Euler, Heun, Milstein
   """
 
