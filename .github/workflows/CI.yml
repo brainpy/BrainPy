@@ -115,4 +115,4 @@ jobs:
       - name: Test with pytest
         run: |
           cd brainpy
-          export IS_GITHUB_ACTIONS=1 && pytest _src/
+          pytest _src/

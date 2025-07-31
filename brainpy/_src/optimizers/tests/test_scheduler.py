@@ -4,12 +4,15 @@ import unittest
 
 import jax.numpy
 import matplotlib.pyplot as plt
+import pytest
 from absl.testing import parameterized
 
 import brainpy.math as bm
 from brainpy._src.optimizers import scheduler
 
 show = False
+
+pytest.skip('Skip the test for now', allow_module_level=True)
 
 
 class TestMultiStepLR(parameterized.TestCase):

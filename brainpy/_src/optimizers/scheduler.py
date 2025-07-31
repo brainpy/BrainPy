@@ -39,7 +39,7 @@ class Scheduler(BrainPyObject):
         self.lr = learning_rate
 
     def step_epoch(self):
-        self.last_epoch += 1
+        self.last_epoch.value += 1
 
     def step_call(self):
         pass
@@ -64,7 +64,7 @@ class CallBasedScheduler(Scheduler):
         self.last_call = bm.Variable(jnp.asarray(last_call))
 
     def step_call(self):
-        self.last_call += 1
+        self.last_call.value += 1
 
     def __repr__(self):
         return f'{self.__class__.__name__}(lr={self.lr}, last_call={self.last_call.value})'
@@ -213,13 +213,13 @@ class CosineAnnealingLR(Scheduler):
 
     @bm.cls_jit(inline=True)
     def __call__(self, i=None):
-        i = (self.last_epoch + 1) if i is None else i
+        i = (self.last_epoch.value + 1) if i is None else i
         return (self.eta_min + (self.lr - self.eta_min) *
                 (1 + jnp.cos(jnp.pi * i / self.T_max)) / 2)
 
 
 class CosineAnnealingWarmRestarts(CallBasedScheduler):
-    """Set the learning rate of each parameter group using a cosine annealing
+    r"""Set the learning rate of each parameter group using a cosine annealing
     schedule, where :math:`\eta_{max}` is set to the initial lr, :math:`T_{cur}`
     is the number of epochs since the last restart and :math:`T_{i}` is the number
     of epochs between two warm restarts in SGDR:
@@ -288,7 +288,7 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
 
     @bm.cls_jit(inline=True)
     def __call__(self, i=None):
-        i = (self.last_call + 1) if i is None else i
+        i = (self.last_call.value + 1) if i is None else i
         epoch = i / self.num_call_per_epoch
         T_cur, T_i = jax.lax.cond(epoch >= self.T_0,
                                   self._cond1,
@@ -298,7 +298,7 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
 
     @bm.cls_jit(inline=True)
     def current_epoch(self, i=None):
-        i = (self.last_call + 1) if i is None else i
+        i = (self.last_call.value + 1) if i is None else i
         return jnp.floor(i / self.num_call_per_epoch)
 
 
