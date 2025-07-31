@@ -39,6 +39,8 @@ class TestESN(unittest.TestCase):
   def test_train_esn_with_ridge(self):
     bm.random.seed()
 
+    bp.share.save(fit=True)
+
     num_in = 100
     num_out = 30
 
