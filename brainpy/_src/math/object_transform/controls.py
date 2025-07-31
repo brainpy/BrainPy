@@ -437,13 +437,23 @@ def while_loop(
         
     except ValueError as e:
         if "should not have any write states" in str(e):
-            # Fallback to Python while loop when condition function modifies state
-            # Use native Python while loop regardless of JIT status
-            val = operands
-            while cond_fun(*val):
-                result = body_fun(*val)
-                if result is not None:
-                    val = result
-            return val
+            # Check if we're in a JIT context by looking for tracers
+            import jax
+            
+            # Check if any operand is a tracer
+            in_jit_context = any(isinstance(op, jax.core.Tracer) for op in operands)
+            
+            if in_jit_context:
+                # Cannot use Python while loop in JIT context, re-raise the original error
+                raise e
+            else:
+                # Fallback to Python while loop when condition function modifies state
+                # and we're not in JIT context
+                val = operands
+                while cond_fun(*val):
+                    result = body_fun(*val)
+                    if result is not None:
+                        val = result
+                return val
         else:
             raise e

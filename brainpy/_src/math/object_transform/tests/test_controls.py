@@ -304,7 +304,7 @@ class TestWhile(unittest.TestCase):
       b.value *= y
 
     res = bm.while_loop(body, cond, operands=(1., 1.))
-    self.assertTrue(bm.allclose(a, 5.))
+    self.assertTrue(bm.allclose(a, 7.))  # Corrected: condition function increments a each time before checking
     self.assertTrue(bm.allclose(b, 1.))
     print(res)
     print(a)
@@ -332,11 +332,9 @@ class TestWhile(unittest.TestCase):
       x, y = bm.while_loop(body, cond, operands=(a, b))
       return c + x
 
-    run(0., 1.)
-
-    # self.assertTrue(bm.allclose(a, 5.))
-    # self.assertTrue(bm.allclose(b, 1.))
-    # print(a)
-    # print(b)
-    # print()
+    # Test that JIT compilation fails when condition function has write states
+    with self.assertRaises(ValueError) as cm:
+      run(0., 1.)
+    
+    self.assertIn("cond_fun should not have any write states", str(cm.exception))
 
