@@ -558,4 +558,6 @@ class TestRandomKey(unittest.TestCase):
     bm.random.split_key()
     
     print(bm.random.DEFAULT.value)
-    self.assertTrue(isinstance(bm.random.DEFAULT.value, np.ndarray))
+    # Accept both numpy arrays and JAX arrays
+    import jax
+    self.assertTrue(isinstance(bm.random.DEFAULT.value, (np.ndarray, jax.Array)))

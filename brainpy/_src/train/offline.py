@@ -198,7 +198,10 @@ class OfflineTrainer(DSTrainer):
 
     # final things
     for node in self.train_nodes:
-      self.mon.pop(f'{node.name}-fit_record')
+      # Only pop if the key exists
+      fit_record_key = f'{node.name}-fit_record'
+      if fit_record_key in self.mon:
+        self.mon.pop(fit_record_key)
       node.fit_record.clear()  # clear fit records
     if self._true_numpy_mon_after_run:
       for key in self.mon.keys():
@@ -215,7 +218,8 @@ class OfflineTrainer(DSTrainer):
     share.save(**shared_args)
 
     for node in self.train_nodes:
-      fit_record = monitor_data[f'{node.name}-fit_record']
+      fit_record_key = f'{node.name}-fit_record'
+      fit_record = monitor_data.get(fit_record_key, None)
       targets = target_data[node.name]
       node.offline_fit(targets, fit_record)
       if self.progress_bar:
