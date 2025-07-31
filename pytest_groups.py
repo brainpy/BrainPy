@@ -80,7 +80,7 @@ def main():
     print("=" * 80)
     
     # Run main test suite (excluding problematic files)
-    print(f"\n{'🔄 Running main test suite...':<60} ", end="", flush=True)
+    print(f"\n{'Running main test suite...':<60} ", end="", flush=True)
     
     cmd = base_cmd + ["brainpy/_src/"] + test_args + ignore_patterns
     main_start = time.time()
@@ -89,9 +89,9 @@ def main():
     main_passed = main_result.returncode == 0
     
     if main_passed:
-        print(f"✅ PASSED ({main_time:.1f}s)")
+        print(f"PASSED ({main_time:.1f}s)")
     else:
-        print(f"❌ FAILED ({main_time:.1f}s)")
+        print(f"FAILED ({main_time:.1f}s)")
         if not is_github_actions:
             # Extract key info from pytest output
             lines = main_result.stdout.split('\n')
@@ -106,7 +106,7 @@ def main():
     for file_path in sorted(all_problematic_files):
         if os.path.exists(file_path):
             file_name = file_path.split("/")[-1]
-            print(f"{'🔄 Isolated: ' + file_name:<60} ", end="", flush=True)
+            print(f"{'Isolated: ' + file_name:<60} ", end="", flush=True)
             
             cmd = base_cmd + [file_path] + test_args + ["-x"]
             iso_start = time.time()
@@ -116,9 +116,9 @@ def main():
             isolated_results.append(passed)
             
             if passed:
-                print(f"✅ PASSED ({iso_time:.1f}s)")
+                print(f"PASSED ({iso_time:.1f}s)")
             else:
-                print(f"❌ FAILED ({iso_time:.1f}s)")
+                print(f"FAILED ({iso_time:.1f}s)")
                 if not is_github_actions:
                     lines = result.stdout.split('\n')
                     failed_lines = [line for line in lines if 'FAILED' in line][:3]
@@ -139,13 +139,13 @@ def main():
     failed_groups = total_groups - passed_groups
     
     if all_passed:
-        print(f"{'=' * 25} ✅ {passed_groups} passed in {total_time:.1f}s {'=' * 25}")
+        print(f"{'=' * 25} {passed_groups} passed in {total_time:.1f}s {'=' * 25}")
     else:
         status_parts = []
         if failed_groups > 0:
-            status_parts.append(f"❌ {failed_groups} failed")
+            status_parts.append(f"{failed_groups} failed")
         if passed_groups > 0:
-            status_parts.append(f"✅ {passed_groups} passed")
+            status_parts.append(f"{passed_groups} passed")
         
         status = ", ".join(status_parts)
         print(f"{'=' * 20} {status} in {total_time:.1f}s {'=' * 20}")
@@ -153,10 +153,10 @@ def main():
         if not all_passed:
             print("\nFailed test groups:")
             if not main_passed:
-                print("  • Main test suite")
+                print("  - Main test suite")
             for file_path, passed in zip(sorted(all_problematic_files), isolated_results):
                 if os.path.exists(file_path) and not passed:
-                    print(f"  • {file_path}")
+                    print(f"  - {file_path}")
     
     return 0 if all_passed else 1
 
