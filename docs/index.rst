@@ -32,6 +32,13 @@ Installation
           pip install -U brainpy[tpu]
 
 
+    .. tab-item:: Ecosystem
+
+       .. code-block:: bash
+
+          pip install -U BrainX
+
+
 ----
 
 Learn more
