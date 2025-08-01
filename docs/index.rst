@@ -111,6 +111,10 @@ Learn more
    in mind what BrainPy version you are using.
 
 
+.. note::
+   BrainPy now is rewritten based on [brainstate](https://github.com/chaobrain/brainstate).
+
+
 
 ----
 
