@@ -32,8 +32,6 @@ Installation
           pip install -U brainpy[tpu]
 
 
-For more information, please see `installation <quickstart/installation.html>`_ section.
-
 ----
 
 Learn more
