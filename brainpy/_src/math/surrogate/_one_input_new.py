@@ -100,9 +100,8 @@ class Surrogate(object):
   To customize a surrogate gradient function, you can inherit this class and
   implement the `surrogate_fun` and `surrogate_grad` methods.
 
-  Examples
-  --------
-
+  Examples::
+  
   >>> import brainpy as bp
   >>> import brainpy.math as bm
   >>> import jax.numpy as jnp
@@ -140,8 +139,8 @@ class Surrogate(object):
 class Sigmoid(Surrogate):
   """Spike function with the sigmoid-shaped surrogate gradient.
 
-  See Also
-  --------
+  See Also::
+  
   sigmoid
 
   """
@@ -203,16 +202,16 @@ def sigmoid(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
   """
@@ -222,8 +221,8 @@ def sigmoid(
 class PiecewiseQuadratic(Surrogate):
   """Judge spiking state with a piecewise quadratic function.
 
-  See Also
-  --------
+  See Also::
+  
   piecewise_quadratic
 
   """
@@ -300,21 +299,21 @@ def piecewise_quadratic(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Esser S K, Merolla P A, Arthur J V, et al. Convolutional networks for fast, energy-efficient neuromorphic computing[J]. Proceedings of the national academy of sciences, 2016, 113(41): 11441-11446.
   .. [2] Wu Y, Deng L, Li G, et al. Spatio-temporal backpropagation for training high-performance spiking neural networks[J]. Frontiers in neuroscience, 2018, 12: 331.
   .. [3] Bellec G, Salaj D, Subramoney A, et al. Long short-term memory and learning-to-learn in networks of spiking neurons[C]//Proceedings of the 32nd International Conference on Neural Information Processing Systems. 2018: 795-805.
@@ -327,8 +326,8 @@ def piecewise_quadratic(
 class PiecewiseExp(Surrogate):
   """Judge spiking state with a piecewise exponential function.
 
-  See Also
-  --------
+  See Also::
+  
   piecewise_exp
   """
 
@@ -394,21 +393,21 @@ def piecewise_exp(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Neftci E O, Mostafa H, Zenke F. Surrogate gradient learning in spiking neural networks: Bringing the power of gradient-based optimization to spiking neural networks[J]. IEEE Signal Processing Magazine, 2019, 36(6): 51-63.
   """
   return PiecewiseExp(alpha=alpha)(x)
@@ -417,8 +416,8 @@ def piecewise_exp(
 class SoftSign(Surrogate):
   """Judge spiking state with a soft sign function.
 
-  See Also
-  --------
+  See Also::
+  
   soft_sign
   """
 
@@ -482,16 +481,16 @@ def soft_sign(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
@@ -502,8 +501,8 @@ def soft_sign(
 class Arctan(Surrogate):
   """Judge spiking state with an arctan function.
 
-  See Also
-  --------
+  See Also::
+  
   arctan
   """
 
@@ -566,16 +565,16 @@ def arctan(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
@@ -586,8 +585,8 @@ def arctan(
 class NonzeroSignLog(Surrogate):
   """Judge spiking state with a nonzero sign log function.
 
-  See Also
-  --------
+  See Also::
+  
   nonzero_sign_log
   """
 
@@ -663,16 +662,16 @@ def nonzero_sign_log(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
@@ -683,8 +682,8 @@ def nonzero_sign_log(
 class ERF(Surrogate):
   """Judge spiking state with an erf function.
 
-  See Also
-  --------
+  See Also::
+  
   erf
   """
 
@@ -751,21 +750,21 @@ def erf(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Esser S K, Appuswamy R, Merolla P, et al. Backpropagation for energy-efficient neuromorphic computing[J]. Advances in neural information processing systems, 2015, 28: 1117-1125.
   .. [2] Wu Y, Deng L, Li G, et al. Spatio-temporal backpropagation for training high-performance spiking neural networks[J]. Frontiers in neuroscience, 2018, 12: 331.
   .. [3] Yin B, Corradi F, Bohté S M. Effective and efficient computation with multiple-timescale spiking recurrent neural networks[C]//International Conference on Neuromorphic Systems 2020. 2020: 1-8.
@@ -777,8 +776,8 @@ def erf(
 class PiecewiseLeakyRelu(Surrogate):
   """Judge spiking state with a piecewise leaky relu function.
 
-  See Also
-  --------
+  See Also::
+  
   piecewise_leaky_relu
   """
 
@@ -858,8 +857,8 @@ def piecewise_leaky_relu(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   c: float
@@ -868,13 +867,13 @@ def piecewise_leaky_relu(
     When :math:`|x| <= w` the gradient is `1 / w`.
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Yin S, Venkataramanaiah S K, Chen G K, et al. Algorithm and hardware design of discrete-time spiking neural networks based on back propagation with binary activations[C]//2017 IEEE Biomedical Circuits and Systems Conference (BioCAS). IEEE, 2017: 1-5.
   .. [2] Wu Y, Deng L, Li G, et al. Spatio-temporal backpropagation for training high-performance spiking neural networks[J]. Frontiers in neuroscience, 2018, 12: 331.
   .. [3] Huh D, Sejnowski T J. Gradient descent for spiking neural networks[C]//Proceedings of the 32nd International Conference on Neural Information Processing Systems. 2018: 1440-1450.
@@ -891,8 +890,8 @@ def piecewise_leaky_relu(
 class SquarewaveFourierSeries(Surrogate):
   """Judge spiking state with a squarewave fourier series.
 
-  See Also
-  --------
+  See Also::
+  
   squarewave_fourier_series
   """
 
@@ -968,16 +967,16 @@ def squarewave_fourier_series(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   n: int
   t_period: float
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
@@ -989,8 +988,8 @@ def squarewave_fourier_series(
 class S2NN(Surrogate):
   """Judge spiking state with the S2NN surrogate spiking function.
 
-  See Also
-  --------
+  See Also::
+  
   s2nn
   """
 
@@ -1068,8 +1067,8 @@ def s2nn(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
@@ -1080,13 +1079,13 @@ def s2nn(
     Avoid nan
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Suetake, Kazuma et al. “S2NN: Time Step Reduction of Spiking Surrogate Gradients for Training Energy Efficient Single-Step Neural Networks.” ArXiv abs/2201.10879 (2022): n. pag.
 
   """
@@ -1096,8 +1095,8 @@ def s2nn(
 class QPseudoSpike(Surrogate):
   """Judge spiking state with the q-PseudoSpike surrogate function.
 
-  See Also
-  --------
+  See Also::
+  
   q_pseudo_spike
   """
 
@@ -1167,21 +1166,21 @@ def q_pseudo_spike(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     The parameter to control tail fatness of gradient.
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Herranz-Celotti, Luca and Jean Rouat. “Surrogate Gradients Design.” ArXiv abs/2202.00282 (2022): n. pag.
   """
   return QPseudoSpike(alpha=alpha)(x)
@@ -1190,8 +1189,8 @@ def q_pseudo_spike(
 class LeakyRelu(Surrogate):
   """Judge spiking state with the Leaky ReLU function.
 
-  See Also
-  --------
+  See Also::
+  
   leaky_relu
   """
 
@@ -1263,8 +1262,8 @@ def leaky_relu(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
@@ -1273,8 +1272,8 @@ def leaky_relu(
     The parameter to control the  gradient when :math:`x >= 0`.
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
   """
@@ -1284,8 +1283,8 @@ def leaky_relu(
 class LogTailedRelu(Surrogate):
   """Judge spiking state with the Log-tailed ReLU function.
 
-  See Also
-  --------
+  See Also::
+  
   log_tailed_relu
   """
 
@@ -1366,21 +1365,21 @@ def log_tailed_relu(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     The parameter to control the gradient.
 
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Cai, Zhaowei et al. “Deep Learning with Low Precision by Half-Wave Gaussian Quantization.” 2017 IEEE Conference on Computer Vision and Pattern Recognition (CVPR) (2017): 5406-5414.
   """
   return LogTailedRelu(alpha=alpha)(x)
@@ -1389,8 +1388,8 @@ def log_tailed_relu(
 class ReluGrad(Surrogate):
   """Judge spiking state with the ReLU gradient function.
 
-  See Also
-  --------
+  See Also::
+  
   relu_grad
   """
 
@@ -1445,8 +1444,8 @@ def relu_grad(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
@@ -1454,13 +1453,13 @@ def relu_grad(
   width: float
     The parameter to control the width of the gradient.
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Neftci, E. O., Mostafa, H. & Zenke, F. Surrogate gradient learning in spiking neural networks. IEEE Signal Process. Mag. 36, 61–63 (2019).
   """
   return ReluGrad(alpha=alpha, width=width)(x)
@@ -1469,8 +1468,8 @@ def relu_grad(
 class GaussianGrad(Surrogate):
   """Judge spiking state with the Gaussian gradient function.
 
-  See Also
-  --------
+  See Also::
+  
   gaussian_grad
   """
 
@@ -1524,8 +1523,8 @@ def gaussian_grad(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   sigma: float
@@ -1533,13 +1532,13 @@ def gaussian_grad(
   alpha: float
     The parameter to control the scale of the gradient.
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Yin, B., Corradi, F. & Bohté, S.M. Accurate and efficient time-domain classification with adaptive spiking recurrent neural networks. Nat Mach Intell 3, 905–913 (2021).
   """
   return GaussianGrad(sigma=sigma, alpha=alpha)(x)
@@ -1548,8 +1547,8 @@ def gaussian_grad(
 class MultiGaussianGrad(Surrogate):
   """Judge spiking state with the multi-Gaussian gradient function.
 
-  See Also
-  --------
+  See Also::
+  
   multi_gaussian_grad
   """
 
@@ -1615,8 +1614,8 @@ def multi_gaussian_grad(
      >>> plt.plot(bm.as_numpy(xs), bm.as_numpy(grads))
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   h: float
@@ -1628,13 +1627,13 @@ def multi_gaussian_grad(
   scale: float
     The gradient scale.
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Yin, B., Corradi, F. & Bohté, S.M. Accurate and efficient time-domain classification with adaptive spiking recurrent neural networks. Nat Mach Intell 3, 905–913 (2021).
   """
   return MultiGaussianGrad(h=h, s=s, sigma=sigma, scale=scale)(x)
@@ -1643,8 +1642,8 @@ def multi_gaussian_grad(
 class InvSquareGrad(Surrogate):
   """Judge spiking state with the inverse-square surrogate gradient function.
 
-  See Also
-  --------
+  See Also::
+  
   inv_square_grad
   """
 
@@ -1695,15 +1694,15 @@ def inv_square_grad(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
   """
@@ -1713,8 +1712,8 @@ def inv_square_grad(
 class SlayerGrad(Surrogate):
   """Judge spiking state with the slayer surrogate gradient function.
 
-  See Also
-  --------
+  See Also::
+  
   slayer_grad
   """
 
@@ -1766,20 +1765,20 @@ def slayer_grad(
      >>> plt.legend()
      >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+  
   x: jax.Array, Array
     The input data.
   alpha: float
     Parameter to control smoothness of gradient
 
-  Returns
-  -------
+  Returns::
+  
   out: jax.Array
     The spiking state.
 
-  References
-  ----------
+  References::
+  
   .. [1] Shrestha, S. B. & Orchard, G. Slayer: spike layer error reassignment in time. In Advances in Neural Information Processing Systems Vol. 31, 1412–1421 (NeurIPS, 2018).
   """
   return SlayerGrad(alpha=alpha)(x)

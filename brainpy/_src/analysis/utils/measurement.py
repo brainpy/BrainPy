@@ -47,13 +47,13 @@ def euclidean_distance(points: np.ndarray, num_point=None):
   >>> from scipy.spatial.distance import squareform, pdist
   >>> f = lambda points: squareform(pdist(points, metric="euclidean"))
 
-  Parameters
-  ----------
+  Parameters::
+
   points: ArrayType
     The points.
 
-  Returns
-  -------
+  Returns::
+
   dist_matrix: jnp.ndarray
     The distance matrix.
   """
@@ -94,14 +94,14 @@ def euclidean_distance_jax(points: Union[jnp.ndarray, bm.ndarray], num_point=Non
   >>> from scipy.spatial.distance import squareform, pdist
   >>> f = lambda points: squareform(pdist(points, metric="euclidean"))
 
-  Parameters
-  ----------
+  Parameters::
+
   points: ArrayType
     The points.
   num_point: int
 
-  Returns
-  -------
+  Returns::
+
   dist_matrix: ArrayType
     The distance matrix.
   """

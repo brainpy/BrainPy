@@ -84,9 +84,8 @@ def jit(
     but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
     :py:class:`brainpy.BrainPyObject` object.
 
-    Examples
-    --------
-
+    Examples::
+    
     You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.
 
     >>> import brainpy as bp
@@ -108,8 +107,8 @@ def jit(
     >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
 
-    Parameters
-    ----------
+    Parameters::
+    
     {jit_par}
     dyn_vars : optional, dict, sequence of Variable, Variable
       These variables will be changed in the function, or needed in the computation.
@@ -124,8 +123,8 @@ def jit(
          No longer need to provide ``child_objs``. This function is capable of automatically
          collecting the children objects used in the target ``func``.
 
-    Returns
-    -------
+    Returns::
+    
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
     """
@@ -155,9 +154,8 @@ def cls_jit(
 ) -> Callable:
     """Just-in-time compile a function and then the jitted function as the bound method for a class.
 
-    Examples
-    --------
-
+    Examples::
+    
     This transformation can be put on any class function. For example,
 
     >>> import brainpy as bp
@@ -178,12 +176,12 @@ def cls_jit(
     >>> program = SomeProgram()
     >>> program()
 
-    Parameters
-    ----------
+    Parameters::
+    
     {jit_pars}
 
-    Returns
-    -------
+    Returns::
+    
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
     """

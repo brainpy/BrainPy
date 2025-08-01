@@ -219,8 +219,8 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
   an input of size :math:`(d_1, d_2, ..., d_K, minibatch, C)` with :math:`K \geq 1`,
   where :math:`K` is the number of dimensions, and a target of appropriate shape.
 
-  Parameters
-  ----------
+  Parameters::
+
   predicts : ArrayType
     :math:`(N, C)` where `C = number of classes`, or
     :math:`(d_1, d_2, ..., d_K, N, C)` with :math:`K \geq 1`
@@ -238,8 +238,8 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     - ``'mean'``: the weighted mean of the output is taken,
     - ``'sum'``: the output will be summed.
 
-  Returns
-  -------
+  Returns::
+
   output : scalar, ArrayType
     If :attr:`reduction` is ``'none'``, then the same size as the target:
     :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
@@ -547,8 +547,8 @@ def l1_loss(logits, targets, reduction='sum'):
 
   Supports real-valued and complex-valued inputs.
 
-  Parameters
-  ----------
+  Parameters::
+
   logits : ArrayType
     :math:`(N, *)` where :math:`*` means, any number of additional dimensions.
   targets : ArrayType
@@ -560,8 +560,8 @@ def l1_loss(logits, targets, reduction='sum'):
     - ``'mean'``: the sum of the output will be divided by the number of elements in the output,
     - ``'sum'``: the output will be summed. Note: :attr:`size_average`
 
-  Returns
-  -------
+  Returns::
+
   output : scalar.
     If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
   """
@@ -581,21 +581,20 @@ def l2_loss(predicts, targets):
   The 0.5 term is standard in "Pattern Recognition and Machine Learning"
   by Bishop [1]_, but not "The Elements of Statistical Learning" by Tibshirani.
 
-  Parameters
-  ----------
+  Parameters::
 
   predicts: ArrayType
     A vector of arbitrary shape.
   targets: ArrayType
     A vector of shape compatible with predictions.
 
-  Returns
-  -------
+  Returns::
+
   loss : float
     A scalar value containing the l2 loss.
 
-  References
-  ----------
+  References::
+
   .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
   """
   r = tree_map(lambda pred, tar: 0.5 * (pred - tar) ** 2,
@@ -733,8 +732,8 @@ def huber_loss(predicts, targets, delta: float = 1.0):
   If gradient descent is applied to the `huber loss`, it is equivalent to
   clipping gradients of an `l2_loss` to `[-delta, delta]` in the backward pass.
 
-  Parameters
-  ----------
+  Parameters::
+
   predicts: ArrayType
     predictions
   targets: ArrayType
@@ -742,13 +741,13 @@ def huber_loss(predicts, targets, delta: float = 1.0):
   delta: float
     radius of quadratic behavior
 
-  Returns
-  -------
+  Returns::
+
   loss : float
     The loss value.
 
-  References
-  ----------
+  References::
+
   .. [1] https://en.wikipedia.org/wiki/Huber_loss
   """
 

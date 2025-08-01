@@ -128,9 +128,8 @@ class ExponentialEuler(ODEIntegrator):
   to automatically infer the linear part of the given function. Therefore, it has minimal constraints
   on your derivative function. Arbitrary complex functions can be numerically integrated with this method.
 
-  Examples
-  --------
-
+  Examples::
+  
   Here is an example uses ``ExponentialEuler`` to implement HH neuron model.
 
   .. plot::
@@ -274,8 +273,8 @@ class ExponentialEuler(ODEIntegrator):
     >>> run(100)
     >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-  Parameters
-  ----------
+  Parameters::
+  
   f : function, joint_eq.JointEq
     The derivative function.
   var_type : optional, str

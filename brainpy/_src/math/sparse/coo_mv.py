@@ -31,8 +31,8 @@ def coomv(
   This function supports JAX transformations, including `jit()`, `grad()`,
   `vmap()` and `pmap()`.
 
-  Parameters
-  ----------
+  Parameters::
+
   data: ndarray, float
     An array of shape ``(nse,)``.
   row: ndarray
@@ -54,8 +54,8 @@ def coomv(
   method: str
     The method used to compute the matrix-vector multiplication.
 
-  Returns
-  -------
+  Returns::
+
   y: ndarray
     An array of shape ``(shape[1] if transpose else shape[0],)`` representing
     the matrix vector product.

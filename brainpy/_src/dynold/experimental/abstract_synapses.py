@@ -43,8 +43,8 @@ class Exponential(SynConnNS):
 
   where :math:`\mathrm{STP}` is used to model the short-term plasticity effect.
 
-  Parameters
-  ----------
+  Parameters::
+
   conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
@@ -59,8 +59,7 @@ class Exponential(SynConnNS):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
+  References::
 
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
           "The Synapse." Principles of Computational Modelling in Neuroscience.
@@ -183,8 +182,8 @@ class DualExponential(SynConnNS):
 
   where :math:`\mathrm{STP}` is used to model the short-term plasticity effect of synapses.
 
-  Parameters
-  ----------
+  Parameters::
+
   conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
@@ -201,8 +200,8 @@ class DualExponential(SynConnNS):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
+  References::
+
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
          "The Synapse." Principles of Computational Modelling in Neuroscience.
          Cambridge: Cambridge UP, 2011. 172-95. Print.
@@ -348,8 +347,8 @@ class Alpha(DualExponential):
     >>> plt.legend()
     >>> plt.show()
 
-  Parameters
-  ----------
+  Parameters::
+
   conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
     The synaptic connections.
   comp_method: str
@@ -366,8 +365,7 @@ class Alpha(DualExponential):
   method: str
     The numerical integration methods.
 
-  References
-  ----------
+  References::
 
   .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
           "The Synapse." Principles of Computational Modelling in Neuroscience.

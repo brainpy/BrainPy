@@ -388,8 +388,8 @@ def _srk2_wrapper():
 def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_iter):
   """The brainpy_object function to format a SRK method.
 
-  Parameters
-  ----------
+  Parameters::
+
   f : callable
       The drift function of the SDE_INT.
   g : callable
@@ -407,8 +407,8 @@ def _wrap(wrapper, f, g, dt, sde_type, var_type, wiener_type, show_code, num_ite
   show_code : bool
       Whether show the formatted code.
 
-  Returns
-  -------
+  Returns::
+
   numerical_func : callable
       The numerical function.
   """

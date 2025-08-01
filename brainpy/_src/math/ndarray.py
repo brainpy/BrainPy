@@ -451,8 +451,8 @@ class BaseArray:
   def astype(self, dtype):
     """Copy of the array, cast to a specified type.
 
-    Parameters
-    ----------
+    Parameters::
+
     dtype: str, dtype
       Typecode or data-type to which the array is cast.
     """
@@ -560,8 +560,8 @@ class BaseArray:
   def put(self, indices, values):
     """Replaces specified elements of an array with given values.
 
-    Parameters
-    ----------
+    Parameters::
+
     indices: array_like
       Target indices, interpreted as integers.
     values: array_like
@@ -605,8 +605,8 @@ class BaseArray:
     right   ``a[i-1] <= v < a[i]``
     ======  ============================
 
-    Parameters
-    ----------
+    Parameters::
+
     v : array_like
         Values to insert into `a`.
     side : {'left', 'right'}, optional
@@ -617,8 +617,8 @@ class BaseArray:
         Optional array of integer indices that sort array a into ascending
         order. They are typically the result of argsort.
 
-    Returns
-    -------
+    Returns::
+
     indices : array of ints
         Array of insertion points with the same shape as `v`.
     """
@@ -627,8 +627,8 @@ class BaseArray:
   def sort(self, axis=-1, stable=True, order=None):
     """Sort an array in-place.
 
-    Parameters
-    ----------
+    Parameters::
+
     axis : int, optional
         Axis along which to sort. Default is -1, which means sort along the
         last axis.
@@ -655,8 +655,8 @@ class BaseArray:
     of the array elements. The standard deviation is computed for the
     flattened array by default, otherwise over the specified axis.
 
-    Parameters
-    ----------
+    Parameters::
+
     axis : None or int or tuple of ints, optional
         Axis or axes along which the standard deviation is computed. The
         default is to compute the standard deviation of the flattened array.
@@ -681,8 +681,8 @@ class BaseArray:
         sub-class' method does not implement `keepdims` any
         exceptions will be raised.
 
-    Returns
-    -------
+    Returns::
+
     standard_deviation : ndarray, see dtype parameter above.
         If `out` is None, return a new array containing the standard deviation,
         otherwise return a reference to the output array.
@@ -702,8 +702,8 @@ class BaseArray:
   def split(self, indices_or_sections, axis=0):
     """Split an array into multiple sub-arrays as views into ``ary``.
 
-    Parameters
-    ----------
+    Parameters::
+
     indices_or_sections : int, 1-D array
       If `indices_or_sections` is an integer, N, the array will be divided
       into N equal arrays along `axis`.  If such a split is not possible,
@@ -722,8 +722,8 @@ class BaseArray:
     axis : int, optional
       The axis along which to split, default is 0.
 
-    Returns
-    -------
+    Returns::
+
     sub-arrays : list of ndarrays
       A list of sub-arrays as views into `ary`.
     """
@@ -770,8 +770,8 @@ class BaseArray:
     ``a.shape = (i[0], i[1], ... i[n-2], i[n-1])``, then
     ``a.transpose().shape = (i[n-1], i[n-2], ... i[1], i[0])``.
 
-    Parameters
-    ----------
+    Parameters::
+
     axes : None, tuple of ints, or `n` ints
 
      * None or no argument: reverses the order of the axes.
@@ -782,8 +782,8 @@ class BaseArray:
      * `n` ints: same as an n-tuple of the same ints (this form is
        intended simply as a "convenience" alternative to the tuple form)
 
-    Returns
-    -------
+    Returns::
+
     out : ndarray
         View of `a`, with axes suitably permuted.
     """
@@ -808,13 +808,13 @@ class BaseArray:
     Note : Although tile may be used for broadcasting, it is strongly
     recommended to use numpy's broadcasting operations and functions.
 
-    Parameters
-    ----------
+    Parameters::
+
     reps : array_like
         The number of repetitions of `A` along each axis.
 
-    Returns
-    -------
+    Returns::
+
     c : ndarray
         The tiled output array.
     """
@@ -1088,12 +1088,12 @@ class BaseArray:
     """
     Expand an array to a shape of another array.
 
-    Parameters
-    ----------
+    Parameters::
+
     array : Array
 
-    Returns
-    -------
+    Returns::
+
     expanded : Array
         A readonly view on the original array with the given shape of array. It is
         typically not contiguous. Furthermore, more than one element of a
@@ -1390,14 +1390,14 @@ class BaseArray:
     """
     Expand an array to a new shape.
 
-    Parameters
-    ----------
+    Parameters::
+
     sizes : tuple or int
         The shape of the desired array. A single integer ``i`` is interpreted
         as ``(i,)``.
 
-    Returns
-    -------
+    Returns::
+
     expanded : Array
         A readonly view on the original array with the given shape. It is
         typically not contiguous. Furthermore, more than one element of a

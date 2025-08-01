@@ -114,8 +114,8 @@ class Camera:
   def animate(self, *args, **kwargs) -> ArtistAnimation:
     """Animate the snapshots taken.
     Uses matplotlib.animation.ArtistAnimation
-    Returns
-    -------
+    Returns::
+
     ArtistAnimation
     """
     return ArtistAnimation(self._figure, self._photos, *args, **kwargs)

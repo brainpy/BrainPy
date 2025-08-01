@@ -16,8 +16,8 @@ __all__ = [
 class SynConn(Projection):
   """Base class to model two-end synaptic connections.
 
-  Parameters
-  ----------
+  Parameters::
+
   pre : NeuGroup
     Pre-synaptic neuron group.
   post : NeuGroup

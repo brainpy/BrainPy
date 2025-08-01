@@ -74,8 +74,8 @@ class StepLR(Scheduler):
     """Decays the learning rate of each parameter group by gamma every
     `step_size` epochs.
 
-    Parameters
-    ----------
+    Parameters::
+
     lr: float
       Initial learning rate.
     step_size: int
@@ -115,8 +115,8 @@ class MultiStepLR(Scheduler):
     happen simultaneously with other changes to the learning rate from outside
     this scheduler. When last_epoch=-1, sets initial lr as lr.
 
-    Parameters
-    ----------
+    Parameters::
+
     lr: float
       Initial learning rate.
     milestones: sequence of int
@@ -185,8 +185,8 @@ class CosineAnnealingLR(Scheduler):
     `SGDR: Stochastic Gradient Descent with Warm Restarts`_. Note that this only
     implements the cosine annealing part of SGDR, and not the restarts.
 
-    Parameters
-    ----------
+    Parameters::
+
     lr: float
       Initial learning rate.
     T_max: int
@@ -234,8 +234,8 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
     It has been proposed in
     `SGDR: Stochastic Gradient Descent with Warm Restarts`_.
 
-    Parameters
-    ----------
+    Parameters::
+
     lr: float
       Initial learning rate.
     num_call_per_epoch: int
@@ -306,8 +306,8 @@ class ExponentialLR(Scheduler):
     """Decays the learning rate of each parameter group by gamma every epoch.
     When last_epoch=-1, sets initial lr as lr.
 
-    Parameters
-    ----------
+    Parameters::
+
     lr: float
       Initial learning rate.
     gamma: float
