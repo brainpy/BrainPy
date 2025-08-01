@@ -17,23 +17,20 @@ Installation
 
        .. code-block:: bash
 
-          # python 3.9-3.11
-          pip install -U brainpy[cpu]  # windows, linux, macos
+          pip install -U brainpy[cpu]
 
     .. tab-item:: GPU (CUDA 12)
 
        .. code-block:: bash
 
-          pip install -U brainpy[cuda12] -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+          pip install -U brainpy[cuda12]
 
     .. tab-item:: TPU
 
        .. code-block:: bash
 
-          pip install -U brainpy[tpu] -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+          pip install -U brainpy[tpu]
 
-
-For more information, please see `installation <quickstart/installation.html>`_ section.
 
 ----
 
@@ -112,6 +109,10 @@ Learn more
    in mind what BrainPy version you are using.
 
 
+.. note::
+   BrainPy now is rewritten based on [brainstate](https://github.com/chaobrain/brainstate).
+
+
 
 ----
 
@@ -122,7 +123,6 @@ Learn more
    :maxdepth: 1
    :caption: Quickstart
 
-   quickstart/installation
    quickstart/simulation
    quickstart/training
    quickstart/analysis

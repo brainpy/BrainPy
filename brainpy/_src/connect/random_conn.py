@@ -511,7 +511,7 @@ class GaussianProb(OneEndConnector):
 
 
 class SmallWorld(TwoEndConnector):
-  """Build a Watts–Strogatz small-world graph.
+  r"""Build a Watts–Strogatz small-world graph.
 
   Parameters::
 
@@ -655,7 +655,7 @@ class SmallWorld(TwoEndConnector):
 
 
 class ScaleFreeBA(TwoEndConnector):
-  """Build a random graph according to the Barabási–Albert preferential
+  r"""Build a random graph according to the Barabási–Albert preferential
   attachment model.
 
   A graph of :math:`num\_node` nodes is grown by attaching new nodes each with

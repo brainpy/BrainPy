@@ -6,7 +6,7 @@
 
 <p align="center">
 	<a href="https://pypi.org/project/brainpy/"><img alt="Supported Python Version" src="https://img.shields.io/pypi/pyversions/brainpy"></a>
-	<a href="https://github.com/brainpy/BrainPy"><img alt="LICENSE" src="https://anaconda.org/brainpy/brainpy/badges/license.svg"></a>
+	<a href="https://github.com/brainpy/BrainPy"><img alt="LICENSE" src="https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-green?style=plastic"></a>
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brainpy"><img alt="PyPI version" src="https://badge.fury.io/py/brainpy.svg"></a>
     <a href="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml"><img alt="Continuous Integration" src="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml/badge.svg"></a>
@@ -14,23 +14,20 @@
 </p>
 
 
-BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation (built on top of [JAX](https://github.com/google/jax), [Taichi](https://github.com/taichi-dev/taichi), [Numba](https://github.com/numba/numba), and others). It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
+BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation. It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
 
-- **Website (documentation and APIs)**: https://brainpy.readthedocs.io/en/latest
+- **Website (documentation and APIs)**: https://brainpy.readthedocs.io/
 - **Source**: https://github.com/brainpy/BrainPy
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
 - **Ecosystem**: https://brainmodeling.readthedocs.io/
-- **Source on OpenI**: https://git.openi.org.cn/OpenI/BrainPy
 
+
+BrainPy now is rewritten based on [brainstate](https://github.com/chaobrain/brainstate), please learn [brainstate documentation](https://brainstate.readthedocs.io/) for the latest updates. 
 
 
 ## Installation
 
-BrainPy is based on Python (>=3.8) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
-
-BrainPy requires ``jax<0.6.0``. 
-
-For detailed installation instructions, please refer to the documentation: [Quickstart/Installation](https://brainpy.readthedocs.io/en/latest/quickstart/installation.html)
+BrainPy is based on Python (>=3.10) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
 
 
 ### Using BrainPy with docker
@@ -64,6 +61,7 @@ We provide a Binder environment for BrainPy. You can use the following button to
 - [《神经计算建模实战》 (Neural Modeling in Action)](https://github.com/c-xy17/NeuralModeling)
 - [第一届神经计算建模与编程培训班 (First Training Course on Neural Modeling and Programming)](https://github.com/brainpy/1st-neural-modeling-and-programming-course)
 - [第二届神经计算建模与编程培训班 (Second Training Course on Neural Modeling and Programming)](https://github.com/brainpy/2nd-neural-modeling-and-programming-course)
+- **[brain modeling ecosystem](https://brainmodeling.readthedocs.io/)**: A collection of tools and libraries for brain modeling and simulation.
 
 
 ## Citing 
